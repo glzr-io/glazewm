@@ -9,7 +9,7 @@ namespace LarsWM
         
         static int SW_MAXIMIZE = 3;
 
-        static void Main(string[] args)
+        static void Experiments(string[] args)
         {
             Console.WriteLine("Hello World!");
             var a = GetForegroundWindow();
