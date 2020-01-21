@@ -13,7 +13,11 @@ namespace LarsWM
         [STAThread]
         static void Main()
         {
-            Application.Run();
+            Debug.WriteLine("Application started");
+
+            //Application.Run();
+
+            new WindowManager();
             // TODO: Create a workspace and assign a workspace to each connected display
         }
     }

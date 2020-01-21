@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
+using System.Windows.Forms;
 
 namespace LarsWM
 {
@@ -12,20 +14,46 @@ namespace LarsWM
         Right,
     }
 
+    class Window { }
+    class Workspace { }
+
     class WindowManager
     {
+        private Monitor[] _monitors;
 
-    public void ShiftFocusInDirection(FocusDirection direction)
-    { }
+        public WindowManager()
+        {
+            var screens = Screen.AllScreens;
+            _monitors = new Monitor[screens.Length];
 
-    public void ShiftFocusToWorkspace(Workspace workspace)
-    { }
+            _monitors[0] = new Monitor(0, Screen.PrimaryScreen);
 
-    public void MoveFocusedWindowToWorkspace(Window window, Workspace workspace)
-    { }
+            var index = 1;
+            foreach (var screen in screens)
+            {
+                if (!screen.Primary)
+                {
+                    _monitors[index] = new Monitor(index, screen);
+                    index++;
+                }
+            }
 
-    public void MoveFocusedWindowInDirection(Window window, FocusDirection direction)
-    { }
+            var focusedMonitor = _monitors[0];
+        }
+
+        public int NumMonitors => _monitors.Length;
+
+        public void ShiftFocusInDirection(FocusDirection direction)
+        { }
+
+        public void ShiftFocusToWorkspace(Workspace workspace)
+        { }
+
+        public void MoveFocusedWindowToWorkspace(Window window, Workspace workspace)
+        { } 
+
+        public void MoveFocusedWindowInDirection(Window window, FocusDirection direction)
+        { }
 
     }
 }
