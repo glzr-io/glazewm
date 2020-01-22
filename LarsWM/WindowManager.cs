@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -13,9 +13,6 @@ namespace LarsWM
         Left,
         Right,
     }
-
-    class Window { }
-    class Workspace { }
 
     class WindowManager
     {
