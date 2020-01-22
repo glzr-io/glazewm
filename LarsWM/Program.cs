@@ -18,7 +18,11 @@ namespace LarsWM
             //Application.Run();
 
             new WindowManager();
+
+            // TODO: Read config file and initialise UserConfig class with its values
+            // TODO: Register windows hooks
             // TODO: Create a workspace and assign a workspace to each connected display
+            // TODO: Force initial layout
         }
     }
 }
