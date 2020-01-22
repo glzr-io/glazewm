@@ -7,18 +7,18 @@ namespace LarsWM
 {
     public class Monitor
     {
-        public int Index { get; private set; }
+        public List<Workspace> WorkspacesInMonitor = new List<Workspace>();
         public string Name => Screen.DeviceName;
         public int Width => Screen.WorkingArea.Width;
         public int Height => Screen.WorkingArea.Height;
         public int X => Screen.WorkingArea.X;
         public int Y => Screen.WorkingArea.Y;
+        public bool IsPrimary => Screen.Primary;
 
         public Screen Screen { get; }
 
-        public Monitor(int index, Screen screen)
+        public Monitor(Screen screen)
         {
-            Index = index;
             Screen = screen;
         }
     }

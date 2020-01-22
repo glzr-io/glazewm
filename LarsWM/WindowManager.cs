@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -16,29 +16,19 @@ namespace LarsWM
 
     class WindowManager
     {
-        private Monitor[] _monitors;
+        private List<Monitor> _monitors = new List<Monitor>();
 
         public WindowManager()
         {
-            var screens = Screen.AllScreens;
-            _monitors = new Monitor[screens.Length];
-
-            _monitors[0] = new Monitor(0, Screen.PrimaryScreen);
-
-            var index = 1;
-            foreach (var screen in screens)
+            foreach (var screen in Screen.AllScreens)
             {
-                if (!screen.Primary)
-                {
-                    _monitors[index] = new Monitor(index, screen);
-                    index++;
-                }
+                _monitors.Add(new Monitor(screen));
             }
 
-            var focusedMonitor = _monitors[0];
+            var focusedMonitor = _monitors.Find(m => m.IsPrimary);
         }
 
-        public int NumMonitors => _monitors.Length;
+        public int NumMonitors => _monitors.Count;
 
         public void ShiftFocusInDirection(FocusDirection direction)
         { }
