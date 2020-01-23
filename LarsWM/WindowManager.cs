@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
@@ -26,6 +27,13 @@ namespace LarsWM
             }
 
             var focusedMonitor = _monitors.Find(m => m.IsPrimary);
+
+            int index = 0;
+            foreach (var monitor in _monitors) 
+            { 
+                monitor.WorkspacesInMonitor.Add(new Workspace(index, new List<Window>()));
+                index++;
+            } 
         }
 
         public int NumMonitors => _monitors.Count;

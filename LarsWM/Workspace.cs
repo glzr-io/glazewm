@@ -6,7 +6,13 @@ namespace LarsWM
 {
     public class Workspace
     {
+        public int Identifier { get; set; }
+        public Window LastFocusedWindow { get; set; }
         public List<Window> WindowsInWorkspace = new List<Window>();
-        public Window LastFocusedWindow;
+
+        public Workspace(int identifier, List<Window> windowsInWorkspace) {
+            Identifier = identifier;
+            WindowsInWorkspace = windowsInWorkspace;
+        }
     }
 }
