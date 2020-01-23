@@ -33,7 +33,10 @@ namespace LarsWM
             { 
                 monitor.WorkspacesInMonitor.Add(new Workspace(index, new List<Window>()));
                 index++;
-            } 
+            }
+
+            var facade = new WindowsApi.WindowsApiFacade();
+            facade.GetOpenWindows();
         }
 
         public int NumMonitors => _monitors.Count;
