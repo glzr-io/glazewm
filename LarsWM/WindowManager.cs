@@ -35,8 +35,12 @@ namespace LarsWM
                 index++;
             }
 
-            var facade = new WindowsApi.WindowsApiFacade();
-            facade.GetOpenWindows();
+            //var facade = new WindowsApi.WindowsApiFacade();
+            //facade.GetOpenWindows();
+
+            Predicate<Window> ALL = delegate { return true; };
+            var windows = WindowsApi.WindowsApiFacade.FilterToplevelWindows(ALL);
+            Console.WriteLine(windows);
         }
 
         public int NumMonitors => _monitors.Count;

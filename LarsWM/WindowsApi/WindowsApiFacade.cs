@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using static LarsWM.WindowsApi.WindowsApiService;
 
@@ -17,6 +18,29 @@ namespace LarsWM.WindowsApi
                 }
                 return true;
             }, IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// Returns all toplevel windows that match the given predicate.
+        /// </summary>
+        /// <param name="predicate">The predicate to filter.</param>
+        /// <returns>The filtered toplevel windows</returns>
+        public static Window[] FilterToplevelWindows(Predicate<Window> predicate)
+        {
+            List<Window> matchedWindows = new List<Window>();
+
+            EnumWindows(new EnumWindowsDelegate(delegate (IntPtr hwnd, int lParam)
+            {
+                Window window = new Window(hwnd);
+
+                if (predicate(window))
+                {
+                    matchedWindows.Add(window);
+                }
+                return true;
+            }), new IntPtr(0));
+
+            return matchedWindows.ToArray();
         }
 
         public bool IsAppWindow(IntPtr hwnd)
