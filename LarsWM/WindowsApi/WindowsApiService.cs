@@ -100,11 +100,11 @@ namespace LarsWM.WindowsApi
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsWindowVisible(IntPtr hWnd);
 
-        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-        public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
-
         [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-        public static extern IntPtr GetWindowLong(IntPtr hWnd, int nIndex);
+        public static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+        public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
         [DllImport("user32.dll")]
         public static extern IntPtr BeginDeferWindowPos(int nNumWindows);
@@ -134,11 +134,5 @@ namespace LarsWM.WindowsApi
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-        public static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-        public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
     }
 }
