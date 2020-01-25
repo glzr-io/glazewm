@@ -8,16 +8,17 @@ namespace LarsWM.WindowsApi
 {
     class WindowsApiFacade
     {
-        public void GetOpenWindows()
+        public static Window[] GetOpenWindows()
         {
-            EnumWindows((handle, param) =>
-            {
-                if (IsAppWindow(handle))
+            Predicate<Window> OpenWindowsPredicate = (Window window) => {
+                if (IsAppWindow(window.Hwnd))
                 {
-                    Console.WriteLine(handle);
+                    return true;
                 }
-                return true;
-            }, IntPtr.Zero);
+                return false;
+            };
+
+            return FilterToplevelWindows(OpenWindowsPredicate);
         }
 
         /// <summary>
@@ -43,14 +44,34 @@ namespace LarsWM.WindowsApi
             return matchedWindows.ToArray();
         }
 
-        public bool IsAppWindow(IntPtr hwnd)
+        public static bool IsAppWindow(IntPtr hwnd)
         {
-            return IsWindowVisible(hwnd) &&
-               !GetWindowExStyleLongPtr(hwnd).HasFlag(WS_EX.WS_EX_NOACTIVATE) &&
-               !GetWindowStyleLongPtr(hwnd).HasFlag(WS.WS_CHILD);
+            return IsWindowVisible(hwnd) && !HasWindowStyle(hwnd, WS.WS_CHILD) && !HasWindowExStyle(hwnd, WS_EX.WS_EX_NOACTIVATE);
         }
 
-        public WS_EX GetWindowExStyleLongPtr(IntPtr hwnd)
+        public static bool HasWindowStyle(IntPtr hwnd, WS style)
+        {
+            var styles = unchecked((WS)GetWindowLongPtr(hwnd, (int)(GWL_STYLE)).ToInt64());
+
+            return (styles & style) != 0;
+        }
+
+        public static bool HasWindowExStyle(IntPtr hwnd, WS_EX style)
+        {
+            var styles = unchecked((WS_EX)GetWindowLongPtr(hwnd, (int)(GWL_EXSTYLE)).ToInt64());
+
+            return (styles & style) != 0;
+        }
+
+        private static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
+        {
+            if (IntPtr.Size == 8)
+                return GetWindowLongPtr64(hWnd, nIndex);
+            else
+                return new IntPtr(GetWindowLong32(hWnd, nIndex));
+        }
+
+        public static WS_EX GetWindowExStyleLongPtr(IntPtr hwnd)
         {
             if (Environment.Is64BitProcess)
             {
@@ -62,16 +83,16 @@ namespace LarsWM.WindowsApi
             }
         }
 
-        public WS GetWindowStyleLongPtr(IntPtr hwnd)
-        {
-            if (Environment.Is64BitProcess)
-            {
-                return (WS)GetWindowLongPtr(hwnd, GWL_STYLE);
-            }
-            else
-            {
-                return (WS)GetWindowLong(hwnd, GWL_STYLE);
-            }
-        }
+        //public static WS GetWindowStyleLongPtr(IntPtr hwnd)
+        //{
+        //    if (Environment.Is64BitProcess)
+        //    {
+        //        return (WS)GetWindowLongPtr(hwnd, GWL_STYLE);
+        //    }
+        //    else
+        //    {
+        //        return (WS)GetWindowLong(hwnd, GWL_STYLE);
+        //    }
+        //}
     }
 }
