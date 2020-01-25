@@ -39,8 +39,14 @@ namespace LarsWM
             //facade.GetOpenWindows();
 
             Predicate<Window> ALL = delegate { return true; };
-            var windows = WindowsApi.WindowsApiFacade.FilterToplevelWindows(ALL);
-            Console.WriteLine(windows);
+            var windows = WindowsApi.WindowsApiFacade.GetOpenWindows();
+
+            foreach (var window in windows)
+            {
+                StringBuilder sb = new StringBuilder(WindowsApi.WindowsApiService.GetWindowTextLength(window.Hwnd) + 1);
+                WindowsApi.WindowsApiService.GetWindowText(window.Hwnd, sb, sb.Capacity);
+                Debug.WriteLine(sb.ToString());
+            }
         }
 
         public int NumMonitors => _monitors.Count;
