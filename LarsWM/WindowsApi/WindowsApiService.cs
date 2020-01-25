@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -128,5 +128,17 @@ namespace LarsWM.WindowsApi
 
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int X);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern int GetWindowTextLength(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        public static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+        public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
     }
 }
