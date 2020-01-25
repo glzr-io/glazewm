@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -28,10 +28,10 @@ namespace LarsWM.WindowsApi
         /// Window styles
         /// </summary>
         [Flags]
-        public enum WS : uint
+        public enum WS : int
         {
             WS_OVERLAPPED = 0,
-            WS_POPUP = 0x80000000,
+            WS_POPUP = unchecked((int)0x80000000), 
             WS_CHILD = 0x40000000,
             WS_MINIMIZE = 0x20000000,
             WS_VISIBLE = 0x10000000,
