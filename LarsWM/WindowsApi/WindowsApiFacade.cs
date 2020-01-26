@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using static LarsWM.WindowsApi.WindowsApiService;
 using static LarsWM.UserConfig.UserConfigService;
+using LarsWM.WindowsApi.DataTypes;
 
 namespace LarsWM.WindowsApi
 {
@@ -78,6 +79,17 @@ namespace LarsWM.WindowsApi
             var buffer = new StringBuilder(255);
             GetClassName(window.Hwnd, buffer, buffer.Capacity + 1);
             return buffer.ToString();
+        }
+
+
+        /// <summary>
+        /// Get dimensions of the bounding rectangle of the specified window.
+        /// </summary>
+        public static WindowRect GetLocationOfWindow(Window window)
+        {
+            WindowRect rect = new WindowRect();
+            GetWindowRect(window.Hwnd, ref rect);
+            return rect;
         }
 
         public static bool HasWindowStyle(IntPtr hwnd, WS style)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LarsWM.WindowsApi.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -140,5 +141,8 @@ namespace LarsWM.WindowsApi
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName,int nMaxCount);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hwnd, ref WindowRect rectangle);
     }
 }
