@@ -8,21 +8,21 @@ namespace LarsWM.WindowsApi
     class WindowsApiService
     {
         public enum SWP : uint
-		{
-			SWP_SHOWWINDOW = 0x0040,
-			SWP_HIDEWINDOW = 0x0080,
-			SWP_NOZORDER = 0x0004,
-			SWP_NOREDRAW = 0x0008,
-			SWP_NOACTIVATE = 0x0010,
-			SWP_NOMOVE = 0x0002,
-			SWP_NOSIZE = 0x0001,
-			SWP_FRAMECHANGED = 0x0020,
-			SWP_NOCOPYBITS = 0x0100,
-			SWP_NOOWNERZORDER = 0x0200,
-			SWP_DEFERERASE = 0x2000,
-			SWP_NOSENDCHANGING = 0x0400,
-			SWP_ASYNCWINDOWPOS = 0x4000
-		}
+        {
+            SWP_SHOWWINDOW = 0x0040,
+            SWP_HIDEWINDOW = 0x0080,
+            SWP_NOZORDER = 0x0004,
+            SWP_NOREDRAW = 0x0008,
+            SWP_NOACTIVATE = 0x0010,
+            SWP_NOMOVE = 0x0002,
+            SWP_NOSIZE = 0x0001,
+            SWP_FRAMECHANGED = 0x0020,
+            SWP_NOCOPYBITS = 0x0100,
+            SWP_NOOWNERZORDER = 0x0200,
+            SWP_DEFERERASE = 0x2000,
+            SWP_NOSENDCHANGING = 0x0400,
+            SWP_ASYNCWINDOWPOS = 0x4000
+        }
 
         /// <summary>
         /// Window styles
@@ -91,7 +91,7 @@ namespace LarsWM.WindowsApi
         public static int GWL_STYLE = -16;
         public static int GWL_EXSTYLE = -20;
 
-		public delegate bool EnumWindowsDelegate(IntPtr hWnd, int lParam);
+        public delegate bool EnumWindowsDelegate(IntPtr hWnd, int lParam);
 
         [DllImport("user32.dll", EntryPoint = "EnumWindows", ExactSpelling = false, CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool EnumWindows(EnumWindowsDelegate enumCallback, IntPtr lParam);
@@ -109,13 +109,13 @@ namespace LarsWM.WindowsApi
         [DllImport("user32.dll")]
         public static extern IntPtr BeginDeferWindowPos(int nNumWindows);
 
-		[DllImport("user32.dll")]
-		public static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd,
-			 [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
+        [DllImport("user32.dll")]
+        public static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd,
+             [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
 
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool EndDeferWindowPos(IntPtr hWinPosInfo);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool EndDeferWindowPos(IntPtr hWinPosInfo);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
