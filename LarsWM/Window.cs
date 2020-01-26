@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LarsWM.WindowsApi.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -18,6 +19,8 @@ namespace LarsWM
         public Process Process => GetProcessOfWindow(this);
 
         public string ClassName => GetClassNameOfWindow(this);
+
+        public WindowRect Location => GetLocationOfWindow(this);
 
         /// <summary>
         /// This window's style flags.
