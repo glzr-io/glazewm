@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using static LarsWM.WindowsApi.WindowsApiService;
 
@@ -17,6 +18,14 @@ namespace LarsWM.WindowsApi
                 {
                     return false;
                 }
+
+                var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
+
+                if (isCurrentProcess)
+                {
+                    return false;
+                }
+
                 return true;
             };
 
@@ -43,6 +52,23 @@ namespace LarsWM.WindowsApi
             }), new IntPtr(0));
 
             return matchedWindows.ToArray();
+        }
+
+        /// <summary>
+        /// Get the id of the process that created the window.
+        /// </summary>
+        public static Process GetProcessOfWindow(Window window)
+        {
+            uint processId;
+            GetWindowThreadProcessId(window.Hwnd, out processId);
+
+            try
+            {
+                return Process.GetProcesses().First(process => process.Id == (int)processId);
+            } catch(InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         public static bool HasWindowStyle(IntPtr hwnd, WS style)
