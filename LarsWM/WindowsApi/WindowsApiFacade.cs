@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using static LarsWM.WindowsApi.WindowsApiService;
+using static LarsWM.UserConfig.UserConfigService;
 
 namespace LarsWM.WindowsApi
 {
@@ -14,19 +15,17 @@ namespace LarsWM.WindowsApi
             Predicate<Window> OpenWindowsPredicate = (Window window) => {
                 var isApplicationWindow = IsWindowVisible(window.Hwnd) && !HasWindowStyle(window.Hwnd, WS.WS_CHILD) && !HasWindowExStyle(window.Hwnd, WS_EX.WS_EX_NOACTIVATE);
 
-                if (!isApplicationWindow)
-                {
-                    return false;
-                }
-
                 var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
 
-                if (isCurrentProcess)
+                var isExcludedClassName = WindowClassesToIgnore.Contains(window.ClassName);
+                var isExcludedProcessName = ProcessNamesToIgnore.Contains(window.Process.ProcessName);
+
+                if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName)
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             };
 
             return FilterToplevelWindows(OpenWindowsPredicate);
