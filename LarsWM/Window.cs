@@ -17,6 +17,8 @@ namespace LarsWM
 
         public Process Process => GetProcessOfWindow(this);
 
+        public string ClassName => GetClassNameOfWindow(this);
+
         /// <summary>
         /// This window's style flags.
         /// </summary>
