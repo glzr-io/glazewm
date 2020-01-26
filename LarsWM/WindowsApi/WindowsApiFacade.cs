@@ -71,6 +71,16 @@ namespace LarsWM.WindowsApi
             }
         }
 
+        /// <summary>
+        /// Get the name of the class of the window.
+        /// </summary>
+        public static string GetClassNameOfWindow(Window window)
+        {
+            var buffer = new StringBuilder(255);
+            GetClassName(window.Hwnd, buffer, buffer.Capacity + 1);
+            return buffer.ToString();
+        }
+
         public static bool HasWindowStyle(IntPtr hwnd, WS style)
         {
             var styles = unchecked((WS)GetWindowLongPtr(hwnd, (int)(GWL_STYLE)).ToInt64());
