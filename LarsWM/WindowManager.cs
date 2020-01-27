@@ -69,7 +69,6 @@ namespace LarsWM
             var process = Process.GetProcesses().FirstOrDefault(p => p.Id == _processId);
             var _processName = process.ProcessName;
             Debug.WriteLine(_processName);
-            Debug.WriteLine(window.Location);
             Debug.WriteLine(window.CanLayout);
         }
 
