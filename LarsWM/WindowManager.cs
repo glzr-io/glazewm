@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,8 +6,6 @@ using System.Text;
 using System.Windows.Forms;
 using static LarsWM.WindowsApi.WindowsApiService;
 using static LarsWM.WindowsApi.WindowsApiFacade;
-using System.IO;
-using System.Drawing;
 
 namespace LarsWM
 {
@@ -50,7 +48,12 @@ namespace LarsWM
             foreach (var window in windows)
             {
                 DumpManagedWindows(window);
+
+                var targetMonitor = GetMonitorFromWindowHandle(window);
+                targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
             }
+
+            Debug.WriteLine(_monitors);
         }
 
         private static void DumpManagedWindows(Window window)
@@ -70,7 +73,11 @@ namespace LarsWM
             Debug.WriteLine(window.Location);
         }
 
-        public int NumMonitors => _monitors.Count;
+        public Monitor GetMonitorFromWindowHandle(Window window)
+        {
+            var screen = Screen.FromHandle(window.Hwnd);
+            return _monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName) ?? _monitors[0];
+        }
 
         public void ShiftFocusInDirection(FocusDirection direction)
         { }
