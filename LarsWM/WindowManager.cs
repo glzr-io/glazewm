@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -65,12 +65,12 @@ namespace LarsWM
             uint processId;
             GetWindowThreadProcessId(window.Hwnd, out processId);
             var _processId = (int)processId;
-            //Debug.WriteLine(_processId);
 
             var process = Process.GetProcesses().FirstOrDefault(p => p.Id == _processId);
             var _processName = process.ProcessName;
             Debug.WriteLine(_processName);
             Debug.WriteLine(window.Location);
+            Debug.WriteLine(window.CanLayout);
         }
 
         public Monitor GetMonitorFromWindowHandle(Window window)
