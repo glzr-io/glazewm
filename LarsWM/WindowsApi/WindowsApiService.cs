@@ -1,4 +1,4 @@
-using LarsWM.WindowsApi.DataTypes;
+﻿using LarsWM.WindowsApi.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -168,5 +168,8 @@ namespace LarsWM.WindowsApi
 
         [DllImport("dwmapi.dll")]
         public static extern int DwmGetWindowAttribute(IntPtr hwnd, DwmWindowAttribute dwAttribute, out bool pvAttribute, int cbAttribute);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetShellWindow();
     }
 }

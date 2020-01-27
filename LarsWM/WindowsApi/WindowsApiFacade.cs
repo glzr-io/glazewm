@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,6 +14,8 @@ namespace LarsWM.WindowsApi
     {
         public static Window[] GetOpenWindows()
         {
+            var shellWindow = GetShellWindow();
+
             Predicate<Window> OpenWindowsPredicate = (Window window) => {
                 var isApplicationWindow = IsWindowVisible(window.Hwnd) && !HasWindowStyle(window.Hwnd, WS.WS_CHILD) && !HasWindowExStyle(window.Hwnd, WS_EX.WS_EX_NOACTIVATE);
 
@@ -22,7 +24,9 @@ namespace LarsWM.WindowsApi
                 var isExcludedClassName = WindowClassesToIgnore.Contains(window.ClassName);
                 var isExcludedProcessName = ProcessNamesToIgnore.Contains(window.Process.ProcessName);
 
-                if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName)
+                var isShellWindow = window.Hwnd == shellWindow;
+
+                if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
                 {
                     return true;
                 }
