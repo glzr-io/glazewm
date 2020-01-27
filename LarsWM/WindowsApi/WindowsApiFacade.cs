@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Runtime.InteropServices;
 using static LarsWM.WindowsApi.WindowsApiService;
 using static LarsWM.UserConfig.UserConfigService;
 using LarsWM.WindowsApi.DataTypes;
@@ -116,6 +117,14 @@ namespace LarsWM.WindowsApi
             {
                 return new IntPtr(GetWindowLong32(hWnd, nIndex));
             }
+        }
+
+        public static bool IsWindowCloaked(Window window)
+        {
+
+            bool isCloaked;
+            DwmGetWindowAttribute(window.Hwnd, DwmWindowAttribute.DWMWA_CLOAKED, out isCloaked, Marshal.SizeOf(typeof(bool)));
+            return isCloaked;
         }
     }
 }
