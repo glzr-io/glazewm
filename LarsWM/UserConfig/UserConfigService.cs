@@ -45,5 +45,8 @@ namespace LarsWM.UserConfig
             "PeopleExperienceHost",
             "StartMenuExperienceHost",
         };
+
+        public static int InnerGap = 20;
+        public static int OuterGap = 20;
     }
 }
