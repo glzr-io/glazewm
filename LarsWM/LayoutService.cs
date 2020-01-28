@@ -10,9 +10,15 @@ namespace LarsWM
         public static List<WindowLocation> CalculateInitialLayout(Monitor monitor, List<Window> windows)
         {
             var windowLocations = new List<WindowLocation>();
+            var windowCount = windows.Count();
+
+            if (windowCount == 0)
+            {
+                return windowLocations;
+            }
 
             //var windowWidth = (monitor.Width - UserConfig.UserConfigService.InnerGap) / windows.Count;
-            var windowWidth = (monitor.Width) / windows.Count();
+            var windowWidth = (monitor.Width) / windowCount;
 
             var index = 1;
             foreach(var window in windows)
