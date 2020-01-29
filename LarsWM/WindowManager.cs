@@ -62,16 +62,15 @@ namespace LarsWM
             {
                 // Force initial layout
                 var windowsInMonitor = monitor.DisplayedWorkspace.WindowsInWorkspace;
-                // TODO: filter out windows that can not be laid out
-                //var moveableWindows = windowsInMonitor.Where(w => w.CanLayout) as List<Window>;
+                var moveableWindows = windowsInMonitor.Where(w => w.CanLayout).ToList();
 
-                var windowLocations = LayoutService.CalculateInitialLayout(monitor, windowsInMonitor);
+                var windowLocations = LayoutService.CalculateInitialLayout(monitor, moveableWindows);
 
-                var handle = BeginDeferWindowPos(windows.Count());
+                var handle = BeginDeferWindowPos(moveableWindows.Count());
 
                 for (var i = 0; i < windowLocations.Count() - 1; i++)
                 {
-                    var window = windows[i];
+                    var window = moveableWindows[i];
                     var loc = windowLocations[i];
 
                     var adjustedLoc = new WindowLocation(loc.X + monitor.X, loc.Y + monitor.Y, 
