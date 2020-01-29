@@ -22,7 +22,7 @@ namespace LarsWM
 
         public WindowRect Location => GetLocationOfWindow(this);
 
-        public bool CanLayout => !IsWindowCloaked(this);
+        public bool CanLayout => !IsWindowCloaked(this) && IsWindowManageable(this);
 
         /// <summary>
         /// This window's style flags.

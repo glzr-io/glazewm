@@ -130,5 +130,17 @@ namespace LarsWM.WindowsApi
             DwmGetWindowAttribute(window.Hwnd, DwmWindowAttribute.DWMWA_CLOAKED, out isCloaked, Marshal.SizeOf(typeof(bool)));
             return isCloaked;
         }
+
+        public static bool IsWindowManageable(Window window)
+        {
+
+            if (HasWindowExStyle(window.Hwnd, WS_EX.WS_EX_TOOLWINDOW) ||
+                GetWindow(window.Hwnd, GW.GW_OWNER) != IntPtr.Zero)
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 }

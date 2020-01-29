@@ -113,6 +113,11 @@ namespace LarsWM.WindowsApi
         public static int GWL_STYLE = -16;
         public static int GWL_EXSTYLE = -20;
 
+        public enum GW : uint
+        {
+            GW_OWNER = 4,
+        }
+
         public delegate bool EnumWindowsDelegate(IntPtr hWnd, int lParam);
 
         [DllImport("user32.dll", EntryPoint = "EnumWindows", ExactSpelling = false, CharSet = CharSet.Auto, SetLastError = true)]
@@ -165,6 +170,9 @@ namespace LarsWM.WindowsApi
 
         [DllImport("user32.dll")]
         public static extern bool GetWindowRect(IntPtr hwnd, ref WindowRect rectangle);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindow(IntPtr hWnd, GW uCmd);
 
         [DllImport("dwmapi.dll")]
         public static extern int DwmGetWindowAttribute(IntPtr hwnd, DwmWindowAttribute dwAttribute, out bool pvAttribute, int cbAttribute);
