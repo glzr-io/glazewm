@@ -9,13 +9,6 @@ using static LarsWM.WindowsApi.WindowsApiFacade;
 
 namespace LarsWM
 {
-    enum FocusDirection
-    {
-        Up,
-        Down,
-        Left,
-        Right,
-    }
 
     class Startup
     {
