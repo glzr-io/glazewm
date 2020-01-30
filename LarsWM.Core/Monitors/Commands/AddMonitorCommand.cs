@@ -2,10 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Forms;
 
 namespace LarsWM.Core.Monitors.Commands
 {
     class AddMonitorCommand : ICommand<Monitor>
     {
+        public Screen Screen { get; set; }
+
+        public AddMonitorCommand(Screen screen)
+        {
+            Screen = screen;
+        }
     }
 }

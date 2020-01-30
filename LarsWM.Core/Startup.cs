@@ -6,6 +6,8 @@ using System.Text;
 using System.Windows.Forms;
 using static LarsWM.Core.WindowsApi.WindowsApiService;
 using static LarsWM.Core.WindowsApi.WindowsApiFacade;
+using LarsWM.Core.UserConfig.Commands;
+using LarsWM.Core.Monitors.Commands;
 
 namespace LarsWM.Core
 {
