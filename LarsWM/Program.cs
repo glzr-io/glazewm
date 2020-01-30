@@ -17,7 +17,7 @@ namespace LarsWM
 
             //Application.Run();
 
-            new WindowManager();
+            new Startup();
 
             // TODO: Read config file and initialise UserConfig class with its values
             // TODO: Register windows hooks
