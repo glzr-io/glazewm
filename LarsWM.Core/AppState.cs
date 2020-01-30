@@ -7,9 +7,11 @@ namespace LarsWM.Core
 {
     public class AppState
     {
-        // Not sure whether to change this to a BehaviorSubject.
+        // Not sure whether these should be BehaviorSubjects.
         public List<Monitor> Monitors = new List<Monitor>();
-        public List<Workspace> Workspaces => Monitors.Select(m => m.WorkspacesInMonitor) as List<Workspace>;
-        public List<Window> Windows => Workspaces.Select(w => w.WindowsInWorkspace) as List<Window>;
+        public List<Workspace> Workspaces = new List<Workspace>();
+        public List<Window> Windows = new List<Window>();
+
+        // Create method InitialiseState that invokes AddMonitorCommand etc?
     }
 }

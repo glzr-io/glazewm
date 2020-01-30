@@ -24,6 +24,12 @@ namespace LarsWM.Core
 
         public bool CanLayout => !IsWindowCloaked(this) && IsWindowManageable(this);
 
+        public void Remove()
+        {
+            // Clear from list of windows in AppState
+            // Clear from WindowsInWorkspace of workspaces in AppState
+        }
+
         /// <summary>
         /// This window's style flags.
         /// </summary>
