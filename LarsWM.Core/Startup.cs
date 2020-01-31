@@ -8,12 +8,15 @@ using static LarsWM.Core.WindowsApi.WindowsApiService;
 using static LarsWM.Core.WindowsApi.WindowsApiFacade;
 using LarsWM.Core.UserConfig.Commands;
 using LarsWM.Core.Monitors.Commands;
+using LarsWM.Core.Common.Models;
+using LarsWM.Core.Common.Services;
 
 namespace LarsWM.Core
 {
     class Startup
     {
         private IBus _bus;
+        private List<Monitor> _monitors = new List<Monitor>();
 
         public Startup(IBus bus)
         {
@@ -95,7 +98,7 @@ namespace LarsWM.Core
             return _monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName) ?? _monitors[0];
         }
 
-        public void ShiftFocusInDirection(FocusDirection direction)
+        public void ShiftFocusInDirection(MovementDirection direction)
         { }
 
         public void ShiftFocusToWorkspace(Workspace workspace)
@@ -104,7 +107,7 @@ namespace LarsWM.Core
         public void MoveFocusedWindowToWorkspace(Window window, Workspace workspace)
         { } 
 
-        public void MoveFocusedWindowInDirection(Window window, FocusDirection direction)
+        public void MoveFocusedWindowInDirection(Window window, MovementDirection direction)
         { }
 
     }

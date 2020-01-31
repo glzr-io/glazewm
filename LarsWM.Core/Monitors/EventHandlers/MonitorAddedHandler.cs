@@ -1,4 +1,5 @@
 ﻿using LarsWM.Core.Common.Models;
+using LarsWM.Core.Common.Services;
 using LarsWM.Core.Monitors.Events;
 using System;
 using System.Collections.Generic;
@@ -17,19 +18,19 @@ namespace LarsWM.Core.Monitors.EventHandler
 
         public void Handle(MonitorAddedEvent msg)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
 
             // Create an initial Workspace for each Monitor
-            int index = 0;
-            foreach (var monitor in msg.monitors)
-            {
-                // TODO: add IsFocused property to focused window, workspace & monitor
-                var newWorkspace = new Workspace(index, new List<Window>());
-                monitor.WorkspacesInMonitor.Add(newWorkspace);
-                monitor.DisplayedWorkspace = newWorkspace;
+        //    int index = 0;
+        //    foreach (var monitor in msg.monitors)
+        //    {
+        //        // TODO: add IsFocused property to focused window, workspace & monitor
+        //        var newWorkspace = new Workspace(index, new List<Window>());
+        //        monitor.WorkspacesInMonitor.Add(newWorkspace);
+        //        monitor.DisplayedWorkspace = newWorkspace;
 
-                index++;
-            }
+        //        index++;
+        //    }
         }
     }
 }
