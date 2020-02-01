@@ -4,7 +4,7 @@ using System.Text;
 
 namespace LarsWM.Core.Common.Models
 {
-    public interface IEventHandler<in TEvent> where TEvent : IEvent
+    public interface IEventHandler<TEvent> where TEvent : Event
     {
         void Handle(TEvent @event);
     }
