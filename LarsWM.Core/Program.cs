@@ -1,4 +1,6 @@
 ﻿using LarsWM.Core.Common.Services;
+using LarsWM.Core.Monitors.CommandHandlers;
+using LarsWM.Core.Monitors.EventHandler;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
@@ -9,6 +11,8 @@ namespace LarsWM.Core
 {
     class Program
     {
+        public static ServiceCollection ServiceCollection { get; private set; } = new ServiceCollection();
+
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -17,24 +21,25 @@ namespace LarsWM.Core
         {
             Debug.WriteLine("Application started");
 
-            var serviceCollection = new ServiceCollection();
-            ConfigureServices(serviceCollection);
+            ConfigureServices();
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            var serviceProvider = ServiceCollection.BuildServiceProvider();
+
+            var bus = serviceProvider.GetRequiredService<IBus>();
+
+            bus.RegisterCommandHandler<AddMonitorHandler>();
+            bus.RegisterEventHandler<MonitorAddedHandler>();
 
             var startup = serviceProvider.GetRequiredService<Startup>();
             startup.Init();
-
-            // TODO: Read config file and initialise UserConfig class with its values
-            // TODO: Register windows hooks
-            // TODO: Create a workspace and assign a workspace to each connected display
-            // TODO: Force initial layout
         }
 
-        private static void ConfigureServices(ServiceCollection serviceCollection)
+        private static void ConfigureServices()
         {
-            serviceCollection.AddSingleton<IBus, Bus>();
-            serviceCollection.AddSingleton<Startup>();
+            ServiceCollection.AddSingleton<IBus, Bus>();
+            ServiceCollection.AddSingleton<AddMonitorHandler>();
+            ServiceCollection.AddSingleton<MonitorAddedHandler>();
+            ServiceCollection.AddSingleton<Startup>();
         }
     }
 }

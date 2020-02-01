@@ -1,4 +1,4 @@
-﻿using LarsWM.Core.Common.Models;
+using LarsWM.Core.Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,8 +10,8 @@ namespace LarsWM.Core.Common.Services
     /// </summary>
     public sealed class Bus : IBus
     {
-        private static readonly IDictionary<Type, Type> RegisteredCommandHandlers = new Dictionary<Type, Type>();
-        private static readonly IDictionary<Type, Type> RegisteredEventHandlers = new Dictionary<Type, Type>();
+        private static readonly List<Type> RegisteredCommandHandlers = new List<Type>();
+        private static readonly List<Type> RegisteredEventHandlers = new List<Type>();
 
         /// <summary>
         /// Sends command to appropriate command handler.
@@ -32,12 +32,12 @@ namespace LarsWM.Core.Common.Services
 
         public void RegisterCommandHandler<T>()
         {
-            throw new NotImplementedException();
+            RegisteredCommandHandlers.Add(typeof(T));
         }
 
         public void RegisterEventHandler<T>()
         {
-            throw new NotImplementedException();
+            RegisteredEventHandlers.Add(typeof(T));
         }
     }
 }
