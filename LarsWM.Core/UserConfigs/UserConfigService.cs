@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core.UserConfig
+namespace LarsWM.Core.UserConfigs
 {
     public class UserConfigService
     {

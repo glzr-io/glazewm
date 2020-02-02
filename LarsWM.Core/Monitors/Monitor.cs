@@ -1,9 +1,10 @@
-﻿using System;
+﻿using LarsWM.Core.Workspaces;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 
-namespace LarsWM.Core
+namespace LarsWM.Core.Monitors
 {
     public class Monitor
     {

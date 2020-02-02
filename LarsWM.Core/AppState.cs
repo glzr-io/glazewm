@@ -1,4 +1,8 @@
-﻿using System;
+using LarsWM.Core.Monitors;
+using LarsWM.Core.UserConfigs;
+using LarsWM.Core.Windows;
+using LarsWM.Core.Workspaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

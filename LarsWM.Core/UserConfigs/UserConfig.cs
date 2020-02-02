@@ -4,7 +4,7 @@ using System.Text;
 
 namespace LarsWM.Core.UserConfigs
 {
-    class UserConfig
+    public class UserConfig
     {
         public List<string> WindowClassesToIgnore = new List<string>();
 

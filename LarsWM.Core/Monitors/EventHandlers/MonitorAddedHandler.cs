@@ -16,7 +16,7 @@ namespace LarsWM.Core.Monitors.EventHandler
             _bus = bus;
         }
 
-        public void Handle(MonitorAddedEvent msg)
+        public void Handle(MonitorAddedEvent @event)
         {
             throw new NotImplementedException();
 

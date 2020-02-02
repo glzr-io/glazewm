@@ -1,8 +1,9 @@
-﻿using System;
+﻿using LarsWM.Core.Windows;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core
+namespace LarsWM.Core.Workspaces
 {
     public class Workspace
     {

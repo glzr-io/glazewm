@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using static LarsWM.Core.WindowsApi.WindowsApiFacade;
 
-namespace LarsWM.Core
+namespace LarsWM.Core.Windows
 {
     public class Window
     {
