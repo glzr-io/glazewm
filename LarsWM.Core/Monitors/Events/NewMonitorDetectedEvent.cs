@@ -5,7 +5,7 @@ using System.Text;
 
 namespace LarsWM.Core.Monitors.Events
 {
-    class NewMonitorDetectedEvent : IEvent
+    class NewMonitorDetectedEvent : Event
     {
     }
 }

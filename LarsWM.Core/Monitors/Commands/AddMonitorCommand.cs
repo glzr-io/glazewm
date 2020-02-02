@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace LarsWM.Core.Monitors.Commands
 {
-    class AddMonitorCommand : ICommand<Monitor>
+    class AddMonitorCommand : Command
     {
         public Screen Screen { get; set; }
 

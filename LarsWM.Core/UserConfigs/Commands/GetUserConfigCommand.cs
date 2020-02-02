@@ -5,7 +5,7 @@ using System.Text;
 
 namespace LarsWM.Core.UserConfig.Commands
 {
-    public class GetUserConfigCommand : ICommand<string>
+    public class GetUserConfigCommand : Command
     {
     }
 }
