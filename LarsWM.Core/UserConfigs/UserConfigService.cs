@@ -4,6 +4,7 @@ using System.Text;
 
 namespace LarsWM.Core.UserConfigs
 {
+    // TODO: Remove properties from this class once WindowsApiFacade & WindowsApiService use DI
     public class UserConfigService
     {
         // TODO: allow regular expressions
