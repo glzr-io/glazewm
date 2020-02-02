@@ -76,8 +76,7 @@ namespace LarsWM.Core
         private void PopulateState()
         {
             // Read user config file and set its values in state.
-            // TODO: Rename to ReadUserConfigCommand
-            _bus.Invoke(new GetUserConfigCommand());
+            _bus.Invoke(new ReadUserConfigCommand());
 
             // Create a Monitor and consequently a Workspace for each detected Screen.
             foreach (var screen in Screen.AllScreens)
