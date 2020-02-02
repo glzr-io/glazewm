@@ -1,4 +1,5 @@
 ﻿using LarsWM.Core.Common.Services;
+using LarsWM.Core.Monitors;
 using LarsWM.Core.Monitors.CommandHandlers;
 using LarsWM.Core.Monitors.EventHandler;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,7 @@ namespace LarsWM.Core
 
             serviceCollection.AddSingleton<IBus, Bus>();
             serviceCollection.AddSingleton<AppState>();
+            serviceCollection.AddSingleton<MonitorService>();
             serviceCollection.AddSingleton<AddMonitorHandler>();
             serviceCollection.AddSingleton<MonitorAddedHandler>();
             serviceCollection.AddSingleton<Startup>();
