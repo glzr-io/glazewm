@@ -11,7 +11,7 @@ namespace LarsWM.Core
 {
     class Program
     {
-        public static ServiceCollection ServiceCollection { get; private set; } = new ServiceCollection();
+        public static IServiceProvider ServiceProvider { get; private set; }
 
         /// <summary>
         ///  The main entry point for the application.
@@ -21,25 +21,28 @@ namespace LarsWM.Core
         {
             Debug.WriteLine("Application started");
 
-            ConfigureServices();
+            var serviceCollection = CreateServiceCollection();            
 
-            var serviceProvider = ServiceCollection.BuildServiceProvider();
+            ServiceProvider = serviceCollection.BuildServiceProvider();
 
-            var bus = serviceProvider.GetRequiredService<IBus>();
-
+            var bus = ServiceProvider.GetRequiredService<IBus>();
             bus.RegisterCommandHandler<AddMonitorHandler>();
             bus.RegisterEventHandler<MonitorAddedHandler>();
 
-            var startup = serviceProvider.GetRequiredService<Startup>();
+            var startup = ServiceProvider.GetRequiredService<Startup>();
             startup.Init();
         }
 
-        private static void ConfigureServices()
+        private static ServiceCollection CreateServiceCollection()
         {
-            ServiceCollection.AddSingleton<IBus, Bus>();
-            ServiceCollection.AddSingleton<AddMonitorHandler>();
-            ServiceCollection.AddSingleton<MonitorAddedHandler>();
-            ServiceCollection.AddSingleton<Startup>();
+            var serviceCollection = new ServiceCollection();
+
+            serviceCollection.AddSingleton<IBus, Bus>();
+            serviceCollection.AddSingleton<AddMonitorHandler>();
+            serviceCollection.AddSingleton<MonitorAddedHandler>();
+            serviceCollection.AddSingleton<Startup>();
+
+            return serviceCollection;
         }
     }
 }
