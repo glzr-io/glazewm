@@ -1,8 +1,10 @@
 ﻿using LarsWM.Core.Common.Models;
 using LarsWM.Core.Common.Services;
 using LarsWM.Core.Monitors.Events;
+using LarsWM.Core.Workspaces.Commands;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace LarsWM.Core.Monitors.EventHandler
@@ -10,17 +12,26 @@ namespace LarsWM.Core.Monitors.EventHandler
     class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
     {
         private IBus _bus;
+        private AppState _appState;
 
-        public MonitorAddedHandler(IBus bus)
+        public MonitorAddedHandler(IBus bus, AppState appState)
         {
             _bus = bus;
+            _appState = appState;
         }
 
         public void Handle(MonitorAddedEvent @event)
         {
-            throw new NotImplementedException();
+            foreach (var monitor in _appState.Monitors)
+            {
+                // Create an initial workspace for the monitor if one doesn't exist.
+                if (monitor.WorkspacesInMonitor.Count() == 0)
+                    _bus.Invoke(new CreateWorkspaceCommand(monitor.Name, 1));
+                    // TODO: invoke SetDisplayedWorkspaceCommand
+            }
 
-            // Create an initial Workspace for each Monitor
+        // Old code:
+        // Create an initial Workspace for each Monitor
         //    int index = 0;
         //    foreach (var monitor in msg.monitors)
         //    {
