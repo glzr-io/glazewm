@@ -19,35 +19,23 @@ namespace LarsWM.Core
     class Startup
     {
         private IBus _bus;
+        private AppState _appState;
         private List<Monitor> _monitors = new List<Monitor>();
 
-        public Startup(IBus bus)
+        public Startup(IBus bus, AppState appState)
         {
             _bus = bus;
+            _appState = appState;
         }
 
         public void Init()
         {
-            _bus.Invoke(new GetUserConfigCommand());
+            // Populate initial monitors, windows, workspaces and user config in AppState.
+            _appState.InitialiseState();
 
-            // Create a Monitor instance for each Screen
-            foreach (var screen in Screen.AllScreens)
-            {
-                _bus.Invoke(new AddMonitorCommand(screen));
-            }
+            // Subscribe to windows hooks
 
-
-            var windows = GetOpenWindows();
-
-            foreach (var window in windows)
-            {
-                // Debug log
-                DumpManagedWindows(window);
-
-                // Add window to its nearest workspace
-                var targetMonitor = GetMonitorFromWindowHandle(window);
-                targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
-            }
+            // Create a command for forcing the initial layout
 
             foreach (var monitor in _monitors)
             {
@@ -93,12 +81,6 @@ namespace LarsWM.Core
             var _processName = process.ProcessName;
             Debug.WriteLine(_processName);
             Debug.WriteLine(window.CanLayout);
-        }
-
-        public Monitor GetMonitorFromWindowHandle(Window window)
-        {
-            var screen = Screen.FromHandle(window.Hwnd);
-            return _monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName) ?? _monitors[0];
         }
 
         public void ShiftFocusInDirection(MovementDirection direction)
