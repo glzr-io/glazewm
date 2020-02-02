@@ -1,19 +1,16 @@
 ﻿using LarsWM.Core.Windows;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace LarsWM.Core.Workspaces
 {
     public class Workspace
     {
-        public int Identifier { get; set; }
+        public int Id { get; set; }
         public Window LastFocusedWindow { get; set; }
-        public List<Window> WindowsInWorkspace = new List<Window>();
+        public List<Window> WindowsInWorkspace { get; set; } = new List<Window>();
 
-        public Workspace(int identifier, List<Window> windowsInWorkspace) {
-            Identifier = identifier;
-            WindowsInWorkspace = windowsInWorkspace;
+        public Workspace(int id) {
+            Id = id;
         }
     }
 }
