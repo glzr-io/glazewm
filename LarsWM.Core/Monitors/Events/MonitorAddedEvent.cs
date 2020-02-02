@@ -7,5 +7,9 @@ namespace LarsWM.Core.Monitors.Events
 {
     class MonitorAddedEvent : Event
     {
+        public MonitorAddedEvent()
+        {
+
+        }
     }
 }
