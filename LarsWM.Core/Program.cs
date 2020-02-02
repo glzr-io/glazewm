@@ -3,6 +3,7 @@ using LarsWM.Core.Monitors;
 using LarsWM.Core.Monitors.CommandHandlers;
 using LarsWM.Core.Monitors.EventHandler;
 using LarsWM.Core.UserConfigs.CommandHandlers;
+using LarsWM.Core.Workspaces.CommandHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
@@ -30,6 +31,7 @@ namespace LarsWM.Core
             var bus = ServiceProvider.GetRequiredService<IBus>();
             bus.RegisterCommandHandler<AddMonitorHandler>();
             bus.RegisterCommandHandler<ReadUserConfigHandler>();
+            bus.RegisterCommandHandler<CreateWorkspaceHandler>();
             bus.RegisterEventHandler<MonitorAddedHandler>();
 
             var startup = ServiceProvider.GetRequiredService<Startup>();
@@ -46,6 +48,7 @@ namespace LarsWM.Core
             serviceCollection.AddSingleton<AddMonitorHandler>();
             serviceCollection.AddSingleton<MonitorAddedHandler>();
             serviceCollection.AddSingleton<ReadUserConfigHandler>();
+            serviceCollection.AddSingleton<CreateWorkspaceHandler>();
             serviceCollection.AddSingleton<Startup>();
 
             return serviceCollection;
