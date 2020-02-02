@@ -41,7 +41,19 @@ namespace LarsWM.Core.Common.Services
         /// </summary>
         public void RaiseEvent<T>(T @event) where T : Event
         {
-            throw new NotImplementedException();
+            // Create a Type object representing the generic IEventHandler type.
+            var eventHandlerGeneric = typeof(IEventHandler<>);
+
+            // Create a Type object representing the constructed IEventHandler generic.
+            var handlerTypeToCall = eventHandlerGeneric.MakeGenericType(@event.GetType());
+
+            var handlersToCall = _registeredEventHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler));
+
+            foreach (var handler in handlersToCall)
+            {
+                IEventHandler<T> handlerInstance = Program.ServiceProvider.GetService(handler) as IEventHandler<T>;
+                handlerInstance.Handle(@event);
+            }
         }
 
         public void RegisterCommandHandler<T>()
