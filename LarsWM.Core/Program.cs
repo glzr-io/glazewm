@@ -38,6 +38,7 @@ namespace LarsWM.Core
             var serviceCollection = new ServiceCollection();
 
             serviceCollection.AddSingleton<IBus, Bus>();
+            serviceCollection.AddSingleton<AppState>();
             serviceCollection.AddSingleton<AddMonitorHandler>();
             serviceCollection.AddSingleton<MonitorAddedHandler>();
             serviceCollection.AddSingleton<Startup>();
