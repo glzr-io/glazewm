@@ -28,6 +28,7 @@ namespace LarsWM.Core.Monitors.EventHandler
                 if (monitor.WorkspacesInMonitor.Count() == 0)
                     _bus.Invoke(new CreateWorkspaceCommand(monitor.Id, 1));
                     // TODO: invoke SetDisplayedWorkspaceCommand
+                    //_bus.Invoke(new DisplayWorkspaceCommand(workspaceId));
             }
 
         // Old code:
