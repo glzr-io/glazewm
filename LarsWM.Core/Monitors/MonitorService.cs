@@ -1,4 +1,5 @@
 ﻿using LarsWM.Core.Windows;
+using LarsWM.Core.Workspaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,11 @@ namespace LarsWM.Core.Monitors
                 return Monitors[0];
 
             return matchedMonitor;
+        }
+
+        public Monitor GetMonitorFromWorkspace(Workspace workspace)
+        {
+            return Monitors.FirstOrDefault(m => m.WorkspacesInMonitor.Contains(workspace));
         }
     }
 }
