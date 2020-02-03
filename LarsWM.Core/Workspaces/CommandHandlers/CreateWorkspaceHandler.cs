@@ -6,19 +6,19 @@ namespace LarsWM.Core.Workspaces.CommandHandlers
 {
     class CreateWorkspaceHandler : ICommandHandler<CreateWorkspaceCommand>
     {
-        private AppState _appState;
+        private WorkspaceService _workspaceService;
         private MonitorService _monitorService;
 
-        public CreateWorkspaceHandler(AppState appState, MonitorService monitorService)
+        public CreateWorkspaceHandler(WorkspaceService workspaceService, MonitorService monitorService)
         {
-            _appState = appState;
+            _workspaceService = workspaceService;
             _monitorService = monitorService;
         }
 
         public void Handle(CreateWorkspaceCommand command)
         {
             var newWorkspace = new Workspace(command.Index);
-            _appState.Workspaces.Add(newWorkspace);
+            _workspaceService.Workspaces.Add(newWorkspace);
 
             var parentMonitor = _monitorService.GetMonitorById(command.ParentMonitorId);
             parentMonitor.WorkspacesInMonitor.Add(newWorkspace);
