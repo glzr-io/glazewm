@@ -9,6 +9,7 @@ namespace LarsWM.Core.Windows
 {
     public class Window
     {
+        public Guid Id = Guid.NewGuid();
         public IntPtr Hwnd { get; set; }
 
         public Window(IntPtr hwnd)
