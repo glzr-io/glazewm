@@ -16,6 +16,11 @@ namespace LarsWM.Core.Monitors
             _appState = appState;
         }
 
+        public Monitor GetMonitorById(Guid id)
+        {
+            return _appState.Monitors.FirstOrDefault(m => m.Id == id);
+        }
+
         public Monitor GetMonitorFromWindowHandle(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);
