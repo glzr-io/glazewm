@@ -1,17 +1,17 @@
 ﻿using LarsWM.Core.Common.Models;
-using LarsWM.Core.Monitors;
+using System;
 
 namespace LarsWM.Core.Workspaces.Commands
 {
     class CreateWorkspaceCommand : Command
     {
-        public string MonitorName { get; private set; }
-        public int Id { get; private set; }
+        public Guid ParentMonitorId { get; private set; }
+        public int Index { get; private set; }
 
-        public CreateWorkspaceCommand(string monitorName, int id)
+        public CreateWorkspaceCommand(Guid parentMonitorId, int index)
         {
-            MonitorName = monitorName;
-            Id = id;
+            ParentMonitorId = parentMonitorId;
+            Index = index;
         }
     }
 }

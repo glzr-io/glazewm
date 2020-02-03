@@ -26,7 +26,7 @@ namespace LarsWM.Core.Monitors.EventHandler
             {
                 // Create an initial workspace for the monitor if one doesn't exist.
                 if (monitor.WorkspacesInMonitor.Count() == 0)
-                    _bus.Invoke(new CreateWorkspaceCommand(monitor.Name, 1));
+                    _bus.Invoke(new CreateWorkspaceCommand(monitor.Id, 1));
                     // TODO: invoke SetDisplayedWorkspaceCommand
             }
 
