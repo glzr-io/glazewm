@@ -19,21 +19,19 @@ namespace LarsWM.Core
     class Startup
     {
         private IBus _bus;
-        private AppState _appState;
         private MonitorService _monitorService;
 
         private List<Monitor> _monitors = new List<Monitor>();
 
-        public Startup(IBus bus, AppState appState, MonitorService monitorService)
+        public Startup(IBus bus, MonitorService monitorService)
         {
             _bus = bus;
-            _appState = appState;
             _monitorService = monitorService;
         }
 
         public void Init()
         {
-            // Populate initial monitors, windows, workspaces and user config in AppState.
+            // Populate initial monitors, windows, workspaces and user config.
             PopulateState();
 
             // Subscribe to windows hooks
@@ -71,7 +69,7 @@ namespace LarsWM.Core
         }
 
         /// <summary>
-        /// Populate AppState with initial monitors, windows, workspaces and user config. 
+        /// Populate initial monitors, windows, workspaces and user config.
         /// </summary>
         private void PopulateState()
         {
