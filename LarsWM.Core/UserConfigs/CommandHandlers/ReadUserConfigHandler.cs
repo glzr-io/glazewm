@@ -5,18 +5,18 @@ namespace LarsWM.Core.UserConfigs.CommandHandlers
 {
     class ReadUserConfigHandler : ICommandHandler<ReadUserConfigCommand>
     {
-        private AppState _appState;
+        private UserConfigService _userConfigService;
 
-        public ReadUserConfigHandler(AppState appState)
+        public ReadUserConfigHandler(UserConfigService userConfigService)
         {
-            _appState = appState;
+            _userConfigService = userConfigService;
         }
 
         public void Handle(ReadUserConfigCommand command)
         {
-            // TODO: Read user config from file / shell script.
+            // TODO: Read user config from file / constructed through shell script.
             var userConfig = new UserConfig();
-            _appState.UserConfig = userConfig;
+            _userConfigService.UserConfig = userConfig;
         }
     }
 }

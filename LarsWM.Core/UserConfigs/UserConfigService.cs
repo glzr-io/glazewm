@@ -7,6 +7,8 @@ namespace LarsWM.Core.UserConfigs
     // TODO: Remove properties from this class once WindowsApiFacade & WindowsApiService use DI
     public class UserConfigService
     {
+        public UserConfig UserConfig { get; set; } = null;
+
         // TODO: allow regular expressions
         // eg. for WMP's "now playing" toolbar: StartsWith("WMP9MediaBarFlyout"))
         public static string[] WindowClassesToIgnore = new string[] {

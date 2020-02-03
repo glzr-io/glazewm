@@ -7,18 +7,18 @@ namespace LarsWM.Core.Monitors.CommandHandlers
 {
     class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
     {
-        private AppState _appState;
         private IBus _bus;
+        private MonitorService _monitorService;
 
-        public AddMonitorHandler(IBus bus, AppState appState)
+        public AddMonitorHandler(IBus bus, MonitorService monitorService)
         {
             _bus = bus;
-            _appState = appState;
+            _monitorService = monitorService;
         }
 
         public void Handle(AddMonitorCommand command)
         {
-            _appState.Monitors.Add(new Monitor(command.Screen));
+            _monitorService.Monitors.Add(new Monitor(command.Screen));
 
             _bus.RaiseEvent(new MonitorAddedEvent());
         }

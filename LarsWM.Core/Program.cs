@@ -2,7 +2,10 @@
 using LarsWM.Core.Monitors;
 using LarsWM.Core.Monitors.CommandHandlers;
 using LarsWM.Core.Monitors.EventHandler;
+using LarsWM.Core.UserConfigs;
 using LarsWM.Core.UserConfigs.CommandHandlers;
+using LarsWM.Core.Windows;
+using LarsWM.Core.Workspaces;
 using LarsWM.Core.Workspaces.CommandHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -43,8 +46,10 @@ namespace LarsWM.Core
             var serviceCollection = new ServiceCollection();
 
             serviceCollection.AddSingleton<IBus, Bus>();
-            serviceCollection.AddSingleton<AppState>();
             serviceCollection.AddSingleton<MonitorService>();
+            serviceCollection.AddSingleton<UserConfigService>();
+            serviceCollection.AddSingleton<WindowService>();
+            serviceCollection.AddSingleton<WorkspaceService>();
             serviceCollection.AddSingleton<AddMonitorHandler>();
             serviceCollection.AddSingleton<MonitorAddedHandler>();
             serviceCollection.AddSingleton<ReadUserConfigHandler>();

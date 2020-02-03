@@ -9,25 +9,20 @@ namespace LarsWM.Core.Monitors
 {
     public class MonitorService
     {
-        private AppState _appState;
-
-        public MonitorService(AppState appState)
-        {
-            _appState = appState;
-        }
+        public List<Monitor> Monitors { get; set; } = new List<Monitor>();
 
         public Monitor GetMonitorById(Guid id)
         {
-            return _appState.Monitors.FirstOrDefault(m => m.Id == id);
+            return Monitors.FirstOrDefault(m => m.Id == id);
         }
 
         public Monitor GetMonitorFromWindowHandle(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);
 
-            var matchedMonitor = _appState.Monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
+            var matchedMonitor = Monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
             if (matchedMonitor == null)
-                return _appState.Monitors[0];
+                return Monitors[0];
 
             return matchedMonitor;
         }

@@ -6,12 +6,12 @@ namespace LarsWM.Core.Workspaces.CommandHandlers
 {
     class SetFocusedWorkspaceHandler : ICommandHandler<SetFocusedWorkspaceCommand>
     {
-        private AppState _appState;
+        private WorkspaceService _workspaceService;
         private MonitorService _monitorService;
 
-        public SetFocusedWorkspaceHandler(AppState appState, MonitorService monitorService)
+        public SetFocusedWorkspaceHandler(WorkspaceService workspaceService, MonitorService monitorService)
         {
-            _appState = appState;
+            _workspaceService = workspaceService;
             _monitorService = monitorService;
         }
 

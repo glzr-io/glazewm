@@ -12,17 +12,17 @@ namespace LarsWM.Core.Monitors.EventHandler
     class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
     {
         private IBus _bus;
-        private AppState _appState;
+        private MonitorService _monitorService;
 
-        public MonitorAddedHandler(IBus bus, AppState appState)
+        public MonitorAddedHandler(IBus bus, MonitorService monitorService)
         {
             _bus = bus;
-            _appState = appState;
+            _monitorService = monitorService;
         }
 
         public void Handle(MonitorAddedEvent @event)
         {
-            foreach (var monitor in _appState.Monitors)
+            foreach (var monitor in _monitorService.Monitors)
             {
                 // Create an initial workspace for the monitor if one doesn't exist.
                 if (monitor.WorkspacesInMonitor.Count() == 0)
