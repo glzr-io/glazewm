@@ -21,8 +21,6 @@ namespace LarsWM.Core
         private IBus _bus;
         private MonitorService _monitorService;
 
-        private List<Monitor> _monitors = new List<Monitor>();
-
         public Startup(IBus bus, MonitorService monitorService)
         {
             _bus = bus;
@@ -38,7 +36,7 @@ namespace LarsWM.Core
 
             // Create a command for forcing the initial layout
 
-            foreach (var monitor in _monitors)
+            foreach (var monitor in _monitorService.Monitors)
             {
                 // Force initial layout
                 var windowsInMonitor = monitor.DisplayedWorkspace.WindowsInWorkspace;
@@ -65,7 +63,7 @@ namespace LarsWM.Core
                 EndDeferWindowPos(handle);
             }
 
-            Debug.WriteLine(_monitors);
+            Debug.WriteLine(_monitorService.Monitors);
         }
 
         /// <summary>
@@ -78,9 +76,7 @@ namespace LarsWM.Core
 
             // Create a Monitor and consequently a Workspace for each detected Screen.
             foreach (var screen in Screen.AllScreens)
-            {
                 _bus.Invoke(new AddMonitorCommand(screen));
-            }
 
             // TODO: move the below code to its own command
             var windows = GetOpenWindows();
