@@ -179,5 +179,16 @@ namespace LarsWM.Core.WindowsApi
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetShellWindow();
+
+		public delegate IntPtr HookProc(int code, UIntPtr wParam, IntPtr lParam);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr SetWindowsHookEx(int hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, int dwThreadId);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, UIntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
     }
 }
