@@ -32,7 +32,7 @@ namespace LarsWM.Core.WindowsApi
         public enum WS : int
         {
             WS_OVERLAPPED = 0,
-            WS_POPUP = unchecked((int)0x80000000), 
+            WS_POPUP = unchecked((int)0x80000000),
             WS_CHILD = 0x40000000,
             WS_MINIMIZE = 0x20000000,
             WS_VISIBLE = 0x10000000,
@@ -162,11 +162,11 @@ namespace LarsWM.Core.WindowsApi
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
 
-        [DllImport("user32.dll", SetLastError=true)]
+        [DllImport("user32.dll", SetLastError = true)]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName,int nMaxCount);
+        public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
         [DllImport("user32.dll")]
         public static extern bool GetWindowRect(IntPtr hwnd, ref WindowRect rectangle);
@@ -180,15 +180,21 @@ namespace LarsWM.Core.WindowsApi
         [DllImport("user32.dll")]
         public static extern IntPtr GetShellWindow();
 
-		public delegate IntPtr HookProc(int code, UIntPtr wParam, IntPtr lParam);
+        public delegate IntPtr HookProc(int code, UIntPtr wParam, IntPtr lParam);
 
-		[DllImport("user32.dll")]
-		public static extern IntPtr SetWindowsHookEx(int hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, int dwThreadId);
+        public enum HookType : int
+        {
+            WH_KEYBOARD_LL = 13,
+            WH_MOUSE_LL = 14
+        }
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWindowsHookEx(HookType hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, int dwThreadId);
 
         [DllImport("user32.dll")]
         public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, UIntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
+        public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
     }
 }
