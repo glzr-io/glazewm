@@ -16,7 +16,7 @@ namespace LarsWM.Core.Common.Services
 {
     class KeybindingService
     {
-        private Subject<string> _modKeypresses = new Subject<string>();
+        private Subject<List<Key>> _modKeypresses = new Subject<List<Key>>();
 
         public void Init()
         {
@@ -36,63 +36,35 @@ namespace LarsWM.Core.Common.Services
         private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)
         {
             // If nCode is less than zero, the hook procedure must return the value returned by CallNextHookEx.
-            //if (nCode == 0 && ((uint)wParam == 0x100 || (uint)wParam == 0x104))
-            if (nCode == 0)
-            {
-                //var pressedKeys = inputKeys.Where(key => Keyboard.GetKeyState(key));
-                // Get structure with details about keyboard input event.
-                //var hookStruct = (KbLLHookStruct)Marshal.PtrToStructure(lParam, typeof(KbLLHookStruct));
-                var bloop = (GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
-                Debug.WriteIf(bloop, "bloop");
-                var bleep = GetKeyState(Keys.S) < 0;
-                Debug.WriteIf(bleep, "bleep");
-                //var key = hookStruct.vkCode;
-                IsKeyUp();
-                var x = GetDownKeys().ToList();
-                foreach (var k in x)
-                {
-                    Debug.WriteLine(k);
-                }
+            // CallNextHookEx passes hook notification to other applications.
+            if (nCode < 0)
+                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-                Debug.WriteIf(x.Count() > 0, "count");
-                var ay = AnyKeyPressed();
-                Debug.WriteIf(ay, "any key pressed");
-                //if (key == Keys.LWin)
-                //    _modKeypresses.OnNext("");
-            }
+            var isModKeypress = (GetKeyState(Keys.LWin) & 0x8000) == 0x8000;
+            Debug.WriteLine(isModKeypress);
 
-            // Pass hook notification to other applications.
-            return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+            if (!isModKeypress)
+                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+
+            var downKeys = GetDownKeys().ToList();
+            if (downKeys.Count() == 1)
+                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+
+            _modKeypresses.OnNext(downKeys);
+
+            return new IntPtr(1);
         }
 
         private void HandleKeybindings()
         {
-            _modKeypresses.Subscribe();
-        }
-        private static byte[] GetKeyboardState()
-        {
-            byte[] keyStates = new byte[256];
-            if (!GetKeyboardState(keyStates))
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            return keyStates;
-        }
-
-        private static bool AnyKeyPressed()
-        {
-            byte[] keyState = GetKeyboardState();
-            // skip the mouse buttons
-            return keyState.Skip(8).Any(state => (state & 0x8000) != 0);
-        }
-        private void IsKeyUp()
-        {
-            byte[] keys = new byte[256];
-
-            GetKeyboardState(keys);
-
-            if ((keys[(int)Keys.Up] & keys[(int)Keys.Right] & 128) == 128)
+            _modKeypresses.Subscribe(downKeys =>
             {
-                Debug.WriteLine("Up Arrow key and Right Arrow key down.");
+                foreach (var key in downKeys)
+                {
+                    Debug.WriteLine(key);
+                }
             }
+            );
         }
 
         private static readonly byte[] DistinctVirtualKeys = Enumerable
@@ -106,9 +78,6 @@ namespace LarsWM.Core.Common.Services
         /// <summary>
         /// Gets all keys that are currently in the down state.
         /// </summary>
-        /// <returns>
-        /// A collection of all keys that are currently in the down state.
-        /// </returns>
         public IEnumerable<Key> GetDownKeys()
         {
             var keyboardState = new byte[256];

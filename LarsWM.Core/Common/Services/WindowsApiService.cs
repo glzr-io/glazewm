@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+using System.Windows.Input;
 
 namespace LarsWM.Core.WindowsApi
 {
@@ -195,7 +196,7 @@ namespace LarsWM.Core.WindowsApi
         [StructLayout(LayoutKind.Sequential)]
         public class KbLLHookStruct
         {
-            public Keys vkCode;
+            public Key vkCode;
             public int scanCode;
             public int flags;
             public int time;
