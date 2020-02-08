@@ -210,6 +210,6 @@ namespace LarsWM.Core.WindowsApi
         public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-        public static extern short GetKeyState(Keys nVirtKey);
+        public static extern short GetKeyState(Key nVirtKey);
     }
 }

@@ -33,36 +33,66 @@ namespace LarsWM.Core.Common.Services
             HandleKeybindings();
         }
 
+        public static readonly uint WM_KEYDOWN = 0x100;
+        public static readonly uint WM_SYSKEYDOWN = 0x104;
+
+        [Flags]
+        public enum KeyModifiers
+        {
+            None = 0,
+
+            LControl = 1,
+            RControl = 2,
+            Control = LControl | RControl,
+
+            LShift = 4,
+            RShift = 8,
+            Shift = LShift | RShift,
+
+            LAlt = 16,
+            RAlt = 32,
+            Alt = LAlt | RAlt,
+
+            LWin = 64,
+            RWin = 128,
+            Win = LWin | RWin
+        }
+
         private IntPtr KbHookProc(int nCode, IntPtr wParam, IntPtr lParam)
         {
             // If nCode is less than zero, the hook procedure must return the value returned by CallNextHookEx.
             // CallNextHookEx passes hook notification to other applications.
-            if (nCode < 0)
-                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+            if (nCode == 0 && ((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN))
+            {
+                KeyModifiers modifiersPressed = 0;
 
-            var isModKeypress = (GetKeyState(Keys.LWin) & 0x8000) == 0x8000;
-            Debug.WriteLine(isModKeypress);
+                if ((GetKeyState((Key)0xA4) & 0x8000) == 0x8000)
+                    modifiersPressed |= KeyModifiers.LAlt;
 
-            if (!isModKeypress)
-                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+                if (modifiersPressed != KeyModifiers.None)
+                {
+                    var downKeys = GetDownKeys().ToList();
+                    foreach (var key in downKeys)
+                    {
+                        Debug.WriteLine(key);
+                    }
+                    _modKeypresses.OnNext(downKeys);
+                    return new IntPtr(1);
+                }
+            }
 
-            var downKeys = GetDownKeys().ToList();
-            if (downKeys.Count() == 1)
-                return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-
-            _modKeypresses.OnNext(downKeys);
-
-            return new IntPtr(1);
+            return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         }
 
         private void HandleKeybindings()
         {
             _modKeypresses.Subscribe(downKeys =>
             {
-                foreach (var key in downKeys)
-                {
-                    Debug.WriteLine(key);
-                }
+                Debug.WriteLine("is called");
+                //foreach (var key in downKeys)
+                //{
+                //    Debug.WriteLine(key);
+                //}
             }
             );
         }
