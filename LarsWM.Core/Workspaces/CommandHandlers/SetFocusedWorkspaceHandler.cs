@@ -19,14 +19,14 @@ namespace LarsWM.Core.Workspaces.CommandHandlers
         {
             throw new System.NotImplementedException();
 
-            var workspace = _workspaceService.GetWorkspaceById(command.WorkspaceId);
-            var parentMonitor = _monitorService.GetMonitorOfWorkspace(workspace);
-            parentMonitor.DisplayedWorkspace = workspace;
+            //var workspace = _workspaceService.GetWorkspaceById(command.WorkspaceId);
+            //var parentMonitor = _monitorService.GetMonitorOfWorkspace(workspace);
+            //parentMonitor.DisplayedWorkspace = workspace;
 
-            if (workspace.WindowsInWorkspace.Count() > 0)
-            {
-                // TODO: Set focus through windows api
-            }
+            //if (workspace.WindowsInWorkspace.Count() > 0)
+            //{
+            //    // TODO: Set focus through windows api
+            //}
         }
     }
 }
