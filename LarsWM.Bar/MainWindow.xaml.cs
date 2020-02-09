@@ -20,9 +20,22 @@ namespace LarsWM.Bar
     /// </summary>
     public partial class MainWindow : Window
     {
+
         public MainWindow()
         {
             InitializeComponent();
+
+            // Temporary code for debugging purposes:
+
+            //var people = new ObservableCollection<Person>();
+            //// Populate people
+            //DataContext = people;
+
+            var numberButtons = Enumerable.Range(1, 30)
+                .Select(r => new KeyValuePair<string, string>(r.ToString(), r.ToString()))
+                .ToList();
+
+            numberButtonItems.ItemsSource = numberButtons;
         }
     }
 }
