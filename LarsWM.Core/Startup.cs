@@ -21,14 +21,19 @@ namespace LarsWM.Core
         private IBus _bus;
         private MonitorService _monitorService;
 
-        public Startup(IBus bus, MonitorService monitorService)
+        private KeybindingService _keybindingService;
+
+        public Startup(IBus bus, MonitorService monitorService, KeybindingService keybindingService)
         {
             _bus = bus;
             _monitorService = monitorService;
+            _keybindingService = keybindingService;
         }
 
         public void Init()
         {
+            _keybindingService.Init();
+
             // Populate initial monitors, windows, workspaces and user config.
             PopulateState();
 

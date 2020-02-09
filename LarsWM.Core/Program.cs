@@ -46,6 +46,7 @@ namespace LarsWM.Core
             var serviceCollection = new ServiceCollection();
 
             serviceCollection.AddSingleton<IBus, Bus>();
+            serviceCollection.AddSingleton<KeybindingService>();
             serviceCollection.AddSingleton<MonitorService>();
             serviceCollection.AddSingleton<UserConfigService>();
             serviceCollection.AddSingleton<WindowService>();
