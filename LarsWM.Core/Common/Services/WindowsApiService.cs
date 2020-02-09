@@ -196,7 +196,7 @@ namespace LarsWM.Core.WindowsApi
         [StructLayout(LayoutKind.Sequential)]
         public class KbLLHookStruct
         {
-            public Key vkCode;
+            public Keys vkCode;
             public int scanCode;
             public int flags;
             public int time;
@@ -210,6 +210,6 @@ namespace LarsWM.Core.WindowsApi
         public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-        public static extern short GetKeyState(Key nVirtKey);
+        public static extern short GetKeyState(Keys nVirtKey);
     }
 }
