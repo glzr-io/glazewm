@@ -4,12 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
-using static LarsWM.Core.WindowsApi.WindowsApiService;
-using static LarsWM.Core.UserConfigs.UserConfigService;
-using LarsWM.Core.WindowsApi.DataTypes;
-using LarsWM.Core.Windows;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
+using static LarsWM.Infrastructure.UserConfigs.UserConfigService;
+using LarsWM.Infrastructure.WindowsApi.DataTypes;
+using LarsWM.Infrastructure.Windows;
 
-namespace LarsWM.Core.WindowsApi
+namespace LarsWM.Infrastructure.WindowsApi
 {
     class WindowsApiFacade
     {

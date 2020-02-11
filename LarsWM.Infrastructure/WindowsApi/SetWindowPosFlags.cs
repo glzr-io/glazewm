@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LarsWM.Core.WindowsApi
+namespace LarsWM.Infrastructure.WindowsApi
 {
     /// <summary>
     /// Window sizing and positioning flags

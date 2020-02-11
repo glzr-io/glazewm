@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core.Common.Models
+namespace LarsWM.Infrastructure.Bussing
 {
     public interface ICommandHandler<TCommand> where TCommand : Command
     {

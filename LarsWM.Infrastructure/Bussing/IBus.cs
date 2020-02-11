@@ -1,9 +1,8 @@
-﻿using LarsWM.Core.Common.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core.Common.Services
+namespace LarsWM.Infrastructure.Bussing
 {
     public interface IBus
     {

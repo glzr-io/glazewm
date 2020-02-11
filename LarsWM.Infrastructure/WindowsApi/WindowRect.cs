@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core.WindowsApi.DataTypes
+namespace LarsWM.Infrastructure.WindowsApi
 {
     public struct WindowRect
     {

@@ -1,4 +1,4 @@
-﻿using LarsWM.Core.WindowsApi.DataTypes;
+﻿using LarsWM.Infrastructure.WindowsApi.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Windows.Input;
 
-namespace LarsWM.Core.WindowsApi
+namespace LarsWM.Infrastructure.WindowsApi
 {
     class WindowsApiService
     {
