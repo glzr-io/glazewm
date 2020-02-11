@@ -1,10 +1,6 @@
-﻿using LarsWM.Infrastructure.WindowsApi.DataTypes;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows.Forms;
-using System.Windows.Input;
 
 namespace LarsWM.Infrastructure.WindowsApi
 {

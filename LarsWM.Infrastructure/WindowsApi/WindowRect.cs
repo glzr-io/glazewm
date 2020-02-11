@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LarsWM.Infrastructure.WindowsApi
+﻿namespace LarsWM.Infrastructure.WindowsApi
 {
     public struct WindowRect
     {

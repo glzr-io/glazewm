@@ -5,9 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
-using static LarsWM.Infrastructure.UserConfigs.UserConfigService;
-using LarsWM.Infrastructure.WindowsApi.DataTypes;
-using LarsWM.Infrastructure.Windows;
 
 namespace LarsWM.Infrastructure.WindowsApi
 {

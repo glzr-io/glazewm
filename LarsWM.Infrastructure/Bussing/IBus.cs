@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LarsWM.Infrastructure.Bussing
+﻿namespace LarsWM.Infrastructure.Bussing
 {
     public interface IBus
     {
