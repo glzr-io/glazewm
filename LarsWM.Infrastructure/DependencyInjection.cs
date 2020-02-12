@@ -10,7 +10,6 @@ namespace LarsWM.Infrastructure
             services.AddSingleton<IBus, Bus>();
 
             // TODO: Change WindowsApiFacade & WindowsApiService to be compatible with DI.
-            // TODO: Add service locator to infrastructure layer.
 
             return services;
         }
