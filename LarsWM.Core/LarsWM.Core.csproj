@@ -18,4 +18,8 @@
     <Folder Include="Workspaces\EventHandlers\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\LarsWM.Infrastructure\LarsWM.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

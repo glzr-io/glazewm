@@ -1,14 +1,11 @@
-﻿using LarsWM.Core.WindowsApi.DataTypes;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using System.Windows.Input;
 
-namespace LarsWM.Core.WindowsApi
+namespace LarsWM.Infrastructure.WindowsApi
 {
-    class WindowsApiService
+    public class WindowsApiService
     {
         public enum SWP : uint
         {

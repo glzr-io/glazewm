@@ -1,10 +1,8 @@
-﻿using LarsWM.Core.Common.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace LarsWM.Core.Common.Services
+namespace LarsWM.Infrastructure.Bussing
 {
     /// <summary>
     /// Bus facilitates communication to command and event handlers.

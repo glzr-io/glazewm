@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LarsWM.Core.Common.Models
+﻿namespace LarsWM.Infrastructure.Bussing
 {
     public class Event
     {
