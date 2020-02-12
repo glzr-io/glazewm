@@ -6,4 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\LarsWM.Domain\LarsWM.Domain.csproj" />
+    <ProjectReference Include="..\LarsWM.Infrastructure\LarsWM.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
