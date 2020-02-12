@@ -1,5 +1,10 @@
+using LarsWM.Domain;
+using LarsWM.Infrastructure;
+using LarsWM.Infrastructure.Bussing;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,10 +19,15 @@ namespace LarsWM.Bootstrapper
         [STAThread]
         static void Main()
         {
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            Debug.WriteLine("Application started");
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddInfrastructureServices();
+            serviceCollection.AddDomainServices();
+
+            ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
+
+            ServiceLocator.Provider.RegisterDomainHandlers();
         }
     }
 }
