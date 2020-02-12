@@ -1,11 +1,7 @@
-﻿using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Common.Services;
+﻿using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors.Events;
 using LarsWM.Domain.Workspaces.Commands;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace LarsWM.Domain.Monitors.EventHandler
 {

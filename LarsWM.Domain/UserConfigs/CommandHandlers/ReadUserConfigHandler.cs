@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.UserConfigs.Commands;
 
 namespace LarsWM.Domain.UserConfigs.CommandHandlers

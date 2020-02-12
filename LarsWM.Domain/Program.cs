@@ -10,8 +10,6 @@ using LarsWM.Domain.Workspaces.CommandHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 namespace LarsWM.Domain
 {

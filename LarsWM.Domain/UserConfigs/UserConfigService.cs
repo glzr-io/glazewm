@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LarsWM.Domain.UserConfigs
+﻿namespace LarsWM.Domain.UserConfigs
 {
     // TODO: Remove properties from this class once WindowsApiFacade & WindowsApiService use DI
     public class UserConfigService

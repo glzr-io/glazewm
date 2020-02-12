@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 

@@ -7,7 +7,6 @@ using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using static LarsWM.Domain.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Common.Services
 {

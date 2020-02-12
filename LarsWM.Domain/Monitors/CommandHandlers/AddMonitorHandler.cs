@@ -1,7 +1,6 @@
-﻿using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Common.Services;
-using LarsWM.Domain.Monitors.Commands;
+﻿using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.Monitors.Events;
+using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Monitors.CommandHandlers
 {

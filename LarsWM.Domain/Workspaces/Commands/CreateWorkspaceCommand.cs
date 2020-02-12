@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Infrastructure.Bussing;
 using System;
 
 namespace LarsWM.Domain.Workspaces.Commands

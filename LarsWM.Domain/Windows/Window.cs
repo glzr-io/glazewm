@@ -1,9 +1,5 @@
-﻿using LarsWM.Domain.WindowsApi.DataTypes;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using System.Text;
-using static LarsWM.Domain.WindowsApi.WindowsApiFacade;
 
 namespace LarsWM.Domain.Windows
 {

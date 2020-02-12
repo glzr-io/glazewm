@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using static LarsWM.Domain.WindowsApi.WindowsApiService;
-using static LarsWM.Domain.WindowsApi.WindowsApiFacade;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.Common.Models;

@@ -1,9 +1,7 @@
 ﻿using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace LarsWM.Domain
 {
