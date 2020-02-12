@@ -29,7 +29,7 @@ namespace LarsWM.Infrastructure.Bussing
             // TODO: create CommandResponse interface with State (failure, success) and Data (any return value from command)?
             foreach (var handler in handlersToCall)
             {
-                ICommandHandler<T> handlerInstance = Program.ServiceProvider.GetService(handler) as ICommandHandler<T>;
+                ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as ICommandHandler<T>;
                 handlerInstance.Handle(command);
             }
         }
@@ -49,7 +49,7 @@ namespace LarsWM.Infrastructure.Bussing
 
             foreach (var handler in handlersToCall)
             {
-                IEventHandler<T> handlerInstance = Program.ServiceProvider.GetService(handler) as IEventHandler<T>;
+                IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
                 handlerInstance.Handle(@event);
             }
         }

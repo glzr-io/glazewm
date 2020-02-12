@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
+using static LarsWM.Domain.UserConfigs.UserConfigService;
 
 namespace LarsWM.Domain.Common.Services
 {
