@@ -1,13 +1,8 @@
 using LarsWM.Domain;
 using LarsWM.Infrastructure;
-using LarsWM.Infrastructure.Bussing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace LarsWM.Bootstrapper
 {
@@ -24,10 +19,14 @@ namespace LarsWM.Bootstrapper
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddInfrastructureServices();
             serviceCollection.AddDomainServices();
+            serviceCollection.AddSingleton<Startup>();
 
             ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
 
             ServiceLocator.Provider.RegisterDomainHandlers();
+
+            var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
+            startup.Init();
         }
     }
 }
