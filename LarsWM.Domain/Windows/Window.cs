@@ -1,5 +1,7 @@
-﻿using System;
+﻿using LarsWM.Infrastructure.WindowsApi;
+using System;
 using System.Diagnostics;
+using static LarsWM.Domain.Common.Services.WindowsApiFacade;
 
 namespace LarsWM.Domain.Windows
 {

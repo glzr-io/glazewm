@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Bar", "LarsWM.Bar\La
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Infrastructure", "LarsWM.Infrastructure\LarsWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LarsWM.Bootstrapper", "LarsWM.Bootstrapper\LarsWM.Bootstrapper.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86A11BD4-B17A-4422-9D3A-D2516A730BFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86A11BD4-B17A-4422-9D3A-D2516A730BFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86A11BD4-B17A-4422-9D3A-D2516A730BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86A11BD4-B17A-4422-9D3A-D2516A730BFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

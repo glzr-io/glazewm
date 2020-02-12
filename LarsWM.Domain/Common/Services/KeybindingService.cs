@@ -1,4 +1,5 @@
 ﻿using LarsWM.Domain.Monitors.Events;
+using LarsWM.Infrastructure.Bussing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,10 +8,11 @@ using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Common.Services
 {
-    class KeybindingService
+    public class KeybindingService
     {
         private Subject<Keys> _modKeypresses = new Subject<Keys>();
         public static readonly uint WM_KEYDOWN = 0x100;
