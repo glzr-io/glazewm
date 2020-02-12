@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Core", "LarsWM.Core\LarsWM.Core.csproj", "{D7741551-9A1D-4357-9571-991C6FDB1906}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Domain", "LarsWM.Domain\LarsWM.Domain.csproj", "{D7741551-9A1D-4357-9571-991C6FDB1906}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Bar", "LarsWM.Bar\LarsWM.Bar.csproj", "{F038C06D-2085-40EA-AEE9-A517231656FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LarsWM.Infrastructure", "LarsWM.Infrastructure\LarsWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Infrastructure", "LarsWM.Infrastructure\LarsWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
