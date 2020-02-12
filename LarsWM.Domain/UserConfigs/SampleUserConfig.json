@@ -1,0 +1,11 @@
+{
+  "gaps": {
+    "innerGap": 10,
+    "topGap": 20,
+    "bottomGap": 20
+  },
+  "shortcuts": {
+    "shiftFocusLeft": [ "mod+h" ],
+    "shiftFocusRight": [ "mod+j" ]
+  }
+}
