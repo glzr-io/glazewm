@@ -1,4 +1,4 @@
-﻿using LarsWM.Core.Windows;
+﻿using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.WindowsApi;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
-namespace LarsWM.Core.Common.Services
+namespace LarsWM.Domain.Common.Services
 {
     class WindowsApiFacade
     {

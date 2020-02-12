@@ -1,12 +1,12 @@
-﻿using LarsWM.Core.Windows;
-using LarsWM.Core.Workspaces;
+﻿using LarsWM.Domain.Windows;
+using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-namespace LarsWM.Core.Monitors
+namespace LarsWM.Domain.Monitors
 {
     public class MonitorService
     {

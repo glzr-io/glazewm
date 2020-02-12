@@ -1,19 +1,19 @@
-﻿using LarsWM.Core.Common.Services;
-using LarsWM.Core.Monitors;
-using LarsWM.Core.Monitors.CommandHandlers;
-using LarsWM.Core.Monitors.EventHandler;
-using LarsWM.Core.UserConfigs;
-using LarsWM.Core.UserConfigs.CommandHandlers;
-using LarsWM.Core.Windows;
-using LarsWM.Core.Workspaces;
-using LarsWM.Core.Workspaces.CommandHandlers;
+﻿using LarsWM.Domain.Common.Services;
+using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Monitors.CommandHandlers;
+using LarsWM.Domain.Monitors.EventHandler;
+using LarsWM.Domain.UserConfigs;
+using LarsWM.Domain.UserConfigs.CommandHandlers;
+using LarsWM.Domain.Windows;
+using LarsWM.Domain.Workspaces;
+using LarsWM.Domain.Workspaces.CommandHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace LarsWM.Core
+namespace LarsWM.Domain
 {
     class Program
     {

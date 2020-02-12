@@ -1,13 +1,13 @@
-﻿using LarsWM.Core.Common.Models;
-using LarsWM.Core.Common.Services;
-using LarsWM.Core.Monitors.Events;
-using LarsWM.Core.Workspaces.Commands;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Services;
+using LarsWM.Domain.Monitors.Events;
+using LarsWM.Domain.Workspaces.Commands;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace LarsWM.Core.Monitors.EventHandler
+namespace LarsWM.Domain.Monitors.EventHandler
 {
     class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
     {

@@ -1,8 +1,8 @@
-﻿using LarsWM.Core.Common.Models;
-using LarsWM.Core.Monitors;
-using LarsWM.Core.Workspaces.Commands;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Workspaces.Commands;
 
-namespace LarsWM.Core.Workspaces.CommandHandlers
+namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
     class CreateWorkspaceHandler : ICommandHandler<CreateWorkspaceCommand>
     {

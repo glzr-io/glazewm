@@ -1,7 +1,7 @@
-﻿using LarsWM.Core.Common.Models;
+﻿using LarsWM.Domain.Common.Models;
 using System;
 
-namespace LarsWM.Core.Workspaces.Commands
+namespace LarsWM.Domain.Workspaces.Commands
 {
     class CreateWorkspaceCommand : Command
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LarsWM.Core.Workspaces
+namespace LarsWM.Domain.Workspaces
 {
     class WorkspaceService
     {

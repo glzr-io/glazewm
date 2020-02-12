@@ -4,17 +4,17 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using static LarsWM.Core.WindowsApi.WindowsApiService;
-using static LarsWM.Core.WindowsApi.WindowsApiFacade;
-using LarsWM.Core.UserConfigs.Commands;
-using LarsWM.Core.Monitors.Commands;
-using LarsWM.Core.Common.Models;
-using LarsWM.Core.Common.Services;
-using LarsWM.Core.Monitors;
-using LarsWM.Core.Windows;
-using LarsWM.Core.Workspaces;
+using static LarsWM.Domain.WindowsApi.WindowsApiService;
+using static LarsWM.Domain.WindowsApi.WindowsApiFacade;
+using LarsWM.Domain.UserConfigs.Commands;
+using LarsWM.Domain.Monitors.Commands;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Services;
+using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Windows;
+using LarsWM.Domain.Workspaces;
 
-namespace LarsWM.Core
+namespace LarsWM.Domain
 {
     class Startup
     {

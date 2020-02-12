@@ -1,11 +1,11 @@
-﻿using LarsWM.Core.WindowsApi.DataTypes;
+﻿using LarsWM.Domain.WindowsApi.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using static LarsWM.Core.WindowsApi.WindowsApiFacade;
+using static LarsWM.Domain.WindowsApi.WindowsApiFacade;
 
-namespace LarsWM.Core.Windows
+namespace LarsWM.Domain.Windows
 {
     public class Window
     {

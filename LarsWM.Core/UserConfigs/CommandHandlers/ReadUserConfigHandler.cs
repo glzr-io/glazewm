@@ -1,7 +1,7 @@
-﻿using LarsWM.Core.Common.Models;
-using LarsWM.Core.UserConfigs.Commands;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.UserConfigs.Commands;
 
-namespace LarsWM.Core.UserConfigs.CommandHandlers
+namespace LarsWM.Domain.UserConfigs.CommandHandlers
 {
     class ReadUserConfigHandler : ICommandHandler<ReadUserConfigCommand>
     {

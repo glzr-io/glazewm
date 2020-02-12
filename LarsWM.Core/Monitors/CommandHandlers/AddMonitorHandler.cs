@@ -1,9 +1,9 @@
-﻿using LarsWM.Core.Common.Models;
-using LarsWM.Core.Common.Services;
-using LarsWM.Core.Monitors.Commands;
-using LarsWM.Core.Monitors.Events;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Services;
+using LarsWM.Domain.Monitors.Commands;
+using LarsWM.Domain.Monitors.Events;
 
-namespace LarsWM.Core.Monitors.CommandHandlers
+namespace LarsWM.Domain.Monitors.CommandHandlers
 {
     class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
     {

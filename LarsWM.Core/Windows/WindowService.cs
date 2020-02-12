@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LarsWM.Core.Windows
+namespace LarsWM.Domain.Windows
 {
     class WindowService
     {

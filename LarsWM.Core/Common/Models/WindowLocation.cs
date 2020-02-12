@@ -1,4 +1,4 @@
-﻿namespace LarsWM.Core
+﻿namespace LarsWM.Domain
 {
     public class WindowLocation
     {

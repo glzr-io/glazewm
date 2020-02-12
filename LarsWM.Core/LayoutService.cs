@@ -1,11 +1,11 @@
-﻿using LarsWM.Core.Monitors;
-using LarsWM.Core.Windows;
+﻿using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Windows;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace LarsWM.Core
+namespace LarsWM.Domain
 {
     class LayoutService
     {

@@ -1,10 +1,10 @@
-﻿using LarsWM.Core.Common.Models;
+﻿using LarsWM.Domain.Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 
-namespace LarsWM.Core.Monitors.Commands
+namespace LarsWM.Domain.Monitors.Commands
 {
     class AddMonitorCommand : Command
     {
