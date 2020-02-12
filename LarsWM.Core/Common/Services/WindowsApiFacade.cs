@@ -1,12 +1,14 @@
-﻿using System;
+﻿using LarsWM.Core.Windows;
+using LarsWM.Infrastructure.WindowsApi;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
-namespace LarsWM.Infrastructure.WindowsApi
+namespace LarsWM.Core.Common.Services
 {
     class WindowsApiFacade
     {

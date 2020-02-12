@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace LarsWM.Infrastructure.WindowsApi
 {
-    class WindowsApiService
+    public class WindowsApiService
     {
         public enum SWP : uint
         {
