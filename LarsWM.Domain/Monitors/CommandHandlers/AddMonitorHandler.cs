@@ -15,11 +15,14 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
             _monitorService = monitorService;
         }
 
-        public void Handle(AddMonitorCommand command)
+        public CommandResponse Handle(AddMonitorCommand command)
         {
-            _monitorService.Monitors.Add(new Monitor(command.Screen));
+            var newMonitor = new Monitor(command.Screen);
+            _monitorService.Monitors.Add(newMonitor);
 
-            _bus.RaiseEvent(new MonitorAddedEvent());
+            _bus.RaiseEvent(new MonitorAddedEvent(newMonitor.Id));
+
+            return new CommandResponse(true, newMonitor.Id);
         }
     }
 }
