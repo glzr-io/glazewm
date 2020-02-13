@@ -1,3 +1,4 @@
+using LarsWM.Bar;
 using LarsWM.Domain;
 using LarsWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,11 +20,13 @@ namespace LarsWM.Bootstrapper
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddInfrastructureServices();
             serviceCollection.AddDomainServices();
+            serviceCollection.AddBarServices();
             serviceCollection.AddSingleton<Startup>();
 
             ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
 
             ServiceLocator.Provider.RegisterDomainHandlers();
+            ServiceLocator.Provider.RegisterBarHandlers();
 
             var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
             startup.Init();
