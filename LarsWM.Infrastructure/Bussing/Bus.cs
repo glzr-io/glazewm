@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace LarsWM.Infrastructure.Bussing
@@ -31,9 +32,17 @@ namespace LarsWM.Infrastructure.Bussing
                 throw new Exception("Only one CommandHandler can be registered to handle a Command.");
             }
 
-            // TODO: Add centralised error handling here?
-            ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
-            return handlerInstance.Handle(command);
+            try
+            {
+                Debug.WriteLine($"Command {command.Name} invoked.");
+                ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
+                return handlerInstance.Handle(command);
+            }
+            catch (Exception exception)
+            {
+                // TODO: Add centralised error handling here?
+                throw exception;
+            }
         }
 
         /// <summary>
@@ -49,10 +58,19 @@ namespace LarsWM.Infrastructure.Bussing
 
             var handlersToCall = _registeredEventHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler));
 
-            foreach (var handler in handlersToCall)
+            try
             {
-                IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
-                handlerInstance.Handle(@event);
+                Debug.WriteLine($"Event {@event.Name} emitted.");
+                foreach (var handler in handlersToCall)
+                {
+                    IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
+                    handlerInstance.Handle(@event);
+                }
+            }
+            catch (Exception exception)
+            {
+                // TODO: Add centralised error handling here?
+                throw exception;
             }
         }
 
