@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,9 +14,9 @@ namespace LarsWM.Infrastructure.Bussing
         private List<Type> _registeredEventHandlers = new List<Type>();
 
         /// <summary>
-        /// Sends command to appropriate command handlers.
+        /// Sends command to appropriate command handler.
         /// </summary>
-        public void Invoke<T>(T command) where T : Command
+        public CommandResponse Invoke<T>(T command) where T : Command
         {
             // Create a Type object representing the generic ICommandHandler type.
             var commandHandlerGeneric = typeof(ICommandHandler<>);
@@ -23,15 +24,16 @@ namespace LarsWM.Infrastructure.Bussing
             // Create a Type object representing the constructed ICommandHandler generic.
             var handlerTypeToCall = commandHandlerGeneric.MakeGenericType(command.GetType());
 
-            var handlersToCall = _registeredCommandHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler));
+            var handlers = _registeredCommandHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler)).ToList();
 
-            // TODO: add centralised error handling here?
-            // TODO: create CommandResponse interface with State (failure, success) and Data (any return value from command)?
-            foreach (var handler in handlersToCall)
+            if (handlers.Count() != 1)
             {
-                ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as ICommandHandler<T>;
-                handlerInstance.Handle(command);
+                throw new Exception("Only one CommandHandler can be registered to handle a Command.");
             }
+
+            // TODO: Add centralised error handling here?
+            ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
+            return handlerInstance.Handle(command);
         }
 
         /// <summary>

@@ -2,7 +2,7 @@
 {
     public interface IBus
     {
-        void Invoke<T>(T command) where T : Command;
+        CommandResponse Invoke<T>(T command) where T : Command;
         void RaiseEvent<T>(T @event) where T : Event;
         void RegisterCommandHandler<T>();
         void RegisterEventHandler<T>();
