@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using LarsWM.Bar.Commands;
+using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Bar.CommandHandlers
 {
@@ -8,7 +7,7 @@ namespace LarsWM.Bar.CommandHandlers
     {
         public void Handle(LaunchBarOnMonitorCommand command)
         {
-            var monitor = command.Monitor;
+            //var monitor = command.Monitor;
 
             // TODO: Set bar width to width of monitor and launch bar on given monitor.
             var bar = new MainWindow();
