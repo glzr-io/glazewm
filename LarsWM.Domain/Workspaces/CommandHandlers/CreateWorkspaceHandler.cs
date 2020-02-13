@@ -15,13 +15,15 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             _monitorService = monitorService;
         }
 
-        public void Handle(CreateWorkspaceCommand command)
+        public CommandResponse Handle(CreateWorkspaceCommand command)
         {
             var newWorkspace = new Workspace(command.Index);
             _workspaceService.Workspaces.Add(newWorkspace);
 
             var parentMonitor = _monitorService.GetMonitorById(command.ParentMonitorId);
             parentMonitor.WorkspacesInMonitor.Add(newWorkspace);
+
+            return new CommandResponse(true, newWorkspace.Id);
         }
     }
 }

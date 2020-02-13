@@ -71,7 +71,7 @@ namespace LarsWM.Domain.Common.Services
             _modKeypresses.Subscribe(pressedKey =>
             {
                 if (pressedKey == Keys.J)
-                    _bus.RaiseEvent(new MonitorAddedEvent());
+                    Debug.WriteLine("Alt+J keybinding successfully triggered.");
             }
             );
         }

@@ -12,11 +12,13 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
             _userConfigService = userConfigService;
         }
 
-        public void Handle(ReadUserConfigCommand command)
+        public CommandResponse Handle(ReadUserConfigCommand command)
         {
             // TODO: Read user config from file / constructed through shell script.
             var userConfig = new UserConfig();
             _userConfigService.UserConfig = userConfig;
+
+            return new CommandResponse(true, userConfig.Id);
         }
     }
 }

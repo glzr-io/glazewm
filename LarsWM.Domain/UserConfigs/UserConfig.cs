@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LarsWM.Domain.UserConfigs
 {
     public class UserConfig
     {
+        public Guid Id = Guid.NewGuid();
+
         // TODO: allow regular expressions
         // eg. for WMP's "now playing" toolbar: StartsWith("WMP9MediaBarFlyout"))
         public List<string> WindowClassesToIgnore = new List<string> {
