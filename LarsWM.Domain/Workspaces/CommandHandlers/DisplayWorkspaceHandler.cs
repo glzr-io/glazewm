@@ -15,12 +15,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             _monitorService = monitorService;
         }
 
-        public void Handle(DisplayWorkspaceCommand command)
+        public CommandResponse Handle(DisplayWorkspaceCommand command)
         {
             var workspace = _workspaceService.GetWorkspaceById(command.WorkspaceId);
             var parentMonitor = _monitorService.GetMonitorFromWorkspace(workspace);
 
             parentMonitor.DisplayedWorkspace = workspace;
+
+            return new CommandResponse(true, workspace.Id);
         }
     }
 }

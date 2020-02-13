@@ -15,7 +15,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             _monitorService = monitorService;
         }
 
-        public void Handle(SetFocusedWorkspaceCommand command)
+        public CommandResponse Handle(SetFocusedWorkspaceCommand command)
         {
             throw new System.NotImplementedException();
 
