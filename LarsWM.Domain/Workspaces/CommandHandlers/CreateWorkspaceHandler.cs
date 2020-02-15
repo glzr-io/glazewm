@@ -17,7 +17,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
         public CommandResponse Handle(CreateWorkspaceCommand command)
         {
-            var newWorkspace = new Workspace(command.Index);
+            var newWorkspace = new Workspace(command.WorkspaceName);
             _workspaceService.Workspaces.Add(newWorkspace);
 
             var parentMonitor = _monitorService.GetMonitorById(command.ParentMonitorId);

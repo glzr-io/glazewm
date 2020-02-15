@@ -7,12 +7,12 @@ namespace LarsWM.Domain.Workspaces
     public class Workspace
     {
         public Guid Id = Guid.NewGuid();
-        public int Index { get; set; }
+        public string Name { get; set; }
         public Window LastFocusedWindow { get; set; }
         public List<Window> WindowsInWorkspace { get; set; } = new List<Window>();
 
-        public Workspace(int index) {
-            Index = index;
+        public Workspace(string name) {
+            Name = name;
         }
     }
 }

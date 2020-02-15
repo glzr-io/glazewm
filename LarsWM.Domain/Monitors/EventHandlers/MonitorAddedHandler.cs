@@ -18,7 +18,7 @@ namespace LarsWM.Domain.Monitors.EventHandler
         {
             // Create an initial workspace for the monitor if one doesn't exist.
             // TODO: Replace hardcoded Workspace.Index property.
-            var result = _bus.Invoke(new CreateWorkspaceCommand(@event.AddedMonitorId, 1));
+            var result = _bus.Invoke(new CreateWorkspaceCommand(@event.AddedMonitorId, "1"));
 
             // Set the displayed workspace to the newly created one.
             _bus.Invoke(new DisplayWorkspaceCommand(result.AggregateId));
