@@ -5,7 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LarsWM.Bar"
         mc:Ignorable="d"
-        Title="MainWindow" Height="auto" Width="1200">
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="#101010"
+        Title="LarsWMBar" Height="auto" Width="1200" ShowInTaskbar="False" Topmost="True">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="10" />
@@ -18,7 +21,7 @@
             <RowDefinition Height="10" />
         </Grid.RowDefinitions>
 
-        <ItemsControl Grid.Column="1" Grid.Row="1" x:Name="numberButtonItems">
+        <ItemsControl Grid.Column="1" Grid.Row="1" x:Name="workspaceItems">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <UniformGrid Columns="10" HorizontalAlignment="Left" />
@@ -28,7 +31,13 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Button 
-                  Tag="{Binding Key}" Width="30" Height="30" HorizontalAlignment="Left" />
+                    Click="OnWorkspaceButtonClick"
+                    Content="{Binding Index}"
+                    Background="#242424"
+                    Foreground="White"
+                    BorderBrush="Transparent"
+                    BorderThickness="0"
+                    Width="35" Height="35" HorizontalAlignment="Left" />
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

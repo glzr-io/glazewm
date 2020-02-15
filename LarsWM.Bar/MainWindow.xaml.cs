@@ -1,17 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Workspaces;
+using LarsWM.Domain.Workspaces.Commands;
+using LarsWM.Infrastructure.Bussing;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace LarsWM.Bar
 {
@@ -20,22 +12,34 @@ namespace LarsWM.Bar
     /// </summary>
     public partial class MainWindow : Window
     {
+        private IBus _bus { get; }
 
-        public MainWindow()
+        public MainWindow(Monitor monitor, IBus bus)
         {
+            _bus = bus;
+
             InitializeComponent();
 
-            // Temporary code for debugging purposes:
+            this.Top = monitor.Y;
+            this.Left = monitor.X;
+            this.Width = monitor.Width;
 
-            //var people = new ObservableCollection<Person>();
-            //// Populate people
-            //DataContext = people;
+            // TODO: Change height to be set in XAML.
+            this.Height = 50;
 
-            var numberButtons = Enumerable.Range(1, 30)
-                .Select(r => new KeyValuePair<string, string>(r.ToString(), r.ToString()))
-                .ToList();
+            // TODO: Bind padding, bg color, button bg color and font from user config.
 
-            numberButtonItems.ItemsSource = numberButtons;
+            var workspaces = monitor.WorkspacesInMonitor;
+            workspaceItems.ItemsSource = workspaces;
+        }
+
+
+        private void OnWorkspaceButtonClick(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            var clickedWorkspace = button.DataContext as Workspace;
+
+            _bus.Invoke(new SetFocusedWorkspaceCommand(clickedWorkspace.Id));
         }
     }
 }

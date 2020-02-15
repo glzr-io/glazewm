@@ -3,7 +3,7 @@ using System;
 
 namespace LarsWM.Domain.Workspaces.Commands
 {
-    class SetFocusedWorkspaceCommand : Command
+    public class SetFocusedWorkspaceCommand : Command
     {
         public Guid WorkspaceId { get; private set; }
 
