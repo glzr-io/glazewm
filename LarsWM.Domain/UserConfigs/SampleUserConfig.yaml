@@ -1,0 +1,26 @@
+Gaps:
+    InnerGap: 10
+    OuterGap: 20
+
+Bar:
+    Height: 50
+
+
+Workspaces:
+    - Name: 1
+      BindToMonitor: "Primary"
+      # Other possible names: CustomDisplayName, OverrideName
+      DisplayedName: "Aa"
+      KeepAlive: true
+    - Name: 2
+    - Name: 3
+    - Name: 4
+    - Name: 5
+    - Name: 6
+
+Keybindings:
+    - Binding: [ "mod+h" ]
+      Exec: "ShiftFocusLeft"
+
+    - Binding: [ "mod+h" ]
+      ExecInShell: "rundll32.exe user32.dll,LockWorkStation"
