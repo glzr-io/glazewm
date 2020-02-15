@@ -8,9 +8,8 @@ Bar:
 
 Workspaces:
     - Name: 1
-      BindToMonitor: "Primary"
-      # Other possible names: CustomDisplayName, OverrideName
-      DisplayedName: "Aa"
+      BindToMonitor: "MonitorName"
+      CustomDisplayName: "Aa"
       KeepAlive: true
     - Name: 2
     - Name: 3
@@ -19,8 +18,14 @@ Workspaces:
     - Name: 6
 
 Keybindings:
-    - Binding: [ "mod+h" ]
-      Exec: "ShiftFocusLeft"
+    - Command: focus left
+      Bindings: [ "mod+h" ]
 
-    - Binding: [ "mod+h" ]
-      ExecInShell: "rundll32.exe user32.dll,LockWorkStation"
+    - Command: focus right
+      Bindings: [ "mod+j" ]
+
+    - Command: move left
+      Bindings: [ "mod+shift+h" ]
+
+    - Command: move right
+      Bindings: [ "mod+shift+l" ]
