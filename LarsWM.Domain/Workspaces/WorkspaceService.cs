@@ -12,5 +12,10 @@ namespace LarsWM.Domain.Workspaces
         {
             return Workspaces.FirstOrDefault(m => m.Id == id);
         }
+
+        public Workspace GetWorkspaceByName(string name)
+        {
+            return Workspaces.FirstOrDefault(m => m.Name == name);
+        }
     }
 }
