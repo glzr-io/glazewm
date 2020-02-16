@@ -32,17 +32,11 @@ namespace LarsWM.Infrastructure.Bussing
                 throw new Exception("Only one CommandHandler can be registered to handle a Command.");
             }
 
-            try
-            {
-                Debug.WriteLine($"Command {command.Name} invoked.");
-                ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
-                return handlerInstance.Handle(command);
-            }
-            catch (Exception exception)
-            {
-                // TODO: Add centralised error handling here?
-                throw exception;
-            }
+            // TODO: Add centralised error handling here?
+            Debug.WriteLine($"Command {command.Name} invoked.");
+
+            ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
+            return handlerInstance.Handle(command);
         }
 
         /// <summary>
@@ -58,19 +52,13 @@ namespace LarsWM.Infrastructure.Bussing
 
             var handlersToCall = _registeredEventHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler));
 
-            try
+            Debug.WriteLine($"Event {@event.Name} emitted.");
+
+            // TODO: Add centralised error handling here?
+            foreach (var handler in handlersToCall)
             {
-                Debug.WriteLine($"Event {@event.Name} emitted.");
-                foreach (var handler in handlersToCall)
-                {
-                    IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
-                    handlerInstance.Handle(@event);
-                }
-            }
-            catch (Exception exception)
-            {
-                // TODO: Add centralised error handling here?
-                throw exception;
+                IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
+                handlerInstance.Handle(@event);
             }
         }
 
