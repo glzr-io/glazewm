@@ -1,4 +1,5 @@
 ﻿using LarsWM.Domain.UserConfigs.Commands;
+using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
 using System.IO;
@@ -10,10 +11,12 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
     class ReadUserConfigHandler : ICommandHandler<ReadUserConfigCommand>
     {
         private UserConfigService _userConfigService;
+        private IBus _bus;
 
-        public ReadUserConfigHandler(UserConfigService userConfigService)
+        public ReadUserConfigHandler(UserConfigService userConfigService, IBus bus)
         {
             _userConfigService = userConfigService;
+            _bus = bus;
         }
 
         public CommandResponse Handle(ReadUserConfigCommand command)
@@ -28,6 +31,11 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
                 .Build();
 
             var deserializedConfig = deserializer.Deserialize<UserConfigFileDto>(input);
+
+            foreach (var workspaceConfig in deserializedConfig.Workspaces)
+            {
+                _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
+            }
 
             // TODO: Read user config from file / constructed through shell script.
             var userConfig = new UserConfig();

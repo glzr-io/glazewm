@@ -16,6 +16,7 @@ namespace LarsWM.Domain.Monitors
             return Monitors.FirstOrDefault(m => m.Id == id);
         }
 
+        // TODO: Rename to GetMonitorFromUnaddedWindow.
         public Monitor GetMonitorFromWindowHandle(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);
