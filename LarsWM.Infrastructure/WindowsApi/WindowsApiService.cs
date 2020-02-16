@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LarsWM.Infrastructure.WindowsApi.Enums;
+using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -208,5 +209,10 @@ namespace LarsWM.Infrastructure.WindowsApi
 
         [DllImport("user32.dll")]
         public static extern short GetKeyState(Keys nVirtKey);
+
+        public delegate void WindowEventProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWinEventHook(EventConstant eventMin, EventConstant eventMax, IntPtr hmodWinEventProc, WindowEventProc lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
     }
 }

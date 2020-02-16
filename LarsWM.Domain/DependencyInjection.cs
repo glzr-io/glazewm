@@ -21,6 +21,7 @@ namespace LarsWM.Domain
             services.AddSingleton<MonitorService>();
             services.AddSingleton<UserConfigService>();
             services.AddSingleton<WindowService>();
+            services.AddSingleton<WindowHooksHandler>();
             services.AddSingleton<WorkspaceService>();
             services.AddSingleton<AddMonitorHandler>();
             services.AddSingleton<ReadUserConfigHandler>();
