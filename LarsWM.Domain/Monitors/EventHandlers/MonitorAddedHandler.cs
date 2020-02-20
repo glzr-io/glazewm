@@ -19,13 +19,15 @@ namespace LarsWM.Domain.Monitors.EventHandler
             _workspaceService = workspaceService;
         }
 
-
         public void Handle(MonitorAddedEvent @event)
         {
-            var activeWorkspaces = _workspaceService.GetActiveWorkspaces();
-
             // Get first workspace that is not active.
-            var inactiveWorkspace = _workspaceService.Workspaces.FirstOrDefault(w => !activeWorkspaces.Contains(w));
+            var inactiveWorkspace = _workspaceService.InactiveWorkspaces[0];
+
+            if (inactiveWorkspace == null)
+            {
+                // TODO: Show some kind of error notification.
+            }
 
             // Assign the workspace to the newly added monitor.
             var result = _bus.Invoke(new AssignWorkspaceToMonitorCommand(inactiveWorkspace.Id, @event.AddedMonitorId));

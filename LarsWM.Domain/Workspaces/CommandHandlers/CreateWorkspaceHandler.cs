@@ -16,7 +16,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
         public CommandResponse Handle(CreateWorkspaceCommand command)
         {
             var newWorkspace = new Workspace(command.WorkspaceName);
-            _workspaceService.Workspaces.Add(newWorkspace);
+            _workspaceService.InactiveWorkspaces.Add(newWorkspace);
 
             return new CommandResponse(true, newWorkspace.Id);
         }
