@@ -29,7 +29,7 @@ namespace LarsWM.Bar
 
             // TODO: Bind padding, bg color, button bg color and font from user config.
 
-            var workspaces = monitor.WorkspacesInMonitor;
+            var workspaces = monitor.Children;
             workspaceItems.ItemsSource = workspaces;
         }
 

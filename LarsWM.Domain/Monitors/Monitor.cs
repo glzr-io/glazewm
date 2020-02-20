@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,6 @@ namespace LarsWM.Domain.Monitors
         public int X => Screen.WorkingArea.X;
         public int Y => Screen.WorkingArea.Y;
         public bool IsPrimary => Screen.Primary;
-        public List<Workspace> WorkspacesInMonitor = new List<Workspace>();
         public Workspace DisplayedWorkspace;  // Alternatively add IsDisplayed/IsVisible property to Workspace instance
 
         public Screen Screen { get; }

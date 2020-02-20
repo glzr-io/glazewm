@@ -25,11 +25,5 @@ namespace LarsWM.Domain.Workspaces
         {
             return InactiveWorkspaces.FirstOrDefault(m => m.Name == name);
         }
-
-        // TODO: Consider changing to `GetInactiveWorkspaces` if only MonitorAddedHandler needs it.
-        public List<Workspace> GetActiveWorkspaces()
-        {
-            return _monitorService.Monitors.SelectMany(m => m.WorkspacesInMonitor).ToList();
-        }
     }
 }
