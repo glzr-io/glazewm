@@ -1,11 +1,12 @@
-﻿using LarsWM.Infrastructure.WindowsApi;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Infrastructure.WindowsApi;
 using System;
 using System.Diagnostics;
 using static LarsWM.Domain.Common.Services.WindowsApiFacade;
 
 namespace LarsWM.Domain.Windows
 {
-    public class Window
+    public class Window : Container
     {
         public Guid Id = Guid.NewGuid();
         public IntPtr Hwnd { get; set; }

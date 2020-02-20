@@ -1,10 +1,11 @@
-﻿using LarsWM.Domain.Windows;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Windows;
 using System;
 using System.Collections.Generic;
 
 namespace LarsWM.Domain.Workspaces
 {
-    public class Workspace
+    public class Workspace : Container
     {
         public Guid Id = Guid.NewGuid();
         public string Name { get; set; }

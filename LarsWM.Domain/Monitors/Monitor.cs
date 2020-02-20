@@ -1,11 +1,12 @@
-﻿using LarsWM.Domain.Workspaces;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace LarsWM.Domain.Monitors
 {
-    public class Monitor
+    public class Monitor : Container
     {
         public Guid Id = Guid.NewGuid();
         public string Name => Screen.DeviceName;
