@@ -30,10 +30,10 @@ namespace LarsWM.Domain.Monitors.EventHandler
             }
 
             // Assign the workspace to the newly added monitor.
-            var result = _bus.Invoke(new AssignWorkspaceToMonitorCommand(inactiveWorkspace.Id, @event.AddedMonitorId));
+            _bus.Invoke(new AssignWorkspaceToMonitorCommand(inactiveWorkspace, @event.AddedMonitor));
 
             // Display the workspace (since it's the only one on the monitor).
-            _bus.Invoke(new DisplayWorkspaceCommand(result.AggregateId));
+            _bus.Invoke(new DisplayWorkspaceCommand(inactiveWorkspace));
         }
     }
 }

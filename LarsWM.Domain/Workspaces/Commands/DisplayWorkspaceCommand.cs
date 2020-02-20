@@ -1,15 +1,14 @@
 ﻿using LarsWM.Infrastructure.Bussing;
-using System;
 
 namespace LarsWM.Domain.Workspaces.Commands
 {
     class DisplayWorkspaceCommand : Command
     {
-        public Guid WorkspaceId { get; private set; }
+        public Workspace Workspace { get; }
 
-        public DisplayWorkspaceCommand(Guid workspaceId)
+        public DisplayWorkspaceCommand(Workspace workspace)
         {
-            WorkspaceId = workspaceId;
+            Workspace = workspace;
         }
     }
 }

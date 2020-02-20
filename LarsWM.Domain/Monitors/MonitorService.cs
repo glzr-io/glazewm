@@ -28,9 +28,10 @@ namespace LarsWM.Domain.Monitors
             return matchedMonitor;
         }
 
-        public Monitor GetMonitorFromWorkspace(Workspace workspace)
-        {
-            return Monitors.FirstOrDefault(m => m.WorkspacesInMonitor.Contains(workspace));
-        }
+        // Not sure if needed.
+        //public Monitor GetMonitorFromWorkspace(Workspace workspace)
+        //{
+        //    return Monitors.FirstOrDefault(m => m.WorkspacesInMonitor.Contains(workspace));
+        //}
     }
 }

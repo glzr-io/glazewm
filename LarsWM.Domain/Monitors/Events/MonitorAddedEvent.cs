@@ -5,11 +5,11 @@ namespace LarsWM.Domain.Monitors.Events
 {
     public class MonitorAddedEvent : Event
     {
-        public Guid AddedMonitorId { get; }
+        public Monitor AddedMonitor { get; }
 
-        public MonitorAddedEvent(Guid addedMonitorId)
+        public MonitorAddedEvent(Monitor addedMonitor)
         {
-            AddedMonitorId = addedMonitorId;
+            AddedMonitor = addedMonitor;
         }
     }
 }

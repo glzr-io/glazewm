@@ -8,20 +8,20 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
     class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
     {
         private IBus _bus;
-        private ContainerService _monitorService;
+        private ContainerService _containerService;
 
-        public AddMonitorHandler(IBus bus, ContainerService monitorService)
+        public AddMonitorHandler(IBus bus, ContainerService containerService)
         {
             _bus = bus;
-            _monitorService = monitorService;
+            _containerService = containerService;
         }
 
         public dynamic Handle(AddMonitorCommand command)
         {
             var newMonitor = new Monitor(command.Screen);
-            _monitorService.ContainerTree.Add(newMonitor);
+            _containerService.ContainerTree.Add(newMonitor);
 
-            _bus.RaiseEvent(new MonitorAddedEvent(newMonitor.Id));
+            _bus.RaiseEvent(new MonitorAddedEvent(newMonitor));
 
             return new CommandResponse(true, newMonitor.Id);
         }

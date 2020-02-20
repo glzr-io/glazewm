@@ -15,7 +15,7 @@ namespace LarsWM.Bar.EventHandlers
 
         public void Handle(MonitorAddedEvent @event)
         {
-            _bus.Invoke(new LaunchBarOnMonitorCommand(@event.AddedMonitorId));
+            _bus.Invoke(new LaunchBarOnMonitorCommand(@event.AddedMonitor));
         }
     }
 }

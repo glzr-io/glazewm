@@ -19,12 +19,10 @@ namespace LarsWM.Bar.CommandHandlers
 
         public dynamic Handle(LaunchBarOnMonitorCommand command)
         {
-            var monitor = _monitorService.GetMonitorById(command.MonitorId);
-
             var thread = new Thread(() =>
             {
                 // TODO: Set bar width to width of monitor and launch bar on given monitor.
-                var bar = new MainWindow(monitor, _bus);
+                var bar = new MainWindow(command.Monitor, _bus);
                 bar.Show();
                 Application.Run();
             });

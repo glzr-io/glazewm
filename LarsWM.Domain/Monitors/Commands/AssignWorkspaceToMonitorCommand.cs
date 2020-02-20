@@ -1,17 +1,17 @@
-﻿using LarsWM.Infrastructure.Bussing;
-using System;
+﻿using LarsWM.Domain.Workspaces;
+using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Monitors.Commands
 {
     class AssignWorkspaceToMonitorCommand : Command
     {
-        public Guid WorkspaceId { get; }
-        public Guid MonitorId { get; }
+        public Workspace Workspace { get; }
+        public Monitor Monitor { get; }
 
-        public AssignWorkspaceToMonitorCommand(Guid workspaceId, Guid monitorId)
+        public AssignWorkspaceToMonitorCommand(Workspace workspace, Monitor monitor)
         {
-            WorkspaceId = workspaceId;
-            MonitorId = monitorId;
+            Workspace = workspace;
+            Monitor = monitor;
         }
     }
 }

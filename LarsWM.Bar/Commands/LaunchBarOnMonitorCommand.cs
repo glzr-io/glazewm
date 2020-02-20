@@ -1,15 +1,15 @@
-﻿using LarsWM.Infrastructure.Bussing;
-using System;
+﻿using LarsWM.Domain.Monitors;
+using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Bar.Commands
 {
     class LaunchBarOnMonitorCommand : Command
     {
-        public Guid MonitorId { get; }
+        public Monitor Monitor { get; }
 
-        public LaunchBarOnMonitorCommand(Guid monitorId)
+        public LaunchBarOnMonitorCommand(Monitor monitor)
         {
-            MonitorId = monitorId;
+            Monitor = monitor;
         }
     }
 }
