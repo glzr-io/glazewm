@@ -28,7 +28,7 @@ namespace LarsWM.Domain
             services.AddSingleton<WorkspaceService>();
             services.AddSingleton<AddMonitorHandler>();
             services.AddSingleton<AssignWorkspaceToMonitorHandler>();
-            services.AddSingleton<ReadUserConfigHandler>();
+            services.AddSingleton<EvaluateUserConfigHandler>();
             services.AddSingleton<FocusWindowHandler>();
             services.AddSingleton<CreateWorkspaceHandler>();
             services.AddSingleton<DisplayWorkspaceHandler>();
@@ -43,7 +43,7 @@ namespace LarsWM.Domain
             var bus = serviceProvider.GetRequiredService<IBus>();
             bus.RegisterCommandHandler<AddMonitorHandler>();
             bus.RegisterCommandHandler<AssignWorkspaceToMonitorHandler>();
-            bus.RegisterCommandHandler<ReadUserConfigHandler>();
+            bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
             bus.RegisterCommandHandler<FocusWindowHandler>();
             bus.RegisterCommandHandler<CreateWorkspaceHandler>();
             bus.RegisterCommandHandler<DisplayWorkspaceHandler>();

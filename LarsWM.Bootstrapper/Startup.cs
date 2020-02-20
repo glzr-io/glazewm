@@ -47,7 +47,7 @@ namespace LarsWM.Bootstrapper
         private void PopulateInitialState()
         {
             // Read user config file and set its values in state.
-            _bus.Invoke(new ReadUserConfigCommand());
+            _bus.Invoke(new EvaluateUserConfigCommand());
 
             // Create a Monitor and consequently a Workspace for each detected Screen.
             foreach (var screen in Screen.AllScreens)

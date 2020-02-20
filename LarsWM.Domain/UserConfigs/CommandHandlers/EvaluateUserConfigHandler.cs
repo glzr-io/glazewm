@@ -8,18 +8,18 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace LarsWM.Domain.UserConfigs.CommandHandlers
 {
-    class ReadUserConfigHandler : ICommandHandler<ReadUserConfigCommand>
+    class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
     {
         private UserConfigService _userConfigService;
         private IBus _bus;
 
-        public ReadUserConfigHandler(UserConfigService userConfigService, IBus bus)
+        public EvaluateUserConfigHandler(UserConfigService userConfigService, IBus bus)
         {
             _userConfigService = userConfigService;
             _bus = bus;
         }
 
-        public CommandResponse Handle(ReadUserConfigCommand command)
+        public CommandResponse Handle(EvaluateUserConfigCommand command)
         {
             var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "UserConfigs/SampleUserConfig.yaml");
 
