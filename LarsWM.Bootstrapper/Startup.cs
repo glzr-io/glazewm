@@ -3,9 +3,12 @@ using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Windows;
+using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.WindowsApi;
+using System;
 using System.Windows.Forms;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Bootstrapper
 {
@@ -52,6 +55,12 @@ namespace LarsWM.Bootstrapper
             // Create a Monitor and consequently a Workspace for each detected Screen.
             foreach (var screen in Screen.AllScreens)
                 _bus.Invoke(new AddMonitorCommand(screen));
+
+            EnumWindows((IntPtr hwnd, int lParam) =>
+            {
+                _bus.Invoke(new AddWindowCommand(hwnd));
+                return true;
+            }, IntPtr.Zero);
 
             // TODO: move the below code to its own command
             //var windows = GetOpenWindows();
