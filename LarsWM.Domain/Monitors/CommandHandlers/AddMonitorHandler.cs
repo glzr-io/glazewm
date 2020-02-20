@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Monitors.Commands;
+﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.Monitors.Events;
 using LarsWM.Infrastructure.Bussing;
 
@@ -7,9 +8,9 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
     class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
     {
         private IBus _bus;
-        private MonitorService _monitorService;
+        private ContainerService _monitorService;
 
-        public AddMonitorHandler(IBus bus, MonitorService monitorService)
+        public AddMonitorHandler(IBus bus, ContainerService monitorService)
         {
             _bus = bus;
             _monitorService = monitorService;
@@ -18,7 +19,7 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
         public CommandResponse Handle(AddMonitorCommand command)
         {
             var newMonitor = new Monitor(command.Screen);
-            _monitorService.Monitors.Add(newMonitor);
+            _monitorService.ContainerTree.Add(newMonitor);
 
             _bus.RaiseEvent(new MonitorAddedEvent(newMonitor.Id));
 
