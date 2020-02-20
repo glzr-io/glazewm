@@ -17,6 +17,7 @@ namespace LarsWM.Domain.Common.Models
         public Container AddChild(Container container)
         {
             Children.Add(container);
+            container.Parent = this;
             return container;
         }
 
@@ -27,6 +28,7 @@ namespace LarsWM.Domain.Common.Models
 
         public bool RemoveChild(Container node)
         {
+            node.Parent = null;
             return Children.Remove(node);
         }
 
