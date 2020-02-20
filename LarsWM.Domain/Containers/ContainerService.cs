@@ -1,14 +1,12 @@
 ﻿using LarsWM.Domain.Common.Models;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace LarsWM.Domain.Tree
+namespace LarsWM.Domain.Containers
 {
     class ContainerService
     {
         //Tree<Container> Tree = new Tree<Container>();
-        List<Container> Tree = new List<Container>();
+        public List<Container> ContainerTree = new List<Container>();
     }
     // Workspace should have an orientation (horizontal, vertical), but shouldn't extend SplitContainer
     // Doesn't really matter what monitor is to the left or right, it matters what workspace is
