@@ -13,31 +13,6 @@ namespace LarsWM.Domain.Common.Services
 {
     class WindowsApiFacade
     {
-        public static Window[] GetOpenWindows()
-        {
-            var shellWindow = GetShellWindow();
-
-            Predicate<Window> OpenWindowsPredicate = (Window window) => {
-                var isApplicationWindow = IsWindowVisible(window.Hwnd) && !HasWindowStyle(window.Hwnd, WS.WS_CHILD) && !HasWindowExStyle(window.Hwnd, WS_EX.WS_EX_NOACTIVATE);
-
-                var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
-
-                var isExcludedClassName = WindowClassesToIgnore.Contains(window.ClassName);
-                var isExcludedProcessName = ProcessNamesToIgnore.Contains(window.Process.ProcessName);
-
-                var isShellWindow = window.Hwnd == shellWindow;
-
-                if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
-                {
-                    return true;
-                }
-
-                return false;
-            };
-
-            return FilterToplevelWindows(OpenWindowsPredicate);
-        }
-
         /// <summary>
         /// Returns all top-level windows that match the given predicate.
         /// </summary>
