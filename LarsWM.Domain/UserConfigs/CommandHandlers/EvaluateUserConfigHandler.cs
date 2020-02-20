@@ -19,7 +19,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
             _bus = bus;
         }
 
-        public CommandResponse Handle(EvaluateUserConfigCommand command)
+        public dynamic Handle(EvaluateUserConfigCommand command)
         {
             var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "UserConfigs/SampleUserConfig.yaml");
 

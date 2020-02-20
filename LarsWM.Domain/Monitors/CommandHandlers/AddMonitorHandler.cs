@@ -16,7 +16,7 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
             _monitorService = monitorService;
         }
 
-        public CommandResponse Handle(AddMonitorCommand command)
+        public dynamic Handle(AddMonitorCommand command)
         {
             var newMonitor = new Monitor(command.Screen);
             _monitorService.ContainerTree.Add(newMonitor);

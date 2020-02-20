@@ -12,7 +12,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             _bus = bus;
         }
 
-        public CommandResponse Handle(FocusWindowCommand command)
+        public dynamic Handle(FocusWindowCommand command)
         {
             var window = command.Window;
 

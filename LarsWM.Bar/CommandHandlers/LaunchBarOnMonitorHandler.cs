@@ -17,7 +17,7 @@ namespace LarsWM.Bar.CommandHandlers
             _bus = bus;
         }
 
-        public CommandResponse Handle(LaunchBarOnMonitorCommand command)
+        public dynamic Handle(LaunchBarOnMonitorCommand command)
         {
             var monitor = _monitorService.GetMonitorById(command.MonitorId);
 

@@ -13,7 +13,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             _workspaceService = workspaceService;
         }
 
-        public CommandResponse Handle(CreateWorkspaceCommand command)
+        public dynamic Handle(CreateWorkspaceCommand command)
         {
             var newWorkspace = new Workspace(command.WorkspaceName);
             _workspaceService.InactiveWorkspaces.Add(newWorkspace);

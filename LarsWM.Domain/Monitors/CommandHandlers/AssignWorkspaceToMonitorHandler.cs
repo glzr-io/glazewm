@@ -16,7 +16,7 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
             _workspaceService = workspaceService;
         }
 
-        public CommandResponse Handle(AssignWorkspaceToMonitorCommand command)
+        public dynamic Handle(AssignWorkspaceToMonitorCommand command)
         {
             var monitor = _monitorService.GetMonitorById(command.MonitorId);
             var workspace = _workspaceService.GetWorkspaceById(command.WorkspaceId);
