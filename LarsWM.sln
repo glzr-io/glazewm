@@ -9,7 +9,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Bar", "LarsWM.Bar\La
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Infrastructure", "LarsWM.Infrastructure\LarsWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LarsWM.Bootstrapper", "LarsWM.Bootstrapper\LarsWM.Bootstrapper.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LarsWM.Bootstrapper", "LarsWM.Bootstrapper\LarsWM.Bootstrapper.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{877CCE5C-94A9-4CE4-8A29-164179ADE9D3}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
