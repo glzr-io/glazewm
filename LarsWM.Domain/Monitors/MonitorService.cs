@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Windows;
+﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Windows;
 using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;
@@ -9,20 +10,37 @@ namespace LarsWM.Domain.Monitors
 {
     public class MonitorService
     {
-        public List<Monitor> Monitors { get; set; } = new List<Monitor>();
+        private ContainerService _containerService;
 
-        public Monitor GetMonitorById(Guid id)
+        public MonitorService(ContainerService containerService)
         {
-            return Monitors.FirstOrDefault(m => m.Id == id);
+            _containerService = containerService;
+        }
+
+        /// <summary>
+        /// Finds monitor that matches given predicate by searching at the root level of container tree.
+        /// </summary>
+        public Monitor FindMonitor(Predicate<Monitor> predicate)
+        {
+            var matchedMonitor = _containerService.ContainerTree.FirstOrDefault((m) =>
+            {
+                if (predicate(m as Monitor))
+                    return true;
+
+                return false;
+            });
+
+            return matchedMonitor as Monitor;
         }
 
         public Monitor GetMonitorFromUnaddedWindow(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);
 
-            var matchedMonitor = Monitors.FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
+            var matchedMonitor = FindMonitor(m => m.Screen.DeviceName == screen.DeviceName);
+
             if (matchedMonitor == null)
-                return Monitors[0];
+                return _containerService.ContainerTree[0] as Monitor;
 
             return matchedMonitor;
         }

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace LarsWM.Domain.Containers
 {
-    class ContainerService
+    public class ContainerService
     {
         //Tree<Container> Tree = new Tree<Container>();
         public List<Container> ContainerTree = new List<Container>();
