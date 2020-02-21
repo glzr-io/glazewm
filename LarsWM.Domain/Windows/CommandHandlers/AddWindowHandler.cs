@@ -23,6 +23,10 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             if (!IsWindowManageable(window))
                 return new CommandResponse(false, window.Id);
 
+            // Add window to its nearest workspace
+            var targetMonitor = _monitorService.GetMonitorFromWindowHandle(window);
+            targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
+
             return new CommandResponse(true, window.Id);
         }
 
