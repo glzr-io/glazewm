@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.UserConfigs;
+﻿using LarsWM.Domain.Monitors;
+using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System.Diagnostics;
@@ -10,10 +11,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     class AddWindowHandler : ICommandHandler<AddWindowCommand>
     {
         private UserConfigService _userConfigService;
+        private MonitorService _monitorService;
 
-        public AddWindowHandler(UserConfigService userConfigService)
+        public AddWindowHandler(UserConfigService userConfigService, MonitorService monitorService)
         {
             _userConfigService = userConfigService;
+            _monitorService = monitorService;
         }
 
         public dynamic Handle(AddWindowCommand command)
@@ -24,7 +27,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
                 return new CommandResponse(false, window.Id);
 
             // Add window to its nearest workspace
-            var targetMonitor = _monitorService.GetMonitorFromWindowHandle(window);
+            var targetMonitor = _monitorService.GetMonitorFromUnaddedWindow(window);
             targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
 
             return new CommandResponse(true, window.Id);
