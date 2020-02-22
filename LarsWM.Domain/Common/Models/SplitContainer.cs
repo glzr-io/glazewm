@@ -4,6 +4,6 @@ namespace LarsWM.Domain.Common.Models
 {
     public class SplitContainer : Container
     {
-        public Layout Layout { get; set; }
+        public Layout Layout { get; set; } = Layout.Horizontal;
     }
 }
