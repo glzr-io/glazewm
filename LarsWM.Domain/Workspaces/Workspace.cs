@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace LarsWM.Domain.Workspaces
 {
-    public class Workspace : Container
+    public class Workspace : SplitContainer
     {
         public Guid Id = Guid.NewGuid();
         public string Name { get; set; }
