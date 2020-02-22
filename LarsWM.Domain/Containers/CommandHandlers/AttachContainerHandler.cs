@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Common.Enums;
+using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.Monitors.Events;
@@ -28,29 +29,35 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             var newChild = command.NewChild;
             var currentChildren = command.Parent.Children;
 
-            if (parent is SplitContainer == false)
-                return null;
-
-            if (currentChildren.Count == 0)
-            {
-                // TODO: Take up full width with the container to attach.
-                // This if-statement might not be necessary (instead handle below).
-                command.Parent.AddChild(command.NewChild);
-            }
-
             var innerGaps = _userConfigService.UserConfig.InnerGap;
 
-            if (parent.Orientation == "horizontal")
+            if (parent.Layout == Layout.Horizontal)
             {
-                var newChildWidth = (currentChildren.Count + 1) / (parent.Width - (innerGaps * currentChildren.Count));
                 var newChildHeight = parent.Height;
+
+                var availableParentWidth = parent.Width - (innerGaps * currentChildren.Count);
+                var newChildWidth = (currentChildren.Count + 1) / availableParentWidth;
+
+                var availableParentWidthWithChild = availableParentWidth - newChildWidth;
+
+                // Adjust widths of current child containers.
+                foreach (var currentChild in currentChildren)
+                {
+                    var widthPercentage = (currentChild.Width / availableParentWidth) * 100;
+                    currentChild.Width = widthPercentage * availableParentWidthWithChild;
+                }
+
+                parent.Children.Add(newChild);
+                newChild.Parent = parent;
             }
 
-            if (parent.Orientation == "vertical")
+            if (parent.Layout == Layout.Vertical)
             {
                 var newChildWidth = parent.Width;
                 var newChildHeight = (currentChildren.Count + 1) / (parent.Width - (innerGaps * currentChildren.Count));
             }
+
+            _containerService.PendingContainersToRedraw.Add(parent);
 
             return CommandResponse.Ok;
         }

@@ -5,10 +5,10 @@ namespace LarsWM.Domain.Monitors.Commands
 {
     public class AttachContainerCommand : Command
     {
-        public Container Parent { get; }
+        public SplitContainer Parent { get; }
         public Container NewChild { get; }
 
-        public AttachContainerCommand(Container parent, Container newChild)
+        public AttachContainerCommand(SplitContainer parent, Container newChild)
         {
             Parent = parent;
             NewChild = newChild;

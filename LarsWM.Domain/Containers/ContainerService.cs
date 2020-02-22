@@ -7,9 +7,10 @@ namespace LarsWM.Domain.Containers
 {
     public class ContainerService
     {
-        //Tree<Container> Tree = new Tree<Container>();
         public List<Container> ContainerTree = new List<Container>();
+        public List<Container> PendingContainersToRedraw = new List<Container>();
 
+        // TODO: Rename to GetMonitorFromChildContainer.
         public Monitor GetMonitorForContainer(Container container)
         {
             var parent = container.Parent;
@@ -20,6 +21,7 @@ namespace LarsWM.Domain.Containers
             return parent as Monitor;
         }
 
+        // TODO: Rename to GetWorkspaceFromChildContainer.
         public Workspace GetWorkspaceForContainer(Container container)
         {
             var parent = container.Parent;
