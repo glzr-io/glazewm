@@ -1,13 +1,9 @@
-﻿namespace LarsWM.Domain.Common.Models
-{
-    public enum Orientation
-    {
-        Vertical,
-        Horizontal,
-    }
+﻿using LarsWM.Domain.Common.Enums;
 
+namespace LarsWM.Domain.Common.Models
+{
     public class SplitContainer : Container
     {
-        public Orientation Orientation { get; set; }
+        public Layout Layout { get; set; }
     }
 }
