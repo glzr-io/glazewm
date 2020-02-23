@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
@@ -15,12 +15,18 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         private IBus _bus;
         private UserConfigService _userConfigService;
         private MonitorService _monitorService;
+        private WindowService _windowService;
 
-        public AddInitialWindowsHandler(IBus bus, UserConfigService userConfigService, MonitorService monitorService)
+        public AddInitialWindowsHandler(
+            IBus bus,
+            UserConfigService userConfigService,
+            MonitorService monitorService,
+            WindowService windowService)
         {
             _bus = bus;
             _userConfigService = userConfigService;
             _monitorService = monitorService;
+            _windowService = windowService;
         }
 
         public dynamic Handle(AddInitialWindowsCommand command)
@@ -47,7 +53,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
         private bool IsWindowManageable(Window window)
         {
-            var isApplicationWindow = IsWindowVisible(window.Hwnd) && !HasWindowStyle(window.Hwnd, WS.WS_CHILD) && !HasWindowExStyle(window.Hwnd, WS_EX.WS_EX_NOACTIVATE);
+            var isApplicationWindow = IsWindowVisible(window.Hwnd)
+                && !window.HasWindowStyle(WS.WS_CHILD) && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE);
 
             var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
 

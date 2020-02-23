@@ -1,4 +1,4 @@
-using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Common.Models;
 using LarsWM.Infrastructure;
 using LarsWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,42 +30,14 @@ namespace LarsWM.Domain.Windows
         public bool CanLayout => !_windowService.IsHandleCloaked(Hwnd)
             && _windowService.IsHandleManageable(Hwnd);
 
-        public void Remove()
+        public bool HasWindowStyle(WS style)
         {
-            // Clear from list of windows in AppState
-            // Clear from WindowsInWorkspace of workspaces in AppState
+            return _windowService.HandleHasWindowStyle(Hwnd, style);
         }
 
-        /// <summary>
-        /// This window's style flags.
-        /// </summary>
-        //public WindowStyleFlags Style
-        //{
-        //    get
-        //    {
-        //        return unchecked((WindowStyleFlags)GetWindowLongPtr(_hwnd, (int)(GWL.GWL_STYLE)).ToInt64());
-        //    }
-        //    set
-        //    {
-        //        SetWindowLong(_hwnd, (int)GWL.GWL_STYLE, (int)value);
-        //    }
-
-        //}
-
-        /// <summary>
-        /// This window's extended style flags.
-        /// </summary>
-        //[CLSCompliant(false)]
-        //public WindowExStyleFlags ExtendedStyle
-        //{
-        //    get
-        //    {
-        //        return unchecked((WindowExStyleFlags)GetWindowLongPtr(_hwnd, (int)(GWL.GWL_EXSTYLE)).ToInt64());
-        //    }
-        //    set
-        //    {
-        //        SetWindowLong(_hwnd, (int)GWL.GWL_EXSTYLE, (int)value);
-        //    }
-        //}
+        public bool HasWindowExStyle(WS_EX style)
+        {
+            return _windowService.HandleHasWindowExStyle(Hwnd, style);
+        }
     }
 }
