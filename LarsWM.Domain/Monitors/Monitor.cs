@@ -1,4 +1,4 @@
-using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;
@@ -10,10 +10,10 @@ namespace LarsWM.Domain.Monitors
     {
         public Guid Id = Guid.NewGuid();
         public string Name => Screen.DeviceName;
-        public int Width => Screen.WorkingArea.Width;
-        public int Height => Screen.WorkingArea.Height;
-        public int X => Screen.WorkingArea.X;
-        public int Y => Screen.WorkingArea.Y;
+        public override int Width => Screen.WorkingArea.Width;
+        public override int Height => Screen.WorkingArea.Height;
+        public override int X => Screen.WorkingArea.X;
+        public override int Y => Screen.WorkingArea.Y;
         public bool IsPrimary => Screen.Primary;
         public Workspace DisplayedWorkspace;  // Alternatively add IsDisplayed/IsVisible property to Workspace instance
 
