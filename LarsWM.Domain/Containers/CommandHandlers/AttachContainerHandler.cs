@@ -31,20 +31,21 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
             if (parent.Layout == Layout.Horizontal)
             {
-                // Direct children of parent have the same height as parent in horizontal layouts.
+                // Direct children of parent have the same height and Y coord as parent in horizontal layouts.
                 newChild.Height = parent.Height;
+                newChild.Y = parent.Y;
 
                 // Available parent width is the width of the parent minus all inner gaps.
-                var currentAvailableParentWidth = parent.Width - (innerGap * currentChildren.Count - 1);
+                var currentAvailableParentWidth = parent.Width - (innerGap * (currentChildren.Count - 1));
                 var newAvailableParentWidth = parent.Width - (innerGap * currentChildren.Count);
 
-                newChild.Width = (currentChildren.Count + 1) / newAvailableParentWidth;
+                newChild.Width = newAvailableParentWidth / (currentChildren.Count + 1);
 
                 // Adjust widths of current child containers.
                 foreach (var currentChild in currentChildren)
                 {
-                    var widthPercentage = (currentChild.Width / currentAvailableParentWidth) * 100;
-                    currentChild.Width = widthPercentage * (newAvailableParentWidth - newChild.Width);
+                    var widthPercentage = (double)currentChild.Width / currentAvailableParentWidth;
+                    currentChild.Width = (int)(widthPercentage * (newAvailableParentWidth - newChild.Width));
                 }
 
                 parent.Children.Add(newChild);
