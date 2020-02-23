@@ -1,4 +1,4 @@
-using LarsWM.Domain.Common.Services;
+﻿using LarsWM.Domain.Common.Services;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
@@ -38,10 +38,6 @@ namespace LarsWM.Bootstrapper
 
             // Populate initial monitors, windows, workspaces and user config.
             PopulateInitialState();
-
-            // Subscribe to windows hooks
-
-            // Create a command for forcing the initial layout
         }
 
         /// <summary>
@@ -56,21 +52,8 @@ namespace LarsWM.Bootstrapper
             foreach (var screen in Screen.AllScreens)
                 _bus.Invoke(new AddMonitorCommand(screen));
 
-            EnumWindows((IntPtr hwnd, int lParam) =>
-            {
-                _bus.Invoke(new AddWindowCommand(hwnd));
-                return true;
-            }, IntPtr.Zero);
-
-            // TODO: move the below code to its own command
-            //var windows = GetOpenWindows();
-
-            //foreach (var window in windows)
-            //{
-            //    // Add window to its nearest workspace
-            //    var targetMonitor = _monitorService.GetMonitorFromWindowHandle(window);
-            //    targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
-            //}
+            // Add initial windows to tree.
+            _bus.Invoke(new AddInitialWindowsCommand());
         }
     }
 }
