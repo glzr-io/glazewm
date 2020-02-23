@@ -1,8 +1,6 @@
 ﻿using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Containers;
-using LarsWM.Domain.Monitors.Commands;
-using LarsWM.Domain.Monitors.Events;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure.Bussing;
 
@@ -33,22 +31,40 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
             if (parent.Layout == Layout.Horizontal)
             {
-                var newChildHeight = parent.Height;
+                // Direct children of parent have the same height as parent in horizontal layouts.
+                newChild.Height = parent.Height;
 
-                var availableParentWidth = parent.Width - (innerGaps * currentChildren.Count);
-                var newChildWidth = (currentChildren.Count + 1) / availableParentWidth;
+                // Available parent width is the width of the parent minus all inner gaps.
+                var currentAvailableParentWidth = parent.Width - (innerGaps * currentChildren.Count - 1);
+                var newAvailableParentWidth = parent.Width - (innerGaps * currentChildren.Count);
 
-                var availableParentWidthWithChild = availableParentWidth - newChildWidth;
+                newChild.Width = (currentChildren.Count + 1) / newAvailableParentWidth;
 
                 // Adjust widths of current child containers.
                 foreach (var currentChild in currentChildren)
                 {
-                    var widthPercentage = (currentChild.Width / availableParentWidth) * 100;
-                    currentChild.Width = widthPercentage * availableParentWidthWithChild;
+                    var widthPercentage = (currentChild.Width / currentAvailableParentWidth) * 100;
+                    currentChild.Width = widthPercentage * (newAvailableParentWidth - newChild.Width);
                 }
 
                 parent.Children.Add(newChild);
                 newChild.Parent = parent;
+
+                Container previousChild = null;
+
+                // Adjust x-coordinate of child containers.
+                foreach (var child in parent.Children)
+                {
+                    if (child == parent.Children[0])
+                    {
+                        previousChild = child;
+                        continue;
+                    }
+
+                    child.X = previousChild.X + previousChild.Width + innerGaps;
+
+                    previousChild = child;
+                }
             }
 
             if (parent.Layout == Layout.Vertical)

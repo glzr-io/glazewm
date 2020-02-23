@@ -1,7 +1,7 @@
 ﻿using LarsWM.Domain.Common.Models;
 using LarsWM.Infrastructure.Bussing;
 
-namespace LarsWM.Domain.Monitors.Commands
+namespace LarsWM.Domain.Containers.Commands
 {
     public class AttachContainerCommand : Command
     {
