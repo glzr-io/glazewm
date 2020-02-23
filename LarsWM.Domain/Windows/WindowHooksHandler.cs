@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.WindowsApi;
 using LarsWM.Infrastructure.WindowsApi.Enums;
@@ -27,7 +27,7 @@ namespace LarsWM.Domain.Windows
         {
             _windowEventService.WindowHookSubject.Subscribe(observer =>
             {
-                var window = _windowService.GetWindowByHandle(observer.AffectedWindowHandle);
+                //var window = _windowService.GetWindowByHandle(observer.AffectedWindowHandle);
 
                 switch (observer.EventType)
                 {
@@ -50,7 +50,8 @@ namespace LarsWM.Domain.Windows
                         Debug.WriteLine("minimize end");
                         break;
                     case EventConstant.EVENT_SYSTEM_FOREGROUND:
-                        _bus.Invoke(new FocusWindowCommand(window));
+                        Debug.WriteLine("foreground");
+                        //_bus.Invoke(new FocusWindowCommand(window));
                         break;
                 }
             });

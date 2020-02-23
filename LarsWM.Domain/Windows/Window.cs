@@ -1,28 +1,34 @@
-﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Infrastructure;
 using LarsWM.Infrastructure.WindowsApi;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
-using static LarsWM.Domain.Common.Services.WindowsApiFacade;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Windows
 {
     public class Window : Container
     {
         public Guid Id = Guid.NewGuid();
-        public IntPtr Hwnd { get; set; }
+        public IntPtr Hwnd { get; }
+
+        private WindowService _windowService;
 
         public Window(IntPtr hwnd)
         {
             Hwnd = hwnd;
+            _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
         }
 
-        public Process Process => GetProcessOfWindow(this);
+        public Process Process => _windowService.GetProcessOfHandle(Hwnd);
 
-        public string ClassName => GetClassNameOfWindow(this);
+        public string ClassName => _windowService.GetClassNameOfHandle(Hwnd);
 
-        public WindowRect Location => GetLocationOfWindow(this);
+        public WindowRect Location => _windowService.GetLocationOfHandle(Hwnd);
 
-        public bool CanLayout => !IsWindowCloaked(this) && IsWindowManageable(this);
+        public bool CanLayout => !_windowService.IsHandleCloaked(Hwnd)
+            && _windowService.IsHandleManageable(Hwnd);
 
         public void Remove()
         {
