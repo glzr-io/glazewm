@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Windows;
 
@@ -9,7 +9,7 @@ namespace LarsWM.Domain.Workspaces
         public Guid Id = Guid.NewGuid();
         public string Name { get; set; }
         public Window LastFocusedWindow { get; set; }
-        public List<Window> WindowsInWorkspace { get; set; } = new List<Window>();
+        // TODO: Replace hardcoded outer gap with value from user config.
         private static int OuterGap = 20;
         public override int Height => Parent.Height - OuterGap;
         public override int Width => Parent.Width - OuterGap;

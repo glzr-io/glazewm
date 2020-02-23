@@ -28,7 +28,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
             // Add window to its nearest workspace
             var targetMonitor = _monitorService.GetMonitorFromUnaddedWindow(window);
-            targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
+            //targetMonitor.DisplayedWorkspace.WindowsInWorkspace.Add(window);
 
             return new CommandResponse(true, window.Id);
         }
