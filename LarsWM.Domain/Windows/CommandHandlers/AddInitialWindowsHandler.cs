@@ -1,11 +1,10 @@
-using LarsWM.Domain.Containers.Commands;
+﻿using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
 using System.Diagnostics;
-using static LarsWM.Domain.Common.Services.WindowsApiFacade;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -33,13 +32,20 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         {
             EnumWindows((IntPtr hwnd, int lParam) =>
             {
-                Window window = new Window(hwnd);
+                var window = new Window(hwnd);
 
                 if (!IsWindowManageable(window))
                     return true;
 
                 // Get monitor that encompasses most of window.
                 var targetMonitor = _monitorService.GetMonitorFromUnaddedWindow(window);
+
+                // Set initial location values.
+                var windowLocation = _windowService.GetLocationOfHandle(hwnd);
+                window.X = windowLocation.Left;
+                window.Y = windowLocation.Top;
+                window.Width = windowLocation.Right - windowLocation.Left;
+                window.Height = windowLocation.Bottom - windowLocation.Top;
 
                 _bus.Invoke(new AttachContainerCommand(targetMonitor.DisplayedWorkspace, window));
 
