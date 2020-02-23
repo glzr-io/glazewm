@@ -1,5 +1,6 @@
 ﻿using LarsWM.Domain.Common.Services;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.CommandHandlers;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.CommandHandlers;
 using LarsWM.Domain.Monitors.EventHandler;
@@ -26,9 +27,12 @@ namespace LarsWM.Domain
             services.AddSingleton<WindowService>();
             services.AddSingleton<WindowHooksHandler>();
             services.AddSingleton<WorkspaceService>();
+            services.AddSingleton<AttachContainerHandler>();
+            services.AddSingleton<RedrawContainersHandler>();
             services.AddSingleton<AddMonitorHandler>();
             services.AddSingleton<AssignWorkspaceToMonitorHandler>();
             services.AddSingleton<EvaluateUserConfigHandler>();
+            services.AddSingleton<AddInitialWindowsHandler>();
             services.AddSingleton<AddWindowHandler>();
             services.AddSingleton<FocusWindowHandler>();
             services.AddSingleton<CreateWorkspaceHandler>();
@@ -42,9 +46,12 @@ namespace LarsWM.Domain
         public static IServiceProvider RegisterDomainHandlers(this IServiceProvider serviceProvider)
         {
             var bus = serviceProvider.GetRequiredService<IBus>();
+            bus.RegisterCommandHandler<AttachContainerHandler>();
+            bus.RegisterCommandHandler<RedrawContainersHandler>();
             bus.RegisterCommandHandler<AddMonitorHandler>();
             bus.RegisterCommandHandler<AssignWorkspaceToMonitorHandler>();
             bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
+            bus.RegisterCommandHandler<AddInitialWindowsHandler>();
             bus.RegisterCommandHandler<AddWindowHandler>();
             bus.RegisterCommandHandler<FocusWindowHandler>();
             bus.RegisterCommandHandler<CreateWorkspaceHandler>();
