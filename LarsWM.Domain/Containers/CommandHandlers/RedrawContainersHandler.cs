@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.UserConfigs;
+using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -11,31 +10,31 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 {
     class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
     {
-        private IBus _bus;
         private ContainerService _containerService;
-        private readonly UserConfigService _userConfigService;
 
-        public RedrawContainersHandler(IBus bus, ContainerService containerService, UserConfigService userConfigService)
+        public RedrawContainersHandler(ContainerService containerService)
         {
-            _bus = bus;
             _containerService = containerService;
-            _userConfigService = userConfigService;
         }
 
         public dynamic Handle(RedrawContainersCommand command)
         {
             var containersToRedraw = _containerService.PendingContainersToRedraw;
 
-            var uniqueContainersToRedraw = containersToRedraw.SelectMany(container => container.Flatten()).Distinct();
+            var windowsToRedraw = containersToRedraw
+                .SelectMany(container => container.Flatten())
+                .OfType<Window>()
+                .Distinct()
+                .ToList();
 
-            var handle = BeginDeferWindowPos(uniqueContainersToRedraw.Count());
+            var handle = BeginDeferWindowPos(windowsToRedraw.Count());
 
-            foreach (var container in uniqueContainersToRedraw)
+            foreach (var window in windowsToRedraw)
             {
                 var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
                     SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER;
 
-                DeferWindowPos(handle, window.Hwnd, IntPtr.Zero, container.X, container.Y, container.Width, container.Height, flags);
+                DeferWindowPos(handle, window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
             }
 
             EndDeferWindowPos(handle);
