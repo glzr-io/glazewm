@@ -27,7 +27,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             var newChild = command.NewChild;
             var currentChildren = command.Parent.Children;
 
-            var innerGaps = _userConfigService.UserConfig.InnerGap;
+            var innerGap = _userConfigService.UserConfig.InnerGap;
 
             if (parent.Layout == Layout.Horizontal)
             {
@@ -35,8 +35,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
                 newChild.Height = parent.Height;
 
                 // Available parent width is the width of the parent minus all inner gaps.
-                var currentAvailableParentWidth = parent.Width - (innerGaps * currentChildren.Count - 1);
-                var newAvailableParentWidth = parent.Width - (innerGaps * currentChildren.Count);
+                var currentAvailableParentWidth = parent.Width - (innerGap * currentChildren.Count - 1);
+                var newAvailableParentWidth = parent.Width - (innerGap * currentChildren.Count);
 
                 newChild.Width = (currentChildren.Count + 1) / newAvailableParentWidth;
 
@@ -50,18 +50,15 @@ namespace LarsWM.Domain.Containers.CommandHandlers
                 parent.Children.Add(newChild);
                 newChild.Parent = parent;
 
-                Container previousChild = null;
-
                 // Adjust x-coordinate of child containers.
+                Container previousChild = null;
                 foreach (var child in parent.Children)
                 {
-                    if (child == parent.Children[0])
-                    {
-                        previousChild = child;
-                        continue;
-                    }
+                    if (previousChild == null)
+                        child.X = parent.X;
 
-                    child.X = previousChild.X + previousChild.Width + innerGaps;
+                    else
+                        child.X = previousChild.X + previousChild.Width + innerGap;
 
                     previousChild = child;
                 }
@@ -70,7 +67,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             if (parent.Layout == Layout.Vertical)
             {
                 var newChildWidth = parent.Width;
-                var newChildHeight = (currentChildren.Count + 1) / (parent.Width - (innerGaps * currentChildren.Count));
+                var newChildHeight = (currentChildren.Count + 1) / (parent.Width - (innerGap * currentChildren.Count));
             }
 
             _containerService.PendingContainersToRedraw.Add(parent);
