@@ -39,5 +39,10 @@ namespace LarsWM.Domain.Common.Models
             foreach (var child in Children)
                 child.Traverse(action);
         }
+
+        public IEnumerable<Container> Flatten()
+        {
+            return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
+        }
     }
 }
