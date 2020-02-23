@@ -1,7 +1,6 @@
-﻿using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Windows;
 using System;
-using System.Collections.Generic;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Windows;
 
 namespace LarsWM.Domain.Workspaces
 {
@@ -11,8 +10,11 @@ namespace LarsWM.Domain.Workspaces
         public string Name { get; set; }
         public Window LastFocusedWindow { get; set; }
         public List<Window> WindowsInWorkspace { get; set; } = new List<Window>();
-        public int Width => this.Parent.Width - (20 / 2);
-        public int Height => this.Parent.Height - (30 / 2);
+        private static int OuterGap = 20;
+        public override int Height => Parent.Height - OuterGap;
+        public override int Width => Parent.Width - OuterGap;
+        public override int X => Parent.X + (OuterGap / 2);
+        public override int Y => Parent.Y + (OuterGap / 2);
 
         public Workspace(string name)
         {

@@ -7,10 +7,10 @@ namespace LarsWM.Domain.Common.Models
 {
     public class Container
     {
-        public int Height { get; set; }
-        public int Width { get; set; }
-        public int X { get; set; }
-        public int Y { get; set; }
+        public virtual int Height { get; set; }
+        public virtual int Width { get; set; }
+        public virtual int X { get; set; }
+        public virtual int Y { get; set; }
         public Container Parent { get; set; } = null;
         public List<Container> Children { get; set; } = new List<Container>();
 
