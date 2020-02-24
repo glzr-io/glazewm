@@ -39,7 +39,7 @@ namespace LarsWM.Bar
             var button = sender as Button;
             var clickedWorkspace = button.DataContext as Workspace;
 
-            _bus.Invoke(new SetFocusedWorkspaceCommand(clickedWorkspace.Id));
+            _bus.Invoke(new FocusWorkspaceCommand(clickedWorkspace));
         }
     }
 }
