@@ -12,6 +12,7 @@ namespace LarsWM.Domain.Windows
     {
         public Guid Id = Guid.NewGuid();
         public IntPtr Hwnd { get; }
+        public bool IsHidden { get; set; } = false;
 
         private WindowService _windowService;
 
