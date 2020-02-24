@@ -1,10 +1,9 @@
-﻿using LarsWM.Domain.Containers;
-using LarsWM.Domain.Windows;
-using LarsWM.Domain.Workspaces;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers;
+using LarsWM.Domain.Windows;
 
 namespace LarsWM.Domain.Monitors
 {
@@ -15,6 +14,16 @@ namespace LarsWM.Domain.Monitors
         public MonitorService(ContainerService containerService)
         {
             _containerService = containerService;
+        }
+
+        public Monitor GetMonitorFromChildContainer(Container container)
+        {
+            var parent = container.Parent;
+
+            while (parent != null && parent is Monitor == false)
+                parent = container.Parent;
+
+            return parent as Monitor;
         }
 
         /// <summary>

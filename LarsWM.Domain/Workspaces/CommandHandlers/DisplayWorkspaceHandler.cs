@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 
@@ -6,17 +6,20 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
     class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
     {
-        private ContainerService _containerService;
+        private IBus _bus;
+        private MonitorService _monitorService;
 
-        public DisplayWorkspaceHandler(ContainerService containerService)
+        public DisplayWorkspaceHandler(IBus bus, MonitorService monitorService)
         {
-            _containerService = containerService;
+            _bus = bus;
+            _monitorService = monitorService;
         }
 
         public dynamic Handle(DisplayWorkspaceCommand command)
         {
-            var monitor = _containerService.GetMonitorForContainer(command.Workspace);
+            var workspace = command.Workspace;
 
+            var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
             monitor.DisplayedWorkspace = command.Workspace;
 
             return new CommandResponse(true, command.Workspace.Id);

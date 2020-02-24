@@ -10,17 +10,6 @@ namespace LarsWM.Domain.Containers
         public List<Container> ContainerTree = new List<Container>();
         public List<Container> PendingContainersToRedraw = new List<Container>();
 
-        // TODO: Rename to GetMonitorFromChildContainer.
-        public Monitor GetMonitorForContainer(Container container)
-        {
-            var parent = container.Parent;
-
-            while (parent != null && parent is Monitor == false)
-                parent = container.Parent;
-
-            return parent as Monitor;
-        }
-
         // TODO: Rename to GetWorkspaceFromChildContainer.
         public Workspace GetWorkspaceForContainer(Container container)
         {
