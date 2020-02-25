@@ -1,14 +1,14 @@
-﻿using LarsWM.Domain.Workspaces;
+﻿using LarsWM.Domain.Monitors;
 using LarsWM.Infrastructure.Bussing;
 
-namespace LarsWM.Domain.Monitors.Commands
+namespace LarsWM.Domain.Workspaces.Commands
 {
-    class AssignWorkspaceToMonitorCommand : Command
+    class AttachWorkspaceToMonitorCommand : Command
     {
         public Workspace Workspace { get; }
         public Monitor Monitor { get; }
 
-        public AssignWorkspaceToMonitorCommand(Workspace workspace, Monitor monitor)
+        public AttachWorkspaceToMonitorCommand(Workspace workspace, Monitor monitor)
         {
             Workspace = workspace;
             Monitor = monitor;
