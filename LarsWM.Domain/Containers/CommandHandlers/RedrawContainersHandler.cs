@@ -34,10 +34,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
                 var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
                     SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER;
 
+                if (window.IsHidden)
+                    flags |= SWP.SWP_HIDEWINDOW;
+                else
+                    flags |= SWP.SWP_SHOWWINDOW;
+
                 DeferWindowPos(handle, window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
             }
 
             EndDeferWindowPos(handle);
+
+            containersToRedraw.Clear();
 
             return CommandResponse.Ok;
         }
