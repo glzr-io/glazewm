@@ -32,7 +32,7 @@
                 <DataTemplate>
                     <Button 
                     Click="OnWorkspaceButtonClick"
-                    Content="{Binding Index}"
+                    Content="{Binding Name}"
                     Background="#242424"
                     Foreground="White"
                     BorderBrush="Transparent"
