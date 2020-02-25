@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Monitors;
+﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Monitors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,20 +11,33 @@ namespace LarsWM.Domain.Workspaces
         public List<Workspace> InactiveWorkspaces { get; set; } = new List<Workspace>();
 
         private MonitorService _monitorService { get; }
+        private ContainerService _containerService;
 
-        public WorkspaceService(MonitorService monitorService)
+        public WorkspaceService(ContainerService containerService, MonitorService monitorService)
         {
+            _containerService = containerService;
             _monitorService = monitorService;
         }
 
-        public Workspace GetWorkspaceById(Guid id)
+        /// <summary>
+        /// Finds workspace that matches given predicate by searching at the 2nd level of container tree.
+        /// </summary>
+        public Workspace FindWorkspace(Predicate<Workspace> predicate)
         {
-            return InactiveWorkspaces.FirstOrDefault(m => m.Id == id);
+            var matchedWorkspace = _containerService.ContainerTree.SelectMany(monitor => monitor.Children).FirstOrDefault((m) =>
+            {
+                if (predicate(m as Workspace))
+                    return true;
+
+                return false;
+            });
+
+            return matchedWorkspace as Workspace;
         }
 
         public Workspace GetWorkspaceByName(string name)
         {
-            return InactiveWorkspaces.FirstOrDefault(m => m.Name == name);
+            return FindWorkspace(workspace => workspace.Name == name);
         }
     }
 }
