@@ -1,6 +1,4 @@
-﻿using LarsWM.Domain.Monitors.Events;
-using LarsWM.Infrastructure.Bussing;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -8,6 +6,8 @@ using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using LarsWM.Domain.Workspaces.Commands;
+using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Common.Services
@@ -72,6 +72,24 @@ namespace LarsWM.Domain.Common.Services
             {
                 if (pressedKey == Keys.J)
                     Debug.WriteLine("Alt+J keybinding successfully triggered.");
+                if (pressedKey == Keys.D1)
+                    _bus.Invoke(new FocusWorkspaceCommand("1"));
+                if (pressedKey == Keys.D2)
+                    _bus.Invoke(new FocusWorkspaceCommand("2"));
+                if (pressedKey == Keys.D3)
+                    _bus.Invoke(new FocusWorkspaceCommand("3"));
+                if (pressedKey == Keys.D4)
+                    _bus.Invoke(new FocusWorkspaceCommand("4"));
+                if (pressedKey == Keys.D5)
+                    _bus.Invoke(new FocusWorkspaceCommand("5"));
+                if (pressedKey == Keys.D6)
+                    _bus.Invoke(new FocusWorkspaceCommand("6"));
+                if (pressedKey == Keys.D7)
+                    _bus.Invoke(new FocusWorkspaceCommand("7"));
+                if (pressedKey == Keys.D8)
+                    _bus.Invoke(new FocusWorkspaceCommand("8"));
+                if (pressedKey == Keys.D9)
+                    _bus.Invoke(new FocusWorkspaceCommand("9"));
             }
             );
         }
