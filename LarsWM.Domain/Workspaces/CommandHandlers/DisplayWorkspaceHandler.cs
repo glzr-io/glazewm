@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Workspaces.Commands;
@@ -27,6 +28,12 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
             var currentWorkspace = monitor.DisplayedWorkspace;
 
+            if (currentWorkspace == null)
+            {
+                monitor.DisplayedWorkspace = workspaceToDisplay;
+                return CommandResponse.Ok;
+            }
+
             if (currentWorkspace == workspaceToDisplay)
                 return CommandResponse.Ok;
 
@@ -50,6 +57,8 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
             _containerService.PendingContainersToRedraw.Add(currentWorkspace);
             _containerService.PendingContainersToRedraw.Add(workspaceToDisplay);
+
+            _bus.Invoke(new RedrawContainersCommand());
 
             return new CommandResponse(true, command.Workspace.Id);
         }
