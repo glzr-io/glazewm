@@ -4,11 +4,11 @@ namespace LarsWM.Domain.Workspaces.Commands
 {
     public class FocusWorkspaceCommand : Command
     {
-        public Workspace Workspace { get; }
+        public string WorkspaceName { get; }
 
-        public FocusWorkspaceCommand(Workspace workspace)
+        public FocusWorkspaceCommand(string workspaceName)
         {
-            Workspace = workspace;
+            WorkspaceName = workspaceName;
         }
     }
 }

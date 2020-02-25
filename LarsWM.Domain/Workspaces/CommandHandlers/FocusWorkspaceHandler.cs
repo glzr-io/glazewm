@@ -19,11 +19,9 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
         public dynamic Handle(FocusWorkspaceCommand command)
         {
-            var workspace = command.Workspace;
-            var monitor = _monitorService.GetMonitorFromChildContainer(workspace);
+            var workspace = _workspaceService.GetWorkspaceByName(command.WorkspaceName);
 
-            if (monitor.DisplayedWorkspace != workspace)
-                _bus.Invoke(new DisplayWorkspaceCommand(workspace));
+            _bus.Invoke(new DisplayWorkspaceCommand(workspace));
 
             // TODO: Set focus to the last focused window on workspace.
 
