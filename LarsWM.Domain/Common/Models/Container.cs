@@ -13,6 +13,7 @@ namespace LarsWM.Domain.Common.Models
         public virtual int Y { get; set; }
         public Container Parent { get; set; } = null;
         public List<Container> Children { get; set; } = new List<Container>();
+        public Container LastFocusedContainer { get; set; } = null;
 
         public Container AddChild(Container container)
         {
