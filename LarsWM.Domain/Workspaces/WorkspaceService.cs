@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,16 @@ namespace LarsWM.Domain.Workspaces
         {
             _containerService = containerService;
             _monitorService = monitorService;
+        }
+
+        public Workspace GetWorkspaceFromChildContainer(Container container)
+        {
+            var parent = container.Parent;
+
+            while (parent != null && parent is Workspace == false)
+                parent = parent.Parent;
+
+            return parent as Workspace;
         }
 
         /// <summary>

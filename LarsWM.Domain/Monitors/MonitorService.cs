@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows.Forms;
 using LarsWM.Domain.Common.Models;
@@ -21,7 +21,7 @@ namespace LarsWM.Domain.Monitors
             var parent = container.Parent;
 
             while (parent != null && parent is Monitor == false)
-                parent = container.Parent;
+                parent = parent.Parent;
 
             return parent as Monitor;
         }
