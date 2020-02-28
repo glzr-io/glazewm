@@ -18,12 +18,7 @@ namespace LarsWM.Domain.Monitors
 
         public Monitor GetMonitorFromChildContainer(Container container)
         {
-            var parent = container.Parent;
-
-            while (parent != null && parent is Monitor == false)
-                parent = parent.Parent;
-
-            return parent as Monitor;
+            return container.UpwardsTraversal().OfType<Monitor>().First();
         }
 
         /// <summary>

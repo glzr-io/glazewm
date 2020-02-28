@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors;
 using System;
@@ -22,12 +22,7 @@ namespace LarsWM.Domain.Workspaces
 
         public Workspace GetWorkspaceFromChildContainer(Container container)
         {
-            var parent = container.Parent;
-
-            while (parent != null && parent is Workspace == false)
-                parent = parent.Parent;
-
-            return parent as Workspace;
+            return container.UpwardsTraversal().OfType<Workspace>().First();
         }
 
         /// <summary>
