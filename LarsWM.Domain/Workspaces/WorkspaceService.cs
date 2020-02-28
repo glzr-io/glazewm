@@ -20,35 +20,23 @@ namespace LarsWM.Domain.Workspaces
             _monitorService = monitorService;
         }
 
-        public Workspace GetWorkspaceFromChildContainer(Container container)
-        {
-            var parent = container.Parent;
-
-            while (parent != null && parent is Workspace == false)
-                parent = parent.Parent;
-
-            return parent as Workspace;
-        }
-
         /// <summary>
-        /// Finds workspace that matches given predicate by searching at the 2nd level of container tree.
+        /// Get active workspaces by iterating over the 2nd level of trees in container forest.
         /// </summary>
-        public Workspace FindWorkspace(Predicate<Workspace> predicate)
+        public IEnumerable<Workspace> GetActiveWorkspaces()
         {
-            var matchedWorkspace = _containerService.ContainerTree.SelectMany(monitor => monitor.Children).FirstOrDefault((m) =>
-            {
-                if (predicate(m as Workspace))
-                    return true;
-
-                return false;
-            });
-
-            return matchedWorkspace as Workspace;
+            return _containerService.ContainerTree
+                .SelectMany(monitor => monitor.Children as IEnumerable<Workspace>);
         }
 
         public Workspace GetWorkspaceByName(string name)
         {
-            return FindWorkspace(workspace => workspace.Name == name);
+            return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
+        }
+
+        public Workspace GetWorkspaceFromChildContainer(Container container)
+        {
+            return container.UpwardsTraversal().OfType<Workspace>().First();
         }
     }
 }

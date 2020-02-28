@@ -23,6 +23,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             _windowService.FocusedWindow = window;
 
             // Traverse upwards, creating a focus stack towards the newly focused window.
+            // TODO: Not sure whether it's best for the parent containers to point directly
+            // to the focused window, or instead point child -> n children -> focused. This would
+            // mean Monitor.DisplayedWorkspace could be removed.
             var parent = window.Parent;
             while (parent != null)
             {
