@@ -1,3 +1,4 @@
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.WindowsApi;
@@ -5,6 +6,7 @@ using LarsWM.Infrastructure.WindowsApi.Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace LarsWM.Domain.Windows
@@ -14,20 +16,32 @@ namespace LarsWM.Domain.Windows
     {
         private IBus _bus;
         private WindowService _windowService;
+        private ContainerService _containerService;
+
         private WindowEventService _windowEventService { get; }
 
-        public WindowHooksHandler(IBus bus, WindowService windowService, WindowEventService windowEventService)
+        public WindowHooksHandler(
+            IBus bus,
+            WindowService windowService,
+            WindowEventService windowEventService,
+            ContainerService containerService)
         {
             _bus = bus;
             _windowService = windowService;
             _windowEventService = windowEventService;
+            _containerService = containerService;
         }
 
         public void Configure()
         {
             _windowEventService.WindowHookSubject.Subscribe(observer =>
             {
-                //var window = _windowService.GetWindowByHandle(observer.AffectedWindowHandle);
+                // TODO: For performance, instead get window instance by using
+                // MonitorService.GetMonitorFromUnaddedWindow and searching its displayed
+                // workspace.
+                var window = _containerService.ContainerTree.DownwardsTraversal()
+                    .OfType<Window>()
+                    .FirstOrDefault(w => w.Hwnd == observer.AffectedWindowHandle);
 
                 switch (observer.EventType)
                 {
@@ -51,7 +65,7 @@ namespace LarsWM.Domain.Windows
                         break;
                     case EventConstant.EVENT_SYSTEM_FOREGROUND:
                         Debug.WriteLine("foreground");
-                        //_bus.Invoke(new FocusWindowCommand(window));
+                        _bus.Invoke(new FocusWindowCommand(window));
                         break;
                 }
             });
