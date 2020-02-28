@@ -1,4 +1,4 @@
-using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors;
 using System;
@@ -20,30 +20,23 @@ namespace LarsWM.Domain.Workspaces
             _monitorService = monitorService;
         }
 
-        public Workspace GetWorkspaceFromChildContainer(Container container)
-        {
-            return container.UpwardsTraversal().OfType<Workspace>().First();
-        }
-
         /// <summary>
-        /// Finds workspace that matches given predicate by searching at the 2nd level of container tree.
+        /// Get active workspaces by iterating over the 2nd level of container tree.
         /// </summary>
-        public Workspace FindWorkspace(Predicate<Workspace> predicate)
+        public IEnumerable<Workspace> GetActiveWorkspaces()
         {
-            var matchedWorkspace = _containerService.ContainerTree.SelectMany(monitor => monitor.Children).FirstOrDefault((m) =>
-            {
-                if (predicate(m as Workspace))
-                    return true;
-
-                return false;
-            });
-
-            return matchedWorkspace as Workspace;
+            return _containerService.ContainerTree
+                .SelectMany(monitor => monitor.Children as IEnumerable<Workspace>);
         }
 
         public Workspace GetWorkspaceByName(string name)
         {
-            return FindWorkspace(workspace => workspace.Name == name);
+            return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
+        }
+
+        public Workspace GetWorkspaceFromChildContainer(Container container)
+        {
+            return container.UpwardsTraversal().OfType<Workspace>().First();
         }
     }
 }
