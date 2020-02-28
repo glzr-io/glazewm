@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using LarsWM.Domain.Common.Models;
 
 namespace LarsWM.Domain.Containers
@@ -23,8 +23,22 @@ namespace LarsWM.Domain.Containers
                     queue.Enqueue(child);
             }
         }
+        /// <summary>
+        /// Extension method for breadth-first downward traversal from a single container.
+        /// </summary>
+        public static IEnumerable<Container> TraverseDownEnumeration(Container container)
+        {
+            var queue = new Queue<Container>();
+            queue.Enqueue(container);
 
-        // TODO: Add traversal method for iterating down from a single container.
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                yield return current;
+                foreach (var child in container.Children)
+                    queue.Enqueue(child);
+            }
+        }
 
         /// <summary>
         /// Extension method for Container for iterating upwards.

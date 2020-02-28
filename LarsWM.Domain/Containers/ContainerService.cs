@@ -13,22 +13,5 @@ namespace LarsWM.Domain.Containers
 
         // TODO: Consider renaming to PendingWindowsToRedraw and moving to WindowService.
         public List<Container> PendingContainersToRedraw = new List<Container>();
-
-        /// <summary>
-        /// Breadth-first downward traversal from given root container.
-        /// </summary>
-        public IEnumerable<Container> ContainerTreeEnumeration(Container root)
-        {
-            var queue = new Queue<Container>();
-            queue.Enqueue(root);
-
-            while (queue.Count > 0)
-            {
-                var current = queue.Dequeue();
-                yield return current;
-                foreach (var child in root.Children)
-                    queue.Enqueue(child);
-            }
-        }
     }
 }
