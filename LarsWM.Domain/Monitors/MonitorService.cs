@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using LarsWM.Domain.Common.Models;
@@ -16,43 +17,29 @@ namespace LarsWM.Domain.Monitors
             _containerService = containerService;
         }
 
+        /// <summary>
+        /// Get the root level of trees in container forest.
+        /// </summary>
+        public IEnumerable<Monitor> GetMonitors()
+        {
+            return _containerService.ContainerTree as IEnumerable<Monitor>;
+        }
+
         public Monitor GetMonitorFromChildContainer(Container container)
         {
             return container.UpwardsTraversal().OfType<Monitor>().First();
-        }
-
-        /// <summary>
-        /// Finds monitor that matches given predicate by searching at the root level of container tree.
-        /// </summary>
-        public Monitor FindMonitor(Predicate<Monitor> predicate)
-        {
-            var matchedMonitor = _containerService.ContainerTree.FirstOrDefault((m) =>
-            {
-                if (predicate(m as Monitor))
-                    return true;
-
-                return false;
-            });
-
-            return matchedMonitor as Monitor;
         }
 
         public Monitor GetMonitorFromUnaddedWindow(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);
 
-            var matchedMonitor = FindMonitor(m => m.Screen.DeviceName == screen.DeviceName);
+            var matchedMonitor = GetMonitors().FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
 
             if (matchedMonitor == null)
-                return _containerService.ContainerTree[0] as Monitor;
+                return GetMonitors().First();
 
             return matchedMonitor;
         }
-
-        // Not sure if needed.
-        //public Monitor GetMonitorFromWorkspace(Workspace workspace)
-        //{
-        //    return Monitors.FirstOrDefault(m => m.WorkspacesInMonitor.Contains(workspace));
-        //}
     }
 }

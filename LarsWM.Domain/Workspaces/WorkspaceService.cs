@@ -21,7 +21,7 @@ namespace LarsWM.Domain.Workspaces
         }
 
         /// <summary>
-        /// Get active workspaces by iterating over the 2nd level of container tree.
+        /// Get active workspaces by iterating over the 2nd level of trees in container forest.
         /// </summary>
         public IEnumerable<Workspace> GetActiveWorkspaces()
         {
