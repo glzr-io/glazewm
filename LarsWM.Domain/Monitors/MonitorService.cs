@@ -22,7 +22,7 @@ namespace LarsWM.Domain.Monitors
         /// </summary>
         public IEnumerable<Monitor> GetMonitors()
         {
-            return _containerService.ContainerTree as IEnumerable<Monitor>;
+            return _containerService.ContainerTree.Cast<Monitor>();
         }
 
         public Monitor GetMonitorFromChildContainer(Container container)
