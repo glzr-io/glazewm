@@ -36,7 +36,7 @@ namespace LarsWM.Domain.Workspaces
 
         public Workspace GetWorkspaceFromChildContainer(Container container)
         {
-            return container.UpwardsTraversal().OfType<Workspace>().First();
+            return container.TraverseUpEnumeration().OfType<Workspace>().First();
         }
     }
 }

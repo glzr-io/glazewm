@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LarsWM.Domain.Common.Models;
 
 namespace LarsWM.Domain.Containers
@@ -6,13 +6,13 @@ namespace LarsWM.Domain.Containers
     public static class TreeTraversalHelper
     {
         /// <summary>
-        /// Extension method for ContainerForest for iterating downwards.
+        /// Extension method for breadth-first downward traversal from a container list (eg. ContainerForest).
         /// </summary>
-        public static IEnumerable<Container> DownwardsTraversal(this List<Container> containerForest)
+        public static IEnumerable<Container> TraverseDownEnumeration(this List<Container> containerList)
         {
             var queue = new Queue<Container>();
 
-            foreach (var tree in containerForest)
+            foreach (var tree in containerList)
                 queue.Enqueue(tree);
 
             while (queue.Count > 0)
@@ -41,9 +41,9 @@ namespace LarsWM.Domain.Containers
         }
 
         /// <summary>
-        /// Extension method for Container for iterating upwards.
+        /// Extension method for upwards traversal from a single container.
         /// </summary>
-        public static IEnumerable<Container> UpwardsTraversal(this Container container)
+        public static IEnumerable<Container> TraverseUpEnumeration(this Container container)
         {
             var parent = container.Parent;
 

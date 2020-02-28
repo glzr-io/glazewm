@@ -27,9 +27,10 @@ namespace LarsWM.Domain.Monitors
 
         public Monitor GetMonitorFromChildContainer(Container container)
         {
-            return container.UpwardsTraversal().OfType<Monitor>().First();
+            return container.TraverseUpEnumeration().OfType<Monitor>().First();
         }
 
+        // TODO: If unreliable, consider using absolute X & Y of window and comparing it with X & Y of monitors.
         public Monitor GetMonitorFromUnaddedWindow(Window window)
         {
             var screen = Screen.FromHandle(window.Hwnd);

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace LarsWM.Domain.Windows
 {
-    // TODO: Rename to WindowService once respository classes are created.
+    // TODO: Move Configure method to WindowService.
     public class WindowHooksHandler
     {
         private IBus _bus;
@@ -39,7 +39,7 @@ namespace LarsWM.Domain.Windows
                 // TODO: For performance, instead get window instance by using
                 // MonitorService.GetMonitorFromUnaddedWindow and searching its displayed
                 // workspace.
-                var window = _containerService.ContainerTree.DownwardsTraversal()
+                var window = _containerService.ContainerTree.TraverseDownEnumeration()
                     .OfType<Window>()
                     .FirstOrDefault(w => w.Hwnd == observer.AffectedWindowHandle);
 
