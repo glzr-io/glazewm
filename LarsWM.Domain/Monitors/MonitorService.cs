@@ -11,10 +11,12 @@ namespace LarsWM.Domain.Monitors
     public class MonitorService
     {
         private ContainerService _containerService;
+        private WindowService _windowService;
 
-        public MonitorService(ContainerService containerService)
+        public MonitorService(ContainerService containerService, WindowService windowService)
         {
             _containerService = containerService;
+            _windowService = windowService;
         }
 
         /// <summary>
@@ -41,6 +43,12 @@ namespace LarsWM.Domain.Monitors
                 return GetMonitors().First();
 
             return matchedMonitor;
+        }
+
+        public Monitor GetFocusedMonitor()
+        {
+            var focusedWindow = _windowService.FocusedWindow;
+            return GetMonitorFromChildContainer(focusedWindow);
         }
     }
 }
