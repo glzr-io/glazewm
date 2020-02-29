@@ -1,6 +1,10 @@
 ﻿using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
+using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Windows;
+using System.Linq;
+using System.Diagnostics;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
@@ -19,11 +23,26 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
         public dynamic Handle(FocusWorkspaceCommand command)
         {
-            var workspace = _workspaceService.GetWorkspaceByName(command.WorkspaceName);
+            var workspaceName = command.WorkspaceName;
+            var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName);
 
-            _bus.Invoke(new DisplayWorkspaceCommand(workspace));
+            if (workspaceToFocus == null)
+            {
+                var inactiveWorkspace = _workspaceService.InactiveWorkspaces.FirstOrDefault(workspace => workspace.Name == workspaceName);
 
-            // TODO: Set focus to the last focused window on workspace.
+                if (inactiveWorkspace == null)
+                {
+                    Debug.WriteLine($"Failed to focus on workspace {workspaceName}. No such workspace exists.");
+                    return null;
+                }
+
+                workspaceToFocus = inactiveWorkspace;
+            }
+
+            _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
+
+            // Set focus to the last focused window in workspace.
+            _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedContainer as Window));
 
             return CommandResponse.Ok;
         }

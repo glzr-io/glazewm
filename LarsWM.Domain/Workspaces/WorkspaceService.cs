@@ -29,7 +29,7 @@ namespace LarsWM.Domain.Workspaces
                 .SelectMany(monitor => monitor.Children as IEnumerable<Workspace>);
         }
 
-        public Workspace GetWorkspaceByName(string name)
+        public Workspace GetActiveWorkspaceByName(string name)
         {
             return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
         }
