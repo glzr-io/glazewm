@@ -28,6 +28,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
             var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
             var currentWorkspace = monitor.DisplayedWorkspace;
 
+            // If DisplayedWorkspace is unassigned, there is no need to show/hide windows.
             if (currentWorkspace == null)
             {
                 monitor.DisplayedWorkspace = workspaceToDisplay;
@@ -38,7 +39,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
                 return CommandResponse.Ok;
 
             var windowsToHide = currentWorkspace.Children
-                .Select(container => container.Flatten())
+                .SelectMany(container => container.Flatten())
                 .OfType<Window>()
                 .ToList();
 
@@ -46,7 +47,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
                 window.IsHidden = true;
 
             var windowsToShow = workspaceToDisplay.Children
-                .Select(container => container.Flatten())
+                .SelectMany(container => container.Flatten())
                 .OfType<Window>()
                 .ToList();
 

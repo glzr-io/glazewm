@@ -36,13 +36,17 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
                     return null;
                 }
 
+                var focusedMonitor = _monitorService.GetFocusedMonitor();
+                _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, focusedMonitor));
+
                 workspaceToFocus = inactiveWorkspace;
             }
 
             _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
             // Set focus to the last focused window in workspace.
-            _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedContainer as Window));
+            if (workspaceToFocus.LastFocusedContainer != null)
+                _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedContainer as Window));
 
             return CommandResponse.Ok;
         }
