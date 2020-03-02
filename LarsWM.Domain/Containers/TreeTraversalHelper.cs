@@ -26,7 +26,7 @@ namespace LarsWM.Domain.Containers
         /// <summary>
         /// Extension method for breadth-first downward traversal from a single container.
         /// </summary>
-        public static IEnumerable<Container> TraverseDownEnumeration(Container container)
+        public static IEnumerable<Container> TraverseDownEnumeration(this Container container)
         {
             var queue = new Queue<Container>();
             queue.Enqueue(container);
