@@ -2,7 +2,7 @@
 
 namespace LarsWM.Domain.Windows.Commands
 {
-    class FocusWindowCommand : Command
+    public class FocusWindowCommand : Command
     {
         public Window Window { get; set; }
 
