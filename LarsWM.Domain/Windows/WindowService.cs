@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers;
 using LarsWM.Infrastructure.WindowsApi;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -10,7 +13,32 @@ namespace LarsWM.Domain.Windows
 {
     public class WindowService
     {
+        private ContainerService _containerService;
+
         public Window FocusedWindow { get; set; } = null;
+
+        public WindowService(ContainerService containerService)
+        {
+            _containerService = containerService;
+        }
+
+        /// <summary>
+        /// Get windows by searching entire container forest for Window containers.
+        /// </summary>
+        public IEnumerable<Window> GetWindows()
+        {
+            return _containerService.ContainerTree.TraverseDownEnumeration()
+                .OfType<Window>();
+        }
+
+        /// <summary>
+        /// Get windows within given parent container.
+        /// </summary>
+        public IEnumerable<Window> GetWindowsOfParentContainer(Container parent)
+        {
+            return parent.TraverseDownEnumeration()
+                .OfType<Window>();
+        }
 
         /// <summary>
         /// Get the id of the process that created the window.
