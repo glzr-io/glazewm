@@ -1,6 +1,5 @@
-﻿using System;
+﻿using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
-using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 
@@ -8,18 +7,39 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 {
     class AddWindowHandler : ICommandHandler<AddWindowCommand>
     {
-        private UserConfigService _userConfigService;
+        private IBus _bus;
+        private WindowService _windowService;
         private MonitorService _monitorService;
 
-        public AddWindowHandler(UserConfigService userConfigService, MonitorService monitorService)
+        public AddWindowHandler(IBus bus, WindowService windowService, MonitorService monitorService)
         {
-            _userConfigService = userConfigService;
+            _bus = bus;
+            _windowService = windowService;
             _monitorService = monitorService;
         }
 
         public dynamic Handle(AddWindowCommand command)
         {
-            throw new NotImplementedException();
+            var window = new Window(command.WindowHandle);
+
+            if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
+                return true;
+
+            // Get monitor that contains the currently focused window.
+            var targetMonitor = _monitorService.GetFocusedMonitor();
+
+            // Set initial location values.
+            var windowLocation = _windowService.GetLocationOfHandle(command.WindowHandle);
+            window.X = windowLocation.Left;
+            window.Y = windowLocation.Top;
+            window.Width = windowLocation.Right - windowLocation.Left;
+            window.Height = windowLocation.Bottom - windowLocation.Top;
+
+            _bus.Invoke(new AttachContainerCommand(targetMonitor.DisplayedWorkspace, window));
+
+            _bus.Invoke(new RedrawContainersCommand());
+
+            return new CommandResponse(true, window.Id);
         }
     }
 }
