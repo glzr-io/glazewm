@@ -14,12 +14,11 @@ namespace LarsWM.Domain.Windows
         public IntPtr Hwnd { get; }
         public bool IsHidden { get; set; } = false;
 
-        private WindowService _windowService;
+        private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
 
         public Window(IntPtr hwnd)
         {
             Hwnd = hwnd;
-            _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
         }
 
         public Process Process => _windowService.GetProcessOfHandle(Hwnd);
