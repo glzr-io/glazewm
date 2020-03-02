@@ -34,7 +34,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             {
                 var window = new Window(hwnd);
 
-                if (!IsWindowManageable(window))
+                if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
                     return true;
 
                 // Get monitor that encompasses most of window.
@@ -55,26 +55,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             _bus.Invoke(new RedrawContainersCommand());
 
             return CommandResponse.Ok;
-        }
-
-        private bool IsWindowManageable(Window window)
-        {
-            var isApplicationWindow = IsWindowVisible(window.Hwnd)
-                && !window.HasWindowStyle(WS.WS_CHILD) && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE);
-
-            var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
-
-            var isExcludedClassName = _userConfigService.UserConfig.WindowClassesToIgnore.Contains(window.ClassName);
-            var isExcludedProcessName = _userConfigService.UserConfig.ProcessNamesToIgnore.Contains(window.Process.ProcessName);
-
-            var isShellWindow = window.Hwnd == GetShellWindow();
-
-            if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
-            {
-                return true;
-            }
-
-            return false;
         }
     }
 }

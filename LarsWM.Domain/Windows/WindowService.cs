@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure.WindowsApi;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -13,13 +14,15 @@ namespace LarsWM.Domain.Windows
 {
     public class WindowService
     {
-        private ContainerService _containerService;
-
         public Window FocusedWindow { get; set; } = null;
 
-        public WindowService(ContainerService containerService)
+        private ContainerService _containerService;
+        private UserConfigService _userConfigService;
+
+        public WindowService(ContainerService containerService, UserConfigService userConfigService)
         {
             _containerService = containerService;
+            _userConfigService = userConfigService;
         }
 
         /// <summary>
@@ -112,6 +115,27 @@ namespace LarsWM.Domain.Windows
             return isCloaked;
         }
 
+        public bool IsWindowManageable(Window window)
+        {
+            var isApplicationWindow = IsWindowVisible(window.Hwnd)
+                && !window.HasWindowStyle(WS.WS_CHILD) && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE);
+
+            var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
+
+            var isExcludedClassName = _userConfigService.UserConfig.WindowClassesToIgnore.Contains(window.ClassName);
+            var isExcludedProcessName = _userConfigService.UserConfig.ProcessNamesToIgnore.Contains(window.Process.ProcessName);
+
+            var isShellWindow = window.Hwnd == GetShellWindow();
+
+            if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        // TODO: Merge with IsWindowManageable method.
         public bool IsHandleManageable(IntPtr handle)
         {
 
