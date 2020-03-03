@@ -13,6 +13,7 @@ namespace LarsWM.Infrastructure.Bussing
     {
         private List<Type> _registeredCommandHandlers = new List<Type>();
         private List<Type> _registeredEventHandlers = new List<Type>();
+        private static readonly Object lockObj = new Object();
 
         /// <summary>
         /// Sends command to appropriate command handler.
@@ -36,7 +37,10 @@ namespace LarsWM.Infrastructure.Bussing
             Debug.WriteLine($"Command {command.Name} invoked.");
 
             ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
-            return handlerInstance.Handle(command);
+            lock (lockObj)
+            {
+                return handlerInstance.Handle(command);
+            }
         }
 
         /// <summary>

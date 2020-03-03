@@ -40,13 +40,13 @@ namespace LarsWM.Bootstrapper
 
         public void Init()
         {
+            // Populate initial monitors, windows, workspaces and user config.
+            PopulateInitialState();
+
             _keybindingService.Init();
 
             _windowEventService.Init();
             _windowHooksHandler.Configure();
-
-            // Populate initial monitors, windows, workspaces and user config.
-            PopulateInitialState();
         }
 
         /// <summary>
