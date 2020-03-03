@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Containers.Commands;
+﻿using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
@@ -25,9 +26,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
                 return true;
 
-            // Get monitor that contains the currently focused window.
-            var targetMonitor = _monitorService.GetFocusedMonitor();
-
             // Set initial location values.
             var windowLocation = _windowService.GetLocationOfHandle(command.WindowHandle);
             window.X = windowLocation.Left;
@@ -35,7 +33,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             window.Width = windowLocation.Right - windowLocation.Left;
             window.Height = windowLocation.Bottom - windowLocation.Top;
 
-            _bus.Invoke(new AttachContainerCommand(targetMonitor.DisplayedWorkspace, window));
+            var focusedWindow = _windowService.FocusedWindow;
+
+            _bus.Invoke(new AttachContainerCommand(focusedWindow.Parent as SplitContainer, window));
 
             _bus.Invoke(new RedrawContainersCommand());
 
