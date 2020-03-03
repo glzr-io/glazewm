@@ -44,6 +44,10 @@ namespace LarsWM.Domain.Windows
                 {
                     case EventConstant.EVENT_OBJECT_SHOW:
                         Debug.WriteLine("show");
+                        // Don't invoke AddWindowCommand if window is already in tree.
+                        if (window != null)
+                            return;
+
                         _bus.Invoke(new AddWindowCommand(observer.AffectedWindowHandle));
                         break;
                     case EventConstant.EVENT_OBJECT_DESTROY:
