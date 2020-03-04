@@ -36,6 +36,7 @@ namespace LarsWM.Domain
             services.AddSingleton<AddInitialWindowsHandler>();
             services.AddSingleton<AddWindowHandler>();
             services.AddSingleton<FocusWindowHandler>();
+            services.AddSingleton<ResizeFocusedWindowHandler>();
             services.AddSingleton<CreateWorkspaceHandler>();
             services.AddSingleton<DisplayWorkspaceHandler>();
             services.AddSingleton<FocusWorkspaceHandler>();
@@ -56,6 +57,7 @@ namespace LarsWM.Domain
             bus.RegisterCommandHandler<AddInitialWindowsHandler>();
             bus.RegisterCommandHandler<AddWindowHandler>();
             bus.RegisterCommandHandler<FocusWindowHandler>();
+            bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
             bus.RegisterCommandHandler<CreateWorkspaceHandler>();
             bus.RegisterCommandHandler<DisplayWorkspaceHandler>();
             bus.RegisterCommandHandler<FocusWorkspaceHandler>();
