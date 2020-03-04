@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
@@ -35,21 +36,21 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             {
                 var children = parentContainer.Children;
 
-                if (parentContainer.Layout == Common.Enums.Layout.Horizontal)
+                if (parentContainer.Layout == Layout.Horizontal)
                 {
                     // Available parent width is the width of the parent minus all inner gaps.
                     var availableParentWidth = parentContainer.Width - (innerGap * (children.Count - 1));
 
-                    // Adjust widths of current child containers.
+                    // Adjust size and location of child containers.
+                    Container previousChild = null;
                     foreach (var child in children)
                     {
-                        child.Width = (int)(child.SizePercentage * availableParentWidth);
-                    }
+                        // Direct children of parent have the same height and Y coord as parent in horizontal layouts.
+                        child.Height = parentContainer.Height;
+                        child.Y = parentContainer.Y;
 
-                    // Adjust x-coordinate of child containers.
-                    Container previousChild = null;
-                    foreach (var child in parentContainer.Children)
-                    {
+                        child.Width = (int)(child.SizePercentage * availableParentWidth);
+
                         if (previousChild == null)
                             child.X = parentContainer.X;
 
