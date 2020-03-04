@@ -19,59 +19,21 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             _userConfigService = userConfigService;
         }
 
-        // Use for attaching windows to workspaces/split containers
-        // Consider using it for attaching workspaces to monitors as well.
         public dynamic Handle(AttachContainerCommand command)
         {
             var parent = command.Parent;
             var newChild = command.NewChild;
-            var currentChildren = command.Parent.Children;
+            var children = command.Parent.Children;
 
-            var innerGap = _userConfigService.UserConfig.InnerGap;
+            // TODO: Adjust SizePercentage of current children.
 
-            if (parent.Layout == Layout.Horizontal)
-            {
-                // Direct children of parent have the same height and Y coord as parent in horizontal layouts.
-                newChild.Height = parent.Height;
-                newChild.Y = parent.Y;
+            parent.AddChild(newChild);
 
-                // Available parent width is the width of the parent minus all inner gaps.
-                var currentAvailableParentWidth = parent.Width - (innerGap * (currentChildren.Count - 1));
-                var newAvailableParentWidth = parent.Width - (innerGap * currentChildren.Count);
+            double defaultPercent = 1.0 / children.Count;
+            foreach (var child in children)
+                child.SizePercentage = defaultPercent;
 
-                newChild.Width = newAvailableParentWidth / (currentChildren.Count + 1);
-
-                // Adjust widths of current child containers.
-                foreach (var currentChild in currentChildren)
-                {
-                    var widthPercentage = (double)currentChild.Width / currentAvailableParentWidth;
-                    currentChild.Width = (int)(widthPercentage * (newAvailableParentWidth - newChild.Width));
-                }
-
-                parent.Children.Add(newChild);
-                newChild.Parent = parent;
-
-                // Adjust x-coordinate of child containers.
-                Container previousChild = null;
-                foreach (var child in parent.Children)
-                {
-                    if (previousChild == null)
-                        child.X = parent.X;
-
-                    else
-                        child.X = previousChild.X + previousChild.Width + innerGap;
-
-                    previousChild = child;
-                }
-            }
-
-            if (parent.Layout == Layout.Vertical)
-            {
-                var newChildWidth = parent.Width;
-                var newChildHeight = (currentChildren.Count + 1) / (parent.Width - (innerGap * currentChildren.Count));
-            }
-
-            _containerService.PendingContainersToRedraw.Add(parent);
+            _containerService.SplitContainersToRedraw.Add(parent);
 
             return CommandResponse.Ok;
         }

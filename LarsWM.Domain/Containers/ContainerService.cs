@@ -11,7 +11,9 @@ namespace LarsWM.Domain.Containers
         /// </summary>
         public List<Container> ContainerTree = new List<Container>();
 
-        // TODO: Consider renaming to PendingWindowsToRedraw and moving to WindowService.
-        public List<Container> PendingContainersToRedraw = new List<Container>();
+        /// <summary>
+        /// Pending SplitContainers to redraw.
+        /// </summary>
+        public List<SplitContainer> SplitContainersToRedraw = new List<SplitContainer>();
     }
 }
