@@ -6,6 +6,8 @@ using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using LarsWM.Domain.Common.Enums;
+using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -90,6 +92,10 @@ namespace LarsWM.Domain.Common.Services
                     _bus.Invoke(new FocusWorkspaceCommand("8"));
                 if (pressedKey == Keys.D9)
                     _bus.Invoke(new FocusWorkspaceCommand("9"));
+                if (pressedKey == Keys.U)
+                    _bus.Invoke(new ResizeFocusedWindowCommand(Direction.Left));
+                if (pressedKey == Keys.P)
+                    _bus.Invoke(new ResizeFocusedWindowCommand(Direction.Right));
             }
             );
         }
