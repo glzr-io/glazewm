@@ -27,7 +27,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
             parent.RemoveChild(childToRemove);
 
-            double defaultPercent = 1 / children.Count;
+            double defaultPercent = 1.0 / children.Count;
 
             // TODO: Adjust SizePercentage of children based on their previous SizePercentage.
 

@@ -29,8 +29,9 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
             parent.AddChild(newChild);
 
-            double defaultPercent = 1 / children.Count;
-            newChild.SizePercentage = defaultPercent;
+            double defaultPercent = 1.0 / children.Count;
+            foreach (var child in children)
+                child.SizePercentage = defaultPercent;
 
             _containerService.SplitContainersToRedraw.Add(parent);
 
