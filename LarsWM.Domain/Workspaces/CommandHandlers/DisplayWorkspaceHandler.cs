@@ -56,8 +56,8 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
             monitor.DisplayedWorkspace = command.Workspace;
 
-            _containerService.PendingContainersToRedraw.Add(currentWorkspace);
-            _containerService.PendingContainersToRedraw.Add(workspaceToDisplay);
+            _containerService.SplitContainersToRedraw.Add(currentWorkspace);
+            _containerService.SplitContainersToRedraw.Add(workspaceToDisplay);
 
             _bus.Invoke(new RedrawContainersCommand());
 
