@@ -50,6 +50,6 @@ namespace LarsWM.Domain.UserConfigs
         public int InnerGap = 20;
         public int OuterGap = 20;
 
-        public double ResizePercentage { get; set; } = 2.0;
+        public double ResizePercentage { get; set; } = 0.02;
     }
 }
