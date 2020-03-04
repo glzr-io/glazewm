@@ -1,3 +1,5 @@
+ResizePercentage: 2
+
 Gaps:
     InnerGap: 10
     OuterGap: 20
