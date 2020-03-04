@@ -4,6 +4,7 @@ namespace LarsWM.Domain.UserConfigs
 {
     class UserConfigFileDto
     {
+        public double ResizePercentage { get; set; }
         public GapsConfig Gaps { get; set; }
         public BarConfig Bar { get; set; }
         public List<WorkspaceConfig> Workspaces { get; set; }
