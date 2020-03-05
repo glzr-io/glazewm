@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using LarsWM.Domain.Common.Enums;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
@@ -96,6 +97,10 @@ namespace LarsWM.Domain.Common.Services
                     _bus.Invoke(new ResizeFocusedWindowCommand(Direction.Left));
                 if (pressedKey == Keys.P)
                     _bus.Invoke(new ResizeFocusedWindowCommand(Direction.Right));
+                if (pressedKey == Keys.V)
+                    _bus.Invoke(new ChangeContainerLayoutCommand(Layout.Vertical));
+                if (pressedKey == Keys.B)
+                    _bus.Invoke(new ChangeContainerLayoutCommand(Layout.Horizontal));
             }
             );
         }
