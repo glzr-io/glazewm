@@ -28,6 +28,7 @@ namespace LarsWM.Domain
             services.AddSingleton<WindowHooksHandler>();
             services.AddSingleton<WorkspaceService>();
             services.AddSingleton<AttachContainerHandler>();
+            services.AddSingleton<ChangeContainerLayoutHandler>();
             services.AddSingleton<DetachContainerHandler>();
             services.AddSingleton<RedrawContainersHandler>();
             services.AddSingleton<AddMonitorHandler>();
@@ -49,6 +50,7 @@ namespace LarsWM.Domain
         {
             var bus = serviceProvider.GetRequiredService<IBus>();
             bus.RegisterCommandHandler<AttachContainerHandler>();
+            bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
             bus.RegisterCommandHandler<DetachContainerHandler>();
             bus.RegisterCommandHandler<RedrawContainersHandler>();
             bus.RegisterCommandHandler<AddMonitorHandler>();
