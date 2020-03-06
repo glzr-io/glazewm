@@ -16,6 +16,22 @@ namespace LarsWM.Domain.Common.Models
         public List<Container> Children { get; set; } = new List<Container>();
         public Container LastFocusedContainer { get; set; } = null;
 
+        public IEnumerable<Container> SelfAndSiblings => Parent.Children;
+
+        public IEnumerable<Container> Siblings
+        {
+            get
+            {
+                return Parent.Children.Where(child => child != this);
+            }
+        }
+
+        // TODO: Rename to SelfAndDescendants and change to getter.
+        public IEnumerable<Container> Flatten()
+        {
+            return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
+        }
+
         public Container AddChild(Container container)
         {
             Children.Add(container);
@@ -40,11 +56,6 @@ namespace LarsWM.Domain.Common.Models
             action(this);
             foreach (var child in Children)
                 child.Traverse(action);
-        }
-
-        public IEnumerable<Container> Flatten()
-        {
-            return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
         }
     }
 }
