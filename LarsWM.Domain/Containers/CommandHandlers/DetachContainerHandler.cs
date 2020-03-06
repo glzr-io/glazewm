@@ -1,7 +1,9 @@
-﻿using LarsWM.Domain.Common.Enums;
+﻿using System.Linq;
+using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
+using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
@@ -26,6 +28,19 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             var children = command.Parent.Children;
 
             parent.RemoveChild(childToRemove);
+
+            var siblings = children.Where(child => child != childToRemove);
+            var isEmptySplitContainer = siblings.Count() == 0 && !(parent is Workspace);
+
+            if (isEmptySplitContainer)
+            {
+                var grandparent = parent.Parent;
+
+                grandparent.RemoveChild(parent);
+                _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
+
+                return CommandResponse.Ok;
+            }
 
             double defaultPercent = 1.0 / children.Count;
 
