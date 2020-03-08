@@ -24,15 +24,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
         public dynamic Handle(RedrawContainersCommand command)
         {
-            var containersToRedraw = _containerService.SplitContainersToRedraw;
+            var splitContainersToRedraw = _containerService.SplitContainersToRedraw;
 
-            // Recursively adjust children of SplitContainers. If another SplitContainer is
-            // encountered, perform same function on its children.
+            // Enumerable of all split containers to redraw (including nested split containers).
+            var allSplitContainersToRedraw = splitContainersToRedraw
+                .SelectMany(container => container.Flatten())
+                .OfType<SplitContainer>()
+                .Distinct();
 
             var innerGap = _userConfigService.UserConfig.InnerGap;
 
-            // TODO: Instead of looping over containersToRedraw, create an enumerable of all SplitContainers within containersToRedraw.
-            foreach (var parentContainer in containersToRedraw)
+            foreach (var parentContainer in allSplitContainersToRedraw)
             {
                 var children = parentContainer.Children;
 
@@ -60,9 +62,34 @@ namespace LarsWM.Domain.Containers.CommandHandlers
                         previousChild = child;
                     }
                 }
+
+                if (parentContainer.Layout == Layout.Vertical)
+                {
+                    // Available parent height is the height of the parent minus all inner gaps.
+                    var availableParentHeight = parentContainer.Height - (innerGap * (children.Count - 1));
+
+                    // Adjust size and location of child containers.
+                    Container previousChild = null;
+                    foreach (var child in children)
+                    {
+                        // Direct children of parent have the same width and X coord as parent in vertical layouts.
+                        child.Width = parentContainer.Width;
+                        child.X = parentContainer.X;
+
+                        child.Height = (int)(child.SizePercentage * availableParentHeight);
+
+                        if (previousChild == null)
+                            child.Y = parentContainer.Y;
+
+                        else
+                            child.Y = previousChild.Y + previousChild.Height + innerGap;
+
+                        previousChild = child;
+                    }
+                }
             }
 
-            PushUpdates(containersToRedraw);
+            PushUpdates(splitContainersToRedraw);
 
             return CommandResponse.Ok;
         }
