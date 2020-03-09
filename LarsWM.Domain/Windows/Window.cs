@@ -1,9 +1,10 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using System;
+using System.Diagnostics;
+using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers;
 using LarsWM.Infrastructure;
 using LarsWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Diagnostics;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Windows
@@ -15,11 +16,20 @@ namespace LarsWM.Domain.Windows
         public bool IsHidden { get; set; } = false;
 
         private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
+        private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
         public Window(IntPtr hwnd)
         {
             Hwnd = hwnd;
         }
+
+        public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
+
+        public override int Height => _containerService.CalculateHeightOfResizableContainer(this);
+
+        public override int X => _containerService.CalculateXOfResizableContainer(this);
+
+        public override int Y => _containerService.CalculateYOfResizableContainer(this);
 
         public Process Process => _windowService.GetProcessOfHandle(Hwnd);
 
