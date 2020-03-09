@@ -1,9 +1,8 @@
 ﻿using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Containers;
 using LarsWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace LarsWM.Domain.Common.Models
+namespace LarsWM.Domain.Containers
 {
     public class SplitContainer : Container
     {

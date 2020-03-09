@@ -1,4 +1,4 @@
-﻿namespace LarsWM.Domain
+﻿namespace LarsWM.Domain.Common.Models
 {
     public class WindowLocation
     {

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Windows;
 

@@ -1,5 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors;
 using System;
 using System.Collections.Generic;

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure.WindowsApi;

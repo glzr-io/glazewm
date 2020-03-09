@@ -22,11 +22,11 @@
         </Grid.RowDefinitions>
 
         <ItemsControl Grid.Column="1" Grid.Row="1" x:Name="workspaceItems">
-            <ItemsControl.ItemsPanel>
+            <!--<ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <UniformGrid Columns="10" HorizontalAlignment="Left" />
                 </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+            </ItemsControl.ItemsPanel>-->
 
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

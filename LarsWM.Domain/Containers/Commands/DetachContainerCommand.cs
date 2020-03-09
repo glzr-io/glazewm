@@ -1,5 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
-using LarsWM.Infrastructure.Bussing;
+﻿using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Containers.Commands
 {

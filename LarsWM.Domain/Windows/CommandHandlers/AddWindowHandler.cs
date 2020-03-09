@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;

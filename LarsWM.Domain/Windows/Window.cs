@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers;
 using LarsWM.Infrastructure;
 using LarsWM.Infrastructure.WindowsApi;

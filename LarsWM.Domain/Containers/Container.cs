@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace LarsWM.Domain.Common.Models
+namespace LarsWM.Domain.Containers
 {
     public class Container
     {

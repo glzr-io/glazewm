@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Common.Models;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Workspaces;
 using System;
 using System.Collections.Generic;

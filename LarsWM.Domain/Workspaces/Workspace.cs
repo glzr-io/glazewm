@@ -1,5 +1,5 @@
 ﻿using System;
-using LarsWM.Domain.Common.Models;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;

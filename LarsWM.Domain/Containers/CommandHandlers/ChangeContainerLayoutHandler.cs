@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;

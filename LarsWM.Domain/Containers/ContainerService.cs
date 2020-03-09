@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.UserConfigs;
 
 namespace LarsWM.Domain.Containers

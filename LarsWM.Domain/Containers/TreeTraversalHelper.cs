@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using LarsWM.Domain.Common.Models;
 
 namespace LarsWM.Domain.Containers
 {
