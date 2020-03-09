@@ -1,4 +1,4 @@
-using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
@@ -25,13 +25,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
             if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
                 return true;
-
-            // Set initial location values.
-            var windowLocation = _windowService.GetLocationOfHandle(command.WindowHandle);
-            window.X = windowLocation.Left;
-            window.Y = windowLocation.Top;
-            window.Width = windowLocation.Right - windowLocation.Left;
-            window.Height = windowLocation.Bottom - windowLocation.Top;
 
             var focusedWindow = _windowService.FocusedWindow;
 

@@ -40,13 +40,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
                 // Get monitor that encompasses most of window.
                 var targetMonitor = _monitorService.GetMonitorFromUnaddedWindow(window);
 
-                // Set initial location values.
-                var windowLocation = _windowService.GetLocationOfHandle(hwnd);
-                window.X = windowLocation.Left;
-                window.Y = windowLocation.Top;
-                window.Width = windowLocation.Right - windowLocation.Left;
-                window.Height = windowLocation.Bottom - windowLocation.Top;
-
                 _bus.Invoke(new AttachContainerCommand(targetMonitor.DisplayedWorkspace, window));
 
                 return true;
