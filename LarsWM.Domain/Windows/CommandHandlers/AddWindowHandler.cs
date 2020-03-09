@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
@@ -38,6 +38,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
             _bus.Invoke(new AttachContainerCommand(focusedWindow.Parent as SplitContainer, window));
 
             _bus.Invoke(new RedrawContainersCommand());
+
+            // Set focus to newly added window in case it has not been focused automatically.
+            _bus.Invoke(new FocusWindowCommand(window));
 
             return new CommandResponse(true, window.Id);
         }
