@@ -47,10 +47,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
             if (isFocusedOnlyChild)
             {
                 var grandparent = parent.Parent;
+
                 var splitContainerIndex = grandparent.Children.IndexOf(parent);
 
-                grandparent.RemoveChild(parent);
+                // Replace the split container with the focused window.
                 grandparent.Children[splitContainerIndex] = focusedWindow;
+                focusedWindow.Parent = grandparent;
+                focusedWindow.SizePercentage = parent.SizePercentage;
+
+                // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
+                _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
+                _bus.Invoke(new RedrawContainersCommand());
 
                 return CommandResponse.Ok;
             }
@@ -63,6 +70,9 @@ namespace LarsWM.Domain.Containers.CommandHandlers
                 Parent = parent
             };
 
+            // Get the index of the focused window so that the new split container can be
+            // inserted at the same index. Using `AddChild` instead could cause the containers
+            // to visually jump around.
             var focusedIndex = parent.Children.IndexOf(focusedWindow);
 
             _bus.Invoke(new AttachContainerCommand(splitContainer, focusedWindow));
