@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace LarsWM.Domain.UserConfigs
 {
-    public class UserConfig
-    {
-        public Guid Id = Guid.NewGuid();
+  public class UserConfig
+  {
+    public Guid Id = Guid.NewGuid();
 
-        // TODO: allow regular expressions
-        // eg. for WMP's "now playing" toolbar: StartsWith("WMP9MediaBarFlyout"))
-        public List<string> WindowClassesToIgnore = new List<string> {
+    // TODO: allow regular expressions
+    // eg. for WMP's "now playing" toolbar: StartsWith("WMP9MediaBarFlyout"))
+    public List<string> WindowClassesToIgnore = new List<string> {
             // Tray on primary screen
             "Shell_TrayWnd",
             // Trays on secondary screens
@@ -29,8 +29,8 @@ namespace LarsWM.Domain.UserConfigs
             // Some Windows 8 thing
             "Shell_CharmWindow",
 
-            /* 
-             * Consider adding: 
+            /*
+             * Consider adding:
              * "MsgrIMEWindowClass", // Window live messenger notification
              * "SysShadow", // Windows live messenger shadow-hack
              * "Button", // UI component, e.g. Start Menu button
@@ -39,7 +39,7 @@ namespace LarsWM.Domain.UserConfigs
              */
         };
 
-        public List<string> ProcessNamesToIgnore = new List<string> {
+    public List<string> ProcessNamesToIgnore = new List<string> {
             "SearchUI",
             "ShellExperienceHost",
             "LockApp",
@@ -47,9 +47,9 @@ namespace LarsWM.Domain.UserConfigs
             "StartMenuExperienceHost",
         };
 
-        public int InnerGap = 20;
-        public int OuterGap = 20;
+    public int InnerGap = 20;
+    public int OuterGap = 20;
 
-        public double ResizePercentage { get; set; } = 0.02;
-    }
+    public double ResizePercentage { get; set; } = 0.02;
+  }
 }

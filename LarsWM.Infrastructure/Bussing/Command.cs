@@ -1,12 +1,12 @@
 ﻿namespace LarsWM.Infrastructure.Bussing
 {
-    public class Command
-    {
-        public string Name { get; set; }
+  public class Command
+  {
+    public string Name { get; set; }
 
-        public Command()
-        {
-            Name = GetType().Name;
-        }
+    public Command()
+    {
+      Name = GetType().Name;
     }
+  }
 }

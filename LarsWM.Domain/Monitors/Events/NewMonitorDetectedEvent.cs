@@ -2,7 +2,7 @@
 
 namespace LarsWM.Domain.Monitors.Events
 {
-    class NewMonitorDetectedEvent : Event
-    {
-    }
+  class NewMonitorDetectedEvent : Event
+  {
+  }
 }

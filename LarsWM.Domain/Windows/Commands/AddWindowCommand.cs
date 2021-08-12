@@ -3,13 +3,13 @@ using System;
 
 namespace LarsWM.Domain.Windows.Commands
 {
-    public class AddWindowCommand : Command
-    {
-        public IntPtr WindowHandle { get; }
+  public class AddWindowCommand : Command
+  {
+    public IntPtr WindowHandle { get; }
 
-        public AddWindowCommand(IntPtr windowHandle)
-        {
-            WindowHandle = windowHandle;
-        }
+    public AddWindowCommand(IntPtr windowHandle)
+    {
+      WindowHandle = windowHandle;
     }
+  }
 }

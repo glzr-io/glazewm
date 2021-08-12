@@ -3,13 +3,13 @@ using System.Windows.Forms;
 
 namespace LarsWM.Domain.Monitors.Commands
 {
-    public class AddMonitorCommand : Command
-    {
-        public Screen Screen { get; set; }
+  public class AddMonitorCommand : Command
+  {
+    public Screen Screen { get; set; }
 
-        public AddMonitorCommand(Screen screen)
-        {
-            Screen = screen;
-        }
+    public AddMonitorCommand(Screen screen)
+    {
+      Screen = screen;
     }
+  }
 }

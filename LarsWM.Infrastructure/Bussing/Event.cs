@@ -1,12 +1,12 @@
 ﻿namespace LarsWM.Infrastructure.Bussing
 {
-    public class Event
-    {
-        public string Name { get; set; }
+  public class Event
+  {
+    public string Name { get; set; }
 
-        public Event()
-        {
-            Name = GetType().Name;
-        }
+    public Event()
+    {
+      Name = GetType().Name;
     }
+  }
 }

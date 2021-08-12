@@ -4,18 +4,18 @@ using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Bar.EventHandlers
 {
-    class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
+  class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
+  {
+    private IBus _bus;
+
+    public MonitorAddedHandler(IBus bus)
     {
-        private IBus _bus;
-
-        public MonitorAddedHandler(IBus bus)
-        {
-            _bus = bus;
-        }
-
-        public void Handle(MonitorAddedEvent @event)
-        {
-            _bus.Invoke(new LaunchBarOnMonitorCommand(@event.AddedMonitor));
-        }
+      _bus = bus;
     }
+
+    public void Handle(MonitorAddedEvent @event)
+    {
+      _bus.Invoke(new LaunchBarOnMonitorCommand(@event.AddedMonitor));
+    }
+  }
 }

@@ -2,7 +2,7 @@
 
 namespace LarsWM.Domain.Windows.Commands
 {
-    public class AddInitialWindowsCommand : Command
-    {
-    }
+  public class AddInitialWindowsCommand : Command
+  {
+  }
 }

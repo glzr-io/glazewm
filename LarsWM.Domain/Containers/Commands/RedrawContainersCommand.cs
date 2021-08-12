@@ -2,10 +2,10 @@
 
 namespace LarsWM.Domain.Containers.Commands
 {
-    public class RedrawContainersCommand : Command
+  public class RedrawContainersCommand : Command
+  {
+    public RedrawContainersCommand()
     {
-        public RedrawContainersCommand()
-        {
-        }
     }
+  }
 }

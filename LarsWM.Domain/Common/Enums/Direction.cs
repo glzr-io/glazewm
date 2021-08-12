@@ -1,10 +1,10 @@
 ﻿namespace LarsWM.Domain.Common.Enums
 {
-    public enum Direction
-    {
-        Up,
-        Down,
-        Left,
-        Right,
-    }
+  public enum Direction
+  {
+    Up,
+    Down,
+    Left,
+    Right,
+  }
 }

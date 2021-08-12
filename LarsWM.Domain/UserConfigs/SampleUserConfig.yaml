@@ -1,33 +1,32 @@
 ResizePercentage: 2
 
 Gaps:
-    InnerGap: 10
-    OuterGap: 20
+  InnerGap: 10
+  OuterGap: 20
 
 Bar:
-    Height: 50
-
+  Height: 50
 
 Workspaces:
-    - Name: 1
-      BindToMonitor: "MonitorName"
-      CustomDisplayName: "Aa"
-      KeepAlive: true
-    - Name: 2
-    - Name: 3
-    - Name: 4
-    - Name: 5
-    - Name: 6
+  - Name: 1
+    BindToMonitor: "MonitorName"
+    CustomDisplayName: "Aa"
+    KeepAlive: true
+  - Name: 2
+  - Name: 3
+  - Name: 4
+  - Name: 5
+  - Name: 6
 
 Keybindings:
-    - Command: focus left
-      Bindings: [ "mod+h" ]
+  - Command: focus left
+    Bindings: ["mod+h"]
 
-    - Command: focus right
-      Bindings: [ "mod+j" ]
+  - Command: focus right
+    Bindings: ["mod+j"]
 
-    - Command: move left
-      Bindings: [ "mod+shift+h" ]
+  - Command: move left
+    Bindings: ["mod+shift+h"]
 
-    - Command: move right
-      Bindings: [ "mod+shift+l" ]
+  - Command: move right
+    Bindings: ["mod+shift+l"]

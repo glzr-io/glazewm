@@ -3,13 +3,13 @@ using System;
 
 namespace LarsWM.Domain.Monitors.Events
 {
-    public class MonitorAddedEvent : Event
-    {
-        public Monitor AddedMonitor { get; }
+  public class MonitorAddedEvent : Event
+  {
+    public Monitor AddedMonitor { get; }
 
-        public MonitorAddedEvent(Monitor addedMonitor)
-        {
-            AddedMonitor = addedMonitor;
-        }
+    public MonitorAddedEvent(Monitor addedMonitor)
+    {
+      AddedMonitor = addedMonitor;
     }
+  }
 }

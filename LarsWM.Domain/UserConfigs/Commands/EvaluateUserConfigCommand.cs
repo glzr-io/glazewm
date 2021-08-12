@@ -2,7 +2,7 @@
 
 namespace LarsWM.Domain.UserConfigs.Commands
 {
-    public class EvaluateUserConfigCommand : Command
-    {
-    }
+  public class EvaluateUserConfigCommand : Command
+  {
+  }
 }

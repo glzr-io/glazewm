@@ -7,29 +7,29 @@ using System.Diagnostics;
 
 namespace LarsWM.Bootstrapper
 {
-    static class Program
+  static class Program
+  {
+    /// <summary>
+    ///  The main entry point for the application.
+    /// </summary>
+    [STAThread]
+    static void Main()
     {
-        /// <summary>
-        ///  The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main()
-        {
-            Debug.WriteLine("Application started");
+      Debug.WriteLine("Application started");
 
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddInfrastructureServices();
-            serviceCollection.AddDomainServices();
-            serviceCollection.AddBarServices();
-            serviceCollection.AddSingleton<Startup>();
+      var serviceCollection = new ServiceCollection();
+      serviceCollection.AddInfrastructureServices();
+      serviceCollection.AddDomainServices();
+      serviceCollection.AddBarServices();
+      serviceCollection.AddSingleton<Startup>();
 
-            ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
+      ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
 
-            ServiceLocator.Provider.RegisterDomainHandlers();
-            ServiceLocator.Provider.RegisterBarHandlers();
+      ServiceLocator.Provider.RegisterDomainHandlers();
+      ServiceLocator.Provider.RegisterBarHandlers();
 
-            var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
-            startup.Init();
-        }
+      var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
+      startup.Init();
     }
+  }
 }

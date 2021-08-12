@@ -16,56 +16,56 @@ using System;
 
 namespace LarsWM.Domain
 {
-    public static class DependencyInjection
+  public static class DependencyInjection
+  {
+    public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-        public static IServiceCollection AddDomainServices(this IServiceCollection services)
-        {
-            services.AddSingleton<KeybindingService>();
-            services.AddSingleton<ContainerService>();
-            services.AddSingleton<MonitorService>();
-            services.AddSingleton<UserConfigService>();
-            services.AddSingleton<WindowService>();
-            services.AddSingleton<WindowHooksHandler>();
-            services.AddSingleton<WorkspaceService>();
-            services.AddSingleton<AttachContainerHandler>();
-            services.AddSingleton<ChangeContainerLayoutHandler>();
-            services.AddSingleton<DetachContainerHandler>();
-            services.AddSingleton<RedrawContainersHandler>();
-            services.AddSingleton<AddMonitorHandler>();
-            services.AddSingleton<AttachWorkspaceToMonitorHandler>();
-            services.AddSingleton<EvaluateUserConfigHandler>();
-            services.AddSingleton<AddInitialWindowsHandler>();
-            services.AddSingleton<AddWindowHandler>();
-            services.AddSingleton<FocusWindowHandler>();
-            services.AddSingleton<ResizeFocusedWindowHandler>();
-            services.AddSingleton<CreateWorkspaceHandler>();
-            services.AddSingleton<DisplayWorkspaceHandler>();
-            services.AddSingleton<FocusWorkspaceHandler>();
-            services.AddSingleton<MonitorAddedHandler>();
+      services.AddSingleton<KeybindingService>();
+      services.AddSingleton<ContainerService>();
+      services.AddSingleton<MonitorService>();
+      services.AddSingleton<UserConfigService>();
+      services.AddSingleton<WindowService>();
+      services.AddSingleton<WindowHooksHandler>();
+      services.AddSingleton<WorkspaceService>();
+      services.AddSingleton<AttachContainerHandler>();
+      services.AddSingleton<ChangeContainerLayoutHandler>();
+      services.AddSingleton<DetachContainerHandler>();
+      services.AddSingleton<RedrawContainersHandler>();
+      services.AddSingleton<AddMonitorHandler>();
+      services.AddSingleton<AttachWorkspaceToMonitorHandler>();
+      services.AddSingleton<EvaluateUserConfigHandler>();
+      services.AddSingleton<AddInitialWindowsHandler>();
+      services.AddSingleton<AddWindowHandler>();
+      services.AddSingleton<FocusWindowHandler>();
+      services.AddSingleton<ResizeFocusedWindowHandler>();
+      services.AddSingleton<CreateWorkspaceHandler>();
+      services.AddSingleton<DisplayWorkspaceHandler>();
+      services.AddSingleton<FocusWorkspaceHandler>();
+      services.AddSingleton<MonitorAddedHandler>();
 
-            return services;
-        }
-
-        public static IServiceProvider RegisterDomainHandlers(this IServiceProvider serviceProvider)
-        {
-            var bus = serviceProvider.GetRequiredService<IBus>();
-            bus.RegisterCommandHandler<AttachContainerHandler>();
-            bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
-            bus.RegisterCommandHandler<DetachContainerHandler>();
-            bus.RegisterCommandHandler<RedrawContainersHandler>();
-            bus.RegisterCommandHandler<AddMonitorHandler>();
-            bus.RegisterCommandHandler<AttachWorkspaceToMonitorHandler>();
-            bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
-            bus.RegisterCommandHandler<AddInitialWindowsHandler>();
-            bus.RegisterCommandHandler<AddWindowHandler>();
-            bus.RegisterCommandHandler<FocusWindowHandler>();
-            bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
-            bus.RegisterCommandHandler<CreateWorkspaceHandler>();
-            bus.RegisterCommandHandler<DisplayWorkspaceHandler>();
-            bus.RegisterCommandHandler<FocusWorkspaceHandler>();
-            bus.RegisterEventHandler<MonitorAddedHandler>();
-
-            return serviceProvider;
-        }
+      return services;
     }
+
+    public static IServiceProvider RegisterDomainHandlers(this IServiceProvider serviceProvider)
+    {
+      var bus = serviceProvider.GetRequiredService<IBus>();
+      bus.RegisterCommandHandler<AttachContainerHandler>();
+      bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
+      bus.RegisterCommandHandler<DetachContainerHandler>();
+      bus.RegisterCommandHandler<RedrawContainersHandler>();
+      bus.RegisterCommandHandler<AddMonitorHandler>();
+      bus.RegisterCommandHandler<AttachWorkspaceToMonitorHandler>();
+      bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
+      bus.RegisterCommandHandler<AddInitialWindowsHandler>();
+      bus.RegisterCommandHandler<AddWindowHandler>();
+      bus.RegisterCommandHandler<FocusWindowHandler>();
+      bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
+      bus.RegisterCommandHandler<CreateWorkspaceHandler>();
+      bus.RegisterCommandHandler<DisplayWorkspaceHandler>();
+      bus.RegisterCommandHandler<FocusWorkspaceHandler>();
+      bus.RegisterEventHandler<MonitorAddedHandler>();
+
+      return serviceProvider;
+    }
+  }
 }
