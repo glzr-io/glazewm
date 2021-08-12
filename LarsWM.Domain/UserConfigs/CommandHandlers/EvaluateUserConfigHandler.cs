@@ -21,7 +21,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
 
         public dynamic Handle(EvaluateUserConfigCommand command)
         {
-            var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "UserConfigs/SampleUserConfig.yaml");
+            // TODO: Change user config path to be somewhere in home directory.
+            var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "../LarsWM.Domain/UserConfigs/SampleUserConfig.yaml");
 
             var userConfigLines = File.ReadAllLines(userConfigPath);
             var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
