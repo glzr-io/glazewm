@@ -1,2 +1,2 @@
-# Set default behavior to automatically normalize line endings.
-* text=auto
+# Set CRLF as the line ending to use for all files that Git interprets as text files.
+* text=auto eol=crlf
