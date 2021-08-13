@@ -1,0 +1,13 @@
+{
+  "files.eol": "\r\n",
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[xaml]": {
+    "editor.defaultFormatter": "DotJoshJohnson.xml"
+  },
+  "xml.format.closingBracketNewLine": false,
+  "xml.format.emptyElements": "collapse",
+  "xml.format.splitAttributesIndentSize": 1,
+  "xml.format.splitAttributes": true
+}
