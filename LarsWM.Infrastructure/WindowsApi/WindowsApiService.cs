@@ -157,8 +157,17 @@ namespace LarsWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern bool SetFocus(IntPtr hWnd);
 
+    /// <summary>
+    /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
+    /// this application are included.
+    /// </summary>
+    public enum ShowWindowFlags : uint
+    {
+      RESTORE = 9,
+    }
+
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int X);
+    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowFlags flags);
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetWindowTextLength(IntPtr hWnd);
