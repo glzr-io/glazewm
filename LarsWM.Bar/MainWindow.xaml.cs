@@ -12,9 +12,9 @@ namespace LarsWM.Bar
   /// </summary>
   public partial class MainWindow : Window
   {
-    private IBus _bus { get; }
+    private Bus _bus { get; }
 
-    public MainWindow(Monitor monitor, IBus bus)
+    public MainWindow(Monitor monitor, Bus bus)
     {
       _bus = bus;
 

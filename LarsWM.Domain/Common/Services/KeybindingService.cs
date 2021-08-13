@@ -21,9 +21,9 @@ namespace LarsWM.Domain.Common.Services
     public static readonly uint WM_KEYDOWN = 0x100;
     public static readonly uint WM_SYSKEYDOWN = 0x104;
 
-    private IBus _bus;
+    private Bus _bus;
 
-    public KeybindingService(IBus bus)
+    public KeybindingService(Bus bus)
     {
       _bus = bus;
     }

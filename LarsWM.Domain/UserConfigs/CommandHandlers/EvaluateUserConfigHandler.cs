@@ -11,9 +11,9 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
   class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
     private UserConfigService _userConfigService;
-    private IBus _bus;
+    private Bus _bus;
 
-    public EvaluateUserConfigHandler(UserConfigService userConfigService, IBus bus)
+    public EvaluateUserConfigHandler(UserConfigService userConfigService, Bus bus)
     {
       _userConfigService = userConfigService;
       _bus = bus;

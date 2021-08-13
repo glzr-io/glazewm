@@ -48,7 +48,7 @@ namespace LarsWM.Domain
 
     public static IServiceProvider RegisterDomainHandlers(this IServiceProvider serviceProvider)
     {
-      var bus = serviceProvider.GetRequiredService<IBus>();
+      var bus = serviceProvider.GetRequiredService<Bus>();
       bus.RegisterCommandHandler<AttachContainerHandler>();
       bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
       bus.RegisterCommandHandler<DetachContainerHandler>();

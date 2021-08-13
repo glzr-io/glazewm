@@ -6,9 +6,9 @@ namespace LarsWM.Bar.EventHandlers
 {
   class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
   {
-    private IBus _bus;
+    private Bus _bus;
 
-    public MonitorAddedHandler(IBus bus)
+    public MonitorAddedHandler(Bus bus)
     {
       _bus = bus;
     }

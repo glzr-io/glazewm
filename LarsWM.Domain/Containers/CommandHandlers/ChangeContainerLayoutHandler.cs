@@ -11,11 +11,11 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 {
   class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private ContainerService _containerService;
     private WindowService _windowService;
 
-    public ChangeContainerLayoutHandler(IBus bus, ContainerService containerService, WindowService windowService)
+    public ChangeContainerLayoutHandler(Bus bus, ContainerService containerService, WindowService windowService)
     {
       _bus = bus;
       _containerService = containerService;

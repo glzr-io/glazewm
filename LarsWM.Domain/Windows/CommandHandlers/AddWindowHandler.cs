@@ -8,11 +8,11 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 {
   class AddWindowHandler : ICommandHandler<AddWindowCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private WindowService _windowService;
     private MonitorService _monitorService;
 
-    public AddWindowHandler(IBus bus, WindowService windowService, MonitorService monitorService)
+    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService)
     {
       _bus = bus;
       _windowService = windowService;

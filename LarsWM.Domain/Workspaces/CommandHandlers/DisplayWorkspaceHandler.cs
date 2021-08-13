@@ -10,11 +10,11 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
   class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private MonitorService _monitorService;
     private ContainerService _containerService;
 
-    public DisplayWorkspaceHandler(IBus bus, MonitorService monitorService, ContainerService containerService)
+    public DisplayWorkspaceHandler(Bus bus, MonitorService monitorService, ContainerService containerService)
     {
       _bus = bus;
       _monitorService = monitorService;

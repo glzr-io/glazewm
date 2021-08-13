@@ -18,7 +18,7 @@ namespace LarsWM.Bar
 
     public static IServiceProvider RegisterBarHandlers(this IServiceProvider serviceProvider)
     {
-      var bus = serviceProvider.GetRequiredService<IBus>();
+      var bus = serviceProvider.GetRequiredService<Bus>();
       bus.RegisterCommandHandler<LaunchBarOnMonitorHandler>();
       bus.RegisterEventHandler<MonitorAddedHandler>();
 

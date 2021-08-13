@@ -9,9 +9,9 @@ namespace LarsWM.Bar.CommandHandlers
   class LaunchBarOnMonitorHandler : ICommandHandler<LaunchBarOnMonitorCommand>
   {
     private MonitorService _monitorService { get; }
-    public IBus _bus { get; }
+    public Bus _bus { get; }
 
-    public LaunchBarOnMonitorHandler(MonitorService monitorService, IBus bus)
+    public LaunchBarOnMonitorHandler(MonitorService monitorService, Bus bus)
     {
       _monitorService = monitorService;
       _bus = bus;

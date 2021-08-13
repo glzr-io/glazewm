@@ -7,10 +7,10 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
 {
   class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private ContainerService _containerService;
 
-    public AddMonitorHandler(IBus bus, ContainerService containerService)
+    public AddMonitorHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;

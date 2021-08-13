@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ namespace LarsWM.Infrastructure.Bussing
   /// <summary>
   /// Bus facilitates communication to command and event handlers.
   /// </summary>
-  public sealed class Bus : IBus
+  public sealed class Bus
   {
     private List<Type> _registeredCommandHandlers = new List<Type>();
     private List<Type> _registeredEventHandlers = new List<Type>();

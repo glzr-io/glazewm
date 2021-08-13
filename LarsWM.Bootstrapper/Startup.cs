@@ -15,7 +15,7 @@ namespace LarsWM.Bootstrapper
 {
   class Startup
   {
-    private IBus _bus;
+    private Bus _bus;
     private MonitorService _monitorService;
     private KeybindingService _keybindingService;
     private WindowEventService _windowEventService;
@@ -23,7 +23,7 @@ namespace LarsWM.Bootstrapper
     private WindowService _windowService;
 
     public Startup(
-        IBus bus,
+        Bus bus,
         MonitorService monitorService,
         KeybindingService keybindingService,
         WindowEventService windowEventService,

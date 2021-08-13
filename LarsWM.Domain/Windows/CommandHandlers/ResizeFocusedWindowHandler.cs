@@ -11,12 +11,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 {
   class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private WindowService _windowService;
     private UserConfigService _userConfigService;
     private ContainerService _containerService;
 
-    public ResizeFocusedWindowHandler(IBus bus, WindowService windowService, UserConfigService userConfigService, ContainerService containerService)
+    public ResizeFocusedWindowHandler(Bus bus, WindowService windowService, UserConfigService userConfigService, ContainerService containerService)
     {
       _bus = bus;
       _windowService = windowService;

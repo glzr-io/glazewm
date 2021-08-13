@@ -13,14 +13,14 @@ namespace LarsWM.Domain.Windows
   // TODO: Move Configure method to WindowService.
   public class WindowHooksHandler
   {
-    private IBus _bus;
+    private Bus _bus;
     private WindowService _windowService;
     private ContainerService _containerService;
 
     private WindowEventService _windowEventService { get; }
 
     public WindowHooksHandler(
-        IBus bus,
+        Bus bus,
         WindowService windowService,
         WindowEventService windowEventService,
         ContainerService containerService)

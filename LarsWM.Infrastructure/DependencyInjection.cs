@@ -8,7 +8,7 @@ namespace LarsWM.Infrastructure
   {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-      services.AddSingleton<IBus, Bus>();
+      services.AddSingleton<Bus, Bus>();
       services.AddSingleton<WindowEventService>();
 
       // TODO: Change WindowsApiFacade & WindowsApiService to be compatible with DI.

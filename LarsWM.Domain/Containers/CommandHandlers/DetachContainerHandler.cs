@@ -9,11 +9,11 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 {
   class DetachContainerHandler : ICommandHandler<DetachContainerCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private ContainerService _containerService;
     private readonly UserConfigService _userConfigService;
 
-    public DetachContainerHandler(IBus bus, ContainerService containerService, UserConfigService userConfigService)
+    public DetachContainerHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;

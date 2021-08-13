@@ -8,11 +8,11 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 {
   class AttachContainerHandler : ICommandHandler<AttachContainerCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private ContainerService _containerService;
     private readonly UserConfigService _userConfigService;
 
-    public AttachContainerHandler(IBus bus, ContainerService containerService, UserConfigService userConfigService)
+    public AttachContainerHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;

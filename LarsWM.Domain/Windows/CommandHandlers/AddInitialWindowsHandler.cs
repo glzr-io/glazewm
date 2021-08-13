@@ -11,13 +11,13 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 {
   class AddInitialWindowsHandler : ICommandHandler<AddInitialWindowsCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private UserConfigService _userConfigService;
     private MonitorService _monitorService;
     private WindowService _windowService;
 
     public AddInitialWindowsHandler(
-        IBus bus,
+        Bus bus,
         UserConfigService userConfigService,
         MonitorService monitorService,
         WindowService windowService)

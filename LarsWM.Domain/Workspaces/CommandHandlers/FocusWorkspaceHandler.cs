@@ -1,4 +1,4 @@
-﻿using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
@@ -10,11 +10,11 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
   class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
-    private IBus _bus;
+    private Bus _bus;
     private WorkspaceService _workspaceService;
     private MonitorService _monitorService;
 
-    public FocusWorkspaceHandler(IBus bus, WorkspaceService workspaceService, MonitorService monitorService)
+    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService)
     {
       _bus = bus;
       _workspaceService = workspaceService;

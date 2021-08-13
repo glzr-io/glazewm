@@ -10,10 +10,10 @@ namespace LarsWM.Domain.Monitors.EventHandler
 {
   class MonitorAddedHandler : IEventHandler<MonitorAddedEvent>
   {
-    private IBus _bus;
+    private Bus _bus;
     private WorkspaceService _workspaceService;
 
-    public MonitorAddedHandler(IBus bus, WorkspaceService workspaceService)
+    public MonitorAddedHandler(Bus bus, WorkspaceService workspaceService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
