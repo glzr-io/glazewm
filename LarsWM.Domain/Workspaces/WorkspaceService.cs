@@ -1,12 +1,11 @@
 ﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Monitors;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace LarsWM.Domain.Workspaces
 {
-  class WorkspaceService
+  public class WorkspaceService
   {
     public List<Workspace> InactiveWorkspaces { get; set; } = new List<Workspace>();
 
