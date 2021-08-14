@@ -26,15 +26,17 @@
       <RowDefinition Height="10" />
     </Grid.RowDefinitions>
 
+    <!-- <StackPanel>
+      <ComboBox
+        ItemsSource="{Binding Workspaces}"
+        DisplayMemberPath="Name" />
+    </StackPanel> -->
+
     <ItemsControl
       Grid.Column="1"
       Grid.Row="1"
-      x:Name="workspaceItems">
-      <!--<ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Columns="10" HorizontalAlignment="Left" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>-->
+      x:Name="Workspaces"
+      ItemsSource="{Binding Workspaces}">
 
       <ItemsControl.ItemTemplate>
         <DataTemplate>
