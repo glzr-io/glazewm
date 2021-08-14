@@ -1,8 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reactive.Subjects;
 
 namespace LarsWM.Infrastructure.Bussing
 {
@@ -11,9 +12,10 @@ namespace LarsWM.Infrastructure.Bussing
   /// </summary>
   public sealed class Bus
   {
+    public readonly Subject<Event> Events = new Subject<Event>();
     private List<Type> _registeredCommandHandlers = new List<Type>();
     private List<Type> _registeredEventHandlers = new List<Type>();
-    private static readonly Object lockObj = new Object();
+    private static readonly Object _lockObj = new Object();
 
     /// <summary>
     /// Sends command to appropriate command handler.
@@ -37,7 +39,7 @@ namespace LarsWM.Infrastructure.Bussing
       Debug.WriteLine($"Command {command.Name} invoked.");
 
       ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
-      lock (lockObj)
+      lock (_lockObj)
       {
         return handlerInstance.Handle(command);
       }
@@ -64,6 +66,9 @@ namespace LarsWM.Infrastructure.Bussing
         IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
         handlerInstance.Handle(@event);
       }
+
+      // Emit event through subject.
+      Events.OnNext(@event);
     }
 
     public void RegisterCommandHandler<T>()
