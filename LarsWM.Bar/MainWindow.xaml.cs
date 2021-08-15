@@ -9,9 +9,6 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.ComponentModel;
-using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace LarsWM.Bar
 {
@@ -32,28 +29,31 @@ namespace LarsWM.Bar
       InitializeComponent();
 
       // TODO: Bind padding, bg color, button bg color and font from user config.
-      this.Top = monitor.Y;
-      this.Left = monitor.X;
-      this.Width = monitor.Width;
+      Top = monitor.Y;
+      Left = monitor.X;
+      Width = monitor.Width;
       // TODO: Change height to be set in XAML.
-      this.Height = 50;
+      Height = 50;
 
       var workspaces = new ObservableCollection<Workspace>();
       BindingOperations.EnableCollectionSynchronization(workspaces, _lock);
 
-      foreach (var workspace in monitor.Children)
-        workspaces.Add(workspace as Workspace);
-
-      this.WorkspaceItems.ItemsSource = workspaces;
+      WorkspaceItems.ItemsSource = workspaces;
+      RefreshState(monitor);
 
       _bus.Events.Where(@event => @event is WorkspaceAttachedEvent).Subscribe(observer =>
       {
-        // Refresh contents of `workspaces` collection.
-        (this.WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Clear();
-
-        foreach (var workspace in monitor.Children)
-          (this.WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Add(workspace as Workspace);
+        // Refresh contents of items source.
+        RefreshState(monitor);
       });
+    }
+
+    private void RefreshState(Monitor monitor)
+    {
+      (WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Clear();
+
+      foreach (var workspace in monitor.Children)
+        (WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Add(workspace as Workspace);
     }
 
     private void OnWorkspaceButtonClick(object sender, RoutedEventArgs e)
