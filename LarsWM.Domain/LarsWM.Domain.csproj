@@ -7,8 +7,12 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="YamlDotNet" Version="8.1.0" />
-    <PackageReference Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers" Version="0.2.237901">
+    <PackageReference
+      Include="YamlDotNet"
+      Version="11.2.1" />
+    <PackageReference
+      Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers"
+      Version="0.2.237901">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
