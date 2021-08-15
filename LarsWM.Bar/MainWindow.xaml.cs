@@ -22,6 +22,7 @@ namespace LarsWM.Bar
   {
     private Bus _bus { get; }
     private WorkspaceService _workspaceService { get; }
+    private static object _lock = new object();
 
     public MainWindow(Monitor monitor, WorkspaceService workspaceService, Bus bus)
     {
@@ -37,19 +38,21 @@ namespace LarsWM.Bar
       // TODO: Change height to be set in XAML.
       this.Height = 50;
 
-
-      this.DataContext = new BarViewModel();
+      var workspaces = new ObservableCollection<Workspace>();
+      BindingOperations.EnableCollectionSynchronization(workspaces, _lock);
 
       foreach (var workspace in monitor.Children)
-        (this.DataContext as BarViewModel).AddWorkspace(workspace as Workspace);
+        workspaces.Add(workspace as Workspace);
+
+      this.WorkspaceItems.ItemsSource = workspaces;
 
       _bus.Events.Where(@event => @event is WorkspaceAttachedEvent).Subscribe(observer =>
       {
         // Refresh contents of `workspaces` collection.
-        (this.DataContext as BarViewModel).ClearWorkspaces();
+        (this.WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Clear();
 
         foreach (var workspace in monitor.Children)
-          (this.DataContext as BarViewModel).AddWorkspace(workspace as Workspace);
+          (this.WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Add(workspace as Workspace);
       });
     }
 
