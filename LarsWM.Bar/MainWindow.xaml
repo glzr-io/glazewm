@@ -29,7 +29,8 @@
     <ItemsControl
       Grid.Column="1"
       Grid.Row="1"
-      x:Name="WorkspaceItems">
+      x:Name="WorkspaceItems"
+      ItemsSource="{Binding Workspaces}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
           <UniformGrid

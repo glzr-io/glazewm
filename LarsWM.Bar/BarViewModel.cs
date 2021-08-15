@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Threading;
 using LarsWM.Domain.Workspaces;
 
 namespace LarsWM.Bar
@@ -8,42 +10,39 @@ namespace LarsWM.Bar
   public class BarViewModel : INotifyPropertyChanged
   {
     public event PropertyChangedEventHandler PropertyChanged;
+    private readonly Dispatcher _dispatcher;
     private ObservableCollection<Workspace> _workspaces = new ObservableCollection<Workspace>();
     public ObservableCollection<Workspace> Workspaces
     {
-      get { return _workspaces; }
+      get { return this._workspaces; }
       set
       {
-        _workspaces = value;
-        OnPropertyChanged("Workspaces");
+        this._workspaces = value;
+        this.OnPropertyChanged("Workspaces");
       }
     }
 
-    public void AddWorkspace(Workspace workspace)
+    public BarViewModel(Dispatcher dispatcher)
     {
-      this.Workspaces.Add(workspace);
-      OnPropertyChanged("Workspaces");
+      this._dispatcher = dispatcher;
     }
 
-    public void ClearWorkspaces()
+    public void SetWorkspaces(IEnumerable<Workspace> workspaces)
     {
-      this.Workspaces.Clear();
-      OnPropertyChanged("Workspaces");
-    }
+      this._dispatcher.BeginInvoke(new Action(() =>
+     {
+       var newWorkspaces = new ObservableCollection<Workspace>();
 
-    public void SetWorkspaces(List<Workspace> workspaces)
-    {
-      workspaces.Clear();
+       foreach (var workspace in workspaces)
+         newWorkspaces.Add(workspace);
 
-      foreach (var workspace in workspaces)
-        workspaces.Add(workspace);
-
-      OnPropertyChanged("Workspaces");
+       this.Workspaces = newWorkspaces;
+     }));
     }
 
     private void OnPropertyChanged(string propertyName)
     {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+      this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
   }
 }
