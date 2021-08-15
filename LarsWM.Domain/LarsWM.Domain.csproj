@@ -1,31 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon />
     <StartupObject />
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference
-      Include="YamlDotNet"
-      Version="11.2.1" />
+      Include="Microsoft.Extensions.DependencyInjection"
+      Version="3.1.1" />
     <PackageReference
-      Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers"
-      Version="0.2.237901">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+      Include="System.Reactive"
+      Version="4.3.2" />
+    <PackageReference
+      Include="YamlDotNet"
+      Version="8.1.0" />
   </ItemGroup>
+
   <ItemGroup>
     <Folder Include="Workspaces\Events\" />
     <Folder Include="Workspaces\EventHandlers\" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\LarsWM.Infrastructure\LarsWM.Infrastructure.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <None Update="UserConfigs\SampleUserConfig.yaml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
 </Project>

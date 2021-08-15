@@ -10,7 +10,7 @@
       "request": "launch",
       "preLaunchTask": "build",
       // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/LarsWM.Bootstrapper/bin/Debug/net5.0-windows/LarsWM.Bootstrapper.dll",
+      "program": "${workspaceFolder}/LarsWM.Bootstrapper/bin/Debug/netcoreapp3.1/LarsWM.Bootstrapper.dll",
       "args": [],
       "cwd": "${workspaceFolder}/LarsWM.Bootstrapper",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

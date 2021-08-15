@@ -29,7 +29,7 @@ namespace LarsWM.Bar.CommandHandlers
       {
         var bar = new MainWindow(command.Monitor, _workspaceService, _bus);
         bar.Show();
-        System.Windows.Threading.Dispatcher.Run();
+        Application.Run();
       });
 
       thread.Name = "LarsWMBar";

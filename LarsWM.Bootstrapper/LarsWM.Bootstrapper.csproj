@@ -1,19 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\LarsWM.Bar\LarsWM.Bar.csproj" />
     <ProjectReference Include="..\LarsWM.Domain\LarsWM.Domain.csproj" />
     <ProjectReference Include="..\LarsWM.Infrastructure\LarsWM.Infrastructure.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference
-      Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers"
-      Version="0.2.237901">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
+
 </Project>
