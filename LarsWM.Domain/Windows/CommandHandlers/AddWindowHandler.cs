@@ -9,14 +9,16 @@ namespace LarsWM.Domain.Windows.CommandHandlers
   class AddWindowHandler : ICommandHandler<AddWindowCommand>
   {
     private Bus _bus;
+    private ContainerService _containerService;
     private WindowService _windowService;
     private MonitorService _monitorService;
 
-    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService)
+    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService, ContainerService containerService)
     {
       _bus = bus;
       _windowService = windowService;
       _monitorService = monitorService;
+      _containerService = containerService;
     }
 
     public dynamic Handle(AddWindowCommand command)
@@ -26,9 +28,11 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
         return true;
 
-      var focusedWindow = _windowService.FocusedWindow;
+      var focusedContainer = _containerService.FocusedContainer;
 
-      _bus.Invoke(new AttachContainerCommand(focusedWindow.Parent as SplitContainer, window));
+      // TODO: If focused container is a workspace, attach it directly rather than to
+      // the parent.
+      _bus.Invoke(new AttachContainerCommand(focusedContainer.Parent as SplitContainer, window));
 
       _bus.Invoke(new RedrawContainersCommand());
 

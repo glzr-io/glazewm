@@ -19,6 +19,12 @@ namespace LarsWM.Domain.Containers
     /// </summary>
     public List<SplitContainer> SplitContainersToRedraw = new List<SplitContainer>();
 
+    /// <summary>
+    /// The currently focused container. This can either be a `Window` or a
+    /// `Workspace` without any descendant windows.
+    /// </summary>
+    public Container FocusedContainer { get; set; } = null;
+
     private UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)

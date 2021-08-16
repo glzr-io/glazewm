@@ -13,8 +13,6 @@ namespace LarsWM.Domain.Windows
 {
   public class WindowService
   {
-    public Window FocusedWindow { get; set; } = null;
-
     private ContainerService _containerService;
     private UserConfigService _userConfigService;
 

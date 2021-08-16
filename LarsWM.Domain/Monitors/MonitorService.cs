@@ -46,8 +46,8 @@ namespace LarsWM.Domain.Monitors
 
     public Monitor GetFocusedMonitor()
     {
-      var focusedWindow = _windowService.FocusedWindow;
-      return GetMonitorFromChildContainer(focusedWindow);
+      var focusedContainer = _containerService.FocusedContainer;
+      return GetMonitorFromChildContainer(focusedContainer);
     }
   }
 }
