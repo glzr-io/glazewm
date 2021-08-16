@@ -27,18 +27,29 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
     public dynamic Handle(FocusWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-      var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName);
 
-      if (workspaceToFocus == null)
-      {
-        var activatedWorkspace = ActivateWorkspace(workspaceName);
-        workspaceToFocus = activatedWorkspace;
-      }
+      // Get workspace to focus. If it's currently inactive, then activate it.
+      var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
+        ?? ActivateWorkspace(workspaceName);
 
+      // Get the currently focused workspace.
+      // TODO: This throws if focus is switched from a workspace that had
+      // child windows previously.
+      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
+
+      if (workspaceToFocus == focusedWorkspace)
+        return CommandResponse.Ok;
+
+      // Destroy the currently focused workspace if it's empty.
+      // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
+      if (!focusedWorkspace.HasChildren())
+        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
+
+      // Display the containers of the workspace to switch focus to.
       _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
-      if (workspaceToFocus.Children.Count == 0)
+      if (!workspaceToFocus.HasChildren())
       {
         _containerService.FocusedContainer = workspaceToFocus;
         return CommandResponse.Ok;
@@ -52,7 +63,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       }
 
       // Set focus to an arbitrary window.
-      var arbitraryWindow = workspaceToFocus.TraverseDownEnumeration().OfType<Window>().First();
+      var arbitraryWindow = workspaceToFocus.Flatten().OfType<Window>().First();
       _bus.Invoke(new FocusWindowCommand(arbitraryWindow));
 
       return CommandResponse.Ok;
