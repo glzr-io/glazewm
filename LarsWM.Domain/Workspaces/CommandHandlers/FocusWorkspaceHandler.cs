@@ -5,20 +5,23 @@ using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Windows;
 using System.Linq;
 using System.Diagnostics;
+using LarsWM.Domain.Containers;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
   class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private Bus _bus;
+    private ContainerService _containerService;
     private WorkspaceService _workspaceService;
     private MonitorService _monitorService;
 
-    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService)
+    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService, ContainerService containerService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _monitorService = monitorService;
+      _containerService = containerService;
     }
 
     public dynamic Handle(FocusWorkspaceCommand command)
@@ -34,9 +37,23 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
       _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
-      // Set focus to the last focused window in workspace.
+      // If workspace has no descendant windows, set focus to the workspace itself.
+      if (workspaceToFocus.Children.Count == 0)
+      {
+        _containerService.FocusedContainer = workspaceToFocus;
+        return CommandResponse.Ok;
+      }
+
+      // Set focus to the last focused window in workspace (if there is one).
       if (workspaceToFocus.LastFocusedContainer != null)
+      {
         _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedContainer as Window));
+        return CommandResponse.Ok;
+      }
+
+      // Set focus to an arbitrary window.
+      var arbitraryWindow = workspaceToFocus.TraverseDownEnumeration().OfType<Window>().First();
+      _bus.Invoke(new FocusWindowCommand(arbitraryWindow));
 
       return CommandResponse.Ok;
     }
