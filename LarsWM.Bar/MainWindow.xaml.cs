@@ -41,11 +41,12 @@ namespace LarsWM.Bar
       WorkspaceItems.ItemsSource = workspaces;
       RefreshState(monitor);
 
-      _bus.Events.Where(@event => @event is WorkspaceAttachedEvent).Subscribe(observer =>
-      {
-        // Refresh contents of items source.
-        RefreshState(monitor);
-      });
+      var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
+      var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
+
+      // Refresh contents of items source.
+      Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent)
+        .Subscribe(_observer => RefreshState(monitor));
     }
 
     private void RefreshState(Monitor monitor)
