@@ -56,5 +56,10 @@ namespace LarsWM.Domain.Containers
       foreach (var child in Children)
         child.Traverse(action);
     }
+
+    public bool HasChildren()
+    {
+      return Children.Count > 0;
+    }
   }
 }
