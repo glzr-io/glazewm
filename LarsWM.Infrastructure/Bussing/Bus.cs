@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
 
@@ -38,10 +39,18 @@ namespace LarsWM.Infrastructure.Bussing
       // TODO: Add centralised error handling here?
       Debug.WriteLine($"Command {command.Name} invoked.");
 
-      ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
-      lock (_lockObj)
+      try
       {
-        return handlerInstance.Handle(command);
+        ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
+        lock (_lockObj)
+        {
+          return handlerInstance.Handle(command);
+        }
+      }
+      catch (Exception error)
+      {
+        File.AppendAllText("./errors.log", error.Message + error.StackTrace);
+        throw error;
       }
     }
 
@@ -60,15 +69,22 @@ namespace LarsWM.Infrastructure.Bussing
 
       Debug.WriteLine($"Event {@event.Name} emitted.");
 
-      // TODO: Add centralised error handling here?
-      foreach (var handler in handlersToCall)
+      try
       {
-        IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
-        handlerInstance.Handle(@event);
-      }
+        foreach (var handler in handlersToCall)
+        {
+          IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
+          handlerInstance.Handle(@event);
+        }
 
-      // Emit event through subject.
-      Events.OnNext(@event);
+        // Emit event through subject.
+        Events.OnNext(@event);
+      }
+      catch (Exception error)
+      {
+        File.AppendAllText("./errors.log", error.Message + error.StackTrace);
+        throw error;
+      }
     }
 
     public void RegisterCommandHandler<T>()
