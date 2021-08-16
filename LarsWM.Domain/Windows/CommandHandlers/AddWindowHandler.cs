@@ -2,6 +2,7 @@
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -30,9 +31,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       var focusedContainer = _containerService.FocusedContainer;
 
-      // TODO: If focused container is a workspace, attach it directly rather than to
-      // the parent.
-      _bus.Invoke(new AttachContainerCommand(focusedContainer.Parent as SplitContainer, window));
+      // If the focused container is a workspace, attach the window as a child of the
+      // workspace. Otherwise, attach the window as a sibling to the focused window.
+      if (focusedContainer is Workspace)
+        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
+      else
+        _bus.Invoke(new AttachContainerCommand(focusedContainer.Parent as SplitContainer, window));
 
       _bus.Invoke(new RedrawContainersCommand());
 
