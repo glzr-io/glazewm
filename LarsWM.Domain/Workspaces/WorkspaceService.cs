@@ -37,5 +37,15 @@ namespace LarsWM.Domain.Workspaces
     {
       return container.TraverseUpEnumeration().OfType<Workspace>().First();
     }
+
+    public Workspace GetFocusedWorkspace()
+    {
+      var focusedContainer = _containerService.FocusedContainer;
+
+      if (focusedContainer is Workspace)
+        return focusedContainer as Workspace;
+
+      return GetWorkspaceFromChildContainer(focusedContainer);
+    }
   }
 }
