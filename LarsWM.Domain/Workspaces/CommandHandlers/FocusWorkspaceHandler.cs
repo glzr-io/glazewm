@@ -1,4 +1,4 @@
-﻿using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
@@ -6,6 +6,7 @@ using LarsWM.Domain.Windows;
 using System.Linq;
 using System.Diagnostics;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.Commands;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
@@ -52,6 +53,10 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       if (!workspaceToFocus.HasChildren())
       {
         _containerService.FocusedContainer = workspaceToFocus;
+
+        // Create a focus stack pointing to the workspace.
+        _bus.Invoke(new CreateFocusStackCommand(workspaceToFocus));
+
         return CommandResponse.Ok;
       }
 
