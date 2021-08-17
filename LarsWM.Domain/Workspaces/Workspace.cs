@@ -18,6 +18,33 @@ namespace LarsWM.Domain.Workspaces
     private UserConfigService _userConfigService =
         ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
+    private ContainerService _containerService =
+        ServiceLocator.Provider.GetRequiredService<ContainerService>();
+
+    private WorkspaceService _workspaceService =
+        ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+
+    /// <summary>
+    /// Whether the workspace itself or a descendant container has focus.
+    /// </summary>
+    public bool HasFocus
+    {
+      get
+      {
+        var focusedContainer = _containerService.FocusedContainer;
+
+        if (focusedContainer == null)
+          return false;
+
+        var focusedWorkspace = _workspaceService.GetWorkspaceFromChildContainer(focusedContainer);
+
+        if (focusedWorkspace != this && focusedContainer != this)
+          return false;
+
+        return true;
+      }
+    }
+
     public Workspace(string name)
     {
       Name = name;
