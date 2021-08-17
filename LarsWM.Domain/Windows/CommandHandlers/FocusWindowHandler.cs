@@ -24,8 +24,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (window == _containerService.FocusedContainer)
         return CommandResponse.Ok;
 
-      _containerService.FocusedContainer = window;
-
       // Create a focus stack pointing to the newly focused window.
       _bus.Invoke(new CreateFocusStackCommand(window));
 

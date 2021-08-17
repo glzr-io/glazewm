@@ -13,16 +13,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
   class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private Bus _bus;
-    private ContainerService _containerService;
     private WorkspaceService _workspaceService;
     private MonitorService _monitorService;
 
-    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService, ContainerService containerService)
+    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _monitorService = monitorService;
-      _containerService = containerService;
     }
 
     public dynamic Handle(FocusWorkspaceCommand command)
@@ -54,8 +52,6 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
       {
-        _containerService.FocusedContainer = workspaceToFocus;
-
         // Create a focus stack pointing to the workspace.
         _bus.Invoke(new CreateFocusStackCommand(workspaceToFocus));
 
