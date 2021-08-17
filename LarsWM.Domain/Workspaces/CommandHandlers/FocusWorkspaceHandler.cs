@@ -34,8 +34,6 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
         ?? ActivateWorkspace(workspaceName);
 
       // Get the currently focused workspace.
-      // TODO: This throws if focus is switched from a workspace that had
-      // child windows previously.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
       if (workspaceToFocus == focusedWorkspace)
