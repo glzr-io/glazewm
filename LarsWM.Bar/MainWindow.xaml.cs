@@ -43,9 +43,10 @@ namespace LarsWM.Bar
 
       var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
       var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
+      var focusChangedEvent = _bus.Events.Where(@event => @event is FocusChangedEvent);
 
       // Refresh contents of items source.
-      Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent)
+      Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
         .Subscribe(_observer => RefreshState(monitor));
     }
 
