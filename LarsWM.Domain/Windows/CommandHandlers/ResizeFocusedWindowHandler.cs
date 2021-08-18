@@ -38,7 +38,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
       var layout = parent.Layout;
 
-      if (layout == Layout.Horizontal && command.Direction == Direction.Right)
+      if (layout == Layout.Horizontal && command.ResizeDirection == ResizeDirection.GROW_WIDTH)
       {
         focusedWindow.SizePercentage += resizePercentage;
 
@@ -46,7 +46,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
           sibling.SizePercentage -= resizePercentage / siblings.Count();
       }
 
-      if (layout == Layout.Horizontal && command.Direction == Direction.Left)
+      if (layout == Layout.Horizontal && command.ResizeDirection == ResizeDirection.SHRINK_WIDTH)
       {
         focusedWindow.SizePercentage -= resizePercentage;
 

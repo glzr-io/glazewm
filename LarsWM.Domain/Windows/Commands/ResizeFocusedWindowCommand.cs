@@ -5,11 +5,11 @@ namespace LarsWM.Domain.Windows.Commands
 {
   public class ResizeFocusedWindowCommand : Command
   {
-    public Direction Direction { get; }
+    public ResizeDirection ResizeDirection { get; }
 
-    public ResizeFocusedWindowCommand(Direction direction)
+    public ResizeFocusedWindowCommand(ResizeDirection resizeDirection)
     {
-      Direction = direction;
+      ResizeDirection = resizeDirection;
     }
   }
 }
