@@ -1,5 +1,6 @@
 ﻿using System;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,17 @@ namespace LarsWM.Domain.Workspaces
           return false;
 
         return true;
+      }
+    }
+
+    /// <summary>
+    /// Whether the workspace is currently displayed by the parent monitor.
+    /// </summary>
+    public bool IsDisplayed
+    {
+      get
+      {
+        return (Parent as Monitor)?.DisplayedWorkspace == this;
       }
     }
 
