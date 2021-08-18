@@ -32,6 +32,10 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         target = target.Parent;
       }
 
+      // Mark the end of the focus stack. Prevents a workspace from referencing
+      // a closed window if the last window in a workspace is closed.
+      target.LastFocusedContainer = null;
+
       _bus.RaiseEvent(new FocusChangedEvent(command.FocusedContainer));
 
       return CommandResponse.Ok;
