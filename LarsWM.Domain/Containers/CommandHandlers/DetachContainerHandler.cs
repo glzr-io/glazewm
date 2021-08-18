@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
@@ -41,8 +41,6 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
       var isEmptySplitContainer = siblings.Count() == 0 && !(removedContainerParent is Workspace);
 
-      double defaultPercent = 1.0 / siblings.Count;
-
       // If the parent of the removed child is an empty split container, remove
       // the split container as well.
       if (isEmptySplitContainer)
@@ -54,10 +52,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         // to adjust that has the SizePercentage and default percent logic. Alternatively
         // create a variable containerToAdjust that is then operated on.
         foreach (var child in grandparent.Children)
-          child.SizePercentage = defaultPercent;
+          child.SizePercentage = 1.0 / grandparent.Children.Count;
 
-        // TODO: Fix issue where grandparent is somehow a split container after vertical ->
-        // -> horizontal split.
         _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
         return;
       }
@@ -65,7 +61,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // TODO: Adjust SizePercentage of children based on their previous SizePercentage.
 
       foreach (var child in siblings)
-        child.SizePercentage = defaultPercent;
+        child.SizePercentage = 1.0 / siblings.Count;
 
       _containerService.SplitContainersToRedraw.Add(removedContainerParent);
     }
