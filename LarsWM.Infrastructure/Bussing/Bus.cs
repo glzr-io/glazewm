@@ -74,7 +74,10 @@ namespace LarsWM.Infrastructure.Bussing
         foreach (var handler in handlersToCall)
         {
           IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
-          handlerInstance.Handle(@event);
+          lock (_lockObj)
+          {
+            handlerInstance.Handle(@event);
+          }
         }
 
         // Emit event through subject.
