@@ -32,13 +32,18 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
+      var siblings = focusedWindow.Siblings;
+
+      // Ignore cases where focused window doesn't have any siblings.
+      if (siblings.Count() == 0)
+        return CommandResponse.Ok;
+
       var parent = focusedWindow.Parent as SplitContainer;
-      var siblings = parent.Children.Where(child => child != focusedWindow);
-
-      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
       var layout = parent.Layout;
+      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
+      var resizeDirection = command.ResizeDirection;
 
-      if (layout == Layout.Horizontal && command.ResizeDirection == ResizeDirection.GROW_WIDTH)
+      if (resizeDirection == ResizeDirection.GROW_WIDTH || resizeDirection == ResizeDirection.GROW_HEIGHT)
       {
         focusedWindow.SizePercentage += resizePercentage;
 
@@ -46,7 +51,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
           sibling.SizePercentage -= resizePercentage / siblings.Count();
       }
 
-      if (layout == Layout.Horizontal && command.ResizeDirection == ResizeDirection.SHRINK_WIDTH)
+      if (resizeDirection == ResizeDirection.SHRINK_WIDTH || resizeDirection == ResizeDirection.SHRINK_HEIGHT)
       {
         focusedWindow.SizePercentage -= resizePercentage;
 
