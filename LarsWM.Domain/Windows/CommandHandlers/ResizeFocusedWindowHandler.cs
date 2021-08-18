@@ -26,7 +26,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
     public dynamic Handle(ResizeFocusedWindowCommand command)
     {
-      var focusedWindow = _windowService.FocusedWindow;
+      var focusedWindow = _containerService.FocusedContainer as Window;
+
+      // Ignore cases where focused container is not a window.
+      if (focusedWindow == null)
+        return CommandResponse.Ok;
+
       var parent = focusedWindow.Parent as SplitContainer;
       var siblings = parent.Children.Where(child => child != focusedWindow);
 

@@ -24,8 +24,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
     public dynamic Handle(ChangeContainerLayoutCommand command)
     {
-      var focusedWindow = _windowService.FocusedWindow;
-      var parent = focusedWindow.Parent as SplitContainer;
+      var focusedContainer = _containerService.FocusedContainer;
+      var parent = focusedContainer.Parent as SplitContainer;
 
       var newLayout = command.NewLayout;
       var currentLayout = parent.Layout;
@@ -33,7 +33,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       if (currentLayout == newLayout)
         return CommandResponse.Ok;
 
-      var isFocusedOnlyChild = focusedWindow.Siblings.Count() == 0;
+      var isFocusedOnlyChild = focusedContainer.Siblings.Count() == 0;
 
       // If the focused window is an only child of a workspace, change layout of workspace.
       if (isFocusedOnlyChild && parent is Workspace)
@@ -51,9 +51,9 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         var splitContainerIndex = grandparent.Children.IndexOf(parent);
 
         // Replace the split container with the focused window.
-        grandparent.Children[splitContainerIndex] = focusedWindow;
-        focusedWindow.Parent = grandparent;
-        focusedWindow.SizePercentage = parent.SizePercentage;
+        grandparent.Children[splitContainerIndex] = focusedContainer;
+        focusedContainer.Parent = grandparent;
+        focusedContainer.SizePercentage = parent.SizePercentage;
 
         // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
         _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
@@ -65,17 +65,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
-        SizePercentage = focusedWindow.SizePercentage,
-        LastFocusedContainer = focusedWindow,
+        SizePercentage = focusedContainer.SizePercentage,
+        LastFocusedContainer = focusedContainer,
         Parent = parent
       };
 
       // Get the index of the focused window so that the new split container can be
       // inserted at the same index. Using `AddChild` instead could cause the containers
       // to visually jump around.
-      var focusedIndex = parent.Children.IndexOf(focusedWindow);
+      var focusedIndex = parent.Children.IndexOf(focusedContainer);
 
-      _bus.Invoke(new AttachContainerCommand(splitContainer, focusedWindow));
+      _bus.Invoke(new AttachContainerCommand(splitContainer, focusedContainer));
 
       parent.Children[focusedIndex] = splitContainer;
 

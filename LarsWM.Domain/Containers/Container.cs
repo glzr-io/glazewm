@@ -25,6 +25,22 @@ namespace LarsWM.Domain.Containers
       }
     }
 
+    /// <summary>
+    /// Get the element at the bottom of the focus stack.
+    /// </summary>
+    public Container LastFocusedTail
+    {
+      get
+      {
+        var tail = LastFocusedContainer;
+
+        while (tail?.LastFocusedContainer != null)
+          tail = tail.LastFocusedContainer;
+
+        return tail;
+      }
+    }
+
     // TODO: Rename to SelfAndDescendants and change to getter.
     public IEnumerable<Container> Flatten()
     {
@@ -55,6 +71,11 @@ namespace LarsWM.Domain.Containers
       action(this);
       foreach (var child in Children)
         child.Traverse(action);
+    }
+
+    public bool HasChildren()
+    {
+      return Children.Count > 0;
     }
   }
 }

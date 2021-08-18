@@ -41,6 +41,7 @@
       <ItemsControl.ItemTemplate>
         <DataTemplate>
           <Button
+            x:Name="WorkspaceButton"
             Click="OnWorkspaceButtonClick"
             Content="{Binding Name}"
             Background="#242424"
@@ -50,6 +51,25 @@
             Width="35"
             Height="35"
             HorizontalAlignment="Left" />
+
+          <DataTemplate.Triggers>
+            <DataTrigger
+              Binding="{Binding IsDisplayed}"
+              Value="True">
+              <Setter
+                TargetName="WorkspaceButton"
+                Property="Background"
+                Value="#42403e" />
+            </DataTrigger>
+            <DataTrigger
+              Binding="{Binding HasFocus}"
+              Value="True">
+              <Setter
+                TargetName="WorkspaceButton"
+                Property="Background"
+                Value="Orange" />
+            </DataTrigger>
+          </DataTemplate.Triggers>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>

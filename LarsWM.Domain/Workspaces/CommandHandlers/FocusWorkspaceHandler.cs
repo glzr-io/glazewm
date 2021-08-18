@@ -5,6 +5,8 @@ using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Windows;
 using System.Linq;
 using System.Diagnostics;
+using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.Commands;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
@@ -24,19 +26,48 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
     public dynamic Handle(FocusWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-      var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName);
 
-      if (workspaceToFocus == null)
-      {
-        var activatedWorkspace = ActivateWorkspace(workspaceName);
-        workspaceToFocus = activatedWorkspace;
-      }
+      // Get workspace to focus. If it's currently inactive, then activate it.
+      var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
+        ?? ActivateWorkspace(workspaceName);
 
+      // Get the currently focused workspace.
+      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
+
+      if (workspaceToFocus == focusedWorkspace)
+        return CommandResponse.Ok;
+
+      // Whether the focused workspace is the only workspace on the monitor.
+      var isOnlyWorkspace = focusedWorkspace.Parent.Children.Count() == 1
+        && workspaceToFocus.Parent != focusedWorkspace.Parent;
+
+      // Destroy the currently focused workspace if it's empty.
+      // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
+      if (!focusedWorkspace.HasChildren() && !isOnlyWorkspace)
+        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
+
+      // Display the containers of the workspace to switch focus to.
       _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
-      // Set focus to the last focused window in workspace.
-      if (workspaceToFocus.LastFocusedContainer != null)
-        _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedContainer as Window));
+      // If workspace has no descendant windows, set focus to the workspace itself.
+      if (!workspaceToFocus.HasChildren())
+      {
+        // Create a focus stack pointing to the workspace.
+        _bus.Invoke(new CreateFocusStackCommand(workspaceToFocus));
+
+        return CommandResponse.Ok;
+      }
+
+      // Set focus to the last focused window in workspace (if there is one).
+      if (workspaceToFocus.LastFocusedTail != null)
+      {
+        _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedTail as Window));
+        return CommandResponse.Ok;
+      }
+
+      // Set focus to an arbitrary window.
+      var arbitraryWindow = workspaceToFocus.Flatten().OfType<Window>().First();
+      _bus.Invoke(new FocusWindowCommand(arbitraryWindow));
 
       return CommandResponse.Ok;
     }
