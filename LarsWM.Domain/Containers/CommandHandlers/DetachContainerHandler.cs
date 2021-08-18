@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
@@ -81,7 +81,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       if (!(removedContainerParent is Workspace) || descendantWindows.Count() > 0)
         return;
 
-      _containerService.FocusedContainer = removedContainerParent;
+      _bus.Invoke(new CreateFocusStackCommand(removedContainerParent));
     }
   }
 }
