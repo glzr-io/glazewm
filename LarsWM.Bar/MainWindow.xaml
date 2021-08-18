@@ -54,6 +54,14 @@
 
           <DataTemplate.Triggers>
             <DataTrigger
+              Binding="{Binding IsDisplayed}"
+              Value="True">
+              <Setter
+                TargetName="WorkspaceButton"
+                Property="Background"
+                Value="#42403e" />
+            </DataTrigger>
+            <DataTrigger
               Binding="{Binding HasFocus}"
               Value="True">
               <Setter
