@@ -39,7 +39,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       var parent = focusedWindow.Parent as SplitContainer;
       var layout = parent.Layout;
-      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
       var resizeDirection = command.ResizeDirection;
 
       // TODO: Handle error where a horizontal workspace has 2 windows, and user attempts to grow the height of
@@ -50,11 +49,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Vertical && resizeDirection == ResizeDirection.GROW_HEIGHT
       )
       {
-        focusedWindow.SizePercentage += resizePercentage;
-
-        foreach (var sibling in siblings)
-          sibling.SizePercentage -= resizePercentage / siblings.Count();
-
+        DecreaseSiblingSizes(focusedWindow);
         _containerService.SplitContainersToRedraw.Add(parent);
       }
 
@@ -63,11 +58,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Horizontal && resizeDirection == ResizeDirection.GROW_HEIGHT
       )
       {
-        parent.SizePercentage += resizePercentage;
-
-        foreach (var sibling in parent.Siblings)
-          sibling.SizePercentage -= resizePercentage / siblings.Count();
-
+        DecreaseSiblingSizes(focusedWindow.Parent);
         _containerService.SplitContainersToRedraw.Add(parent.Parent as SplitContainer);
       }
 
@@ -76,11 +67,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Vertical && resizeDirection == ResizeDirection.SHRINK_HEIGHT
       )
       {
-        focusedWindow.SizePercentage -= resizePercentage;
-
-        foreach (var sibling in siblings)
-          sibling.SizePercentage += resizePercentage / siblings.Count();
-
+        IncreaseSiblingSizes(focusedWindow);
         _containerService.SplitContainersToRedraw.Add(parent);
       }
 
@@ -89,17 +76,31 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Horizontal && resizeDirection == ResizeDirection.SHRINK_HEIGHT
       )
       {
-        parent.SizePercentage -= resizePercentage;
-
-        foreach (var sibling in parent.Siblings)
-          sibling.SizePercentage += resizePercentage / siblings.Count();
-
+        IncreaseSiblingSizes(focusedWindow.Parent);
         _containerService.SplitContainersToRedraw.Add(parent.Parent as SplitContainer);
       }
 
       _bus.Invoke(new RedrawContainersCommand());
 
       return new CommandResponse(true, focusedWindow.Id);
+    }
+
+    private void IncreaseSiblingSizes(Container containerToShrink)
+    {
+      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
+      containerToShrink.SizePercentage -= resizePercentage;
+
+      foreach (var sibling in containerToShrink.Siblings)
+        sibling.SizePercentage += resizePercentage / containerToShrink.Siblings.Count();
+    }
+
+    private void DecreaseSiblingSizes(Container containerToGrow)
+    {
+      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
+      containerToGrow.SizePercentage += resizePercentage;
+
+      foreach (var sibling in containerToGrow.Siblings)
+        sibling.SizePercentage -= resizePercentage / containerToGrow.Siblings.Count();
     }
   }
 }
