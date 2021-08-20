@@ -4,6 +4,7 @@ using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -41,14 +42,14 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var layout = parent.Layout;
       var resizeDirection = command.ResizeDirection;
 
-      // TODO: Handle error where a horizontal workspace has 2 windows, and user attempts to grow the height of
-      // one of the containers.
-
       if (
         layout == Layout.Horizontal && resizeDirection == ResizeDirection.GROW_WIDTH
         || layout == Layout.Vertical && resizeDirection == ResizeDirection.GROW_HEIGHT
       )
       {
+        if (focusedWindow.Siblings.Count() == 0)
+          return CommandResponse.Ok;
+
         DecreaseSiblingSizes(focusedWindow);
         _containerService.SplitContainersToRedraw.Add(parent);
       }
@@ -58,8 +59,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Horizontal && resizeDirection == ResizeDirection.GROW_HEIGHT
       )
       {
-        DecreaseSiblingSizes(focusedWindow.Parent);
-        _containerService.SplitContainersToRedraw.Add(parent.Parent as SplitContainer);
+        var containerToResize = focusedWindow.Parent;
+        if (containerToResize.Siblings.Count() == 0 || containerToResize is Workspace)
+          return CommandResponse.Ok;
+
+        DecreaseSiblingSizes(containerToResize);
+        _containerService.SplitContainersToRedraw.Add(containerToResize.Parent as SplitContainer);
       }
 
       if (
@@ -67,6 +72,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Vertical && resizeDirection == ResizeDirection.SHRINK_HEIGHT
       )
       {
+        if (focusedWindow.Siblings.Count() == 0)
+          return CommandResponse.Ok;
+
         IncreaseSiblingSizes(focusedWindow);
         _containerService.SplitContainersToRedraw.Add(parent);
       }
@@ -76,13 +84,17 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         || layout == Layout.Horizontal && resizeDirection == ResizeDirection.SHRINK_HEIGHT
       )
       {
-        IncreaseSiblingSizes(focusedWindow.Parent);
-        _containerService.SplitContainersToRedraw.Add(parent.Parent as SplitContainer);
+        var containerToResize = focusedWindow.Parent;
+        if (containerToResize.Siblings.Count() == 0 || containerToResize is Workspace)
+          return CommandResponse.Ok;
+
+        IncreaseSiblingSizes(containerToResize);
+        _containerService.SplitContainersToRedraw.Add(containerToResize.Parent as SplitContainer);
       }
 
       _bus.Invoke(new RedrawContainersCommand());
 
-      return new CommandResponse(true, focusedWindow.Id);
+      return CommandResponse.Ok;
     }
 
     private void IncreaseSiblingSizes(Container containerToShrink)
