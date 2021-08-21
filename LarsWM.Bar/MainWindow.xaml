@@ -34,7 +34,8 @@
         <ItemsPanelTemplate>
           <UniformGrid
             Columns="10"
-            HorizontalAlignment="Left" />
+            HorizontalAlignment="Left"
+            IsItemsHost="True" />
         </ItemsPanelTemplate>
       </ItemsControl.ItemsPanel>
 
