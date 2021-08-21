@@ -20,6 +20,7 @@
       "args": [
         "publish",
         "${workspaceFolder}/LarsWM.Bootstrapper/LarsWM.Bootstrapper.csproj",
+        "--configuration=Release",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
