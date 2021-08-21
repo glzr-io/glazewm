@@ -1,4 +1,5 @@
-﻿using LarsWM.Domain.Common.Services;
+﻿using LarsWM.Bar;
+using LarsWM.Domain.Common.Services;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
@@ -6,7 +7,6 @@ using LarsWM.Domain.Windows;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.WindowsApi;
-using System;
 using System.Linq;
 using System.Windows.Forms;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -21,14 +21,17 @@ namespace LarsWM.Bootstrapper
     private WindowEventService _windowEventService;
     private WindowHooksHandler _windowHooksHandler;
     private WindowService _windowService;
+    private BarManagerService _barManagerService;
 
     public Startup(
-        Bus bus,
-        MonitorService monitorService,
-        KeybindingService keybindingService,
-        WindowEventService windowEventService,
-        WindowHooksHandler windowHooksHandler,
-        WindowService windowService)
+      Bus bus,
+      MonitorService monitorService,
+      KeybindingService keybindingService,
+      WindowEventService windowEventService,
+      WindowHooksHandler windowHooksHandler,
+      WindowService windowService,
+      BarManagerService barManagerService
+    )
     {
       _bus = bus;
       _monitorService = monitorService;
@@ -36,16 +39,21 @@ namespace LarsWM.Bootstrapper
       _windowEventService = windowEventService;
       _windowHooksHandler = windowHooksHandler;
       _windowService = windowService;
+      _barManagerService = barManagerService;
     }
 
     public void Init()
     {
+      // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
+      // to be initialized before populating initial state.
+      _barManagerService.Init();
+
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
 
       _keybindingService.Init();
-
       _windowEventService.Init();
+      // TODO: Rename `Configure` method to `Init`.
       _windowHooksHandler.Configure();
     }
 
@@ -64,13 +72,11 @@ namespace LarsWM.Bootstrapper
       // Add initial windows to tree.
       _bus.Invoke(new AddInitialWindowsCommand());
 
-      var focusedWindow = _windowService.GetWindows().FirstOrDefault(w => w.Hwnd == GetForegroundWindow());
+      // GetForegroundWindow might return a handle that is not in tree. In that case, set
+      // focus to an arbitrary window.
+      var focusedWindow = _windowService.GetWindows().FirstOrDefault(w => w.Hwnd == GetForegroundWindow())
+        ?? _windowService.GetWindows().First();
 
-      // GetForegroundWindow might return a handle that is not in tree. Return first window in such cases.
-      if (focusedWindow == null)
-        focusedWindow = _windowService.GetWindows().First();
-
-      // Set currently focused window.
       _bus.Invoke(new FocusWindowCommand(focusedWindow));
     }
   }

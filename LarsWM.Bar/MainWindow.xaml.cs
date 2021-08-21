@@ -8,7 +8,6 @@ using System.Reactive.Linq;
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 
 namespace LarsWM.Bar
 {
@@ -20,6 +19,7 @@ namespace LarsWM.Bar
     private Bus _bus { get; }
     private WorkspaceService _workspaceService { get; }
     private static object _lock = new object();
+    private ObservableCollection<Workspace> _workspaces = new ObservableCollection<Workspace>();
 
     public MainWindow(Monitor monitor, WorkspaceService workspaceService, Bus bus)
     {
@@ -35,11 +35,9 @@ namespace LarsWM.Bar
       // TODO: Change height to be set in XAML.
       Height = 50;
 
-      var workspaces = new ObservableCollection<Workspace>();
-      BindingOperations.EnableCollectionSynchronization(workspaces, _lock);
-
-      WorkspaceItems.ItemsSource = workspaces;
       RefreshState(monitor);
+
+      WorkspaceItems.ItemsSource = _workspaces;
 
       var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
       var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
@@ -47,15 +45,15 @@ namespace LarsWM.Bar
 
       // Refresh contents of items source.
       Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
-        .Subscribe(_observer => RefreshState(monitor));
+        .Subscribe(_observer => Dispatcher.Invoke(() => RefreshState(monitor)));
     }
 
     private void RefreshState(Monitor monitor)
     {
-      (WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Clear();
+      _workspaces.Clear();
 
       foreach (var workspace in monitor.Children)
-        (WorkspaceItems.ItemsSource as ObservableCollection<Workspace>).Add(workspace as Workspace);
+        _workspaces.Add(workspace as Workspace);
     }
 
     private void OnWorkspaceButtonClick(object sender, RoutedEventArgs e)
