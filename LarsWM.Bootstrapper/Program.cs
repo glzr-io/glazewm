@@ -24,9 +24,7 @@ namespace LarsWM.Bootstrapper
       serviceCollection.AddSingleton<Startup>();
 
       ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
-
       ServiceLocator.Provider.RegisterDomainHandlers();
-      ServiceLocator.Provider.RegisterBarHandlers();
 
       var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
       startup.Init();

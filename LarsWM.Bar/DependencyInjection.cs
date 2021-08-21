@@ -1,8 +1,4 @@
-﻿using LarsWM.Bar.CommandHandlers;
-using LarsWM.Bar.EventHandlers;
-using LarsWM.Infrastructure.Bussing;
-using Microsoft.Extensions.DependencyInjection;
-using System;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace LarsWM.Bar
 {
@@ -10,19 +6,9 @@ namespace LarsWM.Bar
   {
     public static IServiceCollection AddBarServices(this IServiceCollection services)
     {
-      services.AddSingleton<LaunchBarOnMonitorHandler>();
-      services.AddSingleton<MonitorAddedHandler>();
+      services.AddSingleton<BarManagerService>();
 
       return services;
-    }
-
-    public static IServiceProvider RegisterBarHandlers(this IServiceProvider serviceProvider)
-    {
-      var bus = serviceProvider.GetRequiredService<Bus>();
-      bus.RegisterCommandHandler<LaunchBarOnMonitorHandler>();
-      bus.RegisterEventHandler<MonitorAddedHandler>();
-
-      return serviceProvider;
     }
   }
 }
