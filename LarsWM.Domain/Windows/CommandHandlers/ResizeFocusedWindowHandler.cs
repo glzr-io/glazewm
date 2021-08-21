@@ -1,10 +1,10 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -32,32 +32,57 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
-      var parent = focusedWindow.Parent as SplitContainer;
-      var siblings = parent.Children.Where(child => child != focusedWindow);
+      var layout = (focusedWindow.Parent as SplitContainer).Layout;
+      var resizeDirection = command.ResizeDirection;
 
-      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
-      var layout = parent.Layout;
+      // Whether the parent of the focused window should be resized rather than the focused window itself.
+      var shouldResizeParent =
+        (layout == Layout.Horizontal &&
+          (resizeDirection == ResizeDirection.SHRINK_HEIGHT || resizeDirection == ResizeDirection.GROW_HEIGHT)) ||
+        (layout == Layout.Vertical &&
+          (resizeDirection == ResizeDirection.SHRINK_WIDTH || resizeDirection == ResizeDirection.GROW_WIDTH));
 
-      if (layout == Layout.Horizontal && command.Direction == Direction.Right)
+      var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
+
+      // Ignore cases where the container to resize is a workspace or has no siblings.
+      if (containerToResize.Siblings.Count() == 0 || containerToResize is Workspace)
+        return CommandResponse.Ok;
+
+      switch (resizeDirection)
       {
-        focusedWindow.SizePercentage += resizePercentage;
+        case ResizeDirection.GROW_WIDTH:
+        case ResizeDirection.GROW_HEIGHT:
+          ShrinkSizeOfSiblings(containerToResize);
+          break;
 
-        foreach (var sibling in siblings)
-          sibling.SizePercentage -= resizePercentage / siblings.Count();
+        case ResizeDirection.SHRINK_WIDTH:
+        case ResizeDirection.SHRINK_HEIGHT:
+          GrowSizeOfSiblings(containerToResize);
+          break;
       }
 
-      if (layout == Layout.Horizontal && command.Direction == Direction.Left)
-      {
-        focusedWindow.SizePercentage -= resizePercentage;
-
-        foreach (var sibling in siblings)
-          sibling.SizePercentage += resizePercentage / siblings.Count();
-      }
-
-      _containerService.SplitContainersToRedraw.Add(parent);
+      _containerService.SplitContainersToRedraw.Add(containerToResize.Parent as SplitContainer);
       _bus.Invoke(new RedrawContainersCommand());
 
-      return new CommandResponse(true, focusedWindow.Id);
+      return CommandResponse.Ok;
+    }
+
+    private void GrowSizeOfSiblings(Container containerToShrink)
+    {
+      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
+      containerToShrink.SizePercentage -= resizePercentage;
+
+      foreach (var sibling in containerToShrink.Siblings)
+        sibling.SizePercentage += resizePercentage / containerToShrink.Siblings.Count();
+    }
+
+    private void ShrinkSizeOfSiblings(Container containerToGrow)
+    {
+      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
+      containerToGrow.SizePercentage += resizePercentage;
+
+      foreach (var sibling in containerToGrow.Siblings)
+        sibling.SizePercentage -= resizePercentage / containerToGrow.Siblings.Count();
     }
   }
 }
