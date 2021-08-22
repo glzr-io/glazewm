@@ -47,6 +47,21 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
       }
 
+      // Swap the focused window with sibling in given direction.
+      if (ancestorWithLayout == focusedWindow.Parent)
+      {
+        var index = focusedWindow.SelfAndSiblings.IndexOf(focusedWindow);
+
+        if (direction == Direction.UP || direction == Direction.LEFT)
+          _bus.Invoke(new SwapContainersCommand(focusedWindow, focusedWindow.Parent.Children[index - 1]));
+        else
+          _bus.Invoke(new SwapContainersCommand(focusedWindow, focusedWindow.Parent.Children[index + 1]));
+
+        _bus.Invoke(new RedrawContainersCommand());
+
+        return CommandResponse.Ok;
+      }
+
       return CommandResponse.Ok;
     }
   }
