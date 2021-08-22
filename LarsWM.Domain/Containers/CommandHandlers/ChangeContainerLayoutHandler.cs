@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers.Commands;
@@ -46,19 +46,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // container, then flatten the split container.
       if (isFocusedOnlyChild)
       {
-        var grandparent = parent.Parent;
-
-        var splitContainerIndex = grandparent.Children.IndexOf(parent);
-
-        // Replace the split container with the focused window.
-        grandparent.Children[splitContainerIndex] = focusedContainer;
-        focusedContainer.Parent = grandparent;
-        focusedContainer.SizePercentage = parent.SizePercentage;
-
-        // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
-        _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
+        _bus.Invoke(new ReplaceContainerCommand(parent, focusedContainer));
         _bus.Invoke(new RedrawContainersCommand());
-
         return CommandResponse.Ok;
       }
 
