@@ -15,7 +15,7 @@ namespace LarsWM.Domain.Containers
     public List<Container> Children { get; set; } = new List<Container>();
     public Container LastFocusedContainer { get; set; } = null;
 
-    public IEnumerable<Container> SelfAndSiblings => Parent.Children;
+    public List<Container> SelfAndSiblings => Parent.Children;
 
     public IEnumerable<Container> Siblings
     {
