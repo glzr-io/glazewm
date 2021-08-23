@@ -1,8 +1,5 @@
-using System;
-using System.Linq;
-using LarsWM.Domain.Common.Enums;
+﻿using System.Linq;
 using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
@@ -51,24 +48,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
       }
 
+      // Create a new split container to wrap the focused container.
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
-        SizePercentage = focusedContainer.SizePercentage,
         LastFocusedContainer = focusedContainer,
-        Parent = parent
       };
 
-      // Get the index of the focused window so that the new split container can be
-      // inserted at the same index. Using `AddChild` instead could cause the containers
-      // to visually jump around.
-      var focusedIndex = parent.Children.IndexOf(focusedContainer);
-
+      // Replace the focused container with the new split container. The focused window has to be
+      // attached to the split container after the replacement.
+      _bus.Invoke(new ReplaceContainerCommand(parent, focusedContainer.Index, splitContainer));
       _bus.Invoke(new AttachContainerCommand(splitContainer, focusedContainer));
-
-      parent.Children[focusedIndex] = splitContainer;
-
-      _containerService.SplitContainersToRedraw.Add(parent);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
