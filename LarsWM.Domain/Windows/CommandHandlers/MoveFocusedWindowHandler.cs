@@ -33,6 +33,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var layoutForDirection = (direction == Direction.LEFT || direction == Direction.RIGHT)
         ? Layout.Horizontal : Layout.Vertical;
 
+      // The ancestor that the focused window should be moved within. This may simply be the parent of
+      // the focused window, or it could be an ancestor further up the tree.
       var ancestorWithLayout = focusedWindow.TraverseUpEnumeration()
         .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
         .FirstOrDefault() as SplitContainer;
@@ -52,16 +54,18 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       // Swap the focused window with sibling in given direction.
       if (ancestorWithLayout == focusedWindow.Parent)
       {
-        var index = focusedWindow.SelfAndSiblings.IndexOf(focusedWindow);
+        var index = focusedWindow.Index;
 
-        if (direction == Direction.UP || direction == Direction.LEFT)
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, focusedWindow.Parent.Children[index - 1]));
-        else
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, focusedWindow.Parent.Children[index + 1]));
+        var containerToSwap = (direction == Direction.UP || direction == Direction.LEFT) ?
+          focusedWindow.SelfAndSiblings.ElementAtOrDefault(index - 1)
+          : focusedWindow.SelfAndSiblings.ElementAtOrDefault(index + 1);
 
-        _bus.Invoke(new RedrawContainersCommand());
-
-        return CommandResponse.Ok;
+        if (containerToSwap != null)
+        {
+          _bus.Invoke(new SwapContainersCommand(focusedWindow, containerToSwap));
+          _bus.Invoke(new RedrawContainersCommand());
+          return CommandResponse.Ok;
+        }
       }
 
       // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
