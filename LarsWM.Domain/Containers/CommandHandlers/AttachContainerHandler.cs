@@ -27,13 +27,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         _bus.Invoke(new DetachContainerCommand(newChild.Parent as SplitContainer, newChild));
 
       // TODO: Adjust SizePercentage of current children.
-      if (command.InsertPosition == InsertPosition.END)
-        parent.AddChild(newChild);
-      else
-      {
-        parent.Children.Insert(0, newChild);
-        newChild.Parent = parent;
-      }
+      parent.Children.Insert(command.InsertPosition, newChild);
+      newChild.Parent = parent;
 
       double defaultPercent = 1.0 / children.Count;
       foreach (var child in children)
