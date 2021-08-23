@@ -33,7 +33,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var layoutForDirection = (direction == Direction.LEFT || direction == Direction.RIGHT)
         ? Layout.Horizontal : Layout.Vertical;
 
-      var ancestorWithLayout = focusedWindow.TraverseUpEnumeration().Where(con => (con as SplitContainer)?.Layout == layoutForDirection).FirstOrDefault();
+      var ancestorWithLayout = focusedWindow.TraverseUpEnumeration()
+        .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
+        .FirstOrDefault() as SplitContainer;
 
       // Change the layout of the workspace to `layoutForDirection`.
       if (ancestorWithLayout == null)
@@ -61,6 +63,17 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
         return CommandResponse.Ok;
       }
+
+      // Insert container into `ancestorWithLayout` at start or end.
+      // TODO: Should actually traverse up from `focusedWindow` to find container where the parent
+      // is `ancestorWithLayout`. Then, depending on direction, insert before or after that container.
+      // TODO: Consider changing `InsertPosition` to an int, and set the default to `Siblings.Count - 1`.
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow));
+      else
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, InsertPosition.START));
+
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
