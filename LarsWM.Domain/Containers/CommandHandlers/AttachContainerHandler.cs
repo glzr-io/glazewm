@@ -1,6 +1,4 @@
-﻿using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Containers.Commands;
+﻿using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure.Bussing;
 
@@ -26,8 +24,13 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var children = command.Parent.Children;
 
       // TODO: Adjust SizePercentage of current children.
-
-      parent.AddChild(newChild);
+      if (command.InsertPosition == InsertPosition.END)
+        parent.AddChild(newChild);
+      else
+      {
+        parent.Children.Insert(0, newChild);
+        newChild.Parent = parent;
+      }
 
       double defaultPercent = 1.0 / children.Count;
       foreach (var child in children)
