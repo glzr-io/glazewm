@@ -64,14 +64,16 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
       }
 
-      // Insert container into `ancestorWithLayout` at start or end.
-      // TODO: Should actually traverse up from `focusedWindow` to find container where the parent
-      // is `ancestorWithLayout`. Then, depending on direction, insert before or after that container.
-      // TODO: Consider changing `InsertPosition` to an int, and set the default to `Siblings.Count - 1`.
+      // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
+      // depending on the direction, insert before or after that container.
+      var insertionIndex = focusedWindow.TraverseUpEnumeration()
+        .FirstOrDefault(container => container.Parent == ancestorWithLayout)
+        .Index;
+
       if (direction == Direction.UP || direction == Direction.LEFT)
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
       else
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, InsertPosition.START));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex + 1));
 
       _bus.Invoke(new RedrawContainersCommand());
 
