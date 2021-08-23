@@ -26,6 +26,11 @@ namespace LarsWM.Domain.Containers
     }
 
     /// <summary>
+    /// Index of this container amongst its siblings.
+    /// </summary>
+    public int Index => Parent.Children.IndexOf(this);
+
+    /// <summary>
     /// Get the element at the bottom of the focus stack.
     /// </summary>
     public Container LastFocusedTail
