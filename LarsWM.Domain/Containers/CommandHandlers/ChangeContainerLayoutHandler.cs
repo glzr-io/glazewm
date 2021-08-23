@@ -46,7 +46,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // container, then flatten the split container.
       if (isFocusedOnlyChild)
       {
-        _bus.Invoke(new ReplaceContainerCommand(parent, focusedContainer));
+        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, focusedContainer));
         _bus.Invoke(new RedrawContainersCommand());
         return CommandResponse.Ok;
       }

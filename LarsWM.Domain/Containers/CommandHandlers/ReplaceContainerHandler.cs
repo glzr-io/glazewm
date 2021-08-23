@@ -14,21 +14,24 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
     public dynamic Handle(ReplaceContainerCommand command)
     {
-      var containerToReplace = command.ContainerToReplace;
+      var parentContainer = command.ParentContainer;
       var replacementContainer = command.ReplacementContainer;
-      var targetIndex = containerToReplace.SelfAndSiblings.IndexOf(containerToReplace);
+      var childIndex = command.ChildIndex;
+      var containerToReplace = parentContainer.Children[childIndex];
 
-      // Replace the split container with the focused window.
-      containerToReplace.Parent.Children[targetIndex] = replacementContainer;
-      replacementContainer.Parent = containerToReplace.Parent;
+      // TODO: Consider detaching `ReplacementContainer` if it already has a parent.
+
+      // Replace the container at the given index.
+      parentContainer.Children[childIndex] = replacementContainer;
+      replacementContainer.Parent = parentContainer;
       replacementContainer.SizePercentage = containerToReplace.SizePercentage;
 
       // Correct focus stack references to replaced container.
-      if (containerToReplace.Parent.LastFocusedContainer == containerToReplace)
-        containerToReplace.Parent.LastFocusedContainer = replacementContainer;
+      if (parentContainer.LastFocusedContainer == containerToReplace)
+        parentContainer.LastFocusedContainer = replacementContainer;
 
       // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
-      _containerService.SplitContainersToRedraw.Add(containerToReplace.Parent as SplitContainer);
+      _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);
       _containerService.SplitContainersToRedraw.Add(replacementContainer.Parent as SplitContainer);
 
       return CommandResponse.Ok;
