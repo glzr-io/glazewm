@@ -2,8 +2,10 @@
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
+using LarsWM.Domain.Workspaces.Events;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -13,12 +15,14 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     private Bus _bus;
     private ContainerService _containerService;
     private WorkspaceService _workspaceService;
+    private MonitorService _monitorService;
 
-    public MoveFocusedWindowHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
+    public MoveFocusedWindowHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService, MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
       _workspaceService = workspaceService;
+      _monitorService = monitorService;
     }
 
     public dynamic Handle(MoveFocusedWindowCommand command)
@@ -73,14 +77,28 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
       // depending on the direction, insert before or after that container.
-      var insertionIndex = focusedWindow.TraverseUpEnumeration()
-        .FirstOrDefault(container => container.Parent == ancestorWithLayout)
-        .Index;
+      var insertionReference = focusedWindow.TraverseUpEnumeration()
+        .FirstOrDefault(container => container.Parent == ancestorWithLayout);
+
+      if (insertionReference == null)
+      {
+        if (direction == Direction.UP || direction == Direction.LEFT)
+          _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow));
+        else
+          _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, 0));
+
+        _bus.Invoke(new RedrawContainersCommand());
+
+        // Refresh state in bar of which workspace has focus.
+        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+
+        return CommandResponse.Ok;
+      }
 
       if (direction == Direction.UP || direction == Direction.LEFT)
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionReference.Index));
       else
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex + 1));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionReference.Index + 1));
 
       _bus.Invoke(new RedrawContainersCommand());
 
@@ -93,11 +111,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         ? Layout.Horizontal : Layout.Vertical;
     }
 
+    // TODO: Consider renaming to `GetAncestorToMoveWithin`.
     private SplitContainer GetContainerToMoveTo(Window focusedWindow, Direction direction)
     {
       var layoutForDirection = GetLayoutForDirection(direction);
 
-      return focusedWindow.TraverseUpEnumeration()
+      var ancestorWithLayout = focusedWindow.TraverseUpEnumeration()
         .Where(ancestor =>
         {
           var isMatchingLayout = (ancestor as SplitContainer)?.Layout == layoutForDirection;
@@ -120,6 +139,13 @@ namespace LarsWM.Domain.Windows.CommandHandlers
           return true;
         })
         .FirstOrDefault() as SplitContainer;
+
+      if (ancestorWithLayout != null)
+        return ancestorWithLayout;
+
+      var focusedMonitor = _monitorService.GetFocusedMonitor();
+      var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
+      return monitorInDirection?.DisplayedWorkspace;
     }
   }
 }
