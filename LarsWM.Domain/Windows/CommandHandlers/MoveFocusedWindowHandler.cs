@@ -34,10 +34,55 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       var direction = command.Direction;
+      var layoutForDirection = GetLayoutForDirection(direction);
+      var parentMatchesLayout = (focusedWindow.Parent as SplitContainer).Layout == layoutForDirection;
+
+      // Swap the focused window with sibling in given direction.
+      if (parentMatchesLayout && HasSiblingInDirection(focusedWindow, direction))
+      {
+        var containerToSwap = (direction == Direction.UP || direction == Direction.LEFT) ?
+          focusedWindow.SelfAndSiblings[focusedWindow.Index - 1]
+          : focusedWindow.SelfAndSiblings[focusedWindow.Index + 1];
+
+        // TODO: If container to swap is not a `Window`, then descend into sibling
+        // container and insert at end of focus stack.
+
+        _bus.Invoke(new SwapContainersCommand(focusedWindow, containerToSwap));
+        _bus.Invoke(new RedrawContainersCommand());
+
+        return CommandResponse.Ok;
+      }
+
+      // Attempt to the move focused window to workspace in given direction.
+      if (parentMatchesLayout && focusedWindow.Parent is Workspace)
+      {
+        var focusedMonitor = _monitorService.GetFocusedMonitor();
+        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
+        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
+
+        if (workspaceInDirection == null)
+          return CommandResponse.Ok;
+
+        if (direction == Direction.UP || direction == Direction.LEFT)
+          _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow));
+        else
+          _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow, 0));
+
+        _bus.Invoke(new RedrawContainersCommand());
+
+        // Refresh state in bar of which workspace has focus.
+        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+
+        return CommandResponse.Ok;
+      }
 
       // The ancestor that the focused window should be moved within. This may simply be the parent of
       // the focused window, or it could be an ancestor further up the tree.
-      var ancestorWithLayout = GetContainerToMoveTo(focusedWindow, direction);
+      // Since focused window cannot be moved within the parent container, traverse upwards to find
+      // a suitable ancestor to move to.
+      var ancestorWithLayout = focusedWindow.Parent.TraverseUpEnumeration()
+        .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
+        .FirstOrDefault() as SplitContainer;
 
       // Change the layout of the workspace to `layoutForDirection`.
       if (ancestorWithLayout == null)
@@ -48,8 +93,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         // TODO: Should top-level split containers invert their layouts?
         // TODO: Should a new split container be created with the inverse layout to wrap all
         // elements other than the focused window?
-        // TODO: If any top-level split containers match the new layout of the workspace,
-        // then flatten them.
+        // TODO: Flatten any top-level split containers with the changed layout of the workspace.
 
         _containerService.SplitContainersToRedraw.Add(workspace);
         _bus.Invoke(new RedrawContainersCommand());
@@ -57,43 +101,10 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
       }
 
-      // Swap the focused window with sibling in given direction.
-      if (ancestorWithLayout == focusedWindow.Parent)
-      {
-        var index = focusedWindow.Index;
-
-        var containerToSwap = (direction == Direction.UP || direction == Direction.LEFT) ?
-          focusedWindow.SelfAndSiblings.ElementAtOrDefault(index - 1)
-          : focusedWindow.SelfAndSiblings.ElementAtOrDefault(index + 1);
-
-        // TODO: Not sure whether this check is needed anymore.
-        if (containerToSwap != null)
-        {
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, containerToSwap));
-          _bus.Invoke(new RedrawContainersCommand());
-          return CommandResponse.Ok;
-        }
-      }
-
       // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
       // depending on the direction, insert before or after that container.
       var insertionReference = focusedWindow.TraverseUpEnumeration()
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
-
-      if (insertionReference == null)
-      {
-        if (direction == Direction.UP || direction == Direction.LEFT)
-          _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow));
-        else
-          _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, 0));
-
-        _bus.Invoke(new RedrawContainersCommand());
-
-        // Refresh state in bar of which workspace has focus.
-        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
-
-        return CommandResponse.Ok;
-      }
 
       if (direction == Direction.UP || direction == Direction.LEFT)
         _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionReference.Index));
@@ -111,41 +122,15 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         ? Layout.Horizontal : Layout.Vertical;
     }
 
-    // TODO: Consider renaming to `GetAncestorToMoveWithin`.
-    private SplitContainer GetContainerToMoveTo(Window focusedWindow, Direction direction)
+    /// <summary>
+    /// Whether the focused window has a sibling in the given direction.
+    /// </summary>
+    private bool HasSiblingInDirection(Window focusedWindow, Direction direction)
     {
-      var layoutForDirection = GetLayoutForDirection(direction);
-
-      var ancestorWithLayout = focusedWindow.TraverseUpEnumeration()
-        .Where(ancestor =>
-        {
-          var isMatchingLayout = (ancestor as SplitContainer)?.Layout == layoutForDirection;
-
-          if (!isMatchingLayout)
-            return false;
-
-          // Check whether it's possible to swap the focused window with a sibling.
-          if (ancestor == focusedWindow.Parent)
-          {
-            var isFirstElement = focusedWindow == focusedWindow.SelfAndSiblings.First();
-            var isLastElement = focusedWindow == focusedWindow.SelfAndSiblings.Last();
-
-            if (direction == Direction.UP || direction == Direction.LEFT)
-              return !isFirstElement;
-            else
-              return !isLastElement;
-          }
-
-          return true;
-        })
-        .FirstOrDefault() as SplitContainer;
-
-      if (ancestorWithLayout != null)
-        return ancestorWithLayout;
-
-      var focusedMonitor = _monitorService.GetFocusedMonitor();
-      var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
-      return monitorInDirection?.DisplayedWorkspace;
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        return focusedWindow != focusedWindow.SelfAndSiblings.First();
+      else
+        return focusedWindow != focusedWindow.SelfAndSiblings.Last();
     }
   }
 }
