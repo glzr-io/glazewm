@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq;
-using LarsWM.Domain.Common.Enums;
+﻿using System.Linq;
 using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
@@ -46,40 +43,22 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // container, then flatten the split container.
       if (isFocusedOnlyChild)
       {
-        var grandparent = parent.Parent;
-
-        var splitContainerIndex = grandparent.Children.IndexOf(parent);
-
-        // Replace the split container with the focused window.
-        grandparent.Children[splitContainerIndex] = focusedContainer;
-        focusedContainer.Parent = grandparent;
-        focusedContainer.SizePercentage = parent.SizePercentage;
-
-        // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
-        _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
+        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, focusedContainer));
         _bus.Invoke(new RedrawContainersCommand());
-
         return CommandResponse.Ok;
       }
 
+      // Create a new split container to wrap the focused container.
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
-        SizePercentage = focusedContainer.SizePercentage,
         LastFocusedContainer = focusedContainer,
-        Parent = parent
       };
 
-      // Get the index of the focused window so that the new split container can be
-      // inserted at the same index. Using `AddChild` instead could cause the containers
-      // to visually jump around.
-      var focusedIndex = parent.Children.IndexOf(focusedContainer);
-
+      // Replace the focused container with the new split container. The focused window has to be
+      // attached to the split container after the replacement.
+      _bus.Invoke(new ReplaceContainerCommand(parent, focusedContainer.Index, splitContainer));
       _bus.Invoke(new AttachContainerCommand(splitContainer, focusedContainer));
-
-      parent.Children[focusedIndex] = splitContainer;
-
-      _containerService.SplitContainersToRedraw.Add(parent);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;

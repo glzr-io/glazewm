@@ -1,6 +1,4 @@
-﻿using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
-using LarsWM.Domain.Containers.Commands;
+﻿using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Infrastructure.Bussing;
 
@@ -25,9 +23,12 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var newChild = command.NewChild;
       var children = command.Parent.Children;
 
-      // TODO: Adjust SizePercentage of current children.
+      if (newChild.Parent != null)
+        _bus.Invoke(new DetachContainerCommand(newChild.Parent as SplitContainer, newChild));
 
-      parent.AddChild(newChild);
+      // TODO: Adjust SizePercentage of current children.
+      parent.Children.Insert(command.InsertPosition, newChild);
+      newChild.Parent = parent;
 
       double defaultPercent = 1.0 / children.Count;
       foreach (var child in children)

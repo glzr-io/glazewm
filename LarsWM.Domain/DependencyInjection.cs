@@ -32,6 +32,8 @@ namespace LarsWM.Domain
       services.AddSingleton<CreateFocusStackHandler>();
       services.AddSingleton<DetachContainerHandler>();
       services.AddSingleton<RedrawContainersHandler>();
+      services.AddSingleton<ReplaceContainerHandler>();
+      services.AddSingleton<SwapContainersHandler>();
       services.AddSingleton<AddMonitorHandler>();
       services.AddSingleton<AttachWorkspaceToMonitorHandler>();
       services.AddSingleton<DetachWorkspaceFromMonitorHandler>();
@@ -39,6 +41,7 @@ namespace LarsWM.Domain
       services.AddSingleton<AddInitialWindowsHandler>();
       services.AddSingleton<AddWindowHandler>();
       services.AddSingleton<FocusWindowHandler>();
+      services.AddSingleton<MoveFocusedWindowHandler>();
       services.AddSingleton<ResizeFocusedWindowHandler>();
       services.AddSingleton<CreateWorkspaceHandler>();
       services.AddSingleton<DisplayWorkspaceHandler>();
@@ -55,6 +58,8 @@ namespace LarsWM.Domain
       bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
       bus.RegisterCommandHandler<DetachContainerHandler>();
       bus.RegisterCommandHandler<RedrawContainersHandler>();
+      bus.RegisterCommandHandler<ReplaceContainerHandler>();
+      bus.RegisterCommandHandler<SwapContainersHandler>();
       bus.RegisterCommandHandler<AddMonitorHandler>();
       bus.RegisterCommandHandler<AttachWorkspaceToMonitorHandler>();
       bus.RegisterCommandHandler<CreateFocusStackHandler>();
@@ -63,6 +68,7 @@ namespace LarsWM.Domain
       bus.RegisterCommandHandler<AddInitialWindowsHandler>();
       bus.RegisterCommandHandler<AddWindowHandler>();
       bus.RegisterCommandHandler<FocusWindowHandler>();
+      bus.RegisterCommandHandler<MoveFocusedWindowHandler>();
       bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
       bus.RegisterCommandHandler<CreateWorkspaceHandler>();
       bus.RegisterCommandHandler<DisplayWorkspaceHandler>();

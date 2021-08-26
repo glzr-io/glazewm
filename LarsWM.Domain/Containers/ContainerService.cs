@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.UserConfigs;
 
@@ -72,19 +72,12 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Vertical)
-        return parent.X;
-
-      var selfAndSiblings = parent.Children;
-      var index = selfAndSiblings.IndexOf(container);
-
-      if (index == 0)
+      if (parent.Layout == Layout.Vertical || container.Index == 0)
         return parent.X;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
-      var previousSibling = selfAndSiblings[index - 1];
 
-      return previousSibling.X + previousSibling.Width + innerGap;
+      return container.PreviousSibling.X + container.PreviousSibling.Width + innerGap;
     }
 
     /// <summary>
@@ -95,19 +88,35 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Horizontal)
-        return parent.Y;
-
-      var selfAndSiblings = parent.Children;
-      var index = selfAndSiblings.IndexOf(container);
-
-      if (index == 0)
+      if (parent.Layout == Layout.Horizontal || container.Index == 0)
         return parent.Y;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
-      var previousSibling = selfAndSiblings[index - 1];
 
-      return previousSibling.Y + previousSibling.Height + innerGap;
+      return container.PreviousSibling.Y + container.PreviousSibling.Height + innerGap;
+    }
+
+    /// <summary>
+    /// Traverse down a split container in search of a descendant in the given direction. For example,
+    /// get the rightmost container for `Direction.RIGHT`.
+    /// </summary>
+    public Container GetDescendantInDirection(Container originContainer, Direction direction)
+    {
+      if (!(originContainer is SplitContainer))
+        return originContainer;
+
+      var layout = (originContainer as SplitContainer).Layout;
+
+      // TODO: Need to correct focus stack after moving out a container from a vertical split container. With
+      // the current implementation, the split container still references the moved out container.
+
+      if (layout != direction.GetCorrespondingLayout())
+        return GetDescendantInDirection(originContainer.LastFocusedContainer, direction);
+
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        return GetDescendantInDirection(originContainer.Children.Last(), direction);
+      else
+        return GetDescendantInDirection(originContainer.Children.First(), direction);
     }
   }
 }

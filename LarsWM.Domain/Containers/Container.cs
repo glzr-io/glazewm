@@ -15,7 +15,7 @@ namespace LarsWM.Domain.Containers
     public List<Container> Children { get; set; } = new List<Container>();
     public Container LastFocusedContainer { get; set; } = null;
 
-    public IEnumerable<Container> SelfAndSiblings => Parent.Children;
+    public List<Container> SelfAndSiblings => Parent.Children;
 
     public IEnumerable<Container> Siblings
     {
@@ -24,6 +24,11 @@ namespace LarsWM.Domain.Containers
         return Parent.Children.Where(child => child != this);
       }
     }
+
+    /// <summary>
+    /// Index of this container amongst its siblings.
+    /// </summary>
+    public int Index => Parent.Children.IndexOf(this);
 
     /// <summary>
     /// Get the element at the bottom of the focus stack.
@@ -40,6 +45,16 @@ namespace LarsWM.Domain.Containers
         return tail;
       }
     }
+
+    /// <summary>
+    /// The sibling at the next index to this container.
+    /// </summary>
+    public Container NextSibling => SelfAndSiblings.ElementAtOrDefault(Index + 1);
+
+    /// <summary>
+    /// The sibling at the previous index to this container.
+    /// </summary>
+    public Container PreviousSibling => SelfAndSiblings.ElementAtOrDefault(Index - 1);
 
     // TODO: Rename to SelfAndDescendants and change to getter.
     public IEnumerable<Container> Flatten()
