@@ -38,7 +38,7 @@ namespace LarsWM.Domain.Common.Enums
     public static Layout GetCorrespondingLayout(this Direction direction)
     {
       return (direction == Direction.LEFT || direction == Direction.RIGHT)
-        ? Layout.Horizontal : Layout.Vertical;
+        ? Layout.HORIZONTAL : Layout.VERTICAL;
     }
   }
 }

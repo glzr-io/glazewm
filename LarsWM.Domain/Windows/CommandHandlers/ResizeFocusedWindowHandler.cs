@@ -37,9 +37,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       // Whether the parent of the focused window should be resized rather than the focused window itself.
       var shouldResizeParent =
-        (layout == Layout.Horizontal &&
+        (layout == Layout.HORIZONTAL &&
           (resizeDirection == ResizeDirection.SHRINK_HEIGHT || resizeDirection == ResizeDirection.GROW_HEIGHT)) ||
-        (layout == Layout.Vertical &&
+        (layout == Layout.VERTICAL &&
           (resizeDirection == ResizeDirection.SHRINK_WIDTH || resizeDirection == ResizeDirection.GROW_WIDTH));
 
       var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;

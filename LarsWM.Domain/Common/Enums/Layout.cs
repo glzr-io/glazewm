@@ -2,7 +2,7 @@
 {
   public enum Layout
   {
-    Vertical,
-    Horizontal,
+    VERTICAL,
+    HORIZONTAL,
   }
 }

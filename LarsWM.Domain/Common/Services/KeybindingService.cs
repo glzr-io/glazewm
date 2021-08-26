@@ -110,9 +110,9 @@ namespace LarsWM.Domain.Common.Services
         if (pressedKey == Keys.P)
           _bus.Invoke(new ResizeFocusedWindowCommand(ResizeDirection.GROW_WIDTH));
         if (pressedKey == Keys.V)
-          _bus.Invoke(new ChangeContainerLayoutCommand(Layout.Vertical));
+          _bus.Invoke(new ChangeContainerLayoutCommand(Layout.VERTICAL));
         if (pressedKey == Keys.B)
-          _bus.Invoke(new ChangeContainerLayoutCommand(Layout.Horizontal));
+          _bus.Invoke(new ChangeContainerLayoutCommand(Layout.HORIZONTAL));
       }
       );
     }

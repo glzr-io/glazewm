@@ -6,7 +6,7 @@ namespace LarsWM.Domain.Containers
 {
   public class SplitContainer : Container
   {
-    public Layout Layout { get; set; } = Layout.Horizontal;
+    public Layout Layout { get; set; } = Layout.HORIZONTAL;
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
 

@@ -40,7 +40,7 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Vertical)
+      if (parent.Layout == Layout.VERTICAL)
         return parent.Width;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
@@ -56,7 +56,7 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Horizontal)
+      if (parent.Layout == Layout.HORIZONTAL)
         return parent.Height;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
@@ -72,7 +72,7 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Vertical || container.Index == 0)
+      if (parent.Layout == Layout.VERTICAL || container.Index == 0)
         return parent.X;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
@@ -88,7 +88,7 @@ namespace LarsWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Horizontal || container.Index == 0)
+      if (parent.Layout == Layout.HORIZONTAL || container.Index == 0)
         return parent.Y;
 
       var innerGap = _userConfigService.UserConfig.InnerGap;
