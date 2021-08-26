@@ -97,8 +97,8 @@ namespace LarsWM.Domain.Containers
     }
 
     /// <summary>
-    /// Traverse down a split container in search of a `Window` in the inverse direction
-    /// of the given `Direction`. For example, get the rightmost Window for `Direction.LEFT`.
+    /// Traverse down a split container in search of a descendant in the given direction. For example,
+    /// get the rightmost container for `Direction.RIGHT`.
     /// </summary>
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
@@ -107,19 +107,16 @@ namespace LarsWM.Domain.Containers
 
       var layout = (originContainer as SplitContainer).Layout;
 
-      var doesNotMatchDirection =
-        (layout == Layout.Vertical && (direction == Direction.LEFT || direction == Direction.RIGHT)) ||
-        (layout == Layout.Horizontal && (direction == Direction.UP || direction == Direction.DOWN));
-
       // TODO: Need to correct focus stack after moving out a container from a vertical split container. With
       // the current implementation, the split container still references the moved out container.
-      if (doesNotMatchDirection)
+
+      if (layout != direction.GetCorrespondingLayout())
         return GetDescendantInDirection(originContainer.LastFocusedContainer, direction);
 
       if (direction == Direction.UP || direction == Direction.LEFT)
-        return GetDescendantInDirection(originContainer.Children.First(), direction);
-      else
         return GetDescendantInDirection(originContainer.Children.Last(), direction);
+      else
+        return GetDescendantInDirection(originContainer.Children.First(), direction);
     }
   }
 }

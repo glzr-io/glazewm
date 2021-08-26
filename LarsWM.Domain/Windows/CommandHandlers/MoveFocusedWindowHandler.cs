@@ -34,7 +34,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       var direction = command.Direction;
-      var layoutForDirection = GetLayoutForDirection(direction);
+      var layoutForDirection = direction.GetCorrespondingLayout();
       var parentMatchesLayout = (focusedWindow.Parent as SplitContainer).Layout == layoutForDirection;
 
       if (parentMatchesLayout && HasSiblingInDirection(focusedWindow, direction))
@@ -48,7 +48,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         else
         {
           // Move the focused window into the sibling split container.
-          var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction);
+          var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction.Inverse());
           var targetParent = targetDescendant.Parent as SplitContainer;
 
           var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
@@ -94,7 +94,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (ancestorWithLayout == null)
       {
         var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
-        workspace.Layout = GetLayoutForDirection(direction);
+        workspace.Layout = direction.GetCorrespondingLayout();
 
         // TODO: Flatten any top-level split containers with the changed layout of the workspace.
         // TODO: Index of focused window might have to be changed after layout is inverted.
@@ -118,7 +118,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (insertionReferenceSibling is SplitContainer)
       {
         // Move the focused window into the adjacent split container.
-        var targetDescendant = _containerService.GetDescendantInDirection(insertionReferenceSibling, direction);
+        var targetDescendant = _containerService.GetDescendantInDirection(insertionReferenceSibling, direction.Inverse());
         var targetParent = targetDescendant.Parent as SplitContainer;
 
         var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
@@ -138,15 +138,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
-    }
-
-    /// <summary>
-    /// Get the layout that is needed for a move in given direction (eg. a horizontal layout when moving horizontally).
-    /// </summary>
-    private Layout GetLayoutForDirection(Direction direction)
-    {
-      return (direction == Direction.LEFT || direction == Direction.RIGHT)
-        ? Layout.Horizontal : Layout.Vertical;
     }
 
     /// <summary>
