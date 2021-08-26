@@ -46,6 +46,16 @@ namespace LarsWM.Domain.Containers
       }
     }
 
+    /// <summary>
+    /// The sibling at the next index to this container.
+    /// </summary>
+    public Container NextSibling => SelfAndSiblings.ElementAtOrDefault(Index + 1);
+
+    /// <summary>
+    /// The sibling at the previous index to this container.
+    /// </summary>
+    public Container PreviousSibling => SelfAndSiblings.ElementAtOrDefault(Index - 1);
+
     // TODO: Rename to SelfAndDescendants and change to getter.
     public IEnumerable<Container> Flatten()
     {
