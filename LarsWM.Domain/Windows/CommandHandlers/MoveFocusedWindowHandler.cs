@@ -40,8 +40,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (parentMatchesLayout && HasSiblingInDirection(focusedWindow, direction))
       {
         var siblingInDirection = (direction == Direction.UP || direction == Direction.LEFT) ?
-          focusedWindow.SelfAndSiblings[focusedWindow.Index - 1]
-          : focusedWindow.SelfAndSiblings[focusedWindow.Index + 1];
+          focusedWindow.PreviousSibling : focusedWindow.NextSibling;
 
         // Swap the focused window with sibling in given direction.
         if (siblingInDirection is Window)
@@ -97,11 +96,10 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
         workspace.Layout = GetLayoutForDirection(direction);
 
-        // TODO: Should top-level split containers invert their layouts?
-        // TODO: Should a new split container be created with the inverse layout to wrap all
-        // elements other than the focused window?
         // TODO: Flatten any top-level split containers with the changed layout of the workspace.
         // TODO: Index of focused window might have to be changed after layout is inverted.
+        // TODO: Allow ChangeContainerLayoutCommand to work on workspaces and use that to change
+        // the layout.
 
         _containerService.SplitContainersToRedraw.Add(workspace);
         _bus.Invoke(new RedrawContainersCommand());
@@ -114,10 +112,28 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var insertionReference = focusedWindow.TraverseUpEnumeration()
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      if (direction == Direction.UP || direction == Direction.LEFT)
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionReference.Index));
+      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT ?
+        insertionReference.PreviousSibling : insertionReference.NextSibling;
+
+      if (insertionReferenceSibling is SplitContainer)
+      {
+        // Move the focused window into the adjacent split container.
+        var targetDescendant = _containerService.GetDescendantInDirection(insertionReferenceSibling, direction);
+        var targetParent = targetDescendant.Parent as SplitContainer;
+
+        var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
+          direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
+
+        _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
+      }
       else
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionReference.Index + 1));
+      {
+        // Move the focused window into the container above.
+        var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
+          insertionReference.Index : insertionReference.Index + 1;
+
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
+      }
 
       _bus.Invoke(new RedrawContainersCommand());
 

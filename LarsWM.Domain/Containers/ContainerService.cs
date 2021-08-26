@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.UserConfigs;
@@ -111,6 +111,8 @@ namespace LarsWM.Domain.Containers
         (layout == Layout.Vertical && (direction == Direction.LEFT || direction == Direction.RIGHT)) ||
         (layout == Layout.Horizontal && (direction == Direction.UP || direction == Direction.DOWN));
 
+      // TODO: Need to correct focus stack after moving out a container from a vertical split container. With
+      // the current implementation, the split container still references the moved out container.
       if (doesNotMatchDirection)
         return GetDescendantInDirection(originContainer.LastFocusedContainer, direction);
 
