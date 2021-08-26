@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.UserConfigs;
 
@@ -108,6 +109,30 @@ namespace LarsWM.Domain.Containers
       var previousSibling = selfAndSiblings[index - 1];
 
       return previousSibling.Y + previousSibling.Height + innerGap;
+    }
+
+    /// <summary>
+    /// Traverse down a split container in search of a `Window` in the inverse direction
+    /// of the given `Direction`. For example, get the rightmost Window for `Direction.LEFT`.
+    /// </summary>
+    public Container GetDescendantInDirection(Container originContainer, Direction direction)
+    {
+      if (!(originContainer is SplitContainer))
+        return originContainer;
+
+      var layout = (originContainer as SplitContainer).Layout;
+
+      var doesNotMatchDirection =
+        (layout == Layout.Vertical && (direction == Direction.LEFT || direction == Direction.RIGHT)) ||
+        (layout == Layout.Horizontal && (direction == Direction.UP || direction == Direction.DOWN));
+
+      if (doesNotMatchDirection)
+        return GetDescendantInDirection(originContainer.LastFocusedContainer, direction);
+
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        return GetDescendantInDirection(originContainer.Children.First(), direction);
+      else
+        return GetDescendantInDirection(originContainer.Children.Last(), direction);
     }
   }
 }
