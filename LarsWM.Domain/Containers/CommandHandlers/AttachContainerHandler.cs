@@ -8,20 +8,17 @@ namespace LarsWM.Domain.Containers.CommandHandlers
   {
     private Bus _bus;
     private ContainerService _containerService;
-    private readonly UserConfigService _userConfigService;
 
-    public AttachContainerHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService)
+    public AttachContainerHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
-      _userConfigService = userConfigService;
     }
 
     public dynamic Handle(AttachContainerCommand command)
     {
       var parent = command.Parent;
-      var newChild = command.NewChild;
-      var children = command.Parent.Children;
+      var newChild = command.ChildToAdd;
 
       if (newChild.Parent != null)
         _bus.Invoke(new DetachContainerCommand(newChild.Parent as SplitContainer, newChild));
@@ -30,8 +27,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       parent.Children.Insert(command.InsertPosition, newChild);
       newChild.Parent = parent;
 
-      double defaultPercent = 1.0 / children.Count;
-      foreach (var child in children)
+      double defaultPercent = 1.0 / parent.Children.Count;
+      foreach (var child in parent.Children)
         child.SizePercentage = defaultPercent;
 
       _containerService.SplitContainersToRedraw.Add(parent);
