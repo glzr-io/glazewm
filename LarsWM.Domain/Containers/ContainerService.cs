@@ -111,7 +111,7 @@ namespace LarsWM.Domain.Containers
       // the current implementation, the split container still references the moved out container.
 
       if (layout != direction.GetCorrespondingLayout())
-        return GetDescendantInDirection(originContainer.LastFocusedContainer, direction);
+        return GetDescendantInDirection(originContainer.LastFocusedChild, direction);
 
       if (direction == Direction.UP || direction == Direction.LEFT)
         return GetDescendantInDirection(originContainer.Children.Last(), direction);

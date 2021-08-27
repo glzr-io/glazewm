@@ -27,8 +27,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       replacementContainer.SizePercentage = containerToReplace.SizePercentage;
 
       // Correct focus stack references to replaced container.
-      if (parentContainer.LastFocusedContainer == containerToReplace)
-        parentContainer.LastFocusedContainer = replacementContainer;
+      if (parentContainer.LastFocusedChild == containerToReplace)
+        parentContainer.LastFocusedChild = replacementContainer;
 
       // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
       _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);

@@ -52,7 +52,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
-        LastFocusedContainer = focusedContainer,
+        LastFocusedChild = focusedContainer,
       };
 
       // Replace the focused container with the new split container. The focused window has to be

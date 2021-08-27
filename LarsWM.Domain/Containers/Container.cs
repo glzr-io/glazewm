@@ -13,7 +13,7 @@ namespace LarsWM.Domain.Containers
     public double SizePercentage { get; set; }
     public Container Parent { get; set; } = null;
     public List<Container> Children { get; set; } = new List<Container>();
-    public Container LastFocusedContainer { get; set; } = null;
+    public Container LastFocusedChild { get; set; } = null;
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
@@ -31,18 +31,18 @@ namespace LarsWM.Domain.Containers
     public int Index => Parent.Children.IndexOf(this);
 
     /// <summary>
-    /// Get the element at the bottom of the focus stack.
+    /// Get the last focused descendant by traversing downwards.
     /// </summary>
-    public Container LastFocusedTail
+    public Container LastFocusedDescendant
     {
       get
       {
-        var tail = LastFocusedContainer;
+        var lastFocusedDescendant = LastFocusedChild;
 
-        while (tail?.LastFocusedContainer != null)
-          tail = tail.LastFocusedContainer;
+        while (lastFocusedDescendant?.LastFocusedChild != null)
+          lastFocusedDescendant = lastFocusedDescendant.LastFocusedChild;
 
-        return tail;
+        return lastFocusedDescendant;
       }
     }
 

@@ -59,9 +59,9 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       }
 
       // Set focus to the last focused window in workspace (if there is one).
-      if (workspaceToFocus.LastFocusedTail != null)
+      if (workspaceToFocus.LastFocusedDescendant != null)
       {
-        _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedTail as Window));
+        _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
         return CommandResponse.Ok;
       }
 
