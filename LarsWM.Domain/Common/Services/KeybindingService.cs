@@ -93,6 +93,8 @@ namespace LarsWM.Domain.Common.Services
           _bus.Invoke(new FocusWorkspaceCommand("8"));
         if (pressedKey == Keys.D9)
           _bus.Invoke(new FocusWorkspaceCommand("9"));
+        if (pressedKey == Keys.Q)
+          _bus.Invoke(new CloseFocusedWindowCommand());
         if (pressedKey == Keys.A)
           _bus.Invoke(new MoveFocusedWindowCommand(Direction.LEFT));
         if (pressedKey == Keys.S)

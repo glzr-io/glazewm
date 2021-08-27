@@ -227,5 +227,17 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     [DllImport("user32.dll")]
     public static extern IntPtr SetWinEventHook(EventConstant eventMin, EventConstant eventMax, IntPtr hmodWinEventProc, WindowEventProc lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+    /// <summary>
+    /// Message types that can be passed to `SendMessage`. Only the subset of types relevant to
+    /// this application are included.
+    /// </summary>
+    public enum SendMessageType : uint
+    {
+      WM_CLOSE = 0x0010,
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern IntPtr SendMessage(IntPtr hWnd, SendMessageType Msg, IntPtr wParam, IntPtr lParam);
   }
 }
