@@ -18,20 +18,24 @@ namespace LarsWM.Domain.Containers.CommandHandlers
     public dynamic Handle(AttachContainerCommand command)
     {
       var parent = command.Parent;
-      var newChild = command.ChildToAdd;
+      var childToAdd = command.ChildToAdd;
 
-      if (newChild.Parent != null)
-        _bus.Invoke(new DetachContainerCommand(newChild.Parent as SplitContainer, newChild));
+      if (childToAdd.Parent != null)
+        _bus.Invoke(new DetachContainerCommand(childToAdd.Parent as SplitContainer, childToAdd));
 
-      // TODO: Adjust SizePercentage of current children.
-      parent.Children.Insert(command.InsertPosition, newChild);
-      newChild.Parent = parent;
+      parent.Children.Insert(command.InsertPosition, childToAdd);
+      childToAdd.Parent = parent;
 
+      // Adjust SizePercentage of self and siblings.
       double defaultPercent = 1.0 / parent.Children.Count;
       foreach (var child in parent.Children)
         child.SizePercentage = defaultPercent;
 
       _containerService.SplitContainersToRedraw.Add(parent);
+
+      // Adjust focus order of ancestors if the attached container is focused.
+      if (_containerService.FocusedContainer == childToAdd)
+        _bus.Invoke(new SetFocusedDescendantCommand(childToAdd));
 
       return CommandResponse.Ok;
     }
