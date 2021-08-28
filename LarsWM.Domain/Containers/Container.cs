@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -18,7 +18,24 @@ namespace LarsWM.Domain.Containers
     /// The order of which child containers last had focus.
     /// </summary>
     public List<Container> ChildFocusOrder { get; set; } = new List<Container>();
-    public Container LastFocusedChild { get; set; } = null;
+
+    /// <summary>
+    /// The child container that last had focus. Return the first child if no children have
+    /// had focus yet.
+    /// </summary>
+    public Container LastFocusedChild
+    {
+      get
+      {
+        if (ChildFocusOrder.Count > 0)
+          return ChildFocusOrder[0];
+
+        if (Children.Count > 0)
+          return Children[0];
+
+        return null;
+      }
+    }
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
