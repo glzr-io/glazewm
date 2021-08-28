@@ -53,7 +53,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       if (!workspaceToFocus.HasChildren())
       {
         // Create a focus stack pointing to the workspace.
-        _bus.Invoke(new CreateFocusStackCommand(workspaceToFocus));
+        _bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
 
         return CommandResponse.Ok;
       }

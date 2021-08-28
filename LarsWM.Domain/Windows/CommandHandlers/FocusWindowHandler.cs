@@ -25,7 +25,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Create a focus stack pointing to the newly focused window.
-      _bus.Invoke(new CreateFocusStackCommand(window));
+      _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       SetForegroundWindow(window.Hwnd);
 
