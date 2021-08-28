@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,6 +13,11 @@ namespace LarsWM.Domain.Containers
     public double SizePercentage { get; set; }
     public Container Parent { get; set; } = null;
     public List<Container> Children { get; set; } = new List<Container>();
+
+    /// <summary>
+    /// The order of which child containers last had focus.
+    /// </summary>
+    public List<Container> ChildFocusOrder { get; set; } = new List<Container>();
     public Container LastFocusedChild { get; set; } = null;
 
     public List<Container> SelfAndSiblings => Parent.Children;
