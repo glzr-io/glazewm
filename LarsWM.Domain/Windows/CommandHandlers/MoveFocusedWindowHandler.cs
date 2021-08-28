@@ -2,10 +2,10 @@
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Containers.Events;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
-using LarsWM.Domain.Workspaces.Events;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Windows.CommandHandlers

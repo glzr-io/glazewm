@@ -1,7 +1,7 @@
-﻿using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
 
-namespace LarsWM.Domain.Windows.Events
+namespace LarsWM.Domain.Containers.Events
 {
   public class FocusedWindowMovedEvent : Event
   {

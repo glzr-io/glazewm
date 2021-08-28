@@ -1,5 +1,5 @@
 ﻿using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.Workspaces.Events;
+using LarsWM.Domain.Containers.Events;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.Utils;
 
