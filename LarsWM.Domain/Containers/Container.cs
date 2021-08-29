@@ -84,6 +84,22 @@ namespace LarsWM.Domain.Containers
       return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
     }
 
+    public IEnumerable<Container> SelfAndAncestors => new[] { this }.Concat(Ancestors);
+
+    public IEnumerable<Container> Ancestors
+    {
+      get
+      {
+        var parent = Parent;
+
+        while (parent != null)
+        {
+          yield return parent;
+          parent = parent.Parent;
+        }
+      }
+    }
+
     public Container AddChild(Container container)
     {
       Children.Add(container);

@@ -7,6 +7,7 @@ namespace LarsWM.Domain.Containers
     /// <summary>
     /// Extension method for breadth-first downward traversal from a container list (eg. ContainerForest).
     /// </summary>
+    /// TODO: Remove this and use `Container` getter instead.
     public static IEnumerable<Container> TraverseDownEnumeration(this List<Container> containerList)
     {
       var queue = new Queue<Container>();
@@ -25,6 +26,7 @@ namespace LarsWM.Domain.Containers
     /// <summary>
     /// Extension method for breadth-first downward traversal from a single container.
     /// </summary>
+    /// TODO: Remove this and use `Container` getter instead.
     public static IEnumerable<Container> TraverseDownEnumeration(this Container container)
     {
       var queue = new Queue<Container>();
@@ -42,6 +44,7 @@ namespace LarsWM.Domain.Containers
     /// <summary>
     /// Extension method for upwards traversal from a single container.
     /// </summary>
+    /// TODO: Remove this and use `Container` getter instead.
     public static IEnumerable<Container> TraverseUpEnumeration(this Container container)
     {
       var parent = container.Parent;
