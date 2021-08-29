@@ -1,4 +1,4 @@
-﻿using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
@@ -52,8 +52,8 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
       {
-        // Create a focus stack pointing to the workspace.
-        _bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
+        _containerService.FocusedContainer = workspaceToFocus;
+        _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
 
         return CommandResponse.Ok;
       }

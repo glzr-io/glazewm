@@ -1,6 +1,7 @@
 ﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Containers.Events;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -24,10 +25,14 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (window == _containerService.FocusedContainer)
         return CommandResponse.Ok;
 
-      // Create a focus stack pointing to the newly focused window.
+      _containerService.FocusedContainer = window;
+
+      // Adjust focus order of ancestors.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       SetForegroundWindow(window.Hwnd);
+
+      _bus.RaiseEvent(new FocusChangedEvent(window));
 
       return new CommandResponse(true, window.Id);
     }
