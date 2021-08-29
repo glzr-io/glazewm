@@ -42,6 +42,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       {
         var grandparent = parent.Parent;
         grandparent.RemoveChild(parent);
+        grandparent.ChildFocusOrder.Remove(parent);
 
         // TODO: Perhaps create a private method that takes the container with children
         // to adjust that has the SizePercentage and default percent logic. Alternatively
