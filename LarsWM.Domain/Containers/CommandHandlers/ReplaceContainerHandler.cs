@@ -1,5 +1,6 @@
 ﻿using LarsWM.Domain.Containers.Commands;
 using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.Utils;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
 {
@@ -17,20 +18,18 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var parentContainer = command.ParentContainer;
       var replacementContainer = command.ReplacementContainer;
       var childIndex = command.ChildIndex;
-      var containerToReplace = parentContainer.Children[childIndex];
 
       // TODO: Consider detaching `ReplacementContainer` if it already has a parent.
 
       // Replace the container at the given index.
-      parentContainer.Children[childIndex] = replacementContainer;
+      var containerToReplace = parentContainer.Children[childIndex];
+      parentContainer.Children.Replace(containerToReplace, replacementContainer);
       replacementContainer.Parent = parentContainer;
       replacementContainer.SizePercentage = containerToReplace.SizePercentage;
 
-      // Correct focus stack references to replaced container.
-      if (parentContainer.LastFocusedChild == containerToReplace)
-        parentContainer.LastFocusedChild = replacementContainer;
+      // Correct any focus order references to the replaced container.
+      parentContainer.ChildFocusOrder.Replace(containerToReplace, replacementContainer);
 
-      // TODO: Not sure whether redrawing is necessary, will see after fixing detach command.
       _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);
       _containerService.SplitContainersToRedraw.Add(replacementContainer.Parent as SplitContainer);
 

@@ -56,7 +56,7 @@ namespace LarsWM.Domain.Windows
             // If window is in tree, detach removed window from its parent.
             if (window != null)
             {
-              _bus.Invoke(new DetachContainerCommand(window.Parent as SplitContainer, window));
+              _bus.Invoke(new RemoveWindowCommand(window));
               _bus.Invoke(new RedrawContainersCommand());
             }
 

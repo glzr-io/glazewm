@@ -8,6 +8,7 @@ using System.Reactive.Linq;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using LarsWM.Domain.Containers.Events;
 
 namespace LarsWM.Bar
 {

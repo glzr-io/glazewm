@@ -13,7 +13,29 @@ namespace LarsWM.Domain.Containers
     public double SizePercentage { get; set; }
     public Container Parent { get; set; } = null;
     public List<Container> Children { get; set; } = new List<Container>();
-    public Container LastFocusedChild { get; set; } = null;
+
+    /// <summary>
+    /// The order of which child containers last had focus.
+    /// </summary>
+    public List<Container> ChildFocusOrder { get; set; } = new List<Container>();
+
+    /// <summary>
+    /// The child container that last had focus. Return the first child if no children have
+    /// had focus yet.
+    /// </summary>
+    public Container LastFocusedChild
+    {
+      get
+      {
+        if (ChildFocusOrder.Count > 0)
+          return ChildFocusOrder[0];
+
+        if (Children.Count > 0)
+          return Children[0];
+
+        return null;
+      }
+    }
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
@@ -60,6 +82,22 @@ namespace LarsWM.Domain.Containers
     public IEnumerable<Container> Flatten()
     {
       return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
+    }
+
+    public IEnumerable<Container> SelfAndAncestors => new[] { this }.Concat(Ancestors);
+
+    public IEnumerable<Container> Ancestors
+    {
+      get
+      {
+        var parent = Parent;
+
+        while (parent != null)
+        {
+          yield return parent;
+          parent = parent.Parent;
+        }
+      }
     }
 
     public Container AddChild(Container container)

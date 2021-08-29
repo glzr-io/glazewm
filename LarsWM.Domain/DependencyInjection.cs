@@ -29,7 +29,7 @@ namespace LarsWM.Domain
       services.AddSingleton<WorkspaceService>();
       services.AddSingleton<AttachContainerHandler>();
       services.AddSingleton<ChangeContainerLayoutHandler>();
-      services.AddSingleton<CreateFocusStackHandler>();
+      services.AddSingleton<SetFocusedDescendantHandler>();
       services.AddSingleton<DetachContainerHandler>();
       services.AddSingleton<RedrawContainersHandler>();
       services.AddSingleton<ReplaceContainerHandler>();
@@ -40,9 +40,9 @@ namespace LarsWM.Domain
       services.AddSingleton<EvaluateUserConfigHandler>();
       services.AddSingleton<AddInitialWindowsHandler>();
       services.AddSingleton<AddWindowHandler>();
-      services.AddSingleton<CloseFocusedWindowHandler>();
       services.AddSingleton<FocusWindowHandler>();
       services.AddSingleton<MoveFocusedWindowHandler>();
+      services.AddSingleton<RemoveWindowHandler>();
       services.AddSingleton<ResizeFocusedWindowHandler>();
       services.AddSingleton<CreateWorkspaceHandler>();
       services.AddSingleton<DisplayWorkspaceHandler>();
@@ -63,14 +63,14 @@ namespace LarsWM.Domain
       bus.RegisterCommandHandler<SwapContainersHandler>();
       bus.RegisterCommandHandler<AddMonitorHandler>();
       bus.RegisterCommandHandler<AttachWorkspaceToMonitorHandler>();
-      bus.RegisterCommandHandler<CreateFocusStackHandler>();
+      bus.RegisterCommandHandler<SetFocusedDescendantHandler>();
       bus.RegisterCommandHandler<DetachWorkspaceFromMonitorHandler>();
       bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
       bus.RegisterCommandHandler<AddInitialWindowsHandler>();
       bus.RegisterCommandHandler<AddWindowHandler>();
-      bus.RegisterCommandHandler<CloseFocusedWindowHandler>();
       bus.RegisterCommandHandler<FocusWindowHandler>();
       bus.RegisterCommandHandler<MoveFocusedWindowHandler>();
+      bus.RegisterCommandHandler<RemoveWindowHandler>();
       bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
       bus.RegisterCommandHandler<CreateWorkspaceHandler>();
       bus.RegisterCommandHandler<DisplayWorkspaceHandler>();

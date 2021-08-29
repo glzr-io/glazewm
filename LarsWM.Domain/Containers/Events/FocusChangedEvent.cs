@@ -1,7 +1,6 @@
-﻿using LarsWM.Domain.Containers;
-using LarsWM.Infrastructure.Bussing;
+﻿using LarsWM.Infrastructure.Bussing;
 
-namespace LarsWM.Domain.Workspaces.Events
+namespace LarsWM.Domain.Containers.Events
 {
   public class FocusChangedEvent : Event
   {

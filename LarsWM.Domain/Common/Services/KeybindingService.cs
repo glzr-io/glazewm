@@ -7,7 +7,9 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using LarsWM.Domain.Common.Enums;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Windows;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
@@ -22,10 +24,12 @@ namespace LarsWM.Domain.Common.Services
     public static readonly uint WM_SYSKEYDOWN = 0x104;
 
     private Bus _bus;
+    private ContainerService _containerService;
 
-    public KeybindingService(Bus bus)
+    public KeybindingService(Bus bus, ContainerService containerService)
     {
       _bus = bus;
+      _containerService = containerService;
     }
 
     public void Init()
@@ -94,7 +98,14 @@ namespace LarsWM.Domain.Common.Services
         if (pressedKey == Keys.D9)
           _bus.Invoke(new FocusWorkspaceCommand("9"));
         if (pressedKey == Keys.Q)
-          _bus.Invoke(new CloseFocusedWindowCommand());
+        {
+          var focusedWindow = _containerService.FocusedContainer as Window;
+
+          if (focusedWindow == null)
+            return;
+
+          SendMessage(focusedWindow.Hwnd, SendMessageType.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+        }
         if (pressedKey == Keys.A)
           _bus.Invoke(new MoveFocusedWindowCommand(Direction.LEFT));
         if (pressedKey == Keys.S)

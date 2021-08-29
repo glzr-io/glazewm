@@ -145,6 +145,9 @@ namespace LarsWM.Infrastructure.WindowsApi
     public static extern bool EndDeferWindowPos(IntPtr hWinPosInfo);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr GetDesktopWindow();
+
+    [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
