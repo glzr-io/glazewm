@@ -1,4 +1,4 @@
-using LarsWM.Infrastructure.Bussing;
+﻿using LarsWM.Infrastructure.Bussing;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
@@ -6,7 +6,7 @@ using LarsWM.Domain.Windows;
 using System.Linq;
 using System.Diagnostics;
 using LarsWM.Domain.Containers;
-using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Containers.Events;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
@@ -15,12 +15,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
     private Bus _bus;
     private WorkspaceService _workspaceService;
     private MonitorService _monitorService;
+    private ContainerService _containerService;
 
-    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService)
+    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService, ContainerService containerService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _monitorService = monitorService;
+      _containerService = containerService;
     }
 
     public dynamic Handle(FocusWorkspaceCommand command)
@@ -31,19 +33,20 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName);
 
-      // Get the currently focused workspace.
+      // Get the currently focused workspace. This can be null if there currently
+      // isn't a container that has focus.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
       if (workspaceToFocus == focusedWorkspace)
         return CommandResponse.Ok;
 
       // Whether the focused workspace is the only workspace on the monitor.
-      var isOnlyWorkspace = focusedWorkspace.Parent.Children.Count() == 1
+      var isOnlyWorkspace = focusedWorkspace?.Parent?.Children?.Count() == 1
         && workspaceToFocus.Parent != focusedWorkspace.Parent;
 
       // Destroy the currently focused workspace if it's empty.
       // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-      if (!focusedWorkspace.HasChildren() && !isOnlyWorkspace)
+      if (focusedWorkspace != null && !focusedWorkspace.HasChildren() && !isOnlyWorkspace)
         _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
 
       // Display the containers of the workspace to switch focus to.
