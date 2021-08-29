@@ -7,6 +7,7 @@ using System.Linq;
 using System.Diagnostics;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Events;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
 {
@@ -57,6 +58,9 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       {
         _containerService.FocusedContainer = workspaceToFocus;
         _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
+
+        // Remove focus from whichever window currently has focus.
+        SetForegroundWindow(GetDesktopWindow());
 
         return CommandResponse.Ok;
       }
