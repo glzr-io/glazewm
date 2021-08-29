@@ -133,6 +133,9 @@ namespace LarsWM.Infrastructure.WindowsApi
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
     public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SWP uFlags);
+
     [DllImport("user32.dll")]
     public static extern IntPtr BeginDeferWindowPos(int nNumWindows);
 
