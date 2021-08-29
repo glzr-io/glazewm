@@ -30,9 +30,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new DetachContainerCommand(window.Parent as SplitContainer, window));
 
       // Search for a new container to set focus to.
-      // TODO: Consider refactoring this by traversing upwards via `SelfAndAncestors` prior to detaching
-      // and finding a `Window` or `Workspace` in ancestor's focused orders (excluding the window to detach).
-      var containerToFocus = GetLastFocusedDescendant(parent) ?? GetLastFocusedDescendant(grandparent);
+      var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
 
       // Note that the hook that fires when a window closes is actually called AFTER the OS has
       // automatically switched focus to a new window. So therefore, changing focus here will
@@ -43,13 +41,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
 
       return CommandResponse.Ok;
-    }
-
-    private Container GetLastFocusedDescendant(Container container)
-    {
-      return container.SelfAndAncestors
-       .FirstOrDefault(container => container.LastFocusedDescendant != null)
-       ?.LastFocusedDescendant;
     }
   }
 }
