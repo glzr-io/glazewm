@@ -42,22 +42,18 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       foreach (var window in windowsToRestore)
         ShowWindow(window.Hwnd, ShowWindowFlags.RESTORE);
 
-      var handle = BeginDeferWindowPos(windowsToRedraw.Count());
-
       foreach (var window in windowsToRedraw)
       {
         var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
-            SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER;
+          SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING;
 
         if (window.IsHidden)
           flags |= SWP.SWP_HIDEWINDOW;
         else
           flags |= SWP.SWP_SHOWWINDOW;
 
-        DeferWindowPos(handle, window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+        SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
       }
-
-      EndDeferWindowPos(handle);
 
       containersToRedraw.Clear();
 
