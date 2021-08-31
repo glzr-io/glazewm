@@ -38,7 +38,6 @@ namespace LarsWM.Domain.Common.Services
       var thread = new Thread(() =>
       {
         SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KbHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
-        //SetWindowsHookEx(HookType.WH_MOUSE_LL, _mouseHook, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
         Application.Run();
       });
       thread.Name = "LarsWMKeybindingService";
@@ -63,10 +62,13 @@ namespace LarsWM.Domain.Common.Services
         if (modifiersPressed.Count() == 0)
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-        // Get structure with details about keyboard input event.
-        var hookStruct = (KbLLHookStruct)Marshal.PtrToStructure(lParam, typeof(KbLLHookStruct));
+        // Get struct with details about keyboard input event.
+        var rawEventStruct = Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
+        var inputEvent = (LowLevelKeyboardInputEvent)rawEventStruct;
 
-        _modKeypresses.OnNext(hookStruct.vkCode);
+        _modKeypresses.OnNext(inputEvent.Key);
+
+        // Avoid forwarding the key input to other applications.
         return new IntPtr(1);
       }
 
