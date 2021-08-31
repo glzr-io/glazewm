@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.UserConfigs.Commands;
+using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
@@ -28,10 +28,25 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
       var deserializer = new DeserializerBuilder()
-          .WithNamingConvention(PascalCaseNamingConvention.Instance)
-          .Build();
+        .WithNamingConvention(PascalCaseNamingConvention.Instance)
+        .Build();
 
-      var deserializedConfig = deserializer.Deserialize<UserConfigFileDto>(input);
+      UserConfigFileDto deserializedConfig = new UserConfigFileDto();
+
+      try
+      {
+        deserializedConfig = deserializer.Deserialize<UserConfigFileDto>(input);
+      }
+      catch (YamlDotNet.Core.YamlException exception)
+      {
+        var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
+        var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+
+        // Alert the user of the unknown property.
+        MessageBox.Show("Unknown property in config: " + match.Groups["property"]);
+
+        throw exception;
+      }
 
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
       {
