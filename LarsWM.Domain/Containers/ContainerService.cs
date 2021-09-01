@@ -43,7 +43,7 @@ namespace LarsWM.Domain.Containers
       if (parent.Layout == Layout.VERTICAL)
         return parent.Width;
 
-      var innerGap = _userConfigService.UserConfig.InnerGap;
+      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
       return (int)(container.SizePercentage * (parent.Width - (innerGap * (parent.Children.Count - 1))));
     }
@@ -59,7 +59,7 @@ namespace LarsWM.Domain.Containers
       if (parent.Layout == Layout.HORIZONTAL)
         return parent.Height;
 
-      var innerGap = _userConfigService.UserConfig.InnerGap;
+      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
       return (int)(container.SizePercentage * (parent.Height - (innerGap * (parent.Children.Count - 1))));
     }
@@ -75,7 +75,7 @@ namespace LarsWM.Domain.Containers
       if (parent.Layout == Layout.VERTICAL || container.Index == 0)
         return parent.X;
 
-      var innerGap = _userConfigService.UserConfig.InnerGap;
+      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
       return container.PreviousSibling.X + container.PreviousSibling.Width + innerGap;
     }
@@ -91,7 +91,7 @@ namespace LarsWM.Domain.Containers
       if (parent.Layout == Layout.HORIZONTAL || container.Index == 0)
         return parent.Y;
 
-      var innerGap = _userConfigService.UserConfig.InnerGap;
+      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
       return container.PreviousSibling.Y + container.PreviousSibling.Height + innerGap;
     }

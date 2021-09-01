@@ -47,10 +47,12 @@ namespace LarsWM.Domain.UserConfigs
       "StartMenuExperienceHost",
     };
 
-    public int InnerGap = 20;
-    public int OuterGap = 20;
-
     public double ResizePercentage { get; set; } = 5;
+
+    /// <summary>
+    /// Resize percentage in decimal form.
+    /// </summary>
+    public double ResizeProportion => ResizePercentage / 100;
 
     public GapsConfig Gaps { get; set; }
 

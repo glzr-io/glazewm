@@ -49,10 +49,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
 
-      // TODO: Read user config from file / constructed through shell script.
-      var userConfig = new UserConfig();
-
-      _userConfigService.UserConfig = userConfig;
+      _userConfigService.UserConfig = deserializedConfig;
 
       return CommandResponse.Ok;
     }
