@@ -1,36 +1,41 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace LarsWM.Domain.UserConfigs
 {
+  // TODO: Merge with `UserConfig` class.
   class UserConfigFileDto
   {
-    public double ResizePercentage { get; set; }
+    public double ResizePercentage { get; set; } = 5;
     public GapsConfig Gaps { get; set; }
     public BarConfig Bar { get; set; }
     public List<WorkspaceConfig> Workspaces { get; set; }
-    public List<KeybindingsConfig> Keybindings { get; set; }
+    public List<KeybindingConfig> Keybindings { get; set; }
   }
 
-  struct GapsConfig
+  // TODO: Move within `UserConfig`.
+  public class GapsConfig
   {
-    public int InnerGap { get; set; }
-    public int OuterGap { get; set; }
+    public int InnerGap { get; set; } = 20;
+    public int OuterGap { get; set; } = 20;
   }
 
-  struct BarConfig
+  // TODO: Move within `UserConfig`.
+  public class BarConfig
   {
-    public int Height { get; set; }
+    public int Height { get; set; } = 50;
   }
 
-  struct WorkspaceConfig
+  // TODO: Move within `UserConfig`.
+  public class WorkspaceConfig
   {
     public string Name { get; set; }
-    public string BindToMonitor { get; set; }
-    public string CustomDisplayName { get; set; }
-    public bool KeepAlive { get; set; }
+    public string BindToMonitor { get; set; } = null;
+    public string CustomDisplayName { get; set; } = null;
+    public bool KeepAlive { get; set; } = false;
   }
 
-  struct KeybindingsConfig
+  // TODO: Move within `UserConfig`.
+  public class KeybindingConfig
   {
     public string Command { get; set; }
     public List<string> Bindings { get; set; }
