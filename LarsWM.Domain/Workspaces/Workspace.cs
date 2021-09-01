@@ -11,10 +11,6 @@ namespace LarsWM.Domain.Workspaces
   {
     public Guid Id = Guid.NewGuid();
     public string Name { get; set; }
-    public override int Height => Parent.Height - (_userConfigService.UserConfig.OuterGap * 2) - 50;
-    public override int Width => Parent.Width - (_userConfigService.UserConfig.OuterGap * 2);
-    public override int X => Parent.X + _userConfigService.UserConfig.OuterGap;
-    public override int Y => Parent.Y + _userConfigService.UserConfig.OuterGap + 50;
 
     private UserConfigService _userConfigService =
         ServiceLocator.Provider.GetRequiredService<UserConfigService>();
@@ -24,6 +20,15 @@ namespace LarsWM.Domain.Workspaces
 
     private WorkspaceService _workspaceService =
         ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+
+    private int OuterGap => _userConfigService.UserConfig.Gaps.OuterGap;
+    private int BarHeight => _userConfigService.UserConfig.Bar.Height;
+
+    public override int Height => Parent.Height - (OuterGap * 2) - BarHeight;
+    public override int Width => Parent.Width - (OuterGap * 2);
+    public override int X => Parent.X + OuterGap;
+    public override int Y => Parent.Y + OuterGap + BarHeight;
+
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.

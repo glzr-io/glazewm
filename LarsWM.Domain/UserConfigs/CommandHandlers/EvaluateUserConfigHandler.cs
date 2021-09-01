@@ -3,46 +3,92 @@ using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace LarsWM.Domain.UserConfigs.CommandHandlers
 {
   class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
-    private UserConfigService _userConfigService;
     private Bus _bus;
+    private UserConfigService _userConfigService;
 
-    public EvaluateUserConfigHandler(UserConfigService userConfigService, Bus bus)
+    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService)
     {
-      _userConfigService = userConfigService;
       _bus = bus;
+      _userConfigService = userConfigService;
     }
 
     public dynamic Handle(EvaluateUserConfigCommand command)
     {
-      // TODO: Change user config path to be somewhere in home directory.
-      var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "../LarsWM.Domain/UserConfigs/SampleUserConfig.yaml");
+      UserConfig deserializedConfig = null;
 
+      try
+      {
+        var userConfigPath = _userConfigService.UserConfigPath;
+
+        if (!File.Exists(userConfigPath))
+        {
+          // Initialize the user config with the sample config.
+          Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
+          File.Copy(_userConfigService.SampleUserConfigPath, userConfigPath, false);
+        }
+
+        deserializedConfig = DeserializeUserConfig(userConfigPath);
+      }
+      catch (Exception exception)
+      {
+        ShowErrorAlert(exception);
+        throw exception;
+      }
+
+      // Create an inactive `Workspace` for each workspace config.
+      foreach (var workspaceConfig in deserializedConfig.Workspaces)
+        _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
+
+      _userConfigService.UserConfig = deserializedConfig;
+
+      return CommandResponse.Ok;
+    }
+
+
+    private UserConfig DeserializeUserConfig(string userConfigPath)
+    {
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
       var deserializer = new DeserializerBuilder()
-          .WithNamingConvention(PascalCaseNamingConvention.Instance)
-          .Build();
+        .WithNamingConvention(PascalCaseNamingConvention.Instance)
+        .WithNodeDeserializer(
+          inner => new ValidatingDeserializer(inner),
+          component => component.InsteadOf<ObjectNodeDeserializer>()
+        )
+        .Build();
 
-      var deserializedConfig = deserializer.Deserialize<UserConfigFileDto>(input);
+      return deserializer.Deserialize<UserConfig>(input);
+    }
 
-      foreach (var workspaceConfig in deserializedConfig.Workspaces)
+    private void ShowErrorAlert(Exception exception)
+    {
+      var errorMessage = exception.Message;
+
+      if (exception.InnerException?.Message != null)
       {
-        _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
+        var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
+        var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+
+        // Improve error message shown in case of unknown property error.
+        if (match.Success)
+          errorMessage = $"Unknown property in config: {match.Groups["property"]}.";
+        else
+          errorMessage += $". {exception.InnerException.Message}";
       }
 
-      // TODO: Read user config from file / constructed through shell script.
-      var userConfig = new UserConfig();
-      _userConfigService.UserConfig = userConfig;
-
-      return CommandResponse.Ok;
+      // Alert the user of the config error.
+      MessageBox.Show(errorMessage);
     }
   }
 }

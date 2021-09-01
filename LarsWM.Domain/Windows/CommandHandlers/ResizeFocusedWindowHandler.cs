@@ -69,20 +69,20 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
     private void GrowSizeOfSiblings(Container containerToShrink)
     {
-      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
-      containerToShrink.SizePercentage -= resizePercentage;
+      var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
+      containerToShrink.SizePercentage -= resizeProportion;
 
       foreach (var sibling in containerToShrink.Siblings)
-        sibling.SizePercentage += resizePercentage / containerToShrink.Siblings.Count();
+        sibling.SizePercentage += resizeProportion / containerToShrink.Siblings.Count();
     }
 
     private void ShrinkSizeOfSiblings(Container containerToGrow)
     {
-      var resizePercentage = _userConfigService.UserConfig.ResizePercentage;
-      containerToGrow.SizePercentage += resizePercentage;
+      var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
+      containerToGrow.SizePercentage += resizeProportion;
 
       foreach (var sibling in containerToGrow.Siblings)
-        sibling.SizePercentage -= resizePercentage / containerToGrow.Siblings.Count();
+        sibling.SizePercentage -= resizeProportion / containerToGrow.Siblings.Count();
     }
   }
 }
