@@ -3,8 +3,11 @@ using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace LarsWM.Domain.UserConfigs.CommandHandlers
 {
@@ -29,6 +32,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
 
       var deserializer = new DeserializerBuilder()
         .WithNamingConvention(PascalCaseNamingConvention.Instance)
+        .WithNodeDeserializer(inner => new ValidatingDeserializer(inner), s => s.InsteadOf<ObjectNodeDeserializer>())
         .Build();
 
       UserConfigFileDto deserializedConfig = new UserConfigFileDto();
@@ -37,13 +41,24 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       {
         deserializedConfig = deserializer.Deserialize<UserConfigFileDto>(input);
       }
-      catch (YamlDotNet.Core.YamlException exception)
+      catch (Exception exception)
       {
-        var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
-        var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+        var errorMessage = exception.Message;
 
-        // Alert the user of the unknown property.
-        MessageBox.Show("Unknown property in config: " + match.Groups["property"]);
+        if (exception.InnerException?.Message != null)
+        {
+          var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
+          var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+
+          // Improve error message shown in case of unknown property error.
+          if (match.Success)
+            errorMessage = $"Unknown property in config: {match.Groups["property"]}.";
+          else
+            errorMessage += $". {exception.InnerException.Message}";
+        }
+
+        // Alert the user of the config error.
+        MessageBox.Show(errorMessage);
 
         throw exception;
       }
