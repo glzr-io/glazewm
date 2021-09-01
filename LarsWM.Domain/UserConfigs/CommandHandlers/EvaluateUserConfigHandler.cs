@@ -24,7 +24,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
 
     public dynamic Handle(EvaluateUserConfigCommand command)
     {
-      UserConfigFileDto deserializedConfig = null;
+      UserConfig deserializedConfig = null;
 
       try
       {
@@ -58,7 +58,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
     }
 
 
-    private UserConfigFileDto DeserializeUserConfig(string userConfigPath)
+    private UserConfig DeserializeUserConfig(string userConfigPath)
     {
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
@@ -71,7 +71,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         )
         .Build();
 
-      return deserializer.Deserialize<UserConfigFileDto>(input);
+      return deserializer.Deserialize<UserConfig>(input);
     }
 
     private void ShowErrorAlert(Exception exception)

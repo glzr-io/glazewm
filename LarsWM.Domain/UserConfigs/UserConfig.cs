@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LarsWM.Domain.UserConfigs
@@ -50,6 +50,14 @@ namespace LarsWM.Domain.UserConfigs
     public int InnerGap = 20;
     public int OuterGap = 20;
 
-    public double ResizePercentage { get; set; } = 0.02;
+    public double ResizePercentage { get; set; } = 5;
+
+    public GapsConfig Gaps { get; set; }
+
+    public BarConfig Bar { get; set; }
+
+    public List<WorkspaceConfig> Workspaces { get; set; }
+
+    public List<KeybindingConfig> Keybindings = new List<KeybindingConfig>();
   }
 }
