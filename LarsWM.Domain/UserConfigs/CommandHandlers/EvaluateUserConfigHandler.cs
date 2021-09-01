@@ -27,6 +27,15 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       var userfolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
       var userConfigPath = Path.Combine(userfolder, "./.glaze-wm/config.yaml");
 
+      if (!File.Exists(userConfigPath))
+      {
+        var sampleConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "../LarsWM.Domain/UserConfigs/SampleUserConfig.yaml");
+
+        // Initialize the user config with the sample config.
+        Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
+        File.Copy(sampleConfigPath, userConfigPath, false);
+      }
+
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
