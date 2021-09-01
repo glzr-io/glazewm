@@ -13,27 +13,24 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
 {
   class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
-    private UserConfigService _userConfigService;
     private Bus _bus;
+    private UserConfigService _userConfigService;
 
-    public EvaluateUserConfigHandler(UserConfigService userConfigService, Bus bus)
+    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService)
     {
-      _userConfigService = userConfigService;
       _bus = bus;
+      _userConfigService = userConfigService;
     }
 
     public dynamic Handle(EvaluateUserConfigCommand command)
     {
-      var userfolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-      var userConfigPath = Path.Combine(userfolder, "./.glaze-wm/config.yaml");
+      var userConfigPath = _userConfigService.UserConfigPath;
 
       if (!File.Exists(userConfigPath))
       {
-        var sampleConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "../LarsWM.Domain/UserConfigs/SampleUserConfig.yaml");
-
         // Initialize the user config with the sample config.
         Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
-        File.Copy(sampleConfigPath, userConfigPath, false);
+        File.Copy(_userConfigService.SampleUserConfigPath, userConfigPath, false);
       }
 
       var userConfigLines = File.ReadAllLines(userConfigPath);
@@ -44,7 +41,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         .WithNodeDeserializer(inner => new ValidatingDeserializer(inner), s => s.InsteadOf<ObjectNodeDeserializer>())
         .Build();
 
-      UserConfigFileDto deserializedConfig = new UserConfigFileDto();
+      UserConfigFileDto deserializedConfig = null;
 
       try
       {
