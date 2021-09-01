@@ -24,8 +24,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
 
     public dynamic Handle(EvaluateUserConfigCommand command)
     {
-      // TODO: Change user config path to be somewhere in home directory.
-      var userConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "../LarsWM.Domain/UserConfigs/SampleUserConfig.yaml");
+      var userfolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+      var userConfigPath = Path.Combine(userfolder, "./.glaze-wm/config.yaml");
 
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
@@ -64,9 +64,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       }
 
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
-      {
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
-      }
 
       // TODO: Read user config from file / constructed through shell script.
       var userConfig = new UserConfig();
