@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace LarsWM.Domain.UserConfigs
 {
@@ -28,6 +29,7 @@ namespace LarsWM.Domain.UserConfigs
   // TODO: Move within `UserConfig`.
   public class WorkspaceConfig
   {
+    [Required]
     public string Name { get; set; }
     public string BindToMonitor { get; set; } = null;
     public string CustomDisplayName { get; set; } = null;
@@ -37,7 +39,9 @@ namespace LarsWM.Domain.UserConfigs
   // TODO: Move within `UserConfig`.
   public class KeybindingConfig
   {
+    [Required]
     public string Command { get; set; }
+    [Required]
     public List<string> Bindings { get; set; }
   }
 }
