@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Windows;
+using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Monitors
 {
@@ -48,6 +49,18 @@ namespace LarsWM.Domain.Monitors
     {
       var focusedContainer = _containerService.FocusedContainer;
       return GetMonitorFromChildContainer(focusedContainer);
+    }
+
+    public uint GetMonitorDpi(Screen screen)
+    {
+      // Get a handle to the monitor from a `Screen`.
+      var point = new System.Drawing.Point(screen.Bounds.Left + 1, screen.Bounds.Top + 1);
+      var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
+
+      uint dpiX, dpiY;
+      GetDpiForMonitor(monitorHandle, DpiType.Effective, out dpiX, out dpiY);
+
+      return dpiX;
     }
 
     /// <summary>
