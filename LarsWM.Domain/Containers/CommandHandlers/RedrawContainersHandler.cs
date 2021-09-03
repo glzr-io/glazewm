@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.WindowsApi;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
@@ -15,11 +14,13 @@ namespace LarsWM.Domain.Containers.CommandHandlers
   {
     private ContainerService _containerService;
     private UserConfigService _userConfigService;
+    private MonitorService _monitorService;
 
-    public RedrawContainersHandler(ContainerService containerService, UserConfigService userConfigService)
+    public RedrawContainersHandler(ContainerService containerService, UserConfigService userConfigService, MonitorService monitorService)
     {
       _containerService = containerService;
       _userConfigService = userConfigService;
+      _monitorService = monitorService;
     }
 
     public dynamic Handle(RedrawContainersCommand command)
@@ -52,7 +53,19 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         else
           flags |= SWP.SWP_SHOWWINDOW;
 
-        SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+        WindowRect rect = new WindowRect()
+        {
+          Left = window.X,
+          Top = window.Y,
+          Right = window.X + window.Width,
+          Bottom = window.Y + window.Height,
+        };
+
+        // Adjusts the window client area to the desired size. Needed for moving windows
+        // across screens that have different DPIs.
+        AdjustWindowRectEx(ref rect, window.WindowStyles, false, window.WindowStylesEx);
+
+        SetWindowPos(window.Hwnd, IntPtr.Zero, rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top, flags);
       }
 
       containersToRedraw.Clear();
