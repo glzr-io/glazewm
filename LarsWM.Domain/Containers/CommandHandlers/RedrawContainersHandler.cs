@@ -5,7 +5,6 @@ using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
-using LarsWM.Infrastructure.WindowsApi;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
@@ -53,19 +52,21 @@ namespace LarsWM.Domain.Containers.CommandHandlers
         else
           flags |= SWP.SWP_SHOWWINDOW;
 
-        WindowRect rect = new WindowRect()
+        var monitor = _monitorService.GetMonitorFromChildContainer(window);
+        var dpiScaleFactor = decimal.Divide(window.Dpi, monitor.Dpi);
+
+        // Adjust the width and height of the window if there's a mismatch between the DPI of the
+        // monitor and the window. This occurs when moving a window between screens of different DPIs.
+        if (dpiScaleFactor != 1)
         {
-          Left = window.X,
-          Top = window.Y,
-          Right = window.X + window.Width,
-          Bottom = window.Y + window.Height,
-        };
+          int adjustedWidth = Convert.ToInt32(window.Width * dpiScaleFactor);
+          int adjustedHeight = Convert.ToInt32(window.Height * dpiScaleFactor);
 
-        // Adjusts the window client area to the desired size. Needed for moving windows
-        // across screens that have different DPIs.
-        AdjustWindowRectEx(ref rect, window.WindowStyles, false, window.WindowStylesEx);
+          SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, adjustedWidth, adjustedHeight, flags);
+          continue;
+        }
 
-        SetWindowPos(window.Hwnd, IntPtr.Zero, rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top, flags);
+        SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
       }
 
       containersToRedraw.Clear();
