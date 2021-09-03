@@ -1,7 +1,8 @@
 ﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Workspaces;
+using LarsWM.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace LarsWM.Domain.Monitors
@@ -18,6 +19,10 @@ namespace LarsWM.Domain.Monitors
     public Workspace DisplayedWorkspace;  // Alternatively add IsDisplayed/IsVisible property to Workspace instance
 
     public Screen Screen { get; }
+
+    private MonitorService _monitorService = ServiceLocator.Provider.GetRequiredService<MonitorService>();
+
+    public uint Dpi => _monitorService.GetMonitorDpi(Screen);
 
     public Monitor(Screen screen)
     {
