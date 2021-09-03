@@ -39,6 +39,8 @@ namespace LarsWM.Domain.Windows
     public bool CanLayout => !_windowService.IsHandleCloaked(Hwnd)
       && _windowService.IsHandleManageable(Hwnd);
 
+    public uint Dpi => GetDpiForWindow(Hwnd);
+
     public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
 
     public WS_EX WindowStylesEx => _windowService.GetWindowStylesEx(Hwnd);
