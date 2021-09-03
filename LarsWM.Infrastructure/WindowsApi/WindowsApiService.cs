@@ -287,7 +287,7 @@ namespace LarsWM.Infrastructure.WindowsApi
     public static extern int SetProcessDpiAwarenessContext(DpiAwarenessContext value);
 
     [DllImport("user32.dll", SetLastError = true)]
-    static extern int GetDpiForWindow(IntPtr hWnd);
+    public static extern uint GetDpiForWindow(IntPtr hWnd);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool AdjustWindowRectEx(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
@@ -308,7 +308,12 @@ namespace LarsWM.Infrastructure.WindowsApi
     [DllImport("Shcore.dll")]
     public static extern IntPtr GetDpiForMonitor(IntPtr hmonitor, DpiType dpiType, out uint dpiX, out uint dpiY);
 
+    public enum MonitorFromPointFlags : uint
+    {
+      MONITOR_DEFAULTTONEAREST = 2,
+    }
+
     [DllImport("User32.dll")]
-    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, uint dwFlags);
+    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, MonitorFromPointFlags dwFlags);
   }
 }
