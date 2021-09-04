@@ -1,5 +1,6 @@
 ﻿using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.UserConfigs;
+using LarsWM.Domain.Monitors;
+using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
@@ -8,11 +9,13 @@ namespace LarsWM.Domain.Containers.CommandHandlers
   {
     private Bus _bus;
     private ContainerService _containerService;
+    private MonitorService _monitorService;
 
-    public AttachContainerHandler(Bus bus, ContainerService containerService)
+    public AttachContainerHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
+      _monitorService = monitorService;
     }
 
     public dynamic Handle(AttachContainerCommand command)
@@ -21,7 +24,18 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var childToAdd = command.ChildToAdd;
 
       if (childToAdd.Parent != null)
+      {
+        var currentMonitor = _monitorService.GetMonitorFromChildContainer(childToAdd);
+        var newMonitor = _monitorService.GetMonitorFromChildContainer(parent);
+
+        if (currentMonitor.Dpi != newMonitor.Dpi && childToAdd is Window)
+        {
+          var dpiScaleFactor = decimal.Divide(currentMonitor.Dpi, newMonitor.Dpi);
+          (childToAdd as Window).PendingDpiScaling = dpiScaleFactor;
+        }
+
         _bus.Invoke(new DetachContainerCommand(childToAdd.Parent as SplitContainer, childToAdd));
+      }
 
       parent.Children.Insert(command.InsertPosition, childToAdd);
       childToAdd.Parent = parent;
