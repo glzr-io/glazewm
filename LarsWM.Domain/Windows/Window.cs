@@ -13,6 +13,7 @@ namespace LarsWM.Domain.Windows
     public Guid Id = Guid.NewGuid();
     public IntPtr Hwnd { get; }
     public bool IsHidden { get; set; } = false;
+    public decimal PendingDpiScaling { get; set; } = 1;
 
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
