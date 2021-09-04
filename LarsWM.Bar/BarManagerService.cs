@@ -4,6 +4,7 @@ using LarsWM.Infrastructure.Bussing;
 using System.Reactive.Linq;
 using System;
 using System.Threading;
+using LarsWM.Domain.UserConfigs;
 
 namespace LarsWM.Bar
 {
@@ -11,11 +12,13 @@ namespace LarsWM.Bar
   {
     private Bus _bus;
     private WorkspaceService _workspaceService;
+    private UserConfigService _userConfigService;
 
-    public BarManagerService(Bus bus, WorkspaceService workspaceService)
+    public BarManagerService(Bus bus, WorkspaceService workspaceService, UserConfigService userConfigService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
+      _userConfigService = userConfigService;
     }
 
     public void Init()
@@ -30,7 +33,7 @@ namespace LarsWM.Bar
           {
             application.Dispatcher.Invoke(() =>
             {
-              var bar = new MainWindow((@event as MonitorAddedEvent).AddedMonitor, _workspaceService, _bus);
+              var bar = new MainWindow((@event as MonitorAddedEvent).AddedMonitor, _workspaceService, _bus, _userConfigService);
               bar.Show();
             });
           });

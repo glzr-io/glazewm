@@ -9,6 +9,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using LarsWM.Domain.Containers.Events;
+using LarsWM.Domain.UserConfigs;
 
 namespace LarsWM.Bar
 {
@@ -19,22 +20,25 @@ namespace LarsWM.Bar
   {
     private Bus _bus { get; }
     private WorkspaceService _workspaceService { get; }
-    private static object _lock = new object();
+    private UserConfigService _userConfigService { get; }
     private ObservableCollection<Workspace> _workspaces = new ObservableCollection<Workspace>();
 
-    public MainWindow(Monitor monitor, WorkspaceService workspaceService, Bus bus)
+    public MainWindow(Monitor monitor, WorkspaceService workspaceService, Bus bus, UserConfigService userConfigService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
+      _userConfigService = userConfigService;
 
       InitializeComponent();
 
       // TODO: Bind padding, bg color, button bg color and font from user config.
       Top = monitor.Y;
       Left = monitor.X;
-      Width = monitor.Width;
-      // TODO: Change height to be set in XAML.
-      Height = 50;
+      Height = _userConfigService.UserConfig.Bar.Height;
+
+      // WPF automatically changes the size of the bar based on display scale factor. This causes
+      // the bar width to overflow on scale factors > 100%, so need to adjust accordingly.
+      Width = Convert.ToInt32(monitor.Width / monitor.ScaleFactor);
 
       RefreshState(monitor);
 
