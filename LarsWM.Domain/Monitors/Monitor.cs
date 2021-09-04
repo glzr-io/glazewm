@@ -24,6 +24,8 @@ namespace LarsWM.Domain.Monitors
 
     public uint Dpi => _monitorService.GetMonitorDpi(Screen);
 
+    public decimal ScaleFactor => decimal.Divide(Dpi, 96);
+
     public Monitor(Screen screen)
     {
       Screen = screen;
