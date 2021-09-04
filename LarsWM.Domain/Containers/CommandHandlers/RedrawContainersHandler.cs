@@ -57,12 +57,13 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
         // Adjust the width and height of the window if there's a mismatch between the DPI of the
         // monitor and the window. This occurs when moving a window between screens of different DPIs.
-        if (dpiScaleFactor != 1)
+        if (window.PendingDpiScaling != 1)
         {
-          int adjustedWidth = Convert.ToInt32(window.Width * dpiScaleFactor);
-          int adjustedHeight = Convert.ToInt32(window.Height * dpiScaleFactor);
+          int adjustedWidth = Convert.ToInt32(window.Width * window.PendingDpiScaling);
+          int adjustedHeight = Convert.ToInt32(window.Height * window.PendingDpiScaling);
 
           SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, adjustedWidth, adjustedHeight, flags);
+          window.PendingDpiScaling = 1;
           continue;
         }
 
