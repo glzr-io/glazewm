@@ -269,5 +269,51 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern IntPtr SendMessage(IntPtr hWnd, SendMessageType Msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool IsProcessDPIAware();
+
+    public enum DpiAwarenessContext
+    {
+      Context_Undefined = 0,
+      Context_Unaware = -1,
+      Context_SystemAware = -2,
+      Context_PerMonitorAware = -3,
+      Context_PerMonitorAwareV2 = -4,
+      Context_UnawareGdiScaled = -5
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern int SetProcessDpiAwarenessContext(DpiAwarenessContext value);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool AdjustWindowRectEx(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool AdjustWindowRect(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool AdjustWindowRectExForDpi(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle, uint dpi);
+
+    public enum DpiType
+    {
+      Effective = 0,
+      Angular = 1,
+      Raw = 2,
+    }
+
+    [DllImport("Shcore.dll")]
+    public static extern IntPtr GetDpiForMonitor(IntPtr hmonitor, DpiType dpiType, out uint dpiX, out uint dpiY);
+
+    public enum MonitorFromPointFlags : uint
+    {
+      MONITOR_DEFAULTTONEAREST = 2,
+    }
+
+    [DllImport("User32.dll")]
+    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, MonitorFromPointFlags dwFlags);
   }
 }

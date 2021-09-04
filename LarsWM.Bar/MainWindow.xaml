@@ -10,9 +10,9 @@
   ResizeMode="NoResize"
   Background="#101010"
   Title="LarsWMBar"
-  Height="auto"
-  Width="1200"
   ShowInTaskbar="False"
+  Width="800"
+  Height="50"
   Topmost="True">
   <Grid>
     <Grid.ColumnDefinitions>
@@ -22,7 +22,7 @@
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
       <RowDefinition Height="10" />
-      <RowDefinition Height="auto" />
+      <RowDefinition Height="*" />
       <RowDefinition Height="10" />
     </Grid.RowDefinitions>
 
@@ -49,9 +49,8 @@
             Foreground="White"
             BorderBrush="Transparent"
             BorderThickness="0"
-            Width="35"
-            Height="35"
-            HorizontalAlignment="Left" />
+            MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
+            MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
 
           <DataTemplate.Triggers>
             <DataTrigger

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Common.Models;
 using LarsWM.Domain.Containers.Commands;
+using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows;
 using LarsWM.Infrastructure.Bussing;
@@ -15,11 +13,13 @@ namespace LarsWM.Domain.Containers.CommandHandlers
   {
     private ContainerService _containerService;
     private UserConfigService _userConfigService;
+    private MonitorService _monitorService;
 
-    public RedrawContainersHandler(ContainerService containerService, UserConfigService userConfigService)
+    public RedrawContainersHandler(ContainerService containerService, UserConfigService userConfigService, MonitorService monitorService)
     {
       _containerService = containerService;
       _userConfigService = userConfigService;
+      _monitorService = monitorService;
     }
 
     public dynamic Handle(RedrawContainersCommand command)
@@ -51,6 +51,20 @@ namespace LarsWM.Domain.Containers.CommandHandlers
           flags |= SWP.SWP_HIDEWINDOW;
         else
           flags |= SWP.SWP_SHOWWINDOW;
+
+        var monitor = _monitorService.GetMonitorFromChildContainer(window);
+        var dpiScaleFactor = decimal.Divide(window.Dpi, monitor.Dpi);
+
+        // Adjust the width and height of the window if there's a mismatch between the DPI of the
+        // monitor and the window. This occurs when moving a window between screens of different DPIs.
+        if (dpiScaleFactor != 1)
+        {
+          int adjustedWidth = Convert.ToInt32(window.Width * dpiScaleFactor);
+          int adjustedHeight = Convert.ToInt32(window.Height * dpiScaleFactor);
+
+          SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, adjustedWidth, adjustedHeight, flags);
+          continue;
+        }
 
         SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
       }

@@ -79,18 +79,24 @@ namespace LarsWM.Domain.Windows
       return rect;
     }
 
+    public WS_EX GetWindowStylesEx(IntPtr handle)
+    {
+      return unchecked((WS_EX)GetWindowLongPtr(handle, (int)(GWL_EXSTYLE)).ToInt64());
+    }
+
+    public WS GetWindowStyles(IntPtr handle)
+    {
+      return unchecked((WS)GetWindowLongPtr(handle, (int)(GWL_STYLE)).ToInt64());
+    }
+
     public bool HandleHasWindowStyle(IntPtr handle, WS style)
     {
-      var styles = unchecked((WS)GetWindowLongPtr(handle, (int)(GWL_STYLE)).ToInt64());
-
-      return (styles & style) != 0;
+      return (GetWindowStyles(handle) & style) != 0;
     }
 
     public bool HandleHasWindowExStyle(IntPtr handle, WS_EX style)
     {
-      var styles = unchecked((WS_EX)GetWindowLongPtr(handle, (int)(GWL_EXSTYLE)).ToInt64());
-
-      return (styles & style) != 0;
+      return (GetWindowStylesEx(handle) & style) != 0;
     }
 
     private IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
