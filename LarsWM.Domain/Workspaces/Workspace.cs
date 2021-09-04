@@ -22,12 +22,23 @@ namespace LarsWM.Domain.Workspaces
         ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
     private int OuterGap => _userConfigService.UserConfig.Gaps.OuterGap;
-    private int BarHeight => _userConfigService.UserConfig.Bar.Height;
 
-    public override int Height => Parent.Height - (OuterGap * 2) - BarHeight;
+    /// <summary>
+    /// Get height of bar after it's been automatically adjusted by DPI scaling.
+    /// </summary>
+    private int LogicalBarHeight
+    {
+      get
+      {
+        var barHeight = _userConfigService.UserConfig.Bar.Height;
+        return Convert.ToInt32(barHeight * (Parent as Monitor).ScaleFactor);
+      }
+    }
+
+    public override int Height => Parent.Height - (OuterGap * 2) - LogicalBarHeight;
     public override int Width => Parent.Width - (OuterGap * 2);
     public override int X => Parent.X + OuterGap;
-    public override int Y => Parent.Y + OuterGap + BarHeight;
+    public override int Y => Parent.Y + OuterGap + LogicalBarHeight;
 
 
     /// <summary>
