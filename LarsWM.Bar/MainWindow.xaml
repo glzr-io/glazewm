@@ -11,6 +11,8 @@
   Background="#101010"
   Title="LarsWMBar"
   ShowInTaskbar="False"
+  Width="800"
+  Height="50"
   Topmost="True">
   <Grid>
     <Grid.ColumnDefinitions>
