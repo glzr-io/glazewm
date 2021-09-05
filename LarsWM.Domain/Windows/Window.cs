@@ -13,7 +13,11 @@ namespace LarsWM.Domain.Windows
     public Guid Id = Guid.NewGuid();
     public IntPtr Hwnd { get; }
     public bool IsHidden { get; set; } = false;
-    public decimal PendingDpiScaling { get; set; } = 1;
+
+    /// <summary>
+    /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
+    /// </summary>
+    public bool HasPendingDpiAdjustment { get; set; } = false;
 
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
@@ -39,8 +43,6 @@ namespace LarsWM.Domain.Windows
 
     public bool CanLayout => !_windowService.IsHandleCloaked(Hwnd)
       && _windowService.IsHandleManageable(Hwnd);
-
-    public uint Dpi => GetDpiForWindow(Hwnd);
 
     public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
 

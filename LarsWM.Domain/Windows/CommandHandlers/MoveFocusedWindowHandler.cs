@@ -76,6 +76,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         else
           _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow, 0));
 
+        // Since window has crossed monitors, adjustments might need to be made because of DPI.
+        focusedWindow.HasPendingDpiAdjustment = true;
+
         _bus.Invoke(new RedrawContainersCommand());
 
         // Refresh state in bar of which workspace has focus.
