@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -11,11 +10,24 @@ using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Infrastructure.WindowsApi
 {
+  internal class Keybinding
+  {
+    public Stack<Keys> KeyCombination { get; }
+    public Action KeybindingProc { get; }
+
+    public Keybinding(Stack<Keys> keyCombination, Action keybindingProc)
+    {
+      KeyCombination = keyCombination;
+      KeybindingProc = keybindingProc;
+    }
+  }
+
   public class KeybindingService
   {
-    private Subject<Keys> _modKeypresses = new Subject<Keys>();
     public static readonly uint WM_KEYDOWN = 0x100;
     public static readonly uint WM_SYSKEYDOWN = 0x104;
+    private List<Keybinding> _registeredKeybindings = new List<Keybinding>();
+    private Keys _modKey = Keys.LMenu;
 
     private Bus _bus;
 
@@ -33,12 +45,29 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     public void SetModKey(string modKey)
     {
-      throw new NotImplementedException();
+      _modKey = (Keys)Enum.Parse(typeof(Keys), modKey);
     }
 
-    public void AddGlobalKeybinding(string keyCombination, Action callback)
+    public void AddGlobalKeybinding(string bindingString, Action callback)
     {
-      throw new NotImplementedException();
+      if (!bindingString.Contains("$mod"))
+        throw new Exception($"Key combination '{bindingString}' must include $mod.");
+
+      bindingString = bindingString.Replace("$mod", Enum.GetName(typeof(Keys), _modKey));
+
+      var bindingParts = bindingString
+        .Split('+')
+        .Select(key => Enum.Parse(typeof(Keys), key))
+        .Cast<Keys>();
+
+      var stack = new Stack<Keys>(bindingParts);
+      var triggerKey = stack.Pop();
+
+      if (triggerKey != _modKey)
+        throw new Exception($"Key combination '{bindingString}' must use $mod as trigger key.");
+
+      var keybinding = new Keybinding(stack, callback);
+      _registeredKeybindings.Add(keybinding);
     }
 
     private void CreateKeybindingHook()
@@ -51,30 +80,27 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
+      var passThrough = nCode != 0;
+
       // If nCode is less than zero, the hook procedure must return the value returned by CallNextHookEx.
-      // CallNextHookEx passes hook notification to other applications.
-      // TODO: Flatten this if-statement.
-      if (nCode == 0 && ((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN))
-      {
-        var modifiersPressed = new List<Keys>();
+      // CallNextHookEx passes the hook notification to other applications.
+      if (passThrough)
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-        if ((GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
-          modifiersPressed.Add(Keys.LMenu);
+      var modifiersPressed = new List<Keys>();
 
-        if (modifiersPressed.Count() == 0)
-          return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      if ((GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
+        modifiersPressed.Add(Keys.LMenu);
 
-        // Get struct with details about keyboard input event.
-        var rawEventStruct = Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
-        var inputEvent = (LowLevelKeyboardInputEvent)rawEventStruct;
+      if (modifiersPressed.Count() == 0)
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-        _modKeypresses.OnNext(inputEvent.Key);
+      // Get struct with details about keyboard input event.
+      var rawEventStruct = Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
+      var inputEvent = (LowLevelKeyboardInputEvent)rawEventStruct;
 
-        // Avoid forwarding the key input to other applications.
-        return new IntPtr(1);
-      }
-
-      return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      // Avoid forwarding the key input to other applications.
+      return new IntPtr(1);
     }
   }
 }
