@@ -1,4 +1,3 @@
-﻿using LarsWM.Domain.Common.Services;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.CommandHandlers;
 using LarsWM.Domain.Monitors;
@@ -20,7 +19,6 @@ namespace LarsWM.Domain
   {
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-      services.AddSingleton<KeybindingService>();
       services.AddSingleton<ContainerService>();
       services.AddSingleton<MonitorService>();
       services.AddSingleton<UserConfigService>();

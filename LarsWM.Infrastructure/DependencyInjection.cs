@@ -10,6 +10,7 @@ namespace LarsWM.Infrastructure
     {
       services.AddSingleton<Bus, Bus>();
       services.AddSingleton<WindowEventService>();
+      services.AddSingleton<KeybindingService>();
 
       // TODO: Change WindowsApiFacade & WindowsApiService to be compatible with DI.
 
