@@ -1,4 +1,4 @@
-using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.CommandHandlers;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.CommandHandlers;
@@ -36,6 +36,7 @@ namespace LarsWM.Domain
       services.AddSingleton<AttachWorkspaceToMonitorHandler>();
       services.AddSingleton<DetachWorkspaceFromMonitorHandler>();
       services.AddSingleton<EvaluateUserConfigHandler>();
+      services.AddSingleton<RegisterKeybindingsHandler>();
       services.AddSingleton<AddInitialWindowsHandler>();
       services.AddSingleton<AddWindowHandler>();
       services.AddSingleton<FocusWindowHandler>();
@@ -64,6 +65,7 @@ namespace LarsWM.Domain
       bus.RegisterCommandHandler<SetFocusedDescendantHandler>();
       bus.RegisterCommandHandler<DetachWorkspaceFromMonitorHandler>();
       bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
+      bus.RegisterCommandHandler<RegisterKeybindingsHandler>();
       bus.RegisterCommandHandler<AddInitialWindowsHandler>();
       bus.RegisterCommandHandler<AddWindowHandler>();
       bus.RegisterCommandHandler<FocusWindowHandler>();
