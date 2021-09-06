@@ -47,6 +47,8 @@ namespace LarsWM.Domain.UserConfigs
       "StartMenuExperienceHost",
     };
 
+    public string ModKey { get; set; } = "LMenu";
+
     public double ResizePercentage { get; set; } = 5;
 
     /// <summary>
