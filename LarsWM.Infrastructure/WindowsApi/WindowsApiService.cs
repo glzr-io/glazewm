@@ -251,7 +251,14 @@ namespace LarsWM.Infrastructure.WindowsApi
     public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
+    public static extern int GetKeyboardState(byte[] pbKeyState);
+
+    [DllImport("user32.dll")]
     public static extern short GetKeyState(Keys nVirtKey);
+
+
+    [DllImport("User32.dll")]
+    public static extern short GetAsyncKeyState(Keys key);
 
     public delegate void WindowEventProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
