@@ -49,6 +49,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
 
+      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
+
       _userConfigService.UserConfig = deserializedConfig;
 
       return CommandResponse.Ok;
