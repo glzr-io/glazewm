@@ -11,8 +11,12 @@
       Include="Microsoft.Extensions.DependencyInjection"
       Version="3.1.1" />
     <PackageReference
+      Include="MouseKeyHook"
+      Version="5.6.0">
+      <NoWarn>NU1701</NoWarn>
+    </PackageReference>
+    <PackageReference
       Include="System.Reactive"
       Version="4.3.2" />
   </ItemGroup>
-
 </Project>
