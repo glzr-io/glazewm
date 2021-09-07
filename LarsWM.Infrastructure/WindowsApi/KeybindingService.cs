@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using Gma.System.MouseKeyHook;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -27,11 +27,10 @@ namespace LarsWM.Infrastructure.WindowsApi
     private static readonly uint WM_KEYDOWN = 0x100;
     private static readonly uint WM_SYSKEYDOWN = 0x104;
     private List<Keybinding> _registeredKeybindings = new List<Keybinding>();
-    private Keys _modKey = Keys.Alt;
+    private Keys _modKey = Keys.LMenu;
     private List<Keys> _triggerKeys = new List<Keys>();
 
     private Bus _bus;
-    private IKeyboardMouseEvents m_GlobalHook;
 
     public KeybindingService(Bus bus)
     {
@@ -50,21 +49,17 @@ namespace LarsWM.Infrastructure.WindowsApi
       _modKey = (Keys)Enum.Parse(typeof(Keys), modKey);
     }
 
-    public void AddGlobalKeybinding(string binding, Action callback)
+    public void AddGlobalKeybinding(string bindingString, Action callback)
     {
-      var bindingParts = binding
+      var bindingParts = bindingString
         .Split('+')
-        .Select(key => FormatKeybinding(key));
+        .Select(key => FormatKeybinding(key))
+        .Select(key => Enum.Parse(typeof(Keys), key))
+        .Cast<Keys>()
+        .ToList();
 
-      var formattedBinding = string.Join("+", bindingParts);
-      var combinationBinding = Combination.FromString(formattedBinding);
-
-      var combinationActionDic = new Dictionary<Combination, Action>
-      {
-        { combinationBinding, callback }
-      };
-
-      m_GlobalHook.OnCombination(combinationActionDic);
+      var keybinding = new Keybinding(bindingParts, callback);
+      _registeredKeybindings.Add(keybinding);
     }
 
     private string FormatKeybinding(string key)
@@ -82,7 +77,7 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     private void CreateKeybindingHook()
     {
-      m_GlobalHook = Hook.GlobalEvents();
+      SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 
       // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
       Application.Run();
@@ -90,59 +85,45 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
-      var passThrough = nCode != 0 || !((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN);
+      var shouldPassThrough = nCode != 0 || !((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN);
 
-      // If nCode is less than zero, the hook procedure must return the value returned by CallNextHookEx.
-      // CallNextHookEx passes the hook notification to other applications.
-      if (passThrough)
+      // If nCode is less than zero, the hook procedure must pass the hook notification to other
+      // applications via `CallNextHookEx`.
+      if (shouldPassThrough)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      // TODO: Check whether any of the trigger keys were pressed.
-      var modifiersPressed = new List<Keys>();
+      // Get struct with details about keyboard input event.
+      var inputEvent =
+        (LowLevelKeyboardInputEvent)Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
 
-      if ((GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
-        modifiersPressed.Add(Keys.LMenu);
+      var pressedKey = inputEvent.Key;
 
-      // if ((GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
-      //   modifiersPressed.Add(Keys.LShiftKey);
+      Debug.WriteLine("Alt is down: " + ((GetKeyState(Keys.LMenu) & 0x8000) == 0x8000));
 
-      // if ((GetKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
-      //   modifiersPressed.Add(Keys.LControlKey);
+      Debug.WriteLine("Shift is down: " + ((GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000));
 
-      if (modifiersPressed.Count() == 0)
-        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      var keyboardState = GetCurrentKeyboardState();
 
-      var state = GetCurrentKeyboardState();
-
-      // var isModKeyPressed = IsDown(state, _modKey);
-
-      // if (!isModKeyPressed)
-      //   return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-
-      var keysPressed = new List<Keys>();
       foreach (var key in Enum.GetValues(typeof(Keys)))
       {
-        if (IsDown(state, (Keys)key))
-        {
-          keysPressed.Add((Keys)key);
-          Debug.WriteLine("Key is pressed: " + key);
-        }
+        if (IsDown(keyboardState, (Keys)key))
+          Debug.WriteLine("Key is down: " + key);
       }
-
-      if (IsDown(state, Keys.LMenu & Keys.J))
-        Debug.WriteLine("Key is pressed: Keys.LMenu | Keys.J");
 
       foreach (var keybinding in _registeredKeybindings)
       {
-        var isMatch = keybinding.KeyCombination.All(key => IsDown(state, key));
+        var isMatch = keybinding.KeyCombination.All(key => IsDown(keyboardState, key) || key == pressedKey);
 
         if (isMatch)
+        {
           keybinding.KeybindingProc();
+
+          // Avoid forwarding the key input to other applications.
+          return new IntPtr(1);
+        }
       }
 
-      // Avoid forwarding the key input to other applications.
-      return new IntPtr(1);
-      // return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
     }
 
     private byte[] GetCurrentKeyboardState()
