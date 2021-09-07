@@ -47,11 +47,11 @@ namespace LarsWM.Bootstrapper
       // to be initialized before populating initial state.
       // TODO: Rename `Init` method to `Start`.
       _barManagerService.Init();
+      _keybindingService.Start();
 
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
 
-      _keybindingService.Start();
       // TODO: Rename `Init` method to `Start`.
       _windowEventService.Init();
       // TODO: Rename `Configure` method to `Start`.
