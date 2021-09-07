@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using Gma.System.MouseKeyHook;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -26,13 +26,12 @@ namespace LarsWM.Infrastructure.WindowsApi
   {
     private static readonly uint WM_KEYDOWN = 0x100;
     private static readonly uint WM_SYSKEYDOWN = 0x104;
-    private static readonly int WM_KEYUP = 0x0101;
-    private static readonly int WM_SYSKEYUP = 0x0105;
     private List<Keybinding> _registeredKeybindings = new List<Keybinding>();
-    private Keys _modKey = Keys.LMenu;
+    private Keys _modKey = Keys.Alt;
     private List<Keys> _triggerKeys = new List<Keys>();
 
     private Bus _bus;
+    private IKeyboardMouseEvents m_GlobalHook;
 
     public KeybindingService(Bus bus)
     {
@@ -51,28 +50,39 @@ namespace LarsWM.Infrastructure.WindowsApi
       _modKey = (Keys)Enum.Parse(typeof(Keys), modKey);
     }
 
-    public void AddGlobalKeybinding(string bindingString, Action callback)
+    public void AddGlobalKeybinding(string binding, Action callback)
     {
-      bindingString = bindingString.Replace("$mod", Enum.GetName(typeof(Keys), _modKey));
-
-      var bindingParts = bindingString
+      var bindingParts = binding
         .Split('+')
-        .Select(key => Enum.Parse(typeof(Keys), key))
-        .Cast<Keys>()
-        .ToList();
+        .Select(key => FormatKeybinding(key));
 
-      var triggerKey = bindingParts[0];
-      bindingParts.RemoveAt(0);
+      var formattedBinding = string.Join("+", bindingParts);
+      var combinationBinding = Combination.FromString(formattedBinding);
 
-      _triggerKeys.Add(triggerKey);
+      var combinationActionDic = new Dictionary<Combination, Action>
+      {
+        { combinationBinding, callback }
+      };
 
-      var keybinding = new Keybinding(bindingParts, callback);
-      _registeredKeybindings.Add(keybinding);
+      m_GlobalHook.OnCombination(combinationActionDic);
+    }
+
+    private string FormatKeybinding(string key)
+    {
+      if (key == "$mod")
+        return Enum.GetName(typeof(Keys), _modKey);
+
+      var isNumeric = int.TryParse(key, out int _);
+
+      if (isNumeric)
+        return $"D{key}";
+
+      return key;
     }
 
     private void CreateKeybindingHook()
     {
-      SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
+      m_GlobalHook = Hook.GlobalEvents();
 
       // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
       Application.Run();
