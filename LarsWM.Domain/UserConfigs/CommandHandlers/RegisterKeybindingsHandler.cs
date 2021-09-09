@@ -1,5 +1,8 @@
+﻿using System;
 using System.Text.RegularExpressions;
+using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
@@ -47,10 +50,31 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
           // TODO: Check whether a workspace with the name exists (either here or in `FocusWorkspaceHandler`)
           return new FocusWorkspaceCommand(match.Groups["workspaceName"].Value);
 
+        case var _ when Regex.IsMatch(commandString, @"layout vertical"):
+          return new ChangeContainerLayoutCommand(Layout.VERTICAL);
+
+        case var _ when Regex.IsMatch(commandString, @"layout horizontal"):
+          return new ChangeContainerLayoutCommand(Layout.HORIZONTAL);
+
         // Throw error with message box to user if no command matches.
         // default: throw new ArgumentException();
         default: return new FocusWorkspaceCommand("1");
       }
+    }
+
+    private string ExtractWorkspaceName(string commandName)
+    {
+      throw new NotImplementedException();
+    }
+
+    private string ExtractDirection(string commandName)
+    {
+      throw new NotImplementedException();
+    }
+
+    private string ExtractLayout(string commandName)
+    {
+      throw new NotImplementedException();
     }
   }
 }
