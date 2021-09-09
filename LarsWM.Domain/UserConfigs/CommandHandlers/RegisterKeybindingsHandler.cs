@@ -16,8 +16,6 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
     private Bus _bus;
     private ContainerService _containerService;
     private KeybindingService _keybindingService;
-    private string _directionRegex = "up|down|left|right";
-    private string _moveRegex => $"move {_directionRegex}";
 
     public RegisterKeybindingsHandler(Bus bus, ContainerService containerService, KeybindingService keybindingService)
     {
@@ -31,7 +29,16 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var keybinding in command.Keybindings)
       {
         var commandName = FormatCommandName(keybinding.Command);
-        var parsedCommand = ParseKeybindingCommand(commandName);
+
+        Command parsedCommand = null;
+        try
+        {
+          parsedCommand = ParseCommand(commandName);
+        }
+        catch
+        {
+          throw new Exception($"Invalid command {commandName}.");
+        }
 
         foreach (var binding in keybinding.Bindings)
           // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
@@ -47,23 +54,23 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       return Regex.Replace(formattedCommandString, @"\s+", " ");
     }
 
-    private Command ParseKeybindingCommand(string commandName)
+    private Command ParseCommand(string commandName)
     {
       var commandParts = commandName.Split(" ");
 
       return commandParts[0] switch
       {
-        "layout" => ParseLayoutKeybindingCommand(commandParts),
-        // TODO: Change this to close command once implemented.
+        "layout" => ParseLayoutCommand(commandParts),
+        // TODO: Return close command once implemented.
         "close" => new FocusWorkspaceCommand("1"),
-        "focus" => ParseFocusKeybindingCommand(commandParts),
-        "move" => ParseMoveKeybindingCommand(commandParts),
-        "resize" => ParseResizeKeybindingCommand(commandParts),
-        _ => throw new ArgumentException($"Invalid command {commandName}"),
+        "focus" => ParseFocusCommand(commandParts),
+        "move" => ParseMoveCommand(commandParts),
+        "resize" => ParseResizeCommand(commandParts),
+        _ => throw new ArgumentException(),
       };
     }
 
-    private Command ParseLayoutKeybindingCommand(string[] commandParts)
+    private Command ParseLayoutCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -73,8 +80,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       };
     }
 
-    // TODO: Change this to focus command once implemented.
-    private Command ParseFocusKeybindingCommand(string[] commandParts)
+    // TODO: Return focus command once implemented.
+    private Command ParseFocusCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -82,11 +89,13 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         "right" => new FocusWorkspaceCommand("1"),
         "up" => new FocusWorkspaceCommand("1"),
         "down" => new FocusWorkspaceCommand("1"),
+        // TODO: Validate workspace name.
+        "workspace" => new FocusWorkspaceCommand(commandParts[2]),
         _ => throw new ArgumentException(),
       };
     }
 
-    private Command ParseMoveKeybindingCommand(string[] commandParts)
+    private Command ParseMoveCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -94,31 +103,30 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
+        // TODO: Return move to workspace command once implemented.
+        "to" => new FocusWorkspaceCommand("1"),
         _ => throw new ArgumentException(),
       };
     }
 
-    private Command ParseResizeKeybindingCommand(string[] commandParts)
+    private Command ParseResizeCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
-        "left" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_WIDTH),
-        "right" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_WIDTH),
-        "up" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_HEIGHT),
-        "down" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_HEIGHT),
+        "grow" => commandParts[2] switch
+        {
+          "height" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_HEIGHT),
+          "width" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_WIDTH),
+          _ => throw new ArgumentException(),
+        },
+        "shrink" => commandParts[2] switch
+        {
+          "height" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_HEIGHT),
+          "width" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_WIDTH),
+          _ => throw new ArgumentException(),
+        },
         _ => throw new ArgumentException(),
       };
-    }
-
-    private string ExtractWorkspaceName(string commandName)
-    {
-      var match = Regex.Match(commandName, @"focus workspace (?<workspaceName>.*?)$");
-      return match.Groups["workspaceName"].Value;
-    }
-
-    private Direction ExtractDirection(string commandName)
-    {
-      throw new NotImplementedException();
     }
   }
 }
