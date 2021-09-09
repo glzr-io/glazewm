@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Workspaces.Commands;
@@ -27,8 +27,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         var parsedCommand = ParseKeybindingCommand(keybinding.Command);
 
         foreach (var binding in keybinding.Bindings)
-          // _keybindingService.AddGlobalKeybinding(binding, () => _bus.Invoke(parsedCommand));
-          _keybindingService.AddGlobalKeybinding(binding, () => _bus.Invoke(new FocusWorkspaceCommand("1")));
+          // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+          _keybindingService.AddGlobalKeybinding(binding, () => _bus.Invoke((dynamic)parsedCommand));
       }
 
       return CommandResponse.Ok;
