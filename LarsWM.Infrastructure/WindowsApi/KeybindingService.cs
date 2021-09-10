@@ -24,13 +24,15 @@ namespace LarsWM.Infrastructure.WindowsApi
 
   public class KeybindingService
   {
+    private Bus _bus;
     private static readonly uint WM_KEYDOWN = 0x100;
     private static readonly uint WM_SYSKEYDOWN = 0x104;
-    private List<Keybinding> _registeredKeybindings = new List<Keybinding>();
     private Keys _modKey = Keys.LMenu;
-    private List<Keys> _triggerKeys = new List<Keys>();
 
-    private Bus _bus;
+    /// <summary>
+    /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
+    /// </summary>
+    private Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new Dictionary<Keys, List<Keybinding>>();
 
     public KeybindingService(Bus bus)
     {
@@ -49,17 +51,25 @@ namespace LarsWM.Infrastructure.WindowsApi
       _modKey = (Keys)Enum.Parse(typeof(Keys), modKey);
     }
 
-    public void AddGlobalKeybinding(string bindingString, Action callback)
+    public void AddGlobalKeybinding(string keybindingString, Action callback)
     {
-      var bindingParts = bindingString
+      var keybindingParts = keybindingString
         .Split('+')
         .Select(key => FormatKeybinding(key))
         .Select(key => Enum.Parse(typeof(Keys), key))
         .Cast<Keys>()
         .ToList();
 
-      var keybinding = new Keybinding(bindingParts, callback);
-      _registeredKeybindings.Add(keybinding);
+      var triggerKey = keybindingParts.Last();
+      var keybinding = new Keybinding(keybindingParts, callback);
+
+      if (_keybindingsByTriggerKey.ContainsKey(triggerKey))
+      {
+        _keybindingsByTriggerKey[triggerKey].Add(keybinding);
+        return;
+      }
+
+      _keybindingsByTriggerKey.Add(triggerKey, new List<Keybinding>() { keybinding });
     }
 
     private string FormatKeybinding(string key)
@@ -98,16 +108,20 @@ namespace LarsWM.Infrastructure.WindowsApi
 
       var pressedKey = inputEvent.Key;
 
+      if (!_keybindingsByTriggerKey.ContainsKey(pressedKey))
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+
+      var registeredKeybindings = _keybindingsByTriggerKey[pressedKey];
       Keybinding matchedKeybinding = null;
 
-      foreach (var keybinding in _registeredKeybindings)
+      foreach (var keybinding in registeredKeybindings)
       {
         var isMatch = keybinding.KeyCombination.All(key => key == pressedKey || IsKeyDown(key));
 
         if (!isMatch)
           continue;
 
-        // Replace the keybinding to call if the key combination is longer.
+        // If multiple keybindings match the user input, call the longer key combination.
         if (matchedKeybinding == null || keybinding.KeyCombination.Count() > matchedKeybinding.KeyCombination.Count())
           matchedKeybinding = keybinding;
       }
