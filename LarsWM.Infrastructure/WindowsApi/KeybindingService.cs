@@ -27,7 +27,7 @@ namespace LarsWM.Infrastructure.WindowsApi
     private Bus _bus;
     private static readonly uint WM_KEYDOWN = 0x100;
     private static readonly uint WM_SYSKEYDOWN = 0x104;
-    private Keys _modKey = Keys.LMenu;
+    private Keys _modKey = Keys.Alt;
 
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
