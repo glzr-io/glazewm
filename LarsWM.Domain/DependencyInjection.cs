@@ -1,4 +1,4 @@
-using LarsWM.Domain.Containers;
+﻿using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.CommandHandlers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
@@ -55,35 +55,6 @@ namespace LarsWM.Domain
       services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
 
       return services;
-    }
-
-    public static IServiceProvider RegisterDomainHandlers(this IServiceProvider serviceProvider)
-    {
-      var bus = serviceProvider.GetRequiredService<Bus>();
-      bus.RegisterCommandHandler<AttachContainerHandler>();
-      bus.RegisterCommandHandler<ChangeContainerLayoutHandler>();
-      bus.RegisterCommandHandler<DetachContainerHandler>();
-      bus.RegisterCommandHandler<RedrawContainersHandler>();
-      bus.RegisterCommandHandler<ReplaceContainerHandler>();
-      bus.RegisterCommandHandler<SwapContainersHandler>();
-      bus.RegisterCommandHandler<AddMonitorHandler>();
-      bus.RegisterCommandHandler<AttachWorkspaceToMonitorHandler>();
-      bus.RegisterCommandHandler<SetFocusedDescendantHandler>();
-      bus.RegisterCommandHandler<DetachWorkspaceFromMonitorHandler>();
-      bus.RegisterCommandHandler<EvaluateUserConfigHandler>();
-      bus.RegisterCommandHandler<RegisterKeybindingsHandler>();
-      bus.RegisterCommandHandler<AddInitialWindowsHandler>();
-      bus.RegisterCommandHandler<AddWindowHandler>();
-      bus.RegisterCommandHandler<FocusWindowHandler>();
-      bus.RegisterCommandHandler<MoveFocusedWindowHandler>();
-      bus.RegisterCommandHandler<RemoveWindowHandler>();
-      bus.RegisterCommandHandler<ResizeFocusedWindowHandler>();
-      bus.RegisterCommandHandler<CreateWorkspaceHandler>();
-      bus.RegisterCommandHandler<DisplayWorkspaceHandler>();
-      bus.RegisterCommandHandler<FocusWorkspaceHandler>();
-      bus.RegisterEventHandler<MonitorAddedHandler>();
-
-      return serviceProvider;
     }
   }
 }
