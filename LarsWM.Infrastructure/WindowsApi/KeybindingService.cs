@@ -107,16 +107,27 @@ namespace LarsWM.Infrastructure.WindowsApi
         (LowLevelKeyboardInputEvent)Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
 
       var pressedKey = inputEvent.Key;
+      var registeredKeybindings = _keybindingsByTriggerKey.GetValueOrDefault(pressedKey);
 
-      if (!_keybindingsByTriggerKey.ContainsKey(pressedKey))
+      // Forward the hook notification if no keybindings exist for the trigger key.
+      if (registeredKeybindings == null)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      var registeredKeybindings = _keybindingsByTriggerKey[pressedKey];
       Keybinding matchedKeybinding = null;
+      Dictionary<Keys, bool> cachedKeyStates = new Dictionary<Keys, bool>();
 
       foreach (var keybinding in registeredKeybindings)
       {
-        var isMatch = keybinding.KeyCombination.All(key => key == pressedKey || IsKeyDown(key));
+        var isMatch = keybinding.KeyCombination.All(key =>
+        {
+          if (key == pressedKey)
+            return true;
+
+          if (cachedKeyStates.ContainsKey(key))
+            return cachedKeyStates[key];
+
+          return cachedKeyStates[key] = IsKeyDown(key);
+        });
 
         if (!isMatch)
           continue;
@@ -139,7 +150,7 @@ namespace LarsWM.Infrastructure.WindowsApi
     }
 
     /// <summary>
-    /// Whether the specified key is down.
+    /// Whether the given key is down.
     /// </summary>
     private bool IsKeyDown(Keys key)
     {
