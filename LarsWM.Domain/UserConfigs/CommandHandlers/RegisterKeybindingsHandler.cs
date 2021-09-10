@@ -61,11 +61,10 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       return commandParts[0] switch
       {
         "layout" => ParseLayoutCommand(commandParts),
-        // TODO: Return close command once implemented.
-        "close" => new FocusWorkspaceCommand("1"),
         "focus" => ParseFocusCommand(commandParts),
         "move" => ParseMoveCommand(commandParts),
         "resize" => ParseResizeCommand(commandParts),
+        "close" => new CloseFocusedWindowCommand(),
         _ => throw new ArgumentException(),
       };
     }
