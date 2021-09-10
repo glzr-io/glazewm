@@ -1,6 +1,7 @@
 ﻿using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.WindowsApi;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -15,11 +16,13 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
   {
     private Bus _bus;
     private UserConfigService _userConfigService;
+    private KeybindingService _keybindingService;
 
-    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService)
+    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService)
     {
       _bus = bus;
       _userConfigService = userConfigService;
+      _keybindingService = keybindingService;
     }
 
     public dynamic Handle(EvaluateUserConfigCommand command)
@@ -49,13 +52,13 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
 
+      _keybindingService.SetModKey(deserializedConfig.ModKey);
       _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       _userConfigService.UserConfig = deserializedConfig;
 
       return CommandResponse.Ok;
     }
-
 
     private UserConfig DeserializeUserConfig(string userConfigPath)
     {
