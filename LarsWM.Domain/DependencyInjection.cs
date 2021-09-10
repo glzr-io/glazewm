@@ -1,17 +1,22 @@
-﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.CommandHandlers;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.CommandHandlers;
+using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.Monitors.EventHandler;
+using LarsWM.Domain.Monitors.Events;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.UserConfigs.CommandHandlers;
+using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Windows.CommandHandlers;
+using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.CommandHandlers;
+using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 
 namespace LarsWM.Domain
 {
@@ -23,30 +28,31 @@ namespace LarsWM.Domain
       services.AddSingleton<MonitorService>();
       services.AddSingleton<UserConfigService>();
       services.AddSingleton<WindowService>();
-      services.AddSingleton<WindowHooksHandler>();
       services.AddSingleton<WorkspaceService>();
-      services.AddSingleton<AttachContainerHandler>();
-      services.AddSingleton<ChangeContainerLayoutHandler>();
-      services.AddSingleton<SetFocusedDescendantHandler>();
-      services.AddSingleton<DetachContainerHandler>();
-      services.AddSingleton<RedrawContainersHandler>();
-      services.AddSingleton<ReplaceContainerHandler>();
-      services.AddSingleton<SwapContainersHandler>();
-      services.AddSingleton<AddMonitorHandler>();
-      services.AddSingleton<AttachWorkspaceToMonitorHandler>();
-      services.AddSingleton<DetachWorkspaceFromMonitorHandler>();
-      services.AddSingleton<EvaluateUserConfigHandler>();
-      services.AddSingleton<RegisterKeybindingsHandler>();
-      services.AddSingleton<AddInitialWindowsHandler>();
-      services.AddSingleton<AddWindowHandler>();
-      services.AddSingleton<FocusWindowHandler>();
-      services.AddSingleton<MoveFocusedWindowHandler>();
-      services.AddSingleton<RemoveWindowHandler>();
-      services.AddSingleton<ResizeFocusedWindowHandler>();
-      services.AddSingleton<CreateWorkspaceHandler>();
-      services.AddSingleton<DisplayWorkspaceHandler>();
-      services.AddSingleton<FocusWorkspaceHandler>();
-      services.AddSingleton<MonitorAddedHandler>();
+      services.AddSingleton<WindowHooksHandler>();
+
+      services.AddTransient<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
+      services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
+      services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
+      services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
+      services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
+      services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
+      services.AddTransient<ICommandHandler<SwapContainersCommand>, SwapContainersHandler>();
+      services.AddTransient<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
+      services.AddTransient<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
+      services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
+      services.AddTransient<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
+      services.AddTransient<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
+      services.AddTransient<ICommandHandler<AddInitialWindowsCommand>, AddInitialWindowsHandler>();
+      services.AddTransient<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
+      services.AddTransient<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
+      services.AddTransient<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
+      services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
+      services.AddTransient<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
+      services.AddTransient<ICommandHandler<CreateWorkspaceCommand>, CreateWorkspaceHandler>();
+      services.AddTransient<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
+      services.AddTransient<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
+      services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
 
       return services;
     }
