@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reactive.Subjects;
 
 namespace LarsWM.Infrastructure.Bussing
@@ -14,8 +13,6 @@ namespace LarsWM.Infrastructure.Bussing
   public sealed class Bus
   {
     public readonly Subject<Event> Events = new Subject<Event>();
-    private List<Type> _registeredCommandHandlers = new List<Type>();
-    private List<Type> _registeredEventHandlers = new List<Type>();
     private static readonly Object _lockObj = new Object();
 
     /// <summary>
@@ -23,25 +20,14 @@ namespace LarsWM.Infrastructure.Bussing
     /// </summary>
     public dynamic Invoke<T>(T command) where T : Command
     {
-      // Create a Type object representing the generic ICommandHandler type.
-      var commandHandlerGeneric = typeof(ICommandHandler<>);
+      // Create a `Type` object representing the constructed `ICommandHandler` generic.
+      var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
 
-      // Create a Type object representing the constructed ICommandHandler generic.
-      var handlerTypeToCall = commandHandlerGeneric.MakeGenericType(command.GetType());
-
-      var handlers = _registeredCommandHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler)).ToList();
-
-      if (handlers.Count() != 1)
-      {
-        throw new Exception("Only one CommandHandler can be registered to handle a Command.");
-      }
-
-      // TODO: Add centralised error handling here?
       Debug.WriteLine($"Command {command.Name} invoked.");
 
       try
       {
-        ICommandHandler<T> handlerInstance = ServiceLocator.Provider.GetRequiredService(handlers[0]) as ICommandHandler<T>;
+        var handlerInstance = ServiceLocator.Provider.GetRequiredService(handlerType) as ICommandHandler<T>;
         lock (_lockObj)
         {
           return handlerInstance.Handle(command);
@@ -59,24 +45,20 @@ namespace LarsWM.Infrastructure.Bussing
     /// </summary>
     public void RaiseEvent<T>(T @event) where T : Event
     {
-      // Create a Type object representing the generic IEventHandler type.
-      var eventHandlerGeneric = typeof(IEventHandler<>);
-
-      // Create a Type object representing the constructed IEventHandler generic.
-      var handlerTypeToCall = eventHandlerGeneric.MakeGenericType(@event.GetType());
-
-      var handlersToCall = _registeredEventHandlers.Where(handler => handlerTypeToCall.IsAssignableFrom(handler));
+      // Create a `Type` object representing the constructed `IEventHandler` generic.
+      var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
 
       Debug.WriteLine($"Event {@event.Name} emitted.");
 
       try
       {
-        foreach (var handler in handlersToCall)
+        var handlerInstances = ServiceLocator.Provider.GetServices(handlerType) as IEnumerable<IEventHandler<T>>;
+
+        foreach (var handler in handlerInstances)
         {
-          IEventHandler<T> handlerInstance = ServiceLocator.Provider.GetService(handler) as IEventHandler<T>;
           lock (_lockObj)
           {
-            handlerInstance.Handle(@event);
+            handler.Handle(@event);
           }
         }
 
@@ -88,16 +70,6 @@ namespace LarsWM.Infrastructure.Bussing
         File.AppendAllText("./errors.log", error.Message + error.StackTrace);
         throw error;
       }
-    }
-
-    public void RegisterCommandHandler<T>()
-    {
-      _registeredCommandHandlers.Add(typeof(T));
-    }
-
-    public void RegisterEventHandler<T>()
-    {
-      _registeredEventHandlers.Add(typeof(T));
     }
   }
 }

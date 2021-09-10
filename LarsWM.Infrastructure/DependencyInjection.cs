@@ -8,7 +8,7 @@ namespace LarsWM.Infrastructure
   {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-      services.AddSingleton<Bus, Bus>();
+      services.AddSingleton<Bus>();
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<KeybindingService>();
 
