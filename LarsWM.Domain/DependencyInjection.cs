@@ -33,23 +33,24 @@ namespace LarsWM.Domain
 
       services.AddTransient<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
-      services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
       services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
+      services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
       services.AddTransient<ICommandHandler<SwapContainersCommand>, SwapContainersHandler>();
       services.AddTransient<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
-      services.AddTransient<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
-      services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
       services.AddTransient<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddTransient<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddTransient<ICommandHandler<AddInitialWindowsCommand>, AddInitialWindowsHandler>();
       services.AddTransient<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
+      services.AddTransient<ICommandHandler<CloseFocusedWindowCommand>, CloseFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
       services.AddTransient<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
+      services.AddTransient<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
       services.AddTransient<ICommandHandler<CreateWorkspaceCommand>, CreateWorkspaceHandler>();
+      services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
       services.AddTransient<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
       services.AddTransient<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
