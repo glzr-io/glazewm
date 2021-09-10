@@ -1,3 +1,4 @@
+ModKey: "Alt"
 ResizePercentage: 2
 
 Gaps:
@@ -17,16 +18,106 @@ Workspaces:
   - Name: 4
   - Name: 5
   - Name: 6
+  - Name: 7
+  - Name: 8
+  - Name: 9
 
 Keybindings:
-  - Command: focus left
-    Bindings: ["mod+h"]
+  - Command: "focus left"
+    Bindings: ["$mod+H"]
 
-  - Command: focus right
-    Bindings: ["mod+j"]
+  - Command: "focus right"
+    Bindings: ["$mod+L"]
 
-  - Command: move left
-    Bindings: ["mod+shift+h"]
+  - Command: "focus up"
+    Bindings: ["$mod+K"]
 
-  - Command: move right
-    Bindings: ["mod+shift+l"]
+  - Command: "focus down"
+    Bindings: ["$mod+J"]
+
+  - Command: "move left"
+    Bindings: ["$mod+Shift+H"]
+
+  - Command: "move right"
+    Bindings: ["$mod+Shift+L"]
+
+  - Command: "move up"
+    Bindings: ["$mod+Shift+K"]
+
+  - Command: "move down"
+    Bindings: ["$mod+Shift+J"]
+
+  - Command: "resize shrink width"
+    Bindings: ["$mod+U"]
+
+  - Command: "resize grow width"
+    Bindings: ["$mod+P"]
+
+  - Command: "resize grow height"
+    Bindings: ["$mod+O"]
+
+  - Command: "resize shrink height"
+    Bindings: ["$mod+I"]
+
+  - Command: "layout horizontal"
+    Bindings: ["$mod+Shift+V"]
+
+  - Command: "layout vertical"
+    Bindings: ["$mod+V"]
+
+  - Command: "close"
+    Bindings: ["$mod+Shift+Q"]
+
+  - Command: "focus workspace 1"
+    Bindings: ["$mod+1"]
+
+  - Command: "focus workspace 2"
+    Bindings: ["$mod+2"]
+
+  - Command: "focus workspace 3"
+    Bindings: ["$mod+3"]
+
+  - Command: "focus workspace 4"
+    Bindings: ["$mod+4"]
+
+  - Command: "focus workspace 5"
+    Bindings: ["$mod+5"]
+
+  - Command: "focus workspace 6"
+    Bindings: ["$mod+6"]
+
+  - Command: "focus workspace 7"
+    Bindings: ["$mod+7"]
+
+  - Command: "focus workspace 8"
+    Bindings: ["$mod+8"]
+
+  - Command: "focus workspace 9"
+    Bindings: ["$mod+9"]
+
+  - Command: "move to workspace 1"
+    Bindings: ["$mod+Shift+1"]
+
+  - Command: "move to workspace 2"
+    Bindings: ["$mod+Shift+2"]
+
+  - Command: "move to workspace 3"
+    Bindings: ["$mod+Shift+3"]
+
+  - Command: "move to workspace 4"
+    Bindings: ["$mod+Shift+4"]
+
+  - Command: "move to workspace 5"
+    Bindings: ["$mod+Shift+5"]
+
+  - Command: "move to workspace 6"
+    Bindings: ["$mod+Shift+6"]
+
+  - Command: "move to workspace 7"
+    Bindings: ["$mod+Shift+7"]
+
+  - Command: "move to workspace 8"
+    Bindings: ["$mod+Shift+8"]
+
+  - Command: "move to workspace 9"
+    Bindings: ["$mod+Shift+9"]

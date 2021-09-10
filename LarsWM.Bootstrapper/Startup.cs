@@ -1,5 +1,4 @@
 ﻿using LarsWM.Bar;
-using LarsWM.Domain.Common.Services;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
@@ -46,14 +45,16 @@ namespace LarsWM.Bootstrapper
     {
       // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
       // to be initialized before populating initial state.
+      // TODO: Rename `Init` method to `Start`.
       _barManagerService.Init();
+      _keybindingService.Start();
 
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
 
-      _keybindingService.Init();
+      // TODO: Rename `Init` method to `Start`.
       _windowEventService.Init();
-      // TODO: Rename `Configure` method to `Init`.
+      // TODO: Rename `Configure` method to `Start`.
       _windowHooksHandler.Configure();
     }
 
