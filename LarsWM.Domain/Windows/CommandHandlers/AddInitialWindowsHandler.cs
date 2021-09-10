@@ -28,7 +28,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _windowService = windowService;
     }
 
-    public dynamic Handle(AddInitialWindowsCommand command)
+    public CommandResponse Handle(AddInitialWindowsCommand command)
     {
       EnumWindows((IntPtr hwnd, int lParam) =>
       {

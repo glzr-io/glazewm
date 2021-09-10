@@ -26,7 +26,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(FocusWorkspaceCommand command)
+    public CommandResponse Handle(FocusWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
 

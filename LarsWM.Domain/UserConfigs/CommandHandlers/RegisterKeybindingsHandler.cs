@@ -24,7 +24,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       _keybindingService = keybindingService;
     }
 
-    public dynamic Handle(RegisterKeybindingsCommand command)
+    public CommandResponse Handle(RegisterKeybindingsCommand command)
     {
       foreach (var keybinding in command.Keybindings)
       {
@@ -41,7 +41,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         }
 
         foreach (var binding in keybinding.Bindings)
-          // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+          // Use `CommandResponse` to resolve the command type at runtime and allow multiple dispatch.
           _keybindingService.AddGlobalKeybinding(binding, () => _bus.Invoke((dynamic)parsedCommand));
       }
 

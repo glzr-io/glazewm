@@ -25,7 +25,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _monitorService = monitorService;
     }
 
-    public dynamic Handle(MoveFocusedWindowCommand command)
+    public CommandResponse Handle(MoveFocusedWindowCommand command)
     {
       var focusedWindow = _containerService.FocusedContainer as Window;
 

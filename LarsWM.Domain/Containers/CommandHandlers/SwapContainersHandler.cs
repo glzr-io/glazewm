@@ -13,7 +13,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(SwapContainersCommand command)
+    public CommandResponse Handle(SwapContainersCommand command)
     {
       var firstContainer = command.FirstContainer;
       var secondContainer = command.SecondContainer;

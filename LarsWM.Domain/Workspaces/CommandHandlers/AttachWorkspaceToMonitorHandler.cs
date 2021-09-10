@@ -15,14 +15,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       _bus = bus;
     }
 
-    public dynamic Handle(AttachWorkspaceToMonitorCommand command)
+    public CommandResponse Handle(AttachWorkspaceToMonitorCommand command)
     {
       command.Monitor.AddChild(command.Workspace);
       _workspaceService.InactiveWorkspaces.Remove(command.Workspace);
 
       _bus.RaiseEvent(new WorkspaceAttachedEvent(command.Workspace));
 
-      return new CommandResponse(true, command.Workspace.Id);
+      return CommandResponse.Ok;
     }
   }
 }

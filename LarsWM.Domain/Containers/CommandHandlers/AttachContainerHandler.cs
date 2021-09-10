@@ -14,7 +14,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(AttachContainerCommand command)
+    public CommandResponse Handle(AttachContainerCommand command)
     {
       var parent = command.Parent;
       var childToAdd = command.ChildToAdd;

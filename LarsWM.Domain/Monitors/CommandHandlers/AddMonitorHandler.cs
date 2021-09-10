@@ -16,14 +16,14 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(AddMonitorCommand command)
+    public CommandResponse Handle(AddMonitorCommand command)
     {
       var newMonitor = new Monitor(command.Screen);
       _containerService.ContainerTree.Add(newMonitor);
 
       _bus.RaiseEvent(new MonitorAddedEvent(newMonitor));
 
-      return new CommandResponse(true, newMonitor.Id);
+      return CommandResponse.Ok;
     }
   }
 }

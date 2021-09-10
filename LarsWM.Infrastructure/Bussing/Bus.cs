@@ -18,7 +18,7 @@ namespace LarsWM.Infrastructure.Bussing
     /// <summary>
     /// Sends command to appropriate command handler.
     /// </summary>
-    public dynamic Invoke<T>(T command) where T : Command
+    public CommandResponse Invoke<T>(T command) where T : Command
     {
       // Create a `Type` object representing the constructed `ICommandHandler` generic.
       var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());

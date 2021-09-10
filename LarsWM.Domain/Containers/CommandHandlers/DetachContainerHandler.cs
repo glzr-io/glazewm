@@ -16,7 +16,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(DetachContainerCommand command)
+    public CommandResponse Handle(DetachContainerCommand command)
     {
       var parent = command.Parent;
       var childToRemove = command.ChildToRemove;

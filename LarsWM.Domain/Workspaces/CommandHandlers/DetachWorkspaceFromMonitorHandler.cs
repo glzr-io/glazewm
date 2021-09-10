@@ -16,7 +16,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       _bus = bus;
     }
 
-    public dynamic Handle(DetachWorkspaceFromMonitorCommand command)
+    public CommandResponse Handle(DetachWorkspaceFromMonitorCommand command)
     {
       var monitor = command.Workspace.Parent as Monitor;
       monitor.RemoveChild(command.Workspace);
@@ -25,7 +25,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
       _bus.RaiseEvent(new WorkspaceDetachedEvent(command.Workspace));
 
-      return new CommandResponse(true, command.Workspace.Id);
+      return CommandResponse.Ok;
     }
   }
 }

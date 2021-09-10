@@ -19,7 +19,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _bus = bus;
     }
 
-    public dynamic Handle(RemoveWindowCommand command)
+    public CommandResponse Handle(RemoveWindowCommand command)
     {
       var window = command.Window;
 

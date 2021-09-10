@@ -22,12 +22,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(AddWindowCommand command)
+    public CommandResponse Handle(AddWindowCommand command)
     {
       var window = new Window(command.WindowHandle);
 
       if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
-        return true;
+        return CommandResponse.Ok;
 
       var focusedContainer = _containerService.FocusedContainer;
 
@@ -43,7 +43,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       // Set focus to newly added window in case it has not been focused automatically.
       _bus.Invoke(new FocusWindowCommand(window));
 
-      return new CommandResponse(true, window.Id);
+      return CommandResponse.Ok;
     }
   }
 }

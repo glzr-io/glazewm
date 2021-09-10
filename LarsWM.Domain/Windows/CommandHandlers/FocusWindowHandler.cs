@@ -18,7 +18,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _bus = bus;
     }
 
-    public dynamic Handle(FocusWindowCommand command)
+    public CommandResponse Handle(FocusWindowCommand command)
     {
       var window = command.Window;
 
@@ -34,7 +34,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       _bus.RaiseEvent(new FocusChangedEvent(window));
 
-      return new CommandResponse(true, window.Id);
+      return CommandResponse.Ok;
     }
   }
 }

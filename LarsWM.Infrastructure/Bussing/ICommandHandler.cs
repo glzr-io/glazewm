@@ -2,6 +2,6 @@
 {
   public interface ICommandHandler<TCommand> where TCommand : Command
   {
-    dynamic Handle(TCommand command);
+    CommandResponse Handle(TCommand command);
   }
 }

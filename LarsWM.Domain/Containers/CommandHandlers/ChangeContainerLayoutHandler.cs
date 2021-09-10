@@ -19,7 +19,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _windowService = windowService;
     }
 
-    public dynamic Handle(ChangeContainerLayoutCommand command)
+    public CommandResponse Handle(ChangeContainerLayoutCommand command)
     {
       var focusedContainer = _containerService.FocusedContainer;
       var parent = focusedContainer.Parent as SplitContainer;

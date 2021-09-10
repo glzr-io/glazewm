@@ -15,7 +15,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(CloseFocusedWindowCommand command)
+    public CommandResponse Handle(CloseFocusedWindowCommand command)
     {
       var focusedWindow = _containerService.FocusedContainer as Window;
       var foregroundWindow = GetForegroundWindow();

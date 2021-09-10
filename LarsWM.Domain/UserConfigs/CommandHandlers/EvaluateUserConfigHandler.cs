@@ -25,7 +25,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       _keybindingService = keybindingService;
     }
 
-    public dynamic Handle(EvaluateUserConfigCommand command)
+    public CommandResponse Handle(EvaluateUserConfigCommand command)
     {
       UserConfig deserializedConfig = null;
 

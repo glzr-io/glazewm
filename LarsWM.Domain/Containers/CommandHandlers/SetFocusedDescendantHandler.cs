@@ -15,7 +15,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(SetFocusedDescendantCommand command)
+    public CommandResponse Handle(SetFocusedDescendantCommand command)
     {
       var focusDescendant = command.FocusedDescendant;
 

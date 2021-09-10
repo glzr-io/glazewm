@@ -21,7 +21,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       _containerService = containerService;
     }
 
-    public dynamic Handle(DisplayWorkspaceCommand command)
+    public CommandResponse Handle(DisplayWorkspaceCommand command)
     {
       var workspaceToDisplay = command.Workspace;
 
@@ -61,7 +61,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
 
-      return new CommandResponse(true, command.Workspace.Id);
+      return CommandResponse.Ok;
     }
   }
 }

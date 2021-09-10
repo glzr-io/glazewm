@@ -22,7 +22,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _monitorService = monitorService;
     }
 
-    public dynamic Handle(RedrawContainersCommand command)
+    public CommandResponse Handle(RedrawContainersCommand command)
     {
       var containersToRedraw = _containerService.SplitContainersToRedraw;
 
