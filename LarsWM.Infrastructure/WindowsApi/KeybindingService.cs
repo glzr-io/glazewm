@@ -98,67 +98,52 @@ namespace LarsWM.Infrastructure.WindowsApi
 
       var pressedKey = inputEvent.Key;
 
-      Debug.WriteLine("Alt is down: " + ((GetKeyState(Keys.LMenu) & 0x8000) == 0x8000));
-
-      Debug.WriteLine("Shift is down: " + ((GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000));
-
-      var keyboardState = GetCurrentKeyboardState();
-
-      foreach (var key in Enum.GetValues(typeof(Keys)))
-      {
-        if (IsDown(keyboardState, (Keys)key))
-          Debug.WriteLine("Key is down: " + key);
-      }
+      Keybinding matchedKeybinding = null;
 
       foreach (var keybinding in _registeredKeybindings)
       {
-        var isMatch = keybinding.KeyCombination.All(key => IsDown(keyboardState, key) || key == pressedKey);
+        var isMatch = keybinding.KeyCombination.All(key => key == pressedKey || IsKeyDown(key));
 
-        if (isMatch)
-        {
-          keybinding.KeybindingProc();
+        if (!isMatch)
+          continue;
 
-          // Avoid forwarding the key input to other applications.
-          return new IntPtr(1);
-        }
+        // Replace the keybinding to call if the key combination is longer.
+        if (matchedKeybinding == null || keybinding.KeyCombination.Count() > matchedKeybinding.KeyCombination.Count())
+          matchedKeybinding = keybinding;
+      }
+
+      // Invoke the matched keybinding.
+      if (matchedKeybinding != null)
+      {
+        matchedKeybinding.KeybindingProc();
+
+        // Avoid forwarding the key input to other applications.
+        return new IntPtr(1);
       }
 
       return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
     }
 
-    private byte[] GetCurrentKeyboardState()
-    {
-      var keyboardState = new byte[256];
-      GetKeyboardState(keyboardState);
-      return keyboardState;
-    }
-
     /// <summary>
-    /// Whether the specified key is down in a keyboard state snapshot.
+    /// Whether the specified key is down.
     /// </summary>
-    private bool IsDown(byte[] state, Keys key)
+    private bool IsKeyDown(Keys key)
     {
-      if ((int)key < 256) return IsDownRaw(state, key);
-      if (key == Keys.Alt) return IsDownRaw(state, Keys.LMenu) || IsDownRaw(state, Keys.RMenu);
-      if (key == Keys.Shift) return IsDownRaw(state, Keys.LShiftKey) || IsDownRaw(state, Keys.RShiftKey);
-      if (key == Keys.Control) return IsDownRaw(state, Keys.LControlKey) || IsDownRaw(state, Keys.RControlKey);
-      return false;
+      if (key == Keys.Alt)
+        return IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu);
+
+      if (key == Keys.Shift)
+        return IsKeyDownRaw(Keys.LShiftKey) || IsKeyDownRaw(Keys.RShiftKey);
+
+      if (key == Keys.Control)
+        return IsKeyDownRaw(Keys.LControlKey) || IsKeyDownRaw(Keys.RControlKey);
+
+      return IsKeyDownRaw(key);
     }
 
-    private bool IsDownRaw(byte[] state, Keys key)
+    private bool IsKeyDownRaw(Keys key)
     {
-      var virtualKeyCode = (int)key;
-
-      // if (virtualKeyCode < 0 || virtualKeyCode > 255)
-      //   throw new ArgumentOutOfRangeException("key", key, "The value must be between 0 and 255.");
-
-      var keyState = state.ElementAtOrDefault(virtualKeyCode);
-
-      // if (keyState == null)
-      //   return false;
-
-      // Get the high-order bit. If the high-order bit is 1, the key is down.
-      return keyState >> 7 == 1;
+      return (GetKeyState(key) & 0x8000) == 0x8000;
     }
   }
 }
