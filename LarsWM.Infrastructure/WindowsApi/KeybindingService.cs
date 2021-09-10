@@ -113,12 +113,11 @@ namespace LarsWM.Infrastructure.WindowsApi
       if (registeredKeybindings == null)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      Keybinding matchedKeybinding = null;
       Dictionary<Keys, bool> cachedKeyStates = new Dictionary<Keys, bool>();
 
-      foreach (var keybinding in registeredKeybindings)
+      var matchedKeybindings = registeredKeybindings.Where(keybinding =>
       {
-        var isMatch = keybinding.KeyCombination.All(key =>
+        return keybinding.KeyCombination.All(key =>
         {
           if (key == pressedKey)
             return true;
@@ -128,29 +127,25 @@ namespace LarsWM.Infrastructure.WindowsApi
 
           return cachedKeyStates[key] = IsKeyDown(key);
         });
+      });
 
-        if (!isMatch)
-          continue;
+      // If multiple keybindings match the user input, call the longest key combination.
+      var longestKeybinding = matchedKeybindings
+        .OrderByDescending(keybinding => keybinding.KeyCombination.Count())
+        .FirstOrDefault();
 
-        // If multiple keybindings match the user input, call the longer key combination.
-        if (matchedKeybinding == null || keybinding.KeyCombination.Count() > matchedKeybinding.KeyCombination.Count())
-          matchedKeybinding = keybinding;
-      }
+      if (longestKeybinding == null)
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
       // Invoke the matched keybinding.
-      if (matchedKeybinding != null)
-      {
-        matchedKeybinding.KeybindingProc();
+      longestKeybinding.KeybindingProc();
 
-        // Avoid forwarding the key input to other applications.
-        return new IntPtr(1);
-      }
-
-      return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      // Avoid forwarding the key input to other applications.
+      return new IntPtr(1);
     }
 
     /// <summary>
-    /// Whether the given key is down.
+    /// Get whether the given key is down. Check alternate versions of modifier keys.
     /// </summary>
     private bool IsKeyDown(Keys key)
     {
@@ -166,6 +161,9 @@ namespace LarsWM.Infrastructure.WindowsApi
       return IsKeyDownRaw(key);
     }
 
+    /// <summary>
+    /// Get whether the given key is down. If the high-order bit is 1, the key is down; otherwise, it is up.
+    /// </summary>
     private bool IsKeyDownRaw(Keys key)
     {
       return (GetKeyState(key) & 0x8000) == 0x8000;
