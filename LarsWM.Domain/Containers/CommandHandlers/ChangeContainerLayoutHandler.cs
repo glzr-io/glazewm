@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers.Commands;
@@ -81,9 +82,19 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
       workspace.Layout = newLayout;
 
-      // TODO: Flatten any top-level split containers with the changed layout of the workspace.
+      // Flatten any top-level split containers with the same layout as the workspace. Clone
+      // the list since the number of workspace children changes when split containers are flattened.
+      foreach (var child in workspace.Children.ToList())
+      {
+        var childSplitContainer = child as SplitContainer;
 
-      _bus.Invoke(new RedrawContainersCommand());
+        if (childSplitContainer == null || childSplitContainer.Layout != newLayout)
+          continue;
+
+        _bus.Invoke(new ReplaceContainerCommand(workspace, child.Index, child.Children));
+      }
+
+      _containerService.SplitContainersToRedraw.Add(workspace);
     }
   }
 }
