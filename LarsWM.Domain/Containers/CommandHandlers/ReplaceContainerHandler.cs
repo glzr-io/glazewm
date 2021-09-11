@@ -16,22 +16,31 @@ namespace LarsWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(ReplaceContainerCommand command)
     {
       var parentContainer = command.ParentContainer;
-      var replacementContainer = command.ReplacementContainer;
+      var replacementContainers = command.ReplacementContainers;
       var childIndex = command.ChildIndex;
 
       // TODO: Consider detaching `ReplacementContainer` if it already has a parent.
 
-      // Replace the container at the given index.
       var containerToReplace = parentContainer.Children[childIndex];
-      parentContainer.Children.Replace(containerToReplace, replacementContainer);
-      replacementContainer.Parent = parentContainer;
-      replacementContainer.SizePercentage = containerToReplace.SizePercentage;
+
+      foreach (var replacementContainer in replacementContainers)
+      {
+        replacementContainer.Parent = parentContainer;
+        replacementContainer.SizePercentage =
+          containerToReplace.SizePercentage * replacementContainer.SizePercentage;
+      }
+
+      // Replace the container at the given index.
+      var index = parentContainer.Children.IndexOf(containerToReplace);
+      parentContainer.Children.InsertRange(index, replacementContainers);
+      parentContainer.RemoveChild(containerToReplace);
 
       // Correct any focus order references to the replaced container.
-      parentContainer.ChildFocusOrder.Replace(containerToReplace, replacementContainer);
+      parentContainer.ChildFocusOrder.Replace(
+        containerToReplace, containerToReplace.LastFocusedChild ?? replacementContainers[0]
+      );
 
       _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);
-      _containerService.SplitContainersToRedraw.Add(replacementContainer.Parent as SplitContainer);
 
       return CommandResponse.Ok;
     }
