@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Windows;
@@ -55,7 +55,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // the split container.
       if (isWindowOnlyChild)
       {
-        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, window));
+        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, new List<Container>() { window }));
         return;
       }
 
@@ -63,11 +63,12 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
+        ChildFocusOrder = new List<Container> { window },
       };
 
       // Replace the window with the wrapping split container. The window has to be attached to
       // the split container after the replacement.
-      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, splitContainer));
+      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, new List<Container>() { splitContainer }));
       _bus.Invoke(new AttachContainerCommand(splitContainer, window));
     }
 
