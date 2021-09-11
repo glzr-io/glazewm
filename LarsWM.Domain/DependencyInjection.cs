@@ -54,6 +54,7 @@ namespace LarsWM.Domain
       services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
       services.AddTransient<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
       services.AddTransient<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
+      services.AddTransient<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
       services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
 
       return services;
