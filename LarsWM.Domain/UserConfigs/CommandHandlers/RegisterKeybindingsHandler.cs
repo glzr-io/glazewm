@@ -73,8 +73,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
     {
       return commandParts[1] switch
       {
-        "vertical" => new ChangeContainerLayoutCommand(Layout.VERTICAL),
-        "horizontal" => new ChangeContainerLayoutCommand(Layout.HORIZONTAL),
+        "vertical" => new ChangeFocusedContainerLayoutCommand(Layout.VERTICAL),
+        "horizontal" => new ChangeFocusedContainerLayoutCommand(Layout.HORIZONTAL),
         _ => throw new ArgumentException(),
       };
     }
