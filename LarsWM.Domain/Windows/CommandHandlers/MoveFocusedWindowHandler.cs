@@ -44,20 +44,22 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
         // Swap the focused window with sibling in given direction.
         if (siblingInDirection is Window)
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, siblingInDirection));
-        else
         {
-          // Move the focused window into the sibling split container.
-          var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction.Inverse());
-          var targetParent = targetDescendant.Parent as SplitContainer;
-
-          var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
-            direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
-
-          _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
+          _bus.Invoke(new SwapContainersCommand(focusedWindow, siblingInDirection));
+          _bus.Invoke(new RedrawContainersCommand());
+          return CommandResponse.Ok;
         }
 
+        // Move the focused window into the sibling split container.
+        var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction.Inverse());
+        var targetParent = targetDescendant.Parent as SplitContainer;
+
+        var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
+          direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
+
+        _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
         _bus.Invoke(new RedrawContainersCommand());
+
         return CommandResponse.Ok;
       }
 
@@ -71,6 +73,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         if (workspaceInDirection == null)
           return CommandResponse.Ok;
 
+        // TODO: Descend into container if possible.
         if (direction == Direction.UP || direction == Direction.LEFT)
           _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow));
         else
@@ -93,18 +96,15 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
         .FirstOrDefault() as SplitContainer;
 
-      // Change the layout of the workspace to `layoutForDirection`.
+      // Change the layout of the workspace to layout for direction.
       if (ancestorWithLayout == null)
       {
         var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
-        workspace.Layout = direction.GetCorrespondingLayout();
 
-        // TODO: Flatten any top-level split containers with the changed layout of the workspace.
+        _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
+
         // TODO: Index of focused window might have to be changed after layout is inverted.
-        // TODO: Allow ChangeContainerLayoutCommand to work on workspaces and use that to change
-        // the layout.
 
-        _containerService.SplitContainersToRedraw.Add(workspace);
         _bus.Invoke(new RedrawContainersCommand());
 
         return CommandResponse.Ok;

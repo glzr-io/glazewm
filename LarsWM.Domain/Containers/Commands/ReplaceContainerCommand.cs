@@ -1,4 +1,5 @@
-﻿using LarsWM.Infrastructure.Bussing;
+﻿using System.Collections.Generic;
+using LarsWM.Infrastructure.Bussing;
 
 namespace LarsWM.Domain.Containers.Commands
 {
@@ -6,13 +7,13 @@ namespace LarsWM.Domain.Containers.Commands
   {
     public Container ParentContainer { get; }
     public int ChildIndex { get; }
-    public Container ReplacementContainer { get; }
+    public List<Container> ReplacementContainers { get; }
 
-    public ReplaceContainerCommand(Container parentContainer, int childIndex, Container replacementContainer)
+    public ReplaceContainerCommand(Container parentContainer, int childIndex, List<Container> replacementContainers)
     {
       ParentContainer = parentContainer;
       ChildIndex = childIndex;
-      ReplacementContainer = replacementContainer;
+      ReplacementContainers = replacementContainers;
     }
   }
 }

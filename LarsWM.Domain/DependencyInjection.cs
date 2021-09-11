@@ -33,6 +33,7 @@ namespace LarsWM.Domain
 
       services.AddTransient<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
+      services.AddTransient<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
