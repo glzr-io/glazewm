@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.UserConfigs;
@@ -8,11 +8,10 @@ namespace LarsWM.Domain.Containers
   public class ContainerService
   {
     /// <summary>
-    /// List of trees consisting of containers. The root nodes are the monitors,
-    /// followed by workspaces, then split containers/windows.
+    /// The root node of the container tree. Monitors are the children of the root node, followed
+    /// by workspaces, then split containers/windows.
     /// </summary>
-    // TODO: Rename to ContainerTrees/ContainerForest
-    public List<Container> ContainerTree = new List<Container>();
+    public Container ContainerTree = new Container();
 
     /// <summary>
     /// Pending SplitContainers to redraw.

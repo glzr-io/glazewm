@@ -19,7 +19,7 @@ namespace LarsWM.Domain.Monitors.CommandHandlers
     public CommandResponse Handle(AddMonitorCommand command)
     {
       var newMonitor = new Monitor(command.Screen);
-      _containerService.ContainerTree.Add(newMonitor);
+      _containerService.ContainerTree.AddChild(newMonitor);
 
       _bus.RaiseEvent(new MonitorAddedEvent(newMonitor));
 
