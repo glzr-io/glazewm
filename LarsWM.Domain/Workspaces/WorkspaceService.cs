@@ -33,6 +33,11 @@ namespace LarsWM.Domain.Workspaces
       return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
     }
 
+    public Workspace GetInactiveWorkspaceByName(string name)
+    {
+      return InactiveWorkspaces.FirstOrDefault(workspace => workspace.Name == name);
+    }
+
     public Workspace GetWorkspaceFromChildContainer(Container container)
     {
       return container.TraverseUpEnumeration().OfType<Workspace>().FirstOrDefault();
