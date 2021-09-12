@@ -56,7 +56,6 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
       {
-        _containerService.FocusedContainer = workspaceToFocus;
         _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
 
         // Remove focus from whichever window currently has focus.

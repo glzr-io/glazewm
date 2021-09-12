@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.UserConfigs;
@@ -22,7 +22,7 @@ namespace LarsWM.Domain.Containers
     /// The currently focused container. This can either be a `Window` or a
     /// `Workspace` without any descendant windows.
     /// </summary>
-    public Container FocusedContainer { get; set; } = null;
+    public Container FocusedContainer => ContainerTree.LastFocusedDescendant;
 
     private UserConfigService _userConfigService;
 
