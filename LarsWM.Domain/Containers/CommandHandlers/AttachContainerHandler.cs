@@ -19,6 +19,9 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       var parent = command.Parent;
       var childToAdd = command.ChildToAdd;
 
+      // Get whether the container has focus prior to making any state changes.
+      var isFocusedContainer = _containerService.FocusedContainer == childToAdd;
+
       if (childToAdd.Parent != null)
         _bus.Invoke(new DetachContainerCommand(childToAdd.Parent as SplitContainer, childToAdd));
 
@@ -33,7 +36,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       _containerService.SplitContainersToRedraw.Add(parent);
 
       // Adjust focus order of ancestors if the attached container is focused.
-      if (_containerService.FocusedContainer == childToAdd)
+      if (isFocusedContainer)
         _bus.Invoke(new SetFocusedDescendantCommand(childToAdd));
 
       return CommandResponse.Ok;

@@ -25,8 +25,6 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (window == _containerService.FocusedContainer)
         return CommandResponse.Ok;
 
-      _containerService.FocusedContainer = window;
-
       // Adjust focus order of ancestors.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 

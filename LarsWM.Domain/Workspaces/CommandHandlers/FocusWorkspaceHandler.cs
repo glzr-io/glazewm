@@ -4,9 +4,9 @@ using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Windows;
 using System.Linq;
-using System.Diagnostics;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Events;
+using LarsWM.Domain.Containers.Commands;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
@@ -42,12 +42,12 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
         return CommandResponse.Ok;
 
       // Whether the focused workspace is the only workspace on the monitor.
-      var isOnlyWorkspace = focusedWorkspace?.Parent?.Children?.Count() == 1
+      var isOnlyWorkspace = focusedWorkspace.Parent.Children.Count() == 1
         && workspaceToFocus.Parent != focusedWorkspace.Parent;
 
       // Destroy the currently focused workspace if it's empty.
       // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-      if (focusedWorkspace != null && !focusedWorkspace.HasChildren() && !isOnlyWorkspace)
+      if (!focusedWorkspace.HasChildren() && !isOnlyWorkspace)
         _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
 
       // Display the containers of the workspace to switch focus to.
@@ -56,7 +56,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
       {
-        _containerService.FocusedContainer = workspaceToFocus;
+        _bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
         _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
 
         // Remove focus from whichever window currently has focus.

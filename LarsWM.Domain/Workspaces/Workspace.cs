@@ -48,6 +48,7 @@ namespace LarsWM.Domain.Workspaces
     {
       get
       {
+        // TODO: Refactor this to use `_workspaceService.GetFocusedWorkspace()`.
         var focusedContainer = _containerService.FocusedContainer;
 
         if (focusedContainer == null)

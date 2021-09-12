@@ -36,7 +36,7 @@ namespace LarsWM.Domain.Containers
       {
         var current = queue.Dequeue();
         yield return current;
-        foreach (var child in container.Children)
+        foreach (var child in current.Children)
           queue.Enqueue(child);
       }
     }

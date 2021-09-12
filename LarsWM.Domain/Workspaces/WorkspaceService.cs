@@ -23,9 +23,9 @@ namespace LarsWM.Domain.Workspaces
     /// </summary>
     public IEnumerable<Workspace> GetActiveWorkspaces()
     {
-      return _containerService.ContainerTree
-          .SelectMany(monitor => monitor.Children)
-          .Cast<Workspace>();
+      return _containerService.ContainerTree.Children
+        .SelectMany(monitor => monitor.Children)
+        .Cast<Workspace>();
     }
 
     public Workspace GetActiveWorkspaceByName(string name)
