@@ -80,21 +80,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
     }
 
     /// <summary>
-    /// Activates a given workspace on the currently focused monitor.
+    /// Activate a given workspace on the currently focused monitor.
     /// </summary>
     /// <param name="workspaceName">Name of the workspace to activate.</param>
     private Workspace ActivateWorkspace(string workspaceName)
     {
-      var inactiveWorkspace = _workspaceService.InactiveWorkspaces.FirstOrDefault(workspace => workspace.Name == workspaceName);
-
-      if (inactiveWorkspace == null)
-      {
-        // TODO: Handling this error is avoidable by checking that all focus commands in user config are valid.
-        Debug.WriteLine($"Failed to activate workspace {workspaceName}. No such workspace exists.");
-        return null;
-      }
-
+      var inactiveWorkspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName);
       var focusedMonitor = _monitorService.GetFocusedMonitor();
+
       _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, focusedMonitor));
 
       return inactiveWorkspace;

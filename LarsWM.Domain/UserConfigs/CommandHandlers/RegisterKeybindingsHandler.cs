@@ -102,8 +102,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
-        // TODO: Return move to workspace command once implemented.
-        "to" => new FocusWorkspaceCommand("1"),
+        // TODO: Validate workspace name.
+        "to" => new MoveFocusedWindowToWorkspaceCommand(commandParts[3]),
         _ => throw new ArgumentException(),
       };
     }
