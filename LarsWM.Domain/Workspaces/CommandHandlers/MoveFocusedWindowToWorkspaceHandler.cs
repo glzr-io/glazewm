@@ -4,7 +4,7 @@ using LarsWM.Domain.Containers;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Containers.Events;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Workspaces.CommandHandlers
@@ -27,7 +27,6 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
     public CommandResponse Handle(MoveFocusedWindowToWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-
       var focusedWindow = _containerService.FocusedContainer as Window;
       var foregroundWindow = GetForegroundWindow();
 
@@ -35,25 +34,48 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
         return CommandResponse.Ok;
 
-      _bus.Invoke(new FocusWorkspaceCommand(workspaceName));
-
       var currentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
-      var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName);
+      var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
+        ?? ActivateWorkspace(workspaceName);
 
-      var insertionTarget = workspaceToFocus.LastFocusedDescendant;
+      var insertionTarget = targetWorkspace.LastFocusedDescendant;
 
       if (insertionTarget == null)
-        _bus.Invoke(new AttachContainerCommand(workspaceToFocus, focusedWindow));
+        _bus.Invoke(new AttachContainerCommand(targetWorkspace, focusedWindow));
       else
-        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, focusedWindow, insertionTarget.Index));
+        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, focusedWindow, insertionTarget.Index + 1));
 
-      if (currentWorkspace.IsDisplayed)
-        _containerService.SplitContainersToRedraw.Add(currentWorkspace);
+      _containerService.SplitContainersToRedraw.Add(currentWorkspace);
 
+      // Whether the current workspace is the only workspace on the monitor.
+      var isOnlyWorkspace = currentWorkspace.Parent.Children.Count == 1
+        && targetWorkspace.Parent != currentWorkspace.Parent;
+
+      // Destroy the current workspace if it's empty.
+      // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
+      if (currentWorkspace != null && !currentWorkspace.HasChildren() && !isOnlyWorkspace)
+        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(currentWorkspace));
+
+      // Display the containers of the workspace to switch focus to.
+      _bus.Invoke(new DisplayWorkspaceCommand(targetWorkspace));
       _bus.Invoke(new RedrawContainersCommand());
-      _bus.Invoke(new FocusWindowCommand(focusedWindow));
+      _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
 
       return CommandResponse.Ok;
+    }
+
+    /// <summary>
+    /// Activate a given workspace on the currently focused monitor.
+    /// </summary>
+    /// <param name="workspaceName">Name of the workspace to activate.</param>
+    private Workspace ActivateWorkspace(string workspaceName)
+    {
+      var inactiveWorkspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName);
+      var focusedMonitor = _monitorService.GetFocusedMonitor();
+
+      _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, focusedMonitor));
+
+      return inactiveWorkspace;
     }
   }
 }
