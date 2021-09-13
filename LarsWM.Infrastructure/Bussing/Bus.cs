@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reactive.Subjects;
+using System.Windows;
 
 namespace LarsWM.Infrastructure.Bussing
 {
@@ -35,7 +36,12 @@ namespace LarsWM.Infrastructure.Bussing
       }
       catch (Exception error)
       {
-        File.AppendAllText("./errors.log", error.Message + error.StackTrace);
+        // Alert the user of the error.
+        // TODO: This throws duplicate errors if a command errors and it was invoked by another handler.
+        if (error is FatalUserException)
+          MessageBox.Show(error.Message);
+
+        File.AppendAllText("./errors.log", $"\n\n{error.Message + error.StackTrace}");
         throw error;
       }
     }
@@ -67,7 +73,11 @@ namespace LarsWM.Infrastructure.Bussing
       }
       catch (Exception error)
       {
-        File.AppendAllText("./errors.log", error.Message + error.StackTrace);
+        // Alert the user of the error.
+        if (error is FatalUserException)
+          MessageBox.Show(error.Message);
+
+        File.AppendAllText("./errors.log", $"\n\n{error.Message + error.StackTrace}");
         throw error;
       }
     }

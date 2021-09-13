@@ -5,7 +5,6 @@ using LarsWM.Infrastructure.WindowsApi;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Windows;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization.NodeDeserializers;
@@ -44,8 +43,8 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       }
       catch (Exception exception)
       {
-        ShowErrorAlert(exception);
-        throw exception;
+        var errorMessage = FormatErrorMessage(exception);
+        throw new FatalUserException(errorMessage);
       }
 
       // Create an inactive `Workspace` for each workspace config.
@@ -76,7 +75,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       return deserializer.Deserialize<UserConfig>(input);
     }
 
-    private void ShowErrorAlert(Exception exception)
+    private string FormatErrorMessage(Exception exception)
     {
       var errorMessage = exception.Message;
 
@@ -92,8 +91,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
           errorMessage += $". {exception.InnerException.Message}";
       }
 
-      // Alert the user of the config error.
-      MessageBox.Show(errorMessage);
+      return errorMessage;
     }
   }
 }
