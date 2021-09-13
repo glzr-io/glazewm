@@ -34,7 +34,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       // Siblings of the removed child.
       var siblings = parent.Children;
 
-      var isEmptySplitContainer = siblings.Count() == 0 && !(parent is Workspace);
+      var isEmptySplitContainer = !parent.HasChildren() && !(parent is Workspace);
 
       // If the parent of the removed child is an empty split container, remove
       // the split container as well.

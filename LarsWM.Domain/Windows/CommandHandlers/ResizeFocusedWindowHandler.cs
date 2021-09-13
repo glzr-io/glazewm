@@ -44,8 +44,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
 
-      // Ignore cases where the container to resize is a workspace or has no siblings.
-      if (containerToResize.Siblings.Count() == 0 || containerToResize is Workspace)
+      // Ignore cases where the container to resize is a workspace or is only child.
+      if (!containerToResize.HasSiblings() || containerToResize is Workspace)
         return CommandResponse.Ok;
 
       switch (resizeDirection)

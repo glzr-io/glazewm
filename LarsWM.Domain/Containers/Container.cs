@@ -130,5 +130,10 @@ namespace LarsWM.Domain.Containers
     {
       return Children.Count > 0;
     }
+
+    public bool HasSiblings()
+    {
+      return Siblings.Count() > 0;
+    }
   }
 }
