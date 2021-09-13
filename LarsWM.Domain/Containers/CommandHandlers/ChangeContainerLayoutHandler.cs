@@ -43,10 +43,8 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       if (currentLayout == newLayout)
         return;
 
-      var isWindowOnlyChild = window.Siblings.Count() == 0;
-
       // If the window is an only child of a workspace, change layout of the workspace.
-      if (isWindowOnlyChild && parent is Workspace)
+      if (!window.HasSiblings() && parent is Workspace)
       {
         ChangeWorkspaceLayout(parent as Workspace, newLayout);
         return;
@@ -54,7 +52,7 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
       // If the window is an only child and the parent is a normal split container, then flatten
       // the split container.
-      if (isWindowOnlyChild)
+      if (!window.HasSiblings())
       {
         _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, new List<Container>() { window }));
         return;

@@ -45,6 +45,7 @@ namespace LarsWM.Domain
       services.AddTransient<ICommandHandler<AddInitialWindowsCommand>, AddInitialWindowsHandler>();
       services.AddTransient<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
       services.AddTransient<ICommandHandler<CloseFocusedWindowCommand>, CloseFocusedWindowHandler>();
+      services.AddTransient<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
       services.AddTransient<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();

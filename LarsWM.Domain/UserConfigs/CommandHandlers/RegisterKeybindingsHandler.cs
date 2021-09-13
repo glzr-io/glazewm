@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Text.RegularExpressions;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
 using LarsWM.Infrastructure.WindowsApi;
@@ -16,12 +17,14 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
     private Bus _bus;
     private ContainerService _containerService;
     private KeybindingService _keybindingService;
+    private WorkspaceService _workspaceService;
 
-    public RegisterKeybindingsHandler(Bus bus, ContainerService containerService, KeybindingService keybindingService)
+    public RegisterKeybindingsHandler(Bus bus, ContainerService containerService, KeybindingService keybindingService, WorkspaceService workspaceService)
     {
       _bus = bus;
       _containerService = containerService;
       _keybindingService = keybindingService;
+      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(RegisterKeybindingsCommand command)
@@ -79,15 +82,14 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       };
     }
 
-    // TODO: Return focus command once implemented.
     private Command ParseFocusCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
-        "left" => new FocusWorkspaceCommand("1"),
-        "right" => new FocusWorkspaceCommand("1"),
-        "up" => new FocusWorkspaceCommand("1"),
-        "down" => new FocusWorkspaceCommand("1"),
+        "left" => new FocusInDirectionCommand(Direction.LEFT),
+        "right" => new FocusInDirectionCommand(Direction.RIGHT),
+        "up" => new FocusInDirectionCommand(Direction.UP),
+        "down" => new FocusInDirectionCommand(Direction.DOWN),
         // TODO: Validate workspace name.
         "workspace" => new FocusWorkspaceCommand(commandParts[2]),
         _ => throw new ArgumentException(),
