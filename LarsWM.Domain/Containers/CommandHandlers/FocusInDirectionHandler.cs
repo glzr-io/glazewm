@@ -6,7 +6,6 @@ using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
-using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Containers.CommandHandlers
 {
@@ -41,41 +40,57 @@ namespace LarsWM.Domain.Containers.CommandHandlers
 
     private Container GetFocusTarget(Container focusedContainer, Direction direction)
     {
+      var focusTargetWithinWorkspace = GetFocusTargetWithinWorkspace(focusedContainer, direction);
+
+      if (focusTargetWithinWorkspace != null)
+        return focusTargetWithinWorkspace;
+
+      // If a suitable focus target isn't found in the current workspace, attempt to find
+      // a workspace in the given direction.
+      return GetFocusTargetOutsideWorkspace(focusedContainer, direction);
+    }
+
+    /// <summary>
+    /// Attempt to find a focus target within the focused workspace. Traverse upwards from the
+    /// focused container to find an adjacent container that can be focused.
+    /// </summary>
+    private Container GetFocusTargetWithinWorkspace(Container focusedContainer, Direction direction)
+    {
       var layoutForDirection = direction.GetCorrespondingLayout();
+      var focusReference = focusedContainer;
 
-      var focusTargetRef = focusedContainer;
-
-      // Attempt to find a focus target within the current workspace by traversing upwards from
-      // the focused container.
-      while (!(focusTargetRef is Workspace))
+      while (!(focusReference is Workspace))
       {
-        var parent = focusTargetRef.Parent as SplitContainer;
+        var parent = focusReference.Parent as SplitContainer;
 
-        if (!focusTargetRef.HasSiblings() || parent.Layout != layoutForDirection)
+        if (!focusReference.HasSiblings() || parent.Layout != layoutForDirection)
         {
-          focusTargetRef = focusTargetRef.Parent;
+          focusReference = parent;
           continue;
         }
 
         var focusTarget = direction == Direction.UP || direction == Direction.LEFT ?
-          focusTargetRef.PreviousSibling : focusTargetRef.NextSibling;
+          focusReference.PreviousSibling : focusReference.NextSibling;
 
         if (focusTarget == null)
         {
-          focusTargetRef = focusTargetRef.Parent;
+          focusReference = parent;
           continue;
         }
 
-        if (focusTarget is SplitContainer)
-          return _containerService.GetDescendantInDirection(focusTarget, direction.Inverse());
-
-        return focusTarget;
+        return _containerService.GetDescendantInDirection(focusTarget, direction.Inverse());
       }
 
+      return null;
+    }
+
+    /// <summary>
+    /// Attempt to find a focus target in a different workspace than the focused workspace.
+    /// </summary>
+    private Container GetFocusTargetOutsideWorkspace(Container focusedContainer, Direction direction)
+    {
       var focusedMonitor = _monitorService.GetFocusedMonitor();
 
-      // If a suitable focus target isn't found in the current workspace, attempt to find
-      // a workspace in the given direction.
       var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
       var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
 
