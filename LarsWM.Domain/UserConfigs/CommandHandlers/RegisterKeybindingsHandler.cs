@@ -1,7 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
 using LarsWM.Domain.Common.Enums;
-using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Windows.Commands;
@@ -15,14 +14,12 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
   class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
   {
     private Bus _bus;
-    private ContainerService _containerService;
     private KeybindingService _keybindingService;
     private WorkspaceService _workspaceService;
 
-    public RegisterKeybindingsHandler(Bus bus, ContainerService containerService, KeybindingService keybindingService, WorkspaceService workspaceService)
+    public RegisterKeybindingsHandler(Bus bus, KeybindingService keybindingService, WorkspaceService workspaceService)
     {
       _bus = bus;
-      _containerService = containerService;
       _keybindingService = keybindingService;
       _workspaceService = workspaceService;
     }
@@ -32,19 +29,19 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var keybinding in command.Keybindings)
       {
         var commandName = FormatCommandName(keybinding.Command);
-
         Command parsedCommand = null;
+
         try
         {
           parsedCommand = ParseCommand(commandName);
         }
         catch
         {
-          throw new Exception($"Invalid command {commandName}.");
+          throw new FatalUserException($"Invalid command '{commandName}'.");
         }
 
         foreach (var binding in keybinding.Bindings)
-          // Use `CommandResponse` to resolve the command type at runtime and allow multiple dispatch.
+          // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
           _keybindingService.AddGlobalKeybinding(binding, () => _bus.Invoke((dynamic)parsedCommand));
       }
 
@@ -90,8 +87,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         "right" => new FocusInDirectionCommand(Direction.RIGHT),
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
-        // TODO: Validate workspace name.
-        "workspace" => new FocusWorkspaceCommand(commandParts[2]),
+        "workspace" => new FocusWorkspaceCommand(GetValidWorkspaceName(commandParts[2])),
         _ => throw new ArgumentException(),
       };
     }
@@ -104,8 +100,7 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
-        // TODO: Validate workspace name.
-        "to" => new MoveFocusedWindowToWorkspaceCommand(commandParts[3]),
+        "to" => new MoveFocusedWindowToWorkspaceCommand(GetValidWorkspaceName(commandParts[3])),
         _ => throw new ArgumentException(),
       };
     }
@@ -128,6 +123,16 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
         },
         _ => throw new ArgumentException(),
       };
+    }
+
+    private string GetValidWorkspaceName(string workspaceName)
+    {
+      var workspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName);
+
+      if (workspace == null)
+        throw new ArgumentException();
+
+      return workspaceName;
     }
   }
 }
