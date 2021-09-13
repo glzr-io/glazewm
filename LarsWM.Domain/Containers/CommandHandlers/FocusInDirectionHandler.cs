@@ -26,16 +26,9 @@ namespace LarsWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(FocusInDirectionCommand command)
     {
       var direction = command.Direction;
-      var focusedWindow = _containerService.FocusedContainer as Window;
-      var foregroundWindow = GetForegroundWindow();
+      var focusedContainer = _containerService.FocusedContainer;
 
-      // TODO: Allow command to be called from a focused workspace with no children.
-
-      // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
-        return CommandResponse.Ok;
-
-      var focusTarget = GetFocusTarget(focusedWindow, direction);
+      var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
@@ -46,11 +39,11 @@ namespace LarsWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private Container GetFocusTarget(Window focusedWindow, Direction direction)
+    private Container GetFocusTarget(Container focusedContainer, Direction direction)
     {
       var layoutForDirection = direction.GetCorrespondingLayout();
 
-      Container focusTargetRef = focusedWindow;
+      var focusTargetRef = focusedContainer;
 
       // Attempt to find a focus target within the current workspace by traversing upwards from
       // the focused container.
