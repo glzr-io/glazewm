@@ -12,10 +12,12 @@ using LarsWM.Domain.UserConfigs.Commands;
 using LarsWM.Domain.Windows;
 using LarsWM.Domain.Windows.CommandHandlers;
 using LarsWM.Domain.Windows.Commands;
+using LarsWM.Domain.Windows.EventHandlers;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.CommandHandlers;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LarsWM.Domain
@@ -29,7 +31,6 @@ namespace LarsWM.Domain
       services.AddSingleton<UserConfigService>();
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
-      services.AddSingleton<WindowHooksHandler>();
 
       services.AddTransient<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
@@ -56,7 +57,12 @@ namespace LarsWM.Domain
       services.AddTransient<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
       services.AddTransient<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
+
       services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
+      services.AddTransient<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
+      services.AddTransient<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
+      services.AddTransient<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
+      services.AddTransient<IEventHandler<WindowShownEvent>, WindowShownHandler>();
 
       return services;
     }

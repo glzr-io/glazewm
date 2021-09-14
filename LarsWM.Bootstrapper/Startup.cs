@@ -18,7 +18,6 @@ namespace LarsWM.Bootstrapper
     private MonitorService _monitorService;
     private KeybindingService _keybindingService;
     private WindowEventService _windowEventService;
-    private WindowHooksHandler _windowHooksHandler;
     private WindowService _windowService;
     private BarManagerService _barManagerService;
 
@@ -27,7 +26,6 @@ namespace LarsWM.Bootstrapper
       MonitorService monitorService,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
-      WindowHooksHandler windowHooksHandler,
       WindowService windowService,
       BarManagerService barManagerService
     )
@@ -36,7 +34,6 @@ namespace LarsWM.Bootstrapper
       _monitorService = monitorService;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
-      _windowHooksHandler = windowHooksHandler;
       _windowService = windowService;
       _barManagerService = barManagerService;
     }
@@ -52,10 +49,7 @@ namespace LarsWM.Bootstrapper
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
 
-      // TODO: Rename `Init` method to `Start`.
-      _windowEventService.Init();
-      // TODO: Rename `Configure` method to `Start`.
-      _windowHooksHandler.Configure();
+      _windowEventService.Start();
     }
 
     /// <summary>
