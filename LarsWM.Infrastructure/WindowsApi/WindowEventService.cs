@@ -1,6 +1,7 @@
-﻿using LarsWM.Infrastructure.WindowsApi.Enums;
+﻿using LarsWM.Infrastructure.Bussing;
+using LarsWM.Infrastructure.WindowsApi.Enums;
+using LarsWM.Infrastructure.WindowsApi.Events;
 using System;
-using System.Reactive.Subjects;
 using System.Threading;
 using System.Windows.Forms;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -9,23 +10,15 @@ namespace LarsWM.Infrastructure.WindowsApi
 {
   public class WindowEventService
   {
-    public Subject<WindowHookEvent> WindowHookSubject = new Subject<WindowHookEvent>();
+    private Bus _bus;
+    private static readonly int CHILDID_SELF = 0;
 
-    public static int CHILDID_SELF = 0;
-
-    public struct WindowHookEvent
+    public WindowEventService(Bus bus)
     {
-      public EventConstant EventType { get; }
-      public IntPtr AffectedWindowHandle { get; }
-
-      public WindowHookEvent(EventConstant eventType, IntPtr hwnd)
-      {
-        EventType = eventType;
-        AffectedWindowHandle = hwnd;
-      }
+      _bus = bus;
     }
 
-    public void Init()
+    public void Start()
     {
       var thread = new Thread(() => CreateWindowEventHook());
       thread.Name = "LarsWMWindowHooks";
@@ -50,8 +43,24 @@ namespace LarsWM.Infrastructure.WindowsApi
       if (!isWindowEvent)
         return;
 
-      var windowHookEvent = new WindowHookEvent(eventType, hwnd);
-      WindowHookSubject.OnNext(windowHookEvent);
+      switch (eventType)
+      {
+        case EventConstant.EVENT_OBJECT_SHOW:
+          _bus.RaiseEvent(new WindowShownEvent(hwnd));
+          break;
+        case EventConstant.EVENT_OBJECT_DESTROY:
+          _bus.RaiseEvent(new WindowDestroyedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_SYSTEM_MINIMIZESTART:
+          _bus.RaiseEvent(new WindowMinimizedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_SYSTEM_MINIMIZEEND:
+          _bus.RaiseEvent(new WindowMinimizeEndedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_SYSTEM_FOREGROUND:
+          _bus.RaiseEvent(new WindowFocusedEvent(hwnd));
+          break;
+      }
     }
   }
 }

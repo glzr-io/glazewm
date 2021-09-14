@@ -1,4 +1,4 @@
-﻿using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.CommandHandlers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
@@ -29,7 +29,6 @@ namespace LarsWM.Domain
       services.AddSingleton<UserConfigService>();
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
-      services.AddSingleton<WindowHooksHandler>();
 
       services.AddTransient<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
