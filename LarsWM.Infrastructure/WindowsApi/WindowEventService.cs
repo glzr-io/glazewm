@@ -38,7 +38,10 @@ namespace LarsWM.Infrastructure.WindowsApi
 
     private void WindowEventHookProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-      var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.OBJID_WINDOW && hwnd != IntPtr.Zero;
+      // Whether the window event is actually associated with a window object (instead of a UI
+      // control, for example).
+      var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.OBJID_WINDOW
+        && hwnd != IntPtr.Zero;
 
       if (!isWindowEvent)
         return;
@@ -50,6 +53,9 @@ namespace LarsWM.Infrastructure.WindowsApi
           break;
         case EventConstant.EVENT_OBJECT_DESTROY:
           _bus.RaiseEvent(new WindowDestroyedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_OBJECT_HIDE:
+          _bus.RaiseEvent(new WindowHiddenEvent(hwnd));
           break;
         case EventConstant.EVENT_SYSTEM_MINIMIZESTART:
           _bus.RaiseEvent(new WindowMinimizedEvent(hwnd));
