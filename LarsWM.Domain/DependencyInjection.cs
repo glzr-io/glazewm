@@ -61,6 +61,7 @@ namespace LarsWM.Domain
       services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
       services.AddTransient<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
       services.AddTransient<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
+      services.AddTransient<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
       services.AddTransient<IEventHandler<WindowShownEvent>, WindowShownHandler>();
 
       return services;
