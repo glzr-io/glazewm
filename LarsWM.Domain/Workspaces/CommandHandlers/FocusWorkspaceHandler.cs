@@ -38,16 +38,15 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // isn't a container that has focus.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
-      if (workspaceToFocus == focusedWorkspace)
-        return CommandResponse.Ok;
+      // Whether the focused workspace has siblings other than the target workspace.
+      var focusedHasSiblings = focusedWorkspace.Siblings
+        .Where(sibling => sibling != workspaceToFocus)
+        .Count() > 0;
 
-      // Whether the focused workspace is the only workspace on the monitor.
-      var isOnlyWorkspace = focusedWorkspace.Parent.Children.Count() == 1
-        && workspaceToFocus.Parent != focusedWorkspace.Parent;
-
-      // Destroy the currently focused workspace if it's empty.
+      // Destroy the currently focused workspace if it's empty. Cannot destroy empty workspaces
+      // if they're the last workspace on the monitor.
       // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-      if (!focusedWorkspace.HasChildren() && !isOnlyWorkspace)
+      if (!focusedWorkspace.HasChildren() && focusedHasSiblings)
         _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
 
       // Display the containers of the workspace to switch focus to.

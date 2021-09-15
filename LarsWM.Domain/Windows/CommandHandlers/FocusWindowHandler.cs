@@ -22,15 +22,13 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     {
       var window = command.Window;
 
-      if (window == _containerService.FocusedContainer)
-        return CommandResponse.Ok;
-
-      // Adjust focus order of ancestors.
+      // Update focused container state.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
-
-      SetForegroundWindow(window.Hwnd);
-
       _bus.RaiseEvent(new FocusChangedEvent(window));
+
+      // Set as foreground window if it's not already set.
+      if (window.Hwnd != GetForegroundWindow())
+        SetForegroundWindow(window.Hwnd);
 
       return CommandResponse.Ok;
     }
