@@ -24,6 +24,12 @@ namespace LarsWM.Domain.Containers
     /// </summary>
     public Container FocusedContainer => ContainerTree.LastFocusedDescendant;
 
+    /// <summary>
+    /// If set, this container overrides the target container to set focus to on the next
+    /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
+    /// </summary>
+    public Container PendingFocusContainer = null;
+
     private UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)
