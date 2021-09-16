@@ -1,7 +1,5 @@
 ﻿using LarsWM.Domain.Containers;
-using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Windows.Commands;
-using LarsWM.Domain.Containers.Events;
 using LarsWM.Infrastructure.Bussing;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -22,13 +20,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     {
       var window = command.Window;
 
-      // Update focused container state.
-      _bus.Invoke(new SetFocusedDescendantCommand(window));
-      _bus.RaiseEvent(new FocusChangedEvent(window));
-
-      // Set as foreground window if it's not already set.
-      if (window.Hwnd != GetForegroundWindow())
-        SetForegroundWindow(window.Hwnd);
+      // Set as foreground window, triggering `EVENT_SYSTEM_FOREGROUND` and its event handler.
+      SetForegroundWindow(window.Hwnd);
 
       return CommandResponse.Ok;
     }
