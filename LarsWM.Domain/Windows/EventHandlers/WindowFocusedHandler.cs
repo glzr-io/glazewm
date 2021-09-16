@@ -25,6 +25,20 @@ namespace LarsWM.Domain.Windows.EventHandlers
 
     public void Handle(WindowFocusedEvent @event)
     {
+      var pendingFocusContainer = _containerService.PendingFocusContainer;
+
+      // Override the container to set focus to (ie. when changing focus after a window is closed).
+      if (pendingFocusContainer != null)
+      {
+        if (pendingFocusContainer is Window)
+          _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
+        else if (pendingFocusContainer is Workspace)
+          _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
+
+        _containerService.PendingFocusContainer = null;
+        return;
+      }
+
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
