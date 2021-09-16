@@ -13,32 +13,29 @@ namespace LarsWM.Domain.Windows.CommandHandlers
   class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
   {
     private Bus _bus;
+    private ContainerService _containerService;
 
-    public RemoveWindowHandler(Bus bus)
+    public RemoveWindowHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
+      _containerService = containerService;
     }
 
     public CommandResponse Handle(RemoveWindowCommand command)
     {
       var window = command.Window;
 
-      // Keep references to the window's original parent and grandparent prior to detaching.
+      // Keep references to the window's parent and grandparent prior to detaching.
       var parent = window.Parent;
       var grandparent = parent.Parent;
 
       _bus.Invoke(new DetachContainerCommand(window.Parent as SplitContainer, window));
 
-      // Search for a new container to set focus to.
+      // Get container to switch focus to after the window has been removed. The OS automatically
+      // switches focus to a different window after closing, so by setting `PendingFocusContainer`
+      // this behavior is overridden.
       var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
-
-      // Note that the hook that fires when a window closes is actually called AFTER the OS has
-      // automatically switched focus to a new window. So therefore, changing focus here will
-      // cause focus to briefly flicker to and from what the OS wants to focus on.
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-      else if (containerToFocus is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
+      _containerService.PendingFocusContainer = containerToFocus;
 
       return CommandResponse.Ok;
     }

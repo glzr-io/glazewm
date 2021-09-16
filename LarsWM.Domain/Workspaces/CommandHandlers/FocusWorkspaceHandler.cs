@@ -3,7 +3,6 @@ using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Workspaces.Commands;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Windows;
-using System.Linq;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Events;
 using LarsWM.Domain.Containers.Commands;
@@ -38,15 +37,14 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
       // isn't a container that has focus.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
-      // Whether the focused workspace has siblings other than the target workspace.
-      var focusedHasSiblings = focusedWorkspace.Siblings
-        .Where(sibling => sibling != workspaceToFocus)
-        .Count() > 0;
+      // Whether the currently focused workspace is empty and should be detached. Cannot destroy
+      // empty workspaces if they're the last workspace on the monitor or are pending focus.
+      var shouldDestroyFocusedWorkspace = !focusedWorkspace.HasChildren()
+        && _containerService.PendingFocusContainer != focusedWorkspace
+        && focusedWorkspace.HasSiblings();
 
-      // Destroy the currently focused workspace if it's empty. Cannot destroy empty workspaces
-      // if they're the last workspace on the monitor.
-      // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-      if (!focusedWorkspace.HasChildren() && focusedHasSiblings)
+      if (shouldDestroyFocusedWorkspace)
+        // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
         _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
 
       // Display the containers of the workspace to switch focus to.
@@ -64,16 +62,8 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
         return CommandResponse.Ok;
       }
 
-      // Set focus to the last focused window in workspace (if there is one).
-      if (workspaceToFocus.LastFocusedDescendant != null)
-      {
-        _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
-        return CommandResponse.Ok;
-      }
-
-      // Set focus to an arbitrary window.
-      var arbitraryWindow = workspaceToFocus.Flatten().OfType<Window>().First();
-      _bus.Invoke(new FocusWindowCommand(arbitraryWindow));
+      // Set focus to the last focused window in workspace.
+      _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
 
       return CommandResponse.Ok;
     }
