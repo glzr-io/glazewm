@@ -1,7 +1,5 @@
 ﻿using System.Linq;
 using LarsWM.Domain.Containers;
-using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.Containers.Events;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.Commands;
@@ -32,6 +30,7 @@ namespace LarsWM.Domain.Windows.EventHandlers
       {
         if (pendingFocusContainer is Window)
           _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
+
         else if (pendingFocusContainer is Workspace)
           _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
 
@@ -45,9 +44,7 @@ namespace LarsWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      // Update focused container state.
-      _bus.Invoke(new SetFocusedDescendantCommand(window));
-      _bus.RaiseEvent(new FocusChangedEvent(window));
+      _bus.Invoke(new FocusWindowCommand(window));
     }
   }
 }
