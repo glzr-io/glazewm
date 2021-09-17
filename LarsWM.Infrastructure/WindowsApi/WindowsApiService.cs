@@ -136,6 +136,15 @@ namespace LarsWM.Infrastructure.WindowsApi
     public static IntPtr GetWindowLongPtr(IntPtr hWnd, int index)
       => Environment.Is64BitProcess ? GetWindowLongPtr64(hWnd, index) : GetWindowLongPtr32(hWnd, index);
 
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+    private static extern IntPtr SetWindowLongPtr32(IntPtr hWnd, int index, IntPtr newLong);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+    private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int index, IntPtr newLong);
+
+    public static IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong)
+      => Environment.Is64BitProcess ? SetWindowLongPtr64(hWnd, index, newLong) : SetWindowLongPtr32(hWnd, index, newLong);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SWP uFlags);
 
