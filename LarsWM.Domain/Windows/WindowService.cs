@@ -99,18 +99,6 @@ namespace LarsWM.Domain.Windows
       return (GetWindowStylesEx(handle) & style) != 0;
     }
 
-    private IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
-    {
-      if (Environment.Is64BitProcess)
-      {
-        return GetWindowLongPtr64(hWnd, nIndex);
-      }
-      else
-      {
-        return new IntPtr(GetWindowLong32(hWnd, nIndex));
-      }
-    }
-
     public bool IsHandleCloaked(IntPtr handle)
     {
 
