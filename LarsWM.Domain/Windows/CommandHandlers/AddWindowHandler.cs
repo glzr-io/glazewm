@@ -26,7 +26,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     {
       var window = new Window(command.WindowHandle);
 
-      if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
+      if (!window.IsManageable)
         return CommandResponse.Ok;
 
       var focusedContainer = _containerService.FocusedContainer;
