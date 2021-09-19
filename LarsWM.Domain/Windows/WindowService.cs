@@ -106,9 +106,13 @@ namespace LarsWM.Domain.Windows
       return (GetWindowStylesEx(handle) & style) != 0;
     }
 
+    /// <summary>
+    /// Whether the given handle is cloaked. For some UWP apps, `WS_VISIBLE` will be true even if
+    /// the window isn't actually visible. The `DWMWA_CLOAKED` attribute is used to check whether
+    /// these apps are visible.
+    /// </summary>
     public bool IsHandleCloaked(IntPtr handle)
     {
-
       bool isCloaked;
       DwmGetWindowAttribute(handle, DwmWindowAttribute.DWMWA_CLOAKED, out isCloaked, Marshal.SizeOf(typeof(bool)));
       return isCloaked;
@@ -119,19 +123,25 @@ namespace LarsWM.Domain.Windows
       var isApplicationWindow = IsWindowVisible(window.Hwnd)
           && !window.HasWindowStyle(WS.WS_CHILD) && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE);
 
+      if (!isApplicationWindow)
+        return false;
+
       var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
 
+      if (isCurrentProcess)
+        return false;
+
       var isExcludedClassName = _userConfigService.UserConfig.WindowClassesToIgnore.Contains(window.ClassName);
+
+      if (isExcludedClassName)
+        return false;
+
       var isExcludedProcessName = _userConfigService.UserConfig.ProcessNamesToIgnore.Contains(window.Process.ProcessName);
 
-      var isShellWindow = window.Hwnd == GetShellWindow();
+      if (isExcludedProcessName)
+        return false;
 
-      if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
-      {
-        return true;
-      }
-
-      return false;
+      return true;
     }
 
     // TODO: Merge with IsWindowManageable method.
