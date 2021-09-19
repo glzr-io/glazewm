@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -28,7 +28,7 @@ namespace LarsWM.Domain.Windows
     public IEnumerable<Window> GetWindows()
     {
       return _containerService.ContainerTree.TraverseDownEnumeration()
-          .OfType<Window>();
+        .OfType<Window>();
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace LarsWM.Domain.Windows
     public IEnumerable<Window> GetWindowsOfParentContainer(Container parent)
     {
       return parent.TraverseDownEnumeration()
-          .OfType<Window>();
+        .OfType<Window>();
     }
 
     /// <summary>
@@ -47,27 +47,19 @@ namespace LarsWM.Domain.Windows
     {
       uint processId;
       GetWindowThreadProcessId(handle, out processId);
-
-      try
-      {
-        return Process.GetProcesses().First(process => process.Id == (int)processId);
-      }
-      catch (InvalidOperationException)
-      {
-        return null;
-      }
+      return Process.GetProcesses().FirstOrDefault(process => process.Id == (int)processId);
     }
 
     /// <summary>
-    /// Get the name of the class of the window.
+    /// Get the class name of the specified window.
     /// </summary>
     public string GetClassNameOfHandle(IntPtr handle)
     {
-      var buffer = new StringBuilder(255);
-      GetClassName(handle, buffer, buffer.Capacity + 1);
+      // Class name is limited to 256 characters, so it's fine to use a fixed size buffer.
+      var buffer = new StringBuilder(256);
+      GetClassName(handle, buffer, buffer.Capacity);
       return buffer.ToString();
     }
-
 
     /// <summary>
     /// Get dimensions of the bounding rectangle of the specified window.
@@ -77,6 +69,21 @@ namespace LarsWM.Domain.Windows
       WindowRect rect = new WindowRect();
       GetWindowRect(handle, ref rect);
       return rect;
+    }
+
+    /// <summary>
+    /// Get title bar text of the specified window.
+    /// </summary>
+    public string GetTitleOfHandle(IntPtr handle)
+    {
+      int titleLength = GetWindowTextLength(handle);
+
+      if (titleLength == 0)
+        return String.Empty;
+
+      var buffer = new StringBuilder(titleLength + 1);
+      GetWindowText(handle, buffer, buffer.Capacity);
+      return buffer.ToString();
     }
 
     public WS_EX GetWindowStylesEx(IntPtr handle)
