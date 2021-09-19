@@ -5,6 +5,7 @@ using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
@@ -30,20 +31,18 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(AddInitialWindowsCommand command)
     {
-      EnumWindows((IntPtr hwnd, int lParam) =>
+      var manageableWindows = _windowService.GetAllWindowHandles()
+        .Select(handle => new Window(handle))
+        .Where(window => window.IsManageable);
+
+      foreach (var window in manageableWindows)
       {
-        var window = new Window(hwnd);
-
-        if (!_windowService.IsWindowManageable(window) || !window.CanLayout)
-          return true;
-
-        // Get monitor that encompasses most of window.
-        var targetMonitor = _monitorService.GetMonitorFromUnaddedWindow(window);
+        // Get workspace that encompasses most of the window.
+        var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(window.Hwnd);
+        var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
         _bus.Invoke(new AttachContainerCommand(targetMonitor.DisplayedWorkspace, window));
-
-        return true;
-      }, IntPtr.Zero);
+      }
 
       _bus.Invoke(new RedrawContainersCommand());
 
