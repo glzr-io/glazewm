@@ -14,7 +14,7 @@ namespace LarsWM.Domain.UserConfigs
       "Shell_TrayWnd",
       // Trays on secondary screens.
       "Shell_SecondaryTrayWnd",
-      // ??
+      // Task manager.
       "TaskManagerWindow",
       // Microsoft Text Framework service IME.
       "MSCTFIME UI",
@@ -22,11 +22,11 @@ namespace LarsWM.Domain.UserConfigs
       "SHELLDLL_DefView",
       // Background for lock screen.
       "LockScreenBackstopFrame",
-      // ??
+      // Windows 10 shell.
       "Progman",
       // Windows 7 open Start Menu.
       "DV2ControlHost",
-      // Some Windows 8 thing.
+      // Windows 8 charm bar.
       "Shell_CharmWindow",
 
       /*
@@ -60,7 +60,9 @@ namespace LarsWM.Domain.UserConfigs
 
     public BarConfig Bar { get; set; }
 
-    public List<WorkspaceConfig> Workspaces { get; set; }
+    public List<WorkspaceConfig> Workspaces = new List<WorkspaceConfig>();
+
+    public List<WindowRuleConfig> WindowRules = new List<WindowRuleConfig>();
 
     public List<KeybindingConfig> Keybindings = new List<KeybindingConfig>();
   }
