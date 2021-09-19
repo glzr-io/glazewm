@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using LarsWM.Domain.Common.Enums;
@@ -32,10 +33,9 @@ namespace LarsWM.Domain.Monitors
       return container.TraverseUpEnumeration().OfType<Monitor>().First();
     }
 
-    // TODO: If unreliable, consider using absolute X & Y of window and comparing it with X & Y of monitors.
-    public Monitor GetMonitorFromUnaddedWindow(Window window)
+    public Monitor GetMonitorFromUnmanagedHandle(IntPtr windowHandle)
     {
-      var screen = Screen.FromHandle(window.Hwnd);
+      var screen = Screen.FromHandle(windowHandle);
 
       var matchedMonitor = GetMonitors().FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
 
