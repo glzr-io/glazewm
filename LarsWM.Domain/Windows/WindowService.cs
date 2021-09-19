@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -84,6 +84,19 @@ namespace LarsWM.Domain.Windows
       var buffer = new StringBuilder(titleLength + 1);
       GetWindowText(handle, buffer, buffer.Capacity);
       return buffer.ToString();
+    }
+
+    public List<IntPtr> GetAllWindowHandles()
+    {
+      var windowHandles = new List<IntPtr>();
+
+      EnumWindows((IntPtr hwnd, int lParam) =>
+      {
+        windowHandles.Add(hwnd);
+        return true;
+      }, IntPtr.Zero);
+
+      return windowHandles;
     }
 
     public WS_EX GetWindowStylesEx(IntPtr handle)
