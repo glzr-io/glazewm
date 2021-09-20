@@ -1,6 +1,9 @@
-﻿using LarsWM.Domain.Containers;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
+using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
+using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Infrastructure.Bussing;
@@ -13,13 +16,15 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     private ContainerService _containerService;
     private WindowService _windowService;
     private MonitorService _monitorService;
+    private UserConfigService _userConfigService;
 
-    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService, ContainerService containerService)
+    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService, ContainerService containerService, UserConfigService userConfigService)
     {
       _bus = bus;
       _windowService = windowService;
       _monitorService = monitorService;
       _containerService = containerService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -28,6 +33,11 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       if (!window.IsManageable)
         return CommandResponse.Ok;
+
+      var matchedWindowRules = _userConfigService.UserConfig.WindowRules
+        .Where(rule => rule.ClassNameRegex.IsMatch(window.ClassName))
+        .Where(rule => rule.ProcessNameRegex.IsMatch(window.Process.ProcessName))
+        .Where(rule => rule.TitleRegex.IsMatch(window.Title));
 
       var focusedContainer = _containerService.FocusedContainer;
 
