@@ -41,6 +41,8 @@ namespace LarsWM.Domain.Windows
 
     public WindowRect Location => _windowService.GetLocationOfHandle(Hwnd);
 
+    public string Title => _windowService.GetTitleOfHandle(Hwnd);
+
     public bool IsManageable => _windowService.IsWindowManageable(this);
 
     public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
