@@ -51,8 +51,13 @@ namespace LarsWM.Domain.UserConfigs.CommandHandlers
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
 
+      // Register keybindings and mod key.
       _keybindingService.SetModKey(deserializedConfig.ModKey);
       _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
+
+      // Merge default window rules with user-defined rules.
+      var defaultWindowRules = _userConfigService.DefaultWindowRules;
+      deserializedConfig.WindowRules.InsertRange(0, defaultWindowRules);
 
       _userConfigService.UserConfig = deserializedConfig;
 
