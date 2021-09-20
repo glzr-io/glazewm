@@ -154,16 +154,6 @@ namespace LarsWM.Domain.Windows
       if (isCurrentProcess)
         return false;
 
-      var isExcludedClassName = _userConfigService.UserConfig.WindowClassesToIgnore.Contains(window.ClassName);
-
-      if (isExcludedClassName)
-        return false;
-
-      var isExcludedProcessName = _userConfigService.UserConfig.ProcessNamesToIgnore.Contains(window.Process.ProcessName);
-
-      if (isExcludedProcessName)
-        return false;
-
       return true;
     }
   }
