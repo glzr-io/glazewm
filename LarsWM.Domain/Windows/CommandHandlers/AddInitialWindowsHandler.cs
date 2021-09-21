@@ -3,10 +3,8 @@ using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Infrastructure.Bussing;
-using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
-using static LarsWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace LarsWM.Domain.Windows.CommandHandlers
 {
@@ -37,6 +35,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
       foreach (var window in manageableWindows)
       {
+        var matchingWindowRules = GetMatchingWindowRules(window);
+
         // Get workspace that encompasses most of the window.
         var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(window.Hwnd);
         var targetWorkspace = targetMonitor.DisplayedWorkspace;
@@ -47,6 +47,25 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
+    }
+
+    private List<WindowRuleConfig> GetMatchingWindowRules(Window window)
+    {
+      return _userConfigService.UserConfig.WindowRules
+        .Where(rule =>
+        {
+          if (rule.ProcessNameRegex != null && !rule.ProcessNameRegex.IsMatch(window.Process.ProcessName))
+            return false;
+
+          if (rule.ClassNameRegex != null && !rule.ClassNameRegex.IsMatch(window.ClassName))
+            return false;
+
+          if (rule.TitleRegex != null && !rule.TitleRegex.IsMatch(window.Title))
+            return false;
+
+          return true;
+        })
+        .ToList();
     }
   }
 }
