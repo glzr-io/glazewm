@@ -14,17 +14,19 @@ namespace LarsWM.Domain.Windows.CommandHandlers
     private UserConfigService _userConfigService;
     private MonitorService _monitorService;
     private WindowService _windowService;
+    private CommandParsingService _commandParsingService;
 
     public AddInitialWindowsHandler(
         Bus bus,
         UserConfigService userConfigService,
         MonitorService monitorService,
-        WindowService windowService)
+        WindowService windowService, CommandParsingService commandParsingService)
     {
       _bus = bus;
       _userConfigService = userConfigService;
       _monitorService = monitorService;
       _windowService = windowService;
+      _commandParsingService = commandParsingService;
     }
 
     public CommandResponse Handle(AddInitialWindowsCommand command)
@@ -36,6 +38,13 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       foreach (var window in manageableWindows)
       {
         var matchingWindowRules = GetMatchingWindowRules(window);
+
+        var commandStrings = matchingWindowRules
+          .SelectMany(rule => rule.CommandStrings)
+          .Select(commandString => _commandParsingService.FormatCommand(commandString));
+
+        if (commandStrings.Contains("ignore"))
+          continue;
 
         // Get workspace that encompasses most of the window.
         var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(window.Hwnd);
