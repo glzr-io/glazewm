@@ -1,43 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using LarsWM.Domain.Common.Enums;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
 using LarsWM.Domain.Workspaces.Commands;
-using LarsWM.Infrastructure;
 using LarsWM.Infrastructure.Bussing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LarsWM.Domain.UserConfigs
 {
-  public class CommandStringParser
+  public class CommandParsingService
   {
-    private List<string> _commandStrings = new List<string>();
+    private WorkspaceService _workspaceService;
 
-    private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
-
-    public bool HasConflict()
+    public CommandParsingService(WorkspaceService workspaceService)
     {
-      // TODO: Check whether added commands have conflicts.
-      return false;
+      _workspaceService = workspaceService;
     }
 
-    public void AddCommandStrings(List<string> commandStrings)
+    public string FormatCommand(string commandString)
     {
-      _commandStrings.InsertRange(0, commandStrings);
-    }
-
-    private string FormatCommandName(string commandName)
-    {
-      var formattedCommandString = commandName.Trim().ToLowerInvariant();
+      var formattedCommandString = commandString.Trim().ToLowerInvariant();
       return Regex.Replace(formattedCommandString, @"\s+", " ");
     }
 
-    private Command ParseCommand(string commandName)
+    public Command ParseCommand(string commandString)
     {
-      var commandParts = commandName.Split(" ");
+      var commandParts = commandString.Split(" ");
 
       return commandParts[0] switch
       {
