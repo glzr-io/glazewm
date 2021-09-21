@@ -56,7 +56,7 @@ namespace LarsWM.Domain.UserConfigs
         var windowRule = new WindowRuleConfig()
         {
           MatchClassName = className,
-          Action = "ignore",
+          Command = "ignore",
         };
 
         windowRules.Add(windowRule);
@@ -75,7 +75,7 @@ namespace LarsWM.Domain.UserConfigs
         var windowRule = new WindowRuleConfig()
         {
           MatchProcessName = processName,
-          Action = "ignore",
+          Command = "ignore",
         };
 
         windowRules.Add(windowRule);

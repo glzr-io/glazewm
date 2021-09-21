@@ -18,9 +18,12 @@ namespace LarsWM.Domain.UserConfigs
 
     public Regex TitleRegex => CreateRegex(MatchTitle);
 
-    public string Action { get; set; } = null;
+    public string Command { get; set; } = null;
 
-    public List<string> Actions { get; set; } = new List<string>();
+    public List<string> Commands { get; set; } = new List<string>();
+
+    public List<string> CommandStrings =>
+      Command != null ? new List<string> { Command } : Commands;
 
     /// <summary>
     /// Creates an exact match regex for the given string.
