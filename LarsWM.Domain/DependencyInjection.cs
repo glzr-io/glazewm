@@ -28,6 +28,7 @@ namespace LarsWM.Domain
     {
       services.AddSingleton<ContainerService>();
       services.AddSingleton<MonitorService>();
+      services.AddSingleton<CommandParsingService>();
       services.AddSingleton<UserConfigService>();
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
