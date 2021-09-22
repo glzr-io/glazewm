@@ -1,5 +1,6 @@
 ﻿using LarsWM.Bar;
 using LarsWM.Domain.Containers;
+using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.Commands;
 using LarsWM.Domain.UserConfigs.Commands;
@@ -54,6 +55,7 @@ namespace LarsWM.Bootstrapper
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
 
+      // Listen for window events (eg. close, focus).
       _windowEventService.Start();
     }
 
@@ -65,12 +67,22 @@ namespace LarsWM.Bootstrapper
       // Read user config file and set its values in state.
       _bus.Invoke(new EvaluateUserConfigCommand());
 
-      // Create a Monitor and consequently a Workspace for each detected Screen.
+      // Create a Monitor and consequently a Workspace for each detected Screen. `AllScreens` is an
+      // abstraction over `EnumDisplayMonitors` native method.
       foreach (var screen in Screen.AllScreens)
         _bus.Invoke(new AddMonitorCommand(screen));
 
-      // Add initial windows to tree.
-      _bus.Invoke(new AddInitialWindowsCommand());
+      // Add initial windows to the tree.
+      foreach (var windowHandle in _windowService.GetAllWindowHandles())
+      {
+        // Get workspace that encompasses most of the window.
+        var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(windowHandle);
+        var targetWorkspace = targetMonitor.DisplayedWorkspace;
+
+        _bus.Invoke(new AddWindowCommand(windowHandle, targetWorkspace, false));
+      }
+
+      _bus.Invoke(new RedrawContainersCommand());
 
       // `GetForegroundWindow` might return a handle that is not in tree. In that case, set
       // focus to an arbitrary window. If there are no manageable windows in the tree, set focus
