@@ -32,7 +32,10 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       // Set as foreground window if it's not already set. This will trigger `EVENT_SYSTEM_FOREGROUND`
       // window event and its handler.
       if (window.Hwnd != GetForegroundWindow())
+      {
+        KeybdEvent(0, 0, 0, 0);
         SetForegroundWindow(window.Hwnd);
+      }
 
       return CommandResponse.Ok;
     }

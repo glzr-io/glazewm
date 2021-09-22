@@ -57,6 +57,7 @@ namespace LarsWM.Domain.Workspaces.CommandHandlers
         _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
 
         // Remove focus from whichever window currently has focus.
+        KeybdEvent(0, 0, 0, 0);
         SetForegroundWindow(GetDesktopWindow());
 
         return CommandResponse.Ok;
