@@ -2,7 +2,6 @@
 using System.Linq;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
-using LarsWM.Domain.Monitors;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.Windows.Commands;
 using LarsWM.Domain.Workspaces;
@@ -14,16 +13,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
   {
     private Bus _bus;
     private ContainerService _containerService;
-    private WindowService _windowService;
-    private MonitorService _monitorService;
     private UserConfigService _userConfigService;
     private CommandParsingService _commandParsingService;
 
-    public AddWindowHandler(Bus bus, WindowService windowService, MonitorService monitorService, ContainerService containerService, UserConfigService userConfigService, CommandParsingService commandParsingService)
+    public AddWindowHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService, CommandParsingService commandParsingService)
     {
       _bus = bus;
-      _windowService = windowService;
-      _monitorService = monitorService;
       _containerService = containerService;
       _userConfigService = userConfigService;
       _commandParsingService = commandParsingService;
@@ -43,7 +38,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var matchingWindowRules = GetMatchingWindowRules(window);
 
       var commandStrings = matchingWindowRules
-        .SelectMany(rule => rule.CommandStrings)
+        .SelectMany(rule => rule.CommandList)
         .Select(commandString => _commandParsingService.FormatCommand(commandString));
 
       // Avoid managing a window if a window rule uses 'ignore' command.
@@ -60,7 +55,8 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString));
 
-      // Invoke commands in the matching window rules.
+      // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type
+      // at runtime and allow multiple dispatch.
       foreach (var parsedCommand in parsedCommands)
         _bus.Invoke((dynamic)parsedCommand);
 

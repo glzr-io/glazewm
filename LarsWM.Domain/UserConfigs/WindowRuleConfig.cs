@@ -22,7 +22,7 @@ namespace LarsWM.Domain.UserConfigs
 
     public List<string> Commands { get; set; } = new List<string>();
 
-    public List<string> CommandStrings =>
+    public List<string> CommandList =>
       Command != null ? new List<string> { Command } : Commands;
 
     /// <summary>
