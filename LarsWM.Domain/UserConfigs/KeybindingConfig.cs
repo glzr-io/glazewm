@@ -1,13 +1,21 @@
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace LarsWM.Domain.UserConfigs
 {
   public class KeybindingConfig
   {
-    [Required]
-    public string Command { get; set; }
-    [Required]
+    public string Binding { get; set; }
+
     public List<string> Bindings { get; set; }
+
+    public List<string> BindingList =>
+      Binding != null ? new List<string> { Binding } : Bindings;
+
+    public string Command { get; set; }
+
+    public List<string> Commands { get; set; }
+
+    public List<string> CommandList =>
+      Command != null ? new List<string> { Command } : Commands;
   }
 }
