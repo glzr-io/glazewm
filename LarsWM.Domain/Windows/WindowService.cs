@@ -28,7 +28,7 @@ namespace LarsWM.Domain.Windows
     public IEnumerable<Window> GetWindows()
     {
       return _containerService.ContainerTree.TraverseDownEnumeration()
-          .OfType<Window>();
+        .OfType<Window>();
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace LarsWM.Domain.Windows
     public IEnumerable<Window> GetWindowsOfParentContainer(Container parent)
     {
       return parent.TraverseDownEnumeration()
-          .OfType<Window>();
+        .OfType<Window>();
     }
 
     /// <summary>
@@ -47,27 +47,19 @@ namespace LarsWM.Domain.Windows
     {
       uint processId;
       GetWindowThreadProcessId(handle, out processId);
-
-      try
-      {
-        return Process.GetProcesses().First(process => process.Id == (int)processId);
-      }
-      catch (InvalidOperationException)
-      {
-        return null;
-      }
+      return Process.GetProcesses().FirstOrDefault(process => process.Id == (int)processId);
     }
 
     /// <summary>
-    /// Get the name of the class of the window.
+    /// Get the class name of the specified window.
     /// </summary>
     public string GetClassNameOfHandle(IntPtr handle)
     {
-      var buffer = new StringBuilder(255);
-      GetClassName(handle, buffer, buffer.Capacity + 1);
+      // Class name is limited to 256 characters, so it's fine to use a fixed size buffer.
+      var buffer = new StringBuilder(256);
+      GetClassName(handle, buffer, buffer.Capacity);
       return buffer.ToString();
     }
-
 
     /// <summary>
     /// Get dimensions of the bounding rectangle of the specified window.
@@ -77,6 +69,34 @@ namespace LarsWM.Domain.Windows
       WindowRect rect = new WindowRect();
       GetWindowRect(handle, ref rect);
       return rect;
+    }
+
+    /// <summary>
+    /// Get title bar text of the specified window.
+    /// </summary>
+    public string GetTitleOfHandle(IntPtr handle)
+    {
+      int titleLength = GetWindowTextLength(handle);
+
+      if (titleLength == 0)
+        return String.Empty;
+
+      var buffer = new StringBuilder(titleLength + 1);
+      GetWindowText(handle, buffer, buffer.Capacity);
+      return buffer.ToString();
+    }
+
+    public List<IntPtr> GetAllWindowHandles()
+    {
+      var windowHandles = new List<IntPtr>();
+
+      EnumWindows((IntPtr hwnd, int lParam) =>
+      {
+        windowHandles.Add(hwnd);
+        return true;
+      }, IntPtr.Zero);
+
+      return windowHandles;
     }
 
     public WS_EX GetWindowStylesEx(IntPtr handle)
@@ -99,9 +119,13 @@ namespace LarsWM.Domain.Windows
       return (GetWindowStylesEx(handle) & style) != 0;
     }
 
+    /// <summary>
+    /// Whether the given handle is cloaked. For some UWP apps, `WS_VISIBLE` will be true even if
+    /// the window isn't actually visible. The `DWMWA_CLOAKED` attribute is used to check whether
+    /// these apps are visible.
+    /// </summary>
     public bool IsHandleCloaked(IntPtr handle)
     {
-
       bool isCloaked;
       DwmGetWindowAttribute(handle, DwmWindowAttribute.DWMWA_CLOAKED, out isCloaked, Marshal.SizeOf(typeof(bool)));
       return isCloaked;
@@ -109,33 +133,26 @@ namespace LarsWM.Domain.Windows
 
     public bool IsWindowManageable(Window window)
     {
-      var isApplicationWindow = IsWindowVisible(window.Hwnd)
-          && !window.HasWindowStyle(WS.WS_CHILD) && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE);
+      // Get whether window is actually visible.
+      var isVisible = IsWindowVisible(window.Hwnd) && !IsHandleCloaked(window.Hwnd);
 
+      if (!isVisible)
+        return false;
+
+      // Ensure window is top-level (ie. not a child window). Ignore windows that are probably
+      // popups or if they're unavailable in task switcher (alt+tab menu).
+      var isApplicationWindow = !window.HasWindowStyle(WS.WS_CHILD)
+        && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW)
+        && GetWindow(window.Hwnd, GW.GW_OWNER) == IntPtr.Zero;
+
+      if (!isApplicationWindow)
+        return false;
+
+      // Get whether the window belongs to the current process.
       var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
 
-      var isExcludedClassName = _userConfigService.UserConfig.WindowClassesToIgnore.Contains(window.ClassName);
-      var isExcludedProcessName = _userConfigService.UserConfig.ProcessNamesToIgnore.Contains(window.Process.ProcessName);
-
-      var isShellWindow = window.Hwnd == GetShellWindow();
-
-      if (isApplicationWindow && !isCurrentProcess && !isExcludedClassName && !isExcludedProcessName && !isShellWindow)
-      {
-        return true;
-      }
-
-      return false;
-    }
-
-    // TODO: Merge with IsWindowManageable method.
-    public bool IsHandleManageable(IntPtr handle)
-    {
-
-      if (HandleHasWindowExStyle(handle, WS_EX.WS_EX_TOOLWINDOW) ||
-          GetWindow(handle, GW.GW_OWNER) != IntPtr.Zero)
-      {
+      if (isCurrentProcess)
         return false;
-      }
 
       return true;
     }
