@@ -268,6 +268,8 @@ namespace LarsWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern short GetKeyState(Keys nVirtKey);
 
+    [DllImport("user32.dll", EntryPoint = "keybd_event")]
+    public static extern void KeybdEvent(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
 
     [DllImport("User32.dll")]
     public static extern short GetAsyncKeyState(Keys key);
