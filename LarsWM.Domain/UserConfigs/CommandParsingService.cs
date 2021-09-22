@@ -57,7 +57,7 @@ namespace LarsWM.Domain.UserConfigs
         "right" => new FocusInDirectionCommand(Direction.RIGHT),
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
-        "workspace" => new FocusWorkspaceCommand(GetValidWorkspaceName(commandParts[2])),
+        "workspace" => new FocusWorkspaceCommand(ValidateWorkspaceName(commandParts[2])),
         _ => throw new ArgumentException(),
       };
     }
@@ -70,7 +70,7 @@ namespace LarsWM.Domain.UserConfigs
         "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
-        "to" => new MoveFocusedWindowToWorkspaceCommand(GetValidWorkspaceName(commandParts[3])),
+        "to" => new MoveFocusedWindowToWorkspaceCommand(ValidateWorkspaceName(commandParts[3])),
         _ => throw new ArgumentException(),
       };
     }
@@ -95,9 +95,14 @@ namespace LarsWM.Domain.UserConfigs
       };
     }
 
-    private string GetValidWorkspaceName(string workspaceName)
+    /// <summary>
+    /// Checks whether a workspace exists with the given name.
+    /// </summary>
+    /// <returns>The workspace name if valid.</returns>
+    private string ValidateWorkspaceName(string workspaceName)
     {
-      var workspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName);
+      var workspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName)
+        ?? _workspaceService.GetActiveWorkspaceByName(workspaceName);
 
       if (workspace == null)
         throw new ArgumentException();
