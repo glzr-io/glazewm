@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using LarsWM.Domain.Containers;
@@ -43,6 +43,7 @@ namespace LarsWM.Domain.Windows.CommandHandlers
         .SelectMany(rule => rule.CommandStrings)
         .Select(commandString => _commandParsingService.FormatCommand(commandString));
 
+      // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
 
@@ -58,10 +59,16 @@ namespace LarsWM.Domain.Windows.CommandHandlers
           focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
         ));
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       // Set focus to newly added window in case it has not been focused automatically.
       _bus.Invoke(new FocusWindowCommand(window));
+
+      var parsedCommands = commandStrings
+        .Select(commandString => _commandParsingService.ParseCommand(commandString));
+
+      foreach (var parsedCommand in parsedCommands)
+        _bus.Invoke((dynamic)parsedCommand);
+
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
