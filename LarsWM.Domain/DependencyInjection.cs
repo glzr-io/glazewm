@@ -4,8 +4,6 @@ using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
 using LarsWM.Domain.Monitors.CommandHandlers;
 using LarsWM.Domain.Monitors.Commands;
-using LarsWM.Domain.Monitors.EventHandler;
-using LarsWM.Domain.Monitors.Events;
 using LarsWM.Domain.UserConfigs;
 using LarsWM.Domain.UserConfigs.CommandHandlers;
 using LarsWM.Domain.UserConfigs.Commands;
@@ -58,7 +56,6 @@ namespace LarsWM.Domain
       services.AddTransient<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
 
-      services.AddTransient<IEventHandler<MonitorAddedEvent>, MonitorAddedHandler>();
       services.AddTransient<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
       services.AddTransient<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
       services.AddTransient<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
