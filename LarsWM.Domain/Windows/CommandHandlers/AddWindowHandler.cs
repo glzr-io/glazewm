@@ -1,6 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using LarsWM.Domain.Containers;
 using LarsWM.Domain.Containers.Commands;
 using LarsWM.Domain.Monitors;
@@ -32,6 +31,10 @@ namespace LarsWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(AddWindowCommand command)
     {
+      var windowHandle = command.WindowHandle;
+      var targetParent = command.TargetParent;
+      var shouldRedraw = command.ShouldRedraw;
+
       var window = new Window(command.WindowHandle);
 
       if (!window.IsManageable)
@@ -47,17 +50,9 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
 
-      var focusedContainer = _containerService.FocusedContainer;
-
-      // If the focused container is a workspace, attach the window as a child of the workspace.
-      if (focusedContainer is Workspace)
-        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
-
-      // Attach the window as a sibling next to the focused window.
-      else
-        _bus.Invoke(new AttachContainerCommand(
-          focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
-        ));
+      // Attach the new window as a child to the target parent (if provided), otherwise, add as a
+      // sibling of the focused container.
+      AttachChildWindow(window, targetParent);
 
       // Set focus to newly added window in case it has not been focused automatically.
       _bus.Invoke(new FocusWindowCommand(window));
@@ -65,10 +60,12 @@ namespace LarsWM.Domain.Windows.CommandHandlers
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString));
 
+      // Invoke commands in the matching window rules.
       foreach (var parsedCommand in parsedCommands)
         _bus.Invoke((dynamic)parsedCommand);
 
-      _bus.Invoke(new RedrawContainersCommand());
+      if (shouldRedraw)
+        _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
@@ -90,6 +87,29 @@ namespace LarsWM.Domain.Windows.CommandHandlers
           return true;
         })
         .ToList();
+    }
+
+    private void AttachChildWindow(Window window, SplitContainer targetParent)
+    {
+      if (targetParent != null)
+      {
+        _bus.Invoke(new AttachContainerCommand(targetParent, window));
+        return;
+      }
+
+      var focusedContainer = _containerService.FocusedContainer;
+
+      // If the focused container is a workspace, attach the window as a child of the workspace.
+      if (focusedContainer is Workspace)
+      {
+        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
+        return;
+      }
+
+      // Attach the window as a sibling next to the focused window.
+      _bus.Invoke(new AttachContainerCommand(
+        focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
+      ));
     }
   }
 }
