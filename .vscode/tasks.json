@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/LarsWM.Bootstrapper/LarsWM.Bootstrapper.csproj",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/LarsWM.Bootstrapper/LarsWM.Bootstrapper.csproj",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
@@ -33,7 +33,7 @@
       "args": [
         "watch",
         "run",
-        "${workspaceFolder}/LarsWM.Bootstrapper/LarsWM.Bootstrapper.csproj",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
