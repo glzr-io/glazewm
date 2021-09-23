@@ -37,18 +37,18 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // isn't a container that has focus.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
+      // Display the containers of the workspace to switch focus to.
+      _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
+
       // Whether the currently focused workspace is empty and should be detached. Cannot destroy
       // empty workspaces if they're the last workspace on the monitor or are pending focus.
       var shouldDestroyFocusedWorkspace = !focusedWorkspace.HasChildren()
         && _containerService.PendingFocusContainer != focusedWorkspace
-        && focusedWorkspace.HasSiblings();
+        && !focusedWorkspace.IsDisplayed;
 
       if (shouldDestroyFocusedWorkspace)
         // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
         _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
-
-      // Display the containers of the workspace to switch focus to.
-      _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())

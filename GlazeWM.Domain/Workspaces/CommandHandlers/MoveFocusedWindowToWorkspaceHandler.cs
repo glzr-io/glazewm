@@ -4,7 +4,6 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Containers.Events;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
@@ -34,32 +33,24 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
         return CommandResponse.Ok;
 
-      var currentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
+      var currentWorkspace = _workspaceService.GetFocusedWorkspace();
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName);
 
       var insertionTarget = targetWorkspace.LastFocusedDescendant;
 
+      // Insert the focused window into the target workspace.
       if (insertionTarget == null)
         _bus.Invoke(new AttachContainerCommand(targetWorkspace, focusedWindow));
       else
         _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, focusedWindow, insertionTarget.Index + 1));
 
+      // Reassign focus to descendant within the current workspace.
+      _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
+
       _containerService.SplitContainersToRedraw.Add(currentWorkspace);
-
-      // Whether the current workspace is the only workspace on the monitor.
-      var isOnlyWorkspace = currentWorkspace.Parent.Children.Count == 1
-        && targetWorkspace.Parent != currentWorkspace.Parent;
-
-      // Destroy the current workspace if it's empty.
-      // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-      if (currentWorkspace != null && !currentWorkspace.HasChildren() && !isOnlyWorkspace)
-        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(currentWorkspace));
-
-      // Display the containers of the workspace to switch focus to.
-      _bus.Invoke(new DisplayWorkspaceCommand(targetWorkspace));
+      _containerService.SplitContainersToRedraw.Add(targetWorkspace);
       _bus.Invoke(new RedrawContainersCommand());
-      _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
 
       return CommandResponse.Ok;
     }
