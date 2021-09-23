@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,6 @@ namespace GlazeWM.Domain.Windows
   {
     public Guid Id = Guid.NewGuid();
     public IntPtr Hwnd { get; }
-    public bool IsHidden { get; set; } = false;
 
     /// <summary>
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
@@ -20,12 +20,18 @@ namespace GlazeWM.Domain.Windows
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
+    private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public Window(IntPtr hwnd)
     {
       Hwnd = hwnd;
     }
+
+    /// <summary>
+    /// Windows are hidden if their parent workspace is not displayed.
+    /// </summary>
+    public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
 

@@ -1,8 +1,6 @@
-﻿using System.Linq;
-using GlazeWM.Domain.Containers;
+﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -28,7 +26,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
       var currentWorkspace = monitor.DisplayedWorkspace;
 
-      // If DisplayedWorkspace is unassigned, there is no need to show/hide windows.
+      // If `DisplayedWorkspace` is unassigned (ie. on startup), there is no need to show/hide
+      // any windows.
       if (currentWorkspace == null)
       {
         monitor.DisplayedWorkspace = workspaceToDisplay;
@@ -37,22 +36,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       if (currentWorkspace == workspaceToDisplay)
         return CommandResponse.Ok;
-
-      var windowsToHide = currentWorkspace.Children
-          .SelectMany(container => container.Flatten())
-          .OfType<Window>()
-          .ToList();
-
-      foreach (var window in windowsToHide)
-        window.IsHidden = true;
-
-      var windowsToShow = workspaceToDisplay.Children
-          .SelectMany(container => container.Flatten())
-          .OfType<Window>()
-          .ToList();
-
-      foreach (var window in windowsToShow)
-        window.IsHidden = false;
 
       monitor.DisplayedWorkspace = command.Workspace;
 
