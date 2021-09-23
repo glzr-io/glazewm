@@ -15,7 +15,7 @@
   Height="50"
   Topmost="True">
   <DockPanel Margin="10">
-    <ItemsControl x:Name="WorkspaceItems">
+    <ItemsControl ItemsSource="{Binding Workspaces}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
           <UniformGrid
