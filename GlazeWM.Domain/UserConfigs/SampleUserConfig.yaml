@@ -95,29 +95,29 @@ Keybindings:
   - Command: "focus workspace 9"
     Bindings: ["$mod+9"]
 
-  - Command: "move to workspace 1"
-    Bindings: ["$mod+Shift+1"]
+  - Commands: ["move to workspace 1", "focus workspace 1"]
+    Binding: "$mod+Shift+1"
 
-  - Command: "move to workspace 2"
-    Bindings: ["$mod+Shift+2"]
+  - Commands: ["move to workspace 2", "focus workspace 2"]
+    Binding: "$mod+Shift+2"
 
-  - Command: "move to workspace 3"
-    Bindings: ["$mod+Shift+3"]
+  - Commands: ["move to workspace 3", "focus workspace 3"]
+    Binding: "$mod+Shift+3"
 
-  - Command: "move to workspace 4"
-    Bindings: ["$mod+Shift+4"]
+  - Commands: ["move to workspace 4", "focus workspace 4"]
+    Binding: "$mod+Shift+4"
 
-  - Command: "move to workspace 5"
-    Bindings: ["$mod+Shift+5"]
+  - Commands: ["move to workspace 5", "focus workspace 5"]
+    Binding: "$mod+Shift+5"
 
-  - Command: "move to workspace 6"
-    Bindings: ["$mod+Shift+6"]
+  - Commands: ["move to workspace 6", "focus workspace 6"]
+    Binding: "$mod+Shift+6"
 
-  - Command: "move to workspace 7"
-    Bindings: ["$mod+Shift+7"]
+  - Commands: ["move to workspace 7", "focus workspace 7"]
+    Binding: "$mod+Shift+7"
 
-  - Command: "move to workspace 8"
-    Bindings: ["$mod+Shift+8"]
+  - Commands: ["move to workspace 8", "focus workspace 8"]
+    Binding: "$mod+Shift+8"
 
-  - Command: "move to workspace 9"
+  - Commands: ["move to workspace 9", "focus workspace 9"]
     Bindings: ["$mod+Shift+9"]
