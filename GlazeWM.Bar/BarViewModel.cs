@@ -11,6 +11,7 @@ namespace GlazeWM.Bar
   public class BarViewModel : INotifyPropertyChanged
   {
     public event PropertyChangedEventHandler PropertyChanged;
+    public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -22,17 +23,6 @@ namespace GlazeWM.Bar
       _barConfig = barConfig;
     }
 
-    private ObservableCollection<Workspace> _workspaces = new ObservableCollection<Workspace>();
-    public ObservableCollection<Workspace> Workspaces
-    {
-      get { return _workspaces; }
-      set
-      {
-        _workspaces = value;
-        OnPropertyChanged("Workspaces");
-      }
-    }
-
     public void SetWorkspaces()
     {
       _dispatcher.Invoke(() =>
@@ -41,8 +31,6 @@ namespace GlazeWM.Bar
 
         foreach (var workspace in _monitor.Children)
           Workspaces.Add(workspace as Workspace);
-
-        OnPropertyChanged("Workspaces");
       });
     }
 
