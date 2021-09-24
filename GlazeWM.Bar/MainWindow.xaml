@@ -8,7 +8,7 @@
   mc:Ignorable="d"
   WindowStyle="None"
   ResizeMode="NoResize"
-  Background="#101010"
+  Background="{Binding Background}"
   Title="GlazeWMBar"
   ShowInTaskbar="False"
   Width="800"

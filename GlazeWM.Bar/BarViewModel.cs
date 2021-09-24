@@ -12,6 +12,7 @@ namespace GlazeWM.Bar
   {
     public event PropertyChangedEventHandler PropertyChanged;
     public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
+    public string Background { get; set; }
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -21,6 +22,12 @@ namespace GlazeWM.Bar
       _dispatcher = dispatcher;
       _monitor = monitor;
       _barConfig = barConfig;
+    }
+
+    public void InitializeState()
+    {
+      Background = _barConfig.Background;
+      SetWorkspaces();
     }
 
     public void SetWorkspaces()

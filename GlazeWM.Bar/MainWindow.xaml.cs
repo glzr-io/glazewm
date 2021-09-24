@@ -38,7 +38,7 @@ namespace GlazeWM.Bar
 
       var barConfig = _userConfigService.UserConfig.Bar;
       var viewModel = new BarViewModel(Dispatcher, monitor, barConfig);
-      viewModel.SetWorkspaces();
+      viewModel.InitializeState();
       DataContext = viewModel;
 
       var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
