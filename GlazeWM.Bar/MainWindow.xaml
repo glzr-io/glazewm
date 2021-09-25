@@ -16,50 +16,54 @@
   FontFamily="{Binding FontFamily}"
   FontSize="{Binding FontSize}"
   Topmost="True">
-  <DockPanel Margin="10">
-    <ItemsControl ItemsSource="{Binding Workspaces}">
-      <ItemsControl.ItemsPanel>
-        <ItemsPanelTemplate>
-          <UniformGrid
-            Columns="10"
-            HorizontalAlignment="Left"
-            IsItemsHost="True" />
-        </ItemsPanelTemplate>
-      </ItemsControl.ItemsPanel>
+  <Border
+    BorderThickness="{Binding BorderWidth}"
+    BorderBrush="{Binding BorderColor}">
+    <DockPanel Margin="10">
+      <ItemsControl ItemsSource="{Binding Workspaces}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid
+              Columns="10"
+              HorizontalAlignment="Left"
+              IsItemsHost="True" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
 
-      <ItemsControl.ItemTemplate>
-        <DataTemplate>
-          <Button
-            x:Name="WorkspaceButton"
-            Click="OnWorkspaceButtonClick"
-            Content="{Binding Name}"
-            Background="#242424"
-            Foreground="White"
-            BorderBrush="Transparent"
-            BorderThickness="0"
-            MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
-            MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Button
+              x:Name="WorkspaceButton"
+              Click="OnWorkspaceButtonClick"
+              Content="{Binding Name}"
+              Background="#242424"
+              Foreground="White"
+              BorderBrush="Transparent"
+              BorderThickness="0"
+              MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
+              MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
 
-          <DataTemplate.Triggers>
-            <DataTrigger
-              Binding="{Binding IsDisplayed}"
-              Value="True">
-              <Setter
-                TargetName="WorkspaceButton"
-                Property="Background"
-                Value="#42403e" />
-            </DataTrigger>
-            <DataTrigger
-              Binding="{Binding HasFocus}"
-              Value="True">
-              <Setter
-                TargetName="WorkspaceButton"
-                Property="Background"
-                Value="Orange" />
-            </DataTrigger>
-          </DataTemplate.Triggers>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-  </DockPanel>
+            <DataTemplate.Triggers>
+              <DataTrigger
+                Binding="{Binding IsDisplayed}"
+                Value="True">
+                <Setter
+                  TargetName="WorkspaceButton"
+                  Property="Background"
+                  Value="#42403e" />
+              </DataTrigger>
+              <DataTrigger
+                Binding="{Binding HasFocus}"
+                Value="True">
+                <Setter
+                  TargetName="WorkspaceButton"
+                  Property="Background"
+                  Value="Orange" />
+              </DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </DockPanel>
+  </Border>
 </Window>

@@ -47,7 +47,7 @@ namespace GlazeWM.Bar
 
       // Refresh contents of items source.
       Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
-        .Subscribe(_observer => viewModel.SetWorkspaces());
+        .Subscribe(_observer => viewModel.UpdateWorkspaces());
     }
 
     private void MainWindow_SourceInitialized(object sender, EventArgs e)

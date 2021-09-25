@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Threading;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -15,6 +16,8 @@ namespace GlazeWM.Bar
     public string Background { get; set; }
     public string FontFamily { get; set; }
     public string FontSize { get; set; }
+    public string BorderColor { get; set; }
+    public string BorderWidth { get; set; }
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -31,10 +34,13 @@ namespace GlazeWM.Bar
       Background = _barConfig.Background;
       FontFamily = _barConfig.FontFamily;
       FontSize = _barConfig.FontSize;
-      SetWorkspaces();
+      BorderColor = _barConfig.BorderColor;
+      BorderWidth = _barConfig.BorderWidth;
+
+      UpdateWorkspaces();
     }
 
-    public void SetWorkspaces()
+    public void UpdateWorkspaces()
     {
       _dispatcher.Invoke(() =>
       {
