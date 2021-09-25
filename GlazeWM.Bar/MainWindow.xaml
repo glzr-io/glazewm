@@ -13,6 +13,8 @@
   ShowInTaskbar="False"
   Width="800"
   Height="50"
+  FontFamily="{Binding FontFamily}"
+  FontSize="{Binding FontSize}"
   Topmost="True">
   <DockPanel Margin="10">
     <ItemsControl ItemsSource="{Binding Workspaces}">
