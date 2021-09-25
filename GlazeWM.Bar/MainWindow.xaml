@@ -19,7 +19,7 @@
   <Border
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
-    <DockPanel Margin="10">
+    <DockPanel Margin="{Binding Padding}">
       <ItemsControl ItemsSource="{Binding Workspaces}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -58,7 +58,7 @@
                 <Setter
                   TargetName="WorkspaceButton"
                   Property="Background"
-                  Value="Orange" />
+                  Value="#8192B3" />
               </DataTrigger>
             </DataTemplate.Triggers>
           </DataTemplate>

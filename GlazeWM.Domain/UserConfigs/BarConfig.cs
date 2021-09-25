@@ -2,7 +2,7 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
-    public int Height { get; set; } = 50;
+    public int Height { get; set; } = 25;
     public string Background { get; set; } = "#101010";
     public string FontFamily { get; set; } = "Segoe UI";
     public string FontSize { get; set; } = "12";
@@ -14,5 +14,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// order.
     /// </summary>
     public string BorderWidth { get; set; } = "0 0 0 0";
+
+    /// <summary>
+    /// Padding in pixels.
+    /// </summary>
+    public string Padding { get; set; } = "1 6 1 6";
   }
 }

@@ -18,6 +18,7 @@ namespace GlazeWM.Bar
     public string FontSize { get; set; }
     public string BorderColor { get; set; }
     public string BorderWidth { get; set; }
+    public string Padding { get; set; }
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -35,24 +36,27 @@ namespace GlazeWM.Bar
       FontFamily = _barConfig.FontFamily;
       FontSize = _barConfig.FontSize;
       BorderColor = _barConfig.BorderColor;
-      BorderWidth = FormatBorderWidth(_barConfig.BorderWidth);
+      BorderWidth = ShorthandToXamlProperty(_barConfig.BorderWidth);
+      Padding = ShorthandToXamlProperty(_barConfig.Padding);
 
       UpdateWorkspaces();
     }
 
     /// <summary>
-    /// Format border width from user config to be compatible with `BorderThickness`.
+    /// Convert shorthand properties from user config (ie. `Padding`, `Margin`, and `BorderWidth`)
+    /// to be compatible with their equivalent XAML properties (ie. `Padding`, `Margin`, and
+    /// `BorderThickness`). Shorthand properties follow the 1-to-4 value syntax used in CSS.
     /// </summary>
-    private string FormatBorderWidth(string borderWidth)
+    private string ShorthandToXamlProperty(string shorthand)
     {
-      var borderWidthParts = borderWidth.Split(" ");
+      var shorthandParts = shorthand.Split(" ");
 
-      return borderWidthParts.Count() switch
+      return shorthandParts.Count() switch
       {
-        1 => borderWidth,
-        2 => $"{borderWidthParts[1]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[0]}",
-        3 => $"{borderWidthParts[1]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[2]}",
-        4 => $"{borderWidthParts[3]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[2]}",
+        1 => shorthand,
+        2 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[0]}",
+        3 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
+        4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         _ => throw new ArgumentException(),
       };
     }
