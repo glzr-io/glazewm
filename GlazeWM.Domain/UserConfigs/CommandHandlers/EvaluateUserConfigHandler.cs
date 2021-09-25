@@ -2,12 +2,10 @@
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Infrastructure.Yaml;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
-using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
@@ -16,12 +14,14 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private Bus _bus;
     private UserConfigService _userConfigService;
     private KeybindingService _keybindingService;
+    private YamlDeserializationService _yamlDeserializationService;
 
-    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService)
+    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService, YamlDeserializationService yamlDeserializationService)
     {
       _bus = bus;
       _userConfigService = userConfigService;
       _keybindingService = keybindingService;
+      _yamlDeserializationService = yamlDeserializationService;
     }
 
     public CommandResponse Handle(EvaluateUserConfigCommand command)
@@ -69,15 +69,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
-      var deserializer = new DeserializerBuilder()
-        .WithNamingConvention(PascalCaseNamingConvention.Instance)
-        .WithNodeDeserializer(
-          inner => new ValidatingDeserializer(inner),
-          component => component.InsteadOf<ObjectNodeDeserializer>()
-        )
-        .Build();
-
-      return deserializer.Deserialize<UserConfig>(input);
+      return _yamlDeserializationService.Deserialize<UserConfig>(input);
     }
 
     private string FormatErrorMessage(Exception exception)

@@ -1,5 +1,6 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Infrastructure.Yaml;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Infrastructure
@@ -11,8 +12,9 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<Bus>();
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<KeybindingService>();
+      services.AddSingleton<YamlDeserializationService>();
 
-      // TODO: Change WindowsApiFacade & WindowsApiService to be compatible with DI.
+      // TODO: Change WindowsApiService to be compatible with DI.
 
       return services;
     }

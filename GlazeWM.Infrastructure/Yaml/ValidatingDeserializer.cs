@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
-namespace GlazeWM.Domain.UserConfigs
+namespace GlazeWM.Infrastructure.Yaml
 {
   public class ValidatingDeserializer : INodeDeserializer
   {

@@ -13,5 +13,8 @@
     <PackageReference
       Include="System.Reactive"
       Version="4.3.2" />
+    <PackageReference
+      Include="YamlDotNet"
+      Version="8.1.0" />
   </ItemGroup>
 </Project>
