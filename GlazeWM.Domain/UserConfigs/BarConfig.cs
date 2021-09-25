@@ -19,5 +19,6 @@ namespace GlazeWM.Domain.UserConfigs
     /// Padding in pixels.
     /// </summary>
     public string Padding { get; set; } = "1 6 1 6";
+    public double Opacity { get; set; } = 1;
   }
 }

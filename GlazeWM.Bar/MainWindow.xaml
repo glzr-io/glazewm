@@ -15,6 +15,8 @@
   Height="50"
   FontFamily="{Binding FontFamily}"
   FontSize="{Binding FontSize}"
+  Opacity="{Binding Opacity}"
+  AllowsTransparency="True"
   Topmost="True">
   <Border
     BorderThickness="{Binding BorderWidth}"

@@ -19,6 +19,7 @@ namespace GlazeWM.Bar
     public string BorderColor { get; set; }
     public string BorderWidth { get; set; }
     public string Padding { get; set; }
+    public double Opacity { get; set; }
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -38,6 +39,7 @@ namespace GlazeWM.Bar
       BorderColor = _barConfig.BorderColor;
       BorderWidth = ShorthandToXamlProperty(_barConfig.BorderWidth);
       Padding = ShorthandToXamlProperty(_barConfig.Padding);
+      Opacity = _barConfig.Opacity;
 
       UpdateWorkspaces();
     }
