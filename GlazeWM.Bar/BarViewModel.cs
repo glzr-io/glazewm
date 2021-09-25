@@ -35,9 +35,26 @@ namespace GlazeWM.Bar
       FontFamily = _barConfig.FontFamily;
       FontSize = _barConfig.FontSize;
       BorderColor = _barConfig.BorderColor;
-      BorderWidth = _barConfig.BorderWidth;
+      BorderWidth = FormatBorderWidth(_barConfig.BorderWidth);
 
       UpdateWorkspaces();
+    }
+
+    /// <summary>
+    /// Format border width from user config to be compatible with `BorderThickness`.
+    /// </summary>
+    private string FormatBorderWidth(string borderWidth)
+    {
+      var borderWidthParts = borderWidth.Split(" ");
+
+      return borderWidthParts.Count() switch
+      {
+        1 => borderWidth,
+        2 => $"{borderWidthParts[1]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[0]}",
+        3 => $"{borderWidthParts[1]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[2]}",
+        4 => $"{borderWidthParts[3]},{borderWidthParts[0]},{borderWidthParts[1]},{borderWidthParts[2]}",
+        _ => throw new ArgumentException(),
+      };
     }
 
     public void UpdateWorkspaces()
