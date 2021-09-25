@@ -36,8 +36,10 @@ namespace GlazeWM.Bar
       InitializeComponent();
       SourceInitialized += MainWindow_SourceInitialized;
 
-      RefreshState(monitor);
-      WorkspaceItems.ItemsSource = _workspaces;
+      var barConfig = _userConfigService.UserConfig.Bar;
+      var viewModel = new BarViewModel(Dispatcher, monitor, barConfig);
+      viewModel.InitializeState();
+      DataContext = viewModel;
 
       var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
       var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
@@ -45,15 +47,7 @@ namespace GlazeWM.Bar
 
       // Refresh contents of items source.
       Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
-        .Subscribe(_observer => Dispatcher.Invoke(() => RefreshState(monitor)));
-    }
-
-    private void RefreshState(Monitor monitor)
-    {
-      _workspaces.Clear();
-
-      foreach (var workspace in monitor.Children)
-        _workspaces.Add(workspace as Workspace);
+        .Subscribe(_observer => viewModel.UpdateWorkspaces());
     }
 
     private void MainWindow_SourceInitialized(object sender, EventArgs e)
