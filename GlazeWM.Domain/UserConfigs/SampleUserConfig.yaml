@@ -6,7 +6,7 @@ Gaps:
   OuterGap: 20
 
 Bar:
-  Height: 50
+  Height: 25
 
 Workspaces:
   - Name: 1

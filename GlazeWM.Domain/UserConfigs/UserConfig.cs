@@ -16,9 +16,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public double ResizeProportion => ResizePercentage / 100;
 
-    public GapsConfig Gaps { get; set; }
+    public GapsConfig Gaps { get; set; } = new GapsConfig();
 
-    public BarConfig Bar { get; set; }
+    public BarConfig Bar { get; set; } = new BarConfig();
 
     public List<WorkspaceConfig> Workspaces = new List<WorkspaceConfig>();
 
