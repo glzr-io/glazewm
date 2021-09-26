@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:GlazeWM.Bar"
+  xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   xmlns:domain="clr-namespace:GlazeWM.Domain.UserConfigs;assembly=GlazeWM.Domain"
   mc:Ignorable="d"
   WindowStyle="None"
@@ -35,16 +36,10 @@
 
         <ItemsControl.Resources>
           <DataTemplate DataType="{x:Type domain:WorkspacesComponentConfig}">
-            <Rectangle
-              Width="50"
-              Height="50"
-              Fill="Red" />
+            <components:WorkspacesComponent />
           </DataTemplate>
           <DataTemplate DataType="{x:Type domain:ClockComponentConfig}">
-            <Rectangle
-              Width="50"
-              Height="50"
-              Fill="Blue" />
+            <components:ClockComponent />
           </DataTemplate>
         </ItemsControl.Resources>
       </ItemsControl>
