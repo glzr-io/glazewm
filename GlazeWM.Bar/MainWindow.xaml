@@ -6,7 +6,6 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:GlazeWM.Bar"
   xmlns:components="clr-namespace:GlazeWM.Bar.Components"
-  xmlns:domain="clr-namespace:GlazeWM.Domain.UserConfigs;assembly=GlazeWM.Domain"
   mc:Ignorable="d"
   WindowStyle="None"
   ResizeMode="NoResize"
@@ -24,25 +23,9 @@
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
     <DockPanel Margin="{Binding Padding}">
-      <ItemsControl ItemsSource="{Binding ComponentsLeft}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <UniformGrid
-              Columns="10"
-              HorizontalAlignment="Left"
-              IsItemsHost="True" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-
-        <ItemsControl.Resources>
-          <DataTemplate DataType="{x:Type domain:WorkspacesComponentConfig}">
-            <components:WorkspacesComponent />
-          </DataTemplate>
-          <DataTemplate DataType="{x:Type domain:ClockComponentConfig}">
-            <components:ClockComponent />
-          </DataTemplate>
-        </ItemsControl.Resources>
-      </ItemsControl>
+      <components:ComponentContainer ComponentConfigs="{Binding ComponentsLeft}" />
+      <components:ComponentContainer ComponentConfigs="{Binding ComponentsCenter}" />
+      <components:ComponentContainer ComponentConfigs="{Binding ComponentsRight}" />
     </DockPanel>
   </Border>
 </Window>

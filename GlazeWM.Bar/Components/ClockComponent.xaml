@@ -9,5 +9,6 @@
   <Button
     Name="Fill"
     Width="50"
+    Content="{Binding Type}"
     Background="Red" />
 </UserControl>

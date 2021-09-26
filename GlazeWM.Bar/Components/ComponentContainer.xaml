@@ -1,0 +1,31 @@
+<UserControl
+  x:Class="GlazeWM.Bar.Components.ComponentContainer"
+  x:Name="Self"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:local="clr-namespace:GlazeWM.Bar.Components"
+  xmlns:components="clr-namespace:GlazeWM.Bar.Components"
+  xmlns:domain="clr-namespace:GlazeWM.Domain.UserConfigs;assembly=GlazeWM.Domain"
+  mc:Ignorable="d">
+  <ItemsControl ItemsSource="{Binding ComponentConfigs, ElementName=Self}">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <UniformGrid
+          Columns="10"
+          HorizontalAlignment="Left"
+          IsItemsHost="True" />
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+
+    <ItemsControl.Resources>
+      <DataTemplate DataType="{x:Type domain:WorkspacesComponentConfig}">
+        <components:WorkspacesComponent />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type domain:ClockComponentConfig}">
+        <components:ClockComponent />
+      </DataTemplate>
+    </ItemsControl.Resources>
+  </ItemsControl>
+</UserControl>
