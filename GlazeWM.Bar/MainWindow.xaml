@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:GlazeWM.Bar"
+  xmlns:domain="clr-namespace:GlazeWM.Domain.UserConfigs;assembly=GlazeWM.Domain"
   mc:Ignorable="d"
   WindowStyle="None"
   ResizeMode="NoResize"
@@ -22,7 +23,7 @@
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
     <DockPanel Margin="{Binding Padding}">
-      <ItemsControl ItemsSource="{Binding Workspaces}">
+      <ItemsControl ItemsSource="{Binding ComponentsLeft}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
             <UniformGrid
@@ -32,39 +33,20 @@
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <Button
-              x:Name="WorkspaceButton"
-              Click="OnWorkspaceButtonClick"
-              Content="{Binding Name}"
-              Background="#242424"
-              Foreground="White"
-              BorderBrush="Transparent"
-              BorderThickness="0"
-              MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
-              MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
-
-            <DataTemplate.Triggers>
-              <DataTrigger
-                Binding="{Binding IsDisplayed}"
-                Value="True">
-                <Setter
-                  TargetName="WorkspaceButton"
-                  Property="Background"
-                  Value="#42403e" />
-              </DataTrigger>
-              <DataTrigger
-                Binding="{Binding HasFocus}"
-                Value="True">
-                <Setter
-                  TargetName="WorkspaceButton"
-                  Property="Background"
-                  Value="#8192B3" />
-              </DataTrigger>
-            </DataTemplate.Triggers>
+        <ItemsControl.Resources>
+          <DataTemplate DataType="{x:Type domain:WorkspacesComponentConfig}">
+            <Rectangle
+              Width="50"
+              Height="50"
+              Fill="Red" />
           </DataTemplate>
-        </ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type domain:ClockComponentConfig}">
+            <Rectangle
+              Width="50"
+              Height="50"
+              Fill="Blue" />
+          </DataTemplate>
+        </ItemsControl.Resources>
       </ItemsControl>
     </DockPanel>
   </Border>

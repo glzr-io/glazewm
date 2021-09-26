@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -20,6 +21,9 @@ namespace GlazeWM.Bar
     public string BorderWidth { get; set; }
     public string Padding { get; set; }
     public double Opacity { get; set; }
+    public List<BarComponentConfig> ComponentsLeft { get; set; }
+    public List<BarComponentConfig> ComponentsCenter { get; set; }
+    public List<BarComponentConfig> ComponentsRight { get; set; }
     private readonly Dispatcher _dispatcher;
     private readonly Monitor _monitor;
     private readonly BarConfig _barConfig;
@@ -40,6 +44,9 @@ namespace GlazeWM.Bar
       BorderWidth = ShorthandToXamlProperty(_barConfig.BorderWidth);
       Padding = ShorthandToXamlProperty(_barConfig.Padding);
       Opacity = _barConfig.Opacity;
+      ComponentsLeft = _barConfig.ComponentsLeft;
+      ComponentsCenter = _barConfig.ComponentsCenter;
+      ComponentsRight = _barConfig.ComponentsRight;
 
       UpdateWorkspaces();
     }
