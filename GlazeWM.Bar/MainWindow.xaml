@@ -22,10 +22,25 @@
   <Border
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
-    <DockPanel Margin="{Binding Padding}">
-      <components:ComponentContainer ComponentConfigs="{Binding ComponentsLeft}" />
-      <components:ComponentContainer ComponentConfigs="{Binding ComponentsCenter}" />
-      <components:ComponentContainer ComponentConfigs="{Binding ComponentsRight}" />
-    </DockPanel>
+    <Grid Margin="{Binding Padding}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <components:ComponentContainer
+        Grid.Column="0"
+        ComponentConfigs="{Binding ComponentsLeft}" />
+
+      <components:ComponentContainer
+        Grid.Column="1"
+        ComponentConfigs="{Binding ComponentsCenter}" />
+
+      <components:ComponentContainer
+        Grid.Column="2"
+        HorizontalAlignment="Right"
+        ComponentConfigs="{Binding ComponentsRight}" />
+    </Grid>
   </Border>
 </Window>
