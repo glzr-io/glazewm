@@ -8,6 +8,10 @@ namespace GlazeWM.Bar
     {
       services.AddSingleton<BarManagerService>();
 
+      services.AddScoped<MainWindow>();
+      services.AddScoped<BarViewModel>();
+      services.AddScoped<WorkspacesComponentViewModel>();
+
       return services;
     }
   }
