@@ -5,6 +5,8 @@ using System.Reactive.Linq;
 using System;
 using System.Threading;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
@@ -33,8 +35,17 @@ namespace GlazeWM.Bar
           {
             application.Dispatcher.Invoke(() =>
             {
-              var bar = new MainWindow((@event as MonitorAddedEvent).AddedMonitor, _workspaceService, _bus, _userConfigService);
-              bar.Show();
+              using (var scope = ServiceLocator.Provider.CreateScope())
+              {
+                var barViewModel = scope.ServiceProvider.GetRequiredService<BarViewModel>();
+                barViewModel.Monitor = (@event as MonitorAddedEvent).AddedMonitor;
+                barViewModel.Dispatcher = application.Dispatcher;
+                barViewModel.InitializeState();
+
+                var barWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
+                barWindow.DataContext = barViewModel;
+                barWindow.Show();
+              }
             });
           });
 
