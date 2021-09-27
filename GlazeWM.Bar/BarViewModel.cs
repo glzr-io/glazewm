@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows.Threading;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Domain.Workspaces.Events;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Bar
 {
@@ -24,29 +28,38 @@ namespace GlazeWM.Bar
     public List<BarComponentConfig> ComponentsLeft { get; set; }
     public List<BarComponentConfig> ComponentsCenter { get; set; }
     public List<BarComponentConfig> ComponentsRight { get; set; }
-    private readonly Dispatcher _dispatcher;
-    private readonly Monitor _monitor;
-    private readonly BarConfig _barConfig;
+    public Dispatcher Dispatcher { get; set; }
+    public Monitor Monitor { get; set; }
+    private readonly Bus _bus;
+    private readonly UserConfigService _userConfigService;
 
-    public BarViewModel(Dispatcher dispatcher, Monitor monitor, BarConfig barConfig)
+    public BarViewModel(Bus bus, UserConfigService userConfigService)
     {
-      _dispatcher = dispatcher;
-      _monitor = monitor;
-      _barConfig = barConfig;
+      _bus = bus;
+      _userConfigService = userConfigService;
     }
 
     public void InitializeState()
     {
-      Background = _barConfig.Background;
-      FontFamily = _barConfig.FontFamily;
-      FontSize = _barConfig.FontSize;
-      BorderColor = _barConfig.BorderColor;
-      BorderWidth = ShorthandToXamlProperty(_barConfig.BorderWidth);
-      Padding = ShorthandToXamlProperty(_barConfig.Padding);
-      Opacity = _barConfig.Opacity;
-      ComponentsLeft = _barConfig.ComponentsLeft;
-      ComponentsCenter = _barConfig.ComponentsCenter;
-      ComponentsRight = _barConfig.ComponentsRight;
+      var barConfig = _userConfigService.UserConfig.Bar;
+      Background = barConfig.Background;
+      FontFamily = barConfig.FontFamily;
+      FontSize = barConfig.FontSize;
+      BorderColor = barConfig.BorderColor;
+      BorderWidth = ShorthandToXamlProperty(barConfig.BorderWidth);
+      Padding = ShorthandToXamlProperty(barConfig.Padding);
+      Opacity = barConfig.Opacity;
+      ComponentsLeft = barConfig.ComponentsLeft;
+      ComponentsCenter = barConfig.ComponentsCenter;
+      ComponentsRight = barConfig.ComponentsRight;
+
+      var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
+      var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
+      var focusChangedEvent = _bus.Events.Where(@event => @event is FocusChangedEvent);
+
+      // Refresh contents of items source.
+      Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
+        .Subscribe(_observer => UpdateWorkspaces());
 
       UpdateWorkspaces();
     }
@@ -72,11 +85,11 @@ namespace GlazeWM.Bar
 
     public void UpdateWorkspaces()
     {
-      _dispatcher.Invoke(() =>
+      Dispatcher.Invoke(() =>
       {
         Workspaces.Clear();
 
-        foreach (var workspace in _monitor.Children)
+        foreach (var workspace in Monitor.Children)
           Workspaces.Add(workspace as Workspace);
       });
     }
