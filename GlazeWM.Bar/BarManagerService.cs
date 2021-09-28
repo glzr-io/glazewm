@@ -40,7 +40,6 @@ namespace GlazeWM.Bar
                 Monitor = (@event as MonitorAddedEvent).AddedMonitor,
                 Dispatcher = application.Dispatcher,
               };
-              barViewModel.InitializeState();
 
               var barWindow = new MainWindow(barViewModel);
               barWindow.Show();

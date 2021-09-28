@@ -18,49 +18,37 @@ namespace GlazeWM.Bar
 {
   public class BarViewModel : ViewModelBase
   {
-    public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
-    public string Background { get; set; }
-    public string FontFamily { get; set; }
-    public string FontSize { get; set; }
-    public string BorderColor { get; set; }
-    public string BorderWidth { get; set; }
-    public string Padding { get; set; }
-    public double Opacity { get; set; }
-    public List<BarComponentConfig> ComponentsLeft { get; set; }
-    public List<BarComponentConfig> ComponentsCenter { get; set; }
-    public List<BarComponentConfig> ComponentsRight { get; set; }
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
     private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
     private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+    private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
+    public ObservableCollection<Workspace> Workspaces =>
+      new ObservableCollection<Workspace>(Monitor.Children.Cast<Workspace>());
+    public string Background => _barConfig.Background;
+    public string FontFamily => _barConfig.FontFamily;
+    public string FontSize => _barConfig.FontSize;
+    public string BorderColor => _barConfig.BorderColor;
+    public string BorderWidth => ShorthandToXamlProperty(_barConfig.BorderWidth);
+    public string Padding => ShorthandToXamlProperty(_barConfig.Padding);
+    public double Opacity => _barConfig.Opacity;
+    public List<BarComponentConfig> ComponentsLeft => _barConfig.ComponentsLeft;
+    public List<BarComponentConfig> ComponentsCenter => _barConfig.ComponentsCenter;
+    public List<BarComponentConfig> ComponentsRight => _barConfig.ComponentsRight;
 
     public BarViewModel()
     {
-    }
+      var workspacesChangedEvent = _bus.Events.Where((@event) =>
+        @event is WorkspaceAttachedEvent ||
+        @event is WorkspaceDetachedEvent ||
+        @event is FocusChangedEvent
+      );
 
-    public void InitializeState()
-    {
-      var barConfig = _userConfigService.UserConfig.Bar;
-      Background = barConfig.Background;
-      FontFamily = barConfig.FontFamily;
-      FontSize = barConfig.FontSize;
-      BorderColor = barConfig.BorderColor;
-      BorderWidth = ShorthandToXamlProperty(barConfig.BorderWidth);
-      Padding = ShorthandToXamlProperty(barConfig.Padding);
-      Opacity = barConfig.Opacity;
-      ComponentsLeft = barConfig.ComponentsLeft;
-      ComponentsCenter = barConfig.ComponentsCenter;
-      ComponentsRight = barConfig.ComponentsRight;
-
-      var workspaceAttachedEvent = _bus.Events.Where(@event => @event is WorkspaceAttachedEvent);
-      var workspaceDetachedEvent = _bus.Events.Where(@event => @event is WorkspaceDetachedEvent);
-      var focusChangedEvent = _bus.Events.Where(@event => @event is FocusChangedEvent);
-
-      // Refresh contents of items source.
-      Observable.Merge(workspaceAttachedEvent, workspaceDetachedEvent, focusChangedEvent)
-        .Subscribe(_observer => UpdateWorkspaces());
-
-      UpdateWorkspaces();
+      // Refresh contents of workspaces collection.
+      workspacesChangedEvent.Subscribe((_observer) =>
+      {
+        Dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
+      });
     }
 
     /// <summary>
@@ -80,17 +68,6 @@ namespace GlazeWM.Bar
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         _ => throw new ArgumentException(),
       };
-    }
-
-    public void UpdateWorkspaces()
-    {
-      Dispatcher.Invoke(() =>
-      {
-        Workspaces.Clear();
-
-        foreach (var workspace in Monitor.Children)
-          Workspaces.Add(workspace as Workspace);
-      });
     }
   }
 }
