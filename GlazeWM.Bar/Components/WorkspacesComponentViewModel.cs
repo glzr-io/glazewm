@@ -1,14 +1,14 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Threading;
+using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 
 namespace GlazeWM.Bar
 {
-  public class WorkspacesComponentViewModel : INotifyPropertyChanged
+  public class WorkspacesComponentViewModel : ViewModelBase
   {
-    public event PropertyChangedEventHandler PropertyChanged;
     public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
     private readonly BarViewModel _barViewModel;
     private readonly WorkspaceService _workspaceService;
@@ -35,11 +35,6 @@ namespace GlazeWM.Bar
         foreach (var workspace in _monitor.Children)
           Workspaces.Add(workspace as Workspace);
       });
-    }
-
-    private void OnPropertyChanged(string propertyName)
-    {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
   }
 }

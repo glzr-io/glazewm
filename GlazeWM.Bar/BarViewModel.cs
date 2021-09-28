@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Threading;
@@ -14,9 +13,8 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Bar
 {
-  public class BarViewModel : INotifyPropertyChanged
+  public class BarViewModel : ViewModelBase
   {
-    public event PropertyChangedEventHandler PropertyChanged;
     public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
     public string Background { get; set; }
     public string FontFamily { get; set; }
@@ -92,11 +90,6 @@ namespace GlazeWM.Bar
         foreach (var workspace in Monitor.Children)
           Workspaces.Add(workspace as Workspace);
       });
-    }
-
-    private void OnPropertyChanged(string propertyName)
-    {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
   }
 }
