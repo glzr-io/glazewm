@@ -5,7 +5,7 @@ using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 
-namespace GlazeWM.Bar
+namespace GlazeWM.Bar.Components
 {
   public class WorkspacesComponentViewModel : ViewModelBase
   {

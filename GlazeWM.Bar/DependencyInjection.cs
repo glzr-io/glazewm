@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using GlazeWM.Bar.Components;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
