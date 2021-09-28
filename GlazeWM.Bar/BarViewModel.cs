@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
+using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -32,9 +33,15 @@ namespace GlazeWM.Bar
     public string BorderWidth => ShorthandToXamlProperty(_barConfig.BorderWidth);
     public string Padding => ShorthandToXamlProperty(_barConfig.Padding);
     public double Opacity => _barConfig.Opacity;
-    public List<BarComponentConfig> ComponentsLeft => _barConfig.ComponentsLeft;
-    public List<BarComponentConfig> ComponentsCenter => _barConfig.ComponentsCenter;
-    public List<BarComponentConfig> ComponentsRight => _barConfig.ComponentsRight;
+
+    public List<ComponentViewModel> ComponentsLeft =>
+      CreateComponentViewModels(_barConfig.ComponentsLeft);
+
+    public List<ComponentViewModel> ComponentsCenter =>
+      CreateComponentViewModels(_barConfig.ComponentsCenter);
+
+    public List<ComponentViewModel> ComponentsRight =>
+      CreateComponentViewModels(_barConfig.ComponentsRight);
 
     public BarViewModel()
     {
@@ -49,6 +56,21 @@ namespace GlazeWM.Bar
       {
         Dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
       });
+    }
+
+    private List<ComponentViewModel> CreateComponentViewModels(List<BarComponentConfig> componentConfigs)
+    {
+      return componentConfigs.Select(config =>
+      {
+        ComponentViewModel viewModel = config.Type switch
+        {
+          "workspaces" => new WorkspacesComponentViewModel(),
+          "clock" => new ClockComponentViewModel(),
+          _ => throw new ArgumentException(),
+        };
+
+        return viewModel;
+      }).ToList();
     }
 
     /// <summary>
