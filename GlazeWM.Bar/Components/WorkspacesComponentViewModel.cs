@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
-using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
@@ -8,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar.Components
 {
-  public class WorkspacesComponentViewModel : ViewModelBase
+  public class WorkspacesComponentViewModel : ComponentViewModel
   {
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
     private readonly BarViewModel _barViewModel;
@@ -16,9 +15,8 @@ namespace GlazeWM.Bar.Components
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public WorkspacesComponentViewModel(BarViewModel barViewModel)
+    public WorkspacesComponentViewModel()
     {
-      _barViewModel = barViewModel;
     }
   }
 }
