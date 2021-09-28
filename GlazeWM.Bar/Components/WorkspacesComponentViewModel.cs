@@ -1,40 +1,24 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar.Components
 {
   public class WorkspacesComponentViewModel : ViewModelBase
   {
-    public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
+    private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
     private readonly BarViewModel _barViewModel;
-    private readonly WorkspaceService _workspaceService;
+    public ObservableCollection<Workspace> Workspaces => _barViewModel.Workspaces;
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public WorkspacesComponentViewModel(BarViewModel barViewModel, WorkspaceService workspaceService)
+    public WorkspacesComponentViewModel(BarViewModel barViewModel)
     {
       _barViewModel = barViewModel;
-      _workspaceService = workspaceService;
-    }
-
-    public void InitializeState()
-    {
-      UpdateWorkspaces();
-    }
-
-    public void UpdateWorkspaces()
-    {
-      _dispatcher.Invoke(() =>
-      {
-        Workspaces.Clear();
-
-        foreach (var workspace in _monitor.Children)
-          Workspaces.Add(workspace as Workspace);
-      });
     }
   }
 }

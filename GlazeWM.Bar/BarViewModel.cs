@@ -4,12 +4,15 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Threading;
+using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Events;
+using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
@@ -28,13 +31,11 @@ namespace GlazeWM.Bar
     public List<BarComponentConfig> ComponentsRight { get; set; }
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
-    private readonly Bus _bus;
-    private readonly UserConfigService _userConfigService;
+    private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
-    public BarViewModel(Bus bus, UserConfigService userConfigService)
+    public BarViewModel()
     {
-      _bus = bus;
-      _userConfigService = userConfigService;
     }
 
     public void InitializeState()

@@ -35,17 +35,15 @@ namespace GlazeWM.Bar
           {
             application.Dispatcher.Invoke(() =>
             {
-              using (var scope = ServiceLocator.Provider.CreateScope())
+              var barViewModel = new BarViewModel()
               {
-                var barViewModel = scope.ServiceProvider.GetRequiredService<BarViewModel>();
-                barViewModel.Monitor = (@event as MonitorAddedEvent).AddedMonitor;
-                barViewModel.Dispatcher = application.Dispatcher;
-                barViewModel.InitializeState();
+                Monitor = (@event as MonitorAddedEvent).AddedMonitor,
+                Dispatcher = application.Dispatcher,
+              };
+              barViewModel.InitializeState();
 
-                var barWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
-                barWindow.DataContext = barViewModel;
-                barWindow.Show();
-              }
+              var barWindow = new MainWindow(barViewModel);
+              barWindow.Show();
             });
           });
 

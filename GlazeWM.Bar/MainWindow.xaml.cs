@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Interop;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
@@ -12,21 +14,16 @@ namespace GlazeWM.Bar
   /// </summary>
   public partial class MainWindow : Window
   {
-    private UserConfigService _userConfigService { get; }
+    private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
     private BarViewModel _barViewModel { get; }
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public MainWindow(UserConfigService userConfigService, BarViewModel barViewModel)
+    public MainWindow(BarViewModel barViewModel)
     {
-      _userConfigService = userConfigService;
       _barViewModel = barViewModel;
+      DataContext = barViewModel;
 
       InitializeComponent();
-    }
-
-    public void BindToMonitor(Monitor monitor)
-    {
-      throw new NotImplementedException();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
