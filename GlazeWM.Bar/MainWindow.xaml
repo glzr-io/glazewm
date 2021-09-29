@@ -34,10 +34,7 @@
         ItemsSource="{Binding ComponentsLeft}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid
-              Rows="1"
-              HorizontalAlignment="Left"
-              IsItemsHost="True" />
+            <StackPanel Orientation="Horizontal" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
@@ -53,10 +50,7 @@
         ItemsSource="{Binding ComponentsCenter}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid
-              Rows="1"
-              HorizontalAlignment="Left"
-              IsItemsHost="True" />
+            <StackPanel Orientation="Horizontal" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
@@ -73,10 +67,7 @@
         ItemsSource="{Binding ComponentsRight}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid
-              Rows="1"
-              HorizontalAlignment="Left"
-              IsItemsHost="True" />
+            <StackPanel Orientation="Horizontal" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 

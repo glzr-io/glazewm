@@ -9,5 +9,6 @@
   <TextBlock
     Name="StatusBarLabel"
     Foreground="#FFE0E0E0"
+    VerticalAlignment="Center"
     Text="{Binding FormattedTime}" />
 </UserControl>
