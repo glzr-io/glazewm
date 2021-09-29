@@ -4,8 +4,11 @@ namespace GlazeWM.Bar.Components
 {
   public class ComponentViewModel : ViewModelBase
   {
-    public ComponentViewModel()
+    protected BarViewModel _parentViewModel;
+
+    public ComponentViewModel(BarViewModel parentViewModel)
     {
+      _parentViewModel = parentViewModel;
     }
   }
 }

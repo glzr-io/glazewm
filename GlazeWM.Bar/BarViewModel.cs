@@ -64,8 +64,8 @@ namespace GlazeWM.Bar
       {
         ComponentViewModel viewModel = config.Type switch
         {
-          "workspaces" => new WorkspacesComponentViewModel(),
-          "clock" => new ClockComponentViewModel(),
+          "workspaces" => new WorkspacesComponentViewModel(this),
+          "clock" => new ClockComponentViewModel(this),
           _ => throw new ArgumentException(),
         };
 

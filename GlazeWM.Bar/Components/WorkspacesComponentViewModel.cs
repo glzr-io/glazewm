@@ -15,7 +15,7 @@ namespace GlazeWM.Bar.Components
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public WorkspacesComponentViewModel()
+    public WorkspacesComponentViewModel(BarViewModel parentViewModel) : base(parentViewModel)
     {
     }
   }

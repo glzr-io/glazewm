@@ -2,7 +2,7 @@ namespace GlazeWM.Bar.Components
 {
   public class ClockComponentViewModel : ComponentViewModel
   {
-    public ClockComponentViewModel()
+    public ClockComponentViewModel(BarViewModel parentViewModel) : base(parentViewModel)
     {
     }
   }
