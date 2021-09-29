@@ -9,11 +9,11 @@
   mc:Ignorable="d"
   WindowStyle="None"
   ResizeMode="NoResize"
-  Background="{Binding Background}"
   Title="GlazeWMBar"
   ShowInTaskbar="False"
   Width="800"
   Height="50"
+  Background="{Binding Background}"
   FontFamily="{Binding FontFamily}"
   FontSize="{Binding FontSize}"
   Opacity="{Binding Opacity}"
@@ -29,18 +29,63 @@
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
-      <components:ComponentContainer
+      <ItemsControl
         Grid.Column="0"
-        ComponentConfigs="{Binding ComponentsLeft}" />
+        ItemsSource="{Binding ComponentsLeft}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid
+              Rows="1"
+              HorizontalAlignment="Left"
+              IsItemsHost="True" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
 
-      <components:ComponentContainer
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <components:ComponentPortal />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ItemsControl
         Grid.Column="1"
-        ComponentConfigs="{Binding ComponentsCenter}" />
+        ItemsSource="{Binding ComponentsCenter}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid
+              Rows="1"
+              HorizontalAlignment="Left"
+              IsItemsHost="True" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
 
-      <components:ComponentContainer
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <components:ComponentPortal />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ItemsControl
         Grid.Column="2"
         HorizontalAlignment="Right"
-        ComponentConfigs="{Binding ComponentsRight}" />
+        ItemsSource="{Binding ComponentsRight}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid
+              Rows="1"
+              HorizontalAlignment="Left"
+              IsItemsHost="True" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <components:ComponentPortal />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </Grid>
   </Border>
 </Window>
