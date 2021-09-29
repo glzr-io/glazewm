@@ -10,7 +10,7 @@
     <ItemsControl.ItemsPanel>
       <ItemsPanelTemplate>
         <UniformGrid
-          Columns="10"
+          Rows="1"
           HorizontalAlignment="Left"
           IsItemsHost="True" />
       </ItemsPanelTemplate>

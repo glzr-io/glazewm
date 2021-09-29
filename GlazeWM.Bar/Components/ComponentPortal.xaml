@@ -6,16 +6,14 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-  <!-- <StackPanel>
-    <StackPanel.Resources> -->
-  <UserControl.Resources>
-    <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
-      <components:WorkspacesComponent />
-    </DataTemplate>
-    <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
-      <components:ClockComponent />
-    </DataTemplate>
-  </UserControl.Resources>
-  <!-- </StackPanel.Resources>
-  </StackPanel> -->
+  <ContentPresenter Content="{Binding .}">
+    <ContentPresenter.Resources>
+      <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
+        <components:WorkspacesComponent />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
+        <components:ClockComponent />
+      </DataTemplate>
+    </ContentPresenter.Resources>
+  </ContentPresenter>
 </UserControl>
