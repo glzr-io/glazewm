@@ -1,18 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
-using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.Bussing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
@@ -21,11 +16,8 @@ namespace GlazeWM.Bar
   {
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
-    private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
     private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
     private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
-    public ObservableCollection<Workspace> Workspaces =>
-      new ObservableCollection<Workspace>(Monitor.Children.Cast<Workspace>());
     public string Background => _barConfig.Background;
     public string FontFamily => _barConfig.FontFamily;
     public string FontSize => _barConfig.FontSize;
@@ -45,17 +37,6 @@ namespace GlazeWM.Bar
 
     public BarViewModel()
     {
-      var workspacesChangedEvent = _bus.Events.Where((@event) =>
-        @event is WorkspaceAttachedEvent ||
-        @event is WorkspaceDetachedEvent ||
-        @event is FocusChangedEvent
-      );
-
-      // Refresh contents of workspaces collection.
-      workspacesChangedEvent.Subscribe((_observer) =>
-      {
-        Dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
-      });
     }
 
     private List<ComponentViewModel> CreateComponentViewModels(List<BarComponentConfig> componentConfigs)
