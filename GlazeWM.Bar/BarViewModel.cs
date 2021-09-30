@@ -43,10 +43,11 @@ namespace GlazeWM.Bar
     {
       return componentConfigs.Select(config =>
       {
+        // TODO: Use pattern matching syntax with types once updated to C# 9.
         ComponentViewModel viewModel = config.Type switch
         {
-          "workspaces" => new WorkspacesComponentViewModel(this),
-          "clock" => new ClockComponentViewModel(this),
+          "workspaces" => new WorkspacesComponentViewModel(this, config as WorkspacesComponentConfig),
+          "clock" => new ClockComponentViewModel(this, config as ClockComponentConfig),
           _ => throw new ArgumentException(),
         };
 
