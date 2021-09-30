@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
+using Newtonsoft.Json;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -9,15 +9,13 @@ namespace GlazeWM.Domain.UserConfigs
 
     public double Opacity { get; set; } = 0.9;
 
-    List<BarComponentConfig> _componentsLeft;
-    public List<BarComponentConfig> ComponentsLeft
-    {
-      get { return _componentsLeft; }
-      set { _componentsLeft = value.Select(configs => configs.Upcast()).ToList(); }
-    }
+    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
+    public List<BarComponentConfig> ComponentsLeft { get; set; } = new List<BarComponentConfig>();
 
+    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsCenter { get; set; } = new List<BarComponentConfig>();
 
+    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsRight { get; set; } = new List<BarComponentConfig>();
   }
 }
