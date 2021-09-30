@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -8,23 +9,15 @@ namespace GlazeWM.Domain.UserConfigs
 
     public double Opacity { get; set; } = 0.9;
 
-    public List<BarComponentConfig> ComponentsLeft = CreateMockComponentConfig();
-    public List<BarComponentConfig> ComponentsCenter = new List<BarComponentConfig>();
-    public List<BarComponentConfig> ComponentsRight = CreateMockComponentConfig();
-
-    private static List<BarComponentConfig> CreateMockComponentConfig()
+    List<BarComponentConfig> _componentsLeft;
+    public List<BarComponentConfig> ComponentsLeft
     {
-      var sampleConfig1 = new WorkspacesComponentConfig()
-      {
-        Type = "workspaces",
-      };
-
-      var sampleConfig2 = new ClockComponentConfig()
-      {
-        Type = "clock",
-      };
-
-      return new List<BarComponentConfig> { sampleConfig1, sampleConfig2 };
+      get { return _componentsLeft; }
+      set { _componentsLeft = value.Select(configs => configs.Upcast()).ToList(); }
     }
+
+    public List<BarComponentConfig> ComponentsCenter { get; set; } = new List<BarComponentConfig>();
+
+    public List<BarComponentConfig> ComponentsRight { get; set; } = new List<BarComponentConfig>();
   }
 }
