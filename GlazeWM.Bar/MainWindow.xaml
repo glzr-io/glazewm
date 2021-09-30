@@ -5,14 +5,15 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:GlazeWM.Bar"
+  xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d"
   WindowStyle="None"
   ResizeMode="NoResize"
-  Background="{Binding Background}"
   Title="GlazeWMBar"
   ShowInTaskbar="False"
   Width="800"
   Height="50"
+  Background="{Binding Background}"
   FontFamily="{Binding FontFamily}"
   FontSize="{Binding FontSize}"
   Opacity="{Binding Opacity}"
@@ -21,51 +22,61 @@
   <Border
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
-    <DockPanel Margin="{Binding Padding}">
-      <ItemsControl ItemsSource="{Binding Workspaces}">
+    <Grid Margin="{Binding Padding}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <ItemsControl
+        Grid.Column="0"
+        ItemsSource="{Binding ComponentsLeft}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <UniformGrid
-              Columns="10"
-              HorizontalAlignment="Left"
-              IsItemsHost="True" />
+            <StackPanel Orientation="Horizontal" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Button
-              x:Name="WorkspaceButton"
-              Click="OnWorkspaceButtonClick"
-              Content="{Binding Name}"
-              Background="#242424"
-              Foreground="White"
-              BorderBrush="Transparent"
-              BorderThickness="0"
-              MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
-              MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
-
-            <DataTemplate.Triggers>
-              <DataTrigger
-                Binding="{Binding IsDisplayed}"
-                Value="True">
-                <Setter
-                  TargetName="WorkspaceButton"
-                  Property="Background"
-                  Value="#42403e" />
-              </DataTrigger>
-              <DataTrigger
-                Binding="{Binding HasFocus}"
-                Value="True">
-                <Setter
-                  TargetName="WorkspaceButton"
-                  Property="Background"
-                  Value="#8192B3" />
-              </DataTrigger>
-            </DataTemplate.Triggers>
+            <components:ComponentPortal />
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-    </DockPanel>
+
+      <ItemsControl
+        Grid.Column="1"
+        ItemsSource="{Binding ComponentsCenter}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <components:ComponentPortal />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ItemsControl
+        Grid.Column="2"
+        HorizontalAlignment="Right"
+        ItemsSource="{Binding ComponentsRight}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <components:ComponentPortal />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
   </Border>
 </Window>

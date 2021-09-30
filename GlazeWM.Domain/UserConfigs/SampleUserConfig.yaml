@@ -7,6 +7,10 @@ Gaps:
 
 Bar:
   Height: 25
+  ComponentsLeft:
+    - Type: "workspaces"
+  ComponentsRight:
+    - Type: "clock"
 
 Workspaces:
   - Name: 1

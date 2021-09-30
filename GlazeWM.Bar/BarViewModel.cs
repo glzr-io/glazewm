@@ -1,47 +1,58 @@
 using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows.Threading;
+using GlazeWM.Bar.Common;
+using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Domain.Workspaces;
+using GlazeWM.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
-  public class BarViewModel : INotifyPropertyChanged
+  public class BarViewModel : ViewModelBase
   {
-    public event PropertyChangedEventHandler PropertyChanged;
-    public ObservableCollection<Workspace> Workspaces { get; set; } = new ObservableCollection<Workspace>();
-    public string Background { get; set; }
-    public string FontFamily { get; set; }
-    public string FontSize { get; set; }
-    public string BorderColor { get; set; }
-    public string BorderWidth { get; set; }
-    public string Padding { get; set; }
-    public double Opacity { get; set; }
-    private readonly Dispatcher _dispatcher;
-    private readonly Monitor _monitor;
-    private readonly BarConfig _barConfig;
+    public Dispatcher Dispatcher { get; set; }
+    public Monitor Monitor { get; set; }
+    private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+    private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
+    public string Background => _barConfig.Background;
+    public string FontFamily => _barConfig.FontFamily;
+    public string FontSize => _barConfig.FontSize;
+    public string BorderColor => _barConfig.BorderColor;
+    public string BorderWidth => ShorthandToXamlProperty(_barConfig.BorderWidth);
+    public string Padding => ShorthandToXamlProperty(_barConfig.Padding);
+    public double Opacity => _barConfig.Opacity;
 
-    public BarViewModel(Dispatcher dispatcher, Monitor monitor, BarConfig barConfig)
+    public List<ComponentViewModel> ComponentsLeft =>
+      CreateComponentViewModels(_barConfig.ComponentsLeft);
+
+    public List<ComponentViewModel> ComponentsCenter =>
+      CreateComponentViewModels(_barConfig.ComponentsCenter);
+
+    public List<ComponentViewModel> ComponentsRight =>
+      CreateComponentViewModels(_barConfig.ComponentsRight);
+
+    public BarViewModel()
     {
-      _dispatcher = dispatcher;
-      _monitor = monitor;
-      _barConfig = barConfig;
     }
 
-    public void InitializeState()
+    private List<ComponentViewModel> CreateComponentViewModels(List<BarComponentConfig> componentConfigs)
     {
-      Background = _barConfig.Background;
-      FontFamily = _barConfig.FontFamily;
-      FontSize = _barConfig.FontSize;
-      BorderColor = _barConfig.BorderColor;
-      BorderWidth = ShorthandToXamlProperty(_barConfig.BorderWidth);
-      Padding = ShorthandToXamlProperty(_barConfig.Padding);
-      Opacity = _barConfig.Opacity;
+      return componentConfigs.Select(config =>
+      {
+        // TODO: Use pattern matching syntax with types once updated to C# 9.
+        ComponentViewModel viewModel = config.Type switch
+        {
+          "workspaces" => new WorkspacesComponentViewModel(this, config as WorkspacesComponentConfig),
+          "clock" => new ClockComponentViewModel(this, config as ClockComponentConfig),
+          _ => throw new ArgumentException(),
+        };
 
-      UpdateWorkspaces();
+        return viewModel;
+      }).ToList();
     }
 
     /// <summary>
@@ -61,22 +72,6 @@ namespace GlazeWM.Bar
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         _ => throw new ArgumentException(),
       };
-    }
-
-    public void UpdateWorkspaces()
-    {
-      _dispatcher.Invoke(() =>
-      {
-        Workspaces.Clear();
-
-        foreach (var workspace in _monitor.Children)
-          Workspaces.Add(workspace as Workspace);
-      });
-    }
-
-    private void OnPropertyChanged(string propertyName)
-    {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
   }
 }
