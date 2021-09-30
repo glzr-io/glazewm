@@ -1,5 +1,4 @@
-﻿using GlazeWM.Bar.Components;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
@@ -8,10 +7,6 @@ namespace GlazeWM.Bar
     public static IServiceCollection AddBarServices(this IServiceCollection services)
     {
       services.AddSingleton<BarManagerService>();
-
-      services.AddScoped<MainWindow>();
-      services.AddScoped<BarViewModel>();
-      services.AddScoped<WorkspacesComponentViewModel>();
 
       return services;
     }
