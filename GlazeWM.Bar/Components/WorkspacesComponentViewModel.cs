@@ -16,7 +16,7 @@ namespace GlazeWM.Bar.Components
 {
   public class WorkspacesComponentViewModel : ComponentViewModel
   {
-    private new readonly WorkspacesComponentConfig _config;
+    private WorkspacesComponentConfig _config => _baseConfig as WorkspacesComponentConfig;
     private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private Monitor _monitor => _parentViewModel.Monitor;

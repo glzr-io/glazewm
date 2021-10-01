@@ -6,7 +6,7 @@ namespace GlazeWM.Bar.Components
   public class ComponentViewModel : ViewModelBase
   {
     protected readonly BarViewModel _parentViewModel;
-    protected readonly BarComponentConfig _config;
+    protected readonly BarComponentConfig _baseConfig;
 
     public ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig config)
     {
