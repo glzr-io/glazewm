@@ -16,14 +16,15 @@ namespace GlazeWM.Bar
   {
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
+    private BarService _barService = ServiceLocator.Provider.GetRequiredService<BarService>();
     private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
     private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
     public string Background => _barConfig.Background;
     public string FontFamily => _barConfig.FontFamily;
     public string FontSize => _barConfig.FontSize;
     public string BorderColor => _barConfig.BorderColor;
-    public string BorderWidth => ShorthandToXamlProperty(_barConfig.BorderWidth);
-    public string Padding => ShorthandToXamlProperty(_barConfig.Padding);
+    public string BorderWidth => _barService.ShorthandToXamlProperty(_barConfig.BorderWidth);
+    public string Padding => _barService.ShorthandToXamlProperty(_barConfig.Padding);
     public double Opacity => _barConfig.Opacity;
 
     public List<ComponentViewModel> ComponentsLeft =>
@@ -53,25 +54,6 @@ namespace GlazeWM.Bar
 
         return viewModel;
       }).ToList();
-    }
-
-    /// <summary>
-    /// Convert shorthand properties from user config (ie. `Padding`, `Margin`, and `BorderWidth`)
-    /// to be compatible with their equivalent XAML properties (ie. `Padding`, `Margin`, and
-    /// `BorderThickness`). Shorthand properties follow the 1-to-4 value syntax used in CSS.
-    /// </summary>
-    private string ShorthandToXamlProperty(string shorthand)
-    {
-      var shorthandParts = shorthand.Split(" ");
-
-      return shorthandParts.Count() switch
-      {
-        1 => shorthand,
-        2 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[0]}",
-        3 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
-        4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
-        _ => throw new ArgumentException(),
-      };
     }
   }
 }
