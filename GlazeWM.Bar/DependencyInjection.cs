@@ -6,7 +6,7 @@ namespace GlazeWM.Bar
   {
     public static IServiceCollection AddBarServices(this IServiceCollection services)
     {
-      services.AddSingleton<BarManagerService>();
+      services.AddSingleton<BarService>();
 
       return services;
     }

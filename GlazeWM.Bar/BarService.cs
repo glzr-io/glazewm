@@ -5,25 +5,23 @@ using System.Reactive.Linq;
 using System;
 using System.Threading;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
-  public class BarManagerService
+  public class BarService
   {
     private Bus _bus;
     private WorkspaceService _workspaceService;
     private UserConfigService _userConfigService;
 
-    public BarManagerService(Bus bus, WorkspaceService workspaceService, UserConfigService userConfigService)
+    public BarService(Bus bus, WorkspaceService workspaceService, UserConfigService userConfigService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _userConfigService = userConfigService;
     }
 
-    public void Init()
+    public void StartApp()
     {
       var thread = new Thread(() =>
       {

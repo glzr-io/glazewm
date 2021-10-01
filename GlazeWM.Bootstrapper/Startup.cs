@@ -23,7 +23,7 @@ namespace GlazeWM.Bootstrapper
     private KeybindingService _keybindingService;
     private WindowEventService _windowEventService;
     private WindowService _windowService;
-    private BarManagerService _barManagerService;
+    private BarService _barService;
     private WorkspaceService _workspaceService;
 
     public Startup(
@@ -32,7 +32,7 @@ namespace GlazeWM.Bootstrapper
       KeybindingService keybindingService,
       WindowEventService windowEventService,
       WindowService windowService,
-      BarManagerService barManagerService,
+      BarService barService,
       WorkspaceService workspaceService)
     {
       _bus = bus;
@@ -40,7 +40,7 @@ namespace GlazeWM.Bootstrapper
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
       _windowService = windowService;
-      _barManagerService = barManagerService;
+      _barService = barService;
       _workspaceService = workspaceService;
     }
 
@@ -48,8 +48,7 @@ namespace GlazeWM.Bootstrapper
     {
       // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
       // to be initialized before populating initial state.
-      // TODO: Rename `Init` method to `Start`.
-      _barManagerService.Init();
+      _barService.StartApp();
       _keybindingService.Start();
 
       // Populate initial monitors, windows, workspaces and user config.
