@@ -16,9 +16,11 @@ namespace GlazeWM.Bar
   {
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
+
     private BarService _barService = ServiceLocator.Provider.GetRequiredService<BarService>();
     private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
     private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
+
     public string Background => _barConfig.Background;
     public string FontFamily => _barConfig.FontFamily;
     public string FontSize => _barConfig.FontSize;

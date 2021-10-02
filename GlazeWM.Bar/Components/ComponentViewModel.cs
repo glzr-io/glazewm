@@ -9,7 +9,7 @@ namespace GlazeWM.Bar.Components
   {
     private BarService _barService = ServiceLocator.Provider.GetRequiredService<BarService>();
     protected readonly BarViewModel _parentViewModel;
-    protected readonly BarComponentConfig _baseConfig;
+    public readonly BarComponentConfig _baseConfig;
     public string Background => _baseConfig.Background;
     public string FontFamily => _baseConfig.FontFamily;
     public string FontSize => _baseConfig.FontSize;

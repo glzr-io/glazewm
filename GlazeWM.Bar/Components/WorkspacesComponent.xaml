@@ -1,5 +1,6 @@
 <UserControl
   x:Class="GlazeWM.Bar.Components.WorkspacesComponent"
+  x:Name="Self"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -9,10 +10,7 @@
   <ItemsControl ItemsSource="{Binding Workspaces}">
     <ItemsControl.ItemsPanel>
       <ItemsPanelTemplate>
-        <UniformGrid
-          Rows="1"
-          HorizontalAlignment="Left"
-          IsItemsHost="True" />
+        <StackPanel Orientation="Horizontal" />
       </ItemsPanelTemplate>
     </ItemsControl.ItemsPanel>
 
@@ -21,10 +19,11 @@
         <Button
           x:Name="WorkspaceButton"
           Content="{Binding Name}"
-          Background="#242424"
-          Foreground="White"
-          BorderBrush="Transparent"
+          Background="{Binding DataContext.Config.DefaultWorkspaceBackground, ElementName=Self}"
+          Foreground="{Binding DataContext.Config.DefaultWorkspaceForeground, ElementName=Self}"
+          BorderBrush="{Binding DataContext.Config.DefaultWorkspaceBorderColor, ElementName=Self}"
           BorderThickness="0"
+          Cursor="Hand"
           MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
           MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
 
@@ -35,15 +34,40 @@
             <Setter
               TargetName="WorkspaceButton"
               Property="Background"
-              Value="#42403e" />
+              Value="{Binding DataContext.Config.DisplayedWorkspaceBackground, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="Foreground"
+              Value="{Binding DataContext.Config.DisplayedWorkspaceForeground, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="BorderBrush"
+              Value="{Binding DataContext.Config.DisplayedWorkspaceBorderColor, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="BorderThickness"
+              Value="0" />
           </DataTrigger>
+
           <DataTrigger
             Binding="{Binding HasFocus}"
             Value="True">
             <Setter
               TargetName="WorkspaceButton"
               Property="Background"
-              Value="Orange" />
+              Value="{Binding DataContext.Config.FocusedWorkspaceBackground, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="Foreground"
+              Value="{Binding DataContext.Config.FocusedWorkspaceForeground, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="BorderBrush"
+              Value="{Binding DataContext.Config.FocusedWorkspaceBorderColor, ElementName=Self}" />
+            <Setter
+              TargetName="WorkspaceButton"
+              Property="BorderThickness"
+              Value="0" />
           </DataTrigger>
         </DataTemplate.Triggers>
       </DataTemplate>
