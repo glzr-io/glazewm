@@ -22,6 +22,7 @@ namespace GlazeWM.Bar
     private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
 
     public string Background => _barConfig.Background;
+    public string Foreground => _barConfig.Foreground;
     public string FontFamily => _barConfig.FontFamily;
     public string FontSize => _barConfig.FontSize;
     public string BorderColor => _barConfig.BorderColor;

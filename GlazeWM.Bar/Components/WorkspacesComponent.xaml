@@ -22,6 +22,8 @@
           Background="{Binding DataContext.DefaultWorkspaceBackground, ElementName=Self}"
           Foreground="{Binding DataContext.DefaultWorkspaceForeground, ElementName=Self}"
           BorderBrush="{Binding DataContext.DefaultWorkspaceBorderColor, ElementName=Self}"
+          FontFamily="{Binding DataContext.FontFamily, ElementName=Self}"
+          FontSize="{Binding DataContext.FontSize, ElementName=Self}"
           BorderThickness="0"
           Cursor="Hand"
           MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"

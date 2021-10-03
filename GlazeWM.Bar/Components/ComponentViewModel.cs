@@ -12,6 +12,7 @@ namespace GlazeWM.Bar.Components
     protected readonly BarService _barService = ServiceLocator.Provider.GetRequiredService<BarService>();
 
     public string Background => _componentConfig.Background ?? _parentViewModel.Background;
+    public string Foreground => _componentConfig.Foreground ?? _parentViewModel.Foreground;
     public string FontFamily => _componentConfig.FontFamily ?? _parentViewModel.FontFamily;
     public string FontSize => _componentConfig.FontSize ?? _parentViewModel.FontSize;
     public string BorderColor => _componentConfig.BorderColor;

@@ -27,17 +27,17 @@ namespace GlazeWM.Bar.Components
     public string FocusedWorkspaceBorderWidth => _config.FocusedWorkspaceBorderWidth;
     public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
     public string FocusedWorkspaceBackground => _config.FocusedWorkspaceBackground;
-    public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground;
+    public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
 
     public string DisplayedWorkspaceBorderWidth => _config.DisplayedWorkspaceBorderWidth;
     public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
     public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
-    public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground;
+    public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground ?? Foreground;
 
     public string DefaultWorkspaceBorderWidth => _config.DefaultWorkspaceBorderWidth;
     public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
     public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
-    public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground;
+    public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground ?? Foreground;
 
     public WorkspacesComponentViewModel(BarViewModel parentViewModel, WorkspacesComponentConfig config) : base(parentViewModel, config)
     {

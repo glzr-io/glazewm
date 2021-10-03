@@ -7,8 +7,9 @@
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
   <TextBlock
-    Name="StatusBarLabel"
-    Foreground="#FFE0E0E0"
     VerticalAlignment="Center"
+    Foreground="{Binding Foreground}"
+    FontFamily="{Binding FontFamily}"
+    FontSize="{Binding FontSize}"
     Text="{Binding FormattedTime}" />
 </UserControl>
