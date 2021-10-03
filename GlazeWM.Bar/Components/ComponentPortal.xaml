@@ -6,14 +6,24 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-  <ContentPresenter Content="{Binding .}">
-    <ContentPresenter.Resources>
-      <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
-        <components:WorkspacesComponent />
-      </DataTemplate>
-      <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
-        <components:ClockComponent />
-      </DataTemplate>
-    </ContentPresenter.Resources>
-  </ContentPresenter>
+  <Grid
+    Margin="{Binding Margin}"
+    Background="{Binding Background}">
+    <Border
+      BorderThickness="{Binding BorderWidth}"
+      BorderBrush="{Binding BorderColor}">
+      <Grid Margin="{Binding Padding}">
+        <ContentPresenter Content="{Binding .}">
+          <ContentPresenter.Resources>
+            <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
+              <components:WorkspacesComponent />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
+              <components:ClockComponent />
+            </DataTemplate>
+          </ContentPresenter.Resources>
+        </ContentPresenter>
+      </Grid>
+    </Border>
+  </Grid>
 </UserControl>
