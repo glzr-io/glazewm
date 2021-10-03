@@ -2,11 +2,14 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Windows.Input;
 using System.Windows.Threading;
+using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
@@ -42,7 +45,10 @@ namespace GlazeWM.Bar.Components
     public string DefaultWorkspaceBorderWidth =>
       _barService.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
 
-    public WorkspacesComponentViewModel(BarViewModel parentViewModel, WorkspacesComponentConfig config) : base(parentViewModel, config)
+    public ICommand FocusWorkspaceCommand => new RelayCommand<string>(FocusWorkspace);
+
+    public WorkspacesComponentViewModel(BarViewModel parentViewModel, WorkspacesComponentConfig config)
+      : base(parentViewModel, config)
     {
       var workspacesChangedEvent = _bus.Events.Where((@event) =>
         @event is WorkspaceAttachedEvent ||
@@ -55,6 +61,11 @@ namespace GlazeWM.Bar.Components
       {
         _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
       });
+    }
+
+    public void FocusWorkspace(string workspaceName)
+    {
+      _bus.Invoke(new FocusWorkspaceCommand(workspaceName));
     }
   }
 }
