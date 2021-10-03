@@ -19,9 +19,9 @@
         <Button
           x:Name="WorkspaceButton"
           Content="{Binding Name}"
-          Background="{Binding DataContext.Config.DefaultWorkspaceBackground, ElementName=Self}"
-          Foreground="{Binding DataContext.Config.DefaultWorkspaceForeground, ElementName=Self}"
-          BorderBrush="{Binding DataContext.Config.DefaultWorkspaceBorderColor, ElementName=Self}"
+          Background="{Binding DataContext.DefaultWorkspaceBackground, ElementName=Self}"
+          Foreground="{Binding DataContext.DefaultWorkspaceForeground, ElementName=Self}"
+          BorderBrush="{Binding DataContext.DefaultWorkspaceBorderColor, ElementName=Self}"
           BorderThickness="0"
           Cursor="Hand"
           MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
@@ -34,15 +34,15 @@
             <Setter
               TargetName="WorkspaceButton"
               Property="Background"
-              Value="{Binding DataContext.Config.DisplayedWorkspaceBackground, ElementName=Self}" />
+              Value="{Binding DataContext.DisplayedWorkspaceBackground, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="Foreground"
-              Value="{Binding DataContext.Config.DisplayedWorkspaceForeground, ElementName=Self}" />
+              Value="{Binding DataContext.DisplayedWorkspaceForeground, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderBrush"
-              Value="{Binding DataContext.Config.DisplayedWorkspaceBorderColor, ElementName=Self}" />
+              Value="{Binding DataContext.DisplayedWorkspaceBorderColor, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderThickness"
@@ -55,15 +55,15 @@
             <Setter
               TargetName="WorkspaceButton"
               Property="Background"
-              Value="{Binding DataContext.Config.FocusedWorkspaceBackground, ElementName=Self}" />
+              Value="{Binding DataContext.FocusedWorkspaceBackground, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="Foreground"
-              Value="{Binding DataContext.Config.FocusedWorkspaceForeground, ElementName=Self}" />
+              Value="{Binding DataContext.FocusedWorkspaceForeground, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderBrush"
-              Value="{Binding DataContext.Config.FocusedWorkspaceBorderColor, ElementName=Self}" />
+              Value="{Binding DataContext.FocusedWorkspaceBorderColor, ElementName=Self}" />
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderThickness"

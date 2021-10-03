@@ -16,13 +16,28 @@ namespace GlazeWM.Bar.Components
 {
   public class WorkspacesComponentViewModel : ComponentViewModel
   {
-    public WorkspacesComponentConfig Config => _baseConfig as WorkspacesComponentConfig;
-    private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private Monitor _monitor => _parentViewModel.Monitor;
+    private WorkspacesComponentConfig _config => _componentConfig as WorkspacesComponentConfig;
+    private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
 
     public ObservableCollection<Workspace> Workspaces =>
       new ObservableCollection<Workspace>(_monitor.Children.Cast<Workspace>());
+
+    public string FocusedWorkspaceBorderWidth => _config.FocusedWorkspaceBorderWidth;
+    public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
+    public string FocusedWorkspaceBackground => _config.FocusedWorkspaceBackground;
+    public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground;
+
+    public string DisplayedWorkspaceBorderWidth => _config.DisplayedWorkspaceBorderWidth;
+    public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
+    public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
+    public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground;
+
+    public string DefaultWorkspaceBorderWidth => _config.DefaultWorkspaceBorderWidth;
+    public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
+    public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
+    public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground;
 
     public WorkspacesComponentViewModel(BarViewModel parentViewModel, WorkspacesComponentConfig config) : base(parentViewModel, config)
     {

@@ -7,7 +7,7 @@ namespace GlazeWM.Bar.Components
 {
   public class ClockComponentViewModel : ComponentViewModel
   {
-    private ClockComponentConfig _config => _baseConfig as ClockComponentConfig;
+    private ClockComponentConfig _config => _componentConfig as ClockComponentConfig;
     private string _timeFormatting => _config.TimeFormatting;
 
     /// <summary>
