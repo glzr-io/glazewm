@@ -24,7 +24,7 @@
           BorderBrush="{Binding DataContext.DefaultWorkspaceBorderColor, ElementName=Self}"
           FontFamily="{Binding DataContext.FontFamily, ElementName=Self}"
           FontSize="{Binding DataContext.FontSize, ElementName=Self}"
-          BorderThickness="0"
+          BorderThickness="{Binding DataContext.DefaultWorkspaceBorderWidth, ElementName=Self}"
           Cursor="Hand"
           MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
           MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" />
@@ -48,7 +48,7 @@
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderThickness"
-              Value="0" />
+              Value="{Binding DataContext.DisplayedWorkspaceBorderWidth, ElementName=Self}" />
           </DataTrigger>
 
           <DataTrigger
@@ -69,7 +69,7 @@
             <Setter
               TargetName="WorkspaceButton"
               Property="BorderThickness"
-              Value="0" />
+              Value="{Binding DataContext.FocusedWorkspaceBorderWidth, ElementName=Self}" />
           </DataTrigger>
         </DataTemplate.Triggers>
       </DataTemplate>
