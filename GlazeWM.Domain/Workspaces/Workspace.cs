@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Documents;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,11 +39,30 @@ namespace GlazeWM.Domain.Workspaces
       }
     }
 
+    public IEnumerable<Container> TilingChildren => Children.Where(
+      container => (container as Window)?.Mode == WindowMode.TILING || container is SplitContainer
+    );
+
+    public IEnumerable<Container> FloatingChildren => Children.Where(
+      container => (container as Window)?.Mode == WindowMode.FLOATING
+    );
+
+    public IEnumerable<Container> MinimizedChildren => Children.Where(
+      container => (container as Window)?.Mode == WindowMode.MINIMIZED
+    );
+
+    public IEnumerable<Container> MaximizedChildren => Children.Where(
+      container => (container as Window)?.Mode == WindowMode.MAXIMIZED
+    );
+
+    public IEnumerable<Container> FullscreenChildren => Children.Where(
+      container => (container as Window)?.Mode == WindowMode.FULLSCREEN
+    );
+
     public override int Height => Parent.Height - (OuterGap * 2) - LogicalBarHeight;
     public override int Width => Parent.Width - (OuterGap * 2);
     public override int X => Parent.X + OuterGap;
     public override int Y => Parent.Y + OuterGap + LogicalBarHeight;
-
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.
