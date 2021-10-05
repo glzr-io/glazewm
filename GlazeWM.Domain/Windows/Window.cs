@@ -1,5 +1,7 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
@@ -65,6 +67,23 @@ namespace GlazeWM.Domain.Windows
     public bool HasWindowExStyle(WS_EX style)
     {
       return _windowService.HandleHasWindowExStyle(Hwnd, style);
+    }
+
+    public IEnumerable<Container> SelfAndSiblingWithMode(WindowMode mode)
+    {
+      return SelfAndSiblings.Where(container => (container as Window)?.Mode == mode);
+    }
+
+    public Container GetNextSiblingWithMode(WindowMode mode)
+    {
+      return SelfAndSiblings
+        .Skip(Index)
+        .FirstOrDefault(container => (container as Window)?.Mode == mode);
+    }
+
+    public Container GetPreviousSiblingWithMode(WindowMode mode)
+    {
+      throw new NotImplementedException();
     }
   }
 }
