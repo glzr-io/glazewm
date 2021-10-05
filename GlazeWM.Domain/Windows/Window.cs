@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
@@ -18,6 +18,8 @@ namespace GlazeWM.Domain.Windows
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
+
+    public WindowMode Mode { get; set; } = WindowMode.TILING;
 
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
