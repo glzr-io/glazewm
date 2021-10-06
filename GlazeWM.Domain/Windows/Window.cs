@@ -21,11 +21,8 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
-    public WindowMode Mode { get; set; } = WindowMode.TILING;
-
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
-    private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public Window(IntPtr hwnd)
     {
@@ -36,14 +33,6 @@ namespace GlazeWM.Domain.Windows
     /// Windows are hidden if their parent workspace is not displayed.
     /// </summary>
     public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
-
-    public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
-
-    public override int Height => _containerService.CalculateHeightOfResizableContainer(this);
-
-    public override int X => _containerService.CalculateXOfResizableContainer(this);
-
-    public override int Y => _containerService.CalculateYOfResizableContainer(this);
 
     public Process Process => _windowService.GetProcessOfHandle(Hwnd);
 
@@ -69,19 +58,19 @@ namespace GlazeWM.Domain.Windows
       return _windowService.HandleHasWindowExStyle(Hwnd, style);
     }
 
-    public IEnumerable<Container> SelfAndSiblingWithMode(WindowMode mode)
+    public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
     {
-      return SelfAndSiblings.Where(container => (container as Window)?.Mode == mode);
+      return SelfAndSiblings.Where(container => container.GetType().IsAssignableFrom(type));
     }
 
-    public Container GetNextSiblingWithMode(WindowMode mode)
+    public Container GetNextSiblingOfType(Type type)
     {
       return SelfAndSiblings
         .Skip(Index)
-        .FirstOrDefault(container => (container as Window)?.Mode == mode);
+        .FirstOrDefault(container => container.GetType().IsAssignableFrom(type));
     }
 
-    public Container GetPreviousSiblingWithMode(WindowMode mode)
+    public Container GetPreviousSiblingOfType(Type type)
     {
       throw new NotImplementedException();
     }

@@ -40,23 +40,23 @@ namespace GlazeWM.Domain.Workspaces
     }
 
     public IEnumerable<Container> TilingChildren => Children.Where(
-      container => (container as Window)?.Mode == WindowMode.TILING || container is SplitContainer
+      container => container is TilingWindow || container is SplitContainer
     );
 
     public IEnumerable<Container> FloatingChildren => Children.Where(
-      container => (container as Window)?.Mode == WindowMode.FLOATING
+      container => container is FloatingWindow
     );
 
     public IEnumerable<Container> MinimizedChildren => Children.Where(
-      container => (container as Window)?.Mode == WindowMode.MINIMIZED
+      container => container is MinimizedWindow
     );
 
     public IEnumerable<Container> MaximizedChildren => Children.Where(
-      container => (container as Window)?.Mode == WindowMode.MAXIMIZED
+      container => container is MaximizedWindow
     );
 
     public IEnumerable<Container> FullscreenChildren => Children.Where(
-      container => (container as Window)?.Mode == WindowMode.FULLSCREEN
+      container => container is FullscreenWindow
     );
 
     public override int Height => Parent.Height - (OuterGap * 2) - LogicalBarHeight;

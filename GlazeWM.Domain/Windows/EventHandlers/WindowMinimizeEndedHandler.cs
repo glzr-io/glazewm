@@ -27,7 +27,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      window.Mode = WindowMode.TILING;
+      // TODO: Create `MinimizedWindow` instance.
       window.SizePercentage = 1;
 
       _containerService.SplitContainersToRedraw.Add(window.Parent as SplitContainer);
