@@ -12,24 +12,18 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private ContainerService _containerService;
-    private UserConfigService _userConfigService;
-    private MonitorService _monitorService;
 
-    public RedrawContainersHandler(ContainerService containerService, UserConfigService userConfigService, MonitorService monitorService)
+    public RedrawContainersHandler(ContainerService containerService)
     {
       _containerService = containerService;
-      _userConfigService = userConfigService;
-      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(RedrawContainersCommand command)
     {
-      var containersToRedraw = _containerService.SplitContainersToRedraw;
-
       // Get windows that should be redrawn.
-      var windowsToRedraw = containersToRedraw
+      var windowsToRedraw = _containerService.SplitContainersToRedraw
         .SelectMany(container => container.Flatten())
-        .OfType<Window>()
+        .OfType<TilingWindow>()
         .Distinct()
         .ToList();
 
@@ -38,7 +32,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         .Where(window => window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE))
         .ToList();
 
-      // Restore maximized/minimized windows. Needed in order to move and resize them.
+      // Restore maximized/minimized windows. Needed to be able to move and resize them.
       foreach (var window in windowsToRestore)
         ShowWindow(window.Hwnd, ShowWindowFlags.RESTORE);
 
@@ -64,7 +58,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         }
       }
 
-      containersToRedraw.Clear();
+      _containerService.SplitContainersToRedraw.Clear();
 
       return CommandResponse.Ok;
     }
