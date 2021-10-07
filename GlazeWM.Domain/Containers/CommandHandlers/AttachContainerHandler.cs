@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var isFocusedContainer = _containerService.FocusedContainer == childToAdd;
 
       if (childToAdd.Parent != null)
-        _bus.Invoke(new DetachContainerCommand(childToAdd.Parent as SplitContainer, childToAdd));
+        _bus.Invoke(new DetachContainerCommand(childToAdd));
 
       parent.Children.Insert(command.InsertPosition, childToAdd);
       childToAdd.Parent = parent;

@@ -4,12 +4,10 @@ namespace GlazeWM.Domain.Containers.Commands
 {
   public class DetachContainerCommand : Command
   {
-    public SplitContainer Parent { get; }
     public Container ChildToRemove { get; }
 
-    public DetachContainerCommand(SplitContainer parent, Container childToRemove)
+    public DetachContainerCommand(Container childToRemove)
     {
-      Parent = parent;
       ChildToRemove = childToRemove;
     }
   }

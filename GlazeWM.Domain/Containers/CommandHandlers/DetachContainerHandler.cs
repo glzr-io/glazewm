@@ -19,11 +19,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(DetachContainerCommand command)
     {
-      var parent = command.Parent;
       var childToRemove = command.ChildToRemove;
+      var parent = childToRemove.Parent;
 
-      parent.ChildFocusOrder.Remove(childToRemove);
       parent.RemoveChild(childToRemove);
+      parent.ChildFocusOrder.Remove(childToRemove);
 
       if (childToRemove is TilingWindow || childToRemove is SplitContainer)
         AdjustSiblingSizes(parent);
@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void AdjustSiblingSizes(SplitContainer parent)
+    private void AdjustSiblingSizes(Container parent)
     {
       // Siblings of the removed child.
       var siblings = parent.Children;
@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container as well.
       if (isEmptySplitContainer)
       {
-        _bus.Invoke(new DetachContainerCommand(parent.Parent as SplitContainer, parent));
+        _bus.Invoke(new DetachContainerCommand(parent));
         return;
       }
 
@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       foreach (var sibling in resizableSiblings)
         (sibling as IResizable).SizePercentage = defaultPercent;
 
-      _containerService.SplitContainersToRedraw.Add(parent);
+      _containerService.SplitContainersToRedraw.Add(parent as SplitContainer);
     }
   }
 }
