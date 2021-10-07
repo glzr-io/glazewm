@@ -5,8 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Windows
 {
-  public sealed class TilingWindow : Window
+  public sealed class TilingWindow : Window, IResizable
   {
+    public double SizePercentage { get; set; } = 1;
+
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public TilingWindow(IntPtr hwnd) : base(hwnd)

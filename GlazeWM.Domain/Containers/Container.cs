@@ -10,7 +10,6 @@ namespace GlazeWM.Domain.Containers
     public virtual int Width { get; set; }
     public virtual int X { get; set; }
     public virtual int Y { get; set; }
-    public double SizePercentage { get; set; } = 1;
     public Container Parent { get; set; } = null;
     public List<Container> Children { get; set; } = new List<Container>();
 

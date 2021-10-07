@@ -4,9 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Containers
 {
-  public class SplitContainer : Container
+  public class SplitContainer : Container, IResizable
   {
     public Layout Layout { get; set; } = Layout.HORIZONTAL;
+
+    public double SizePercentage { get; set; } = 1;
+
+    private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
 
@@ -15,7 +19,5 @@ namespace GlazeWM.Domain.Containers
     public override int X => _containerService.CalculateXOfResizableContainer(this);
 
     public override int Y => _containerService.CalculateYOfResizableContainer(this);
-
-    private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
   }
 }
