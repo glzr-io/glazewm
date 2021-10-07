@@ -30,7 +30,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var targetParent = command.TargetParent;
       var shouldRedraw = command.ShouldRedraw;
 
-      var window = new Window(command.WindowHandle);
+      var window = new TilingWindow(command.WindowHandle);
 
       if (!window.IsManageable)
         return CommandResponse.Ok;
