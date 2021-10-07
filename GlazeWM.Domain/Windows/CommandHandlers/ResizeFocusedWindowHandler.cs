@@ -64,7 +64,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           break;
       }
 
-      _containerService.SplitContainersToRedraw.Add(containerToResize.Parent as SplitContainer);
+      _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;

@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       parent.Children[firstContainerIndex] = secondContainer;
       parent.Children[secondContainerIndex] = firstContainer;
 
-      _containerService.SplitContainersToRedraw.Add(parent as SplitContainer);
+      _containerService.ContainersToRedraw.Add(parent);
 
       return CommandResponse.Ok;
     }

@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       foreach (var sibling in resizableSiblings)
         (sibling as IResizable).SizePercentage = defaultPercent;
 
-      _containerService.SplitContainersToRedraw.Add(parent as SplitContainer);
+      _containerService.ContainersToRedraw.Add(parent);
     }
   }
 }

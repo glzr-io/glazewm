@@ -39,8 +39,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       monitor.DisplayedWorkspace = command.Workspace;
 
-      _containerService.SplitContainersToRedraw.Add(currentWorkspace);
-      _containerService.SplitContainersToRedraw.Add(workspaceToDisplay);
+      _containerService.ContainersToRedraw.Add(currentWorkspace);
+      _containerService.ContainersToRedraw.Add(workspaceToDisplay);
 
       _bus.Invoke(new RedrawContainersCommand());
 

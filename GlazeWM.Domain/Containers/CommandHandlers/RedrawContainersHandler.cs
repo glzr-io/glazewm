@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(RedrawContainersCommand command)
     {
       // Get windows that should be redrawn.
-      var windowsToRedraw = _containerService.SplitContainersToRedraw
+      var windowsToRedraw = _containerService.ContainersToRedraw
         .SelectMany(container => container.Flatten())
         .OfType<TilingWindow>()
         .Distinct()
@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         }
       }
 
-      _containerService.SplitContainersToRedraw.Clear();
+      _containerService.ContainersToRedraw.Clear();
 
       return CommandResponse.Ok;
     }

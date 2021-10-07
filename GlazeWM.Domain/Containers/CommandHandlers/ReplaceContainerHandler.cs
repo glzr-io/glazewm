@@ -40,7 +40,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         containerToReplace, containerToReplace.LastFocusedChild ?? replacementContainers[0]
       );
 
-      _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);
+      _containerService.ContainersToRedraw.Add(parentContainer);
 
       return CommandResponse.Ok;
     }

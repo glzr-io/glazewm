@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (childToAdd is TilingWindow || childToAdd is SplitContainer)
         AdjustSiblingSizes(childToAdd);
 
-      _containerService.SplitContainersToRedraw.Add(parent);
+      _containerService.ContainersToRedraw.Add(parent);
 
       // Adjust focus order of ancestors if the attached container is focused.
       if (isFocusedContainer)

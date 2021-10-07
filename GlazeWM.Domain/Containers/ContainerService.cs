@@ -14,9 +14,10 @@ namespace GlazeWM.Domain.Containers
     public Container ContainerTree = new Container();
 
     /// <summary>
-    /// Pending SplitContainers to redraw.
+    /// Containers (and their descendants) to redraw on the next invocation of
+    /// `RedrawContainersCommand`.
     /// </summary>
-    public List<SplitContainer> SplitContainersToRedraw = new List<SplitContainer>();
+    public List<Container> ContainersToRedraw = new List<Container>();
 
     /// <summary>
     /// The currently focused container. This can either be a `Window` or a

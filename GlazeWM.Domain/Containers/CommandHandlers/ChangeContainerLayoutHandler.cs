@@ -92,7 +92,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _bus.Invoke(new ReplaceContainerCommand(workspace, child.Index, child.Children));
       }
 
-      _containerService.SplitContainersToRedraw.Add(workspace);
+      _containerService.ContainersToRedraw.Add(workspace);
     }
   }
 }

@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // TODO: Create `MinimizedWindow` instance.
 
-      _containerService.SplitContainersToRedraw.Add(window.Parent as SplitContainer);
+      _containerService.ContainersToRedraw.Add(window.Parent);
       _bus.Invoke(new RedrawContainersCommand());
     }
   }
