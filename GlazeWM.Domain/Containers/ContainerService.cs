@@ -50,7 +50,7 @@ namespace GlazeWM.Domain.Containers
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return (int)(container.SizePercentage * (parent.Width - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (parent.Children.Count - 1))));
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ namespace GlazeWM.Domain.Containers
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return (int)(container.SizePercentage * (parent.Height - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (parent.Children.Count - 1))));
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -24,7 +25,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       parent.ChildFocusOrder.Remove(childToRemove);
       parent.RemoveChild(childToRemove);
 
-      AdjustSiblingSizes(parent);
+      if (childToRemove is TilingWindow || childToRemove is SplitContainer)
+        AdjustSiblingSizes(parent);
 
       return CommandResponse.Ok;
     }
@@ -34,30 +36,25 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Siblings of the removed child.
       var siblings = parent.Children;
 
-      var isEmptySplitContainer = !parent.HasChildren() && !(parent is Workspace);
+      var isEmptySplitContainer = parent is SplitContainer && !parent.HasChildren()
+        && !(parent is Workspace);
 
       // If the parent of the removed child is an empty split container, remove
       // the split container as well.
       if (isEmptySplitContainer)
       {
-        var grandparent = parent.Parent;
-        grandparent.RemoveChild(parent);
-        grandparent.ChildFocusOrder.Remove(parent);
-
-        // TODO: Perhaps create a private method that takes the container with children
-        // to adjust that has the SizePercentage and default percent logic. Alternatively
-        // create a variable containerToAdjust that is then operated on.
-        foreach (var child in grandparent.Children)
-          child.SizePercentage = 1.0 / grandparent.Children.Count;
-
-        _containerService.SplitContainersToRedraw.Add(grandparent as SplitContainer);
+        _bus.Invoke(new DetachContainerCommand(parent.Parent as SplitContainer, parent));
         return;
       }
 
       // TODO: Adjust SizePercentage of children based on their previous SizePercentage.
 
-      foreach (var child in siblings)
-        child.SizePercentage = 1.0 / siblings.Count;
+      var resizableSiblings = siblings.Where(container => container is IResizable);
+      double defaultPercent = 1.0 / resizableSiblings.Count();
+
+      // Adjust `SizePercentage` of the siblings of the removed container.
+      foreach (var sibling in resizableSiblings)
+        (sibling as IResizable).SizePercentage = defaultPercent;
 
       _containerService.SplitContainersToRedraw.Add(parent);
     }

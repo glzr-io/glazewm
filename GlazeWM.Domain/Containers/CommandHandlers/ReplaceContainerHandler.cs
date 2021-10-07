@@ -26,8 +26,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       foreach (var replacementContainer in replacementContainers)
       {
         replacementContainer.Parent = parentContainer;
-        replacementContainer.SizePercentage =
-          containerToReplace.SizePercentage * replacementContainer.SizePercentage;
+        (replacementContainer as IResizable).SizePercentage =
+          (containerToReplace as IResizable).SizePercentage * (replacementContainer as IResizable).SizePercentage;
       }
 
       // Replace the container at the given index.
