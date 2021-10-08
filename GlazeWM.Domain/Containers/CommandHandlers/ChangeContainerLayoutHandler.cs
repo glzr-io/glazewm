@@ -26,7 +26,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var container = command.Container;
       var newLayout = command.NewLayout;
 
-      if (container is Window)
+      if (container is TilingWindow)
         ChangeWindowLayout(container as Window, newLayout);
 
       else if (container is Workspace)
