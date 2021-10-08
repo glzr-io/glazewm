@@ -179,13 +179,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
     /// this application are included.
     /// </summary>
-    public enum ShowWindowFlags : uint
+    public enum ShowWindowCommands : uint
     {
       RESTORE = 9,
     }
 
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowFlags flags);
+    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowCommands flags);
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetWindowTextLength(IntPtr hWnd);
@@ -201,6 +201,47 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hwnd, ref WindowRect rectangle);
+
+    /// <summary>
+    /// Contains information about the placement of a window on the screen.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowPlacement
+    {
+      /// <summary>
+      /// The length of the structure, in bytes. Before calling the GetWindowPlacement or SetWindowPlacement functions, set this member to sizeof(WINDOWPLACEMENT).
+      /// </summary>
+      public int Length;
+
+      /// <summary>
+      /// Specifies flags that control the position of the minimized window and the method by which the window is restored.
+      /// </summary>
+      public int Flags;
+
+      /// <summary>
+      /// The current show state of the window.
+      /// </summary>
+      public ShowWindowCommands ShowCommand;
+
+      /// <summary>
+      /// The coordinates of the window's upper-left corner when the window is minimized.
+      /// </summary>
+      public Point MinPosition;
+
+      /// <summary>
+      /// The coordinates of the window's upper-left corner when the window is maximized.
+      /// </summary>
+      public Point MaxPosition;
+
+      /// <summary>
+      /// The window's coordinates when the window is in the restored position.
+      /// </summary>
+      public WindowRect NormalPosition;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowPlacement(IntPtr hWnd, ref WindowPlacement windowPlacement);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetWindow(IntPtr hWnd, GW uCmd);
