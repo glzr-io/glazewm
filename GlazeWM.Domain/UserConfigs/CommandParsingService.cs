@@ -34,6 +34,7 @@ namespace GlazeWM.Domain.UserConfigs
         "focus" => ParseFocusCommand(commandParts),
         "move" => ParseMoveCommand(commandParts),
         "resize" => ParseResizeCommand(commandParts),
+        "toggle" => ParseToggleCommand(commandParts),
         "close" => new CloseFocusedWindowCommand(),
         _ => throw new ArgumentException(),
       };
@@ -91,6 +92,15 @@ namespace GlazeWM.Domain.UserConfigs
           "width" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_WIDTH),
           _ => throw new ArgumentException(),
         },
+        _ => throw new ArgumentException(),
+      };
+    }
+
+    private Command ParseToggleCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        "floating" => new ToggleFocusedWindowFloatingCommand(),
         _ => throw new ArgumentException(),
       };
     }
