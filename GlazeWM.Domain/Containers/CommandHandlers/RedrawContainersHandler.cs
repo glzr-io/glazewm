@@ -23,7 +23,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Get windows that should be redrawn.
       var windowsToRedraw = _containerService.ContainersToRedraw
         .SelectMany(container => container.Flatten())
-        .OfType<TilingWindow>()
+        .OfType<Window>()
+        .Where(window => window is TilingWindow || window is FloatingWindow)
         .Distinct()
         .ToList();
 
