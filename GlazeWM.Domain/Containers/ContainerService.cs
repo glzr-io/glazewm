@@ -2,6 +2,7 @@
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Windows;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -24,6 +25,12 @@ namespace GlazeWM.Domain.Containers
     /// `Workspace` without any descendant windows.
     /// </summary>
     public Container FocusedContainer => ContainerTree.LastFocusedDescendant;
+
+    /// <summary>
+    /// Whether a tiling or floating container is currently focused.
+    /// </summary>
+    public FocusMode FocusMode => FocusedContainer is FloatingWindow ?
+      FocusMode.FLOATING : FocusMode.TILING;
 
     /// <summary>
     /// If set, this container overrides the target container to set focus to on the next
