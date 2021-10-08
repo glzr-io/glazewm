@@ -66,9 +66,19 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public WindowRect GetLocationOfHandle(IntPtr handle)
     {
-      WindowRect rect = new WindowRect();
+      var rect = new WindowRect();
       GetWindowRect(handle, ref rect);
       return rect;
+    }
+
+    /// <summary>
+    /// Get info about the placement of the specified window.
+    /// </summary>
+    public WindowPlacement GetPlacementOfHandle(IntPtr handle)
+    {
+      var windowPlacement = new WindowPlacement();
+      GetWindowPlacement(handle, ref windowPlacement);
+      return windowPlacement;
     }
 
     /// <summary>
@@ -76,7 +86,7 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public string GetTitleOfHandle(IntPtr handle)
     {
-      int titleLength = GetWindowTextLength(handle);
+      var titleLength = GetWindowTextLength(handle);
 
       if (titleLength == 0)
         return String.Empty;
