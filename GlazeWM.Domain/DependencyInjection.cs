@@ -50,6 +50,7 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
       services.AddTransient<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
+      services.AddTransient<ICommandHandler<ToggleFocusedWindowFloatingCommand>, ToggleFocusedWindowFloatingHandler>();
       services.AddTransient<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
       services.AddTransient<ICommandHandler<CreateWorkspaceCommand>, CreateWorkspaceHandler>();
       services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
