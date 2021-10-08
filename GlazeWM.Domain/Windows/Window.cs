@@ -21,6 +21,16 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
+    /// <summary>
+    /// The original width of the window. Used as the window's width when floating is toggled.
+    /// </summary>
+    public int OriginalWidth { get; set; }
+
+    /// <summary>
+    /// The original height of the window. Used as the window's height when floating is toggled.
+    /// </summary>
+    public int OriginalHeight { get; set; }
+
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
