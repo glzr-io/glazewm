@@ -69,6 +69,9 @@ Keybindings:
   - Command: "layout vertical"
     Binding: "$mod+V"
 
+  - Command: "toggle floating"
+    Binding: "$mod+Shift+Space"
+
   - Command: "close"
     Binding: "$mod+Shift+Q"
 
