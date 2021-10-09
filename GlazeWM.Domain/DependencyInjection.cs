@@ -63,6 +63,7 @@ namespace GlazeWM.Domain
       services.AddTransient<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
       services.AddTransient<IEventHandler<WindowMinimizedEvent>, WindowMinimizedHandler>();
       services.AddTransient<IEventHandler<WindowMinimizeEndedEvent>, WindowMinimizeEndedHandler>();
+      services.AddTransient<IEventHandler<WindowMovedOrResizedEvent>, WindowMovedOrResizedHandler>();
       services.AddTransient<IEventHandler<WindowShownEvent>, WindowShownHandler>();
 
       return services;
