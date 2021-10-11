@@ -3,6 +3,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -32,10 +33,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void EnableFloating(Window window)
     {
-      // Keep reference to the window's ancestor workspace prior to detaching.
+      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-
-      _bus.Invoke(new DetachContainerCommand(window));
+      var focusOrderIndex = window.Parent.ChildFocusOrder.IndexOf(window);
 
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(window.Hwnd)
@@ -46,26 +46,35 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         Y = workspace.Y + (workspace.Height / 2) - (window.OriginalHeight / 2),
       };
 
+      _bus.Invoke(new DetachContainerCommand(window));
       _bus.Invoke(new AttachContainerCommand(workspace, floatingWindow));
+
+      if (focusOrderIndex != -1)
+        floatingWindow.Parent.ChildFocusOrder.Insert(focusOrderIndex, floatingWindow);
+
       _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void DisableFloating(FloatingWindow floatingWindow)
     {
-      // Keep reference to the window's ancestor workspace prior to detaching.
+      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
-
-      _bus.Invoke(new DetachContainerCommand(floatingWindow));
+      var focusOrderIndex = floatingWindow.Parent.ChildFocusOrder.IndexOf(floatingWindow);
 
       var tilingWindow = new TilingWindow(floatingWindow.Hwnd);
 
-      var insertionTarget = workspace.LastFocusedDescendant;
+      _bus.Invoke(new DetachContainerCommand(floatingWindow));
+
+      var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Descend the tree of the current workspace and insert the created tiling window.
       if (insertionTarget == null)
         _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
       else
         _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, tilingWindow, insertionTarget.Index + 1));
+
+      if (focusOrderIndex != -1)
+        tilingWindow.Parent.ChildFocusOrder.Insert(focusOrderIndex, tilingWindow);
 
       _bus.Invoke(new RedrawContainersCommand());
     }
