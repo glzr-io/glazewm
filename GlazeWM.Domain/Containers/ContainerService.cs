@@ -57,8 +57,9 @@ namespace GlazeWM.Domain.Containers
         return parent.Width;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -73,8 +74,9 @@ namespace GlazeWM.Domain.Containers
         return parent.Height;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -85,12 +87,16 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.VERTICAL || container.Index == 0)
+      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+
+      if (parent.Layout == Layout.VERTICAL || isFirstOfType)
         return parent.X;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.PreviousSibling.X + container.PreviousSibling.Width + innerGap;
+      return container.GetPreviousSiblingOfType(typeof(IResizable)).X
+        + container.GetPreviousSiblingOfType(typeof(IResizable)).Width
+        + innerGap;
     }
 
     /// <summary>
@@ -101,12 +107,16 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.HORIZONTAL || container.Index == 0)
+      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+
+      if (parent.Layout == Layout.HORIZONTAL || isFirstOfType)
         return parent.Y;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.PreviousSibling.Y + container.PreviousSibling.Height + innerGap;
+      return container.GetPreviousSiblingOfType(typeof(IResizable)).Y
+        + container.GetPreviousSiblingOfType(typeof(IResizable)).Height
+        + innerGap;
     }
 
     /// <summary>
