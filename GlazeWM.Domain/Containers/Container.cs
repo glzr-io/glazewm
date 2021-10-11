@@ -146,5 +146,26 @@ namespace GlazeWM.Domain.Containers
         .Reverse()
         .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
     }
+
+    /// <summary>
+    /// Get the last focused descendant that matches the given type.
+    /// </summary>
+    public Container LastFocusedDescendantOfType(Type type)
+    {
+      // Create variable for `LastFocusedDescendant` to avoid calling getter multiple times.
+      var lastFocusedDescendant = LastFocusedDescendant;
+
+      if (type.IsAssignableFrom(lastFocusedDescendant.GetType()))
+        return lastFocusedDescendant;
+
+      var descendantFromFocusOrder = lastFocusedDescendant.Parent.ChildFocusOrder
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+
+      if (descendantFromFocusOrder != null)
+        return descendantFromFocusOrder;
+
+      return lastFocusedDescendant.Siblings
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+    }
   }
 }
