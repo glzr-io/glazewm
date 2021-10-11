@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -20,9 +21,17 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var window = command.Window;
 
-      if (!(window is TilingWindow))
-        return CommandResponse.Ok;
+      if (window is FloatingWindow)
+        DisableFloating(window as FloatingWindow);
 
+      else
+        EnableFloating(window);
+
+      return CommandResponse.Ok;
+    }
+
+    private void EnableFloating(Window window)
+    {
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
@@ -39,8 +48,26 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new AttachContainerCommand(workspace, floatingWindow));
       _bus.Invoke(new RedrawContainersCommand());
+    }
 
-      return CommandResponse.Ok;
+    private void DisableFloating(FloatingWindow floatingWindow)
+    {
+      // Keep reference to the window's ancestor workspace prior to detaching.
+      var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
+
+      _bus.Invoke(new DetachContainerCommand(floatingWindow));
+
+      var tilingWindow = new TilingWindow(floatingWindow.Hwnd);
+
+      var insertionTarget = workspace.LastFocusedDescendant;
+
+      // Descend the tree of the current workspace and insert the created tiling window.
+      if (insertionTarget == null)
+        _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
+      else
+        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, tilingWindow, insertionTarget.Index + 1));
+
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }
