@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.Windows
 
     public string Title => _windowService.GetTitleOfHandle(Hwnd);
 
-    public bool IsManageable => _windowService.IsWindowManageable(this);
+    public bool IsManageable => _windowService.IsHandleManageable(Hwnd);
 
     public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
 
