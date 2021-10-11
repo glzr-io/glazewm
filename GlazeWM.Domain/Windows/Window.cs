@@ -67,22 +67,5 @@ namespace GlazeWM.Domain.Windows
     {
       return _windowService.HandleHasWindowExStyle(Hwnd, style);
     }
-
-    public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
-    {
-      return SelfAndSiblings.Where(container => container.GetType().IsAssignableFrom(type));
-    }
-
-    public Container GetNextSiblingOfType(Type type)
-    {
-      return SelfAndSiblings
-        .Skip(Index)
-        .FirstOrDefault(container => container.GetType().IsAssignableFrom(type));
-    }
-
-    public Container GetPreviousSiblingOfType(Type type)
-    {
-      throw new NotImplementedException();
-    }
   }
 }

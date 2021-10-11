@@ -117,14 +117,6 @@ namespace GlazeWM.Domain.Containers
       return Children.Remove(node);
     }
 
-    // Not sure if needed.
-    public void Traverse(Action<Container> action)
-    {
-      action(this);
-      foreach (var child in Children)
-        child.Traverse(action);
-    }
-
     public bool HasChildren()
     {
       return Children.Count > 0;
@@ -133,6 +125,26 @@ namespace GlazeWM.Domain.Containers
     public bool HasSiblings()
     {
       return Siblings.Count() > 0;
+    }
+
+    public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
+    {
+      return SelfAndSiblings.Where(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    public Container GetNextSiblingOfType(Type type)
+    {
+      return SelfAndSiblings
+        .Skip(Index)
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    public Container GetPreviousSiblingOfType(Type type)
+    {
+      return SelfAndSiblings
+        .Take(Index)
+        .Reverse()
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
     }
   }
 }
