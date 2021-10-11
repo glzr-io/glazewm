@@ -17,7 +17,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ToggleFocusedWindowFloatingCommand command)
     {
-      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
+      var focusedWindow = _containerService.FocusedContainer as Window;
 
       // Ignore cases where focused container is not a window.
       if (focusedWindow == null)
