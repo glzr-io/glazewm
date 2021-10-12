@@ -35,7 +35,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (!_windowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
 
-      var window = new TilingWindow(command.WindowHandle);
+      // Get the original width and height of the window.
+      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var originalWidth = originalPlacement.Right - originalPlacement.Left;
+      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
+
+      // Create the window instance.
+      var window = new TilingWindow(command.WindowHandle, originalWidth, originalHeight);
 
       var matchingWindowRules = GetMatchingWindowRules(window);
 
@@ -46,11 +52,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
-
-      // Store the original width and height of the window.
-      var originalPlacement = _windowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
-      window.OriginalWidth = originalPlacement.Right - originalPlacement.Left;
-      window.OriginalHeight = originalPlacement.Bottom - originalPlacement.Top;
 
       // Attach the new window as a child to the target parent (if provided), otherwise, add as a
       // sibling of the focused container.

@@ -34,9 +34,11 @@ namespace GlazeWM.Domain.Windows
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
-    public Window(IntPtr hwnd)
+    public Window(IntPtr hwnd, int originalWidth, int originalHeight)
     {
       Hwnd = hwnd;
+      OriginalWidth = originalWidth;
+      OriginalHeight = originalHeight;
     }
 
     /// <summary>

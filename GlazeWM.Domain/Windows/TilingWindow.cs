@@ -11,7 +11,7 @@ namespace GlazeWM.Domain.Windows
 
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
-    public TilingWindow(IntPtr hwnd) : base(hwnd)
+    public TilingWindow(IntPtr hwnd, int originalWidth, int originalHeight) : base(hwnd, originalWidth, originalHeight)
     {
     }
 

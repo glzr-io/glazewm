@@ -11,11 +11,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private Bus _bus;
     private WorkspaceService _workspaceService;
+    private WindowService _windowService;
 
-    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService)
+    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService, WindowService windowService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(ToggleFloatingCommand command)
@@ -38,13 +40,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var focusOrderIndex = window.Parent.ChildFocusOrder.IndexOf(window);
 
       // Create a floating window and place it in the center of the workspace.
-      var floatingWindow = new FloatingWindow(window.Hwnd)
-      {
-        Width = window.OriginalWidth,
-        Height = window.OriginalHeight,
-        X = workspace.X + (workspace.Width / 2) - (window.OriginalWidth / 2),
-        Y = workspace.Y + (workspace.Height / 2) - (window.OriginalHeight / 2),
-      };
+      var floatingWindow = new FloatingWindow(
+        window.Hwnd,
+        window.OriginalWidth,
+        window.OriginalHeight,
+        workspace.X + (workspace.Width / 2) - (window.OriginalWidth / 2),
+        workspace.Y + (workspace.Height / 2) - (window.OriginalHeight / 2)
+      );
 
       _bus.Invoke(new DetachContainerCommand(window));
       _bus.Invoke(new AttachContainerCommand(workspace, floatingWindow));
@@ -61,7 +63,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
       var focusOrderIndex = floatingWindow.Parent.ChildFocusOrder.IndexOf(floatingWindow);
 
-      var tilingWindow = new TilingWindow(floatingWindow.Hwnd);
+      // Get the original width and height of the window.
+      var originalPlacement = _windowService.GetPlacementOfHandle(floatingWindow.Hwnd).NormalPosition;
+      var originalWidth = originalPlacement.Right - originalPlacement.Left;
+      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
+
+      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight);
 
       _bus.Invoke(new DetachContainerCommand(floatingWindow));
 
