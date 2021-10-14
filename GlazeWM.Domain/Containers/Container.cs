@@ -75,6 +75,11 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// The sibling at the previous index to this container.
     /// </summary>
+    public bool IsDescendable => false;
+
+    /// <summary>
+    /// The sibling at the previous index to this container.
+    /// </summary>
     public Container PreviousSibling => SelfAndSiblings.ElementAtOrDefault(Index - 1);
 
     // TODO: Rename to SelfAndDescendants and change to getter.
@@ -152,20 +157,24 @@ namespace GlazeWM.Domain.Containers
     /// </summary>
     public Container LastFocusedDescendantOfType(Type type)
     {
-      // Create variable for `LastFocusedDescendant` to avoid calling getter multiple times.
-      var lastFocusedDescendant = LastFocusedDescendant;
+      var stack = new Stack<Container>();
+      stack.Push(this);
 
-      if (type.IsAssignableFrom(lastFocusedDescendant.GetType()))
-        return lastFocusedDescendant;
+      // Depth-first search using `ChildFocusOrder` list.
+      while (stack.Any())
+      {
+        var current = stack.Pop();
 
-      var descendantFromFocusOrder = lastFocusedDescendant.Parent.ChildFocusOrder
-        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+        var isMatch = type.IsAssignableFrom(current.GetType()) && !current.HasChildren();
 
-      if (descendantFromFocusOrder != null)
-        return descendantFromFocusOrder;
+        if (isMatch)
+          return current;
 
-      return lastFocusedDescendant.Siblings
-        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+        foreach (var focusChild in current.ChildFocusOrder)
+          stack.Push(focusChild);
+      }
+
+      return null;
     }
   }
 }
