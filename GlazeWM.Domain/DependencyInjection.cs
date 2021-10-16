@@ -35,6 +35,7 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
+      services.AddTransient<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();
       services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
