@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
@@ -67,7 +67,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Replace the window with the wrapping split container. The window has to be attached to
       // the split container after the replacement.
-      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, new List<Container>() { splitContainer }));
+      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, splitContainer));
       _bus.Invoke(new AttachContainerCommand(splitContainer, window));
     }
 
