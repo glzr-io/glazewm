@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
@@ -54,7 +54,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container.
       if (!window.HasSiblings())
       {
-        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, new List<Container>() { window }));
+        _bus.Invoke(new FlattenSplitContainerCommand(parent));
         return;
       }
 
@@ -89,7 +89,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         if (childSplitContainer == null || childSplitContainer.Layout != newLayout)
           continue;
 
-        _bus.Invoke(new ReplaceContainerCommand(workspace, child.Index, child.Children));
+        _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));
       }
 
       _containerService.ContainersToRedraw.Add(workspace);
