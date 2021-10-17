@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
@@ -138,6 +139,34 @@ namespace GlazeWM.Domain.Containers
         return GetDescendantInDirection(originContainer.Children.First(), direction);
       else
         return GetDescendantInDirection(originContainer.Children.Last(), direction);
+    }
+
+    /// <summary>
+    /// Get the lowest container in the tree that has both `containerA` and `containerB` as
+    /// descendants.
+    /// </summary>
+    public Container GetLowestCommonAncestor(Container containerA, Container containerB)
+    {
+      var ancestorA = containerA;
+
+      // Traverse upwards from container A.
+      while (ancestorA != null)
+      {
+        var ancestorB = containerB;
+
+        // Traverse upwards from container B.
+        while (ancestorB != null)
+        {
+          if (ancestorA == ancestorB)
+            return ancestorA;
+
+          ancestorB = ancestorB.Parent;
+        }
+
+        ancestorA = ancestorA.Parent;
+      }
+
+      throw new Exception("No common ancestor between containers. This is a bug.");
     }
   }
 }
