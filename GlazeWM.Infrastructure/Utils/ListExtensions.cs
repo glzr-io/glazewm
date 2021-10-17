@@ -16,16 +16,24 @@ namespace GlazeWM.Infrastructure.Utils
     }
 
     /// <summary>
-    /// Shift a value to the first index of a list. Insert at start if it doesn't already exist.
+    /// Shift a value to a specified index in a list. Insert at index if it doesn't already exist.
     /// </summary>
-    public static void MoveToFront<T>(this IList<T> source, T value)
+    public static void ShiftToIndex<T>(this IList<T> source, int index, T value)
     {
       var initialIndex = source.IndexOf(value);
 
       if (initialIndex != -1)
         source.Remove(value);
 
-      source.Insert(0, value);
+      source.Insert(index, value);
+    }
+
+    /// <summary>
+    /// Shift a value to the first index of a list. Insert at start if it doesn't already exist.
+    /// </summary>
+    public static void MoveToFront<T>(this IList<T> source, T value)
+    {
+      ShiftToIndex(source, 0, value);
     }
   }
 }
