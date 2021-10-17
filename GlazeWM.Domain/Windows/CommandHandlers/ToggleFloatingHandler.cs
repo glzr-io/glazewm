@@ -12,12 +12,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private Bus _bus;
     private WorkspaceService _workspaceService;
     private WindowService _windowService;
+    private ContainerService _containerService;
 
-    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService, WindowService windowService)
+    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService, WindowService windowService, ContainerService containerService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _windowService = windowService;
+      _containerService = containerService;
     }
 
     public CommandResponse Handle(ToggleFloatingCommand command)
@@ -59,9 +61,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void DisableFloating(FloatingWindow floatingWindow)
     {
-      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
+      // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
-      var focusOrderIndex = floatingWindow.Parent.ChildFocusOrder.IndexOf(floatingWindow);
 
       // Get the original width and height of the window.
       var originalPlacement = _windowService.GetPlacementOfHandle(floatingWindow.Hwnd).NormalPosition;
@@ -70,7 +71,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight);
 
-      _bus.Invoke(new DetachContainerCommand(floatingWindow));
+      _bus.Invoke(new ReplaceContainerCommand(floatingWindow.Parent, floatingWindow.Index, tilingWindow));
 
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
@@ -78,12 +79,63 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (insertionTarget == null)
         _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
       else
-        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, tilingWindow, insertionTarget.Index + 1));
-
-      if (focusOrderIndex != -1)
-        tilingWindow.Parent.ChildFocusOrder.Insert(focusOrderIndex, tilingWindow);
+      {
+        MoveWithinTree(tilingWindow, insertionTarget, insertionTarget.Index + 1);
+      }
 
       _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private void MoveWithinTree(Container container, Container target, int index)
+    {
+      // Get lowest common ancestor (LCA) between `container` and `target`.
+      var lowestCommonAncestor = _containerService.GetLowestCommonAncestor(container, target);
+
+      // Get ancestors of `container` and `target` that are direct children of LCA.
+      var containerAncestor = GetChildWithAncestor(lowestCommonAncestor, container);
+      var targetAncestor = GetChildWithAncestor(lowestCommonAncestor, target);
+
+      var containerAncestorFocusIndex = lowestCommonAncestor.ChildFocusOrder.IndexOf(containerAncestor);
+      var targetAncestorFocusIndex = lowestCommonAncestor.ChildFocusOrder.IndexOf(targetAncestor);
+
+      // Get whether the ancestor of `container` appears before `target`'s ancestor in the
+      // `ChildFocusOrder` of LCA. If it does, then target's ancestor should be placed before
+      // the original ancestor in LCA's `ChildFocusOrder`.
+      var isFocusedDescendant = containerAncestor.LastFocusedDescendant == container;
+      var shouldFocusBefore = containerAncestor == targetAncestor ? isFocusedDescendant
+       : containerAncestorFocusIndex < targetAncestorFocusIndex;
+
+      if (isFocusedDescendant && shouldFocusBefore)
+        lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(
+          containerAncestorFocusIndex,
+          targetAncestor
+        );
+
+      _bus.Invoke(new DetachContainerCommand(container));
+      _bus.Invoke(new AttachContainerCommand(target.Parent as SplitContainer, container, index));
+
+      if (target.Parent == lowestCommonAncestor)
+      {
+        // TODO: Add `FocusIndex` getter.
+        var focusIndex = shouldFocusBefore ?
+          lowestCommonAncestor.ChildFocusOrder.IndexOf(target) : lowestCommonAncestor.ChildFocusOrder.IndexOf(target) + 1;
+
+        lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(focusIndex, container);
+        return;
+      }
+
+      if (shouldFocusBefore)
+        target.Parent.ChildFocusOrder.MoveToFront(container);
+    }
+
+    private Container GetChildWithAncestor(Container ancestor, Container container)
+    {
+      var child = container;
+
+      while (child != null && child.Parent != ancestor)
+        child = child.Parent;
+
+      return child;
     }
   }
 }
