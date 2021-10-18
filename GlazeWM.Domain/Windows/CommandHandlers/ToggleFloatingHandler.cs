@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.Containers;
+﻿using System.Linq;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -90,23 +91,22 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Get lowest common ancestor (LCA) between `container` and `target`.
       var lowestCommonAncestor = _containerService.GetLowestCommonAncestor(container, target);
 
-      // Get ancestors of `container` and `target` that are direct children of LCA.
-      var containerAncestor = GetChildWithAncestor(lowestCommonAncestor, container);
-      var targetAncestor = GetChildWithAncestor(lowestCommonAncestor, target);
-
-      var containerAncestorFocusIndex = lowestCommonAncestor.ChildFocusOrder.IndexOf(containerAncestor);
-      var targetAncestorFocusIndex = lowestCommonAncestor.ChildFocusOrder.IndexOf(targetAncestor);
+      // Get ancestors of `container` and `target` that are direct children of the LCA. This could
+      // be the `container` or `target` itself if they are direct children of the LCA.
+      var containerAncestor = container.SelfAndAncestors.First(ancestor => ancestor.Parent == lowestCommonAncestor);
+      var targetAncestor = target.SelfAndAncestors.First(ancestor => ancestor.Parent == lowestCommonAncestor);
 
       // Get whether the ancestor of `container` appears before `target`'s ancestor in the
       // `ChildFocusOrder` of LCA. If it does, then target's ancestor should be placed before
       // the original ancestor in LCA's `ChildFocusOrder`.
+      // TODO: `isFocusedDescendant` might error if `containerAncestor` is `container`.
       var isFocusedDescendant = containerAncestor.LastFocusedDescendant == container;
       var shouldFocusBefore = containerAncestor == targetAncestor ? isFocusedDescendant
-       : containerAncestorFocusIndex < targetAncestorFocusIndex;
+       : containerAncestor.FocusIndex < targetAncestor.FocusIndex;
 
       if (isFocusedDescendant && shouldFocusBefore)
         lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(
-          containerAncestorFocusIndex,
+          containerAncestor.FocusIndex,
           targetAncestor
         );
 
@@ -115,26 +115,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       if (target.Parent == lowestCommonAncestor)
       {
-        // TODO: Add `FocusIndex` getter.
-        var focusIndex = shouldFocusBefore ?
-          lowestCommonAncestor.ChildFocusOrder.IndexOf(target) : lowestCommonAncestor.ChildFocusOrder.IndexOf(target) + 1;
+        var focusIndex = shouldFocusBefore ? target.FocusIndex : target.FocusIndex + 1;
 
-        lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(focusIndex, container);
+        lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(focusIndex, target);
         return;
       }
 
       if (shouldFocusBefore)
         target.Parent.ChildFocusOrder.MoveToFront(container);
-    }
-
-    private Container GetChildWithAncestor(Container ancestor, Container container)
-    {
-      var child = container;
-
-      while (child != null && child.Parent != ancestor)
-        child = child.Parent;
-
-      return child;
     }
   }
 }
