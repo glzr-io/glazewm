@@ -69,11 +69,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var originalWidth = originalPlacement.Right - originalPlacement.Left;
       var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
 
-      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight);
-
-      _bus.Invoke(new ReplaceContainerCommand(floatingWindow.Parent, floatingWindow.Index, tilingWindow));
-
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
+
+      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight);
+      _bus.Invoke(new ReplaceContainerCommand(floatingWindow.Parent, floatingWindow.Index, tilingWindow));
 
       // Descend the tree of the current workspace and insert the created tiling window.
       if (insertionTarget == null)
