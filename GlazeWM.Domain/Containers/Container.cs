@@ -160,7 +160,7 @@ namespace GlazeWM.Domain.Containers
       var stack = new Stack<Container>();
       stack.Push(this);
 
-      // Depth-first search using `ChildFocusOrder` list.
+      // Do a depth-first search using child focus order.
       while (stack.Any())
       {
         var current = stack.Pop();
@@ -170,7 +170,8 @@ namespace GlazeWM.Domain.Containers
         if (isMatch)
           return current;
 
-        foreach (var focusChild in current.ChildFocusOrder)
+        // Reverse the child focus order so that the first element is pushed last/popped first.
+        foreach (var focusChild in current.ChildFocusOrder.AsEnumerable().Reverse())
           stack.Push(focusChild);
       }
 
