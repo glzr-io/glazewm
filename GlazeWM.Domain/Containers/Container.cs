@@ -29,12 +29,19 @@ namespace GlazeWM.Domain.Containers
         if (ChildFocusOrder.Count > 0)
           return ChildFocusOrder[0];
 
+        // TODO: Remove this conditional and instead always return
+        // `ChildFocusOrder.ElementAtOrDefault(0)`.
         if (Children.Count > 0)
           return Children[0];
 
         return null;
       }
     }
+
+    /// <summary>
+    /// Index of this container in parent's child focus order.
+    /// </summary>
+    public int FocusIndex => Parent.ChildFocusOrder.IndexOf(this);
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
@@ -71,11 +78,6 @@ namespace GlazeWM.Domain.Containers
     /// The sibling at the next index to this container.
     /// </summary>
     public Container NextSibling => SelfAndSiblings.ElementAtOrDefault(Index + 1);
-
-    /// <summary>
-    /// The sibling at the previous index to this container.
-    /// </summary>
-    public bool IsDescendable => false;
 
     /// <summary>
     /// The sibling at the previous index to this container.
