@@ -21,10 +21,15 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(MoveContainerWithinTreeCommand command)
     {
       var container = command.Container;
-      var target = command.Target;
+      var targetParent = command.TargetParent;
+      var targetIndex = command.TargetIndex;
       var insertionPosition = command.InsertionPosition;
 
+      // TODO: Handle case where target parent doesn't have children.
+      // TODO: Throw error if `target` is null.
+
       // Get lowest common ancestor (LCA) between `container` and `target`.
+      var target = targetParent.Children[targetIndex];
       var lowestCommonAncestor = _containerService.GetLowestCommonAncestor(container, target);
 
       // Get ancestors of `container` and `target` that are direct children of the LCA. This could

@@ -6,13 +6,15 @@ namespace GlazeWM.Domain.Containers.Commands
   public class MoveContainerWithinTreeCommand : Command
   {
     public Container Container { get; }
-    public Container Target { get; }
+    public Container TargetParent { get; }
+    public int TargetIndex { get; }
     public InsertionPosition InsertionPosition { get; }
 
-    public MoveContainerWithinTreeCommand(Container container, Container target, InsertionPosition insertionPosition)
+    public MoveContainerWithinTreeCommand(Container container, Container targetParent, int targetIndex, InsertionPosition insertionPosition)
     {
       Container = container;
-      Target = target;
+      TargetParent = targetParent;
+      TargetIndex = targetIndex;
       InsertionPosition = insertionPosition;
     }
   }

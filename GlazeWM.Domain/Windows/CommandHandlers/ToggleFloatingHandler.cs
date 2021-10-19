@@ -79,7 +79,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (insertionTarget == null)
         _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
       else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, insertionTarget, InsertionPosition.AFTER));
+        _bus.Invoke(
+          new MoveContainerWithinTreeCommand(
+            tilingWindow,
+            insertionTarget.Parent,
+            insertionTarget.Index,
+            InsertionPosition.AFTER
+          )
+        );
 
       _bus.Invoke(new RedrawContainersCommand());
     }
