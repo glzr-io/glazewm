@@ -36,6 +36,8 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddTransient<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();
+      services.AddTransient<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
+      services.AddTransient<ICommandHandler<MoveContainerWithinTreeCommand>, MoveContainerWithinTreeHandler>();
       services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
@@ -45,7 +47,6 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddTransient<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
       services.AddTransient<ICommandHandler<CloseFocusedWindowCommand>, CloseFocusedWindowHandler>();
-      services.AddTransient<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
       services.AddTransient<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
