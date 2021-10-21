@@ -1,4 +1,3 @@
-using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -83,8 +82,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           new MoveContainerWithinTreeCommand(
             tilingWindow,
             insertionTarget.Parent,
-            insertionTarget.Index,
-            InsertionPosition.AFTER
+            insertionTarget.Index + 1
           )
         );
 

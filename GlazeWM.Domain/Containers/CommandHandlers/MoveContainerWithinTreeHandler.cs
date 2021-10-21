@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using GlazeWM.Domain.Common.Enums;
+﻿using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
@@ -24,87 +22,70 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      // TODO: Handle case where target parent doesn't have children.
-      // TODO: Throw error if `target` is null.
+      // TODO: Handle case where target parent doesn't have children. Not sure if this is an issue anymore.
 
-      // Get lowest common ancestor (LCA) between `container` and `target`. This could be the
+      // Get lowest common ancestor (LCA) between `container` and `targetParent`. This could be the
       // `targetParent` itself.
       var lowestCommonAncestor = _containerService.GetLowestCommonAncestor(container, targetParent);
 
-      var containerAncestor = container.SelfAndAncestors
-        .First(ancestor => ancestor.Parent == lowestCommonAncestor);
-
-      // Get whether the container is the focused descendant in its original subtree.
-      var isFocusedDescendant = container == containerAncestor
-        ? true : containerAncestor.LastFocusedDescendant == container;
-
-      var targetParentAncestor = targetParent == lowestCommonAncestor
-        ? null : targetParent.SelfAndAncestors.First(ancestor => ancestor.Parent == lowestCommonAncestor);
-
-
-      // Get whether the ancestor of `container` appears before `target`'s ancestor in the
-      // `ChildFocusOrder` of LCA.
-      var originalFocusIndex = containerAncestor.FocusIndex;
-      var isSubtreeFocusedBefore = originalFocusIndex < targetAncestor.FocusIndex;
-
-      _bus.Invoke(new DetachContainerCommand(container));
-
-      _bus.Invoke(new AttachContainerCommand(targetParent as SplitContainer, container, targetIndex));
-
-      // Set `container` as focus descendant within target subtree if its original subtree had focus
-      // more recently (even if the container is not the last focused within that subtree).
-      if (isSubtreeFocusedBefore)
+      if (targetParent == lowestCommonAncestor)
       {
-        var newContainerAncestor = container.SelfAndAncestors
-          .First(ancestor => ancestor.Parent == lowestCommonAncestor);
-
-        _bus.Invoke(new SetFocusedDescendantCommand(container, newContainerAncestor));
+        MoveToLowestCommonAncestor(container, lowestCommonAncestor, targetIndex);
+        return CommandResponse.Ok;
       }
 
-      // If the focused descendant is moved to the targets subtree, then the target's ancestor
-      // should be placed before the original ancestor in LCA's `ChildFocusOrder`.
-
-
-
-
-
-      // Get ancestors of `container` and `target` that are direct children of the LCA. This could
-      // be the `container` or `target` itself if they are direct children of the LCA.
+      // Get ancestors of `container` and `targetParent` that are direct children of the LCA. This
+      // could be the `container` or `targetParent` itself.
       var containerAncestor = container.SelfAndAncestors
         .First(ancestor => ancestor.Parent == lowestCommonAncestor);
-      var targetAncestor = target.SelfAndAncestors
-        .First(ancestor => ancestor.Parent == lowestCommonAncestor);
-
-      if (containerAncestor == targetAncestor)
-        throw new Exception("Container ancestor is the same as target ancestor. This is a bug.");
 
       // Get whether the container is the focused descendant in its original subtree.
       var isFocusedDescendant = container == containerAncestor
         ? true : containerAncestor.LastFocusedDescendant == container;
 
-      // Get whether the ancestor of `container` appears before `target`'s ancestor in the
+      var targetParentAncestor = targetParent.SelfAndAncestors
+        .First(ancestor => ancestor.Parent == lowestCommonAncestor);
+
+      // Get whether the ancestor of `container` appears before `targetParent`'s ancestor in the
       // `ChildFocusOrder` of LCA.
       var originalFocusIndex = containerAncestor.FocusIndex;
-      var shouldFocusBefore = originalFocusIndex < targetAncestor.FocusIndex;
+      var isSubtreeFocused = originalFocusIndex < targetParentAncestor.FocusIndex;
 
       _bus.Invoke(new DetachContainerCommand(container));
 
       _bus.Invoke(new AttachContainerCommand(targetParent as SplitContainer, container, targetIndex));
 
-      // Set `container` as focus descendant within target subtree if its original subtree had focus
-      // more recently (even if the container is not the last focused within that subtree).
-      if (isSubtreeFocusedBefore)
-        _bus.Invoke(new SetFocusedDescendantCommand(container, targetAncestor));
+      // Set `container` as focused descendant within target subtree if its original subtree had
+      // focus more recently (even if the container is not the last focused within that subtree).
+      if (isSubtreeFocused)
+        _bus.Invoke(new SetFocusedDescendantCommand(container, targetParentAncestor));
 
       // If the focused descendant is moved to the targets subtree, then the target's ancestor
       // should be placed before the original ancestor in LCA's `ChildFocusOrder`.
-      if (isFocusedDescendant && isSubtreeFocusedBefore)
+      if (isFocusedDescendant && isSubtreeFocused)
         lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(
           originalFocusIndex,
-          targetAncestor
+          targetParentAncestor
         );
 
       return CommandResponse.Ok;
+    }
+
+    private void MoveToLowestCommonAncestor(Container container, Container lowestCommonAncestor, int targetIndex)
+    {
+      var containerAncestor = container.SelfAndAncestors
+        .First(ancestor => ancestor.Parent == lowestCommonAncestor);
+
+      var originalFocusIndex = containerAncestor.FocusIndex;
+
+      // TODO: Handle case where target index changes on detach of container. For example, when shifting
+      // a top-level container to the right in a workspace.
+
+      _bus.Invoke(new DetachContainerCommand(container));
+
+      _bus.Invoke(new AttachContainerCommand(lowestCommonAncestor as SplitContainer, container, targetIndex));
+
+      lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(originalFocusIndex, container);
     }
   }
 }
