@@ -1,7 +1,9 @@
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 
@@ -37,6 +39,14 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _bus.Invoke(new DetachContainerCommand(window));
       _bus.Invoke(new AttachContainerCommand(workspace, minimizedWindow));
+
+      var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
+
+      if (containerToFocus is Window)
+        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+
+      else if (containerToFocus is Workspace)
+        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
