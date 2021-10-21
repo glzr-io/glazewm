@@ -1,4 +1,4 @@
-using GlazeWM.Domain.Containers;
+﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -36,9 +36,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void EnableFloating(Window window)
     {
-      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
+      // Keep reference to the window's ancestor workspace and whether the window has focus prior
+      // to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-      var focusOrderIndex = window.Parent.ChildFocusOrder.IndexOf(window);
+      var isFocused = window == _containerService.FocusedContainer;
 
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
@@ -52,9 +53,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new DetachContainerCommand(window));
       _bus.Invoke(new AttachContainerCommand(workspace, floatingWindow));
 
-      // TODO: This needs to be changed.
-      if (focusOrderIndex != -1)
-        floatingWindow.Parent.ChildFocusOrder.Insert(focusOrderIndex, floatingWindow);
+      if (isFocused)
+        _bus.Invoke(new SetFocusedDescendantCommand(floatingWindow));
 
       _bus.Invoke(new RedrawContainersCommand());
     }
