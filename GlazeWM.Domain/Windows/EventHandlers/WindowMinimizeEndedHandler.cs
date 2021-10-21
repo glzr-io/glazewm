@@ -37,10 +37,27 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
       _bus.Invoke(new DetachContainerCommand(window));
-      _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
+      AttachChildWindow(window);
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private void AttachChildWindow(Window window)
+    {
+      var focusedContainer = _containerService.FocusedContainer;
+
+      // If the focused container is a workspace, attach the window as a child of the workspace.
+      if (focusedContainer is Workspace)
+      {
+        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
+        return;
+      }
+
+      // Attach the window as a sibling next to the focused window.
+      _bus.Invoke(new AttachContainerCommand(
+        focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
+      ));
     }
   }
 }
