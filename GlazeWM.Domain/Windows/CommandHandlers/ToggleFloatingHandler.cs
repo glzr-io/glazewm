@@ -74,9 +74,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight);
       _bus.Invoke(new ReplaceContainerCommand(floatingWindow.Parent, floatingWindow.Index, tilingWindow));
 
-      // Descend the tree of the current workspace and insert the created tiling window.
+      // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new AttachContainerCommand(workspace, tilingWindow));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0));
       else
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
