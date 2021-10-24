@@ -73,17 +73,26 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     private void MoveToLowestCommonAncestor(Container container, Container lowestCommonAncestor, int targetIndex)
     {
-      var containerAncestor = container.SelfAndAncestors
-        .First(ancestor => ancestor.Parent == lowestCommonAncestor);
+      // Keep reference to focus index of container's ancestor in LCA's `ChildFocusOrder`.
+      var originalFocusIndex = container.SelfAndAncestors
+        .First(ancestor => ancestor.Parent == lowestCommonAncestor)
+        .FocusIndex;
 
-      var originalFocusIndex = containerAncestor.FocusIndex;
-
-      // TODO: Handle case where target index changes on detach of container. For example, when shifting
-      // a top-level container to the right in a workspace.
+      // Keep reference to container index and number of children that LCA has.
+      var originalIndex = container.Index;
+      var originalLcaChildCount = lowestCommonAncestor.Children.Count;
 
       _bus.Invoke(new DetachContainerCommand(container));
 
-      _bus.Invoke(new AttachContainerCommand(lowestCommonAncestor as SplitContainer, container, targetIndex));
+      var newLcaChildCount = lowestCommonAncestor.Children.Count;
+      var shouldAdjustTargetIndex = originalLcaChildCount > newLcaChildCount
+        && originalIndex < targetIndex;
+
+      // Adjust for when target index changes on detach of container. For example, when shifting a
+      // top-level container to the right in a workspace.
+      var adjustedTargetIndex = shouldAdjustTargetIndex ? targetIndex - 1 : targetIndex;
+
+      _bus.Invoke(new AttachContainerCommand(lowestCommonAncestor as SplitContainer, container, adjustedTargetIndex));
 
       lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(originalFocusIndex, container);
     }
