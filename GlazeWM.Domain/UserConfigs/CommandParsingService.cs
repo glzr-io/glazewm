@@ -101,6 +101,11 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "floating" => new ToggleFocusedWindowFloatingCommand(),
+        "focus" => commandParts[2] switch
+        {
+          "mode" => new ToggleFocusModeCommand(),
+          _ => throw new ArgumentException(),
+        },
         _ => throw new ArgumentException(),
       };
     }
