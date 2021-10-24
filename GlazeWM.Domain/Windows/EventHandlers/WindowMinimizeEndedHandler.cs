@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -32,32 +31,27 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       var tilingWindow = new TilingWindow(window.Hwnd, window.OriginalWidth, window.OriginalHeight);
+      _bus.Invoke(new ReplaceContainerCommand(window.Parent, window.Index, tilingWindow));
 
-      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
+      // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
-      _bus.Invoke(new DetachContainerCommand(window));
-      AttachChildWindow(window);
+      var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
+
+      // Insert the created tiling window after the last focused descendant of the workspace.
+      if (insertionTarget == null)
+        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0));
+      else
+        _bus.Invoke(
+          new MoveContainerWithinTreeCommand(
+            tilingWindow,
+            insertionTarget.Parent,
+            insertionTarget.Index + 1
+          )
+        );
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
-    }
-
-    private void AttachChildWindow(Window window)
-    {
-      var focusedContainer = _containerService.FocusedContainer;
-
-      // If the focused container is a workspace, attach the window as a child of the workspace.
-      if (focusedContainer is Workspace)
-      {
-        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
-        return;
-      }
-
-      // Attach the window as a sibling next to the focused window.
-      _bus.Invoke(new AttachContainerCommand(
-        focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
-      ));
     }
   }
 }
