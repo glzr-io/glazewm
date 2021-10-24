@@ -26,10 +26,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     public CommandResponse Handle(MoveFocusedWindowToWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-      var focusedWindow = _containerService.FocusedContainer as Window;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
       var foregroundWindow = GetForegroundWindow();
 
-      // Ignore cases where focused container is not a window or not in foreground.
+      // Ignore cases where focused container is not a tiling window or not in foreground.
       if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
         return CommandResponse.Ok;
 

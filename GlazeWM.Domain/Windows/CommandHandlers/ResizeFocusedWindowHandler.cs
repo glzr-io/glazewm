@@ -26,9 +26,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ResizeFocusedWindowCommand command)
     {
-      var focusedWindow = _containerService.FocusedContainer as Window;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
-      // Ignore cases where focused container is not a window.
+      // Ignore cases where focused container is not a tiling window.
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
