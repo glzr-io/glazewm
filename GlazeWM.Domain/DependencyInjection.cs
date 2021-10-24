@@ -42,6 +42,7 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
       services.AddTransient<ICommandHandler<SwapContainersCommand>, SwapContainersHandler>();
+      services.AddTransient<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddTransient<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
       services.AddTransient<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddTransient<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
