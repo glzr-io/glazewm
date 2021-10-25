@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -39,8 +39,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       if (parentMatchesLayout && HasSiblingInDirection(focusedWindow, direction))
       {
-        var siblingInDirection = (direction == Direction.UP || direction == Direction.LEFT) ?
-          focusedWindow.PreviousSibling : focusedWindow.NextSibling;
+        var siblingInDirection = direction == Direction.UP || direction == Direction.LEFT
+          ? focusedWindow.GetPreviousSiblingOfType(typeof(IResizable))
+          : focusedWindow.GetNextSiblingOfType(typeof(IResizable));
 
         // Swap the focused window with sibling in given direction.
         if (siblingInDirection != null)
@@ -115,8 +116,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionReference = focusedWindow.TraverseUpEnumeration()
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT ?
-        insertionReference.PreviousSibling : insertionReference.NextSibling;
+      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT
+        ? insertionReference.GetPreviousSiblingOfType(typeof(IResizable))
+        : insertionReference.GetNextSiblingOfType(typeof(IResizable));
 
       if (insertionReferenceSibling is SplitContainer)
       {
@@ -144,14 +146,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     }
 
     /// <summary>
-    /// Whether the focused window has a sibling in the given direction.
+    /// Whether the focused window has a tiling sibling in the given direction.
     /// </summary>
     private bool HasSiblingInDirection(Window focusedWindow, Direction direction)
     {
       if (direction == Direction.UP || direction == Direction.LEFT)
-        return focusedWindow != focusedWindow.SelfAndSiblings.First();
+        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).First();
       else
-        return focusedWindow != focusedWindow.SelfAndSiblings.Last();
+        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
     }
   }
 }
