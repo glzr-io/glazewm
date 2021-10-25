@@ -142,7 +142,7 @@ namespace GlazeWM.Domain.Containers
     public Container GetNextSiblingOfType(Type type)
     {
       return SelfAndSiblings
-        .Skip(Index)
+        .Skip(Index + 1)
         .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
     }
 
