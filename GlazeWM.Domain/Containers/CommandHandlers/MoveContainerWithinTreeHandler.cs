@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
@@ -22,7 +23,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      // TODO: Handle case where target parent doesn't have children. Not sure if this is an issue anymore.
+      var containerAtTargetIndex = targetParent.Children[targetIndex];
+
+      if (targetParent == container.Parent && containerAtTargetIndex != null)
+      {
+        SwapSiblingContainers(container, containerAtTargetIndex);
+        return CommandResponse.Ok;
+      }
 
       // Get lowest common ancestor (LCA) between `container` and `targetParent`. This could be the
       // `targetParent` itself.
@@ -69,6 +76,29 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         );
 
       return CommandResponse.Ok;
+    }
+
+    /// <summary>
+    /// Swap the positions of two containers within `targetParent`. If containers were instead
+    /// swapped via `MoveToLowestCommonAncestor`, then the containers would not retain their
+    /// `SizePercentage`.
+    /// </summary>
+    private void SwapSiblingContainers(Container firstContainer, Container secondContainer)
+    {
+      if (firstContainer.Parent != secondContainer.Parent)
+        throw new Exception("Attempting to swap containers with different parents. This is a bug.");
+
+      // Keep references to the original indices.
+      var firstContainerIndex = firstContainer.Index;
+      var secondContainerIndex = secondContainer.Index;
+
+      // Swap positions of the containers. Note that using the parent of the first container is
+      // arbitrary since both containers have the same parent.
+      var targetParent = firstContainer.Parent;
+      targetParent.Children[firstContainerIndex] = secondContainer;
+      targetParent.Children[secondContainerIndex] = firstContainer;
+
+      _containerService.ContainersToRedraw.Add(targetParent);
     }
 
     private void MoveToLowestCommonAncestor(Container container, Container lowestCommonAncestor, int targetIndex)
