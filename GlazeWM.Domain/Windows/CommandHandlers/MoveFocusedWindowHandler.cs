@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -43,9 +43,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           focusedWindow.PreviousSibling : focusedWindow.NextSibling;
 
         // Swap the focused window with sibling in given direction.
-        if (siblingInDirection is Window)
+        if (siblingInDirection != null)
         {
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, siblingInDirection));
+          _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, focusedWindow.Parent, siblingInDirection.Index));
           _bus.Invoke(new RedrawContainersCommand());
           return CommandResponse.Ok;
         }
