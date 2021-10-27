@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.Common.Enums;
+﻿using System.Linq;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
@@ -27,6 +28,39 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var direction = command.Direction;
       var focusedContainer = _containerService.FocusedContainer;
 
+      if (focusedContainer is FloatingWindow)
+        FocusFromFloatingWindow(focusedContainer, direction);
+
+      else
+        FocusFromTilingContainer(focusedContainer, direction);
+
+      return CommandResponse.Ok;
+    }
+
+    private void FocusFromFloatingWindow(Container focusedContainer, Direction direction)
+    {
+      // Cannot focus vertically from a floating window.
+      if (direction == Direction.UP || direction == Direction.DOWN)
+        return;
+
+      var focusTarget = direction == Direction.RIGHT
+        ? focusedContainer.GetNextSiblingOfType(typeof(FloatingWindow))
+        : focusedContainer.GetPreviousSiblingOfType(typeof(FloatingWindow));
+
+      // Wrap if next/previous floating window is not found.
+      if (focusTarget == null)
+        focusTarget = direction == Direction.RIGHT
+          ? focusedContainer.SelfAndSiblingsOfType(typeof(FloatingWindow)).FirstOrDefault()
+          : focusedContainer.SelfAndSiblingsOfType(typeof(FloatingWindow)).LastOrDefault();
+
+      if (focusTarget == null || focusTarget == focusedContainer)
+        return;
+
+      _bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
+    }
+
+    private void FocusFromTilingContainer(Container focusedContainer, Direction direction)
+    {
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is Window)
@@ -34,8 +68,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       else if (focusTarget is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
-
-      return CommandResponse.Ok;
     }
 
     private Container GetFocusTarget(Container focusedContainer, Direction direction)
@@ -59,6 +91,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var layoutForDirection = direction.GetCorrespondingLayout();
       var focusReference = focusedContainer;
 
+      // Traverse upwards from the focused container. Stop searching when a workspace is
+      // encountered.
       while (!(focusReference is Workspace))
       {
         var parent = focusReference.Parent as SplitContainer;
