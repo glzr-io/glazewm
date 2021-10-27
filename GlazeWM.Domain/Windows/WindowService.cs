@@ -66,9 +66,19 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public WindowRect GetLocationOfHandle(IntPtr handle)
     {
-      WindowRect rect = new WindowRect();
+      var rect = new WindowRect();
       GetWindowRect(handle, ref rect);
       return rect;
+    }
+
+    /// <summary>
+    /// Get info about the placement of the specified window.
+    /// </summary>
+    public WindowPlacement GetPlacementOfHandle(IntPtr handle)
+    {
+      var windowPlacement = new WindowPlacement();
+      GetWindowPlacement(handle, ref windowPlacement);
+      return windowPlacement;
     }
 
     /// <summary>
@@ -76,7 +86,7 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public string GetTitleOfHandle(IntPtr handle)
     {
-      int titleLength = GetWindowTextLength(handle);
+      var titleLength = GetWindowTextLength(handle);
 
       if (titleLength == 0)
         return String.Empty;
@@ -131,25 +141,25 @@ namespace GlazeWM.Domain.Windows
       return isCloaked;
     }
 
-    public bool IsWindowManageable(Window window)
+    public bool IsHandleManageable(IntPtr handle)
     {
       // Get whether window is actually visible.
-      var isVisible = IsWindowVisible(window.Hwnd) && !IsHandleCloaked(window.Hwnd);
+      var isVisible = IsWindowVisible(handle) && !IsHandleCloaked(handle);
 
       if (!isVisible)
         return false;
 
       // Ensure window is top-level (ie. not a child window). Ignore windows that are probably
       // popups or if they're unavailable in task switcher (alt+tab menu).
-      var isApplicationWindow = !window.HasWindowStyle(WS.WS_CHILD)
-        && !window.HasWindowExStyle(WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW)
-        && GetWindow(window.Hwnd, GW.GW_OWNER) == IntPtr.Zero;
+      var isApplicationWindow = !HandleHasWindowStyle(handle, WS.WS_CHILD)
+        && !HandleHasWindowExStyle(handle, WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW)
+        && GetWindow(handle, GW.GW_OWNER) == IntPtr.Zero;
 
       if (!isApplicationWindow)
         return false;
 
       // Get whether the window belongs to the current process.
-      var isCurrentProcess = window.Process.Id == Process.GetCurrentProcess().Id;
+      var isCurrentProcess = GetProcessOfHandle(handle).Id == Process.GetCurrentProcess().Id;
 
       if (isCurrentProcess)
         return false;

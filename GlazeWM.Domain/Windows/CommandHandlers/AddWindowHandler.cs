@@ -15,13 +15,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private ContainerService _containerService;
     private UserConfigService _userConfigService;
     private CommandParsingService _commandParsingService;
+    private WindowService _windowService;
 
-    public AddWindowHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService, CommandParsingService commandParsingService)
+    public AddWindowHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService, CommandParsingService commandParsingService, WindowService windowService)
     {
       _bus = bus;
       _containerService = containerService;
       _userConfigService = userConfigService;
       _commandParsingService = commandParsingService;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -30,10 +32,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var targetParent = command.TargetParent;
       var shouldRedraw = command.ShouldRedraw;
 
-      var window = new Window(command.WindowHandle);
-
-      if (!window.IsManageable)
+      if (!_windowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
+
+      // Get the original width and height of the window.
+      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var originalWidth = originalPlacement.Right - originalPlacement.Left;
+      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
+
+      // Create the window instance.
+      var window = new TilingWindow(command.WindowHandle, originalWidth, originalHeight);
 
       var matchingWindowRules = GetMatchingWindowRules(window);
 

@@ -26,10 +26,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     public CommandResponse Handle(MoveFocusedWindowToWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-      var focusedWindow = _containerService.FocusedContainer as Window;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
       var foregroundWindow = GetForegroundWindow();
 
-      // Ignore cases where focused container is not a window or not in foreground.
+      // Ignore cases where focused container is not a tiling window or not in foreground.
       if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
         return CommandResponse.Ok;
 
@@ -48,8 +48,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
 
-      _containerService.SplitContainersToRedraw.Add(currentWorkspace);
-      _containerService.SplitContainersToRedraw.Add(targetWorkspace);
+      _containerService.ContainersToRedraw.Add(currentWorkspace);
+      _containerService.ContainersToRedraw.Add(targetWorkspace);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;

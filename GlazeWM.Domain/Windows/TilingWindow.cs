@@ -1,16 +1,19 @@
-﻿using GlazeWM.Domain.Common.Enums;
+﻿using System;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GlazeWM.Domain.Containers
+namespace GlazeWM.Domain.Windows
 {
-  public class SplitContainer : Container, IResizable
+  public sealed class TilingWindow : Window, IResizable
   {
-    public Layout Layout { get; set; } = Layout.HORIZONTAL;
-
     public double SizePercentage { get; set; } = 1;
 
     private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
+
+    public TilingWindow(IntPtr hwnd, int originalWidth, int originalHeight) : base(hwnd, originalWidth, originalHeight)
+    {
+    }
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
 

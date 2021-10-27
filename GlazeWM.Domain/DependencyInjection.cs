@@ -35,20 +35,24 @@ namespace GlazeWM.Domain
       services.AddTransient<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
       services.AddTransient<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
+      services.AddTransient<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();
+      services.AddTransient<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
+      services.AddTransient<ICommandHandler<MoveContainerWithinTreeCommand>, MoveContainerWithinTreeHandler>();
       services.AddTransient<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddTransient<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddTransient<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
-      services.AddTransient<ICommandHandler<SwapContainersCommand>, SwapContainersHandler>();
+      services.AddTransient<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddTransient<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
       services.AddTransient<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddTransient<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddTransient<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
       services.AddTransient<ICommandHandler<CloseFocusedWindowCommand>, CloseFocusedWindowHandler>();
-      services.AddTransient<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
       services.AddTransient<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddTransient<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
       services.AddTransient<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
       services.AddTransient<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
+      services.AddTransient<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
+      services.AddTransient<ICommandHandler<ToggleFocusedWindowFloatingCommand>, ToggleFocusedWindowFloatingHandler>();
       services.AddTransient<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
       services.AddTransient<ICommandHandler<CreateWorkspaceCommand>, CreateWorkspaceHandler>();
       services.AddTransient<ICommandHandler<DetachWorkspaceFromMonitorCommand>, DetachWorkspaceFromMonitorHandler>();
@@ -59,6 +63,9 @@ namespace GlazeWM.Domain
       services.AddTransient<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
       services.AddTransient<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
       services.AddTransient<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
+      services.AddTransient<IEventHandler<WindowMinimizedEvent>, WindowMinimizedHandler>();
+      services.AddTransient<IEventHandler<WindowMinimizeEndedEvent>, WindowMinimizeEndedHandler>();
+      services.AddTransient<IEventHandler<WindowMovedOrResizedEvent>, WindowMovedOrResizedHandler>();
       services.AddTransient<IEventHandler<WindowShownEvent>, WindowShownHandler>();
 
       return services;

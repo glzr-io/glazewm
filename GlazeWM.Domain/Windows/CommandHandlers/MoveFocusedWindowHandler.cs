@@ -27,66 +27,26 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(MoveFocusedWindowCommand command)
     {
-      var focusedWindow = _containerService.FocusedContainer as Window;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
-      // Ignore cases where focused container is not a window.
+      // Ignore cases where focused container is not a tiling window.
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
       var direction = command.Direction;
       var layoutForDirection = direction.GetCorrespondingLayout();
-      var parentMatchesLayout = (focusedWindow.Parent as SplitContainer).Layout == layoutForDirection;
+      var parentMatchesLayout = (focusedWindow.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
 
       if (parentMatchesLayout && HasSiblingInDirection(focusedWindow, direction))
       {
-        var siblingInDirection = (direction == Direction.UP || direction == Direction.LEFT) ?
-          focusedWindow.PreviousSibling : focusedWindow.NextSibling;
-
-        // Swap the focused window with sibling in given direction.
-        if (siblingInDirection is Window)
-        {
-          _bus.Invoke(new SwapContainersCommand(focusedWindow, siblingInDirection));
-          _bus.Invoke(new RedrawContainersCommand());
-          return CommandResponse.Ok;
-        }
-
-        // Move the focused window into the sibling split container.
-        var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction.Inverse());
-        var targetParent = targetDescendant.Parent as SplitContainer;
-
-        var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
-          direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
-
-        _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
-        _bus.Invoke(new RedrawContainersCommand());
-
+        SwapSiblingContainers(focusedWindow, direction);
         return CommandResponse.Ok;
       }
 
       // Attempt to the move focused window to workspace in given direction.
       if (parentMatchesLayout && focusedWindow.Parent is Workspace)
       {
-        var focusedMonitor = _monitorService.GetFocusedMonitor();
-        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
-        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
-
-        if (workspaceInDirection == null)
-          return CommandResponse.Ok;
-
-        // TODO: Descend into container if possible.
-        if (direction == Direction.UP || direction == Direction.LEFT)
-          _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow));
-        else
-          _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow, 0));
-
-        // Since window has crossed monitors, adjustments might need to be made because of DPI.
-        focusedWindow.HasPendingDpiAdjustment = true;
-
-        _bus.Invoke(new RedrawContainersCommand());
-
-        // Refresh state in bar of which workspace has focus.
-        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
-
+        MoveToWorkspaceInDirection(focusedWindow, direction);
         return CommandResponse.Ok;
       }
 
@@ -99,24 +59,100 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Change the layout of the workspace to layout for direction.
       if (ancestorWithLayout == null)
       {
-        var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
-
-        _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
-
-        // TODO: Index of focused window might have to be changed after layout is inverted.
-
-        _bus.Invoke(new RedrawContainersCommand());
-
+        ChangeWorkspaceLayout(focusedWindow, direction);
         return CommandResponse.Ok;
       }
 
+      InsertIntoAncestor(focusedWindow, direction, ancestorWithLayout);
+
+      return CommandResponse.Ok;
+    }
+
+    /// <summary>
+    /// Whether the focused window has a tiling sibling in the given direction.
+    /// </summary>
+    private bool HasSiblingInDirection(Window focusedWindow, Direction direction)
+    {
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).First();
+      else
+        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
+    }
+
+    private void SwapSiblingContainers(Window focusedWindow, Direction direction)
+    {
+      var siblingInDirection = direction == Direction.UP || direction == Direction.LEFT
+        ? focusedWindow.GetPreviousSiblingOfType(typeof(IResizable))
+        : focusedWindow.GetNextSiblingOfType(typeof(IResizable));
+
+      // Swap the focused window with sibling in given direction.
+      if (siblingInDirection is Window)
+      {
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, focusedWindow.Parent, siblingInDirection.Index));
+        _bus.Invoke(new RedrawContainersCommand());
+        return;
+      }
+
+      // Move the focused window into the sibling split container.
+      var targetDescendant = _containerService.GetDescendantInDirection(siblingInDirection, direction.Inverse());
+      var targetParent = targetDescendant.Parent as SplitContainer;
+
+      var layoutForDirection = direction.GetCorrespondingLayout();
+      var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
+        direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
+
+      _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
+      _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private void MoveToWorkspaceInDirection(Window focusedWindow, Direction direction)
+    {
+      var focusedMonitor = _monitorService.GetFocusedMonitor();
+      var monitorInDirection = _monitorService.GetMonitorInDirection(direction, focusedMonitor);
+      var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
+
+      if (workspaceInDirection == null)
+        return;
+
+      // TODO: Descend into container if possible.
+      if (direction == Direction.UP || direction == Direction.LEFT)
+        _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow));
+      else
+        _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow, 0));
+
+      // Since window has crossed monitors, adjustments might need to be made because of DPI.
+      focusedWindow.HasPendingDpiAdjustment = true;
+
+      _bus.Invoke(new RedrawContainersCommand());
+
+      // Refresh state in bar of which workspace has focus.
+      _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+    }
+
+    private void ChangeWorkspaceLayout(Window focusedWindow, Direction direction)
+    {
+      var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
+
+      var layoutForDirection = direction.GetCorrespondingLayout();
+      _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
+
+      // TODO: Should probably descend into sibling if possible.
+      if (HasSiblingInDirection(focusedWindow, direction))
+        SwapSiblingContainers(focusedWindow, direction);
+
+      _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private void InsertIntoAncestor(TilingWindow focusedWindow, Direction direction, Container ancestorWithLayout)
+    {
       // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
       // depending on the direction, insert before or after that container.
       var insertionReference = focusedWindow.TraverseUpEnumeration()
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT ?
-        insertionReference.PreviousSibling : insertionReference.NextSibling;
+      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT
+        ? insertionReference.GetPreviousSiblingOfType(typeof(IResizable))
+        : insertionReference.GetNextSiblingOfType(typeof(IResizable));
 
       if (insertionReferenceSibling is SplitContainer)
       {
@@ -124,6 +160,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var targetDescendant = _containerService.GetDescendantInDirection(insertionReferenceSibling, direction.Inverse());
         var targetParent = targetDescendant.Parent as SplitContainer;
 
+        var layoutForDirection = direction.GetCorrespondingLayout();
         var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
           direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
 
@@ -135,23 +172,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout as SplitContainer, focusedWindow, insertionIndex));
       }
 
       _bus.Invoke(new RedrawContainersCommand());
-
-      return CommandResponse.Ok;
-    }
-
-    /// <summary>
-    /// Whether the focused window has a sibling in the given direction.
-    /// </summary>
-    private bool HasSiblingInDirection(Window focusedWindow, Direction direction)
-    {
-      if (direction == Direction.UP || direction == Direction.LEFT)
-        return focusedWindow != focusedWindow.SelfAndSiblings.First();
-      else
-        return focusedWindow != focusedWindow.SelfAndSiblings.Last();
     }
   }
 }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using GlazeWM.Infrastructure.Bussing;
+﻿using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.Commands
 {
@@ -7,13 +6,13 @@ namespace GlazeWM.Domain.Containers.Commands
   {
     public Container ParentContainer { get; }
     public int ChildIndex { get; }
-    public List<Container> ReplacementContainers { get; }
+    public Container ReplacementContainer { get; }
 
-    public ReplaceContainerCommand(Container parentContainer, int childIndex, List<Container> replacementContainers)
+    public ReplaceContainerCommand(Container parentContainer, int childIndex, Container replacementContainer)
     {
       ParentContainer = parentContainer;
       ChildIndex = childIndex;
-      ReplacementContainers = replacementContainers;
+      ReplacementContainer = replacementContainer;
     }
   }
 }

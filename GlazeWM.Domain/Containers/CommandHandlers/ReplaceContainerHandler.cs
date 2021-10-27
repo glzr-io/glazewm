@@ -6,41 +6,40 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
   {
+    private Bus _bus;
     private ContainerService _containerService;
 
-    public ReplaceContainerHandler(ContainerService containerService)
+    public ReplaceContainerHandler(Bus bus, ContainerService containerService)
     {
+      _bus = bus;
       _containerService = containerService;
     }
 
     public CommandResponse Handle(ReplaceContainerCommand command)
     {
       var parentContainer = command.ParentContainer;
-      var replacementContainers = command.ReplacementContainers;
+      var replacementContainer = command.ReplacementContainer;
       var childIndex = command.ChildIndex;
 
-      // TODO: Consider detaching `ReplacementContainer` if it already has a parent.
+      // Detach `ReplacementContainer` if it already has a parent.
+      if (replacementContainer.Parent != null)
+        _bus.Invoke(new DetachContainerCommand(replacementContainer));
 
       var containerToReplace = parentContainer.Children[childIndex];
 
-      foreach (var replacementContainer in replacementContainers)
-      {
-        replacementContainer.Parent = parentContainer;
-        replacementContainer.SizePercentage =
-          containerToReplace.SizePercentage * replacementContainer.SizePercentage;
-      }
-
       // Replace the container at the given index.
-      var index = parentContainer.Children.IndexOf(containerToReplace);
-      parentContainer.Children.InsertRange(index, replacementContainers);
-      parentContainer.RemoveChild(containerToReplace);
+      parentContainer.Children.Replace(containerToReplace, replacementContainer);
+      replacementContainer.Parent = parentContainer;
+
+      if (replacementContainer is IResizable && containerToReplace is IResizable)
+        (replacementContainer as IResizable).SizePercentage =
+          (containerToReplace as IResizable).SizePercentage;
 
       // Correct any focus order references to the replaced container.
-      parentContainer.ChildFocusOrder.Replace(
-        containerToReplace, containerToReplace.LastFocusedChild ?? replacementContainers[0]
-      );
+      parentContainer.ChildFocusOrder.Replace(containerToReplace, replacementContainer);
 
-      _containerService.SplitContainersToRedraw.Add(parentContainer as SplitContainer);
+      _containerService.ContainersToRedraw.Add(parentContainer);
+      _containerService.ContainersToRedraw.Add(replacementContainer.Parent);
 
       return CommandResponse.Ok;
     }

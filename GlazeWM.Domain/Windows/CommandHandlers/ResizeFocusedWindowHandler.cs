@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Documents;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -12,23 +14,21 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
   {
     private Bus _bus;
-    private WindowService _windowService;
     private UserConfigService _userConfigService;
     private ContainerService _containerService;
 
-    public ResizeFocusedWindowHandler(Bus bus, WindowService windowService, UserConfigService userConfigService, ContainerService containerService)
+    public ResizeFocusedWindowHandler(Bus bus, UserConfigService userConfigService, ContainerService containerService)
     {
       _bus = bus;
-      _windowService = windowService;
       _userConfigService = userConfigService;
       _containerService = containerService;
     }
 
     public CommandResponse Handle(ResizeFocusedWindowCommand command)
     {
-      var focusedWindow = _containerService.FocusedContainer as Window;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
-      // Ignore cases where focused container is not a window.
+      // Ignore cases where focused container is not a tiling window.
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
@@ -44,45 +44,48 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
 
+      // Get siblings that can be resized.
+      var resizableSiblings = containerToResize.Siblings.Where(container => container is IResizable);
+
       // Ignore cases where the container to resize is a workspace or is only child.
-      if (!containerToResize.HasSiblings() || containerToResize is Workspace)
+      if (resizableSiblings.Count() == 0 || containerToResize is Workspace)
         return CommandResponse.Ok;
 
       switch (resizeDirection)
       {
         case ResizeDirection.GROW_WIDTH:
         case ResizeDirection.GROW_HEIGHT:
-          ShrinkSizeOfSiblings(containerToResize);
+          ShrinkSizeOfSiblings(containerToResize, resizableSiblings);
           break;
 
         case ResizeDirection.SHRINK_WIDTH:
         case ResizeDirection.SHRINK_HEIGHT:
-          GrowSizeOfSiblings(containerToResize);
+          GrowSizeOfSiblings(containerToResize, resizableSiblings);
           break;
       }
 
-      _containerService.SplitContainersToRedraw.Add(containerToResize.Parent as SplitContainer);
+      _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
 
-    private void GrowSizeOfSiblings(Container containerToShrink)
+    private void GrowSizeOfSiblings(Container containerToShrink, IEnumerable<Container> resizableSiblings)
     {
       var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
-      containerToShrink.SizePercentage -= resizeProportion;
+      (containerToShrink as IResizable).SizePercentage -= resizeProportion;
 
-      foreach (var sibling in containerToShrink.Siblings)
-        sibling.SizePercentage += resizeProportion / containerToShrink.Siblings.Count();
+      foreach (var sibling in resizableSiblings)
+        (sibling as IResizable).SizePercentage += resizeProportion / resizableSiblings.Count();
     }
 
-    private void ShrinkSizeOfSiblings(Container containerToGrow)
+    private void ShrinkSizeOfSiblings(Container containerToGrow, IEnumerable<Container> resizableSiblings)
     {
       var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
-      containerToGrow.SizePercentage += resizeProportion;
+      (containerToGrow as IResizable).SizePercentage += resizeProportion;
 
-      foreach (var sibling in containerToGrow.Siblings)
-        sibling.SizePercentage -= resizeProportion / containerToGrow.Siblings.Count();
+      foreach (var sibling in resizableSiblings)
+        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
     }
   }
 }

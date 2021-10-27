@@ -10,7 +10,6 @@ namespace GlazeWM.Domain.Containers
     public virtual int Width { get; set; }
     public virtual int X { get; set; }
     public virtual int Y { get; set; }
-    public double SizePercentage { get; set; } = 1;
     public Container Parent { get; set; } = null;
     public List<Container> Children { get; set; } = new List<Container>();
 
@@ -30,12 +29,19 @@ namespace GlazeWM.Domain.Containers
         if (ChildFocusOrder.Count > 0)
           return ChildFocusOrder[0];
 
+        // TODO: Remove this conditional and instead always return
+        // `ChildFocusOrder.ElementAtOrDefault(0)`.
         if (Children.Count > 0)
           return Children[0];
 
         return null;
       }
     }
+
+    /// <summary>
+    /// Index of this container in parent's child focus order.
+    /// </summary>
+    public int FocusIndex => Parent.ChildFocusOrder.IndexOf(this);
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
@@ -118,14 +124,6 @@ namespace GlazeWM.Domain.Containers
       return Children.Remove(node);
     }
 
-    // Not sure if needed.
-    public void Traverse(Action<Container> action)
-    {
-      action(this);
-      foreach (var child in Children)
-        child.Traverse(action);
-    }
-
     public bool HasChildren()
     {
       return Children.Count > 0;
@@ -134,6 +132,52 @@ namespace GlazeWM.Domain.Containers
     public bool HasSiblings()
     {
       return Siblings.Count() > 0;
+    }
+
+    public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
+    {
+      return SelfAndSiblings.Where(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    public Container GetNextSiblingOfType(Type type)
+    {
+      return SelfAndSiblings
+        .Skip(Index + 1)
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    public Container GetPreviousSiblingOfType(Type type)
+    {
+      return SelfAndSiblings
+        .Take(Index)
+        .Reverse()
+        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    /// <summary>
+    /// Get the last focused descendant that matches the given type.
+    /// </summary>
+    public Container LastFocusedDescendantOfType(Type type)
+    {
+      var stack = new Stack<Container>();
+      stack.Push(this);
+
+      // Do a depth-first search using child focus order.
+      while (stack.Any())
+      {
+        var current = stack.Pop();
+
+        var isMatch = type.IsAssignableFrom(current.GetType()) && !current.HasChildren();
+
+        if (isMatch)
+          return current;
+
+        // Reverse the child focus order so that the first element is pushed last/popped first.
+        foreach (var focusChild in current.ChildFocusOrder.AsEnumerable().Reverse())
+          stack.Push(focusChild);
+      }
+
+      return null;
     }
   }
 }

@@ -28,18 +28,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private void CreateWindowEventHook()
     {
       SetWinEventHook(EventConstant.EVENT_OBJECT_DESTROY, EventConstant.EVENT_OBJECT_HIDE, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_OBJECT_CLOAKED, EventConstant.EVENT_OBJECT_UNCLOAKED, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
 
-      // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
+      // `SetWinEventHook` requires a message loop within the thread that is executing the code.
       Application.Run();
     }
 
     private void WindowEventHookProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-      // Whether the window event is actually associated with a window object (instead of a UI
-      // control, for example).
+      // Whether the event is actually associated with a window object (instead of a UI control).
       var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.OBJID_WINDOW
         && hwnd != IntPtr.Zero;
 
@@ -62,6 +61,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
           break;
         case EventConstant.EVENT_SYSTEM_MINIMIZEEND:
           _bus.RaiseEvent(new WindowMinimizeEndedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_SYSTEM_MOVESIZEEND:
+          _bus.RaiseEvent(new WindowMovedOrResizedEvent(hwnd));
           break;
         case EventConstant.EVENT_SYSTEM_FOREGROUND:
           _bus.RaiseEvent(new WindowFocusedEvent(hwnd));

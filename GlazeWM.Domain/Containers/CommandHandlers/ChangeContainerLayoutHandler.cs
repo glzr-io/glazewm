@@ -26,7 +26,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var container = command.Container;
       var newLayout = command.NewLayout;
 
-      if (container is Window)
+      if (container is TilingWindow)
         ChangeWindowLayout(container as Window, newLayout);
 
       else if (container is Workspace)
@@ -54,7 +54,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container.
       if (!window.HasSiblings())
       {
-        _bus.Invoke(new ReplaceContainerCommand(parent.Parent, parent.Index, new List<Container>() { window }));
+        _bus.Invoke(new FlattenSplitContainerCommand(parent));
         return;
       }
 
@@ -67,7 +67,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Replace the window with the wrapping split container. The window has to be attached to
       // the split container after the replacement.
-      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, new List<Container>() { splitContainer }));
+      _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, splitContainer));
       _bus.Invoke(new AttachContainerCommand(splitContainer, window));
     }
 
@@ -89,10 +89,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         if (childSplitContainer == null || childSplitContainer.Layout != newLayout)
           continue;
 
-        _bus.Invoke(new ReplaceContainerCommand(workspace, child.Index, child.Children));
+        _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));
       }
 
-      _containerService.SplitContainersToRedraw.Add(workspace);
+      _containerService.ContainersToRedraw.Add(workspace);
     }
   }
 }

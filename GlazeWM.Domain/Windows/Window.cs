@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
@@ -19,27 +21,30 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
+    /// <summary>
+    /// The original width of the window. Used as the window's width when floating is toggled.
+    /// </summary>
+    public int OriginalWidth { get; set; }
+
+    /// <summary>
+    /// The original height of the window. Used as the window's height when floating is toggled.
+    /// </summary>
+    public int OriginalHeight { get; set; }
+
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
-    private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
-    public Window(IntPtr hwnd)
+    public Window(IntPtr hwnd, int originalWidth, int originalHeight)
     {
       Hwnd = hwnd;
+      OriginalWidth = originalWidth;
+      OriginalHeight = originalHeight;
     }
 
     /// <summary>
     /// Windows are hidden if their parent workspace is not displayed.
     /// </summary>
     public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
-
-    public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
-
-    public override int Height => _containerService.CalculateHeightOfResizableContainer(this);
-
-    public override int X => _containerService.CalculateXOfResizableContainer(this);
-
-    public override int Y => _containerService.CalculateYOfResizableContainer(this);
 
     public Process Process => _windowService.GetProcessOfHandle(Hwnd);
 
@@ -49,7 +54,7 @@ namespace GlazeWM.Domain.Windows
 
     public string Title => _windowService.GetTitleOfHandle(Hwnd);
 
-    public bool IsManageable => _windowService.IsWindowManageable(this);
+    public bool IsManageable => _windowService.IsHandleManageable(Hwnd);
 
     public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
 

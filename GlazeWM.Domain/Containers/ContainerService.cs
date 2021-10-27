@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Windows;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -14,15 +16,22 @@ namespace GlazeWM.Domain.Containers
     public Container ContainerTree = new Container();
 
     /// <summary>
-    /// Pending SplitContainers to redraw.
+    /// Containers (and their descendants) to redraw on the next invocation of
+    /// `RedrawContainersCommand`.
     /// </summary>
-    public List<SplitContainer> SplitContainersToRedraw = new List<SplitContainer>();
+    public List<Container> ContainersToRedraw = new List<Container>();
 
     /// <summary>
     /// The currently focused container. This can either be a `Window` or a
     /// `Workspace` without any descendant windows.
     /// </summary>
     public Container FocusedContainer => ContainerTree.LastFocusedDescendant;
+
+    /// <summary>
+    /// Whether a tiling or floating container is currently focused.
+    /// </summary>
+    public FocusMode FocusMode => FocusedContainer is FloatingWindow ?
+      FocusMode.FLOATING : FocusMode.TILING;
 
     /// <summary>
     /// If set, this container overrides the target container to set focus to on the next
@@ -49,8 +58,9 @@ namespace GlazeWM.Domain.Containers
         return parent.Width;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)(container.SizePercentage * (parent.Width - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -65,8 +75,9 @@ namespace GlazeWM.Domain.Containers
         return parent.Height;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)(container.SizePercentage * (parent.Height - (innerGap * (parent.Children.Count - 1))));
+      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -77,12 +88,16 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.VERTICAL || container.Index == 0)
+      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+
+      if (parent.Layout == Layout.VERTICAL || isFirstOfType)
         return parent.X;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.PreviousSibling.X + container.PreviousSibling.Width + innerGap;
+      return container.GetPreviousSiblingOfType(typeof(IResizable)).X
+        + container.GetPreviousSiblingOfType(typeof(IResizable)).Width
+        + innerGap;
     }
 
     /// <summary>
@@ -93,12 +108,16 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.HORIZONTAL || container.Index == 0)
+      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+
+      if (parent.Layout == Layout.HORIZONTAL || isFirstOfType)
         return parent.Y;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.PreviousSibling.Y + container.PreviousSibling.Height + innerGap;
+      return container.GetPreviousSiblingOfType(typeof(IResizable)).Y
+        + container.GetPreviousSiblingOfType(typeof(IResizable)).Height
+        + innerGap;
     }
 
     /// <summary>
@@ -120,6 +139,34 @@ namespace GlazeWM.Domain.Containers
         return GetDescendantInDirection(originContainer.Children.First(), direction);
       else
         return GetDescendantInDirection(originContainer.Children.Last(), direction);
+    }
+
+    /// <summary>
+    /// Get the lowest container in the tree that has both `containerA` and `containerB` as
+    /// descendants.
+    /// </summary>
+    public Container GetLowestCommonAncestor(Container containerA, Container containerB)
+    {
+      var ancestorA = containerA;
+
+      // Traverse upwards from container A.
+      while (ancestorA != null)
+      {
+        var ancestorB = containerB;
+
+        // Traverse upwards from container B.
+        while (ancestorB != null)
+        {
+          if (ancestorA == ancestorB)
+            return ancestorA;
+
+          ancestorB = ancestorB.Parent;
+        }
+
+        ancestorA = ancestorA.Parent;
+      }
+
+      throw new Exception("No common ancestor between containers. This is a bug.");
     }
   }
 }
