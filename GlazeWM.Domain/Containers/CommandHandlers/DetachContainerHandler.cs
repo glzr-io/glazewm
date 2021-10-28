@@ -22,7 +22,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var childToRemove = command.ChildToRemove;
       var parent = childToRemove.Parent;
 
-      parent.RemoveChild(childToRemove);
+      childToRemove.Parent = null;
+      parent.Children.Remove(childToRemove);
       parent.ChildFocusOrder.Remove(childToRemove);
 
       if (childToRemove is TilingWindow || childToRemove is SplitContainer)
