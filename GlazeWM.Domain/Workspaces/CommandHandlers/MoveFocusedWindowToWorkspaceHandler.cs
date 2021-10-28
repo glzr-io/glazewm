@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (insertionTarget == null)
         _bus.Invoke(new AttachContainerCommand(targetWorkspace, focusedWindow));
       else
-        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent as SplitContainer, focusedWindow, insertionTarget.Index + 1));
+        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent, focusedWindow, insertionTarget.Index + 1));
 
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));

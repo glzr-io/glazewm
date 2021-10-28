@@ -172,7 +172,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout as SplitContainer, focusedWindow, insertionIndex));
+        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
       }
 
       _bus.Invoke(new RedrawContainersCommand());
