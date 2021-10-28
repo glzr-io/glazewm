@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      var containerAtTargetIndex = targetParent.Children[targetIndex];
+      var containerAtTargetIndex = targetParent.Children.ElementAtOrDefault(targetIndex);
 
       if (targetParent == container.Parent && containerAtTargetIndex != null)
       {
