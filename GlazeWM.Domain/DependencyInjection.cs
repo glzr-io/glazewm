@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
@@ -31,6 +31,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
 
+      services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
