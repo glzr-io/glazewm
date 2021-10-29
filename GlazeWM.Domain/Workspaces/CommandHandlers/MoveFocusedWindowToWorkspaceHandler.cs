@@ -41,9 +41,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Insert the focused window into the target workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new AttachContainerCommand(targetWorkspace, focusedWindow));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace));
       else
-        _bus.Invoke(new AttachContainerCommand(insertionTarget.Parent, focusedWindow, insertionTarget.Index + 1));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, insertionTarget.Parent, insertionTarget.Index + 1));
 
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));

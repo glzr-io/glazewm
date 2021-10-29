@@ -58,9 +58,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var originalFocusIndex = containerAncestor.FocusIndex;
       var isSubtreeFocused = originalFocusIndex < targetParentAncestor.FocusIndex;
 
-      _bus.Invoke(new DetachContainerCommand(container));
+      _bus.Invoke(new DetachAndResizeContainerCommand(container));
 
-      _bus.Invoke(new AttachContainerCommand(targetParent, container, targetIndex));
+      _bus.Invoke(new AttachAndResizeContainerCommand(targetParent, container, targetIndex));
 
       // Set `container` as focused descendant within target subtree if its original subtree had
       // focus more recently (even if the container is not the last focused within that subtree).
@@ -112,7 +112,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var originalIndex = container.Index;
       var originalLcaChildCount = lowestCommonAncestor.Children.Count;
 
-      _bus.Invoke(new DetachContainerCommand(container));
+      _bus.Invoke(new DetachAndResizeContainerCommand(container));
 
       var newLcaChildCount = lowestCommonAncestor.Children.Count;
       var shouldAdjustTargetIndex = originalLcaChildCount > newLcaChildCount
@@ -122,7 +122,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // top-level container to the right in a workspace.
       var adjustedTargetIndex = shouldAdjustTargetIndex ? targetIndex - 1 : targetIndex;
 
-      _bus.Invoke(new AttachContainerCommand(lowestCommonAncestor, container, adjustedTargetIndex));
+      _bus.Invoke(new AttachAndResizeContainerCommand(lowestCommonAncestor, container, adjustedTargetIndex));
 
       lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(originalFocusIndex, container);
     }

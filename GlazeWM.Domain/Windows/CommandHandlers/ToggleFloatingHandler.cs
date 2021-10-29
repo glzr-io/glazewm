@@ -36,10 +36,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void EnableFloating(Window window)
     {
-      // Keep reference to the window's ancestor workspace and whether the window has focus prior
-      // to detaching.
+      // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-      var isFocused = window == _containerService.FocusedContainer;
 
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
@@ -50,11 +48,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         workspace.Y + (workspace.Height / 2) - (window.OriginalHeight / 2)
       );
 
-      _bus.Invoke(new DetachContainerCommand(window));
-      _bus.Invoke(new AttachContainerCommand(workspace, floatingWindow));
-
-      if (isFocused)
-        _bus.Invoke(new SetFocusedDescendantCommand(floatingWindow));
+      _bus.Invoke(new ReplaceContainerCommand(window.Parent, window.Index, floatingWindow));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(floatingWindow, workspace));
 
       _bus.Invoke(new RedrawContainersCommand());
     }

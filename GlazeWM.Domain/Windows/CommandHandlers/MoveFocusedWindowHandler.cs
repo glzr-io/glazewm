@@ -101,7 +101,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
         direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
 
-      _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(targetParent, focusedWindow, insertionIndex));
       _bus.Invoke(new RedrawContainersCommand());
     }
 
@@ -116,9 +116,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // TODO: Descend into container if possible.
       if (direction == Direction.UP || direction == Direction.LEFT)
-        _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(workspaceInDirection, focusedWindow));
       else
-        _bus.Invoke(new AttachContainerCommand(workspaceInDirection, focusedWindow, 0));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(workspaceInDirection, focusedWindow, 0));
 
       // Since window has crossed monitors, adjustments might need to be made because of DPI.
       focusedWindow.HasPendingDpiAdjustment = true;
@@ -164,7 +164,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
           direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
 
-        _bus.Invoke(new AttachContainerCommand(targetParent, focusedWindow, insertionIndex));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(targetParent, focusedWindow, insertionIndex));
       }
       else
       {
@@ -172,7 +172,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
-        _bus.Invoke(new AttachContainerCommand(ancestorWithLayout, focusedWindow, insertionIndex));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(ancestorWithLayout, focusedWindow, insertionIndex));
       }
 
       _bus.Invoke(new RedrawContainersCommand());

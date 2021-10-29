@@ -68,7 +68,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Replace the window with the wrapping split container. The window has to be attached to
       // the split container after the replacement.
       _bus.Invoke(new ReplaceContainerCommand(parent, window.Index, splitContainer));
-      _bus.Invoke(new AttachContainerCommand(splitContainer, window));
+
+      _bus.Invoke(new DetachAndResizeContainerCommand(window));
+      _bus.Invoke(new AttachAndResizeContainerCommand(splitContainer, window));
     }
 
     private void ChangeWorkspaceLayout(Workspace workspace, Layout newLayout)
