@@ -8,6 +8,14 @@ namespace GlazeWM.Domain.Containers.Commands
     public Container TargetParent { get; }
     public int TargetIndex { get; }
 
+    // Insert child as end element if `targetIndex` is not provided.
+    public MoveContainerWithinTreeCommand(Container container, Container targetParent)
+    {
+      Container = container;
+      TargetParent = targetParent;
+      TargetIndex = targetParent.Children.Count;
+    }
+
     public MoveContainerWithinTreeCommand(Container container, Container targetParent, int targetIndex)
     {
       Container = container;
