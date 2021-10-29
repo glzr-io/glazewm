@@ -1,5 +1,7 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+﻿using System.Linq;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
@@ -20,21 +22,28 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = containerToFlatten.Parent;
       var children = containerToFlatten.Children;
 
-      foreach (var child in children)
+      // Keep references to properties of container to flatten prior to detaching.
+      var originalFocusIndex = containerToFlatten.FocusIndex;
+      var originalIndex = containerToFlatten.Index;
+      var originalFocusOrder = containerToFlatten.ChildFocusOrder.ToList();
+
+      _bus.Invoke(new DetachContainerCommand(containerToFlatten));
+
+      // Insert children of detached split container at the original index.
+      foreach (var (child, index) in children.WithIndex())
       {
-        child.Parent = parent;
+        _bus.Invoke(new AttachContainerCommand(parent, child, originalIndex + index));
+
         (child as IResizable).SizePercentage = (containerToFlatten as IResizable).SizePercentage
           * (child as IResizable).SizePercentage;
       }
 
-      // Replace the container at the given index.
-      parent.Children.InsertRange(containerToFlatten.Index, children);
-      parent.RemoveChild(containerToFlatten);
-
-      // Correct any focus order references to the replaced container.
-      var focusIndex = parent.ChildFocusOrder.IndexOf(containerToFlatten);
-      parent.ChildFocusOrder.InsertRange(focusIndex, containerToFlatten.ChildFocusOrder);
-      parent.ChildFocusOrder.Remove(containerToFlatten);
+      // Correct focus order of the inserted containers.
+      foreach (var child in children)
+      {
+        var childFocusIndex = originalFocusOrder.IndexOf(child);
+        parent.ChildFocusOrder.ShiftToIndex(originalFocusIndex + childFocusIndex, child);
+      }
 
       _containerService.ContainersToRedraw.Add(parent);
 

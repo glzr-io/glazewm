@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Monitors;
+﻿using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,9 +18,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public CommandResponse Handle(DetachWorkspaceFromMonitorCommand command)
     {
-      var monitor = command.Workspace.Parent as Monitor;
-      monitor.RemoveChild(command.Workspace);
+      var workspace = command.Workspace;
 
+      _bus.Invoke(new DetachContainerCommand(workspace));
       _workspaceService.InactiveWorkspaces.Add(command.Workspace);
 
       _bus.RaiseEvent(new WorkspaceDetachedEvent(command.Workspace));
