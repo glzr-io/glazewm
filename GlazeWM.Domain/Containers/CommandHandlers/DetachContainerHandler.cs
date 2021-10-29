@@ -35,6 +35,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
       }
 
+      _containerService.ContainersToRedraw.Add(parent);
+
       return CommandResponse.Ok;
     }
   }
