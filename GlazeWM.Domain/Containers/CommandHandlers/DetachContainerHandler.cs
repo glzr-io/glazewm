@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+﻿using System;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -19,6 +20,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var childToRemove = command.ChildToRemove;
       var parent = childToRemove.Parent;
+
+      if (parent == null)
+        throw new Exception("Attempting to detach an already detached container. This is a bug.");
 
       childToRemove.Parent = null;
       parent.Children.Remove(childToRemove);
