@@ -22,7 +22,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = childToRemove.Parent;
 
       if (parent == null)
-        throw new Exception("Attempting to detach an already detached container. This is a bug.");
+        throw new Exception("Cannot detach an already detached container. This is a bug.");
 
       childToRemove.Parent = null;
       parent.Children.Remove(childToRemove);

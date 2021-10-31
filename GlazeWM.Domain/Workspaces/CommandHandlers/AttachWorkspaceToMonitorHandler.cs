@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var monitor = command.Monitor;
       var workspace = command.Workspace;
 
-      _bus.Invoke(new AttachContainerCommand(monitor, workspace));
+      _bus.Invoke(new AttachContainerCommand(workspace, monitor));
       _workspaceService.InactiveWorkspaces.Remove(command.Workspace);
 
       _bus.RaiseEvent(new WorkspaceAttachedEvent(command.Workspace));

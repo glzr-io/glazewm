@@ -27,7 +27,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       var newMonitor = new Monitor(command.Screen);
       var rootContainer = _containerService.ContainerTree;
 
-      _bus.Invoke(new AttachContainerCommand(rootContainer, newMonitor));
+      _bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
 
       ActivateWorkspaceOnMonitor(newMonitor);
 

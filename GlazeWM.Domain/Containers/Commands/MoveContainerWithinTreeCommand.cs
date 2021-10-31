@@ -4,21 +4,21 @@ namespace GlazeWM.Domain.Containers.Commands
 {
   public class MoveContainerWithinTreeCommand : Command
   {
-    public Container Container { get; }
+    public Container ContainerToMove { get; }
     public Container TargetParent { get; }
     public int TargetIndex { get; }
 
     // Insert child as end element if `targetIndex` is not provided.
-    public MoveContainerWithinTreeCommand(Container container, Container targetParent)
+    public MoveContainerWithinTreeCommand(Container containerToMove, Container targetParent)
     {
-      Container = container;
+      ContainerToMove = containerToMove;
       TargetParent = targetParent;
       TargetIndex = targetParent.Children.Count;
     }
 
-    public MoveContainerWithinTreeCommand(Container container, Container targetParent, int targetIndex)
+    public MoveContainerWithinTreeCommand(Container containerToMove, Container targetParent, int targetIndex)
     {
-      Container = container;
+      ContainerToMove = containerToMove;
       TargetParent = targetParent;
       TargetIndex = targetIndex;
     }

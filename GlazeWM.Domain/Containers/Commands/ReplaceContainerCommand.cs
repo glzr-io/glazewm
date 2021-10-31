@@ -4,15 +4,15 @@ namespace GlazeWM.Domain.Containers.Commands
 {
   public class ReplaceContainerCommand : Command
   {
-    public Container ParentContainer { get; }
-    public int ChildIndex { get; }
     public Container ReplacementContainer { get; }
+    public Container TargetParent { get; }
+    public int TargetIndex { get; }
 
-    public ReplaceContainerCommand(Container parentContainer, int childIndex, Container replacementContainer)
+    public ReplaceContainerCommand(Container replacementContainer, Container targetParent, int targetIndex)
     {
-      ParentContainer = parentContainer;
-      ChildIndex = childIndex;
       ReplacementContainer = replacementContainer;
+      TargetParent = targetParent;
+      TargetIndex = targetIndex;
     }
   }
 }

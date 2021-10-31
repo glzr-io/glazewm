@@ -4,23 +4,23 @@ namespace GlazeWM.Domain.Containers.Commands
 {
   public class AttachAndResizeContainerCommand : Command
   {
-    public Container Parent { get; }
     public Container ChildToAdd { get; }
-    public int InsertPosition { get; }
+    public Container TargetParent { get; }
+    public int TargetIndex { get; }
 
-    // Insert child as end element if `insertPosition` is not provided.
-    public AttachAndResizeContainerCommand(Container parent, Container childToAdd)
+    // Insert child as end element if `targetIndex` is not provided.
+    public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent)
     {
-      Parent = parent;
       ChildToAdd = childToAdd;
-      InsertPosition = parent.Children.Count;
+      TargetParent = targetParent;
+      TargetIndex = targetParent.Children.Count;
     }
 
-    public AttachAndResizeContainerCommand(Container parent, Container childToAdd, int insertPosition)
+    public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent, int targetIndex)
     {
-      Parent = parent;
       ChildToAdd = childToAdd;
-      InsertPosition = insertPosition;
+      TargetParent = targetParent;
+      TargetIndex = targetIndex;
     }
   }
 }

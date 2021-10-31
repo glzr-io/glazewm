@@ -41,7 +41,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
-      _bus.Invoke(new ReplaceContainerCommand(window.Parent, window.Index, minimizedWindow));
+      _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
       _bus.Invoke(new MoveContainerWithinTreeCommand(minimizedWindow, workspace));
 
       var containerToFocus = workspace.LastFocusedDescendant ?? workspace;

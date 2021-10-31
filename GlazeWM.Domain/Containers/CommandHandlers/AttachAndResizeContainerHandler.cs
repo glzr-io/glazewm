@@ -16,14 +16,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(AttachAndResizeContainerCommand command)
     {
-      var parent = command.Parent;
       var childToAdd = command.ChildToAdd;
-      var insertPosition = command.InsertPosition;
+      var targetParent = command.TargetParent;
+      var targetIndex = command.TargetIndex;
 
       if (!(childToAdd is TilingWindow || childToAdd is SplitContainer))
         return CommandResponse.Ok;
 
-      _bus.Invoke(new AttachContainerCommand(parent, childToAdd, insertPosition));
+      _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
       var resizableSiblings = childToAdd.SelfAndSiblings.Where(container => container is IResizable);
       double defaultPercent = 1.0 / resizableSiblings.Count();
