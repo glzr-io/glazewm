@@ -22,9 +22,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (childToAdd.Parent != null)
         throw new Exception("Cannot attach an already attached container. This is a bug.");
 
-      // TODO: Insert at end of parent's `ChildFocusOrder`.
-      targetParent.Children.Insert(targetIndex, childToAdd);
       childToAdd.Parent = targetParent;
+      targetParent.Children.Insert(targetIndex, childToAdd);
+      targetParent.ChildFocusOrder.Add(childToAdd);
 
       _containerService.ContainersToRedraw.Add(targetParent);
 
