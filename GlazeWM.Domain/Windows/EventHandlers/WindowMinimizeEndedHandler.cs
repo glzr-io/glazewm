@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       var tilingWindow = new TilingWindow(window.Hwnd, window.OriginalWidth, window.OriginalHeight);
-      _bus.Invoke(new ReplaceContainerCommand(window.Parent, window.Index, tilingWindow));
+      _bus.Invoke(new ReplaceContainerCommand(tilingWindow, window.Parent, window.Index));
 
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);

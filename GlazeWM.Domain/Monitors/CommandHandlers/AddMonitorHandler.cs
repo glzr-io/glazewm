@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Workspaces;
@@ -24,7 +25,9 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     public CommandResponse Handle(AddMonitorCommand command)
     {
       var newMonitor = new Monitor(command.Screen);
-      _containerService.ContainerTree.AddChild(newMonitor);
+      var rootContainer = _containerService.ContainerTree;
+
+      _bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
 
       ActivateWorkspaceOnMonitor(newMonitor);
 

@@ -49,10 +49,12 @@ namespace GlazeWM.Bootstrapper
       // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
       // to be initialized before populating initial state.
       _barService.StartApp();
-      _keybindingService.Start();
 
       // Populate initial monitors, windows, workspaces and user config.
       PopulateInitialState();
+
+      // Listen on registered keybindings.
+      _keybindingService.Start();
 
       // Listen for window events (eg. close, focus).
       _windowEventService.Start();

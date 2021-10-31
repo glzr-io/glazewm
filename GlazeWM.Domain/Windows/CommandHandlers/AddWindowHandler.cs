@@ -97,7 +97,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       if (targetParent != null)
       {
-        _bus.Invoke(new AttachContainerCommand(targetParent, window));
+        _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent));
         return;
       }
 
@@ -106,13 +106,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // If the focused container is a workspace, attach the window as a child of the workspace.
       if (focusedContainer is Workspace)
       {
-        _bus.Invoke(new AttachContainerCommand(focusedContainer as Workspace, window));
+        _bus.Invoke(new AttachAndResizeContainerCommand(window, focusedContainer));
         return;
       }
 
       // Attach the window as a sibling next to the focused window.
-      _bus.Invoke(new AttachContainerCommand(
-        focusedContainer.Parent as SplitContainer, window, focusedContainer.Index + 1
+      _bus.Invoke(new AttachAndResizeContainerCommand(
+        window,
+        focusedContainer.Parent,
+        focusedContainer.Index + 1
       ));
     }
   }

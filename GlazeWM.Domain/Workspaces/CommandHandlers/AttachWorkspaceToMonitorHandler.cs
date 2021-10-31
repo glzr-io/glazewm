@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.Workspaces.Commands;
+﻿using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -17,7 +18,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public CommandResponse Handle(AttachWorkspaceToMonitorCommand command)
     {
-      command.Monitor.AddChild(command.Workspace);
+      var monitor = command.Monitor;
+      var workspace = command.Workspace;
+
+      _bus.Invoke(new AttachContainerCommand(workspace, monitor));
       _workspaceService.InactiveWorkspaces.Remove(command.Workspace);
 
       _bus.RaiseEvent(new WorkspaceAttachedEvent(command.Workspace));

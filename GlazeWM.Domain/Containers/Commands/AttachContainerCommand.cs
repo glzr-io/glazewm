@@ -4,23 +4,23 @@ namespace GlazeWM.Domain.Containers.Commands
 {
   public class AttachContainerCommand : Command
   {
-    public SplitContainer Parent { get; }
     public Container ChildToAdd { get; }
-    public int InsertPosition { get; }
+    public Container TargetParent { get; }
+    public int TargetIndex { get; }
 
-    // Insert child as end element if `insertPosition` is not provided.
-    public AttachContainerCommand(SplitContainer parent, Container childToAdd)
+    // Insert child as end element if `targetIndex` is not provided.
+    public AttachContainerCommand(Container childToAdd, Container targetParent)
     {
-      Parent = parent;
       ChildToAdd = childToAdd;
-      InsertPosition = parent.Children.Count;
+      TargetParent = targetParent;
+      TargetIndex = targetParent.Children.Count;
     }
 
-    public AttachContainerCommand(SplitContainer parent, Container childToAdd, int insertPosition)
+    public AttachContainerCommand(Container childToAdd, Container targetParent, int targetIndex)
     {
-      Parent = parent;
       ChildToAdd = childToAdd;
-      InsertPosition = insertPosition;
+      TargetParent = targetParent;
+      TargetIndex = targetIndex;
     }
   }
 }

@@ -19,24 +19,9 @@ namespace GlazeWM.Domain.Containers
     public List<Container> ChildFocusOrder { get; set; } = new List<Container>();
 
     /// <summary>
-    /// The child container that last had focus. Return the first child if no children have
-    /// had focus yet.
+    /// The child container that last had focus.
     /// </summary>
-    public Container LastFocusedChild
-    {
-      get
-      {
-        if (ChildFocusOrder.Count > 0)
-          return ChildFocusOrder[0];
-
-        // TODO: Remove this conditional and instead always return
-        // `ChildFocusOrder.ElementAtOrDefault(0)`.
-        if (Children.Count > 0)
-          return Children[0];
-
-        return null;
-      }
-    }
+    public Container LastFocusedChild => ChildFocusOrder.ElementAtOrDefault(0);
 
     /// <summary>
     /// Index of this container in parent's child focus order.
@@ -45,13 +30,7 @@ namespace GlazeWM.Domain.Containers
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
-    public IEnumerable<Container> Siblings
-    {
-      get
-      {
-        return Parent.Children.Where(child => child != this);
-      }
-    }
+    public IEnumerable<Container> Siblings => Parent.Children.Where(children => children != this);
 
     /// <summary>
     /// Index of this container amongst its siblings.
@@ -87,7 +66,7 @@ namespace GlazeWM.Domain.Containers
     // TODO: Rename to SelfAndDescendants and change to getter.
     public IEnumerable<Container> Flatten()
     {
-      return new[] { this }.Concat(Children.SelectMany(x => x.Flatten()));
+      return new[] { this }.Concat(Children.SelectMany(children => children.Flatten()));
     }
 
     public IEnumerable<Container> SelfAndAncestors => new[] { this }.Concat(Ancestors);
@@ -106,33 +85,9 @@ namespace GlazeWM.Domain.Containers
       }
     }
 
-    public Container AddChild(Container container)
-    {
-      Children.Add(container);
-      container.Parent = this;
-      return container;
-    }
+    public bool HasChildren() => Children.Count > 0;
 
-    public Container[] AddChildren(params Container[] containers)
-    {
-      return containers.Select(AddChild).ToArray();
-    }
-
-    public bool RemoveChild(Container node)
-    {
-      node.Parent = null;
-      return Children.Remove(node);
-    }
-
-    public bool HasChildren()
-    {
-      return Children.Count > 0;
-    }
-
-    public bool HasSiblings()
-    {
-      return Siblings.Count() > 0;
-    }
+    public bool HasSiblings() => Siblings.Count() > 0;
 
     public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
     {

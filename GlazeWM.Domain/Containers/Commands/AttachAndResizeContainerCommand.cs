@@ -2,23 +2,23 @@
 
 namespace GlazeWM.Domain.Containers.Commands
 {
-  public class MoveContainerWithinTreeCommand : Command
+  public class AttachAndResizeContainerCommand : Command
   {
-    public Container ContainerToMove { get; }
+    public Container ChildToAdd { get; }
     public Container TargetParent { get; }
     public int TargetIndex { get; }
 
     // Insert child as end element if `targetIndex` is not provided.
-    public MoveContainerWithinTreeCommand(Container containerToMove, Container targetParent)
+    public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent)
     {
-      ContainerToMove = containerToMove;
+      ChildToAdd = childToAdd;
       TargetParent = targetParent;
       TargetIndex = targetParent.Children.Count;
     }
 
-    public MoveContainerWithinTreeCommand(Container containerToMove, Container targetParent, int targetIndex)
+    public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent, int targetIndex)
     {
-      ContainerToMove = containerToMove;
+      ChildToAdd = childToAdd;
       TargetParent = targetParent;
       TargetIndex = targetIndex;
     }
