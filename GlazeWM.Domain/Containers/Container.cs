@@ -19,24 +19,9 @@ namespace GlazeWM.Domain.Containers
     public List<Container> ChildFocusOrder { get; set; } = new List<Container>();
 
     /// <summary>
-    /// The child container that last had focus. Return the first child if no children have
-    /// had focus yet.
+    /// The child container that last had focus.
     /// </summary>
-    public Container LastFocusedChild
-    {
-      get
-      {
-        if (ChildFocusOrder.Count > 0)
-          return ChildFocusOrder[0];
-
-        // TODO: Remove this conditional and instead always return
-        // `ChildFocusOrder.ElementAtOrDefault(0)`.
-        if (Children.Count > 0)
-          return Children[0];
-
-        return null;
-      }
-    }
+    public Container LastFocusedChild => ChildFocusOrder.ElementAtOrDefault(0);
 
     /// <summary>
     /// Index of this container in parent's child focus order.
