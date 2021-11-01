@@ -20,9 +20,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      if (!(childToAdd is TilingWindow || childToAdd is SplitContainer))
-        return CommandResponse.Ok;
-
       _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
       var resizableSiblings = childToAdd.SelfAndSiblings.Where(container => container is IResizable);

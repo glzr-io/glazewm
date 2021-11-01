@@ -23,9 +23,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = childToRemove.Parent;
       var grandparent = parent.Parent;
 
-      if (!(childToRemove is TilingWindow || childToRemove is SplitContainer))
-        return CommandResponse.Ok;
-
       _bus.Invoke(new DetachContainerCommand(childToRemove));
 
       // TODO: Adjust `SizePercentage` of children based on their previous `SizePercentage`.
