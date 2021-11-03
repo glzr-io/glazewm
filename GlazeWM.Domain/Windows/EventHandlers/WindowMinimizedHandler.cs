@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
-      _bus.Invoke(new MoveContainerWithinTreeCommand(minimizedWindow, workspace));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(minimizedWindow, workspace, true));
 
       var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
 
