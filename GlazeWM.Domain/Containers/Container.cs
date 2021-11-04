@@ -134,5 +134,31 @@ namespace GlazeWM.Domain.Containers
 
       return null;
     }
+
+    /// <summary>
+    /// Get the last focused descendant that is not the given container.
+    /// </summary>
+    public Container LastFocusedDescendantExcluding(Container containerToExclude)
+    {
+      var stack = new Stack<Container>();
+      stack.Push(this);
+
+      // Do a depth-first search using child focus order.
+      while (stack.Any())
+      {
+        var current = stack.Pop();
+
+        var isMatch = current != containerToExclude && !current.HasChildren();
+
+        if (isMatch)
+          return current;
+
+        // Reverse the child focus order so that the first element is pushed last/popped first.
+        foreach (var focusChild in current.ChildFocusOrder.AsEnumerable().Reverse())
+          stack.Push(focusChild);
+      }
+
+      return null;
+    }
   }
 }
