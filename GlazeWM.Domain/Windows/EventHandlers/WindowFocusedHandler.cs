@@ -1,5 +1,7 @@
 ﻿using System.Linq;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
@@ -44,7 +46,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      _bus.Invoke(new FocusWindowCommand(window));
+      _bus.Invoke(new SetFocusedDescendantCommand(window));
+      _bus.RaiseEvent(new FocusChangedEvent(window));
     }
   }
 }
