@@ -57,8 +57,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // sibling of the focused container.
       AttachChildWindow(window, targetParent);
 
-      // Set focus to newly added window in case it has not been focused automatically.
-      _bus.Invoke(new FocusWindowCommand(window));
+      // Set the newly added window as focus descendant.
+      _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString));
