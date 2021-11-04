@@ -44,13 +44,13 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
       _bus.Invoke(new MoveContainerWithinTreeCommand(minimizedWindow, workspace, true));
 
-      var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
+      var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
 
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+      if (focusTarget is Window)
+        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
 
-      else if (containerToFocus is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
+      else if (focusTarget is Workspace)
+        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
