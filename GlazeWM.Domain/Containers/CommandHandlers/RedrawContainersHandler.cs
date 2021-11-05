@@ -24,16 +24,17 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var windowsToRedraw = _containerService.ContainersToRedraw
         .SelectMany(container => container.Flatten())
         .OfType<Window>()
-        .Where(window => window is TilingWindow || window is FloatingWindow)
         .Distinct()
         .ToList();
 
-      // Get windows that are minimized or maximized.
+      // Get windows that are minimized/maximized and shouldn't be.
       var windowsToRestore = windowsToRedraw
-        .Where(window => window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE))
+        .Where(
+          window => !(window is MinimizedWindow) && window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
+        )
         .ToList();
 
-      // Restore maximized/minimized windows. Needed to be able to move and resize them.
+      // Restore minimized/maximized windows. Needed to be able to move and resize them.
       foreach (var window in windowsToRestore)
         ShowWindow(window.Hwnd, ShowWindowCommands.RESTORE);
 
