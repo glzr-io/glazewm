@@ -88,14 +88,18 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Swap the focused window with sibling in given direction.
       if (siblingInDirection is Window)
       {
+        var targetIndex = direction == Direction.UP || direction == Direction.LEFT ?
+          siblingInDirection.Index : siblingInDirection.Index + 1;
+
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             focusedWindow,
             focusedWindow.Parent,
-            siblingInDirection.Index,
+            targetIndex,
             false
           )
         );
+
         _bus.Invoke(new RedrawContainersCommand());
         return;
       }
