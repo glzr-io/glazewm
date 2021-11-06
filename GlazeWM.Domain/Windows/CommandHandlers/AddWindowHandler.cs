@@ -69,7 +69,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.
-      var monitor = _monitorService.GetMonitorFromUnmanagedHandle(windowHandle);
+      var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
       if (_monitorService.HasDpiDifference(monitor, window.Parent))
         window.HasPendingDpiAdjustment = true;
 

@@ -1,4 +1,4 @@
-﻿using GlazeWM.Bar;
+using GlazeWM.Bar;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
@@ -77,7 +77,7 @@ namespace GlazeWM.Bootstrapper
       foreach (var windowHandle in _windowService.GetAllWindowHandles())
       {
         // Get workspace that encompasses most of the window.
-        var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(windowHandle);
+        var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
         var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
         _bus.Invoke(new AddWindowCommand(windowHandle, targetWorkspace, false));

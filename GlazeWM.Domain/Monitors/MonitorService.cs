@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Monitors
     }
 
     /// <summary>
-    /// Get the root level of trees in container forest.
+    /// Get the children of the root container.
     /// </summary>
     public IEnumerable<Monitor> GetMonitors()
     {
@@ -33,7 +33,10 @@ namespace GlazeWM.Domain.Monitors
       return container.TraverseUpEnumeration().OfType<Monitor>().First();
     }
 
-    public Monitor GetMonitorFromUnmanagedHandle(IntPtr windowHandle)
+    /// <summary>
+    /// Get the monitor that encompasses the largest portion of the window handle.
+    /// </summary>
+    public Monitor GetMonitorFromHandleLocation(IntPtr windowHandle)
     {
       var screen = Screen.FromHandle(windowHandle);
 
@@ -130,9 +133,7 @@ namespace GlazeWM.Domain.Monitors
             (direction == Direction.LEFT && monitor.X > monitorInDirection.X) ||
             (direction == Direction.DOWN && monitor.Y < monitorInDirection.Y) ||
             (direction == Direction.UP && monitor.Y > monitorInDirection.Y))
-        {
           monitorInDirection = monitor;
-        }
       }
 
       return monitorInDirection;

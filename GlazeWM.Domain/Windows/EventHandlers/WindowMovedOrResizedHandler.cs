@@ -51,7 +51,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var currentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
       // Get workspace that encompasses most of the window.
-      var targetMonitor = _monitorService.GetMonitorFromUnmanagedHandle(window.Hwnd);
+      var targetMonitor = _monitorService.GetMonitorFromHandleLocation(window.Hwnd);
       var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
       // Ignore if window is still within the bounds of its current workspace.
