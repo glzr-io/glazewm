@@ -37,13 +37,25 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName);
 
+      // Since target workspace could be on a different monitor, adjustments might need to be made
+      // because of DPI.
+      if (_monitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
+        focusedWindow.HasPendingDpiAdjustment = true;
+
       var insertionTarget = targetWorkspace.LastFocusedDescendant;
 
       // Insert the focused window into the target workspace.
       if (insertionTarget == null)
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, true));
       else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, insertionTarget.Parent, insertionTarget.Index + 1, true));
+        _bus.Invoke(
+          new MoveContainerWithinTreeCommand(
+            focusedWindow,
+            insertionTarget.Parent,
+            insertionTarget.Index + 1,
+            true
+          )
+        );
 
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));

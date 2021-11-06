@@ -125,14 +125,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (workspaceInDirection == null)
         return;
 
+      // Since window is crossing monitors, adjustments might need to be made because of DPI.
+      if (_monitorService.HasDpiDifference(focusedWindow, workspaceInDirection))
+        focusedWindow.HasPendingDpiAdjustment = true;
+
       // TODO: Descend into container if possible.
       if (direction == Direction.UP || direction == Direction.LEFT)
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, 0, true));
-
-      // Since window has crossed monitors, adjustments might need to be made because of DPI.
-      focusedWindow.HasPendingDpiAdjustment = true;
 
       _bus.Invoke(new RedrawContainersCommand());
 

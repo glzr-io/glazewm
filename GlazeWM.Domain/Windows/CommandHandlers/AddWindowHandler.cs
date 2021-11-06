@@ -2,6 +2,7 @@
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -16,14 +17,23 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private UserConfigService _userConfigService;
     private CommandParsingService _commandParsingService;
     private WindowService _windowService;
+    private MonitorService _monitorService;
 
-    public AddWindowHandler(Bus bus, ContainerService containerService, UserConfigService userConfigService, CommandParsingService commandParsingService, WindowService windowService)
+    public AddWindowHandler(
+      Bus bus,
+      ContainerService containerService,
+      UserConfigService userConfigService,
+      CommandParsingService commandParsingService,
+      WindowService windowService,
+      MonitorService monitorService
+    )
     {
       _bus = bus;
       _containerService = containerService;
       _userConfigService = userConfigService;
       _commandParsingService = commandParsingService;
       _windowService = windowService;
+      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -57,7 +67,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // sibling of the focused container.
       AttachChildWindow(window, targetParent);
 
-      // Set the newly added window as focus descendant.
+      // The OS might spawn the window on a different monitor to the target parent, so adjustments
+      // might need to be made because of DPI.
+      var monitor = _monitorService.GetMonitorFromUnmanagedHandle(windowHandle);
+      if (_monitorService.HasDpiDifference(monitor, window.Parent))
+        window.HasPendingDpiAdjustment = true;
+
+      // Set the newly added window as focus descendant. This is necessary because
+      // `EVENT_SYSTEM_FOREGROUND` is emitted before `EVENT_OBJECT_SHOW` and thus, focus state
+      // isn't updated automatically.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       var parsedCommands = commandStrings
