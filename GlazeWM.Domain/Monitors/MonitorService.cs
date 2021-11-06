@@ -64,6 +64,20 @@ namespace GlazeWM.Domain.Monitors
     }
 
     /// <summary>
+    /// Whether there is a difference in DPI between two containers.
+    /// </summary>
+    public bool HasDpiDifference(Container firstContainer, Container secondContainer)
+    {
+      var firstMonitor = firstContainer is Monitor ?
+        firstContainer as Monitor : GetMonitorFromChildContainer(firstContainer);
+
+      var secondMonitor = secondContainer is Monitor ?
+        secondContainer as Monitor : GetMonitorFromChildContainer(secondContainer);
+
+      return firstMonitor.Dpi != secondMonitor.Dpi;
+    }
+
+    /// <summary>
     /// Get monitor in a given direction. Use i3wm's algorithm for finding best guess.
     /// </summary>
     /// <param name="direction">Direction to search in.</param>
