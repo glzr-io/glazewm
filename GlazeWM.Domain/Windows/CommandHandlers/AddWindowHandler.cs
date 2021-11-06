@@ -79,7 +79,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return _userConfigService.UserConfig.WindowRules
         .Where(rule =>
         {
-          if (rule.ProcessNameRegex != null && !rule.ProcessNameRegex.IsMatch(window.Process.ProcessName))
+          if (rule.ProcessNameRegex != null && !rule.ProcessNameRegex.IsMatch(window.ProcessName))
             return false;
 
           if (rule.ClassNameRegex != null && !rule.ClassNameRegex.IsMatch(window.ClassName))

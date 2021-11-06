@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
@@ -46,7 +43,7 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
-    public Process Process => _windowService.GetProcessOfHandle(Hwnd);
+    public string ProcessName => _windowService.GetProcessOfHandle(Hwnd).ProcessName;
 
     public string ClassName => _windowService.GetClassNameOfHandle(Hwnd);
 
