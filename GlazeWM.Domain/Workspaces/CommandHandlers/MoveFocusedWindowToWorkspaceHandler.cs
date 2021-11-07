@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
       // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || !_containerService.IsForegroundManaged)
+      if (focusedWindow == null || !_containerService.IsFocusSynced)
         return CommandResponse.Ok;
 
       var currentWorkspace = _workspaceService.GetFocusedWorkspace();

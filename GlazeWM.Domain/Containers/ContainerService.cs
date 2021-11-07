@@ -41,10 +41,11 @@ namespace GlazeWM.Domain.Containers
     public Container PendingFocusContainer = null;
 
     /// <summary>
-    /// Whether the window focused by the OS is managed by the WM. Windows that are ignored by the
-    /// user's window rules or run with elevated permissions are not managed by the WM.
+    /// Whether the focused container of the WM is in sync with the OS. Mismatches between the
+    /// focus state of the WM and the OS occur when ignored windows (eg. via user's window rules)
+    /// or elevated windows are in focus.
     /// </summary>
-    public bool IsForegroundManaged
+    public bool IsFocusSynced
     {
       get
       {

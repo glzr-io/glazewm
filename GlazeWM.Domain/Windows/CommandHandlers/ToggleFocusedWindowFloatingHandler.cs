@@ -20,7 +20,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var focusedWindow = _containerService.FocusedContainer as Window;
 
       // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || !_containerService.IsForegroundManaged)
+      if (focusedWindow == null || !_containerService.IsFocusSynced)
         return CommandResponse.Ok;
 
       _bus.Invoke(new ToggleFloatingCommand(focusedWindow));

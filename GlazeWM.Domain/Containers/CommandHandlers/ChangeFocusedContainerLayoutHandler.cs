@@ -16,7 +16,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(ChangeFocusedContainerLayoutCommand command)
     {
-      if (!_containerService.IsForegroundManaged)
+      if (!_containerService.IsFocusSynced)
         return CommandResponse.Ok;
 
       var focusedContainer = _containerService.FocusedContainer;
