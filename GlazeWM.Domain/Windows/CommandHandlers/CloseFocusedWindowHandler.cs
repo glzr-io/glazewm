@@ -18,10 +18,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public CommandResponse Handle(CloseFocusedWindowCommand command)
     {
       var focusedWindow = _containerService.FocusedContainer as Window;
-      var foregroundWindow = GetForegroundWindow();
 
       // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
+      if (focusedWindow == null || !_containerService.IsForegroundManaged)
         return CommandResponse.Ok;
 
       SendMessage(focusedWindow.Hwnd, SendMessageType.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);

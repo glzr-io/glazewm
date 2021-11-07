@@ -4,7 +4,6 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers.Commands;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -27,10 +26,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     {
       var workspaceName = command.WorkspaceName;
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
-      var foregroundWindow = GetForegroundWindow();
 
-      // Ignore cases where focused container is not a tiling window or not in foreground.
-      if (focusedWindow == null || foregroundWindow != focusedWindow.Hwnd)
+      // Ignore cases where focused container is not a window or not in foreground.
+      if (focusedWindow == null || !_containerService.IsForegroundManaged)
         return CommandResponse.Ok;
 
       var currentWorkspace = _workspaceService.GetFocusedWorkspace();
