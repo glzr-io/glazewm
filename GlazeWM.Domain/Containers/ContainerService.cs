@@ -4,6 +4,7 @@ using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -38,6 +39,25 @@ namespace GlazeWM.Domain.Containers
     /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
     /// </summary>
     public Container PendingFocusContainer = null;
+
+    /// <summary>
+    /// Whether the window focused by the OS is managed by the WM. Windows that are ignored by the
+    /// user's window rules or run with elevated permissions are not managed by the WM.
+    /// </summary>
+    public bool IsForegroundManaged
+    {
+      get
+      {
+        var foregroundHandle = GetForegroundWindow();
+        var focusedContainer = FocusedContainer;
+
+        if (focusedContainer is Window)
+          return (focusedContainer as Window).Hwnd == foregroundHandle;
+
+        else
+          return IntPtr.Zero == foregroundHandle;
+      }
+    }
 
     private UserConfigService _userConfigService;
 
