@@ -5,16 +5,12 @@ namespace GlazeWM.Infrastructure.Bussing
   public class CommandResponse
   {
     public Boolean Success { get; private set; }
-    public Guid AggregateId { get; private set; }
-    public string Description { get; private set; }
-
     public static CommandResponse Ok = new CommandResponse { Success = true };
+    public static CommandResponse Fail = new CommandResponse { Success = false };
 
-    public CommandResponse(Boolean success = false, Guid aggregateId = default)
+    public CommandResponse(Boolean success = false)
     {
       Success = success;
-      AggregateId = aggregateId;
-      Description = String.Empty;
     }
   }
 }
