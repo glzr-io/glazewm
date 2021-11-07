@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Documents;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -13,7 +12,6 @@ namespace GlazeWM.Domain.Workspaces
 {
   public class Workspace : SplitContainer
   {
-    public Guid Id = Guid.NewGuid();
     public string Name { get; set; }
 
     private UserConfigService _userConfigService =

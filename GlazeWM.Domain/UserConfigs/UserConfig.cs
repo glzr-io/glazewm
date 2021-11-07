@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfig
   {
-    public Guid Id = Guid.NewGuid();
-
     public string ModKey { get; set; } = "Alt";
 
     public double ResizePercentage { get; set; } = 5;

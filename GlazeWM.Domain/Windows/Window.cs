@@ -10,7 +10,6 @@ namespace GlazeWM.Domain.Windows
 {
   public class Window : Container
   {
-    public Guid Id = Guid.NewGuid();
     public IntPtr Hwnd { get; }
 
     /// <summary>
