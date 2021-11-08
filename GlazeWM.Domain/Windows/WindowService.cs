@@ -141,12 +141,18 @@ namespace GlazeWM.Domain.Windows
       return isCloaked;
     }
 
+    /// <summary>
+    /// Whether the given handle is actually visible.
+    /// </summary>
+    public bool IsHandleVisible(IntPtr handle)
+    {
+      return IsWindowVisible(handle) && !IsHandleCloaked(handle);
+    }
+
     public bool IsHandleManageable(IntPtr handle)
     {
-      // Get whether window is actually visible.
-      var isVisible = IsWindowVisible(handle) && !IsHandleCloaked(handle);
-
-      if (!isVisible)
+      // Ignore windows that are hidden.
+      if (!IsHandleVisible(handle))
         return false;
 
       // Ensure window is top-level (ie. not a child window). Ignore windows that are probably
