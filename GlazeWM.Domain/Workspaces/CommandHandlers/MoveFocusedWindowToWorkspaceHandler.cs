@@ -14,7 +14,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private MonitorService _monitorService;
     private ContainerService _containerService;
 
-    public MoveFocusedWindowToWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService, ContainerService containerService)
+    public MoveFocusedWindowToWorkspaceHandler(
+      Bus bus,
+      WorkspaceService workspaceService,
+      MonitorService monitorService,
+      ContainerService containerService
+    )
     {
       _bus = bus;
       _workspaceService = workspaceService;
@@ -40,7 +45,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (_monitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
         focusedWindow.HasPendingDpiAdjustment = true;
 
-      var insertionTarget = targetWorkspace.LastFocusedDescendant;
+      var insertionTarget = targetWorkspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Insert the focused window into the target workspace.
       if (insertionTarget == null)
