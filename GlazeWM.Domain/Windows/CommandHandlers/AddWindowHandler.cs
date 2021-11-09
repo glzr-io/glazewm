@@ -7,6 +7,7 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -79,7 +80,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       var parsedCommands = commandStrings
-        .Select(commandString => _commandParsingService.ParseCommand(commandString));
+        .Select(commandString => _commandParsingService.ParseCommand(commandString))
+        .ToList();
+
+      // Initialize windows that can't be resized as floating.
+      if (!window.HasWindowStyle(WS.WS_THICKFRAME))
+        parsedCommands.Insert(0, new ToggleFloatingCommand(window));
 
       // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type
       // at runtime and allow multiple dispatch.
