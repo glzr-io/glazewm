@@ -155,11 +155,10 @@ namespace GlazeWM.Domain.Windows
       if (!IsHandleVisible(handle))
         return false;
 
-      // Ensure window is top-level (ie. not a child window). Ignore windows that are probably
-      // popups or if they're unavailable in task switcher (alt+tab menu).
+      // Ensure window is top-level (ie. not a child window). Ignore windows that cannot be focused
+      // or if they're unavailable in task switcher (alt+tab menu).
       var isApplicationWindow = !HandleHasWindowStyle(handle, WS.WS_CHILD)
-        && !HandleHasWindowExStyle(handle, WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW)
-        && GetWindow(handle, GW.GW_OWNER) == IntPtr.Zero;
+        && !HandleHasWindowExStyle(handle, WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW);
 
       if (!isApplicationWindow)
         return false;
