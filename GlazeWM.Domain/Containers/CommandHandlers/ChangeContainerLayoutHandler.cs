@@ -1,4 +1,3 @@
-﻿using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
@@ -14,7 +13,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private ContainerService _containerService;
     private WindowService _windowService;
 
-    public ChangeContainerLayoutHandler(Bus bus, ContainerService containerService, WindowService windowService)
+    public ChangeContainerLayoutHandler(
+      Bus bus,
+      ContainerService containerService,
+      WindowService windowService
+    )
     {
       _bus = bus;
       _containerService = containerService;
@@ -62,7 +65,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var splitContainer = new SplitContainer
       {
         Layout = newLayout,
-        ChildFocusOrder = new List<Container> { window },
       };
 
       // Replace the window with the wrapping split container. The window has to be attached to
