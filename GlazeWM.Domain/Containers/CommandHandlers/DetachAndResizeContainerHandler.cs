@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -20,12 +21,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = childToRemove.Parent;
       var grandparent = parent.Parent;
 
-      // Avoid resizing containers that aren't resizable.
       if (!(childToRemove is IResizable))
-      {
-        _bus.Invoke(new DetachContainerCommand(childToRemove));
-        return CommandResponse.Ok;
-      }
+        throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
       var isEmptySplitContainer = parent is SplitContainer && parent.Children.Count() == 1
         && !(parent is Workspace);

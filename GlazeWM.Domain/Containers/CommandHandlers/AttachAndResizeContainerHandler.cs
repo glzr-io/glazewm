@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -20,10 +21,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetIndex = command.TargetIndex;
 
       if (!(childToAdd is IResizable))
-      {
-        _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
-        return CommandResponse.Ok;
-      }
+        throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
       _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
