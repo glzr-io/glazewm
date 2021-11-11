@@ -1,6 +1,5 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
@@ -20,14 +19,25 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
+      if (!(childToAdd is IResizable))
+      {
+        _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
+        return CommandResponse.Ok;
+      }
+
       _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
-      var resizableSiblings = childToAdd.SelfAndSiblings.Where(container => container is IResizable);
-      double defaultPercent = 1.0 / resizableSiblings.Count();
+      var resizableSiblings = childToAdd.Siblings.Where(container => container is IResizable);
 
-      // Adjust `SizePercentage` of the added container and its siblings.
+      double defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
+      (childToAdd as IResizable).SizePercentage = defaultPercent;
+
+      var sizePercentageDecrement = defaultPercent / resizableSiblings.Count();
+
+      // Adjust `SizePercentage` of the added container's siblings.
       foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage = defaultPercent;
+        (sibling as IResizable).SizePercentage =
+          (sibling as IResizable).SizePercentage - sizePercentageDecrement;
 
       return CommandResponse.Ok;
     }
