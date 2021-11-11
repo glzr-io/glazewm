@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows;
@@ -71,7 +71,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container after the replacement.
       _bus.Invoke(new ReplaceContainerCommand(splitContainer, parent, window.Index));
 
-      _bus.Invoke(new DetachAndResizeContainerCommand(window));
+      _bus.Invoke(new DetachContainerCommand(window));
       _bus.Invoke(new AttachAndResizeContainerCommand(window, splitContainer));
     }
 
