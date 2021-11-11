@@ -1,12 +1,7 @@
-﻿using System;
-using System.Linq;
-using GlazeWM.Domain.Containers;
+﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -29,7 +24,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var parent = window.Parent;
       var grandparent = parent.Parent;
 
-      _bus.Invoke(new DetachAndResizeContainerCommand(window));
+      if (window is IResizable)
+        _bus.Invoke(new DetachAndResizeContainerCommand(window));
+      else
+        _bus.Invoke(new DetachContainerCommand(window));
 
       // Get container to switch focus to after the window has been removed. The OS automatically
       // switches focus to a different window after closing, so by setting `PendingFocusContainer`
