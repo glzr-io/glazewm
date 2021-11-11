@@ -16,7 +16,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private ContainerService _containerService;
     private WorkspaceService _workspaceService;
 
-    public WindowMinimizedHandler(Bus bus, WindowService windowService, ContainerService containerService, WorkspaceService workspaceService)
+    public WindowMinimizedHandler(
+      Bus bus,
+      WindowService windowService,
+      ContainerService containerService,
+      WorkspaceService workspaceService
+    )
     {
       _bus = bus;
       _windowService = windowService;
@@ -32,17 +37,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
+      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+
       var minimizedWindow = new MinimizedWindow(
         window.Hwnd,
         window.OriginalWidth,
         window.OriginalHeight
       );
 
-      // Keep reference to the window's ancestor workspace and focus order index prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
-      _bus.Invoke(new MoveContainerWithinTreeCommand(minimizedWindow, workspace, true));
 
       var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
 
