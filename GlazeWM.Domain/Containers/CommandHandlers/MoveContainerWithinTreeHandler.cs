@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
@@ -22,6 +23,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
       var shouldAdjustSize = command.ShouldAdjustSize;
+
+      if (shouldAdjustSize && !(containerToMove is IResizable))
+        throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
       // Get lowest common ancestor (LCA) between `containerToMove` and `targetParent`. This could
       // be the `targetParent` itself.
