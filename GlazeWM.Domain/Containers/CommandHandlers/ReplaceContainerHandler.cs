@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
@@ -27,15 +28,30 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       var containerToReplace = targetParent.Children[targetIndex];
 
-      // Replace the container at the given index.
-      targetParent.Children.Replace(containerToReplace, replacementContainer);
-      replacementContainer.Parent = targetParent;
-
-      if (replacementContainer is IResizable && containerToReplace is IResizable)
+      if (containerToReplace is IResizable && replacementContainer is IResizable)
         (replacementContainer as IResizable).SizePercentage =
           (containerToReplace as IResizable).SizePercentage;
 
-      // Correct any focus order references to the replaced container.
+      // Adjust `SizePercentage` of siblings.
+      if (containerToReplace is IResizable && !(replacementContainer is IResizable))
+      {
+        // Get the freed up space after container is detached.
+        var availableSizePercentage = (containerToReplace as IResizable).SizePercentage;
+
+        var resizableSiblings = containerToReplace.Siblings
+          .Where(container => container is IResizable);
+
+        var sizePercentageIncrement = availableSizePercentage / resizableSiblings.Count();
+
+        // Adjust `SizePercentage` of the siblings of the removed container.
+        foreach (var sibling in resizableSiblings)
+          (sibling as IResizable).SizePercentage =
+            (sibling as IResizable).SizePercentage + sizePercentageIncrement;
+      }
+
+      // Replace the container at the given index.
+      targetParent.Children.Replace(containerToReplace, replacementContainer);
+      replacementContainer.Parent = targetParent;
       targetParent.ChildFocusOrder.Replace(containerToReplace, replacementContainer);
 
       _containerService.ContainersToRedraw.Add(targetParent);
