@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -9,12 +8,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   class DetachAndResizeContainerHandler : ICommandHandler<DetachAndResizeContainerCommand>
   {
     private Bus _bus;
-    private ContainerService _containerService;
 
-    public DetachAndResizeContainerHandler(Bus bus, ContainerService containerService)
+    public DetachAndResizeContainerHandler(Bus bus)
     {
       _bus = bus;
-      _containerService = containerService;
     }
 
     public CommandResponse Handle(DetachAndResizeContainerCommand command)
@@ -23,24 +20,34 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = childToRemove.Parent;
       var grandparent = parent.Parent;
 
-      _bus.Invoke(new DetachContainerCommand(childToRemove));
+      // Avoid resizing containers that aren't resizable.
+      if (!(childToRemove is IResizable))
+      {
+        _bus.Invoke(new DetachContainerCommand(childToRemove));
+        return CommandResponse.Ok;
+      }
 
-      // TODO: Adjust `SizePercentage` of children based on their previous `SizePercentage`.
+      var isEmptySplitContainer = parent is SplitContainer && parent.Children.Count() == 1
+        && !(parent is Workspace);
 
-      // Resize children of grandparent if `childToRemove`'s parent was also detached (ie. in the
-      // case of an empty split container).
-      var isParentDetached = parent.Parent == null;
-      var containersToResize = isParentDetached
+      // Get the freed up space after container is detached.
+      var availableSizePercentage = isEmptySplitContainer
+        ? (parent as IResizable).SizePercentage
+        : (childToRemove as IResizable).SizePercentage;
+
+      // Resize children of grandparent if `childToRemove`'s parent is also to be detached.
+      var containersToResize = isEmptySplitContainer
         ? grandparent.Children.Where(container => container is IResizable)
         : parent.Children.Where(container => container is IResizable);
 
-      double defaultPercent = 1.0 / containersToResize.Count();
+      _bus.Invoke(new DetachContainerCommand(childToRemove));
+
+      var sizePercentageIncrement = availableSizePercentage / containersToResize.Count();
 
       // Adjust `SizePercentage` of the siblings of the removed container.
-      foreach (var sibling in containersToResize)
-        (sibling as IResizable).SizePercentage = defaultPercent;
-
-      _containerService.ContainersToRedraw.Add(parent);
+      foreach (var containerToResize in containersToResize)
+        (containerToResize as IResizable).SizePercentage =
+          (containerToResize as IResizable).SizePercentage + sizePercentageIncrement;
 
       return CommandResponse.Ok;
     }
