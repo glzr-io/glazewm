@@ -14,7 +14,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private ContainerService _containerService;
     private WorkspaceService _workspaceService;
 
-    public WindowMinimizeEndedHandler(Bus bus, WindowService windowService, ContainerService containerService, WorkspaceService workspaceService)
+    public WindowMinimizeEndedHandler(
+      Bus bus,
+      WindowService windowService,
+      ContainerService containerService,
+      WorkspaceService workspaceService
+    )
     {
       _bus = bus;
       _windowService = windowService;
@@ -30,7 +35,11 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      var tilingWindow = new TilingWindow(window.Hwnd, window.OriginalWidth, window.OriginalHeight);
+      var tilingWindow = new TilingWindow(window.Hwnd, window.OriginalWidth, window.OriginalHeight)
+      {
+        SizePercentage = 0
+      };
+
       _bus.Invoke(new ReplaceContainerCommand(tilingWindow, window.Parent, window.Index));
 
       // Keep reference to the window's ancestor workspace prior to detaching.
