@@ -114,31 +114,25 @@ namespace GlazeWM.Domain.Containers
     /// </summary>
     public Container LastFocusedDescendantOfType(Type type)
     {
-      var stack = new Stack<Container>();
-      stack.Push(this);
-
-      // Do a depth-first search using child focus order.
-      while (stack.Any())
-      {
-        var current = stack.Pop();
-
-        var isMatch = type.IsAssignableFrom(current.GetType()) && !current.HasChildren();
-
-        if (isMatch)
-          return current;
-
-        // Reverse the child focus order so that the first element is pushed last/popped first.
-        foreach (var focusChild in current.ChildFocusOrder.AsEnumerable().Reverse())
-          stack.Push(focusChild);
-      }
-
-      return null;
+      return LastFocusedDescendantWithPredicate(
+        container => type.IsAssignableFrom(container.GetType())
+      );
     }
 
     /// <summary>
     /// Get the last focused descendant that is not the given container.
     /// </summary>
     public Container LastFocusedDescendantExcluding(Container containerToExclude)
+    {
+      return LastFocusedDescendantWithPredicate(
+        container => container != containerToExclude
+      );
+    }
+
+    /// <summary>
+    /// Get the last focused descendant that matches a given predicate.
+    /// </summary>
+    private Container LastFocusedDescendantWithPredicate(Predicate<Container> predicate)
     {
       var stack = new Stack<Container>();
       stack.Push(this);
@@ -148,7 +142,7 @@ namespace GlazeWM.Domain.Containers
       {
         var current = stack.Pop();
 
-        var isMatch = current != containerToExclude && !current.HasChildren();
+        var isMatch = !current.HasChildren() && predicate(current);
 
         if (isMatch)
           return current;
