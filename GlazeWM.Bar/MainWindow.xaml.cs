@@ -31,7 +31,18 @@ namespace GlazeWM.Bar
       base.OnSourceInitialized(e);
 
       var windowHandle = new WindowInteropHelper(this).Handle;
+      HideFromTaskSwitcher(windowHandle);
       PositionWindow(windowHandle);
+    }
+
+    /// <summary>
+    /// Hide the WPF window from task switcher (alt+tab menu).
+    /// </summary>
+    private void HideFromTaskSwitcher(IntPtr windowHandle)
+    {
+      var exstyle = (int)GetWindowLongPtr(windowHandle, GWL_EXSTYLE);
+      exstyle |= (int)(WS_EX.WS_EX_TOOLWINDOW);
+      SetWindowLongPtr(windowHandle, GWL_EXSTYLE, (IntPtr)exstyle);
     }
 
     /// <summary>
