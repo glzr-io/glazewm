@@ -1,11 +1,10 @@
 using GlazeWM.Domain.Monitors.Events;
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using System.Reactive.Linq;
 using System;
 using System.Threading;
-using GlazeWM.Domain.UserConfigs;
 using System.Linq;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
 {
@@ -30,6 +29,8 @@ namespace GlazeWM.Bar
           {
             application.Dispatcher.Invoke(() =>
             {
+              var originalFocusedHandle = GetForegroundWindow();
+
               var barViewModel = new BarViewModel()
               {
                 Monitor = (@event as MonitorAddedEvent).AddedMonitor,
@@ -38,6 +39,9 @@ namespace GlazeWM.Bar
 
               var barWindow = new MainWindow(barViewModel);
               barWindow.Show();
+
+              // Reset focus to whichever window was focused before the bar window was launched.
+              SetForegroundWindow(originalFocusedHandle);
             });
           });
 
