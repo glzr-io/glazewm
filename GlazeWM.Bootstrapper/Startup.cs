@@ -8,6 +8,7 @@ using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using System.Linq;
@@ -86,18 +87,29 @@ namespace GlazeWM.Bootstrapper
 
       _bus.Invoke(new RedrawContainersCommand());
 
-      // `GetForegroundWindow` might return a handle that is not in tree. In that case, set
-      // focus to an arbitrary window. If there are no manageable windows in the tree, set focus
-      // to an arbitrary workspace.
-      Container focusedContainer =
-        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == GetForegroundWindow())
-        ?? _windowService.GetWindows().FirstOrDefault() as Container
+      // Get the originally focused window when the WM is started.
+      var focusedWindow =
+        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == GetForegroundWindow());
+
+      if (focusedWindow != null)
+      {
+        _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
+        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+        return;
+      }
+
+      // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
+      // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
+      // an arbitrary workspace.
+      Container containerToFocus =
+        _windowService.GetWindows().FirstOrDefault() as Container
         ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
 
-      // TODO: Handle case where an unmanaged window is foreground window. This would cause focus
-      // to be out of sync.
-      _bus.Invoke(new SetFocusedDescendantCommand(focusedContainer));
-      _bus.RaiseEvent(new FocusChangedEvent(focusedContainer));
+      if (containerToFocus is Window)
+        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+
+      else if (containerToFocus is Workspace)
+        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
     }
   }
 }
