@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -88,6 +88,11 @@ namespace GlazeWM.Domain.Containers
     public bool HasChildren() => Children.Count > 0;
 
     public bool HasSiblings() => Siblings.Count() > 0;
+
+    public IEnumerable<Container> ChildrenOfType(Type type)
+    {
+      return Children.Where(container => type.IsAssignableFrom(container.GetType()));
+    }
 
     public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
     {
