@@ -144,7 +144,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Traverse down a container in search of a descendant in the given direction. For example, get
     /// the rightmost container for `Direction.RIGHT`. Returns the `originContainer` if no suitable
-    /// descendants are found.
+    /// descendants are found. Any non-tiling containers are ignored.
     /// </summary>
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
@@ -154,12 +154,22 @@ namespace GlazeWM.Domain.Containers
       var layout = (originContainer as SplitContainer).Layout;
 
       if (layout != direction.GetCorrespondingLayout())
-        return GetDescendantInDirection(originContainer.LastFocusedChild, direction);
+        return GetDescendantInDirection(
+          originContainer.LastFocusedChildOfType(typeof(IResizable)),
+          direction
+        );
 
       if (direction == Direction.UP || direction == Direction.LEFT)
-        return GetDescendantInDirection(originContainer.Children.First(), direction);
+        return GetDescendantInDirection(
+          originContainer.ChildrenOfType(typeof(IResizable)).First(),
+          direction
+        );
+
       else
-        return GetDescendantInDirection(originContainer.Children.Last(), direction);
+        return GetDescendantInDirection(
+          originContainer.ChildrenOfType(typeof(IResizable)).Last(),
+          direction
+        );
     }
 
     /// <summary>
