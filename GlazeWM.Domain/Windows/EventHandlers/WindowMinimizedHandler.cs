@@ -38,7 +38,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-      _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+
+      // Move tiling windows to be direct children of workspace (in case they aren't already).
+      if (window is TilingWindow)
+        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
 
       var minimizedWindow = new MinimizedWindow(
         window.Hwnd,
