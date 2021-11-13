@@ -103,8 +103,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           continue;
         }
 
-        var focusTarget = direction == Direction.UP || direction == Direction.LEFT ?
-          focusReference.PreviousSibling : focusReference.NextSibling;
+        var focusTarget = direction == Direction.UP || direction == Direction.LEFT
+          ? focusReference.GetPreviousSiblingOfType(typeof(IResizable))
+          : focusReference.GetNextSiblingOfType(typeof(IResizable));
 
         if (focusTarget == null)
         {
