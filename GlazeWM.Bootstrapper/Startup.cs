@@ -1,13 +1,13 @@
-using GlazeWM.Bar;
+﻿using GlazeWM.Bar;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using System.Linq;
@@ -33,7 +33,8 @@ namespace GlazeWM.Bootstrapper
       WindowEventService windowEventService,
       WindowService windowService,
       BarService barService,
-      WorkspaceService workspaceService)
+      WorkspaceService workspaceService
+    )
     {
       _bus = bus;
       _monitorService = monitorService;
@@ -93,11 +94,10 @@ namespace GlazeWM.Bootstrapper
         ?? _windowService.GetWindows().FirstOrDefault() as Container
         ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
 
-      if (focusedContainer is Window)
-        _bus.Invoke(new FocusWindowCommand(focusedContainer as Window));
-
-      else if (focusedContainer is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((focusedContainer as Workspace).Name));
+      // TODO: Handle case where an unmanaged window is foreground window. This would cause focus
+      // to be out of sync.
+      _bus.Invoke(new SetFocusedDescendantCommand(focusedContainer));
+      _bus.RaiseEvent(new FocusChangedEvent(focusedContainer));
     }
   }
 }
