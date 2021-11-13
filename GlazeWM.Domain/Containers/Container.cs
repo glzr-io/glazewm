@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -112,6 +112,16 @@ namespace GlazeWM.Domain.Containers
         .Take(Index)
         .Reverse()
         .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+    }
+
+    /// <summary>
+    /// Get the last focused child that matches the given type.
+    /// </summary>
+    public Container LastFocusedChildOfType(Type type)
+    {
+      return ChildFocusOrder.FirstOrDefault(
+        container => type.IsAssignableFrom(container.GetType())
+      );
     }
 
     /// <summary>
