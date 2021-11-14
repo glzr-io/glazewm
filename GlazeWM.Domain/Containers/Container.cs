@@ -157,7 +157,9 @@ namespace GlazeWM.Domain.Containers
       {
         var current = stack.Pop();
 
-        var isMatch = !current.HasChildren() && predicate(current);
+        // The focused descendant cannot be the container itself or any containers that have
+        // children.
+        var isMatch = current != this && !current.HasChildren() && predicate(current);
 
         if (isMatch)
           return current;
