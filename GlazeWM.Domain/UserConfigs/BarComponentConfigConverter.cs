@@ -13,7 +13,7 @@ namespace GlazeWM.Domain.UserConfigs
       var jObject = JObject.Load(reader);
 
       // Get the type of workspace component config.
-      var type = jObject["Type"].Value<string>();
+      var type = jObject["type"].Value<string>();
 
       object target = type switch
       {

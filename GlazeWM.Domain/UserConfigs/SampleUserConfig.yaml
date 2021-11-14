@@ -1,133 +1,133 @@
-ModKey: "Alt"
-ResizePercentage: 2
+mod_key: "Alt"
+resize_percentage: 2
 
-Gaps:
-  InnerGap: 10
-  OuterGap: 20
+gaps:
+  inner_gap: 10
+  outer_gap: 20
 
-Bar:
-  Height: 25
-  ComponentsLeft:
-    - Type: "workspaces"
-  ComponentsRight:
-    - Type: "clock"
+bar:
+  height: 25
+  components_left:
+    - type: "workspaces"
+  components_right:
+    - type: "clock"
 
-Workspaces:
-  - Name: 1
-    BindToMonitor: "MonitorName"
-    CustomDisplayName: "Aa"
-    KeepAlive: true
-  - Name: 2
-  - Name: 3
-  - Name: 4
-  - Name: 5
-  - Name: 6
-  - Name: 7
-  - Name: 8
-  - Name: 9
+workspaces:
+  - name: 1
+    bind_to_monitor: "monitorname"
+    custom_display_name: "aa"
+    keep_alive: true
+  - name: 2
+  - name: 3
+  - name: 4
+  - name: 5
+  - name: 6
+  - name: 7
+  - name: 8
+  - name: 9
 
-Keybindings:
-  - Command: "focus left"
-    Bindings: ["$mod+H", "$mod+Left"]
+keybindings:
+  - command: "focus left"
+    bindings: ["$mod+H", "$mod+Left"]
 
-  - Command: "focus right"
-    Bindings: ["$mod+L", "$mod+Right"]
+  - command: "focus right"
+    bindings: ["$mod+L", "$mod+Right"]
 
-  - Command: "focus up"
-    Bindings: ["$mod+K", "$mod+Up"]
+  - command: "focus up"
+    bindings: ["$mod+K", "$mod+Up"]
 
-  - Command: "focus down"
-    Bindings: ["$mod+J", "$mod+Down"]
+  - command: "focus down"
+    bindings: ["$mod+J", "$mod+Down"]
 
-  - Command: "move left"
-    Bindings: ["$mod+Shift+H", "$mod+Shift+Left"]
+  - command: "move left"
+    bindings: ["$mod+Shift+H", "$mod+Shift+Left"]
 
-  - Command: "move right"
-    Bindings: ["$mod+Shift+L", "$mod+Shift+Right"]
+  - command: "move right"
+    bindings: ["$mod+Shift+L", "$mod+Shift+Right"]
 
-  - Command: "move up"
-    Bindings: ["$mod+Shift+K", "$mod+Shift+Up"]
+  - command: "move up"
+    bindings: ["$mod+Shift+K", "$mod+Shift+Up"]
 
-  - Command: "move down"
-    Bindings: ["$mod+Shift+J", "$mod+Shift+Down"]
+  - command: "move down"
+    bindings: ["$mod+Shift+J", "$mod+Shift+Down"]
 
-  - Command: "resize shrink width"
-    Binding: "$mod+U"
+  - command: "resize shrink width"
+    binding: "$mod+U"
 
-  - Command: "resize grow width"
-    Binding: "$mod+P"
+  - command: "resize grow width"
+    binding: "$mod+P"
 
-  - Command: "resize grow height"
-    Binding: "$mod+O"
+  - command: "resize grow height"
+    binding: "$mod+O"
 
-  - Command: "resize shrink height"
-    Binding: "$mod+I"
+  - command: "resize shrink height"
+    binding: "$mod+I"
 
-  - Command: "layout horizontal"
-    Binding: "$mod+Shift+V"
+  - command: "layout horizontal"
+    binding: "$mod+Shift+V"
 
-  - Command: "layout vertical"
-    Binding: "$mod+V"
+  - command: "layout vertical"
+    binding: "$mod+V"
 
-  - Command: "toggle focus mode"
-    Binding: "$mod+Space"
+  - command: "toggle focus mode"
+    binding: "$mod+Space"
 
-  - Command: "toggle floating"
-    Binding: "$mod+Shift+Space"
+  - command: "toggle floating"
+    binding: "$mod+Shift+Space"
 
-  - Command: "close"
-    Binding: "$mod+Shift+Q"
+  - command: "close"
+    binding: "$mod+Shift+Q"
 
-  - Command: "focus workspace 1"
-    Binding: "$mod+1"
+  - command: "focus workspace 1"
+    binding: "$mod+1"
 
-  - Command: "focus workspace 2"
-    Binding: "$mod+2"
+  - command: "focus workspace 2"
+    binding: "$mod+2"
 
-  - Command: "focus workspace 3"
-    Binding: "$mod+3"
+  - command: "focus workspace 3"
+    binding: "$mod+3"
 
-  - Command: "focus workspace 4"
-    Binding: "$mod+4"
+  - command: "focus workspace 4"
+    binding: "$mod+4"
 
-  - Command: "focus workspace 5"
-    Binding: "$mod+5"
+  - command: "focus workspace 5"
+    binding: "$mod+5"
 
-  - Command: "focus workspace 6"
-    Binding: "$mod+6"
+  - command: "focus workspace 6"
+    binding: "$mod+6"
 
-  - Command: "focus workspace 7"
-    Binding: "$mod+7"
+  - command: "focus workspace 7"
+    binding: "$mod+7"
 
-  - Command: "focus workspace 8"
-    Binding: "$mod+8"
+  - command: "focus workspace 8"
+    binding: "$mod+8"
 
-  - Command: "focus workspace 9"
-    Binding: "$mod+9"
+  - command: "focus workspace 9"
+    binding: "$mod+9"
 
-  - Commands: ["move to workspace 1", "focus workspace 1"]
-    Binding: "$mod+Shift+1"
+  - commands: ["move to workspace 1", "focus workspace 1"]
+    binding: "$mod+Shift+1"
 
-  - Commands: ["move to workspace 2", "focus workspace 2"]
-    Binding: "$mod+Shift+2"
+  - commands: ["move to workspace 2", "focus workspace 2"]
+    binding: "$mod+Shift+2"
 
-  - Commands: ["move to workspace 3", "focus workspace 3"]
-    Binding: "$mod+Shift+3"
+  - commands: ["move to workspace 3", "focus workspace 3"]
+    binding: "$mod+Shift+3"
 
-  - Commands: ["move to workspace 4", "focus workspace 4"]
-    Binding: "$mod+Shift+4"
+  - commands: ["move to workspace 4", "focus workspace 4"]
+    binding: "$mod+Shift+4"
 
-  - Commands: ["move to workspace 5", "focus workspace 5"]
-    Binding: "$mod+Shift+5"
+  - commands: ["move to workspace 5", "focus workspace 5"]
+    binding: "$mod+Shift+5"
 
-  - Commands: ["move to workspace 6", "focus workspace 6"]
-    Binding: "$mod+Shift+6"
+  - commands: ["move to workspace 6", "focus workspace 6"]
+    binding: "$mod+Shift+6"
 
-  - Commands: ["move to workspace 7", "focus workspace 7"]
-    Binding: "$mod+Shift+7"
+  - commands: ["move to workspace 7", "focus workspace 7"]
+    binding: "$mod+Shift+7"
 
-  - Commands: ["move to workspace 8", "focus workspace 8"]
-    Binding: "$mod+Shift+8"
+  - commands: ["move to workspace 8", "focus workspace 8"]
+    binding: "$mod+Shift+8"
 
-  - Commands: ["move to workspace 9", "focus workspace 9"]
-    Bindings: ["$mod+Shift+9"]
+  - commands: ["move to workspace 9", "focus workspace 9"]
+    bindings: ["$mod+Shift+9"]
