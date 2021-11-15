@@ -13,28 +13,23 @@ namespace GlazeWM.Domain.Windows
     public IntPtr Hwnd { get; }
 
     /// <summary>
+    /// The placement of the window when floating. Initialized with window's placement on launch
+    /// and updated on resize/move whilst floating.
+    /// </summary>
+    public WindowRect FloatingPlacement { get; set; }
+
+    /// <summary>
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
-    /// <summary>
-    /// The original width of the window. Used as the window's width when floating is toggled.
-    /// </summary>
-    public int OriginalWidth { get; set; }
-
-    /// <summary>
-    /// The original height of the window. Used as the window's height when floating is toggled.
-    /// </summary>
-    public int OriginalHeight { get; set; }
-
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
-    public Window(IntPtr hwnd, int originalWidth, int originalHeight)
+    public Window(IntPtr hwnd, WindowRect floatingPlacement)
     {
       Hwnd = hwnd;
-      OriginalWidth = originalWidth;
-      OriginalHeight = originalHeight;
+      FloatingPlacement = floatingPlacement;
     }
 
     /// <summary>
