@@ -31,19 +31,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // Update state with new location of the floating window.
-      UpdateWindowLocation(window);
+      UpdateWindowPlacement(window);
 
       // Change floating window's parent workspace if out of its bounds.
       UpdateParentWorkspace(window);
     }
 
-    private void UpdateWindowLocation(Window window)
+    private void UpdateWindowPlacement(Window window)
     {
-      var updatedLocation = window.Location;
-      window.X = updatedLocation.Left;
-      window.Y = updatedLocation.Top;
-      window.Height = updatedLocation.Bottom - updatedLocation.Top;
-      window.Width = updatedLocation.Right - updatedLocation.Left;
+      var updatedPlacement = _windowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
+      window.FloatingPlacement = updatedPlacement;
     }
 
     private void UpdateParentWorkspace(Window window)
