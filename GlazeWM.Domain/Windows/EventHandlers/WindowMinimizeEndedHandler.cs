@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      var tilingWindow = new TilingWindow(window.Hwnd, window.OriginalWidth, window.OriginalHeight)
+      var tilingWindow = new TilingWindow(window.Hwnd, window.FloatingPlacement)
       {
         SizePercentage = 0
       };

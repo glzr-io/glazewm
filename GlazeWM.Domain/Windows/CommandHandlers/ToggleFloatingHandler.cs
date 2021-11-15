@@ -44,10 +44,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
         window.Hwnd,
-        window.OriginalWidth,
-        window.OriginalHeight,
-        workspace.X + (workspace.Width / 2) - (window.OriginalWidth / 2),
-        workspace.Y + (workspace.Height / 2) - (window.OriginalHeight / 2)
+        window.FloatingPlacement
       );
 
       _bus.Invoke(new ReplaceContainerCommand(floatingWindow, window.Parent, window.Index));
@@ -59,14 +56,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
 
-      // Get the original width and height of the window.
-      var originalPlacement = _windowService.GetPlacementOfHandle(floatingWindow.Hwnd).NormalPosition;
-      var originalWidth = originalPlacement.Right - originalPlacement.Left;
-      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
-
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
-      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, originalWidth, originalHeight)
+      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, floatingWindow.FloatingPlacement)
       {
         SizePercentage = 0
       };

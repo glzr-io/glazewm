@@ -46,13 +46,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (!_windowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
 
-      // Get the original width and height of the window.
-      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
-      var originalWidth = originalPlacement.Right - originalPlacement.Left;
-      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
-
       // Create the window instance.
-      var window = new TilingWindow(command.WindowHandle, originalWidth, originalHeight);
+      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var window = new TilingWindow(command.WindowHandle, originalPlacement);
 
       var matchingWindowRules = GetMatchingWindowRules(window);
 
