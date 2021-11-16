@@ -1,5 +1,6 @@
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -57,6 +58,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Change the window's parent workspace.
       _bus.Invoke(new MoveContainerWithinTreeCommand(window, targetWorkspace, false));
+      _bus.RaiseEvent(new FocusChangedEvent(window));
     }
   }
 }
