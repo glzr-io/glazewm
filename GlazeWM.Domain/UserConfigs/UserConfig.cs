@@ -4,8 +4,6 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfig
   {
-    public string ModKey { get; set; } = "Alt";
-
     public double ResizePercentage { get; set; } = 5;
 
     /// <summary>
