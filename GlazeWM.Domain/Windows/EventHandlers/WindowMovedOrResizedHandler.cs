@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // Change the window's parent workspace.
-      _bus.Invoke(new MoveContainerWithinTreeCommand(window, targetWorkspace, true));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(window, targetWorkspace, false));
     }
   }
 }
