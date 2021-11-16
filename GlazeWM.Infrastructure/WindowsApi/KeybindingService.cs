@@ -24,31 +24,20 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
   public class KeybindingService
   {
-    private Bus _bus;
     private static readonly uint WM_KEYDOWN = 0x100;
     private static readonly uint WM_SYSKEYDOWN = 0x104;
-    private Keys _modKey = Keys.Alt;
 
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
-    private Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new Dictionary<Keys, List<Keybinding>>();
-
-    public KeybindingService(Bus bus)
-    {
-      _bus = bus;
-    }
+    private Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey
+      = new Dictionary<Keys, List<Keybinding>>();
 
     public void Start()
     {
       var thread = new Thread(() => CreateKeybindingHook());
       thread.Name = "GlazeWMKeybindingService";
       thread.Start();
-    }
-
-    public void SetModKey(string modKey)
-    {
-      _modKey = (Keys)Enum.Parse(typeof(Keys), modKey);
     }
 
     public void AddGlobalKeybinding(string keybindingString, Action callback)
@@ -74,9 +63,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     private string FormatKeybinding(string key)
     {
-      if (key == "$mod")
-        return Enum.GetName(typeof(Keys), _modKey);
-
       var isNumeric = int.TryParse(key, out int _);
 
       if (isNumeric)

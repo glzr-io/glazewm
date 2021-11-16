@@ -51,8 +51,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       foreach (var workspaceConfig in deserializedConfig.Workspaces)
         _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
 
-      // Register keybindings and mod key.
-      _keybindingService.SetModKey(deserializedConfig.ModKey);
+      // Register keybindings.
       _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       // Merge default window rules with user-defined rules.
