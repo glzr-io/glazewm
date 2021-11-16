@@ -1,11 +1,19 @@
 ﻿using System;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows
 {
   public sealed class MinimizedWindow : Window
   {
-    public MinimizedWindow(IntPtr hwnd, int originalWidth, int originalHeight) : base(hwnd, originalWidth, originalHeight)
+    public WindowType PreviousState;
+
+    public MinimizedWindow(
+      IntPtr hwnd,
+      WindowRect floatingPlacement,
+      WindowType previousState
+    ) : base(hwnd, floatingPlacement)
     {
+      PreviousState = previousState;
     }
   }
 }

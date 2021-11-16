@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -43,10 +44,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window is TilingWindow)
         _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
 
+      var previousState = window switch
+      {
+        TilingWindow _ => WindowType.TILING,
+        FloatingWindow _ => WindowType.FLOATING,
+        MaximizedWindow _ => WindowType.MAXIMIZED,
+        FullscreenWindow _ => WindowType.FULLSCREEN,
+        _ => throw new ArgumentException(),
+      };
+
       var minimizedWindow = new MinimizedWindow(
         window.Hwnd,
-        window.OriginalWidth,
-        window.OriginalHeight
+        window.FloatingPlacement,
+        previousState
       );
 
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));

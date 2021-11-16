@@ -7,6 +7,7 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -19,6 +20,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private CommandParsingService _commandParsingService;
     private WindowService _windowService;
     private MonitorService _monitorService;
+    private WorkspaceService _workspaceService;
 
     public AddWindowHandler(
       Bus bus,
@@ -26,7 +28,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       UserConfigService userConfigService,
       CommandParsingService commandParsingService,
       WindowService windowService,
-      MonitorService monitorService
+      MonitorService monitorService,
+      WorkspaceService workspaceService
     )
     {
       _bus = bus;
@@ -35,24 +38,44 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _commandParsingService = commandParsingService;
       _windowService = windowService;
       _monitorService = monitorService;
+      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
     {
       var windowHandle = command.WindowHandle;
-      var targetParent = command.TargetParent;
       var shouldRedraw = command.ShouldRedraw;
 
       if (!_windowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
 
-      // Get the original width and height of the window.
+      // Attach the new window as first child of the target parent (if provided), otherwise, add as
+      // a sibling of the focused container.
+      var (targetParent, targetIndex) = command.TargetParent != null
+        ? (command.TargetParent, 0)
+        : GetInsertionTarget();
+
       var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
-      var originalWidth = originalPlacement.Right - originalPlacement.Left;
-      var originalHeight = originalPlacement.Bottom - originalPlacement.Top;
+      var floatingWidth = originalPlacement.Right - originalPlacement.Left;
+      var floatingHeight = originalPlacement.Bottom - originalPlacement.Top;
+
+      var targetWorkspace = _workspaceService.GetWorkspaceFromChildContainer(targetParent);
+
+      // Calculate where window should be placed when floating is enabled. Use the original
+      // width/height of the window, but position it in the center of the workspace.
+      // TODO: This can be simplified. Add utility methods to `WindowRect` struct?
+      var floatingPlacement = new WindowRect
+      {
+        Left = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2),
+        Right = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2) + floatingWidth,
+        Top = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2),
+        Bottom = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2) + floatingHeight,
+      };
 
       // Create the window instance.
-      var window = new TilingWindow(command.WindowHandle, originalWidth, originalHeight);
+      var window = new TilingWindow(command.WindowHandle, floatingPlacement);
+
+      _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
 
       var matchingWindowRules = GetMatchingWindowRules(window);
 
@@ -63,10 +86,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
-
-      // Attach the new window as a child to the target parent (if provided), otherwise, add as a
-      // sibling of the focused container.
-      AttachChildWindow(window, targetParent);
 
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.
@@ -98,6 +117,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
+    private (SplitContainer targetParent, int targetIndex) GetInsertionTarget()
+    {
+      var focusedContainer = _containerService.FocusedContainer;
+
+      if (focusedContainer is Workspace)
+        return (focusedContainer as Workspace, 0);
+
+      return (focusedContainer.Parent as SplitContainer, focusedContainer.Index + 1);
+    }
+
     private List<WindowRuleConfig> GetMatchingWindowRules(Window window)
     {
       return _userConfigService.UserConfig.WindowRules
@@ -115,31 +144,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           return true;
         })
         .ToList();
-    }
-
-    private void AttachChildWindow(Window window, SplitContainer targetParent)
-    {
-      if (targetParent != null)
-      {
-        _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent));
-        return;
-      }
-
-      var focusedContainer = _containerService.FocusedContainer;
-
-      // If the focused container is a workspace, attach the window as a child of the workspace.
-      if (focusedContainer is Workspace)
-      {
-        _bus.Invoke(new AttachAndResizeContainerCommand(window, focusedContainer));
-        return;
-      }
-
-      // Attach the window as a sibling next to the focused window.
-      _bus.Invoke(new AttachAndResizeContainerCommand(
-        window,
-        focusedContainer.Parent,
-        focusedContainer.Index + 1
-      ));
     }
   }
 }

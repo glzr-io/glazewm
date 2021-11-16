@@ -1,5 +1,6 @@
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -31,19 +32,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // Update state with new location of the floating window.
-      UpdateWindowLocation(window);
+      UpdateWindowPlacement(window);
 
       // Change floating window's parent workspace if out of its bounds.
       UpdateParentWorkspace(window);
     }
 
-    private void UpdateWindowLocation(Window window)
+    private void UpdateWindowPlacement(Window window)
     {
-      var updatedLocation = window.Location;
-      window.X = updatedLocation.Left;
-      window.Y = updatedLocation.Top;
-      window.Height = updatedLocation.Bottom - updatedLocation.Top;
-      window.Width = updatedLocation.Right - updatedLocation.Left;
+      var updatedPlacement = _windowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
+      window.FloatingPlacement = updatedPlacement;
     }
 
     private void UpdateParentWorkspace(Window window)
@@ -59,7 +57,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // Change the window's parent workspace.
-      _bus.Invoke(new MoveContainerWithinTreeCommand(window, targetWorkspace, true));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(window, targetWorkspace, false));
+      _bus.RaiseEvent(new FocusChangedEvent(window));
     }
   }
 }

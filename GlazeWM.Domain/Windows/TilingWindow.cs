@@ -1,6 +1,7 @@
 ﻿using System;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Windows
@@ -9,11 +10,8 @@ namespace GlazeWM.Domain.Windows
   {
     public double SizePercentage { get; set; } = 1;
 
-    private ContainerService _containerService = ServiceLocator.Provider.GetRequiredService<ContainerService>();
-
-    public TilingWindow(IntPtr hwnd, int originalWidth, int originalHeight) : base(hwnd, originalWidth, originalHeight)
-    {
-    }
+    private ContainerService _containerService =
+      ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);
 
@@ -22,5 +20,9 @@ namespace GlazeWM.Domain.Windows
     public override int X => _containerService.CalculateXOfResizableContainer(this);
 
     public override int Y => _containerService.CalculateYOfResizableContainer(this);
+
+    public TilingWindow(IntPtr hwnd, WindowRect floatingPlacement) : base(hwnd, floatingPlacement)
+    {
+    }
   }
 }
