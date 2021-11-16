@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // The focused window cannot be moved within the parent container, so traverse upwards to find
       // a suitable ancestor to move to.
-      var ancestorWithLayout = focusedWindow.Parent.TraverseUpEnumeration()
+      var ancestorWithLayout = focusedWindow.Parent.Ancestors
         .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
         .FirstOrDefault() as SplitContainer;
 
@@ -159,7 +159,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       // Traverse up from `focusedWindow` to find container where the parent is `ancestorWithLayout`. Then,
       // depending on the direction, insert before or after that container.
-      var insertionReference = focusedWindow.TraverseUpEnumeration()
+      var insertionReference = focusedWindow.Ancestors
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
       var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT

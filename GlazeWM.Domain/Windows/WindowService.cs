@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -14,30 +13,18 @@ namespace GlazeWM.Domain.Windows
   public class WindowService
   {
     private ContainerService _containerService;
-    private UserConfigService _userConfigService;
 
-    public WindowService(ContainerService containerService, UserConfigService userConfigService)
+    public WindowService(ContainerService containerService)
     {
       _containerService = containerService;
-      _userConfigService = userConfigService;
     }
 
     /// <summary>
-    /// Get windows by searching entire container forest for Window containers.
+    /// Get all windows by traversing down container tree.
     /// </summary>
     public IEnumerable<Window> GetWindows()
     {
-      return _containerService.ContainerTree.TraverseDownEnumeration()
-        .OfType<Window>();
-    }
-
-    /// <summary>
-    /// Get windows within given parent container.
-    /// </summary>
-    public IEnumerable<Window> GetWindowsOfParentContainer(Container parent)
-    {
-      return parent.TraverseDownEnumeration()
-        .OfType<Window>();
+      return _containerService.ContainerTree.Descendants.OfType<Window>();
     }
 
     /// <summary>

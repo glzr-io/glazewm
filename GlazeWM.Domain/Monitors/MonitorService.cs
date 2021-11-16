@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Windows;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Monitors
@@ -12,16 +11,14 @@ namespace GlazeWM.Domain.Monitors
   public class MonitorService
   {
     private ContainerService _containerService;
-    private WindowService _windowService;
 
-    public MonitorService(ContainerService containerService, WindowService windowService)
+    public MonitorService(ContainerService containerService)
     {
       _containerService = containerService;
-      _windowService = windowService;
     }
 
     /// <summary>
-    /// Get the children of the root container.
+    /// Get monitors by iterating over the children of the root container.
     /// </summary>
     public IEnumerable<Monitor> GetMonitors()
     {
@@ -30,7 +27,7 @@ namespace GlazeWM.Domain.Monitors
 
     public Monitor GetMonitorFromChildContainer(Container container)
     {
-      return container.TraverseUpEnumeration().OfType<Monitor>().First();
+      return container.SelfAndAncestors.OfType<Monitor>().First();
     }
 
     /// <summary>
@@ -50,8 +47,7 @@ namespace GlazeWM.Domain.Monitors
 
     public Monitor GetFocusedMonitor()
     {
-      var focusedContainer = _containerService.FocusedContainer;
-      return GetMonitorFromChildContainer(focusedContainer);
+      return GetMonitorFromChildContainer(_containerService.FocusedContainer);
     }
 
     public uint GetMonitorDpi(Screen screen)

@@ -85,6 +85,30 @@ namespace GlazeWM.Domain.Containers
       }
     }
 
+    public IEnumerable<Container> SelfAndDescendants => new[] { this }.Concat(Descendants);
+
+    /// <summary>
+    /// Breadth-first downward traversal from a single container.
+    /// </summary>
+    public IEnumerable<Container> Descendants
+    {
+      get
+      {
+        var queue = new Queue<Container>();
+
+        foreach (var child in Children)
+          queue.Enqueue(child);
+
+        while (queue.Count > 0)
+        {
+          var current = queue.Dequeue();
+          yield return current;
+          foreach (var child in current.Children)
+            queue.Enqueue(child);
+        }
+      }
+    }
+
     public bool HasChildren() => Children.Count > 0;
 
     public bool HasSiblings() => Siblings.Count() > 0;
