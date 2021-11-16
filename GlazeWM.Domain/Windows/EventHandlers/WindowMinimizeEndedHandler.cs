@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -30,30 +31,28 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public void Handle(WindowMinimizeEndedEvent @event)
     {
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
+        .FirstOrDefault(window => window.Hwnd == @event.WindowHandle) as MinimizedWindow;
 
       if (window == null)
         return;
 
-      var tilingWindow = new TilingWindow(window.Hwnd, window.FloatingPlacement)
-      {
-        SizePercentage = 0
-      };
+      var restoredWindow = CreateWindowFromPreviousState(window);
 
-      _bus.Invoke(new ReplaceContainerCommand(tilingWindow, window.Parent, window.Index));
+      _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
-      // Keep reference to the window's ancestor workspace prior to detaching.
+      if (!(restoredWindow is TilingWindow))
+        return;
+
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
       else
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
-            tilingWindow,
+            restoredWindow,
             insertionTarget.Parent,
             insertionTarget.Index + 1,
             true
@@ -62,6 +61,18 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private Window CreateWindowFromPreviousState(MinimizedWindow window)
+    {
+      return window.PreviousState switch
+      {
+        WindowType.FLOATING => new FloatingWindow(window.Hwnd, window.FloatingPlacement),
+        WindowType.TILING => new TilingWindow(window.Hwnd, window.FloatingPlacement) { SizePercentage = 0 },
+        WindowType.MAXIMIZED => new MaximizedWindow(window.Hwnd, window.FloatingPlacement),
+        WindowType.FULLSCREEN => new FullscreenWindow(window.Hwnd, window.FloatingPlacement),
+        _ => throw new ArgumentException(),
+      };
     }
   }
 }
