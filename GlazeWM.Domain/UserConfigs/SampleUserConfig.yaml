@@ -1,4 +1,3 @@
-mod_key: "Alt"
 resize_percentage: 2
 
 gaps:
@@ -28,106 +27,106 @@ workspaces:
 
 keybindings:
   - command: "focus left"
-    bindings: ["$mod+H", "$mod+Left"]
+    bindings: ["Alt+H", "Alt+Left"]
 
   - command: "focus right"
-    bindings: ["$mod+L", "$mod+Right"]
+    bindings: ["Alt+L", "Alt+Right"]
 
   - command: "focus up"
-    bindings: ["$mod+K", "$mod+Up"]
+    bindings: ["Alt+K", "Alt+Up"]
 
   - command: "focus down"
-    bindings: ["$mod+J", "$mod+Down"]
+    bindings: ["Alt+J", "Alt+Down"]
 
   - command: "move left"
-    bindings: ["$mod+Shift+H", "$mod+Shift+Left"]
+    bindings: ["Alt+Shift+H", "Alt+Shift+Left"]
 
   - command: "move right"
-    bindings: ["$mod+Shift+L", "$mod+Shift+Right"]
+    bindings: ["Alt+Shift+L", "Alt+Shift+Right"]
 
   - command: "move up"
-    bindings: ["$mod+Shift+K", "$mod+Shift+Up"]
+    bindings: ["Alt+Shift+K", "Alt+Shift+Up"]
 
   - command: "move down"
-    bindings: ["$mod+Shift+J", "$mod+Shift+Down"]
+    bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
   - command: "resize shrink width"
-    binding: "$mod+U"
+    binding: "Alt+U"
 
   - command: "resize grow width"
-    binding: "$mod+P"
+    binding: "Alt+P"
 
   - command: "resize grow height"
-    binding: "$mod+O"
+    binding: "Alt+O"
 
   - command: "resize shrink height"
-    binding: "$mod+I"
+    binding: "Alt+I"
 
   - command: "layout horizontal"
-    binding: "$mod+Shift+V"
+    binding: "Alt+Shift+V"
 
   - command: "layout vertical"
-    binding: "$mod+V"
+    binding: "Alt+V"
 
   - command: "toggle focus mode"
-    binding: "$mod+Space"
+    binding: "Alt+Space"
 
   - command: "toggle floating"
-    binding: "$mod+Shift+Space"
+    binding: "Alt+Shift+Space"
 
   - command: "close"
-    binding: "$mod+Shift+Q"
+    binding: "Alt+Shift+Q"
 
   - command: "focus workspace 1"
-    binding: "$mod+1"
+    binding: "Alt+1"
 
   - command: "focus workspace 2"
-    binding: "$mod+2"
+    binding: "Alt+2"
 
   - command: "focus workspace 3"
-    binding: "$mod+3"
+    binding: "Alt+3"
 
   - command: "focus workspace 4"
-    binding: "$mod+4"
+    binding: "Alt+4"
 
   - command: "focus workspace 5"
-    binding: "$mod+5"
+    binding: "Alt+5"
 
   - command: "focus workspace 6"
-    binding: "$mod+6"
+    binding: "Alt+6"
 
   - command: "focus workspace 7"
-    binding: "$mod+7"
+    binding: "Alt+7"
 
   - command: "focus workspace 8"
-    binding: "$mod+8"
+    binding: "Alt+8"
 
   - command: "focus workspace 9"
-    binding: "$mod+9"
+    binding: "Alt+9"
 
   - commands: ["move to workspace 1", "focus workspace 1"]
-    binding: "$mod+Shift+1"
+    binding: "Alt+Shift+1"
 
   - commands: ["move to workspace 2", "focus workspace 2"]
-    binding: "$mod+Shift+2"
+    binding: "Alt+Shift+2"
 
   - commands: ["move to workspace 3", "focus workspace 3"]
-    binding: "$mod+Shift+3"
+    binding: "Alt+Shift+3"
 
   - commands: ["move to workspace 4", "focus workspace 4"]
-    binding: "$mod+Shift+4"
+    binding: "Alt+Shift+4"
 
   - commands: ["move to workspace 5", "focus workspace 5"]
-    binding: "$mod+Shift+5"
+    binding: "Alt+Shift+5"
 
   - commands: ["move to workspace 6", "focus workspace 6"]
-    binding: "$mod+Shift+6"
+    binding: "Alt+Shift+6"
 
   - commands: ["move to workspace 7", "focus workspace 7"]
-    binding: "$mod+Shift+7"
+    binding: "Alt+Shift+7"
 
   - commands: ["move to workspace 8", "focus workspace 8"]
-    binding: "$mod+Shift+8"
+    binding: "Alt+Shift+8"
 
   - commands: ["move to workspace 9", "focus workspace 9"]
-    bindings: ["$mod+Shift+9"]
+    bindings: ["Alt+Shift+9"]
