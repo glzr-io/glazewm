@@ -22,12 +22,14 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     {
       foreach (var keybindingConfig in command.Keybindings)
       {
-        // Parse command strings defined in keybinding config.
+        // Parse command strings defined in keybinding config. Calling `ToList()` is necessary here,
+        // otherwise parsing errors get delayed until keybinding is invoked instead of at startup.
         var parsedCommands = keybindingConfig.CommandList.Select(commandString =>
         {
           commandString = _commandParsingService.FormatCommand(commandString);
           return _commandParsingService.ParseCommand(commandString);
-        });
+        })
+          .ToList();
 
         // Register all keybindings for a command sequence.
         foreach (var binding in keybindingConfig.BindingList)
