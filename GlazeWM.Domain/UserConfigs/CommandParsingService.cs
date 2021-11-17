@@ -26,18 +26,25 @@ namespace GlazeWM.Domain.UserConfigs
 
     public Command ParseCommand(string commandString)
     {
-      var commandParts = commandString.Split(" ");
-
-      return commandParts[0] switch
+      try
       {
-        "layout" => ParseLayoutCommand(commandParts),
-        "focus" => ParseFocusCommand(commandParts),
-        "move" => ParseMoveCommand(commandParts),
-        "resize" => ParseResizeCommand(commandParts),
-        "toggle" => ParseToggleCommand(commandParts),
-        "close" => new CloseFocusedWindowCommand(),
-        _ => throw new ArgumentException(),
-      };
+        var commandParts = commandString.Split(" ");
+
+        return commandParts[0] switch
+        {
+          "layout" => ParseLayoutCommand(commandParts),
+          "focus" => ParseFocusCommand(commandParts),
+          "move" => ParseMoveCommand(commandParts),
+          "resize" => ParseResizeCommand(commandParts),
+          "toggle" => ParseToggleCommand(commandParts),
+          "close" => new CloseFocusedWindowCommand(),
+          _ => throw new ArgumentException(),
+        };
+      }
+      catch
+      {
+        throw new FatalUserException($"Invalid command '{commandString}'.");
+      }
     }
 
     private Command ParseLayoutCommand(string[] commandParts)

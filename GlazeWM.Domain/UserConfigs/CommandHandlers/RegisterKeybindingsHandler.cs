@@ -25,15 +25,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         // Parse command strings defined in keybinding config.
         var parsedCommands = keybindingConfig.CommandList.Select(commandString =>
         {
-          try
-          {
-            commandString = _commandParsingService.FormatCommand(commandString);
-            return _commandParsingService.ParseCommand(commandString);
-          }
-          catch
-          {
-            throw new FatalUserException($"Invalid command '{commandString}'.");
-          }
+          commandString = _commandParsingService.FormatCommand(commandString);
+          return _commandParsingService.ParseCommand(commandString);
         });
 
         // Register all keybindings for a command sequence.
