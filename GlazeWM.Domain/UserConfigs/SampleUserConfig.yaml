@@ -48,16 +48,16 @@ keybindings:
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
-  - command: "resize shrink width 2%"
+  - command: "resize width -2%"
     binding: "Alt+U"
 
-  - command: "resize grow width 2%"
+  - command: "resize width +2%"
     binding: "Alt+P"
 
-  - command: "resize grow height 2%"
+  - command: "resize height +2%"
     binding: "Alt+O"
 
-  - command: "resize shrink height 2%"
+  - command: "resize height -2%"
     binding: "Alt+I"
 
   - command: "layout horizontal"
