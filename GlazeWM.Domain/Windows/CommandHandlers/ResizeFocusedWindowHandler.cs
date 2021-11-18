@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Windows.Documents;
+using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -14,18 +15,18 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
   {
     private Bus _bus;
-    private UserConfigService _userConfigService;
     private ContainerService _containerService;
 
-    public ResizeFocusedWindowHandler(Bus bus, UserConfigService userConfigService, ContainerService containerService)
+    public ResizeFocusedWindowHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
-      _userConfigService = userConfigService;
       _containerService = containerService;
     }
 
     public CommandResponse Handle(ResizeFocusedWindowCommand command)
     {
+      var dimensionToResize = command.DimensionToResize;
+      var resizeAmount = command.ResizeAmount;
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
       // Ignore cases where focused container is not a tiling window.
@@ -33,14 +34,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       var layout = (focusedWindow.Parent as SplitContainer).Layout;
-      var resizeDirection = command.ResizeDirection;
 
-      // Whether the parent of the focused window should be resized rather than the focused window itself.
+      // Get whether the parent of the focused window should be resized rather than the focused
+      // window itself.
       var shouldResizeParent =
-        (layout == Layout.HORIZONTAL &&
-          (resizeDirection == ResizeDirection.SHRINK_HEIGHT || resizeDirection == ResizeDirection.GROW_HEIGHT)) ||
-        (layout == Layout.VERTICAL &&
-          (resizeDirection == ResizeDirection.SHRINK_WIDTH || resizeDirection == ResizeDirection.GROW_WIDTH));
+        (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT)
+        || (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
       var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
 
@@ -51,18 +50,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (resizableSiblings.Count() == 0 || containerToResize is Workspace)
         return CommandResponse.Ok;
 
-      switch (resizeDirection)
-      {
-        case ResizeDirection.GROW_WIDTH:
-        case ResizeDirection.GROW_HEIGHT:
-          ShrinkSizeOfSiblings(containerToResize, resizableSiblings);
-          break;
+      // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
+      var resizePercentage = ConvertToResizePercentage(resizeAmount);
+      var resizeProportion = resizePercentage / 100;
 
-        case ResizeDirection.SHRINK_WIDTH:
-        case ResizeDirection.SHRINK_HEIGHT:
-          GrowSizeOfSiblings(containerToResize, resizableSiblings);
-          break;
-      }
+      (containerToResize as IResizable).SizePercentage += resizeProportion;
+
+      foreach (var sibling in resizableSiblings)
+        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
 
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
@@ -70,22 +65,26 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void GrowSizeOfSiblings(Container containerToShrink, IEnumerable<Container> resizableSiblings)
+    private double ConvertToResizePercentage(string resizeAmount)
     {
-      var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
-      (containerToShrink as IResizable).SizePercentage -= resizeProportion;
+      try
+      {
+        var matchedResizeAmount = new Regex(@"(.*)(%|ppt)").Match(resizeAmount);
+        var amount = matchedResizeAmount.Groups[1].Value;
+        var unit = matchedResizeAmount.Groups[2].Value;
 
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage += resizeProportion / resizableSiblings.Count();
-    }
-
-    private void ShrinkSizeOfSiblings(Container containerToGrow, IEnumerable<Container> resizableSiblings)
-    {
-      var resizeProportion = _userConfigService.UserConfig.ResizeProportion;
-      (containerToGrow as IResizable).SizePercentage += resizeProportion;
-
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
+        // TODO: Handle conversion from px to `SizePercentage`.
+        return unit switch
+        {
+          "%" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
+          "ppt" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
+          _ => throw new ArgumentException(),
+        };
+      }
+      catch
+      {
+        throw new FatalUserException($"Invalid resize amount {resizeAmount}.");
+      }
     }
   }
 }

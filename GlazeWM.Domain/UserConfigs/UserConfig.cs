@@ -4,13 +4,6 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfig
   {
-    public double ResizePercentage { get; set; } = 5;
-
-    /// <summary>
-    /// Resize percentage in decimal form.
-    /// </summary>
-    public double ResizeProportion => ResizePercentage / 100;
-
     public GapsConfig Gaps { get; set; } = new GapsConfig();
 
     public BarConfig Bar { get; set; } = new BarConfig();

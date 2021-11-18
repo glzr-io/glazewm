@@ -1,5 +1,3 @@
-resize_percentage: 2
-
 gaps:
   inner_gap: 10
   outer_gap: 20
@@ -50,16 +48,16 @@ keybindings:
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
-  - command: "resize shrink width"
+  - command: "resize width -2%"
     binding: "Alt+U"
 
-  - command: "resize grow width"
+  - command: "resize width +2%"
     binding: "Alt+P"
 
-  - command: "resize grow height"
+  - command: "resize height +2%"
     binding: "Alt+O"
 
-  - command: "resize shrink height"
+  - command: "resize height -2%"
     binding: "Alt+I"
 
   - command: "layout horizontal"

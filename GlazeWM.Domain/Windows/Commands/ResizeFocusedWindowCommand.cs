@@ -5,11 +5,13 @@ namespace GlazeWM.Domain.Windows.Commands
 {
   public class ResizeFocusedWindowCommand : Command
   {
-    public ResizeDirection ResizeDirection { get; }
+    public ResizeDimension DimensionToResize { get; }
+    public string ResizeAmount { get; }
 
-    public ResizeFocusedWindowCommand(ResizeDirection resizeDirection)
+    public ResizeFocusedWindowCommand(ResizeDimension dimensionToResize, string resizeAmount)
     {
-      ResizeDirection = resizeDirection;
+      DimensionToResize = dimensionToResize;
+      ResizeAmount = resizeAmount;
     }
   }
 }
