@@ -13,4 +13,9 @@
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
