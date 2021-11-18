@@ -26,6 +26,7 @@ namespace GlazeWM.Bootstrapper
     private WindowService _windowService;
     private BarService _barService;
     private WorkspaceService _workspaceService;
+    private SystemTrayService _systemTrayService;
 
     public Startup(
       Bus bus,
@@ -34,7 +35,8 @@ namespace GlazeWM.Bootstrapper
       WindowEventService windowEventService,
       WindowService windowService,
       BarService barService,
-      WorkspaceService workspaceService
+      WorkspaceService workspaceService,
+      SystemTrayService systemTrayService
     )
     {
       _bus = bus;
@@ -44,6 +46,7 @@ namespace GlazeWM.Bootstrapper
       _windowService = windowService;
       _barService = barService;
       _workspaceService = workspaceService;
+      _systemTrayService = systemTrayService;
     }
 
     public void Init()
@@ -60,6 +63,8 @@ namespace GlazeWM.Bootstrapper
 
       // Listen for window events (eg. close, focus).
       _windowEventService.Start();
+
+      _systemTrayService.AddToSystemTray("icon.ico");
     }
 
     /// <summary>
