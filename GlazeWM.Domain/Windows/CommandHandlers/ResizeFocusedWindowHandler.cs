@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ResizeFocusedWindowCommand command)
     {
-      var resizeDirection = command.ResizeDirection;
+      var dimensionToResize = command.DimensionToResize;
       var resizeAmount = command.ResizeAmount;
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
@@ -35,12 +35,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var layout = (focusedWindow.Parent as SplitContainer).Layout;
 
-      // Whether the parent of the focused window should be resized rather than the focused window itself.
+      // Get whether the parent of the focused window should be resized rather than the focused
+      // window itself.
       var shouldResizeParent =
-        (layout == Layout.HORIZONTAL &&
-          (resizeDirection == ResizeDirection.SHRINK_HEIGHT || resizeDirection == ResizeDirection.GROW_HEIGHT)) ||
-        (layout == Layout.VERTICAL &&
-          (resizeDirection == ResizeDirection.SHRINK_WIDTH || resizeDirection == ResizeDirection.GROW_WIDTH));
+        (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT)
+        || (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
       var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
 
@@ -53,19 +52,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
       var resizePercentage = ConvertToResizePercentage(resizeAmount);
+      var resizeProportion = resizePercentage / 100;
 
-      switch (resizeDirection)
-      {
-        case ResizeDirection.GROW_WIDTH:
-        case ResizeDirection.GROW_HEIGHT:
-          ShrinkSizeOfSiblings(containerToResize, resizableSiblings, resizePercentage);
-          break;
+      (containerToResize as IResizable).SizePercentage += resizeProportion;
 
-        case ResizeDirection.SHRINK_WIDTH:
-        case ResizeDirection.SHRINK_HEIGHT:
-          GrowSizeOfSiblings(containerToResize, resizableSiblings, resizePercentage);
-          break;
-      }
+      foreach (var sibling in resizableSiblings)
+        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
 
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
@@ -93,32 +85,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       {
         throw new FatalUserException($"Invalid resize amount {resizeAmount}.");
       }
-    }
-
-    private void GrowSizeOfSiblings(
-      Container containerToShrink,
-      IEnumerable<Container> resizableSiblings,
-      double resizePercentage
-    )
-    {
-      var resizeProportion = resizePercentage / 100;
-      (containerToShrink as IResizable).SizePercentage -= resizeProportion;
-
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage += resizeProportion / resizableSiblings.Count();
-    }
-
-    private void ShrinkSizeOfSiblings(
-      Container containerToGrow,
-      IEnumerable<Container> resizableSiblings,
-      double resizePercentage
-    )
-    {
-      var resizeProportion = resizePercentage / 100;
-      (containerToGrow as IResizable).SizePercentage += resizeProportion;
-
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
     }
   }
 }

@@ -87,18 +87,8 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
-        "grow" => commandParts[2] switch
-        {
-          "height" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_HEIGHT, commandParts[3]),
-          "width" => new ResizeFocusedWindowCommand(ResizeDirection.GROW_WIDTH, commandParts[3]),
-          _ => throw new ArgumentException(),
-        },
-        "shrink" => commandParts[2] switch
-        {
-          "height" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_HEIGHT, commandParts[3]),
-          "width" => new ResizeFocusedWindowCommand(ResizeDirection.SHRINK_WIDTH, commandParts[3]),
-          _ => throw new ArgumentException(),
-        },
+        "height" => new ResizeFocusedWindowCommand(ResizeDimension.HEIGHT, commandParts[2]),
+        "width" => new ResizeFocusedWindowCommand(ResizeDimension.WIDTH, commandParts[2]),
         _ => throw new ArgumentException(),
       };
     }
