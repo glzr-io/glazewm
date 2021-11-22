@@ -11,6 +11,7 @@ namespace GlazeWM.Bar
   public class BarService
   {
     private Bus _bus;
+    private App _application;
 
     public BarService(Bus bus)
     {
@@ -21,20 +22,20 @@ namespace GlazeWM.Bar
     {
       var thread = new Thread(() =>
       {
-        var application = new App();
+        _application = new App();
 
         // Launch the bar window on the added monitor.
         _bus.Events.Where(@event => @event is MonitorAddedEvent)
           .Subscribe((@event) =>
           {
-            application.Dispatcher.Invoke(() =>
+            _application.Dispatcher.Invoke(() =>
             {
               var originalFocusedHandle = GetForegroundWindow();
 
               var barViewModel = new BarViewModel()
               {
                 Monitor = (@event as MonitorAddedEvent).AddedMonitor,
-                Dispatcher = application.Dispatcher,
+                Dispatcher = _application.Dispatcher,
               };
 
               var barWindow = new MainWindow(barViewModel);
@@ -45,12 +46,17 @@ namespace GlazeWM.Bar
             });
           });
 
-        application.Run();
+        _application.Run();
       });
 
       thread.Name = "GlazeWMBar";
       thread.SetApartmentState(ApartmentState.STA);
       thread.Start();
+    }
+
+    public void ExitApp()
+    {
+      _application.Dispatcher.Invoke(() => _application.Shutdown());
     }
 
     /// <summary>
