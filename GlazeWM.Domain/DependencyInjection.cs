@@ -53,6 +53,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
       services.AddSingleton<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
       services.AddSingleton<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
+      services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusedWindowFloatingCommand>, ToggleFocusedWindowFloatingHandler>();
       services.AddSingleton<ICommandHandler<AttachWorkspaceToMonitorCommand>, AttachWorkspaceToMonitorHandler>();
