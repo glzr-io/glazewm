@@ -3,6 +3,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Threading;
+using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -26,8 +27,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       var contextMenuStrip = new ContextMenuStrip();
 
-      ToolStripItem exitMenuItem = new ToolStripMenuItem("Exit");
-      contextMenuStrip.Items.Add(exitMenuItem);
+      contextMenuStrip.Items.Add("Exit", null, SignalApplicationExit);
 
       var notificationIcon = new NotifyIcon()
       {
@@ -42,11 +42,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Application.Run();
     }
 
-    static void OnApplicationExit(object sender, EventArgs e)
+    void SignalApplicationExit(object sender, EventArgs e)
     {
       // TODO: Call `Dispose()` on `notificationIcon`.
-      // TODO: Emit bus event that application is exiting.
-      Application.Exit();
+      _bus.RaiseEvent(new ApplicationExitingEvent());
     }
   }
 }
