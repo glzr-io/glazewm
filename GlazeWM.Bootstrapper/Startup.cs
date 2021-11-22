@@ -11,7 +11,10 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Infrastructure.WindowsApi.Events;
+using System;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows.Forms;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -65,6 +68,9 @@ namespace GlazeWM.Bootstrapper
       _windowEventService.Start();
 
       _systemTrayService.AddToSystemTray("icon.ico");
+
+      _bus.Events.Where(@event => @event is ApplicationExitingEvent)
+        .Subscribe((@event) => OnApplicationExit());
     }
 
     /// <summary>
@@ -115,6 +121,13 @@ namespace GlazeWM.Bootstrapper
 
       else if (containerToFocus is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
+    }
+
+    private void OnApplicationExit()
+    {
+      _bus.Invoke(new ShowAllWindowsCommand());
+      _barService.ExitApp();
+      Application.Exit();
     }
   }
 }
