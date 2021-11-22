@@ -98,6 +98,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // isn't updated automatically.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
+      // Set OS focus to the newly added window in case it's not already focused. This is also
+      // necessary for window rule commands to run properly on startup with existing windows.
+      _bus.Invoke(new FocusWindowCommand(window));
+
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString))
         .ToList();
