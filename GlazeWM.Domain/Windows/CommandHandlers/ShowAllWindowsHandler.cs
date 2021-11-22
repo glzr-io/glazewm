@@ -16,7 +16,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ShowAllWindowsCommand command)
     {
-      // Reset all managed windows to their floating positions.
+      // Show all windows regardless of whether their workspace is displayed.
       foreach (var window in _windowService.GetWindows())
       {
         var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
@@ -25,10 +25,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         SetWindowPos(
           window.Hwnd,
           IntPtr.Zero,
-          window.FloatingPlacement.Left,
-          window.FloatingPlacement.Top,
-          window.FloatingPlacement.Right - window.FloatingPlacement.Left,
-          window.FloatingPlacement.Bottom - window.FloatingPlacement.Top,
+          window.X,
+          window.Y,
+          window.Width,
+          window.Height,
           flags
         );
       }
