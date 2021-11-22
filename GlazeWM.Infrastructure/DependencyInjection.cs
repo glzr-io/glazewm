@@ -10,8 +10,9 @@ namespace GlazeWM.Infrastructure
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
       services.AddSingleton<Bus>();
-      services.AddSingleton<WindowEventService>();
       services.AddSingleton<KeybindingService>();
+      services.AddSingleton<SystemTrayService>();
+      services.AddSingleton<WindowEventService>();
       services.AddSingleton<YamlDeserializationService>();
 
       // TODO: Change WindowsApiService to be compatible with DI.
