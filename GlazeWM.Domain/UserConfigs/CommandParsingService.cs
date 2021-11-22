@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -37,6 +38,7 @@ namespace GlazeWM.Domain.UserConfigs
           "move" => ParseMoveCommand(commandParts),
           "resize" => ParseResizeCommand(commandParts),
           "toggle" => ParseToggleCommand(commandParts),
+          "exit" => ParseExitCommand(commandParts),
           "close" => new CloseFocusedWindowCommand(),
           _ => throw new ArgumentException(),
         };
@@ -103,6 +105,15 @@ namespace GlazeWM.Domain.UserConfigs
           "mode" => new ToggleFocusModeCommand(),
           _ => throw new ArgumentException(),
         },
+        _ => throw new ArgumentException(),
+      };
+    }
+
+    private Command ParseExitCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        "wm" => new ExitApplicationCommand(),
         _ => throw new ArgumentException(),
       };
     }
