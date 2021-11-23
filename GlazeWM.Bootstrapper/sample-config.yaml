@@ -1,19 +1,26 @@
 gaps:
-  inner_gap: 10
+  inner_gap: 20
   outer_gap: 20
 
 bar:
-  height: 25
+  height: 30
+  opacity: 1.0
+  background: "#101010"
+  foreground: "white"
+  font_family: "Segoe UI"
+  font_size: "13"
+  padding: "1 6 1 6"
   components_left:
     - type: "workspaces"
+      focused_workspace_background: "#8192B3"
+      displayed_workspace_background: "#42403e"
+      default_workspace_background: "#101010"
   components_right:
     - type: "clock"
+      time_formatting: "hh:mm tt  ddd MMM d"
 
 workspaces:
   - name: 1
-    bind_to_monitor: "monitorname"
-    custom_display_name: "aa"
-    keep_alive: true
   - name: 2
   - name: 3
   - name: 4
