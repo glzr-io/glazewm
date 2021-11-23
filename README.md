@@ -1,4 +1,8 @@
+# GlazeWM &middot;
+
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
+
+![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
 # Download
 
