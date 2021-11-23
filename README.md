@@ -6,7 +6,7 @@ GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
 # Download
 
-The runnable binary can be downloaded via [releases](https://todo-add-url-here) or built from source using `dotnet publish --configuration=Release` and running `GlazeWM.Bootstrapper.exe` from the compiled output.
+The runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases) or built from source using `dotnet publish --configuration=Release` and running `GlazeWM.Bootstrapper.exe` from the compiled output.
 
 # Roadmap
 
