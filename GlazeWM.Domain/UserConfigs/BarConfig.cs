@@ -5,17 +5,17 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
-    public uint Height { get; set; } = 25;
+    public uint Height { get; set; } = 30;
 
-    public double Opacity { get; set; } = 0.9;
+    public double Opacity { get; set; } = 1.0;
 
-    public string Background { get; set; } = "#101010";
+    public string Background { get; set; } = "black";
 
     public string Foreground { get; set; } = "white";
 
     public string FontFamily { get; set; } = "Segoe UI";
 
-    public string FontSize { get; set; } = "12";
+    public string FontSize { get; set; } = "13";
 
     public string BorderColor { get; set; } = "blue";
 
@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Padding in pixels.
     /// </summary>
-    public string Padding { get; set; } = "1 6 1 6";
+    public string Padding { get; set; } = "0";
 
     [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsLeft { get; set; } = new List<BarComponentConfig>();

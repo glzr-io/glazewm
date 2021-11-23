@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.UserConfigs
     [Required]
     public string Type { get; set; }
 
-    public string Margin { get; set; } = "0 10 0 0";
+    public string Margin { get; set; } = "0";
 
     /// <summary>
     /// Fallback to bar background config if unset.
