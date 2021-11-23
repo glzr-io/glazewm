@@ -24,12 +24,13 @@ A full list of keys that can be used for keybindings can be found [here](https:/
 
 It's recommended to use the alt key for keybindings. The windows key is unfortunately a pain to remap, since certain keybindings (eg. `LWin+L`) are reserved by the OS.
 
-```
+```yaml
 keybindings:
-		# Command to run. Use "commands" to specify an array of commands to run in sequence.
+  # Command to run. Use "commands" to specify an array of commands to run in sequence.
   - command: "focus workspace 1"
 
-		# Key combination to trigger the keybinding. Use "bindings" to provide an array of key combinations that can trigger the keybinding.
+    # Key combination to trigger the keybinding. Use "bindings" to provide an array of key
+    # combinations that can trigger the keybinding.
     binding: "Alt+1"
 ```
 
@@ -49,7 +50,7 @@ Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to 
 
 The gaps between windows can be changed via the `gaps` property in the config file. Inner and outer gaps are set separately.
 
-```
+```yaml
 gaps:
   # Gap between adjacent windows.
   inner_gap: 20
@@ -62,7 +63,7 @@ gaps:
 
 Workspaces need to be predefined via the `workspaces` property in the config file. A workspace is automatically assigned to each monitor on startup.
 
-```
+```yaml
 workspaces:
   # Uniquely identifies the workspace and is used as the label for the workspace in the bar.
   - name: 1
@@ -72,7 +73,7 @@ workspaces:
 
 The appearance of the bar can be changed via the `bar` property in the config file.
 
-```
+```yaml
 bar:
   # Height of the bar in pixels.
   height: 30
@@ -92,13 +93,15 @@ bar:
   # Default font size. Can be overriden by setting `font_size` in a component's config.
   font_size: "13"
 
-  # Horizontal and vertical borders in pixels. Borders are inside the dimensions of the bar and do not affect bar height. See "Shorthand properties" for more info.
+  # Horizontal and vertical borders in pixels. Borders are inside the dimensions of the bar and do
+  # not affect bar height. See "Shorthand properties" for more info.
   border_width: "0"
 
   # Color of the border.
   border_color: "blue"
 
-  # Horizontal and vertical spacing between components within the bar and the edges of the bar. See "Shorthand properties" for more info.
+  # Horizontal and vertical spacing between components within the bar and the edges of the bar. See
+  # "Shorthand properties" for more info.
   padding: "1 6 1 6"
 
   # Components to display on the left side of the bar.
@@ -114,36 +117,37 @@ bar:
 
 Bar components have some properties that can be changed regardless of the component type.
 
-```
-  # Type of component to display. Currently only 2 component types exist:  "workspaces" and "clock".
-  type: <COMPONENT_TYPE>
+```yaml
+# Type of component to display. Currently only 2 component types exist:  "workspaces" and "clock".
+type: <COMPONENT_TYPE>
 
-  # Horizontal and vertical margins. See "Shorthand properties" for more info.
-  margin: "0 10 0 0"
+# Horizontal and vertical margins. See "Shorthand properties" for more info.
+margin: "0 10 0 0"
 
-  # Horizontal and vertical padding. See "Shorthand properties" for more info.
-  padding: "0"
+# Horizontal and vertical padding. See "Shorthand properties" for more info.
+padding: "0"
 
-  # Opacity value between 0.0 and 1.0.
-  opacity: 1.0
+# Opacity value between 0.0 and 1.0.
+opacity: 1.0
 
-  # Background color of the component.
-  background: "#101010"
+# Background color of the component.
+background: "#101010"
 
-  # Font color used within the component.
-  foreground: "white"
+# Font color used within the component.
+foreground: "white"
 
-  # Font family used within the component.
-  font_family: "Segoe UI"
+# Font family used within the component.
+font_family: "Segoe UI"
 
-  # Font family used within the component.
-  font_size: "13"
+# Font family used within the component.
+font_size: "13"
 
-  # Horizontal and vertical borders in pixels. Borders are inside the dimensions of the component. See "Shorthand properties" for more info.
-  border_width: "0"
+# Horizontal and vertical borders in pixels. Borders are inside the dimensions of the component.
+# See "Shorthand properties" for more info.
+border_width: "0"
 
-  # Color of the border.
-  border_color: "blue"
+# Color of the border.
+border_color: "blue"
 ```
 
 ### Shorthand properties
