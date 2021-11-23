@@ -27,11 +27,4 @@
   <ItemGroup>
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Update="UserConfigs\SampleUserConfig.yaml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

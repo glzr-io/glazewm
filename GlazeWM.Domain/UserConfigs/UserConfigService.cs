@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public string SampleUserConfigPath = Path.Combine(
       Directory.GetCurrentDirectory(),
-      "../GlazeWM.Domain/UserConfigs/SampleUserConfig.yaml"
+      "./sample-config.yaml"
     );
 
     public readonly List<WindowRuleConfig> DefaultWindowRules = GetDefaultWindowRules();
