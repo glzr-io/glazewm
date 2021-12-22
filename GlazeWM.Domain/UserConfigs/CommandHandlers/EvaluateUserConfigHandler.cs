@@ -5,6 +5,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
@@ -33,11 +34,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         var userConfigPath = _userConfigService.UserConfigPath;
 
         if (!File.Exists(userConfigPath))
-        {
-          // Initialize the user config with the sample config.
-          Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
-          File.Copy(_userConfigService.SampleUserConfigPath, userConfigPath, false);
-        }
+          InitializeSampleUserConfig(userConfigPath);
 
         deserializedConfig = DeserializeUserConfig(userConfigPath);
       }
@@ -61,6 +58,23 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       _userConfigService.UserConfig = deserializedConfig;
 
       return CommandResponse.Ok;
+    }
+
+    private void InitializeSampleUserConfig(string userConfigPath)
+    {
+      var assembly = Assembly.GetEntryAssembly();
+      var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
+
+      // Get the embedded sample user config from the entry assembly.
+      using (Stream stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
+      {
+        // Write the sample user config to the appropriate destination.
+        using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))
+        {
+          Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
+          stream.CopyTo(fileStream);
+        }
+      }
     }
 
     private UserConfig DeserializeUserConfig(string userConfigPath)
