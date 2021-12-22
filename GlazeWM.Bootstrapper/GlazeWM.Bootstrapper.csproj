@@ -15,13 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="icon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Remove="icon.ico" />
+    <None Remove="sample-config.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="icon.ico">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </None>
-    <None Update="sample-config.yaml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="sample-config.yaml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
