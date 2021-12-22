@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Threading;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using System.Reflection;
+using System.IO;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -16,27 +18,34 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _bus = bus;
     }
 
-    public void AddToSystemTray(string iconPath)
+    public void AddToSystemTray()
     {
-      var thread = new Thread(() => PopulateSystemTray(iconPath));
+      var thread = new Thread(() => PopulateSystemTray());
       thread.Name = "GlazeWMSystemTray";
       thread.Start();
     }
 
-    private void PopulateSystemTray(string iconPath)
+    private void PopulateSystemTray()
     {
       var contextMenuStrip = new ContextMenuStrip();
 
       contextMenuStrip.Items.Add("Exit", null, SignalApplicationExit);
 
-      var notificationIcon = new NotifyIcon()
-      {
-        Icon = new Icon(iconPath),
-        ContextMenuStrip = contextMenuStrip,
-        Text = "GlazeWM"
-      };
+      var assembly = Assembly.GetEntryAssembly();
+      var iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
 
-      notificationIcon.Visible = true;
+      // Get the embedded icon resource from the entry assembly.
+      using (Stream stream = assembly.GetManifestResourceStream(iconResourceName))
+      {
+        var notificationIcon = new NotifyIcon()
+        {
+          Icon = new Icon(stream),
+          ContextMenuStrip = contextMenuStrip,
+          Text = "GlazeWM"
+        };
+
+        notificationIcon.Visible = true;
+      }
 
       // System tray requires a message loop within the thread that is executing the code.
       Application.Run();
