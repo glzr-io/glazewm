@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RuntimeFrameworkVersion>3.1.0</RuntimeFrameworkVersion>
     <UseWindowsForms>true</UseWindowsForms>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
