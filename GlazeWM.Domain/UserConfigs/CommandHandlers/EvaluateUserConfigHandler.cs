@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
@@ -62,6 +63,18 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
     private void InitializeSampleUserConfig(string userConfigPath)
     {
+      // Fix any inconsistencies in directory delimiters.
+      var normalizedUserConfigPath = Path.GetFullPath(new Uri(userConfigPath).LocalPath);
+
+      var promptResult = MessageBox.Show(
+        $"No config file found at {normalizedUserConfigPath}. Create a new config file from the starter template?",
+        "No config file found",
+        MessageBoxButtons.OKCancel
+      );
+
+      if (promptResult == DialogResult.Cancel)
+        throw new FatalUserException("Cannot start the app without a configuration file.");
+
       var assembly = Assembly.GetEntryAssembly();
       var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
 
