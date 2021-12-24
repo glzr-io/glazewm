@@ -5,13 +5,14 @@ using System;
 using System.Threading;
 using System.Linq;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using System.Windows;
 
 namespace GlazeWM.Bar
 {
   public class BarService
   {
     private Bus _bus;
-    private App _application;
+    private Application _application;
 
     public BarService(Bus bus)
     {
@@ -22,7 +23,7 @@ namespace GlazeWM.Bar
     {
       var thread = new Thread(() =>
       {
-        _application = new App();
+        _application = new Application();
 
         // Launch the bar window on the added monitor.
         _bus.Events.Where(@event => @event is MonitorAddedEvent)

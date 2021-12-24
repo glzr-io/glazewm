@@ -5,6 +5,9 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RuntimeFrameworkVersion>3.1.0</RuntimeFrameworkVersion>
     <UseWindowsForms>true</UseWindowsForms>
+    <DebugType>embedded</DebugType>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AssemblyName>GlazeWM</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +17,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="icon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="sample-config.yaml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Remove="icon.ico" />
+    <None Remove="sample-config.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="icon.ico">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </EmbeddedResource>
+    <EmbeddedResource Include="sample-config.yaml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

@@ -14,13 +14,30 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "publish",
+      "label": "publish (x64)",
       "command": "dotnet",
       "type": "process",
       "args": [
         "publish",
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
+        "--runtime=win-x64",
+        "-p:PublishSingleFile=true",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "publish (x86)",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
+        "--configuration=Release",
+        "--runtime=win-x86",
+        "-p:PublishSingleFile=true",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],

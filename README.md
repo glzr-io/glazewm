@@ -6,7 +6,9 @@ GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
 # Download
 
-The runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases) or built from source using `dotnet publish --configuration=Release` and running `GlazeWM.Bootstrapper.exe` from the compiled output.
+The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases).
+
+Alternatively, to build from source, use the .NET CLI command `dotnet publish ./GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj --configuration=Release --runtime=win-x64 --output=. -p:PublishSingleFile=true` and run `GlazeWM.exe` from the compiled output. Other available runtime identifiers can be found [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog#windows-rids).
 
 # Roadmap
 
@@ -18,7 +20,7 @@ The runnable binary can be downloaded via [releases](https://github.com/lars-ber
 
 # Configuration
 
-A configuration file is created with some sensible defaults on the first run of GlazeWM. It can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`.
+The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, it can optionally be generated with some sensible defaults on application launch.
 
 ## Keybindings
 

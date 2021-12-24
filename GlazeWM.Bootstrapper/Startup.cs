@@ -67,7 +67,7 @@ namespace GlazeWM.Bootstrapper
       // Listen for window events (eg. close, focus).
       _windowEventService.Start();
 
-      _systemTrayService.AddToSystemTray("icon.ico");
+      _systemTrayService.AddToSystemTray();
 
       _bus.Events.Where(@event => @event is ApplicationExitingEvent)
         .Subscribe((@event) => OnApplicationExit());
