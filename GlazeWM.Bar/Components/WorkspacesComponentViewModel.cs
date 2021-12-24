@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
@@ -23,9 +24,22 @@ namespace GlazeWM.Bar.Components
     private Monitor _monitor => _parentViewModel.Monitor;
     private WorkspacesComponentConfig _config => _componentConfig as WorkspacesComponentConfig;
     private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private readonly UserConfigService _userConfigService =
+     ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
     public ObservableCollection<Workspace> Workspaces =>
-      new ObservableCollection<Workspace>(_monitor.Children.Cast<Workspace>());
+      new ObservableCollection<Workspace>(_orderedWorkspaces);
+
+    /// <summary>
+    /// Get workspaces of the current monitor sorted in the order they appear in the user's config.
+    /// </summary>
+    private IEnumerable<Workspace> _orderedWorkspaces => _monitor.Children
+      .Cast<Workspace>()
+      .OrderBy((workspace) =>
+        _userConfigService.UserConfig.Workspaces.FindIndex(
+          (workspaceConfig) => workspaceConfig.Name == workspace.Name
+        )
+      );
 
     public string FocusedWorkspaceBackground => _config.FocusedWorkspaceBackground;
     public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
