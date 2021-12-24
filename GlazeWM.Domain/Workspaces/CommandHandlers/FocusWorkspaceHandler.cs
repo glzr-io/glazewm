@@ -7,6 +7,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Containers.Commands;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using System.Linq;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -17,7 +18,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private MonitorService _monitorService;
     private ContainerService _containerService;
 
-    public FocusWorkspaceHandler(Bus bus, WorkspaceService workspaceService, MonitorService monitorService, ContainerService containerService)
+    public FocusWorkspaceHandler(
+      Bus bus,
+      WorkspaceService workspaceService,
+      MonitorService monitorService,
+      ContainerService containerService
+    )
     {
       _bus = bus;
       _workspaceService = workspaceService;
@@ -40,15 +46,19 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Display the containers of the workspace to switch focus to.
       _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
-      // Whether the currently focused workspace is empty and should be detached. Cannot destroy
-      // empty workspaces if they're the last workspace on the monitor or are pending focus.
-      var shouldDestroyFocusedWorkspace = !focusedWorkspace.HasChildren()
-        && _containerService.PendingFocusContainer != focusedWorkspace
-        && !focusedWorkspace.IsDisplayed;
+      // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
+      // they're the only workspace on the monitor or are pending focus.
+      var workspaceToDestroy = _workspaceService.GetActiveWorkspaces()
+        .FirstOrDefault(workspace =>
+        {
+          // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
+          return !workspace.HasChildren()
+            && !workspace.IsDisplayed
+            && _containerService.PendingFocusContainer != workspace;
+        });
 
-      if (shouldDestroyFocusedWorkspace)
-        // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(focusedWorkspace));
+      if (workspaceToDestroy != null)
+        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(workspaceToDestroy));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
