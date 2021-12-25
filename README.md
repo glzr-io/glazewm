@@ -2,6 +2,10 @@
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
+Why use a tiling window manager? A tiling WM lets you easily organize windows and adjust their layout on the fly. Spend less time moving and resizing windows by using keyboard-driven commands.
+
+Under the hood, the Windows API is used to position windows via P/Invoke. The codebase is organized using a 3-tier architecture and uses some DDD/CQRS patterns.
+
 ![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
 # Download
