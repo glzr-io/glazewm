@@ -4,7 +4,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Infrastructure.WindowsApi;
+using System.Drawing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -76,12 +76,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         var relativeY = focusedWindow.Y - currentWorkspace.Y + (focusedWindow.Height / 2);
 
         // TODO: Clean this up.
-        var updatedPlacement = new WindowRect
+        var updatedPlacement = new Rectangle
         {
-          Left = targetWorkspace.X + (relativeX * targetWorkspace.Width / currentWorkspace.Width - (focusedWindow.Width / 2)),
-          Right = targetWorkspace.X + (relativeX * targetWorkspace.Width / currentWorkspace.Width - (focusedWindow.Width / 2)) + focusedWindow.Width,
-          Top = targetWorkspace.Y + (relativeY * targetWorkspace.Height / currentWorkspace.Height - (focusedWindow.Height / 2)),
-          Bottom = targetWorkspace.Y + (relativeY * targetWorkspace.Height / currentWorkspace.Height - (focusedWindow.Height / 2)) + focusedWindow.Height,
+          X = targetWorkspace.X + (relativeX * targetWorkspace.Width / currentWorkspace.Width - (focusedWindow.Width / 2)),
+          Width = focusedWindow.Width,
+          Y = targetWorkspace.Y + (relativeY * targetWorkspace.Height / currentWorkspace.Height - (focusedWindow.Height / 2)),
+          Height = focusedWindow.Height,
         };
 
         focusedWindow.FloatingPlacement = updatedPlacement;

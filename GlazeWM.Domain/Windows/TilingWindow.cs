@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Drawing;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Windows
@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Windows
 
     public override int Y => _containerService.CalculateYOfResizableContainer(this);
 
-    public TilingWindow(IntPtr hwnd, WindowRect floatingPlacement) : base(hwnd, floatingPlacement)
+    public TilingWindow(IntPtr hwnd, Rectangle floatingPlacement) : base(hwnd, floatingPlacement)
     {
     }
   }

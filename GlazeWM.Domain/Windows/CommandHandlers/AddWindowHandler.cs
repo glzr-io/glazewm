@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -63,13 +64,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
-      // TODO: This can be simplified. Add utility methods to `WindowRect` struct?
-      var floatingPlacement = new WindowRect
+      // TODO: This can be simplified. Add utility methods to `Rectangle` struct?
+      var floatingPlacement = new Rectangle
       {
-        Left = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2),
-        Right = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2) + floatingWidth,
-        Top = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2),
-        Bottom = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2) + floatingHeight,
+        X = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2),
+        Width = floatingWidth,
+        Y = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2),
+        Height = floatingHeight,
       };
 
       // Create the window instance.

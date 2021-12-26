@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
@@ -16,7 +17,7 @@ namespace GlazeWM.Domain.Windows
     /// The placement of the window when floating. Initialized with window's placement on launch
     /// and updated on resize/move whilst floating.
     /// </summary>
-    public WindowRect FloatingPlacement { get; set; }
+    public Rectangle FloatingPlacement { get; set; }
 
     /// <summary>
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
@@ -26,7 +27,7 @@ namespace GlazeWM.Domain.Windows
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
-    public Window(IntPtr hwnd, WindowRect floatingPlacement)
+    public Window(IntPtr hwnd, Rectangle floatingPlacement)
     {
       Hwnd = hwnd;
       FloatingPlacement = floatingPlacement;
@@ -41,7 +42,7 @@ namespace GlazeWM.Domain.Windows
 
     public string ClassName => _windowService.GetClassNameOfHandle(Hwnd);
 
-    public WindowRect Location => _windowService.GetLocationOfHandle(Hwnd);
+    public Rectangle Location => _windowService.GetLocationOfHandle(Hwnd);
 
     public string Title => _windowService.GetTitleOfHandle(Hwnd);
 

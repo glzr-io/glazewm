@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -51,9 +52,9 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Get dimensions of the bounding rectangle of the specified window.
     /// </summary>
-    public WindowRect GetLocationOfHandle(IntPtr handle)
+    public Rectangle GetLocationOfHandle(IntPtr handle)
     {
-      var rect = new WindowRect();
+      var rect = new Rectangle();
       GetWindowRect(handle, ref rect);
       return rect;
     }
