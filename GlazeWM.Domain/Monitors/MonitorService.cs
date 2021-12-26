@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Enums;
@@ -54,7 +53,7 @@ namespace GlazeWM.Domain.Monitors
     public uint GetMonitorDpi(Screen screen)
     {
       // Get a handle to the monitor from a `Screen`.
-      var point = new Point(screen.Bounds.Left + 1, screen.Bounds.Top + 1);
+      var point = new System.Drawing.Point(screen.Bounds.Left + 1, screen.Bounds.Top + 1);
       var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
 
       uint dpiX, dpiY;
