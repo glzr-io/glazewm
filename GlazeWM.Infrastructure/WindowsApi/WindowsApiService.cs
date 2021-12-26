@@ -1,5 +1,6 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Enums;
+using GlazeWM.Infrastructure.WindowsApi.Enums;
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -381,6 +382,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("User32.dll")]
-    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, MonitorFromPointFlags dwFlags);
+    public static extern IntPtr MonitorFromPoint(Point pt, MonitorFromPointFlags dwFlags);
   }
 }
