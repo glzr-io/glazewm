@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Drawing;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows
 {
@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.Windows
   {
     public FullscreenWindow(
       IntPtr hwnd,
-      Rectangle floatingPlacement
+      WindowRect floatingPlacement
     ) : base(hwnd, floatingPlacement)
     {
     }

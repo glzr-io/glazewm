@@ -1,4 +1,4 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Enums;
+using GlazeWM.Infrastructure.WindowsApi.Enums;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -206,7 +206,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
     [DllImport("user32.dll")]
-    public static extern bool GetWindowRect(IntPtr hwnd, ref Rectangle rectangle);
+    public static extern bool GetWindowRect(IntPtr hwnd, ref WindowRect rectangle);
 
     /// <summary>
     /// Contains information about the placement of a window on the screen.
@@ -242,7 +242,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       /// <summary>
       /// The window's coordinates when the window is in the restored position.
       /// </summary>
-      public Rectangle NormalPosition;
+      public WindowRect NormalPosition;
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -358,13 +358,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern uint GetDpiForWindow(IntPtr hWnd);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRectEx(ref Rectangle lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
+    public static extern bool AdjustWindowRectEx(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRect(ref Rectangle lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
+    public static extern bool AdjustWindowRect(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRectExForDpi(ref Rectangle lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle, uint dpi);
+    public static extern bool AdjustWindowRectExForDpi(ref WindowRect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle, uint dpi);
 
     public enum DpiType
     {

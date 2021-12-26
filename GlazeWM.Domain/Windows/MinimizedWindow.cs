@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Drawing;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows
 {
@@ -9,7 +9,7 @@ namespace GlazeWM.Domain.Windows
 
     public MinimizedWindow(
       IntPtr hwnd,
-      Rectangle floatingPlacement,
+      WindowRect floatingPlacement,
       WindowType previousState
     ) : base(hwnd, floatingPlacement)
     {

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Drawing;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows
 {
@@ -13,7 +13,7 @@ namespace GlazeWM.Domain.Windows
 
     public override int Y => FloatingPlacement.Top;
 
-    public FloatingWindow(IntPtr hwnd, Rectangle floatingPlacement) : base(hwnd, floatingPlacement)
+    public FloatingWindow(IntPtr hwnd, WindowRect floatingPlacement) : base(hwnd, floatingPlacement)
     {
     }
   }
