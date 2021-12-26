@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -112,6 +113,17 @@ namespace GlazeWM.Domain.Containers
     public bool HasChildren() => Children.Count > 0;
 
     public bool HasSiblings() => Siblings.Count() > 0;
+
+    public WindowRect ToRectangle()
+    {
+      return new WindowRect()
+      {
+        Left = X,
+        Right = X + Width,
+        Top = Y,
+        Bottom = Y + Height,
+      };
+    }
 
     public IEnumerable<Container> ChildrenOfType(Type type)
     {
