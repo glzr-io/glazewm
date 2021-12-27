@@ -30,18 +30,6 @@
 
     public int Height => Bottom - Top;
 
-    public WindowRect Translate(int deltaX, int deltaY)
-    {
-      var translatedRect = new WindowRect();
-
-      translatedRect.Left = Left + deltaX;
-      translatedRect.Right = Left + deltaX + Width;
-      translatedRect.Top = Top + deltaY;
-      translatedRect.Bottom = Top + deltaY + Height;
-
-      return translatedRect;
-    }
-
     public WindowRect TranslateToCoordinates(int x, int y)
     {
       var translatedRect = new WindowRect();
@@ -56,15 +44,10 @@
 
     public WindowRect TranslateToCenter(WindowRect outerRect)
     {
-      var translatedRect = new WindowRect();
-
-      translatedRect.Left = outerRect.X + (outerRect.Width / 2) - (Width / 2);
-      translatedRect.Right = translatedRect.Left + Width;
-
-      translatedRect.Top = outerRect.Y + (outerRect.Height / 2) - (Height / 2);
-      translatedRect.Bottom = translatedRect.Top + Height;
-
-      return translatedRect;
+      return TranslateToCoordinates(
+        outerRect.X + (outerRect.Width / 2) - (Width / 2),
+        outerRect.Y + (outerRect.Height / 2) - (Height / 2)
+      );
     }
   }
 }
