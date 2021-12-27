@@ -4,7 +4,6 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -46,8 +45,13 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (_monitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
         focusedWindow.HasPendingDpiAdjustment = true;
 
+      // Update floating placement if the window has to cross monitors.
+      if (targetWorkspace.Parent != currentWorkspace.Parent)
+        focusedWindow.FloatingPlacement =
+          focusedWindow.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+
       if (focusedWindow is FloatingWindow)
-        MoveFloatingWindowToWorkspace(focusedWindow as FloatingWindow, targetWorkspace);
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
 
       else
         MoveTilingWindowToWorkspace(focusedWindow as TilingWindow, targetWorkspace);
@@ -60,37 +64,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
-    }
-
-    private void MoveFloatingWindowToWorkspace(FloatingWindow focusedWindow, Workspace targetWorkspace)
-    {
-      var currentWorkspace = focusedWindow.Parent;
-      var currentMonitor = currentWorkspace.Parent;
-      var targetMonitor = targetWorkspace.Parent;
-
-      // If floating window is moved to a different workspace on the same monitor, there is no need
-      // to adjust its position.
-      if (currentMonitor != targetMonitor)
-      {
-        // Get the window's X/Y coordinates relative to the current workspace's X/Y coordinates.
-        var workspaceOffsetX = focusedWindow.X - currentWorkspace.X;
-        var workspaceOffsetY = focusedWindow.Y - currentWorkspace.Y;
-
-        // Get the window's X/Y coordinates relative to the target workspace's X/Y coordinates.
-        var targetWorkspaceOffsetX = (workspaceOffsetX * targetWorkspace.Width)
-          / currentWorkspace.Width;
-        var targetWorkspaceOffsetY = (workspaceOffsetY * targetWorkspace.Height)
-          / currentWorkspace.Height;
-
-        // TODO: Need to scale width/height according to monitor DPI?
-        focusedWindow.FloatingPlacement = focusedWindow.FloatingPlacement.TranslateToCoordinates(
-          targetWorkspace.X + targetWorkspaceOffsetX,
-          targetWorkspace.Y + targetWorkspaceOffsetY
-        );
-      }
-
-      // Change the window's parent workspace.
-      _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
     }
 
     private void MoveTilingWindowToWorkspace(TilingWindow focusedWindow, Workspace targetWorkspace)
