@@ -18,7 +18,6 @@ Alternatively, to build from source, use the .NET CLI command `dotnet publish ./
 
 - Improve handling of fullscreen and maximized windows.
 - More bar components.
-- Be able to move floating windows via `move to workspace <NAME>` command.
 - Avoid managing windows that can't be moved/resized (eg. windows running with elevated priveleges).
 - Change the size of sibling windows when a tiling window is resized with the sizing border.
 

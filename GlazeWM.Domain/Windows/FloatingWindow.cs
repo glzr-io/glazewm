@@ -5,13 +5,13 @@ namespace GlazeWM.Domain.Windows
 {
   public sealed class FloatingWindow : Window
   {
-    public override int Width => FloatingPlacement.Right - FloatingPlacement.Left;
+    public override int Width => FloatingPlacement.Width;
 
-    public override int Height => FloatingPlacement.Bottom - FloatingPlacement.Top;
+    public override int Height => FloatingPlacement.Height;
 
-    public override int X => FloatingPlacement.Left;
+    public override int X => FloatingPlacement.X;
 
-    public override int Y => FloatingPlacement.Top;
+    public override int Y => FloatingPlacement.Y;
 
     public FloatingWindow(IntPtr hwnd, WindowRect floatingPlacement) : base(hwnd, floatingPlacement)
     {

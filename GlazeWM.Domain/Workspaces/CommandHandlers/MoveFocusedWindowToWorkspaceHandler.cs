@@ -30,7 +30,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     public CommandResponse Handle(MoveFocusedWindowToWorkspaceCommand command)
     {
       var workspaceName = command.WorkspaceName;
-      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
+      var focusedWindow = _containerService.FocusedContainer as Window;
 
       // Ignore cases where focused container is not a window or not in foreground.
       if (focusedWindow == null || !_containerService.IsFocusSynced)
@@ -45,6 +45,29 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (_monitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
         focusedWindow.HasPendingDpiAdjustment = true;
 
+      // Update floating placement if the window has to cross monitors.
+      if (targetWorkspace.Parent != currentWorkspace.Parent)
+        focusedWindow.FloatingPlacement =
+          focusedWindow.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+
+      if (focusedWindow is FloatingWindow)
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
+
+      else
+        MoveTilingWindowToWorkspace(focusedWindow as TilingWindow, targetWorkspace);
+
+      // Reassign focus to descendant within the current workspace.
+      _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
+
+      _containerService.ContainersToRedraw.Add(currentWorkspace);
+      _containerService.ContainersToRedraw.Add(targetWorkspace);
+      _bus.Invoke(new RedrawContainersCommand());
+
+      return CommandResponse.Ok;
+    }
+
+    private void MoveTilingWindowToWorkspace(TilingWindow focusedWindow, Workspace targetWorkspace)
+    {
       var insertionTarget = targetWorkspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Insert the focused window into the target workspace.
@@ -59,15 +82,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
             true
           )
         );
-
-      // Reassign focus to descendant within the current workspace.
-      _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
-
-      _containerService.ContainersToRedraw.Add(currentWorkspace);
-      _containerService.ContainersToRedraw.Add(targetWorkspace);
-      _bus.Invoke(new RedrawContainersCommand());
-
-      return CommandResponse.Ok;
     }
 
     /// <summary>

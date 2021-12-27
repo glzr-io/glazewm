@@ -55,22 +55,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         ? (command.TargetParent, 0)
         : GetInsertionTarget();
 
-      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
-      var floatingWidth = originalPlacement.Right - originalPlacement.Left;
-      var floatingHeight = originalPlacement.Bottom - originalPlacement.Top;
-
       var targetWorkspace = _workspaceService.GetWorkspaceFromChildContainer(targetParent);
 
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
-      // TODO: This can be simplified. Add utility methods to `WindowRect` struct?
-      var floatingPlacement = new WindowRect
-      {
-        Left = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2),
-        Right = targetWorkspace.X + (targetWorkspace.Width / 2) - (floatingWidth / 2) + floatingWidth,
-        Top = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2),
-        Bottom = targetWorkspace.Y + (targetWorkspace.Height / 2) - (floatingHeight / 2) + floatingHeight,
-      };
+      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
       // Create the window instance.
       var window = new TilingWindow(command.WindowHandle, floatingPlacement);

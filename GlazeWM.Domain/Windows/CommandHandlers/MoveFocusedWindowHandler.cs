@@ -129,6 +129,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (_monitorService.HasDpiDifference(focusedWindow, workspaceInDirection))
         focusedWindow.HasPendingDpiAdjustment = true;
 
+      // Update floating placement since the window has to cross monitors.
+      focusedWindow.FloatingPlacement =
+        focusedWindow.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRectangle());
+
       // TODO: Descend into container if possible.
       if (direction == Direction.UP || direction == Direction.LEFT)
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));

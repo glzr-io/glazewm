@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Monitors
@@ -37,12 +38,8 @@ namespace GlazeWM.Domain.Monitors
     {
       var screen = Screen.FromHandle(windowHandle);
 
-      var matchedMonitor = GetMonitors().FirstOrDefault(m => m.Screen.DeviceName == screen.DeviceName);
-
-      if (matchedMonitor == null)
-        return GetMonitors().First();
-
-      return matchedMonitor;
+      return GetMonitors().FirstOrDefault(monitor => monitor.Screen.DeviceName == screen.DeviceName)
+        ?? GetMonitors().First();
     }
 
     public Monitor GetFocusedMonitor()
@@ -52,8 +49,13 @@ namespace GlazeWM.Domain.Monitors
 
     public uint GetMonitorDpi(Screen screen)
     {
+      var point = new Point
+      {
+        X = screen.Bounds.Left + 1,
+        Y = screen.Bounds.Top + 1
+      };
+
       // Get a handle to the monitor from a `Screen`.
-      var point = new System.Drawing.Point(screen.Bounds.Left + 1, screen.Bounds.Top + 1);
       var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
 
       uint dpiX, dpiY;
@@ -114,21 +116,19 @@ namespace GlazeWM.Domain.Monitors
           )
             continue;
         }
+        // Skip monitors that are not in the given direction.
         else
           continue;
 
-        // Initialize `monitorInDirection` if no other suitable monitors have been found yet.
-        if (monitorInDirection == null)
-        {
-          monitorInDirection = monitor;
-          continue;
-        }
-
-        // Reassign `monitorInDirection` if the monitor is closer.
-        if ((direction == Direction.RIGHT && monitor.X < monitorInDirection.X) ||
-            (direction == Direction.LEFT && monitor.X > monitorInDirection.X) ||
-            (direction == Direction.DOWN && monitor.Y < monitorInDirection.Y) ||
-            (direction == Direction.UP && monitor.Y > monitorInDirection.Y))
+        // Set `monitorInDirection` if no suitable monitors have been found yet or if the monitor
+        // is closer.
+        if (
+          monitorInDirection == null ||
+          (direction == Direction.RIGHT && monitor.X < monitorInDirection.X) ||
+          (direction == Direction.LEFT && monitor.X > monitorInDirection.X) ||
+          (direction == Direction.DOWN && monitor.Y < monitorInDirection.Y) ||
+          (direction == Direction.UP && monitor.Y > monitorInDirection.Y)
+        )
           monitorInDirection = monitor;
       }
 

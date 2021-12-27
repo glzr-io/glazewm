@@ -279,7 +279,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       /// <summary>
       /// The `VirtualCode` converted to `Keys` for better usability.
       /// </summary>
-      public Keys Key { get { return (Keys)VirtualCode; } }
+      public Keys Key => (Keys)VirtualCode;
 
       /// <summary>
       /// A hardware scan code for the key.
@@ -381,6 +381,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("User32.dll")]
-    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, MonitorFromPointFlags dwFlags);
+    public static extern IntPtr MonitorFromPoint(Point pt, MonitorFromPointFlags dwFlags);
   }
 }
