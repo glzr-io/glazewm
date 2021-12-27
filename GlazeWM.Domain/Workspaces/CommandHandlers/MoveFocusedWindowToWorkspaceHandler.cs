@@ -72,19 +72,21 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // to adjust its position.
       if (currentMonitor != targetMonitor)
       {
-        var relativeX = focusedWindow.X - currentWorkspace.X + (focusedWindow.Width / 2);
-        var relativeY = focusedWindow.Y - currentWorkspace.Y + (focusedWindow.Height / 2);
+        // Get the window's X/Y coordinates relative to the current workspace's X/Y coordinates.
+        var workspaceOffsetX = focusedWindow.X - currentWorkspace.X;
+        var workspaceOffsetY = focusedWindow.Y - currentWorkspace.Y;
 
-        // TODO: Clean this up.
-        var updatedPlacement = new WindowRect
-        {
-          Left = targetWorkspace.X + (relativeX * targetWorkspace.Width / currentWorkspace.Width - (focusedWindow.Width / 2)),
-          Right = targetWorkspace.X + (relativeX * targetWorkspace.Width / currentWorkspace.Width - (focusedWindow.Width / 2)) + focusedWindow.Width,
-          Top = targetWorkspace.Y + (relativeY * targetWorkspace.Height / currentWorkspace.Height - (focusedWindow.Height / 2)),
-          Bottom = targetWorkspace.Y + (relativeY * targetWorkspace.Height / currentWorkspace.Height - (focusedWindow.Height / 2)) + focusedWindow.Height,
-        };
+        // Get the window's X/Y coordinates relative to the target workspace's X/Y coordinates.
+        var targetWorkspaceOffsetX = (workspaceOffsetX * targetWorkspace.Width)
+          / currentWorkspace.Width;
+        var targetWorkspaceOffsetY = (workspaceOffsetY * targetWorkspace.Height)
+          / currentWorkspace.Height;
 
-        focusedWindow.FloatingPlacement = updatedPlacement;
+        // TODO: Need to scale width/height according to monitor DPI?
+        focusedWindow.FloatingPlacement = focusedWindow.FloatingPlacement.TranslateToCoordinates(
+          targetWorkspace.X + targetWorkspaceOffsetX,
+          targetWorkspace.Y + targetWorkspaceOffsetY
+        );
       }
 
       // Change the window's parent workspace.

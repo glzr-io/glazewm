@@ -60,10 +60,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
       var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
-      var floatingPlacement = WindowRect.TranslateToCenter(
-        originalPlacement,
-        targetWorkspace.ToRectangle()
-      );
+      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
       // Create the window instance.
       var window = new TilingWindow(command.WindowHandle, floatingPlacement);
