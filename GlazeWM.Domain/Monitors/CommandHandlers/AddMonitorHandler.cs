@@ -24,9 +24,20 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
     public CommandResponse Handle(AddMonitorCommand command)
     {
-      var newMonitor = new Monitor(command.Screen);
-      var rootContainer = _containerService.ContainerTree;
+      var screen = command.Screen;
 
+      // Create a `Monitor` instance. Use the working area of the monitor instead of the bounds of
+      // the display. The working area excludes taskbars and other reserved display space.
+      var newMonitor = new Monitor(
+        screen.DeviceName,
+        screen.WorkingArea.Width,
+        screen.WorkingArea.Height,
+        screen.WorkingArea.X,
+        screen.WorkingArea.Y,
+        screen.Primary
+      );
+
+      var rootContainer = _containerService.ContainerTree;
       _bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
 
       ActivateWorkspaceOnMonitor(newMonitor);
