@@ -1,9 +1,10 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 
@@ -68,6 +69,9 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
     // TODO: Move to own command.
     private void RemoveMonitor(Monitor monitorToRemove)
     {
+      // Keep reference to the focused monitor prior to moving workspaces around.
+      var focusedMonitor = _monitorService.GetFocusedMonitor();
+
       var targetMonitor = _monitorService.GetMonitors().First(
         monitor => monitor != monitorToRemove
       );
@@ -75,8 +79,14 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
       foreach (var workspace in monitorToRemove.Children.ToList())
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
+      // TODO: Mark windows as needing DPI adjustment if needed.
+      // TODO: Adjust floating position of moved windows.
+
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
       _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
+
+      if (focusedMonitor == monitorToRemove)
+        _bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
     }
   }
 }
