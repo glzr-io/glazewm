@@ -148,7 +148,10 @@ namespace GlazeWM.Domain.Containers
     /// </summary>
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
-      if (!(originContainer is SplitContainer) || !originContainer.HasChildren())
+      var isDescendable = originContainer is SplitContainer
+        && originContainer.ChildrenOfType(typeof(IResizable)).Count() > 0;
+
+      if (!isDescendable)
         return originContainer;
 
       var layout = (originContainer as SplitContainer).Layout;
