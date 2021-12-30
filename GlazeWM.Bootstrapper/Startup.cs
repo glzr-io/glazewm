@@ -30,6 +30,7 @@ namespace GlazeWM.Bootstrapper
     private BarService _barService;
     private WorkspaceService _workspaceService;
     private SystemTrayService _systemTrayService;
+    private SystemEventService _systemEventService;
 
     public Startup(
       Bus bus,
@@ -39,7 +40,8 @@ namespace GlazeWM.Bootstrapper
       WindowService windowService,
       BarService barService,
       WorkspaceService workspaceService,
-      SystemTrayService systemTrayService
+      SystemTrayService systemTrayService,
+      SystemEventService systemEventService
     )
     {
       _bus = bus;
@@ -50,6 +52,7 @@ namespace GlazeWM.Bootstrapper
       _barService = barService;
       _workspaceService = workspaceService;
       _systemTrayService = systemTrayService;
+      _systemEventService = systemEventService;
     }
 
     public void Init()
@@ -67,6 +70,10 @@ namespace GlazeWM.Bootstrapper
       // Listen for window events (eg. close, focus).
       _windowEventService.Start();
 
+      // Listen for system-related events (eg. changes to display settings).
+      _systemEventService.Start();
+
+      // Add application to system tray.
       _systemTrayService.AddToSystemTray();
 
       _bus.Events.Where(@event => @event is ApplicationExitingEvent)
