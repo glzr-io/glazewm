@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Bussing;
 using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -14,8 +18,12 @@ namespace GlazeWM.Bar
   /// </summary>
   public partial class MainWindow : Window
   {
-    private UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+    private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private UserConfigService _userConfigService =
+      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+
     private BarViewModel _barViewModel { get; }
+    private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
     public MainWindow(BarViewModel barViewModel)
@@ -24,6 +32,17 @@ namespace GlazeWM.Bar
       DataContext = barViewModel;
 
       InitializeComponent();
+
+      // Reposition window on monitor removals and additions.
+      _bus.Events.Where(@event => @event is MonitorAddedEvent || @event is MonitorRemovedEvent)
+        .Subscribe((@event) =>
+        {
+          _dispatcher.Invoke(() =>
+          {
+            var windowHandle = new WindowInteropHelper(this).Handle;
+            PositionWindow(windowHandle);
+          });
+        });
     }
 
     protected override void OnSourceInitialized(EventArgs e)
