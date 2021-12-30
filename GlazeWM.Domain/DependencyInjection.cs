@@ -6,6 +6,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.CommandHandlers;
 using GlazeWM.Domain.Monitors.Commands;
+using GlazeWM.Domain.Monitors.EventHandlers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.CommandHandlers;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -66,6 +67,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
 
+      services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
       services.AddSingleton<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
       services.AddSingleton<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
