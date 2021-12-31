@@ -1,0 +1,31 @@
+﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Workspaces.Events;
+
+namespace GlazeWM.Domain.Workspaces.CommandHandlers
+{
+  class ActivateWorkspaceHandler : ICommandHandler<ActivateWorkspaceCommand>
+  {
+    private Bus _bus;
+
+    public ActivateWorkspaceHandler(Bus bus)
+    {
+      _bus = bus;
+    }
+
+    public CommandResponse Handle(ActivateWorkspaceCommand command)
+    {
+      var workspaceName = command.WorkspaceName;
+      var targetMonitor = command.TargetMonitor;
+
+      var newWorkspace = new Workspace(workspaceName);
+
+      // Attach the created workspace to the specified monitor.
+      _bus.Invoke(new AttachContainerCommand(newWorkspace, targetMonitor));
+      _bus.RaiseEvent(new WorkspaceAttachedEvent(newWorkspace));
+
+      return CommandResponse.Ok;
+    }
+  }
+}

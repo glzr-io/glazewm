@@ -49,17 +49,20 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
     private void ActivateWorkspaceOnMonitor(Monitor monitor)
     {
-      // Get first workspace that is not active.
-      var inactiveWorkspace = _workspaceService.InactiveWorkspaces.ElementAtOrDefault(0);
+      // Get name of first workspace that is not active.
+      var inactiveWorkspaceName =
+        _workspaceService.GetInactiveWorkspaceNames().ElementAtOrDefault(0);
 
-      if (inactiveWorkspace == null)
+      if (inactiveWorkspaceName == null)
         throw new FatalUserException("At least 1 workspace is required per monitor.");
 
       // Assign the workspace to the newly added monitor.
-      _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, monitor));
+      _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
+
+      var workspace = _workspaceService.GetActiveWorkspaceByName(inactiveWorkspaceName);
 
       // Display the workspace (since it's the only one on the monitor).
-      _bus.Invoke(new DisplayWorkspaceCommand(inactiveWorkspace));
+      _bus.Invoke(new DisplayWorkspaceCommand(workspace));
     }
   }
 }
