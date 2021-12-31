@@ -7,12 +7,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
   class DetachWorkspaceFromMonitorHandler : ICommandHandler<DetachWorkspaceFromMonitorCommand>
   {
-    private WorkspaceService _workspaceService;
     public Bus _bus { get; }
 
-    public DetachWorkspaceFromMonitorHandler(WorkspaceService workspaceService, Bus bus)
+    public DetachWorkspaceFromMonitorHandler(Bus bus)
     {
-      _workspaceService = workspaceService;
       _bus = bus;
     }
 
@@ -21,8 +19,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspace = command.Workspace;
 
       _bus.Invoke(new DetachContainerCommand(workspace));
-      _workspaceService.InactiveWorkspaces.Add(command.Workspace);
-
       _bus.RaiseEvent(new WorkspaceDetachedEvent(command.Workspace));
 
       return CommandResponse.Ok;
