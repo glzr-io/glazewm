@@ -1,4 +1,5 @@
 ﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.UserConfigs;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,17 +7,17 @@ namespace GlazeWM.Domain.Workspaces
 {
   public class WorkspaceService
   {
-    public List<Workspace> InactiveWorkspaces { get; set; } = new List<Workspace>();
-
     private ContainerService _containerService;
+    private UserConfigService _userConfigService;
 
-    public WorkspaceService(ContainerService containerService)
+    public WorkspaceService(ContainerService containerService, UserConfigService userConfigService)
     {
       _containerService = containerService;
+      _userConfigService = userConfigService;
     }
 
     /// <summary>
-    /// Get active workspaces by iterating over the 2nd level of trees in container tree.
+    /// Get active workspaces by iterating over the 2nd level of container tree.
     /// </summary>
     public IEnumerable<Workspace> GetActiveWorkspaces()
     {
@@ -30,9 +31,15 @@ namespace GlazeWM.Domain.Workspaces
       return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
     }
 
-    public Workspace GetInactiveWorkspaceByName(string name)
+    public IEnumerable<string> GetInactiveWorkspaceNames()
     {
-      return InactiveWorkspaces.FirstOrDefault(workspace => workspace.Name == name);
+      var activeWorkspaces = GetActiveWorkspaces();
+
+      var inactiveWorkspaceConfigs = _userConfigService.UserConfig.Workspaces.Where(
+        (config) => !activeWorkspaces.Any((workspace) => workspace.Name == config.Name)
+      );
+
+      return inactiveWorkspaceConfigs.Select(config => config.Name);
     }
 
     public Workspace GetWorkspaceFromChildContainer(Container container)
