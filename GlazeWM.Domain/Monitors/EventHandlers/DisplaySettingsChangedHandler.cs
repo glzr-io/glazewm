@@ -4,6 +4,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
@@ -15,12 +16,19 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
     private Bus _bus;
     private MonitorService _monitorService;
     private ContainerService _containerService;
+    private WindowService _windowService;
 
-    public DisplaySettingsChangedHandler(Bus bus, MonitorService monitorService, ContainerService containerService)
+    public DisplaySettingsChangedHandler(
+      Bus bus,
+      MonitorService monitorService,
+      ContainerService containerService,
+      WindowService windowService
+    )
     {
       _bus = bus;
       _monitorService = monitorService;
       _containerService = containerService;
+      _windowService = windowService;
     }
 
     public void Handle(DisplaySettingsChangedEvent @event)
@@ -56,6 +64,11 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
       foreach (var monitor in monitorsToRemove.ToList())
         RemoveMonitor(monitor);
 
+      // Display setting changes can spread windows out sporadically, so mark all windows as needing
+      // a DPI adjustment (just in case).
+      foreach (var window in _windowService.GetWindows())
+        window.HasPendingDpiAdjustment = true;
+
       // Redraw full container tree.
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);
       _bus.Invoke(new RedrawContainersCommand());
@@ -82,7 +95,6 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
       foreach (var workspace in workspacesToMove.ToList())
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
-      // TODO: Mark windows as needing DPI adjustment if needed.
       // TODO: Adjust floating position of moved windows.
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
