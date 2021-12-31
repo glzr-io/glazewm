@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -76,7 +76,10 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
         monitor => monitor != monitorToRemove
       );
 
-      foreach (var workspace in monitorToRemove.Children.ToList())
+      // Avoid moving empty workspaces.
+      var workspacesToMove = monitorToRemove.Children.Where(workspace => workspace.HasChildren());
+
+      foreach (var workspace in workspacesToMove.ToList())
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
       // TODO: Mark windows as needing DPI adjustment if needed.
