@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -82,6 +83,13 @@ namespace GlazeWM.Domain.UserConfigs
       }
 
       return windowRules;
+    }
+
+    public WorkspaceConfig GetWorkspaceConfigByName(string workspaceName)
+    {
+      return UserConfig.Workspaces.FirstOrDefault(
+        (workspaceConfig) => workspaceConfig.Name == workspaceName
+      );
     }
   }
 }
