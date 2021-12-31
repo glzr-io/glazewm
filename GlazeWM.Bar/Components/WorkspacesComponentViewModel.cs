@@ -65,8 +65,8 @@ namespace GlazeWM.Bar.Components
       : base(parentViewModel, config)
     {
       var workspacesChangedEvent = _bus.Events.Where((@event) =>
-        @event is WorkspaceAttachedEvent ||
-        @event is WorkspaceDetachedEvent ||
+        @event is WorkspaceActivatedEvent ||
+        @event is WorkspaceDeactivatedEvent ||
         @event is FocusChangedEvent
       );
 
