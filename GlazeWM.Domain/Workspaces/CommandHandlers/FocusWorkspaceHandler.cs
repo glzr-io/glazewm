@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         });
 
       if (workspaceToDestroy != null)
-        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(workspaceToDestroy));
+        _bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())

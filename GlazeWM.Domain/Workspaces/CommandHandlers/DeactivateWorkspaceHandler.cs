@@ -5,21 +5,21 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class DetachWorkspaceFromMonitorHandler : ICommandHandler<DetachWorkspaceFromMonitorCommand>
+  class DeactivateWorkspaceHandler : ICommandHandler<DeactivateWorkspaceCommand>
   {
     public Bus _bus { get; }
 
-    public DetachWorkspaceFromMonitorHandler(Bus bus)
+    public DeactivateWorkspaceHandler(Bus bus)
     {
       _bus = bus;
     }
 
-    public CommandResponse Handle(DetachWorkspaceFromMonitorCommand command)
+    public CommandResponse Handle(DeactivateWorkspaceCommand command)
     {
       var workspace = command.Workspace;
 
       _bus.Invoke(new DetachContainerCommand(workspace));
-      _bus.RaiseEvent(new WorkspaceDetachedEvent(command.Workspace));
+      _bus.RaiseEvent(new WorkspaceDetachedEvent(workspace));
 
       return CommandResponse.Ok;
     }
