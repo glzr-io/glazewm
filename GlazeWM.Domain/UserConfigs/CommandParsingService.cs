@@ -4,7 +4,6 @@ using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -12,11 +11,11 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class CommandParsingService
   {
-    private WorkspaceService _workspaceService;
+    private UserConfigService _userConfigService;
 
-    public CommandParsingService(WorkspaceService workspaceService)
+    public CommandParsingService(UserConfigService userConfigService)
     {
-      _workspaceService = workspaceService;
+      _userConfigService = userConfigService;
     }
 
     public string FormatCommand(string commandString)
@@ -124,10 +123,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// <returns>The workspace name if valid.</returns>
     private string ValidateWorkspaceName(string workspaceName)
     {
-      var workspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName)
-        ?? _workspaceService.GetActiveWorkspaceByName(workspaceName);
+      var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
-      if (workspace == null)
+      if (workspaceConfig == null)
         throw new ArgumentException();
 
       return workspaceName;
