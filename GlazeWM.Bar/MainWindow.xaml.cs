@@ -4,10 +4,10 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using GlazeWM.Domain.Monitors;
-using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -32,17 +32,6 @@ namespace GlazeWM.Bar
       DataContext = barViewModel;
 
       InitializeComponent();
-
-      // Reposition window on monitor removals and additions.
-      _bus.Events.Where(@event => @event is MonitorAddedEvent || @event is MonitorRemovedEvent)
-        .Subscribe((@event) =>
-        {
-          _dispatcher.Invoke(() =>
-          {
-            var windowHandle = new WindowInteropHelper(this).Handle;
-            PositionWindow(windowHandle);
-          });
-        });
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -52,6 +41,13 @@ namespace GlazeWM.Bar
       var windowHandle = new WindowInteropHelper(this).Handle;
       HideFromTaskSwitcher(windowHandle);
       PositionWindow(windowHandle);
+
+      // Reposition window on changes to display settings.
+      _bus.Events.Where(@event => @event is DisplaySettingsChangedEvent)
+        .Subscribe((@event) =>
+        {
+          _dispatcher.Invoke(() => PositionWindow(windowHandle));
+        });
     }
 
     /// <summary>
