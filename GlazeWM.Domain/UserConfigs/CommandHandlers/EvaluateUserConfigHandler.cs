@@ -45,14 +45,14 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         throw new FatalUserException(errorMessage);
       }
 
-      // Register keybindings.
-      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
-
       // Merge default window rules with user-defined rules.
       var defaultWindowRules = _userConfigService.DefaultWindowRules;
       deserializedConfig.WindowRules.InsertRange(0, defaultWindowRules);
 
       _userConfigService.UserConfig = deserializedConfig;
+
+      // Register keybindings.
+      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       return CommandResponse.Ok;
     }
