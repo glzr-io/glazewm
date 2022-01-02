@@ -93,9 +93,21 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
       var workspacesToMove = monitorToRemove.Children.Where(workspace => workspace.HasChildren());
 
       foreach (var workspace in workspacesToMove.ToList())
+      {
+        // Move workspace to target monitor.
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
-      // TODO: Adjust floating position of moved windows.
+        // Get windows of the moved workspace.
+        var windows = workspace.Descendants
+          .Where(descendant => descendant is Window)
+          .Cast<Window>();
+
+        // Adjust floating position of moved windows.
+        // TODO: If primary monitor changes, does floating placement of all windows need to be updated?
+        foreach (var window in windows)
+          window.FloatingPlacement =
+            window.FloatingPlacement.TranslateToCenter(workspace.ToRectangle());
+      }
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
       _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
