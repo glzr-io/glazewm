@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         });
 
       if (workspaceToDestroy != null)
-        _bus.Invoke(new DetachWorkspaceFromMonitorCommand(workspaceToDestroy));
+        _bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
@@ -82,15 +82,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     /// <summary>
     /// Activate a given workspace on the currently focused monitor.
     /// </summary>
-    /// <param name="workspaceName">Name of the workspace to activate.</param>
     private Workspace ActivateWorkspace(string workspaceName)
     {
-      var inactiveWorkspace = _workspaceService.GetInactiveWorkspaceByName(workspaceName);
       var focusedMonitor = _monitorService.GetFocusedMonitor();
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
 
-      _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, focusedMonitor));
-
-      return inactiveWorkspace;
+      return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }
   }
 }

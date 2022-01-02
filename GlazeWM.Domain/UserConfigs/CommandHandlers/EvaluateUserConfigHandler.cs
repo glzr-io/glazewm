@@ -45,18 +45,14 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         throw new FatalUserException(errorMessage);
       }
 
-      // Create an inactive `Workspace` for each workspace config.
-      foreach (var workspaceConfig in deserializedConfig.Workspaces)
-        _bus.Invoke(new CreateWorkspaceCommand(workspaceConfig.Name));
-
-      // Register keybindings.
-      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
-
       // Merge default window rules with user-defined rules.
       var defaultWindowRules = _userConfigService.DefaultWindowRules;
       deserializedConfig.WindowRules.InsertRange(0, defaultWindowRules);
 
       _userConfigService.UserConfig = deserializedConfig;
+
+      // Register keybindings.
+      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       return CommandResponse.Ok;
     }

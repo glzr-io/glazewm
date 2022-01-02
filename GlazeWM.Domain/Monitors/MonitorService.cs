@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Monitors
     {
       var screen = Screen.FromHandle(windowHandle);
 
-      return GetMonitors().FirstOrDefault(monitor => monitor.Screen.DeviceName == screen.DeviceName)
+      return GetMonitors().FirstOrDefault(monitor => monitor.DeviceName == screen.DeviceName)
         ?? GetMonitors().First();
     }
 
@@ -47,20 +47,23 @@ namespace GlazeWM.Domain.Monitors
       return GetMonitorFromChildContainer(_containerService.FocusedContainer);
     }
 
-    public uint GetMonitorDpi(Screen screen)
+    public uint GetMonitorDpi(Monitor monitor)
     {
+      // Create a point within the monitor's dimensions.
       var point = new Point
       {
-        X = screen.Bounds.Left + 1,
-        Y = screen.Bounds.Top + 1
+        X = monitor.X + 1,
+        Y = monitor.Y + 1
       };
 
-      // Get a handle to the monitor from a `Screen`.
+      // Get a handle to the monitor.
+      // TODO: Consider adding a `Monitor` getter for a monitor's handle.
       var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
 
       uint dpiX, dpiY;
       GetDpiForMonitor(monitorHandle, DpiType.Effective, out dpiX, out dpiY);
 
+      // DPI X and Y should be equivalent, so it's arbitrary which to return.
       return dpiX;
     }
 

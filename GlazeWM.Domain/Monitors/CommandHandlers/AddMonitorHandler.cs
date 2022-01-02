@@ -24,9 +24,20 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
     public CommandResponse Handle(AddMonitorCommand command)
     {
-      var newMonitor = new Monitor(command.Screen);
-      var rootContainer = _containerService.ContainerTree;
+      var screen = command.Screen;
 
+      // Create a `Monitor` instance. Use the working area of the monitor instead of the bounds of
+      // the display. The working area excludes taskbars and other reserved display space.
+      var newMonitor = new Monitor(
+        screen.DeviceName,
+        screen.WorkingArea.Width,
+        screen.WorkingArea.Height,
+        screen.WorkingArea.X,
+        screen.WorkingArea.Y,
+        screen.Primary
+      );
+
+      var rootContainer = _containerService.ContainerTree;
       _bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
 
       ActivateWorkspaceOnMonitor(newMonitor);
@@ -38,17 +49,20 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
     private void ActivateWorkspaceOnMonitor(Monitor monitor)
     {
-      // Get first workspace that is not active.
-      var inactiveWorkspace = _workspaceService.InactiveWorkspaces.ElementAtOrDefault(0);
+      // Get name of first workspace that is not active.
+      var inactiveWorkspaceName =
+        _workspaceService.GetInactiveWorkspaceNames().ElementAtOrDefault(0);
 
-      if (inactiveWorkspace == null)
+      if (inactiveWorkspaceName == null)
         throw new FatalUserException("At least 1 workspace is required per monitor.");
 
       // Assign the workspace to the newly added monitor.
-      _bus.Invoke(new AttachWorkspaceToMonitorCommand(inactiveWorkspace, monitor));
+      _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
+
+      var workspace = _workspaceService.GetActiveWorkspaceByName(inactiveWorkspaceName);
 
       // Display the workspace (since it's the only one on the monitor).
-      _bus.Invoke(new DisplayWorkspaceCommand(inactiveWorkspace));
+      _bus.Invoke(new DisplayWorkspaceCommand(workspace));
     }
   }
 }

@@ -2,31 +2,39 @@
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using System.Windows.Forms;
 
 namespace GlazeWM.Domain.Monitors
 {
   public class Monitor : Container
   {
-    public string Name => Screen.DeviceName;
-    public override int Width => Screen.WorkingArea.Width;
-    public override int Height => Screen.WorkingArea.Height;
-    public override int X => Screen.WorkingArea.X;
-    public override int Y => Screen.WorkingArea.Y;
-    public bool IsPrimary => Screen.Primary;
-    public Workspace DisplayedWorkspace;
+    public string DeviceName { get; set; }
+    public override int Width { get; set; }
+    public override int Height { get; set; }
+    public override int X { get; set; }
+    public override int Y { get; set; }
+    public bool IsPrimary { get; set; }
+    public Workspace DisplayedWorkspace { get; set; }
 
-    public Screen Screen { get; }
-
-    private MonitorService _monitorService = ServiceLocator.Provider.GetRequiredService<MonitorService>();
-
-    public uint Dpi => _monitorService.GetMonitorDpi(Screen);
-
+    private MonitorService _monitorService =
+      ServiceLocator.Provider.GetRequiredService<MonitorService>();
+    public uint Dpi => _monitorService.GetMonitorDpi(this);
     public decimal ScaleFactor => decimal.Divide(Dpi, 96);
 
-    public Monitor(Screen screen)
+    public Monitor(
+      string deviceName,
+      int width,
+      int height,
+      int x,
+      int y,
+      bool isPrimary
+    )
     {
-      Screen = screen;
+      DeviceName = deviceName;
+      Width = width;
+      Height = height;
+      X = x;
+      Y = y;
+      IsPrimary = isPrimary;
     }
   }
 }

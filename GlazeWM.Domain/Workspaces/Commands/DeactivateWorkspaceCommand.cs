@@ -2,11 +2,11 @@
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  class DetachWorkspaceFromMonitorCommand : Command
+  class DeactivateWorkspaceCommand : Command
   {
     public Workspace Workspace { get; }
 
-    public DetachWorkspaceFromMonitorCommand(Workspace workspace)
+    public DeactivateWorkspaceCommand(Workspace workspace)
     {
       Workspace = workspace;
     }

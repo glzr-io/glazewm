@@ -4,8 +4,9 @@ using System.Reactive.Linq;
 using System;
 using System.Threading;
 using System.Linq;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 using System.Windows;
+using System.Collections.Generic;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
 {
@@ -13,6 +14,8 @@ namespace GlazeWM.Bar
   {
     private Bus _bus;
     private Application _application;
+    private Dictionary<string, MainWindow> _activeWindowsByDeviceName
+      = new Dictionary<string, MainWindow>();
 
     public BarService(Bus bus)
     {
@@ -31,19 +34,36 @@ namespace GlazeWM.Bar
           {
             _application.Dispatcher.Invoke(() =>
             {
+              var addedMonitor = (@event as MonitorAddedEvent).AddedMonitor;
               var originalFocusedHandle = GetForegroundWindow();
 
               var barViewModel = new BarViewModel()
               {
-                Monitor = (@event as MonitorAddedEvent).AddedMonitor,
+                Monitor = addedMonitor,
                 Dispatcher = _application.Dispatcher,
               };
 
               var barWindow = new MainWindow(barViewModel);
               barWindow.Show();
 
+              // Store active window.
+              _activeWindowsByDeviceName[addedMonitor.DeviceName] = barWindow;
+
               // Reset focus to whichever window was focused before the bar window was launched.
               SetForegroundWindow(originalFocusedHandle);
+            });
+          });
+
+        _bus.Events.Where(@event => @event is MonitorRemovedEvent)
+          .Subscribe((@event) =>
+          {
+            _application.Dispatcher.Invoke(() =>
+            {
+              var deviceName = (@event as MonitorRemovedEvent).RemovedDeviceName;
+
+              // Kill the corresponding bar window.
+              var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
+              barWindow.Close();
             });
           });
 
