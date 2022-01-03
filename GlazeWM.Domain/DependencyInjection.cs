@@ -49,6 +49,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddSingleton<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
+      services.AddSingleton<ICommandHandler<RefreshMonitorStateCommand>, RefreshMonitorStateHandler>();
       services.AddSingleton<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddSingleton<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
@@ -70,6 +71,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
       services.AddSingleton<IEventHandler<WindowFocusedEvent>, WindowFocusedHandler>();
       services.AddSingleton<IEventHandler<WindowHiddenEvent>, WindowHiddenHandler>();
+      services.AddSingleton<IEventHandler<WindowLocationChangedEvent>, WindowLocationChangedHandler>();
       services.AddSingleton<IEventHandler<WindowMinimizedEvent>, WindowMinimizedHandler>();
       services.AddSingleton<IEventHandler<WindowMinimizeEndedEvent>, WindowMinimizeEndedHandler>();
       services.AddSingleton<IEventHandler<WindowMovedOrResizedEvent>, WindowMovedOrResizedHandler>();
