@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,6 +13,12 @@ namespace GlazeWM.Domain.Windows
 {
   public class WindowService
   {
+    /// <summary>
+    /// Window handles to appbars (application desktop toolbars). Positioning changes of appbars
+    /// can affect the working area of the parent monitor and requires windows to be redrawn.
+    /// </summary>
+    public List<IntPtr> AppBarHandles { get; set; } = new List<IntPtr>();
+
     private ContainerService _containerService;
     private MonitorService _monitorService;
 
