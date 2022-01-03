@@ -1,9 +1,10 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
@@ -14,18 +15,21 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     private MonitorService _monitorService;
     private ContainerService _containerService;
     private WindowService _windowService;
+    private WorkspaceService _workspaceService;
 
     public RefreshMonitorStateHandler(
       Bus bus,
       MonitorService monitorService,
       ContainerService containerService,
-      WindowService windowService
+      WindowService windowService,
+      WorkspaceService workspaceService
     )
     {
       _bus = bus;
       _monitorService = monitorService;
       _containerService = containerService;
       _windowService = windowService;
+      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(RefreshMonitorStateCommand command)
@@ -61,10 +65,18 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       foreach (var monitor in monitorsToRemove.ToList())
         _bus.Invoke(new RemoveMonitorCommand(monitor));
 
-      // Display setting changes can spread windows out sporadically, so mark all windows as needing
-      // a DPI adjustment (just in case).
       foreach (var window in _windowService.GetWindows())
+      {
+        // Display setting changes can spread windows out sporadically, so mark all windows as
+        // needing a DPI adjustment (just in case).
         window.HasPendingDpiAdjustment = true;
+
+        // Need to update floating position of moved windows when a monitor is disconnected or if
+        // the primary display is changed. The primary display dictates the position of 0,0.
+        var parentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+        window.FloatingPlacement =
+          window.FloatingPlacement.TranslateToCenter(parentWorkspace.ToRectangle());
+      }
 
       // Redraw full container tree.
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);

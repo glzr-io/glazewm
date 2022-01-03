@@ -46,12 +46,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
           .Where(descendant => descendant is Window)
           .Cast<Window>();
 
-        // Adjust floating position of moved windows.
-        // TODO: If primary monitor changes, does floating placement of all windows need to be updated?
-        foreach (var window in windows)
-          window.FloatingPlacement =
-            window.FloatingPlacement.TranslateToCenter(workspace.ToRectangle());
-
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.
         _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
