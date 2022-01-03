@@ -3,9 +3,7 @@ using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
-using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
@@ -61,7 +59,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       // Remove any monitors that no longer exist and move their workspaces to other monitors.
       // TODO: Verify that this works with "Duplicate these displays" or "Show only X" settings.
       foreach (var monitor in monitorsToRemove.ToList())
-        RemoveMonitor(monitor);
+        _bus.Invoke(new RemoveMonitorCommand(monitor));
 
       // Display setting changes can spread windows out sporadically, so mark all windows as needing
       // a DPI adjustment (just in case).
@@ -78,43 +76,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     private bool IsMonitorActive(Monitor monitor)
     {
       return Screen.AllScreens.Any(screen => screen.DeviceName == monitor.DeviceName);
-    }
-
-    // TODO: Move to own command.
-    private void RemoveMonitor(Monitor monitorToRemove)
-    {
-      // Keep reference to the focused monitor prior to moving workspaces around.
-      var focusedMonitor = _monitorService.GetFocusedMonitor();
-
-      var targetMonitor = _monitorService.GetMonitors().First(
-        monitor => monitor != monitorToRemove
-      );
-
-      // Avoid moving empty workspaces.
-      var workspacesToMove = monitorToRemove.Children.Where(workspace => workspace.HasChildren());
-
-      foreach (var workspace in workspacesToMove.ToList())
-      {
-        // Move workspace to target monitor.
-        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
-
-        // Get windows of the moved workspace.
-        var windows = workspace.Descendants
-          .Where(descendant => descendant is Window)
-          .Cast<Window>();
-
-        // Adjust floating position of moved windows.
-        // TODO: If primary monitor changes, does floating placement of all windows need to be updated?
-        foreach (var window in windows)
-          window.FloatingPlacement =
-            window.FloatingPlacement.TranslateToCenter(workspace.ToRectangle());
-      }
-
-      _bus.Invoke(new DetachContainerCommand(monitorToRemove));
-      _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
-
-      if (focusedMonitor == monitorToRemove)
-        _bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
     }
   }
 }
