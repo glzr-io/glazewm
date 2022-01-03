@@ -27,6 +27,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     private void CreateWindowEventHook()
     {
+      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_OBJECT_DESTROY, EventConstant.EVENT_OBJECT_HIDE, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
@@ -47,14 +48,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       switch (eventType)
       {
-        case EventConstant.EVENT_OBJECT_SHOW:
-          _bus.RaiseEvent(new WindowShownEvent(hwnd));
+        case EventConstant.EVENT_OBJECT_LOCATIONCHANGE:
+          _bus.RaiseEvent(new WindowLocationChangedEvent(hwnd));
           break;
-        case EventConstant.EVENT_OBJECT_DESTROY:
-          _bus.RaiseEvent(new WindowDestroyedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_OBJECT_HIDE:
-          _bus.RaiseEvent(new WindowHiddenEvent(hwnd));
+        case EventConstant.EVENT_SYSTEM_FOREGROUND:
+          _bus.RaiseEvent(new WindowFocusedEvent(hwnd));
           break;
         case EventConstant.EVENT_SYSTEM_MINIMIZESTART:
           _bus.RaiseEvent(new WindowMinimizedEvent(hwnd));
@@ -65,8 +63,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
         case EventConstant.EVENT_SYSTEM_MOVESIZEEND:
           _bus.RaiseEvent(new WindowMovedOrResizedEvent(hwnd));
           break;
-        case EventConstant.EVENT_SYSTEM_FOREGROUND:
-          _bus.RaiseEvent(new WindowFocusedEvent(hwnd));
+        case EventConstant.EVENT_OBJECT_DESTROY:
+          _bus.RaiseEvent(new WindowDestroyedEvent(hwnd));
+          break;
+        case EventConstant.EVENT_OBJECT_SHOW:
+          _bus.RaiseEvent(new WindowShownEvent(hwnd));
+          break;
+        case EventConstant.EVENT_OBJECT_HIDE:
+          _bus.RaiseEvent(new WindowHiddenEvent(hwnd));
           break;
       }
     }
