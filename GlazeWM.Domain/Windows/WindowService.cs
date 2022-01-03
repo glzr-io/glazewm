@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -13,10 +14,12 @@ namespace GlazeWM.Domain.Windows
   public class WindowService
   {
     private ContainerService _containerService;
+    private MonitorService _monitorService;
 
-    public WindowService(ContainerService containerService)
+    public WindowService(ContainerService containerService, MonitorService monitorService)
     {
       _containerService = containerService;
+      _monitorService = monitorService;
     }
 
     /// <summary>
@@ -157,6 +160,35 @@ namespace GlazeWM.Domain.Windows
         return false;
 
       return true;
+    }
+
+    /// <summary>
+    /// Whether the given handle is an appbar window (application desktop toolbar).
+    /// </summary>
+    public bool IsHandleAppBar(IntPtr handle)
+    {
+      // Appbar window has to be visible.
+      if (!IsHandleVisible(handle))
+        return false;
+
+      var monitor = _monitorService.GetMonitorFromHandleLocation(handle);
+      var location = GetLocationOfHandle(handle);
+
+      var isFullWidth = location.Width == monitor.Width;
+      var isFullHeight = location.Height == monitor.Height;
+
+      if (!(isFullWidth || isFullHeight))
+        return false;
+
+      // Whether window is below or above the monitor's working area.
+      var isHorizontalBar = (isFullWidth && location.Y + location.Height <= monitor.Y)
+        || (isFullWidth && location.Y >= monitor.Y + monitor.Height);
+
+      // Whether window is to the left or right of the monitor's working area.
+      var isVerticalBar = (isFullHeight && location.X + location.Width <= monitor.X)
+        || (isFullHeight && location.X >= monitor.X + monitor.Width);
+
+      return isHorizontalBar || isVerticalBar;
     }
   }
 }
