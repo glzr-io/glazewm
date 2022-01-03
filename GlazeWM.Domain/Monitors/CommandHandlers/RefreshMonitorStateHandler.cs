@@ -1,8 +1,9 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
+using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -53,6 +54,8 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         foundMonitor.X = screen.WorkingArea.X;
         foundMonitor.Y = screen.WorkingArea.Y;
         foundMonitor.IsPrimary = screen.Primary;
+
+        _bus.RaiseEvent(new WorkingAreaResizedEvent(foundMonitor));
       }
 
       // Verify that all monitors in state exist in `Screen.AllScreens`.
