@@ -3,7 +3,9 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
@@ -30,7 +32,9 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       var focusedMonitor = _monitorService.GetFocusedMonitor();
 
       // Avoid moving empty workspaces.
-      var workspacesToMove = monitorToRemove.Children.Where(workspace => workspace.HasChildren());
+      var workspacesToMove = monitorToRemove.Children
+        .Where(workspace => workspace.HasChildren())
+        .Cast<Workspace>();
 
       foreach (var workspace in workspacesToMove.ToList())
       {
@@ -47,6 +51,10 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         foreach (var window in windows)
           window.FloatingPlacement =
             window.FloatingPlacement.TranslateToCenter(workspace.ToRectangle());
+
+        // Update workspaces displayed in bar window.
+        // TODO: Consider creating separate event `WorkspaceMovedEvent`.
+        _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
       }
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
