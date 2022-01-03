@@ -96,6 +96,13 @@ namespace GlazeWM.Bootstrapper
       // Add initial windows to the tree.
       foreach (var windowHandle in _windowService.GetAllWindowHandles())
       {
+        // Register appbar windows.
+        if (_windowService.IsHandleAppBar(windowHandle))
+        {
+          _windowService.AppBarHandles.Add(windowHandle);
+          continue;
+        }
+
         // Get workspace that encompasses most of the window.
         var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
         var targetWorkspace = targetMonitor.DisplayedWorkspace;
