@@ -5,6 +5,7 @@
   /// </summary>
   public enum EventConstant : uint
   {
+    EVENT_OBJECT_LOCATIONCHANGE = 0x800B,
     EVENT_SYSTEM_FOREGROUND = 0x0003,
     EVENT_SYSTEM_MINIMIZESTART = 0x0016,
     EVENT_SYSTEM_MINIMIZEEND = 0x0017,

@@ -4,10 +4,10 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -42,8 +42,8 @@ namespace GlazeWM.Bar
       HideFromTaskSwitcher(windowHandle);
       PositionWindow(windowHandle);
 
-      // Reposition window on changes to display settings.
-      _bus.Events.Where(@event => @event is DisplaySettingsChangedEvent)
+      // Reposition window on changes to the monitor's working area.
+      _bus.Events.Where(@event => @event is WorkingAreaResizedEvent)
         .Subscribe((@event) =>
         {
           _dispatcher.Invoke(() => PositionWindow(windowHandle));
