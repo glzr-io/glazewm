@@ -1,5 +1,4 @@
-﻿using GlazeWM.Domain.UserConfigs.Commands;
-using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
@@ -98,17 +97,12 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     {
       var errorMessage = exception.Message;
 
-      if (exception.InnerException?.Message != null)
-      {
-        var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
-        var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+      var unknownPropertyRegex = new Regex(@"Could not find member '(?<property>.*?)' on object");
+      var unknownPropertyMatch = unknownPropertyRegex.Match(errorMessage);
 
-        // Improve error message shown in case of unknown property error.
-        if (match.Success)
-          errorMessage = $"Unknown property in config: {match.Groups["property"]}.";
-        else
-          errorMessage += $". {exception.InnerException.Message}";
-      }
+      // Improve error message shown in case of unknown property error.
+      if (unknownPropertyMatch.Success)
+        return $"Unknown property in config: '{unknownPropertyMatch.Groups["property"]}'.";
 
       return errorMessage;
     }
