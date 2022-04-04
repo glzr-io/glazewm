@@ -74,13 +74,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       var assembly = Assembly.GetEntryAssembly();
       var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
 
+      // Create containing directory. Needs to be created before writing to the file.
+      Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
+
       // Get the embedded sample user config from the entry assembly.
       using (Stream stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
       {
         // Write the sample user config to the appropriate destination.
         using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))
         {
-          Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
           stream.CopyTo(fileStream);
         }
       }
