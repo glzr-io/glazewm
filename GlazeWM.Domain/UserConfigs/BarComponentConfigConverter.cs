@@ -19,7 +19,7 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "workspaces" => new WorkspacesComponentConfig(),
         "clock" => new ClockComponentConfig(),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException($"Invalid workspace type '{type}'."),
       };
 
       serializer.Populate(jObject.CreateReader(), target);

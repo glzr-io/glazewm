@@ -13,6 +13,7 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
@@ -55,29 +56,46 @@ namespace GlazeWM.Bootstrapper
       _systemEventService = systemEventService;
     }
 
-    public void Init()
+    public void Run()
     {
-      // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
-      // to be initialized before populating initial state.
-      _barService.StartApp();
+      try
+      {
+        // Set the process-default DPI awareness.
+        SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
 
-      // Populate initial monitors, windows, workspaces and user config.
-      PopulateInitialState();
+        // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
+        // to be initialized before populating initial state.
+        _barService.StartApp();
 
-      // Listen on registered keybindings.
-      _keybindingService.Start();
+        // Populate initial monitors, windows, workspaces and user config.
+        PopulateInitialState();
 
-      // Listen for window events (eg. close, focus).
-      _windowEventService.Start();
+        // Listen on registered keybindings.
+        _keybindingService.Start();
 
-      // Listen for system-related events (eg. changes to display settings).
-      _systemEventService.Start();
+        // Listen for window events (eg. close, focus).
+        _windowEventService.Start();
 
-      // Add application to system tray.
-      _systemTrayService.AddToSystemTray();
+        // Listen for system-related events (eg. changes to display settings).
+        _systemEventService.Start();
 
-      _bus.Events.Where(@event => @event is ApplicationExitingEvent)
-        .Subscribe((@event) => OnApplicationExit());
+        // Add application to system tray.
+        _systemTrayService.AddToSystemTray();
+
+        _bus.Events.Where(@event => @event is ApplicationExitingEvent)
+          .Subscribe((@event) => OnApplicationExit());
+      }
+      catch (Exception error)
+      {
+        // Alert the user of the error.
+        // TODO: This throws duplicate errors if a command errors and it was invoked by another
+        // handler.
+        if (error is FatalUserException)
+          MessageBox.Show(error.Message);
+
+        File.AppendAllText("./errors.log", $"\n\n{error.Message + error.StackTrace}");
+        throw error;
+      }
     }
 
     /// <summary>

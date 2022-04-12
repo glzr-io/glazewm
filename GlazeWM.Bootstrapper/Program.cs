@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bootstrapper
 {
@@ -33,21 +32,23 @@ namespace GlazeWM.Bootstrapper
           return;
         }
 
-        // Set the process-default DPI awareness.
-        SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
-
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddInfrastructureServices();
-        serviceCollection.AddDomainServices();
-        serviceCollection.AddBarServices();
-        serviceCollection.AddSingleton<Startup>();
-
-        ServiceLocator.Provider = serviceCollection.BuildServiceProvider();
+        ServiceLocator.Provider = BuildServiceProvider();
 
         var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
-        startup.Init();
+        startup.Run();
         Application.Run();
       }
+    }
+
+    private static ServiceProvider BuildServiceProvider()
+    {
+      var serviceCollection = new ServiceCollection();
+      serviceCollection.AddInfrastructureServices();
+      serviceCollection.AddDomainServices();
+      serviceCollection.AddBarServices();
+      serviceCollection.AddSingleton<Startup>();
+
+      return serviceCollection.BuildServiceProvider();
     }
   }
 }

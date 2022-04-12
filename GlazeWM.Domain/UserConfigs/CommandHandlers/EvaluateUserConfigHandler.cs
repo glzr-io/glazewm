@@ -1,8 +1,8 @@
 ﻿using GlazeWM.Domain.UserConfigs.Commands;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Reflection;
@@ -74,13 +74,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       var assembly = Assembly.GetEntryAssembly();
       var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
 
+      // Create containing directory. Needs to be created before writing to the file.
+      Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
+
       // Get the embedded sample user config from the entry assembly.
       using (Stream stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
       {
         // Write the sample user config to the appropriate destination.
         using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))
         {
-          Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
           stream.CopyTo(fileStream);
         }
       }
@@ -96,19 +98,21 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
     private string FormatErrorMessage(Exception exception)
     {
-      var errorMessage = exception.Message;
+      var errorMessage = "Failed to parse user config. ";
 
-      if (exception.InnerException?.Message != null)
-      {
-        var unknownPropertyRegex = new Regex(@"Property '(?<property>.*?)' not found on type");
-        var match = unknownPropertyRegex.Match(exception.InnerException.Message);
+      var unknownPropertyRegex = new Regex(@"Could not find member '(?<property>.*?)' on object");
+      var unknownPropertyMatch = unknownPropertyRegex.Match(exception.Message);
 
-        // Improve error message shown in case of unknown property error.
-        if (match.Success)
-          errorMessage = $"Unknown property in config: {match.Groups["property"]}.";
-        else
-          errorMessage += $". {exception.InnerException.Message}";
-      }
+      // Improve error message in case of unknown property errors.
+      if (unknownPropertyMatch.Success)
+        errorMessage += $"Unknown property: '{unknownPropertyMatch.Groups["property"]}'.";
+
+      // Improve error message of generic deserialization errors.
+      else if (exception is JsonReaderException)
+        errorMessage += $"Invalid value at property: '{(exception as JsonReaderException).Path}'.";
+
+      else
+        errorMessage += exception.Message;
 
       return errorMessage;
     }

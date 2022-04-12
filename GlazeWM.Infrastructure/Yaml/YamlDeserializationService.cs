@@ -18,6 +18,7 @@ namespace GlazeWM.Infrastructure.Yaml
 
     JsonSerializerSettings _jsonDeserializerSettings = new JsonSerializerSettings
     {
+      MissingMemberHandling = MissingMemberHandling.Error,
       ContractResolver = new DefaultContractResolver
       {
         NamingStrategy = new SnakeCaseNamingStrategy()
