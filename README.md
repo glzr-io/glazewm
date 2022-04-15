@@ -1,16 +1,22 @@
-# GlazeWM &middot;
+# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lars-berger/GlazeWM/pulls)
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
-Why use a tiling window manager? A tiling WM lets you easily organize windows and adjust their layout on the fly. Spend less time moving and resizing windows by using keyboard-driven commands.
+Why use a tiling window manager? A tiling WM lets you easily organize windows and adjust their layout on the fly by using keyboard-driven commands.
 
-Under the hood, the Windows API is used to position windows via P/Invoke. The codebase is organized using a 3-tier architecture and uses some DDD/CQRS patterns.
+- Simple YAML configuration
+- Multi-monitor support
+- Customizable bar window
+- Handles monitor connections & disconnections
+- Customizable rules for specific windows
 
 ![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
+Under the hood, GlazeWM adds functionality to the built-in DWM and uses the Windows API is used to position windows via P/Invoke.
+
 # Download
 
-The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases).
+The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the executable.
 
 Alternatively, to build from source, use the .NET CLI command `dotnet publish ./GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj --configuration=Release --runtime=win-x64 --output=. -p:PublishSingleFile=true` and run `GlazeWM.exe` from the compiled output. Other available runtime identifiers can be found [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog#windows-rids).
 
@@ -18,7 +24,6 @@ Alternatively, to build from source, use the .NET CLI command `dotnet publish ./
 
 - Improve handling of fullscreen and maximized windows.
 - More bar components.
-- Avoid managing windows that can't be moved/resized (eg. windows running with elevated priveleges).
 - Change the size of sibling windows when a tiling window is resized with the sizing border.
 
 # Configuration
@@ -35,12 +40,19 @@ It's recommended to use the alt key for keybindings. The windows key is unfortun
 
 ```yaml
 keybindings:
-  # Command to run. Use "commands" to specify an array of commands to run in sequence.
+  # Command to run.
   - command: "focus workspace 1"
 
-    # Key combination to trigger the keybinding. Use "bindings" to provide an array of key
-    # combinations that can trigger the keybinding.
-    binding: "Alt+1"
+  # Key combination to trigger the keybinding.
+  binding: "Alt+1"
+
+  # To run multiple commands in a sequence, use the `commands` property (eg. to move a window to a workspace + focus workspace).
+  - commands: ["move to workspace 1", "focus workspace 1"]
+  binding: "Alt+Shift+1"
+
+  - command: "focus left"
+  # To have multiple key combinations that can trigger a command, use the `bindings` property.
+  bindings: ["Alt+H", "Alt+Left"]
 ```
 
 ### Default keybindings
@@ -124,7 +136,7 @@ bar:
 
 ### Bar component configuration
 
-Bar components have some properties that can be changed regardless of the component type.
+The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
 # Type of component to display. Currently only 2 component types exist:  "workspaces" and "clock".
@@ -161,7 +173,7 @@ border_color: "blue"
 
 ### Shorthand properties
 
-Properties related to the edges of the bar or a component, like `padding`, `margin`, and `border_width`, use a 1-to-4 value syntax. This is the same convention that's common in CSS, for those familiar with that.
+Properties related to the edges of the bar or a component, like `padding`, `margin`, and `border_width`, use a 1-to-4 value syntax. This is the same convention that's common in CSS.
 
 Using the example of padding:
 
@@ -169,6 +181,31 @@ Using the example of padding:
 - When two values are specified, the first padding applies to the top and bottom, the second to the left and right.
 - When three values are specified, the first padding applies to the top, the second to the right and left, the third to the bottom.
 - When four values are specified, the paddings apply to the top, right, bottom, and left in that order (clockwise).
+
+## Window rules
+
+Commands can be run when a window is initally launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.
+
+Multiple matching criteria can be used together to target a window more precisely. Regex syntax can also be used by wrapping the pattern with `/` (eg. `/notepad|chrome/`)
+
+```yaml
+window_rules:
+  # Command to run. Use `commands` to specify an array of commands to run in sequence.
+  - command: "move to workspace 2"
+
+  # Process name to match exactly.
+  match_process_name: "chrome"
+
+  # Window title to match exactly.
+  match_title: "/.*/"
+
+  # Class name to match exactly.
+  match_class_name: "Chrome_WidgetWin_1"
+
+  # To prevent the WM from managing an app, use the "ignore" command.
+  - command: "ignore"
+  match_process_name: "notepad"
+```
 
 # Known issues
 
