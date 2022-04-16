@@ -12,7 +12,7 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 
 ![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
-Under the hood, GlazeWM adds functionality to the built-in DWM and uses the Windows API is used to position windows via P/Invoke.
+Under the hood, GlazeWM adds functionality to the built-in DWM and uses the Windows API via P/Invoke to position windows.
 
 # Download
 
@@ -43,16 +43,16 @@ keybindings:
   # Command to run.
   - command: "focus workspace 1"
 
-  # Key combination to trigger the keybinding.
-  binding: "Alt+1"
+    # Key combination to trigger the keybinding.
+    binding: "Alt+1"
 
   # To run multiple commands in a sequence, use the `commands` property (eg. to move a window to a workspace + focus workspace).
   - commands: ["move to workspace 1", "focus workspace 1"]
-  binding: "Alt+Shift+1"
+    binding: "Alt+Shift+1"
 
   - command: "focus left"
-  # To have multiple key combinations that can trigger a command, use the `bindings` property.
-  bindings: ["Alt+H", "Alt+Left"]
+    # To have multiple key combinations that can trigger a command, use the `bindings` property.
+    bindings: ["Alt+H", "Alt+Left"]
 ```
 
 ### Default keybindings
@@ -193,18 +193,18 @@ window_rules:
   # Command to run. Use `commands` to specify an array of commands to run in sequence.
   - command: "move to workspace 2"
 
-  # Process name to match exactly.
-  match_process_name: "chrome"
+    # Process name to match exactly.
+    match_process_name: "chrome"
 
-  # Window title to match exactly.
-  match_title: "/.*/"
+    # Window title to match exactly.
+    match_title: "/.*/"
 
-  # Class name to match exactly.
-  match_class_name: "Chrome_WidgetWin_1"
+    # Class name to match exactly.
+    match_class_name: "Chrome_WidgetWin_1"
 
   # To prevent the WM from managing an app, use the "ignore" command.
   - command: "ignore"
-  match_process_name: "notepad"
+    match_process_name: "notepad"
 ```
 
 # Known issues
