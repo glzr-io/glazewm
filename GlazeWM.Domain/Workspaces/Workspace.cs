@@ -34,7 +34,7 @@ namespace GlazeWM.Domain.Workspaces
     public override int Height => Parent.Height - (OuterGap * 2) - LogicalBarHeight;
     public override int Width => Parent.Width - (OuterGap * 2);
     public override int X => Parent.X + OuterGap;
-    public override int Y => Parent.Y + OuterGap + LogicalBarHeight;
+    public override int Y => Parent.Y + OuterGap + (_userConfigService.UserConfig.Bar.Position == BarPosition.Top ? LogicalBarHeight : 0);
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.

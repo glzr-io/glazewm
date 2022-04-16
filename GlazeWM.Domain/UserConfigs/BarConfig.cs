@@ -6,6 +6,8 @@ namespace GlazeWM.Domain.UserConfigs
   public class BarConfig
   {
     public uint Height { get; set; } = 30;
+    
+    public BarPosition Position { get; set; } = BarPosition.Top;
 
     public double Opacity { get; set; } = 1.0;
 

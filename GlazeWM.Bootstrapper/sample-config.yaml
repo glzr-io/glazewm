@@ -4,6 +4,7 @@ gaps:
 
 bar:
   height: 30
+  position: "top"
   opacity: 1.0
   background: "#101010"
   foreground: "white"
