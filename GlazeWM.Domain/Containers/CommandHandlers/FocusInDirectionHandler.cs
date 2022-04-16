@@ -12,9 +12,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private MonitorService _monitorService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
     public FocusInDirectionHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
     {
@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (focusTarget == null || focusTarget == focusedContainer)
         return;
 
-      _bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
+      Bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
     }
 
     private void FocusFromTilingContainer(Container focusedContainer, Direction direction)
@@ -64,10 +64,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is Window)
-        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
+        Bus.Invoke(new FocusWindowCommand(focusTarget as Window));
 
       else if (focusTarget is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+        Bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
     }
 
     private Container GetFocusTarget(Container focusedContainer, Direction direction)

@@ -10,8 +10,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class WindowEventService
   {
-    private Bus _bus;
-    private static readonly int CHILDID_SELF = 0;
+    private readonly Bus _bus;
+    private const int CHILDID_SELF = 0;
 
     public WindowEventService(Bus bus)
     {

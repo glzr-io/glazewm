@@ -12,9 +12,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowFocusedHandler : IEventHandler<WindowFocusedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly ContainerService _containerService;
 
     public WindowFocusedHandler(Bus bus, WindowService windowService, ContainerService containerService)
     {
@@ -31,10 +31,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (pendingFocusContainer != null)
       {
         if (pendingFocusContainer is Window)
-          _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
+          Bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
 
         else if (pendingFocusContainer is Workspace)
-          _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
+          Bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
 
         _containerService.PendingFocusContainer = null;
         return;
@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      _bus.Invoke(new SetFocusedDescendantCommand(window));
+      Bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.RaiseEvent(new FocusChangedEvent(window));
     }
   }

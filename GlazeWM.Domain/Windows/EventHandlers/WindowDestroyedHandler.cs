@@ -9,8 +9,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowDestroyedHandler : IEventHandler<WindowDestroyedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowDestroyedHandler(Bus bus, WindowService windowService)
     {
@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (_windowService.AppBarHandles.Contains(windowHandle))
       {
         _windowService.AppBarHandles.Remove(windowHandle);
-        _bus.Invoke(new RefreshMonitorStateCommand());
+        Bus.Invoke(new RefreshMonitorStateCommand());
         return;
       }
 
@@ -36,8 +36,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // If window is in tree, detach the removed window from its parent.
-      _bus.Invoke(new RemoveWindowCommand(window));
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RemoveWindowCommand(window));
+      Bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

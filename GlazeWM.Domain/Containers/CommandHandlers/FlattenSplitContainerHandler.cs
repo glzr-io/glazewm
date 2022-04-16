@@ -7,8 +7,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public FlattenSplitContainerHandler(Bus bus, ContainerService containerService)
     {
@@ -31,8 +31,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       {
         // Insert children of the split container at its original index in the parent. The split
         // container will automatically detach once its last child is detached.
-        _bus.Invoke(new DetachContainerCommand(child));
-        _bus.Invoke(new AttachContainerCommand(child, originalParent, originalIndex + index));
+        Bus.Invoke(new DetachContainerCommand(child));
+        Bus.Invoke(new AttachContainerCommand(child, originalParent, originalIndex + index));
 
         (child as IResizable).SizePercentage = (containerToFlatten as IResizable).SizePercentage
           * (child as IResizable).SizePercentage;

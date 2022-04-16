@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class WindowsApiService
+  public static class WindowsApiService
   {
     public enum SWP : uint
     {
@@ -115,8 +115,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       DWMWA_LAST
     }
 
-    public static int GWL_STYLE = -16;
-    public static int GWL_EXSTYLE = -20;
+    public const int GWL_STYLE = -16;
+    public const int GWL_EXSTYLE = -20;
 
     public enum GW : uint
     {

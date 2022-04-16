@@ -45,19 +45,19 @@ namespace GlazeWM.Bar.Components
     public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
     public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
     public string FocusedWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.FocusedWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.FocusedWorkspaceBorderWidth);
 
     public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
     public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground ?? Foreground;
     public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
     public string DisplayedWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.DisplayedWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.DisplayedWorkspaceBorderWidth);
 
     public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
     public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground ?? Foreground;
     public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
     public string DefaultWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
 
     public ICommand FocusWorkspaceCommand => new RelayCommand<string>(FocusWorkspace);
 
@@ -71,15 +71,12 @@ namespace GlazeWM.Bar.Components
       );
 
       // Refresh contents of workspaces collection.
-      workspacesChangedEvent.Subscribe((_observer) =>
-      {
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
-      });
+      workspacesChangedEvent.Subscribe(_ => _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces))));
     }
 
     public void FocusWorkspace(string workspaceName)
     {
-      _bus.Invoke(new FocusWorkspaceCommand(workspaceName));
+      Bus.Invoke(new FocusWorkspaceCommand(workspaceName));
     }
   }
 }

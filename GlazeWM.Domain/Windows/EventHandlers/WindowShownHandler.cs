@@ -8,8 +8,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowShownHandler : IEventHandler<WindowShownEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowShownHandler(Bus bus, WindowService windowService)
     {
@@ -24,7 +24,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (_windowService.IsHandleAppBar(windowHandle))
       {
         _windowService.AppBarHandles.Add(windowHandle);
-        _bus.Invoke(new RefreshMonitorStateCommand());
+        Bus.Invoke(new RefreshMonitorStateCommand());
         return;
       }
 
@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window != null)
         return;
 
-      _bus.Invoke(new AddWindowCommand(@event.WindowHandle));
+      Bus.Invoke(new AddWindowCommand(@event.WindowHandle));
     }
   }
 }

@@ -17,18 +17,14 @@ namespace GlazeWM.Domain.Common.Enums
     /// </summary>
     public static Direction Inverse(this Direction direction)
     {
-      switch (direction)
+      return direction switch
       {
-        case Direction.UP:
-          return Direction.DOWN;
-        case Direction.DOWN:
-          return Direction.UP;
-        case Direction.LEFT:
-          return Direction.RIGHT;
-        case Direction.RIGHT:
-          return Direction.LEFT;
-        default: throw new ArgumentOutOfRangeException();
-      }
+        Direction.UP => Direction.DOWN,
+        Direction.DOWN => Direction.UP,
+        Direction.LEFT => Direction.RIGHT,
+        Direction.RIGHT => Direction.LEFT,
+        _ => throw new ArgumentOutOfRangeException(nameof(direction)),
+      };
     }
 
     /// <summary>

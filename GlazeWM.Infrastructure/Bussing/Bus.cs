@@ -20,7 +20,7 @@ namespace GlazeWM.Infrastructure.Bussing
     /// <summary>
     /// Sends command to appropriate command handler.
     /// </summary>
-    public CommandResponse Invoke<T>(T command) where T : Command
+    public static CommandResponse Invoke<T>(T command) where T : Command
     {
       try
       {

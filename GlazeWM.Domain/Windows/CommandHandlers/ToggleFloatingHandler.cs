@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void UnsetFloating(FloatingWindow floatingWindow)
     {
       // Keep reference to the window's ancestor workspace prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(floatingWindow);
 
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
@@ -44,13 +44,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         0
       );
 
-      _bus.Invoke(new ReplaceContainerCommand(tilingWindow, floatingWindow.Parent, floatingWindow.Index));
+      Bus.Invoke(new ReplaceContainerCommand(tilingWindow, floatingWindow.Parent, floatingWindow.Index));
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0, true));
+        Bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0, true));
       else
-        _bus.Invoke(
+        Bus.Invoke(
           new MoveContainerWithinTreeCommand(
             tilingWindow,
             insertionTarget.Parent,
@@ -59,7 +59,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
 
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

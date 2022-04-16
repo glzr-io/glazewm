@@ -24,13 +24,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
   public class KeybindingService
   {
-    private static readonly uint WM_KEYDOWN = 0x100;
-    private static readonly uint WM_SYSKEYDOWN = 0x104;
+    private const uint WM_KEYDOWN = 0x100;
+    private const uint WM_SYSKEYDOWN = 0x104;
 
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
-    private Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey
+    private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey
       = new Dictionary<Keys, List<Keybinding>>();
 
     public void Start()
@@ -61,7 +61,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _keybindingsByTriggerKey.Add(triggerKey, new List<Keybinding>() { keybinding });
     }
 
-    private string FormatKeybinding(string key)
+    private static string FormatKeybinding(string key)
     {
       var isNumeric = int.TryParse(key, out int _);
 
@@ -117,7 +117,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       // If multiple keybindings match the user input, call the longest key combination.
       var longestKeybinding = matchedKeybindings
-        .OrderByDescending(keybinding => keybinding.KeyCombination.Count())
+        .OrderByDescending(keybinding => keybinding.KeyCombination.Count)
         .FirstOrDefault();
 
       if (longestKeybinding == null)
@@ -150,7 +150,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Get whether the given key is down. If the high-order bit is 1, the key is down; otherwise, it is up.
     /// </summary>
-    private bool IsKeyDownRaw(Keys key)
+    private static bool IsKeyDownRaw(Keys key)
     {
       return (GetKeyState(key) & 0x8000) == 0x8000;
     }

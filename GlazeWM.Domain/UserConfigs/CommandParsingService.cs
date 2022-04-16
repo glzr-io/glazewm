@@ -14,14 +14,14 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class CommandParsingService
   {
-    private UserConfigService _userConfigService;
+    private readonly UserConfigService _userConfigService;
 
     public CommandParsingService(UserConfigService userConfigService)
     {
       _userConfigService = userConfigService;
     }
 
-    public string FormatCommand(string commandString)
+    public static string FormatCommand(string commandString)
     {
       var formattedCommandString = commandString.Trim().ToLowerInvariant();
       return Regex.Replace(formattedCommandString, @"\s+", " ");
@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.UserConfigs
       }
     }
 
-    private Command ParseLayoutCommand(string[] commandParts)
+    private static Command ParseLayoutCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -88,7 +88,7 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseResizeCommand(string[] commandParts)
+    private static Command ParseResizeCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -110,7 +110,7 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseToggleCommand(string[] commandParts)
+    private static Command ParseToggleCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -124,7 +124,7 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseExitCommand(string[] commandParts)
+    private static Command ParseExitCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {

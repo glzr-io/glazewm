@@ -11,10 +11,10 @@ namespace GlazeWM.Domain.Workspaces
   {
     public string Name { get; set; }
 
-    private UserConfigService _userConfigService =
+    private readonly UserConfigService _userConfigService =
         ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
-    private WorkspaceService _workspaceService =
+    private readonly WorkspaceService _workspaceService =
         ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
     public string DisplayName =>

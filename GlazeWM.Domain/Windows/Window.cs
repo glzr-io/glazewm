@@ -30,8 +30,8 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
-    private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
-    private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+    private readonly WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
+    private readonly WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
     public Window(IntPtr hwnd, WindowRect floatingPlacement, RectDelta borderDelta)
     {
@@ -43,21 +43,21 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Windows are hidden if their parent workspace is not displayed.
     /// </summary>
-    public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
+    public bool IsHidden => !WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
-    public string ProcessName => _windowService.GetProcessOfHandle(Hwnd).ProcessName;
+    public string ProcessName => WindowService.GetProcessOfHandle(Hwnd).ProcessName;
 
-    public string ClassName => _windowService.GetClassNameOfHandle(Hwnd);
+    public string ClassName => WindowService.GetClassNameOfHandle(Hwnd);
 
-    public WindowRect Location => _windowService.GetLocationOfHandle(Hwnd);
+    public WindowRect Location => WindowService.GetLocationOfHandle(Hwnd);
 
-    public string Title => _windowService.GetTitleOfHandle(Hwnd);
+    public string Title => WindowService.GetTitleOfHandle(Hwnd);
 
     public bool IsManageable => _windowService.IsHandleManageable(Hwnd);
 
-    public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
+    public WS WindowStyles => WindowService.GetWindowStyles(Hwnd);
 
-    public WS_EX WindowStylesEx => _windowService.GetWindowStylesEx(Hwnd);
+    public WS_EX WindowStylesEx => WindowService.GetWindowStylesEx(Hwnd);
 
     public bool HasWindowStyle(WS style)
     {

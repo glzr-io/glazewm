@@ -8,7 +8,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
   {
-    private ContainerService _containerService;
+    private readonly ContainerService _containerService;
 
     public ReplaceContainerHandler(ContainerService containerService)
     {
@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           (containerToReplace as IResizable).SizePercentage;
 
       // Adjust `SizePercentage` of siblings.
-      if (containerToReplace is IResizable && !(replacementContainer is IResizable))
+      if (containerToReplace is IResizable && replacementContainer is not IResizable)
       {
         // Get the freed up space after container is detached.
         var availableSizePercentage = (containerToReplace as IResizable).SizePercentage;
@@ -45,8 +45,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
         // Adjust `SizePercentage` of the siblings of the removed container.
         foreach (var sibling in resizableSiblings)
-          (sibling as IResizable).SizePercentage =
-            (sibling as IResizable).SizePercentage + sizePercentageIncrement;
+          (sibling as IResizable).SizePercentage += sizePercentageIncrement;
       }
 
       // Replace the container at the given index.

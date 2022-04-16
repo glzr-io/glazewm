@@ -7,8 +7,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 {
   class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public RemoveWindowHandler(Bus bus, ContainerService containerService)
     {
@@ -25,9 +25,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var grandparent = parent.Parent;
 
       if (window is IResizable)
-        _bus.Invoke(new DetachAndResizeContainerCommand(window));
+        Bus.Invoke(new DetachAndResizeContainerCommand(window));
       else
-        _bus.Invoke(new DetachContainerCommand(window));
+        Bus.Invoke(new DetachContainerCommand(window));
 
       // Get container to switch focus to after the window has been removed. The OS automatically
       // switches focus to a different window after closing, so by setting `PendingFocusContainer`

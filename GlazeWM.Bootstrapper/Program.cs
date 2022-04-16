@@ -11,7 +11,7 @@ namespace GlazeWM.Bootstrapper
 {
   static class Program
   {
-    private static string appGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
+    private const string appGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
 
     /// <summary>
     ///  The main entry point for the application.

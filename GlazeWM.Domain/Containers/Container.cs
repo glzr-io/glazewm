@@ -112,7 +112,7 @@ namespace GlazeWM.Domain.Containers
 
     public bool HasChildren() => Children.Count > 0;
 
-    public bool HasSiblings() => Siblings.Count() > 0;
+    public bool HasSiblings() => Siblings.Any();
 
     public WindowRect ToRectangle()
     {
@@ -155,7 +155,7 @@ namespace GlazeWM.Domain.Containers
     /// </summary>
     public Container LastFocusedChildOfType(Type type)
     {
-      return ChildFocusOrder.FirstOrDefault(
+      return ChildFocusOrder.Find(
         container => type.IsAssignableFrom(container.GetType())
       );
     }
@@ -189,7 +189,7 @@ namespace GlazeWM.Domain.Containers
       stack.Push(this);
 
       // Do a depth-first search using child focus order.
-      while (stack.Any())
+      while (stack.Count > 0)
       {
         var current = stack.Pop();
 

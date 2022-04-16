@@ -7,8 +7,8 @@ namespace GlazeWM.Domain.Workspaces
 {
   public class WorkspaceService
   {
-    private ContainerService _containerService;
-    private UserConfigService _userConfigService;
+    private readonly ContainerService _containerService;
+    private readonly UserConfigService _userConfigService;
 
     public WorkspaceService(ContainerService containerService, UserConfigService userConfigService)
     {
@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Workspaces
       return inactiveWorkspaceConfigs.Select(config => config.Name);
     }
 
-    public Workspace GetWorkspaceFromChildContainer(Container container)
+    public static Workspace GetWorkspaceFromChildContainer(Container container)
     {
       return container.SelfAndAncestors.OfType<Workspace>().FirstOrDefault();
     }

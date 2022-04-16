@@ -8,15 +8,15 @@ namespace GlazeWM.Infrastructure.Yaml
 {
   public class YamlDeserializationService
   {
-    IDeserializer _yamlDeserializer = new DeserializerBuilder()
+    private readonly IDeserializer _yamlDeserializer = new DeserializerBuilder()
       .WithNamingConvention(UnderscoredNamingConvention.Instance)
       .Build();
 
-    ISerializer _jsonSerializer = new SerializerBuilder()
+    private readonly ISerializer _jsonSerializer = new SerializerBuilder()
       .JsonCompatible()
       .Build();
 
-    JsonSerializerSettings _jsonDeserializerSettings = new JsonSerializerSettings
+    private readonly JsonSerializerSettings _jsonDeserializerSettings = new JsonSerializerSettings
     {
       MissingMemberHandling = MissingMemberHandling.Error,
       ContractResolver = new DefaultContractResolver
@@ -38,4 +38,3 @@ namespace GlazeWM.Infrastructure.Yaml
     }
   }
 }
-

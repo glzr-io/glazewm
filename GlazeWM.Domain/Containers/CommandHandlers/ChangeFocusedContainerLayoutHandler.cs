@@ -5,8 +5,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class ChangeFocusedContainerLayoutHandler : ICommandHandler<ChangeFocusedContainerLayoutCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public ChangeFocusedContainerLayoutHandler(Bus bus, ContainerService containerService)
     {
@@ -20,7 +20,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
 
       var focusedContainer = _containerService.FocusedContainer;
-      _bus.Invoke(new ChangeContainerLayoutCommand(focusedContainer, command.NewLayout));
+      Bus.Invoke(new ChangeContainerLayoutCommand(focusedContainer, command.NewLayout));
 
       return CommandResponse.Ok;
     }

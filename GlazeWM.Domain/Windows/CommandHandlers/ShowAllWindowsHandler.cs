@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 {
   class ShowAllWindowsHandler : ICommandHandler<ShowAllWindowsCommand>
   {
-    private WindowService _windowService;
+    private readonly WindowService _windowService;
 
     public ShowAllWindowsHandler(WindowService windowService)
     {
@@ -19,7 +19,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Show all windows regardless of whether their workspace is displayed.
       foreach (var window in _windowService.GetWindows())
       {
-        var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
+        const SWP flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
           SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING | SWP.SWP_SHOWWINDOW;
 
         SetWindowPos(

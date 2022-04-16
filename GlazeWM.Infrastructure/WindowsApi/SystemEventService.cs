@@ -7,7 +7,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class SystemEventService
   {
-    private Bus _bus;
+    private readonly Bus _bus;
 
     public SystemEventService(Bus bus)
     {
@@ -17,7 +17,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public void Start()
     {
       // TODO: Unsubscribe on application exit.
-      SystemEvents.DisplaySettingsChanged += new EventHandler(OnDisplaySettingsChanged);
+      SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
 
     private void OnDisplaySettingsChanged(object sender, EventArgs e)

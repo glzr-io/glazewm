@@ -9,9 +9,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class ToggleFocusModeHandler : ICommandHandler<ToggleFocusModeCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public ToggleFocusModeHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
     {
@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (windowToFocus == null)
         return CommandResponse.Ok;
 
-      _bus.Invoke(new FocusWindowCommand(windowToFocus));
+      Bus.Invoke(new FocusWindowCommand(windowToFocus));
 
       return CommandResponse.Ok;
     }

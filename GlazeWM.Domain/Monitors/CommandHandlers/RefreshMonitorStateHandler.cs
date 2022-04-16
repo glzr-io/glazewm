@@ -10,13 +10,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  class RefreshMonitorStateHandler : ICommandHandler<RefreshMonitorStateCommand>
+  internal class RefreshMonitorStateHandler : ICommandHandler<RefreshMonitorStateCommand>
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
-    private ContainerService _containerService;
-    private WindowService _windowService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
+    private readonly ContainerService _containerService;
+    private readonly WindowService _windowService;
+    private readonly WorkspaceService _workspaceService;
 
     public RefreshMonitorStateHandler(
       Bus bus,
@@ -44,7 +44,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         // Add monitor if it doesn't exist in state.
         if (foundMonitor == null)
         {
-          _bus.Invoke(new AddMonitorCommand(screen));
+          _ = Bus.Invoke(new AddMonitorCommand(screen));
           continue;
         }
 
@@ -66,7 +66,9 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       // Remove any monitors that no longer exist and move their workspaces to other monitors.
       // TODO: Verify that this works with "Duplicate these displays" or "Show only X" settings.
       foreach (var monitor in monitorsToRemove.ToList())
-        _bus.Invoke(new RemoveMonitorCommand(monitor));
+      {
+        _ = Bus.Invoke(new RemoveMonitorCommand(monitor));
+      }
 
       foreach (var window in _windowService.GetWindows())
       {
@@ -76,19 +78,19 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
         // Need to update floating position of moved windows when a monitor is disconnected or if
         // the primary display is changed. The primary display dictates the position of 0,0.
-        var parentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+        var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
         window.FloatingPlacement =
           window.FloatingPlacement.TranslateToCenter(parentWorkspace.ToRectangle());
       }
 
       // Redraw full container tree.
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);
-      _bus.Invoke(new RedrawContainersCommand());
+      _ = Bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
 
-    private bool IsMonitorActive(Monitor monitor)
+    private static bool IsMonitorActive(Monitor monitor)
     {
       return Screen.AllScreens.Any(screen => screen.DeviceName == monitor.DeviceName);
     }

@@ -10,10 +10,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowMinimizeEndedHandler : IEventHandler<WindowMinimizeEndedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public WindowMinimizeEndedHandler(
       Bus bus,
@@ -38,19 +38,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       var restoredWindow = CreateWindowFromPreviousState(window);
 
-      _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
+      Bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
-      if (!(restoredWindow is TilingWindow))
+      if (restoredWindow is not TilingWindow)
         return;
 
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
+        Bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
       else
-        _bus.Invoke(
+        Bus.Invoke(
           new MoveContainerWithinTreeCommand(
             restoredWindow,
             insertionTarget.Parent,
@@ -60,10 +60,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         );
 
       _containerService.ContainersToRedraw.Add(workspace);
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RedrawContainersCommand());
     }
 
-    private Window CreateWindowFromPreviousState(MinimizedWindow window)
+    private static Window CreateWindowFromPreviousState(MinimizedWindow window)
     {
       return window.PreviousState switch
       {

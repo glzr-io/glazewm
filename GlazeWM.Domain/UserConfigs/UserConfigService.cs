@@ -124,7 +124,7 @@ namespace GlazeWM.Domain.UserConfigs
 
     public WorkspaceConfig GetWorkspaceConfigByName(string workspaceName)
     {
-      return UserConfig.Workspaces.FirstOrDefault(
+      return UserConfig.Workspaces.Find(
         (workspaceConfig) => workspaceConfig.Name == workspaceName
       );
     }

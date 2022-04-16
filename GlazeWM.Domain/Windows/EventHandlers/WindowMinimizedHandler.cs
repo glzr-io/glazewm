@@ -12,10 +12,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public WindowMinimizedHandler(
       Bus bus,
@@ -38,11 +38,11 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null || window is MinimizedWindow)
         return;
 
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       // Move tiling windows to be direct children of workspace (in case they aren't already).
       if (window is TilingWindow)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+        Bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
 
       var previousState = window switch
       {
@@ -60,18 +60,18 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         previousState
       );
 
-      _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
+      Bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
       var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
 
       if (focusTarget is Window)
-        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
+        Bus.Invoke(new FocusWindowCommand(focusTarget as Window));
 
       else if (focusTarget is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+        Bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
 
       _containerService.ContainersToRedraw.Add(workspace);
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

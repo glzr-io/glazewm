@@ -11,9 +11,9 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
   class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public AddMonitorHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
     {
@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       );
 
       var rootContainer = _containerService.ContainerTree;
-      _bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
+      Bus.Invoke(new AttachContainerCommand(newMonitor, rootContainer));
 
       ActivateWorkspaceOnMonitor(newMonitor);
 
@@ -57,12 +57,12 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         throw new FatalUserException("At least 1 workspace is required per monitor.");
 
       // Assign the workspace to the newly added monitor.
-      _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
+      Bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
 
       var workspace = _workspaceService.GetActiveWorkspaceByName(inactiveWorkspaceName);
 
       // Display the workspace (since it's the only one on the monitor).
-      _bus.Invoke(new DisplayWorkspaceCommand(workspace));
+      Bus.Invoke(new DisplayWorkspaceCommand(workspace));
     }
   }
 }

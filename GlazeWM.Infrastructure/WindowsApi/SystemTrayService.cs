@@ -11,7 +11,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class SystemTrayService
   {
-    private Bus _bus;
+    private readonly Bus _bus;
 
     public SystemTrayService(Bus bus)
     {
@@ -32,7 +32,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       contextMenuStrip.Items.Add("Exit", null, SignalApplicationExit);
 
       var assembly = Assembly.GetEntryAssembly();
-      var iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
+      const string iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
 
       // Get the embedded icon resource from the entry assembly.
       using (Stream stream = assembly.GetManifestResourceStream(iconResourceName))

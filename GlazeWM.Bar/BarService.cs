@@ -12,9 +12,9 @@ namespace GlazeWM.Bar
 {
   public class BarService
   {
-    private Bus _bus;
+    private readonly Bus _bus;
     private Application _application;
-    private Dictionary<string, MainWindow> _activeWindowsByDeviceName
+    private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName
       = new Dictionary<string, MainWindow>();
 
     public BarService(Bus bus)
@@ -85,17 +85,17 @@ namespace GlazeWM.Bar
     /// to be compatible with their equivalent XAML properties (ie. `Padding`, `Margin`, and
     /// `BorderThickness`). Shorthand properties follow the 1-to-4 value syntax used in CSS.
     /// </summary>
-    public string ShorthandToXamlProperty(string shorthand)
+    public static string ShorthandToXamlProperty(string shorthand)
     {
       var shorthandParts = shorthand.Split(" ");
 
-      return shorthandParts.Count() switch
+      return shorthandParts.Length switch
       {
         1 => shorthand,
         2 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[0]}",
         3 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(nameof(shorthandParts)),
       };
     }
   }

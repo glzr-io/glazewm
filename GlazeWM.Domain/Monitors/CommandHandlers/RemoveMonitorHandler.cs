@@ -12,8 +12,8 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
   class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
+    private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
 
     public RemoveMonitorHandler(Bus bus, MonitorService monitorService)
     {
@@ -39,23 +39,21 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       foreach (var workspace in workspacesToMove.ToList())
       {
         // Move workspace to target monitor.
-        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
+        Bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
         // Get windows of the moved workspace.
-        var windows = workspace.Descendants
-          .Where(descendant => descendant is Window)
-          .Cast<Window>();
+        var windows = workspace.Descendants.OfType<Window>();
 
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.
         _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
       }
 
-      _bus.Invoke(new DetachContainerCommand(monitorToRemove));
+      Bus.Invoke(new DetachContainerCommand(monitorToRemove));
       _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
 
       if (focusedMonitor == monitorToRemove)
-        _bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
+        Bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
 
       return CommandResponse.Ok;
     }

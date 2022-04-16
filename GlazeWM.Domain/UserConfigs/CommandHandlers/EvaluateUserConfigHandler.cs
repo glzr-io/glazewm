@@ -13,10 +13,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
   class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
-    private Bus _bus;
-    private UserConfigService _userConfigService;
-    private KeybindingService _keybindingService;
-    private YamlDeserializationService _yamlDeserializationService;
+    private readonly Bus _bus;
+    private readonly UserConfigService _userConfigService;
+    private readonly KeybindingService _keybindingService;
+    private readonly YamlDeserializationService _yamlDeserializationService;
 
     public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService, YamlDeserializationService yamlDeserializationService)
     {
@@ -52,12 +52,12 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       _userConfigService.UserConfig = deserializedConfig;
 
       // Register keybindings.
-      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
+      Bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       return CommandResponse.Ok;
     }
 
-    private void InitializeSampleUserConfig(string userConfigPath)
+    private static void InitializeSampleUserConfig(string userConfigPath)
     {
       // Fix any inconsistencies in directory delimiters.
       var normalizedUserConfigPath = Path.GetFullPath(new Uri(userConfigPath).LocalPath);
@@ -72,7 +72,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         throw new FatalUserException("Cannot start the app without a configuration file.");
 
       var assembly = Assembly.GetEntryAssembly();
-      var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
+      const string sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
 
       // Create containing directory. Needs to be created before writing to the file.
       Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
@@ -96,7 +96,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       return _yamlDeserializationService.Deserialize<UserConfig>(input);
     }
 
-    private string FormatErrorMessage(Exception exception)
+    private static string FormatErrorMessage(Exception exception)
     {
       var errorMessage = "Failed to parse user config. ";
 

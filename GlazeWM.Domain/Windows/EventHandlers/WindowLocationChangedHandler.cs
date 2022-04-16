@@ -6,8 +6,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowLocationChangedHandler : IEventHandler<WindowLocationChangedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowLocationChangedHandler(Bus bus, WindowService windowService)
     {
@@ -22,7 +22,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (!_windowService.AppBarHandles.Contains(windowHandle))
         return;
 
-      _bus.Invoke(new RefreshMonitorStateCommand());
+      Bus.Invoke(new RefreshMonitorStateCommand());
     }
   }
 }

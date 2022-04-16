@@ -29,9 +29,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// Creates an exact match regex for the given string.
     /// </summary>
     /// <returns>The corresponding regex, or null if input is invalid.</returns>
-    private Regex CreateRegex(string input)
+    private static Regex CreateRegex(string input)
     {
-      if (String.IsNullOrWhiteSpace(input))
+      if (string.IsNullOrWhiteSpace(input))
         return null;
 
       var isRegexLiteral = input.StartsWith("/") && input.EndsWith("/");

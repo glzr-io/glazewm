@@ -29,7 +29,7 @@ namespace GlazeWM.Bar.Common
 
     public bool CanExecute(object parameter)
     {
-      return _canExecutePredicate == null ? true : _canExecutePredicate.Invoke();
+      return _canExecutePredicate?.Invoke() != false;
     }
 
     public void Execute(object parameter)
@@ -64,7 +64,7 @@ namespace GlazeWM.Bar.Common
 
     public bool CanExecute(object parameter)
     {
-      return _canExecutePredicate == null ? true : _canExecutePredicate.Invoke((T)parameter);
+      return _canExecutePredicate?.Invoke((T)parameter) != false;
     }
 
     public void Execute(object parameter)

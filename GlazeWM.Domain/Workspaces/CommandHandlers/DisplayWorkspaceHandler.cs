@@ -8,9 +8,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
   class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
+    private readonly ContainerService _containerService;
 
     public DisplayWorkspaceHandler(Bus bus, MonitorService monitorService, ContainerService containerService)
     {
@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     {
       var workspaceToDisplay = command.Workspace;
 
-      var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
+      var monitor = MonitorService.GetMonitorFromChildContainer(command.Workspace);
       var currentWorkspace = monitor.DisplayedWorkspace;
 
       // If `DisplayedWorkspace` is unassigned (ie. on startup), there is no need to show/hide
@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _containerService.ContainersToRedraw.Add(currentWorkspace);
       _containerService.ContainersToRedraw.Add(workspaceToDisplay);
 
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }

@@ -9,9 +9,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly WindowService _windowService;
 
     public ChangeContainerLayoutHandler(
       Bus bus,
@@ -57,7 +57,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container.
       if (!window.HasSiblings())
       {
-        _bus.Invoke(new FlattenSplitContainerCommand(parent));
+        Bus.Invoke(new FlattenSplitContainerCommand(parent));
         return;
       }
 
@@ -69,10 +69,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Replace the window with the wrapping split container. The window has to be attached to
       // the split container after the replacement.
-      _bus.Invoke(new ReplaceContainerCommand(splitContainer, parent, window.Index));
+      Bus.Invoke(new ReplaceContainerCommand(splitContainer, parent, window.Index));
 
-      _bus.Invoke(new DetachContainerCommand(window));
-      _bus.Invoke(new AttachAndResizeContainerCommand(window, splitContainer));
+      Bus.Invoke(new DetachContainerCommand(window));
+      Bus.Invoke(new AttachAndResizeContainerCommand(window, splitContainer));
     }
 
     private void ChangeWorkspaceLayout(Workspace workspace, Layout newLayout)
@@ -88,12 +88,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the list since the number of workspace children changes when split containers are flattened.
       foreach (var child in workspace.Children.ToList())
       {
-        var childSplitContainer = child as SplitContainer;
-
-        if (childSplitContainer == null || childSplitContainer.Layout != newLayout)
+        if (child is not SplitContainer childSplitContainer || childSplitContainer.Layout != newLayout)
           continue;
 
-        _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));
+        Bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));
       }
 
       _containerService.ContainersToRedraw.Add(workspace);

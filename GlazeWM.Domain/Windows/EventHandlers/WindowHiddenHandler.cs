@@ -9,8 +9,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 {
   class WindowHiddenHandler : IEventHandler<WindowHiddenEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowHiddenHandler(Bus bus, WindowService windowService)
     {
@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (_windowService.AppBarHandles.Contains(windowHandle))
       {
         _windowService.AppBarHandles.Remove(windowHandle);
-        _bus.Invoke(new RefreshMonitorStateCommand());
+        Bus.Invoke(new RefreshMonitorStateCommand());
         return;
       }
 
@@ -35,12 +35,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Ignore events where the window isn't managed or is actually supposed to be hidden. Since
       // window events are processed in a sequence, also handle case where the window is not
       // actually hidden anymore when the event is processed.
-      if (window == null || window.IsHidden == true || _windowService.IsHandleVisible(window.Hwnd))
+      if (window == null || window.IsHidden || _windowService.IsHandleVisible(window.Hwnd))
         return;
 
       // Detach the hidden window from its parent.
-      _bus.Invoke(new RemoveWindowCommand(window));
-      _bus.Invoke(new RedrawContainersCommand());
+      Bus.Invoke(new RemoveWindowCommand(window));
+      Bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

@@ -11,7 +11,7 @@ namespace GlazeWM.Domain.Monitors
 {
   public class MonitorService
   {
-    private ContainerService _containerService;
+    private readonly ContainerService _containerService;
 
     public MonitorService(ContainerService containerService)
     {
@@ -26,7 +26,7 @@ namespace GlazeWM.Domain.Monitors
       return _containerService.ContainerTree.Children.Cast<Monitor>();
     }
 
-    public Monitor GetMonitorFromChildContainer(Container container)
+    public static Monitor GetMonitorFromChildContainer(Container container)
     {
       return container.SelfAndAncestors.OfType<Monitor>().First();
     }
@@ -47,7 +47,7 @@ namespace GlazeWM.Domain.Monitors
       return GetMonitorFromChildContainer(_containerService.FocusedContainer);
     }
 
-    public uint GetMonitorDpi(Monitor monitor)
+    public static uint GetMonitorDpi(Monitor monitor)
     {
       // Create a point within the monitor's dimensions.
       var point = new Point
@@ -59,9 +59,7 @@ namespace GlazeWM.Domain.Monitors
       // Get a handle to the monitor.
       // TODO: Consider adding a `Monitor` getter for a monitor's handle.
       var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
-
-      uint dpiX, dpiY;
-      GetDpiForMonitor(monitorHandle, DpiType.Effective, out dpiX, out dpiY);
+      _ = GetDpiForMonitor(monitorHandle, DpiType.Effective, out var dpiX, out _);
 
       // DPI X and Y should be equivalent, so it's arbitrary which to return.
       return dpiX;
@@ -70,7 +68,7 @@ namespace GlazeWM.Domain.Monitors
     /// <summary>
     /// Whether there is a difference in DPI between two containers.
     /// </summary>
-    public bool HasDpiDifference(Container firstContainer, Container secondContainer)
+    public static bool HasDpiDifference(Container firstContainer, Container secondContainer)
     {
       var firstMonitor = firstContainer is Monitor ?
         firstContainer as Monitor : GetMonitorFromChildContainer(firstContainer);

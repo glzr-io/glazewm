@@ -19,8 +19,8 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public List<IntPtr> AppBarHandles { get; set; } = new List<IntPtr>();
 
-    private ContainerService _containerService;
-    private MonitorService _monitorService;
+    private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
     public WindowService(ContainerService containerService, MonitorService monitorService)
     {
@@ -39,28 +39,27 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Get the id of the process that created the window.
     /// </summary>
-    public Process GetProcessOfHandle(IntPtr handle)
+    public static Process GetProcessOfHandle(IntPtr handle)
     {
-      uint processId;
-      GetWindowThreadProcessId(handle, out processId);
-      return Process.GetProcesses().FirstOrDefault(process => process.Id == (int)processId);
+      _ = GetWindowThreadProcessId(handle, out var processId);
+      return Array.Find(Process.GetProcesses(), process => process.Id == (int)processId);
     }
 
     /// <summary>
     /// Get the class name of the specified window.
     /// </summary>
-    public string GetClassNameOfHandle(IntPtr handle)
+    public static string GetClassNameOfHandle(IntPtr handle)
     {
       // Class name is limited to 256 characters, so it's fine to use a fixed size buffer.
       var buffer = new StringBuilder(256);
-      GetClassName(handle, buffer, buffer.Capacity);
+      _ = GetClassName(handle, buffer, buffer.Capacity);
       return buffer.ToString();
     }
 
     /// <summary>
     /// Get dimensions of the bounding rectangle of the specified window.
     /// </summary>
-    public WindowRect GetLocationOfHandle(IntPtr handle)
+    public static WindowRect GetLocationOfHandle(IntPtr handle)
     {
       var rect = new WindowRect();
       GetWindowRect(handle, ref rect);
@@ -70,7 +69,7 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Get info about the placement of the specified window.
     /// </summary>
-    public WindowPlacement GetPlacementOfHandle(IntPtr handle)
+    public static WindowPlacement GetPlacementOfHandle(IntPtr handle)
     {
       var windowPlacement = new WindowPlacement();
       GetWindowPlacement(handle, ref windowPlacement);
@@ -80,23 +79,23 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Get title bar text of the specified window.
     /// </summary>
-    public string GetTitleOfHandle(IntPtr handle)
+    public static string GetTitleOfHandle(IntPtr handle)
     {
       var titleLength = GetWindowTextLength(handle);
 
       if (titleLength == 0)
-        return String.Empty;
+        return string.Empty;
 
       var buffer = new StringBuilder(titleLength + 1);
-      GetWindowText(handle, buffer, buffer.Capacity);
+      _ = GetWindowText(handle, buffer, buffer.Capacity);
       return buffer.ToString();
     }
 
-    public List<IntPtr> GetAllWindowHandles()
+    public static List<IntPtr> GetAllWindowHandles()
     {
       var windowHandles = new List<IntPtr>();
 
-      EnumWindows((IntPtr hwnd, int lParam) =>
+      EnumWindows((IntPtr hwnd, int _) =>
       {
         windowHandles.Add(hwnd);
         return true;
@@ -105,12 +104,12 @@ namespace GlazeWM.Domain.Windows
       return windowHandles;
     }
 
-    public WS_EX GetWindowStylesEx(IntPtr handle)
+    public static WS_EX GetWindowStylesEx(IntPtr handle)
     {
       return unchecked((WS_EX)GetWindowLongPtr(handle, (int)(GWL_EXSTYLE)).ToInt64());
     }
 
-    public WS GetWindowStyles(IntPtr handle)
+    public static WS GetWindowStyles(IntPtr handle)
     {
       return unchecked((WS)GetWindowLongPtr(handle, (int)(GWL_STYLE)).ToInt64());
     }
@@ -130,10 +129,9 @@ namespace GlazeWM.Domain.Windows
     /// the window isn't actually visible. The `DWMWA_CLOAKED` attribute is used to check whether
     /// these apps are visible.
     /// </summary>
-    public bool IsHandleCloaked(IntPtr handle)
+    public static bool IsHandleCloaked(IntPtr handle)
     {
-      bool isCloaked;
-      DwmGetWindowAttribute(handle, DwmWindowAttribute.DWMWA_CLOAKED, out isCloaked, Marshal.SizeOf(typeof(bool)));
+      _ = DwmGetWindowAttribute(handle, DwmWindowAttribute.DWMWA_CLOAKED, out var isCloaked, Marshal.SizeOf(typeof(bool)));
       return isCloaked;
     }
 

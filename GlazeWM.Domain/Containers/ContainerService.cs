@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Containers
       }
     }
 
-    private UserConfigService _userConfigService;
+    private readonly UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)
     {
@@ -149,7 +149,7 @@ namespace GlazeWM.Domain.Containers
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
       var isDescendable = originContainer is SplitContainer
-        && originContainer.ChildrenOfType(typeof(IResizable)).Count() > 0;
+        && originContainer.ChildrenOfType(typeof(IResizable)).Any();
 
       if (!isDescendable)
         return originContainer;
@@ -179,7 +179,7 @@ namespace GlazeWM.Domain.Containers
     /// Get the lowest container in the tree that has both `containerA` and `containerB` as
     /// descendants.
     /// </summary>
-    public Container GetLowestCommonAncestor(Container containerA, Container containerB)
+    public static Container GetLowestCommonAncestor(Container containerA, Container containerB)
     {
       var ancestorA = containerA;
 

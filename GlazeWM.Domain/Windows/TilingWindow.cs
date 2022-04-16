@@ -10,7 +10,7 @@ namespace GlazeWM.Domain.Windows
   {
     public double SizePercentage { get; set; } = 1;
 
-    private ContainerService _containerService =
+    private readonly ContainerService _containerService =
       ServiceLocator.Provider.GetRequiredService<ContainerService>();
 
     public override int Width => _containerService.CalculateWidthOfResizableContainer(this);

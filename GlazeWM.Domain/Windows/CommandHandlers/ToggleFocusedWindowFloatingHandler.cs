@@ -6,8 +6,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 {
   class ToggleFocusedWindowFloatingHandler : ICommandHandler<ToggleFocusedWindowFloatingCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public ToggleFocusedWindowFloatingHandler(Bus bus, ContainerService containerService)
     {
@@ -17,13 +17,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ToggleFocusedWindowFloatingCommand command)
     {
-      var focusedWindow = _containerService.FocusedContainer as Window;
-
       // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || !_containerService.IsFocusSynced)
+      if (_containerService.FocusedContainer is not Window focusedWindow || !_containerService.IsFocusSynced)
         return CommandResponse.Ok;
 
-      _bus.Invoke(new ToggleFloatingCommand(focusedWindow));
+      Bus.Invoke(new ToggleFloatingCommand(focusedWindow));
 
       return CommandResponse.Ok;
     }
