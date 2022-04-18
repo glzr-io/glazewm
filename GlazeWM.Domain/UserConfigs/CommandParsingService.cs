@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -38,6 +39,7 @@ namespace GlazeWM.Domain.UserConfigs
           "resize" => ParseResizeCommand(commandParts),
           "toggle" => ParseToggleCommand(commandParts),
           "exit" => ParseExitCommand(commandParts),
+          "swap_monitors" => new SwapMonitorsCommand(),
           "close" => new CloseFocusedWindowCommand(),
           _ => throw new ArgumentException(),
         };

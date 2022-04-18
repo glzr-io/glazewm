@@ -67,6 +67,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
+      services.AddSingleton<ICommandHandler<SwapMonitorsCommand>, SwapMonitorsHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
