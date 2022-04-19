@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -65,8 +65,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Create the window instance.
       var window = new TilingWindow(command.WindowHandle, floatingPlacement);
 
-      _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
-
       var matchingWindowRules = GetMatchingWindowRules(window);
 
       var commandStrings = matchingWindowRules
@@ -76,6 +74,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
+
+      _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
 
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.
