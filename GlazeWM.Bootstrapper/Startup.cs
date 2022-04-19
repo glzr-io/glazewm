@@ -13,7 +13,6 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System;
-using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
@@ -58,44 +57,30 @@ namespace GlazeWM.Bootstrapper
 
     public void Run()
     {
-      try
-      {
-        // Set the process-default DPI awareness.
-        SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
+      // Set the process-default DPI awareness.
+      SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
 
-        // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
-        // to be initialized before populating initial state.
-        _barService.StartApp();
+      // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
+      // to be initialized before populating initial state.
+      _barService.StartApp();
 
-        // Populate initial monitors, windows, workspaces and user config.
-        PopulateInitialState();
+      // Populate initial monitors, windows, workspaces and user config.
+      PopulateInitialState();
 
-        // Listen on registered keybindings.
-        _keybindingService.Start();
+      // Listen on registered keybindings.
+      _keybindingService.Start();
 
-        // Listen for window events (eg. close, focus).
-        _windowEventService.Start();
+      // Listen for window events (eg. close, focus).
+      _windowEventService.Start();
 
-        // Listen for system-related events (eg. changes to display settings).
-        _systemEventService.Start();
+      // Listen for system-related events (eg. changes to display settings).
+      _systemEventService.Start();
 
-        // Add application to system tray.
-        _systemTrayService.AddToSystemTray();
+      // Add application to system tray.
+      _systemTrayService.AddToSystemTray();
 
-        _bus.Events.Where(@event => @event is ApplicationExitingEvent)
-          .Subscribe((@event) => OnApplicationExit());
-      }
-      catch (Exception error)
-      {
-        // Alert the user of the error.
-        // TODO: This throws duplicate errors if a command errors and it was invoked by another
-        // handler.
-        if (error is FatalUserException)
-          MessageBox.Show(error.Message);
-
-        File.AppendAllText("./errors.log", $"\n\n{error.Message + error.StackTrace}");
-        throw error;
-      }
+      _bus.Events.Where(@event => @event is ApplicationExitingEvent)
+        .Subscribe((@event) => OnApplicationExit());
     }
 
     /// <summary>
