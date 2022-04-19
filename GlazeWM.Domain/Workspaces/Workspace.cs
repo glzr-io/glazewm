@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -12,14 +11,14 @@ namespace GlazeWM.Domain.Workspaces
   {
     public string Name { get; set; }
 
-    public string CustomDisplayName =>
-      _userConfigService.UserConfig.Workspaces.First(w => w.Name == Name).CustomDisplayName ?? Name;
-
     private UserConfigService _userConfigService =
         ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
     private WorkspaceService _workspaceService =
         ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+
+    public string DisplayName =>
+      _userConfigService.GetWorkspaceConfigByName(Name).DisplayName ?? Name;
 
     private int OuterGap => _userConfigService.UserConfig.Gaps.OuterGap;
 

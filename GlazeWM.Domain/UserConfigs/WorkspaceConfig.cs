@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.UserConfigs
     [Required]
     public string Name { get; set; }
     public string BindToMonitor { get; set; } = null;
-    public string CustomDisplayName { get; set; } = null;
+    public string DisplayName { get; set; } = null;
     public bool KeepAlive { get; set; } = false;
   }
 }
