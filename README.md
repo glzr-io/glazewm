@@ -86,8 +86,11 @@ Workspaces need to be predefined via the `workspaces` property in the config fil
 
 ```yaml
 workspaces:
-  # Uniquely identifies the workspace and is used as the label for the workspace in the bar.
+  # Uniquely identifies the workspace and is used as the label for the workspace in the bar if `display_name` is not provided.
   - name: 1
+
+    # Optional override for the workspace label in the bar. Does not need to be unique.
+    display_name: "Work"
 ```
 
 ## Bar configuration
@@ -98,6 +101,9 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 bar:
   # Height of the bar in pixels.
   height: 30
+
+  # The position of the bar on the screen. Can be either "top" or "bottom".
+  position: "top"
 
   # Opacity value between 0.0 and 1.0.
   opacity: 1.0
