@@ -84,6 +84,7 @@ namespace GlazeWM.Infrastructure.Bussing
         MessageBox.Show(error.Message);
 
       WriteToErrorLog(error);
+      RaiseEvent(new ApplicationExitingEvent());
     }
 
     // TODO: Move to dedicated logging service.
