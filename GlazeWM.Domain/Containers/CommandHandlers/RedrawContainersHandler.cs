@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Monitors;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -48,14 +46,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         else
           flags |= SWP.SWP_SHOWWINDOW;
 
-        SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+        SetWindowPosition(window, flags);
 
         // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos` might
         // size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after the first
         // move are resolved.
         if (window.HasPendingDpiAdjustment)
         {
-          SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+          SetWindowPosition(window, flags);
           window.HasPendingDpiAdjustment = false;
         }
       }
@@ -63,6 +61,20 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _containerService.ContainersToRedraw.Clear();
 
       return CommandResponse.Ok;
+    }
+
+    // TODO: Maybe only adjust for invisible borders for `TilingWindow`s.
+    private void SetWindowPosition(Window window, SWP flags)
+    {
+      SetWindowPos(
+        window.Hwnd,
+        IntPtr.Zero,
+        window.X - window.InvisibleBorders.Left,
+        window.Y - window.InvisibleBorders.Top,
+        window.Width + window.InvisibleBorders.Left + window.InvisibleBorders.Right,
+        window.Height + window.InvisibleBorders.Top + window.InvisibleBorders.Right,
+        flags
+      );
     }
   }
 }
