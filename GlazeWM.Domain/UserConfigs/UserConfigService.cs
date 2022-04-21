@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -82,6 +82,17 @@ namespace GlazeWM.Domain.UserConfigs
 
         windowRules.Add(windowRule);
       }
+
+      // Attempt to match Electron apps by getting windows with class name 'Chrome_WidgetWin_1' and
+      // the process is not a Chromium-based browser.
+      var fixElectronBorderWindowRule = new WindowRuleConfig()
+      {
+        MatchProcessName = "/^((?!chrome).)*$/",
+        MatchClassName = "Chrome_WidgetWin_1",
+        Command = "resize borders 0px -7px -7px -7px",
+      };
+
+      windowRules.Add(fixElectronBorderWindowRule);
 
       return windowRules;
     }
