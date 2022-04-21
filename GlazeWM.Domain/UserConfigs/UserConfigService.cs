@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GlazeWM.Domain.Windows;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -90,6 +91,23 @@ namespace GlazeWM.Domain.UserConfigs
       return UserConfig.Workspaces.FirstOrDefault(
         (workspaceConfig) => workspaceConfig.Name == workspaceName
       );
+    }
+
+    public IEnumerable<WindowRuleConfig> GetMatchingWindowRules(Window window)
+    {
+      return UserConfig.WindowRules.Where(rule =>
+      {
+        if (rule.ProcessNameRegex?.IsMatch(window.ProcessName) == false)
+          return false;
+
+        if (rule.ClassNameRegex?.IsMatch(window.ClassName) == false)
+          return false;
+
+        if (rule.TitleRegex?.IsMatch(window.Title) == false)
+          return false;
+
+        return true;
+      });
     }
   }
 }

@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
@@ -7,7 +6,6 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -65,7 +63,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Create the window instance.
       var window = new TilingWindow(command.WindowHandle, floatingPlacement);
 
-      var matchingWindowRules = GetMatchingWindowRules(window);
+      var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
 
       var commandStrings = matchingWindowRules
         .SelectMany(rule => rule.CommandList)
@@ -119,25 +117,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return (focusedContainer as Workspace, 0);
 
       return (focusedContainer.Parent as SplitContainer, focusedContainer.Index + 1);
-    }
-
-    private List<WindowRuleConfig> GetMatchingWindowRules(Window window)
-    {
-      return _userConfigService.UserConfig.WindowRules
-        .Where(rule =>
-        {
-          if (rule.ProcessNameRegex != null && !rule.ProcessNameRegex.IsMatch(window.ProcessName))
-            return false;
-
-          if (rule.ClassNameRegex != null && !rule.ClassNameRegex.IsMatch(window.ClassName))
-            return false;
-
-          if (rule.TitleRegex != null && !rule.TitleRegex.IsMatch(window.Title))
-            return false;
-
-          return true;
-        })
-        .ToList();
     }
   }
 }
