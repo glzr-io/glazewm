@@ -141,18 +141,18 @@ keybindings:
     bindings: ["Alt+Shift+9"]
 
 #LIST OF OPTIONAL IGNORED WINDOWS FOR QUALITY-OF-LIFE
-#window_rules:
-#  - command: "ignore"
-#   match_process_name: "/explorer/"
+window_rules:
+  - command: "ignore"
+    match_process_name: "/explorer/"
 
-#  - command: "ignore"
-#    match_process_name: "/Taskmgr/"
+  - command: "ignore"
+    match_process_name: "/Taskmgr/"
 
-#  - command: "ignore"
-#   match_title: "/Save As/"
+  - command: "ignore"
+    match_title: "/Save As/"
 
-#  - command: "ignore"
-#   match_title: "/Open/"
+  - command: "ignore"
+    match_title: "/Open/"
 
-#  - command: "ignore"
-#   match_process_name: "/notepad/"
+  - command: "ignore"
+    match_process_name: "/notepad/"
