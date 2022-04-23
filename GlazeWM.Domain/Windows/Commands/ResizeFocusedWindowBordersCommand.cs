@@ -1,15 +1,16 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
-using System;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.Commands
 {
   public class ResizeFocusedWindowBordersCommand : Command
   {
-    public IntPtr WindowHandle { get; }
+    // TODO: Alternate names: ResizeDelta.
+    public RectDelta ResizeDimensions { get; }
 
-    public ResizeFocusedWindowBordersCommand(IntPtr windowHandle)
+    public ResizeFocusedWindowBordersCommand(RectDelta resizeRect)
     {
-      WindowHandle = windowHandle;
+      ResizeDimensions = resizeRect;
     }
   }
 }
