@@ -6,12 +6,12 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ResizeFocusedWindowBorderHandler : ICommandHandler<ResizeFocusedWindowBordersCommand>
+  class ResizeFocusedWindowBordersHandler : ICommandHandler<ResizeFocusedWindowBordersCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
 
-    public ResizeFocusedWindowBorderHandler(Bus bus, ContainerService containerService)
+    public ResizeFocusedWindowBordersHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
