@@ -30,16 +30,37 @@
 
     public int Height => Bottom - Top;
 
+    /// <summary>
+    /// Creates a new `WindowRect` from coordinates of its upper-left and lower-right corners.
+    /// </summary>
+    public static WindowRect FromLTRB(int left, int top, int right, int bottom)
+    {
+      return new WindowRect()
+      {
+        Left = left,
+        Right = right,
+        Top = top,
+        Bottom = bottom,
+      };
+    }
+
+    /// <summary>
+    /// Creates a new `WindowRect` from its X/Y coordinates and size.
+    /// </summary>
+    public static WindowRect FromXYCoordinates(int x, int y, int width, int height)
+    {
+      return new WindowRect()
+      {
+        Left = x,
+        Right = x + width,
+        Top = y,
+        Bottom = y + height,
+      };
+    }
+
     public WindowRect TranslateToCoordinates(int x, int y)
     {
-      var translatedRect = new WindowRect();
-
-      translatedRect.Left = x;
-      translatedRect.Right = x + Width;
-      translatedRect.Top = y;
-      translatedRect.Bottom = y + Height;
-
-      return translatedRect;
+      return FromXYCoordinates(x, y, Width, Height);
     }
 
     public WindowRect TranslateToCenter(WindowRect outerRect)
