@@ -48,9 +48,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
         SetWindowPosition(window, flags);
 
-        // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos` might
-        // size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after the first
-        // move are resolved.
+        // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos`
+        // might size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after
+        // the first move are resolved.
         if (window.HasPendingDpiAdjustment)
         {
           SetWindowPosition(window, flags);
@@ -63,16 +63,31 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    // TODO: Maybe only adjust for invisible borders for `TilingWindow`s.
     private void SetWindowPosition(Window window, SWP flags)
     {
+      if (window is TilingWindow)
+      {
+        SetWindowPos(
+          window.Hwnd,
+          IntPtr.Zero,
+          window.X - window.InvisibleBorders.Left,
+          window.Y - window.InvisibleBorders.Top,
+          window.Width + window.InvisibleBorders.Left + window.InvisibleBorders.Right,
+          window.Height + window.InvisibleBorders.Top + window.InvisibleBorders.Right,
+          flags
+        );
+        return;
+      }
+
+      // Avoid adjusting the borders of floating windows. Otherwise the window will increase in size
+      // from its original placement.
       SetWindowPos(
         window.Hwnd,
         IntPtr.Zero,
-        window.X - window.InvisibleBorders.Left,
-        window.Y - window.InvisibleBorders.Top,
-        window.Width + window.InvisibleBorders.Left + window.InvisibleBorders.Right,
-        window.Height + window.InvisibleBorders.Top + window.InvisibleBorders.Right,
+        window.X,
+        window.Y,
+        window.Width,
+        window.Height,
         flags
       );
     }
