@@ -5,12 +5,11 @@ namespace GlazeWM.Domain.Windows.Commands
 {
   public class ResizeFocusedWindowBordersCommand : Command
   {
-    // TODO: Alternate names: ResizeDelta.
-    public RectDelta ResizeDimensions { get; }
+    public RectDelta BorderDelta { get; }
 
-    public ResizeFocusedWindowBordersCommand(RectDelta resizeRect)
+    public ResizeFocusedWindowBordersCommand(RectDelta borderDelta)
     {
-      ResizeDimensions = resizeRect;
+      BorderDelta = borderDelta;
     }
   }
 }

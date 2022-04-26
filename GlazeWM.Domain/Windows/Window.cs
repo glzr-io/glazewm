@@ -24,16 +24,11 @@ namespace GlazeWM.Domain.Windows
     public bool HasPendingDpiAdjustment { get; set; } = false;
 
     /// <summary>
-    /// Windows typically have a 1px visible border and a 7px invisible border on the left, right,
-    /// and bottom edges. This needs to be adjusted for to draw a window with exact dimensions.
+    /// The difference in window dimensions to adjust for invisible borders. This is typically 7px
+    /// on the left, right, and bottom edges. This needs to be adjusted for to draw a window with
+    /// exact dimensions.
     /// </summary>
-    public WindowRect InvisibleBorders { get; set; } = new WindowRect
-    {
-      Left = 7,
-      Right = 7,
-      Top = 0,
-      Bottom = 7,
-    };
+    public RectDelta BorderDelta { get; set; } = new RectDelta(7, 0, 7, 7);
 
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();

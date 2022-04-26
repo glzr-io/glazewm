@@ -19,20 +19,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(ResizeFocusedWindowBordersCommand command)
     {
-      var borderDelta = command.ResizeDimensions;
+      var borderDelta = command.BorderDelta;
       var focusedWindow = _containerService.FocusedContainer as Window;
 
       // Ignore cases where focused container is not a window.
       if (focusedWindow == null)
         return CommandResponse.Ok;
 
-      focusedWindow.InvisibleBorders = new WindowRect()
-      {
-        Left = focusedWindow.InvisibleBorders.Left + borderDelta.DeltaLeft,
-        Right = focusedWindow.InvisibleBorders.Right + borderDelta.DeltaRight,
-        Top = focusedWindow.InvisibleBorders.Top + borderDelta.DeltaTop,
-        Bottom = focusedWindow.InvisibleBorders.Bottom + borderDelta.DeltaBottom,
-      };
+      // Adjust the existing border delta of the window.
+      focusedWindow.BorderDelta = new RectDelta(
+        focusedWindow.BorderDelta.DeltaLeft + borderDelta.DeltaLeft,
+        focusedWindow.BorderDelta.DeltaTop + borderDelta.DeltaTop,
+        focusedWindow.BorderDelta.DeltaRight + borderDelta.DeltaRight,
+        focusedWindow.BorderDelta.DeltaBottom + borderDelta.DeltaBottom
+      );
 
       if (!(focusedWindow is TilingWindow))
         return CommandResponse.Ok;
