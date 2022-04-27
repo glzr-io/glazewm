@@ -83,12 +83,20 @@ namespace GlazeWM.Domain.UserConfigs
         windowRules.Add(windowRule);
       }
 
+      var chromiumBrowserProcessNames = new List<string> {
+        "chrome",
+        "msedge",
+        "opera",
+        "vivaldi",
+        "brave",
+      };
+
       // Electron apps do not have invisible borders and are thus over-corrected by the default
       // border fix. To match these apps, get windows with the class name 'Chrome_WidgetWin_1' that
       // are not Chromium-based browsers (since the browser windows do have invisble borders).
       var resizeElectronBorderWindowRule = new WindowRuleConfig()
       {
-        MatchProcessName = "/^(?!(chrome|msedge|opera)$)/",
+        MatchProcessName = $"/^(?!({string.Join("|", chromiumBrowserProcessNames)})$)/",
         MatchClassName = "Chrome_WidgetWin_1",
         Command = "resize borders 0px -7px -7px -7px",
       };
