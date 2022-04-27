@@ -159,12 +159,6 @@ namespace GlazeWM.Domain.Windows
       if (!isApplicationWindow)
         return false;
 
-      // Get whether the window belongs to the current process.
-      var isCurrentProcess = GetProcessOfHandle(handle).Id == Process.GetCurrentProcess().Id;
-
-      if (isCurrentProcess)
-        return false;
-
       return true;
     }
 
