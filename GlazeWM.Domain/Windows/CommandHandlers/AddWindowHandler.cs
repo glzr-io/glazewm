@@ -6,6 +6,7 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -61,7 +62,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
       // Create the window instance.
-      var window = new TilingWindow(command.WindowHandle, floatingPlacement);
+      var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
+      var window = new TilingWindow(command.WindowHandle, floatingPlacement, defaultBorderDelta);
 
       var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
 

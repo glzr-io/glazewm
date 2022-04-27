@@ -56,6 +56,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var minimizedWindow = new MinimizedWindow(
         window.Hwnd,
         window.FloatingPlacement,
+        window.BorderDelta,
         previousState
       );
 

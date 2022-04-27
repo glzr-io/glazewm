@@ -19,24 +19,25 @@ namespace GlazeWM.Domain.Windows
     public WindowRect FloatingPlacement { get; set; }
 
     /// <summary>
-    /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
-    /// </summary>
-    public bool HasPendingDpiAdjustment { get; set; } = false;
-
-    /// <summary>
     /// The difference in window dimensions to adjust for invisible borders. This is typically 7px
     /// on the left, right, and bottom edges. This needs to be adjusted for to draw a window with
     /// exact dimensions.
     /// </summary>
     public RectDelta BorderDelta { get; set; } = new RectDelta(7, 0, 7, 7);
 
+    /// <summary>
+    /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
+    /// </summary>
+    public bool HasPendingDpiAdjustment { get; set; } = false;
+
     private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
 
-    public Window(IntPtr hwnd, WindowRect floatingPlacement)
+    public Window(IntPtr hwnd, WindowRect floatingPlacement, RectDelta borderDelta)
     {
       Hwnd = hwnd;
       FloatingPlacement = floatingPlacement;
+      BorderDelta = borderDelta;
     }
 
     /// <summary>

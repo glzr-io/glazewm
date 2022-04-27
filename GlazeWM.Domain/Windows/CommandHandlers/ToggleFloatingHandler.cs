@@ -44,7 +44,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
         window.Hwnd,
-        window.FloatingPlacement
+        window.FloatingPlacement,
+        window.BorderDelta
       );
 
       _bus.Invoke(new ReplaceContainerCommand(floatingWindow, window.Parent, window.Index));
@@ -58,7 +59,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
-      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, floatingWindow.FloatingPlacement)
+      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, floatingWindow.FloatingPlacement, floatingWindow.BorderDelta)
       {
         SizePercentage = 0
       };

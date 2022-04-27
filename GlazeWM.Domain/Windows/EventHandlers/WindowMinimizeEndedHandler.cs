@@ -67,10 +67,27 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       return window.PreviousState switch
       {
-        WindowType.FLOATING => new FloatingWindow(window.Hwnd, window.FloatingPlacement),
-        WindowType.TILING => new TilingWindow(window.Hwnd, window.FloatingPlacement) { SizePercentage = 0 },
-        WindowType.MAXIMIZED => new MaximizedWindow(window.Hwnd, window.FloatingPlacement),
-        WindowType.FULLSCREEN => new FullscreenWindow(window.Hwnd, window.FloatingPlacement),
+        WindowType.FLOATING => new FloatingWindow(
+          window.Hwnd,
+          window.FloatingPlacement,
+          window.BorderDelta
+        ),
+        WindowType.TILING => new TilingWindow(
+          window.Hwnd,
+          window.FloatingPlacement,
+          window.BorderDelta
+        )
+        { SizePercentage = 0 },
+        WindowType.MAXIMIZED => new MaximizedWindow(
+          window.Hwnd,
+          window.FloatingPlacement,
+          window.BorderDelta
+        ),
+        WindowType.FULLSCREEN => new FullscreenWindow(
+          window.Hwnd,
+          window.FloatingPlacement,
+          window.BorderDelta
+        ),
         _ => throw new ArgumentException(),
       };
     }

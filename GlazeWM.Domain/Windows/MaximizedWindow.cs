@@ -7,8 +7,9 @@ namespace GlazeWM.Domain.Windows
   {
     public MaximizedWindow(
       IntPtr hwnd,
-      WindowRect floatingPlacement
-    ) : base(hwnd, floatingPlacement)
+      WindowRect floatingPlacement,
+      RectDelta borderDelta
+    ) : base(hwnd, floatingPlacement, borderDelta)
     {
     }
   }
