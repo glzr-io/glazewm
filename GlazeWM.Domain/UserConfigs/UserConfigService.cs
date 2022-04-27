@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GlazeWM.Domain.Windows;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -82,6 +83,26 @@ namespace GlazeWM.Domain.UserConfigs
         windowRules.Add(windowRule);
       }
 
+      var chromiumBrowserProcessNames = new List<string> {
+        "chrome",
+        "msedge",
+        "opera",
+        "vivaldi",
+        "brave",
+      };
+
+      // Electron apps do not have invisible borders and are thus over-corrected by the default
+      // border fix. To match these apps, get windows with the class name 'Chrome_WidgetWin_1' that
+      // are not Chromium-based browsers (since the browser windows do have invisble borders).
+      var resizeElectronBorderWindowRule = new WindowRuleConfig()
+      {
+        MatchProcessName = $"/^(?!({string.Join("|", chromiumBrowserProcessNames)})$)/",
+        MatchClassName = "Chrome_WidgetWin_1",
+        Command = "resize borders 0px -7px -7px -7px",
+      };
+
+      windowRules.Add(resizeElectronBorderWindowRule);
+
       return windowRules;
     }
 
@@ -90,6 +111,23 @@ namespace GlazeWM.Domain.UserConfigs
       return UserConfig.Workspaces.FirstOrDefault(
         (workspaceConfig) => workspaceConfig.Name == workspaceName
       );
+    }
+
+    public IEnumerable<WindowRuleConfig> GetMatchingWindowRules(Window window)
+    {
+      return UserConfig.WindowRules.Where(rule =>
+      {
+        if (rule.ProcessNameRegex?.IsMatch(window.ProcessName) == false)
+          return false;
+
+        if (rule.ClassNameRegex?.IsMatch(window.ClassName) == false)
+          return false;
+
+        if (rule.TitleRegex?.IsMatch(window.Title) == false)
+          return false;
+
+        return true;
+      });
     }
   }
 }

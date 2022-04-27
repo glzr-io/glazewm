@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
@@ -6,6 +7,8 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -90,6 +93,9 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "height" => new ResizeFocusedWindowCommand(ResizeDimension.HEIGHT, commandParts[2]),
         "width" => new ResizeFocusedWindowCommand(ResizeDimension.WIDTH, commandParts[2]),
+        "borders" => new ResizeFocusedWindowBordersCommand(
+          ShorthandToRectDelta(string.Join(" ", commandParts[2..]))
+        ),
         _ => throw new ArgumentException(),
       };
     }
@@ -129,6 +135,22 @@ namespace GlazeWM.Domain.UserConfigs
         throw new ArgumentException();
 
       return workspaceName;
+    }
+
+    private RectDelta ShorthandToRectDelta(string shorthand)
+    {
+      var shorthandParts = shorthand.Split(" ")
+        .Select(shorthandPart => UnitsHelper.TrimUnits(shorthandPart))
+        .ToList();
+
+      return shorthandParts.Count() switch
+      {
+        1 => new RectDelta(shorthandParts[0], shorthandParts[0], shorthandParts[0], shorthandParts[0]),
+        2 => new RectDelta(shorthandParts[1], shorthandParts[0], shorthandParts[1], shorthandParts[0]),
+        3 => new RectDelta(shorthandParts[1], shorthandParts[0], shorthandParts[1], shorthandParts[2]),
+        4 => new RectDelta(shorthandParts[3], shorthandParts[0], shorthandParts[1], shorthandParts[2]),
+        _ => throw new ArgumentException(),
+      };
     }
   }
 }

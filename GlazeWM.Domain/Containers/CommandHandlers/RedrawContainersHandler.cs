@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Monitors;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -48,14 +46,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         else
           flags |= SWP.SWP_SHOWWINDOW;
 
-        SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+        SetWindowPosition(window, flags);
 
-        // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos` might
-        // size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after the first
-        // move are resolved.
+        // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos`
+        // might size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after
+        // the first move are resolved.
         if (window.HasPendingDpiAdjustment)
         {
-          SetWindowPos(window.Hwnd, IntPtr.Zero, window.X, window.Y, window.Width, window.Height, flags);
+          SetWindowPosition(window, flags);
           window.HasPendingDpiAdjustment = false;
         }
       }
@@ -63,6 +61,35 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _containerService.ContainersToRedraw.Clear();
 
       return CommandResponse.Ok;
+    }
+
+    private void SetWindowPosition(Window window, SWP flags)
+    {
+      if (window is TilingWindow)
+      {
+        SetWindowPos(
+          window.Hwnd,
+          IntPtr.Zero,
+          window.X - window.BorderDelta.DeltaLeft,
+          window.Y - window.BorderDelta.DeltaTop,
+          window.Width + window.BorderDelta.DeltaLeft + window.BorderDelta.DeltaRight,
+          window.Height + window.BorderDelta.DeltaTop + window.BorderDelta.DeltaRight,
+          flags
+        );
+        return;
+      }
+
+      // Avoid adjusting the borders of floating windows. Otherwise the window will increase in size
+      // from its original placement.
+      SetWindowPos(
+        window.Hwnd,
+        IntPtr.Zero,
+        window.X,
+        window.Y,
+        window.Width,
+        window.Height,
+        flags
+      );
     }
   }
 }
