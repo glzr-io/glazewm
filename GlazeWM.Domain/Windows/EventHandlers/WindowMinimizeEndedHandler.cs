@@ -72,12 +72,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.FloatingPlacement,
           window.BorderDelta
         ),
-        WindowType.TILING => new TilingWindow(
-          window.Hwnd,
-          window.FloatingPlacement,
-          window.BorderDelta
-        )
-        { SizePercentage = 0 },
         WindowType.MAXIMIZED => new MaximizedWindow(
           window.Hwnd,
           window.FloatingPlacement,
@@ -87,6 +81,13 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.Hwnd,
           window.FloatingPlacement,
           window.BorderDelta
+        ),
+        // Set `SizePercentage` to 0 to correctly resize the container when moved within tree.
+        WindowType.TILING => new TilingWindow(
+          window.Hwnd,
+          window.FloatingPlacement,
+          window.BorderDelta,
+          0
         ),
         _ => throw new ArgumentException(),
       };

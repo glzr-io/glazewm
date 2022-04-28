@@ -28,5 +28,15 @@ namespace GlazeWM.Domain.Windows
     ) : base(hwnd, floatingPlacement, borderDelta)
     {
     }
+
+    public TilingWindow(
+      IntPtr hwnd,
+      WindowRect floatingPlacement,
+      RectDelta borderDelta,
+      double sizePercentage
+    ) : base(hwnd, floatingPlacement, borderDelta)
+    {
+      SizePercentage = sizePercentage;
+    }
   }
 }
