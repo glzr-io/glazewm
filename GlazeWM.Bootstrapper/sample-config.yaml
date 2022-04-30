@@ -31,6 +31,19 @@ workspaces:
   - name: 8
   - name: 9
 
+window_rules:
+  # Task Manager requires admin privileges to manage and should be ignored unless running the WM as admin.
+  - command: "ignore"
+    match_process_name: "Taskmgr"
+
+  # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
+  - command: "toggle floating"
+    match_class_name: "#32770"
+
+  # Launches file copy & move dialog as floating by default.
+  - command: "toggle floating"
+    match_class_name: "OperationStatusWindow"
+
 keybindings:
   - command: "focus left"
     bindings: ["Alt+H", "Alt+Left"]
@@ -139,23 +152,3 @@ keybindings:
 
   - commands: ["move to workspace 9", "focus workspace 9"]
     bindings: ["Alt+Shift+9"]
-
-#LIST OF OPTIONAL IGNORED WINDOWS FOR QUALITY-OF-LIFE
-#window_rules:
-#  - command: "toggle floating"
-#    match_process_name: "/explorer/"
-
-#  - command: "toggle floating"
-#    match_process_name: "/notepad/"
-
-  # Task Manager requires admin privileges to manage and should be ignored unless running the WM as admin.
-  - command: "ignore"
-    match_process_name: "Taskmgr"
-
-  # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
-  - command: "toggle floating"
-    match_class_name: "#32770"
-
-  # Launches file copy & move dialog as floating by default.
-  - command: "toggle floating"
-    match_class_name: "OperationStatusWindow"
