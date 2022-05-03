@@ -50,11 +50,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         focusedWindow.FloatingPlacement =
           focusedWindow.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
-      if (focusedWindow is FloatingWindow)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
-
-      else
+      if (focusedWindow is TilingWindow)
         MoveTilingWindowToWorkspace(focusedWindow as TilingWindow, targetWorkspace);
+      else
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
 
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
