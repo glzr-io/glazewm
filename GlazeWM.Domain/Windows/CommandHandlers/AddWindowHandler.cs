@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
@@ -54,16 +55,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         ? (command.TargetParent, 0)
         : GetInsertionTarget();
 
-      var targetWorkspace = _workspaceService.GetWorkspaceFromChildContainer(targetParent);
-
-      // Calculate where window should be placed when floating is enabled. Use the original
-      // width/height of the window, but position it in the center of the workspace.
-      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
-      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
-
       // Create the window instance.
-      var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
-      var window = new TilingWindow(command.WindowHandle, floatingPlacement, defaultBorderDelta);
+      var targetWorkspace = _workspaceService.GetWorkspaceFromChildContainer(targetParent);
+      var window = CreateWindow(windowHandle, targetWorkspace);
 
       var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
 
@@ -75,7 +69,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
 
-      _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
+      if (window is IResizable)
+        _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
+      else
+        _bus.Invoke(new AttachContainerCommand(window, targetParent, targetIndex));
 
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.
@@ -96,10 +93,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         .Select(commandString => _commandParsingService.ParseCommand(commandString))
         .ToList();
 
-      // Initialize windows that can't be resized as floating.
-      if (!window.HasWindowStyle(WS.WS_THICKFRAME))
-        parsedCommands.Insert(0, new ToggleFloatingCommand(window));
-
       // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type
       // at runtime and allow multiple dispatch.
       foreach (var parsedCommand in parsedCommands)
@@ -109,6 +102,53 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
+    }
+
+    private Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
+    {
+      // Calculate where window should be placed when floating is enabled. Use the original
+      // width/height of the window, but position it in the center of the workspace.
+      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+
+      var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
+
+      var windowType = GetWindowTypeToCreate(windowHandle);
+      var isResizable = _windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
+
+      // TODO: Handle initialization of maximized and fullscreen windows.
+      return windowType switch
+      {
+        WindowType.MINIMIZED => new MinimizedWindow(
+          windowHandle,
+          floatingPlacement,
+          defaultBorderDelta,
+          isResizable ? WindowType.TILING : WindowType.FLOATING
+          ),
+        WindowType.FLOATING => new FloatingWindow(
+          windowHandle,
+          floatingPlacement,
+          defaultBorderDelta
+        ),
+        WindowType.TILING => new TilingWindow(
+          windowHandle,
+          floatingPlacement,
+          defaultBorderDelta
+        ),
+        _ => throw new ArgumentException(),
+      };
+    }
+
+    private WindowType GetWindowTypeToCreate(IntPtr windowHandle)
+    {
+      if (_windowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
+        return WindowType.MINIMIZED;
+
+      // Initialize windows that can't be resized as floating.
+      if (!_windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
+        return WindowType.FLOATING;
+
+      return WindowType.TILING;
     }
 
     private (SplitContainer targetParent, int targetIndex) GetInsertionTarget()
