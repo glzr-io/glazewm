@@ -159,10 +159,13 @@ namespace GlazeWM.Domain.Windows
       if (!isApplicationWindow)
         return false;
 
-      // Get whether the window belongs to the current process.
-      var isCurrentProcess = GetProcessOfHandle(handle).Id == Process.GetCurrentProcess().Id;
+      /// Some applications spawn top-level windows for menus that should be ignored. This includes
+      /// the autocomplete popup in Notepad++ and title bar menu in Keepass. Although not
+      /// foolproof, these can typically be identified by having an owner window and no title bar.
+      var isMenuWindow = GetWindow(handle, GW.GW_OWNER) != IntPtr.Zero
+        && !HandleHasWindowStyle(handle, WS.WS_CAPTION);
 
-      if (isCurrentProcess)
+      if (isMenuWindow)
         return false;
 
       return true;
