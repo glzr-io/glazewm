@@ -39,6 +39,7 @@ namespace GlazeWM.Domain.UserConfigs
           "focus" => ParseFocusCommand(commandParts),
           "move" => ParseMoveCommand(commandParts),
           "resize" => ParseResizeCommand(commandParts),
+          "set" => ParseSetCommand(commandParts),
           "toggle" => ParseToggleCommand(commandParts),
           "exit" => ParseExitCommand(commandParts),
           "close" => new CloseFocusedWindowCommand(),
@@ -96,6 +97,15 @@ namespace GlazeWM.Domain.UserConfigs
         "borders" => new ResizeFocusedWindowBordersCommand(
           ShorthandToRectDelta(string.Join(" ", commandParts[2..]))
         ),
+        _ => throw new ArgumentException(),
+      };
+    }
+
+    private Command ParseSetCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        "floating" => new SetFocusedWindowFloatingCommand(),
         _ => throw new ArgumentException(),
       };
     }

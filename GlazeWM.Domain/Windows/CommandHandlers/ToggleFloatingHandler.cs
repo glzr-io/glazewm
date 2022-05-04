@@ -8,17 +8,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 {
   class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
   {
-    private Bus _bus;
-    private WorkspaceService _workspaceService;
-    private WindowService _windowService;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly WorkspaceService _workspaceService;
 
-    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService, WindowService windowService, ContainerService containerService)
+    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService)
     {
       _bus = bus;
       _workspaceService = workspaceService;
-      _windowService = windowService;
-      _containerService = containerService;
     }
 
     public CommandResponse Handle(ToggleFloatingCommand command)
@@ -26,46 +22,27 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var window = command.Window;
 
       if (window is FloatingWindow)
-        DisableFloating(window as FloatingWindow);
+        UnsetFloating(window as FloatingWindow);
 
       else
-        EnableFloating(window);
+        _bus.Invoke(new SetFloatingCommand(window));
 
       return CommandResponse.Ok;
     }
 
-    private void EnableFloating(Window window)
-    {
-      // Keep reference to the window's ancestor workspace prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
-
-      if (window is IResizable)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
-      else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, false));
-
-      // Create a floating window and place it in the center of the workspace.
-      var floatingWindow = new FloatingWindow(
-        window.Hwnd,
-        window.FloatingPlacement,
-        window.BorderDelta
-      );
-
-      _bus.Invoke(new ReplaceContainerCommand(floatingWindow, window.Parent, window.Index));
-      _bus.Invoke(new RedrawContainersCommand());
-    }
-
-    private void DisableFloating(FloatingWindow floatingWindow)
+    private void UnsetFloating(FloatingWindow floatingWindow)
     {
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
 
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
-      var tilingWindow = new TilingWindow(floatingWindow.Hwnd, floatingWindow.FloatingPlacement, floatingWindow.BorderDelta)
-      {
-        SizePercentage = 0
-      };
+      var tilingWindow = new TilingWindow(
+        floatingWindow.Hwnd,
+        floatingWindow.FloatingPlacement,
+        floatingWindow.BorderDelta,
+        0
+      );
 
       _bus.Invoke(new ReplaceContainerCommand(tilingWindow, floatingWindow.Parent, floatingWindow.Index));
 
