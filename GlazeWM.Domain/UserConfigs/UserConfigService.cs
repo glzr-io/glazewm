@@ -83,6 +83,22 @@ namespace GlazeWM.Domain.UserConfigs
         windowRules.Add(windowRule);
       }
 
+      var classNamesToFloat = new List<string> {
+        // Dialog shown when moving and deleting files.
+        "OperationStatusWindow",
+      };
+
+      foreach (var className in classNamesToFloat)
+      {
+        var windowRule = new WindowRuleConfig()
+        {
+          MatchClassName = className,
+          Command = "set floating",
+        };
+
+        windowRules.Add(windowRule);
+      }
+
       var chromiumBrowserProcessNames = new List<string> {
         "chrome",
         "msedge",
