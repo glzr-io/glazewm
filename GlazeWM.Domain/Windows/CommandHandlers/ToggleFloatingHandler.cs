@@ -39,7 +39,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
 
-      _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+      if (window is IResizable)
+        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+      else
+        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, false));
 
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
