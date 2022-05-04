@@ -37,11 +37,11 @@ window_rules:
     match_process_name: "Taskmgr"
 
   # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
-  - command: "toggle floating"
+  - command: "set floating"
     match_class_name: "#32770"
 
   # Launches file copy & move dialog as floating by default.
-  - command: "toggle floating"
+  - command: "set floating"
     match_class_name: "OperationStatusWindow"
 
 keybindings:
