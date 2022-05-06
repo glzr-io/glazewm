@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window == null)
+      if (window == null || window is MinimizedWindow)
         return;
 
       var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
