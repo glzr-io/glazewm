@@ -1,9 +1,9 @@
 ﻿using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Reactive.Subjects;
 using System.Windows.Forms;
@@ -17,6 +17,12 @@ namespace GlazeWM.Infrastructure.Bussing
   {
     public readonly Subject<Event> Events = new();
     private readonly object _lockObj = new();
+    private readonly ILogger<Bus> _logger;
+
+    public Bus(ILogger<Bus> logger)
+    {
+      _logger = logger;
+    }
 
     /// <summary>
     /// Sends command to appropriate command handler.
@@ -25,7 +31,7 @@ namespace GlazeWM.Infrastructure.Bussing
     {
       try
       {
-        Debug.WriteLine($"Command {command.Name} invoked.");
+        _logger.LogDebug($"Command {command.Name} invoked.");
 
         // Create a `Type` object representing the constructed `ICommandHandler` generic.
         var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
@@ -52,8 +58,6 @@ namespace GlazeWM.Infrastructure.Bussing
     {
       try
       {
-        Debug.WriteLine($"Event {@event.Name} emitted.");
-
         // Create a `Type` object representing the constructed `IEventHandler` generic.
         var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
 
