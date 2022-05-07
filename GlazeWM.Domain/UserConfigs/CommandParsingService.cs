@@ -147,7 +147,7 @@ namespace GlazeWM.Domain.UserConfigs
       return workspaceName;
     }
 
-    private RectDelta ShorthandToRectDelta(string shorthand)
+    private static RectDelta ShorthandToRectDelta(string shorthand)
     {
       var shorthandParts = shorthand.Split(" ")
         .Select(shorthandPart => UnitsHelper.TrimUnits(shorthandPart))

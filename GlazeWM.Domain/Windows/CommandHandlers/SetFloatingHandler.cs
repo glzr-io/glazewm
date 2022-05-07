@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Keep reference to the window's ancestor workspace prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       if (window is IResizable)
         _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
