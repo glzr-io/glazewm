@@ -8,6 +8,7 @@ using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
+using Microsoft.Extensions.Logging;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -21,6 +22,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly WindowService _windowService;
     private readonly MonitorService _monitorService;
     private readonly WorkspaceService _workspaceService;
+    private readonly ILogger<AddWindowHandler> _logger;
 
     public AddWindowHandler(
       Bus bus,
@@ -29,7 +31,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       CommandParsingService commandParsingService,
       WindowService windowService,
       MonitorService monitorService,
-      WorkspaceService workspaceService
+      WorkspaceService workspaceService,
+      ILogger<AddWindowHandler> logger
     )
     {
       _bus = bus;
@@ -39,6 +42,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _windowService = windowService;
       _monitorService = monitorService;
       _workspaceService = workspaceService;
+      _logger = logger;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -68,6 +72,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
+
+      _logger.LogDebug($"New window managed {window.ProcessName} | {window.ClassName}");
 
       if (window is IResizable)
         _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -7,6 +7,7 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -15,12 +16,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly ContainerService _containerService;
+    private readonly ILogger<WindowFocusedHandler> _logger;
 
-    public WindowFocusedHandler(Bus bus, WindowService windowService, ContainerService containerService)
+    public WindowFocusedHandler(
+      Bus bus,
+      WindowService windowService,
+      ContainerService containerService,
+      ILogger<WindowFocusedHandler> logger
+    )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
+      _logger = logger;
     }
 
     public void Handle(WindowFocusedEvent @event)
@@ -44,6 +52,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (window == null)
         return;
+
+      _logger.LogDebug($"Window focused {window.ProcessName} | {window.ClassName}");
 
       _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.RaiseEvent(new FocusChangedEvent(window));

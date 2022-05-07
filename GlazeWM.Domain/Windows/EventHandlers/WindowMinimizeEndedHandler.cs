@@ -5,6 +5,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -13,16 +14,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly ContainerService _containerService;
+    private readonly ILogger<WindowMinimizeEndedHandler> _logger;
 
     public WindowMinimizeEndedHandler(
       Bus bus,
       WindowService windowService,
-      ContainerService containerService
+      ContainerService containerService,
+      ILogger<WindowMinimizeEndedHandler> logger
     )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
+      _logger = logger;
     }
 
     public void Handle(WindowMinimizeEndedEvent @event)
@@ -32,6 +36,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (window == null)
         return;
+
+      _logger.LogDebug($"Window minimize ended {window.ProcessName} | {window.ClassName}");
 
       var restoredWindow = CreateWindowFromPreviousState(window);
 
