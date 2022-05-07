@@ -44,7 +44,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
       // Display the containers of the workspace to switch focus to.
-      Bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
+      _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.
@@ -58,12 +58,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         });
 
       if (workspaceToDestroy != null)
-        Bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
+        _bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
 
       // If workspace has no descendant windows, set focus to the workspace itself.
       if (!workspaceToFocus.HasChildren())
       {
-        Bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
+        _bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
         _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
 
         // Remove focus from whichever window currently has focus.
@@ -74,7 +74,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       }
 
       // Set focus to the last focused window in workspace.
-      Bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
+      _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
 
       return CommandResponse.Ok;
     }
@@ -85,7 +85,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private Workspace ActivateWorkspace(string workspaceName)
     {
       var focusedMonitor = _monitorService.GetFocusedMonitor();
-      Bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
 
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }

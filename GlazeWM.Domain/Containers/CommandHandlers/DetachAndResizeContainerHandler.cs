@@ -37,7 +37,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         ? grandparent.Children.Where(container => container is IResizable)
         : parent.Children.Where(container => container is IResizable);
 
-      Bus.Invoke(new DetachContainerCommand(childToRemove));
+      _bus.Invoke(new DetachContainerCommand(childToRemove));
 
       var sizePercentageIncrement = availableSizePercentage / containersToResize.Count();
 

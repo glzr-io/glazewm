@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (_containerService.FocusedContainer is not Window focusedWindow || !_containerService.IsFocusSynced)
         return CommandResponse.Ok;
 
-      Bus.Invoke(new ToggleFloatingCommand(focusedWindow));
+      _bus.Invoke(new ToggleFloatingCommand(focusedWindow));
 
       return CommandResponse.Ok;
     }

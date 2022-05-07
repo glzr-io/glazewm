@@ -25,7 +25,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (_windowService.AppBarHandles.Contains(windowHandle))
       {
         _windowService.AppBarHandles.Remove(windowHandle);
-        Bus.Invoke(new RefreshMonitorStateCommand());
+        _bus.Invoke(new RefreshMonitorStateCommand());
         return;
       }
 
@@ -39,8 +39,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       // Detach the hidden window from its parent.
-      Bus.Invoke(new RemoveWindowCommand(window));
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RemoveWindowCommand(window));
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

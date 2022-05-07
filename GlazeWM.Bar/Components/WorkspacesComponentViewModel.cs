@@ -76,7 +76,7 @@ namespace GlazeWM.Bar.Components
 
     public void FocusWorkspace(string workspaceName)
     {
-      Bus.Invoke(new FocusWorkspaceCommand(workspaceName));
+      _bus.Invoke(new FocusWorkspaceCommand(workspaceName));
     }
   }
 }

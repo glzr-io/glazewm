@@ -22,7 +22,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (!_windowService.AppBarHandles.Contains(windowHandle))
         return;
 
-      Bus.Invoke(new RefreshMonitorStateCommand());
+      _bus.Invoke(new RefreshMonitorStateCommand());
     }
   }
 }

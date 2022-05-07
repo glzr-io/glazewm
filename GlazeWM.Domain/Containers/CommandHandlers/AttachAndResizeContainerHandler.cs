@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (childToAdd is not IResizable)
         throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
-      Bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
+      _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
       var resizableSiblings = childToAdd.Siblings.Where(container => container is IResizable);
 

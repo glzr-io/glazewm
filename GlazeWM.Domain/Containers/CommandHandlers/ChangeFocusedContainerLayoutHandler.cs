@@ -20,7 +20,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
 
       var focusedContainer = _containerService.FocusedContainer;
-      Bus.Invoke(new ChangeContainerLayoutCommand(focusedContainer, command.NewLayout));
+      _bus.Invoke(new ChangeContainerLayoutCommand(focusedContainer, command.NewLayout));
 
       return CommandResponse.Ok;
     }

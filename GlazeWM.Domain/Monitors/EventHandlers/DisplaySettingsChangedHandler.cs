@@ -15,7 +15,7 @@ namespace GlazeWM.Domain.Monitors.EventHandlers
 
     public void Handle(DisplaySettingsChangedEvent @event)
     {
-      Bus.Invoke(new RefreshMonitorStateCommand());
+      _bus.Invoke(new RefreshMonitorStateCommand());
     }
   }
 }

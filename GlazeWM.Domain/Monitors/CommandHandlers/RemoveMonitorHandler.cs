@@ -39,7 +39,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       foreach (var workspace in workspacesToMove.ToList())
       {
         // Move workspace to target monitor.
-        Bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
         // Get windows of the moved workspace.
         var windows = workspace.Descendants.OfType<Window>();
@@ -49,11 +49,11 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
       }
 
-      Bus.Invoke(new DetachContainerCommand(monitorToRemove));
+      _bus.Invoke(new DetachContainerCommand(monitorToRemove));
       _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
 
       if (focusedMonitor == monitorToRemove)
-        Bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
+        _bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
 
       return CommandResponse.Ok;
     }

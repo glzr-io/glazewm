@@ -56,11 +56,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
 
       // Reassign focus to descendant within the current workspace.
-      Bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
+      _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
 
       _containerService.ContainersToRedraw.Add(currentWorkspace);
       _containerService.ContainersToRedraw.Add(targetWorkspace);
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
@@ -71,9 +71,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Insert the focused window into the target workspace.
       if (insertionTarget == null)
-        Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, true));
       else
-        Bus.Invoke(
+        _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             focusedWindow,
             insertionTarget.Parent,
@@ -89,7 +89,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private Workspace ActivateWorkspace(string workspaceName)
     {
       var focusedMonitor = _monitorService.GetFocusedMonitor();
-      Bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
 
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }

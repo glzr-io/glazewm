@@ -24,7 +24,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (_windowService.IsHandleAppBar(windowHandle))
       {
         _windowService.AppBarHandles.Add(windowHandle);
-        Bus.Invoke(new RefreshMonitorStateCommand());
+        _bus.Invoke(new RefreshMonitorStateCommand());
         return;
       }
 
@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window != null)
         return;
 
-      Bus.Invoke(new AddWindowCommand(@event.WindowHandle));
+      _bus.Invoke(new AddWindowCommand(@event.WindowHandle));
     }
   }
 }

@@ -83,11 +83,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Set the newly added window as focus descendant. This is necessary because
       // `EVENT_SYSTEM_FOREGROUND` is emitted before `EVENT_OBJECT_SHOW` and thus, focus state
       // isn't updated automatically.
-      Bus.Invoke(new SetFocusedDescendantCommand(window));
+      _bus.Invoke(new SetFocusedDescendantCommand(window));
 
       // Set OS focus to the newly added window in case it's not already focused. This is also
       // necessary for window rule commands to run properly on startup with existing windows.
-      Bus.Invoke(new FocusWindowCommand(window));
+      _bus.Invoke(new FocusWindowCommand(window));
 
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString))
@@ -96,10 +96,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type
       // at runtime and allow multiple dispatch.
       foreach (var parsedCommand in parsedCommands)
-        Bus.Invoke((dynamic)parsedCommand);
+        _bus.Invoke((dynamic)parsedCommand);
 
       if (shouldRedraw)
-        Bus.Invoke(new RedrawContainersCommand());
+        _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }

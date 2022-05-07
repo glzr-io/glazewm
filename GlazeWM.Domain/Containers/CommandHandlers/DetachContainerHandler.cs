@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // as well.
       if (isEmptySplitContainer)
       {
-        Bus.Invoke(new DetachContainerCommand(parent));
+        _bus.Invoke(new DetachContainerCommand(parent));
         return CommandResponse.Ok;
       }
 

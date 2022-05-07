@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             // Invoke commands in sequence on keybinding press. Use `dynamic` to resolve the
             // command type at runtime and allow multiple dispatch.
             foreach (var parsedCommand in parsedCommands)
-              Bus.Invoke((dynamic)parsedCommand);
+              _bus.Invoke((dynamic)parsedCommand);
           });
       }
 

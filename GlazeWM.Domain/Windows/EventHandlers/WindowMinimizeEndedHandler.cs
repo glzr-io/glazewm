@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       var restoredWindow = CreateWindowFromPreviousState(window);
 
-      Bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
+      _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
       if (restoredWindow is not TilingWindow)
         return;
@@ -48,9 +48,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        Bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
       else
-        Bus.Invoke(
+        _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             restoredWindow,
             insertionTarget.Parent,
@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         );
 
       _containerService.ContainersToRedraw.Add(workspace);
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private static Window CreateWindowFromPreviousState(MinimizedWindow window)

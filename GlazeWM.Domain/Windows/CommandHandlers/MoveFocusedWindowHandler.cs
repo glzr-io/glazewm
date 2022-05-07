@@ -88,7 +88,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var targetIndex = direction == Direction.UP || direction == Direction.LEFT ?
           siblingInDirection.Index : siblingInDirection.Index + 1;
 
-        Bus.Invoke(
+        _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             focusedWindow,
             focusedWindow.Parent,
@@ -97,7 +97,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
 
-        Bus.Invoke(new RedrawContainersCommand());
+        _bus.Invoke(new RedrawContainersCommand());
         return;
       }
 
@@ -109,8 +109,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
         direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
 
-      Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetParent, insertionIndex, true));
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetParent, insertionIndex, true));
+      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void MoveToWorkspaceInDirection(Window focusedWindow, Direction direction)
@@ -132,11 +132,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // TODO: Descend into container if possible.
       if (direction == Direction.UP || direction == Direction.LEFT)
-        Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));
       else
-        Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, 0, true));
 
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
 
       // Refresh state in bar of which workspace has focus.
       _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
@@ -147,13 +147,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(focusedWindow);
 
       var layoutForDirection = direction.GetCorrespondingLayout();
-      Bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
+      _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
 
       // TODO: Should probably descend into sibling if possible.
       if (HasSiblingInDirection(focusedWindow, direction))
         SwapSiblingContainers(focusedWindow, direction);
 
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void InsertIntoAncestor(TilingWindow focusedWindow, Direction direction, Container ancestorWithLayout)
@@ -177,7 +177,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
           direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
 
-        Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetParent, insertionIndex, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetParent, insertionIndex, true));
       }
       else
       {
@@ -185,10 +185,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
-        Bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, ancestorWithLayout, insertionIndex, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, ancestorWithLayout, insertionIndex, true));
       }
 
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

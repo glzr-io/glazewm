@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (focusTarget == null || focusTarget == focusedContainer)
         return;
 
-      Bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
+      _bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
     }
 
     private void FocusFromTilingContainer(Container focusedContainer, Direction direction)
@@ -64,10 +64,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is Window)
-        Bus.Invoke(new FocusWindowCommand(focusTarget as Window));
+        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
 
       else if (focusTarget is Workspace)
-        Bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
     }
 
     private Container GetFocusTarget(Container focusedContainer, Direction direction)

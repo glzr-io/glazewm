@@ -44,13 +44,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         0
       );
 
-      Bus.Invoke(new ReplaceContainerCommand(tilingWindow, floatingWindow.Parent, floatingWindow.Index));
+      _bus.Invoke(new ReplaceContainerCommand(tilingWindow, floatingWindow.Parent, floatingWindow.Index));
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        Bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(tilingWindow, workspace, 0, true));
       else
-        Bus.Invoke(
+        _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             tilingWindow,
             insertionTarget.Parent,
@@ -59,7 +59,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
 
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

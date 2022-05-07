@@ -15,12 +15,12 @@ namespace GlazeWM.Infrastructure.Bussing
   public sealed class Bus
   {
     public readonly Subject<Event> Events = new Subject<Event>();
-    private static readonly Object _lockObj = new Object();
+    private readonly Object _lockObj = new Object();
 
     /// <summary>
     /// Sends command to appropriate command handler.
     /// </summary>
-    public static CommandResponse Invoke<T>(T command) where T : Command
+    public CommandResponse Invoke<T>(T command) where T : Command
     {
       try
       {

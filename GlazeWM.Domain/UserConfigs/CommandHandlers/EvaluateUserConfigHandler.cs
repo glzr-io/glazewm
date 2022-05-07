@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       _userConfigService.UserConfig = deserializedConfig;
 
       // Register keybindings.
-      Bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
+      _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
       return CommandResponse.Ok;
     }

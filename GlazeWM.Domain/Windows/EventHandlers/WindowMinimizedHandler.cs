@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Move tiling windows to be direct children of workspace (in case they aren't already).
       if (window is TilingWindow)
-        Bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
 
       var previousState = window switch
       {
@@ -60,18 +60,18 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         previousState
       );
 
-      Bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
+      _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
       var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
 
       if (focusTarget is Window)
-        Bus.Invoke(new FocusWindowCommand(focusTarget as Window));
+        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
 
       else if (focusTarget is Workspace)
-        Bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
 
       _containerService.ContainersToRedraw.Add(workspace);
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

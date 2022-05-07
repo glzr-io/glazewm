@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (windowToFocus == null)
         return CommandResponse.Ok;
 
-      Bus.Invoke(new FocusWindowCommand(windowToFocus));
+      _bus.Invoke(new FocusWindowCommand(windowToFocus));
 
       return CommandResponse.Ok;
     }

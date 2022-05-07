@@ -31,10 +31,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (pendingFocusContainer != null)
       {
         if (pendingFocusContainer is Window)
-          Bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
+          _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
 
         else if (pendingFocusContainer is Workspace)
-          Bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
+          _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
 
         _containerService.PendingFocusContainer = null;
         return;
@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      Bus.Invoke(new SetFocusedDescendantCommand(window));
+      _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.RaiseEvent(new FocusChangedEvent(window));
     }
   }

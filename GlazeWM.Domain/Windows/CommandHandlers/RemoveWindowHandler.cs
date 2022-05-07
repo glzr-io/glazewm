@@ -25,9 +25,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var grandparent = parent.Parent;
 
       if (window is IResizable)
-        Bus.Invoke(new DetachAndResizeContainerCommand(window));
+        _bus.Invoke(new DetachAndResizeContainerCommand(window));
       else
-        Bus.Invoke(new DetachContainerCommand(window));
+        _bus.Invoke(new DetachContainerCommand(window));
 
       // Get container to switch focus to after the window has been removed. The OS automatically
       // switches focus to a different window after closing, so by setting `PendingFocusContainer`

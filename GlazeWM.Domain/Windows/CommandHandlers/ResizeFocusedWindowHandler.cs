@@ -59,7 +59,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
 
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
-      Bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
