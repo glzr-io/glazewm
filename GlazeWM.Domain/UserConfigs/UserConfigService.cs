@@ -113,7 +113,7 @@ namespace GlazeWM.Domain.UserConfigs
       var resizeElectronBorderWindowRule = new WindowRuleConfig()
       {
         MatchProcessName = $"/^(?!({string.Join("|", chromiumBrowserProcessNames)})$)/",
-        MatchClassName = "Chrome_WidgetWin_1",
+        MatchClassName = "/Chrome_WidgetWin_*/",
         Command = "resize borders 0px -7px -7px -7px",
       };
 
