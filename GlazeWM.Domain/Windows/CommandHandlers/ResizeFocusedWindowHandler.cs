@@ -12,7 +12,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
+  internal class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

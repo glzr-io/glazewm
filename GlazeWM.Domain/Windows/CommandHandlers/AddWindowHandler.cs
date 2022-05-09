@@ -12,7 +12,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class AddWindowHandler : ICommandHandler<AddWindowCommand>
+  internal class AddWindowHandler : ICommandHandler<AddWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var windowHandle = command.WindowHandle;
       var shouldRedraw = command.ShouldRedraw;
 
-      if (!_windowService.IsHandleManageable(windowHandle))
+      if (!WindowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
 
       // Attach the new window as first child of the target parent (if provided), otherwise, add as
@@ -104,7 +104,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
+    private static Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
     {
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
@@ -114,7 +114,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
 
       var windowType = GetWindowTypeToCreate(windowHandle);
-      var isResizable = _windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
+      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
       return windowType switch
@@ -135,17 +135,19 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           floatingPlacement,
           defaultBorderDelta
         ),
+        WindowType.MAXIMIZED => throw new ArgumentException(),
+        WindowType.FULLSCREEN => throw new ArgumentException(),
         _ => throw new ArgumentException(),
       };
     }
 
-    private WindowType GetWindowTypeToCreate(IntPtr windowHandle)
+    private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
     {
-      if (_windowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
+      if (WindowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
         return WindowType.MINIMIZED;
 
       // Initialize windows that can't be resized as floating.
-      if (!_windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
+      if (!WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
         return WindowType.FLOATING;
 
       return WindowType.TILING;

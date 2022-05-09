@@ -20,8 +20,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void Start()
     {
-      var thread = new Thread(() => CreateWindowEventHook());
-      thread.Name = "GlazeWMWindowHooks";
+      var thread = new Thread(() => CreateWindowEventHook())
+      {
+        Name = "GlazeWMWindowHooks"
+      };
       thread.Start();
     }
 

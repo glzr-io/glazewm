@@ -8,7 +8,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
+  internal class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;
@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window == null || window is not FloatingWindow)
+      if (window is null or not FloatingWindow)
         return;
 
       // Update state with new location of the floating window.

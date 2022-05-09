@@ -106,20 +106,20 @@ namespace GlazeWM.Domain.Windows
 
     public static WS_EX GetWindowStylesEx(IntPtr handle)
     {
-      return unchecked((WS_EX)GetWindowLongPtr(handle, (int)(GWL_EXSTYLE)).ToInt64());
+      return unchecked((WS_EX)GetWindowLongPtr(handle, GWL_EXSTYLE).ToInt64());
     }
 
     public static WS GetWindowStyles(IntPtr handle)
     {
-      return unchecked((WS)GetWindowLongPtr(handle, (int)(GWL_STYLE)).ToInt64());
+      return unchecked((WS)GetWindowLongPtr(handle, GWL_STYLE).ToInt64());
     }
 
-    public bool HandleHasWindowStyle(IntPtr handle, WS style)
+    public static bool HandleHasWindowStyle(IntPtr handle, WS style)
     {
       return (GetWindowStyles(handle) & style) != 0;
     }
 
-    public bool HandleHasWindowExStyle(IntPtr handle, WS_EX style)
+    public static bool HandleHasWindowExStyle(IntPtr handle, WS_EX style)
     {
       return (GetWindowStylesEx(handle) & style) != 0;
     }
@@ -138,12 +138,12 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether the given handle is actually visible.
     /// </summary>
-    public bool IsHandleVisible(IntPtr handle)
+    public static bool IsHandleVisible(IntPtr handle)
     {
       return IsWindowVisible(handle) && !IsHandleCloaked(handle);
     }
 
-    public bool IsHandleManageable(IntPtr handle)
+    public static bool IsHandleManageable(IntPtr handle)
     {
       // Ignore windows that are hidden.
       if (!IsHandleVisible(handle))
@@ -163,10 +163,7 @@ namespace GlazeWM.Domain.Windows
       var isMenuWindow = GetWindow(handle, GW.GW_OWNER) != IntPtr.Zero
         && !HandleHasWindowStyle(handle, WS.WS_CAPTION);
 
-      if (isMenuWindow)
-        return false;
-
-      return true;
+      return !isMenuWindow;
     }
 
     /// <summary>

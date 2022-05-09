@@ -4,7 +4,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ToggleFocusedWindowFloatingHandler : ICommandHandler<ToggleFocusedWindowFloatingCommand>
+  internal class ToggleFocusedWindowFloatingHandler : ICommandHandler<ToggleFocusedWindowFloatingCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

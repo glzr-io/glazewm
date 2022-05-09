@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Containers
     /// If set, this container overrides the target container to set focus to on the next
     /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
     /// </summary>
-    public Container PendingFocusContainer = null;
+    public Container PendingFocusContainer;
 
     /// <summary>
     /// Whether the focused container of the WM is in sync with the OS. Mismatches between the
@@ -55,8 +55,7 @@ namespace GlazeWM.Domain.Containers
         if (focusedContainer is Window)
           return (focusedContainer as Window).Hwnd == foregroundHandle;
 
-        else
-          return IntPtr.Zero == foregroundHandle;
+        return IntPtr.Zero == foregroundHandle;
       }
     }
 
@@ -81,7 +80,8 @@ namespace GlazeWM.Domain.Containers
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
+      return (int)((container as IResizable).SizePercentage
+        * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -98,7 +98,8 @@ namespace GlazeWM.Domain.Containers
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
+      return (int)((container as IResizable).SizePercentage
+        * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -161,13 +162,11 @@ namespace GlazeWM.Domain.Containers
           originContainer.LastFocusedChildOfType(typeof(IResizable)),
           direction
         );
-
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      else if (direction is Direction.UP or Direction.LEFT)
         return GetDescendantInDirection(
           originContainer.ChildrenOfType(typeof(IResizable)).First(),
           direction
         );
-
       else
         return GetDescendantInDirection(
           originContainer.ChildrenOfType(typeof(IResizable)).Last(),

@@ -8,7 +8,9 @@ namespace GlazeWM.Domain.Containers.Commands
     public Container TargetParent { get; }
     public int TargetIndex { get; }
 
-    // Insert child as end element if `targetIndex` is not provided.
+    /// <summary>
+    /// Insert child as end element if `targetIndex` is not provided.
+    /// </summary>
     public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent)
     {
       ChildToAdd = childToAdd;

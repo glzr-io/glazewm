@@ -20,7 +20,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bootstrapper
 {
-  class Startup
+  internal class Startup
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
@@ -129,9 +129,9 @@ namespace GlazeWM.Bootstrapper
       // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
       // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
       // an arbitrary workspace.
-      Container containerToFocus =
+      var containerToFocus =
         _windowService.GetWindows().FirstOrDefault() as Container
-        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
+        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault();
 
       if (containerToFocus is Window)
         _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));

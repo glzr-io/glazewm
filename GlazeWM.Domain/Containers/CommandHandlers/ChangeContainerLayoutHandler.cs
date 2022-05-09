@@ -7,7 +7,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
+  internal class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

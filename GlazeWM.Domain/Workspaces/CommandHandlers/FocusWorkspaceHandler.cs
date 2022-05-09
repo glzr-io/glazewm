@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
+  internal class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;

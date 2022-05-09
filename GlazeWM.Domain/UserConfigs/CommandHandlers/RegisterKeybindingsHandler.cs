@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
+  internal class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
   {
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;

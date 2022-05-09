@@ -6,7 +6,10 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarComponentConfigConverter : JsonConverter
   {
-    public override bool CanConvert(Type type) => type.IsAssignableFrom(typeof(BarComponentConfig));
+    public override bool CanConvert(Type objectType)
+    {
+      return objectType.IsAssignableFrom(typeof(BarComponentConfig));
+    }
 
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {

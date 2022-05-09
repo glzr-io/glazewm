@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
     /// </summary>
-    public bool HasPendingDpiAdjustment { get; set; } = false;
+    public bool HasPendingDpiAdjustment { get; set; }
 
     private readonly WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
     private readonly WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
@@ -53,7 +53,7 @@ namespace GlazeWM.Domain.Windows
 
     public string Title => WindowService.GetTitleOfHandle(Hwnd);
 
-    public bool IsManageable => _windowService.IsHandleManageable(Hwnd);
+    public bool IsManageable => WindowService.IsHandleManageable(Hwnd);
 
     public WS WindowStyles => WindowService.GetWindowStyles(Hwnd);
 
@@ -61,12 +61,12 @@ namespace GlazeWM.Domain.Windows
 
     public bool HasWindowStyle(WS style)
     {
-      return _windowService.HandleHasWindowStyle(Hwnd, style);
+      return WindowService.HandleHasWindowStyle(Hwnd, style);
     }
 
     public bool HasWindowExStyle(WS_EX style)
     {
-      return _windowService.HandleHasWindowExStyle(Hwnd, style);
+      return WindowService.HandleHasWindowExStyle(Hwnd, style);
     }
   }
 }

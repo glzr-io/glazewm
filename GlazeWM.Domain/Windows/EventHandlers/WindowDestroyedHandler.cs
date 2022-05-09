@@ -7,7 +7,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowDestroyedHandler : IEventHandler<WindowDestroyedEvent>
+  internal class WindowDestroyedHandler : IEventHandler<WindowDestroyedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

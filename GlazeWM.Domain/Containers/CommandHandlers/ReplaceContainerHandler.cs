@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
+  internal class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
   {
     private readonly ContainerService _containerService;
 

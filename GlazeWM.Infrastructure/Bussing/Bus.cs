@@ -40,7 +40,7 @@ namespace GlazeWM.Infrastructure.Bussing
       catch (Exception error)
       {
         HandleError(error);
-        throw error;
+        throw;
       }
     }
 
@@ -73,7 +73,7 @@ namespace GlazeWM.Infrastructure.Bussing
       catch (Exception error)
       {
         HandleError(error);
-        throw error;
+        throw;
       }
     }
 
@@ -88,7 +88,7 @@ namespace GlazeWM.Infrastructure.Bussing
     }
 
     // TODO: Move to dedicated logging service.
-    private void WriteToErrorLog(Exception error)
+    private static void WriteToErrorLog(Exception error)
     {
       var errorLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),

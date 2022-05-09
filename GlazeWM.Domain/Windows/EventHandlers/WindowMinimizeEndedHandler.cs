@@ -8,7 +8,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMinimizeEndedHandler : IEventHandler<WindowMinimizeEndedEvent>
+  internal class WindowMinimizeEndedHandler : IEventHandler<WindowMinimizeEndedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;
@@ -89,6 +89,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.BorderDelta,
           0
         ),
+        WindowType.MINIMIZED => throw new ArgumentException(),
         _ => throw new ArgumentException(),
       };
     }

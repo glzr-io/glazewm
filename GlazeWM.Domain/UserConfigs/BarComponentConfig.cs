@@ -12,22 +12,22 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Fallback to bar background config if unset.
     /// </summary>
-    public string Background { get; set; } = null;
+    public string Background { get; set; }
 
     /// <summary>
     /// Fallback to bar foreground config if unset.
     /// </summary>
-    public string Foreground { get; set; } = null;
+    public string Foreground { get; set; }
 
     /// <summary>
     /// Fallback to bar font family config if unset.
     /// </summary>
-    public string FontFamily { get; set; } = null;
+    public string FontFamily { get; set; }
 
     /// <summary>
     /// Fallback to bar font size config if unset.
     /// </summary>
-    public string FontSize { get; set; } = null;
+    public string FontSize { get; set; }
 
     public string BorderColor { get; set; } = "blue";
 

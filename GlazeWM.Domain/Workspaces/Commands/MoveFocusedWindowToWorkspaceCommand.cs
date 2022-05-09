@@ -2,7 +2,7 @@
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  class MoveFocusedWindowToWorkspaceCommand : Command
+  internal class MoveFocusedWindowToWorkspaceCommand : Command
   {
     public string WorkspaceName { get; }
 

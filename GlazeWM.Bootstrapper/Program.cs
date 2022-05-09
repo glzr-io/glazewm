@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Bootstrapper
 {
-  static class Program
+  internal static class Program
   {
     private const string appGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
 
@@ -17,12 +17,12 @@ namespace GlazeWM.Bootstrapper
     ///  The main entry point for the application.
     /// </summary>
     [STAThread]
-    static void Main()
+    private static void Main()
     {
       Debug.WriteLine("Application started.");
 
       // Prevent multiple app instances using a global UUID mutex.
-      using (Mutex mutex = new Mutex(false, "Global\\" + appGuid))
+      using (var mutex = new Mutex(false, "Global\\" + appGuid))
       {
         if (!mutex.WaitOne(0, false))
         {

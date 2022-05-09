@@ -68,9 +68,10 @@ namespace GlazeWM.Bar
           });
 
         _application.Run();
-      });
-
-      thread.Name = "GlazeWMBar";
+      })
+      {
+        Name = "GlazeWMBar"
+      };
       thread.SetApartmentState(ApartmentState.STA);
       thread.Start();
     }

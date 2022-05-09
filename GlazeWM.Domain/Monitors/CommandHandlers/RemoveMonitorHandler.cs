@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
+  internal class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;

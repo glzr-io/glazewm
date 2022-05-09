@@ -4,7 +4,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class AttachContainerHandler : ICommandHandler<AttachContainerCommand>
+  internal class AttachContainerHandler : ICommandHandler<AttachContainerCommand>
   {
     private readonly ContainerService _containerService;
 

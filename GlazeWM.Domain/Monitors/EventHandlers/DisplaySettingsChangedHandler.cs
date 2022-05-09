@@ -4,7 +4,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Monitors.EventHandlers
 {
-  class DisplaySettingsChangedHandler : IEventHandler<DisplaySettingsChangedEvent>
+  internal class DisplaySettingsChangedHandler : IEventHandler<DisplaySettingsChangedEvent>
   {
     private readonly Bus _bus;
 

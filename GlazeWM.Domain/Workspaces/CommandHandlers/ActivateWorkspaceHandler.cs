@@ -5,7 +5,7 @@ using GlazeWM.Domain.Workspaces.Events;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class ActivateWorkspaceHandler : ICommandHandler<ActivateWorkspaceCommand>
+  internal class ActivateWorkspaceHandler : ICommandHandler<ActivateWorkspaceCommand>
   {
     private readonly Bus _bus;
 

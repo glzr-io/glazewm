@@ -14,10 +14,10 @@ namespace GlazeWM.Infrastructure.Yaml
       _nodeDeserializer = nodeDeserializer;
     }
 
-    public bool Deserialize(IParser parser, Type expectedType,
+    public bool Deserialize(IParser reader, Type expectedType,
         Func<IParser, Type, object> nestedObjectDeserializer, out object value)
     {
-      if (!_nodeDeserializer.Deserialize(parser, expectedType, nestedObjectDeserializer, out value))
+      if (!_nodeDeserializer.Deserialize(reader, expectedType, nestedObjectDeserializer, out value))
         return false;
 
       // Validate using the provided data annotations (eg. `[Required]`).

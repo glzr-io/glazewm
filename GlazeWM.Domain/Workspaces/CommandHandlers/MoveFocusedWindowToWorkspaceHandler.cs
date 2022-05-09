@@ -7,7 +7,7 @@ using GlazeWM.Domain.Containers.Commands;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class MoveFocusedWindowToWorkspaceHandler : ICommandHandler<MoveFocusedWindowToWorkspaceCommand>
+  internal class MoveFocusedWindowToWorkspaceHandler : ICommandHandler<MoveFocusedWindowToWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;

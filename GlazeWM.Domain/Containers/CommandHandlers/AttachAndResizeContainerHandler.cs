@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class AttachAndResizeContainerHandler : ICommandHandler<AttachAndResizeContainerCommand>
+  internal class AttachAndResizeContainerHandler : ICommandHandler<AttachAndResizeContainerCommand>
   {
     private readonly Bus _bus;
 
@@ -27,7 +27,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       var resizableSiblings = childToAdd.Siblings.Where(container => container is IResizable);
 
-      double defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
+      var defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
       (childToAdd as IResizable).SizePercentage = defaultPercent;
 
       var sizePercentageDecrement = defaultPercent / resizableSiblings.Count();

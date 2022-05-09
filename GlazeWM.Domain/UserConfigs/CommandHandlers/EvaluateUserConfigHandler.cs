@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
+  internal class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
     public CommandResponse Handle(EvaluateUserConfigCommand command)
     {
-      UserConfig deserializedConfig = null;
+      UserConfig deserializedConfig;
 
       try
       {
@@ -78,7 +78,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
 
       // Get the embedded sample user config from the entry assembly.
-      using (Stream stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
+      using (var stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
       {
         // Write the sample user config to the appropriate destination.
         using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))

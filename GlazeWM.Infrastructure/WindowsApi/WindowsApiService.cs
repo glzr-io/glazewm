@@ -85,8 +85,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       WS_EX_CONTROLPARENT = 0x10000,
       WS_EX_STATICEDGE = 0x20000,
       WS_EX_APPWINDOW = 0x40000,
-      WS_EX_OVERLAPPEDWINDOW = (WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE),
-      WS_EX_PALETTEWINDOW = (WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST),
+      WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
+      WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
       WS_EX_LAYERED = 0x00080000,
       WS_EX_NOINHERITLAYOUT = 0x00100000,
       WS_EX_LAYOUTRTL = 0x00400000,
@@ -139,7 +139,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int index);
 
     public static IntPtr GetWindowLongPtr(IntPtr hWnd, int index)
-      => Environment.Is64BitProcess ? GetWindowLongPtr64(hWnd, index) : GetWindowLongPtr32(hWnd, index);
+    {
+      return Environment.Is64BitProcess ? GetWindowLongPtr64(hWnd, index) : GetWindowLongPtr32(hWnd, index);
+    }
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
     private static extern IntPtr SetWindowLongPtr32(IntPtr hWnd, int index, IntPtr newLong);
@@ -148,7 +150,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int index, IntPtr newLong);
 
     public static IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong)
-      => Environment.Is64BitProcess ? SetWindowLongPtr64(hWnd, index, newLong) : SetWindowLongPtr32(hWnd, index, newLong);
+    {
+      return Environment.Is64BitProcess ? SetWindowLongPtr64(hWnd, index, newLong) : SetWindowLongPtr32(hWnd, index, newLong);
+    }
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SWP uFlags);
@@ -195,13 +199,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetWindowTextLength(IntPtr hWnd);
 
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
     [DllImport("user32.dll")]

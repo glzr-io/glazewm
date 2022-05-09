@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
+  internal class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

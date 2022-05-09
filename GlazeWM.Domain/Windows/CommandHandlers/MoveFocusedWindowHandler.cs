@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class MoveFocusedWindowHandler : ICommandHandler<MoveFocusedWindowCommand>
+  internal class MoveFocusedWindowHandler : ICommandHandler<MoveFocusedWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -72,20 +72,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       if (direction == Direction.UP || direction == Direction.LEFT)
         return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).First();
-      else
-        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
+
+      return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
     }
 
     private void SwapSiblingContainers(Window focusedWindow, Direction direction)
     {
-      var siblingInDirection = direction == Direction.UP || direction == Direction.LEFT
+      var siblingInDirection = direction is Direction.UP or Direction.LEFT
         ? focusedWindow.GetPreviousSiblingOfType(typeof(IResizable))
         : focusedWindow.GetNextSiblingOfType(typeof(IResizable));
 
       // Swap the focused window with sibling in given direction.
       if (siblingInDirection is Window)
       {
-        var targetIndex = direction == Direction.UP || direction == Direction.LEFT ?
+        var targetIndex = direction is Direction.UP or Direction.LEFT ?
           siblingInDirection.Index : siblingInDirection.Index + 1;
 
         _bus.Invoke(
@@ -131,7 +131,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         focusedWindow.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRectangle());
 
       // TODO: Descend into container if possible.
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      if (direction is Direction.UP or Direction.LEFT)
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, 0, true));
@@ -163,7 +163,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionReference = focusedWindow.Ancestors
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT
+      var insertionReferenceSibling = direction is Direction.UP or Direction.LEFT
         ? insertionReference.GetPreviousSiblingOfType(typeof(IResizable))
         : insertionReference.GetNextSiblingOfType(typeof(IResizable));
 
@@ -182,7 +182,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
       {
         // Move the focused window into the container above.
-        var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
+        var insertionIndex = (direction is Direction.UP or Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, ancestorWithLayout, insertionIndex, true));

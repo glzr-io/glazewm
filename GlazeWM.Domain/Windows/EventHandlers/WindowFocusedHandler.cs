@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowFocusedHandler : IEventHandler<WindowFocusedEvent>
+  internal class WindowFocusedHandler : IEventHandler<WindowFocusedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

@@ -9,7 +9,9 @@ namespace GlazeWM.Domain.Containers.Commands
     public int TargetIndex { get; }
     public bool ShouldAdjustSize { get; }
 
-    // Insert child as end element if `targetIndex` is not provided.
+    /// <summary>
+    /// Insert child as end element if `targetIndex` is not provided.
+    /// </summary>
     public MoveContainerWithinTreeCommand(Container containerToMove, Container targetParent, bool shouldAdjustSize)
     {
       ContainerToMove = containerToMove;

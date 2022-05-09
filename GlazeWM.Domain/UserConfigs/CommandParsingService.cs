@@ -101,7 +101,7 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseSetCommand(string[] commandParts)
+    private static Command ParseSetCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
@@ -153,7 +153,7 @@ namespace GlazeWM.Domain.UserConfigs
         .Select(shorthandPart => UnitsHelper.TrimUnits(shorthandPart))
         .ToList();
 
-      return shorthandParts.Count() switch
+      return shorthandParts.Count switch
       {
         1 => new RectDelta(shorthandParts[0], shorthandParts[0], shorthandParts[0], shorthandParts[0]),
         2 => new RectDelta(shorthandParts[1], shorthandParts[0], shorthandParts[1], shorthandParts[0]),

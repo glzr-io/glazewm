@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class DeactivateWorkspaceHandler : ICommandHandler<DeactivateWorkspaceCommand>
+  internal class DeactivateWorkspaceHandler : ICommandHandler<DeactivateWorkspaceCommand>
   {
     public Bus _bus { get; }
 

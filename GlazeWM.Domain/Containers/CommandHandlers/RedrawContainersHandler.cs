@@ -7,7 +7,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
+  internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private readonly ContainerService _containerService;
 
@@ -63,7 +63,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void SetWindowPosition(Window window, SWP flags)
+    private static void SetWindowPosition(Window window, SWP flags)
     {
       if (window is TilingWindow)
       {

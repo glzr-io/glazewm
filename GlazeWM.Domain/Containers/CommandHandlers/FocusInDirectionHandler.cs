@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
+  internal class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -40,7 +40,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private void FocusFromFloatingWindow(Container focusedContainer, Direction direction)
     {
       // Cannot focus vertically from a floating window.
-      if (direction == Direction.UP || direction == Direction.DOWN)
+      if (direction is Direction.UP or Direction.DOWN)
         return;
 
       var focusTarget = direction == Direction.RIGHT
@@ -93,7 +93,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Traverse upwards from the focused container. Stop searching when a workspace is
       // encountered.
-      while (!(focusReference is Workspace))
+      while (focusReference is not Workspace)
       {
         var parent = focusReference.Parent as SplitContainer;
 
@@ -103,7 +103,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           continue;
         }
 
-        var focusTarget = direction == Direction.UP || direction == Direction.LEFT
+        var focusTarget = direction is Direction.UP or Direction.LEFT
           ? focusReference.GetPreviousSiblingOfType(typeof(IResizable))
           : focusReference.GetNextSiblingOfType(typeof(IResizable));
 

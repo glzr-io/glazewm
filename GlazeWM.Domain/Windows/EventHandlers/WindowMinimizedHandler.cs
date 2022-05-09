@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
+  internal class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;
@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window == null || window is MinimizedWindow)
+      if (window is null or MinimizedWindow)
         return;
 
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
@@ -46,10 +46,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       var previousState = window switch
       {
-        TilingWindow _ => WindowType.TILING,
-        FloatingWindow _ => WindowType.FLOATING,
-        MaximizedWindow _ => WindowType.MAXIMIZED,
-        FullscreenWindow _ => WindowType.FULLSCREEN,
+        TilingWindow => WindowType.TILING,
+        FloatingWindow => WindowType.FLOATING,
+        MaximizedWindow => WindowType.MAXIMIZED,
+        FullscreenWindow => WindowType.FULLSCREEN,
         _ => throw new ArgumentException(),
       };
 

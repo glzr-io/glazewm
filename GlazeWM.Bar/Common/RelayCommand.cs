@@ -5,13 +5,13 @@ namespace GlazeWM.Bar.Common
 {
   public class RelayCommand : ICommand
   {
-    private readonly Action _methodToExecute = null;
-    private readonly Func<bool> _canExecutePredicate = null;
+    private readonly Action _methodToExecute;
+    private readonly Func<bool> _canExecutePredicate;
 
     public event EventHandler CanExecuteChanged
     {
-      add { CommandManager.RequerySuggested += value; }
-      remove { CommandManager.RequerySuggested -= value; }
+      add => CommandManager.RequerySuggested += value;
+      remove => CommandManager.RequerySuggested -= value;
     }
 
     public RelayCommand(Action methodToExecute)
@@ -40,13 +40,13 @@ namespace GlazeWM.Bar.Common
 
   public class RelayCommand<T> : ICommand
   {
-    private readonly Action<T> _methodToExecute = null;
-    private readonly Predicate<T> _canExecutePredicate = null;
+    private readonly Action<T> _methodToExecute;
+    private readonly Predicate<T> _canExecutePredicate;
 
     public event EventHandler CanExecuteChanged
     {
-      add { CommandManager.RequerySuggested += value; }
-      remove { CommandManager.RequerySuggested -= value; }
+      add => CommandManager.RequerySuggested += value;
+      remove => CommandManager.RequerySuggested -= value;
     }
 
     public RelayCommand(Action<T> methodToExecute)

@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
+  internal class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
   {
     private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;

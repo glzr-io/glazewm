@@ -35,8 +35,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void Start()
     {
-      var thread = new Thread(() => CreateKeybindingHook());
-      thread.Name = "GlazeWMKeybindingService";
+      var thread = new Thread(() => CreateKeybindingHook())
+      {
+        Name = "GlazeWMKeybindingService"
+      };
       thread.Start();
     }
 
@@ -63,17 +65,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     private static string FormatKeybinding(string key)
     {
-      var isNumeric = int.TryParse(key, out int _);
+      var isNumeric = int.TryParse(key, out var _);
 
-      if (isNumeric)
-        return $"D{key}";
-
-      return key;
+      return isNumeric ? $"D{key}" : key;
     }
 
     private void CreateKeybindingHook()
     {
-      SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
+      _ = SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 
       // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
       Application.Run();
@@ -99,7 +98,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       if (registeredKeybindings == null)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      Dictionary<Keys, bool> cachedKeyStates = new Dictionary<Keys, bool>();
+      var cachedKeyStates = new Dictionary<Keys, bool>();
 
       var matchedKeybindings = registeredKeybindings.Where(keybinding =>
       {
@@ -133,7 +132,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Get whether the given key is down. Check alternate versions of modifier keys.
     /// </summary>
-    private bool IsKeyDown(Keys key)
+    private static bool IsKeyDown(Keys key)
     {
       if (key == Keys.Alt)
         return IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu);

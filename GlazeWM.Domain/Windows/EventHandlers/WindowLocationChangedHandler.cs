@@ -4,7 +4,7 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowLocationChangedHandler : IEventHandler<WindowLocationChangedEvent>
+  internal class WindowLocationChangedHandler : IEventHandler<WindowLocationChangedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

@@ -6,7 +6,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class CloseFocusedWindowHandler : ICommandHandler<CloseFocusedWindowCommand>
+  internal class CloseFocusedWindowHandler : ICommandHandler<CloseFocusedWindowCommand>
   {
     private readonly ContainerService _containerService;
 

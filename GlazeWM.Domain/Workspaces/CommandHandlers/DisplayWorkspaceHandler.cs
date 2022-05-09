@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
+  internal class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;

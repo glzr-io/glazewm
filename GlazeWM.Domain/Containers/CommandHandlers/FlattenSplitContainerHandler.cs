@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
+  internal class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

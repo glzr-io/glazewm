@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ResizeFocusedWindowBordersHandler : ICommandHandler<ResizeFocusedWindowBordersCommand>
+  internal class ResizeFocusedWindowBordersHandler : ICommandHandler<ResizeFocusedWindowBordersCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -34,7 +34,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         focusedWindow.BorderDelta.DeltaBottom + borderDelta.DeltaBottom
       );
 
-      if (!(focusedWindow is TilingWindow))
+      if (focusedWindow is not TilingWindow)
         return CommandResponse.Ok;
 
       // Only redraw the window if it's tiling.

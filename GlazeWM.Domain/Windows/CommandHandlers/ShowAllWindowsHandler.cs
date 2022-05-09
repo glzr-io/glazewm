@@ -5,7 +5,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ShowAllWindowsHandler : ICommandHandler<ShowAllWindowsCommand>
+  internal class ShowAllWindowsHandler : ICommandHandler<ShowAllWindowsCommand>
   {
     private readonly WindowService _windowService;
 

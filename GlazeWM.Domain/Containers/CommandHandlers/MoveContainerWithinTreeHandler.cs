@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
+  internal class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

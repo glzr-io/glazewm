@@ -3,7 +3,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  class ActivateWorkspaceCommand : Command
+  internal class ActivateWorkspaceCommand : Command
   {
     public string WorkspaceName { get; }
     public Monitor TargetMonitor { get; }
