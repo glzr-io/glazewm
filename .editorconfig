@@ -116,8 +116,23 @@ csharp_space_between_method_call_empty_parameter_list_parentheses = false
 csharp_preserve_single_line_statements = true
 csharp_preserve_single_line_blocks = true
 ###############################
-# VB Coding Conventions       #
+# Analyzer Rules              #
 ###############################
-[*.vb]
-# Modifier preferences
-visual_basic_preferred_modifier_order = Partial,Default,Private,Protected,Public,Friend,NotOverridable,Overridable,MustOverride,Overloads,Overrides,MustInherit,NotInheritable,Static,Shared,Shadows,ReadOnly,WriteOnly,Dim,Const,WithEvents,Widening,Narrowing,Custom,Async:suggestion
+roslynator_refactorings.enabled = false
+roslynator_compiler_diagnostic_fixes.enabled = true
+# Disable rule "Add braces (when expression spans over multiple lines)".
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.RCS1001.severity = none
+dotnet_diagnostic.RCS1003.severity = none
+# Disable rule "Use bit shift operator".
+dotnet_diagnostic.RCS1237.severity = none
+# Disable rule "Add 'param' element to documentation comment".
+dotnet_diagnostic.RCS1141.severity = none
+# Disable rule "Add 'typeparam' element to documentation comment".
+dotnet_diagnostic.RCS1142.severity = none
+# Disable rule "Use pattern matching to avoid 'as' followed by a 'null' check".
+dotnet_diagnostic.IDE0019.severity = none
+dotnet_diagnostic.RCS1221.severity = none
+# Add rule exception "Types that own disposable fields should be disposable".
+[**/Bus.cs]
+dotnet_diagnostic.CA1001.severity = none
