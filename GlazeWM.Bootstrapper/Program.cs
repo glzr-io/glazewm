@@ -1,8 +1,10 @@
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -49,6 +51,14 @@ namespace GlazeWM.Bootstrapper
           services.AddDomainServices();
           services.AddBarServices();
           services.AddSingleton<Startup>();
+        })
+        .ConfigureLogging(builder =>
+        {
+          builder
+            .AddConsole(options => options.FormatterName = "customName")
+            .AddConsoleFormatter<CustomFormatter, CustomOptions>(
+              options => options.CustomPrefix = " ~~~~~ "
+            );
         })
         .Build();
     }
