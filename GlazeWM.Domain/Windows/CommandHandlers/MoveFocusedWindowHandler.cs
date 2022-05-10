@@ -70,7 +70,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     /// </summary>
     private static bool HasSiblingInDirection(Window focusedWindow, Direction direction)
     {
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      if (direction is Direction.UP or Direction.LEFT)
         return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).First();
 
       return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();

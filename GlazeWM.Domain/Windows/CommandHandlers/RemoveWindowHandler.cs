@@ -32,8 +32,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Get container to switch focus to after the window has been removed. The OS automatically
       // switches focus to a different window after closing, so by setting `PendingFocusContainer`
       // this behavior is overridden.
-      var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
-      _containerService.PendingFocusContainer = containerToFocus;
+      _containerService.PendingFocusContainer = parent.LastFocusedDescendant
+        ?? grandparent.LastFocusedDescendant;
 
       return CommandResponse.Ok;
     }

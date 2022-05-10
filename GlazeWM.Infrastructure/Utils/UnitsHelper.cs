@@ -8,7 +8,7 @@ namespace GlazeWM.Infrastructure.Utils
   {
     public static int TrimUnits(string amountWithUnits)
     {
-      var unitsRegex = new Regex(@"(%|ppt|px)");
+      var unitsRegex = new Regex("(%|ppt|px)");
       var amount = unitsRegex.Replace(amountWithUnits, "").Trim();
       return Convert.ToInt32(amount, CultureInfo.InvariantCulture);
     }

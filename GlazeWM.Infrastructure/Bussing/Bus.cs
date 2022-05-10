@@ -1,4 +1,5 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Events;
+﻿using GlazeWM.Infrastructure.Exceptions;
+using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -14,8 +15,8 @@ namespace GlazeWM.Infrastructure.Bussing
   /// </summary>
   public sealed class Bus
   {
-    public readonly Subject<Event> Events = new Subject<Event>();
-    private readonly Object _lockObj = new Object();
+    public readonly Subject<Event> Events = new();
+    private readonly object _lockObj = new();
 
     /// <summary>
     /// Sends command to appropriate command handler.

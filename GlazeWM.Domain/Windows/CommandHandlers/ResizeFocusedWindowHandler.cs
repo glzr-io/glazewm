@@ -9,6 +9,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -68,7 +69,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       try
       {
-        var matchedResizeAmount = new Regex(@"(.*)(%|ppt)").Match(resizeAmount);
+        var matchedResizeAmount = new Regex("(.*)(%|ppt)").Match(resizeAmount);
         var amount = matchedResizeAmount.Groups[1].Value;
         var unit = matchedResizeAmount.Groups[2].Value;
 

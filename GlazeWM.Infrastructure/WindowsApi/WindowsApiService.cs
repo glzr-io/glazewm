@@ -8,20 +8,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public static class WindowsApiService
   {
+    [Flags]
     public enum SWP : uint
     {
-      SWP_SHOWWINDOW = 0x0040,
-      SWP_HIDEWINDOW = 0x0080,
+      SWP_NOSIZE = 0x0001,
+      SWP_NOMOVE = 0x0002,
       SWP_NOZORDER = 0x0004,
       SWP_NOREDRAW = 0x0008,
       SWP_NOACTIVATE = 0x0010,
-      SWP_NOMOVE = 0x0002,
-      SWP_NOSIZE = 0x0001,
       SWP_FRAMECHANGED = 0x0020,
+      SWP_SHOWWINDOW = 0x0040,
+      SWP_HIDEWINDOW = 0x0080,
       SWP_NOCOPYBITS = 0x0100,
       SWP_NOOWNERZORDER = 0x0200,
-      SWP_DEFERERASE = 0x2000,
       SWP_NOSENDCHANGING = 0x0400,
+      SWP_DEFERERASE = 0x2000,
       SWP_ASYNCWINDOWPOS = 0x4000
     }
 
@@ -32,32 +33,32 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public enum WS : uint
     {
       WS_OVERLAPPED = 0x00000000,
-      WS_POPUP = 0x80000000,
-      WS_CHILD = 0x40000000,
-      WS_MINIMIZE = 0x20000000,
-      WS_VISIBLE = 0x10000000,
-      WS_DISABLED = 0x08000000,
-      WS_CLIPSIBLINGS = 0x04000000,
-      WS_CLIPCHILDREN = 0x02000000,
-      WS_MAXIMIZE = 0x01000000,
-      WS_BORDER = 0x00800000,
-      WS_DLGFRAME = 0x00400000,
-      WS_VSCROLL = 0x00200000,
-      WS_HSCROLL = 0x00100000,
-      WS_SYSMENU = 0x00080000,
-      WS_THICKFRAME = 0x00040000,
-      WS_GROUP = 0x00020000,
-      WS_TABSTOP = 0x00010000,
-      WS_MINIMIZEBOX = 0x00020000,
-      WS_MAXIMIZEBOX = 0x00010000,
-      WS_CAPTION = WS_BORDER | WS_DLGFRAME,
       WS_TILED = WS_OVERLAPPED,
-      WS_ICONIC = WS_MINIMIZE,
+      WS_TABSTOP = 0x00010000,
+      WS_MAXIMIZEBOX = 0x00010000,
+      WS_GROUP = 0x00020000,
+      WS_MINIMIZEBOX = 0x00020000,
+      WS_THICKFRAME = 0x00040000,
       WS_SIZEBOX = WS_THICKFRAME,
+      WS_SYSMENU = 0x00080000,
+      WS_HSCROLL = 0x00100000,
+      WS_VSCROLL = 0x00200000,
+      WS_DLGFRAME = 0x00400000,
+      WS_BORDER = 0x00800000,
+      WS_CAPTION = WS_BORDER | WS_DLGFRAME,
       WS_TILEDWINDOW = WS_OVERLAPPEDWINDOW,
       WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-      WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU,
-      WS_CHILDWINDOW = WS_CHILD
+      WS_MAXIMIZE = 0x01000000,
+      WS_CLIPCHILDREN = 0x02000000,
+      WS_CLIPSIBLINGS = 0x04000000,
+      WS_DISABLED = 0x08000000,
+      WS_VISIBLE = 0x10000000,
+      WS_MINIMIZE = 0x20000000,
+      WS_ICONIC = WS_MINIMIZE,
+      WS_CHILD = 0x40000000,
+      WS_CHILDWINDOW = WS_CHILD,
+      WS_POPUP = 0x80000000,
+      WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU
     }
 
     /// <summary>
@@ -66,6 +67,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [Flags]
     public enum WS_EX : uint
     {
+      WS_EX_LEFT = 0x0000,
+      WS_EX_LTRREADING = 0x0000,
+      WS_EX_RIGHTSCROLLBAR = 0x0000,
       WS_EX_DLGMODALFRAME = 0x0001,
       WS_EX_NOPARENTNOTIFY = 0x0004,
       WS_EX_TOPMOST = 0x0008,
@@ -74,19 +78,16 @@ namespace GlazeWM.Infrastructure.WindowsApi
       WS_EX_MDICHILD = 0x0040,
       WS_EX_TOOLWINDOW = 0x0080,
       WS_EX_WINDOWEDGE = 0x0100,
+      WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
       WS_EX_CLIENTEDGE = 0x0200,
+      WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
       WS_EX_CONTEXTHELP = 0x0400,
       WS_EX_RIGHT = 0x1000,
-      WS_EX_LEFT = 0x0000,
       WS_EX_RTLREADING = 0x2000,
-      WS_EX_LTRREADING = 0x0000,
       WS_EX_LEFTSCROLLBAR = 0x4000,
-      WS_EX_RIGHTSCROLLBAR = 0x0000,
       WS_EX_CONTROLPARENT = 0x10000,
       WS_EX_STATICEDGE = 0x20000,
       WS_EX_APPWINDOW = 0x40000,
-      WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
-      WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
       WS_EX_LAYERED = 0x00080000,
       WS_EX_NOINHERITLAYOUT = 0x00100000,
       WS_EX_LAYOUTRTL = 0x00400000,
@@ -263,7 +264,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
 
-    public enum HookType : int
+    public enum HookType
     {
       WH_KEYBOARD_LL = 13,
       WH_MOUSE_LL = 14
@@ -296,7 +297,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public int Flags;
 
       /// <summary>
-      /// The time stamp stamp for this message, equivalent to what GetMessageTime would return for this message.
+      /// The time stamp for this message, equivalent to what GetMessageTime would return for this message.
       /// </summary>
       public int TimeStamp;
 
@@ -346,12 +347,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public enum DpiAwarenessContext
     {
-      Context_Undefined = 0,
-      Context_Unaware = -1,
-      Context_SystemAware = -2,
-      Context_PerMonitorAware = -3,
+      Context_UnawareGdiScaled = -5,
       Context_PerMonitorAwareV2 = -4,
-      Context_UnawareGdiScaled = -5
+      Context_PerMonitorAware = -3,
+      Context_SystemAware = -2,
+      Context_Unaware = -1,
+      Context_Undefined = 0
     }
 
     [DllImport("user32.dll", SetLastError = true)]

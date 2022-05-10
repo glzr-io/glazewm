@@ -30,7 +30,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (focusedContainer is FloatingWindow)
         FocusFromFloatingWindow(focusedContainer, direction);
-
       else
         FocusFromTilingContainer(focusedContainer, direction);
 
@@ -65,7 +64,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-
       else if (focusTarget is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
     }
@@ -79,7 +77,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // If a suitable focus target isn't found in the current workspace, attempt to find
       // a workspace in the given direction.
-      return GetFocusTargetOutsideWorkspace(focusedContainer, direction);
+      return GetFocusTargetOutsideWorkspace(direction);
     }
 
     /// <summary>
@@ -122,7 +120,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     /// <summary>
     /// Attempt to find a focus target in a different workspace than the focused workspace.
     /// </summary>
-    private Container GetFocusTargetOutsideWorkspace(Container focusedContainer, Direction direction)
+    private Container GetFocusTargetOutsideWorkspace(Direction direction)
     {
       var focusedMonitor = _monitorService.GetFocusedMonitor();
 

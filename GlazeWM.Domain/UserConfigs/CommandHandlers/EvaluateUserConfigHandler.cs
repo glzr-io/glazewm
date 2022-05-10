@@ -1,5 +1,6 @@
 ﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
 using Newtonsoft.Json;
@@ -78,14 +79,11 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
 
       // Get the embedded sample user config from the entry assembly.
-      using (var stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
-      {
-        // Write the sample user config to the appropriate destination.
-        using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))
-        {
-          stream.CopyTo(fileStream);
-        }
-      }
+      using var stream = assembly.GetManifestResourceStream(sampleConfigResourceName);
+
+      // Write the sample user config to the appropriate destination.
+      using var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write);
+      stream.CopyTo(fileStream);
     }
 
     private UserConfig DeserializeUserConfig(string userConfigPath)
@@ -100,7 +98,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     {
       var errorMessage = "Failed to parse user config. ";
 
-      var unknownPropertyRegex = new Regex(@"Could not find member '(?<property>.*?)' on object");
+      var unknownPropertyRegex = new Regex("Could not find member '(?<property>.*?)' on object");
       var unknownPropertyMatch = unknownPropertyRegex.Match(exception.Message);
 
       // Improve error message in case of unknown property errors.
@@ -110,7 +108,6 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       // Improve error message of generic deserialization errors.
       else if (exception is JsonReaderException)
         errorMessage += $"Invalid value at property: '{(exception as JsonReaderException).Path}'.";
-
       else
         errorMessage += exception.Message;
 

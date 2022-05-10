@@ -48,33 +48,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
       if (!isWindowEvent)
         return;
 
-      switch (eventType)
+      Event eventToRaise = eventType switch
       {
-        case EventConstant.EVENT_OBJECT_LOCATIONCHANGE:
-          _bus.RaiseEvent(new WindowLocationChangedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_SYSTEM_FOREGROUND:
-          _bus.RaiseEvent(new WindowFocusedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_SYSTEM_MINIMIZESTART:
-          _bus.RaiseEvent(new WindowMinimizedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_SYSTEM_MINIMIZEEND:
-          _bus.RaiseEvent(new WindowMinimizeEndedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_SYSTEM_MOVESIZEEND:
-          _bus.RaiseEvent(new WindowMovedOrResizedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_OBJECT_DESTROY:
-          _bus.RaiseEvent(new WindowDestroyedEvent(hwnd));
-          break;
-        case EventConstant.EVENT_OBJECT_SHOW:
-          _bus.RaiseEvent(new WindowShownEvent(hwnd));
-          break;
-        case EventConstant.EVENT_OBJECT_HIDE:
-          _bus.RaiseEvent(new WindowHiddenEvent(hwnd));
-          break;
-      }
+        EventConstant.EVENT_OBJECT_LOCATIONCHANGE => new WindowLocationChangedEvent(hwnd),
+        EventConstant.EVENT_SYSTEM_FOREGROUND => new WindowFocusedEvent(hwnd),
+        EventConstant.EVENT_SYSTEM_MINIMIZESTART => new WindowMinimizedEvent(hwnd),
+        EventConstant.EVENT_SYSTEM_MINIMIZEEND => new WindowMinimizeEndedEvent(hwnd),
+        EventConstant.EVENT_SYSTEM_MOVESIZEEND => new WindowMovedOrResizedEvent(hwnd),
+        EventConstant.EVENT_OBJECT_DESTROY => new WindowDestroyedEvent(hwnd),
+        EventConstant.EVENT_OBJECT_SHOW => new WindowShownEvent(hwnd),
+        EventConstant.EVENT_OBJECT_HIDE => new WindowHiddenEvent(hwnd),
+        _ => null,
+      };
+
+      if (eventToRaise is not null)
+        _bus.RaiseEvent((dynamic)eventToRaise);
     }
   }
 }

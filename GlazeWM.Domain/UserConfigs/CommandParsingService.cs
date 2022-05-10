@@ -7,6 +7,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Utils;
 using GlazeWM.Infrastructure.WindowsApi;
 
@@ -24,7 +25,8 @@ namespace GlazeWM.Domain.UserConfigs
     public static string FormatCommand(string commandString)
     {
       var formattedCommandString = commandString.Trim().ToLowerInvariant();
-      return Regex.Replace(formattedCommandString, @"\s+", " ");
+      var multipleSpacesRegex = new Regex(@"\s+");
+      return multipleSpacesRegex.Replace(formattedCommandString, " ");
     }
 
     public Command ParseCommand(string commandString)
@@ -137,6 +139,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// Checks whether a workspace exists with the given name.
     /// </summary>
     /// <returns>The workspace name if valid.</returns>
+    /// <exception cref="ArgumentException"></exception>
     private string ValidateWorkspaceName(string workspaceName)
     {
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);

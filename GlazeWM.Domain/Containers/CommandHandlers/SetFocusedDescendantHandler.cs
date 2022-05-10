@@ -6,10 +6,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   internal class SetFocusedDescendantHandler : ICommandHandler<SetFocusedDescendantCommand>
   {
-    public SetFocusedDescendantHandler()
-    {
-    }
-
     public CommandResponse Handle(SetFocusedDescendantCommand command)
     {
       var focusedDescendant = command.FocusedDescendant;

@@ -39,10 +39,6 @@ namespace GlazeWM.Bar
     public List<ComponentViewModel> ComponentsRight =>
       CreateComponentViewModels(_barConfig.ComponentsRight);
 
-    public BarViewModel()
-    {
-    }
-
     private List<ComponentViewModel> CreateComponentViewModels(List<BarComponentConfig> componentConfigs)
     {
       return componentConfigs.ConvertAll<ComponentViewModel>(config => config switch

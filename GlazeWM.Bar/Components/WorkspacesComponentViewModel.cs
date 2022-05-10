@@ -27,8 +27,7 @@ namespace GlazeWM.Bar.Components
     private readonly UserConfigService _userConfigService =
      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
-    public ObservableCollection<Workspace> Workspaces =>
-      new ObservableCollection<Workspace>(_orderedWorkspaces);
+    public ObservableCollection<Workspace> Workspaces => new(_orderedWorkspaces);
 
     /// <summary>
     /// Get workspaces of the current monitor sorted in the order they appear in the user's config.

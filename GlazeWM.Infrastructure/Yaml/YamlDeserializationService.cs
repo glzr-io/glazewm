@@ -16,7 +16,7 @@ namespace GlazeWM.Infrastructure.Yaml
       .JsonCompatible()
       .Build();
 
-    private readonly JsonSerializerSettings _jsonDeserializerSettings = new JsonSerializerSettings
+    private readonly JsonSerializerSettings _jsonDeserializerSettings = new()
     {
       MissingMemberHandling = MissingMemberHandling.Error,
       ContractResolver = new DefaultContractResolver

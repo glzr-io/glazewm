@@ -23,7 +23,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       if (window is FloatingWindow)
         UnsetFloating(window as FloatingWindow);
-
       else
         _bus.Invoke(new SetFloatingCommand(window));
 

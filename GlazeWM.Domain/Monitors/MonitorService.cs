@@ -84,7 +84,6 @@ namespace GlazeWM.Domain.Monitors
     /// </summary>
     /// <param name="direction">Direction to search in.</param>
     /// <param name="originMonitor">The monitor to search from.</param>
-    /// <returns></returns>
     public Monitor GetMonitorInDirection(Direction direction, Monitor originMonitor)
     {
       Monitor monitorInDirection = null;

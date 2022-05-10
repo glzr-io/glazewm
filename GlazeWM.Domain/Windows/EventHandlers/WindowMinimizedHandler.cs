@@ -66,7 +66,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-
       else if (focusTarget is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
 

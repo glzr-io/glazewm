@@ -40,8 +40,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
     private static void UpdateWindowPlacement(Window window)
     {
-      var updatedPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
-      window.FloatingPlacement = updatedPlacement;
+      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
     }
 
     private void UpdateParentWorkspace(Window window)

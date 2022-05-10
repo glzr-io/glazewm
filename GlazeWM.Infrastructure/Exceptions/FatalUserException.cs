@@ -1,8 +1,19 @@
 using System;
 
-public class FatalUserException : Exception
+namespace GlazeWM.Infrastructure.Exceptions
 {
-  public FatalUserException(string message) : base(message)
+  public class FatalUserException : Exception
   {
+    public FatalUserException()
+    {
+    }
+
+    public FatalUserException(string message) : base(message)
+    {
+    }
+
+    public FatalUserException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
   }
 }

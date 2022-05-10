@@ -26,4 +26,3 @@ namespace GlazeWM.Bar.Components
     }
   }
 }
-

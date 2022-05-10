@@ -30,9 +30,6 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; }
 
-    private readonly WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
-    private readonly WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
-
     public Window(IntPtr hwnd, WindowRect floatingPlacement, RectDelta borderDelta)
     {
       Hwnd = hwnd;

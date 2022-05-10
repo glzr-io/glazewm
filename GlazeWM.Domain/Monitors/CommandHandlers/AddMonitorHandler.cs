@@ -6,6 +6,7 @@ using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {

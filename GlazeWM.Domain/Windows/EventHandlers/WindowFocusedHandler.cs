@@ -32,7 +32,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       {
         if (pendingFocusContainer is Window)
           _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
-
         else if (pendingFocusContainer is Workspace)
           _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
 

@@ -6,10 +6,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 {
   internal class FocusWindowHandler : ICommandHandler<FocusWindowCommand>
   {
-    public FocusWindowHandler()
-    {
-    }
-
     public CommandResponse Handle(FocusWindowCommand command)
     {
       var window = command.Window;

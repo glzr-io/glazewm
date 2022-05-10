@@ -30,8 +30,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
-    private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey
-      = new Dictionary<Keys, List<Keybinding>>();
+    private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new();
 
     public void Start()
     {
@@ -134,16 +133,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     private static bool IsKeyDown(Keys key)
     {
-      if (key == Keys.Alt)
-        return IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu);
-
-      if (key == Keys.Shift)
-        return IsKeyDownRaw(Keys.LShiftKey) || IsKeyDownRaw(Keys.RShiftKey);
-
-      if (key == Keys.Control)
-        return IsKeyDownRaw(Keys.LControlKey) || IsKeyDownRaw(Keys.RControlKey);
-
-      return IsKeyDownRaw(key);
+      return key switch
+      {
+        Keys.Alt => IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu),
+        Keys.Shift => IsKeyDownRaw(Keys.LShiftKey) || IsKeyDownRaw(Keys.RShiftKey),
+        Keys.Control => IsKeyDownRaw(Keys.LControlKey) || IsKeyDownRaw(Keys.RControlKey),
+        _ => IsKeyDownRaw(key),
+      };
     }
 
     /// <summary>

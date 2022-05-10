@@ -135,7 +135,6 @@ namespace GlazeWM.Bootstrapper
 
       if (containerToFocus is Window)
         _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-
       else if (containerToFocus is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
     }

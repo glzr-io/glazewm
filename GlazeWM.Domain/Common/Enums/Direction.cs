@@ -15,6 +15,7 @@ namespace GlazeWM.Domain.Common.Enums
     /// <summary>
     /// Get the inverse of a given direction (eg. `Direction.UP` is the inverse of `Direction.DOWN`).
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static Direction Inverse(this Direction direction)
     {
       return direction switch

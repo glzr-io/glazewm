@@ -33,6 +33,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Serializing is not needed, so it's fine to leave it unimplemented.
     /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
       throw new NotImplementedException();

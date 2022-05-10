@@ -31,7 +31,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (container is TilingWindow)
         ChangeWindowLayout(container as Window, newLayout);
-
       else if (container is Workspace)
         ChangeWorkspaceLayout(container as Workspace, newLayout);
 
