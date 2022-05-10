@@ -133,6 +133,11 @@ dotnet_diagnostic.RCS1142.severity = none
 # Disable rule "Use pattern matching to avoid 'as' followed by a 'null' check".
 dotnet_diagnostic.IDE0019.severity = none
 dotnet_diagnostic.RCS1221.severity = none
+# Disable rule "Declare enum member with zero value (when enum has FlagsAttribute)"
+dotnet_diagnostic.RCS1135.severity = none
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
+# Add rule exception "Fix formatting".
+[**/AssemblyInfo.cs]
+dotnet_diagnostic.IDE0055.severity = none
