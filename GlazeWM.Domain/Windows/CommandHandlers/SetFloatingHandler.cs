@@ -9,12 +9,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   internal class SetFloatingHandler : ICommandHandler<SetFloatingCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
 
-    public SetFloatingHandler(Bus bus, WorkspaceService workspaceService)
+    public SetFloatingHandler(Bus bus)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(SetFloatingCommand command)

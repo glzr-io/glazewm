@@ -9,12 +9,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   internal class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
 
-    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService)
+    public ToggleFloatingHandler(Bus bus)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(ToggleFloatingCommand command)

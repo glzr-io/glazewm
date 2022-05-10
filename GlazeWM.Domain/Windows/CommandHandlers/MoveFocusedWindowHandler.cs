@@ -14,14 +14,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
-    private readonly WorkspaceService _workspaceService;
     private readonly MonitorService _monitorService;
 
-    public MoveFocusedWindowHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService, MonitorService monitorService)
+    public MoveFocusedWindowHandler(
+      Bus bus,
+      ContainerService containerService,
+      MonitorService monitorService
+    )
     {
       _bus = bus;
       _containerService = containerService;
-      _workspaceService = workspaceService;
       _monitorService = monitorService;
     }
 

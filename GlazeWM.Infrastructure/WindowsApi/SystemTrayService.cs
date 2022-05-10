@@ -5,7 +5,6 @@ using System.Windows.Forms;
 using System.Threading;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System.Reflection;
-using System.IO;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {

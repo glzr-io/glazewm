@@ -15,19 +15,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly ContainerService _containerService;
-    private readonly WorkspaceService _workspaceService;
 
     public WindowMinimizedHandler(
       Bus bus,
       WindowService windowService,
-      ContainerService containerService,
-      WorkspaceService workspaceService
+      ContainerService containerService
     )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
-      _workspaceService = workspaceService;
     }
 
     public void Handle(WindowMinimizedEvent @event)

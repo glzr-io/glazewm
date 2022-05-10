@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace GlazeWM.Infrastructure.WindowsApi.Enums
+﻿namespace GlazeWM.Infrastructure.WindowsApi.Enums
 {
   /// <summary>
   /// Identifies categories of accessible objects within a window (including the window object itself).

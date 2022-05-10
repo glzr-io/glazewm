@@ -9,13 +9,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
   internal class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
   {
     private readonly Bus _bus;
-    private readonly MonitorService _monitorService;
     private readonly ContainerService _containerService;
 
-    public DisplayWorkspaceHandler(Bus bus, MonitorService monitorService, ContainerService containerService)
+    public DisplayWorkspaceHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
-      _monitorService = monitorService;
       _containerService = containerService;
     }
 

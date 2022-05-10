@@ -16,21 +16,18 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     private readonly MonitorService _monitorService;
     private readonly ContainerService _containerService;
     private readonly WindowService _windowService;
-    private readonly WorkspaceService _workspaceService;
 
     public RefreshMonitorStateHandler(
       Bus bus,
       MonitorService monitorService,
       ContainerService containerService,
-      WindowService windowService,
-      WorkspaceService workspaceService
+      WindowService windowService
     )
     {
       _bus = bus;
       _monitorService = monitorService;
       _containerService = containerService;
       _windowService = windowService;
-      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(RefreshMonitorStateCommand command)

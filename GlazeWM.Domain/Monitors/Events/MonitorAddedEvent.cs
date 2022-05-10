@@ -1,5 +1,4 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
-using System;
 
 namespace GlazeWM.Domain.Monitors.Events
 {

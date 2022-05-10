@@ -9,12 +9,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
   {
     private readonly Bus _bus;
-    private readonly ContainerService _containerService;
 
-    public MoveContainerWithinTreeHandler(Bus bus, ContainerService containerService)
+    public MoveContainerWithinTreeHandler(Bus bus)
     {
       _bus = bus;
-      _containerService = containerService;
     }
 
     public CommandResponse Handle(MoveContainerWithinTreeCommand command)

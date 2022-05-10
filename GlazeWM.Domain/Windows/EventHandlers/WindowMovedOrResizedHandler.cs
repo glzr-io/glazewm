@@ -13,14 +13,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly MonitorService _monitorService;
-    private readonly WorkspaceService _workspaceService;
 
-    public WindowMovedOrResizedHandler(Bus bus, WindowService windowService, MonitorService monitorService, WorkspaceService workspaceService)
+    public WindowMovedOrResizedHandler(
+      Bus bus,
+      WindowService windowService,
+      MonitorService monitorService
+    )
     {
       _bus = bus;
       _windowService = windowService;
       _monitorService = monitorService;
-      _workspaceService = workspaceService;
     }
 
     public void Handle(WindowMovedOrResizedEvent @event)

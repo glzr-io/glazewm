@@ -1,9 +1,7 @@
 ﻿using System;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
-using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows

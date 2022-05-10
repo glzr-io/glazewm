@@ -1,7 +1,6 @@
 ﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
-using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
 using Newtonsoft.Json;
 using System;
@@ -16,14 +15,16 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
-    private readonly KeybindingService _keybindingService;
     private readonly YamlDeserializationService _yamlDeserializationService;
 
-    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService, YamlDeserializationService yamlDeserializationService)
+    public EvaluateUserConfigHandler(
+      Bus bus,
+      UserConfigService userConfigService,
+      YamlDeserializationService yamlDeserializationService
+    )
     {
       _bus = bus;
       _userConfigService = userConfigService;
-      _keybindingService = keybindingService;
       _yamlDeserializationService = yamlDeserializationService;
     }
 

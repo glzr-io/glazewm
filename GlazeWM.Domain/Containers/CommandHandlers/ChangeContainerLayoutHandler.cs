@@ -11,17 +11,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
-    private readonly WindowService _windowService;
 
-    public ChangeContainerLayoutHandler(
-      Bus bus,
-      ContainerService containerService,
-      WindowService windowService
-    )
+    public ChangeContainerLayoutHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
-      _windowService = windowService;
     }
 
     public CommandResponse Handle(ChangeContainerLayoutCommand command)

@@ -1,7 +1,5 @@
 ﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Monitors
 {
