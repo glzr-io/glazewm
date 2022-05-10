@@ -135,6 +135,19 @@ dotnet_diagnostic.IDE0019.severity = none
 dotnet_diagnostic.RCS1221.severity = none
 # Disable rule "Declare enum member with zero value (when enum has FlagsAttribute)"
 dotnet_diagnostic.RCS1135.severity = none
+# Disable rule "Avoid NullReferenceException". Undecided whether to enable, since it can reduce
+# clarity when a variable is guaranteed to be defined.
+dotnet_diagnostic.RCS1202.severity = none
+# TODO: Temporarily disabled rules until upcoming refactors:
+# Disable rule "P/Invoke methods should not be visible".
+dotnet_diagnostic.CA1401.severity = none
+# Disable rule "Duplicate enum value".
+dotnet_diagnostic.RCS1234.severity = none
+dotnet_diagnostic.CA1069.severity = none
+# Disable rule "Identifiers should not contain underscores".
+dotnet_diagnostic.CA1707.severity = none
+# Disable rule "Enum should declare explicit values".
+dotnet_diagnostic.RCS1161.severity = none
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
