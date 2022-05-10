@@ -20,12 +20,10 @@ namespace GlazeWM.Domain.Workspaces
     public string DisplayName =>
       _userConfigService.GetWorkspaceConfigByName(Name).DisplayName ?? Name;
 
-    private int OuterGap => _userConfigService.UserConfig.Gaps.OuterGap;
-
     /// <summary>
     /// Get height of bar after it's been automatically adjusted by DPI scaling.
     /// </summary>
-    private int LogicalBarHeight
+    private int _logicalBarHeight
     {
       get
       {
@@ -34,10 +32,21 @@ namespace GlazeWM.Domain.Workspaces
       }
     }
 
-    public override int Height => Parent.Height - (OuterGap * 2) - LogicalBarHeight;
-    public override int Width => Parent.Width - (OuterGap * 2);
-    public override int X => Parent.X + OuterGap;
-    public override int Y => Parent.Y + OuterGap + (_userConfigService.UserConfig.Bar.Position == BarPosition.Top ? LogicalBarHeight : 0);
+    private int _yOffset
+    {
+      get
+      {
+        var barPosition = _userConfigService.UserConfig.Bar.Position;
+        return barPosition == BarPosition.Top ? _logicalBarHeight : 0;
+      }
+    }
+
+    private int _outerGap => _userConfigService.UserConfig.Gaps.OuterGap;
+
+    public override int Height => Parent.Height - (_outerGap * 2) - _logicalBarHeight;
+    public override int Width => Parent.Width - (_outerGap * 2);
+    public override int X => Parent.X + _outerGap;
+    public override int Y => Parent.Y + _outerGap + _yOffset;
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.

@@ -27,9 +27,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var dimensionToResize = command.DimensionToResize;
       var resizeAmount = command.ResizeAmount;
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
       // Ignore cases where focused container is not a tiling window.
-      if (_containerService.FocusedContainer is not TilingWindow focusedWindow)
+      if (focusedWindow is null)
         return CommandResponse.Ok;
 
       var layout = (focusedWindow.Parent as SplitContainer).Layout;
@@ -77,7 +78,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         {
           "%" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
           "ppt" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
-          _ => throw new ArgumentException(nameof(unit)),
+          _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
       catch

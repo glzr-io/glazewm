@@ -81,7 +81,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the list since the number of workspace children changes when split containers are flattened.
       foreach (var child in workspace.Children.ToList())
       {
-        if (child is not SplitContainer childSplitContainer || childSplitContainer.Layout != newLayout)
+        var childSplitContainer = child as SplitContainer;
+
+        if (childSplitContainer?.Layout != newLayout)
           continue;
 
         _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));

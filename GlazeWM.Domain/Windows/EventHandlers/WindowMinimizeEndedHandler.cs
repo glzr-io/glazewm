@@ -86,8 +86,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.BorderDelta,
           0
         ),
-        WindowType.MINIMIZED => throw new ArgumentException(),
-        _ => throw new ArgumentException(),
+        WindowType.MINIMIZED => throw new ArgumentException(null, nameof(window)),
+        _ => throw new ArgumentException(null, nameof(window)),
       };
     }
   }

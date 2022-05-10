@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.UserConfigs
           "toggle" => ParseToggleCommand(commandParts),
           "exit" => ParseExitCommand(commandParts),
           "close" => new CloseFocusedWindowCommand(),
-          _ => throw new ArgumentException(),
+          _ => throw new ArgumentException(null, nameof(commandString)),
         };
       }
       catch
@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "vertical" => new ChangeFocusedContainerLayoutCommand(Layout.VERTICAL),
         "horizontal" => new ChangeFocusedContainerLayoutCommand(Layout.HORIZONTAL),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -73,7 +73,7 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
         "workspace" => new FocusWorkspaceCommand(ValidateWorkspaceName(commandParts[2])),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -86,7 +86,7 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
         "to" => new MoveFocusedWindowToWorkspaceCommand(ValidateWorkspaceName(commandParts[3])),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -99,7 +99,7 @@ namespace GlazeWM.Domain.UserConfigs
         "borders" => new ResizeFocusedWindowBordersCommand(
           ShorthandToRectDelta(string.Join(" ", commandParts[2..]))
         ),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -108,7 +108,7 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "floating" => new SetFocusedWindowFloatingCommand(),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -120,9 +120,9 @@ namespace GlazeWM.Domain.UserConfigs
         "focus" => commandParts[2] switch
         {
           "mode" => new ToggleFocusModeCommand(),
-          _ => throw new ArgumentException(),
+          _ => throw new ArgumentException(null, nameof(commandParts)),
         },
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -131,7 +131,7 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "wm" => new ExitApplicationCommand(),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -145,7 +145,7 @@ namespace GlazeWM.Domain.UserConfigs
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       if (workspaceConfig == null)
-        throw new ArgumentException();
+        throw new ArgumentException(null, nameof(workspaceName));
 
       return workspaceName;
     }
@@ -162,7 +162,7 @@ namespace GlazeWM.Domain.UserConfigs
         2 => new RectDelta(shorthandParts[1], shorthandParts[0], shorthandParts[1], shorthandParts[0]),
         3 => new RectDelta(shorthandParts[1], shorthandParts[0], shorthandParts[1], shorthandParts[2]),
         4 => new RectDelta(shorthandParts[3], shorthandParts[0], shorthandParts[1], shorthandParts[2]),
-        _ => throw new ArgumentException(),
+        _ => throw new ArgumentException(null, nameof(shorthand)),
       };
     }
   }

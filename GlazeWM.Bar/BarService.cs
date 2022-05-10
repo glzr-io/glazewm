@@ -96,7 +96,7 @@ namespace GlazeWM.Bar
         2 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[0]}",
         3 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
-        _ => throw new ArgumentException(nameof(shorthandParts)),
+        _ => throw new ArgumentException(null, nameof(shorthand)),
       };
     }
   }

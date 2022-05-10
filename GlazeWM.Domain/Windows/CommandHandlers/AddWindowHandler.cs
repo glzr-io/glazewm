@@ -135,9 +135,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           floatingPlacement,
           defaultBorderDelta
         ),
-        WindowType.MAXIMIZED => throw new ArgumentException(),
-        WindowType.FULLSCREEN => throw new ArgumentException(),
-        _ => throw new ArgumentException(),
+        WindowType.MAXIMIZED => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.FULLSCREEN => throw new ArgumentException(null, nameof(windowHandle)),
+        _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
     }
 

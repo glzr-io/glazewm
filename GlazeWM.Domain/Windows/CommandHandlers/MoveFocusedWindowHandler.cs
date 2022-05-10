@@ -29,8 +29,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(MoveFocusedWindowCommand command)
     {
+      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
+
       // Ignore cases where focused container is not a tiling window.
-      if (_containerService.FocusedContainer is not TilingWindow focusedWindow)
+      if (focusedWindow is null)
         return CommandResponse.Ok;
 
       var direction = command.Direction;
@@ -52,11 +54,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // The focused window cannot be moved within the parent container, so traverse upwards to find
       // a suitable ancestor to move to.
+      var ancestorWithLayout = focusedWindow.Parent.Ancestors.FirstOrDefault(
+        container => (container as SplitContainer)?.Layout == layoutForDirection
+      ) as SplitContainer;
 
       // Change the layout of the workspace to layout for direction.
-      if (focusedWindow.Parent.Ancestors.FirstOrDefault(
-            container => (container as SplitContainer)?
-              .Layout == layoutForDirection) is not SplitContainer ancestorWithLayout)
+      if (ancestorWithLayout == null)
       {
         ChangeWorkspaceLayout(focusedWindow, direction);
         return CommandResponse.Ok;

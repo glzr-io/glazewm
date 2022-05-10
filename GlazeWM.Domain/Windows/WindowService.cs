@@ -194,5 +194,17 @@ namespace GlazeWM.Domain.Windows
 
       return isHorizontalBar || isVerticalBar;
     }
+
+    public static WindowType GetWindowType(Window window)
+    {
+      return window switch
+      {
+        TilingWindow => WindowType.TILING,
+        FloatingWindow => WindowType.FLOATING,
+        MaximizedWindow => WindowType.MAXIMIZED,
+        FullscreenWindow => WindowType.FULLSCREEN,
+        _ => throw new ArgumentException(null, nameof(window)),
+      };
+    }
   }
 }

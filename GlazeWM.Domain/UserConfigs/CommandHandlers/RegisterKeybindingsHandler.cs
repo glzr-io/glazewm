@@ -27,8 +27,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         {
           commandString = CommandParsingService.FormatCommand(commandString);
           return _commandParsingService.ParseCommand(commandString);
-        })
-;
+        });
 
         // Register all keybindings for a command sequence.
         foreach (var binding in keybindingConfig.BindingList)
