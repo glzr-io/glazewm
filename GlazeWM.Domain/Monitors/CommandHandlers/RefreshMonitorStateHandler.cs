@@ -41,7 +41,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         // Add monitor if it doesn't exist in state.
         if (foundMonitor == null)
         {
-          _ = _bus.Invoke(new AddMonitorCommand(screen));
+          _bus.Invoke(new AddMonitorCommand(screen));
           continue;
         }
 
@@ -64,7 +64,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       // TODO: Verify that this works with "Duplicate these displays" or "Show only X" settings.
       foreach (var monitor in monitorsToRemove.ToList())
       {
-        _ = _bus.Invoke(new RemoveMonitorCommand(monitor));
+        _bus.Invoke(new RemoveMonitorCommand(monitor));
       }
 
       foreach (var window in _windowService.GetWindows())
@@ -82,7 +82,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
       // Redraw full container tree.
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);
-      _ = _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }

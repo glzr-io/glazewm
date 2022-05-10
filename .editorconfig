@@ -85,6 +85,7 @@ csharp_style_deconstructed_variable_declaration = true:suggestion
 csharp_prefer_simple_default_expression = true:suggestion
 csharp_style_pattern_local_over_anonymous_function = true:suggestion
 csharp_style_inlined_variable_declaration = true:suggestion
+csharp_style_unused_value_expression_statement_preference = discard_variable:none
 ###############################
 # C# Formatting Rules         #
 ###############################
