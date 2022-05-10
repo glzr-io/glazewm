@@ -4,12 +4,8 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class SetFocusedDescendantHandler : ICommandHandler<SetFocusedDescendantCommand>
+  internal class SetFocusedDescendantHandler : ICommandHandler<SetFocusedDescendantCommand>
   {
-    public SetFocusedDescendantHandler()
-    {
-    }
-
     public CommandResponse Handle(SetFocusedDescendantCommand command)
     {
       var focusedDescendant = command.FocusedDescendant;

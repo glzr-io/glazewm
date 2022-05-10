@@ -8,7 +8,7 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfigService
   {
-    public UserConfig UserConfig { get; set; } = null;
+    public UserConfig UserConfig { get; set; }
 
     /// <summary>
     /// Path to the user's config file.
@@ -124,7 +124,7 @@ namespace GlazeWM.Domain.UserConfigs
 
     public WorkspaceConfig GetWorkspaceConfigByName(string workspaceName)
     {
-      return UserConfig.Workspaces.FirstOrDefault(
+      return UserConfig.Workspaces.Find(
         (workspaceConfig) => workspaceConfig.Name == workspaceName
       );
     }
@@ -133,16 +133,9 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return UserConfig.WindowRules.Where(rule =>
       {
-        if (rule.ProcessNameRegex?.IsMatch(window.ProcessName) == false)
-          return false;
-
-        if (rule.ClassNameRegex?.IsMatch(window.ClassName) == false)
-          return false;
-
-        if (rule.TitleRegex?.IsMatch(window.Title) == false)
-          return false;
-
-        return true;
+        return rule.ProcessNameRegex?.IsMatch(window.ProcessName) != false
+          && rule.ClassNameRegex?.IsMatch(window.ClassName) != false
+          && (rule.TitleRegex?.IsMatch(window.Title)) != false;
       });
     }
   }

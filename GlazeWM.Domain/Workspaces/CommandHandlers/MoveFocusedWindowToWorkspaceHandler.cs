@@ -7,12 +7,12 @@ using GlazeWM.Domain.Containers.Commands;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class MoveFocusedWindowToWorkspaceHandler : ICommandHandler<MoveFocusedWindowToWorkspaceCommand>
+  internal class MoveFocusedWindowToWorkspaceHandler : ICommandHandler<MoveFocusedWindowToWorkspaceCommand>
   {
-    private Bus _bus;
-    private WorkspaceService _workspaceService;
-    private MonitorService _monitorService;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly WorkspaceService _workspaceService;
+    private readonly MonitorService _monitorService;
+    private readonly ContainerService _containerService;
 
     public MoveFocusedWindowToWorkspaceHandler(
       Bus bus,
@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.
-      if (_monitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
+      if (MonitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
         focusedWindow.HasPendingDpiAdjustment = true;
 
       // Update floating placement if the window has to cross monitors.

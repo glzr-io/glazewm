@@ -1,15 +1,14 @@
-using System.Linq;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
+  internal class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
   {
-    private Bus _bus;
-    private KeybindingService _keybindingService;
-    private CommandParsingService _commandParsingService;
+    private readonly Bus _bus;
+    private readonly KeybindingService _keybindingService;
+    private readonly CommandParsingService _commandParsingService;
 
     public RegisterKeybindingsHandler(Bus bus, KeybindingService keybindingService, CommandParsingService commandParsingService)
     {
@@ -24,12 +23,11 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       {
         // Parse command strings defined in keybinding config. Calling `ToList()` is necessary here,
         // otherwise parsing errors get delayed until keybinding is invoked instead of at startup.
-        var parsedCommands = keybindingConfig.CommandList.Select(commandString =>
+        var parsedCommands = keybindingConfig.CommandList.ConvertAll(commandString =>
         {
-          commandString = _commandParsingService.FormatCommand(commandString);
+          commandString = CommandParsingService.FormatCommand(commandString);
           return _commandParsingService.ParseCommand(commandString);
-        })
-          .ToList();
+        });
 
         // Register all keybindings for a command sequence.
         foreach (var binding in keybindingConfig.BindingList)

@@ -12,15 +12,15 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class AddWindowHandler : ICommandHandler<AddWindowCommand>
+  internal class AddWindowHandler : ICommandHandler<AddWindowCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private UserConfigService _userConfigService;
-    private CommandParsingService _commandParsingService;
-    private WindowService _windowService;
-    private MonitorService _monitorService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly UserConfigService _userConfigService;
+    private readonly CommandParsingService _commandParsingService;
+    private readonly WindowService _windowService;
+    private readonly MonitorService _monitorService;
+    private readonly WorkspaceService _workspaceService;
 
     public AddWindowHandler(
       Bus bus,
@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var windowHandle = command.WindowHandle;
       var shouldRedraw = command.ShouldRedraw;
 
-      if (!_windowService.IsHandleManageable(windowHandle))
+      if (!WindowService.IsHandleManageable(windowHandle))
         return CommandResponse.Ok;
 
       // Attach the new window as first child of the target parent (if provided), otherwise, add as
@@ -56,14 +56,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         : GetInsertionTarget();
 
       // Create the window instance.
-      var targetWorkspace = _workspaceService.GetWorkspaceFromChildContainer(targetParent);
+      var targetWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(targetParent);
       var window = CreateWindow(windowHandle, targetWorkspace);
 
       var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
 
       var commandStrings = matchingWindowRules
         .SelectMany(rule => rule.CommandList)
-        .Select(commandString => _commandParsingService.FormatCommand(commandString));
+        .Select(commandString => CommandParsingService.FormatCommand(commandString));
 
       // Avoid managing a window if a window rule uses 'ignore' command.
       if (commandStrings.Contains("ignore"))
@@ -77,7 +77,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.
       var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
-      if (_monitorService.HasDpiDifference(monitor, window.Parent))
+      if (MonitorService.HasDpiDifference(monitor, window.Parent))
         window.HasPendingDpiAdjustment = true;
 
       // Set the newly added window as focus descendant. This is necessary because
@@ -104,17 +104,17 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
+    private static Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
     {
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
-      var originalPlacement = _windowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var originalPlacement = WindowService.GetPlacementOfHandle(windowHandle).NormalPosition;
       var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
 
       var windowType = GetWindowTypeToCreate(windowHandle);
-      var isResizable = _windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
+      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
       return windowType switch
@@ -135,17 +135,19 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           floatingPlacement,
           defaultBorderDelta
         ),
-        _ => throw new ArgumentException(),
+        WindowType.MAXIMIZED => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.FULLSCREEN => throw new ArgumentException(null, nameof(windowHandle)),
+        _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
     }
 
-    private WindowType GetWindowTypeToCreate(IntPtr windowHandle)
+    private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
     {
-      if (_windowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
+      if (WindowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
         return WindowType.MINIMIZED;
 
       // Initialize windows that can't be resized as floating.
-      if (!_windowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
+      if (!WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
         return WindowType.FLOATING;
 
       return WindowType.TILING;

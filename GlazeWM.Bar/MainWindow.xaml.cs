@@ -18,8 +18,8 @@ namespace GlazeWM.Bar
   /// </summary>
   public partial class MainWindow : Window
   {
-    private Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
-    private UserConfigService _userConfigService =
+    private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private readonly UserConfigService _userConfigService =
       ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
     private BarViewModel _barViewModel { get; }
@@ -44,19 +44,16 @@ namespace GlazeWM.Bar
 
       // Reposition window on changes to the monitor's working area.
       _bus.Events.Where(@event => @event is WorkingAreaResizedEvent)
-        .Subscribe((@event) =>
-        {
-          _dispatcher.Invoke(() => PositionWindow(windowHandle));
-        });
+        .Subscribe(_ => _dispatcher.Invoke(() => PositionWindow(windowHandle)));
     }
 
     /// <summary>
     /// Hide the WPF window from task switcher (alt+tab menu).
     /// </summary>
-    private void HideFromTaskSwitcher(IntPtr windowHandle)
+    private static void HideFromTaskSwitcher(IntPtr windowHandle)
     {
       var exstyle = (int)GetWindowLongPtr(windowHandle, GWL_EXSTYLE);
-      exstyle |= (int)(WS_EX.WS_EX_TOOLWINDOW);
+      exstyle |= (int)WS_EX.WS_EX_TOOLWINDOW;
       SetWindowLongPtr(windowHandle, GWL_EXSTYLE, (IntPtr)exstyle);
     }
 

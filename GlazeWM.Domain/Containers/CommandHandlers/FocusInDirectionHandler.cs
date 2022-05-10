@@ -10,11 +10,11 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
+  internal class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private MonitorService _monitorService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
     public FocusInDirectionHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
     {
@@ -30,7 +30,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (focusedContainer is FloatingWindow)
         FocusFromFloatingWindow(focusedContainer, direction);
-
       else
         FocusFromTilingContainer(focusedContainer, direction);
 
@@ -40,7 +39,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private void FocusFromFloatingWindow(Container focusedContainer, Direction direction)
     {
       // Cannot focus vertically from a floating window.
-      if (direction == Direction.UP || direction == Direction.DOWN)
+      if (direction is Direction.UP or Direction.DOWN)
         return;
 
       var focusTarget = direction == Direction.RIGHT
@@ -65,7 +64,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-
       else if (focusTarget is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
     }
@@ -79,7 +77,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // If a suitable focus target isn't found in the current workspace, attempt to find
       // a workspace in the given direction.
-      return GetFocusTargetOutsideWorkspace(focusedContainer, direction);
+      return GetFocusTargetOutsideWorkspace(direction);
     }
 
     /// <summary>
@@ -93,7 +91,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Traverse upwards from the focused container. Stop searching when a workspace is
       // encountered.
-      while (!(focusReference is Workspace))
+      while (focusReference is not Workspace)
       {
         var parent = focusReference.Parent as SplitContainer;
 
@@ -103,7 +101,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           continue;
         }
 
-        var focusTarget = direction == Direction.UP || direction == Direction.LEFT
+        var focusTarget = direction is Direction.UP or Direction.LEFT
           ? focusReference.GetPreviousSiblingOfType(typeof(IResizable))
           : focusReference.GetNextSiblingOfType(typeof(IResizable));
 
@@ -122,7 +120,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     /// <summary>
     /// Attempt to find a focus target in a different workspace than the focused workspace.
     /// </summary>
-    private Container GetFocusTargetOutsideWorkspace(Container focusedContainer, Direction direction)
+    private Container GetFocusTargetOutsideWorkspace(Direction direction)
     {
       var focusedMonitor = _monitorService.GetFocusedMonitor();
 

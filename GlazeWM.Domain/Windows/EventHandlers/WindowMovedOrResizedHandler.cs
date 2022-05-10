@@ -8,19 +8,21 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
+  internal class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private MonitorService _monitorService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly MonitorService _monitorService;
 
-    public WindowMovedOrResizedHandler(Bus bus, WindowService windowService, MonitorService monitorService, WorkspaceService workspaceService)
+    public WindowMovedOrResizedHandler(
+      Bus bus,
+      WindowService windowService,
+      MonitorService monitorService
+    )
     {
       _bus = bus;
       _windowService = windowService;
       _monitorService = monitorService;
-      _workspaceService = workspaceService;
     }
 
     public void Handle(WindowMovedOrResizedEvent @event)
@@ -28,7 +30,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window == null || !(window is FloatingWindow))
+      if (window is null or not FloatingWindow)
         return;
 
       // Update state with new location of the floating window.
@@ -38,15 +40,14 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       UpdateParentWorkspace(window);
     }
 
-    private void UpdateWindowPlacement(Window window)
+    private static void UpdateWindowPlacement(Window window)
     {
-      var updatedPlacement = _windowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
-      window.FloatingPlacement = updatedPlacement;
+      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
     }
 
     private void UpdateParentWorkspace(Window window)
     {
-      var currentWorkspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       // Get workspace that encompasses most of the window.
       var targetMonitor = _monitorService.GetMonitorFromHandleLocation(window.Hwnd);

@@ -6,10 +6,10 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowShownHandler : IEventHandler<WindowShownEvent>
+  internal class WindowShownHandler : IEventHandler<WindowShownEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowShownHandler(Bus bus, WindowService windowService)
     {

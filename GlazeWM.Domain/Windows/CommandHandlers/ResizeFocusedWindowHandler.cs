@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,13 +8,14 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
+  internal class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public ResizeFocusedWindowHandler(Bus bus, ContainerService containerService)
     {
@@ -30,7 +30,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
       // Ignore cases where focused container is not a tiling window.
-      if (focusedWindow == null)
+      if (focusedWindow is null)
         return CommandResponse.Ok;
 
       var layout = (focusedWindow.Parent as SplitContainer).Layout;
@@ -47,7 +47,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizableSiblings = containerToResize.Siblings.Where(container => container is IResizable);
 
       // Ignore cases where the container to resize is a workspace or is only child.
-      if (resizableSiblings.Count() == 0 || containerToResize is Workspace)
+      if (!resizableSiblings.Any() || containerToResize is Workspace)
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
@@ -65,11 +65,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private double ConvertToResizePercentage(string resizeAmount)
+    private static double ConvertToResizePercentage(string resizeAmount)
     {
       try
       {
-        var matchedResizeAmount = new Regex(@"(.*)(%|ppt)").Match(resizeAmount);
+        var matchedResizeAmount = new Regex("(.*)(%|ppt)").Match(resizeAmount);
         var amount = matchedResizeAmount.Groups[1].Value;
         var unit = matchedResizeAmount.Groups[2].Value;
 
@@ -78,7 +78,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         {
           "%" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
           "ppt" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
-          _ => throw new ArgumentException(),
+          _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
       catch

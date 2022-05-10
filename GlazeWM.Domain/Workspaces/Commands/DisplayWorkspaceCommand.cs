@@ -2,7 +2,7 @@
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  class DisplayWorkspaceCommand : Command
+  internal class DisplayWorkspaceCommand : Command
   {
     public Workspace Workspace { get; }
 

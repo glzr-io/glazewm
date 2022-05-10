@@ -7,9 +7,9 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
+  internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
-    private ContainerService _containerService;
+    private readonly ContainerService _containerService;
 
     public RedrawContainersHandler(ContainerService containerService)
     {
@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Get windows that are minimized/maximized and shouldn't be.
       var windowsToRestore = windowsToRedraw
         .Where(
-          window => !(window is MinimizedWindow) && window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
+          window => window is not MinimizedWindow && window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
         )
         .ToList();
 
@@ -63,7 +63,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void SetWindowPosition(Window window, SWP flags)
+    private static void SetWindowPosition(Window window, SWP flags)
     {
       if (window is TilingWindow)
       {

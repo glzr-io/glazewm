@@ -6,15 +6,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class SetFloatingHandler : ICommandHandler<SetFloatingCommand>
+  internal class SetFloatingHandler : ICommandHandler<SetFloatingCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
 
-    public SetFloatingHandler(Bus bus, WorkspaceService workspaceService)
+    public SetFloatingHandler(Bus bus)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(SetFloatingCommand command)
@@ -25,7 +23,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Keep reference to the window's ancestor workspace prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       if (window is IResizable)
         _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));

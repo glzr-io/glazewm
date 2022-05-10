@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,24 +9,21 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
+  internal class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly ContainerService _containerService;
 
     public WindowMinimizedHandler(
       Bus bus,
       WindowService windowService,
-      ContainerService containerService,
-      WorkspaceService workspaceService
+      ContainerService containerService
     )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
-      _workspaceService = workspaceService;
     }
 
     public void Handle(WindowMinimizedEvent @event)
@@ -35,24 +31,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window == null || window is MinimizedWindow)
+      if (window is null or MinimizedWindow)
         return;
 
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       // Move tiling windows to be direct children of workspace (in case they aren't already).
       if (window is TilingWindow)
         _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
 
-      var previousState = window switch
-      {
-        TilingWindow _ => WindowType.TILING,
-        FloatingWindow _ => WindowType.FLOATING,
-        MaximizedWindow _ => WindowType.MAXIMIZED,
-        FullscreenWindow _ => WindowType.FULLSCREEN,
-        _ => throw new ArgumentException(),
-      };
-
+      var previousState = WindowService.GetWindowType(window);
       var minimizedWindow = new MinimizedWindow(
         window.Hwnd,
         window.FloatingPlacement,
@@ -66,7 +54,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-
       else if (focusTarget is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
 

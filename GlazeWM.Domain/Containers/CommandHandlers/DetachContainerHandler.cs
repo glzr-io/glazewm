@@ -5,10 +5,10 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class DetachContainerHandler : ICommandHandler<DetachContainerCommand>
+  internal class DetachContainerHandler : ICommandHandler<DetachContainerCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public DetachContainerHandler(Bus bus, ContainerService containerService)
     {
@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       parent.ChildFocusOrder.Remove(childToRemove);
 
       var isEmptySplitContainer = parent is SplitContainer && !parent.HasChildren()
-        && !(parent is Workspace);
+        && parent is not Workspace;
 
       // If the parent of the removed child is an empty split container, detach the split container
       // as well.

@@ -9,35 +9,33 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Bootstrapper
 {
-  static class Program
+  internal static class Program
   {
-    private static string appGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
+    private const string APP_GUID = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
 
     /// <summary>
     ///  The main entry point for the application.
     /// </summary>
     [STAThread]
-    static void Main()
+    private static void Main()
     {
       Debug.WriteLine("Application started.");
 
       // Prevent multiple app instances using a global UUID mutex.
-      using (Mutex mutex = new Mutex(false, "Global\\" + appGuid))
+      using var mutex = new Mutex(false, "Global\\" + APP_GUID);
+      if (!mutex.WaitOne(0, false))
       {
-        if (!mutex.WaitOne(0, false))
-        {
-          Debug.Write(
-            "Application is already running. Only one instance of this application is allowed."
-          );
-          return;
-        }
-
-        ServiceLocator.Provider = BuildServiceProvider();
-
-        var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
-        startup.Run();
-        Application.Run();
+        Debug.Write(
+          "Application is already running. Only one instance of this application is allowed."
+        );
+        return;
       }
+
+      ServiceLocator.Provider = BuildServiceProvider();
+
+      var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
+      startup.Run();
+      Application.Run();
     }
 
     private static ServiceProvider BuildServiceProvider()

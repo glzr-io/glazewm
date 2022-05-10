@@ -43,7 +43,7 @@ dotnet_style_prefer_inferred_tuple_names = true:suggestion
 dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 dotnet_style_prefer_auto_properties = true:silent
 dotnet_style_prefer_conditional_expression_over_assignment = true:silent
-dotnet_style_prefer_conditional_expression_over_return = true:silent
+dotnet_style_prefer_conditional_expression_over_return = false:silent
 ###############################
 # Naming Conventions          #
 ###############################
@@ -85,6 +85,7 @@ csharp_style_deconstructed_variable_declaration = true:suggestion
 csharp_prefer_simple_default_expression = true:suggestion
 csharp_style_pattern_local_over_anonymous_function = true:suggestion
 csharp_style_inlined_variable_declaration = true:suggestion
+csharp_style_unused_value_expression_statement_preference = discard_variable:none
 ###############################
 # C# Formatting Rules         #
 ###############################
@@ -116,8 +117,41 @@ csharp_space_between_method_call_empty_parameter_list_parentheses = false
 csharp_preserve_single_line_statements = true
 csharp_preserve_single_line_blocks = true
 ###############################
-# VB Coding Conventions       #
+# Analyzer Rules              #
 ###############################
-[*.vb]
-# Modifier preferences
-visual_basic_preferred_modifier_order = Partial,Default,Private,Protected,Public,Friend,NotOverridable,Overridable,MustOverride,Overloads,Overrides,MustInherit,NotInheritable,Static,Shared,Shadows,ReadOnly,WriteOnly,Dim,Const,WithEvents,Widening,Narrowing,Custom,Async:suggestion
+roslynator_refactorings.enabled = false
+roslynator_compiler_diagnostic_fixes.enabled = true
+# Disable rule "Add braces (when expression spans over multiple lines)".
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.RCS1001.severity = none
+dotnet_diagnostic.RCS1003.severity = none
+# Disable rule "Use bit shift operator".
+dotnet_diagnostic.RCS1237.severity = none
+# Disable rule "Add 'param' element to documentation comment".
+dotnet_diagnostic.RCS1141.severity = none
+# Disable rule "Add 'typeparam' element to documentation comment".
+dotnet_diagnostic.RCS1142.severity = none
+# Disable rule "Use pattern matching to avoid 'as' followed by a 'null' check".
+dotnet_diagnostic.IDE0019.severity = none
+dotnet_diagnostic.RCS1221.severity = none
+# Disable rule "Declare enum member with zero value (when enum has FlagsAttribute)"
+dotnet_diagnostic.RCS1135.severity = none
+# Disable rule "Avoid NullReferenceException". Undecided whether to enable, since it can reduce
+# clarity when a variable is guaranteed to be defined.
+dotnet_diagnostic.RCS1202.severity = none
+# TODO: Temporarily disabled rules until upcoming refactors:
+# Disable rule "P/Invoke methods should not be visible".
+dotnet_diagnostic.CA1401.severity = none
+# Disable rule "Duplicate enum value".
+dotnet_diagnostic.RCS1234.severity = none
+dotnet_diagnostic.CA1069.severity = none
+# Disable rule "Identifiers should not contain underscores".
+dotnet_diagnostic.CA1707.severity = none
+# Disable rule "Enum should declare explicit values".
+dotnet_diagnostic.RCS1161.severity = none
+# Add rule exception "Types that own disposable fields should be disposable".
+[**/Bus.cs]
+dotnet_diagnostic.CA1001.severity = none
+# Add rule exception "Fix formatting".
+[**/AssemblyInfo.cs]
+dotnet_diagnostic.IDE0055.severity = none

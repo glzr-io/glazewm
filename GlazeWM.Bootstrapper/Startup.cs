@@ -20,17 +20,17 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bootstrapper
 {
-  class Startup
+  internal class Startup
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
-    private KeybindingService _keybindingService;
-    private WindowEventService _windowEventService;
-    private WindowService _windowService;
-    private BarService _barService;
-    private WorkspaceService _workspaceService;
-    private SystemTrayService _systemTrayService;
-    private SystemEventService _systemEventService;
+    private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
+    private readonly KeybindingService _keybindingService;
+    private readonly WindowEventService _windowEventService;
+    private readonly WindowService _windowService;
+    private readonly BarService _barService;
+    private readonly WorkspaceService _workspaceService;
+    private readonly SystemTrayService _systemTrayService;
+    private readonly SystemEventService _systemEventService;
 
     public Startup(
       Bus bus,
@@ -58,7 +58,7 @@ namespace GlazeWM.Bootstrapper
     public void Run()
     {
       // Set the process-default DPI awareness.
-      SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
+      _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
 
       // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
       // to be initialized before populating initial state.
@@ -80,7 +80,7 @@ namespace GlazeWM.Bootstrapper
       _systemTrayService.AddToSystemTray();
 
       _bus.Events.Where(@event => @event is ApplicationExitingEvent)
-        .Subscribe((@event) => OnApplicationExit());
+        .Subscribe(_ => OnApplicationExit());
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ namespace GlazeWM.Bootstrapper
         _bus.Invoke(new AddMonitorCommand(screen));
 
       // Add initial windows to the tree.
-      foreach (var windowHandle in _windowService.GetAllWindowHandles())
+      foreach (var windowHandle in WindowService.GetAllWindowHandles())
       {
         // Register appbar windows.
         if (_windowService.IsHandleAppBar(windowHandle))
@@ -129,13 +129,12 @@ namespace GlazeWM.Bootstrapper
       // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
       // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
       // an arbitrary workspace.
-      Container containerToFocus =
+      var containerToFocus =
         _windowService.GetWindows().FirstOrDefault() as Container
-        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
+        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault();
 
       if (containerToFocus is Window)
         _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-
       else if (containerToFocus is Workspace)
         _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
     }

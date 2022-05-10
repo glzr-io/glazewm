@@ -15,20 +15,17 @@ namespace GlazeWM.Domain.Common.Enums
     /// <summary>
     /// Get the inverse of a given direction (eg. `Direction.UP` is the inverse of `Direction.DOWN`).
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static Direction Inverse(this Direction direction)
     {
-      switch (direction)
+      return direction switch
       {
-        case Direction.UP:
-          return Direction.DOWN;
-        case Direction.DOWN:
-          return Direction.UP;
-        case Direction.LEFT:
-          return Direction.RIGHT;
-        case Direction.RIGHT:
-          return Direction.LEFT;
-        default: throw new ArgumentOutOfRangeException();
-      }
+        Direction.UP => Direction.DOWN,
+        Direction.DOWN => Direction.UP,
+        Direction.LEFT => Direction.RIGHT,
+        Direction.RIGHT => Direction.LEFT,
+        _ => throw new ArgumentOutOfRangeException(nameof(direction)),
+      };
     }
 
     /// <summary>
@@ -37,7 +34,7 @@ namespace GlazeWM.Domain.Common.Enums
     /// </summary>
     public static Layout GetCorrespondingLayout(this Direction direction)
     {
-      return (direction == Direction.LEFT || direction == Direction.RIGHT)
+      return (direction is Direction.LEFT or Direction.RIGHT)
         ? Layout.HORIZONTAL : Layout.VERTICAL;
     }
   }

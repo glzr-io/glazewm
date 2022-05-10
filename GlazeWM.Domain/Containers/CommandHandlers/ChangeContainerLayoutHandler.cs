@@ -7,21 +7,15 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
+  internal class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
-    public ChangeContainerLayoutHandler(
-      Bus bus,
-      ContainerService containerService,
-      WindowService windowService
-    )
+    public ChangeContainerLayoutHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
-      _windowService = windowService;
     }
 
     public CommandResponse Handle(ChangeContainerLayoutCommand command)
@@ -31,7 +25,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (container is TilingWindow)
         ChangeWindowLayout(container as Window, newLayout);
-
       else if (container is Workspace)
         ChangeWorkspaceLayout(container as Workspace, newLayout);
 
@@ -90,7 +83,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       {
         var childSplitContainer = child as SplitContainer;
 
-        if (childSplitContainer == null || childSplitContainer.Layout != newLayout)
+        if (childSplitContainer?.Layout != newLayout)
           continue;
 
         _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));

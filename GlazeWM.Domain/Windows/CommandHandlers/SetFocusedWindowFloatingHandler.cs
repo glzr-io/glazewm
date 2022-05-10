@@ -4,10 +4,10 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class SetFocusedWindowFloatingHandler : ICommandHandler<SetFocusedWindowFloatingCommand>
+  internal class SetFocusedWindowFloatingHandler : ICommandHandler<SetFocusedWindowFloatingCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public SetFocusedWindowFloatingHandler(Bus bus, ContainerService containerService)
     {

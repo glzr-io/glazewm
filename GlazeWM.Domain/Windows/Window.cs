@@ -1,9 +1,7 @@
 ﻿using System;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
-using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows
@@ -28,10 +26,7 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether adjustments need to be made because of DPI (eg. when moving between monitors).
     /// </summary>
-    public bool HasPendingDpiAdjustment { get; set; } = false;
-
-    private WindowService _windowService = ServiceLocator.Provider.GetRequiredService<WindowService>();
-    private WorkspaceService _workspaceService = ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+    public bool HasPendingDpiAdjustment { get; set; }
 
     public Window(IntPtr hwnd, WindowRect floatingPlacement, RectDelta borderDelta)
     {
@@ -43,30 +38,30 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Windows are hidden if their parent workspace is not displayed.
     /// </summary>
-    public bool IsHidden => !_workspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
+    public bool IsHidden => !WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
-    public string ProcessName => _windowService.GetProcessOfHandle(Hwnd).ProcessName;
+    public string ProcessName => WindowService.GetProcessOfHandle(Hwnd).ProcessName;
 
-    public string ClassName => _windowService.GetClassNameOfHandle(Hwnd);
+    public string ClassName => WindowService.GetClassNameOfHandle(Hwnd);
 
-    public WindowRect Location => _windowService.GetLocationOfHandle(Hwnd);
+    public WindowRect Location => WindowService.GetLocationOfHandle(Hwnd);
 
-    public string Title => _windowService.GetTitleOfHandle(Hwnd);
+    public string Title => WindowService.GetTitleOfHandle(Hwnd);
 
-    public bool IsManageable => _windowService.IsHandleManageable(Hwnd);
+    public bool IsManageable => WindowService.IsHandleManageable(Hwnd);
 
-    public WS WindowStyles => _windowService.GetWindowStyles(Hwnd);
+    public WS WindowStyles => WindowService.GetWindowStyles(Hwnd);
 
-    public WS_EX WindowStylesEx => _windowService.GetWindowStylesEx(Hwnd);
+    public WS_EX WindowStylesEx => WindowService.GetWindowStylesEx(Hwnd);
 
     public bool HasWindowStyle(WS style)
     {
-      return _windowService.HandleHasWindowStyle(Hwnd, style);
+      return WindowService.HandleHasWindowStyle(Hwnd, style);
     }
 
     public bool HasWindowExStyle(WS_EX style)
     {
-      return _windowService.HandleHasWindowExStyle(Hwnd, style);
+      return WindowService.HandleHasWindowExStyle(Hwnd, style);
     }
   }
 }

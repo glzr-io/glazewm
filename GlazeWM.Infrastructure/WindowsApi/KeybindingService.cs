@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Infrastructure.WindowsApi
@@ -24,19 +23,20 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
   public class KeybindingService
   {
-    private static readonly uint WM_KEYDOWN = 0x100;
-    private static readonly uint WM_SYSKEYDOWN = 0x104;
+    private const uint WM_KEYDOWN = 0x100;
+    private const uint WM_SYSKEYDOWN = 0x104;
 
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
-    private Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey
-      = new Dictionary<Keys, List<Keybinding>>();
+    private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new();
 
     public void Start()
     {
-      var thread = new Thread(() => CreateKeybindingHook());
-      thread.Name = "GlazeWMKeybindingService";
+      var thread = new Thread(() => CreateKeybindingHook())
+      {
+        Name = "GlazeWMKeybindingService"
+      };
       thread.Start();
     }
 
@@ -61,19 +61,16 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _keybindingsByTriggerKey.Add(triggerKey, new List<Keybinding>() { keybinding });
     }
 
-    private string FormatKeybinding(string key)
+    private static string FormatKeybinding(string key)
     {
-      var isNumeric = int.TryParse(key, out int _);
+      var isNumeric = int.TryParse(key, out var _);
 
-      if (isNumeric)
-        return $"D{key}";
-
-      return key;
+      return isNumeric ? $"D{key}" : key;
     }
 
     private void CreateKeybindingHook()
     {
-      SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
+      _ = SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 
       // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
       Application.Run();
@@ -99,7 +96,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       if (registeredKeybindings == null)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      Dictionary<Keys, bool> cachedKeyStates = new Dictionary<Keys, bool>();
+      var cachedKeyStates = new Dictionary<Keys, bool>();
 
       var matchedKeybindings = registeredKeybindings.Where(keybinding =>
       {
@@ -117,7 +114,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       // If multiple keybindings match the user input, call the longest key combination.
       var longestKeybinding = matchedKeybindings
-        .OrderByDescending(keybinding => keybinding.KeyCombination.Count())
+        .OrderByDescending(keybinding => keybinding.KeyCombination.Count)
         .FirstOrDefault();
 
       if (longestKeybinding == null)
@@ -133,24 +130,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Get whether the given key is down. Check alternate versions of modifier keys.
     /// </summary>
-    private bool IsKeyDown(Keys key)
+    private static bool IsKeyDown(Keys key)
     {
-      if (key == Keys.Alt)
-        return IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu);
-
-      if (key == Keys.Shift)
-        return IsKeyDownRaw(Keys.LShiftKey) || IsKeyDownRaw(Keys.RShiftKey);
-
-      if (key == Keys.Control)
-        return IsKeyDownRaw(Keys.LControlKey) || IsKeyDownRaw(Keys.RControlKey);
-
-      return IsKeyDownRaw(key);
+      return key switch
+      {
+        Keys.Alt => IsKeyDownRaw(Keys.LMenu) || IsKeyDownRaw(Keys.RMenu),
+        Keys.Shift => IsKeyDownRaw(Keys.LShiftKey) || IsKeyDownRaw(Keys.RShiftKey),
+        Keys.Control => IsKeyDownRaw(Keys.LControlKey) || IsKeyDownRaw(Keys.RControlKey),
+        _ => IsKeyDownRaw(key),
+      };
     }
 
     /// <summary>
     /// Get whether the given key is down. If the high-order bit is 1, the key is down; otherwise, it is up.
     /// </summary>
-    private bool IsKeyDownRaw(Keys key)
+    private static bool IsKeyDownRaw(Keys key)
     {
       return (GetKeyState(key) & 0x8000) == 0x8000;
     }

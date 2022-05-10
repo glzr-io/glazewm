@@ -1,4 +1,5 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Events;
+﻿using GlazeWM.Infrastructure.Exceptions;
+using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -14,8 +15,8 @@ namespace GlazeWM.Infrastructure.Bussing
   /// </summary>
   public sealed class Bus
   {
-    public readonly Subject<Event> Events = new Subject<Event>();
-    private static readonly Object _lockObj = new Object();
+    public readonly Subject<Event> Events = new();
+    private readonly object _lockObj = new();
 
     /// <summary>
     /// Sends command to appropriate command handler.
@@ -40,7 +41,7 @@ namespace GlazeWM.Infrastructure.Bussing
       catch (Exception error)
       {
         HandleError(error);
-        throw error;
+        throw;
       }
     }
 
@@ -73,7 +74,7 @@ namespace GlazeWM.Infrastructure.Bussing
       catch (Exception error)
       {
         HandleError(error);
-        throw error;
+        throw;
       }
     }
 
@@ -88,7 +89,7 @@ namespace GlazeWM.Infrastructure.Bussing
     }
 
     // TODO: Move to dedicated logging service.
-    private void WriteToErrorLog(Exception error)
+    private static void WriteToErrorLog(Exception error)
     {
       var errorLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),

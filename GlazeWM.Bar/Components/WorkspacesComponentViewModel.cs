@@ -27,8 +27,7 @@ namespace GlazeWM.Bar.Components
     private readonly UserConfigService _userConfigService =
      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
 
-    public ObservableCollection<Workspace> Workspaces =>
-      new ObservableCollection<Workspace>(_orderedWorkspaces);
+    public ObservableCollection<Workspace> Workspaces => new(_orderedWorkspaces);
 
     /// <summary>
     /// Get workspaces of the current monitor sorted in the order they appear in the user's config.
@@ -45,19 +44,19 @@ namespace GlazeWM.Bar.Components
     public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
     public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
     public string FocusedWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.FocusedWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.FocusedWorkspaceBorderWidth);
 
     public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
     public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground ?? Foreground;
     public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
     public string DisplayedWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.DisplayedWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.DisplayedWorkspaceBorderWidth);
 
     public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
     public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground ?? Foreground;
     public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
     public string DefaultWorkspaceBorderWidth =>
-      _barService.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
+      BarService.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
 
     public ICommand FocusWorkspaceCommand => new RelayCommand<string>(FocusWorkspace);
 
@@ -65,16 +64,11 @@ namespace GlazeWM.Bar.Components
       : base(parentViewModel, config)
     {
       var workspacesChangedEvent = _bus.Events.Where((@event) =>
-        @event is WorkspaceActivatedEvent ||
-        @event is WorkspaceDeactivatedEvent ||
-        @event is FocusChangedEvent
+        @event is WorkspaceActivatedEvent or WorkspaceDeactivatedEvent or FocusChangedEvent
       );
 
       // Refresh contents of workspaces collection.
-      workspacesChangedEvent.Subscribe((_observer) =>
-      {
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)));
-      });
+      workspacesChangedEvent.Subscribe(_ => _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces))));
     }
 
     public void FocusWorkspace(string workspaceName)

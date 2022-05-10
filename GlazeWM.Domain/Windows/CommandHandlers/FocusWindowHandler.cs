@@ -4,12 +4,8 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class FocusWindowHandler : ICommandHandler<FocusWindowCommand>
+  internal class FocusWindowHandler : ICommandHandler<FocusWindowCommand>
   {
-    public FocusWindowHandler()
-    {
-    }
-
     public CommandResponse Handle(FocusWindowCommand command)
     {
       var window = command.Window;

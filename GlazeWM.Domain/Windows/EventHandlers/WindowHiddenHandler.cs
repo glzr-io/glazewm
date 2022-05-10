@@ -7,10 +7,10 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowHiddenHandler : IEventHandler<WindowHiddenEvent>
+  internal class WindowHiddenHandler : IEventHandler<WindowHiddenEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
     public WindowHiddenHandler(Bus bus, WindowService windowService)
     {
@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Ignore events where the window isn't managed or is actually supposed to be hidden. Since
       // window events are processed in a sequence, also handle case where the window is not
       // actually hidden anymore when the event is processed.
-      if (window == null || window.IsHidden == true || _windowService.IsHandleVisible(window.Hwnd))
+      if (window?.IsHidden != false || WindowService.IsHandleVisible(window.Hwnd))
         return;
 
       // Detach the hidden window from its parent.

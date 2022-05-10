@@ -8,10 +8,10 @@ namespace GlazeWM.Domain.UserConfigs
 
     public BarConfig Bar { get; set; } = new BarConfig();
 
-    public List<WorkspaceConfig> Workspaces = new List<WorkspaceConfig>();
+    public List<WorkspaceConfig> Workspaces = new();
 
-    public List<WindowRuleConfig> WindowRules = new List<WindowRuleConfig>();
+    public List<WindowRuleConfig> WindowRules = new();
 
-    public List<KeybindingConfig> Keybindings = new List<KeybindingConfig>();
+    public List<KeybindingConfig> Keybindings = new();
   }
 }

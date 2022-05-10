@@ -6,15 +6,13 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
+  internal class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
 
-    public MoveContainerWithinTreeHandler(Bus bus, ContainerService containerService)
+    public MoveContainerWithinTreeHandler(Bus bus)
     {
       _bus = bus;
-      _containerService = containerService;
     }
 
     public CommandResponse Handle(MoveContainerWithinTreeCommand command)
@@ -24,12 +22,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetIndex = command.TargetIndex;
       var shouldAdjustSize = command.ShouldAdjustSize;
 
-      if (shouldAdjustSize && !(containerToMove is IResizable))
+      if (shouldAdjustSize && containerToMove is not IResizable)
         throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
       // Get lowest common ancestor (LCA) between `containerToMove` and `targetParent`. This could
       // be the `targetParent` itself.
-      var lowestCommonAncestor = _containerService.GetLowestCommonAncestor(
+      var lowestCommonAncestor = ContainerService.GetLowestCommonAncestor(
         containerToMove,
         targetParent
       );
@@ -49,7 +47,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Get whether the container is the focused descendant in its original subtree.
       var isFocusedDescendant = containerToMove == containerToMoveAncestor
-        ? true : containerToMoveAncestor.LastFocusedDescendant == containerToMove;
+        || containerToMoveAncestor.LastFocusedDescendant == containerToMove;
 
       var targetParentAncestor = targetParent.SelfAndAncestors
         .First(ancestor => ancestor.Parent == lowestCommonAncestor);

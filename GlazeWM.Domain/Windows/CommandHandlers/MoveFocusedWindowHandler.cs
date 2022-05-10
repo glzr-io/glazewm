@@ -10,18 +10,20 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class MoveFocusedWindowHandler : ICommandHandler<MoveFocusedWindowCommand>
+  internal class MoveFocusedWindowHandler : ICommandHandler<MoveFocusedWindowCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
-    private MonitorService _monitorService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
-    public MoveFocusedWindowHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService, MonitorService monitorService)
+    public MoveFocusedWindowHandler(
+      Bus bus,
+      ContainerService containerService,
+      MonitorService monitorService
+    )
     {
       _bus = bus;
       _containerService = containerService;
-      _workspaceService = workspaceService;
       _monitorService = monitorService;
     }
 
@@ -30,7 +32,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var focusedWindow = _containerService.FocusedContainer as TilingWindow;
 
       // Ignore cases where focused container is not a tiling window.
-      if (focusedWindow == null)
+      if (focusedWindow is null)
         return CommandResponse.Ok;
 
       var direction = command.Direction;
@@ -52,9 +54,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // The focused window cannot be moved within the parent container, so traverse upwards to find
       // a suitable ancestor to move to.
-      var ancestorWithLayout = focusedWindow.Parent.Ancestors
-        .Where(container => (container as SplitContainer)?.Layout == layoutForDirection)
-        .FirstOrDefault() as SplitContainer;
+      var ancestorWithLayout = focusedWindow.Parent.Ancestors.FirstOrDefault(
+        container => (container as SplitContainer)?.Layout == layoutForDirection
+      ) as SplitContainer;
 
       // Change the layout of the workspace to layout for direction.
       if (ancestorWithLayout == null)
@@ -71,24 +73,24 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     /// <summary>
     /// Whether the focused window has a tiling sibling in the given direction.
     /// </summary>
-    private bool HasSiblingInDirection(Window focusedWindow, Direction direction)
+    private static bool HasSiblingInDirection(Window focusedWindow, Direction direction)
     {
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      if (direction is Direction.UP or Direction.LEFT)
         return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).First();
-      else
-        return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
+
+      return focusedWindow != focusedWindow.SelfAndSiblingsOfType(typeof(IResizable)).Last();
     }
 
     private void SwapSiblingContainers(Window focusedWindow, Direction direction)
     {
-      var siblingInDirection = direction == Direction.UP || direction == Direction.LEFT
+      var siblingInDirection = direction is Direction.UP or Direction.LEFT
         ? focusedWindow.GetPreviousSiblingOfType(typeof(IResizable))
         : focusedWindow.GetNextSiblingOfType(typeof(IResizable));
 
       // Swap the focused window with sibling in given direction.
       if (siblingInDirection is Window)
       {
-        var targetIndex = direction == Direction.UP || direction == Direction.LEFT ?
+        var targetIndex = direction is Direction.UP or Direction.LEFT ?
           siblingInDirection.Index : siblingInDirection.Index + 1;
 
         _bus.Invoke(
@@ -126,7 +128,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return;
 
       // Since window is crossing monitors, adjustments might need to be made because of DPI.
-      if (_monitorService.HasDpiDifference(focusedWindow, workspaceInDirection))
+      if (MonitorService.HasDpiDifference(focusedWindow, workspaceInDirection))
         focusedWindow.HasPendingDpiAdjustment = true;
 
       // Update floating placement since the window has to cross monitors.
@@ -134,7 +136,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         focusedWindow.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRectangle());
 
       // TODO: Descend into container if possible.
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      if (direction is Direction.UP or Direction.LEFT)
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, true));
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, workspaceInDirection, 0, true));
@@ -147,7 +149,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void ChangeWorkspaceLayout(Window focusedWindow, Direction direction)
     {
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(focusedWindow);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(focusedWindow);
 
       var layoutForDirection = direction.GetCorrespondingLayout();
       _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
@@ -166,7 +168,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionReference = focusedWindow.Ancestors
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      var insertionReferenceSibling = direction == Direction.UP || direction == Direction.LEFT
+      var insertionReferenceSibling = direction is Direction.UP or Direction.LEFT
         ? insertionReference.GetPreviousSiblingOfType(typeof(IResizable))
         : insertionReference.GetNextSiblingOfType(typeof(IResizable));
 
@@ -185,7 +187,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
       {
         // Move the focused window into the container above.
-        var insertionIndex = (direction == Direction.UP || direction == Direction.LEFT) ?
+        var insertionIndex = (direction is Direction.UP or Direction.LEFT) ?
           insertionReference.Index : insertionReference.Index + 1;
 
         _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, ancestorWithLayout, insertionIndex, true));

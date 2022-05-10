@@ -5,13 +5,12 @@ using System.Windows.Forms;
 using System.Threading;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System.Reflection;
-using System.IO;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class SystemTrayService
   {
-    private Bus _bus;
+    private readonly Bus _bus;
 
     public SystemTrayService(Bus bus)
     {
@@ -20,8 +19,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void AddToSystemTray()
     {
-      var thread = new Thread(() => PopulateSystemTray());
-      thread.Name = "GlazeWMSystemTray";
+      var thread = new Thread(() => PopulateSystemTray())
+      {
+        Name = "GlazeWMSystemTray"
+      };
       thread.Start();
     }
 
@@ -32,26 +33,25 @@ namespace GlazeWM.Infrastructure.WindowsApi
       contextMenuStrip.Items.Add("Exit", null, SignalApplicationExit);
 
       var assembly = Assembly.GetEntryAssembly();
-      var iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
+      const string iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
 
       // Get the embedded icon resource from the entry assembly.
-      using (Stream stream = assembly.GetManifestResourceStream(iconResourceName))
+      using (var stream = assembly.GetManifestResourceStream(iconResourceName))
       {
-        var notificationIcon = new NotifyIcon()
+        var notificationIcon = new NotifyIcon
         {
           Icon = new Icon(stream),
           ContextMenuStrip = contextMenuStrip,
-          Text = "GlazeWM"
+          Text = "GlazeWM",
+          Visible = true
         };
-
-        notificationIcon.Visible = true;
       }
 
       // System tray requires a message loop within the thread that is executing the code.
       Application.Run();
     }
 
-    void SignalApplicationExit(object sender, EventArgs e)
+    private void SignalApplicationExit(object sender, EventArgs e)
     {
       // TODO: Call `Dispose()` on `notificationIcon`.
       _bus.RaiseEvent(new ApplicationExitingEvent());

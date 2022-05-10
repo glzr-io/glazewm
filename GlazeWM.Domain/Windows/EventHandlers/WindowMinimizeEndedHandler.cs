@@ -8,24 +8,21 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  class WindowMinimizeEndedHandler : IEventHandler<WindowMinimizeEndedEvent>
+  internal class WindowMinimizeEndedHandler : IEventHandler<WindowMinimizeEndedEvent>
   {
-    private Bus _bus;
-    private WindowService _windowService;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly WindowService _windowService;
+    private readonly ContainerService _containerService;
 
     public WindowMinimizeEndedHandler(
       Bus bus,
       WindowService windowService,
-      ContainerService containerService,
-      WorkspaceService workspaceService
+      ContainerService containerService
     )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
-      _workspaceService = workspaceService;
     }
 
     public void Handle(WindowMinimizeEndedEvent @event)
@@ -40,10 +37,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
-      if (!(restoredWindow is TilingWindow))
+      if (restoredWindow is not TilingWindow)
         return;
 
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(window);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       // Insert the created tiling window after the last focused descendant of the workspace.
@@ -63,7 +60,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _bus.Invoke(new RedrawContainersCommand());
     }
 
-    private Window CreateWindowFromPreviousState(MinimizedWindow window)
+    private static Window CreateWindowFromPreviousState(MinimizedWindow window)
     {
       return window.PreviousState switch
       {
@@ -89,7 +86,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.BorderDelta,
           0
         ),
-        _ => throw new ArgumentException(),
+        WindowType.MINIMIZED => throw new ArgumentException(null, nameof(window)),
+        _ => throw new ArgumentException(null, nameof(window)),
       };
     }
   }

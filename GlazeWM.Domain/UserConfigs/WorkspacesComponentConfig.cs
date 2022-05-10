@@ -9,7 +9,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Fallback to component foreground config if unset.
     /// </summary>
-    public string FocusedWorkspaceForeground { get; set; } = null;
+    public string FocusedWorkspaceForeground { get; set; }
 
     public string DisplayedWorkspaceBorderWidth { get; set; } = "0";
     public string DisplayedWorkspaceBorderColor { get; set; } = "blue";
@@ -18,7 +18,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Fallback to component foreground config if unset.
     /// </summary>
-    public string DisplayedWorkspaceForeground { get; set; } = null;
+    public string DisplayedWorkspaceForeground { get; set; }
 
     public string DefaultWorkspaceBorderWidth { get; set; } = "0";
     public string DefaultWorkspaceBorderColor { get; set; } = "blue";
@@ -26,11 +26,11 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Fallback to component background config if unset.
     /// </summary>
-    public string DefaultWorkspaceBackground { get; set; } = null;
+    public string DefaultWorkspaceBackground { get; set; }
 
     /// <summary>
     /// Fallback to component foreground config if unset.
     /// </summary>
-    public string DefaultWorkspaceForeground { get; set; } = null;
+    public string DefaultWorkspaceForeground { get; set; }
   }
 }

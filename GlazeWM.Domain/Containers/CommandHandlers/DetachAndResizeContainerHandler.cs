@@ -6,9 +6,9 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class DetachAndResizeContainerHandler : ICommandHandler<DetachAndResizeContainerCommand>
+  internal class DetachAndResizeContainerHandler : ICommandHandler<DetachAndResizeContainerCommand>
   {
-    private Bus _bus;
+    private readonly Bus _bus;
 
     public DetachAndResizeContainerHandler(Bus bus)
     {
@@ -21,11 +21,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = childToRemove.Parent;
       var grandparent = parent.Parent;
 
-      if (!(childToRemove is IResizable))
+      if (childToRemove is not IResizable)
         throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
-      var isEmptySplitContainer = parent is SplitContainer && parent.Children.Count() == 1
-        && !(parent is Workspace);
+      var isEmptySplitContainer = parent is SplitContainer && parent.Children.Count == 1
+        && parent is not Workspace;
 
       // Get the freed up space after container is detached.
       var availableSizePercentage = isEmptySplitContainer
@@ -43,8 +43,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Adjust `SizePercentage` of the siblings of the removed container.
       foreach (var containerToResize in containersToResize)
-        (containerToResize as IResizable).SizePercentage =
-          (containerToResize as IResizable).SizePercentage + sizePercentageIncrement;
+      {
+        ((IResizable)containerToResize).SizePercentage += sizePercentageIncrement;
+      }
 
       return CommandResponse.Ok;
     }

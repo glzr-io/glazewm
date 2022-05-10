@@ -7,11 +7,11 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  class ToggleFocusModeHandler : ICommandHandler<ToggleFocusModeCommand>
+  internal class ToggleFocusModeHandler : ICommandHandler<ToggleFocusModeCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public ToggleFocusModeHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
     {
@@ -28,13 +28,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
-      Window windowToFocus = null;
+      Window windowToFocus;
 
       if (targetFocusMode == FocusMode.FLOATING)
         // Get the last focused tiling window within the workspace.
         windowToFocus = focusedWorkspace.LastFocusedDescendantOfType(typeof(FloatingWindow))
           as Window;
-
       else
         // Get the last focused floating window within the workspace.
         windowToFocus = focusedWorkspace.LastFocusedDescendantOfType(typeof(TilingWindow))

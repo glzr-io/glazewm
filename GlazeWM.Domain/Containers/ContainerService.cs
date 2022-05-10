@@ -14,13 +14,13 @@ namespace GlazeWM.Domain.Containers
     /// The root node of the container tree. Monitors are the children of the root node, followed
     /// by workspaces, then split containers/windows.
     /// </summary>
-    public Container ContainerTree = new Container();
+    public Container ContainerTree = new();
 
     /// <summary>
     /// Containers (and their descendants) to redraw on the next invocation of
     /// `RedrawContainersCommand`.
     /// </summary>
-    public List<Container> ContainersToRedraw = new List<Container>();
+    public List<Container> ContainersToRedraw = new();
 
     /// <summary>
     /// The currently focused container. This can either be a `Window` or a
@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Containers
     /// If set, this container overrides the target container to set focus to on the next
     /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
     /// </summary>
-    public Container PendingFocusContainer = null;
+    public Container PendingFocusContainer;
 
     /// <summary>
     /// Whether the focused container of the WM is in sync with the OS. Mismatches between the
@@ -55,12 +55,11 @@ namespace GlazeWM.Domain.Containers
         if (focusedContainer is Window)
           return (focusedContainer as Window).Hwnd == foregroundHandle;
 
-        else
-          return IntPtr.Zero == foregroundHandle;
+        return IntPtr.Zero == foregroundHandle;
       }
     }
 
-    private UserConfigService _userConfigService;
+    private readonly UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)
     {
@@ -81,7 +80,8 @@ namespace GlazeWM.Domain.Containers
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
+      return (int)((container as IResizable).SizePercentage
+        * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -98,7 +98,8 @@ namespace GlazeWM.Domain.Containers
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
 
-      return (int)((container as IResizable).SizePercentage * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
+      return (int)((container as IResizable).SizePercentage
+        * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
     }
 
     /// <summary>
@@ -149,7 +150,7 @@ namespace GlazeWM.Domain.Containers
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
       var isDescendable = originContainer is SplitContainer
-        && originContainer.ChildrenOfType(typeof(IResizable)).Count() > 0;
+        && originContainer.ChildrenOfType(typeof(IResizable)).Any();
 
       if (!isDescendable)
         return originContainer;
@@ -161,13 +162,11 @@ namespace GlazeWM.Domain.Containers
           originContainer.LastFocusedChildOfType(typeof(IResizable)),
           direction
         );
-
-      if (direction == Direction.UP || direction == Direction.LEFT)
+      else if (direction is Direction.UP or Direction.LEFT)
         return GetDescendantInDirection(
           originContainer.ChildrenOfType(typeof(IResizable)).First(),
           direction
         );
-
       else
         return GetDescendantInDirection(
           originContainer.ChildrenOfType(typeof(IResizable)).Last(),
@@ -179,7 +178,7 @@ namespace GlazeWM.Domain.Containers
     /// Get the lowest container in the tree that has both `containerA` and `containerB` as
     /// descendants.
     /// </summary>
-    public Container GetLowestCommonAncestor(Container containerA, Container containerB)
+    public static Container GetLowestCommonAncestor(Container containerA, Container containerB)
     {
       var ancestorA = containerA;
 

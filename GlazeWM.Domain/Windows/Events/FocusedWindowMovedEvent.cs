@@ -1,7 +1,7 @@
-﻿using GlazeWM.Domain.Windows;
+﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure.Bussing;
 
-namespace GlazeWM.Domain.Containers.Events
+namespace GlazeWM.Domain.Windows.Events
 {
   public class FocusedWindowMovedEvent : Event
   {

@@ -6,14 +6,15 @@ using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
+  internal class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
-    private WorkspaceService _workspaceService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
+    private readonly WorkspaceService _workspaceService;
 
     public AddMonitorHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
     {

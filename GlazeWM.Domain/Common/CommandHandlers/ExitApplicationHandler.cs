@@ -4,9 +4,9 @@ using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Domain.Common.CommandHandlers
 {
-  class ExitApplicationHandler : ICommandHandler<ExitApplicationCommand>
+  internal class ExitApplicationHandler : ICommandHandler<ExitApplicationCommand>
   {
-    private Bus _bus;
+    private readonly Bus _bus;
 
     public ExitApplicationHandler(Bus bus)
     {

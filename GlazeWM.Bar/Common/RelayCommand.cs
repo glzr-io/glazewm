@@ -5,13 +5,13 @@ namespace GlazeWM.Bar.Common
 {
   public class RelayCommand : ICommand
   {
-    private readonly Action _methodToExecute = null;
-    private readonly Func<bool> _canExecutePredicate = null;
+    private readonly Action _methodToExecute;
+    private readonly Func<bool> _canExecutePredicate;
 
     public event EventHandler CanExecuteChanged
     {
-      add { CommandManager.RequerySuggested += value; }
-      remove { CommandManager.RequerySuggested -= value; }
+      add => CommandManager.RequerySuggested += value;
+      remove => CommandManager.RequerySuggested -= value;
     }
 
     public RelayCommand(Action methodToExecute)
@@ -29,7 +29,7 @@ namespace GlazeWM.Bar.Common
 
     public bool CanExecute(object parameter)
     {
-      return _canExecutePredicate == null ? true : _canExecutePredicate.Invoke();
+      return _canExecutePredicate?.Invoke() != false;
     }
 
     public void Execute(object parameter)
@@ -40,13 +40,13 @@ namespace GlazeWM.Bar.Common
 
   public class RelayCommand<T> : ICommand
   {
-    private readonly Action<T> _methodToExecute = null;
-    private readonly Predicate<T> _canExecutePredicate = null;
+    private readonly Action<T> _methodToExecute;
+    private readonly Predicate<T> _canExecutePredicate;
 
     public event EventHandler CanExecuteChanged
     {
-      add { CommandManager.RequerySuggested += value; }
-      remove { CommandManager.RequerySuggested -= value; }
+      add => CommandManager.RequerySuggested += value;
+      remove => CommandManager.RequerySuggested -= value;
     }
 
     public RelayCommand(Action<T> methodToExecute)
@@ -64,7 +64,7 @@ namespace GlazeWM.Bar.Common
 
     public bool CanExecute(object parameter)
     {
-      return _canExecutePredicate == null ? true : _canExecutePredicate.Invoke((T)parameter);
+      return _canExecutePredicate?.Invoke((T)parameter) != false;
     }
 
     public void Execute(object parameter)

@@ -6,16 +6,14 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
+  internal class DisplayWorkspaceHandler : ICommandHandler<DisplayWorkspaceCommand>
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
-    public DisplayWorkspaceHandler(Bus bus, MonitorService monitorService, ContainerService containerService)
+    public DisplayWorkspaceHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
-      _monitorService = monitorService;
       _containerService = containerService;
     }
 
@@ -23,7 +21,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     {
       var workspaceToDisplay = command.Workspace;
 
-      var monitor = _monitorService.GetMonitorFromChildContainer(command.Workspace);
+      var monitor = MonitorService.GetMonitorFromChildContainer(command.Workspace);
       var currentWorkspace = monitor.DisplayedWorkspace;
 
       // If `DisplayedWorkspace` is unassigned (ie. on startup), there is no need to show/hide

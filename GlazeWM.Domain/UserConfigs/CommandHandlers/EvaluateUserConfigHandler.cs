@@ -1,6 +1,6 @@
 ﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Yaml;
 using Newtonsoft.Json;
 using System;
@@ -11,24 +11,26 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
+  internal class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
-    private Bus _bus;
-    private UserConfigService _userConfigService;
-    private KeybindingService _keybindingService;
-    private YamlDeserializationService _yamlDeserializationService;
+    private readonly Bus _bus;
+    private readonly UserConfigService _userConfigService;
+    private readonly YamlDeserializationService _yamlDeserializationService;
 
-    public EvaluateUserConfigHandler(Bus bus, UserConfigService userConfigService, KeybindingService keybindingService, YamlDeserializationService yamlDeserializationService)
+    public EvaluateUserConfigHandler(
+      Bus bus,
+      UserConfigService userConfigService,
+      YamlDeserializationService yamlDeserializationService
+    )
     {
       _bus = bus;
       _userConfigService = userConfigService;
-      _keybindingService = keybindingService;
       _yamlDeserializationService = yamlDeserializationService;
     }
 
     public CommandResponse Handle(EvaluateUserConfigCommand command)
     {
-      UserConfig deserializedConfig = null;
+      UserConfig deserializedConfig;
 
       try
       {
@@ -57,7 +59,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void InitializeSampleUserConfig(string userConfigPath)
+    private static void InitializeSampleUserConfig(string userConfigPath)
     {
       // Fix any inconsistencies in directory delimiters.
       var normalizedUserConfigPath = Path.GetFullPath(new Uri(userConfigPath).LocalPath);
@@ -72,20 +74,17 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         throw new FatalUserException("Cannot start the app without a configuration file.");
 
       var assembly = Assembly.GetEntryAssembly();
-      var sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
+      const string sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
 
       // Create containing directory. Needs to be created before writing to the file.
       Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
 
       // Get the embedded sample user config from the entry assembly.
-      using (Stream stream = assembly.GetManifestResourceStream(sampleConfigResourceName))
-      {
-        // Write the sample user config to the appropriate destination.
-        using (var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write))
-        {
-          stream.CopyTo(fileStream);
-        }
-      }
+      using var stream = assembly.GetManifestResourceStream(sampleConfigResourceName);
+
+      // Write the sample user config to the appropriate destination.
+      using var fileStream = new FileStream(userConfigPath, FileMode.Create, FileAccess.Write);
+      stream.CopyTo(fileStream);
     }
 
     private UserConfig DeserializeUserConfig(string userConfigPath)
@@ -96,11 +95,11 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       return _yamlDeserializationService.Deserialize<UserConfig>(input);
     }
 
-    private string FormatErrorMessage(Exception exception)
+    private static string FormatErrorMessage(Exception exception)
     {
       var errorMessage = "Failed to parse user config. ";
 
-      var unknownPropertyRegex = new Regex(@"Could not find member '(?<property>.*?)' on object");
+      var unknownPropertyRegex = new Regex("Could not find member '(?<property>.*?)' on object");
       var unknownPropertyMatch = unknownPropertyRegex.Match(exception.Message);
 
       // Improve error message in case of unknown property errors.
@@ -110,7 +109,6 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       // Improve error message of generic deserialization errors.
       else if (exception is JsonReaderException)
         errorMessage += $"Invalid value at property: '{(exception as JsonReaderException).Path}'.";
-
       else
         errorMessage += exception.Message;
 

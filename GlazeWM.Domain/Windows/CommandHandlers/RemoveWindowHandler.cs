@@ -5,10 +5,10 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
+  internal class RemoveWindowHandler : ICommandHandler<RemoveWindowCommand>
   {
-    private Bus _bus;
-    private ContainerService _containerService;
+    private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
     public RemoveWindowHandler(Bus bus, ContainerService containerService)
     {
@@ -32,8 +32,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Get container to switch focus to after the window has been removed. The OS automatically
       // switches focus to a different window after closing, so by setting `PendingFocusContainer`
       // this behavior is overridden.
-      var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
-      _containerService.PendingFocusContainer = containerToFocus;
+      _containerService.PendingFocusContainer = parent.LastFocusedDescendant
+        ?? grandparent.LastFocusedDescendant;
 
       return CommandResponse.Ok;
     }

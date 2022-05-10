@@ -6,15 +6,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
+  internal class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
 
-    public ToggleFloatingHandler(Bus bus, WorkspaceService workspaceService)
+    public ToggleFloatingHandler(Bus bus)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(ToggleFloatingCommand command)
@@ -23,7 +21,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       if (window is FloatingWindow)
         UnsetFloating(window as FloatingWindow);
-
       else
         _bus.Invoke(new SetFloatingCommand(window));
 
@@ -33,7 +30,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void UnsetFloating(FloatingWindow floatingWindow)
     {
       // Keep reference to the window's ancestor workspace prior to detaching.
-      var workspace = _workspaceService.GetWorkspaceFromChildContainer(floatingWindow);
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(floatingWindow);
 
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 

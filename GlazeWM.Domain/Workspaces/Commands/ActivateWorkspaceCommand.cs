@@ -3,10 +3,10 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  class ActivateWorkspaceCommand : Command
+  internal class ActivateWorkspaceCommand : Command
   {
-    public string WorkspaceName { get; private set; }
-    public Monitor TargetMonitor { get; private set; }
+    public string WorkspaceName { get; }
+    public Monitor TargetMonitor { get; }
 
     public ActivateWorkspaceCommand(string workspaceName, Monitor targetMonitor)
     {

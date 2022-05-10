@@ -10,10 +10,10 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
+  internal class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
   {
-    private Bus _bus;
-    private MonitorService _monitorService;
+    private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
 
     public RemoveMonitorHandler(Bus bus, MonitorService monitorService)
     {
@@ -42,9 +42,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
         // Get windows of the moved workspace.
-        var windows = workspace.Descendants
-          .Where(descendant => descendant is Window)
-          .Cast<Window>();
+        var windows = workspace.Descendants.OfType<Window>();
 
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.

@@ -1,7 +1,5 @@
 ﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Monitors
 {
@@ -15,9 +13,7 @@ namespace GlazeWM.Domain.Monitors
     public bool IsPrimary { get; set; }
     public Workspace DisplayedWorkspace { get; set; }
 
-    private MonitorService _monitorService =
-      ServiceLocator.Provider.GetRequiredService<MonitorService>();
-    public uint Dpi => _monitorService.GetMonitorDpi(this);
+    public uint Dpi => MonitorService.GetMonitorDpi(this);
     public decimal ScaleFactor => decimal.Divide(Dpi, 96);
 
     public Monitor(

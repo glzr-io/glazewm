@@ -4,8 +4,5 @@ namespace GlazeWM.Domain.Windows.Commands
 {
   public class ToggleFocusedWindowFloatingCommand : Command
   {
-    public ToggleFocusedWindowFloatingCommand()
-    {
-    }
   }
 }
