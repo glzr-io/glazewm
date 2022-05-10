@@ -5,6 +5,7 @@ using GlazeWM.Infrastructure.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -54,11 +55,9 @@ namespace GlazeWM.Bootstrapper
         })
         .ConfigureLogging(builder =>
         {
-          builder
-            .AddConsole(options => options.FormatterName = "customName")
-            .AddConsoleFormatter<CustomFormatter, CustomOptions>(
-              options => options.CustomPrefix = " ~~~~~ "
-            );
+          builder.ClearProviders();
+          builder.AddConsole(options => options.FormatterName = "customFormatter")
+            .AddConsoleFormatter<LogFormatter, ConsoleFormatterOptions>();
         })
         .Build();
     }

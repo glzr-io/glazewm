@@ -7,46 +7,55 @@ using System.IO;
 
 namespace GlazeWM.Infrastructure.Logging
 {
-  public class CustomOptions : ConsoleFormatterOptions
-  {
-    public string CustomPrefix { get; set; }
-  }
-
-  public sealed class CustomFormatter : ConsoleFormatter, IDisposable
+  public sealed class LogFormatter : ConsoleFormatter, IDisposable
   {
     private readonly IDisposable _optionsReloadToken;
-    private CustomOptions _formatterOptions;
+    private ConsoleFormatterOptions _formatterOptions;
 
-    public CustomFormatter(IOptionsMonitor<CustomOptions> options)
-        // Case insensitive
-        : base("customName") =>
-        (_optionsReloadToken, _formatterOptions) =
-            (options.OnChange(ReloadLoggerOptions), options.CurrentValue);
-
-    private void ReloadLoggerOptions(CustomOptions options) =>
-        _formatterOptions = options;
-
-    public override void Write<TState>(
-        in LogEntry<TState> logEntry,
-        IExternalScopeProvider scopeProvider,
-        TextWriter textWriter)
+    public LogFormatter(IOptionsMonitor<ConsoleFormatterOptions> options) : base("customFormatter")
     {
-      string message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
+      (_optionsReloadToken, _formatterOptions)
+        = (options.OnChange(ReloadLoggerOptions), options.CurrentValue);
+    }
+
+    private void ReloadLoggerOptions(ConsoleFormatterOptions options)
+    {
+      _formatterOptions = options;
+    }
+
+    public override void Write<T>(
+      in LogEntry<T> logEntry,
+      IExternalScopeProvider scopeProvider,
+      TextWriter textWriter
+    )
+    {
+      var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
 
       if (message is null)
-      {
         return;
-      }
 
-      CustomLogicGoesHere(textWriter);
+      AddTimestampPrefix(textWriter);
+      AddTrimmedCategoryPrefix(textWriter, logEntry);
       textWriter.WriteLine(message);
     }
 
-    private void CustomLogicGoesHere(TextWriter textWriter)
+    private void AddTimestampPrefix(TextWriter textWriter)
     {
-      textWriter.Write(_formatterOptions.CustomPrefix);
+      var timestamp = _formatterOptions.UseUtcTimestamp
+        ? DateTime.UtcNow
+        : DateTime.Now;
+
+      textWriter.Write($"{timestamp.ToString(_formatterOptions.TimestampFormat)}");
     }
 
-    public void Dispose() => _optionsReloadToken?.Dispose();
+    private static void AddTrimmedCategoryPrefix<T>(TextWriter textWriter, LogEntry<T> logEntry)
+    {
+      textWriter.Write($"[{logEntry.Category.Split(".")[^1]}] ");
+    }
+
+    public void Dispose()
+    {
+      _optionsReloadToken?.Dispose();
+    }
   }
 }
