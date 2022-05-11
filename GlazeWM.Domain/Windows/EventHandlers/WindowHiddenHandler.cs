@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -45,7 +46,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window?.IsHidden != false || WindowService.IsHandleVisible(window.Hwnd))
         return;
 
-      _logger.LogDebug($"Window hidden {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window hidden", window);
 
       // Detach the hidden window from its parent.
       _bus.Invoke(new RemoveWindowCommand(window));

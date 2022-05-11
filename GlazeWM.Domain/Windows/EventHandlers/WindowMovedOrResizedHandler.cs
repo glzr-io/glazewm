@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
@@ -37,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window is null or not FloatingWindow)
         return;
 
-      _logger.LogDebug($"Window moved/resized {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window moved/resized", window);
 
       // Update state with new location of the floating window.
       UpdateWindowPlacement(window);

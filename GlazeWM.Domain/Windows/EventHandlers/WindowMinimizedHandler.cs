@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -38,7 +39,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window is null or MinimizedWindow)
         return;
 
-      _logger.LogDebug($"Window minimized {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window minimized", window);
 
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 

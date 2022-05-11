@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
@@ -70,7 +71,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (commandStrings.Contains("ignore"))
         return CommandResponse.Ok;
 
-      _logger.LogDebug($"New window managed {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("New window managed", window);
 
       if (window is IResizable)
         _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));

@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -53,7 +54,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      _logger.LogDebug($"Window focused {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window focused", window);
 
       _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.RaiseEvent(new FocusChangedEvent(window));

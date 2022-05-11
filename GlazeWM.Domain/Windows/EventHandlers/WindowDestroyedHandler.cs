@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -42,7 +43,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      _logger.LogDebug($"Window closed {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window closed", window);
 
       // If window is in tree, detach the removed window from its parent.
       _bus.Invoke(new RemoveWindowCommand(window));

@@ -31,7 +31,7 @@ namespace GlazeWM.Infrastructure.Bussing
     {
       try
       {
-        _logger.LogDebug($"Command {command.Name} invoked.");
+        _logger.LogDebug("Command {commandName} invoked.", command.Name);
 
         // Create a `Type` object representing the constructed `ICommandHandler` generic.
         var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());

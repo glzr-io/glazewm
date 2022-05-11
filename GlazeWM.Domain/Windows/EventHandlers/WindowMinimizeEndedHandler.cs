@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -37,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window == null)
         return;
 
-      _logger.LogDebug($"Window minimize ended {window.ProcessName} | {window.ClassName}");
+      _logger.LogWindowEvent("Window minimize ended", window);
 
       var restoredWindow = CreateWindowFromPreviousState(window);
 
