@@ -14,7 +14,7 @@ namespace GlazeWM.Domain.Monitors
     public Workspace DisplayedWorkspace { get; set; }
 
     public uint Dpi => MonitorService.GetMonitorDpi(this);
-    public decimal ScaleFactor => decimal.Divide(Dpi, 96);
+    public double ScaleFactor => Dpi / 96.0;
 
     public Monitor(
       string deviceName,
