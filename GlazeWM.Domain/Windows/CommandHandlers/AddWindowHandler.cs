@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -49,9 +49,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var windowHandle = command.WindowHandle;
       var shouldRedraw = command.ShouldRedraw;
-
-      if (!WindowService.IsHandleManageable(windowHandle))
-        return CommandResponse.Ok;
 
       // Attach the new window as first child of the target parent (if provided), otherwise, add as
       // a sibling of the focused container.

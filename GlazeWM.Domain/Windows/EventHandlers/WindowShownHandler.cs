@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         .FirstOrDefault(window => window.Hwnd == windowHandle);
 
       // Ignore cases where window is already managed.
-      if (window != null)
+      if (window is not null || !WindowService.IsHandleManageable(windowHandle))
         return;
 
       _bus.Invoke(new AddWindowCommand(@event.WindowHandle));
