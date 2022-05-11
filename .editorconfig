@@ -155,3 +155,6 @@ dotnet_diagnostic.CA1001.severity = none
 # Add rule exception "Fix formatting".
 [**/AssemblyInfo.cs]
 dotnet_diagnostic.IDE0055.severity = none
+# Add rule exception "The logging message template should not vary between calls".
+[**/LoggerExtensions.cs]
+dotnet_diagnostic.CA2254.severity = none

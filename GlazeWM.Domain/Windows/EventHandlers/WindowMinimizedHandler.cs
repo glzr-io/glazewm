@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
@@ -6,6 +7,7 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -14,16 +16,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly ContainerService _containerService;
+    private readonly ILogger<WindowMinimizedHandler> _logger;
 
     public WindowMinimizedHandler(
       Bus bus,
       WindowService windowService,
-      ContainerService containerService
+      ContainerService containerService,
+      ILogger<WindowMinimizedHandler> logger
     )
     {
       _bus = bus;
       _windowService = windowService;
       _containerService = containerService;
+      _logger = logger;
     }
 
     public void Handle(WindowMinimizedEvent @event)
@@ -33,6 +38,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (window is null or MinimizedWindow)
         return;
+
+      _logger.LogWindowEvent("Window minimized", window);
 
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 

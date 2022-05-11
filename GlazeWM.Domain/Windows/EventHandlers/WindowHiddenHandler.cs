@@ -1,9 +1,11 @@
 ﻿using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -11,11 +13,17 @@ namespace GlazeWM.Domain.Windows.EventHandlers
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;
+    private readonly ILogger<WindowHiddenHandler> _logger;
 
-    public WindowHiddenHandler(Bus bus, WindowService windowService)
+    public WindowHiddenHandler(
+      Bus bus,
+      WindowService windowService,
+      ILogger<WindowHiddenHandler> logger
+    )
     {
       _bus = bus;
       _windowService = windowService;
+      _logger = logger;
     }
 
     public void Handle(WindowHiddenEvent @event)
@@ -37,6 +45,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // actually hidden anymore when the event is processed.
       if (window?.IsHidden != false || WindowService.IsHandleVisible(window.Hwnd))
         return;
+
+      _logger.LogWindowEvent("Window hidden", window);
 
       // Detach the hidden window from its parent.
       _bus.Invoke(new RemoveWindowCommand(window));

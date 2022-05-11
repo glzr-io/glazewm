@@ -1,7 +1,11 @@
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -31,22 +35,31 @@ namespace GlazeWM.Bootstrapper
         return;
       }
 
-      ServiceLocator.Provider = BuildServiceProvider();
+      var host = CreateHost();
+      ServiceLocator.Provider = host.Services;
 
       var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
       startup.Run();
       Application.Run();
     }
 
-    private static ServiceProvider BuildServiceProvider()
+    private static IHost CreateHost()
     {
-      var serviceCollection = new ServiceCollection();
-      serviceCollection.AddInfrastructureServices();
-      serviceCollection.AddDomainServices();
-      serviceCollection.AddBarServices();
-      serviceCollection.AddSingleton<Startup>();
-
-      return serviceCollection.BuildServiceProvider();
+      return Host.CreateDefaultBuilder()
+        .ConfigureServices((_, services) =>
+        {
+          services.AddInfrastructureServices();
+          services.AddDomainServices();
+          services.AddBarServices();
+          services.AddSingleton<Startup>();
+        })
+        .ConfigureLogging(builder =>
+        {
+          builder.ClearProviders();
+          builder.AddConsole(options => options.FormatterName = "customFormatter")
+            .AddConsoleFormatter<LogFormatter, ConsoleFormatterOptions>();
+        })
+        .Build();
     }
   }
 }

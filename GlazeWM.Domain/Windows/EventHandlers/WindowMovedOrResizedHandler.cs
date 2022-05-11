@@ -1,10 +1,12 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -13,16 +15,19 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
     private readonly MonitorService _monitorService;
+    private readonly ILogger<WindowMovedOrResizedHandler> _logger;
 
     public WindowMovedOrResizedHandler(
       Bus bus,
       WindowService windowService,
-      MonitorService monitorService
+      MonitorService monitorService,
+      ILogger<WindowMovedOrResizedHandler> logger
     )
     {
       _bus = bus;
       _windowService = windowService;
       _monitorService = monitorService;
+      _logger = logger;
     }
 
     public void Handle(WindowMovedOrResizedEvent @event)
@@ -32,6 +37,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (window is null or not FloatingWindow)
         return;
+
+      _logger.LogWindowEvent("Window moved/resized", window);
 
       // Update state with new location of the floating window.
       UpdateWindowPlacement(window);

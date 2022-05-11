@@ -106,6 +106,9 @@ namespace GlazeWM.Bootstrapper
           continue;
         }
 
+        if (!WindowService.IsHandleManageable(windowHandle))
+          continue;
+
         // Get workspace that encompasses most of the window.
         var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
         var targetWorkspace = targetMonitor.DisplayedWorkspace;
