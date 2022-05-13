@@ -1,3 +1,4 @@
+using System.Linq;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -21,18 +22,21 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     {
       foreach (var keybindingConfig in command.Keybindings)
       {
-        // Parse command strings defined in keybinding config. Calling `ToList()` is necessary here,
-        // otherwise parsing errors get delayed until keybinding is invoked instead of at startup.
-        var parsedCommands = keybindingConfig.CommandList.ConvertAll(commandString =>
-        {
-          commandString = CommandParsingService.FormatCommand(commandString);
-          return _commandParsingService.ParseCommand(commandString);
-        });
+        // Format command strings defined in keybinding config.
+        var formattedCommandStrings = keybindingConfig.CommandList.Select(
+          commandString => CommandParsingService.FormatCommand(commandString)
+        );
+
+        // TODO: Validate command strings.
 
         // Register all keybindings for a command sequence.
         foreach (var binding in keybindingConfig.BindingList)
           _keybindingService.AddGlobalKeybinding(binding, () =>
           {
+            var parsedCommands = formattedCommandStrings.Select(
+              commandString => _commandParsingService.ParseCommand(commandString)
+            );
+
             // Invoke commands in sequence on keybinding press. Use `dynamic` to resolve the
             // command type at runtime and allow multiple dispatch.
             foreach (var parsedCommand in parsedCommands)
