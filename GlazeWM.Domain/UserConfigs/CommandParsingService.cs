@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
@@ -72,7 +72,8 @@ namespace GlazeWM.Domain.UserConfigs
         "right" => new FocusInDirectionCommand(Direction.RIGHT),
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
-        "workspace" => new FocusWorkspaceCommand(ValidateWorkspaceName(commandParts[2])),
+        "workspace" when IsValidWorkspace(commandParts[2]) =>
+          new FocusWorkspaceCommand(commandParts[2]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -85,7 +86,8 @@ namespace GlazeWM.Domain.UserConfigs
         "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
         "up" => new MoveFocusedWindowCommand(Direction.UP),
         "down" => new MoveFocusedWindowCommand(Direction.DOWN),
-        "to" => new MoveFocusedWindowToWorkspaceCommand(ValidateWorkspaceName(commandParts[3])),
+        "to" when IsValidWorkspace(commandParts[3]) =>
+          new MoveFocusedWindowToWorkspaceCommand(commandParts[3]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -136,18 +138,12 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Checks whether a workspace exists with the given name.
+    /// Whether a workspace exists with the given name.
     /// </summary>
-    /// <returns>The workspace name if valid.</returns>
-    /// <exception cref="ArgumentException"></exception>
-    private string ValidateWorkspaceName(string workspaceName)
+    private bool IsValidWorkspace(string workspaceName)
     {
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
-
-      if (workspaceConfig == null)
-        throw new ArgumentException(null, nameof(workspaceName));
-
-      return workspaceName;
+      return workspaceConfig is not null;
     }
 
     private static RectDelta ShorthandToRectDelta(string shorthand)
