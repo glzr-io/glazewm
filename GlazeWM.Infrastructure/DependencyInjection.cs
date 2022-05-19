@@ -1,4 +1,6 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing.CommandHandlers;
+using GlazeWM.Infrastructure.Bussing.Commands;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.Yaml;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,8 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<SystemTrayService>();
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<YamlDeserializationService>();
+
+      services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();
 
       // TODO: Change WindowsApiService to be compatible with DI.
 
