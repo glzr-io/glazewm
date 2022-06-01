@@ -29,29 +29,34 @@ namespace GlazeWM.Domain.UserConfigs
       return multipleSpacesRegex.Replace(formattedCommandString, " ");
     }
 
-    public Command ParseCommand(string commandString)
+    public void ValidateCommand(string commandString)
     {
       try
       {
-        var commandParts = commandString.Split(" ");
-
-        return commandParts[0] switch
-        {
-          "layout" => ParseLayoutCommand(commandParts),
-          "focus" => ParseFocusCommand(commandParts),
-          "move" => ParseMoveCommand(commandParts),
-          "resize" => ParseResizeCommand(commandParts),
-          "set" => ParseSetCommand(commandParts),
-          "toggle" => ParseToggleCommand(commandParts),
-          "exit" => ParseExitCommand(commandParts),
-          "close" => new CloseFocusedWindowCommand(),
-          _ => throw new ArgumentException(null, nameof(commandString)),
-        };
+        ParseCommand(commandString);
       }
       catch
       {
         throw new FatalUserException($"Invalid command '{commandString}'.");
       }
+    }
+
+    public Command ParseCommand(string commandString)
+    {
+      var commandParts = commandString.Split(" ");
+
+      return commandParts[0] switch
+      {
+        "layout" => ParseLayoutCommand(commandParts),
+        "focus" => ParseFocusCommand(commandParts),
+        "move" => ParseMoveCommand(commandParts),
+        "resize" => ParseResizeCommand(commandParts),
+        "set" => ParseSetCommand(commandParts),
+        "toggle" => ParseToggleCommand(commandParts),
+        "exit" => ParseExitCommand(commandParts),
+        "close" => new CloseFocusedWindowCommand(),
+        _ => throw new ArgumentException(null, nameof(commandString)),
+      };
     }
 
     private static Command ParseLayoutCommand(string[] commandParts)
