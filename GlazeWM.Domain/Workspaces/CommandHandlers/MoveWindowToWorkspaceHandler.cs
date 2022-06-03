@@ -7,53 +7,47 @@ using GlazeWM.Domain.Containers.Commands;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class MoveFocusedWindowToWorkspaceHandler : ICommandHandler<MoveFocusedWindowToWorkspaceCommand>
+  internal class MoveWindowToWorkspaceHandler : ICommandHandler<MoveWindowToWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;
-    private readonly MonitorService _monitorService;
     private readonly ContainerService _containerService;
 
-    public MoveFocusedWindowToWorkspaceHandler(
+    public MoveWindowToWorkspaceHandler(
       Bus bus,
       WorkspaceService workspaceService,
-      MonitorService monitorService,
       ContainerService containerService
     )
     {
       _bus = bus;
       _workspaceService = workspaceService;
-      _monitorService = monitorService;
       _containerService = containerService;
     }
 
-    public CommandResponse Handle(MoveFocusedWindowToWorkspaceCommand command)
+    public CommandResponse Handle(MoveWindowToWorkspaceCommand command)
     {
+      var windowToMove = command.WindowToMove;
       var workspaceName = command.WorkspaceName;
-      var focusedWindow = _containerService.FocusedContainer as Window;
 
-      // Ignore cases where focused container is not a window or not in foreground.
-      if (focusedWindow == null || !_containerService.IsFocusSynced)
-        return CommandResponse.Ok;
-
-      var currentWorkspace = _workspaceService.GetFocusedWorkspace();
+      var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(currentWorkspace);
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
-        ?? ActivateWorkspace(workspaceName);
+        ?? ActivateWorkspace(workspaceName, currentMonitor);
 
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.
       if (MonitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
-        focusedWindow.HasPendingDpiAdjustment = true;
+        windowToMove.HasPendingDpiAdjustment = true;
 
       // Update floating placement if the window has to cross monitors.
       if (targetWorkspace.Parent != currentWorkspace.Parent)
-        focusedWindow.FloatingPlacement =
-          focusedWindow.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+        windowToMove.FloatingPlacement =
+          windowToMove.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
-      if (focusedWindow is TilingWindow)
-        MoveTilingWindowToWorkspace(focusedWindow as TilingWindow, targetWorkspace);
+      if (windowToMove is TilingWindow)
+        MoveTilingWindowToWorkspace(windowToMove as TilingWindow, targetWorkspace);
       else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, false));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, false));
 
       // Reassign focus to descendant within the current workspace.
       _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
@@ -65,17 +59,17 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void MoveTilingWindowToWorkspace(TilingWindow focusedWindow, Workspace targetWorkspace)
+    private void MoveTilingWindowToWorkspace(TilingWindow windowToMove, Workspace targetWorkspace)
     {
       var insertionTarget = targetWorkspace.LastFocusedDescendantOfType(typeof(IResizable));
 
-      // Insert the focused window into the target workspace.
+      // Insert the window into the target workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(focusedWindow, targetWorkspace, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, true));
       else
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
-            focusedWindow,
+            windowToMove,
             insertionTarget.Parent,
             insertionTarget.Index + 1,
             true
@@ -83,14 +77,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         );
     }
 
-    /// <summary>
-    /// Activate a given workspace on the currently focused monitor.
-    /// </summary>
-    private Workspace ActivateWorkspace(string workspaceName)
+    private Workspace ActivateWorkspace(string workspaceName, Monitor targetMonitor)
     {
-      var focusedMonitor = _monitorService.GetFocusedMonitor();
-      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
-
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }
   }
