@@ -63,7 +63,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetFloatingCommand>, SetFloatingHandler>();
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
-      services.AddSingleton<ICommandHandler<ToggleFocusedWindowFloatingCommand>, ToggleFocusedWindowFloatingHandler>();
       services.AddSingleton<ICommandHandler<ActivateWorkspaceCommand>, ActivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
