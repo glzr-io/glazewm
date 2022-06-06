@@ -27,7 +27,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           commandString => CommandParsingService.FormatCommand(commandString)
         );
 
-        // TODO: Validate command strings.
+        foreach (var commandString in formattedCommandStrings)
+          _commandParsingService.ValidateCommand(commandString);
 
         // Register all keybindings for a command sequence.
         foreach (var binding in keybindingConfig.BindingList)
