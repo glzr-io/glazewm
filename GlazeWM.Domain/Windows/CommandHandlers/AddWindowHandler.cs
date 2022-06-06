@@ -94,7 +94,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new FocusWindowCommand(window));
 
       var parsedCommands = commandStrings
-        .Select(commandString => _commandParsingService.ParseCommand(commandString))
+        .Select(commandString => _commandParsingService.ParseCommand(commandString, window))
         .ToList();
 
       // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type

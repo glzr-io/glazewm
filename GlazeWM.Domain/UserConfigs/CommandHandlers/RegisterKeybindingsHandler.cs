@@ -33,8 +33,9 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         foreach (var binding in keybindingConfig.BindingList)
           _keybindingService.AddGlobalKeybinding(binding, () =>
           {
+            var subjectContainer = _containerService.FocusedContainer;
             var parsedCommands = formattedCommandStrings.Select(
-              commandString => _commandParsingService.ParseCommand(commandString)
+              commandString => _commandParsingService.ParseCommand(commandString, subjectContainer)
             );
 
             // Invoke commands in sequence on keybinding press. Use `dynamic` to resolve the
