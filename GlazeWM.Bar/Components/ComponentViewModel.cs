@@ -14,6 +14,7 @@ namespace GlazeWM.Bar.Components
     public string Background => _componentConfig.Background ?? _parentViewModel.Background;
     public string Foreground => _componentConfig.Foreground ?? _parentViewModel.Foreground;
     public string FontFamily => _componentConfig.FontFamily ?? _parentViewModel.FontFamily;
+    public string FontWeight => _componentConfig.FontWeight ?? _parentViewModel.FontWeight;
     public string FontSize => _componentConfig.FontSize ?? _parentViewModel.FontSize;
     public string BorderColor => _componentConfig.BorderColor;
     public string BorderWidth => BarService.ShorthandToXamlProperty(_componentConfig.BorderWidth);

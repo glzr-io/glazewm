@@ -15,6 +15,7 @@
   Height="50"
   Background="{Binding Background}"
   FontFamily="{Binding FontFamily}"
+  FontWeight="{Binding FontWeight}"
   FontSize="{Binding FontSize}"
   Opacity="{Binding Opacity}"
   AllowsTransparency="True"
