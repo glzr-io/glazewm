@@ -17,6 +17,8 @@ namespace GlazeWM.Domain.UserConfigs
 
     public string FontFamily { get; set; } = "Segoe UI";
 
+    public string FontWeight { get; set; } = "Normal";
+
     public string FontSize { get; set; } = "13";
 
     public string BorderColor { get; set; } = "blue";

@@ -25,6 +25,11 @@ namespace GlazeWM.Domain.UserConfigs
     public string FontFamily { get; set; }
 
     /// <summary>
+    /// Fallback to bar font weight config if unset.
+    /// </summary>
+    public string FontWeight { get; set; }
+
+    /// <summary>
     /// Fallback to bar font size config if unset.
     /// </summary>
     public string FontSize { get; set; }

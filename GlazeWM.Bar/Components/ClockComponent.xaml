@@ -10,6 +10,7 @@
     VerticalAlignment="Center"
     Foreground="{Binding Foreground}"
     FontFamily="{Binding FontFamily}"
+    FontWeight="{Binding FontWeight}"
     FontSize="{Binding FontSize}"
     Text="{Binding FormattedTime}" />
 </UserControl>

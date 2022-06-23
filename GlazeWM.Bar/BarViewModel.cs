@@ -22,6 +22,7 @@ namespace GlazeWM.Bar
     public string Background => _barConfig.Background;
     public string Foreground => _barConfig.Foreground;
     public string FontFamily => _barConfig.FontFamily;
+    public string FontWeight => _barConfig.FontWeight;
     public string FontSize => _barConfig.FontSize;
     public string BorderColor => _barConfig.BorderColor;
     public string BorderWidth => BarService.ShorthandToXamlProperty(_barConfig.BorderWidth);

@@ -25,6 +25,7 @@
           Foreground="{Binding DataContext.DefaultWorkspaceForeground, ElementName=_workspacesComponent}"
           BorderBrush="{Binding DataContext.DefaultWorkspaceBorderColor, ElementName=_workspacesComponent}"
           FontFamily="{Binding DataContext.FontFamily, ElementName=_workspacesComponent}"
+          FontWeight="{Binding DataContext.FontWeight, ElementName=_workspacesComponent}"
           FontSize="{Binding DataContext.FontSize, ElementName=_workspacesComponent}"
           BorderThickness="{Binding DataContext.DefaultWorkspaceBorderWidth, ElementName=_workspacesComponent}"
           MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
