@@ -100,6 +100,33 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       var matchedKeybindings = registeredKeybindings.Where(keybinding =>
       {
+        // This makes sure that if you press Control+Alt+1, and you have a keybinding of Alt+1, that
+        // it doesn't fire, even though that all the keys satisfy it, the event has too many keys,
+        // so it shouldn't fire.
+        // var modifiers = new Keys[] { Keys.LControlKey, Keys.RControlKey, Keys.LMenu, Keys.RMenu, Keys.LShiftKey, Keys.RShiftKey };
+        // foreach (Keys m in modifiers)
+        // {
+        //   if (!keybinding.KeyCombination.Contains(m) && IsKeyDown(m))
+        //   {
+        //     return false;
+        //   }
+        // }
+
+        if (!keybinding.KeyCombination.Contains(Keys.Control) && (IsKeyDown(Keys.LControlKey) || IsKeyDown(Keys.RControlKey)))
+        {
+          return false;
+        }
+
+        if (!keybinding.KeyCombination.Contains(Keys.Alt) && (IsKeyDown(Keys.LMenu) || IsKeyDown(Keys.RMenu)))
+        {
+          return false;
+        }
+
+        if (!keybinding.KeyCombination.Contains(Keys.Shift) && (IsKeyDown(Keys.LShiftKey) || IsKeyDown(Keys.RShiftKey)))
+        {
+          return false;
+        }
+
         return keybinding.KeyCombination.All(key =>
         {
           if (key == pressedKey)
