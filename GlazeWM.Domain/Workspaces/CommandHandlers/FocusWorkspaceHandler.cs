@@ -51,8 +51,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceToDestroy = _workspaceService.GetActiveWorkspaces()
         .FirstOrDefault(workspace =>
         {
-          // TODO: Avoid destroying the workspace if `Workspace.KeepAlive` is enabled.
-          return !workspace.HasChildren()
+          return !workspace.KeepAlive
+            &&!workspace.HasChildren()
             && !workspace.IsDisplayed
             && _containerService.PendingFocusContainer != workspace;
         });
