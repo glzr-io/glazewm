@@ -20,6 +20,9 @@ namespace GlazeWM.Domain.Workspaces
     public string DisplayName =>
       _userConfigService.GetWorkspaceConfigByName(Name).DisplayName ?? Name;
 
+    public bool KeepAlive =>
+      _userConfigService.GetWorkspaceConfigByName(Name).KeepAlive;
+
     /// <summary>
     /// Get height of bar after it's been automatically adjusted by DPI scaling.
     /// </summary>
