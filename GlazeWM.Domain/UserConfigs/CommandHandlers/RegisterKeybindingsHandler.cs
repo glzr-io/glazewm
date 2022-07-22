@@ -42,19 +42,19 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         foreach (var binding in keybindingConfig.BindingList)
           _keybindingService.AddGlobalKeybinding(binding, () =>
           {
-            var subjectContainer = _containerService.FocusedContainer;
-            var parsedCommands = formattedCommandStrings.Select(
-              commandString => _commandParsingService.ParseCommand(commandString, subjectContainer)
-            );
+            // Avoid invoking keybinding if focus is not synced (eg. if an unmanaged window has
+            // focus).
+            if (!_containerService.IsFocusSynced)
+              return;
 
-            // Invoke commands in sequence on keybinding press. Use `dynamic` to resolve the
-            // command type at runtime and allow multiple dispatch.
-            foreach (var parsedCommand in parsedCommands)
+            // Invoke commands in sequence on keybinding press.
+            foreach (var commandString in formattedCommandStrings)
             {
-              // Avoid invoking keybinding if focus is not synced (eg. if an unmanaged window has
-              // focus).
-              if (_containerService.IsFocusSynced)
-                _bus.Invoke((dynamic)parsedCommand);
+              var subjectContainer = _containerService.FocusedContainer;
+
+              // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+              var parsedCommand = _commandParsingService.ParseCommand(commandString, subjectContainer);
+              _bus.Invoke((dynamic)parsedCommand);
             }
           });
       }
