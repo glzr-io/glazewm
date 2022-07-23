@@ -18,7 +18,13 @@ Under the hood, GlazeWM adds functionality to the built-in DWM and uses the Wind
 
 The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the executable.
 
-Alternatively, to build from source, use the .NET CLI command `dotnet publish ./GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj --configuration=Release --runtime=win-x64 --output=. -p:PublishSingleFile=true` and run `GlazeWM.exe` from the compiled output. Other available runtime identifiers can be found [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog#windows-rids).
+Alternatively, to build from source, use the following .NET CLI command:
+
+```
+dotnet publish ./GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj --configuration=Release --runtime=win-x64 --output=. --self-contained -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true
+```
+
+To build for other runtimes than Windows x64, see [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog#windows-rids).
 
 # Roadmap
 
