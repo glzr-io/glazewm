@@ -22,7 +22,9 @@
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
         "--runtime=win-x64",
+        "--self-contained",
         "-p:PublishSingleFile=true",
+        "-p:IncludeAllContentForSelfExtract=true",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -37,7 +39,9 @@
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
         "--runtime=win-x86",
+        "--self-contained",
         "-p:PublishSingleFile=true",
+        "-p:IncludeAllContentForSelfExtract=true",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
