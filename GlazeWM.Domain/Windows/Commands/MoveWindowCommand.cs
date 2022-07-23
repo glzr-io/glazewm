@@ -3,12 +3,14 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.Commands
 {
-  public class MoveFocusedWindowCommand : Command
+  public class MoveWindowCommand : Command
   {
+    public Window WindowToMove { get; }
     public Direction Direction { get; }
 
-    public MoveFocusedWindowCommand(Direction direction)
+    public MoveWindowCommand(Window windowToMove, Direction direction)
     {
+      WindowToMove = windowToMove;
       Direction = direction;
     }
   }

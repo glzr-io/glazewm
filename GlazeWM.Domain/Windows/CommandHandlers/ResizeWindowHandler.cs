@@ -12,36 +12,35 @@ using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ResizeFocusedWindowHandler : ICommandHandler<ResizeFocusedWindowCommand>
+  internal class ResizeWindowHandler : ICommandHandler<ResizeWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
 
-    public ResizeFocusedWindowHandler(Bus bus, ContainerService containerService)
+    public ResizeWindowHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
     }
 
-    public CommandResponse Handle(ResizeFocusedWindowCommand command)
+    public CommandResponse Handle(ResizeWindowCommand command)
     {
       var dimensionToResize = command.DimensionToResize;
       var resizeAmount = command.ResizeAmount;
-      var focusedWindow = _containerService.FocusedContainer as TilingWindow;
+      var windowToResize = command.WindowToResize;
 
-      // Ignore cases where focused container is not a tiling window.
-      if (focusedWindow is null)
+      // Ignore cases where window is not tiling.
+      if (windowToResize is not TilingWindow)
         return CommandResponse.Ok;
 
-      var layout = (focusedWindow.Parent as SplitContainer).Layout;
+      var layout = (windowToResize.Parent as SplitContainer).Layout;
 
-      // Get whether the parent of the focused window should be resized rather than the focused
-      // window itself.
+      // Get whether the parent of the window should be resized rather than the window itself.
       var shouldResizeParent =
         (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT)
         || (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
-      var containerToResize = shouldResizeParent ? focusedWindow.Parent : focusedWindow;
+      var containerToResize = shouldResizeParent ? windowToResize.Parent : windowToResize;
 
       // Get siblings that can be resized.
       var resizableSiblings = containerToResize.Siblings.Where(container => container is IResizable);

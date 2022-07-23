@@ -38,7 +38,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
-      services.AddSingleton<ICommandHandler<ChangeFocusedContainerLayoutCommand>, ChangeFocusedContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<DetachAndResizeContainerCommand>, DetachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddSingleton<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();
@@ -54,22 +53,20 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddSingleton<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
-      services.AddSingleton<ICommandHandler<CloseFocusedWindowCommand>, CloseFocusedWindowHandler>();
+      services.AddSingleton<ICommandHandler<CloseWindowCommand>, CloseWindowHandler>();
       services.AddSingleton<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
-      services.AddSingleton<ICommandHandler<MoveFocusedWindowCommand>, MoveFocusedWindowHandler>();
+      services.AddSingleton<ICommandHandler<MoveWindowCommand>, MoveWindowHandler>();
       services.AddSingleton<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
-      services.AddSingleton<ICommandHandler<ResizeFocusedWindowCommand>, ResizeFocusedWindowHandler>();
-      services.AddSingleton<ICommandHandler<ResizeFocusedWindowBordersCommand>, ResizeFocusedWindowBordersHandler>();
+      services.AddSingleton<ICommandHandler<ResizeWindowCommand>, ResizeWindowHandler>();
+      services.AddSingleton<ICommandHandler<ResizeWindowBordersCommand>, ResizeWindowBordersHandler>();
       services.AddSingleton<ICommandHandler<SetFloatingCommand>, SetFloatingHandler>();
-      services.AddSingleton<ICommandHandler<SetFocusedWindowFloatingCommand>, SetFocusedWindowFloatingHandler>();
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
-      services.AddSingleton<ICommandHandler<ToggleFocusedWindowFloatingCommand>, ToggleFocusedWindowFloatingHandler>();
       services.AddSingleton<ICommandHandler<ActivateWorkspaceCommand>, ActivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DisplayWorkspaceCommand>, DisplayWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
-      services.AddSingleton<ICommandHandler<MoveFocusedWindowToWorkspaceCommand>, MoveFocusedWindowToWorkspaceHandler>();
+      services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();

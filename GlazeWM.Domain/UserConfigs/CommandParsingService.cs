@@ -3,10 +3,13 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing.Commands;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Utils;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -29,24 +32,11 @@ namespace GlazeWM.Domain.UserConfigs
       return multipleSpacesRegex.Replace(formattedCommandString, " ");
     }
 
-    public Command ParseCommand(string commandString)
+    public void ValidateCommand(string commandString)
     {
       try
       {
-        var commandParts = commandString.Split(" ");
-
-        return commandParts[0] switch
-        {
-          "layout" => ParseLayoutCommand(commandParts),
-          "focus" => ParseFocusCommand(commandParts),
-          "move" => ParseMoveCommand(commandParts),
-          "resize" => ParseResizeCommand(commandParts),
-          "set" => ParseSetCommand(commandParts),
-          "toggle" => ParseToggleCommand(commandParts),
-          "exit" => ParseExitCommand(commandParts),
-          "close" => new CloseFocusedWindowCommand(),
-          _ => throw new ArgumentException(null, nameof(commandString)),
-        };
+        ParseCommand(commandString, null);
       }
       catch
       {
@@ -54,12 +44,32 @@ namespace GlazeWM.Domain.UserConfigs
       }
     }
 
-    private static Command ParseLayoutCommand(string[] commandParts)
+    public Command ParseCommand(string commandString, Container subjectContainer)
+    {
+      var commandParts = commandString.Split(" ");
+
+      return commandParts[0] switch
+      {
+        "layout" => ParseLayoutCommand(commandParts, subjectContainer),
+        "focus" => ParseFocusCommand(commandParts),
+        "move" => ParseMoveCommand(commandParts, subjectContainer),
+        "resize" => ParseResizeCommand(commandParts, subjectContainer),
+        "set" => ParseSetCommand(commandParts, subjectContainer),
+        "toggle" => ParseToggleCommand(commandParts, subjectContainer),
+        "exit" => ParseExitCommand(commandParts),
+        "close" => subjectContainer is Window
+          ? new CloseWindowCommand(subjectContainer as Window)
+          : new NoopCommand(),
+        _ => throw new ArgumentException(null, nameof(commandString)),
+      };
+    }
+
+    private static Command ParseLayoutCommand(string[] commandParts, Container subjectContainer)
     {
       return commandParts[1] switch
       {
-        "vertical" => new ChangeFocusedContainerLayoutCommand(Layout.VERTICAL),
-        "horizontal" => new ChangeFocusedContainerLayoutCommand(Layout.HORIZONTAL),
+        "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.VERTICAL),
+        "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.HORIZONTAL),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -72,51 +82,73 @@ namespace GlazeWM.Domain.UserConfigs
         "right" => new FocusInDirectionCommand(Direction.RIGHT),
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
-        "workspace" => new FocusWorkspaceCommand(ValidateWorkspaceName(commandParts[2])),
+        "workspace" when IsValidWorkspace(commandParts[2]) =>
+          new FocusWorkspaceCommand(commandParts[2]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private Command ParseMoveCommand(string[] commandParts)
+    private Command ParseMoveCommand(string[] commandParts, Container subjectContainer)
     {
       return commandParts[1] switch
       {
-        "left" => new MoveFocusedWindowCommand(Direction.LEFT),
-        "right" => new MoveFocusedWindowCommand(Direction.RIGHT),
-        "up" => new MoveFocusedWindowCommand(Direction.UP),
-        "down" => new MoveFocusedWindowCommand(Direction.DOWN),
-        "to" => new MoveFocusedWindowToWorkspaceCommand(ValidateWorkspaceName(commandParts[3])),
+        "left" => subjectContainer is Window
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.LEFT)
+          : new NoopCommand(),
+        "right" => subjectContainer is Window
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.RIGHT)
+          : new NoopCommand(),
+        "up" => subjectContainer is Window
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.UP)
+          : new NoopCommand(),
+        "down" => subjectContainer is Window
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.DOWN)
+          : new NoopCommand(),
+        "to" when IsValidWorkspace(commandParts[3]) => subjectContainer is Window
+          ? new MoveWindowToWorkspaceCommand(subjectContainer as Window, commandParts[3])
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private static Command ParseResizeCommand(string[] commandParts)
+    private static Command ParseResizeCommand(string[] commandParts, Container subjectContainer)
     {
       return commandParts[1] switch
       {
-        "height" => new ResizeFocusedWindowCommand(ResizeDimension.HEIGHT, commandParts[2]),
-        "width" => new ResizeFocusedWindowCommand(ResizeDimension.WIDTH, commandParts[2]),
-        "borders" => new ResizeFocusedWindowBordersCommand(
-          ShorthandToRectDelta(string.Join(" ", commandParts[2..]))
-        ),
+        "height" => subjectContainer is Window
+          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.HEIGHT, commandParts[2])
+          : new NoopCommand(),
+        "width" => subjectContainer is Window
+          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.WIDTH, commandParts[2])
+          : new NoopCommand(),
+        "borders" => subjectContainer is Window
+          ? new ResizeWindowBordersCommand(
+            subjectContainer as Window,
+            ShorthandToRectDelta(string.Join(" ", commandParts[2..]))
+          )
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private static Command ParseSetCommand(string[] commandParts)
+    private static Command ParseSetCommand(string[] commandParts, Container subjectContainer)
     {
       return commandParts[1] switch
       {
-        "floating" => new SetFocusedWindowFloatingCommand(),
+        "floating" => subjectContainer is Window
+          ? new SetFloatingCommand(subjectContainer as Window)
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private static Command ParseToggleCommand(string[] commandParts)
+    private static Command ParseToggleCommand(string[] commandParts, Container subjectContainer)
     {
       return commandParts[1] switch
       {
-        "floating" => new ToggleFocusedWindowFloatingCommand(),
+        "floating" => subjectContainer is Window
+          ? new ToggleFloatingCommand(subjectContainer as Window)
+          : new NoopCommand(),
         "focus" => commandParts[2] switch
         {
           "mode" => new ToggleFocusModeCommand(),
@@ -136,18 +168,12 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Checks whether a workspace exists with the given name.
+    /// Whether a workspace exists with the given name.
     /// </summary>
-    /// <returns>The workspace name if valid.</returns>
-    /// <exception cref="ArgumentException"></exception>
-    private string ValidateWorkspaceName(string workspaceName)
+    private bool IsValidWorkspace(string workspaceName)
     {
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
-
-      if (workspaceConfig == null)
-        throw new ArgumentException(null, nameof(workspaceName));
-
-      return workspaceName;
+      return workspaceConfig is not null;
     }
 
     private static RectDelta ShorthandToRectDelta(string shorthand)
