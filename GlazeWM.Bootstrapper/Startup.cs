@@ -146,6 +146,7 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
+      _systemTrayService.RemoveFromSystemTray();
       Application.Exit();
     }
   }
