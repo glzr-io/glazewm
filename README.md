@@ -120,6 +120,10 @@ bar:
   # Default font size. Can be overriden by setting `font_size` in a component's config.
   font_size: "13"
 
+  # Default font weight. Typically ranges from 100 to 950, where a higher value is thicker. Can
+  # be overriden by setting `font_weight` in a component's config.
+  font_weight: "400"
+
   # Horizontal and vertical borders in pixels. Borders are inside the dimensions of the bar and do
   # not affect bar height. See "Shorthand properties" for more info.
   border_width: "0"
@@ -166,8 +170,12 @@ foreground: "white"
 # Font family used within the component.
 font_family: "Segoe UI"
 
-# Font family used within the component.
+# Font size used within the component.
 font_size: "13"
+
+# Font weight used within the component. Typically ranges from 100 to 950, where a higher value is
+# thicker.
+font_weight: "400"
 
 # Horizontal and vertical borders in pixels. Borders are inside the dimensions of the component.
 # See "Shorthand properties" for more info.
