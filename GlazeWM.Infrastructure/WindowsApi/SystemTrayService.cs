@@ -1,16 +1,17 @@
-﻿using GlazeWM.Infrastructure.Bussing;
-using System;
+﻿using System;
 using System.Drawing;
-using System.Windows.Forms;
-using System.Threading;
-using GlazeWM.Infrastructure.WindowsApi.Events;
 using System.Reflection;
+using System.Threading;
+using System.Windows.Forms;
+using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi.Events;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class SystemTrayService
   {
     private readonly Bus _bus;
+    private NotifyIcon _notifyIcon { get; set; }
 
     public SystemTrayService(Bus bus)
     {
@@ -38,7 +39,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       // Get the embedded icon resource from the entry assembly.
       using (var stream = assembly.GetManifestResourceStream(iconResourceName))
       {
-        var notificationIcon = new NotifyIcon
+        _notifyIcon = new NotifyIcon
         {
           Icon = new Icon(stream),
           ContextMenuStrip = contextMenuStrip,
@@ -53,8 +54,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     private void SignalApplicationExit(object sender, EventArgs e)
     {
-      // TODO: Call `Dispose()` on `notificationIcon`.
       _bus.RaiseEvent(new ApplicationExitingEvent());
+    }
+
+    public void RemoveFromSystemTray()
+    {
+      _notifyIcon?.Dispose();
     }
   }
 }
