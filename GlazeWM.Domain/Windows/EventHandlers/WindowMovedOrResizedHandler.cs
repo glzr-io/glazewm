@@ -57,14 +57,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       var currentPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
 
-      var resizeDimension = (window.Parent as SplitContainer).Layout == Layout.HORIZONTAL
-        ? ResizeDimension.WIDTH
-        : ResizeDimension.HEIGHT;
-      var resizeAmount = resizeDimension == ResizeDimension.WIDTH
-        ? $"{currentPlacement.Width - window.Width}px"
-        : $"{currentPlacement.Height - window.Height}px";
+      // TODO: Add correct border delta.
+      var deltaWidth = currentPlacement.Width - window.Width + window.BorderDelta.DeltaLeft;
+      var deltaHeight = currentPlacement.Height - window.Height + window.BorderDelta.DeltaLeft;
 
-      _bus.Invoke(new ResizeWindowCommand(window, resizeDimension, resizeAmount));
+      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.WIDTH, $"{deltaWidth}px"));
+      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.HEIGHT, $"{deltaHeight}px"));
     }
 
     private void UpdateFloatingWindow(FloatingWindow window)
