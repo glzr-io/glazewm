@@ -50,8 +50,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var resizePercentage = ConvertToResizePercentage(resizeAmount);
-      var resizeProportion = resizePercentage / 100;
+      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
+      var resizeProportion = ConvertToResizeProportion(resizeAmount, workspace, dimensionToResize);
 
       (containerToResize as IResizable).SizePercentage += resizeProportion;
 
@@ -64,19 +64,26 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static double ConvertToResizePercentage(string resizeAmount)
+    private static double ConvertToResizeProportion(
+      string resizeAmount,
+      Workspace parentWorkspace,
+      ResizeDimension dimensionToResize
+    )
     {
       try
       {
-        var matchedResizeAmount = new Regex("(.*)(%|ppt)").Match(resizeAmount);
+        var matchedResizeAmount = new Regex("(.*)(%|ppt|px)").Match(resizeAmount);
         var amount = matchedResizeAmount.Groups[1].Value;
         var unit = matchedResizeAmount.Groups[2].Value;
+        var floatAmount = Convert.ToDouble(amount, CultureInfo.InvariantCulture);
 
-        // TODO: Handle conversion from px to `SizePercentage`.
         return unit switch
         {
-          "%" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
-          "ppt" => Convert.ToDouble(amount, CultureInfo.InvariantCulture),
+          "%" => floatAmount / 100,
+          "ppt" => floatAmount / 100,
+          "px" => dimensionToResize == ResizeDimension.WIDTH
+            ? floatAmount / parentWorkspace.Width
+            : floatAmount / parentWorkspace.Height,
           _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
