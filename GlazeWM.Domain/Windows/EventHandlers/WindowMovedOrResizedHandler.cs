@@ -1,8 +1,11 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Common.Utils;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
@@ -35,21 +38,42 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
 
-      if (window is null or not FloatingWindow)
+      if (window is null)
         return;
 
       _logger.LogWindowEvent("Window moved/resized", window);
 
+      if (window is TilingWindow)
+      {
+        UpdateTilingWindow(window as TilingWindow);
+        return;
+      }
+
+      if (window is FloatingWindow)
+        UpdateFloatingWindow(window as FloatingWindow);
+    }
+
+    private void UpdateTilingWindow(TilingWindow window)
+    {
+      var currentPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
+
+      var resizeDimension = (window.Parent as SplitContainer).Layout == Layout.HORIZONTAL
+        ? ResizeDimension.WIDTH
+        : ResizeDimension.HEIGHT;
+      var resizeAmount = resizeDimension == ResizeDimension.WIDTH
+        ? $"{currentPlacement.Width - window.Width}px"
+        : $"{currentPlacement.Height - window.Height}px";
+
+      _bus.Invoke(new ResizeWindowCommand(window, resizeDimension, resizeAmount));
+    }
+
+    private void UpdateFloatingWindow(FloatingWindow window)
+    {
       // Update state with new location of the floating window.
-      UpdateWindowPlacement(window);
+      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
 
       // Change floating window's parent workspace if out of its bounds.
       UpdateParentWorkspace(window);
-    }
-
-    private static void UpdateWindowPlacement(Window window)
-    {
-      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
     }
 
     private void UpdateParentWorkspace(Window window)
