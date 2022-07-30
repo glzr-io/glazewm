@@ -1,13 +1,13 @@
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Common.Utils;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.Logging;
 
@@ -57,10 +57,20 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       var currentPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
 
-      // TODO: Add correct border delta.
-      var deltaWidth = currentPlacement.Width - window.Width + window.BorderDelta.DeltaLeft;
-      var deltaHeight = currentPlacement.Height - window.Height + window.BorderDelta.DeltaLeft;
+      // Remove invisible borders from current placement to be able to compare window width/height.
+      var adjustedPlacement = new WindowRect
+      {
+        Left = currentPlacement.Left + window.BorderDelta.DeltaLeft,
+        Right = currentPlacement.Right - window.BorderDelta.DeltaRight,
+        Top = currentPlacement.Top + window.BorderDelta.DeltaTop,
+        Bottom = currentPlacement.Bottom - window.BorderDelta.DeltaBottom,
+      };
 
+      var deltaWidth = adjustedPlacement.Width - window.Width;
+      var deltaHeight = adjustedPlacement.Height - window.Height;
+
+      // TODO: Avoid unnecessary resize call if either delta is 0.
+      // TODO: Window does not snap back to original position when there are no sibling windows.
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.WIDTH, $"{deltaWidth}px"));
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.HEIGHT, $"{deltaHeight}px"));
     }
