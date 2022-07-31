@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -50,8 +51,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var workspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
-      var resizeProportion = ConvertToResizeProportion(resizeAmount, workspace, dimensionToResize);
+      var scaleFactor = GetScaleFactor(windowToResize, dimensionToResize);
+      var resizeProportion = ConvertToResizeProportion(resizeAmount, scaleFactor);
 
       (containerToResize as IResizable).SizePercentage += resizeProportion;
 
@@ -64,11 +65,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static double ConvertToResizeProportion(
-      string resizeAmount,
-      Workspace parentWorkspace,
-      ResizeDimension dimensionToResize
-    )
+    private static double GetScaleFactor(Window windowToResize, ResizeDimension dimensionToResize)
+    {
+      var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
+
+      return dimensionToResize == ResizeDimension.WIDTH
+        ? 1.0 / parentWorkspace.Width
+        : 1.0 / parentWorkspace.Height;
+    }
+
+    private static double ConvertToResizeProportion(string resizeAmount, double scaleFactor)
     {
       try
       {
@@ -81,9 +87,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         {
           "%" => floatAmount / 100,
           "ppt" => floatAmount / 100,
-          "px" => dimensionToResize == ResizeDimension.WIDTH
-            ? floatAmount / parentWorkspace.Width
-            : floatAmount / parentWorkspace.Height,
+          "px" => floatAmount * scaleFactor,
           _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
