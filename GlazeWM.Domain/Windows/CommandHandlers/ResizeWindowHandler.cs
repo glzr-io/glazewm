@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -69,9 +68,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
 
+      // Get workspace width and height excluding inner gaps.
+      var occupiedWidth =
+        parentWorkspace.Children.Aggregate(0, (width, child) => width + child.Width);
+      var occupiedHeight =
+        parentWorkspace.Children.Aggregate(0, (height, child) => height + child.Height);
+
       return dimensionToResize == ResizeDimension.WIDTH
-        ? 1.0 / parentWorkspace.Width
-        : 1.0 / parentWorkspace.Height;
+        ? 1.0 / occupiedWidth
+        : 1.0 / occupiedHeight;
     }
 
     private static double ConvertToResizeProportion(string resizeAmount, double scaleFactor)
