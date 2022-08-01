@@ -136,6 +136,11 @@ namespace GlazeWM.Domain.Containers
       return Children.Where(container => type.IsAssignableFrom(container.GetType()));
     }
 
+    public IEnumerable<Container> SiblingsOfType(Type type)
+    {
+      return Siblings.Where(container => type.IsAssignableFrom(container.GetType()));
+    }
+
     public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
     {
       return SelfAndSiblings.Where(container => type.IsAssignableFrom(container.GetType()));

@@ -7,8 +7,8 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 - Simple YAML configuration
 - Multi-monitor support
 - Customizable bar window
-- Handles monitor connections & disconnections
 - Customizable rules for specific windows
+- Easy one-click installation
 
 ![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
@@ -30,7 +30,7 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 - Improve handling of fullscreen and maximized windows.
 - More bar components.
-- Change the size of sibling windows when a tiling window is resized with the sizing border.
+- Reload user config without restarting WM.
 
 # Configuration
 
