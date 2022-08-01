@@ -40,18 +40,17 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT)
         || (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
+      // Get container and its siblings to resize.
       var containerToResize = shouldResizeParent ? windowToResize.Parent : windowToResize;
+      var resizableSiblings = containerToResize.SiblingsOfType(typeof(IResizable));
 
-      // Get siblings that can be resized.
-      var resizableSiblings = containerToResize.Siblings.Where(container => container is IResizable);
-
-      // Ignore cases where the container to resize is a workspace or is only child.
+      // Ignore cases where the container to resize is a workspace or is the only child.
       if (!resizableSiblings.Any() || containerToResize is Workspace)
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var scaleFactor = GetScaleFactor(windowToResize, dimensionToResize);
-      var resizeProportion = ConvertToResizeProportion(resizeAmount, scaleFactor);
+      var pixelScaleFactor = GetPixelScaleFactor(containerToResize, dimensionToResize);
+      var resizeProportion = ConvertToResizePercentage(resizeAmount, pixelScaleFactor);
 
       (containerToResize as IResizable).SizePercentage += resizeProportion;
 
@@ -64,22 +63,23 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static double GetScaleFactor(Window windowToResize, ResizeDimension dimensionToResize)
+    private static double GetPixelScaleFactor(
+      Container containerToResize,
+      ResizeDimension dimensionToResize
+    )
     {
-      var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
+      // Get area that can be resized (ie. exclude inner gaps).
+      var resizableArea = containerToResize.SelfAndSiblings.Aggregate(1.0, (acc, con) =>
+      {
+        return dimensionToResize == ResizeDimension.WIDTH
+          ? acc + con.Width
+          : acc + con.Height;
+      });
 
-      // Get workspace width and height excluding inner gaps.
-      var occupiedWidth =
-        parentWorkspace.Children.Aggregate(0, (width, child) => width + child.Width);
-      var occupiedHeight =
-        parentWorkspace.Children.Aggregate(0, (height, child) => height + child.Height);
-
-      return dimensionToResize == ResizeDimension.WIDTH
-        ? 1.0 / occupiedWidth
-        : 1.0 / occupiedHeight;
+      return 1.0 / resizableArea;
     }
 
-    private static double ConvertToResizeProportion(string resizeAmount, double scaleFactor)
+    private static double ConvertToResizePercentage(string resizeAmount, double pixelScaleFactor)
     {
       try
       {
@@ -92,7 +92,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         {
           "%" => floatAmount / 100,
           "ppt" => floatAmount / 100,
-          "px" => floatAmount * scaleFactor,
+          "px" => floatAmount * pixelScaleFactor,
           _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
