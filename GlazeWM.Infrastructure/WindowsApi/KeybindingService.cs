@@ -31,6 +31,15 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new();
 
+    private readonly Keys[] _modifierKeys = new Keys[] {
+      Keys.LControlKey,
+      Keys.RControlKey,
+      Keys.LMenu,
+      Keys.RMenu,
+      Keys.LShiftKey,
+      Keys.RShiftKey
+    };
+
     public void Start()
     {
       var thread = new Thread(() => CreateKeybindingHook())
@@ -100,33 +109,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       var matchedKeybindings = registeredKeybindings.Where(keybinding =>
       {
-        // This makes sure that if you press Control+Alt+1, and you have a keybinding of Alt+1, that
-        // it doesn't fire, even though that all the keys satisfy it, the event has too many keys,
-        // so it shouldn't fire.
-        // var modifiers = new Keys[] { Keys.LControlKey, Keys.RControlKey, Keys.LMenu, Keys.RMenu, Keys.LShiftKey, Keys.RShiftKey };
-        // foreach (Keys m in modifiers)
-        // {
-        //   if (!keybinding.KeyCombination.Contains(m) && IsKeyDown(m))
-        //   {
-        //     return false;
-        //   }
-        // }
-
-        if (!keybinding.KeyCombination.Contains(Keys.Control) && (IsKeyDown(Keys.LControlKey) || IsKeyDown(Keys.RControlKey)))
-        {
-          return false;
-        }
-
-        if (!keybinding.KeyCombination.Contains(Keys.Alt) && (IsKeyDown(Keys.LMenu) || IsKeyDown(Keys.RMenu)))
-        {
-          return false;
-        }
-
-        if (!keybinding.KeyCombination.Contains(Keys.Shift) && (IsKeyDown(Keys.LShiftKey) || IsKeyDown(Keys.RShiftKey)))
-        {
-          return false;
-        }
-
         return keybinding.KeyCombination.All(key =>
         {
           if (key == pressedKey)
@@ -147,11 +129,41 @@ namespace GlazeWM.Infrastructure.WindowsApi
       if (longestKeybinding == null)
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
+      // Get modifier keys that aren't part of the key combination.
+      var modifierKeysToReject = _modifierKeys.Where(
+        (modifierKey) =>
+          !longestKeybinding.KeyCombination.Contains(modifierKey) &&
+          !longestKeybinding.KeyCombination.Contains(GetGenericKey(modifierKey))
+      );
+
+      var hasModifierKeysToReject = modifierKeysToReject.Any((modifierKey) =>
+        cachedKeyStates.ContainsKey(modifierKey)
+          ? cachedKeyStates[modifierKey]
+          : IsKeyDown(modifierKey)
+      );
+
+      // This makes sure that if you press Control+Alt+1, and you have a keybinding of Alt+1, that
+      // it doesn't fire. Even though that all the keys satisfy it, the event has too many keys,
+      // so it shouldn't fire.
+      if (hasModifierKeysToReject)
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+
       // Invoke the matched keybinding.
       longestKeybinding.KeybindingProc();
 
       // Avoid forwarding the key input to other applications.
       return new IntPtr(1);
+    }
+
+    private static Keys GetGenericKey(Keys key)
+    {
+      return key switch
+      {
+        Keys.LMenu or Keys.RMenu => Keys.Alt,
+        Keys.LShiftKey or Keys.RShiftKey => Keys.Shift,
+        Keys.LControlKey or Keys.RControlKey => Keys.Control,
+        _ => key,
+      };
     }
 
     /// <summary>
