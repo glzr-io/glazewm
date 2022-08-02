@@ -83,7 +83,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var deltaWidth = adjustedPlacement.Width - window.Width;
       var deltaHeight = adjustedPlacement.Height - window.Height;
 
-      // TODO: Avoid unnecessary resize call if either delta is 0.
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.WIDTH, $"{deltaWidth}px"));
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.HEIGHT, $"{deltaHeight}px"));
     }

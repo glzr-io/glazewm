@@ -33,15 +33,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (windowToResize is not TilingWindow)
         return CommandResponse.Ok;
 
-      var layout = (windowToResize.Parent as SplitContainer).Layout;
-
-      // Get whether the parent of the window should be resized rather than the window itself.
-      var shouldResizeParent =
-        (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT)
-        || (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
-
       // Get container and its siblings to resize.
-      var containerToResize = shouldResizeParent ? windowToResize.Parent : windowToResize;
+      var containerToResize = GetContainerToResize(windowToResize, dimensionToResize);
       var resizableSiblings = containerToResize.SiblingsOfType(typeof(IResizable));
 
       // Ignore cases where the container to resize is a workspace or is the only child.
@@ -50,12 +43,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
       var pixelScaleFactor = GetPixelScaleFactor(containerToResize, dimensionToResize);
-      var resizeProportion = ConvertToResizePercentage(resizeAmount, pixelScaleFactor);
+      var resizePercentage = ConvertToResizePercentage(resizeAmount, pixelScaleFactor);
 
-      (containerToResize as IResizable).SizePercentage += resizeProportion;
+      // TODO: Avoid unnecessary resize call if either delta is 0.
+      (containerToResize as IResizable).SizePercentage += resizePercentage;
 
       foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage -= resizeProportion / resizableSiblings.Count();
+        (sibling as IResizable).SizePercentage -= resizePercentage / resizableSiblings.Count();
 
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
@@ -63,18 +57,41 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
+    private static Container GetContainerToResize(
+      Window windowToResize,
+      ResizeDimension dimensionToResize
+    )
+    {
+      var parent = windowToResize.Parent;
+      var grandparent = parent.Parent;
+      var layout = (parent as SplitContainer).Layout;
+
+      // Whether the resize is in the inverse direction of its layout.
+      var isInverseResize =
+        (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT) ||
+        (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
+
+      if (!isInverseResize && !windowToResize.Siblings.Any() && grandparent is IResizable)
+        return grandparent;
+
+      return isInverseResize ? parent : windowToResize;
+    }
+
     private static double GetPixelScaleFactor(
       Container containerToResize,
       ResizeDimension dimensionToResize
     )
     {
-      // Get area that can be resized (ie. exclude inner gaps).
-      var resizableArea = containerToResize.SelfAndSiblings.Aggregate(1.0, (acc, con) =>
-      {
-        return dimensionToResize == ResizeDimension.WIDTH
-          ? acc + con.Width
-          : acc + con.Height;
-      });
+      // Get available width/height that can be resized (ie. exclude inner gaps).
+      var resizableArea = containerToResize.SelfAndSiblings.Aggregate(
+        1.0,
+        (width, container) =>
+        {
+          return dimensionToResize == ResizeDimension.WIDTH
+            ? width + container.Width
+            : width + container.Height;
+        }
+      );
 
       return 1.0 / resizableArea;
     }
