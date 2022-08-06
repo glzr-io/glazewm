@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -16,6 +17,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
+    private const double MIN_SIZE_PERCENTAGE = 0.01;
 
     public ResizeWindowHandler(Bus bus, ContainerService containerService)
     {
@@ -37,7 +39,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var containerToResize = GetContainerToResize(windowToResize, dimensionToResize);
       var resizableSiblings = containerToResize.SiblingsOfType(typeof(IResizable));
 
-      // Ignore cases where the container to resize is a workspace or is the only child.
+      // Ignore cases where the container to resize is a workspace or the only child.
       if (!resizableSiblings.Any() || containerToResize is Workspace)
         return CommandResponse.Ok;
 
@@ -45,16 +47,58 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var pixelScaleFactor = GetPixelScaleFactor(containerToResize, dimensionToResize);
       var resizePercentage = ConvertToResizePercentage(resizeAmount, pixelScaleFactor);
 
-      // TODO: Avoid unnecessary resize call if either delta is 0.
-      (containerToResize as IResizable).SizePercentage += resizePercentage;
+      // Get available size percentage amongst siblings.
+      var distributableSizePercentage = GetDistributableSizePercentage(
+        resizableSiblings
+      );
 
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage -= resizePercentage / resizableSiblings.Count();
+      // Prevent window from being smaller than the minimum and larger than space available from
+      // sibling containers.
+      var clampedResizePercentage = Math.Clamp(
+        resizePercentage,
+        MIN_SIZE_PERCENTAGE - (containerToResize as IResizable).SizePercentage,
+        distributableSizePercentage
+      );
+
+      if (clampedResizePercentage == 0 || distributableSizePercentage == 0)
+        return CommandResponse.Ok;
+
+      // Resize the container and distribute the size percentage amongst its siblings.
+      (containerToResize as IResizable).SizePercentage += clampedResizePercentage;
+      DistributeSizePercentage(resizableSiblings, clampedResizePercentage);
 
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
+    }
+
+    private static double GetDistributableSizePercentage(IEnumerable<Container> containers)
+    {
+      return containers.Aggregate(
+        0.0,
+        (sum, container) => sum + (container as IResizable).SizePercentage - MIN_SIZE_PERCENTAGE
+      );
+    }
+
+    private static void DistributeSizePercentage(
+      IEnumerable<Container> containers,
+      double sizePercentage
+    )
+    {
+      var distributableSizePercentage = GetDistributableSizePercentage(
+        containers
+      );
+
+      foreach (var container in containers)
+      {
+        // Get percentage of resize that affects this container.
+        var resizeFactor =
+          ((container as IResizable).SizePercentage - MIN_SIZE_PERCENTAGE) /
+          distributableSizePercentage;
+
+        (container as IResizable).SizePercentage -= resizeFactor * sizePercentage;
+      }
     }
 
     private static Container GetContainerToResize(
@@ -85,11 +129,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Get available width/height that can be resized (ie. exclude inner gaps).
       var resizableArea = containerToResize.SelfAndSiblings.Aggregate(
         1.0,
-        (width, container) =>
+        (sum, container) =>
         {
           return dimensionToResize == ResizeDimension.WIDTH
-            ? width + container.Width
-            : width + container.Height;
+            ? sum + container.Width
+            : sum + container.Height;
         }
       );
 
