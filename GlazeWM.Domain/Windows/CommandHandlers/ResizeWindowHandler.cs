@@ -44,8 +44,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var pixelScaleFactor = GetPixelScaleFactor(containerToResize, dimensionToResize);
-      var resizePercentage = ConvertToResizePercentage(resizeAmount, pixelScaleFactor);
+      var resizePercentage = ConvertToResizePercentage(
+        containerToResize,
+        dimensionToResize,
+        resizeAmount
+      );
 
       // Get available size percentage amongst siblings.
       var distributableSizePercentage = GetDistributableSizePercentage(
@@ -121,26 +124,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return isInverseResize ? parent : windowToResize;
     }
 
-    private static double GetPixelScaleFactor(
+    private static double ConvertToResizePercentage(
       Container containerToResize,
-      ResizeDimension dimensionToResize
-    )
-    {
-      // Get available width/height that can be resized (ie. exclude inner gaps).
-      var resizableArea = containerToResize.SelfAndSiblings.Aggregate(
-        1.0,
-        (sum, container) =>
-        {
-          return dimensionToResize == ResizeDimension.WIDTH
-            ? sum + container.Width
-            : sum + container.Height;
-        }
-      );
-
-      return 1.0 / resizableArea;
-    }
-
-    private static double ConvertToResizePercentage(string resizeAmount, double pixelScaleFactor)
+      ResizeDimension dimensionToResize,
+      string resizeAmount
+      )
     {
       try
       {
@@ -153,7 +141,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         {
           "%" => floatAmount / 100,
           "ppt" => floatAmount / 100,
-          "px" => floatAmount * pixelScaleFactor,
+          "px" => floatAmount * GetPixelScaleFactor(containerToResize, dimensionToResize),
           _ => throw new ArgumentException(null, nameof(resizeAmount)),
         };
       }
@@ -161,6 +149,23 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       {
         throw new FatalUserException($"Invalid resize amount {resizeAmount}.");
       }
+    }
+
+    private static double GetPixelScaleFactor(
+      Container containerToResize,
+      ResizeDimension dimensionToResize
+    )
+    {
+      // Get available width/height that can be resized (ie. exclude inner gaps).
+      var resizableLength = containerToResize.SelfAndSiblings.Aggregate(
+        1.0,
+        (sum, container) =>
+          dimensionToResize == ResizeDimension.WIDTH
+            ? sum + container.Width
+            : sum + container.Height
+      );
+
+      return 1.0 / resizableLength;
     }
   }
 }
