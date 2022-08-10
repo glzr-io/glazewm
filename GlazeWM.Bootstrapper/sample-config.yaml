@@ -93,6 +93,12 @@ keybindings:
   - command: "toggle floating"
     binding: "Alt+Shift+Space"
 
+  - command: "set minimized"
+    binding: "Alt+M"
+
+  - command: "toggle maximized"
+    binding: "Alt+X"
+
   - command: "close"
     binding: "Alt+Shift+Q"
 
