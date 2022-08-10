@@ -155,6 +155,9 @@ namespace GlazeWM.Domain.UserConfigs
         "floating" => subjectContainer is Window
           ? new ToggleFloatingCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "maximized" => subjectContainer is Window
+          ? new ToggleMaximizedCommand(subjectContainer as Window)
+          : new NoopCommand(),
         "focus" => commandParts[2] switch
         {
           "mode" => new ToggleFocusModeCommand(),
