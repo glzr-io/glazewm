@@ -61,6 +61,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<ResizeWindowBordersCommand>, ResizeWindowBordersHandler>();
       services.AddSingleton<ICommandHandler<SetFloatingCommand>, SetFloatingHandler>();
       services.AddSingleton<ICommandHandler<SetMinimizedCommand>, SetMinimizedHandler>();
+      services.AddSingleton<ICommandHandler<SetMaximizedCommand>, SetMaximizedHandler>();
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
       services.AddSingleton<ICommandHandler<ActivateWorkspaceCommand>, ActivateWorkspaceHandler>();
