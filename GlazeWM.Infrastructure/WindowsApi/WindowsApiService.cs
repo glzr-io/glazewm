@@ -191,6 +191,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     public enum ShowWindowCommands : uint
     {
+      MINIMIZE = 2,
+      MAXIMIZE = 3,
       RESTORE = 9,
     }
 
