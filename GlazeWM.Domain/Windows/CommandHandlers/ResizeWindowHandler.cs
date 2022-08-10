@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -64,13 +64,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         availableSizePercentage
       );
 
-      if (clampedResizePercentage == 0)
-        return CommandResponse.Ok;
-
       // Resize the container and distribute the size percentage amongst its siblings.
       (containerToResize as IResizable).SizePercentage += clampedResizePercentage;
-      DistributeSizePercentage(resizableSiblings, clampedResizePercentage);
+      DistributeSizePercentage(resizableSiblings, clampedResizePercentage, availableSizePercentage);
 
+      // TODO: Return early if `clampedResizePercentage` is 0 to avoid unnecessary redraws.
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
       _bus.Invoke(new RedrawContainersCommand());
 
@@ -87,23 +85,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private static void DistributeSizePercentage(
       IEnumerable<Container> containers,
-      double sizePercentage
+      double sizePercentage,
+      double availableSizePercentage
     )
     {
-      var totalAvailableSizePercentage = GetAvailableSizePercentage(
-        containers
-      );
-
       foreach (var container in containers)
       {
-        var availableSizePercentage =
+        var conAvailableSizePercentage =
           (container as IResizable).SizePercentage - MIN_SIZE_PERCENTAGE;
 
-        // Get percentage of resize that affects this container. `totalAvailableSizePercentage`
-        // can be 0 here when the container to resize is max sized and resized to be smaller.
-        var resizeFactor = totalAvailableSizePercentage == 0
-          ? 1 / containers.Count()
-          : availableSizePercentage / totalAvailableSizePercentage;
+        // Get percentage of resize that affects this container. `availableSizePercentage`
+        // can be 0 here when the main container to resize is shrunk from max size percentage.
+        var resizeFactor = availableSizePercentage == 0.0
+          ? 1.0 / containers.Count()
+          : conAvailableSizePercentage / availableSizePercentage;
 
         (container as IResizable).SizePercentage -= resizeFactor * sizePercentage;
       }
