@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -123,7 +123,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT) ||
         (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
-      if (!isInverseResize && !windowToResize.Siblings.Any() && grandparent is IResizable)
+      var hasResizableSiblings = windowToResize.SiblingsOfType(typeof(IResizable)).Any();
+
+      if (!isInverseResize && !hasResizableSiblings && grandparent is IResizable)
         return grandparent;
 
       return isInverseResize ? parent : windowToResize;
@@ -162,7 +164,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     )
     {
       // Get available width/height that can be resized (ie. exclude inner gaps).
-      var resizableLength = containerToResize.SelfAndSiblings.Aggregate(
+      var resizableLength = containerToResize.SelfAndSiblingsOfType(typeof(IResizable)).Aggregate(
         1.0,
         (sum, container) =>
           dimensionToResize == ResizeDimension.WIDTH
