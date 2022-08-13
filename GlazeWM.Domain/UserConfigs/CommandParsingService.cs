@@ -138,6 +138,12 @@ namespace GlazeWM.Domain.UserConfigs
         "floating" => subjectContainer is Window
           ? new SetFloatingCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "minimized" => subjectContainer is Window
+          ? new SetMinimizedCommand(subjectContainer as Window)
+          : new NoopCommand(),
+        "maximized" => subjectContainer is Window
+          ? new SetMaximizedCommand(subjectContainer as Window)
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -148,6 +154,9 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "floating" => subjectContainer is Window
           ? new ToggleFloatingCommand(subjectContainer as Window)
+          : new NoopCommand(),
+        "maximized" => subjectContainer is Window
+          ? new ToggleMaximizedCommand(subjectContainer as Window)
           : new NoopCommand(),
         "focus" => commandParts[2] switch
         {
