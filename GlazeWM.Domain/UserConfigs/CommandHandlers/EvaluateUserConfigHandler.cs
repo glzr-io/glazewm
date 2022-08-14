@@ -4,6 +4,7 @@ using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Yaml;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -92,7 +93,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       var userConfigLines = File.ReadAllLines(userConfigPath);
       var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
-      return _yamlDeserializationService.Deserialize<UserConfig>(input);
+      return _yamlDeserializationService.Deserialize<UserConfig>(
+        input,
+        new List<JsonConverter>() { new BarComponentConfigConverter() }
+      );
     }
 
     private static string FormatErrorMessage(Exception exception)

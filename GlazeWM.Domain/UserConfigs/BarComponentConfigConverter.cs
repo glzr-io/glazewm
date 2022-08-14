@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 
 namespace GlazeWM.Domain.UserConfigs
 {
+  // TODO: Change to `JsonConverter<T>` generic.
   public class BarComponentConfigConverter : JsonConverter
   {
     public override bool CanConvert(Type objectType)
@@ -22,9 +23,10 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "workspaces" => new WorkspacesComponentConfig(),
         "clock" => new ClockComponentConfig(),
-        _ => throw new ArgumentException($"Invalid workspace type '{type}'."),
+        _ => throw new ArgumentException($"Invalid component type '{type}'."),
       };
 
+      // Populate the component config instance.
       serializer.Populate(jObject.CreateReader(), target);
 
       return target;
