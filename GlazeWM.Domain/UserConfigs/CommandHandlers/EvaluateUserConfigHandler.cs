@@ -2,11 +2,12 @@
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Yaml;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -111,8 +112,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         errorMessage += $"Unknown property: '{unknownPropertyMatch.Groups["property"]}'.";
 
       // Improve error message of generic deserialization errors.
-      else if (exception is JsonReaderException)
-        errorMessage += $"Invalid value at property: '{(exception as JsonReaderException).Path}'.";
+      else if (exception is JsonException)
+        errorMessage += $"Invalid value at property: '{(exception as JsonException).Path}'.";
       else
         errorMessage += exception.Message;
 
