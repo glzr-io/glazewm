@@ -2,11 +2,6 @@
 {
   public class Event
   {
-    public string Name { get; set; }
-
-    public Event()
-    {
-      Name = GetType().Name;
-    }
+    public string Name => GetType().Name;
   }
 }
