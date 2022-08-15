@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Yaml;
@@ -104,19 +104,14 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     {
       var errorMessage = "Failed to parse user config. ";
 
-      var unknownPropertyRegex = new Regex("Could not find member '(?<property>.*?)' on object");
-      var unknownPropertyMatch = unknownPropertyRegex.Match(exception.Message);
-
-      // Improve error message in case of unknown property errors.
-      if (unknownPropertyMatch.Success)
-        errorMessage += $"Unknown property: '{unknownPropertyMatch.Groups["property"]}'.";
-
-      // Improve error message of generic deserialization errors.
-      else if (exception is JsonException)
+      // Add path to property for deserialization error messages.
+      if ((exception as JsonException)?.Path is not null)
+      {
         errorMessage += $"Invalid value at property: '{(exception as JsonException).Path}'.";
-      else
-        errorMessage += exception.Message;
+        return errorMessage;
+      }
 
+      errorMessage += exception.Message;
       return errorMessage;
     }
   }
