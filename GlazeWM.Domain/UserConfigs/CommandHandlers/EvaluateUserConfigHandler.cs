@@ -1,14 +1,14 @@
-using GlazeWM.Domain.UserConfigs.Commands;
+﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Yaml;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
@@ -18,30 +18,34 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
     private readonly YamlDeserializationService _yamlDeserializationService;
+    private readonly CommandParsingService _commandParsingService;
 
     public EvaluateUserConfigHandler(
       Bus bus,
       UserConfigService userConfigService,
-      YamlDeserializationService yamlDeserializationService
+      YamlDeserializationService yamlDeserializationService,
+      CommandParsingService commandParsingService
     )
     {
       _bus = bus;
       _userConfigService = userConfigService;
       _yamlDeserializationService = yamlDeserializationService;
+      _commandParsingService = commandParsingService;
     }
 
     public CommandResponse Handle(EvaluateUserConfigCommand command)
     {
+      var userConfigPath = _userConfigService.UserConfigPath;
+
+      if (!File.Exists(userConfigPath))
+        InitializeSampleUserConfig(userConfigPath);
+
       UserConfig deserializedConfig;
 
       try
       {
-        var userConfigPath = _userConfigService.UserConfigPath;
-
-        if (!File.Exists(userConfigPath))
-          InitializeSampleUserConfig(userConfigPath);
-
         deserializedConfig = DeserializeUserConfig(userConfigPath);
+        ValidateDeserializedConfig(deserializedConfig);
       }
       catch (Exception exception)
       {
@@ -98,6 +102,69 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         input,
         new List<JsonConverter>() { new BarComponentConfigConverter() }
       );
+    }
+
+    // TODO: Might be able to remove the required checks once nullable context is enabled.
+    private void ValidateDeserializedConfig(UserConfig deserializedConfig)
+    {
+      foreach (var workspaceConfig in deserializedConfig.Workspaces)
+      {
+        if (workspaceConfig.Name is null)
+          throw new FatalUserException("Property 'name' is required in workspace config.");
+      }
+
+      var componentConfigs = deserializedConfig.Bar.ComponentsLeft
+        .Concat(deserializedConfig.Bar.ComponentsCenter)
+        .Concat(deserializedConfig.Bar.ComponentsRight);
+
+      foreach (var componentConfig in componentConfigs)
+      {
+        if (componentConfig.Type is null)
+          throw new FatalUserException("Property 'type' is required in bar component config.");
+      }
+
+      var keybindingsConfig = deserializedConfig.Keybindings;
+      var windowRulesConfig = deserializedConfig.WindowRules;
+
+      foreach (var keybindingConfig in keybindingsConfig)
+      {
+        if (keybindingConfig.BindingList.Count == 0)
+          throw new FatalUserException(
+            "Property 'binding' or 'bindings' is required in keybinding config."
+          );
+
+        if (keybindingConfig.CommandList.Count == 0)
+          throw new FatalUserException(
+            "Property 'command' or 'commands' is required in keybinding config."
+          );
+      }
+
+      foreach (var windowRuleConfig in windowRulesConfig)
+      {
+        var hasMatchingRegex =
+          windowRuleConfig.MatchClassName is not null ||
+          windowRuleConfig.MatchProcessName is not null ||
+          windowRuleConfig.MatchTitle is not null;
+
+        if (!hasMatchingRegex)
+          throw new FatalUserException(
+            "At least 1 matching regex (eg. 'match_process_name') is required in window rule config."
+          );
+
+        if (windowRuleConfig.CommandList.Count == 0)
+          throw new FatalUserException(
+            "Property 'command' or 'commands' is required in window rule config."
+          );
+      }
+
+      var allCommandStrings = new List<string>()
+        .Concat(keybindingsConfig.SelectMany(keybinding => keybinding.CommandList))
+        .Concat(windowRulesConfig.SelectMany(windowRule => windowRule.CommandList))
+        .Select(commandString => CommandParsingService.FormatCommand(commandString));
+
+      foreach (var commandString in allCommandStrings)
+        // TODO: Check for valid workspace fails when `UserConfig` is not set.
+        _commandParsingService.ValidateCommand(commandString);
     }
 
     private static string FormatErrorMessage(Exception exception)
