@@ -60,6 +60,8 @@ namespace GlazeWM.Domain.UserConfigs
         "close" => subjectContainer is Window
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
+        // TODO: Temporary hack to avoid errors during `ValidateCommand`.
+        "ignore" => new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandString)),
       };
     }
