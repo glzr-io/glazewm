@@ -1,40 +1,39 @@
 using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class BarComponentConfigConverter : JsonConverter
+  public class BarComponentConfigConverter : JsonConverter<BarComponentConfig>
   {
-    public override bool CanConvert(Type objectType)
+    public override BarComponentConfig Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-      return objectType.IsAssignableFrom(typeof(BarComponentConfig));
-    }
+      using var jsonObject = JsonDocument.ParseValue(ref reader);
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-    {
-      var jObject = JObject.Load(reader);
+      // Get the type of bar component (eg. "workspaces").
+      var typeDiscriminator = jsonObject.RootElement.GetProperty("type").ToString();
 
-      // Get the type of workspace component config.
-      var type = jObject["type"].Value<string>();
-
-      object target = type switch
+      return typeDiscriminator switch
       {
-        "workspaces" => new WorkspacesComponentConfig(),
-        "clock" => new ClockComponentConfig(),
-        _ => throw new ArgumentException($"Invalid workspace type '{type}'."),
+        "workspaces" =>
+          JsonSerializer.Deserialize<WorkspacesComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "clock" =>
+          JsonSerializer.Deserialize<ClockComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
-
-      serializer.Populate(jObject.CreateReader(), target);
-
-      return target;
     }
 
     /// <summary>
     /// Serializing is not needed, so it's fine to leave it unimplemented.
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void Write(Utf8JsonWriter writer, BarComponentConfig value, JsonSerializerOptions options)
     {
       throw new NotImplementedException();
     }

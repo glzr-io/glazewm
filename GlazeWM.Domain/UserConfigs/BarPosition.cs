@@ -2,6 +2,7 @@
 {
   public enum BarPosition
   {
-    Top, Bottom
+    Top,
+    Bottom
   }
 }

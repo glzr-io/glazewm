@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -35,13 +34,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public string Padding { get; set; } = "0";
 
-    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsLeft { get; set; } = new List<BarComponentConfig>();
 
-    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsCenter { get; set; } = new List<BarComponentConfig>();
 
-    [JsonProperty(ItemConverterType = typeof(BarComponentConfigConverter))]
     public List<BarComponentConfig> ComponentsRight { get; set; } = new List<BarComponentConfig>();
   }
 }
