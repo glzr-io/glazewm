@@ -5,15 +5,15 @@ using YamlDotNet.Serialization;
 
 namespace GlazeWM.Infrastructure.Serialization
 {
-  public class YamlSerializationService
+  public class YamlService
   {
-    private readonly JsonSerializationService _jsonSerializationService;
+    private readonly JsonService _jsonService;
     private readonly IDeserializer _yamlDeserializer = new DeserializerBuilder()
       .Build();
 
-    public YamlSerializationService(JsonSerializationService jsonSerializationService)
+    public YamlService(JsonService jsonService)
     {
-      _jsonSerializationService = jsonSerializationService;
+      _jsonService = jsonService;
     }
 
     /// <summary>
@@ -26,9 +26,9 @@ namespace GlazeWM.Infrastructure.Serialization
       var yamlObject = _yamlDeserializer.Deserialize(new StringReader(input));
 
       // Convert key-value pairs into a JSON string.
-      var jsonString = _jsonSerializationService.Serialize(yamlObject, converters);
+      var jsonString = _jsonService.Serialize(yamlObject, converters);
 
-      return _jsonSerializationService.Deserialize<T>(jsonString, converters);
+      return _jsonService.Deserialize<T>(jsonString, converters);
     }
   }
 }

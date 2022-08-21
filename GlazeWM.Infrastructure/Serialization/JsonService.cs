@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace GlazeWM.Infrastructure.Serialization
 {
-  public class JsonSerializationService
+  public class JsonService
   {
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
