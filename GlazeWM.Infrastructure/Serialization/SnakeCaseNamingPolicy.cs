@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Text.Json;
 
-namespace GlazeWM.Infrastructure.Yaml
+namespace GlazeWM.Infrastructure.Serialization
 {
   public class SnakeCaseNamingPolicy : JsonNamingPolicy
   {
