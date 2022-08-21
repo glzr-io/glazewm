@@ -2,7 +2,7 @@
 using GlazeWM.Infrastructure.Bussing.CommandHandlers;
 using GlazeWM.Infrastructure.Bussing.Commands;
 using GlazeWM.Infrastructure.WindowsApi;
-using GlazeWM.Infrastructure.Yaml;
+using GlazeWM.Infrastructure.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Infrastructure
@@ -16,7 +16,7 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<SystemEventService>();
       services.AddSingleton<SystemTrayService>();
       services.AddSingleton<WindowEventService>();
-      services.AddSingleton<YamlDeserializationService>();
+      services.AddSingleton<YamlSerializationService>();
 
       services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();
 

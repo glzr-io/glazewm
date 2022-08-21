@@ -1,7 +1,7 @@
-﻿using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
-using GlazeWM.Infrastructure.Yaml;
+using GlazeWM.Infrastructure.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,19 +17,19 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
-    private readonly YamlDeserializationService _yamlDeserializationService;
+    private readonly YamlSerializationService _yamlSerializationService;
     private readonly CommandParsingService _commandParsingService;
 
     public EvaluateUserConfigHandler(
       Bus bus,
       UserConfigService userConfigService,
-      YamlDeserializationService yamlDeserializationService,
+      YamlSerializationService yamlDeserializationService,
       CommandParsingService commandParsingService
     )
     {
       _bus = bus;
       _userConfigService = userConfigService;
-      _yamlDeserializationService = yamlDeserializationService;
+      _yamlSerializationService = yamlDeserializationService;
       _commandParsingService = commandParsingService;
     }
 
@@ -92,7 +92,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         var userConfigLines = File.ReadAllLines(userConfigPath);
         var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
 
-        return _yamlDeserializationService.Deserialize<UserConfig>(
+        return _yamlSerializationService.Deserialize<UserConfig>(
           input,
           new List<JsonConverter>() { new BarComponentConfigConverter() }
         );
