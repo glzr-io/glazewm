@@ -7,8 +7,14 @@ namespace GlazeWM.Infrastructure.Serialization
 {
   public class YamlSerializationService
   {
+    private readonly JsonSerializationService _jsonSerializationService;
     private readonly IDeserializer _yamlDeserializer = new DeserializerBuilder()
       .Build();
+
+    public YamlSerializationService(JsonSerializationService jsonSerializationService)
+    {
+      _jsonSerializationService = jsonSerializationService;
+    }
 
     /// <summary>
     /// The YAML deserializing library doesn't have support for polymorphic objects. Because of
@@ -20,9 +26,9 @@ namespace GlazeWM.Infrastructure.Serialization
       var yamlObject = _yamlDeserializer.Deserialize(new StringReader(input));
 
       // Convert key-value pairs into a JSON string.
-      var jsonString = JsonSerializationService.Serialize(yamlObject, converters);
+      var jsonString = _jsonSerializationService.Serialize(yamlObject, converters);
 
-      return JsonSerializationService.Deserialize<T>(jsonString, converters);
+      return _jsonSerializationService.Deserialize<T>(jsonString, converters);
     }
   }
 }
