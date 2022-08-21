@@ -16,6 +16,7 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<SystemEventService>();
       services.AddSingleton<SystemTrayService>();
       services.AddSingleton<WindowEventService>();
+      services.AddSingleton<JsonSerializationService>();
       services.AddSingleton<YamlSerializationService>();
 
       services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();
