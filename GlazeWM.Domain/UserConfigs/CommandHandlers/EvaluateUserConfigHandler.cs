@@ -90,7 +90,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       try
       {
         var userConfigLines = File.ReadAllLines(userConfigPath);
-        var input = new StringReader(string.Join(Environment.NewLine, userConfigLines));
+        var input = string.Join(Environment.NewLine, userConfigLines);
 
         return _yamlSerializationService.Deserialize<UserConfig>(
           input,
