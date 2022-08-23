@@ -13,7 +13,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
         cmdProc.StartInfo = new ProcessStartInfo
         {
           FileName = "cmd.exe",
-          Arguments = $"/C {command.ProcessName} {string.Join(" ", command.Args)}",
+          Arguments = $"/C start {command.ProcessName} {string.Join(" ", command.Args)}",
           CreateNoWindow = true,
         };
         cmdProc.Start();
