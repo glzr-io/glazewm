@@ -1,4 +1,4 @@
-﻿using GlazeWM.Bar;
+using GlazeWM.Bar;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -81,6 +81,8 @@ namespace GlazeWM.Bootstrapper
 
       _bus.Events.Where(@event => @event is ApplicationExitingEvent)
         .Subscribe(_ => OnApplicationExit());
+
+      Application.Run();
     }
 
     /// <summary>

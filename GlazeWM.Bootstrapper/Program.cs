@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using System.Windows.Forms;
 using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Bootstrapper
@@ -42,7 +41,6 @@ namespace GlazeWM.Bootstrapper
 
       var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
       startup.Run();
-      Application.Run();
     }
 
     private static IHost CreateHost(string[] args)
@@ -52,6 +50,7 @@ namespace GlazeWM.Bootstrapper
         {
           appConfig.AddCommandLine(args, new Dictionary<string, string>
           {
+            // Map CLI argument `--config` to `UserConfigPath` configuration key.
             {"--config", "UserConfigPath"}
           });
         })
