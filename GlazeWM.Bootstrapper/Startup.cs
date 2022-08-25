@@ -150,6 +150,8 @@ namespace GlazeWM.Bootstrapper
       _barService.ExitApp();
       _systemTrayService.RemoveFromSystemTray();
       Application.Exit();
+      // TODO: Use exit code 1 if exiting due to an unhandled error.
+      Environment.Exit(0);
     }
   }
 }
