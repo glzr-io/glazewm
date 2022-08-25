@@ -50,7 +50,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         foundMonitor.Height = screen.WorkingArea.Height;
         foundMonitor.X = screen.WorkingArea.X;
         foundMonitor.Y = screen.WorkingArea.Y;
-        foundMonitor.IsPrimary = screen.Primary;
 
         _bus.RaiseEvent(new WorkingAreaResizedEvent(foundMonitor));
       }

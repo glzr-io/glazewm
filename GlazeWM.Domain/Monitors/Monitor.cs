@@ -10,7 +10,6 @@ namespace GlazeWM.Domain.Monitors
     public override int Height { get; set; }
     public override int X { get; set; }
     public override int Y { get; set; }
-    public bool IsPrimary { get; set; }
     public Workspace DisplayedWorkspace { get; set; }
 
     public uint Dpi => MonitorService.GetMonitorDpi(this);
@@ -21,8 +20,7 @@ namespace GlazeWM.Domain.Monitors
       int width,
       int height,
       int x,
-      int y,
-      bool isPrimary
+      int y
     )
     {
       DeviceName = deviceName;
@@ -30,7 +28,6 @@ namespace GlazeWM.Domain.Monitors
       Height = height;
       X = x;
       Y = y;
-      IsPrimary = isPrimary;
     }
   }
 }

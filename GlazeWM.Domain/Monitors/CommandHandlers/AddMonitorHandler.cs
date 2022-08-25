@@ -34,8 +34,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         screen.WorkingArea.Width,
         screen.WorkingArea.Height,
         screen.WorkingArea.X,
-        screen.WorkingArea.Y,
-        screen.Primary
+        screen.WorkingArea.Y
       );
 
       var rootContainer = _containerService.ContainerTree;
