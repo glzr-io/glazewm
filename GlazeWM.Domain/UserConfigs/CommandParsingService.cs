@@ -60,6 +60,9 @@ namespace GlazeWM.Domain.UserConfigs
         "close" => subjectContainer is Window
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "start" => new StartProcessCommand(
+          commandParts[1],
+          commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()),
         // TODO: Temporary hack to avoid errors during `ValidateCommand`.
         "ignore" => new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandString)),
