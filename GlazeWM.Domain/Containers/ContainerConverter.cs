@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
@@ -20,11 +22,12 @@ namespace GlazeWM.Domain.Containers
       // JsonObject obj = JsonNode.Parse(ref reader).AsObject();
       using var jsonDocument = JsonDocument.ParseValue(ref reader);
 
-      return DeserializeContainerJson(jsonDocument.RootElement);
+      return DeserializeContainerJson(jsonDocument.RootElement, options);
     }
 
     private static Container DeserializeContainerJson(
       JsonElement jsonObject,
+      JsonSerializerOptions options,
       Container parent = null)
     {
       // Get the type of container (eg. "Workspace", "MinimizedWindow").
@@ -50,20 +53,20 @@ namespace GlazeWM.Domain.Containers
         },
         "MinimizedWindow" => new MinimizedWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Hwnd").GetString(), 16)),
           jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
           jsonObject.GetEnumProperty<WindowType>("PreviousState", options)
         ),
         "FloatingWindow" => new FloatingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Hwnd").GetString(), 16)),
           jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>()
         ),
         "TilingWindow" => new TilingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Hwnd").GetString(), 16)),
           jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
           jsonObject.GetProperty("SizePercentage").GetDouble()
@@ -76,24 +79,10 @@ namespace GlazeWM.Domain.Containers
       // TODO: Handle `ChildFocusOrder` based on `FocusIndex`.
       var children = jsonObject.GetProperty("Children").EnumerateArray();
       newContainer.Children = children
-        .Select((child) => DeserializeContainerJson(child, newContainer))
+        .Select((child) => DeserializeContainerJson(child, options, newContainer))
         .ToList();
 
       return newContainer;
-    }
-
-    private static WindowRect DeserializeFloatingPlacementJson(JsonElement jsonObject)
-    {
-      var left = jsonObject.GetProperty("Left").GetInt32();
-      var top = jsonObject.GetProperty("Top").GetInt32();
-      var right = jsonObject.GetProperty("Right").GetInt32();
-      var bottom = jsonObject.GetProperty("Bottom").GetInt32();
-      return WindowRect.FromLTRB(left, top, right, bottom);
-    }
-
-    private static RectDelta DeserializeBorderDeltaJson(JsonElement jsonObject)
-    {
-      return null;
     }
 
     public override void Write(
@@ -129,7 +118,7 @@ namespace GlazeWM.Domain.Containers
           break;
         case MinimizedWindow:
           var minimizedWindow = value as MinimizedWindow;
-          writer.WriteString("Hwnd", minimizedWindow.Hwnd.ToString());
+          writer.WriteString("Hwnd", minimizedWindow.Hwnd.ToString("x"));
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, minimizedWindow.FloatingPlacement);
           writer.WritePropertyName("BorderDelta");
@@ -138,7 +127,7 @@ namespace GlazeWM.Domain.Containers
           break;
         case FloatingWindow:
           var floatingWindow = value as FloatingWindow;
-          writer.WriteString("Hwnd", floatingWindow.Hwnd.ToString());
+          writer.WriteString("Hwnd", floatingWindow.Hwnd.ToString("x"));
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, floatingWindow.FloatingPlacement);
           writer.WritePropertyName("BorderDelta");
@@ -146,7 +135,7 @@ namespace GlazeWM.Domain.Containers
           break;
         case TilingWindow:
           var tilingWindow = value as TilingWindow;
-          writer.WriteString("Hwnd", tilingWindow.Hwnd.ToString());
+          writer.WriteString("Hwnd", tilingWindow.Hwnd.ToString("x"));
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, tilingWindow.FloatingPlacement);
           writer.WritePropertyName("BorderDelta");
