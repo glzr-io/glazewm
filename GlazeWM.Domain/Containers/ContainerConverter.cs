@@ -76,10 +76,17 @@ namespace GlazeWM.Domain.Containers
 
       newContainer.Parent = parent;
 
-      // TODO: Handle `ChildFocusOrder` based on `FocusIndex`.
       var children = jsonObject.GetProperty("Children").EnumerateArray();
       newContainer.Children = children
         .Select((child) => DeserializeContainerJson(child, options, newContainer))
+        .ToList();
+
+      var focusIndices =
+        children.Select(child => child.GetProperty("FocusIndex").GetInt32());
+
+      // Map focus index to the corresponding child container.
+      newContainer.ChildFocusOrder = focusIndices
+        .Select(focusIndex => newContainer.Children[focusIndex])
         .ToList();
 
       return newContainer;
