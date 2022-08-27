@@ -53,7 +53,7 @@ namespace GlazeWM.Domain.Containers
           new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
           jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
-          jsonObject.GetProperty("PreviousState").Deserialize<WindowType>()
+          jsonObject.GetEnumProperty<WindowType>("PreviousState", options)
         ),
         "FloatingWindow" => new FloatingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
