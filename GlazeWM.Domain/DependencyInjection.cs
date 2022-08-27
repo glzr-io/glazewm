@@ -36,6 +36,7 @@ namespace GlazeWM.Domain
 
       services.AddSingleton<ICommandHandler<CreateRecoveryCacheCommand>, CreateRecoveryCacheHandler>();
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
+      services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
       services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
