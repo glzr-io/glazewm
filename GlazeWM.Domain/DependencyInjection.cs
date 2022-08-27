@@ -34,7 +34,9 @@ namespace GlazeWM.Domain
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
 
+      services.AddSingleton<ICommandHandler<CreateRecoveryCacheCommand>, CreateRecoveryCacheHandler>();
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
+      services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
@@ -70,7 +72,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
-      services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
