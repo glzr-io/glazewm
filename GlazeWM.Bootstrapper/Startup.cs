@@ -1,4 +1,4 @@
-using GlazeWM.Bar;
+﻿using GlazeWM.Bar;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -82,6 +82,9 @@ namespace GlazeWM.Bootstrapper
       _bus.Events.Where(@event => @event is ApplicationExitingEvent)
         .Subscribe(_ => OnApplicationExit());
 
+      _bus.Events.Where(@event => @event is ApplicationRestartingEvent)
+        .Subscribe(_ => OnApplicationRestart());
+
       Application.Run();
     }
 
@@ -152,6 +155,17 @@ namespace GlazeWM.Bootstrapper
       Application.Exit();
       // TODO: Use exit code 1 if exiting due to an unhandled error.
       Environment.Exit(0);
+    }
+
+    private void OnApplicationRestart()
+    {
+      // Partially exit the application.
+      _barService.ExitApp();
+      _systemTrayService.RemoveFromSystemTray();
+      Application.Exit();
+
+      // Start the application again.
+      Run();
     }
   }
 }
