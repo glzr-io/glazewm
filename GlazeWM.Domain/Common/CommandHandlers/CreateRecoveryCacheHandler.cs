@@ -26,8 +26,13 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
     public CommandResponse Handle(CreateRecoveryCacheCommand command)
     {
+      var recoveryCache = new RecoveryCache(
+        RecoveryCacheService.GetSessionId(),
+        _containerService.ContainerTree
+      );
+
       var recoveryCacheJson = _jsonService.Serialize(
-        _containerService.ContainerTree,
+        recoveryCache,
         new List<JsonConverter>() { new ContainerConverter() }
       );
 
