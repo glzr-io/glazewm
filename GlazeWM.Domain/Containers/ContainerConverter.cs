@@ -12,57 +12,60 @@ namespace GlazeWM.Domain.Containers
 {
   public class ContainerConverter : JsonConverter<Container>
   {
-    public override Container Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Container Read(
+      ref Utf8JsonReader reader,
+      Type typeToConvert,
+      JsonSerializerOptions options)
     {
+      // JsonObject obj = JsonNode.Parse(ref reader).AsObject();
       using var jsonDocument = JsonDocument.ParseValue(ref reader);
 
-      // Get the type of container (eg. "Workspace", "MinimizedWindow").
-      var typeDiscriminator = jsonDocument.RootElement.GetProperty("__type").ToString();
-
-      return DeserializeContainerJson(jsonDocument.RootElement, typeDiscriminator);
+      return DeserializeContainerJson(jsonDocument.RootElement);
     }
 
-    // TODO: Alternate name `CreateContainerFromType`.
     private static Container DeserializeContainerJson(
       JsonElement jsonObject,
-      string typeDiscriminator,
-      Container parent = null
-    )
+      Container parent = null)
     {
+      // Get the type of container (eg. "Workspace", "MinimizedWindow").
+      var typeDiscriminator = jsonObject.GetProperty("__type").ToString();
+
       var newContainer = typeDiscriminator switch
       {
         "Container" => new Container(),
         "Monitor" => new Monitor(
-          deviceName: jsonObject.GetProperty("DeviceName").GetString(),
-          width: jsonObject.GetProperty("Width").GetInt32(),
-          height: jsonObject.GetProperty("Height").GetInt32(),
-          x: jsonObject.GetProperty("X").GetInt32(),
-          y: jsonObject.GetProperty("Y").GetInt32()
+          jsonObject.GetProperty("DeviceName").GetString(),
+          jsonObject.GetProperty("Width").GetInt32(),
+          jsonObject.GetProperty("Height").GetInt32(),
+          jsonObject.GetProperty("X").GetInt32(),
+          jsonObject.GetProperty("Y").GetInt32()
         ),
         "Workspace" => new Workspace(
           jsonObject.GetProperty("Name").GetString()
         ),
         "SplitContainer" => new SplitContainer
         {
-          Layout = jsonObject.GetProperty("Layout").GetString() == "HORIZONTAL" ? Layout.HORIZONTAL : Layout.VERTICAL,
+          Layout = jsonObject.GetProperty("Layout").Deserialize<Layout>(),
           SizePercentage = jsonObject.GetProperty("SizePercentage").GetDouble()
         },
         "MinimizedWindow" => new MinimizedWindow(
-          (IntPtr)jsonObject.GetProperty("Hwnd").GetInt64(),
-          DeserializeFloatingPlacementJson(jsonObject.GetProperty("FloatingPlacement")),
-          DeserializeBorderDeltaJson(jsonObject.GetProperty("BorderDelta")),
-          jsonObject.GetProperty("PreviousState").GetString() == "TILING" ? WindowType.TILING : WindowType.FLOATING
+          // TODO: Handle `IntPtr` for 32-bit processes.
+          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
+          jsonObject.GetProperty("PreviousState").Deserialize<WindowType>()
         ),
         "FloatingWindow" => new FloatingWindow(
-          (IntPtr)jsonObject.GetProperty("Hwnd").GetInt64(),
-          DeserializeFloatingPlacementJson(jsonObject.GetProperty("FloatingPlacement")),
-          DeserializeBorderDeltaJson(jsonObject.GetProperty("BorderDelta"))
+          // TODO: Handle `IntPtr` for 32-bit processes.
+          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>()
         ),
         "TilingWindow" => new TilingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
-          (IntPtr)jsonObject.GetProperty("Hwnd").GetInt64(),
-          DeserializeFloatingPlacementJson(jsonObject.GetProperty("FloatingPlacement")),
-          DeserializeBorderDeltaJson(jsonObject.GetProperty("BorderDelta")),
+          new IntPtr(Convert.ToInt32(jsonObject.GetProperty("Hwnd").GetString(), 16)),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
           jsonObject.GetProperty("SizePercentage").GetDouble()
         ),
         _ => throw new ArgumentException(null, nameof(jsonObject)),
@@ -73,13 +76,7 @@ namespace GlazeWM.Domain.Containers
       // TODO: Handle `ChildFocusOrder` based on `FocusIndex`.
       var children = jsonObject.GetProperty("Children").EnumerateArray();
       newContainer.Children = children
-        .Select((child) =>
-          DeserializeContainerJson(
-            child,
-            child.GetProperty("__type").GetString(),
-            newContainer
-          )
-        )
+        .Select((child) => DeserializeContainerJson(child, newContainer))
         .ToList();
 
       return newContainer;
