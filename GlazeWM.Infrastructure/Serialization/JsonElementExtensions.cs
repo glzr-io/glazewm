@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 
 namespace GlazeWM.Infrastructure.Serialization
@@ -41,6 +42,16 @@ namespace GlazeWM.Infrastructure.Serialization
       JsonSerializerOptions options)
     {
       return element.GetConvertedProperty(propertyName, options).GetDouble();
+    }
+
+    public static T GetEnumProperty<T>(
+      this JsonElement element,
+      string propertyName,
+      JsonSerializerOptions options) where T : struct, Enum
+    {
+      T value;
+      Enum.TryParse<T>(element.GetProperty(propertyName).GetString(), out value);
+      return value;
     }
 
     private static string ConvertName(string propertyName, JsonSerializerOptions options)
