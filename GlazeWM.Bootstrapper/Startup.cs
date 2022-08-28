@@ -37,7 +37,7 @@ namespace GlazeWM.Bootstrapper
       _systemEventService = systemEventService;
     }
 
-    public void Run()
+    public void Run(StartOptions options)
     {
       // Set the process-default DPI awareness.
       _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
@@ -47,7 +47,7 @@ namespace GlazeWM.Bootstrapper
       _barService.StartApp();
 
       // Populate initial monitors, windows, workspaces and user config.
-      _bus.Invoke(new PopulateInitialStateCommand());
+      _bus.Invoke(new PopulateInitialStateCommand(options.AcceptCacheRestore));
 
       // Listen on registered keybindings.
       _keybindingService.Start();
@@ -88,7 +88,7 @@ namespace GlazeWM.Bootstrapper
       Application.Exit();
 
       // Start the application again.
-      Run();
+      Run(new StartOptions { AcceptCacheRestore = true });
     }
   }
 }
