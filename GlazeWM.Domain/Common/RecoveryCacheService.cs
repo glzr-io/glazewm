@@ -4,7 +4,6 @@ using System.IO;
 using System.Text.Json.Serialization;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure.Serialization;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Common
 {
@@ -45,21 +44,6 @@ namespace GlazeWM.Domain.Common
         // between version changes.
         return null;
       }
-    }
-
-    public static bool IsRecoveryCacheValid(RecoveryCache recoveryCache)
-    {
-      return recoveryCache.SessionId == GetSessionId();
-    }
-
-    /// <summary>
-    /// Get an identifier for the user's current log-in session.
-    /// </summary>
-    public static string GetSessionId()
-    {
-      // The handle to the desktop window works as an ID for the login session, since it changes
-      // on shutdown and stays the same between logins.
-      return GetDesktopWindow().ToString("x");
     }
   }
 }
