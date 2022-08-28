@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Commands;
@@ -20,24 +21,38 @@ namespace GlazeWM.Domain.Common.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
+    private readonly RecoveryCacheService _recoveryCacheService;
     private readonly WindowService _windowService;
     private readonly WorkspaceService _workspaceService;
 
     public PopulateInitialStateHandler(Bus bus,
       MonitorService monitorService,
+      RecoveryCacheService recoveryCacheService,
       WindowService windowService,
       WorkspaceService workspaceService)
     {
       _bus = bus;
       _monitorService = monitorService;
+      _recoveryCacheService = recoveryCacheService;
       _windowService = windowService;
       _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(PopulateInitialStateCommand command)
     {
+      var recoveryCache = _recoveryCacheService.GetRecoveryCache();
+
+      if (recoveryCache?.IsValid() == true && command.AcceptCacheRestore)
+        PopulateWithCache(recoveryCache);
+
       PopulateWithoutCache();
+
       return CommandResponse.Ok;
+    }
+
+    private void PopulateWithCache(RecoveryCache recoveryCache)
+    {
+      throw new NotImplementedException();
     }
 
     private void PopulateWithoutCache()
