@@ -2,7 +2,6 @@
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
@@ -41,9 +40,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         // Move workspace to target monitor.
         _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
 
-        // Get windows of the moved workspace.
-        var windows = workspace.Descendants.OfType<Window>();
-
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.
         _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
@@ -51,9 +47,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
       _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
-
-      if (focusedMonitor == monitorToRemove)
-        _bus.Invoke(new FocusWorkspaceCommand(targetMonitor.DisplayedWorkspace.Name));
 
       return CommandResponse.Ok;
     }

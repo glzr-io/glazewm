@@ -58,11 +58,6 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
       // Assign the workspace to the newly added monitor.
       _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
-
-      var workspace = _workspaceService.GetActiveWorkspaceByName(inactiveWorkspaceName);
-
-      // Display the workspace (since it's the only one on the monitor).
-      _bus.Invoke(new DisplayWorkspaceCommand(workspace));
     }
   }
 }

@@ -6,8 +6,8 @@ using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Containers.Commands;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 using System.Linq;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -43,8 +43,32 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // isn't a container that has focus.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
-      // Display the containers of the workspace to switch focus to.
-      _bus.Invoke(new DisplayWorkspaceCommand(workspaceToFocus));
+      if (focusedWorkspace == workspaceToFocus)
+        return CommandResponse.Ok;
+
+      // Set focus to the last focused window in workspace. If the workspace has no descendant
+      // windows, then set focus to the workspace itself.
+      var containerToFocus = workspaceToFocus.HasChildren()
+        ? workspaceToFocus.LastFocusedDescendant
+        : workspaceToFocus;
+
+      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
+      _bus.RaiseEvent(new FocusChangedEvent(containerToFocus));
+
+      // Display the workspace to switch focus to.
+      _containerService.ContainersToRedraw.Add(focusedWorkspace);
+      _containerService.ContainersToRedraw.Add(workspaceToFocus);
+      _bus.Invoke(new RedrawContainersCommand());
+
+      // Container to focus is either a window or a workspace.
+      if (containerToFocus is Window)
+        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+      else
+      {
+        // Remove focus from whichever window currently has focus.
+        KeybdEvent(0, 0, 0, 0);
+        SetForegroundWindow(GetDesktopWindow());
+      }
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.
@@ -59,22 +83,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       if (workspaceToDestroy != null)
         _bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
-
-      // If workspace has no descendant windows, set focus to the workspace itself.
-      if (!workspaceToFocus.HasChildren())
-      {
-        _bus.Invoke(new SetFocusedDescendantCommand(workspaceToFocus));
-        _bus.RaiseEvent(new FocusChangedEvent(workspaceToFocus));
-
-        // Remove focus from whichever window currently has focus.
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow(GetDesktopWindow());
-
-        return CommandResponse.Ok;
-      }
-
-      // Set focus to the last focused window in workspace.
-      _bus.Invoke(new FocusWindowCommand(workspaceToFocus.LastFocusedDescendant as Window));
 
       return CommandResponse.Ok;
     }
