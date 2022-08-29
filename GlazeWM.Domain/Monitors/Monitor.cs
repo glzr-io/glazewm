@@ -10,8 +10,8 @@ namespace GlazeWM.Domain.Monitors
     public override int Height { get; set; }
     public override int X { get; set; }
     public override int Y { get; set; }
-    public Workspace DisplayedWorkspace { get; set; }
 
+    public Workspace DisplayedWorkspace => LastFocusedChild as Workspace;
     public uint Dpi => MonitorService.GetMonitorDpi(this);
     public double ScaleFactor => Dpi / 96.0;
 
