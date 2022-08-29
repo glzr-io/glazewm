@@ -36,9 +36,9 @@ namespace GlazeWM.Domain.Windows
     }
 
     /// <summary>
-    /// Windows are hidden if their parent workspace is not displayed.
+    /// Windows are displayed if their parent workspace is displayed.
     /// </summary>
-    public bool IsHidden => !WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
+    public bool IsDisplayed => WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
     public string ProcessName => WindowService.GetProcessOfHandle(Hwnd)?.ProcessName ?? string.Empty;
 

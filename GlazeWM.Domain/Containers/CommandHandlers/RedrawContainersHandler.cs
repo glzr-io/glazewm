@@ -41,10 +41,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
           SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING;
 
-        if (window.IsHidden)
-          flags |= SWP.SWP_HIDEWINDOW;
-        else
+        if (window.IsDisplayed)
           flags |= SWP.SWP_SHOWWINDOW;
+        else
+          flags |= SWP.SWP_HIDEWINDOW;
 
         SetWindowPosition(window, flags);
 
