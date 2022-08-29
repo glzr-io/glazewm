@@ -5,10 +5,10 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.Logging;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -42,7 +42,11 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         if (pendingFocusContainer is Window)
           _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
         else if (pendingFocusContainer is Workspace)
-          _bus.Invoke(new FocusWorkspaceCommand((pendingFocusContainer as Workspace).Name));
+        {
+          _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
+          KeybdEvent(0, 0, 0, 0);
+          SetForegroundWindow(GetDesktopWindow());
+        }
 
         _containerService.PendingFocusContainer = null;
         return;

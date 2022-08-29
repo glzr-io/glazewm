@@ -4,6 +4,8 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Windows.Commands;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -31,6 +33,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(currentWorkspace);
+
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName, currentMonitor);
 
@@ -50,13 +53,19 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, false));
 
       // Reassign focus to descendant within the current workspace.
-      _bus.Invoke(new FocusWorkspaceCommand(currentWorkspace.Name));
+      ReassignFocusWithinWorkspace(currentWorkspace);
 
       _containerService.ContainersToRedraw.Add(currentWorkspace);
-      _containerService.ContainersToRedraw.Add(targetWorkspace);
+      _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
+    }
+
+    private Workspace ActivateWorkspace(string workspaceName, Monitor targetMonitor)
+    {
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
+      return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }
 
     private void MoveTilingWindowToWorkspace(TilingWindow windowToMove, Workspace targetWorkspace)
@@ -77,10 +86,18 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         );
     }
 
-    private Workspace ActivateWorkspace(string workspaceName, Monitor targetMonitor)
+    private void ReassignFocusWithinWorkspace(Workspace workspace)
     {
-      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
-      return _workspaceService.GetActiveWorkspaceByName(workspaceName);
+      var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
+      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
+
+      if (containerToFocus is Window)
+        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+      else
+      {
+        KeybdEvent(0, 0, 0, 0);
+        SetForegroundWindow(GetDesktopWindow());
+      }
     }
   }
 }

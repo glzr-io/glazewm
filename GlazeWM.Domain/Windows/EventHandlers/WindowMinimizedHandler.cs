@@ -4,10 +4,10 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.Logging;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -62,7 +62,11 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (focusTarget is Window)
         _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
       else if (focusTarget is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+      {
+        _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
+        KeybdEvent(0, 0, 0, 0);
+        SetForegroundWindow(GetDesktopWindow());
+      }
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
