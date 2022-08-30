@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -12,10 +13,12 @@ namespace GlazeWM.Domain.Monitors
   public class MonitorService
   {
     private readonly ContainerService _containerService;
+    private readonly UserConfigService _userConfigService;
 
-    public MonitorService(ContainerService containerService)
+    public MonitorService(ContainerService containerService, UserConfigService userConfigService)
     {
       _containerService = containerService;
+      _userConfigService = userConfigService;
     }
 
     /// <summary>
@@ -24,6 +27,12 @@ namespace GlazeWM.Domain.Monitors
     public IEnumerable<Monitor> GetMonitors()
     {
       return _containerService.ContainerTree.Children.Cast<Monitor>();
+    }
+
+    public Monitor GetMonitorForWorkspace(string workspace)
+    {
+      var monitorName = _userConfigService.UserConfig.Workspaces.FirstOrDefault(ws => ws.Name == workspace)?.BindToMonitor;
+      return GetMonitors().FirstOrDefault(m => m.DeviceName == monitorName);
     }
 
     public static Monitor GetMonitorFromChildContainer(Container container)

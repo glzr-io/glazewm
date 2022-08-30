@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Workspaces
       return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
     }
 
-    public IEnumerable<string> GetInactiveWorkspaceNames()
+    private IEnumerable<string> GetInactiveWorkspaceNames()
     {
       var activeWorkspaces = GetActiveWorkspaces();
 
@@ -46,7 +46,15 @@ namespace GlazeWM.Domain.Workspaces
     public string GetInactiveWorkspaceNameForMonitor(Monitor monitor)
     {
       return GetInactiveWorkspaceNames()
-        .FirstOrDefault(w => _userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w).BindToMonitor == monitor.DeviceName);
+        .FirstOrDefault(w =>
+          _userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w).BindToMonitor == monitor.DeviceName);
+    }
+
+    public IEnumerable<string> GetInactiveWorkspaceNamesNotDedicatedToAMonitor()
+    {
+      return GetInactiveWorkspaceNames()
+        .Where(w => string.IsNullOrWhiteSpace(_userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w)
+          .BindToMonitor));
     }
 
     public static Workspace GetWorkspaceFromChildContainer(Container container)

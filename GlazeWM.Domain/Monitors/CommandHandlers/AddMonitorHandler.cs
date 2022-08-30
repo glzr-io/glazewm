@@ -51,7 +51,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     {
       // Get name of first workspace that is not active for that specified monitor or any.
       var inactiveWorkspaceName = _workspaceService.GetInactiveWorkspaceNameForMonitor(monitor) ??
-                                  _workspaceService.GetInactiveWorkspaceNames().ElementAtOrDefault(0);
+                                  _workspaceService.GetInactiveWorkspaceNamesNotDedicatedToAMonitor().ElementAtOrDefault(0);
 
       if (inactiveWorkspaceName == null)
         throw new FatalUserException("At least 1 workspace is required per monitor.");
