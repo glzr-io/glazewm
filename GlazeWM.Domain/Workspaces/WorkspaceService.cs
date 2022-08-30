@@ -2,6 +2,7 @@
 using GlazeWM.Domain.UserConfigs;
 using System.Collections.Generic;
 using System.Linq;
+using GlazeWM.Domain.Monitors;
 
 namespace GlazeWM.Domain.Workspaces
 {
@@ -40,6 +41,12 @@ namespace GlazeWM.Domain.Workspaces
       );
 
       return inactiveWorkspaceConfigs.Select(config => config.Name);
+    }
+    
+    public string GetInactiveWorkspaceNameForMonitor(Monitor monitor)
+    {
+      return GetInactiveWorkspaceNames()
+        .FirstOrDefault(w => _userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w).BindToMonitor == monitor.DeviceName);
     }
 
     public static Workspace GetWorkspaceFromChildContainer(Container container)
