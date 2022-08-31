@@ -14,16 +14,19 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;
     private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
     public MoveWindowToWorkspaceHandler(
       Bus bus,
       WorkspaceService workspaceService,
-      ContainerService containerService
+      ContainerService containerService,
+      MonitorService monitorService
     )
     {
       _bus = bus;
       _workspaceService = workspaceService;
       _containerService = containerService;
+      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(MoveWindowToWorkspaceCommand command)
@@ -32,10 +35,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceName = command.WorkspaceName;
 
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
-      var currentMonitor = MonitorService.GetMonitorFromChildContainer(currentWorkspace);
+      // Make sure workspace opens on the appropriate monitor
+      var targetMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? MonitorService.GetMonitorFromChildContainer(currentWorkspace);
 
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
-        ?? ActivateWorkspace(workspaceName, currentMonitor);
+        ?? ActivateWorkspace(workspaceName, targetMonitor);
 
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.
