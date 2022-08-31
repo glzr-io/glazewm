@@ -36,10 +36,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
       // Make sure workspace opens on the appropriate monitor
-      var currentMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? MonitorService.GetMonitorFromChildContainer(currentWorkspace);
+      var targetMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? MonitorService.GetMonitorFromChildContainer(currentWorkspace);
 
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
-        ?? ActivateWorkspace(workspaceName, currentMonitor);
+        ?? ActivateWorkspace(workspaceName, targetMonitor);
 
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.

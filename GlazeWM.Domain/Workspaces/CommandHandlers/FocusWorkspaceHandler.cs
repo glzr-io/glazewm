@@ -92,8 +92,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     /// </summary>
     private Workspace ActivateWorkspace(string workspaceName)
     {
-      var focusedMonitor = _monitorService.GetFocusedMonitor();
-      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, focusedMonitor));
+      var targetMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? _monitorService.GetFocusedMonitor();
+      _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
 
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }

@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Workspaces
       return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
     }
 
-    private IEnumerable<string> GetInactiveWorkspaceNames()
+    public IEnumerable<string> GetInactiveWorkspaceNames()
     {
       var activeWorkspaces = GetActiveWorkspaces();
 
