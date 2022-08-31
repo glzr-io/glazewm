@@ -13,10 +13,15 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Path to the user's config file.
     /// </summary>
-    public string UserConfigPath = Path.Combine(
-      Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-      "./.glaze-wm/config.yaml"
-    );
+    public string UserConfigPath
+    {
+      get
+      {
+        var args = Environment.GetCommandLineArgs();
+        // argument 0 is the programs path
+        return args.Length > 1 ? args[1] : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "./.glaze-wm/config.yaml");
+      }
+    } 
 
     public readonly List<WindowRuleConfig> DefaultWindowRules = GetDefaultWindowRules();
 
