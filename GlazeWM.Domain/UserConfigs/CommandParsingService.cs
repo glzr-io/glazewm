@@ -5,6 +5,7 @@ using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
@@ -60,9 +61,11 @@ namespace GlazeWM.Domain.UserConfigs
         "close" => subjectContainer is Window
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "reload" => ParseReloadCommand(commandParts),
         "start" => new StartProcessCommand(
           commandParts[1],
-          commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()),
+          commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()
+        ),
         // TODO: Temporary hack to avoid errors during `ValidateCommand`.
         "ignore" => new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandString)),
@@ -177,6 +180,15 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "wm" => new ExitApplicationCommand(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private static Command ParseReloadCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        "config" => new ReloadUserConfigCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
