@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
@@ -44,14 +43,57 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
     public CommandResponse Handle(PopulateInitialStateCommand command)
     {
-      var recoveryCache = _recoveryCacheService.GetRecoveryCache();
+      var acceptCacheRestore = command.AcceptCacheRestore;
 
-      if (recoveryCache?.IsValid() == true && command.AcceptCacheRestore)
-        PopulateWithCache(recoveryCache);
+      // Read user config file and set its values in state.
+      _bus.Invoke(new EvaluateUserConfigCommand());
 
-      PopulateWithoutCache();
+      PopulateContainerState(acceptCacheRestore);
+
+      // Register appbar windows.
+      foreach (var windowHandle in WindowService.GetAllWindowHandles())
+        if (_windowService.IsHandleAppBar(windowHandle))
+          _windowService.AppBarHandles.Add(windowHandle);
+
+      _bus.Invoke(new RedrawContainersCommand());
+
+      // Get the originally focused window when the WM is started.
+      var focusedWindow =
+        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == GetForegroundWindow());
+
+      if (focusedWindow is not null)
+      {
+        _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
+        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+        return CommandResponse.Ok;
+      }
+
+      // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
+      // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
+      // an arbitrary workspace.
+      var containerToFocus =
+        _windowService.GetWindows().FirstOrDefault() as Container
+        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault();
+
+      if (containerToFocus is Window)
+        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
+      else if (containerToFocus is Workspace)
+        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
 
       return CommandResponse.Ok;
+    }
+
+    private void PopulateContainerState(bool acceptCacheRestore)
+    {
+      var recoveryCache = _recoveryCacheService.GetRecoveryCache();
+
+      if (recoveryCache?.IsValid() == true && acceptCacheRestore)
+      {
+        PopulateContainersWithCache(recoveryCache);
+        return;
+      }
+
+      PopulateContainersWithoutCache();
     }
 
     private Container GetAdjustedContainerTree(RecoveryCache recoveryCache)
@@ -62,10 +104,8 @@ namespace GlazeWM.Domain.Common.CommandHandlers
       return null;
     }
 
-    private void PopulateWithCache(RecoveryCache recoveryCache)
+    private void PopulateContainersWithCache(RecoveryCache recoveryCache)
     {
-      _bus.Invoke(new EvaluateUserConfigCommand());
-
       var cachedTree = recoveryCache.ContainerTree;
       var cachedWorkspaces = cachedTree.Descendants.OfType<Workspace>();
 
@@ -125,26 +165,18 @@ namespace GlazeWM.Domain.Common.CommandHandlers
       }
     }
 
-    private void PopulateWithoutCache()
+    private void PopulateContainersWithoutCache()
     {
-      // Read user config file and set its values in state.
-      _bus.Invoke(new EvaluateUserConfigCommand());
-
       // Create a Monitor and consequently a Workspace for each detected Screen. `AllScreens` is an
       // abstraction over `EnumDisplayMonitors` native method.
       foreach (var screen in System.Windows.Forms.Screen.AllScreens)
         _bus.Invoke(new AddMonitorCommand(screen));
 
       // Add initial windows to the tree.
+      // TODO: Copy all the below over to populate with cache method, but filter out window handles
+      // that have already been added to state.
       foreach (var windowHandle in WindowService.GetAllWindowHandles())
       {
-        // Register appbar windows.
-        if (_windowService.IsHandleAppBar(windowHandle))
-        {
-          _windowService.AppBarHandles.Add(windowHandle);
-          continue;
-        }
-
         if (!WindowService.IsHandleManageable(windowHandle))
           continue;
 
@@ -154,31 +186,6 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
         _bus.Invoke(new AddWindowCommand(windowHandle, targetWorkspace, false));
       }
-
-      _bus.Invoke(new RedrawContainersCommand());
-
-      // Get the originally focused window when the WM is started.
-      var focusedWindow =
-        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == GetForegroundWindow());
-
-      if (focusedWindow != null)
-      {
-        _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
-        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
-        return;
-      }
-
-      // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
-      // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
-      // an arbitrary workspace.
-      var containerToFocus =
-        _windowService.GetWindows().FirstOrDefault() as Container
-        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault();
-
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-      else if (containerToFocus is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
     }
   }
 }
