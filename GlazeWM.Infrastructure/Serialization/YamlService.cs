@@ -25,7 +25,7 @@ namespace GlazeWM.Infrastructure.Serialization
       var yamlObject = _yamlDeserializer.Deserialize(new StringReader(input));
 
       // Convert key-value pairs into a JSON string.
-      var jsonString = _jsonService.Serialize(yamlObject, converters);
+      var jsonString = _jsonService.Serialize(yamlObject, new List<JsonConverter>());
 
       return _jsonService.Deserialize<T>(jsonString, converters);
     }

@@ -15,7 +15,9 @@ namespace GlazeWM.Infrastructure.Serialization
       IncludeFields = true,
       Converters = {
         // Enable strings to be mapped to a C# enum (eg. `BarPosition` enum).
-        new JsonStringEnumConverter()
+        new JsonStringEnumConverter(),
+        // Enable boolean strings to be mapped to a C# bool (eg. `"true"` -> `true`).
+        new JsonStringBoolConverter(),
       }
     };
 
