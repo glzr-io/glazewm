@@ -7,9 +7,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
+using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Bootstrapper
 {
@@ -21,7 +23,7 @@ namespace GlazeWM.Bootstrapper
     ///  The main entry point for the application.
     /// </summary>
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
       Debug.WriteLine("Application started.");
 
@@ -35,7 +37,7 @@ namespace GlazeWM.Bootstrapper
         return;
       }
 
-      var host = CreateHost();
+      var host = CreateHost(args);
       ServiceLocator.Provider = host.Services;
 
       var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
@@ -43,9 +45,16 @@ namespace GlazeWM.Bootstrapper
       Application.Run();
     }
 
-    private static IHost CreateHost()
+    private static IHost CreateHost(string[] args)
     {
       return Host.CreateDefaultBuilder()
+        .ConfigureAppConfiguration(appConfig =>
+        {
+          appConfig.AddCommandLine(args, new Dictionary<string, string>
+          {
+            {"--config", "UserConfigPath"}
+          });
+        })
         .ConfigureServices((_, services) =>
         {
           services.AddInfrastructureServices();

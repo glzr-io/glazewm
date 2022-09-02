@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private static void InitializeSampleUserConfig(string userConfigPath)
     {
       // Fix any inconsistencies in directory delimiters.
-      var normalizedUserConfigPath = Path.GetFullPath(new Uri(userConfigPath).LocalPath);
+      var normalizedUserConfigPath = new FileInfo(userConfigPath).FullName;
 
       var promptResult = MessageBox.Show(
         $"No config file found at {normalizedUserConfigPath}. Create a new config file from the starter template?",
