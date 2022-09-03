@@ -232,6 +232,23 @@ window_rules:
     match_process_name: "notepad"
 ```
 
+# Commands
+
+* layout vertical/horizontal
+* focus left/right/up/down
+* focus workspace \<number>
+* move left/right/up/down
+* move to workspace \<number>
+* resize height/width \<amount>
+* resize borders [\<shorthand property>](#shorthand-properties)
+* set floating/minimized/maximized
+* toggle floating/maximized
+* toggle focus mode
+* exit wm
+* close
+* start \<console command>
+* ignore
+
 # Known issues
 
 ## Blurry buttons in bar window
