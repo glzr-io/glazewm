@@ -36,6 +36,8 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, it can optionally be generated with some sensible defaults on application launch.
 
+Additionally to that if you want to pick a different config file location, you can start GlazeWM with `--config path/to/config.yaml` and it'll use that file instead. (Or create it if it doesn't exist).
+
 ## Keybindings
 
 The available keybindings can be customized via the `keybindings` property in the config file. A keybinding consists of one or more key combinations and one or more commands to run when pressed.
@@ -97,6 +99,9 @@ workspaces:
 
     # Optional override for the workspace label in the bar. Does not need to be unique.
     display_name: "Work"
+
+    # Optional force the workspace on a specific monitor (Based on the display settings ID)
+    bind_to_monitor: 1 # (Or \\.\DISPLAY1)
 ```
 
 ## Bar configuration
@@ -204,7 +209,7 @@ Using the example of padding:
 
 ## Window rules
 
-Commands can be run when a window is initally launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.
+Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.
 
 Multiple matching criteria can be used together to target a window more precisely. Regex syntax can also be used by wrapping the pattern with `/` (eg. `/notepad|chrome/`)
 
