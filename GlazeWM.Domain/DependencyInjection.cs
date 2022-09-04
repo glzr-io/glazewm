@@ -1,4 +1,5 @@
-﻿﻿using GlazeWM.Domain.Common.CommandHandlers;
+﻿﻿using GlazeWM.Domain.Common;
+using GlazeWM.Domain.Common.CommandHandlers;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;
@@ -27,6 +28,7 @@ namespace GlazeWM.Domain
   {
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
+      services.AddSingleton<RecoveryCacheService>();
       services.AddSingleton<ContainerService>();
       services.AddSingleton<MonitorService>();
       services.AddSingleton<CommandParsingService>();
@@ -73,6 +75,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
+      services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
