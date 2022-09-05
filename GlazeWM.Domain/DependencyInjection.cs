@@ -28,7 +28,6 @@ namespace GlazeWM.Domain
   {
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-      services.AddSingleton<RecoveryCacheService>();
       services.AddSingleton<ContainerService>();
       services.AddSingleton<MonitorService>();
       services.AddSingleton<CommandParsingService>();
@@ -36,7 +35,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
 
-      services.AddSingleton<ICommandHandler<CreateRecoveryCacheCommand>, CreateRecoveryCacheHandler>();
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
       services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
       services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();

@@ -19,31 +19,26 @@ namespace GlazeWM.Domain.Common.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
-    private readonly RecoveryCacheService _recoveryCacheService;
     private readonly WindowService _windowService;
     private readonly WorkspaceService _workspaceService;
 
     public PopulateInitialStateHandler(Bus bus,
       MonitorService monitorService,
-      RecoveryCacheService recoveryCacheService,
       WindowService windowService,
       WorkspaceService workspaceService)
     {
       _bus = bus;
       _monitorService = monitorService;
-      _recoveryCacheService = recoveryCacheService;
       _windowService = windowService;
       _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(PopulateInitialStateCommand command)
     {
-      var acceptCacheRestore = command.AcceptCacheRestore;
-
       // Read user config file and set its values in state.
       _bus.Invoke(new EvaluateUserConfigCommand());
 
-      PopulateContainerState(acceptCacheRestore);
+      PopulateContainerTree();
 
       // Register appbar windows.
       foreach (var windowHandle in WindowService.GetAllWindowHandles())
@@ -78,24 +73,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void PopulateContainerState(bool acceptCacheRestore)
-    {
-      var recoveryCache = _recoveryCacheService.GetRecoveryCache();
-
-      if (recoveryCache?.IsValid() == true && acceptCacheRestore)
-      {
-        PopulateContainersWithCache(recoveryCache);
-        return;
-      }
-
-      PopulateContainersWithoutCache();
-    }
-
-    private void PopulateContainersWithCache(RecoveryCache recoveryCache)
-    {
-    }
-
-    private void PopulateContainersWithoutCache()
+    private void PopulateContainerTree()
     {
       // Create a Monitor and consequently a Workspace for each detected Screen. `AllScreens` is an
       // abstraction over `EnumDisplayMonitors` native method.
