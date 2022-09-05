@@ -19,6 +19,7 @@
         <Button
           x:Name="WorkspaceButton"
           Content="{Binding DisplayName}"
+          VerticalAlignment="Center"
           Command="{Binding DataContext.FocusWorkspaceCommand, ElementName=_workspacesComponent}"
           CommandParameter="{Binding Name}"
           Background="{Binding DataContext.DefaultWorkspaceBackground, ElementName=_workspacesComponent}"
