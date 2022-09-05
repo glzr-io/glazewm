@@ -1,4 +1,6 @@
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
+using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using System.Reactive.Linq;
 using System;
@@ -13,19 +15,24 @@ namespace GlazeWM.Bar
   public class BarService
   {
     private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
     private Application _application;
     private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName = new();
 
-    public BarService(Bus bus)
+    public BarService(Bus bus, MonitorService monitorService)
     {
       _bus = bus;
+      _monitorService = monitorService;
     }
 
     public void StartApp()
     {
       var thread = new Thread(() =>
       {
-        _application = new Application();
+        _application = new()
+        {
+          ShutdownMode = ShutdownMode.OnExplicitShutdown
+        };
 
         // Launch the bar window on the added monitor.
         _bus.Events.OfType<MonitorAddedEvent>()
@@ -33,6 +40,9 @@ namespace GlazeWM.Bar
 
         _bus.Events.OfType<MonitorRemovedEvent>()
           .Subscribe((@event) => CloseWindow(@event.RemovedDeviceName));
+
+        _bus.Events.OfType<UserConfigReloadedEvent>()
+          .Subscribe((_) => RestartApp());
 
         _application.Run();
       })
@@ -48,7 +58,16 @@ namespace GlazeWM.Bar
       _application.Dispatcher.Invoke(() => _application.Shutdown());
     }
 
-    public void ShowWindow(Domain.Monitors.Monitor addedMonitor)
+    private void RestartApp()
+    {
+      foreach (var deviceName in _activeWindowsByDeviceName.Keys.ToList())
+        CloseWindow(deviceName);
+
+      foreach (var monitor in _monitorService.GetMonitors())
+        ShowWindow(monitor);
+    }
+
+    public void ShowWindow(Domain.Monitors.Monitor targetMonitor)
     {
       _application.Dispatcher.Invoke(() =>
       {
@@ -56,7 +75,7 @@ namespace GlazeWM.Bar
 
         var barViewModel = new BarViewModel()
         {
-          Monitor = addedMonitor,
+          Monitor = targetMonitor,
           Dispatcher = _application.Dispatcher,
         };
 
@@ -64,7 +83,7 @@ namespace GlazeWM.Bar
         barWindow.Show();
 
         // Store active window.
-        _activeWindowsByDeviceName[addedMonitor.DeviceName] = barWindow;
+        _activeWindowsByDeviceName[targetMonitor.DeviceName] = barWindow;
 
         // Reset focus to whichever window was focused before the bar window was launched.
         SetForegroundWindow(originalFocusedHandle);
