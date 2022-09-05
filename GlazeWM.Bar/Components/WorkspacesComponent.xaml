@@ -19,6 +19,7 @@
         <Button
           x:Name="WorkspaceButton"
           Content="{Binding DisplayName}"
+          VerticalAlignment="Center"
           Command="{Binding DataContext.FocusWorkspaceCommand, ElementName=_workspacesComponent}"
           CommandParameter="{Binding Name}"
           Background="{Binding DataContext.DefaultWorkspaceBackground, ElementName=_workspacesComponent}"
@@ -28,8 +29,8 @@
           FontWeight="{Binding DataContext.FontWeight, ElementName=_workspacesComponent}"
           FontSize="{Binding DataContext.FontSize, ElementName=_workspacesComponent}"
           BorderThickness="{Binding DataContext.DefaultWorkspaceBorderWidth, ElementName=_workspacesComponent}"
-          MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
-          MinHeight="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"
+          MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"
+          MinHeight="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"
           Cursor="Hand" />
 
         <DataTemplate.Triggers>
