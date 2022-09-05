@@ -28,6 +28,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
     public CommandResponse Handle(RegisterKeybindingsCommand command)
     {
+      _keybindingService.Reset();
+
       foreach (var keybindingConfig in command.Keybindings)
       {
         // Format command strings defined in keybinding config.
