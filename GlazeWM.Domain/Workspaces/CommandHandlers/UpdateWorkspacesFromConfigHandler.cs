@@ -44,14 +44,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
           if (inactiveWorkspaceName is null)
             throw new FatalUserException("At least 1 workspace is required per monitor.");
 
-          // Assign the workspace to the newly added monitor.
-          // _bus.Invoke(new DeactivateWorkspaceCommand(workspace));
-          // _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceName, monitor));
-          // var newWorkspace = _workspaceService.GetActiveWorkspaceByName(inactiveWorkspaceName);
-
-          // newWorkspace.ChildFocusOrder = workspace.ChildFocusOrder;
-          // newWorkspace.Children = workspace.Children;
-
           var inactiveWorkspaceConfig =
             _userConfigService.GetWorkspaceConfigByName(inactiveWorkspaceName);
 
