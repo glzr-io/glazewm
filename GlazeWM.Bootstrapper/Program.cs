@@ -40,7 +40,7 @@ namespace GlazeWM.Bootstrapper
       ServiceLocator.Provider = host.Services;
 
       var startup = ServiceLocator.Provider.GetRequiredService<Startup>();
-      startup.Run(new StartOptions { AcceptCacheRestore = false });
+      startup.Run();
     }
 
     private static IHost CreateHost(string[] args)
