@@ -28,43 +28,11 @@ namespace GlazeWM.Bar
         _application = new Application();
 
         // Launch the bar window on the added monitor.
-        _bus.Events.Where(@event => @event is MonitorAddedEvent)
-          .Subscribe((@event) =>
-          {
-            _application.Dispatcher.Invoke(() =>
-            {
-              var addedMonitor = (@event as MonitorAddedEvent).AddedMonitor;
-              var originalFocusedHandle = GetForegroundWindow();
+        _bus.Events.OfType<MonitorAddedEvent>()
+          .Subscribe((@event) => ShowWindow(@event.AddedMonitor));
 
-              var barViewModel = new BarViewModel()
-              {
-                Monitor = addedMonitor,
-                Dispatcher = _application.Dispatcher,
-              };
-
-              var barWindow = new MainWindow(barViewModel);
-              barWindow.Show();
-
-              // Store active window.
-              _activeWindowsByDeviceName[addedMonitor.DeviceName] = barWindow;
-
-              // Reset focus to whichever window was focused before the bar window was launched.
-              SetForegroundWindow(originalFocusedHandle);
-            });
-          });
-
-        _bus.Events.Where(@event => @event is MonitorRemovedEvent)
-          .Subscribe((@event) =>
-          {
-            _application.Dispatcher.Invoke(() =>
-            {
-              var deviceName = (@event as MonitorRemovedEvent).RemovedDeviceName;
-
-              // Kill the corresponding bar window.
-              var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
-              barWindow.Close();
-            });
-          });
+        _bus.Events.OfType<MonitorRemovedEvent>()
+          .Subscribe((@event) => CloseWindow(@event.RemovedDeviceName));
 
         _application.Run();
       })
@@ -78,6 +46,39 @@ namespace GlazeWM.Bar
     public void ExitApp()
     {
       _application.Dispatcher.Invoke(() => _application.Shutdown());
+    }
+
+    public void ShowWindow(Domain.Monitors.Monitor addedMonitor)
+    {
+      _application.Dispatcher.Invoke(() =>
+      {
+        var originalFocusedHandle = GetForegroundWindow();
+
+        var barViewModel = new BarViewModel()
+        {
+          Monitor = addedMonitor,
+          Dispatcher = _application.Dispatcher,
+        };
+
+        var barWindow = new MainWindow(barViewModel);
+        barWindow.Show();
+
+        // Store active window.
+        _activeWindowsByDeviceName[addedMonitor.DeviceName] = barWindow;
+
+        // Reset focus to whichever window was focused before the bar window was launched.
+        SetForegroundWindow(originalFocusedHandle);
+      });
+    }
+
+    private void CloseWindow(string deviceName)
+    {
+      _application.Dispatcher.Invoke(() =>
+      {
+        // Kill the corresponding bar window.
+        var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
+        barWindow.Close();
+      });
     }
 
     /// <summary>
