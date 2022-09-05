@@ -70,6 +70,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _keybindingsByTriggerKey.Add(triggerKey, new List<Keybinding>() { keybinding });
     }
 
+    public void Reset()
+    {
+      _keybindingsByTriggerKey.Clear();
+    }
+
     private static string FormatKeybinding(string key)
     {
       var isNumeric = int.TryParse(key, out var _);
