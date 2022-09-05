@@ -22,12 +22,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var borderDelta = command.BorderDelta;
       var windowToResize = command.WindowToResize;
 
-      // Adjust the existing border delta of the window.
+      // Set the new border delta of the window.
       windowToResize.BorderDelta = new RectDelta(
-        windowToResize.BorderDelta.DeltaLeft + borderDelta.DeltaLeft,
-        windowToResize.BorderDelta.DeltaTop + borderDelta.DeltaTop,
-        windowToResize.BorderDelta.DeltaRight + borderDelta.DeltaRight,
-        windowToResize.BorderDelta.DeltaBottom + borderDelta.DeltaBottom
+        borderDelta.DeltaLeft,
+        borderDelta.DeltaTop,
+        borderDelta.DeltaRight,
+        borderDelta.DeltaBottom
       );
 
       if (windowToResize is not TilingWindow)
