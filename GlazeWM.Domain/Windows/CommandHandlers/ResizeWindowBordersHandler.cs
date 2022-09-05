@@ -22,18 +22,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var borderDelta = command.BorderDelta;
       var windowToResize = command.WindowToResize;
 
-      // Adjust the existing border delta of the window.
+      // Set the new border delta of the window.
+      // TODO: Move default border delta into some sort of shared state.
+      var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
       windowToResize.BorderDelta = new RectDelta(
-        windowToResize.BorderDelta.DeltaLeft + borderDelta.DeltaLeft,
-        windowToResize.BorderDelta.DeltaTop + borderDelta.DeltaTop,
-        windowToResize.BorderDelta.DeltaRight + borderDelta.DeltaRight,
-        windowToResize.BorderDelta.DeltaBottom + borderDelta.DeltaBottom
+        defaultBorderDelta.DeltaLeft + borderDelta.DeltaLeft,
+        defaultBorderDelta.DeltaTop + borderDelta.DeltaTop,
+        defaultBorderDelta.DeltaRight + borderDelta.DeltaRight,
+        defaultBorderDelta.DeltaBottom + borderDelta.DeltaBottom
       );
 
+      // No need to redraw if window isn't tiling.
       if (windowToResize is not TilingWindow)
         return CommandResponse.Ok;
 
-      // Only redraw the window if it's tiling.
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
 

@@ -1,4 +1,5 @@
-﻿﻿using GlazeWM.Domain.Common.CommandHandlers;
+﻿﻿using GlazeWM.Domain.Common;
+using GlazeWM.Domain.Common.CommandHandlers;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;
@@ -35,6 +36,8 @@ namespace GlazeWM.Domain
       services.AddSingleton<WorkspaceService>();
 
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
+      services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
+      services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
@@ -52,6 +55,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<RemoveMonitorCommand>, RemoveMonitorHandler>();
       services.AddSingleton<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
+      services.AddSingleton<ICommandHandler<ReloadUserConfigCommand>, ReloadUserConfigHandler>();
       services.AddSingleton<ICommandHandler<AddWindowCommand>, AddWindowHandler>();
       services.AddSingleton<ICommandHandler<CloseWindowCommand>, CloseWindowHandler>();
       services.AddSingleton<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
@@ -69,7 +73,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
-      services.AddSingleton<ICommandHandler<StartProcessCommand>, StartProcessHandler>();
+      services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();

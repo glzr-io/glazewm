@@ -1,4 +1,6 @@
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
+using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using System.Reactive.Linq;
 using System;
@@ -13,58 +15,34 @@ namespace GlazeWM.Bar
   public class BarService
   {
     private readonly Bus _bus;
+    private readonly MonitorService _monitorService;
     private Application _application;
     private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName = new();
 
-    public BarService(Bus bus)
+    public BarService(Bus bus, MonitorService monitorService)
     {
       _bus = bus;
+      _monitorService = monitorService;
     }
 
     public void StartApp()
     {
       var thread = new Thread(() =>
       {
-        _application = new Application();
+        _application = new()
+        {
+          ShutdownMode = ShutdownMode.OnExplicitShutdown
+        };
 
         // Launch the bar window on the added monitor.
-        _bus.Events.Where(@event => @event is MonitorAddedEvent)
-          .Subscribe((@event) =>
-          {
-            _application.Dispatcher.Invoke(() =>
-            {
-              var addedMonitor = (@event as MonitorAddedEvent).AddedMonitor;
-              var originalFocusedHandle = GetForegroundWindow();
+        _bus.Events.OfType<MonitorAddedEvent>()
+          .Subscribe((@event) => ShowWindow(@event.AddedMonitor));
 
-              var barViewModel = new BarViewModel()
-              {
-                Monitor = addedMonitor,
-                Dispatcher = _application.Dispatcher,
-              };
+        _bus.Events.OfType<MonitorRemovedEvent>()
+          .Subscribe((@event) => CloseWindow(@event.RemovedDeviceName));
 
-              var barWindow = new MainWindow(barViewModel);
-              barWindow.Show();
-
-              // Store active window.
-              _activeWindowsByDeviceName[addedMonitor.DeviceName] = barWindow;
-
-              // Reset focus to whichever window was focused before the bar window was launched.
-              SetForegroundWindow(originalFocusedHandle);
-            });
-          });
-
-        _bus.Events.Where(@event => @event is MonitorRemovedEvent)
-          .Subscribe((@event) =>
-          {
-            _application.Dispatcher.Invoke(() =>
-            {
-              var deviceName = (@event as MonitorRemovedEvent).RemovedDeviceName;
-
-              // Kill the corresponding bar window.
-              var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
-              barWindow.Close();
-            });
-          });
+        _bus.Events.OfType<UserConfigReloadedEvent>()
+          .Subscribe((_) => RestartApp());
 
         _application.Run();
       })
@@ -78,6 +56,48 @@ namespace GlazeWM.Bar
     public void ExitApp()
     {
       _application.Dispatcher.Invoke(() => _application.Shutdown());
+    }
+
+    private void RestartApp()
+    {
+      foreach (var deviceName in _activeWindowsByDeviceName.Keys.ToList())
+        CloseWindow(deviceName);
+
+      foreach (var monitor in _monitorService.GetMonitors())
+        ShowWindow(monitor);
+    }
+
+    public void ShowWindow(Domain.Monitors.Monitor targetMonitor)
+    {
+      _application.Dispatcher.Invoke(() =>
+      {
+        var originalFocusedHandle = GetForegroundWindow();
+
+        var barViewModel = new BarViewModel()
+        {
+          Monitor = targetMonitor,
+          Dispatcher = _application.Dispatcher,
+        };
+
+        var barWindow = new MainWindow(barViewModel);
+        barWindow.Show();
+
+        // Store active window.
+        _activeWindowsByDeviceName[targetMonitor.DeviceName] = barWindow;
+
+        // Reset focus to whichever window was focused before the bar window was launched.
+        SetForegroundWindow(originalFocusedHandle);
+      });
+    }
+
+    private void CloseWindow(string deviceName)
+    {
+      _application.Dispatcher.Invoke(() =>
+      {
+        // Kill the corresponding bar window.
+        var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
+        barWindow.Close();
+      });
     }
 
     /// <summary>
