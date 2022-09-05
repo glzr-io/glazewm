@@ -100,7 +100,7 @@ workspaces:
     # Optional override for the workspace label in the bar. Does not need to be unique.
     display_name: "Work"
 
-    # Optional force the workspace on a specific monitor (Based on the display settings ID)
+    # Optional force the workspace on a specific monitor if it exists (Based on the display settings ID), or falls back to an arbitrary monitor if it doesn't.
     bind_to_monitor: 1 # (Or \\.\DISPLAY1)
 ```
 
@@ -236,9 +236,9 @@ window_rules:
 
 * layout vertical/horizontal
 * focus left/right/up/down
-* focus workspace \<number>
+* focus workspace \<workspace_name>
 * move left/right/up/down
-* move to workspace \<number>
+* move to workspace \<workspace_name>
 * resize height/width \<amount>
 * resize borders [\<shorthand property>](#shorthand-properties)
 * set floating/minimized/maximized
