@@ -32,8 +32,8 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
       // Avoid moving empty workspaces.
       var workspacesToMove = monitorToRemove.Children
-        .Where(workspace => workspace.HasChildren())
-        .Cast<Workspace>();
+        .Cast<Workspace>()
+        .Where(workspace => workspace.HasChildren() || workspace.KeepAlive);
 
       foreach (var workspace in workspacesToMove.ToList())
       {
