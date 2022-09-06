@@ -38,6 +38,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
       // Read user config file and set its values in state.
       _bus.Invoke(new EvaluateUserConfigCommand());
 
+      var focusedHandle = GetForegroundWindow();
       PopulateContainerTree();
 
       // Register appbar windows.
@@ -49,21 +50,18 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
       // Get the originally focused window when the WM is started.
       var focusedWindow =
-        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == GetForegroundWindow());
-
-      if (focusedWindow is not null)
-      {
-        _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
-        _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
-        return CommandResponse.Ok;
-      }
+        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == focusedHandle);
 
       // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
       // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to
       // an arbitrary workspace.
       var containerToFocus =
-        _windowService.GetWindows().FirstOrDefault() as Container
-        ?? _workspaceService.GetActiveWorkspaces().FirstOrDefault();
+        focusedWindow ??
+        _windowService.GetWindows().FirstOrDefault() ??
+        _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
+
+      _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
+      _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
 
       if (containerToFocus is Window)
         _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
