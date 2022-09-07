@@ -202,6 +202,21 @@ namespace GlazeWM.Domain.UserConfigs
       return workspaceConfig is not null;
     }
 
+    // TODO: Either create method `ParseExecCommand`, which directly returns a `Command` instance,
+    // or alternatively create separate methods `ExtractProcessName()` and `ExtractProcessArgs`.
+    public static (string, string[]) ParseProcessNameAndArgs(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+
+      var processName = hasSingleQuotes
+        ? processNameAndArgs.Split("'")[1]
+        : processNameAndArgs.Split(" ")[0];
+
+      var arguments = processNameAndArgs.Replace($"{processName} ", "").Split(" ");
+
+      return (processName, arguments);
+    }
+
     private static RectDelta ShorthandToRectDelta(string shorthand)
     {
       var shorthandParts = shorthand.Split(" ")
