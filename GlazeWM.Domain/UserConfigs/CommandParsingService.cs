@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
@@ -62,7 +62,7 @@ namespace GlazeWM.Domain.UserConfigs
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
         "reload" => ParseReloadCommand(commandParts),
-        "start" => new StartProcessCommand(
+        "exec" => new ExecProcessCommand(
           commandParts[1],
           commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()
         ),

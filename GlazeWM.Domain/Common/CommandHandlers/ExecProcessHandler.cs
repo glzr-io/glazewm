@@ -4,9 +4,9 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Common.CommandHandlers
 {
-  public class StartProcessHandler : ICommandHandler<StartProcessCommand>
+  public class ExecProcessHandler : ICommandHandler<ExecProcessCommand>
   {
-    public CommandResponse Handle(StartProcessCommand command)
+    public CommandResponse Handle(ExecProcessCommand command)
     {
       using var process = new Process();
       process.StartInfo = new ProcessStartInfo
