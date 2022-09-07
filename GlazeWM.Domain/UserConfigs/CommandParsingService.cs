@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
@@ -28,9 +29,29 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string FormatCommand(string commandString)
     {
-      var formattedCommandString = commandString.Trim().ToLowerInvariant();
+      var trimmedCommandString = commandString.Trim().ToLowerInvariant();
+
       var multipleSpacesRegex = new Regex(@"\s+");
-      return multipleSpacesRegex.Replace(formattedCommandString, " ");
+      var formattedCommandString = multipleSpacesRegex.Replace(trimmedCommandString, " ");
+
+      var caseSensitiveCommandRegex = new List<Regex>
+      {
+        new Regex("^(exec).*", RegexOptions.IgnoreCase),
+      };
+
+      // Some commands are partially case-sensitive (eg. `exec ...`). To handle such cases, only
+      // format part of the command string to be lowercase.
+      foreach (var regex in caseSensitiveCommandRegex)
+      {
+        if (regex.IsMatch(formattedCommandString))
+        {
+          return regex.Replace(formattedCommandString, (Match match) =>
+            match.Value.ToLowerInvariant()
+          );
+        }
+      }
+
+      return formattedCommandString.ToLowerInvariant();
     }
 
     public void ValidateCommand(string commandString)
