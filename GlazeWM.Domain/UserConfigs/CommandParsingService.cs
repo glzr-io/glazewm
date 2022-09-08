@@ -235,13 +235,13 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static List<string> ExtractProcessArgs(string processNameAndArgs)
     {
-      var processName = ExtractProcessName(processNameAndArgs);
+      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
 
-      return processNameAndArgs
-        .Replace($"{processName} ", "")
-        .Split(" ")
-        .Where(arg => !string.IsNullOrWhiteSpace(arg))
-        .ToList();
+      var args = hasSingleQuotes
+        ? processNameAndArgs.Split("'")[2..]
+        : processNameAndArgs.Split(" ")[1..];
+
+      return args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
     }
 
     private static RectDelta ShorthandToRectDelta(string shorthand)
