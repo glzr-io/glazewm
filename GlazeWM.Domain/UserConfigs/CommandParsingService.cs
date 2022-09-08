@@ -84,8 +84,8 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "reload" => ParseReloadCommand(commandParts),
         "exec" => new ExecProcessCommand(
-          commandParts[1],
-          commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()
+          ExtractProcessName(string.Join(" ", commandParts[1..])),
+          ExtractProcessArgs(string.Join(" ", commandParts[1..]))
         ),
         // TODO: Temporary hack to avoid errors during `ValidateCommand`.
         "ignore" => new NoopCommand(),
@@ -220,22 +220,28 @@ namespace GlazeWM.Domain.UserConfigs
     private bool IsValidWorkspace(string workspaceName)
     {
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
+
       return workspaceConfig is not null;
     }
 
-    // TODO: Either create method `ParseExecCommand`, which directly returns a `Command` instance,
-    // or alternatively create separate methods `ExtractProcessName()` and `ExtractProcessArgs`.
-    public static (string, string[]) ParseProcessNameAndArgs(string processNameAndArgs)
+    public static string ExtractProcessName(string processNameAndArgs)
     {
       var hasSingleQuotes = processNameAndArgs.StartsWith("'");
 
-      var processName = hasSingleQuotes
+      return hasSingleQuotes
         ? processNameAndArgs.Split("'")[1]
         : processNameAndArgs.Split(" ")[0];
+    }
 
-      var arguments = processNameAndArgs.Replace($"{processName} ", "").Split(" ");
+    public static List<string> ExtractProcessArgs(string processNameAndArgs)
+    {
+      var processName = ExtractProcessName(processNameAndArgs);
 
-      return (processName, arguments);
+      return processNameAndArgs
+        .Replace($"{processName} ", "")
+        .Split(" ")
+        .Where(arg => !string.IsNullOrWhiteSpace(arg))
+        .ToList();
     }
 
     private static RectDelta ShorthandToRectDelta(string shorthand)
