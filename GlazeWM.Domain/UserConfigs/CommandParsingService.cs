@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
@@ -28,9 +29,29 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string FormatCommand(string commandString)
     {
-      var formattedCommandString = commandString.Trim().ToLowerInvariant();
+      var trimmedCommandString = commandString.Trim().ToLowerInvariant();
+
       var multipleSpacesRegex = new Regex(@"\s+");
-      return multipleSpacesRegex.Replace(formattedCommandString, " ");
+      var formattedCommandString = multipleSpacesRegex.Replace(trimmedCommandString, " ");
+
+      var caseSensitiveCommandRegex = new List<Regex>
+      {
+        new Regex("^(exec).*", RegexOptions.IgnoreCase),
+      };
+
+      // Some commands are partially case-sensitive (eg. `exec ...`). To handle such cases, only
+      // format part of the command string to be lowercase.
+      foreach (var regex in caseSensitiveCommandRegex)
+      {
+        if (regex.IsMatch(formattedCommandString))
+        {
+          return regex.Replace(formattedCommandString, (Match match) =>
+            match.Value.ToLowerInvariant()
+          );
+        }
+      }
+
+      return formattedCommandString.ToLowerInvariant();
     }
 
     public void ValidateCommand(string commandString)
@@ -63,8 +84,8 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "reload" => ParseReloadCommand(commandParts),
         "exec" => new ExecProcessCommand(
-          commandParts[1],
-          commandParts.Length > 2 ? commandParts[2..] : Array.Empty<string>()
+          ExtractProcessName(string.Join(" ", commandParts[1..])),
+          ExtractProcessArgs(string.Join(" ", commandParts[1..]))
         ),
         // TODO: Temporary hack to avoid errors during `ValidateCommand`.
         "ignore" => new NoopCommand(),
@@ -199,7 +220,28 @@ namespace GlazeWM.Domain.UserConfigs
     private bool IsValidWorkspace(string workspaceName)
     {
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
+
       return workspaceConfig is not null;
+    }
+
+    public static string ExtractProcessName(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+
+      return hasSingleQuotes
+        ? processNameAndArgs.Split("'")[1]
+        : processNameAndArgs.Split(" ")[0];
+    }
+
+    public static List<string> ExtractProcessArgs(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+
+      var args = hasSingleQuotes
+        ? processNameAndArgs.Split("'")[2..]
+        : processNameAndArgs.Split(" ")[1..];
+
+      return args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
     }
 
     private static RectDelta ShorthandToRectDelta(string shorthand)
