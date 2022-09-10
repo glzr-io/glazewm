@@ -32,7 +32,8 @@ workspaces:
   - name: 9
 
 window_rules:
-  # Task Manager requires admin privileges to manage and should be ignored unless running the WM as admin.
+  # Task Manager requires admin privileges to manage and should be ignored unless running
+  # the WM as admin.
   - command: "ignore"
     match_process_name: "Taskmgr"
 
@@ -104,6 +105,14 @@ keybindings:
 
   - command: "exit wm"
     binding: "Alt+Shift+E"
+
+  - command: "reload config"
+    binding: "Alt+Shift+R"
+
+  # Launch CMD terminal (alternatively `exec wt` or `exec %ProgramFiles%\\Git\\git-bash.exe`
+  # to start Windows Terminal and Git Bash respectively.
+  - command: "exec cmd"
+    binding: "Alt+Enter"
 
   - command: "focus workspace 1"
     binding: "Alt+1"
