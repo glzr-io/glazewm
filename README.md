@@ -12,7 +12,7 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 
 ![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
 
-Under the hood, GlazeWM adds functionality to the built-in DWM and uses the Windows API via P/Invoke to position windows.
+Under the hood, GlazeWM adds functionality to the built-in window manager and uses the Windows API via P/Invoke to position windows.
 
 # Download
 
@@ -30,13 +30,18 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 - Improve handling of fullscreen and maximized windows.
 - More bar components.
-- Reload user config without restarting WM.
+
+[📋 Full roadmap](https://github.com/users/lars-berger/projects/2/views/1)
 
 # Configuration
 
 The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, it can optionally be generated with some sensible defaults on application launch.
 
-Additionally to that if you want to pick a different config file location, you can start GlazeWM with `--config path/to/config.yaml` and it'll use that file instead. (Or create it if it doesn't exist).
+To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
+
+```
+./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
+```
 
 ## Keybindings
 
@@ -54,7 +59,8 @@ keybindings:
     # Key combination to trigger the keybinding.
     binding: "Alt+1"
 
-  # To run multiple commands in a sequence, use the `commands` property (eg. to move a window to a workspace + focus workspace).
+  # To run multiple commands in a sequence, use the `commands` property (eg. to move a window to a
+  # workspace + focus workspace).
   - commands: ["move to workspace 1", "focus workspace 1"]
     binding: "Alt+Shift+1"
 
@@ -94,14 +100,16 @@ Workspaces need to be predefined via the `workspaces` property in the config fil
 
 ```yaml
 workspaces:
-  # Uniquely identifies the workspace and is used as the label for the workspace in the bar if `display_name` is not provided.
+  # Uniquely identifies the workspace and is used as the label for the workspace in the bar if
+  # `display_name` is not provided.
   - name: 1
 
     # Optional override for the workspace label in the bar. Does not need to be unique.
     display_name: "Work"
 
-    # Optional force the workspace on a specific monitor if it exists (Based on the display settings ID), or falls back to an arbitrary monitor if it doesn't.
-    bind_to_monitor: 1 # (Or \\.\DISPLAY1)
+    # Optionally force the workspace on a specific monitor if it exists. Use the monitor's number
+    # as shown in the Windows display settings (eg. 1, 2, 3...).
+    bind_to_monitor: 1
 ```
 
 ## Bar configuration
@@ -232,25 +240,30 @@ window_rules:
     match_process_name: "notepad"
 ```
 
-# Commands
+# Available commands
 
-* layout vertical/horizontal
-* focus left/right/up/down
-* focus workspace \<workspace_name>
-* move left/right/up/down
-* move to workspace \<workspace_name>
-* resize height/width \<amount>
-* resize borders [\<shorthand property>](#shorthand-properties)
-* set floating/minimized/maximized
-* toggle floating/maximized
-* toggle focus mode
-* exit wm
-* close
-* start \<console command>
-* ignore
+- layout \<vertical | horizontal>
+- focus \<left | right | up | down>
+- focus workspace \<workspace name>
+- move \<left | right | up | down>
+- move to workspace \<workspace name>
+- resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
+- resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
+- set \<floating | minimized | maximized>
+- toggle \<floating | maximized>
+- toggle focus mode
+- exit wm
+- reload config
+- close
+- exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:\\Program Files\\Google\\Chrome\\Application\\chrome'`)
+- ignore
 
 # Known issues
 
 ## Blurry buttons in bar window
 
 An app called "Sonic Studio", which is installed by default on ASUS ROG machines can cause rendering issues with WPF apps. This can be resolved by disabling `NahimicService` in Windows Services Manager.
+
+## Binding the right-side Alt key `RMenu` on certain keyboard layouts
+
+Most keyboard layouts treat the right-side Alt key as a regular Alt key, while others (eg. US International and German) treat it as AltGr and generate both Ctrl and Alt when it is pressed. For these keyboard layouts, keybindings with the AltGr key need to specify both `RMenu` and `Control` (eg. `RMenu+Control+A`).
