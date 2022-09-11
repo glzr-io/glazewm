@@ -255,7 +255,7 @@ window_rules:
 - exit wm
 - reload config
 - close
-- exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:\\Program Files\\Google\\Chrome\\Application\\chrome'`)
+- exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:/Program Files/Google/Chrome/Application/chrome'`)
 - ignore
 
 # Known issues

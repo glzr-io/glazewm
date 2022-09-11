@@ -109,7 +109,7 @@ keybindings:
   - command: "reload config"
     binding: "Alt+Shift+R"
 
-  # Launch CMD terminal (alternatively `exec wt` or `exec %ProgramFiles%\\Git\\git-bash.exe`
+  # Launch CMD terminal (alternatively `exec wt` or `exec %ProgramFiles%/Git/git-bash.exe`
   # to start Windows Terminal and Git Bash respectively.
   - command: "exec cmd"
     binding: "Alt+Enter"
