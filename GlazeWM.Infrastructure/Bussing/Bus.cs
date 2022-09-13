@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reactive.Subjects;
 using System.Windows.Forms;
@@ -16,6 +17,7 @@ namespace GlazeWM.Infrastructure.Bussing
   public sealed class Bus
   {
     public readonly Subject<Event> Events = new();
+    public readonly Subject<bool> FatalException = new();
     private readonly object _lockObj = new();
     private readonly ILogger<Bus> _logger;
 
@@ -93,7 +95,7 @@ namespace GlazeWM.Infrastructure.Bussing
     }
 
     // TODO: Move to dedicated logging service.
-    private static void WriteToErrorLog(Exception error)
+    private void WriteToErrorLog(Exception error)
     {
       var errorLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -101,7 +103,11 @@ namespace GlazeWM.Infrastructure.Bussing
       );
 
       Directory.CreateDirectory(Path.GetDirectoryName(errorLogPath));
-      File.AppendAllText(errorLogPath, $"\n\n{DateTime.Now}\n{error.Message + error.StackTrace}");
+      File.AppendAllText(errorLogPath, $"\n\n{DateTime.Now}\n{error.Message + error.ToString()}");
+      File.AppendAllText(errorLogPath, "\n-- END OF INNER EXCEPTION --");
+      File.AppendAllText(errorLogPath, $"\n{new StackTrace(3, true)}");
+
+      FatalException.OnNext(true);
     }
   }
 }
