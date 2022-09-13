@@ -53,6 +53,7 @@ namespace GlazeWM.Bootstrapper
       // Set the process-default DPI awareness.
       _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
 
+      _bus.FatalException.Subscribe(_ => WriteStateDumpToErrorLog());
       _bus.Events.OfType<ApplicationExitingEvent>()
         .Subscribe(_ => OnApplicationExit());
 
@@ -80,7 +81,6 @@ namespace GlazeWM.Bootstrapper
 
     private void OnApplicationExit()
     {
-      WriteStateDumpToErrorLog();
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
       _systemTrayService.RemoveFromSystemTray();
