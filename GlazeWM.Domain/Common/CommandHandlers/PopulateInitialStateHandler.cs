@@ -60,8 +60,8 @@ namespace GlazeWM.Domain.Common.CommandHandlers
         _windowService.GetWindows().FirstOrDefault() ??
         _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
 
-      _bus.Invoke(new SetFocusedDescendantCommand(focusedWindow));
-      _bus.RaiseEvent(new FocusChangedEvent(focusedWindow));
+      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
+      _bus.RaiseEvent(new FocusChangedEvent(containerToFocus));
 
       if (containerToFocus is Window)
         _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
