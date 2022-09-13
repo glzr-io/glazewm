@@ -1,4 +1,4 @@
-﻿using GlazeWM.Bar;
+using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -42,6 +42,9 @@ namespace GlazeWM.Bootstrapper
       // Set the process-default DPI awareness.
       _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
 
+      _bus.Events.OfType<ApplicationExitingEvent>()
+        .Subscribe(_ => OnApplicationExit());
+
       // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
       // to be initialized before populating initial state.
       _barService.StartApp();
@@ -60,9 +63,6 @@ namespace GlazeWM.Bootstrapper
 
       // Add application to system tray.
       _systemTrayService.AddToSystemTray();
-
-      _bus.Events.Where(@event => @event is ApplicationExitingEvent)
-        .Subscribe(_ => OnApplicationExit());
 
       Application.Run();
     }
