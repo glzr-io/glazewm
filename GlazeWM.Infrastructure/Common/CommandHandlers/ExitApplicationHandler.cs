@@ -1,8 +1,8 @@
-using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 
-namespace GlazeWM.Domain.Common.CommandHandlers
+namespace GlazeWM.Infrastructure.Common.CommandHandlers
 {
   internal class ExitApplicationHandler : ICommandHandler<ExitApplicationCommand>
   {
@@ -16,6 +16,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
     public CommandResponse Handle(ExitApplicationCommand command)
     {
       _bus.RaiseEvent(new ApplicationExitingEvent());
+
       return CommandResponse.Ok;
     }
   }

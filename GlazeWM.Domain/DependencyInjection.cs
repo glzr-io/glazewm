@@ -35,7 +35,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
 
-      services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
       services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
       services.AddSingleton<ICommandHandler<ExecProcessCommand>, ExecProcessHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
