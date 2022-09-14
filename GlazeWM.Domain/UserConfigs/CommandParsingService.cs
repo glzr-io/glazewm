@@ -11,7 +11,6 @@ using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Bussing.Commands;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Utils;

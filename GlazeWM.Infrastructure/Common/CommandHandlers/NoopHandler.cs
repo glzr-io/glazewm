@@ -1,6 +1,7 @@
-﻿using GlazeWM.Infrastructure.Bussing.Commands;
+﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Commands;
 
-namespace GlazeWM.Infrastructure.Bussing.CommandHandlers
+namespace GlazeWM.Infrastructure.Common.CommandHandlers
 {
   internal class NoopHandler : ICommandHandler<NoopCommand>
   {
