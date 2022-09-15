@@ -17,15 +17,6 @@ namespace GlazeWM.Bar.Components
 
     public TextComponentViewModel(BarViewModel parentViewModel, TextComponentConfig config) : base(parentViewModel, config)
     {
-
-      
-      // Update the displayed time every second.
-      // This is useless for this component
-      // since it's a fixed text.
-      var updateInterval = TimeSpan.FromSeconds(1);
-
-      Observable.Interval(updateInterval)
-        .Subscribe(_ => OnPropertyChanged(nameof(Text)));
     }
   }
 }
