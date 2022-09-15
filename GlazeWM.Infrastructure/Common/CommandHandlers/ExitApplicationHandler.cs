@@ -17,6 +17,8 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
     {
       _bus.RaiseEvent(new ApplicationExitingEvent());
 
+      Environment.Exit(0);
+
       return CommandResponse.Ok;
     }
   }
