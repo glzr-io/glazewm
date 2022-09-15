@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Commands;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -31,7 +31,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       var contextMenuStrip = new ContextMenuStrip();
 
-      contextMenuStrip.Items.Add("Exit", null, SignalApplicationExit);
+      contextMenuStrip.Items.Add("Exit", null, ExitApplication);
 
       var assembly = Assembly.GetEntryAssembly();
       const string iconResourceName = "GlazeWM.Bootstrapper.icon.ico";
@@ -52,9 +52,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Application.Run();
     }
 
-    private void SignalApplicationExit(object sender, EventArgs e)
+    private void ExitApplication(object sender, EventArgs e)
     {
-      _bus.RaiseEvent(new ApplicationExitingEvent());
+      _bus.Invoke(new ExitApplicationCommand(false));
     }
 
     public void RemoveFromSystemTray()
