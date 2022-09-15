@@ -44,6 +44,7 @@ namespace GlazeWM.Bar
       {
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
+        TextComponentConfig tcc => new TextComponentViewModel(this,tcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }
