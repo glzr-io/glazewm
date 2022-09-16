@@ -16,7 +16,6 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<ExceptionHandler>();
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<SystemEventService>();
-      services.AddSingleton<SystemTrayService>();
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<JsonService>();
       services.AddSingleton<YamlService>();

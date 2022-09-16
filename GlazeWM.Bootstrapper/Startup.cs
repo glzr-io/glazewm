@@ -1,11 +1,13 @@
-﻿using GlazeWM.Bar;
+using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
@@ -20,8 +22,9 @@ namespace GlazeWM.Bootstrapper
     private readonly ExceptionHandler _exceptionHandler;
     private readonly KeybindingService _keybindingService;
     private readonly SystemEventService _systemEventService;
-    private readonly SystemTrayService _systemTrayService;
     private readonly WindowEventService _windowEventService;
+
+    private SystemTrayIcon _systemTrayIcon { get; set; }
 
     public Startup(
       BarService barService,
@@ -29,7 +32,6 @@ namespace GlazeWM.Bootstrapper
       ExceptionHandler exceptionHandler,
       KeybindingService keybindingService,
       SystemEventService systemEventService,
-      SystemTrayService systemTrayService,
       WindowEventService windowEventService)
     {
       _barService = barService;
@@ -37,7 +39,6 @@ namespace GlazeWM.Bootstrapper
       _exceptionHandler = exceptionHandler;
       _keybindingService = keybindingService;
       _systemEventService = systemEventService;
-      _systemTrayService = systemTrayService;
       _windowEventService = windowEventService;
     }
 
@@ -67,8 +68,19 @@ namespace GlazeWM.Bootstrapper
         // Listen for system-related events (eg. changes to display settings).
         _systemEventService.Start();
 
+        var systemTrayIconConfig = new SystemTrayIconConfig
+        {
+          HoverText = "GlazeWM",
+          IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
+          Actions = new Dictionary<string, Action>
+          {
+            { "Exit", () => _bus.RaiseEvent(new ApplicationExitingEvent()) },
+          }
+        };
+
         // Add application to system tray.
-        _systemTrayService.AddToSystemTray();
+        _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
+        _systemTrayIcon.Show();
 
         Application.Run();
       }
@@ -82,7 +94,7 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
-      _systemTrayService.RemoveFromSystemTray();
+      _systemTrayIcon.Remove();
       Application.Exit();
     }
   }
