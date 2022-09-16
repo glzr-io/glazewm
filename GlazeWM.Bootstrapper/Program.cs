@@ -84,7 +84,7 @@ namespace GlazeWM.Bootstrapper
                 );
 
                 return $"{DateTime.Now}\n"
-                  + $"{exception.Message + exception.ToString()}\n"
+                  + $"{exception}\n"
                   + $"State dump: {stateDump}\n\n";
               };
             });
