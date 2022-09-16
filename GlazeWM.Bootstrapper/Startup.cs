@@ -74,6 +74,7 @@ namespace GlazeWM.Bootstrapper
           IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
           Actions = new Dictionary<string, Action>
           {
+            { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },
             { "Exit", () => _bus.RaiseEvent(new ApplicationExitingEvent()) },
           }
         };
