@@ -1,7 +1,10 @@
 using GlazeWM.Bar;
 using GlazeWM.Domain;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Logging;
+using GlazeWM.Infrastructure.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -9,6 +12,8 @@ using Microsoft.Extensions.Logging.Console;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.Extensions.Configuration;
 
@@ -60,6 +65,29 @@ namespace GlazeWM.Bootstrapper
           services.AddDomainServices();
           services.AddBarServices();
           services.AddSingleton<Startup>();
+
+          // Configure exception handler.
+          services
+            .AddOptions<ExceptionHandlerOptions>()
+            .Configure<ContainerService, JsonService>((options, containerService, jsonService) =>
+            {
+              options.ErrorLogPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "./.glaze-wm/errors.log"
+              );
+
+              options.ErrorLogMessageDelegate = (Exception exception) =>
+              {
+                var stateDump = jsonService.Serialize(
+                  containerService.ContainerTree,
+                  new List<JsonConverter> { new JsonContainerConverter() }
+                );
+
+                return $"{DateTime.Now}\n"
+                  + $"{exception.Message + exception.ToString()}\n"
+                  + $"State dump: {stateDump}\n\n";
+              };
+            });
         })
         .ConfigureLogging(builder =>
         {
