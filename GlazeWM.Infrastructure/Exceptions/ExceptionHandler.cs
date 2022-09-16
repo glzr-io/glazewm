@@ -3,16 +3,19 @@ using System.IO;
 using System.Windows.Forms;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
+using Microsoft.Extensions.Options;
 
 namespace GlazeWM.Infrastructure.Exceptions
 {
   public class ExceptionHandler
   {
     private readonly Bus _bus;
+    private readonly IOptions<ExceptionHandlerOptions> _options;
 
-    public ExceptionHandler(Bus bus)
+    public ExceptionHandler(Bus bus, IOptions<ExceptionHandlerOptions> options)
     {
       _bus = bus;
+      _options = options;
     }
 
     public static void HandleNonFatalException(Exception exception)
@@ -31,18 +34,16 @@ namespace GlazeWM.Infrastructure.Exceptions
       _bus.Invoke(new ExitApplicationCommand(true));
     }
 
-    private static void WriteToErrorLog(Exception exception)
+    private void WriteToErrorLog(Exception exception)
     {
-      var errorLogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        "./.glaze-wm/errors.log"
-      );
+      var errorLogPath = _options.Value.ErrorLogPath;
 
+      // Create containing directory. Needs to be created before writing to the file.
       Directory.CreateDirectory(Path.GetDirectoryName(errorLogPath));
 
       File.AppendAllText(
         errorLogPath,
-        $"\n\n{DateTime.Now}\n{exception.Message + exception.ToString()}"
+        _options.Value.ErrorLogMessageDelegate(exception)
       );
     }
   }
