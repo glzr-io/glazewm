@@ -12,7 +12,7 @@ namespace GlazeWM.Infrastructure.Bussing
   public sealed class Bus
   {
     public readonly Subject<Event> Events = new();
-    private readonly object _lockObj = new();
+    public readonly object LockObj = new();
     private readonly ILogger<Bus> _logger;
 
     public Bus(ILogger<Bus> logger)
@@ -33,7 +33,7 @@ namespace GlazeWM.Infrastructure.Bussing
       var handlerInstance = ServiceLocator.Provider.GetRequiredService(handlerType)
         as ICommandHandler<T>;
 
-      lock (_lockObj)
+      lock (LockObj)
       {
         return handlerInstance.Handle(command);
       }
@@ -52,7 +52,7 @@ namespace GlazeWM.Infrastructure.Bussing
 
       foreach (var handler in handlerInstances)
       {
-        lock (_lockObj)
+        lock (LockObj)
         {
           handler.Handle(@event);
         }

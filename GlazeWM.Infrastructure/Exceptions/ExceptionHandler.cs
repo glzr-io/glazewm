@@ -20,18 +20,22 @@ namespace GlazeWM.Infrastructure.Exceptions
 
     public static void HandleNonFatalException(Exception exception)
     {
+      // Alert the user of the error.
       MessageBox.Show(exception.Message);
     }
 
     public void HandleFatalException(Exception exception)
     {
-      // Alert the user of the error.
-      if (exception is FatalUserException)
-        MessageBox.Show(exception.Message);
+      // Lock bus to prevent further state changes while showing message box and writing to logs.
+      lock (_bus.LockObj)
+      {
+        // Alert the user of the error.
+        MessageBox.Show($"Unhandled exception: {exception.Message}");
 
-      WriteToErrorLog(exception);
+        WriteToErrorLog(exception);
 
-      _bus.Invoke(new ExitApplicationCommand(true));
+        _bus.Invoke(new ExitApplicationCommand(true));
+      }
     }
 
     private void WriteToErrorLog(Exception exception)
