@@ -9,12 +9,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
   public class WindowEventService
   {
     private readonly Bus _bus;
+
+    /// <summary>
+    /// Store a reference to the hook delegate to prevent its garbage collection.
+    /// </summary>
+    private readonly WindowEventProc _hookProc;
     private const int CHILDID_SELF = 0;
-    private WindowEventProc _hookProc => WindowEventHookProc;
 
     public WindowEventService(Bus bus)
     {
       _bus = bus;
+      _hookProc = new WindowEventProc(WindowEventHookProc);
     }
 
     public void Start()

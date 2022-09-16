@@ -39,7 +39,15 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Keys.RShiftKey
     };
 
-    private HookProc _hookProc => KeybindingHookProc;
+    /// <summary>
+    /// Store a reference to the hook delegate to prevent its garbage collection.
+    /// </summary>
+    private readonly HookProc _hookProc;
+
+    public KeybindingService()
+    {
+      _hookProc = new HookProc(KeybindingHookProc);
+    }
 
     public void Start()
     {
