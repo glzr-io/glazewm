@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Windows.Forms;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Common.CommandHandlers
 {
@@ -31,8 +31,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
       catch (Exception exception)
       {
         // TODO: Link to documentation for `exec` command (no proper documentation yet).
-        // TODO: Handle non-fatal exceptions in a generic way.
-        MessageBox.Show(exception.Message);
+        ExceptionHandler.HandleNonFatalException(exception);
       }
 
       return CommandResponse.Ok;

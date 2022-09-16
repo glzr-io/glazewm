@@ -1,3 +1,4 @@
+using System;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.WindowsApi.Events;
@@ -15,7 +16,13 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
 
     public CommandResponse Handle(ExitApplicationCommand command)
     {
+      var withErrorCode = command.WithErrorCode;
+
+      // Signal that application is about to exit (to perform cleanup).
       _bus.RaiseEvent(new ApplicationExitingEvent());
+
+      // Use exit code 1 if exiting due to an exception.
+      Environment.Exit(withErrorCode ? 1 : 0);
 
       return CommandResponse.Ok;
     }

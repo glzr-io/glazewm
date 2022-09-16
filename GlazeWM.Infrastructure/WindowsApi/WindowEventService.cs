@@ -2,8 +2,6 @@
 using GlazeWM.Infrastructure.WindowsApi.Enums;
 using GlazeWM.Infrastructure.WindowsApi.Events;
 using System;
-using System.Threading;
-using System.Windows.Forms;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Infrastructure.WindowsApi
@@ -11,32 +9,26 @@ namespace GlazeWM.Infrastructure.WindowsApi
   public class WindowEventService
   {
     private readonly Bus _bus;
+
+    /// <summary>
+    /// Store a reference to the hook delegate to prevent its garbage collection.
+    /// </summary>
+    private readonly WindowEventProc _hookProc;
     private const int CHILDID_SELF = 0;
 
     public WindowEventService(Bus bus)
     {
       _bus = bus;
+      _hookProc = new WindowEventProc(WindowEventHookProc);
     }
 
     public void Start()
     {
-      var thread = new Thread(() => CreateWindowEventHook())
-      {
-        Name = "GlazeWMWindowHooks"
-      };
-      thread.Start();
-    }
-
-    private void CreateWindowEventHook()
-    {
-      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_OBJECT_DESTROY, EventConstant.EVENT_OBJECT_HIDE, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, WindowEventHookProc, 0, 0, 0);
-
-      // `SetWinEventHook` requires a message loop within the thread that is executing the code.
-      Application.Run();
+      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_OBJECT_DESTROY, EventConstant.EVENT_OBJECT_HIDE, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _hookProc, 0, 0, 0);
     }
 
     private void WindowEventHookProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime)

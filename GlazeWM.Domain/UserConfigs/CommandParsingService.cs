@@ -200,7 +200,7 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
-        "wm" => new ExitApplicationCommand(),
+        "wm" => new ExitApplicationCommand(false),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }

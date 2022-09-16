@@ -1,6 +1,7 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.CommandHandlers;
+using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,7 @@ namespace GlazeWM.Infrastructure
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
       services.AddSingleton<Bus>();
+      services.AddSingleton<ExceptionHandler>();
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<SystemEventService>();
       services.AddSingleton<SystemTrayService>();

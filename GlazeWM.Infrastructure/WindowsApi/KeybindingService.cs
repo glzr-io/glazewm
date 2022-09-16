@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Windows.Forms;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -40,13 +39,20 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Keys.RShiftKey
     };
 
+    /// <summary>
+    /// Store a reference to the hook delegate to prevent its garbage collection.
+    /// </summary>
+    private readonly HookProc _hookProc;
+
+    public KeybindingService()
+    {
+      _hookProc = new HookProc(KeybindingHookProc);
+    }
+
     public void Start()
     {
-      var thread = new Thread(() => CreateKeybindingHook())
-      {
-        Name = "GlazeWMKeybindingService"
-      };
-      thread.Start();
+      // Create low-level keyboard hook.
+      _ = SetWindowsHookEx(HookType.WH_KEYBOARD_LL, _hookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
     }
 
     public void AddGlobalKeybinding(string keybindingString, Action callback)
@@ -80,14 +86,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
       var isNumeric = int.TryParse(key, out var _);
 
       return isNumeric ? $"D{key}" : key;
-    }
-
-    private void CreateKeybindingHook()
-    {
-      _ = SetWindowsHookEx(HookType.WH_KEYBOARD_LL, KeybindingHookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
-
-      // `SetWindowsHookEx` requires a message loop within the thread that is executing the code.
-      Application.Run();
     }
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
