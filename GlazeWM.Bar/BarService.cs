@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows;
 using System.Collections.Generic;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Bar
 {
@@ -16,35 +17,44 @@ namespace GlazeWM.Bar
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
+    private readonly ExceptionHandler _exceptionHandler;
     private Application _application;
     private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName = new();
 
-    public BarService(Bus bus, MonitorService monitorService)
+    public BarService(Bus bus, MonitorService monitorService, ExceptionHandler exceptionHandler)
     {
       _bus = bus;
       _monitorService = monitorService;
+      _exceptionHandler = exceptionHandler;
     }
 
     public void StartApp()
     {
       var thread = new Thread(() =>
       {
-        _application = new()
+        try
         {
-          ShutdownMode = ShutdownMode.OnExplicitShutdown
-        };
+          _application = new()
+          {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown
+          };
 
-        // Launch the bar window on the added monitor.
-        _bus.Events.OfType<MonitorAddedEvent>()
-          .Subscribe((@event) => ShowWindow(@event.AddedMonitor));
+          // Launch the bar window on the added monitor.
+          _bus.Events.OfType<MonitorAddedEvent>()
+            .Subscribe((@event) => ShowWindow(@event.AddedMonitor));
 
-        _bus.Events.OfType<MonitorRemovedEvent>()
-          .Subscribe((@event) => CloseWindow(@event.RemovedDeviceName));
+          _bus.Events.OfType<MonitorRemovedEvent>()
+            .Subscribe((@event) => CloseWindow(@event.RemovedDeviceName));
 
-        _bus.Events.OfType<UserConfigReloadedEvent>()
-          .Subscribe((_) => RestartApp());
+          _bus.Events.OfType<UserConfigReloadedEvent>()
+            .Subscribe((_) => RestartApp());
 
-        _application.Run();
+          _application.Run();
+        }
+        catch (Exception exception)
+        {
+          _exceptionHandler.HandleFatalException(exception);
+        }
       })
       {
         Name = "GlazeWMBar"
