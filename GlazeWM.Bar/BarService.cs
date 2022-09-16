@@ -2,6 +2,7 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 using System.Reactive.Linq;
 using System;
 using System.Threading;
@@ -9,7 +10,6 @@ using System.Linq;
 using System.Windows;
 using System.Collections.Generic;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
-using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Bar
 {
