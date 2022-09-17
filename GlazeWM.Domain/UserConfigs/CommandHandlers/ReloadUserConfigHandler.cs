@@ -36,7 +36,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       _bus.Invoke(new UpdateWorkspacesFromConfigCommand(_userConfigService.UserConfig.Workspaces));
 
       foreach (var window in _windowService.GetWindows())
-        _bus.Invoke(new RunWindowRulesCommand(window));
+      {
+        var windowRules = _userConfigService.GetMatchingWindowRules(window);
+        _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
+      }
 
       // Redraw full container tree.
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);

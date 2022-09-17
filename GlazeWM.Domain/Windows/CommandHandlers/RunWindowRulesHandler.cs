@@ -9,29 +9,23 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly CommandParsingService _commandParsingService;
-    private readonly UserConfigService _userConfigService;
 
     public RunWindowRulesHandler(
       Bus bus,
-      CommandParsingService commandParsingService,
-      UserConfigService userConfigService)
+      CommandParsingService commandParsingService)
     {
       _bus = bus;
       _commandParsingService = commandParsingService;
-      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(RunWindowRulesCommand command)
     {
       var window = command.Window;
+      var windowRules = command.WindowRules;
 
-      var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
-
-      var commandStrings = matchingWindowRules
+      var parsedCommands = windowRules
         .SelectMany(rule => rule.CommandList)
-        .Select(commandString => CommandParsingService.FormatCommand(commandString));
-
-      var parsedCommands = commandStrings
+        .Select(commandString => CommandParsingService.FormatCommand(commandString))
         .Select(commandString => _commandParsingService.ParseCommand(commandString, window))
         .ToList();
 

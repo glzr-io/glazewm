@@ -3,6 +3,7 @@ using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,17 +19,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly ContainerService _containerService;
     private readonly ILogger<AddWindowHandler> _logger;
     private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
 
     public AddWindowHandler(
       Bus bus,
       ContainerService containerService,
       ILogger<AddWindowHandler> logger,
-      MonitorService monitorService)
+      MonitorService monitorService,
+      UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;
       _logger = logger;
       _monitorService = monitorService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -58,11 +62,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (MonitorService.HasDpiDifference(monitor, window.Parent))
         window.HasPendingDpiAdjustment = true;
 
-      // Set the newly added window as focus descendant. This means window rules will be run as if
-      // the window is focused.
+      // Set the newly added window as focus descendant. This means the window rules will be run as
+      // if the window is focused.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
-      _bus.Invoke(new RunWindowRulesCommand(window));
+      // Run matching window rules.
+      var windowRules = _userConfigService.GetMatchingWindowRules(window);
+      _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
 
       // Window might be detached if 'ignore' command has been invoked.
       if (window.IsDetached())
