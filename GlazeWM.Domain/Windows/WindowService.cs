@@ -17,7 +17,12 @@ namespace GlazeWM.Domain.Windows
     /// Window handles to appbars (application desktop toolbars). Positioning changes of appbars
     /// can affect the working area of the parent monitor and requires windows to be redrawn.
     /// </summary>
-    public List<IntPtr> AppBarHandles { get; set; } = new List<IntPtr>();
+    public List<IntPtr> AppBarHandles { get; set; } = new();
+
+    /// <summary>
+    /// Window handles to ignored windows (ie. windows where 'ignore' command has been invoked).
+    /// </summary>
+    public List<IntPtr> IgnoredHandles { get; set; } = new();
 
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
