@@ -18,15 +18,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(IgnoreWindowCommand command)
     {
-      var window = command.WindowToIgnore;
+      var windowToIgnore = command.WindowToIgnore;
 
       // Store handle to ignored window.
-      _windowService.IgnoredHandles.Add(window.Hwnd);
+      _windowService.IgnoredHandles.Add(windowToIgnore.Hwnd);
 
-      if (window is IResizable)
-        _bus.Invoke(new DetachAndResizeContainerCommand(window));
+      if (windowToIgnore is IResizable)
+        _bus.Invoke(new DetachAndResizeContainerCommand(windowToIgnore));
       else
-        _bus.Invoke(new DetachContainerCommand(window));
+        _bus.Invoke(new DetachContainerCommand(windowToIgnore));
 
       _bus.Invoke(new RedrawContainersCommand());
 

@@ -6,9 +6,9 @@ namespace GlazeWM.Domain.Windows.Commands
   {
     public Window WindowToIgnore { get; }
 
-    public IgnoreWindowCommand(Window windowToClose)
+    public IgnoreWindowCommand(Window windowToIgnore)
     {
-      WindowToIgnore = windowToClose;
+      WindowToIgnore = windowToIgnore;
     }
   }
 }
