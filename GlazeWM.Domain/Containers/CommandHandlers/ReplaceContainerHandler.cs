@@ -21,7 +21,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      if (replacementContainer.Parent != null)
+      if (!replacementContainer.IsDetached())
         throw new Exception(
           "Cannot use an already attached container as replacement container. This is a bug."
         );

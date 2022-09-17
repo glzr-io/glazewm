@@ -4,7 +4,6 @@ using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -39,25 +38,6 @@ namespace GlazeWM.Domain.Containers
     /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
     /// </summary>
     public Container PendingFocusContainer;
-
-    /// <summary>
-    /// Whether the focused container of the WM is in sync with the OS. Mismatches between the
-    /// focus state of the WM and the OS occur when ignored windows (eg. via user's window rules)
-    /// or elevated windows are in focus.
-    /// </summary>
-    public bool IsFocusSynced
-    {
-      get
-      {
-        var foregroundHandle = GetForegroundWindow();
-        var focusedContainer = FocusedContainer;
-
-        if (focusedContainer is Window)
-          return (focusedContainer as Window).Hwnd == foregroundHandle;
-
-        return IntPtr.Zero == foregroundHandle;
-      }
-    }
 
     private readonly UserConfigService _userConfigService;
 

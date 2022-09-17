@@ -61,16 +61,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var targetWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(targetParent);
       var window = CreateWindow(windowHandle, targetWorkspace);
 
-      var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
-
-      var commandStrings = matchingWindowRules
-        .SelectMany(rule => rule.CommandList)
-        .Select(commandString => CommandParsingService.FormatCommand(commandString));
-
-      // Avoid managing a window if a window rule uses 'ignore' command.
-      if (commandStrings.Contains("ignore"))
-        return CommandResponse.Ok;
-
       _logger.LogWindowEvent("New window managed", window);
 
       if (window is IResizable)
@@ -89,9 +79,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // isn't updated automatically.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
-      // Set OS focus to the newly added window in case it's not already focused. This is also
-      // necessary for window rule commands to run properly on startup with existing windows.
-      _bus.Invoke(new FocusWindowCommand(window));
+      // TODO: Create separate command.
+      var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
+
+      var commandStrings = matchingWindowRules
+        .SelectMany(rule => rule.CommandList)
+        .Select(commandString => CommandParsingService.FormatCommand(commandString));
 
       var parsedCommands = commandStrings
         .Select(commandString => _commandParsingService.ParseCommand(commandString, window))
@@ -102,8 +95,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       foreach (var parsedCommand in parsedCommands)
         _bus.Invoke((dynamic)parsedCommand);
 
+      // Window might be detached if 'ignore' command is invoked.
+      if (window.IsDetached())
+        return CommandResponse.Ok;
+
       if (shouldRedraw)
         _bus.Invoke(new RedrawContainersCommand());
+
+      // Set OS focus to the newly added window in case it's not already focused.
+      _bus.Invoke(new FocusWindowCommand(window));
 
       return CommandResponse.Ok;
     }

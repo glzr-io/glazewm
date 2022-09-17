@@ -87,8 +87,9 @@ namespace GlazeWM.Domain.UserConfigs
           ExtractProcessName(string.Join(" ", commandParts[1..])),
           ExtractProcessArgs(string.Join(" ", commandParts[1..]))
         ),
-        // TODO: Temporary hack to avoid errors during `ValidateCommand`.
-        "ignore" => new NoopCommand(),
+        "ignore" => subjectContainer is Window
+          ? new IgnoreWindowCommand(subjectContainer as Window)
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandString)),
       };
     }

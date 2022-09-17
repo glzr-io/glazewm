@@ -110,6 +110,11 @@ namespace GlazeWM.Domain.Containers
       }
     }
 
+    public bool IsDetached()
+    {
+      return Parent is null;
+    }
+
     public bool HasChildren()
     {
       return Children.Count > 0;
