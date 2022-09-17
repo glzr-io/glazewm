@@ -19,7 +19,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
 
-      if (childToAdd.Parent != null)
+      if (!childToAdd.IsDetached())
         throw new Exception("Cannot attach an already attached container. This is a bug.");
 
       childToAdd.Parent = targetParent;
