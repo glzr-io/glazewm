@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,32 +16,19 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
-    private readonly UserConfigService _userConfigService;
-    private readonly CommandParsingService _commandParsingService;
-    private readonly WindowService _windowService;
-    private readonly MonitorService _monitorService;
-    private readonly WorkspaceService _workspaceService;
     private readonly ILogger<AddWindowHandler> _logger;
+    private readonly MonitorService _monitorService;
 
     public AddWindowHandler(
       Bus bus,
       ContainerService containerService,
-      UserConfigService userConfigService,
-      CommandParsingService commandParsingService,
-      WindowService windowService,
-      MonitorService monitorService,
-      WorkspaceService workspaceService,
-      ILogger<AddWindowHandler> logger
-    )
+      ILogger<AddWindowHandler> logger,
+      MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
-      _userConfigService = userConfigService;
-      _commandParsingService = commandParsingService;
-      _windowService = windowService;
-      _monitorService = monitorService;
-      _workspaceService = workspaceService;
       _logger = logger;
+      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(AddWindowCommand command)
@@ -58,8 +43,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         : GetInsertionTarget();
 
       // Create the window instance.
-      var targetWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(targetParent);
-      var window = CreateWindow(windowHandle, targetWorkspace);
+      var window = CreateWindow(windowHandle, targetParent);
 
       _logger.LogWindowEvent("New window managed", window);
 
@@ -74,28 +58,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (MonitorService.HasDpiDifference(monitor, window.Parent))
         window.HasPendingDpiAdjustment = true;
 
-      // Set the newly added window as focus descendant. This is necessary because
-      // `EVENT_SYSTEM_FOREGROUND` is emitted before `EVENT_OBJECT_SHOW` and thus, focus state
-      // isn't updated automatically.
+      // Set the newly added window as focus descendant. This means window rules will be run as if
+      // the window is focused.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
 
-      // TODO: Create separate command.
-      var matchingWindowRules = _userConfigService.GetMatchingWindowRules(window);
+      _bus.Invoke(new RunWindowRulesCommand(window));
 
-      var commandStrings = matchingWindowRules
-        .SelectMany(rule => rule.CommandList)
-        .Select(commandString => CommandParsingService.FormatCommand(commandString));
-
-      var parsedCommands = commandStrings
-        .Select(commandString => _commandParsingService.ParseCommand(commandString, window))
-        .ToList();
-
-      // Invoke commands in the matching window rules.  Use `dynamic` to resolve the command type
-      // at runtime and allow multiple dispatch.
-      foreach (var parsedCommand in parsedCommands)
-        _bus.Invoke((dynamic)parsedCommand);
-
-      // Window might be detached if 'ignore' command is invoked.
+      // Window might be detached if 'ignore' command has been invoked.
       if (window.IsDetached())
         return CommandResponse.Ok;
 
@@ -108,11 +77,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static Window CreateWindow(IntPtr windowHandle, Workspace targetWorkspace)
+    private static Window CreateWindow(IntPtr windowHandle, Container targetParent)
     {
+      var originalPlacement = WindowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
-      var originalPlacement = WindowService.GetPlacementOfHandle(windowHandle).NormalPosition;
+      var targetWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(targetParent);
       var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
 
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
