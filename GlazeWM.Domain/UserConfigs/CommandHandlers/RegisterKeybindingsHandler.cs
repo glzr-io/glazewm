@@ -1,8 +1,10 @@
 using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
@@ -12,18 +14,20 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private readonly CommandParsingService _commandParsingService;
     private readonly ContainerService _containerService;
     private readonly KeybindingService _keybindingService;
+    private readonly WindowService _windowService;
 
     public RegisterKeybindingsHandler(
       Bus bus,
       CommandParsingService commandParsingService,
       ContainerService containerService,
-      KeybindingService keybindingService
-    )
+      KeybindingService keybindingService,
+      WindowService windowService)
     {
       _bus = bus;
       _commandParsingService = commandParsingService;
       _containerService = containerService;
       _keybindingService = keybindingService;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(RegisterKeybindingsCommand command)
@@ -41,9 +45,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         foreach (var binding in keybindingConfig.BindingList)
           _keybindingService.AddGlobalKeybinding(binding, () =>
           {
-            // Avoid invoking keybinding if focus is not synced (eg. if an unmanaged window has
-            // focus).
-            if (!_containerService.IsFocusSynced)
+            // Avoid invoking keybinding if an ignored window currently has focus.
+            if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
               return;
 
             // Invoke commands in sequence on keybinding press.
