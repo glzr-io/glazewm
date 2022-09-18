@@ -90,7 +90,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
         var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
         var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
-        _bus.Invoke(new AddWindowCommand(windowHandle, targetWorkspace, false));
+        _bus.Invoke(new ManageWindowCommand(windowHandle, targetWorkspace, false));
       }
     }
   }

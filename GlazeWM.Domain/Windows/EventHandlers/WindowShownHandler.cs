@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window is not null || !WindowService.IsHandleManageable(windowHandle))
         return;
 
-      _bus.Invoke(new AddWindowCommand(@event.WindowHandle));
+      _bus.Invoke(new ManageWindowCommand(@event.WindowHandle));
     }
   }
 }

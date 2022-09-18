@@ -13,18 +13,18 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class AddWindowHandler : ICommandHandler<AddWindowCommand>
+  internal class ManageWindowHandler : ICommandHandler<ManageWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
-    private readonly ILogger<AddWindowHandler> _logger;
+    private readonly ILogger<ManageWindowHandler> _logger;
     private readonly MonitorService _monitorService;
     private readonly UserConfigService _userConfigService;
 
-    public AddWindowHandler(
+    public ManageWindowHandler(
       Bus bus,
       ContainerService containerService,
-      ILogger<AddWindowHandler> logger,
+      ILogger<ManageWindowHandler> logger,
       MonitorService monitorService,
       UserConfigService userConfigService)
     {
@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _userConfigService = userConfigService;
     }
 
-    public CommandResponse Handle(AddWindowCommand command)
+    public CommandResponse Handle(ManageWindowCommand command)
     {
       var windowHandle = command.WindowHandle;
       var shouldRedraw = command.ShouldRedraw;
