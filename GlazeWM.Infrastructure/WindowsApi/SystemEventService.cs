@@ -1,7 +1,8 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
-using System;
-using Microsoft.Win32;
 using GlazeWM.Infrastructure.WindowsApi.Events;
+using Microsoft.Win32;
+using System;
+using System.Reactive.Linq;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -17,12 +18,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public void Start()
     {
       // TODO: Unsubscribe on application exit.
-      SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
-    }
+      // TODO: Add as static field instead and subcribe directly in `Startup`. Consider renaming
+      // class to `MonitorEvents, `SystemEvents`, `Win32MonitorApi`.
+      var displaySettingChanges = Observable.FromEventPattern<EventHandler, EventArgs>(
+        handler => SystemEvents.DisplaySettingsChanged += handler,
+        handler => SystemEvents.DisplaySettingsChanged -= handler
+      );
 
-    private void OnDisplaySettingsChanged(object sender, EventArgs e)
-    {
-      _bus.RaiseEvent(new DisplaySettingsChangedEvent());
+      displaySettingChanges.Subscribe((_) => _bus.RaiseEvent(new DisplaySettingsChangedEvent()));
     }
   }
 }
