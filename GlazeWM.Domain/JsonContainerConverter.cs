@@ -13,6 +13,11 @@ namespace GlazeWM.Domain.Containers
 {
   public class JsonContainerConverter : JsonConverter<Container>
   {
+    public override bool CanConvert(Type typeToConvert)
+    {
+      return typeof(Container).IsAssignableFrom(typeToConvert);
+    }
+
     public override Container Read(
       ref Utf8JsonReader reader,
       Type typeToConvert,
@@ -31,9 +36,9 @@ namespace GlazeWM.Domain.Containers
       // Get the type of container (eg. "Workspace", "MinimizedWindow").
       var typeDiscriminator = jsonObject.GetProperty("__type").ToString();
 
-      var newContainer = typeDiscriminator switch
+      Container newContainer = typeDiscriminator switch
       {
-        "Container" => new Container(),
+        "RootContainer" => new RootContainer(),
         "Monitor" => new Monitor(
           jsonObject.GetProperty("DeviceName").GetString(),
           jsonObject.GetProperty("Width").GetInt32(),
@@ -103,7 +108,7 @@ namespace GlazeWM.Domain.Containers
       writer.WriteString("__type", value.GetType().Name);
 
       // Handle focus index for root container.
-      var focusIndex = value.Parent is not null ? value.FocusIndex : 0;
+      var focusIndex = value is RootContainer ? 0 : value.FocusIndex;
       writer.WriteNumber("FocusIndex", focusIndex);
 
       switch (value)

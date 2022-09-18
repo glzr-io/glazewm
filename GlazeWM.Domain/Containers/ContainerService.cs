@@ -13,7 +13,7 @@ namespace GlazeWM.Domain.Containers
     /// The root node of the container tree. Monitors are the children of the root node, followed
     /// by workspaces, then split containers/windows.
     /// </summary>
-    public Container ContainerTree = new();
+    public RootContainer ContainerTree = new();
 
     /// <summary>
     /// Containers (and their descendants) to redraw on the next invocation of
