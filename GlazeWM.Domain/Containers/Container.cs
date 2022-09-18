@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
 {
-  public class Container
+  public abstract class Container
   {
     public virtual int Height { get; set; }
     public virtual int Width { get; set; }

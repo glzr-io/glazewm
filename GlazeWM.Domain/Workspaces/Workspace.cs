@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Workspaces
 {
-  public class Workspace : SplitContainer
+  public sealed class Workspace : SplitContainer
   {
     public string Name { get; set; }
 

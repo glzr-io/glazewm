@@ -6,7 +6,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows
 {
-  public class Window : Container
+  public abstract class Window : Container
   {
     public IntPtr Handle { get; }
 
@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; }
 
-    public Window(IntPtr handle, WindowRect floatingPlacement, RectDelta borderDelta)
+    protected Window(IntPtr handle, WindowRect floatingPlacement, RectDelta borderDelta)
     {
       Handle = handle;
       FloatingPlacement = floatingPlacement;

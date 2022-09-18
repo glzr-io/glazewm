@@ -3,7 +3,7 @@ using GlazeWM.Domain.Workspaces;
 
 namespace GlazeWM.Domain.Monitors
 {
-  public class Monitor : Container
+  public sealed class Monitor : Container
   {
     public string DeviceName { get; set; }
     public override int Width { get; set; }
