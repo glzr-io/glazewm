@@ -64,9 +64,9 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Get dimensions of the bounding rectangle of the specified window.
     /// </summary>
-    public static WindowRect GetLocationOfHandle(IntPtr handle)
+    public static Rect GetLocationOfHandle(IntPtr handle)
     {
-      var rect = new WindowRect();
+      var rect = new Rect();
       GetWindowRect(handle, ref rect);
       return rect;
     }

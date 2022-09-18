@@ -49,7 +49,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Update floating placement if the window has to cross monitors.
       if (targetWorkspace.Parent != currentWorkspace.Parent)
         windowToMove.FloatingPlacement =
-          windowToMove.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+          windowToMove.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRect());
 
       if (windowToMove is TilingWindow)
         MoveTilingWindowToWorkspace(windowToMove as TilingWindow, targetWorkspace);

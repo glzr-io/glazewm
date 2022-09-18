@@ -1,6 +1,6 @@
 ﻿namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public struct WindowRect
+  public struct Rect
   {
     /// <summary>
     /// The x-coordinate of the upper-left corner of the rectangle.
@@ -33,9 +33,9 @@
     /// <summary>
     /// Creates a new `WindowRect` from coordinates of its upper-left and lower-right corners.
     /// </summary>
-    public static WindowRect FromLTRB(int left, int top, int right, int bottom)
+    public static Rect FromLTRB(int left, int top, int right, int bottom)
     {
-      return new WindowRect()
+      return new Rect()
       {
         Left = left,
         Right = right,
@@ -47,9 +47,9 @@
     /// <summary>
     /// Creates a new `WindowRect` from its X/Y coordinates and size.
     /// </summary>
-    public static WindowRect FromXYCoordinates(int x, int y, int width, int height)
+    public static Rect FromXYCoordinates(int x, int y, int width, int height)
     {
-      return new WindowRect()
+      return new Rect()
       {
         Left = x,
         Right = x + width,
@@ -58,12 +58,12 @@
       };
     }
 
-    public WindowRect TranslateToCoordinates(int x, int y)
+    public Rect TranslateToCoordinates(int x, int y)
     {
       return FromXYCoordinates(x, y, Width, Height);
     }
 
-    public WindowRect TranslateToCenter(WindowRect outerRect)
+    public Rect TranslateToCenter(Rect outerRect)
     {
       return TranslateToCoordinates(
         outerRect.X + (outerRect.Width / 2) - (Width / 2),

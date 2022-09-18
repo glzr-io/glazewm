@@ -72,7 +72,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Remove invisible borders from current placement to be able to compare window width/height.
       var currentPlacement = WindowService.GetPlacementOfHandle(window.Handle).NormalPosition;
-      var adjustedPlacement = new WindowRect
+      var adjustedPlacement = new Rect
       {
         Left = currentPlacement.Left + window.BorderDelta.Left,
         Right = currentPlacement.Right - window.BorderDelta.Right,

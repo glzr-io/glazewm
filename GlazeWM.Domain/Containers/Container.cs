@@ -125,9 +125,9 @@ namespace GlazeWM.Domain.Containers
       return Siblings.Any();
     }
 
-    public WindowRect ToRectangle()
+    public Rect ToRect()
     {
-      return new WindowRect()
+      return new Rect()
       {
         Left = X,
         Right = X + Width,

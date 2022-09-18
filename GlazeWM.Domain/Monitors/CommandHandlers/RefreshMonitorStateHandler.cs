@@ -76,7 +76,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         // the primary display is changed. The primary display dictates the position of 0,0.
         var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
         window.FloatingPlacement =
-          window.FloatingPlacement.TranslateToCenter(parentWorkspace.ToRectangle());
+          window.FloatingPlacement.TranslateToCenter(parentWorkspace.ToRect());
       }
 
       // Redraw full container tree.

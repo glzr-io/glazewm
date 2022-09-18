@@ -14,7 +14,7 @@ namespace GlazeWM.Domain.Windows
     /// The placement of the window when floating. Initialized with window's placement on launch
     /// and updated on resize/move whilst floating.
     /// </summary>
-    public WindowRect FloatingPlacement { get; set; }
+    public Rect FloatingPlacement { get; set; }
 
     /// <summary>
     /// The difference in window dimensions to adjust for invisible borders. This is typically 7px
@@ -28,7 +28,7 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; }
 
-    protected Window(IntPtr handle, WindowRect floatingPlacement, RectDelta borderDelta)
+    protected Window(IntPtr handle, Rect floatingPlacement, RectDelta borderDelta)
     {
       Handle = handle;
       FloatingPlacement = floatingPlacement;
@@ -44,7 +44,7 @@ namespace GlazeWM.Domain.Windows
 
     public string ClassName => WindowService.GetClassNameOfHandle(Handle);
 
-    public WindowRect Location => WindowService.GetLocationOfHandle(Handle);
+    public Rect Location => WindowService.GetLocationOfHandle(Handle);
 
     public string Title => WindowService.GetTitleOfHandle(Handle);
 

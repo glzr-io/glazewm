@@ -15,7 +15,7 @@ namespace GlazeWM.Domain.Windows
 
     public FloatingWindow(
       IntPtr handle,
-      WindowRect floatingPlacement,
+      Rect floatingPlacement,
       RectDelta borderDelta
     ) : base(handle, floatingPlacement, borderDelta)
     {

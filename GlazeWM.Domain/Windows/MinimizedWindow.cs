@@ -9,7 +9,7 @@ namespace GlazeWM.Domain.Windows
 
     public MinimizedWindow(
       IntPtr handle,
-      WindowRect floatingPlacement,
+      Rect floatingPlacement,
       RectDelta borderDelta,
       WindowType previousState
     ) : base(handle, floatingPlacement, borderDelta)

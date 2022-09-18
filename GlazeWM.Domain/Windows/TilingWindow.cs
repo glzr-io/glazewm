@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Windows
 
     public TilingWindow(
       IntPtr handle,
-      WindowRect floatingPlacement,
+      Rect floatingPlacement,
       RectDelta borderDelta
     ) : base(handle, floatingPlacement, borderDelta)
     {
@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Windows
 
     public TilingWindow(
       IntPtr handle,
-      WindowRect floatingPlacement,
+      Rect floatingPlacement,
       RectDelta borderDelta,
       double sizePercentage
     ) : base(handle, floatingPlacement, borderDelta)

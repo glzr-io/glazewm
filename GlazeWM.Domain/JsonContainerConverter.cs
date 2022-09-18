@@ -57,20 +57,20 @@ namespace GlazeWM.Domain.Containers
         "MinimizedWindow" => new MinimizedWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
           new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
           jsonObject.GetEnumProperty<WindowType>("PreviousState", options)
         ),
         "FloatingWindow" => new FloatingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
           new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>()
         ),
         "TilingWindow" => new TilingWindow(
           // TODO: Handle `IntPtr` for 32-bit processes.
           new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<WindowRect>(),
+          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
           jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
           jsonObject.GetProperty("SizePercentage").GetDouble()
         ),

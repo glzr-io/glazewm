@@ -90,7 +90,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Calculate where window should be placed when floating is enabled. Use the original
       // width/height of the window, but position it in the center of the workspace.
       var targetWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(targetParent);
-      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRectangle());
+      var floatingPlacement = originalPlacement.TranslateToCenter(targetWorkspace.ToRect());
 
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
 

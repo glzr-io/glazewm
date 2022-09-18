@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.Windows
   {
     public FullscreenWindow(
       IntPtr handle,
-      WindowRect floatingPlacement,
+      Rect floatingPlacement,
       RectDelta borderDelta
     ) : base(handle, floatingPlacement, borderDelta)
     {

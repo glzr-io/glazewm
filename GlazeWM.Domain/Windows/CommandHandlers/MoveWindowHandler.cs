@@ -137,7 +137,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Update floating placement since the window has to cross monitors.
       windowToMove.FloatingPlacement =
-        windowToMove.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRectangle());
+        windowToMove.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRect());
 
       // TODO: Descend into container if possible.
       if (direction is Direction.UP or Direction.LEFT)
