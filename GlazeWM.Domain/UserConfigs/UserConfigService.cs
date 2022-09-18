@@ -81,14 +81,14 @@ namespace GlazeWM.Domain.UserConfigs
       );
     }
 
-    public IEnumerable<WindowRuleConfig> GetMatchingWindowRules(Window window)
+    public List<WindowRuleConfig> GetMatchingWindowRules(Window window)
     {
       return UserConfig.WindowRules.Where(rule =>
       {
-        return rule.ProcessNameRegex?.IsMatch(window.ProcessName) != false
-          && rule.ClassNameRegex?.IsMatch(window.ClassName) != false
-          && (rule.TitleRegex?.IsMatch(window.Title)) != false;
-      });
+        return rule.ProcessNameRegex?.IsMatch(window.ProcessName) != false &&
+          rule.ClassNameRegex?.IsMatch(window.ClassName) != false &&
+          rule.TitleRegex?.IsMatch(window.Title) != false;
+      }).ToList();
     }
   }
 }
