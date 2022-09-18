@@ -32,29 +32,31 @@ namespace GlazeWM.Domain.Workspaces
       return GetActiveWorkspaces().FirstOrDefault(workspace => workspace.Name == name);
     }
 
-    public IEnumerable<string> GetInactiveWorkspaceNames()
+    public IEnumerable<WorkspaceConfig> GetInactiveWorkspaceConfigs()
     {
       var activeWorkspaces = GetActiveWorkspaces();
 
-      var inactiveWorkspaceConfigs = _userConfigService.UserConfig.Workspaces.Where(
+      return _userConfigService.UserConfig.Workspaces.Where(
         (config) => !activeWorkspaces.Any((workspace) => workspace.Name == config.Name)
       );
-
-      return inactiveWorkspaceConfigs.Select(config => config.Name);
-    }
-    
-    public string GetInactiveWorkspaceNameForMonitor(Monitor monitor)
-    {
-      return GetInactiveWorkspaceNames()
-        .FirstOrDefault(w =>
-          _userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w).BindToMonitor == monitor.DeviceName);
     }
 
-    public IEnumerable<string> GetInactiveWorkspaceNamesNotDedicatedToAMonitor()
+    public WorkspaceConfig GetWorkspaceConfigToActivate(Monitor monitor)
     {
-      return GetInactiveWorkspaceNames()
-        .Where(w => string.IsNullOrWhiteSpace(_userConfigService.UserConfig.Workspaces.First(uw => uw.Name == w)
-          .BindToMonitor));
+      var inactiveWorkspaceConfigs = GetInactiveWorkspaceConfigs();
+      var boundWorkspaceConfig = inactiveWorkspaceConfigs
+        .FirstOrDefault(config => config.BindToMonitor == monitor.DeviceName);
+
+      if (boundWorkspaceConfig is not null)
+        return boundWorkspaceConfig;
+
+      var unreservedWorkspaceConfig = inactiveWorkspaceConfigs
+        .FirstOrDefault(config => string.IsNullOrWhiteSpace(config.BindToMonitor));
+
+      if (unreservedWorkspaceConfig is not null)
+        return unreservedWorkspaceConfig;
+
+      return inactiveWorkspaceConfigs.ElementAtOrDefault(0);
     }
 
     public static Workspace GetWorkspaceFromChildContainer(Container container)

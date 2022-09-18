@@ -1,27 +1,18 @@
-﻿using System.Linq;
-using GlazeWM.Infrastructure.Bussing;
+﻿using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Infrastructure.Exceptions;
-using GlazeWM.Domain.UserConfigs;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
   internal class UpdateWorkspacesFromConfigHandler :
     ICommandHandler<UpdateWorkspacesFromConfigCommand>
   {
-    private readonly Bus _bus;
     private readonly WorkspaceService _workspaceService;
-    private readonly UserConfigService _userConfigService;
 
-    public UpdateWorkspacesFromConfigHandler(
-      Bus bus,
-      WorkspaceService workspaceService,
-      UserConfigService userConfigService)
+    public UpdateWorkspacesFromConfigHandler(WorkspaceService workspaceService)
     {
-      _bus = bus;
       _workspaceService = workspaceService;
-      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(UpdateWorkspacesFromConfigCommand command)
@@ -36,18 +27,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         if (workspaceConfig is null)
         {
           var monitor = workspace.Parent as Monitor;
-          // TODO: Move this to a dedicated `WorkspaceService` method.
-          var inactiveWorkspaceName = _workspaceService.GetInactiveWorkspaceNameForMonitor(monitor) ??
-            _workspaceService.GetInactiveWorkspaceNamesNotDedicatedToAMonitor().ElementAtOrDefault(0) ??
-            _workspaceService.GetInactiveWorkspaceNames().ElementAtOrDefault(0);
+          var inactiveWorkspaceConfig = _workspaceService.GetWorkspaceConfigToActivate(monitor);
 
-          if (inactiveWorkspaceName is null)
+          if (inactiveWorkspaceConfig is null)
             throw new FatalUserException("At least 1 workspace is required per monitor.");
 
-          var inactiveWorkspaceConfig =
-            _userConfigService.GetWorkspaceConfigByName(inactiveWorkspaceName);
-
-          workspace.Name = inactiveWorkspaceName;
+          workspace.Name = inactiveWorkspaceConfig.Name;
         }
 
         // TODO: Update `DisplayName` and `KeepAlive` once they are changed to properties.
