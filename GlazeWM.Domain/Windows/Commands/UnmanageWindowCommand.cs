@@ -2,11 +2,11 @@
 
 namespace GlazeWM.Domain.Windows.Commands
 {
-  public class RemoveWindowCommand : Command
+  public class UnmanageWindowCommand : Command
   {
     public Window Window { get; }
 
-    public RemoveWindowCommand(Window window)
+    public UnmanageWindowCommand(Window window)
     {
       Window = window;
     }

@@ -60,7 +60,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<IgnoreWindowCommand>, IgnoreWindowHandler>();
       services.AddSingleton<ICommandHandler<ManageWindowCommand>, ManageWindowHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowCommand>, MoveWindowHandler>();
-      services.AddSingleton<ICommandHandler<RemoveWindowCommand>, RemoveWindowHandler>();
       services.AddSingleton<ICommandHandler<ResizeWindowCommand>, ResizeWindowHandler>();
       services.AddSingleton<ICommandHandler<RunWindowRulesCommand>, RunWindowRulesHandler>();
       services.AddSingleton<ICommandHandler<ResizeWindowBordersCommand>, ResizeWindowBordersHandler>();
@@ -70,6 +69,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
       services.AddSingleton<ICommandHandler<ToggleMaximizedCommand>, ToggleMaximizedHandler>();
+      services.AddSingleton<ICommandHandler<UnmanageWindowCommand>, UnmanageWindowHandler>();
       services.AddSingleton<ICommandHandler<ActivateWorkspaceCommand>, ActivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();

@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _logger.LogWindowEvent("Window closed", window);
 
       // If window is in tree, detach the removed window from its parent.
-      _bus.Invoke(new RemoveWindowCommand(window));
+      _bus.Invoke(new UnmanageWindowCommand(window));
       _bus.Invoke(new RedrawContainersCommand());
     }
   }

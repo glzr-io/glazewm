@@ -49,7 +49,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _logger.LogWindowEvent("Window hidden", window);
 
       // Detach the hidden window from its parent.
-      _bus.Invoke(new RemoveWindowCommand(window));
+      _bus.Invoke(new UnmanageWindowCommand(window));
       _bus.Invoke(new RedrawContainersCommand());
     }
   }
