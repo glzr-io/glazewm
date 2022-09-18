@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING | SWP.SWP_SHOWWINDOW;
 
         SetWindowPos(
-          window.Hwnd,
+          window.Handle,
           IntPtr.Zero,
           window.X,
           window.Y,

@@ -40,7 +40,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public void Handle(WindowMovedOrResizedEvent @event)
     {
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
+        .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
       if (window is null)
         return;
@@ -71,7 +71,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       }
 
       // Remove invisible borders from current placement to be able to compare window width/height.
-      var currentPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
+      var currentPlacement = WindowService.GetPlacementOfHandle(window.Handle).NormalPosition;
       var adjustedPlacement = new WindowRect
       {
         Left = currentPlacement.Left + window.BorderDelta.DeltaLeft,
@@ -90,7 +90,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private void UpdateFloatingWindow(FloatingWindow window)
     {
       // Update state with new location of the floating window.
-      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Hwnd).NormalPosition;
+      window.FloatingPlacement = WindowService.GetPlacementOfHandle(window.Handle).NormalPosition;
 
       // Change floating window's parent workspace if out of its bounds.
       UpdateParentWorkspace(window);
@@ -101,7 +101,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
 
       // Get workspace that encompasses most of the window.
-      var targetMonitor = _monitorService.GetMonitorFromHandleLocation(window.Hwnd);
+      var targetMonitor = _monitorService.GetMonitorFromHandleLocation(window.Handle);
       var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
       // Ignore if window is still within the bounds of its current workspace.

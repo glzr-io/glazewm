@@ -8,7 +8,7 @@ namespace GlazeWM.Domain.Windows
 {
   public class Window : Container
   {
-    public IntPtr Hwnd { get; }
+    public IntPtr Handle { get; }
 
     /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch
@@ -28,9 +28,9 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool HasPendingDpiAdjustment { get; set; }
 
-    public Window(IntPtr hwnd, WindowRect floatingPlacement, RectDelta borderDelta)
+    public Window(IntPtr handle, WindowRect floatingPlacement, RectDelta borderDelta)
     {
-      Hwnd = hwnd;
+      Handle = handle;
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;
     }
@@ -40,28 +40,28 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool IsDisplayed => WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
-    public string ProcessName => WindowService.GetProcessOfHandle(Hwnd)?.ProcessName ?? string.Empty;
+    public string ProcessName => WindowService.GetProcessOfHandle(Handle)?.ProcessName ?? string.Empty;
 
-    public string ClassName => WindowService.GetClassNameOfHandle(Hwnd);
+    public string ClassName => WindowService.GetClassNameOfHandle(Handle);
 
-    public WindowRect Location => WindowService.GetLocationOfHandle(Hwnd);
+    public WindowRect Location => WindowService.GetLocationOfHandle(Handle);
 
-    public string Title => WindowService.GetTitleOfHandle(Hwnd);
+    public string Title => WindowService.GetTitleOfHandle(Handle);
 
-    public bool IsManageable => WindowService.IsHandleManageable(Hwnd);
+    public bool IsManageable => WindowService.IsHandleManageable(Handle);
 
-    public WS WindowStyles => WindowService.GetWindowStyles(Hwnd);
+    public WS WindowStyles => WindowService.GetWindowStyles(Handle);
 
-    public WS_EX WindowStylesEx => WindowService.GetWindowStylesEx(Hwnd);
+    public WS_EX WindowStylesEx => WindowService.GetWindowStylesEx(Handle);
 
     public bool HasWindowStyle(WS style)
     {
-      return WindowService.HandleHasWindowStyle(Hwnd, style);
+      return WindowService.HandleHasWindowStyle(Handle, style);
     }
 
     public bool HasWindowExStyle(WS_EX style)
     {
-      return WindowService.HandleHasWindowExStyle(Hwnd, style);
+      return WindowService.HandleHasWindowExStyle(Handle, style);
     }
   }
 }

@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
 
       var tilingWindow = new TilingWindow(
-        floatingWindow.Hwnd,
+        floatingWindow.Handle,
         floatingWindow.FloatingPlacement,
         floatingWindow.BorderDelta,
         0

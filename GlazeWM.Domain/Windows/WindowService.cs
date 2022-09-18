@@ -100,9 +100,9 @@ namespace GlazeWM.Domain.Windows
     {
       var windowHandles = new List<IntPtr>();
 
-      EnumWindows((IntPtr hwnd, int _) =>
+      EnumWindows((IntPtr handle, int _) =>
       {
-        windowHandles.Add(hwnd);
+        windowHandles.Add(handle);
         return true;
       }, IntPtr.Zero);
 

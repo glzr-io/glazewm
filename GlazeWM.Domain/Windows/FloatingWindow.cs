@@ -14,10 +14,10 @@ namespace GlazeWM.Domain.Windows
     public override int Y => FloatingPlacement.Y;
 
     public FloatingWindow(
-      IntPtr hwnd,
+      IntPtr handle,
       WindowRect floatingPlacement,
       RectDelta borderDelta
-    ) : base(hwnd, floatingPlacement, borderDelta)
+    ) : base(handle, floatingPlacement, borderDelta)
     {
     }
   }

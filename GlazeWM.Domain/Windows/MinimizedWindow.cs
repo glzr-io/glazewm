@@ -8,11 +8,11 @@ namespace GlazeWM.Domain.Windows
     public WindowType PreviousState;
 
     public MinimizedWindow(
-      IntPtr hwnd,
+      IntPtr handle,
       WindowRect floatingPlacement,
       RectDelta borderDelta,
       WindowType previousState
-    ) : base(hwnd, floatingPlacement, borderDelta)
+    ) : base(handle, floatingPlacement, borderDelta)
     {
       PreviousState = previousState;
     }

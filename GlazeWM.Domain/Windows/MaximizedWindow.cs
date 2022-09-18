@@ -6,10 +6,10 @@ namespace GlazeWM.Domain.Windows
   public sealed class MaximizedWindow : Window
   {
     public MaximizedWindow(
-      IntPtr hwnd,
+      IntPtr handle,
       WindowRect floatingPlacement,
       RectDelta borderDelta
-    ) : base(hwnd, floatingPlacement, borderDelta)
+    ) : base(handle, floatingPlacement, borderDelta)
     {
     }
   }

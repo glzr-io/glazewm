@@ -50,7 +50,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
       // Get the originally focused window when the WM is started.
       var focusedWindow =
-        _windowService.GetWindows().FirstOrDefault(window => window.Hwnd == focusedHandle);
+        _windowService.GetWindows().FirstOrDefault(window => window.Handle == focusedHandle);
 
       // `GetForegroundWindow` might return a handle that is not in the tree. In that case, set
       // focus to an arbitrary window. If there are no manageable windows in the tree, set focus to

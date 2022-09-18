@@ -34,7 +34,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Restore minimized/maximized windows. Needed to be able to move and resize them.
       foreach (var window in windowsToRestore)
-        ShowWindow(window.Hwnd, ShowWindowCommands.RESTORE);
+        ShowWindow(window.Handle, ShowWindowCommands.RESTORE);
 
       foreach (var window in windowsToRedraw)
       {
@@ -68,7 +68,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (window is TilingWindow)
       {
         SetWindowPos(
-          window.Hwnd,
+          window.Handle,
           IntPtr.Zero,
           window.X - window.BorderDelta.DeltaLeft,
           window.Y - window.BorderDelta.DeltaTop,
@@ -82,7 +82,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Avoid adjusting the borders of floating windows. Otherwise the window will increase in size
       // from its original placement.
       SetWindowPos(
-        window.Hwnd,
+        window.Handle,
         IntPtr.Zero,
         window.X,
         window.Y,

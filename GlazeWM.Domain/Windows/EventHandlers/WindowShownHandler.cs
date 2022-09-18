@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       }
 
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == windowHandle);
+        .FirstOrDefault(window => window.Handle == windowHandle);
 
       // Ignore cases where window is already managed.
       if (window is not null || !WindowService.IsHandleManageable(windowHandle))

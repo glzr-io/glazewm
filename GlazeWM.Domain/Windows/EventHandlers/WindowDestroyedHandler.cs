@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       }
 
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == windowHandle);
+        .FirstOrDefault(window => window.Handle == windowHandle);
 
       if (window == null)
         return;

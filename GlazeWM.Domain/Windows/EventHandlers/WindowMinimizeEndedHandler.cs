@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public void Handle(WindowMinimizeEndedEvent @event)
     {
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == @event.WindowHandle) as MinimizedWindow;
+        .FirstOrDefault(window => window.Handle == @event.WindowHandle) as MinimizedWindow;
 
       if (window == null)
         return;
@@ -72,23 +72,23 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       return window.PreviousState switch
       {
         WindowType.FLOATING => new FloatingWindow(
-          window.Hwnd,
+          window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
         WindowType.MAXIMIZED => new MaximizedWindow(
-          window.Hwnd,
+          window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
         WindowType.FULLSCREEN => new FullscreenWindow(
-          window.Hwnd,
+          window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
         // Set `SizePercentage` to 0 to correctly resize the container when moved within tree.
         WindowType.TILING => new TilingWindow(
-          window.Hwnd,
+          window.Handle,
           window.FloatingPlacement,
           window.BorderDelta,
           0

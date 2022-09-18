@@ -22,19 +22,19 @@ namespace GlazeWM.Domain.Windows
     public override int Y => _containerService.CalculateYOfResizableContainer(this);
 
     public TilingWindow(
-      IntPtr hwnd,
+      IntPtr handle,
       WindowRect floatingPlacement,
       RectDelta borderDelta
-    ) : base(hwnd, floatingPlacement, borderDelta)
+    ) : base(handle, floatingPlacement, borderDelta)
     {
     }
 
     public TilingWindow(
-      IntPtr hwnd,
+      IntPtr handle,
       WindowRect floatingPlacement,
       RectDelta borderDelta,
       double sizePercentage
-    ) : base(hwnd, floatingPlacement, borderDelta)
+    ) : base(handle, floatingPlacement, borderDelta)
     {
       SizePercentage = sizePercentage;
     }

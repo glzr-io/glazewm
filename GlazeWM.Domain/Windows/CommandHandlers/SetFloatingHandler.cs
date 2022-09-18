@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Create a floating window and place it in the center of the workspace.
       var floatingWindow = new FloatingWindow(
-        window.Hwnd,
+        window.Handle,
         window.FloatingPlacement,
         window.BorderDelta
       );

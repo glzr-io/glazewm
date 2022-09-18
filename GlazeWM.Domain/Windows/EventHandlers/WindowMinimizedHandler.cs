@@ -34,7 +34,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public void Handle(WindowMinimizedEvent @event)
     {
       var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Hwnd == @event.WindowHandle);
+        .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
       if (window is null or MinimizedWindow)
         return;
@@ -49,7 +49,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       var previousState = WindowService.GetWindowType(window);
       var minimizedWindow = new MinimizedWindow(
-        window.Hwnd,
+        window.Handle,
         window.FloatingPlacement,
         window.BorderDelta,
         previousState
