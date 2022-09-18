@@ -1,5 +1,6 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Windows;
@@ -14,21 +15,23 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
   internal class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
-    private readonly MonitorService _monitorService;
     private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
+    private readonly WorkspaceService _workspaceService;
 
     public FocusWorkspaceHandler(
       Bus bus,
-      WorkspaceService workspaceService,
+      ContainerService containerService,
       MonitorService monitorService,
-      ContainerService containerService
-    )
+      UserConfigService userConfigService,
+      WorkspaceService workspaceService)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
-      _monitorService = monitorService;
       _containerService = containerService;
+      _monitorService = monitorService;
+      _userConfigService = userConfigService;
+      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(FocusWorkspaceCommand command)
@@ -76,7 +79,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         .FirstOrDefault(workspace =>
         {
           return !workspace.KeepAlive
-            &&!workspace.HasChildren()
+            && !workspace.HasChildren()
             && !workspace.IsDisplayed
             && _containerService.PendingFocusContainer != workspace;
         });
@@ -92,7 +95,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     /// </summary>
     private Workspace ActivateWorkspace(string workspaceName)
     {
-      var targetMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? _monitorService.GetFocusedMonitor();
+      // Get the monitor that the workspace should be bound to (if it exists).
+      var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
+      var boundMonitor =
+        _monitorService.GetMonitorByDeviceName(workspaceConfig.BindToMonitor);
+
+      var targetMonitor = boundMonitor ?? _monitorService.GetFocusedMonitor();
       _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
 
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);

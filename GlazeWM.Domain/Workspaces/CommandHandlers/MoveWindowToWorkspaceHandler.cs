@@ -1,10 +1,11 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Domain.Workspaces.Commands;
-using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Workspaces.Commands;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
@@ -12,21 +13,23 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
   internal class MoveWindowToWorkspaceHandler : ICommandHandler<MoveWindowToWorkspaceCommand>
   {
     private readonly Bus _bus;
-    private readonly WorkspaceService _workspaceService;
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
+    private readonly WorkspaceService _workspaceService;
 
     public MoveWindowToWorkspaceHandler(
       Bus bus,
-      WorkspaceService workspaceService,
       ContainerService containerService,
-      MonitorService monitorService
-    )
+      MonitorService monitorService,
+      UserConfigService userConfigService,
+      WorkspaceService workspaceService)
     {
       _bus = bus;
-      _workspaceService = workspaceService;
       _containerService = containerService;
       _monitorService = monitorService;
+      _userConfigService = userConfigService;
+      _workspaceService = workspaceService;
     }
 
     public CommandResponse Handle(MoveWindowToWorkspaceCommand command)
@@ -35,11 +38,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceName = command.WorkspaceName;
 
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
-      // Make sure workspace opens on the appropriate monitor
-      var targetMonitor = _monitorService.GetMonitorForWorkspace(workspaceName) ?? MonitorService.GetMonitorFromChildContainer(currentWorkspace);
-
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
-        ?? ActivateWorkspace(workspaceName, targetMonitor);
+        ?? ActivateWorkspace(workspaceName, windowToMove);
 
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.
@@ -66,9 +66,19 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private Workspace ActivateWorkspace(string workspaceName, Monitor targetMonitor)
+    private Workspace ActivateWorkspace(string workspaceName, Window windowToMove)
     {
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToMove);
+
+      // Get the monitor that the workspace should be bound to (if it exists).
+      var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
+      var boundMonitor =
+        _monitorService.GetMonitorByDeviceName(workspaceConfig.BindToMonitor);
+
+      // Activate the workspace on the target monitor.
+      var targetMonitor = boundMonitor ?? currentMonitor;
       _bus.Invoke(new ActivateWorkspaceCommand(workspaceName, targetMonitor));
+
       return _workspaceService.GetActiveWorkspaceByName(workspaceName);
     }
 

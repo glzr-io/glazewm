@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -13,12 +12,10 @@ namespace GlazeWM.Domain.Monitors
   public class MonitorService
   {
     private readonly ContainerService _containerService;
-    private readonly UserConfigService _userConfigService;
 
-    public MonitorService(ContainerService containerService, UserConfigService userConfigService)
+    public MonitorService(ContainerService containerService)
     {
       _containerService = containerService;
-      _userConfigService = userConfigService;
     }
 
     /// <summary>
@@ -29,10 +26,9 @@ namespace GlazeWM.Domain.Monitors
       return _containerService.ContainerTree.Children.Cast<Monitor>();
     }
 
-    public Monitor GetMonitorForWorkspace(string workspace)
+    public Monitor GetMonitorByDeviceName(string deviceName)
     {
-      var monitorName = _userConfigService.UserConfig.Workspaces.FirstOrDefault(ws => ws.Name == workspace)?.BindToMonitor;
-      return GetMonitors().FirstOrDefault(m => m.DeviceName == monitorName);
+      return GetMonitors().FirstOrDefault(monitor => monitor.DeviceName == deviceName);
     }
 
     public static Monitor GetMonitorFromChildContainer(Container container)
@@ -47,8 +43,7 @@ namespace GlazeWM.Domain.Monitors
     {
       var screen = Screen.FromHandle(windowHandle);
 
-      return GetMonitors().FirstOrDefault(monitor => monitor.DeviceName == screen.DeviceName)
-        ?? GetMonitors().First();
+      return GetMonitorByDeviceName(screen.DeviceName) ?? GetMonitors().First();
     }
 
     public Monitor GetFocusedMonitor()

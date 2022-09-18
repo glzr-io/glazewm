@@ -34,9 +34,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     {
       foreach (var screen in Screen.AllScreens)
       {
-        var foundMonitor = _monitorService.GetMonitors().FirstOrDefault(
-          monitor => monitor.DeviceName == screen.DeviceName
-        );
+        var foundMonitor = _monitorService.GetMonitorByDeviceName(screen.DeviceName);
 
         // Add monitor if it doesn't exist in state.
         if (foundMonitor == null)
