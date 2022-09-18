@@ -70,10 +70,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPos(
           window.Handle,
           IntPtr.Zero,
-          window.X - window.BorderDelta.DeltaLeft,
-          window.Y - window.BorderDelta.DeltaTop,
-          window.Width + window.BorderDelta.DeltaLeft + window.BorderDelta.DeltaRight,
-          window.Height + window.BorderDelta.DeltaTop + window.BorderDelta.DeltaRight,
+          window.X - window.BorderDelta.Left,
+          window.Y - window.BorderDelta.Top,
+          window.Width + window.BorderDelta.Left + window.BorderDelta.Right,
+          window.Height + window.BorderDelta.Top + window.BorderDelta.Right,
           flags
         );
         return;

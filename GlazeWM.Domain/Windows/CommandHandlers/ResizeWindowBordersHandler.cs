@@ -26,10 +26,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // TODO: Move default border delta into some sort of shared state.
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
       windowToResize.BorderDelta = new RectDelta(
-        defaultBorderDelta.DeltaLeft + borderDelta.DeltaLeft,
-        defaultBorderDelta.DeltaTop + borderDelta.DeltaTop,
-        defaultBorderDelta.DeltaRight + borderDelta.DeltaRight,
-        defaultBorderDelta.DeltaBottom + borderDelta.DeltaBottom
+        defaultBorderDelta.Left + borderDelta.Left,
+        defaultBorderDelta.Top + borderDelta.Top,
+        defaultBorderDelta.Right + borderDelta.Right,
+        defaultBorderDelta.Bottom + borderDelta.Bottom
       );
 
       // No need to redraw if window isn't tiling.

@@ -5,29 +5,29 @@
     /// <summary>
     /// The difference in x-coordinates of the upper-left corner of the rectangle.
     /// </summary>
-    public int DeltaLeft { get; }
+    public int Left { get; }
 
     /// <summary>
     /// The difference in y-coordinates of the upper-left corner of the rectangle.
     /// </summary>
-    public int DeltaTop { get; }
+    public int Top { get; }
 
     /// <summary>
     /// The difference in x-coordinates of the lower-right corner of the rectangle.
     /// </summary>
-    public int DeltaRight { get; }
+    public int Right { get; }
 
     /// <summary>
     /// The difference in y-coordinates of the lower-right corner of the rectangle.
     /// </summary>
-    public int DeltaBottom { get; }
+    public int Bottom { get; }
 
-    public RectDelta(int deltaLeft, int deltaTop, int deltaRight, int deltaBottom)
+    public RectDelta(int left, int top, int right, int bottom)
     {
-      DeltaLeft = deltaLeft;
-      DeltaRight = deltaRight;
-      DeltaTop = deltaTop;
-      DeltaBottom = deltaBottom;
+      Left = left;
+      Right = right;
+      Top = top;
+      Bottom = bottom;
     }
   }
 }

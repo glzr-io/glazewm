@@ -74,10 +74,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var currentPlacement = WindowService.GetPlacementOfHandle(window.Handle).NormalPosition;
       var adjustedPlacement = new WindowRect
       {
-        Left = currentPlacement.Left + window.BorderDelta.DeltaLeft,
-        Right = currentPlacement.Right - window.BorderDelta.DeltaRight,
-        Top = currentPlacement.Top + window.BorderDelta.DeltaTop,
-        Bottom = currentPlacement.Bottom - window.BorderDelta.DeltaBottom,
+        Left = currentPlacement.Left + window.BorderDelta.Left,
+        Right = currentPlacement.Right - window.BorderDelta.Right,
+        Top = currentPlacement.Top + window.BorderDelta.Top,
+        Bottom = currentPlacement.Bottom - window.BorderDelta.Bottom,
       };
 
       var deltaWidth = adjustedPlacement.Width - window.Width;
