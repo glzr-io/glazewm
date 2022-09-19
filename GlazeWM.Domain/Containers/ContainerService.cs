@@ -97,8 +97,8 @@ namespace GlazeWM.Domain.Containers
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.GetPreviousSiblingOfType<IResizable>().X
-        + container.GetPreviousSiblingOfType<IResizable>().Width
+      return container.PreviousSiblingOfType<IResizable>().X
+        + container.PreviousSiblingOfType<IResizable>().Width
         + innerGap;
     }
 
@@ -117,8 +117,8 @@ namespace GlazeWM.Domain.Containers
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.GetPreviousSiblingOfType<IResizable>().Y
-        + container.GetPreviousSiblingOfType<IResizable>().Height
+      return container.PreviousSiblingOfType<IResizable>().Y
+        + container.PreviousSiblingOfType<IResizable>().Height
         + innerGap;
     }
 

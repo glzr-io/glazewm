@@ -151,14 +151,14 @@ namespace GlazeWM.Domain.Containers
       return SelfAndSiblings.Where(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public Container GetNextSiblingOfType<T>()
+    public Container NextSiblingOfType<T>()
     {
       return SelfAndSiblings
         .Skip(Index + 1)
         .FirstOrDefault(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public Container GetPreviousSiblingOfType<T>()
+    public Container PreviousSiblingOfType<T>()
     {
       return SelfAndSiblings
         .Take(Index)

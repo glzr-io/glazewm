@@ -46,8 +46,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return;
 
       var focusTarget = direction == Direction.RIGHT
-        ? focusedContainer.GetNextSiblingOfType<FloatingWindow>()
-        : focusedContainer.GetPreviousSiblingOfType<FloatingWindow>();
+        ? focusedContainer.NextSiblingOfType<FloatingWindow>()
+        : focusedContainer.PreviousSiblingOfType<FloatingWindow>();
 
       // Wrap if next/previous floating window is not found.
       if (focusTarget == null)
@@ -107,8 +107,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         }
 
         var focusTarget = direction is Direction.UP or Direction.LEFT
-          ? focusReference.GetPreviousSiblingOfType<IResizable>()
-          : focusReference.GetNextSiblingOfType<IResizable>();
+          ? focusReference.PreviousSiblingOfType<IResizable>()
+          : focusReference.NextSiblingOfType<IResizable>();
 
         if (focusTarget == null)
         {
