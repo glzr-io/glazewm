@@ -84,7 +84,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     private void MoveTilingWindowToWorkspace(TilingWindow windowToMove, Workspace targetWorkspace)
     {
-      var insertionTarget = targetWorkspace.LastFocusedDescendantOfType(typeof(IResizable));
+      var insertionTarget = targetWorkspace.LastFocusedDescendantOfType<IResizable>();
 
       // Insert the window into the target workspace.
       if (insertionTarget == null)

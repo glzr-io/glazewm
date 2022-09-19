@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       // Snap window to its original position even if it's not being resized.
       var hasNoResizableSiblings = window.Parent is Workspace
-        && !window.SiblingsOfType(typeof(IResizable)).Any();
+        && !window.SiblingsOfType<IResizable>().Any();
 
       if (hasNoResizableSiblings)
       {

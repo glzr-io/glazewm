@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Containers
         return parent.Width;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
-      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
+      var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
         * (parent.Width - (innerGap * (resizableSiblings.Count() - 1))));
@@ -76,7 +76,7 @@ namespace GlazeWM.Domain.Containers
         return parent.Height;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
-      var resizableSiblings = container.SelfAndSiblingsOfType(typeof(IResizable));
+      var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
         * (parent.Height - (innerGap * (resizableSiblings.Count() - 1))));
@@ -90,15 +90,15 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+      var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
       if (parent.Layout == Layout.VERTICAL || isFirstOfType)
         return parent.X;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.GetPreviousSiblingOfType(typeof(IResizable)).X
-        + container.GetPreviousSiblingOfType(typeof(IResizable)).Width
+      return container.PreviousSiblingOfType<IResizable>().X
+        + container.PreviousSiblingOfType<IResizable>().Width
         + innerGap;
     }
 
@@ -110,15 +110,15 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      var isFirstOfType = container.SelfAndSiblingsOfType(typeof(IResizable)).First() == container;
+      var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
       if (parent.Layout == Layout.HORIZONTAL || isFirstOfType)
         return parent.Y;
 
       var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
 
-      return container.GetPreviousSiblingOfType(typeof(IResizable)).Y
-        + container.GetPreviousSiblingOfType(typeof(IResizable)).Height
+      return container.PreviousSiblingOfType<IResizable>().Y
+        + container.PreviousSiblingOfType<IResizable>().Height
         + innerGap;
     }
 
@@ -129,8 +129,9 @@ namespace GlazeWM.Domain.Containers
     /// </summary>
     public Container GetDescendantInDirection(Container originContainer, Direction direction)
     {
-      var isDescendable = originContainer is SplitContainer
-        && originContainer.ChildrenOfType(typeof(IResizable)).Any();
+      var isDescendable =
+        originContainer is SplitContainer &&
+        originContainer.ChildrenOfType<IResizable>().Any();
 
       if (!isDescendable)
         return originContainer;
@@ -139,17 +140,17 @@ namespace GlazeWM.Domain.Containers
 
       if (layout != direction.GetCorrespondingLayout())
         return GetDescendantInDirection(
-          originContainer.LastFocusedChildOfType(typeof(IResizable)),
+          originContainer.LastFocusedChildOfType<IResizable>(),
           direction
         );
       else if (direction is Direction.UP or Direction.LEFT)
         return GetDescendantInDirection(
-          originContainer.ChildrenOfType(typeof(IResizable)).First(),
+          originContainer.ChildrenOfType<IResizable>().First(),
           direction
         );
       else
         return GetDescendantInDirection(
-          originContainer.ChildrenOfType(typeof(IResizable)).Last(),
+          originContainer.ChildrenOfType<IResizable>().Last(),
           direction
         );
     }

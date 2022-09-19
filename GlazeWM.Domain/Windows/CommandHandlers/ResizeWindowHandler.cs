@@ -37,7 +37,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Get container and its siblings to resize.
       var containerToResize = GetContainerToResize(windowToResize, dimensionToResize);
-      var resizableSiblings = containerToResize.SiblingsOfType(typeof(IResizable));
+      var resizableSiblings = containerToResize.SiblingsOfType<IResizable>();
 
       // Ignore cases where the container to resize is a workspace or the only child.
       if (!resizableSiblings.Any() || containerToResize is Workspace)
@@ -116,7 +116,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT) ||
         (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
 
-      var hasResizableSiblings = windowToResize.SiblingsOfType(typeof(IResizable)).Any();
+      var hasResizableSiblings = windowToResize.SiblingsOfType<IResizable>().Any();
 
       if (!isInverseResize && !hasResizableSiblings && grandparent is IResizable)
         return grandparent;
@@ -155,7 +155,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       ResizeDimension dimensionToResize)
     {
       // Get available width/height that can be resized (ie. exclude inner gaps).
-      var resizableLength = containerToResize.SelfAndSiblingsOfType(typeof(IResizable)).Aggregate(
+      var resizableLength = containerToResize.SelfAndSiblingsOfType<IResizable>().Aggregate(
         1.0,
         (sum, container) =>
           dimensionToResize == ResizeDimension.WIDTH

@@ -136,53 +136,53 @@ namespace GlazeWM.Domain.Containers
       };
     }
 
-    public IEnumerable<Container> ChildrenOfType(Type type)
+    public IEnumerable<Container> ChildrenOfType<T>()
     {
-      return Children.Where(container => type.IsAssignableFrom(container.GetType()));
+      return Children.Where(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public IEnumerable<Container> SiblingsOfType(Type type)
+    public IEnumerable<Container> SiblingsOfType<T>()
     {
-      return Siblings.Where(container => type.IsAssignableFrom(container.GetType()));
+      return Siblings.Where(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public IEnumerable<Container> SelfAndSiblingsOfType(Type type)
+    public IEnumerable<Container> SelfAndSiblingsOfType<T>()
     {
-      return SelfAndSiblings.Where(container => type.IsAssignableFrom(container.GetType()));
+      return SelfAndSiblings.Where(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public Container GetNextSiblingOfType(Type type)
+    public Container NextSiblingOfType<T>()
     {
       return SelfAndSiblings
         .Skip(Index + 1)
-        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+        .FirstOrDefault(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
-    public Container GetPreviousSiblingOfType(Type type)
+    public Container PreviousSiblingOfType<T>()
     {
       return SelfAndSiblings
         .Take(Index)
         .Reverse()
-        .FirstOrDefault(container => type.IsAssignableFrom(container.GetType()));
+        .FirstOrDefault(container => typeof(T).IsAssignableFrom(container.GetType()));
     }
 
     /// <summary>
     /// Get the last focused child that matches the given type.
     /// </summary>
-    public Container LastFocusedChildOfType(Type type)
+    public Container LastFocusedChildOfType<T>()
     {
       return ChildFocusOrder.Find(
-        container => type.IsAssignableFrom(container.GetType())
+        container => typeof(T).IsAssignableFrom(container.GetType())
       );
     }
 
     /// <summary>
     /// Get the last focused descendant that matches the given type.
     /// </summary>
-    public Container LastFocusedDescendantOfType(Type type)
+    public Container LastFocusedDescendantOfType<T>()
     {
       return LastFocusedDescendantWithPredicate(
-        container => type.IsAssignableFrom(container.GetType())
+        container => typeof(T).IsAssignableFrom(container.GetType())
       );
     }
 

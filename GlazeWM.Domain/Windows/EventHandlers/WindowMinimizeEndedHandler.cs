@@ -47,7 +47,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
-      var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
+      var insertionTarget = workspace.LastFocusedDescendantOfType<IResizable>();
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)

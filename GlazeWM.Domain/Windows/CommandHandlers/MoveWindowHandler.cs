@@ -76,16 +76,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private static bool HasSiblingInDirection(Window windowToMove, Direction direction)
     {
       if (direction is Direction.UP or Direction.LEFT)
-        return windowToMove != windowToMove.SelfAndSiblingsOfType(typeof(IResizable)).First();
+        return windowToMove != windowToMove.SelfAndSiblingsOfType<IResizable>().First();
 
-      return windowToMove != windowToMove.SelfAndSiblingsOfType(typeof(IResizable)).Last();
+      return windowToMove != windowToMove.SelfAndSiblingsOfType<IResizable>().Last();
     }
 
     private void SwapSiblingContainers(Window windowToMove, Direction direction)
     {
       var siblingInDirection = direction is Direction.UP or Direction.LEFT
-        ? windowToMove.GetPreviousSiblingOfType(typeof(IResizable))
-        : windowToMove.GetNextSiblingOfType(typeof(IResizable));
+        ? windowToMove.PreviousSiblingOfType<IResizable>()
+        : windowToMove.NextSiblingOfType<IResizable>();
 
       // Swap the window with sibling in given direction.
       if (siblingInDirection is Window)
@@ -181,8 +181,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
       var insertionReferenceSibling = direction is Direction.UP or Direction.LEFT
-        ? insertionReference.GetPreviousSiblingOfType(typeof(IResizable))
-        : insertionReference.GetNextSiblingOfType(typeof(IResizable));
+        ? insertionReference.PreviousSiblingOfType<IResizable>()
+        : insertionReference.NextSiblingOfType<IResizable>();
 
       if (insertionReferenceSibling is SplitContainer)
       {
