@@ -31,7 +31,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
       SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _hookProc, 0, 0, 0);
     }
 
-    private void WindowEventHookProc(IntPtr hWinEventHook, EventConstant eventType, IntPtr hwnd, ObjectIdentifier idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+    private void WindowEventHookProc(
+      IntPtr hWinEventHook,
+      EventConstant eventType,
+      IntPtr hwnd,
+      ObjectIdentifier idObject,
+      int idChild,
+      uint dwEventThread,
+      uint dwmsEventTime)
     {
       // Whether the event is actually associated with a window object (instead of a UI control).
       var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.OBJID_WINDOW

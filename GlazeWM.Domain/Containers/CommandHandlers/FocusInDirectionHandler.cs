@@ -16,7 +16,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
 
-    public FocusInDirectionHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
+    public FocusInDirectionHandler(
+      Bus bus,
+      ContainerService containerService,
+      MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
@@ -84,7 +87,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     /// Attempt to find a focus target within the focused workspace. Traverse upwards from the
     /// focused container to find an adjacent container that can be focused.
     /// </summary>
-    private Container GetFocusTargetWithinWorkspace(Container focusedContainer, Direction direction)
+    private Container GetFocusTargetWithinWorkspace(
+      Container focusedContainer,
+      Direction direction)
     {
       var layoutForDirection = direction.GetCorrespondingLayout();
       var focusReference = focusedContainer;

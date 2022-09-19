@@ -12,8 +12,7 @@ namespace GlazeWM.Domain.Windows.Commands
     public ResizeWindowCommand(
       Window windowToResize,
       ResizeDimension dimensionToResize,
-      string resizeAmount
-    )
+      string resizeAmount)
     {
       WindowToResize = windowToResize;
       DimensionToResize = dimensionToResize;

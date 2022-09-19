@@ -26,8 +26,7 @@ namespace GlazeWM.Infrastructure.Logging
     public override void Write<T>(
       in LogEntry<T> logEntry,
       IExternalScopeProvider scopeProvider,
-      TextWriter textWriter
-    )
+      TextWriter textWriter)
     {
       var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
 

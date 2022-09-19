@@ -67,12 +67,31 @@ namespace GlazeWM.Bar
       // Since window size is set manually, need to scale up height to make window DPI responsive.
       var barHeight = _userConfigService.UserConfig.Bar.Height;
       var scaledBarHeight = Convert.ToInt32(barHeight * _monitor.ScaleFactor);
-      var barOffsetY = _userConfigService.UserConfig.Bar.Position == BarPosition.Bottom ? _monitor.Height - scaledBarHeight : 0;
+
+      // Get offset from top of monitor.
+      var barOffsetY = _userConfigService.UserConfig.Bar.Position == BarPosition.Bottom
+        ? _monitor.Height - scaledBarHeight
+        : 0;
 
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
+      MoveWindow(
+        windowHandle,
+        _monitor.X + 1,
+        _monitor.Y + barOffsetY,
+        _monitor.Width - 1,
+        scaledBarHeight,
+        false
+      );
+
       // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
-      MoveWindow(windowHandle, _monitor.X + 1, _monitor.Y + barOffsetY, _monitor.Width - 1, scaledBarHeight, false);
-      MoveWindow(windowHandle, _monitor.X, _monitor.Y + barOffsetY, _monitor.Width, scaledBarHeight, true);
+      MoveWindow(
+        windowHandle,
+        _monitor.X,
+        _monitor.Y + barOffsetY,
+        _monitor.Width,
+        scaledBarHeight,
+        true
+      );
     }
   }
 }

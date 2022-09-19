@@ -40,7 +40,8 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public bool IsDisplayed => WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
-    public string ProcessName => WindowService.GetProcessOfHandle(Handle)?.ProcessName ?? string.Empty;
+    public string ProcessName =>
+      WindowService.GetProcessOfHandle(Handle)?.ProcessName ?? string.Empty;
 
     public string ClassName => WindowService.GetClassNameOfHandle(Handle);
 

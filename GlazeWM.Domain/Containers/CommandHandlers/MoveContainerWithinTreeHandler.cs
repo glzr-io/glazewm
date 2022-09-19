@@ -36,7 +36,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // or moving a container to a direct ancestor).
       if (targetParent == lowestCommonAncestor)
       {
-        MoveToLowestCommonAncestor(containerToMove, lowestCommonAncestor, targetIndex, shouldAdjustSize);
+        MoveToLowestCommonAncestor(
+          containerToMove,
+          lowestCommonAncestor,
+          targetIndex,
+          shouldAdjustSize
+        );
+
         return CommandResponse.Ok;
       }
 
@@ -84,7 +90,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private void MoveToLowestCommonAncestor(Container containerToMove, Container lowestCommonAncestor, int targetIndex, bool shouldAdjustSize)
+    private void MoveToLowestCommonAncestor(
+      Container containerToMove,
+      Container lowestCommonAncestor,
+      int targetIndex,
+      bool shouldAdjustSize)
     {
       // Keep reference to focus index of container's ancestor in LCA's `ChildFocusOrder`.
       var originalFocusIndex = containerToMove.SelfAndAncestors
@@ -109,9 +119,21 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var adjustedTargetIndex = shouldAdjustTargetIndex ? targetIndex - 1 : targetIndex;
 
       if (shouldAdjustSize)
-        _bus.Invoke(new AttachAndResizeContainerCommand(containerToMove, lowestCommonAncestor, adjustedTargetIndex));
+        _bus.Invoke(
+          new AttachAndResizeContainerCommand(
+            containerToMove,
+            lowestCommonAncestor,
+            adjustedTargetIndex
+          )
+        );
       else
-        _bus.Invoke(new AttachContainerCommand(containerToMove, lowestCommonAncestor, adjustedTargetIndex));
+        _bus.Invoke(
+          new AttachContainerCommand(
+            containerToMove,
+            lowestCommonAncestor,
+            adjustedTargetIndex
+          )
+        );
 
       lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(originalFocusIndex, containerToMove);
     }

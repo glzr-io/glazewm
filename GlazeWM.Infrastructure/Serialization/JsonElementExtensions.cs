@@ -47,16 +47,14 @@ namespace GlazeWM.Infrastructure.Serialization
     public static T GetEnumProperty<T>(
       this JsonElement element,
       string propertyName,
-      JsonSerializerOptions options) where T : struct, Enum
+      JsonSerializerOptions _) where T : struct, Enum
     {
-      T value;
-      Enum.TryParse<T>(element.GetProperty(propertyName).GetString(), out value);
-      return value;
-    }
+      var isEnum = Enum.TryParse(element.GetProperty(propertyName).GetString(), out T value);
 
-    private static string ConvertName(string propertyName, JsonSerializerOptions options)
-    {
-      return options.PropertyNamingPolicy?.ConvertName(propertyName) ?? propertyName;
+      if (!isEnum)
+        throw new Exception();
+
+      return value;
     }
   }
 }

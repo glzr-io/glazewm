@@ -18,9 +18,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     public CommandResponse Handle(UpdateWorkspacesFromConfigCommand command)
     {
       var workspaceConfigs = command.WorkspaceConfigs;
-      var workspaces = _workspaceService.GetActiveWorkspaces();
 
-      foreach (var workspace in workspaces)
+      foreach (var workspace in _workspaceService.GetActiveWorkspaces())
       {
         var workspaceConfig = workspaceConfigs.Find(config => config.Name == workspace.Name);
 

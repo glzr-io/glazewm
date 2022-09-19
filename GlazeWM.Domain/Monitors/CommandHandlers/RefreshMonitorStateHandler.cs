@@ -21,8 +21,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       Bus bus,
       MonitorService monitorService,
       ContainerService containerService,
-      WindowService windowService
-    )
+      WindowService windowService)
     {
       _bus = bus;
       _monitorService = monitorService;

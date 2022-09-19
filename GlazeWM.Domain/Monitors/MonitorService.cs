@@ -97,8 +97,7 @@ namespace GlazeWM.Domain.Monitors
         // Check whether the monitor is to the right/left of the origin monitor.
         if (
           (direction == Direction.RIGHT && monitor.X > originMonitor.X) ||
-          (direction == Direction.LEFT && monitor.X < originMonitor.X)
-        )
+          (direction == Direction.LEFT && monitor.X < originMonitor.X))
         {
           // Check whether the y-coordinate overlaps with the y-coordinate of the origin monitor.
           if (
@@ -110,8 +109,7 @@ namespace GlazeWM.Domain.Monitors
         // Check whether the monitor is below/above the origin monitor.
         else if (
           (direction == Direction.DOWN && monitor.Y > originMonitor.Y) ||
-          (direction == Direction.UP && monitor.Y < originMonitor.Y)
-        )
+          (direction == Direction.UP && monitor.Y < originMonitor.Y))
         {
           // Check whether the x-coordinate overlaps with the x-coordinate of the origin monitor.
           if (

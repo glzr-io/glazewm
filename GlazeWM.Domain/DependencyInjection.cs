@@ -1,5 +1,4 @@
-﻿﻿using GlazeWM.Domain.Common;
-using GlazeWM.Domain.Common.CommandHandlers;
+﻿﻿using GlazeWM.Domain.Common.CommandHandlers;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;

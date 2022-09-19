@@ -86,8 +86,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private static void DistributeSizePercentage(
       IEnumerable<Container> containers,
       double sizePercentage,
-      double availableSizePercentage
-    )
+      double availableSizePercentage)
     {
       foreach (var container in containers)
       {
@@ -106,8 +105,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private static Container GetContainerToResize(
       Window windowToResize,
-      ResizeDimension dimensionToResize
-    )
+      ResizeDimension dimensionToResize)
     {
       var parent = windowToResize.Parent;
       var grandparent = parent.Parent;
@@ -129,8 +127,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private static double ConvertToResizePercentage(
       Container containerToResize,
       ResizeDimension dimensionToResize,
-      string resizeAmount
-      )
+      string resizeAmount)
     {
       try
       {
@@ -155,8 +152,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private static double GetPixelScaleFactor(
       Container containerToResize,
-      ResizeDimension dimensionToResize
-    )
+      ResizeDimension dimensionToResize)
     {
       // Get available width/height that can be resized (ie. exclude inner gaps).
       var resizableLength = containerToResize.SelfAndSiblingsOfType(typeof(IResizable)).Aggregate(

@@ -21,11 +21,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       foreach (var action in _config.Actions)
       {
-        // Convert action to `EventHandler` delegate.
-        void actionDelegate(object sender, EventArgs e) => action.Value();
-
         // Create an entry in the context menu that is shown on click.
-        contextMenuStrip.Items.Add(action.Key, null, actionDelegate);
+        contextMenuStrip.Items.Add(
+          action.Key,
+          null,
+          (object sender, EventArgs e) => action.Value()
+        );
       }
 
       // Get the embedded icon resource from the entry assembly.

@@ -20,8 +20,7 @@ namespace GlazeWM.Domain.Monitors
       int width,
       int height,
       int x,
-      int y
-    )
+      int y)
     {
       DeviceName = deviceName;
       Width = width;

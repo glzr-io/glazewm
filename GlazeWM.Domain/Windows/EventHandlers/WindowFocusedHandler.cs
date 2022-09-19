@@ -23,8 +23,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       Bus bus,
       WindowService windowService,
       ContainerService containerService,
-      ILogger<WindowFocusedHandler> logger
-    )
+      ILogger<WindowFocusedHandler> logger)
     {
       _bus = bus;
       _windowService = windowService;
