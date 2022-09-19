@@ -6,7 +6,6 @@ using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
 {
@@ -16,7 +15,7 @@ namespace GlazeWM.Bar
     public Monitor Monitor { get; set; }
 
     private readonly UserConfigService _userConfigService =
-      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+      ServiceLocator.GetRequiredService<UserConfigService>();
     private BarConfig _barConfig => _userConfigService.BarConfig;
 
     public BarPosition Position => _barConfig.Position;

@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
 
@@ -30,7 +28,7 @@ namespace GlazeWM.Infrastructure.Bussing
       // Create a `Type` object representing the constructed `ICommandHandler` generic.
       var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
 
-      var handlerInstance = ServiceLocator.Provider.GetRequiredService(handlerType)
+      var handlerInstance = ServiceLocator.GetRequiredService(handlerType)
         as ICommandHandler<T>;
 
       lock (LockObj)
@@ -47,7 +45,7 @@ namespace GlazeWM.Infrastructure.Bussing
       // Create a `Type` object representing the constructed `IEventHandler` generic.
       var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
 
-      var handlerInstances = ServiceLocator.Provider.GetServices(handlerType)
+      var handlerInstances = ServiceLocator.GetServices(handlerType)
         as IEnumerable<IEventHandler<T>>;
 
       foreach (var handler in handlerInstances)

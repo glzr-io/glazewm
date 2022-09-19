@@ -8,7 +8,6 @@ using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using Microsoft.Extensions.DependencyInjection;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
@@ -18,9 +17,9 @@ namespace GlazeWM.Bar
   /// </summary>
   public partial class MainWindow : Window
   {
-    private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly UserConfigService _userConfigService =
-      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+      ServiceLocator.GetRequiredService<UserConfigService>();
 
     private BarViewModel _barViewModel { get; }
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;

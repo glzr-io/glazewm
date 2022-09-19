@@ -14,7 +14,6 @@ using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar.Components
 {
@@ -23,9 +22,9 @@ namespace GlazeWM.Bar.Components
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private Monitor _monitor => _parentViewModel.Monitor;
     private WorkspacesComponentConfig _config => _componentConfig as WorkspacesComponentConfig;
-    private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly UserConfigService _userConfigService =
-     ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+     ServiceLocator.GetRequiredService<UserConfigService>();
 
     public ObservableCollection<Workspace> Workspaces => new(_orderedWorkspaces);
 

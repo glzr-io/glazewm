@@ -4,17 +4,16 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar.Components
 {
   public class TextComponentViewModel : ComponentViewModel
   {
-    private readonly Bus _bus = ServiceLocator.Provider.GetRequiredService<Bus>();
+    private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
-      ServiceLocator.Provider.GetRequiredService<ContainerService>();
+      ServiceLocator.GetRequiredService<ContainerService>();
     private readonly CommandParsingService _commandParsingService =
-      ServiceLocator.Provider.GetRequiredService<CommandParsingService>();
+      ServiceLocator.GetRequiredService<CommandParsingService>();
     private TextComponentConfig _config => _componentConfig as TextComponentConfig;
 
     public string Text => _config.Text;

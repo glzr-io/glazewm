@@ -3,7 +3,6 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Workspaces
 {
@@ -12,10 +11,10 @@ namespace GlazeWM.Domain.Workspaces
     public string Name { get; set; }
 
     private readonly UserConfigService _userConfigService =
-        ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+        ServiceLocator.GetRequiredService<UserConfigService>();
 
     private readonly WorkspaceService _workspaceService =
-        ServiceLocator.Provider.GetRequiredService<WorkspaceService>();
+        ServiceLocator.GetRequiredService<WorkspaceService>();
 
     public string DisplayName =>
       _userConfigService.GetWorkspaceConfigByName(Name).DisplayName ?? Name;

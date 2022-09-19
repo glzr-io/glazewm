@@ -1,6 +1,5 @@
 ﻿using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -11,7 +10,7 @@ namespace GlazeWM.Domain.Containers
     public double SizePercentage { get; set; } = 1;
 
     private readonly ContainerService _containerService =
-      ServiceLocator.Provider.GetRequiredService<ContainerService>();
+      ServiceLocator.GetRequiredService<ContainerService>();
 
     public override int Width => _containerService.GetWidthOfResizableContainer(this);
     public override int Height => _containerService.GetHeightOfResizableContainer(this);
