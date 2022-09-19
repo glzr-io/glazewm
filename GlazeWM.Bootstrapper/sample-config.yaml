@@ -46,66 +46,67 @@ window_rules:
     match_process_name: "steam"
 
 keybindings:
+  # Shift focus in a given direction.
   - command: "focus left"
     bindings: ["Alt+H", "Alt+Left"]
-
   - command: "focus right"
     bindings: ["Alt+L", "Alt+Right"]
-
   - command: "focus up"
     bindings: ["Alt+K", "Alt+Up"]
-
   - command: "focus down"
     bindings: ["Alt+J", "Alt+Down"]
 
+  # Move focused window in a given direction.
   - command: "move left"
     bindings: ["Alt+Shift+H", "Alt+Shift+Left"]
-
   - command: "move right"
     bindings: ["Alt+Shift+L", "Alt+Shift+Right"]
-
   - command: "move up"
     bindings: ["Alt+Shift+K", "Alt+Shift+Up"]
-
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
+  # Resize focused window by a percentage or pixel amount.
   - command: "resize width -2%"
     binding: "Alt+U"
-
   - command: "resize width +2%"
     binding: "Alt+P"
-
   - command: "resize height +2%"
     binding: "Alt+O"
-
   - command: "resize height -2%"
     binding: "Alt+I"
 
+  # Change layout direction to be either horizontal or vertical.
   - command: "layout horizontal"
     binding: "Alt+Shift+V"
-
   - command: "layout vertical"
     binding: "Alt+V"
 
+  # Change focus between floating / tiling windows.
   - command: "toggle focus mode"
     binding: "Alt+Space"
 
+  # Change the focused window to be floating / tiling.
   - command: "toggle floating"
     binding: "Alt+Shift+Space"
 
-  - command: "set minimized"
-    binding: "Alt+M"
-
+  # Change the focused window to be maximized / unmaximized.
   - command: "toggle maximized"
     binding: "Alt+X"
 
+  # Minimize focused window.
+  - command: "set minimized"
+    binding: "Alt+M"
+
+  # Close focused window.
   - command: "close"
     binding: "Alt+Shift+Q"
 
+  # Kill GlazeWM process safely.
   - command: "exit wm"
     binding: "Alt+Shift+E"
 
+  # Re-evaluate configuration file.
   - command: "reload config"
     binding: "Alt+Shift+R"
 
@@ -114,56 +115,42 @@ keybindings:
   - command: "exec cmd"
     binding: "Alt+Enter"
 
+  # Change focus to a workspace defined in `workspaces` config.
   - command: "focus workspace 1"
     binding: "Alt+1"
-
   - command: "focus workspace 2"
     binding: "Alt+2"
-
   - command: "focus workspace 3"
     binding: "Alt+3"
-
   - command: "focus workspace 4"
     binding: "Alt+4"
-
   - command: "focus workspace 5"
     binding: "Alt+5"
-
   - command: "focus workspace 6"
     binding: "Alt+6"
-
   - command: "focus workspace 7"
     binding: "Alt+7"
-
   - command: "focus workspace 8"
     binding: "Alt+8"
-
   - command: "focus workspace 9"
     binding: "Alt+9"
 
+  # Move focused window to a workspace defined in `workspaces` config.
   - commands: ["move to workspace 1", "focus workspace 1"]
     binding: "Alt+Shift+1"
-
   - commands: ["move to workspace 2", "focus workspace 2"]
     binding: "Alt+Shift+2"
-
   - commands: ["move to workspace 3", "focus workspace 3"]
     binding: "Alt+Shift+3"
-
   - commands: ["move to workspace 4", "focus workspace 4"]
     binding: "Alt+Shift+4"
-
   - commands: ["move to workspace 5", "focus workspace 5"]
     binding: "Alt+Shift+5"
-
   - commands: ["move to workspace 6", "focus workspace 6"]
     binding: "Alt+Shift+6"
-
   - commands: ["move to workspace 7", "focus workspace 7"]
     binding: "Alt+Shift+7"
-
   - commands: ["move to workspace 8", "focus workspace 8"]
     binding: "Alt+Shift+8"
-
   - commands: ["move to workspace 9", "focus workspace 9"]
     bindings: ["Alt+Shift+9"]
