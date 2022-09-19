@@ -57,7 +57,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.Layout == Layout.VERTICAL)
         return parent.Width;
 
-      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var innerGap = _userConfigService.GapsConfig.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
@@ -75,7 +75,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.Layout == Layout.HORIZONTAL)
         return parent.Height;
 
-      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var innerGap = _userConfigService.GapsConfig.InnerGap;
       var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
@@ -95,7 +95,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.Layout == Layout.VERTICAL || isFirstOfType)
         return parent.X;
 
-      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var innerGap = _userConfigService.GapsConfig.InnerGap;
 
       return container.PreviousSiblingOfType<IResizable>().X
         + container.PreviousSiblingOfType<IResizable>().Width
@@ -115,7 +115,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.Layout == Layout.HORIZONTAL || isFirstOfType)
         return parent.Y;
 
-      var innerGap = _userConfigService.UserConfig.Gaps.InnerGap;
+      var innerGap = _userConfigService.GapsConfig.InnerGap;
 
       return container.PreviousSiblingOfType<IResizable>().Y
         + container.PreviousSiblingOfType<IResizable>().Height

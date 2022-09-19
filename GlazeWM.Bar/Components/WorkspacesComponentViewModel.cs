@@ -35,7 +35,7 @@ namespace GlazeWM.Bar.Components
     private IEnumerable<Workspace> _orderedWorkspaces => _monitor.Children
       .Cast<Workspace>()
       .OrderBy((workspace) =>
-        _userConfigService.UserConfig.Workspaces.FindIndex(
+        _userConfigService.WorkspaceConfigs.FindIndex(
           (workspaceConfig) => workspaceConfig.Name == workspace.Name
         )
       );

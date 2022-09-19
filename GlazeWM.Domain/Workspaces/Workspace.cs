@@ -30,7 +30,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barHeight = _userConfigService.UserConfig.Bar.Height;
+        var barHeight = _userConfigService.BarConfig.Height;
         return Convert.ToInt32(barHeight * (Parent as Monitor).ScaleFactor);
       }
     }
@@ -39,12 +39,12 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barPosition = _userConfigService.UserConfig.Bar.Position;
+        var barPosition = _userConfigService.BarConfig.Position;
         return barPosition == BarPosition.Top ? _logicalBarHeight : 0;
       }
     }
 
-    private int _outerGap => _userConfigService.UserConfig.Gaps.OuterGap;
+    private int _outerGap => _userConfigService.GapsConfig.OuterGap;
 
     public override int Height => Parent.Height - (_outerGap * 2) - _logicalBarHeight;
     public override int Width => Parent.Width - (_outerGap * 2);

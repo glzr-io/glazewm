@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       // Re-evaluate user config file and set its values in state.
       _bus.Invoke(new EvaluateUserConfigCommand());
 
-      _bus.Invoke(new UpdateWorkspacesFromConfigCommand(_userConfigService.UserConfig.Workspaces));
+      _bus.Invoke(new UpdateWorkspacesFromConfigCommand(_userConfigService.WorkspaceConfigs));
 
       foreach (var window in _windowService.GetWindows())
       {

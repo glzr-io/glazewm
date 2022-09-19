@@ -17,7 +17,7 @@ namespace GlazeWM.Bar
 
     private readonly UserConfigService _userConfigService =
       ServiceLocator.Provider.GetRequiredService<UserConfigService>();
-    private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
+    private BarConfig _barConfig => _userConfigService.BarConfig;
 
     public BarPosition Position => _barConfig.Position;
     public string Background => _barConfig.Background;

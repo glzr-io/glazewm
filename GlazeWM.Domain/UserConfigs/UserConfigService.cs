@@ -9,7 +9,16 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfigService
   {
-    public UserConfig UserConfig { get; set; }
+    /// <summary>
+    /// The deserialized user config. Sections of the config can be accessed via getters.
+    /// </summary>
+    public UserConfig UserConfig { private get; set; }
+
+    public GapsConfig GapsConfig => UserConfig.Gaps;
+    public BarConfig BarConfig => UserConfig.Bar;
+    public List<WorkspaceConfig> WorkspaceConfigs => UserConfig.Workspaces;
+    public List<WindowRuleConfig> WindowRules => UserConfig.WindowRules;
+    public List<KeybindingConfig> Keybindings => UserConfig.Keybindings;
 
     /// <summary>
     /// Path to the user's config file.

@@ -36,7 +36,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       var activeWorkspaces = GetActiveWorkspaces();
 
-      return _userConfigService.UserConfig.Workspaces.Where(
+      return _userConfigService.WorkspaceConfigs.Where(
         (config) => !activeWorkspaces.Any((workspace) => workspace.Name == config.Name)
       );
     }
