@@ -12,5 +12,10 @@
     FontFamily="{Binding FontFamily}"
     FontWeight="{Binding FontWeight}"
     FontSize="{Binding FontSize}"
-    Text="{Binding Text}" />
+    Text="{Binding Text}">
+    <TextBlock.InputBindings>
+      <MouseBinding Gesture="LeftClick" Command="{Binding LeftClickCommand}" />
+      <MouseBinding Gesture="RightClick" Command="{Binding RightClickCommand}" />
+    </TextBlock.InputBindings>
+  </TextBlock>
 </UserControl>
