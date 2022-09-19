@@ -1,7 +1,7 @@
 using System;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Events;
 
 namespace GlazeWM.Infrastructure.Common.CommandHandlers
 {

@@ -4,7 +4,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers

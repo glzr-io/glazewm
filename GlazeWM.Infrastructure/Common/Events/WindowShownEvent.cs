@@ -1,7 +1,7 @@
 ﻿using System;
 using GlazeWM.Infrastructure.Bussing;
 
-namespace GlazeWM.Infrastructure.WindowsApi.Events
+namespace GlazeWM.Infrastructure.Common.Events
 {
   public class WindowShownEvent : Event
   {

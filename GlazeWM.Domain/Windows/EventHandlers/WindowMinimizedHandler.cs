@@ -5,7 +5,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 

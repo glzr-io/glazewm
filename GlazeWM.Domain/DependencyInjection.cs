@@ -18,7 +18,7 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.CommandHandlers;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain

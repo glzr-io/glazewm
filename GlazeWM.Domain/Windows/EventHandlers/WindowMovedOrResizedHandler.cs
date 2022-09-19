@@ -8,8 +8,8 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
-using GlazeWM.Infrastructure.WindowsApi.Events;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers

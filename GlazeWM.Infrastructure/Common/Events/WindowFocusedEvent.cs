@@ -1,13 +1,13 @@
 ﻿using System;
 using GlazeWM.Infrastructure.Bussing;
 
-namespace GlazeWM.Infrastructure.WindowsApi.Events
+namespace GlazeWM.Infrastructure.Common.Events
 {
-  public class WindowMinimizedEvent : Event
+  public class WindowFocusedEvent : Event
   {
     public IntPtr WindowHandle { get; }
 
-    public WindowMinimizedEvent(IntPtr windowHandle)
+    public WindowFocusedEvent(IntPtr windowHandle)
     {
       WindowHandle = windowHandle;
     }

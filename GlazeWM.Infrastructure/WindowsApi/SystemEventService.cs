@@ -1,5 +1,5 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi.Events;
+using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Win32;
 using System;
 using System.Reactive.Linq;

@@ -1,6 +1,6 @@
-﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi.Enums;
-using GlazeWM.Infrastructure.WindowsApi.Events;
 using System;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
