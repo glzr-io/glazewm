@@ -50,7 +50,7 @@ namespace GlazeWM.Domain.Containers
     /// Calculates the width of a container that can be resized programatically. This
     /// calculation is shared by windows and split containers.
     /// </summary>
-    public int CalculateWidthOfResizableContainer(Container container)
+    public int GetWidthOfResizableContainer(Container container)
     {
       var parent = container.Parent as SplitContainer;
 
@@ -68,7 +68,7 @@ namespace GlazeWM.Domain.Containers
     /// Calculates the height of a container that can be resized programatically. This
     /// calculation is shared by windows and split containers.
     /// </summary>
-    public int CalculateHeightOfResizableContainer(Container container)
+    public int GetHeightOfResizableContainer(Container container)
     {
       var parent = container.Parent as SplitContainer;
 
@@ -86,7 +86,7 @@ namespace GlazeWM.Domain.Containers
     /// Calculates the X coordinate of a container that can be resized programatically. This
     /// calculation is shared by windows and split containers.
     /// </summary>
-    public int CalculateXOfResizableContainer(Container container)
+    public int GetXOfResizableContainer(Container container)
     {
       var parent = container.Parent as SplitContainer;
 
@@ -106,7 +106,7 @@ namespace GlazeWM.Domain.Containers
     /// Calculates the Y coordinate of a container that can be resized programatically. This
     /// calculation is shared by windows and split containers.
     /// </summary>
-    public int CalculateYOfResizableContainer(Container container)
+    public int GetYOfResizableContainer(Container container)
     {
       var parent = container.Parent as SplitContainer;
 
