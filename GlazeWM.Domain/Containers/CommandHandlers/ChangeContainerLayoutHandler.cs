@@ -77,8 +77,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       workspace.Layout = newLayout;
 
-      // Flatten any top-level split containers with the same layout as the workspace. Clone
-      // the list since the number of workspace children changes when split containers are flattened.
+      // Flatten any top-level split containers with the same layout as the workspace. Clone the
+      // list since the number of workspace children changes when split containers are flattened.
       foreach (var child in workspace.Children.ToList())
       {
         var childSplitContainer = child as SplitContainer;

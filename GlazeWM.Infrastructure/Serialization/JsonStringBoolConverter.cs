@@ -9,6 +9,7 @@ namespace GlazeWM.Infrastructure.Serialization
     /// <summary>
     /// Allow boolean strings when deserializing to a bool (eg. "true" -> true).
     /// </summary>
+    /// <exception cref="JsonException"></exception>
     public override bool Read(
       ref Utf8JsonReader reader,
       Type typeToConvert,

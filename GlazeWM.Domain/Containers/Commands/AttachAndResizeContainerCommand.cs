@@ -18,7 +18,10 @@ namespace GlazeWM.Domain.Containers.Commands
       TargetIndex = targetParent.Children.Count;
     }
 
-    public AttachAndResizeContainerCommand(Container childToAdd, Container targetParent, int targetIndex)
+    public AttachAndResizeContainerCommand(
+      Container childToAdd,
+      Container targetParent,
+      int targetIndex)
     {
       ChildToAdd = childToAdd;
       TargetParent = targetParent;

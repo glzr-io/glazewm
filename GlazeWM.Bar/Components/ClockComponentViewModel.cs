@@ -13,9 +13,14 @@ namespace GlazeWM.Bar.Components
     /// <summary>
     /// Format the current time with the user's formatting config.
     /// </summary>
-    public string FormattedTime => DateTime.Now.ToString(_timeFormatting, CultureInfo.InvariantCulture);
+    public string FormattedTime => DateTime.Now.ToString(
+      _timeFormatting,
+      CultureInfo.InvariantCulture
+    );
 
-    public ClockComponentViewModel(BarViewModel parentViewModel, ClockComponentConfig config) : base(parentViewModel, config)
+    public ClockComponentViewModel(
+      BarViewModel parentViewModel,
+      ClockComponentConfig config) : base(parentViewModel, config)
     {
       // Update the displayed time every second.
       var updateInterval = TimeSpan.FromSeconds(1);

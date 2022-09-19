@@ -141,7 +141,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public static IntPtr GetWindowLongPtr(IntPtr hWnd, int index)
     {
-      return Environment.Is64BitProcess ? GetWindowLongPtr64(hWnd, index) : GetWindowLongPtr32(hWnd, index);
+      return Environment.Is64BitProcess
+        ? GetWindowLongPtr64(hWnd, index)
+        : GetWindowLongPtr32(hWnd, index);
     }
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
@@ -152,7 +154,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public static IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong)
     {
-      return Environment.Is64BitProcess ? SetWindowLongPtr64(hWnd, index, newLong) : SetWindowLongPtr32(hWnd, index, newLong);
+      return Environment.Is64BitProcess
+        ? SetWindowLongPtr64(hWnd, index, newLong)
+        : SetWindowLongPtr32(hWnd, index, newLong);
     }
 
     [DllImport("user32.dll", SetLastError = true)]

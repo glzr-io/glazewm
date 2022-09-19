@@ -18,8 +18,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public WindowHiddenHandler(
       Bus bus,
       WindowService windowService,
-      ILogger<WindowHiddenHandler> logger
-    )
+      ILogger<WindowHiddenHandler> logger)
     {
       _bus = bus;
       _windowService = windowService;

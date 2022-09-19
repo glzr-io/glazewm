@@ -1,7 +1,5 @@
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar.Components
 {
@@ -9,7 +7,6 @@ namespace GlazeWM.Bar.Components
   {
     protected readonly BarViewModel _parentViewModel;
     protected readonly BarComponentConfig _componentConfig;
-    protected readonly BarService _barService = ServiceLocator.Provider.GetRequiredService<BarService>();
 
     public string Background => _componentConfig.Background ?? _parentViewModel.Background;
     public string Foreground => _componentConfig.Foreground ?? _parentViewModel.Foreground;

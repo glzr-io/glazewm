@@ -35,7 +35,8 @@ namespace GlazeWM.Domain.Common.Enums
     public static Layout GetCorrespondingLayout(this Direction direction)
     {
       return (direction is Direction.LEFT or Direction.RIGHT)
-        ? Layout.HORIZONTAL : Layout.VERTICAL;
+        ? Layout.HORIZONTAL
+        : Layout.VERTICAL;
     }
   }
 }

@@ -18,8 +18,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     public WindowDestroyedHandler(
       Bus bus,
       WindowService windowService,
-      ILogger<WindowDestroyedHandler> logger
-    )
+      ILogger<WindowDestroyedHandler> logger)
     {
       _bus = bus;
       _windowService = windowService;

@@ -60,15 +60,18 @@ namespace GlazeWM.Bar.Components
 
     public ICommand FocusWorkspaceCommand => new RelayCommand<string>(FocusWorkspace);
 
-    public WorkspacesComponentViewModel(BarViewModel parentViewModel, WorkspacesComponentConfig config)
-      : base(parentViewModel, config)
+    public WorkspacesComponentViewModel(
+      BarViewModel parentViewModel,
+      WorkspacesComponentConfig config) : base(parentViewModel, config)
     {
       var workspacesChangedEvent = _bus.Events.Where((@event) =>
         @event is WorkspaceActivatedEvent or WorkspaceDeactivatedEvent or FocusChangedEvent
       );
 
       // Refresh contents of workspaces collection.
-      workspacesChangedEvent.Subscribe(_ => _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces))));
+      workspacesChangedEvent.Subscribe(_ =>
+        _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)))
+      );
     }
 
     public void FocusWorkspace(string workspaceName)

@@ -105,7 +105,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           floatingPlacement,
           defaultBorderDelta,
           isResizable ? WindowType.TILING : WindowType.FLOATING
-          ),
+        ),
         WindowType.FLOATING => new FloatingWindow(
           windowHandle,
           floatingPlacement,

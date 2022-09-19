@@ -13,7 +13,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private readonly ContainerService _containerService;
     private readonly WorkspaceService _workspaceService;
 
-    public ToggleFocusModeHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
+    public ToggleFocusModeHandler(
+      Bus bus,
+      ContainerService containerService,
+      WorkspaceService workspaceService)
     {
       _bus = bus;
       _containerService = containerService;
@@ -24,7 +27,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var currentFocusMode = _containerService.FocusMode;
       var targetFocusMode = currentFocusMode == FocusMode.TILING
-        ? FocusMode.FLOATING : FocusMode.TILING;
+        ? FocusMode.FLOATING
+        : FocusMode.TILING;
 
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 

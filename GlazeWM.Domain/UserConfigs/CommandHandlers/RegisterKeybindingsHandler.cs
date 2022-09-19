@@ -54,8 +54,12 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             {
               var subjectContainer = _containerService.FocusedContainer;
 
+              var parsedCommand = _commandParsingService.ParseCommand(
+                commandString,
+                subjectContainer
+              );
+
               // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
-              var parsedCommand = _commandParsingService.ParseCommand(commandString, subjectContainer);
               _bus.Invoke((dynamic)parsedCommand);
             }
           });

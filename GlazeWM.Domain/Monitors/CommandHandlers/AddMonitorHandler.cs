@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using GlazeWM.Domain.Containers;
+﻿using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
@@ -16,7 +15,10 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
     private readonly ContainerService _containerService;
     private readonly WorkspaceService _workspaceService;
 
-    public AddMonitorHandler(Bus bus, ContainerService containerService, WorkspaceService workspaceService)
+    public AddMonitorHandler(
+      Bus bus,
+      ContainerService containerService,
+      WorkspaceService workspaceService)
     {
       _bus = bus;
       _containerService = containerService;

@@ -52,7 +52,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public void Start()
     {
       // Create low-level keyboard hook.
-      _ = SetWindowsHookEx(HookType.WH_KEYBOARD_LL, _hookProc, Process.GetCurrentProcess().MainModule.BaseAddress, 0);
+      _ = SetWindowsHookEx(
+        HookType.WH_KEYBOARD_LL,
+        _hookProc,
+        Process.GetCurrentProcess().MainModule.BaseAddress,
+        0
+      );
     }
 
     public void AddGlobalKeybinding(string keybindingString, Action callback)
@@ -90,7 +95,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
-      var shouldPassThrough = nCode != 0 || !((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN);
+      var shouldPassThrough =
+        nCode != 0 || !((uint)wParam == WM_KEYDOWN || (uint)wParam == WM_SYSKEYDOWN);
 
       // If nCode is less than zero, the hook procedure must pass the hook notification to other
       // applications via `CallNextHookEx`.
@@ -98,8 +104,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
       // Get struct with details about keyboard input event.
-      var inputEvent =
-        (LowLevelKeyboardInputEvent)Marshal.PtrToStructure(lParam, typeof(LowLevelKeyboardInputEvent));
+      var inputEvent = (LowLevelKeyboardInputEvent)Marshal.PtrToStructure(
+        lParam,
+        typeof(LowLevelKeyboardInputEvent)
+      );
 
       var pressedKey = inputEvent.Key;
       var registeredKeybindings = _keybindingsByTriggerKey.GetValueOrDefault(pressedKey);

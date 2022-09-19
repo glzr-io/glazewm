@@ -15,7 +15,8 @@ namespace GlazeWM.Bar
     public Dispatcher Dispatcher { get; set; }
     public Monitor Monitor { get; set; }
 
-    private readonly UserConfigService _userConfigService = ServiceLocator.Provider.GetRequiredService<UserConfigService>();
+    private readonly UserConfigService _userConfigService =
+      ServiceLocator.Provider.GetRequiredService<UserConfigService>();
     private BarConfig _barConfig => _userConfigService.UserConfig.Bar;
 
     public BarPosition Position => _barConfig.Position;
@@ -38,7 +39,8 @@ namespace GlazeWM.Bar
     public List<ComponentViewModel> ComponentsRight =>
       CreateComponentViewModels(_barConfig.ComponentsRight);
 
-    private List<ComponentViewModel> CreateComponentViewModels(List<BarComponentConfig> componentConfigs)
+    private List<ComponentViewModel> CreateComponentViewModels(
+      List<BarComponentConfig> componentConfigs)
     {
       return componentConfigs.ConvertAll<ComponentViewModel>(config => config switch
       {

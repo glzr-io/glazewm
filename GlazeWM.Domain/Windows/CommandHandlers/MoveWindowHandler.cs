@@ -19,8 +19,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public MoveWindowHandler(
       Bus bus,
       ContainerService containerService,
-      MonitorService monitorService
-    )
+      MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
@@ -115,10 +114,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var targetParent = targetDescendant.Parent as SplitContainer;
 
       var layoutForDirection = direction.GetCorrespondingLayout();
-      var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
-        direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
+      var shouldInsertAfter =
+        targetParent.Layout != layoutForDirection ||
+        direction == Direction.UP ||
+        direction == Direction.LEFT;
+      var insertionIndex = shouldInsertAfter ? targetDescendant.Index + 1 : targetDescendant.Index;
 
-      _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true));
+      _bus.Invoke(
+        new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true)
+      );
+
       _bus.Invoke(new RedrawContainersCommand());
     }
 
@@ -168,8 +173,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void InsertIntoAncestor(
       TilingWindow windowToMove,
       Direction direction,
-      Container ancestorWithLayout
-    )
+      Container ancestorWithLayout)
     {
       // Traverse up from `windowToMove` to find container where the parent is `ancestorWithLayout`.
       // Then, depending on the direction, insert before or after that container.
@@ -190,8 +194,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var targetParent = targetDescendant.Parent as SplitContainer;
 
         var layoutForDirection = direction.GetCorrespondingLayout();
-        var insertionIndex = targetParent.Layout != layoutForDirection || direction == Direction.UP ||
-          direction == Direction.LEFT ? targetDescendant.Index + 1 : targetDescendant.Index;
+        var shouldInsertAfter =
+          targetParent.Layout != layoutForDirection ||
+          direction == Direction.UP ||
+          direction == Direction.LEFT;
+
+        var insertionIndex = shouldInsertAfter
+          ? targetDescendant.Index + 1
+          : targetDescendant.Index;
 
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true));
       }

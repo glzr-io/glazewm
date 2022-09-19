@@ -27,8 +27,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       WindowService windowService,
       MonitorService monitorService,
       ILogger<WindowMovedOrResizedHandler> logger,
-      ContainerService containerService
-    )
+      ContainerService containerService)
     {
       _bus = bus;
       _windowService = windowService;

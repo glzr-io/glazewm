@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace GlazeWM.Domain.UserConfigs
@@ -11,8 +10,10 @@ namespace GlazeWM.Domain.UserConfigs
     private string _bindToMonitor;
     public string BindToMonitor
     {
-      get => int.TryParse(_bindToMonitor, out var monitorIndex) ? $@"\\.\DISPLAY{monitorIndex}" : _bindToMonitor;
-      set => _bindToMonitor = value;
+      get => _bindToMonitor;
+      set => _bindToMonitor = int.TryParse(value, out var monitorIndex)
+        ? $@"\\.\DISPLAY{monitorIndex}"
+        : value;
     }
 
     public string DisplayName { get; set; }

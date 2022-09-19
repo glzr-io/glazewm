@@ -6,7 +6,10 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarComponentConfigConverter : JsonConverter<BarComponentConfig>
   {
-    public override BarComponentConfig Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override BarComponentConfig Read(
+      ref Utf8JsonReader reader,
+      Type typeToConvert,
+      JsonSerializerOptions options)
     {
       using var jsonObject = JsonDocument.ParseValue(ref reader);
 
@@ -38,7 +41,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// Serializing is not needed, so it's fine to leave it unimplemented.
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
-    public override void Write(Utf8JsonWriter writer, BarComponentConfig value, JsonSerializerOptions options)
+    public override void Write(
+      Utf8JsonWriter writer,
+      BarComponentConfig value,
+      JsonSerializerOptions options)
     {
       throw new NotImplementedException();
     }

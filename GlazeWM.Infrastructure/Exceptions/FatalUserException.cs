@@ -12,7 +12,9 @@ namespace GlazeWM.Infrastructure.Exceptions
     {
     }
 
-    public FatalUserException(string message, Exception innerException) : base(message, innerException)
+    public FatalUserException(
+      string message,
+      Exception innerException) : base(message, innerException)
     {
     }
   }

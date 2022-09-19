@@ -28,7 +28,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Get windows that are minimized/maximized and shouldn't be.
       var windowsToRestore = windowsToRedraw
         .Where(
-          window => window is not MinimizedWindow && window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
+          (window) =>
+            window is not MinimizedWindow &&
+            window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
         )
         .ToList();
 

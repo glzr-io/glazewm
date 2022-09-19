@@ -136,7 +136,13 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public static bool IsHandleCloaked(IntPtr handle)
     {
-      _ = DwmGetWindowAttribute(handle, DwmWindowAttribute.DWMWA_CLOAKED, out var isCloaked, Marshal.SizeOf(typeof(bool)));
+      _ = DwmGetWindowAttribute(
+        handle,
+        DwmWindowAttribute.DWMWA_CLOAKED,
+        out var isCloaked,
+        Marshal.SizeOf(typeof(bool))
+      );
+
       return isCloaked;
     }
 

@@ -24,8 +24,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       Bus bus,
       UserConfigService userConfigService,
       YamlService yamlService,
-      CommandParsingService commandParsingService
-    )
+      CommandParsingService commandParsingService)
     {
       _bus = bus;
       _userConfigService = userConfigService;
