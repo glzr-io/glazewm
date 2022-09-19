@@ -36,11 +36,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       if (targetFocusMode == FocusMode.FLOATING)
         // Get the last focused tiling window within the workspace.
-        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType(typeof(FloatingWindow))
+        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType<FloatingWindow>()
           as Window;
       else
         // Get the last focused floating window within the workspace.
-        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType(typeof(TilingWindow))
+        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType<TilingWindow>()
           as Window;
 
       if (windowToFocus == null)

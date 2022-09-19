@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Keep reference to the window's ancestor workspace prior to detaching.
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(floatingWindow);
 
-      var insertionTarget = workspace.LastFocusedDescendantOfType(typeof(IResizable));
+      var insertionTarget = workspace.LastFocusedDescendantOfType<IResizable>();
 
       var tilingWindow = new TilingWindow(
         floatingWindow.Handle,
