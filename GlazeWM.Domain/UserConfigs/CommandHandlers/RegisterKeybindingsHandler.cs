@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
@@ -45,23 +46,26 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         foreach (var binding in keybindingConfig.BindingList)
           _keybindingService.AddGlobalKeybinding(binding, () =>
           {
-            // Avoid invoking keybinding if an ignored window currently has focus.
-            if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
-              return;
-
-            // Invoke commands in sequence on keybinding press.
-            foreach (var commandString in formattedCommandStrings)
+            Task.Run(() =>
             {
-              var subjectContainer = _containerService.FocusedContainer;
+              // Avoid invoking keybinding if an ignored window currently has focus.
+              if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
+                return;
 
-              var parsedCommand = _commandParsingService.ParseCommand(
-                commandString,
-                subjectContainer
-              );
+              // Invoke commands in sequence on keybinding press.
+              foreach (var commandString in formattedCommandStrings)
+              {
+                var subjectContainer = _containerService.FocusedContainer;
 
-              // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
-              _bus.Invoke((dynamic)parsedCommand);
-            }
+                var parsedCommand = _commandParsingService.ParseCommand(
+                  commandString,
+                  subjectContainer
+                );
+
+                // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+                _bus.Invoke((dynamic)parsedCommand);
+              }
+            });
           });
       }
 

@@ -61,7 +61,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       };
 
       if (eventToRaise is not null)
-        _bus.RaiseEvent((dynamic)eventToRaise);
+        _bus.EmitAsync((dynamic)eventToRaise);
     }
   }
 }
