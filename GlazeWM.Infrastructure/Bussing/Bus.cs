@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
+using System.Threading.Tasks;
 
 namespace GlazeWM.Infrastructure.Bussing
 {
@@ -37,6 +38,11 @@ namespace GlazeWM.Infrastructure.Bussing
       }
     }
 
+    public Task<CommandResponse> InvokeAsync<T>(T command) where T : Command
+    {
+      return Task.Run(() => Invoke(command));
+    }
+
     /// <summary>
     /// Sends event to appropriate event handlers.
     /// </summary>
@@ -58,6 +64,11 @@ namespace GlazeWM.Infrastructure.Bussing
 
       // Emit event through subject.
       Events.OnNext(@event);
+    }
+
+    public Task EmitAsync<T>(T @event) where T : Event
+    {
+      return Task.Run(() => RaiseEvent(@event));
     }
   }
 }
