@@ -25,7 +25,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
         handler => SystemEvents.DisplaySettingsChanged -= handler
       );
 
-      displaySettingChanges.Subscribe((_) => _bus.RaiseEvent(new DisplaySettingsChangedEvent()));
+      displaySettingChanges.Subscribe((_) => _bus.EmitAsync(new DisplaySettingsChangedEvent()));
     }
   }
 }
