@@ -2,12 +2,10 @@ using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -57,15 +55,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
       var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
-
-      if (focusTarget is Window)
-        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-      else if (focusTarget is Workspace)
-      {
-        _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow(GetDesktopWindow());
-      }
+      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());

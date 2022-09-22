@@ -3,12 +3,9 @@ using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
-using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -38,15 +35,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Override the container to set focus to (ie. when changing focus after a window is closed).
       if (pendingFocusContainer != null)
       {
-        if (pendingFocusContainer is Window)
-          _bus.Invoke(new FocusWindowCommand(pendingFocusContainer as Window));
-        else if (pendingFocusContainer is Workspace)
-        {
-          _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
-          KeybdEvent(0, 0, 0, 0);
-          SetForegroundWindow(GetDesktopWindow());
-        }
-
+        _bus.Invoke(new SetNativeFocusCommand(pendingFocusContainer));
         _containerService.PendingFocusContainer = null;
         return;
       }

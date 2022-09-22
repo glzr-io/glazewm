@@ -4,9 +4,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -103,15 +101,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private void ReassignFocusWithinWorkspace(Workspace workspace)
     {
       var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
-      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-      else
-      {
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow(GetDesktopWindow());
-      }
+      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
     }
   }
 }

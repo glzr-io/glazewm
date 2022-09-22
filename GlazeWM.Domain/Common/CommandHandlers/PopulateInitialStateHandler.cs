@@ -9,7 +9,6 @@ using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -62,11 +61,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
       _bus.Emit(new FocusChangedEvent(containerToFocus));
-
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-      else if (containerToFocus is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((containerToFocus as Workspace).Name));
+      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
 
       return CommandResponse.Ok;
     }
