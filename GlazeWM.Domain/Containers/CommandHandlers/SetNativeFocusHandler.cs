@@ -20,23 +20,23 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var containerToFocus = command.ContainerToFocus;
 
-      if (containerToFocus is Window)
+      var handleToFocus = containerToFocus switch
       {
-        // Set as foreground window if it's not already set. This will trigger `EVENT_SYSTEM_FOREGROUND`
-        // window event and its handler. This, in turn, calls `SetFocusedDescendant`.
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow((containerToFocus as Window).Handle);
-      }
-      else if (containerToFocus is Workspace)
-      {
-        // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event, so
-        // `SetFocusedDescendant` has to be manually called.
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow(GetDesktopWindow());
+        Window window => window.Handle,
+        Workspace => GetDesktopWindow(),
+        _ => throw new Exception("Invalid container type to focus. This is a bug."),
+      };
+
+      // Set focus to the given window handle. If the container is a normal window, then this
+      // will trigger `EVENT_SYSTEM_FOREGROUND` window event and its handler. This, in turn,
+      // calls `SetFocusedDescendantCommand`.
+      KeybdEvent(0, 0, 0, 0);
+      SetForegroundWindow(handleToFocus);
+
+      // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
+      // so `SetFocusedDescendantCommand` has to be manually called.
+      if (containerToFocus is Workspace)
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      }
-      else
-        throw new Exception("Invalid container type to focus. This is a bug.");
 
       return CommandResponse.Ok;
     }
