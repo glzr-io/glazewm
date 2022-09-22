@@ -101,6 +101,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private void ReassignFocusWithinWorkspace(Workspace workspace)
     {
       var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
+
+      // Need to call `SetFocusedDescendantCommand` for when commands like `FocusWorkspaceCommand`
+      // are called immediately afterwards and they should behave as if `containerToFocus` is the
+      // focused descendant.
+      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
       _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
     }
   }
