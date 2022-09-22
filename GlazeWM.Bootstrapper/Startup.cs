@@ -3,6 +3,7 @@ using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -75,7 +76,7 @@ namespace GlazeWM.Bootstrapper
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },
-            { "Exit", () => _bus.Emit(new ApplicationExitingEvent()) },
+            { "Exit", () => _bus.Invoke(new ExitApplicationCommand(false)) },
           }
         };
 
