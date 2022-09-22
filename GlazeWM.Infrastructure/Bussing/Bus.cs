@@ -46,7 +46,7 @@ namespace GlazeWM.Infrastructure.Bussing
     /// <summary>
     /// Sends event to appropriate event handlers.
     /// </summary>
-    public void RaiseEvent<T>(T @event) where T : Event
+    public void Emit<T>(T @event) where T : Event
     {
       // Create a `Type` object representing the constructed `IEventHandler` generic.
       var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
@@ -68,7 +68,7 @@ namespace GlazeWM.Infrastructure.Bussing
 
     public Task EmitAsync<T>(T @event) where T : Event
     {
-      return Task.Run(() => RaiseEvent(@event));
+      return Task.Run(() => Emit(@event));
     }
   }
 }

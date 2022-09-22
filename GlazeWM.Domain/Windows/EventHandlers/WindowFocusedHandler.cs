@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _logger.LogWindowEvent("Window focused", window);
 
       _bus.Invoke(new SetFocusedDescendantCommand(window));
-      _bus.RaiseEvent(new FocusChangedEvent(window));
+      _bus.Emit(new FocusChangedEvent(window));
     }
   }
 }

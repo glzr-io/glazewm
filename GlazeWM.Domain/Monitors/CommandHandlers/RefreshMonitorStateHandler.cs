@@ -48,7 +48,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
         foundMonitor.X = screen.WorkingArea.X;
         foundMonitor.Y = screen.WorkingArea.Y;
 
-        _bus.RaiseEvent(new WorkingAreaResizedEvent(foundMonitor));
+        _bus.Emit(new WorkingAreaResizedEvent(foundMonitor));
       }
 
       // Verify that all monitors in state exist in `Screen.AllScreens`.

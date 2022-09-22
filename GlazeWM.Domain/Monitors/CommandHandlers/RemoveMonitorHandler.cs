@@ -41,11 +41,11 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.
-        _bus.RaiseEvent(new WorkspaceActivatedEvent(workspace));
+        _bus.Emit(new WorkspaceActivatedEvent(workspace));
       }
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
-      _bus.RaiseEvent(new MonitorRemovedEvent(monitorToRemove.DeviceName));
+      _bus.Emit(new MonitorRemovedEvent(monitorToRemove.DeviceName));
 
       return CommandResponse.Ok;
     }

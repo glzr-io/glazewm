@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Attach the created workspace to the specified monitor.
       _bus.Invoke(new AttachContainerCommand(newWorkspace, targetMonitor));
-      _bus.RaiseEvent(new WorkspaceActivatedEvent(newWorkspace));
+      _bus.Emit(new WorkspaceActivatedEvent(newWorkspace));
 
       return CommandResponse.Ok;
     }

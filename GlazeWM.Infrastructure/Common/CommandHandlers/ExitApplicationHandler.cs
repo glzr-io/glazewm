@@ -19,7 +19,7 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
       var withErrorCode = command.WithErrorCode;
 
       // Signal that application is about to exit (to perform cleanup).
-      _bus.RaiseEvent(new ApplicationExitingEvent());
+      _bus.Emit(new ApplicationExitingEvent());
 
       // Use exit code 1 if exiting due to an exception.
       Environment.Exit(withErrorCode ? 1 : 0);

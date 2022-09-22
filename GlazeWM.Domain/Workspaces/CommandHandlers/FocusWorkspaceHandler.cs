@@ -56,7 +56,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         : workspaceToFocus;
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      _bus.RaiseEvent(new FocusChangedEvent(containerToFocus));
+      _bus.Emit(new FocusChangedEvent(containerToFocus));
 
       // Display the workspace to switch focus to.
       _containerService.ContainersToRedraw.Add(focusedWorkspace);

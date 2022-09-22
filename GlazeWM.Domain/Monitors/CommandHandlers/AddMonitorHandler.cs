@@ -44,7 +44,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
 
       ActivateWorkspaceOnMonitor(newMonitor);
 
-      _bus.RaiseEvent(new MonitorAddedEvent(newMonitor));
+      _bus.Emit(new MonitorAddedEvent(newMonitor));
 
       return CommandResponse.Ok;
     }

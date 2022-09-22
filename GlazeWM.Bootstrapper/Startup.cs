@@ -75,7 +75,7 @@ namespace GlazeWM.Bootstrapper
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },
-            { "Exit", () => _bus.RaiseEvent(new ApplicationExitingEvent()) },
+            { "Exit", () => _bus.Emit(new ApplicationExitingEvent()) },
           }
         };
 

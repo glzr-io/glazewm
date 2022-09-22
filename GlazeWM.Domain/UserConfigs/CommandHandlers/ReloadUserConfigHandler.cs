@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       _containerService.ContainersToRedraw.Add(_containerService.ContainerTree);
       _bus.Invoke(new RedrawContainersCommand());
 
-      _bus.RaiseEvent(new UserConfigReloadedEvent());
+      _bus.Emit(new UserConfigReloadedEvent());
 
       return CommandResponse.Ok;
     }

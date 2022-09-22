@@ -153,7 +153,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
 
       // Refresh state in bar of which workspace has focus.
-      _bus.RaiseEvent(new FocusChangedEvent(windowToMove));
+      _bus.Emit(new FocusChangedEvent(windowToMove));
     }
 
     private void ChangeWorkspaceLayout(Window windowToMove, Direction direction)
