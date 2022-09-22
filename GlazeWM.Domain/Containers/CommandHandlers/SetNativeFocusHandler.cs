@@ -1,5 +1,6 @@
 ﻿using System;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -36,7 +37,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
       if (containerToFocus is Workspace)
+      {
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
+        _bus.Emit(new FocusChangedEvent(containerToFocus));
+      }
 
       return CommandResponse.Ok;
     }
