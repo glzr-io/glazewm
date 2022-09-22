@@ -1,4 +1,4 @@
-using GlazeWM.Domain.Common.CommandHandlers;
+﻿﻿using GlazeWM.Domain.Common.CommandHandlers;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;
@@ -56,7 +56,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddSingleton<ICommandHandler<ReloadUserConfigCommand>, ReloadUserConfigHandler>();
       services.AddSingleton<ICommandHandler<CloseWindowCommand>, CloseWindowHandler>();
-      services.AddSingleton<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddSingleton<ICommandHandler<IgnoreWindowCommand>, IgnoreWindowHandler>();
       services.AddSingleton<ICommandHandler<ManageWindowCommand>, ManageWindowHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowCommand>, MoveWindowHandler>();
