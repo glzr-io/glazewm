@@ -1,4 +1,4 @@
-﻿﻿using GlazeWM.Domain.Common.CommandHandlers;
+using GlazeWM.Domain.Common.CommandHandlers;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.CommandHandlers;
@@ -47,6 +47,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddSingleton<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddSingleton<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
+      services.AddSingleton<ICommandHandler<SetNativeFocusCommand>, SetNativeFocusHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddSingleton<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
       services.AddSingleton<ICommandHandler<RefreshMonitorStateCommand>, RefreshMonitorStateHandler>();
