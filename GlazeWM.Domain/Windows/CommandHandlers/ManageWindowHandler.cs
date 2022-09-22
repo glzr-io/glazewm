@@ -78,7 +78,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new RedrawContainersCommand());
 
       // Set OS focus to the newly added window in case it's not already focused.
-      _bus.Invoke(new FocusWindowCommand(window));
+      _bus.Invoke(new SetNativeFocusCommand(window));
 
       return CommandResponse.Ok;
     }

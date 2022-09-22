@@ -47,6 +47,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddSingleton<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddSingleton<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
+      services.AddSingleton<ICommandHandler<SetNativeFocusCommand>, SetNativeFocusHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddSingleton<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
       services.AddSingleton<ICommandHandler<RefreshMonitorStateCommand>, RefreshMonitorStateHandler>();
@@ -55,7 +56,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddSingleton<ICommandHandler<ReloadUserConfigCommand>, ReloadUserConfigHandler>();
       services.AddSingleton<ICommandHandler<CloseWindowCommand>, CloseWindowHandler>();
-      services.AddSingleton<ICommandHandler<FocusWindowCommand>, FocusWindowHandler>();
       services.AddSingleton<ICommandHandler<IgnoreWindowCommand>, IgnoreWindowHandler>();
       services.AddSingleton<ICommandHandler<ManageWindowCommand>, ManageWindowHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowCommand>, MoveWindowHandler>();

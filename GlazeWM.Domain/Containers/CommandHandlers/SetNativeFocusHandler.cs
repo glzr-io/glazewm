@@ -1,0 +1,44 @@
+﻿using System;
+using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Workspaces;
+using GlazeWM.Infrastructure.Bussing;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+
+namespace GlazeWM.Domain.Containers.CommandHandlers
+{
+  internal class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
+  {
+    private readonly Bus _bus;
+
+    public SetNativeFocusHandler(Bus bus)
+    {
+      _bus = bus;
+    }
+
+    public CommandResponse Handle(SetNativeFocusCommand command)
+    {
+      var containerToFocus = command.ContainerToFocus;
+
+      var handleToFocus = containerToFocus switch
+      {
+        Window window => window.Handle,
+        Workspace => GetDesktopWindow(),
+        _ => throw new Exception("Invalid container type to focus. This is a bug."),
+      };
+
+      // Set focus to the given window handle. If the container is a normal window, then this
+      // will trigger `EVENT_SYSTEM_FOREGROUND` window event and its handler. This, in turn,
+      // calls `SetFocusedDescendantCommand`.
+      KeybdEvent(0, 0, 0, 0);
+      SetForegroundWindow(handleToFocus);
+
+      // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
+      // so `SetFocusedDescendantCommand` has to be manually called.
+      if (containerToFocus is Workspace)
+        _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
+
+      return CommandResponse.Ok;
+    }
+  }
+}

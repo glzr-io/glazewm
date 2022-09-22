@@ -1,7 +1,6 @@
 ﻿using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -30,25 +29,26 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         ? FocusMode.FLOATING
         : FocusMode.TILING;
 
-      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
+      var windowToFocus = GetWindowToFocus(targetFocusMode);
 
-      Window windowToFocus;
+      if (windowToFocus is null)
+        return CommandResponse.Ok;
+
+      _bus.Invoke(new SetNativeFocusCommand(windowToFocus));
+
+      return CommandResponse.Ok;
+    }
+
+    private Window GetWindowToFocus(FocusMode targetFocusMode)
+    {
+      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
       if (targetFocusMode == FocusMode.FLOATING)
         // Get the last focused tiling window within the workspace.
-        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType<FloatingWindow>()
-          as Window;
-      else
-        // Get the last focused floating window within the workspace.
-        windowToFocus = focusedWorkspace.LastFocusedDescendantOfType<TilingWindow>()
-          as Window;
+        return focusedWorkspace.LastFocusedDescendantOfType<FloatingWindow>() as Window;
 
-      if (windowToFocus == null)
-        return CommandResponse.Ok;
-
-      _bus.Invoke(new FocusWindowCommand(windowToFocus));
-
-      return CommandResponse.Ok;
+      // Get the last focused floating window within the workspace.
+      return focusedWorkspace.LastFocusedDescendantOfType<TilingWindow>() as Window;
     }
   }
 }

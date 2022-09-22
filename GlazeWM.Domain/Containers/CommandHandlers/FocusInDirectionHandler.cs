@@ -3,9 +3,7 @@ using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
@@ -58,17 +56,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (focusTarget == null || focusTarget == focusedContainer)
         return;
 
-      _bus.Invoke(new FocusWindowCommand(focusTarget as FloatingWindow));
+      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
     }
 
     private void FocusFromTilingContainer(Container focusedContainer, Direction direction)
     {
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
-      if (focusTarget is Window)
-        _bus.Invoke(new FocusWindowCommand(focusTarget as Window));
-      else if (focusTarget is Workspace)
-        _bus.Invoke(new FocusWorkspaceCommand((focusTarget as Workspace).Name));
+      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
     }
 
     private Container GetFocusTarget(Container focusedContainer, Direction direction)

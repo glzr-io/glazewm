@@ -2,13 +2,10 @@
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces.Commands;
-using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Containers.Commands;
 using System.Linq;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -63,15 +60,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _containerService.ContainersToRedraw.Add(workspaceToFocus);
       _bus.Invoke(new RedrawContainersCommand());
 
-      // Container to focus is either a window or a workspace.
-      if (containerToFocus is Window)
-        _bus.Invoke(new FocusWindowCommand(containerToFocus as Window));
-      else
-      {
-        // Remove focus from whichever window currently has focus.
-        KeybdEvent(0, 0, 0, 0);
-        SetForegroundWindow(GetDesktopWindow());
-      }
+      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.
