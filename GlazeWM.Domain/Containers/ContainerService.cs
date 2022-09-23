@@ -33,12 +33,6 @@ namespace GlazeWM.Domain.Containers
     public FocusMode FocusMode => FocusedContainer is FloatingWindow ?
       FocusMode.FLOATING : FocusMode.TILING;
 
-    /// <summary>
-    /// If set, this container overrides the target container to set focus to on the next
-    /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
-    /// </summary>
-    public Container PendingFocusContainer;
-
     private readonly UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)
