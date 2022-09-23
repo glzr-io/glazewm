@@ -8,12 +8,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   internal class UnmanageWindowHandler : ICommandHandler<UnmanageWindowCommand>
   {
     private readonly Bus _bus;
-    private readonly ContainerService _containerService;
 
-    public UnmanageWindowHandler(Bus bus, ContainerService containerService)
+    public UnmanageWindowHandler(Bus bus)
     {
       _bus = bus;
-      _containerService = containerService;
     }
 
     public CommandResponse Handle(UnmanageWindowCommand command)
@@ -29,11 +27,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
         _bus.Invoke(new DetachContainerCommand(window));
 
-      // Get container to switch focus to after the window has been removed. The OS automatically
-      // switches focus to a different window after closing, so by setting `PendingFocusContainer`
-      // this behavior is overridden.
-      _containerService.PendingFocusContainer = parent.LastFocusedDescendant
-        ?? grandparent.LastFocusedDescendant;
+      // The OS automatically switches focus to a different window after closing. Use `InvokeAsync`
+      // to ensure focus gets set to `containerToFocus` *after* the OS sets focus. This will cause
+      // focus to briefly flicker to the OS focus target and then to the WM's focus target.
+      // TODO: Container to focus should depend on focus mode.
+      // TODO: Consider moving this out to `WindowHiddenHandler` and `WindowClosedHandler` after
+      // redraw. More likely that it runs after OS focus event.
+      var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
+      _bus.InvokeAsync(new SetNativeFocusCommand(containerToFocus));
 
       return CommandResponse.Ok;
     }

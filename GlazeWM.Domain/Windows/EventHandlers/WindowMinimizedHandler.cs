@@ -54,8 +54,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
+      // TODO: Container to focus should depend on focus mode.
       var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
-      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
+      _bus.InvokeAsync(new SetNativeFocusCommand(focusTarget));
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());
