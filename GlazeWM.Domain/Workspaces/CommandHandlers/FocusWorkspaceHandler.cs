@@ -64,14 +64,12 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.
-      var workspaceToDestroy = _workspaceService.GetActiveWorkspaces()
-        .FirstOrDefault(workspace =>
-        {
-          return !workspace.KeepAlive
-            && !workspace.HasChildren()
-            && !workspace.IsDisplayed
-            && _containerService.PendingFocusContainer != workspace;
-        });
+      var workspaceToDestroy = _workspaceService
+        .GetActiveWorkspaces()
+        .FirstOrDefault(
+          (workspace) =>
+            !workspace.KeepAlive && !workspace.HasChildren() && !workspace.IsDisplayed
+        );
 
       if (workspaceToDestroy != null)
         _bus.Invoke(new DeactivateWorkspaceCommand(workspaceToDestroy));
