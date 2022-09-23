@@ -220,18 +220,23 @@ namespace GlazeWM.Domain.Windows
     }
 
     /// <summary>
-    /// Get container to focus after the given window is unmanaged or moved to another workspace.
+    /// Get container to focus after the given window is unmanaged, minimized, or moved to another
+    /// workspace.
     /// </summary>
     public static Container GetFocusTargetAfterRemoval(Window removedWindow)
     {
-      var parentWorkspace = removedWindow.Ancestors.OfType<Workspace>().First();
-      var windowType = WindowService.GetWindowType(removedWindow);
+      var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(removedWindow);
 
       var focusTargetOfType = parentWorkspace.DescendantFocusOrder.FirstOrDefault(
         (descendant) =>
-          removedWindow is FloatingWindow
-            ? (descendant is FloatingWindow)
-            : (descendant is TilingWindow)
+        {
+          if (descendant == removedWindow)
+            return false;
+
+          return removedWindow is FloatingWindow
+            ? descendant is FloatingWindow
+            : descendant is TilingWindow;
+        }
       );
 
       return focusTargetOfType ?? parentWorkspace.LastFocusedDescendant ?? parentWorkspace;
