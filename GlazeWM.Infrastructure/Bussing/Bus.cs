@@ -24,16 +24,16 @@ namespace GlazeWM.Infrastructure.Bussing
     /// </summary>
     public CommandResponse Invoke<T>(T command) where T : Command
     {
-      _logger.LogDebug("Command {commandName} invoked.", command.Name);
-
-      // Create a `Type` object representing the constructed `ICommandHandler` generic.
-      var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
-
-      var handlerInstance = ServiceLocator.GetRequiredService(handlerType)
-        as ICommandHandler<T>;
-
       lock (LockObj)
       {
+        _logger.LogDebug("Command {commandName} invoked.", command.Name);
+
+        // Create a `Type` object representing the constructed `ICommandHandler` generic.
+        var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
+
+        var handlerInstance = ServiceLocator.GetRequiredService(handlerType)
+          as ICommandHandler<T>;
+
         return handlerInstance.Handle(command);
       }
     }
@@ -48,22 +48,22 @@ namespace GlazeWM.Infrastructure.Bussing
     /// </summary>
     public void Emit<T>(T @event) where T : Event
     {
-      // Create a `Type` object representing the constructed `IEventHandler` generic.
-      var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
-
-      var handlerInstances = ServiceLocator.GetServices(handlerType)
-        as IEnumerable<IEventHandler<T>>;
-
-      foreach (var handler in handlerInstances)
+      lock (LockObj)
       {
-        lock (LockObj)
+        // Create a `Type` object representing the constructed `IEventHandler` generic.
+        var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
+
+        var handlerInstances = ServiceLocator.GetServices(handlerType)
+          as IEnumerable<IEventHandler<T>>;
+
+        foreach (var handler in handlerInstances)
         {
           handler.Handle(@event);
         }
-      }
 
-      // Emit event through subject.
-      Events.OnNext(@event);
+        // Emit event through subject.
+        Events.OnNext(@event);
+      }
     }
 
     public Task EmitAsync<T>(T @event) where T : Event
