@@ -39,8 +39,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName);
 
-      // Get the currently focused workspace. This can be null if there currently
-      // isn't a container that has focus.
+      // Get the currently focused workspace.
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
       if (focusedWorkspace == workspaceToFocus)

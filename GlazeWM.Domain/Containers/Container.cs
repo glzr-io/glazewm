@@ -211,15 +211,5 @@ namespace GlazeWM.Domain.Containers
         container => typeof(T).IsAssignableFrom(container.GetType())
       );
     }
-
-    /// <summary>
-    /// Get the last focused descendant that is not the given container.
-    /// </summary>
-    public Container LastFocusedDescendantExcluding(Container containerToExclude)
-    {
-      return DescendantFocusOrder.FirstOrDefault(
-        container => container != containerToExclude
-      );
-    }
   }
 }
