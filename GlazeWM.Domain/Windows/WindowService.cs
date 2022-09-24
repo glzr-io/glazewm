@@ -227,19 +227,28 @@ namespace GlazeWM.Domain.Windows
     {
       var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(removedWindow);
 
-      var focusTargetOfType = parentWorkspace.DescendantFocusOrder.FirstOrDefault(
-        (descendant) =>
-        {
-          if (descendant == removedWindow)
-            return false;
-
-          return removedWindow is FloatingWindow
-            ? descendant is FloatingWindow
-            : descendant is TilingWindow;
-        }
+      // Get descendant focus order excluding the removed container.
+      var descendantFocusOrder = parentWorkspace.DescendantFocusOrder.Where(
+        descendant => descendant != removedWindow
       );
 
-      return focusTargetOfType ?? parentWorkspace.LastFocusedDescendant ?? parentWorkspace;
+      // Get focus target that matches the removed window type (only for tiling/floating windows).
+      var focusTargetOfType = descendantFocusOrder.FirstOrDefault(
+        (descendant) =>
+          (removedWindow is FloatingWindow && descendant is FloatingWindow) ||
+          (removedWindow is TilingWindow && descendant is TilingWindow)
+      );
+
+      if (focusTargetOfType is not null)
+        return focusTargetOfType;
+
+      var nonMinimizedFocusTarget = descendantFocusOrder.FirstOrDefault(
+        (descendant) => descendant is not MinimizedWindow
+      );
+
+      return nonMinimizedFocusTarget ??
+        descendantFocusOrder.FirstOrDefault() ??
+        parentWorkspace;
     }
   }
 }
