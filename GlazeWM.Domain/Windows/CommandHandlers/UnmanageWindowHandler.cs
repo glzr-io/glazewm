@@ -18,9 +18,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var window = command.Window;
 
-      // Keep references to the window's parent and grandparent prior to detaching.
-      var parent = window.Parent;
-      var grandparent = parent.Parent;
+      // Get container to switch focus to after the window has been removed.
+      var focusTarget = WindowService.GetFocusTargetAfterRemoval(window);
 
       if (window is IResizable)
         _bus.Invoke(new DetachAndResizeContainerCommand(window));
@@ -30,11 +29,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // The OS automatically switches focus to a different window after closing. Use `InvokeAsync`
       // to ensure focus gets set to `containerToFocus` *after* the OS sets focus. This will cause
       // focus to briefly flicker to the OS focus target and then to the WM's focus target.
-      // TODO: Container to focus should depend on focus mode.
       // TODO: Consider moving this out to `WindowHiddenHandler` and `WindowClosedHandler` after
       // redraw. More likely that it runs after OS focus event.
-      var containerToFocus = parent.LastFocusedDescendant ?? grandparent.LastFocusedDescendant;
-      _bus.InvokeAsync(new SetNativeFocusCommand(containerToFocus));
+      _bus.InvokeAsync(new SetNativeFocusCommand(focusTarget));
 
       return CommandResponse.Ok;
     }

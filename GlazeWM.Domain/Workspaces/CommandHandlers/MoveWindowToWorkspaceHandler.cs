@@ -39,6 +39,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var targetWorkspace = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName, windowToMove);
 
+      if (currentWorkspace == targetWorkspace)
+        return CommandResponse.Ok;
+
       // Since target workspace could be on a different monitor, adjustments might need to be made
       // because of DPI.
       if (MonitorService.HasDpiDifference(currentWorkspace, targetWorkspace))
@@ -49,13 +52,19 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         windowToMove.FloatingPlacement =
           windowToMove.FloatingPlacement.TranslateToCenter(targetWorkspace.ToRect());
 
+      var focusTarget = WindowService.GetFocusTargetAfterRemoval(windowToMove);
+
       if (windowToMove is TilingWindow)
         MoveTilingWindowToWorkspace(windowToMove as TilingWindow, targetWorkspace);
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, false));
 
-      // Reassign focus to descendant within the current workspace.
-      ReassignFocusWithinWorkspace(currentWorkspace);
+      // Reassign focus to descendant within the current workspace. Need to call
+      // `SetFocusedDescendantCommand` for when commands like `FocusWorkspaceCommand` are called
+      // immediately afterwards and they should behave as if `focusTarget` is the focused
+      // descendant.
+      _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
+      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
 
       _containerService.ContainersToRedraw.Add(currentWorkspace);
       _containerService.ContainersToRedraw.Add(windowToMove);
@@ -96,17 +105,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
             true
           )
         );
-    }
-
-    private void ReassignFocusWithinWorkspace(Workspace workspace)
-    {
-      var containerToFocus = workspace.LastFocusedDescendant ?? workspace;
-
-      // Need to call `SetFocusedDescendantCommand` for when commands like `FocusWorkspaceCommand`
-      // are called immediately afterwards and they should behave as if `containerToFocus` is the
-      // focused descendant.
-      _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
     }
   }
 }

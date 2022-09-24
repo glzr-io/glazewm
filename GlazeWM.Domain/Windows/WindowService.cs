@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -216,6 +217,38 @@ namespace GlazeWM.Domain.Windows
         FullscreenWindow => WindowType.FULLSCREEN,
         _ => throw new ArgumentException(null, nameof(window)),
       };
+    }
+
+    /// <summary>
+    /// Get container to focus after the given window is unmanaged, minimized, or moved to another
+    /// workspace.
+    /// </summary>
+    public static Container GetFocusTargetAfterRemoval(Window removedWindow)
+    {
+      var parentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(removedWindow);
+
+      // Get descendant focus order excluding the removed container.
+      var descendantFocusOrder = parentWorkspace.DescendantFocusOrder.Where(
+        descendant => descendant != removedWindow
+      );
+
+      // Get focus target that matches the removed window type (only for tiling/floating windows).
+      var focusTargetOfType = descendantFocusOrder.FirstOrDefault(
+        (descendant) =>
+          (removedWindow is FloatingWindow && descendant is FloatingWindow) ||
+          (removedWindow is TilingWindow && descendant is TilingWindow)
+      );
+
+      if (focusTargetOfType is not null)
+        return focusTargetOfType;
+
+      var nonMinimizedFocusTarget = descendantFocusOrder.FirstOrDefault(
+        (descendant) => descendant is not MinimizedWindow
+      );
+
+      return nonMinimizedFocusTarget ??
+        descendantFocusOrder.FirstOrDefault() ??
+        parentWorkspace;
     }
   }
 }

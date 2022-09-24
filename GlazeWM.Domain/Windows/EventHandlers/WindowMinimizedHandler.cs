@@ -52,10 +52,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         previousState
       );
 
+      // Get container to switch focus to after the window has been minimized.
+      var focusTarget = WindowService.GetFocusTargetAfterRemoval(window);
+
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
-      // TODO: Container to focus should depend on focus mode.
-      var focusTarget = workspace.LastFocusedDescendantExcluding(minimizedWindow) ?? workspace;
+      // Reassign focus to appropriate container.
       _bus.InvokeAsync(new SetNativeFocusCommand(focusTarget));
 
       _containerService.ContainersToRedraw.Add(workspace);
