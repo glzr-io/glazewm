@@ -73,11 +73,11 @@ keybindings:
 
 Keybindings with Alt pressed:
 
-![Alt key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/142961268-6892c447-8cfb-4774-916b-1859e168f383.png)
+![Alt key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635035-152ed4a6-e5a1-4878-8863-f62391e7d703.png)
 
 Keybindings with Alt+Shift pressed:
 
-![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/142961277-04627f5d-b257-4c66-a9b3-fde3f485eded.png)
+![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
 Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the system tray icon.
 
