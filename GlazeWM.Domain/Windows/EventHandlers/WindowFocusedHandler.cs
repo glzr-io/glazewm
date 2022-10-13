@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
-      if (window == null)
+      if (window is null || window?.IsDisplayed == false)
         return;
 
       _logger.LogWindowEvent("Window focused", window);
