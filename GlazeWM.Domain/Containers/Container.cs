@@ -7,6 +7,11 @@ namespace GlazeWM.Domain.Containers
 {
   public abstract class Container
   {
+    /// <summary>
+    /// A unique identifier for the particular container. Implementation varies between container
+    /// types (eg. windows use their handle, whereas monitors use device name).
+    /// </summary>
+    public abstract string Id { get; init; }
     public virtual int Height { get; set; }
     public virtual int Width { get; set; }
     public virtual int X { get; set; }
