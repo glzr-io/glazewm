@@ -42,6 +42,11 @@ namespace GlazeWM.Domain.Windows
       return _containerService.ContainerTree.Descendants.OfType<Window>();
     }
 
+    public Window GetWindowByHandle(IntPtr handle)
+    {
+      return GetWindows().FirstOrDefault(window => window.Handle == handle);
+    }
+
     /// <summary>
     /// Get the id of the process that created the window.
     /// </summary>
