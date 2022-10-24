@@ -8,6 +8,7 @@ namespace GlazeWM.Domain.Workspaces
 {
   public sealed class Workspace : SplitContainer
   {
+    public override string Id { get; init; }
     public string Name { get; set; }
 
     private readonly UserConfigService _userConfigService =
@@ -62,6 +63,7 @@ namespace GlazeWM.Domain.Workspaces
 
     public Workspace(string name)
     {
+      Id = $"WORKSPACE/{name}";
       Name = name;
     }
   }

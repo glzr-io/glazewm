@@ -8,6 +8,7 @@ namespace GlazeWM.Domain.Windows
 {
   public abstract class Window : Container
   {
+    public override string Id { get; init; }
     public IntPtr Handle { get; }
 
     /// <summary>
@@ -30,6 +31,7 @@ namespace GlazeWM.Domain.Windows
 
     protected Window(IntPtr handle, Rect floatingPlacement, RectDelta borderDelta)
     {
+      Id = $"WINDOW/{handle.ToString("x")}";
       Handle = handle;
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;

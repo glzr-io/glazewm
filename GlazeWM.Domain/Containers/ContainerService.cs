@@ -40,6 +40,11 @@ namespace GlazeWM.Domain.Containers
       _userConfigService = userConfigService;
     }
 
+    public Container GetContainerById(string id)
+    {
+      return ContainerTree.SelfAndDescendants.FirstOrDefault(container => container.Id == id);
+    }
+
     /// <summary>
     /// Calculates the width of a container that can be resized programatically. This
     /// calculation is shared by windows and split containers.

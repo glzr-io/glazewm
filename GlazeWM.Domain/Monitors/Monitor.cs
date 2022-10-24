@@ -5,6 +5,7 @@ namespace GlazeWM.Domain.Monitors
 {
   public sealed class Monitor : Container
   {
+    public override string Id { get; init; }
     public string DeviceName { get; set; }
     public override int Width { get; set; }
     public override int Height { get; set; }
@@ -22,6 +23,7 @@ namespace GlazeWM.Domain.Monitors
       int x,
       int y)
     {
+      Id = $"MONITOR/{deviceName}";
       DeviceName = deviceName;
       Width = width;
       Height = height;
