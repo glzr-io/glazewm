@@ -31,9 +31,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         .SelectMany(rule => rule.CommandList)
         .Select(commandString => CommandParsingService.FormatCommand(commandString));
 
+      // Window to use as subject container when invoking commands.
       var subjectWindow = window;
+
       foreach (var commandString in commandStrings)
       {
+        if (subjectWindow.IsDetached())
+          return CommandResponse.Ok;
+
         var parsedCommand = _commandParsingService.ParseCommand(commandString, subjectWindow);
 
         // Invoke commands in the matching window rules. Use `dynamic` to resolve the command type
