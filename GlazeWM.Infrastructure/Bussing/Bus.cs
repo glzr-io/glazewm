@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using GlazeWM.Infrastructure.Common.Commands;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
@@ -40,7 +42,18 @@ namespace GlazeWM.Infrastructure.Bussing
 
     public Task<CommandResponse> InvokeAsync<T>(T command) where T : Command
     {
-      return Task.Run(() => Invoke(command));
+      return Task.Run(() =>
+      {
+        try
+        {
+          return Invoke(command);
+        }
+        catch (Exception e)
+        {
+          Invoke(new HandleFatalExceptionCommand(e));
+          throw;
+        }
+      });
     }
 
     /// <summary>
@@ -68,7 +81,17 @@ namespace GlazeWM.Infrastructure.Bussing
 
     public Task EmitAsync<T>(T @event) where T : Event
     {
-      return Task.Run(() => Emit(@event));
+      return Task.Run(() =>
+      {
+        try
+        {
+          Emit(@event);
+        }
+        catch (Exception e)
+        {
+          Invoke(new HandleFatalExceptionCommand(e));
+        }
+      });
     }
   }
 }

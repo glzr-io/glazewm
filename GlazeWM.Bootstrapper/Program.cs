@@ -68,7 +68,7 @@ namespace GlazeWM.Bootstrapper
 
           // Configure exception handler.
           services
-            .AddOptions<ExceptionHandlerOptions>()
+            .AddOptions<ExceptionHandlingOptions>()
             .Configure<ContainerService, JsonService>((options, containerService, jsonService) =>
             {
               options.ErrorLogPath = Path.Combine(
