@@ -1,4 +1,4 @@
-using GlazeWM.Infrastructure.Bussing;
+﻿using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.CommandHandlers;
 using GlazeWM.Infrastructure.Exceptions;
@@ -13,7 +13,6 @@ namespace GlazeWM.Infrastructure
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
       services.AddSingleton<Bus>();
-      services.AddSingleton<ExceptionHandler>();
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<SystemEventService>();
       services.AddSingleton<WindowEventService>();
