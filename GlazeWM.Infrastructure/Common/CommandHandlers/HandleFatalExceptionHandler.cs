@@ -11,9 +11,9 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
   internal class HandleFatalExceptionHandler : ICommandHandler<HandleFatalExceptionCommand>
   {
     private readonly Bus _bus;
-    private readonly IOptions<ExceptionHandlerOptions> _options;
+    private readonly IOptions<ExceptionHandlingOptions> _options;
 
-    public HandleFatalExceptionHandler(Bus bus, IOptions<ExceptionHandlerOptions> options)
+    public HandleFatalExceptionHandler(Bus bus, IOptions<ExceptionHandlingOptions> options)
     {
       _bus = bus;
       _options = options;
