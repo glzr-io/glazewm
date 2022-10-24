@@ -1,4 +1,4 @@
-﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.CommandHandlers;
 using GlazeWM.Infrastructure.Exceptions;
@@ -21,6 +21,7 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<YamlService>();
 
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
+      services.AddSingleton<ICommandHandler<HandleFatalExceptionCommand>, HandleFatalExceptionHandler>();
       services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();
 
       // TODO: Change WindowsApiService to be compatible with DI.
