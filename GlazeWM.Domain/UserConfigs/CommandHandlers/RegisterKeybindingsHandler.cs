@@ -53,22 +53,27 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
                 return;
 
               var subjectContainer = _containerService.FocusedContainer;
+              var subjectContainerId = subjectContainer.Id;
 
               // Invoke commands in sequence on keybinding press.
               foreach (var commandString in formattedCommandStrings)
               {
-                var parsedCommand = _commandParsingService.ParseCommand(
-                  commandString,
-                  subjectContainer
-                );
-
                 // Avoid calling command if container gets detached. This is to prevent crashes
                 // for edge cases like ["close", "move to workspace X"].
                 if (subjectContainer.IsDetached())
                   return;
 
+                var parsedCommand = _commandParsingService.ParseCommand(
+                  commandString,
+                  subjectContainer
+                );
+
                 // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
                 _bus.Invoke((dynamic)parsedCommand);
+
+                // Update subject container in case the reference changes (eg. when going from a tiling to a
+                // floating window).
+                subjectContainer = _containerService.GetContainerById(subjectContainerId);
               }
             });
           });
