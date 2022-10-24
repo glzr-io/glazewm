@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Windows
 
     protected Window(IntPtr handle, Rect floatingPlacement, RectDelta borderDelta)
     {
-      Id = handle.ToString("x");
+      Id = $"WINDOW/{handle.ToString("x")}";
       Handle = handle;
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;

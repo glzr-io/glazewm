@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Monitors
       int x,
       int y)
     {
-      Id = deviceName;
+      Id = $"MONITOR/{deviceName}";
       DeviceName = deviceName;
       Width = width;
       Height = height;

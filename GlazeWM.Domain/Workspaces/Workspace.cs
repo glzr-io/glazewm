@@ -63,7 +63,7 @@ namespace GlazeWM.Domain.Workspaces
 
     public Workspace(string name)
     {
-      Id = name;
+      Id = $"WORKSPACE/{name}";
       Name = name;
     }
   }
