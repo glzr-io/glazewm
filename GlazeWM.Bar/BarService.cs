@@ -2,7 +2,7 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Exceptions;
+using GlazeWM.Infrastructure.Common.Commands;
 using System.Reactive.Linq;
 using System;
 using System.Threading;
@@ -17,15 +17,13 @@ namespace GlazeWM.Bar
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
-    private readonly ExceptionHandler _exceptionHandler;
     private Application _application;
     private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName = new();
 
-    public BarService(Bus bus, MonitorService monitorService, ExceptionHandler exceptionHandler)
+    public BarService(Bus bus, MonitorService monitorService)
     {
       _bus = bus;
       _monitorService = monitorService;
-      _exceptionHandler = exceptionHandler;
     }
 
     public void StartApp()
@@ -53,7 +51,7 @@ namespace GlazeWM.Bar
         }
         catch (Exception exception)
         {
-          _exceptionHandler.HandleFatalException(exception);
+          _bus.Invoke(new HandleFatalExceptionCommand(exception));
         }
       })
       {

@@ -5,7 +5,6 @@ using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
-using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,6 @@ namespace GlazeWM.Bootstrapper
   {
     private readonly BarService _barService;
     private readonly Bus _bus;
-    private readonly ExceptionHandler _exceptionHandler;
     private readonly KeybindingService _keybindingService;
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
@@ -30,14 +28,12 @@ namespace GlazeWM.Bootstrapper
     public Startup(
       BarService barService,
       Bus bus,
-      ExceptionHandler exceptionHandler,
       KeybindingService keybindingService,
       SystemEventService systemEventService,
       WindowEventService windowEventService)
     {
       _barService = barService;
       _bus = bus;
-      _exceptionHandler = exceptionHandler;
       _keybindingService = keybindingService;
       _systemEventService = systemEventService;
       _windowEventService = windowEventService;
@@ -88,7 +84,7 @@ namespace GlazeWM.Bootstrapper
       }
       catch (Exception exception)
       {
-        _exceptionHandler.HandleFatalException(exception);
+        _bus.Invoke(new HandleFatalExceptionCommand(exception));
       }
     }
 
