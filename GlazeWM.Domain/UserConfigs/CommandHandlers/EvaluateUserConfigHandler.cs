@@ -1,7 +1,8 @@
-using GlazeWM.Domain.UserConfigs.Commands;
+﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Infrastructure.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -132,6 +133,27 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             throw new FatalUserException(
               "Property 'binding' or 'bindings' is required in keybinding config."
             );
+          else
+          {
+            // Checking that all keyboard shortcuts specified in the config can be cast to Keys values
+            foreach (var keybinding in keybindingConfig.BindingList)
+            {
+              var keybindingsParts = KeybindingHelper.GetFormattedKeybingingsParts(keybinding);
+              
+              foreach (var keybindingPart in keybindingsParts)
+              {
+                try
+                {
+                  var key = Enum.Parse(typeof(Keys), keybindingPart);
+                }
+                catch (ArgumentException)
+                {
+                  throw new FatalUserException(
+                    $"Unsuccessful bindings '{keybinding}' in keybinding config: unknown key '{keybindingPart}'");
+                }
+              }
+            }
+          }
 
           if (keybindingConfig.CommandList.Count == 0)
             throw new FatalUserException(
