@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Infrastructure.WindowsApi
@@ -62,12 +63,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void AddGlobalKeybinding(string keybindingString, Action callback)
     {
-      var keybindingParts = keybindingString
-        .Split('+')
-        .Select(key => FormatKeybinding(key))
-        .Select(key => Enum.Parse(typeof(Keys), key))
-        .Cast<Keys>()
-        .ToList();
+      var keybindingParts = KeybindingHelper.GetKeys(keybindingString).ToList();
 
       var triggerKey = keybindingParts.Last();
       var keybinding = new Keybinding(keybindingParts, callback);
@@ -84,13 +80,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public void Reset()
     {
       _keybindingsByTriggerKey.Clear();
-    }
-
-    private static string FormatKeybinding(string key)
-    {
-      var isNumeric = int.TryParse(key, out var _);
-
-      return isNumeric ? $"D{key}" : key;
     }
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
