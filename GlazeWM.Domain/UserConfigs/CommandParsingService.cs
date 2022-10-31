@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -216,10 +217,16 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Whether a workspace exists with the given name.
+    /// Whether a workspace exists with the given name 
+    /// or workspace name is part of focus workspace command.
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
     {
+      if (Keywords.WorkspaceKeyswords.Contains(workspaceName))
+      {
+        return true;
+      }
+
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;
