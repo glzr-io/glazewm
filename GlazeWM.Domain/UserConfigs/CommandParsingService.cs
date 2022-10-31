@@ -113,10 +113,21 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
         "workspace" when IsValidWorkspace(commandParts[2]) =>
-          new FocusWorkspaceCommand(commandParts[2]),
+          ParseFocusWorkspaceCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
+
+    private Command ParseFocusWorkspaceCommand (string[] commandParts)
+    {
+      return commandParts[2] switch
+      {
+        "recent" => new FocusWorkspaceRecentCommand(),
+        // errors already checked at the previous level parsing
+        _ => new FocusWorkspaceCommand(commandParts[2]),
+      };
+    }
+
 
     private Command ParseMoveCommand(string[] commandParts, Container subjectContainer)
     {
@@ -220,6 +231,11 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
     {
+      if (workspaceName == "recent")
+      {
+        return true;
+      }
+
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;

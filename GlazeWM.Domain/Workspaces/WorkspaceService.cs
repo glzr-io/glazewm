@@ -11,6 +11,8 @@ namespace GlazeWM.Domain.Workspaces
     private readonly ContainerService _containerService;
     private readonly UserConfigService _userConfigService;
 
+    private readonly Stack<Workspace> _recentWorkspaces = new();
+
     public WorkspaceService(ContainerService containerService, UserConfigService userConfigService)
     {
       _containerService = containerService;
@@ -67,6 +69,20 @@ namespace GlazeWM.Domain.Workspaces
     public Workspace GetFocusedWorkspace()
     {
       return GetWorkspaceFromChildContainer(_containerService.FocusedContainer);
+    }
+
+    public Workspace PopRecentWorkspace()
+    {
+      if (_recentWorkspaces.Count > 0)
+      {
+        return _recentWorkspaces.Pop();
+      }
+      return null;
+    }
+
+    public void PushRecentWorkspace(Workspace workspace)
+    {
+      _recentWorkspaces.Push(workspace);
     }
   }
 }
