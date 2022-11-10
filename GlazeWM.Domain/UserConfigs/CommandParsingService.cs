@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -113,8 +113,19 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
         "workspace" when IsValidWorkspace(commandParts[2]) =>
-          new FocusWorkspaceCommand(commandParts[2]),
+          ParseFocusWorkspaceCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private Command ParseFocusWorkspaceCommand(string[] commandParts)
+    {
+      return commandParts[2] switch
+      {
+        "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
+        "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
+        // errors already checked at the previous level parsing
+        _  => new FocusWorkspaceCommand(commandParts[2]),
       };
     }
 
@@ -220,6 +231,12 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
     {
+      // Validate command "focus workspace next" or "focus workspace prev"
+      if (workspaceName == "next" || workspaceName == "prev")
+      {
+        return true;
+      }
+
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;
