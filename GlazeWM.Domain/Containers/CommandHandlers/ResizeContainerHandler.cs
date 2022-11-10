@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
@@ -18,8 +19,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var resizableSiblings = containerToResize.SiblingsOfType<IResizable>();
 
       // Ignore cases where the container to resize is a workspace or the only child.
-      // if (!resizableSiblings.Any() || containerToResize is Workspace)
-      //   return CommandResponse.Ok;
+      if (!resizableSiblings.Any() || containerToResize is Workspace)
+        return CommandResponse.Ok;
 
       // Get available size percentage amongst siblings.
       var availableSizePercentage = GetAvailableSizePercentage(
