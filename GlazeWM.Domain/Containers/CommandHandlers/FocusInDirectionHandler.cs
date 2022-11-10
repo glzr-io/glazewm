@@ -29,44 +29,43 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var direction = command.Direction;
       var focusedContainer = _containerService.FocusedContainer;
 
-      if (focusedContainer is FloatingWindow)
-        FocusFromFloatingWindow(focusedContainer, direction);
-      else
-        FocusFromTilingContainer(focusedContainer, direction);
+      var focusTarget = GetFocusTarget(focusedContainer, direction);
 
+      if (focusTarget is null || focusTarget == focusedContainer)
+        return CommandResponse.Ok;
+
+      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
       return CommandResponse.Ok;
     }
 
-    private void FocusFromFloatingWindow(Container focusedContainer, Direction direction)
+    private Container GetFocusTarget(Container focusedContainer, Direction direction)
+    {
+      if (focusedContainer is FloatingWindow)
+        return GetFocusTargetFromFloating(focusedContainer, direction);
+
+      return GetFocusTargetFromTiling(focusedContainer, direction);
+    }
+
+    private static Container GetFocusTargetFromFloating(Container focusedContainer, Direction direction)
     {
       // Cannot focus vertically from a floating window.
       if (direction is Direction.UP or Direction.DOWN)
-        return;
+        return null;
 
-      var focusTarget = direction == Direction.RIGHT
+      var focusTarget = direction is Direction.RIGHT
         ? focusedContainer.NextSiblingOfType<FloatingWindow>()
         : focusedContainer.PreviousSiblingOfType<FloatingWindow>();
 
+      if (focusTarget is not null)
+        return focusTarget;
+
       // Wrap if next/previous floating window is not found.
-      if (focusTarget == null)
-        focusTarget = direction == Direction.RIGHT
-          ? focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().FirstOrDefault()
-          : focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().LastOrDefault();
-
-      if (focusTarget == null || focusTarget == focusedContainer)
-        return;
-
-      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
+      return direction is Direction.RIGHT
+        ? focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().FirstOrDefault()
+        : focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().LastOrDefault();
     }
 
-    private void FocusFromTilingContainer(Container focusedContainer, Direction direction)
-    {
-      var focusTarget = GetFocusTarget(focusedContainer, direction);
-
-      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
-    }
-
-    private Container GetFocusTarget(Container focusedContainer, Direction direction)
+    private Container GetFocusTargetFromTiling(Container focusedContainer, Direction direction)
     {
       var focusTargetWithinWorkspace = GetFocusTargetWithinWorkspace(focusedContainer, direction);
 
