@@ -54,10 +54,18 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       var focusTarget = WindowService.GetFocusTargetAfterRemoval(windowToMove);
 
+      // Since the workspace that gets displayed is the last focused child, focus needs to be
+      // reassigned to the displayed workspace.
+      var targetMonitor = targetWorkspace.Parent as Monitor;
+      var focusResetTarget = targetWorkspace.IsDisplayed ? null : targetMonitor.LastFocusedDescendant;
+
       if (windowToMove is TilingWindow)
         MoveTilingWindowToWorkspace(windowToMove as TilingWindow, targetWorkspace);
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, false));
+
+      if (focusResetTarget is not null)
+        _bus.Invoke(new SetFocusedDescendantCommand(focusResetTarget));
 
       // Reassign focus to descendant within the current workspace. Need to call
       // `SetFocusedDescendantCommand` for when commands like `FocusWorkspaceCommand` are called
