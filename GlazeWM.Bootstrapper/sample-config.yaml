@@ -134,6 +134,12 @@ keybindings:
     binding: "Alt+8"
   - command: "focus workspace 9"
     binding: "Alt+9"
+  - command: "focus workspace recent"
+    binding: "Alt+R"
+  - command: "focus workspace prev"
+    binding: "Alt+Shift+T"
+  - command: "focus workspace next"
+    binding: "Alt+T"
 
   # Move focused window to a workspace defined in `workspaces` config.
   - commands: ["move to workspace 1", "focus workspace 1"]

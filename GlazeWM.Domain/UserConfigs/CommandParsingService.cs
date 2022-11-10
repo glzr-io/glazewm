@@ -122,6 +122,7 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[2] switch
       {
+        "recent" => new FocusWorkspaceRecentCommand(),
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
         // errors already checked at the previous level parsing
@@ -232,7 +233,7 @@ namespace GlazeWM.Domain.UserConfigs
     private bool IsValidWorkspace(string workspaceName)
     {
       // Validate command "focus workspace next" or "focus workspace prev"
-      if (workspaceName == "next" || workspaceName == "prev")
+      if (workspaceName == "next" || workspaceName == "prev" || workspaceName == "recent")
       {
         return true;
       }
