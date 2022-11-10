@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -118,16 +118,17 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseFocusWorkspaceCommand (string[] commandParts)
+    private Command ParseFocusWorkspaceCommand(string[] commandParts)
     {
       return commandParts[2] switch
       {
         "recent" => new FocusWorkspaceRecentCommand(),
+        "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
+        "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
         // errors already checked at the previous level parsing
-        _ => new FocusWorkspaceCommand(commandParts[2]),
+        _  => new FocusWorkspaceCommand(commandParts[2]),
       };
     }
-
 
     private Command ParseMoveCommand(string[] commandParts, Container subjectContainer)
     {
@@ -231,7 +232,8 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
     {
-      if (workspaceName == "recent")
+      // Validate command "focus workspace next" or "focus workspace prev"
+      if (workspaceName == "next" || workspaceName == "prev" || workspaceName == "recent")
       {
         return true;
       }
