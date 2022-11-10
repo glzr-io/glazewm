@@ -27,14 +27,17 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       var resizableSiblings = childToAdd.SiblingsOfType<IResizable>();
 
+      if (!resizableSiblings.Any())
+      {
+        (childToAdd as IResizable).SizePercentage = 1;
+        return CommandResponse.Ok;
+      }
+
       var defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
-      (childToAdd as IResizable).SizePercentage = defaultPercent;
 
-      var sizePercentageDecrement = defaultPercent / resizableSiblings.Count();
-
-      // Adjust `SizePercentage` of the added container's siblings.
-      foreach (var sibling in resizableSiblings)
-        (sibling as IResizable).SizePercentage -= sizePercentageDecrement;
+      // Set initial size percentage to 0, and then size up the container to `defaultPercent`.
+      (childToAdd as IResizable).SizePercentage = 0;
+      _bus.Invoke(new ResizeContainerCommand(childToAdd, defaultPercent));
 
       return CommandResponse.Ok;
     }
