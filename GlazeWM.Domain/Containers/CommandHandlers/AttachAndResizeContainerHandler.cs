@@ -26,8 +26,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _bus.Invoke(new AttachContainerCommand(childToAdd, targetParent, targetIndex));
 
       var resizableSiblings = childToAdd.SiblingsOfType<IResizable>();
+
       if (!resizableSiblings.Any())
+      {
+        (childToAdd as IResizable).SizePercentage = 1;
         return CommandResponse.Ok;
+      }
 
       var defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
 
