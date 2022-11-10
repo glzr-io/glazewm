@@ -1,4 +1,5 @@
-﻿using GlazeWM.Domain.UserConfigs.Commands;
+﻿using GlazeWM.Domain.Common.Utils;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Serialization;
@@ -112,6 +113,9 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         {
           if (workspaceConfig.Name is null)
             throw new FatalUserException("Property 'name' is required in workspace config.");
+
+          if (Keywords.WorkspaceKeyswords.Contains(workspaceConfig.Name))
+            throw new FatalUserException($"Can not use keyword '{workspaceConfig.Name}' as workspace name");
         }
 
         var componentConfigs = deserializedConfig.Bar.ComponentsLeft
