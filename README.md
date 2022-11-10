@@ -168,7 +168,7 @@ bar:
 The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
-# Type of component to display. Currently only 2 component types exist:  "workspaces" and "clock".
+# Type of component to display. Currently only 3 component types exist: "workspaces", "clock" and "text".
 type: <COMPONENT_TYPE>
 
 # Horizontal and vertical margins. See "Shorthand properties" for more info.
@@ -244,6 +244,7 @@ window_rules:
 
 - layout \<vertical | horizontal>
 - focus \<left | right | up | down>
+- focus workspace \<prev | next | recent>
 - focus workspace \<workspace name>
 - move \<left | right | up | down>
 - move to workspace \<workspace name>

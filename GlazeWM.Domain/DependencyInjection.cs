@@ -72,6 +72,8 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<ActivateWorkspaceCommand>, ActivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<DeactivateWorkspaceCommand>, DeactivateWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
+      services.AddSingleton<ICommandHandler<FocusWorkspaceRecentCommand>, FocusWorkspaceRecentHandler>();
+      services.AddSingleton<ICommandHandler<FocusWorkspaceSequenceCommand>, FocusWorkspaceSequenceHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
 

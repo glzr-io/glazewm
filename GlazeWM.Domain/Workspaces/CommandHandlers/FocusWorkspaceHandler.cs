@@ -45,6 +45,9 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (focusedWorkspace == workspaceToFocus)
         return CommandResponse.Ok;
 
+      // Save currently focused workspace as recent for command "recent"
+      _workspaceService.PushRecentWorkspace(focusedWorkspace);
+
       // Set focus to the last focused window in workspace. If the workspace has no descendant
       // windows, then set focus to the workspace itself.
       var containerToFocus = workspaceToFocus.HasChildren()
