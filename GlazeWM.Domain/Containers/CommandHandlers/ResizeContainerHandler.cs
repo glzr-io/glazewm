@@ -72,7 +72,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Get percentage of resize that affects this container. `availableSizePercentage`
       // can be 0 here when the main container to resize is shrunk from max size percentage.
-      var resizeFactor = availableSizePercentage == 0.0
+      var resizeFactor = availableSizePercentage == 0.0 || sizePercentage < 0
         ? 1.0 / siblingCount
         : conAvailableSizePercentage / availableSizePercentage;
 
