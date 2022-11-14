@@ -115,6 +115,16 @@ keybindings:
   - command: "exec cmd"
     binding: "Alt+Enter"
 
+  # Focus the workspace that last had focus.
+  - command: "focus workspace recent"
+    binding: "Alt+R"
+
+  # Focus the next/previous workspace defined in `workspaces` config.
+  - command: "focus workspace next"
+    binding: "Alt+T"
+  - command: "focus workspace prev"
+    binding: "Alt+Shift+T"
+
   # Change focus to a workspace defined in `workspaces` config.
   - command: "focus workspace 1"
     binding: "Alt+1"
@@ -134,12 +144,6 @@ keybindings:
     binding: "Alt+8"
   - command: "focus workspace 9"
     binding: "Alt+9"
-  - command: "focus workspace recent"
-    binding: "Alt+R"
-  - command: "focus workspace prev"
-    binding: "Alt+Shift+T"
-  - command: "focus workspace next"
-    binding: "Alt+T"
 
   # Move focused window to a workspace defined in `workspaces` config.
   - commands: ["move to workspace 1", "focus workspace 1"]
