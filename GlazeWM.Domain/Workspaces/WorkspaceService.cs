@@ -12,6 +12,7 @@ namespace GlazeWM.Domain.Workspaces
     private readonly UserConfigService _userConfigService;
 
     private readonly Stack<Workspace> _recentWorkspaces = new();
+    public Workspace MostRecentWorkspace { get; set; }
 
     public WorkspaceService(ContainerService containerService, UserConfigService userConfigService)
     {

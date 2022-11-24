@@ -126,6 +126,7 @@ namespace GlazeWM.Domain.UserConfigs
         "recent" => new FocusWorkspaceRecentCommand(),
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
+        "toggle" => new FocusWorkspaceToggleCommand(),
         // errors already checked at the previous level parsing
         _  => new FocusWorkspaceCommand(commandParts[2]),
       };

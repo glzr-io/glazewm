@@ -8,6 +8,6 @@ namespace GlazeWM.Domain.Common.Utils
     /// Keywords that are part of the "focus workspace" commands
     /// Keywords cannot be used as a workspace name
     /// </summary>
-    public static HashSet<string> WorkspaceKeyswords = new HashSet<string>() { "prev", "next", "recent" };
+    public static HashSet<string> WorkspaceKeyswords = new HashSet<string>() { "prev", "next", "recent", "toggle" };
   }
 }

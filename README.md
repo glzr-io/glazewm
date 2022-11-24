@@ -244,7 +244,7 @@ window_rules:
 
 - layout \<vertical | horizontal>
 - focus \<left | right | up | down>
-- focus workspace \<prev | next | recent>
+- focus workspace \<prev | next | recent | toggle>
 - focus workspace \<workspace name>
 - move \<left | right | up | down>
 - move to workspace \<workspace name>
