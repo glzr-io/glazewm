@@ -115,9 +115,13 @@ keybindings:
   - command: "exec cmd"
     binding: "Alt+Enter"
 
-  # Focus the workspace that last had focus.
+  # Focus the workspace that had earlier focus.
   - command: "focus workspace recent"
     binding: "Alt+R"
+  
+  # Toggle focus to the most recent workspace.
+  - command: "focus workspace toggle"
+    binding: "Alt+Oemtilde"
 
   # Focus the next/previous workspace defined in `workspaces` config.
   - command: "focus workspace next"
