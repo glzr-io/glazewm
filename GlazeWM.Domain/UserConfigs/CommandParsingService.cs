@@ -158,10 +158,10 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[2] switch
       {
-        "left" => new MoveWorkspaceToMonitorCommand(Direction.LEFT),
-        "right" => new MoveWorkspaceToMonitorCommand(Direction.RIGHT),
-        "up" => new MoveWorkspaceToMonitorCommand(Direction.UP),
-        "down" => new MoveWorkspaceToMonitorCommand(Direction.DOWN),
+        "left" => new MoveWorkspaceInDirectionCommand(Direction.LEFT),
+        "right" => new MoveWorkspaceInDirectionCommand(Direction.RIGHT),
+        "up" => new MoveWorkspaceInDirectionCommand(Direction.UP),
+        "down" => new MoveWorkspaceInDirectionCommand(Direction.DOWN),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }

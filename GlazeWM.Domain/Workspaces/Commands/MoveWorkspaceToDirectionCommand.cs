@@ -3,11 +3,11 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  internal class MoveWorkspaceToMonitorCommand : Command
+  internal class MoveWorkspaceInDirectionCommand : Command
   {
     public Direction Direction { get; }
 
-    public MoveWorkspaceToMonitorCommand(Direction direction)
+    public MoveWorkspaceInDirectionCommand(Direction direction)
     {
       Direction = direction;
     }
