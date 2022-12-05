@@ -150,6 +150,19 @@ namespace GlazeWM.Domain.UserConfigs
         "to" when IsValidWorkspace(commandParts[3]) => subjectContainer is Window
           ? new MoveWindowToWorkspaceCommand(subjectContainer as Window, commandParts[3])
           : new NoopCommand(),
+        "workspace" => ParseMoveWorkspaceCommand(commandParts, subjectContainer),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private Command ParseMoveWorkspaceCommand(string[] commandParts, Container subjectContainer)
+    {
+      return commandParts[2] switch
+      {
+        "left" => new MoveWorkspaceInDirectionCommand(Direction.LEFT),
+        "right" => new MoveWorkspaceInDirectionCommand(Direction.RIGHT),
+        "up" => new MoveWorkspaceInDirectionCommand(Direction.UP),
+        "down" => new MoveWorkspaceInDirectionCommand(Direction.DOWN),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
