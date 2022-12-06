@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -199,6 +199,9 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "maximized" => subjectContainer is Window
           ? new SetMaximizedCommand(subjectContainer as Window)
+          : new NoopCommand(),
+        "tiling" => subjectContainer is Window
+          ? new SetTilingCommand(subjectContainer as Window)
           : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
