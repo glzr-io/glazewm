@@ -84,7 +84,6 @@ namespace GlazeWM.Domain.UserConfigs
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
         "reload" => ParseReloadCommand(commandParts),
-        "activate" => ParseActivateCommand(commandParts),
         "exec" => new ExecProcessCommand(
           ExtractProcessName(string.Join(" ", commandParts[1..])),
           ExtractProcessArgs(string.Join(" ", commandParts[1..]))
@@ -92,18 +91,8 @@ namespace GlazeWM.Domain.UserConfigs
         "ignore" => subjectContainer is Window
           ? new IgnoreWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "binding" => ParseBindingCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandString)),
-      };
-    }
-
-    private static Command ParseActivateCommand(string[] commandParts)
-    {
-      return commandParts[1] switch
-      {
-        // TODO: Validate mode name (similar to handling of workspace name).
-        // TODO: Alternate namings: "binding mode resize" + "binding mode none". SetBindingModeCommand.
-        "mode" => new ActivateBindingModeCommand(commandParts[3]),
-        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -243,6 +232,16 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "wm" => new ExitApplicationCommand(false),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private static Command ParseBindingCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        // TODO: Validate mode name (similar to handling of workspace name).
+        "mode" => new SetBindingModeCommand(commandParts[2]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
