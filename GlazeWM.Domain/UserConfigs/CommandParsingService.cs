@@ -236,12 +236,12 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private static Command ParseBindingCommand(string[] commandParts)
+    private Command ParseBindingCommand(string[] commandParts)
     {
       return commandParts[1] switch
       {
-        // TODO: Validate mode name (similar to handling of workspace name).
-        "mode" => new SetBindingModeCommand(commandParts[2]),
+        "mode" when IsValidBindingMode(commandParts[2]) =>
+          new SetBindingModeCommand(commandParts[2]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -269,6 +269,13 @@ namespace GlazeWM.Domain.UserConfigs
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;
+    }
+
+    private bool IsValidBindingMode(string bindingModeName)
+    {
+      var bindingMode = _userConfigService.GetBindingModeByName(bindingModeName);
+
+      return bindingMode is not null || bindingModeName == "none";
     }
 
     public static string ExtractProcessName(string processNameAndArgs)
