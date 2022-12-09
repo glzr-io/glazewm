@@ -84,6 +84,7 @@ namespace GlazeWM.Domain.UserConfigs
           ? new CloseWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
         "reload" => ParseReloadCommand(commandParts),
+        "activate" => ParseActivateCommand(commandParts),
         "exec" => new ExecProcessCommand(
           ExtractProcessName(string.Join(" ", commandParts[1..])),
           ExtractProcessArgs(string.Join(" ", commandParts[1..]))
@@ -92,6 +93,17 @@ namespace GlazeWM.Domain.UserConfigs
           ? new IgnoreWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandString)),
+      };
+    }
+
+    private static Command ParseActivateCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        // TODO: Validate mode name (similar to handling of workspace name).
+        // TODO: Alternate namings: "binding mode resize" + "binding mode none". SetBindingModeCommand.
+        "mode" => new ActivateBindingModeCommand(commandParts[3]),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -127,7 +139,7 @@ namespace GlazeWM.Domain.UserConfigs
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
         // errors already checked at the previous level parsing
-        _  => new FocusWorkspaceCommand(commandParts[2]),
+        _ => new FocusWorkspaceCommand(commandParts[2]),
       };
     }
 
@@ -245,7 +257,7 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Whether a workspace exists with the given name 
+    /// Whether a workspace exists with the given name
     /// or workspace name is part of focus workspace command.
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
