@@ -82,7 +82,8 @@ keybindings:
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
-  # Activate binding mode with the name "resize".
+  # Activate binding mode defined above with the name "resize". This enables resizing the
+  # focused window via HJKL or arrow keys.
   - command: "binding mode resize"
     binding: "Alt+R"
 
