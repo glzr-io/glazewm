@@ -57,15 +57,11 @@ binding_modes:
         bindings: ["K", "Up"]
       - command: "resize height -2%"
         bindings: ["J", "Down"]
-      # Exit the binding mode and return to default keybindings.
+      # Press enter/escape to return to default keybindings.
       - command: "binding mode none"
-        binding: "Escape"
+        bindings: ["Escape", "Enter"]
 
 keybindings:
-  # Activate binding mode with the name "resize".
-  - command: "binding mode resize"
-    binding: "Alt+R"
-
   # Shift focus in a given direction.
   - command: "focus left"
     bindings: ["Alt+H", "Alt+Left"]
@@ -85,6 +81,10 @@ keybindings:
     bindings: ["Alt+Shift+K", "Alt+Shift+Up"]
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
+
+  # Activate binding mode with the name "resize".
+  - command: "binding mode resize"
+    binding: "Alt+R"
 
   # Change layout direction to be either horizontal or vertical.
   - command: "layout horizontal"
