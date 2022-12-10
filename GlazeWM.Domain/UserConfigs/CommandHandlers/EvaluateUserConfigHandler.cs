@@ -137,24 +137,20 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             throw new FatalUserException(
               "Property 'binding' or 'bindings' is required in keybinding config."
             );
-          else
+
+          // Checking that all keyboard shortcuts specified in the config can be cast to Keys values
+          foreach (var keybinding in keybindingConfig.BindingList)
           {
-            // Checking that all keyboard shortcuts specified in the config can be cast to Keys values
-            foreach (var keybinding in keybindingConfig.BindingList)
+            foreach (var keybindingPart in KeybindingHelper.GetFormattedKeybingingsParts(keybinding))
             {
-              var keybindingsParts = KeybindingHelper.GetFormattedKeybingingsParts(keybinding);
-              
-              foreach (var keybindingPart in keybindingsParts)
+              try
               {
-                try
-                {
-                  var key = Enum.Parse(typeof(Keys), keybindingPart);
-                }
-                catch (ArgumentException)
-                {
-                  throw new FatalUserException(
-                    $"Unsuccessful bindings '{keybinding}' in keybinding config: unknown key '{keybindingPart}'");
-                }
+                var key = Enum.Parse(typeof(Keys), keybindingPart);
+              }
+              catch (ArgumentException)
+              {
+                throw new FatalUserException(
+                  $"Unsuccessful bindings '{keybinding}' in keybinding config: unknown key '{keybindingPart}'");
               }
             }
           }

@@ -13,7 +13,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
     private readonly MonitorService _monitorService;
     private readonly WorkspaceService _workspaceService;
 
-    public MoveWorkspaceInDirectionHandler (
+    public MoveWorkspaceInDirectionHandler(
       Bus bus,
       MonitorService monitorService,
       WorkspaceService workspaceService)
@@ -23,7 +23,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _workspaceService = workspaceService;
     }
 
-    public CommandResponse Handle (MoveWorkspaceInDirectionCommand command)
+    public CommandResponse Handle(MoveWorkspaceInDirectionCommand command)
     {
       // Get focused workspace
       var workspace = _workspaceService.GetFocusedWorkspace();
@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
         _bus.Invoke(new RedrawContainersCommand());
       }
-            
+
       return CommandResponse.Ok;
     }
   }

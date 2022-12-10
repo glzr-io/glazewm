@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Ignore events where the window isn't managed or is actually supposed to be hidden. Since
       // window events are processed in a sequence, also handle case where the window is not
       // actually hidden anymore when the event is processed.
-      if (window is null || !window.IsDisplayed || WindowService.IsHandleVisible(window.Handle))
+      if (window?.IsDisplayed != true || WindowService.IsHandleVisible(window.Handle))
         return;
 
       _logger.LogWindowEvent("Window hidden", window);

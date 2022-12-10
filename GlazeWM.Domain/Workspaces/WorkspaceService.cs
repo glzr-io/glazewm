@@ -55,10 +55,7 @@ namespace GlazeWM.Domain.Workspaces
       var unreservedWorkspaceConfig = inactiveWorkspaceConfigs
         .FirstOrDefault(config => string.IsNullOrWhiteSpace(config.BindToMonitor));
 
-      if (unreservedWorkspaceConfig is not null)
-        return unreservedWorkspaceConfig;
-
-      return inactiveWorkspaceConfigs.ElementAtOrDefault(0);
+      return unreservedWorkspaceConfig ?? inactiveWorkspaceConfigs.ElementAtOrDefault(0);
     }
 
     public static Workspace GetWorkspaceFromChildContainer(Container container)

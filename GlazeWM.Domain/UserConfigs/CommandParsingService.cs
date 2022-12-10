@@ -120,7 +120,7 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
-    private Command ParseFocusWorkspaceCommand(string[] commandParts)
+    private static Command ParseFocusWorkspaceCommand(string[] commandParts)
     {
       return commandParts[2] switch
       {
@@ -151,12 +151,12 @@ namespace GlazeWM.Domain.UserConfigs
         "to" when IsValidWorkspace(commandParts[3]) => subjectContainer is Window
           ? new MoveWindowToWorkspaceCommand(subjectContainer as Window, commandParts[3])
           : new NoopCommand(),
-        "workspace" => ParseMoveWorkspaceCommand(commandParts, subjectContainer),
+        "workspace" => ParseMoveWorkspaceCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private Command ParseMoveWorkspaceCommand(string[] commandParts, Container subjectContainer)
+    private static Command ParseMoveWorkspaceCommand(string[] commandParts)
     {
       return commandParts[2] switch
       {
