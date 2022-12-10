@@ -23,23 +23,22 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public CommandResponse Handle(FocusWorkspaceRecentCommand command)
     {
-      var recentWorkspace = _workspaceService.PopRecentWorkspace();
+      var mostRecentWorkspace = _workspaceService.MostRecentWorkspace;
+      var currentWorkspace = _workspaceService.GetFocusedWorkspace();
       var workspaceConfigs = _userConfigService.WorkspaceConfigs;
 
-      while (recentWorkspace != null)
+      if (mostRecentWorkspace != null)
       {
         // Validate that workspace are still available
-        if (workspaceConfigs.Any(workspace => workspace.Name == recentWorkspace.Name))
+        if (workspaceConfigs.Any(workspace => workspace.Name == mostRecentWorkspace.Name))
         {
           // Focus workspace
-          _bus.Invoke(new FocusWorkspaceCommand(recentWorkspace.Name));
-          // Remove last entry so as not to get stuck 
-          _workspaceService.PopRecentWorkspace();
+          _bus.Invoke(new FocusWorkspaceCommand(mostRecentWorkspace.Name));
+          // Update most recent workspace
+          _workspaceService.MostRecentWorkspace = currentWorkspace;
 
           return CommandResponse.Ok;
         }
-
-        recentWorkspace = _workspaceService.PopRecentWorkspace();
       }
 
       return CommandResponse.Fail;
