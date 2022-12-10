@@ -19,6 +19,7 @@ namespace GlazeWM.Domain.UserConfigs
     public List<WorkspaceConfig> WorkspaceConfigs => UserConfig.Workspaces;
     public List<WindowRuleConfig> WindowRules => UserConfig.WindowRules;
     public List<KeybindingConfig> Keybindings => UserConfig.Keybindings;
+    public List<BindingMode> BindingModes => UserConfig.BindingModes;
 
     /// <summary>
     /// Path to the user's config file.
@@ -85,14 +86,21 @@ namespace GlazeWM.Domain.UserConfigs
 
     public WorkspaceConfig GetWorkspaceConfigByName(string workspaceName)
     {
-      return UserConfig.Workspaces.Find(
+      return WorkspaceConfigs.Find(
         (workspaceConfig) => workspaceConfig.Name == workspaceName
+      );
+    }
+
+    public BindingMode GetBindingModeByName(string bindingModeName)
+    {
+      return BindingModes.Find(
+        (bindingMode) => bindingMode.Name == bindingModeName
       );
     }
 
     public List<WindowRuleConfig> GetMatchingWindowRules(Window window)
     {
-      return UserConfig.WindowRules.Where(rule =>
+      return WindowRules.Where(rule =>
       {
         return rule.ProcessNameRegex?.IsMatch(window.ProcessName) != false &&
           rule.ClassNameRegex?.IsMatch(window.ClassName) != false &&

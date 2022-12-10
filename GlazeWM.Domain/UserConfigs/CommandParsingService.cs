@@ -91,6 +91,7 @@ namespace GlazeWM.Domain.UserConfigs
         "ignore" => subjectContainer is Window
           ? new IgnoreWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "binding" => ParseBindingCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandString)),
       };
     }
@@ -127,7 +128,7 @@ namespace GlazeWM.Domain.UserConfigs
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
         // errors already checked at the previous level parsing
-        _  => new FocusWorkspaceCommand(commandParts[2]),
+        _ => new FocusWorkspaceCommand(commandParts[2]),
       };
     }
 
@@ -235,6 +236,16 @@ namespace GlazeWM.Domain.UserConfigs
       };
     }
 
+    private Command ParseBindingCommand(string[] commandParts)
+    {
+      return commandParts[1] switch
+      {
+        "mode" when IsValidBindingMode(commandParts[2]) =>
+          new SetBindingModeCommand(commandParts[2]),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
     private static Command ParseReloadCommand(string[] commandParts)
     {
       return commandParts[1] switch
@@ -245,7 +256,7 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Whether a workspace exists with the given name 
+    /// Whether a workspace exists with the given name
     /// or workspace name is part of focus workspace command.
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
@@ -258,6 +269,13 @@ namespace GlazeWM.Domain.UserConfigs
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;
+    }
+
+    private bool IsValidBindingMode(string bindingModeName)
+    {
+      var bindingMode = _userConfigService.GetBindingModeByName(bindingModeName);
+
+      return bindingMode is not null || bindingModeName == "none";
     }
 
     public static string ExtractProcessName(string processNameAndArgs)

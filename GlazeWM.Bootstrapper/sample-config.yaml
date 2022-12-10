@@ -45,6 +45,22 @@ window_rules:
   - command: "resize borders 0px -7px -7px -7px"
     match_process_name: "steam"
 
+binding_modes:
+  - name: "resize"
+    keybindings:
+      # Resize focused window by a percentage or pixel amount.
+      - command: "resize width -2%"
+        bindings: ["H", "Left"]
+      - command: "resize width +2%"
+        bindings: ["L", "Right"]
+      - command: "resize height +2%"
+        bindings: ["K", "Up"]
+      - command: "resize height -2%"
+        bindings: ["J", "Down"]
+      # Press enter/escape to return to default keybindings.
+      - command: "binding mode none"
+        bindings: ["Escape", "Enter"]
+
 keybindings:
   # Shift focus in a given direction.
   - command: "focus left"
@@ -66,15 +82,10 @@ keybindings:
   - command: "move down"
     bindings: ["Alt+Shift+J", "Alt+Shift+Down"]
 
-  # Resize focused window by a percentage or pixel amount.
-  - command: "resize width -2%"
-    binding: "Alt+U"
-  - command: "resize width +2%"
-    binding: "Alt+P"
-  - command: "resize height +2%"
-    binding: "Alt+O"
-  - command: "resize height -2%"
-    binding: "Alt+I"
+  # Activate binding mode defined above with the name "resize". This enables resizing the
+  # focused window via HJKL or arrow keys.
+  - command: "binding mode resize"
+    binding: "Alt+R"
 
   # Change layout direction to be either horizontal or vertical.
   - command: "layout horizontal"

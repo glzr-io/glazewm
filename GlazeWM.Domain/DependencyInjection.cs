@@ -36,6 +36,7 @@ namespace GlazeWM.Domain
 
       services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
       services.AddSingleton<ICommandHandler<ExecProcessCommand>, ExecProcessHandler>();
+      services.AddSingleton<ICommandHandler<SetBindingModeCommand>, SetBindingModeHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
