@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Enums;
-using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -114,21 +113,20 @@ namespace GlazeWM.Domain.UserConfigs
         "right" => new FocusInDirectionCommand(Direction.RIGHT),
         "up" => new FocusInDirectionCommand(Direction.UP),
         "down" => new FocusInDirectionCommand(Direction.DOWN),
-        "workspace" when IsValidWorkspace(commandParts[2]) =>
-          ParseFocusWorkspaceCommand(commandParts),
+        "workspace" => ParseFocusWorkspaceCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
-    private static Command ParseFocusWorkspaceCommand(string[] commandParts)
+    private Command ParseFocusWorkspaceCommand(string[] commandParts)
     {
       return commandParts[2] switch
       {
         "recent" => new FocusWorkspaceRecentCommand(),
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
-        // errors already checked at the previous level parsing
-        _ => new FocusWorkspaceCommand(commandParts[2]),
+        _ when IsValidWorkspace(commandParts[2]) => new FocusWorkspaceCommand(commandParts[2]),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 
@@ -256,21 +254,18 @@ namespace GlazeWM.Domain.UserConfigs
     }
 
     /// <summary>
-    /// Whether a workspace exists with the given name
-    /// or workspace name is part of focus workspace command.
+    /// Whether a workspace exists with the given name.
     /// </summary>
     private bool IsValidWorkspace(string workspaceName)
     {
-      if (Keywords.WorkspaceKeyswords.Contains(workspaceName))
-      {
-        return true;
-      }
-
       var workspaceConfig = _userConfigService.GetWorkspaceConfigByName(workspaceName);
 
       return workspaceConfig is not null;
     }
 
+    /// <summary>
+    /// Whether a binding mode exists with the given name.
+    /// </summary>
     private bool IsValidBindingMode(string bindingModeName)
     {
       var bindingMode = _userConfigService.GetBindingModeByName(bindingModeName);
