@@ -7,12 +7,12 @@ namespace GlazeWM.Infrastructure.Utils
 {
   public static class KeybindingHelper
   {
-    public static List<Keys> TryGetKeys(string keybindingString)
+    public static List<Keys> ParseKeybindingString(string keybindingString)
     {
       return keybindingString
         .Split('+')
         .Select(keyString => FormatKeyString(keyString))
-        .Select(keyString => TryParseKeyString(keyString))
+        .Select(keyString => ParseKeyString(keyString))
         .ToList();
     }
 
@@ -23,7 +23,7 @@ namespace GlazeWM.Infrastructure.Utils
       return isNumeric ? $"D{keyString}" : keyString;
     }
 
-    private static Keys TryParseKeyString(string keyString)
+    private static Keys ParseKeyString(string keyString)
     {
       try
       {

@@ -154,7 +154,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           {
             try
             {
-              var _ = KeybindingHelper.TryGetKeys(keybinding);
+              var _ = KeybindingHelper.ParseKeybindingString(keybinding);
             }
             catch (ArgumentException exception)
             {
