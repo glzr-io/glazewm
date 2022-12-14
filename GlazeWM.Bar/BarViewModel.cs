@@ -19,12 +19,12 @@ namespace GlazeWM.Bar
     private BarConfig _barConfig => _userConfigService.BarConfig;
 
     public BarPosition Position => _barConfig.Position;
-    public string Background => _barConfig.Background;
-    public string Foreground => _barConfig.Foreground;
+    public string Background => XamlHelper.FormatXamlColor(_barConfig.Background);
+    public string Foreground => XamlHelper.FormatXamlColor(_barConfig.Foreground);
     public string FontFamily => _barConfig.FontFamily;
     public string FontWeight => _barConfig.FontWeight;
     public string FontSize => _barConfig.FontSize;
-    public string BorderColor => _barConfig.BorderColor;
+    public string BorderColor => XamlHelper.FormatXamlColor(_barConfig.BorderColor);
     public string BorderWidth => XamlHelper.ShorthandToXamlProperty(_barConfig.BorderWidth);
     public string Padding => XamlHelper.ShorthandToXamlProperty(_barConfig.Padding);
     public double Opacity => _barConfig.Opacity;
