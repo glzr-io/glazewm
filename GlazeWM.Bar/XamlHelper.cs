@@ -5,12 +5,11 @@ namespace GlazeWM.Bar
   public static class XamlHelper
   {
     /// <summary>
-    /// Convert color properties from user config (ie. `Background`, `Foreground`) to be
-    /// XAML compatible. Colors in the user config are specified in RGBA, whereas XAML
-    /// expects ARGB.
+    /// Convert color properties from user config (eg. `Background`) to be XAML
+    /// compatible. Colors in the user config are specified in RGBA, whereas XAML expects
+    /// ARGB.
     /// </summary>
-    // TODO: Consider naming `ColorToXaml`.
-    public static string FormatXamlColor(string color)
+    public static string FormatColor(string color)
     {
       var isHexColor = color.StartsWith("#");
 
@@ -24,13 +23,13 @@ namespace GlazeWM.Bar
     }
 
     /// <summary>
-    /// Convert shorthand properties from user config (ie. `Padding`, `Margin`, and `BorderWidth`)
-    /// to be compatible with their equivalent XAML properties (ie. `Padding`, `Margin`, and
-    /// `BorderThickness`). Shorthand properties follow the 1-to-4 value syntax used in CSS.
+    /// Convert shorthand properties from user config (ie. `Padding`, `Margin`, and
+    /// `BorderWidth`) to be compatible with their equivalent XAML properties (ie.
+    /// `Padding`, `Margin`, and `BorderThickness`). Shorthand properties follow the
+    /// 1-to-4 value syntax used in CSS.
     /// </summary>
     /// <exception cref="ArgumentException"></exception>
-    // TODO: Consider naming `RectShorthandToXaml`.
-    public static string ShorthandToXamlProperty(string shorthand)
+    public static string FormatRectShorthand(string shorthand)
     {
       var shorthandParts = shorthand.Split(" ");
 

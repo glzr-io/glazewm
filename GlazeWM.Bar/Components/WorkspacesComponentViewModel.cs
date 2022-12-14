@@ -43,19 +43,19 @@ namespace GlazeWM.Bar.Components
     public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
     public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
     public string FocusedWorkspaceBorderWidth =>
-      XamlHelper.ShorthandToXamlProperty(_config.FocusedWorkspaceBorderWidth);
+      XamlHelper.FormatRectShorthand(_config.FocusedWorkspaceBorderWidth);
 
     public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
     public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground ?? Foreground;
     public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
     public string DisplayedWorkspaceBorderWidth =>
-      XamlHelper.ShorthandToXamlProperty(_config.DisplayedWorkspaceBorderWidth);
+      XamlHelper.FormatRectShorthand(_config.DisplayedWorkspaceBorderWidth);
 
     public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
     public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground ?? Foreground;
     public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
     public string DefaultWorkspaceBorderWidth =>
-      XamlHelper.ShorthandToXamlProperty(_config.DefaultWorkspaceBorderWidth);
+      XamlHelper.FormatRectShorthand(_config.DefaultWorkspaceBorderWidth);
 
     public ICommand FocusWorkspaceCommand => new RelayCommand<string>(FocusWorkspace);
 
