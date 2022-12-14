@@ -36,7 +36,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       foreach (var commandString in commandStrings)
       {
-        if (subjectWindow.IsDetached())
+        // Subject window might be null if "ignore" rule has run.
+        if (subjectWindow?.IsDetached() != false)
           return CommandResponse.Ok;
 
         var parsedCommand = _commandParsingService.ParseCommand(commandString, subjectWindow);
