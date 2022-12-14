@@ -7,18 +7,18 @@ namespace GlazeWM.Infrastructure.Utils
 {
   public static class KeybindingHelper
   {
-    public static IEnumerable<string> GetFormattedKeybingingsParts(string keybingingString)
+    public static IEnumerable<string> GetFormattedKeybindingParts(string keybindingString)
     {
-      return keybingingString
+      return keybindingString
         .Split('+')
         .Select(key => FormatKeybinding(key));
     }
 
     public static IEnumerable<Keys> GetKeys(string keybindingString)
     {
-      var keybingingParts = GetFormattedKeybingingsParts(keybindingString);
+      var keybindingParts = GetFormattedKeybindingParts(keybindingString);
 
-      return keybingingParts
+      return keybindingParts
         .Select(key => Enum.Parse(typeof(Keys), key))
         .Cast<Keys>();
     }
