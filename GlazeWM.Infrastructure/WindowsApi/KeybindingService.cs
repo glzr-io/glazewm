@@ -63,10 +63,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void AddGlobalKeybinding(string keybindingString, Action callback)
     {
-      var keybindingParts = KeybindingHelper.GetKeys(keybindingString).ToList();
+      var keybindingKeys = KeybindingHelper.TryGetKeys(keybindingString);
 
-      var triggerKey = keybindingParts.Last();
-      var keybinding = new Keybinding(keybindingParts, callback);
+      var triggerKey = keybindingKeys.Last();
+      var keybinding = new Keybinding(keybindingKeys, callback);
 
       if (_keybindingsByTriggerKey.ContainsKey(triggerKey))
       {

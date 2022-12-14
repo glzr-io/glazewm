@@ -1,6 +1,8 @@
 ﻿namespace GlazeWM.Domain.Common.Enums
 {
-  // Used to select the direction when switching the previous/next workspace
+  /// <summary>
+  /// Used to represent a given order (eg. previous/next workspace).
+  /// </summary>
   public enum Sequence
   {
     PREVIOUS,

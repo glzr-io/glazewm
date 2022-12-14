@@ -1,39 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GlazeWM.Infrastructure.Utils
 {
   public static class KeybindingHelper
   {
-    public static IEnumerable<string> GetFormattedKeybingingsParts (string keybingingString)
+    public static List<Keys> TryGetKeys(string keybindingString)
     {
-      var keybindingParts = keybingingString
-      .Split('+')
-      .Select(key => FormatKeybinding(key));
-
-      return keybindingParts;
+      return keybindingString
+        .Split('+')
+        .Select(keyString => FormatKeyString(keyString))
+        .Select(keyString => TryParseKeyString(keyString))
+        .ToList();
     }
 
-    public static IEnumerable<Keys> GetKeys (string keybindingString)
+    private static string FormatKeyString(string keyString)
     {
-      var keybingingParts = GetFormattedKeybingingsParts(keybindingString);
+      var isNumeric = int.TryParse(keyString, out var _);
 
-      var keys = keybingingParts
-        .Select(key => Enum.Parse(typeof(Keys), key))
-        .Cast<Keys>();
-
-      return keys;
+      return isNumeric ? $"D{keyString}" : keyString;
     }
 
-    private static string FormatKeybinding (string key)
+    private static Keys TryParseKeyString(string keyString)
     {
-      var isNumeric = int.TryParse(key, out var _);
-
-      return isNumeric ? $"D{key}" : key;
+      try
+      {
+        return Enum.Parse<Keys>(keyString);
+      }
+      catch (ArgumentException)
+      {
+        throw new ArgumentException($"Unknown key '{keyString}'");
+      }
     }
   }
 }

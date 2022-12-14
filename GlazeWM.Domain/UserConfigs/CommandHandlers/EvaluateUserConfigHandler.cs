@@ -1,5 +1,4 @@
-﻿using GlazeWM.Domain.Common.Utils;
-using GlazeWM.Domain.UserConfigs.Commands;
+﻿using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Serialization;
@@ -21,6 +20,16 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private readonly UserConfigService _userConfigService;
     private readonly YamlService _yamlService;
     private readonly CommandParsingService _commandParsingService;
+
+    /// <summary>
+    /// Keywords that cannot be used as workspace names.
+    /// </summary>
+    private static readonly HashSet<string> RESERVED_WORKSPACE_NAMES = new()
+    {
+      "prev",
+      "next",
+      "recent"
+    };
 
     public EvaluateUserConfigHandler(
       Bus bus,
@@ -114,8 +123,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           if (workspaceConfig.Name is null)
             throw new FatalUserException("Property 'name' is required in workspace config.");
 
-          if (Keywords.WorkspaceKeyswords.Contains(workspaceConfig.Name))
-            throw new FatalUserException($"Can not use keyword '{workspaceConfig.Name}' as workspace name");
+          if (RESERVED_WORKSPACE_NAMES.Contains(workspaceConfig.Name))
+            throw new FatalUserException(
+              $"Cannot use keyword '{workspaceConfig.Name}' as workspace name."
+            );
         }
 
         var componentConfigs = deserializedConfig.Bar.ComponentsLeft
@@ -137,25 +148,19 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             throw new FatalUserException(
               "Property 'binding' or 'bindings' is required in keybinding config."
             );
-          else
+
+          // Check that all keybindings in the config can be cast to `Keys` enum.
+          foreach (var keybinding in keybindingConfig.BindingList)
           {
-            // Checking that all keyboard shortcuts specified in the config can be cast to Keys values
-            foreach (var keybinding in keybindingConfig.BindingList)
+            try
             {
-              var keybindingsParts = KeybindingHelper.GetFormattedKeybingingsParts(keybinding);
-              
-              foreach (var keybindingPart in keybindingsParts)
-              {
-                try
-                {
-                  var key = Enum.Parse(typeof(Keys), keybindingPart);
-                }
-                catch (ArgumentException)
-                {
-                  throw new FatalUserException(
-                    $"Unsuccessful bindings '{keybinding}' in keybinding config: unknown key '{keybindingPart}'");
-                }
-              }
+              var _ = KeybindingHelper.TryGetKeys(keybinding);
+            }
+            catch (ArgumentException exception)
+            {
+              throw new FatalUserException(
+                $"Invalid binding '{keybinding}' in keybinding config: {exception.Message}"
+              );
             }
           }
 
