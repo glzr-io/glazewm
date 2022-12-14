@@ -7,27 +7,32 @@ namespace GlazeWM.Infrastructure.Utils
 {
   public static class KeybindingHelper
   {
-    public static IEnumerable<string> GetFormattedKeybindingParts(string keybindingString)
+    public static List<Keys> TryGetKeys(string keybindingString)
     {
       return keybindingString
         .Split('+')
-        .Select(key => FormatKeybinding(key));
+        .Select(keyString => FormatKeyString(keyString))
+        .Select(keyString => TryParseKeyString(keyString))
+        .ToList();
     }
 
-    public static IEnumerable<Keys> GetKeys(string keybindingString)
+    private static string FormatKeyString(string keyString)
     {
-      var keybindingParts = GetFormattedKeybindingParts(keybindingString);
+      var isNumeric = int.TryParse(keyString, out var _);
 
-      return keybindingParts
-        .Select(key => Enum.Parse(typeof(Keys), key))
-        .Cast<Keys>();
+      return isNumeric ? $"D{keyString}" : keyString;
     }
 
-    private static string FormatKeybinding(string key)
+    private static Keys TryParseKeyString(string keyString)
     {
-      var isNumeric = int.TryParse(key, out var _);
-
-      return isNumeric ? $"D{key}" : key;
+      try
+      {
+        return Enum.Parse<Keys>(keyString);
+      }
+      catch (ArgumentException)
+      {
+        throw new ArgumentException($"Unknown key '{keyString}'");
+      }
     }
   }
 }
