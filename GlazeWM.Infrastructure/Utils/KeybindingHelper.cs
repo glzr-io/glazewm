@@ -1,35 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GlazeWM.Infrastructure.Utils
 {
   public static class KeybindingHelper
   {
-    public static IEnumerable<string> GetFormattedKeybingingsParts (string keybingingString)
+    public static IEnumerable<string> GetFormattedKeybingingsParts(string keybingingString)
     {
-      var keybindingParts = keybingingString
-      .Split('+')
-      .Select(key => FormatKeybinding(key));
-
-      return keybindingParts;
+      return keybingingString
+        .Split('+')
+        .Select(key => FormatKeybinding(key));
     }
 
-    public static IEnumerable<Keys> GetKeys (string keybindingString)
+    public static IEnumerable<Keys> GetKeys(string keybindingString)
     {
       var keybingingParts = GetFormattedKeybingingsParts(keybindingString);
 
-      var keys = keybingingParts
+      return keybingingParts
         .Select(key => Enum.Parse(typeof(Keys), key))
         .Cast<Keys>();
-
-      return keys;
     }
 
-    private static string FormatKeybinding (string key)
+    private static string FormatKeybinding(string key)
     {
       var isNumeric = int.TryParse(key, out var _);
 
