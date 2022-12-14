@@ -114,7 +114,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           if (workspaceConfig.Name is null)
             throw new FatalUserException("Property 'name' is required in workspace config.");
 
-          if (Keywords.WorkspaceKeyswords.Contains(workspaceConfig.Name))
+          if (ReservedKeywords.WorkspaceNames.Contains(workspaceConfig.Name))
             throw new FatalUserException($"Can not use keyword '{workspaceConfig.Name}' as workspace name");
         }
 
