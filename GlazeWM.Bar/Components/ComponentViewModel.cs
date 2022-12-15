@@ -3,11 +3,12 @@ using GlazeWM.Domain.UserConfigs;
 
 namespace GlazeWM.Bar.Components
 {
-  public class ComponentViewModel : ViewModelBase
+  public abstract class ComponentViewModel : ViewModelBase
   {
     protected readonly BarViewModel _parentViewModel;
     protected readonly BarComponentConfig _componentConfig;
 
+    public virtual string Visibility { get; set; } = "Visible";
     public string Background => XamlHelper.FormatColor(_componentConfig.Background);
     public string Foreground =>
       XamlHelper.FormatColor(_componentConfig.Foreground ?? _parentViewModel.Foreground);
@@ -22,7 +23,7 @@ namespace GlazeWM.Bar.Components
     public string Padding => XamlHelper.FormatRectShorthand(_componentConfig.Padding);
     public string Margin => XamlHelper.FormatRectShorthand(_componentConfig.Margin);
 
-    public ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig baseConfig)
+    protected ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig baseConfig)
     {
       _parentViewModel = parentViewModel;
       _componentConfig = baseConfig;

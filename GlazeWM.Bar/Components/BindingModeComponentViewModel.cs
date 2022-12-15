@@ -21,12 +21,22 @@ namespace GlazeWM.Bar.Components
     /// </summary>
     public string ActiveBindingMode => _containerService.ActiveBindingMode;
 
+    /// <summary>
+    /// Hide component when no binding mode is active.
+    /// </summary>
+    public override string Visibility =>
+      ActiveBindingMode is null ? "Collapsed" : "Visible";
+
     public BindingModeComponentViewModel(
       BarViewModel parentViewModel,
       BindingModeComponentConfig config) : base(parentViewModel, config)
     {
       _bus.Events.OfType<BindingModeChangedEvent>().Subscribe(_ =>
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(ActiveBindingMode)))
+        _dispatcher.Invoke(() =>
+        {
+          OnPropertyChanged(nameof(Visibility));
+          OnPropertyChanged(nameof(ActiveBindingMode));
+        })
       );
     }
   }
