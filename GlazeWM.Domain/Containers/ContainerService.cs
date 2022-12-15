@@ -33,6 +33,11 @@ namespace GlazeWM.Domain.Containers
     public FocusMode FocusMode => FocusedContainer is FloatingWindow ?
       FocusMode.FLOATING : FocusMode.TILING;
 
+    /// <summary>
+    /// Name of the currently active binding mode (if one is active).
+    /// </summary>
+    public string ActiveBindingMode = null;
+
     private readonly UserConfigService _userConfigService;
 
     public ContainerService(UserConfigService userConfigService)
