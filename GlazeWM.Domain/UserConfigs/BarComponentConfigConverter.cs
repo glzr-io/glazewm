@@ -18,8 +18,8 @@ namespace GlazeWM.Domain.UserConfigs
 
       return typeDiscriminator switch
       {
-        "workspaces" =>
-          JsonSerializer.Deserialize<WorkspacesComponentConfig>(
+        "binding mode" =>
+          JsonSerializer.Deserialize<BindingModeComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
@@ -30,6 +30,11 @@ namespace GlazeWM.Domain.UserConfigs
           ),
         "text" =>
           JsonSerializer.Deserialize<TextComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "workspaces" =>
+          JsonSerializer.Deserialize<WorkspacesComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

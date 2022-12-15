@@ -15,14 +15,17 @@
       <Grid Margin="{Binding Padding}">
         <ContentPresenter Content="{Binding .}">
           <ContentPresenter.Resources>
-            <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
-              <components:WorkspacesComponent />
+            <DataTemplate DataType="{x:Type components:BindingModeComponentViewModel}">
+              <components:BindingModeComponent />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
               <components:ClockComponent />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
               <components:TextComponent />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
+              <components:WorkspacesComponent />
             </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
