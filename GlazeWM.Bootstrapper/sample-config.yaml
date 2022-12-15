@@ -17,6 +17,10 @@ bar:
       displayed_workspace_background: "#42403e"
       default_workspace_background: "#101010"
   components_right:
+    - type: "binding mode"
+      background: "#ffffff33"
+      margin: "5 5 5 0"
+      padding: "0 5"
     - type: "clock"
       time_formatting: "hh:mm tt  ddd MMM d"
 
