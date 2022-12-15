@@ -12,5 +12,5 @@
     FontFamily="{Binding FontFamily}"
     FontWeight="{Binding FontWeight}"
     FontSize="{Binding FontSize}"
-    Text="none" />
+    Text="{Binding ActiveBindingMode}" />
 </UserControl>
