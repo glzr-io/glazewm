@@ -5,6 +5,7 @@ namespace GlazeWM.Domain.Workspaces.Commands
 {
   internal class MoveWorkspaceInDirectionCommand : Command
   {
+    // TODO: Add argument for workspace to move instead of assuming the focused workspace.
     public Direction Direction { get; }
 
     public MoveWorkspaceInDirectionCommand(Direction direction)
