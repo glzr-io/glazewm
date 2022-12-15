@@ -4,6 +4,7 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -46,7 +47,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         new MoveContainerWithinTreeCommand(focusedWorkspace, targetMonitor, false)
       );
 
-      // Update floating placement since the window has to cross monitors.
+      // Update floating placement since the windows have to cross monitors.
       foreach (var window in focusedWorkspace.Descendants.OfType<Window>())
       {
         window.FloatingPlacement = window.FloatingPlacement.TranslateToCenter(
@@ -54,9 +55,26 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         );
       }
 
+      // Prevent original monitor from having no workspaces.
+      if (focusedMonitor.Children.Count == 0)
+        ActivateWorkspaceOnMonitor(focusedMonitor);
+
       _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
+    }
+
+    private void ActivateWorkspaceOnMonitor(Monitor monitor)
+    {
+      // Get name of first workspace that is not active for that specified monitor or any.
+      var inactiveWorkspaceConfig =
+        _workspaceService.GetWorkspaceConfigToActivate(monitor);
+
+      if (inactiveWorkspaceConfig is null)
+        throw new FatalUserException("At least 1 workspace is required per monitor.");
+
+      // Assign the workspace to the empty monitor.
+      _bus.Invoke(new ActivateWorkspaceCommand(inactiveWorkspaceConfig.Name, monitor));
     }
   }
 }
