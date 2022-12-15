@@ -60,7 +60,7 @@ namespace GlazeWM.Bar.Components
       XamlHelper.FormatRectShorthand(_config.DisplayedWorkspaceBorderWidth);
 
     public string DefaultWorkspaceBackground =>
-      XamlHelper.FormatColor(_config.DefaultWorkspaceBackground ?? Background);
+      XamlHelper.FormatColor(_config.DefaultWorkspaceBackground);
     public string DefaultWorkspaceForeground =>
       XamlHelper.FormatColor(_config.DefaultWorkspaceForeground ?? Foreground);
     public string DefaultWorkspaceBorderColor =>

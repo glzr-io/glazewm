@@ -24,9 +24,10 @@ namespace GlazeWM.Domain.UserConfigs
     public string DefaultWorkspaceBorderColor { get; set; } = "blue";
 
     /// <summary>
-    /// Fallback to component background config if unset.
+    /// Use transparent as a default, since falling back to bar background config looks
+    /// weird with nested semi-transparent backgrounds.
     /// </summary>
-    public string DefaultWorkspaceBackground { get; set; }
+    public string DefaultWorkspaceBackground { get; set; } = "transparent";
 
     /// <summary>
     /// Fallback to component foreground config if unset.
