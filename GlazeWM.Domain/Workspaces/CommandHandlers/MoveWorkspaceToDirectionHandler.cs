@@ -7,7 +7,8 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class MoveWorkspaceInDirectionHandler : ICommandHandler<MoveWorkspaceInDirectionCommand>
+  internal class MoveWorkspaceInDirectionHandler :
+    ICommandHandler<MoveWorkspaceInDirectionCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
@@ -25,27 +26,35 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public CommandResponse Handle(MoveWorkspaceInDirectionCommand command)
     {
-      // Get focused workspace
-      var workspace = _workspaceService.GetFocusedWorkspace();
+      var direction = command.Direction;
 
-      // Get monitor to move focused workspace
-      var focusedMonitor = _monitorService.GetFocusedMonitor();
-      var targetMonitor = _monitorService.GetMonitorInDirection(command.Direction, focusedMonitor);
+      // Get focused workspace + monitor.
+      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
+      var focusedMonitor = MonitorService.GetMonitorFromChildContainer(focusedWorkspace);
 
-      if (targetMonitor != null && targetMonitor != focusedMonitor)
+      // Get monitor in the given direction from the focused workspace.
+      var targetMonitor = _monitorService.GetMonitorInDirection(
+        direction,
+        focusedMonitor
+      );
+
+      if (targetMonitor is null)
+        return CommandResponse.Ok;
+
+      // Move workspace to target monitor.
+      _bus.Invoke(
+        new MoveContainerWithinTreeCommand(focusedWorkspace, targetMonitor, false)
+      );
+
+      // Update floating placement since the window has to cross monitors.
+      foreach (var window in focusedWorkspace.Descendants.OfType<Window>())
       {
-        // Move workspace to target monitor.
-        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, shouldAdjustSize: false));
-
-        // Update floating placement since the window have to cross monitor
-        foreach (var window in workspace.Descendants.OfType<Window>())
-        {
-          window.FloatingPlacement =
-            window.FloatingPlacement.TranslateToCenter(targetMonitor.DisplayedWorkspace.ToRect());
-        }
-
-        _bus.Invoke(new RedrawContainersCommand());
+        window.FloatingPlacement = window.FloatingPlacement.TranslateToCenter(
+          targetMonitor.DisplayedWorkspace.ToRect()
+        );
       }
+
+      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
