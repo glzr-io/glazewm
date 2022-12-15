@@ -21,7 +21,8 @@ namespace GlazeWM.Bar.Components
   {
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private Monitor _monitor => _parentViewModel.Monitor;
-    private WorkspacesComponentConfig _config => _componentConfig as WorkspacesComponentConfig;
+    private WorkspacesComponentConfig _config =>
+      _componentConfig as WorkspacesComponentConfig;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly UserConfigService _userConfigService =
      ServiceLocator.GetRequiredService<UserConfigService>();
@@ -29,7 +30,8 @@ namespace GlazeWM.Bar.Components
     public ObservableCollection<Workspace> Workspaces => new(_orderedWorkspaces);
 
     /// <summary>
-    /// Get workspaces of the current monitor sorted in the order they appear in the user's config.
+    /// Get workspaces of the current monitor sorted in the order they appear in the
+    /// user's config.
     /// </summary>
     private IEnumerable<Workspace> _orderedWorkspaces => _monitor.Children
       .Cast<Workspace>()
@@ -39,21 +41,30 @@ namespace GlazeWM.Bar.Components
         )
       );
 
-    public string FocusedWorkspaceBackground => _config.FocusedWorkspaceBackground;
-    public string FocusedWorkspaceForeground => _config.FocusedWorkspaceForeground ?? Foreground;
-    public string FocusedWorkspaceBorderColor => _config.FocusedWorkspaceBorderColor;
+    public string FocusedWorkspaceBackground =>
+      XamlHelper.FormatColor(_config.FocusedWorkspaceBackground);
+    public string FocusedWorkspaceForeground =>
+      XamlHelper.FormatColor(_config.FocusedWorkspaceForeground ?? Foreground);
+    public string FocusedWorkspaceBorderColor =>
+      XamlHelper.FormatColor(_config.FocusedWorkspaceBorderColor);
     public string FocusedWorkspaceBorderWidth =>
       XamlHelper.FormatRectShorthand(_config.FocusedWorkspaceBorderWidth);
 
-    public string DisplayedWorkspaceBackground => _config.DisplayedWorkspaceBackground;
-    public string DisplayedWorkspaceForeground => _config.DisplayedWorkspaceForeground ?? Foreground;
-    public string DisplayedWorkspaceBorderColor => _config.DisplayedWorkspaceBorderColor;
+    public string DisplayedWorkspaceBackground =>
+      XamlHelper.FormatColor(_config.DisplayedWorkspaceBackground);
+    public string DisplayedWorkspaceForeground =>
+      XamlHelper.FormatColor(_config.DisplayedWorkspaceForeground ?? Foreground);
+    public string DisplayedWorkspaceBorderColor =>
+      XamlHelper.FormatColor(_config.DisplayedWorkspaceBorderColor);
     public string DisplayedWorkspaceBorderWidth =>
       XamlHelper.FormatRectShorthand(_config.DisplayedWorkspaceBorderWidth);
 
-    public string DefaultWorkspaceBackground => _config.DefaultWorkspaceBackground ?? Background;
-    public string DefaultWorkspaceForeground => _config.DefaultWorkspaceForeground ?? Foreground;
-    public string DefaultWorkspaceBorderColor => _config.DefaultWorkspaceBorderColor;
+    public string DefaultWorkspaceBackground =>
+      XamlHelper.FormatColor(_config.DefaultWorkspaceBackground ?? Background);
+    public string DefaultWorkspaceForeground =>
+      XamlHelper.FormatColor(_config.DefaultWorkspaceForeground ?? Foreground);
+    public string DefaultWorkspaceBorderColor =>
+      XamlHelper.FormatColor(_config.DefaultWorkspaceBorderColor);
     public string DefaultWorkspaceBorderWidth =>
       XamlHelper.FormatRectShorthand(_config.DefaultWorkspaceBorderWidth);
 
@@ -64,7 +75,9 @@ namespace GlazeWM.Bar.Components
       WorkspacesComponentConfig config) : base(parentViewModel, config)
     {
       var workspacesChangedEvent = _bus.Events.Where((@event) =>
-        @event is WorkspaceActivatedEvent or WorkspaceDeactivatedEvent or FocusChangedEvent
+        @event is WorkspaceActivatedEvent
+          or WorkspaceDeactivatedEvent
+          or FocusChangedEvent
       );
 
       // Refresh contents of workspaces collection.
