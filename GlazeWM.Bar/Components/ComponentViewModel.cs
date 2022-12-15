@@ -8,15 +8,19 @@ namespace GlazeWM.Bar.Components
     protected readonly BarViewModel _parentViewModel;
     protected readonly BarComponentConfig _componentConfig;
 
-    public string Background => _componentConfig.Background ?? _parentViewModel.Background;
-    public string Foreground => _componentConfig.Foreground ?? _parentViewModel.Foreground;
-    public string FontFamily => _componentConfig.FontFamily ?? _parentViewModel.FontFamily;
-    public string FontWeight => _componentConfig.FontWeight ?? _parentViewModel.FontWeight;
+    public string Background => XamlHelper.FormatColor(_componentConfig.Background);
+    public string Foreground =>
+      XamlHelper.FormatColor(_componentConfig.Foreground ?? _parentViewModel.Foreground);
+    public string FontFamily =>
+      _componentConfig.FontFamily ?? _parentViewModel.FontFamily;
+    public string FontWeight =>
+      _componentConfig.FontWeight ?? _parentViewModel.FontWeight;
     public string FontSize => _componentConfig.FontSize ?? _parentViewModel.FontSize;
-    public string BorderColor => _componentConfig.BorderColor;
-    public string BorderWidth => BarService.ShorthandToXamlProperty(_componentConfig.BorderWidth);
-    public string Padding => BarService.ShorthandToXamlProperty(_componentConfig.Padding);
-    public string Margin => BarService.ShorthandToXamlProperty(_componentConfig.Margin);
+    public string BorderColor => XamlHelper.FormatColor(_componentConfig.BorderColor);
+    public string BorderWidth =>
+      XamlHelper.FormatRectShorthand(_componentConfig.BorderWidth);
+    public string Padding => XamlHelper.FormatRectShorthand(_componentConfig.Padding);
+    public string Margin => XamlHelper.FormatRectShorthand(_componentConfig.Margin);
 
     public ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig baseConfig)
     {

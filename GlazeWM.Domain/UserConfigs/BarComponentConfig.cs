@@ -10,9 +10,10 @@ namespace GlazeWM.Domain.UserConfigs
     public string Margin { get; set; } = "0";
 
     /// <summary>
-    /// Fallback to bar background config if unset.
+    /// Background of the bar component. Use transparent as a default, since falling back
+    /// to bar background config looks weird with nested semi-transparent backgrounds.
     /// </summary>
-    public string Background { get; set; }
+    public string Background { get; set; } = "transparent";
 
     /// <summary>
     /// Fallback to bar foreground config if unset.
