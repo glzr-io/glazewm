@@ -6,27 +6,28 @@ bar:
   height: 30
   position: "top"
   opacity: 1.0
-  background: "#101010"
+  background: "#1f242c3b"
   foreground: "white"
   font_family: "Segoe UI"
   font_size: "13"
-  padding: "1 6 1 6"
+  padding: "4 6"
   components_left:
     - type: "workspaces"
-      focused_workspace_background: "#8192B3"
-      displayed_workspace_background: "#42403e"
-      default_workspace_background: "#101010"
+      focused_workspace_background: "#ffffff33"
+      displayed_workspace_background: "#00000033"
+      default_workspace_background: "transparent"
   components_right:
     - type: "tiling direction"
       background: "#ffffff33"
-      margin: "5 5 5 0"
-      padding: "0 5"
+      margin: "0 4"
+      padding: "0 8"
     - type: "binding mode"
       background: "#ffffff33"
-      margin: "5 5 5 0"
-      padding: "0 5"
+      margin: "0 4 0 0"
+      padding: "0 8"
     - type: "clock"
       time_formatting: "hh:mm tt  ddd MMM d"
+      margin: "0 0 0 10"
 
 workspaces:
   - name: 1
