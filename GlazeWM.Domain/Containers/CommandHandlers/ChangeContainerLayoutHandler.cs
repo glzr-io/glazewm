@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -27,6 +28,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         ChangeWindowLayout(container as Window, newLayout);
       else if (container is Workspace)
         ChangeWorkspaceLayout(container as Workspace, newLayout);
+
+      _bus.Emit(new LayoutChangedEvent(newLayout));
 
       return CommandResponse.Ok;
     }
