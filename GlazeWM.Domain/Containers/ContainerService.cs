@@ -34,9 +34,17 @@ namespace GlazeWM.Domain.Containers
       FocusMode.FLOATING : FocusMode.TILING;
 
     /// <summary>
+    /// The layout of the currently focused container. Can be null on app startup when
+    /// workspaces haven't been created yet.
+    /// </summary>
+    public Layout? FocusedContainerLayout =>
+      (FocusedContainer as SplitContainer)?.Layout ??
+      (FocusedContainer.Parent as SplitContainer)?.Layout;
+
+    /// <summary>
     /// Name of the currently active binding mode (if one is active).
     /// </summary>
-    public string ActiveBindingMode = null;
+    public string ActiveBindingMode { get; set; }
 
     private readonly UserConfigService _userConfigService;
 
