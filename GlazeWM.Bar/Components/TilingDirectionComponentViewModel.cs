@@ -17,7 +17,13 @@ namespace GlazeWM.Bar.Components
     private readonly ContainerService _containerService =
      ServiceLocator.GetRequiredService<ContainerService>();
 
-    private Layout? _tilingDirection => _containerService.FocusedContainerLayout;
+    /// <summary>
+    /// The layout of the currently focused container. Can be null on app startup when
+    /// workspaces haven't been created yet.
+    /// </summary>
+    private Layout? _tilingDirection =>
+      (_containerService.FocusedContainer as SplitContainer)?.Layout ??
+      (_containerService.FocusedContainer.Parent as SplitContainer)?.Layout;
 
     public string TilingDirectionString =>
       _tilingDirection == Layout.VERTICAL ? "vertical" : "horizontal";
