@@ -6,8 +6,8 @@ bar:
   height: 30
   position: "top"
   opacity: 1.0
-  background: "#1f242c3b"
-  foreground: "white"
+  background: "#20242cc4"
+  foreground: "#ffffff"
   font_family: "Segoe UI"
   font_size: "13"
   padding: "4 6"
