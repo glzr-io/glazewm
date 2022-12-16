@@ -36,7 +36,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Name of the currently active binding mode (if one is active).
     /// </summary>
-    public string ActiveBindingMode = null;
+    public string ActiveBindingMode { get; set; }
 
     private readonly UserConfigService _userConfigService;
 
