@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.AccessControl;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
@@ -53,7 +54,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Get whether the container is the focused descendant in its original subtree.
       var isFocusedDescendant = containerToMove == containerToMoveAncestor
-        || containerToMoveAncestor.LastFocusedDescendant == containerToMove;
+        || containerToMoveAncestor.LastFocusedDescendant.SelfAndAncestors.Contains(containerToMove);
 
       var targetParentAncestor = targetParent.SelfAndAncestors
         .First(ancestor => ancestor.Parent == lowestCommonAncestor);
