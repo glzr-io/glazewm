@@ -23,7 +23,7 @@ namespace GlazeWM.Bar
     public string Foreground => XamlHelper.FormatColor(_barConfig.Foreground);
     public string FontFamily => _barConfig.FontFamily;
     public string FontWeight => _barConfig.FontWeight;
-    public string FontSize => _barConfig.FontSize;
+    public string FontSize => XamlHelper.FormatSize(_barConfig.FontSize);
     public string BorderColor => XamlHelper.FormatColor(_barConfig.BorderColor);
     public string BorderWidth => XamlHelper.FormatRectShorthand(_barConfig.BorderWidth);
     public string Padding => XamlHelper.FormatRectShorthand(_barConfig.Padding);

@@ -16,7 +16,8 @@ namespace GlazeWM.Bar.Components
       _componentConfig.FontFamily ?? _parentViewModel.FontFamily;
     public string FontWeight =>
       _componentConfig.FontWeight ?? _parentViewModel.FontWeight;
-    public string FontSize => _componentConfig.FontSize ?? _parentViewModel.FontSize;
+    public string FontSize =>
+      XamlHelper.FormatSize(_componentConfig.FontSize ?? _parentViewModel.FontSize);
     public string BorderColor => XamlHelper.FormatColor(_componentConfig.BorderColor);
     public string BorderWidth =>
       XamlHelper.FormatRectShorthand(_componentConfig.BorderWidth);
