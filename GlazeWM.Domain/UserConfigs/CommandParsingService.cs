@@ -72,6 +72,8 @@ namespace GlazeWM.Domain.UserConfigs
 
       return commandParts[0] switch
       {
+        "tiling" => ParseTilingCommand(commandParts, subjectContainer),
+        // TODO: "layout <LAYOUT>" commands are deprecated. Remove in next major release.
         "layout" => ParseLayoutCommand(commandParts, subjectContainer),
         "focus" => ParseFocusCommand(commandParts),
         "move" => ParseMoveCommand(commandParts, subjectContainer),
@@ -92,6 +94,20 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "binding" => ParseBindingCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandString)),
+      };
+    }
+
+    private static Command ParseTilingCommand(string[] commandParts, Container subjectContainer)
+    {
+      return commandParts[1] switch
+      {
+        "direction" => commandParts[2] switch
+        {
+          "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.VERTICAL),
+          "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.HORIZONTAL),
+          _ => throw new ArgumentException(null, nameof(commandParts)),
+        },
+        _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
 

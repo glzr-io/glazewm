@@ -96,10 +96,10 @@ keybindings:
   - command: "binding mode resize"
     binding: "Alt+R"
 
-  # Change layout direction to be either horizontal or vertical.
-  - command: "layout horizontal"
+  # Change tiling direction. This determines where new tiling windows will be inserted.
+  - command: "tiling direction horizontal"
     binding: "Alt+Shift+V"
-  - command: "layout vertical"
+  - command: "tiling direction vertical"
     binding: "Alt+V"
 
   # Change focus between floating / tiling windows.
