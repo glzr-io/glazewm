@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Security.AccessControl;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
