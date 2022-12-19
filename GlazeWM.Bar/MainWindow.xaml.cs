@@ -8,6 +8,7 @@ using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
@@ -64,7 +65,7 @@ namespace GlazeWM.Bar
     private void PositionWindow(IntPtr windowHandle)
     {
       // Since window size is set manually, need to scale up height to make window DPI responsive.
-      var barHeight = _userConfigService.BarConfig.Height;
+      var barHeight = UnitsHelper.TrimUnits(_userConfigService.BarConfig.Height);
       var scaledBarHeight = Convert.ToInt32(barHeight * _monitor.ScaleFactor);
 
       // Get offset from top of monitor.

@@ -1,9 +1,20 @@
 using System;
+using System.Linq;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Bar
 {
   public static class XamlHelper
   {
+    /// <summary>
+    /// Convert size properties from user config (eg. `FontSize`) to be XAML
+    /// compatible.
+    /// </summary>
+    public static string FormatSize(string size)
+    {
+      return $"{UnitsHelper.TrimUnits(size)}";
+    }
+
     /// <summary>
     /// Convert color properties from user config (eg. `Background`) to be XAML
     /// compatible. Colors in the user config are specified in RGBA, whereas XAML expects
@@ -31,9 +42,11 @@ namespace GlazeWM.Bar
     /// <exception cref="ArgumentException"></exception>
     public static string FormatRectShorthand(string shorthand)
     {
-      var shorthandParts = shorthand.Split(" ");
+      var shorthandParts = shorthand.Split(" ")
+        .Select(shorthandPart => UnitsHelper.TrimUnits(shorthandPart))
+        .ToList();
 
-      return shorthandParts.Length switch
+      return shorthandParts.Count switch
       {
         1 => shorthand,
         2 => $"{shorthandParts[1]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[0]}",
