@@ -3,6 +3,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 
@@ -58,6 +59,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Prevent original monitor from having no workspaces.
       if (focusedMonitor.Children.Count == 0)
         ActivateWorkspaceOnMonitor(focusedMonitor);
+
+      // Update workspaces displayed in bar window.
+      // TODO: Consider creating separate event `WorkspaceMovedEvent`.
+      _bus.Emit(new WorkspaceActivatedEvent(focusedWorkspace));
 
       _bus.Invoke(new RedrawContainersCommand());
 
