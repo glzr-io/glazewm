@@ -3,14 +3,14 @@ gaps:
   outer_gap: 20
 
 bar:
-  height: 30
+  height: "30px"
   position: "top"
   opacity: 1.0
   background: "#20242cc4"
   foreground: "#ffffff"
   font_family: "Segoe UI"
-  font_size: "13"
-  padding: "4 6"
+  font_size: "13px"
+  padding: "4px 6px"
   components_left:
     - type: "workspaces"
       focused_workspace_background: "#ffffff33"
@@ -19,26 +19,26 @@ bar:
   components_right:
     - type: "tiling direction"
       background: "#ffffff33"
-      margin: "0 4"
-      padding: "0 8"
+      margin: "0 4px"
+      padding: "0 8px"
     - type: "binding mode"
       background: "#ffffff33"
-      margin: "0 4 0 0"
-      padding: "0 8"
+      margin: "0 4px 0 0"
+      padding: "0 8px"
     - type: "clock"
       time_formatting: "hh:mm tt  ddd MMM d"
-      margin: "0 0 0 10"
+      margin: "0 0 0 10px"
 
 workspaces:
-  - name: 1
-  - name: 2
-  - name: 3
-  - name: 4
-  - name: 5
-  - name: 6
-  - name: 7
-  - name: 8
-  - name: 9
+  - name: "1"
+  - name: "2"
+  - name: "3"
+  - name: "4"
+  - name: "5"
+  - name: "6"
+  - name: "7"
+  - name: "8"
+  - name: "9"
 
 window_rules:
   # Task Manager requires admin privileges to manage and should be ignored unless running
