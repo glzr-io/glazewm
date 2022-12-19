@@ -3,6 +3,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Workspaces
 {
@@ -30,7 +31,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barHeight = _userConfigService.BarConfig.Height;
+        var barHeight = UnitsHelper.TrimUnits(_userConfigService.BarConfig.Height);
         return Convert.ToInt32(barHeight * (Parent as Monitor).ScaleFactor);
       }
     }
