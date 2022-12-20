@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
@@ -22,9 +22,9 @@ namespace GlazeWM.Bar.Components
         var additionalInfo = "";
         if (_config.WeekOfYear)
         {
-          additionalInfo = additionalInfo + CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(now, _config.CalendarWeekRule, _config.FirstDayOfWeek) + " CW";
+          additionalInfo = additionalInfo + " (" + CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(now, _config.CalendarWeekRule, _config.FirstDayOfWeek) + " CW" + ")";
         }
-        return (dateString + " (" + additionalInfo + ")");
+        return (dateString + additionalInfo);
       }
     }
 
