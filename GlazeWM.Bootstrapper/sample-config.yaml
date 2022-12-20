@@ -26,7 +26,11 @@ bar:
       margin: "0 4px 0 0"
       padding: "0 8px"
     - type: "clock"
-      time_formatting: "hh:mm tt  ddd MMM d"
+      time_formatting: "hh:mm tt  ddd MMM d"    
+      week_of_year: false
+      first_day_of_week: "Monday"
+      # FirstFullWeek | FirstDay | FirstFourDayWeek
+      calendar_week_rule: "FirstFullWeek"
       margin: "0 0 0 10px"
 
 workspaces:

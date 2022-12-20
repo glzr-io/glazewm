@@ -13,10 +13,20 @@ namespace GlazeWM.Bar.Components
     /// <summary>
     /// Format the current time with the user's formatting config.
     /// </summary>
-    public string FormattedTime => DateTime.Now.ToString(
-      _timeFormatting,
-      CultureInfo.InvariantCulture
-    );
+    public string FormattedTime
+    {
+      get
+      {
+        var now = DateTime.Now;
+        var dateString = now.ToString(_timeFormatting, CultureInfo.InvariantCulture);
+        var additionalInfo = "";
+        if (_config.WeekOfYear)
+        {
+          additionalInfo = additionalInfo + CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(now, _config.CalendarWeekRule, _config.FirstDayOfWeek) + " CW";
+        }
+        return (dateString + " (" + additionalInfo + ")");
+      }
+    }
 
     public ClockComponentViewModel(
       BarViewModel parentViewModel,
