@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using Microsoft.Extensions.Logging;
+
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -44,10 +46,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// Store a reference to the hook delegate to prevent its garbage collection.
     /// </summary>
     private readonly HookProc _hookProc;
+    private readonly HookProc _hookProcMouse;
+    private readonly ILogger<KeybindingService> _logger;
 
-    public KeybindingService()
+    public KeybindingService(ILogger<KeybindingService> logger)
     {
       _hookProc = new HookProc(KeybindingHookProc);
+      _hookProcMouse = new HookProc(MouseHookProc);
+      _logger = logger;
     }
 
     public void Start()
@@ -56,6 +62,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _ = SetWindowsHookEx(
         HookType.WH_KEYBOARD_LL,
         _hookProc,
+        Process.GetCurrentProcess().MainModule.BaseAddress,
+        0
+      );
+      // Create low-level mouse hook.
+      _ = SetWindowsHookEx(
+        HookType.WH_MOUSE_LL,
+        _hookProcMouse,
         Process.GetCurrentProcess().MainModule.BaseAddress,
         0
       );
@@ -80,6 +93,24 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public void Reset()
     {
       _keybindingsByTriggerKey.Clear();
+    }
+
+    private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+      var inputEvent = (LowLevelMouseInputEvent)Marshal.PtrToStructure(
+        lParam,
+        typeof(LowLevelMouseInputEvent)
+      );
+      IntPtr window = WindowFromPoint(inputEvent.pt);
+      // uint targetThreadID = GetWindowThreadProcessId(window, out var processId); //target thread id
+      // IntPtr myThreadID = GetCurrentThread(); // calling thread id, our thread id
+      SetForegroundWindow(window);
+      SetFocus(window);
+      // AttachThreadInput(myThreadID, targetThreadID, false);
+      // _logger.LogDebug(inputEvent.pt.X.ToString() + "," + inputEvent.pt.Y.ToString());
+      _logger.LogDebug(window.ToString());
+      return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+      // return new IntPtr(1);
     }
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
