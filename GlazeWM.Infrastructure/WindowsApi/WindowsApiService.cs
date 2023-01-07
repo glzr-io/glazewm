@@ -189,6 +189,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern bool SetFocus(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    public static extern bool SetCursorPos(int X, int Y);
+
     /// <summary>
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
     /// this application are included.
