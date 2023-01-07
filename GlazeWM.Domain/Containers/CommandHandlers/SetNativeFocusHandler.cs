@@ -34,6 +34,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       KeybdEvent(0, 0, 0, 0);
       SetForegroundWindow(handleToFocus);
 
+
+      // Cursor follows selected window
+      SetCursorPos(containerToFocus.X + containerToFocus.Width / 2, containerToFocus.Y + containerToFocus.Height / 2);
+
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
       if (containerToFocus is Workspace)
