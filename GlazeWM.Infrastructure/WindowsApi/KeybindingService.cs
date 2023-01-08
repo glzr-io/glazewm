@@ -29,6 +29,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private const uint WM_SYSKEYDOWN = 0x104;
 
     /// <summary>
+    /// Hwnd of currently focused window and it's known children
+    /// </summary>
+    private List<IntPtr> FocusedWindows = new List<IntPtr>();
+
+    /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
     private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new();
@@ -101,14 +106,37 @@ namespace GlazeWM.Infrastructure.WindowsApi
         lParam,
         typeof(LowLevelMouseInputEvent)
       );
+
+      // Returns window underneath cursor.  This could be a child window.  
       IntPtr window = WindowFromPoint(inputEvent.pt);
-      // uint targetThreadID = GetWindowThreadProcessId(window, out var processId); //target thread id
-      // IntPtr myThreadID = GetCurrentThread(); // calling thread id, our thread id
+
+      // If the mouse is hovering over the currently focused main window or one of it's children, do nothing
+      if (FocusedWindows.Contains(window))
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+
+      // If the FocusedWindows list didn't contain the window, this must be a new window being focused
+      // Clear the old windows  
+      FocusedWindows.Clear();
+      FocusedWindows.Add(window);
+
+      // Check if the window is the main window or a child window
+      IntPtr parentWindow = GetParent(window);
+
+      // Walk the window up each parent window until you have the main window
+      while (parentWindow != IntPtr.Zero)
+      {
+        window = parentWindow;
+        FocusedWindows.Add(window);
+        parentWindow = GetParent(window);
+      }
+
+      // Focus the main window
       SetForegroundWindow(window);
       SetFocus(window);
-      // AttachThreadInput(myThreadID, targetThreadID, false);
-      // _logger.LogDebug(inputEvent.pt.X.ToString() + "," + inputEvent.pt.Y.ToString());
-      _logger.LogDebug(window.ToString());
+
+      _logger.LogDebug("switching to window" + window.ToString());
+      _logger.LogDebug("parent window" + parentWindow.ToString());
+
       return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
       // return new IntPtr(1);
     }
