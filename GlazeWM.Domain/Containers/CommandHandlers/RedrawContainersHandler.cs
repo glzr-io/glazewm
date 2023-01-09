@@ -48,7 +48,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosition(window);
 
         // When there's a mismatch between the DPI of the monitor and the window,
-        // `SetWindowPos` // might size the window incorrectly. By calling `SetWindowPos`
+        // `SetWindowPos` might size the window incorrectly. By calling `SetWindowPos`
         // twice, inconsistencies after the first move are resolved.
         if (window.HasPendingDpiAdjustment)
         {
