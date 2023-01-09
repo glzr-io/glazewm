@@ -2,6 +2,10 @@ gaps:
   inner_gap: 20
   outer_gap: 20
 
+general:
+  # Whether to show floating windows as always on top.
+  show_floating_on_top: true
+
 bar:
   height: "30px"
   position: "top"

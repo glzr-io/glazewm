@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -10,10 +11,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private readonly ContainerService _containerService;
+    private readonly UserConfigService _userConfigService;
 
-    public RedrawContainersHandler(ContainerService containerService)
+    public RedrawContainersHandler(
+      ContainerService containerService,
+      UserConfigService userConfigService)
     {
       _containerService = containerService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(RedrawContainersCommand command)
@@ -40,22 +45,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       foreach (var window in windowsToRedraw)
       {
-        var flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
-          SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING;
+        SetWindowPosition(window);
 
-        if (window.IsDisplayed)
-          flags |= SWP.SWP_SHOWWINDOW;
-        else
-          flags |= SWP.SWP_HIDEWINDOW;
-
-        SetWindowPosition(window, flags);
-
-        // When there's a mismatch between the DPI of the monitor and the window, `SetWindowPos`
-        // might size the window incorrectly. By calling `SetWindowPos` twice, inconsistencies after
-        // the first move are resolved.
+        // When there's a mismatch between the DPI of the monitor and the window,
+        // `SetWindowPos` might size the window incorrectly. By calling `SetWindowPos`
+        // twice, inconsistencies after the first move are resolved.
         if (window.HasPendingDpiAdjustment)
         {
-          SetWindowPosition(window, flags);
+          SetWindowPosition(window);
           window.HasPendingDpiAdjustment = false;
         }
       }
@@ -65,32 +62,50 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static void SetWindowPosition(Window window, SWP flags)
+    private void SetWindowPosition(Window window)
     {
+      var defaultFlags =
+        SWP.SWP_FRAMECHANGED |
+        SWP.SWP_NOACTIVATE |
+        SWP.SWP_NOCOPYBITS |
+        SWP.SWP_NOSENDCHANGING;
+
+      // Show or hide the window depending on whether the workspace is displayed.
+      if (window.IsDisplayed)
+        defaultFlags |= SWP.SWP_SHOWWINDOW;
+      else
+        defaultFlags |= SWP.SWP_HIDEWINDOW;
+
       if (window is TilingWindow)
       {
         SetWindowPos(
           window.Handle,
-          IntPtr.Zero,
+          new IntPtr((int)ZOrderFlags.NoTopMost),
           window.X - window.BorderDelta.Left,
           window.Y - window.BorderDelta.Top,
           window.Width + window.BorderDelta.Left + window.BorderDelta.Right,
           window.Height + window.BorderDelta.Top + window.BorderDelta.Right,
-          flags
+          defaultFlags
         );
         return;
       }
 
-      // Avoid adjusting the borders of floating windows. Otherwise the window will increase in size
-      // from its original placement.
+      // Get z-order to set for floating windows.
+      var shouldShowOnTop = _userConfigService.GeneralConfig.ShowFloatingOnTop;
+      var floatingZOrder = shouldShowOnTop
+        ? ZOrderFlags.TopMost
+        : ZOrderFlags.NoTopMost;
+
+      // Avoid adjusting the borders of floating windows. Otherwise the window will
+      // increase in size from its original placement.
       SetWindowPos(
         window.Handle,
-        IntPtr.Zero,
+        new IntPtr((int)floatingZOrder),
         window.X,
         window.Y,
         window.Width,
         window.Height,
-        flags
+        defaultFlags
       );
     }
   }
