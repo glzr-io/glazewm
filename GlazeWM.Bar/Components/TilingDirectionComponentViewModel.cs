@@ -15,7 +15,12 @@ namespace GlazeWM.Bar.Components
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
-     ServiceLocator.GetRequiredService<ContainerService>();
+      ServiceLocator.GetRequiredService<ContainerService>();
+
+    private TilingDirectionComponentConfig _config => _componentConfig as TilingDirectionComponentConfig;
+
+    private string TextVertical => _config.TextVertical;
+    private string TextHorizontal => _config.TextHorizontal;
 
     /// <summary>
     /// The layout of the currently focused container. Can be null on app startup when
@@ -26,7 +31,7 @@ namespace GlazeWM.Bar.Components
       (_containerService.FocusedContainer.Parent as SplitContainer)?.Layout;
 
     public string TilingDirectionString =>
-      _tilingDirection == Layout.VERTICAL ? "vertical" : "horizontal";
+      _tilingDirection == Layout.VERTICAL ? TextVertical : TextHorizontal;
 
     public TilingDirectionComponentViewModel(
       BarViewModel parentViewModel,
