@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
@@ -10,10 +11,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private readonly ContainerService _containerService;
+    private readonly UserConfigService _userConfigService;
 
-    public RedrawContainersHandler(ContainerService containerService)
+    public RedrawContainersHandler(
+      ContainerService containerService,
+      UserConfigService userConfigService)
     {
       _containerService = containerService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(RedrawContainersCommand command)
@@ -57,7 +62,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static void SetWindowPosition(Window window)
+    private void SetWindowPosition(Window window)
     {
       var defaultFlags =
         SWP.SWP_FRAMECHANGED |
@@ -85,11 +90,17 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return;
       }
 
+      // Get z-order to set for floating windows.
+      var shouldShowOnTop = _userConfigService.GeneralConfig.ShowFloatingOnTop;
+      var floatingZOrder = shouldShowOnTop
+        ? ZOrderFlags.TopMost
+        : ZOrderFlags.NoTopMost;
+
       // Avoid adjusting the borders of floating windows. Otherwise the window will
       // increase in size from its original placement.
       SetWindowPos(
         window.Handle,
-        new IntPtr((int)ZOrderFlags.TopMost),
+        new IntPtr((int)floatingZOrder),
         window.X,
         window.Y,
         window.Width,
