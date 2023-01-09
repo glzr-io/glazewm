@@ -85,12 +85,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // from its original placement.
       SetWindowPos(
         window.Handle,
-        IntPtr.Zero,
+        new IntPtr(-1),
         window.X,
         window.Y,
         window.Width,
         window.Height,
-        flags
+        SWP.SWP_SHOWWINDOW
       );
     }
   }
