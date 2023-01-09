@@ -26,7 +26,11 @@ bar:
       margin: "0 4px 0 0"
       padding: "0 8px"
     - type: "clock"
-      time_formatting: "hh:mm tt  ddd MMM d"
+      # supported time format specifier:
+      # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
+      # "w"   Calendarweek (ISO 8601 week) 1..53
+      # "ww"  CalendarWeek (ISO 8601 week) 01..53
+      time_formatting: "hh:mm tt  ddd MMM d"    
       margin: "0 0 0 10px"
 
 workspaces:
