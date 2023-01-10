@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -25,6 +25,11 @@ namespace GlazeWM.Domain.UserConfigs
           ),
         "clock" =>
           JsonSerializer.Deserialize<ClockComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "power status" =>
+          JsonSerializer.Deserialize<PowerStatusComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

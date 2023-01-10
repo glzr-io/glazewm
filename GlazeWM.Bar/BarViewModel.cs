@@ -45,6 +45,7 @@ namespace GlazeWM.Bar
       {
         BindingModeComponentConfig bmc => new BindingModeComponentViewModel(this, bmc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
+        PowerStatusComponentConfig psc => new PowerStatusComponentViewModel(this, psc),
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
