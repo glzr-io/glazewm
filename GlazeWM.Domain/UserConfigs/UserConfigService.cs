@@ -15,6 +15,7 @@ namespace GlazeWM.Domain.UserConfigs
     public UserConfig UserConfig { private get; set; }
 
     public GapsConfig GapsConfig => UserConfig.Gaps;
+    public GeneralConfig GeneralConfig => UserConfig.General;
     public BarConfig BarConfig => UserConfig.Bar;
     public List<WorkspaceConfig> WorkspaceConfigs => UserConfig.Workspaces;
     public List<WindowRuleConfig> WindowRules => UserConfig.WindowRules;
