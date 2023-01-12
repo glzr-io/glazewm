@@ -24,7 +24,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var handleToFocus = containerToFocus switch
       {
         Window window => window.Handle,
-        Workspace => GetDesktopWindow(),
+        Workspace => GetDesktopHandle(),
         _ => throw new Exception("Invalid container type to focus. This is a bug."),
       };
 
@@ -45,6 +45,16 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _bus.InvokeAsync(new CenterCursorOnRectCommand(containerToFocus.ToRect()));
 
       return CommandResponse.Ok;
+    }
+
+    private static IntPtr GetDesktopHandle()
+    {
+      return WindowService.GetAllWindowHandles().Find(handle =>
+      {
+        var className = WindowService.GetClassNameOfHandle(handle);
+        var process = WindowService.GetProcessOfHandle(handle);
+        return className == "Progman" && process.ProcessName == "explorer";
+      });
     }
   }
 }
