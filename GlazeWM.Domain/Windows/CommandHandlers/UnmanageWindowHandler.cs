@@ -34,7 +34,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         // TODO: This needs to be changed to match the criteria for the OS to focus a
         // window on close.
         var isVisible = WindowService.IsHandleVisible(handle);
-        var canFocus = WindowService.HandleHasWindowExStyle(
+        var canFocus = !WindowService.HandleHasWindowExStyle(
           handle,
           WS_EX.WS_EX_NOACTIVATE
         );
