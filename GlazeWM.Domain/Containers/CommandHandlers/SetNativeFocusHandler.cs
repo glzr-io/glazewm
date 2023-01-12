@@ -11,10 +11,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal sealed class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
   {
     private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
-    public SetNativeFocusHandler(Bus bus)
+    public SetNativeFocusHandler(Bus bus, WindowService windowService)
     {
       _bus = bus;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(SetNativeFocusCommand command)
@@ -24,7 +26,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var handleToFocus = containerToFocus switch
       {
         Window window => window.Handle,
-        Workspace => GetDesktopHandle(),
+        Workspace => _windowService.DesktopWindowHandle,
         _ => throw new Exception("Invalid container type to focus. This is a bug."),
       };
 
@@ -45,16 +47,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _bus.InvokeAsync(new CenterCursorOnRectCommand(containerToFocus.ToRect()));
 
       return CommandResponse.Ok;
-    }
-
-    private static IntPtr GetDesktopHandle()
-    {
-      return WindowService.GetAllWindowHandles().Find(handle =>
-      {
-        var className = WindowService.GetClassNameOfHandle(handle);
-        var process = WindowService.GetProcessOfHandle(handle);
-        return className == "Progman" && process.ProcessName == "explorer";
-      });
     }
   }
 }

@@ -25,6 +25,11 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public List<IntPtr> IgnoredHandles { get; set; } = new();
 
+    /// <summary>
+    /// Handle to the desktop window.
+    /// </summary>
+    public IntPtr DesktopWindowHandle { get; } = GetDesktopWindowHandle();
+
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
 
@@ -113,6 +118,16 @@ namespace GlazeWM.Domain.Windows
       }, IntPtr.Zero);
 
       return windowHandles;
+    }
+
+    private static IntPtr GetDesktopWindowHandle()
+    {
+      return GetAllWindowHandles().Find(handle =>
+      {
+        var className = GetClassNameOfHandle(handle);
+        var process = GetProcessOfHandle(handle);
+        return className == "Progman" && process.ProcessName == "explorer";
+      });
     }
 
     public static WindowStylesEx GetWindowStylesEx(IntPtr handle)
