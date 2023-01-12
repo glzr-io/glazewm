@@ -36,26 +36,31 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Override the container to set focus to (ie. when changing focus after a window is
       // closed or hidden).
+      // TODO: This can be simplified by a lot. Might also need to handle case where window
+      // is null or not displayed.
       if (pendingFocusContainer is not null)
       {
         // If the container gaining focus is the pending focus container, then reset it.
         if (pendingFocusContainer is Window && @event.WindowHandle == (pendingFocusContainer as Window).Handle)
         {
+          _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
+          _bus.Emit(new FocusChangedEvent(pendingFocusContainer));
           _containerService.PendingFocusContainer = null;
           return;
         }
 
-        var className = WindowService.GetClassNameOfHandle(windowHandle);
-        var process = WindowService.GetProcessOfHandle(windowHandle);
-        var isDesktopWindow = className == "Progman" && process?.ProcessName == "explorer";
+        var isDesktopWindow = windowHandle == _windowService.DesktopWindowHandle;
 
         if (pendingFocusContainer is Workspace && isDesktopWindow)
         {
+          _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
+          _bus.Emit(new FocusChangedEvent(pendingFocusContainer));
           _containerService.PendingFocusContainer = null;
           return;
         }
 
-        // TODO: Should set `PendingFocusContainer` to `null` here?
+        // TODO: Should set `PendingFocusContainer` to `null` here? Probably not, since
+        // it wouldn't update focused state for workspaces.
         _bus.Invoke(new SetNativeFocusCommand(pendingFocusContainer));
         return;
       }
