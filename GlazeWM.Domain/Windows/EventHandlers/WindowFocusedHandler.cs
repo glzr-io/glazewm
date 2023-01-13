@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
@@ -34,15 +35,22 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var windowHandle = @event.WindowHandle;
       var pendingFocusContainer = _containerService.PendingFocusContainer;
 
+      var className = WindowService.GetClassNameOfHandle(windowHandle);
+      var process = WindowService.GetProcessOfHandle(windowHandle);
+      Debug.WriteLine($"focused: {className}");
+      Debug.WriteLine($"focused: {process?.ProcessName}");
+
       // Override the container to set focus to (ie. when changing focus after a window is
       // closed or hidden).
       // TODO: This can be simplified by a lot. Might also need to handle case where window
       // is null or not displayed.
       if (pendingFocusContainer is not null)
       {
+        Debug.WriteLine($"setting focus descendant to {pendingFocusContainer}.");
         // If the container gaining focus is the pending focus container, then reset it.
         if (pendingFocusContainer is Window && @event.WindowHandle == (pendingFocusContainer as Window).Handle)
         {
+          Debug.WriteLine("is window");
           _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
           _bus.Emit(new FocusChangedEvent(pendingFocusContainer));
           _containerService.PendingFocusContainer = null;
@@ -53,6 +61,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
         if (pendingFocusContainer is Workspace && isDesktopWindow)
         {
+          Debug.WriteLine("is workspace");
           _bus.Invoke(new SetFocusedDescendantCommand(pendingFocusContainer));
           _bus.Emit(new FocusChangedEvent(pendingFocusContainer));
           _containerService.PendingFocusContainer = null;
@@ -61,7 +70,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
         // TODO: Should set `PendingFocusContainer` to `null` here? Probably not, since
         // it wouldn't update focused state for workspaces.
-        _bus.Invoke(new SetNativeFocusCommand(pendingFocusContainer));
+        _bus.InvokeAsync(new SetNativeFocusCommand(pendingFocusContainer));
         return;
       }
 

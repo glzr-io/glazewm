@@ -38,6 +38,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
+      // TODO: This is called twice unnecessarily when setting workspace focus on unmanage.
       if (containerToFocus is Workspace)
       {
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
