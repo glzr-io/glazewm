@@ -217,19 +217,20 @@ Using the example of padding:
 
 ### Bar component: Clock
 
-The appearence of the clock component is defined by `time_formatting`. Supported time format specifier are the standard [Custom date and time format strings](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
+The text shown in the clock component is specified via `time_formatting`. The supported time format specifiers are defined by [.NET's time/date string formatting](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
 
-Additionally supported format specifier:
+Additionally supported format specifiers:
 
-| Specifier | Description         | Example |
-| ---       | ---                 | ---     |
-| "w"       | Week of year: 1..53 |  'HH:mm dd.MM.yyyy (ww CW)' => 13:05 21.12.2022 (51 CW) |
-| "ww"      | Week of year 01..53 |  'HH:mm dd.MM.yyyy (ww CW)' => 13:05 02.01.2022 (02 CW) |
+| Specifier | Description         | Example                                          |
+| --------- | ------------------- | ------------------------------------------------ |
+| "w"       | Week of year: 1..53 | 'HH:mm dd.MM.yyyy (ww)' => 13:05 21.12.2022 (51) |
+| "ww"      | Week of year 01..53 | 'HH:mm dd.MM.yyyy (ww)' => 13:05 02.01.2022 (02) |
+
+**Example usage:**
 
 ```yaml
 - type: "clock"
-  time_formatting: "hh:mm tt  ddd MMM d"    
-  margin: "0 0 0 10px"
+  time_formatting: "hh:mm tt  ddd MMM d"
 ```
 
 ## Window rules
