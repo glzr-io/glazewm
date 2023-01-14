@@ -8,21 +8,43 @@ namespace GlazeWM.Bar.Components
   public class PowerStatusComponentViewModel : ComponentViewModel
   {
 
-    public string PowerStatus => RetrieveCurrentPowerStatus();
+    private PowerStatusComponentConfig _powerStatusConfig;
 
-    private string RetrieveCurrentPowerStatus()
+    public string FormattedPowerStatus => FormatComponent();
+
+    private WindowsApiService.SYSTEM_POWER_STATUS RetrievePowerStatus()
     {
-      WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS status);
+        WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS status);
+        return status;
+    }
 
-      return $" {status.BatteryLifePercent}% ";
+    private string FormatComponent()
+    {
+      var ps = RetrievePowerStatus();
+      var batteryLevel = ps.BatteryLifePercent.ToString();
+
+      if (ps.ACLineStatus == 1)
+      {
+        return _powerStatusConfig.Charging.Replace("{battery_level}", batteryLevel);
+      }
+      else if (int.Parse(batteryLevel) <= 20)
+      {
+        return _powerStatusConfig.Low.Replace("{battery_level}", batteryLevel);
+      }
+      else
+      {
+        return _powerStatusConfig.Draining.Replace("{battery_level}", batteryLevel);
+      }
     }
 
     public PowerStatusComponentViewModel(
       BarViewModel parentViewModel,
       PowerStatusComponentConfig config) : base(parentViewModel, config)
     {
+      _powerStatusConfig = config;
+
       Observable.Interval(TimeSpan.FromSeconds(1))
-        .Subscribe(_ => OnPropertyChanged(nameof(PowerStatus)));
+        .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
     }
   }
 
