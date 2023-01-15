@@ -22,6 +22,8 @@ bar:
       default_workspace_background: "transparent"
   components_right:
     - type: "tiling direction"
+      text_horizontal: "⮂"
+      text_vertical: "⮁"
       background: "#ffffff33"
       margin: "0 4px"
       padding: "0 8px"
@@ -34,7 +36,7 @@ bar:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
       # "w"   Calendarweek (ISO 8601 week) 1..53
       # "ww"  CalendarWeek (ISO 8601 week) 01..53
-      time_formatting: "hh:mm tt  ddd MMM d"    
+      time_formatting: "hh:mm tt  ddd MMM d"
       margin: "0 0 0 10px"
 
 workspaces:

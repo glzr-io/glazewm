@@ -40,6 +40,10 @@ namespace GlazeWM.Bar.Components
       _bus.Events.OfType<LayoutChangedEvent>().Subscribe(_ =>
         _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString)))
       );
+
+      _bus.Events.OfType<FocusChangedEvent>().Subscribe(_ =>
+        _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString)))
+      );
     }
   }
 }
