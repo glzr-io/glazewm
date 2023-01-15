@@ -48,6 +48,7 @@ namespace GlazeWM.Bar
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
+        WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }

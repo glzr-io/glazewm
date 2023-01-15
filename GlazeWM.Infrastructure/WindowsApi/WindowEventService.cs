@@ -29,6 +29,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_NAMECHANGE, IntPtr.Zero, _hookProc, 0, 0, 0);
     }
 
     private void WindowEventHookProc(
@@ -56,6 +57,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
         EventConstant.EVENT_SYSTEM_MOVESIZEEND => new WindowMovedOrResizedEvent(hwnd),
         EventConstant.EVENT_OBJECT_DESTROY => new WindowDestroyedEvent(hwnd),
         EventConstant.EVENT_OBJECT_SHOW => new WindowShownEvent(hwnd),
+        EventConstant.EVENT_OBJECT_NAMECHANGE => new WindowTitleChangedEvent(hwnd),
         EventConstant.EVENT_OBJECT_HIDE => new WindowHiddenEvent(hwnd),
         _ => null,
       };
