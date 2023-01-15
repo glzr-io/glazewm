@@ -5,6 +5,7 @@ gaps:
 general:
   # Whether to show floating windows as always on top.
   show_floating_on_top: true
+  cursor_follows_focus: true
 
 bar:
   height: "30px"
@@ -34,7 +35,7 @@ bar:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
       # "w"   Calendarweek (ISO 8601 week) 1..53
       # "ww"  CalendarWeek (ISO 8601 week) 01..53
-      time_formatting: "hh:mm tt  ddd MMM d"    
+      time_formatting: "hh:mm tt  ddd MMM d"
       margin: "0 0 0 10px"
 
 workspaces:
