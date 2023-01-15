@@ -30,8 +30,7 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       WindowTitleComponentConfig config) : base(parentViewModel, config)
     {
-      // TODO: Merge 2 observables: 1 is focus changes, other is changes to title of the focused
-      // window. Might also need to fetch the focused container title on init (before stream starts).
+      // TODO: Remove this duplicate code
       _bus.Events.OfType<WindowTitleChangedEvent>()
         .Subscribe(@event =>
         {
@@ -42,6 +41,17 @@ namespace GlazeWM.Bar.Components
 
           FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
         });
+      _bus.Events.OfType<WindowFocusedEvent>()
+        .Subscribe(@event =>
+        {
+          var focusedWindow = _containerService.FocusedContainer as Window;
+
+          if (@event.WindowHandle != focusedWindow.Handle)
+            return;
+
+          FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
+        });
+
     }
   }
 }
