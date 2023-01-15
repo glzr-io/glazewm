@@ -30,28 +30,21 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       WindowTitleComponentConfig config) : base(parentViewModel, config)
     {
-      // TODO: Remove this duplicate code
+      Action<IntPtr> processTitleChange = (windowHdl) =>
+      {
+        var focusedWindow = _containerService.FocusedContainer as Window;
+
+        if (windowHdl != focusedWindow.Handle)
+          return;
+
+        FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
+      };
+
       _bus.Events.OfType<WindowTitleChangedEvent>()
-        .Subscribe(@event =>
-        {
-          var focusedWindow = _containerService.FocusedContainer as Window;
+          .Subscribe(@event => processTitleChange(@event.WindowHandle));
 
-          if (@event.WindowHandle != focusedWindow.Handle)
-            return;
-
-          FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
-        });
       _bus.Events.OfType<WindowFocusedEvent>()
-        .Subscribe(@event =>
-        {
-          var focusedWindow = _containerService.FocusedContainer as Window;
-
-          if (@event.WindowHandle != focusedWindow.Handle)
-            return;
-
-          FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
-        });
-
+        .Subscribe(@event => processTitleChange(@event.WindowHandle));
     }
   }
 }
