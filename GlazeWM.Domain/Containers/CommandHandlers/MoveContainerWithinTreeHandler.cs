@@ -44,7 +44,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         );
 
         // Center cursor in focused window's new location
-        _bus.Invoke(new CenterCursorOnWindowCommand(containerToMove));
+        _bus.InvokeAsync(new CenterCursorOnWindowCommand(containerToMove));
 
         return CommandResponse.Ok;
       }
@@ -91,7 +91,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         );
 
       // Center cursor in focused window's new location
-      _bus.Invoke(new CenterCursorOnWindowCommand(containerToMove));
+      _bus.InvokeAsync(new CenterCursorOnWindowCommand(containerToMove));
 
       return CommandResponse.Ok;
     }
