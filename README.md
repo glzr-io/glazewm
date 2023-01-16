@@ -215,6 +215,24 @@ Using the example of padding:
 - When three values are specified, the first padding applies to the top, the second to the right and left, the third to the bottom.
 - When four values are specified, the paddings apply to the top, right, bottom, and left in that order (clockwise).
 
+### Bar component: Clock
+
+The text shown in the clock component is specified via `time_formatting`. The supported time format specifiers are defined by [.NET's time/date string formatting](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
+
+Additionally supported format specifiers:
+
+| Specifier | Description         | Example                                          |
+| --------- | ------------------- | ------------------------------------------------ |
+| "w"       | Week of year: 1..53 | 'HH:mm dd.MM.yyyy (ww)' => 13:05 21.12.2022 (51) |
+| "ww"      | Week of year 01..53 | 'HH:mm dd.MM.yyyy (ww)' => 13:05 02.01.2022 (02) |
+
+**Example usage:**
+
+```yaml
+- type: "clock"
+  time_formatting: "hh:mm tt  ddd MMM d"
+```
+
 ## Window rules
 
 Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.

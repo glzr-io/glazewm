@@ -1,3 +1,6 @@
+using System;
+using System.Globalization;
+
 namespace GlazeWM.Domain.UserConfigs
 {
   public class ClockComponentConfig : BarComponentConfig
