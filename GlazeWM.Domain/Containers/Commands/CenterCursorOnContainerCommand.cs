@@ -2,14 +2,14 @@
 
 namespace GlazeWM.Domain.Containers.Commands
 {
-  public class CenterCursorOnWindowCommand : Command
+  public class CenterCursorOnContainerCommand : Command
   {
     public Container TargetContainer { get; }
 
     /// <summary>
     /// Insert child as end element if `targetIndex` is not provided.
     /// </summary>
-    public CenterCursorOnWindowCommand(Container target)
+    public CenterCursorOnContainerCommand(Container target)
     {
       TargetContainer = target;
     }
