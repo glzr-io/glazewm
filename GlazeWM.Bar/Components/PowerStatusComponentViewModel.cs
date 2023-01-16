@@ -8,20 +8,23 @@ namespace GlazeWM.Bar.Components
   public class PowerStatusComponentViewModel : ComponentViewModel
   {
 
-    private PowerStatusComponentConfig _powerStatusConfig;
+    private readonly PowerStatusComponentConfig _powerStatusConfig;
 
+    /// <summary>
+    /// Format the current power status with the user's formatting config.
+    /// </summary>
     public string FormattedPowerStatus => FormatComponent();
-
-    private WindowsApiService.SYSTEM_POWER_STATUS RetrievePowerStatus()
-    {
-        WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS status);
-        return status;
-    }
 
     private string FormatComponent()
     {
-      var ps = RetrievePowerStatus();
+      WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS ps);
       var batteryLevel = ps.BatteryLifePercent.ToString();
+
+      // display the battery level as a 100% if no dedicated battery is available on the device
+      if (ps.BatteryFlag == 128)
+      {
+        return " 100% ";
+      }
 
       if (ps.ACLineStatus == 1)
       {
@@ -42,6 +45,7 @@ namespace GlazeWM.Bar.Components
       PowerStatusComponentConfig config) : base(parentViewModel, config)
     {
       _powerStatusConfig = config;
+
 
       Observable.Interval(TimeSpan.FromSeconds(1))
         .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
