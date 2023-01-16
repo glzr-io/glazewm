@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.Containers.Commands
     public Container TargetContainer { get; }
 
     /// <summary>
-    /// Insert child as end element if `targetIndex` is not provided.
+    ///  Center cursor in the middle of target container
     /// </summary>
     public CenterCursorOnWindowCommand(Container target)
     {
