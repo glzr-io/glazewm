@@ -34,7 +34,7 @@ namespace GlazeWM.Bar.Components
       {
         var focusedWindow = _containerService.FocusedContainer as Window;
 
-        if (windowHdl != focusedWindow.Handle)
+        if (focusedWindow != null && windowHdl != focusedWindow.Handle)
           return;
 
         FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
