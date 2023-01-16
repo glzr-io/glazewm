@@ -13,9 +13,9 @@ namespace GlazeWM.Bar.Components
     /// <summary>
     /// Format the current power status with the user's formatting config.
     /// </summary>
-    public string FormattedPowerStatus => FormatComponent();
+    public string FormattedPowerStatus => FormatLabel();
 
-    private string FormatComponent()
+    private string FormatLabel()
     {
       WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS ps);
       var batteryLevel = ps.BatteryLifePercent.ToString();
