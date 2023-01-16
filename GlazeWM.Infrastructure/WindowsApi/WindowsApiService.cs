@@ -427,7 +427,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public byte ACLineStatus;
       public byte BatteryFlag;
       public byte BatteryLifePercent;
-      public byte Reserved1;
+      public byte SystemStatusFlag;
       public uint BatteryLifeTime;
       public uint BatteryFullLifeTime;
     }

@@ -5,10 +5,10 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components
 {
-  public class PowerStatusComponentViewModel : ComponentViewModel
+  public class BatteryComponentViewModel : ComponentViewModel
   {
 
-    private readonly PowerStatusComponentConfig _powerStatusConfig;
+    private readonly BatteryComponentConfig _batteryComponentConfig;
 
     /// <summary>
     /// Format the current power status with the user's formatting config.
@@ -28,24 +28,23 @@ namespace GlazeWM.Bar.Components
 
       if (ps.ACLineStatus == 1)
       {
-        return _powerStatusConfig.Charging.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.Charging.Replace("{battery_level}", batteryLevel);
       }
-      else if (int.Parse(batteryLevel) <= 20)
+      else if (ps.SystemStatusFlag == 1)
       {
-        return _powerStatusConfig.Low.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.PowerSaver.Replace("{battery_level}", batteryLevel);
       }
       else
       {
-        return _powerStatusConfig.Draining.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.Draining.Replace("{battery_level}", batteryLevel);
       }
     }
 
-    public PowerStatusComponentViewModel(
+    public BatteryComponentViewModel(
       BarViewModel parentViewModel,
-      PowerStatusComponentConfig config) : base(parentViewModel, config)
+      BatteryComponentConfig config) : base(parentViewModel, config)
     {
-      _powerStatusConfig = config;
-
+      _batteryComponentConfig = config;
 
       Observable.Interval(TimeSpan.FromSeconds(1))
         .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));

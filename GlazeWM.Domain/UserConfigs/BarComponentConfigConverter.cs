@@ -18,6 +18,11 @@ namespace GlazeWM.Domain.UserConfigs
 
       return typeDiscriminator switch
       {
+        "battery" =>
+          JsonSerializer.Deserialize<BatteryComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "binding mode" =>
           JsonSerializer.Deserialize<BindingModeComponentConfig>(
             jsonObject.RootElement.ToString(),
@@ -25,11 +30,6 @@ namespace GlazeWM.Domain.UserConfigs
           ),
         "clock" =>
           JsonSerializer.Deserialize<ClockComponentConfig>(
-            jsonObject.RootElement.ToString(),
-            options
-          ),
-        "power status" =>
-          JsonSerializer.Deserialize<PowerStatusComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

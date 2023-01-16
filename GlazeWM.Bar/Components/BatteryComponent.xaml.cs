@@ -3,11 +3,11 @@
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for PowerStatusComponent.xaml
+  /// Interaction logic for BatteryComponent.xaml
   /// </summary>
-  public partial class PowerStatusComponent : UserControl
+  public partial class BatteryComponent : UserControl
   {
-    public PowerStatusComponent()
+    public BatteryComponent()
     {
       InitializeComponent();
     }
