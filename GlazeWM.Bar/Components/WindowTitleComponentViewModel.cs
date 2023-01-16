@@ -40,11 +40,19 @@ namespace GlazeWM.Bar.Components
         FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
       };
 
-      _bus.Events.OfType<WindowTitleChangedEvent>()
-          .Subscribe(@event => processTitleChange(@event.WindowHandle));
-
-      _bus.Events.OfType<WindowFocusedEvent>()
-        .Subscribe(@event => processTitleChange(@event.WindowHandle));
+      _bus.Events.Where(
+          (@event) => @event is WindowFocusedEvent or WindowTitleChangedEvent
+        ).Subscribe(e =>
+        {
+          if (e is WindowFocusedEvent)
+          {
+            processTitleChange(((WindowFocusedEvent)e).WindowHandle);
+          }
+          else if (e is WindowTitleChangedEvent)
+          {
+            processTitleChange(((WindowTitleChangedEvent)e).WindowHandle);
+          }
+        });
     }
   }
 }

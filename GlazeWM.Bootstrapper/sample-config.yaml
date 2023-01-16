@@ -21,7 +21,7 @@ bar:
       displayed_workspace_background: "#00000033"
       default_workspace_background: "transparent"
   components_center:
-    - type: "window_title"
+    - type: "window title"
   components_right:
     - type: "tiling direction"
       background: "#ffffff33"

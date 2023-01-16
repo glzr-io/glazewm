@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "window_title" =>
+        "window title" =>
         JsonSerializer.Deserialize<WindowTitleComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
