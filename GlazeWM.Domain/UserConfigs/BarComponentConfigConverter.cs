@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,6 +18,11 @@ namespace GlazeWM.Domain.UserConfigs
 
       return typeDiscriminator switch
       {
+        "battery" =>
+          JsonSerializer.Deserialize<BatteryComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "binding mode" =>
           JsonSerializer.Deserialize<BindingModeComponentConfig>(
             jsonObject.RootElement.ToString(),
