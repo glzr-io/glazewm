@@ -24,6 +24,8 @@ bar:
     - type: "window title"
   components_right:
     - type: "tiling direction"
+      text_horizontal: "⮂"
+      text_vertical: "⮁"
       background: "#ffffff33"
       margin: "0 4px"
       padding: "0 8px"
