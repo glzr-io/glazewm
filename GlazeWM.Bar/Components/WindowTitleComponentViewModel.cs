@@ -44,14 +44,8 @@ namespace GlazeWM.Bar.Components
           (@event) => @event is WindowFocusedEvent or WindowTitleChangedEvent
         ).Subscribe(e =>
         {
-          if (e is WindowFocusedEvent)
-          {
-            processTitleChange(((WindowFocusedEvent)e).WindowHandle);
-          }
-          else if (e is WindowTitleChangedEvent)
-          {
-            processTitleChange(((WindowTitleChangedEvent)e).WindowHandle);
-          }
+          dynamic d = e;
+          processTitleChange(d.WindowHandle);
         });
     }
   }
