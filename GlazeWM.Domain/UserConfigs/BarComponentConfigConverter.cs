@@ -38,6 +38,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "window title" =>
+        JsonSerializer.Deserialize<WindowTitleComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "workspaces" =>
           JsonSerializer.Deserialize<WorkspacesComponentConfig>(
             jsonObject.RootElement.ToString(),
