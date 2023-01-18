@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowFocusedHandler : IEventHandler<WindowFocusedEvent>
+  internal sealed class WindowFocusedHandler : IEventHandler<WindowFocusedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

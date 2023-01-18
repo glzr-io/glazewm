@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Infrastructure;
 

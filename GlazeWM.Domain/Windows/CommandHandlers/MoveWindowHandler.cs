@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class MoveWindowHandler : ICommandHandler<MoveWindowCommand>
+  internal sealed class MoveWindowHandler : ICommandHandler<MoveWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

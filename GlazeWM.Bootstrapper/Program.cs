@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json.Serialization;
+using System.Threading;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Containers;
@@ -5,17 +11,11 @@ using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Logging;
 using GlazeWM.Infrastructure.Serialization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text.Json.Serialization;
-using System.Threading;
-using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Bootstrapper
 {

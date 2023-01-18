@@ -1,6 +1,6 @@
-﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Common.Commands;
+using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.CommandHandlers;
+using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;

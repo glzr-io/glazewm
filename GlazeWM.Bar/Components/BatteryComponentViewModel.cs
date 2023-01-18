@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -7,7 +7,6 @@ namespace GlazeWM.Bar.Components
 {
   public class BatteryComponentViewModel : ComponentViewModel
   {
-
     private readonly BatteryComponentConfig _batteryComponentConfig;
 
     /// <summary>
@@ -17,7 +16,7 @@ namespace GlazeWM.Bar.Components
 
     private string FormatLabel()
     {
-      WindowsApiService.GetSystemPowerStatus(out WindowsApiService.SYSTEM_POWER_STATUS ps);
+      WindowsApiService.GetSystemPowerStatus(out var ps);
       var batteryLevel = ps.BatteryLifePercent.ToString();
 
       // display the battery level as a 100% if no dedicated battery is available on the device
@@ -50,5 +49,4 @@ namespace GlazeWM.Bar.Components
         .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
     }
   }
-
 }

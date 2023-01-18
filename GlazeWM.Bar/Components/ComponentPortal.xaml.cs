@@ -5,7 +5,7 @@ namespace GlazeWM.Bar.Components
   /// <summary>
   /// Interaction logic for ComponentPortal.xaml
   /// </summary>
-  public partial class ComponentPortal : UserControl
+  public class ComponentPortal : UserControl
   {
     public ComponentPortal()
     {

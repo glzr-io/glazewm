@@ -1,10 +1,10 @@
-﻿using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class SetMinimizedHandler : ICommandHandler<SetMinimizedCommand>
+  internal sealed class SetMinimizedHandler : ICommandHandler<SetMinimizedCommand>
   {
     public CommandResponse Handle(SetMinimizedCommand command)
     {

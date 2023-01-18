@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Infrastructure.Bussing
+namespace GlazeWM.Infrastructure.Bussing
 {
   public interface IEventHandler<TEvent> where TEvent : Event
   {

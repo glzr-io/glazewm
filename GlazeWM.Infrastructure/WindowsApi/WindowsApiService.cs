@@ -1,8 +1,8 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Enums;
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+using GlazeWM.Infrastructure.WindowsApi.Enums;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {

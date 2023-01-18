@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class ToggleFocusModeHandler : ICommandHandler<ToggleFocusModeCommand>
+  internal sealed class ToggleFocusModeHandler : ICommandHandler<ToggleFocusModeCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

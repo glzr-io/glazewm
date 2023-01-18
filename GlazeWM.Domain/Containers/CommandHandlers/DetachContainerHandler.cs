@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class DetachContainerHandler : ICommandHandler<DetachContainerCommand>
+  internal sealed class DetachContainerHandler : ICommandHandler<DetachContainerCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

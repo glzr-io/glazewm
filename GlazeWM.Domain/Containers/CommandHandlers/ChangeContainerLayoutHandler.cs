@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -8,7 +8,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
+  internal sealed class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

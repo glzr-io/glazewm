@@ -9,7 +9,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  internal class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
+  internal sealed class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
   {
     private readonly Bus _bus;
     private readonly CommandParsingService _commandParsingService;

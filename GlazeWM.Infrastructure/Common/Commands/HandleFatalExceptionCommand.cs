@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Infrastructure.Common.Commands

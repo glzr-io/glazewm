@@ -1,6 +1,6 @@
-﻿using GlazeWM.Domain.Containers;
-using GlazeWM.Infrastructure.Bussing;
 using System;
+using GlazeWM.Domain.Containers;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.Commands
 {

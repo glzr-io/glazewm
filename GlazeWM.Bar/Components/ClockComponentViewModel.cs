@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Text;
@@ -16,10 +16,8 @@ namespace GlazeWM.Bar.Components
     /// </summary>
     public string FormattedTime => DateTime.Now.ToString(_timeFormatting, CultureInfo.InvariantCulture);
 
-
-    private String formatCalendarWeek(string timeFormat)
+    private static string formatCalendarWeek(string timeFormat)
     {
-
       if (!timeFormat.Contains('w')) return timeFormat;
 
       var now = DateTime.Now;
@@ -32,32 +30,28 @@ namespace GlazeWM.Bar.Components
         switch (timeFormat[i])
         {
           case '\\':
-            {
-              result.Append(timeFormat[i]);
-              result.Append(nextChar);
-              i = i + 2;
-              break;
-            }
+            result.Append(timeFormat[i])
+              .Append(nextChar);
+            i += 2;
+            break;
+
           case 'w':
+            if (nextChar.Equals("w", StringComparison.Ordinal))
             {
-              if (nextChar.Equals("w"))
-              {
-                i = i + 2;
-                result.Append(ISOWeek.GetWeekOfYear(now).ToString("00"));
-              }
-              else
-              {
-                i++;
-                result.Append(ISOWeek.GetWeekOfYear(now).ToString());
-              }
-              break;
+              i += 2;
+              result.Append(ISOWeek.GetWeekOfYear(now).ToString("00"));
             }
-          default:
+            else
             {
-              result.Append(timeFormat[i]);
               i++;
-              break;
+              result.Append(ISOWeek.GetWeekOfYear(now));
             }
+            break;
+
+          default:
+            result.Append(timeFormat[i]);
+            i++;
+            break;
         }
       }
       return result.ToString();

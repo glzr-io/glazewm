@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,7 +12,7 @@ using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ResizeWindowHandler : ICommandHandler<ResizeWindowCommand>
+  internal sealed class ResizeWindowHandler : ICommandHandler<ResizeWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

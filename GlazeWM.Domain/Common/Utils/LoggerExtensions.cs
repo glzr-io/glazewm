@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Common.Utils

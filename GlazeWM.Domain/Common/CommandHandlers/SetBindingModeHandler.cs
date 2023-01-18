@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Common.Events;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;

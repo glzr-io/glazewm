@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ShowAllWindowsHandler : ICommandHandler<ShowAllWindowsCommand>
+  internal sealed class ShowAllWindowsHandler : ICommandHandler<ShowAllWindowsCommand>
   {
     private readonly WindowService _windowService;
 

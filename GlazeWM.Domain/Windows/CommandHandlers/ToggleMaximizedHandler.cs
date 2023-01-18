@@ -1,10 +1,10 @@
-﻿using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ToggleMaximizedHandler : ICommandHandler<ToggleMaximizedCommand>
+  internal sealed class ToggleMaximizedHandler : ICommandHandler<ToggleMaximizedCommand>
   {
     public CommandResponse Handle(ToggleMaximizedCommand command)
     {

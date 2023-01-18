@@ -1,5 +1,5 @@
-﻿using GlazeWM.Infrastructure.Bussing;
 using System.Windows.Forms;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.Commands
 {

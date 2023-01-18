@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Infrastructure.WindowsApi.Enums
+namespace GlazeWM.Infrastructure.WindowsApi.Enums
 {
   /// <summary>
   /// Only the subset of event constants relevant to this application are included.

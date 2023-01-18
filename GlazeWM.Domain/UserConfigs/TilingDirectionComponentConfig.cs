@@ -6,7 +6,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// Text to display in vertical mode.
     /// </summary>
     public string TextVertical { get; set; } = "vertical";
-    
+
     /// <summary>
     /// Text to display horizontal mode.
     /// </summary>

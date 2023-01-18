@@ -1,8 +1,3 @@
-﻿using GlazeWM.Domain.UserConfigs.Commands;
-using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Exceptions;
-using GlazeWM.Infrastructure.Serialization;
-using GlazeWM.Infrastructure.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,10 +6,15 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Forms;
+using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Exceptions;
+using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  internal class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
+  internal sealed class EvaluateUserConfigHandler : ICommandHandler<EvaluateUserConfigCommand>
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;

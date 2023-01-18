@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -13,7 +13,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ManageWindowHandler : ICommandHandler<ManageWindowCommand>
+  internal sealed class ManageWindowHandler : ICommandHandler<ManageWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -35,9 +35,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _logger = logger;
       _monitorService = monitorService;
       _windowService = windowService;
-
       _userConfigService = userConfigService;
-
     }
 
     public CommandResponse Handle(ManageWindowCommand command)

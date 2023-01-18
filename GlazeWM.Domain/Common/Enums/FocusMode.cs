@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Domain.Common.Enums
+namespace GlazeWM.Domain.Common.Enums
 {
   public enum FocusMode
   {

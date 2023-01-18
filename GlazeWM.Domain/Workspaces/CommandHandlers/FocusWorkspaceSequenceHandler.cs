@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
@@ -7,7 +7,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class FocusWorkspaceSequenceHandler : ICommandHandler<FocusWorkspaceSequenceCommand>
+  internal sealed class FocusWorkspaceSequenceHandler : ICommandHandler<FocusWorkspaceSequenceCommand>
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;

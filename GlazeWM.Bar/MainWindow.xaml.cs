@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Interop;
@@ -16,7 +16,7 @@ namespace GlazeWM.Bar
   /// <summary>
   /// Interaction logic for MainWindow.xaml
   /// </summary>
-  public partial class MainWindow : Window
+  public class MainWindow : Window
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly UserConfigService _userConfigService =

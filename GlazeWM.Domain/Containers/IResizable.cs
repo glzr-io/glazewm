@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Domain.Containers
+namespace GlazeWM.Domain.Containers
 {
   public interface IResizable
   {

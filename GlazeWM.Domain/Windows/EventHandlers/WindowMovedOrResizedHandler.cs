@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
+  internal sealed class WindowMovedOrResizedHandler : IEventHandler<WindowMovedOrResizedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
@@ -8,7 +8,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
+  internal sealed class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private readonly ContainerService _containerService;
     private readonly UserConfigService _userConfigService;

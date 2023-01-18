@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows

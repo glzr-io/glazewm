@@ -1,11 +1,11 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class FocusWorkspaceRecentHandler : ICommandHandler<FocusWorkspaceRecentCommand>
+  internal sealed class FocusWorkspaceRecentHandler : ICommandHandler<FocusWorkspaceRecentCommand>
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;

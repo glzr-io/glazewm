@@ -1,11 +1,11 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
+  internal sealed class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

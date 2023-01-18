@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.WindowsApi;

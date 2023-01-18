@@ -1,13 +1,11 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
-
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class CenterCursorOnRectHandler : ICommandHandler<CenterCursorOnRectCommand>
+  internal sealed class CenterCursorOnRectHandler : ICommandHandler<CenterCursorOnRectCommand>
   {
     private readonly UserConfigService _userConfigService;
 
@@ -18,16 +16,19 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(CenterCursorOnRectCommand command)
     {
-      var enabled = _userConfigService.GeneralConfig.CursorFollowsFocus;
-      if (!enabled)
+      var isEnabled = _userConfigService.GeneralConfig.CursorFollowsFocus;
+
+      if (!isEnabled)
         return CommandResponse.Ok;
 
-      Rect TargetRect = command.TargetRect;
+      var targetRect = command.TargetRect;
 
-      // Calculate center point of focused window
-      var centerX = TargetRect.X + (TargetRect.Width / 2);
-      var centerY = TargetRect.Y + (TargetRect.Height / 2);
+      // Calculate center point of focused window.
+      var centerX = targetRect.X + (targetRect.Width / 2);
+      var centerY = targetRect.Y + (targetRect.Height / 2);
+
       SetCursorPos(centerX, centerY);
+
       return CommandResponse.Ok;
     }
   }
