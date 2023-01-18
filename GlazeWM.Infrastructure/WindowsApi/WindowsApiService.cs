@@ -217,8 +217,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern IntPtr WindowFromPoint(Point Point);
 
-    [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
+    [DllImport("user32.dll")]
     public static extern IntPtr GetParent(IntPtr hWnd);
+
+    [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
     public static extern bool SetCursorPos(int X, int Y);
 
     /// <summary>
