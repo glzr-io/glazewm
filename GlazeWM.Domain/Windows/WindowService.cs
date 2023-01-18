@@ -216,10 +216,10 @@ namespace GlazeWM.Domain.Windows
     {
       return window switch
       {
-        TilingWindow => WindowType.TILING,
-        FloatingWindow => WindowType.FLOATING,
-        MaximizedWindow => WindowType.MAXIMIZED,
-        FullscreenWindow => WindowType.FULLSCREEN,
+        TilingWindow => WindowType.Tiling,
+        FloatingWindow => WindowType.Floating,
+        MaximizedWindow => WindowType.Maximized,
+        FullscreenWindow => WindowType.Fullscreen,
         _ => throw new ArgumentException(null, nameof(window)),
       };
     }

@@ -44,8 +44,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // there is no previous/next workspace.
       var indexToFocus = direction switch
       {
-        Sequence.PREVIOUS => configIndex == 0 ? sortedWorkspaces.Count - 1 : configIndex - 1,
-        Sequence.NEXT => configIndex == sortedWorkspaces.Count - 1 ? 0 : configIndex + 1,
+        Sequence.Previous => configIndex == 0 ? sortedWorkspaces.Count - 1 : configIndex - 1,
+        Sequence.Next => configIndex == sortedWorkspaces.Count - 1 ? 0 : configIndex + 1,
         _ => throw new ArgumentException(nameof(direction)),
       };
 

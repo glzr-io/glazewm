@@ -70,29 +70,29 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       return window.PreviousState switch
       {
-        WindowType.FLOATING => new FloatingWindow(
+        WindowType.Floating => new FloatingWindow(
           window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
-        WindowType.MAXIMIZED => new MaximizedWindow(
+        WindowType.Maximized => new MaximizedWindow(
           window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
-        WindowType.FULLSCREEN => new FullscreenWindow(
+        WindowType.Fullscreen => new FullscreenWindow(
           window.Handle,
           window.FloatingPlacement,
           window.BorderDelta
         ),
         // Set `SizePercentage` to 0 to correctly resize the container when moved within tree.
-        WindowType.TILING => new TilingWindow(
+        WindowType.Tiling => new TilingWindow(
           window.Handle,
           window.FloatingPlacement,
           window.BorderDelta,
           0
         ),
-        WindowType.MINIMIZED => throw new ArgumentException(null, nameof(window)),
+        WindowType.Minimized => throw new ArgumentException(null, nameof(window)),
         _ => throw new ArgumentException(null, nameof(window)),
       };
     }

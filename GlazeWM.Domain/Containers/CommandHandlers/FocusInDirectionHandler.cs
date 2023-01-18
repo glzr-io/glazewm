@@ -49,10 +49,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private static Container GetFocusTargetFromFloating(Container focusedContainer, Direction direction)
     {
       // Cannot focus vertically from a floating window.
-      if (direction is Direction.UP or Direction.DOWN)
+      if (direction is Direction.Up or Direction.Down)
         return null;
 
-      var focusTarget = direction is Direction.RIGHT
+      var focusTarget = direction is Direction.Right
         ? focusedContainer.NextSiblingOfType<FloatingWindow>()
         : focusedContainer.PreviousSiblingOfType<FloatingWindow>();
 
@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return focusTarget;
 
       // Wrap if next/previous floating window is not found.
-      return direction is Direction.RIGHT
+      return direction is Direction.Right
         ? focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().FirstOrDefault()
         : focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().LastOrDefault();
     }
@@ -100,7 +100,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           continue;
         }
 
-        var focusTarget = direction is Direction.UP or Direction.LEFT
+        var focusTarget = direction is Direction.Up or Direction.Left
           ? focusReference.PreviousSiblingOfType<IResizable>()
           : focusReference.NextSiblingOfType<IResizable>();
 

@@ -25,9 +25,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(ToggleFocusModeCommand command)
     {
       var currentFocusMode = _containerService.FocusMode;
-      var targetFocusMode = currentFocusMode == FocusMode.TILING
-        ? FocusMode.FLOATING
-        : FocusMode.TILING;
+      var targetFocusMode = currentFocusMode == FocusMode.Tiling
+        ? FocusMode.Floating
+        : FocusMode.Tiling;
 
       var windowToFocus = GetWindowToFocus(targetFocusMode);
 
@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
 
-      if (targetFocusMode == FocusMode.FLOATING)
+      if (targetFocusMode == FocusMode.Floating)
         // Get the last focused tiling window within the workspace.
         return focusedWorkspace.LastFocusedDescendantOfType<FloatingWindow>() as Window;
 

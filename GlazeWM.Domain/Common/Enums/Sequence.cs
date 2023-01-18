@@ -5,7 +5,7 @@ namespace GlazeWM.Domain.Common.Enums
   /// </summary>
   public enum Sequence
   {
-    PREVIOUS,
-    NEXT
+    Previous,
+    Next
   }
 }

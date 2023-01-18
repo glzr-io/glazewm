@@ -106,24 +106,24 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // TODO: Handle initialization of maximized and fullscreen windows.
       return windowType switch
       {
-        WindowType.MINIMIZED => new MinimizedWindow(
+        WindowType.Minimized => new MinimizedWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta,
-          isResizable ? WindowType.TILING : WindowType.FLOATING
+          isResizable ? WindowType.Tiling : WindowType.Floating
         ),
-        WindowType.FLOATING => new FloatingWindow(
+        WindowType.Floating => new FloatingWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta
         ),
-        WindowType.TILING => new TilingWindow(
+        WindowType.Tiling => new TilingWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta
         ),
-        WindowType.MAXIMIZED => throw new ArgumentException(null, nameof(windowHandle)),
-        WindowType.FULLSCREEN => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.Maximized => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.Fullscreen => throw new ArgumentException(null, nameof(windowHandle)),
         _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
     }
@@ -131,13 +131,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
     {
       if (WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.Minimize))
-        return WindowType.MINIMIZED;
+        return WindowType.Minimized;
 
       // Initialize windows that can't be resized as floating.
       if (!WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame))
-        return WindowType.FLOATING;
+        return WindowType.Floating;
 
-      return WindowType.TILING;
+      return WindowType.Tiling;
     }
 
     private (SplitContainer targetParent, int targetIndex) GetInsertionTarget()
