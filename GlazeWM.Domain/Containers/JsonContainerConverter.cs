@@ -47,7 +47,8 @@ namespace GlazeWM.Domain.Containers
           jsonObject.GetProperty("Y").GetInt32()
         ),
         "Workspace" => new Workspace(
-          jsonObject.GetProperty("Name").GetString()
+          jsonObject.GetProperty("Name").GetString(),
+          jsonObject.GetProperty("Layout").Deserialize<Layout>()
         ),
         "SplitContainer" => new SplitContainer
         {

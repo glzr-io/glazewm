@@ -18,16 +18,5 @@ namespace GlazeWM.Domain.Containers
     public override int Height => _containerService.GetHeightOfResizableContainer(this);
     public override int X => _containerService.GetXOfResizableContainer(this);
     public override int Y => _containerService.GetYOfResizableContainer(this);
-    public SplitContainer()
-    {
-      if (this.Height > this.Width)
-      {
-        this.Layout = Layout.VERTICAL;
-      }
-      else
-      {
-        this.Layout = Layout.HORIZONTAL;
-      }
-    }
   }
 }
