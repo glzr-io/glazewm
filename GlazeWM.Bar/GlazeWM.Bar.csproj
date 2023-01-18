@@ -10,6 +10,18 @@
   <ItemGroup>
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
+    <PackageReference
+      Include="Roslynator.Analyzers"
+      Version="4.2.0" />
+    <PackageReference
+      Include="Roslynator.CodeAnalysis.Analyzers"
+      Version="4.2.0" />
+    <PackageReference
+      Include="Roslynator.Formatting.Analyzers"
+      Version="4.2.0" />
+    <PackageReference
+      Include="Microsoft.CodeAnalysis.NetAnalyzers"
+      Version="7.0.0" />
   </ItemGroup>
 
 </Project>
