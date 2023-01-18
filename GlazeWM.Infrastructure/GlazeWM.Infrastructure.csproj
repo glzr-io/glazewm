@@ -19,5 +19,8 @@
     <PackageReference
       Include="Roslynator.Analyzers"
       Version="4.2.0" />
+    <PackageReference
+      Include="Microsoft.CodeAnalysis.NetAnalyzers"
+      Version="7.0.0" />
   </ItemGroup>
 </Project>
