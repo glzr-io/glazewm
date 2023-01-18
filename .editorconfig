@@ -1,4 +1,5 @@
 # To learn more about .editorconfig see https://aka.ms/editorconfigdocs
+
 ###############################
 # Core EditorConfig Options   #
 ###############################
@@ -6,6 +7,7 @@
 # All files
 [*]
 indent_style = space
+end_of_line = crlf
 
 # Code files
 [*.{cs,yaml,xaml,json,csproj,sln}]
