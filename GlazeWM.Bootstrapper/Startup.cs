@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -6,16 +11,11 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Windows.Forms;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bootstrapper
 {
-  internal class Startup
+  internal sealed class Startup
   {
     private readonly BarService _barService;
     private readonly Bus _bus;
@@ -44,7 +44,7 @@ namespace GlazeWM.Bootstrapper
       try
       {
         // Set the process-default DPI awareness.
-        _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
+        _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.PerMonitorAwareV2);
 
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());

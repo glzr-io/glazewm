@@ -2,10 +2,10 @@ namespace GlazeWM.Domain.Windows
 {
   public enum WindowType
   {
-    TILING,
-    FLOATING,
-    MINIMIZED,
-    MAXIMIZED,
-    FULLSCREEN,
+    Tiling,
+    Floating,
+    Minimized,
+    Maximized,
+    Fullscreen,
   }
 }

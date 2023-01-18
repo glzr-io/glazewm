@@ -1,29 +1,29 @@
-﻿using GlazeWM.Infrastructure.WindowsApi.Enums;
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+using GlazeWM.Infrastructure.WindowsApi.Enums;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
   public static class WindowsApiService
   {
     [Flags]
-    public enum SWP : uint
+    public enum SetWindowPosFlags : uint
     {
-      SWP_NOSIZE = 0x0001,
-      SWP_NOMOVE = 0x0002,
-      SWP_NOZORDER = 0x0004,
-      SWP_NOREDRAW = 0x0008,
-      SWP_NOACTIVATE = 0x0010,
-      SWP_FRAMECHANGED = 0x0020,
-      SWP_SHOWWINDOW = 0x0040,
-      SWP_HIDEWINDOW = 0x0080,
-      SWP_NOCOPYBITS = 0x0100,
-      SWP_NOOWNERZORDER = 0x0200,
-      SWP_NOSENDCHANGING = 0x0400,
-      SWP_DEFERERASE = 0x2000,
-      SWP_ASYNCWINDOWPOS = 0x4000
+      NoSize = 0x0001,
+      NoMove = 0x0002,
+      NoZOrder = 0x0004,
+      NoRedraw = 0x0008,
+      NoActivate = 0x0010,
+      FrameChanged = 0x0020,
+      ShowWindow = 0x0040,
+      HideWindow = 0x0080,
+      NoCopyBits = 0x0100,
+      NoOwnerZOrder = 0x0200,
+      NoSendChanging = 0x0400,
+      DeferErase = 0x2000,
+      AsyncWindowPos = 0x4000
     }
 
     /// <summary>
@@ -55,98 +55,98 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// Window styles
     /// </summary>
     [Flags]
-    public enum WS : uint
+    public enum WindowStyles : uint
     {
-      WS_OVERLAPPED = 0x00000000,
-      WS_TILED = WS_OVERLAPPED,
-      WS_TABSTOP = 0x00010000,
-      WS_MAXIMIZEBOX = 0x00010000,
-      WS_GROUP = 0x00020000,
-      WS_MINIMIZEBOX = 0x00020000,
-      WS_THICKFRAME = 0x00040000,
-      WS_SIZEBOX = WS_THICKFRAME,
-      WS_SYSMENU = 0x00080000,
-      WS_HSCROLL = 0x00100000,
-      WS_VSCROLL = 0x00200000,
-      WS_DLGFRAME = 0x00400000,
-      WS_BORDER = 0x00800000,
-      WS_CAPTION = WS_BORDER | WS_DLGFRAME,
-      WS_TILEDWINDOW = WS_OVERLAPPEDWINDOW,
-      WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-      WS_MAXIMIZE = 0x01000000,
-      WS_CLIPCHILDREN = 0x02000000,
-      WS_CLIPSIBLINGS = 0x04000000,
-      WS_DISABLED = 0x08000000,
-      WS_VISIBLE = 0x10000000,
-      WS_MINIMIZE = 0x20000000,
-      WS_ICONIC = WS_MINIMIZE,
-      WS_CHILD = 0x40000000,
-      WS_CHILDWINDOW = WS_CHILD,
-      WS_POPUP = 0x80000000,
-      WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU
+      Overlapped = 0x00000000,
+      Tiled = Overlapped,
+      TabStop = 0x00010000,
+      MaximizeBox = 0x00010000,
+      Group = 0x00020000,
+      MinimizeBox = 0x00020000,
+      ThickFrame = 0x00040000,
+      SizeBox = ThickFrame,
+      SysMenu = 0x00080000,
+      HScroll = 0x00100000,
+      VScroll = 0x00200000,
+      DlgFrame = 0x00400000,
+      Border = 0x00800000,
+      Capion = Border | DlgFrame,
+      TiledWindow = OverlappedWindow,
+      OverlappedWindow = Overlapped | Capion | SysMenu | ThickFrame | MinimizeBox | MaximizeBox,
+      Maximize = 0x01000000,
+      ClipChildren = 0x02000000,
+      ClipSiblings = 0x04000000,
+      Disabled = 0x08000000,
+      Visible = 0x10000000,
+      Minimize = 0x20000000,
+      Iconic = Minimize,
+      Child = 0x40000000,
+      ChildWindow = Child,
+      Popup = 0x80000000,
+      PopupWindow = Popup | Border | SysMenu
     }
 
     /// <summary>
     /// Extended window styles
     /// </summary>
     [Flags]
-    public enum WS_EX : uint
+    public enum WindowStylesEx : uint
     {
-      WS_EX_LEFT = 0x0000,
-      WS_EX_LTRREADING = 0x0000,
-      WS_EX_RIGHTSCROLLBAR = 0x0000,
-      WS_EX_DLGMODALFRAME = 0x0001,
-      WS_EX_NOPARENTNOTIFY = 0x0004,
-      WS_EX_TOPMOST = 0x0008,
-      WS_EX_ACCEPTFILES = 0x0010,
-      WS_EX_TRANSPARENT = 0x0020,
-      WS_EX_MDICHILD = 0x0040,
-      WS_EX_TOOLWINDOW = 0x0080,
-      WS_EX_WINDOWEDGE = 0x0100,
-      WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-      WS_EX_CLIENTEDGE = 0x0200,
-      WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
-      WS_EX_CONTEXTHELP = 0x0400,
-      WS_EX_RIGHT = 0x1000,
-      WS_EX_RTLREADING = 0x2000,
-      WS_EX_LEFTSCROLLBAR = 0x4000,
-      WS_EX_CONTROLPARENT = 0x10000,
-      WS_EX_STATICEDGE = 0x20000,
-      WS_EX_APPWINDOW = 0x40000,
-      WS_EX_LAYERED = 0x00080000,
-      WS_EX_NOINHERITLAYOUT = 0x00100000,
-      WS_EX_LAYOUTRTL = 0x00400000,
-      WS_EX_COMPOSITED = 0x02000000,
-      WS_EX_NOACTIVATE = 0x08000000
+      Left = 0x0000,
+      LtrReading = 0x0000,
+      RightScrollbar = 0x0000,
+      DlgModalFrame = 0x0001,
+      NoParentNotify = 0x0004,
+      TopMost = 0x0008,
+      AcceptFiles = 0x0010,
+      Transparent = 0x0020,
+      MdiChild = 0x0040,
+      ToolWindow = 0x0080,
+      WindowEdge = 0x0100,
+      PaletteWindow = WindowEdge | ToolWindow | TopMost,
+      ClientEdge = 0x0200,
+      OverlappedWindow = WindowEdge | ClientEdge,
+      ContextHelp = 0x0400,
+      Right = 0x1000,
+      RtlReading = 0x2000,
+      LeftScrollbar = 0x4000,
+      ControlParent = 0x10000,
+      StaticEdge = 0x20000,
+      AppWindow = 0x40000,
+      Layered = 0x00080000,
+      NoInheritLayout = 0x00100000,
+      LayoutRtl = 0x00400000,
+      Composited = 0x02000000,
+      NoActivate = 0x08000000
     }
 
     [Flags]
     public enum DwmWindowAttribute : uint
     {
-      DWMWA_NCRENDERING_ENABLED = 1,
-      DWMWA_NCRENDERING_POLICY,
-      DWMWA_TRANSITIONS_FORCEDISABLED,
-      DWMWA_ALLOW_NCPAINT,
-      DWMWA_CAPTION_BUTTON_BOUNDS,
-      DWMWA_NONCLIENT_RTL_LAYOUT,
-      DWMWA_FORCE_ICONIC_REPRESENTATION,
-      DWMWA_FLIP3D_POLICY,
-      DWMWA_EXTENDED_FRAME_BOUNDS,
-      DWMWA_HAS_ICONIC_BITMAP,
-      DWMWA_DISALLOW_PEEK,
-      DWMWA_EXCLUDED_FROM_PEEK,
-      DWMWA_CLOAK,
-      DWMWA_CLOAKED,
-      DWMWA_FREEZE_REPRESENTATION,
-      DWMWA_LAST
+      NcRenderingEnabled = 1,
+      NcRenderingPolicy,
+      TransitionsForceDisabled,
+      AllowNcPaint,
+      CaptionButtonBounds,
+      NonClientRtlLayout,
+      ForceIconicRepresentation,
+      Flip3DPolicy,
+      ExtendedFrameBounds,
+      HasIconicBitmap,
+      DisallowPeek,
+      ExcludedFromPeek,
+      Cloak,
+      Cloaked,
+      FreezeRepresentation,
+      Last
     }
 
-    public const int GWL_STYLE = -16;
-    public const int GWL_EXSTYLE = -20;
+    public const int GWLSTYLE = -16;
+    public const int GWLEXSTYLE = -20;
 
     public enum GW : uint
     {
-      GW_OWNER = 4,
+      Owner = 4,
     }
 
     public delegate bool EnumWindowsDelegate(IntPtr hWnd, int lParam);
@@ -185,14 +185,28 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SWP uFlags);
+    public static extern bool SetWindowPos(
+      IntPtr hWnd,
+      IntPtr hWndInsertAfter,
+      int x,
+      int y,
+      int cx,
+      int cy,
+      SetWindowPosFlags uFlags);
 
     [DllImport("user32.dll")]
     public static extern IntPtr BeginDeferWindowPos(int nNumWindows);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd,
-         [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
+    public static extern IntPtr DeferWindowPos(
+      IntPtr hWinPosInfo,
+      IntPtr hWnd,
+      [Optional] IntPtr hWndInsertAfter,
+      int x,
+      int y,
+      int cx,
+      int cy,
+      SetWindowPosFlags uFlags);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -209,33 +223,27 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+    public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
     [DllImport("user32.dll")]
     public static extern bool SetFocus(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr WindowFromPoint(Point Point);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetParent(IntPtr hWnd);
-
-    [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
-    public static extern bool SetCursorPos(int X, int Y);
+    public static extern bool SetCursorPos(int x, int y);
 
     /// <summary>
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
     /// this application are included.
     /// </summary>
-    public enum ShowWindowCommands : uint
+    public enum ShowWindowFlags : uint
     {
-      MINIMIZE = 2,
-      MAXIMIZE = 3,
-      RESTORE = 9,
+      Minimize = 2,
+      Maximize = 3,
+      Restore = 9,
     }
 
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowCommands flags);
+    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowFlags flags);
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetWindowTextLength(IntPtr hWnd);
@@ -271,7 +279,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       /// <summary>
       /// The current show state of the window.
       /// </summary>
-      public ShowWindowCommands ShowCommand;
+      public ShowWindowFlags ShowCommand;
 
       /// <summary>
       /// The coordinates of the window's upper-left corner when the window is minimized.
@@ -306,8 +314,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public enum HookType
     {
-      WH_KEYBOARD_LL = 13,
-      WH_MOUSE_LL = 14
+      KeyboardLowLevel = 13,
+      MouseLowLevel = 14
     }
 
     /// <summary>
@@ -405,23 +413,23 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     public enum SendMessageType : uint
     {
-      WM_CLOSE = 0x0010,
+      Close = 0x0010,
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern IntPtr SendMessage(IntPtr hWnd, SendMessageType Msg, IntPtr wParam, IntPtr lParam);
+    public static extern IntPtr SendMessage(IntPtr hWnd, SendMessageType msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool IsProcessDPIAware();
 
     public enum DpiAwarenessContext
     {
-      Context_UnawareGdiScaled = -5,
-      Context_PerMonitorAwareV2 = -4,
-      Context_PerMonitorAware = -3,
-      Context_SystemAware = -2,
-      Context_Unaware = -1,
-      Context_Undefined = 0
+      UnawareGdiScaled = -5,
+      PerMonitorAwareV2 = -4,
+      PerMonitorAware = -3,
+      SystemAware = -2,
+      Unaware = -1,
+      Undefined = 0
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -431,13 +439,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern uint GetDpiForWindow(IntPtr hWnd);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRectEx(ref Rect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
+    public static extern bool AdjustWindowRectEx(ref Rect lpRect, WindowStyles dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WindowStylesEx dwExStyle);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRect(ref Rect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
+    public static extern bool AdjustWindowRect(ref Rect lpRect, WindowStyles dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool AdjustWindowRectExForDpi(ref Rect lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle, uint dpi);
+    public static extern bool AdjustWindowRectExForDpi(ref Rect lpRect, WindowStyles dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WindowStylesEx dwExStyle, uint dpi);
 
     public enum DpiType
     {
@@ -451,16 +459,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public enum MonitorFromPointFlags : uint
     {
-      MONITOR_DEFAULTTONEAREST = 2,
+      DefaultToNearest = 2,
     }
 
     [DllImport("User32.dll")]
     public static extern IntPtr MonitorFromPoint(Point pt, MonitorFromPointFlags dwFlags);
 
     [DllImport("kernel32.dll")]
-    public static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
+    public static extern bool GetSystemPowerStatus(out SystemPowerStatus lpSystemPowerStatus);
 
-    public struct SYSTEM_POWER_STATUS
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SystemPowerStatus
     {
       public byte ACLineStatus;
       public byte BatteryFlag;

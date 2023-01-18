@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 
 namespace GlazeWM.Domain.Monitors

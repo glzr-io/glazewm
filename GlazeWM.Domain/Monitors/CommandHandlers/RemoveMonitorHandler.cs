@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
@@ -8,7 +8,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  internal class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
+  internal sealed class RemoveMonitorHandler : ICommandHandler<RemoveMonitorCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;

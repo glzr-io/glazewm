@@ -182,17 +182,16 @@ dotnet_diagnostic.RCS1135.severity = none
 # clarity when a variable is guaranteed to be defined.
 dotnet_diagnostic.RCS1202.severity = none
 
-# TODO: Temporarily disabled rules until upcoming refactors:
+# TODO: Temporarily disabled.
 # Disable rule "P/Invoke methods should not be visible".
 dotnet_diagnostic.CA1401.severity = none
 
+# TODO: Temporarily disabled.
 # Disable rule "Duplicate enum value".
 dotnet_diagnostic.RCS1234.severity = none
 dotnet_diagnostic.CA1069.severity = none
 
-# Disable rule "Identifiers should not contain underscores".
-dotnet_diagnostic.CA1707.severity = none
-
+# TODO: Temporarily disabled.
 # Disable rule "Enum should declare explicit values".
 dotnet_diagnostic.RCS1161.severity = none
 
@@ -208,6 +207,16 @@ dotnet_diagnostic.CA1711.severity = none
 # Disable rule "Identifiers should not match keywords".
 dotnet_diagnostic.CA1716.severity = none
 
+# Disable rule "Use the LoggerMessage delegates".
+dotnet_diagnostic.CA1848.severity = none
+
+# TODO: Temporarily disabled.
+# Disable rule "Avoid 'StringBuilder' parameters for P/Invokes".
+dotnet_diagnostic.CA1838.severity = none
+
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
+
+[**/*.xaml.cs]
+dotnet_diagnostic.RCS1043.severity = none

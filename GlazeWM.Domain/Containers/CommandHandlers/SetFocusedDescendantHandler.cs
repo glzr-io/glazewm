@@ -1,10 +1,10 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class SetFocusedDescendantHandler : ICommandHandler<SetFocusedDescendantCommand>
+  internal sealed class SetFocusedDescendantHandler : ICommandHandler<SetFocusedDescendantCommand>
   {
     public CommandResponse Handle(SetFocusedDescendantCommand command)
     {

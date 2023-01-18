@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -62,8 +63,9 @@ namespace GlazeWM.Domain.Workspaces
     /// </summary>
     public bool IsDisplayed => (Parent as Monitor)?.DisplayedWorkspace == this;
 
-    public Workspace(string name)
+    public Workspace(string name, Layout layout)
     {
+      Layout = layout;
       Id = $"WORKSPACE/{name}";
       Name = name;
     }

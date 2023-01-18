@@ -9,7 +9,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
-  internal class ReloadUserConfigHandler : ICommandHandler<ReloadUserConfigCommand>
+  internal sealed class ReloadUserConfigHandler : ICommandHandler<ReloadUserConfigCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

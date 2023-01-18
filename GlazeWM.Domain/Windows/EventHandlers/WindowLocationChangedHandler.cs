@@ -1,10 +1,10 @@
-﻿using GlazeWM.Domain.Monitors.Commands;
+using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowLocationChangedHandler : IEventHandler<WindowLocationChangedEvent>
+  internal sealed class WindowLocationChangedHandler : IEventHandler<WindowLocationChangedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

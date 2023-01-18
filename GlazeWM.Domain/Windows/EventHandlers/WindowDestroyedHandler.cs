@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowDestroyedHandler : IEventHandler<WindowDestroyedEvent>
+  internal sealed class WindowDestroyedHandler : IEventHandler<WindowDestroyedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

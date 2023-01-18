@@ -1,11 +1,11 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class UnmanageWindowHandler : ICommandHandler<UnmanageWindowCommand>
+  internal sealed class UnmanageWindowHandler : ICommandHandler<UnmanageWindowCommand>
   {
     private readonly Bus _bus;
 

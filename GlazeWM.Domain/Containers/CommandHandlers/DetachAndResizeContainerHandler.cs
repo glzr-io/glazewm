@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class DetachAndResizeContainerHandler : ICommandHandler<DetachAndResizeContainerCommand>
+  internal sealed class DetachAndResizeContainerHandler : ICommandHandler<DetachAndResizeContainerCommand>
   {
     private readonly Bus _bus;
 

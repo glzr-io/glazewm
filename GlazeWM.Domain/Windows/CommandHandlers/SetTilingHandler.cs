@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class SetTilingHandler : ICommandHandler<SetTilingCommand>
+  internal sealed class SetTilingHandler : ICommandHandler<SetTilingCommand>
   {
     private readonly Bus _bus;
 

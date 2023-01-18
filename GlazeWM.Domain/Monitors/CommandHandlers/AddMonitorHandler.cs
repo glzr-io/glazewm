@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Monitors.Events;
@@ -9,7 +9,7 @@ using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  internal class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
+  internal sealed class AddMonitorHandler : ICommandHandler<AddMonitorCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

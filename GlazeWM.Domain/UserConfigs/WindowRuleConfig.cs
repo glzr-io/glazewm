@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -33,7 +34,9 @@ namespace GlazeWM.Domain.UserConfigs
       if (string.IsNullOrWhiteSpace(input))
         return null;
 
-      var isRegexLiteral = input.StartsWith("/") && input.EndsWith("/");
+      var isRegexLiteral =
+        input.StartsWith("/", StringComparison.InvariantCulture) &&
+        input.EndsWith("/", StringComparison.InvariantCulture);
 
       // Allow user to pass a string that should be interpreted as regex (eg. "/steam/").
       if (isRegexLiteral)
