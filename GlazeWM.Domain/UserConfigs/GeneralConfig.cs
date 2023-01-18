@@ -9,10 +9,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Center the cursor in the middle of a newly focused window
     /// </summary>
-    public bool CursorFollowsFocus { get; set; } = false;
+    public bool CursorFollowsFocus { get; set; }
     /// <summary>
     /// Focus the window directly under the cursor at all times
     /// </summary>
-    public bool FocusFollowsCursor { get; set; } = false;
+    public bool FocusFollowsCursor { get; set; }
   }
 }

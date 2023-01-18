@@ -29,7 +29,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Hwnd of currently focused window and it's known children
     /// </summary>
-    private List<IntPtr> FocusedWindows = new List<IntPtr>();
+    private readonly List<IntPtr> FocusedWindows = new();
 
     /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
@@ -104,7 +104,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       );
 
       // Returns window underneath cursor.  This could be a child window or parent.
-      IntPtr window = WindowFromPoint(inputEvent.pt);
+      var window = WindowFromPoint(inputEvent.pt);
 
       // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
       if (FocusedWindows.Contains(window))
@@ -115,7 +115,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       FocusedWindows.Add(window);
 
       // Check if the window is the main window or a child window.
-      IntPtr parentWindow = GetParent(window);
+      var parentWindow = GetParent(window);
 
       // Walk the window up each parent window until you have the main window.
       while (parentWindow != IntPtr.Zero)

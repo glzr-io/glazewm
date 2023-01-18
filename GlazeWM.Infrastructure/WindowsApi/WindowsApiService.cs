@@ -365,7 +365,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public struct LowLevelMouseInputEvent
     {
       /// <summary>
-      /// (X,Y) location of mouse with 0,0 being the top-left corner of the main monitor 
+      /// (X,Y) location of mouse with 0,0 being the top-left corner of the main monitor
       /// </summary>
       public Point pt;
 
