@@ -28,7 +28,7 @@ namespace GlazeWM.Infrastructure.Bussing
     {
       lock (LockObj)
       {
-        _logger.LogDebug("Command {commandName} invoked.", command.Name);
+        _logger.LogDebug("Command {CommandName} invoked.", command.Name);
 
         // Create a `Type` object representing the constructed `ICommandHandler` generic.
         var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
