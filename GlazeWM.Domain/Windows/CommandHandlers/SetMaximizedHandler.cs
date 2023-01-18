@@ -10,7 +10,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var window = command.Window;
 
-      ShowWindow(window.Handle, ShowWindowCommands.MAXIMIZE);
+      ShowWindow(window.Handle, ShowWindowFlags.Maximize);
 
       return CommandResponse.Ok;
     }

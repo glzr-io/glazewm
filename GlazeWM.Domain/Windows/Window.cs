@@ -53,16 +53,16 @@ namespace GlazeWM.Domain.Windows
 
     public bool IsManageable => WindowService.IsHandleManageable(Handle);
 
-    public WS WindowStyles => WindowService.GetWindowStyles(Handle);
+    public WindowStyles WindowStyles => WindowService.GetWindowStyles(Handle);
 
-    public WS_EX WindowStylesEx => WindowService.GetWindowStylesEx(Handle);
+    public WindowStylesEx WindowStylesEx => WindowService.GetWindowStylesEx(Handle);
 
-    public bool HasWindowStyle(WS style)
+    public bool HasWindowStyle(WindowStyles style)
     {
       return WindowService.HandleHasWindowStyle(Handle, style);
     }
 
-    public bool HasWindowExStyle(WS_EX style)
+    public bool HasWindowExStyle(WindowStylesEx style)
     {
       return WindowService.HandleHasWindowExStyle(Handle, style);
     }

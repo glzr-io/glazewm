@@ -19,8 +19,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Show all windows regardless of whether their workspace is displayed.
       foreach (var window in _windowService.GetWindows())
       {
-        const SWP flags = SWP.SWP_FRAMECHANGED | SWP.SWP_NOACTIVATE | SWP.SWP_NOCOPYBITS |
-          SWP.SWP_NOZORDER | SWP.SWP_NOOWNERZORDER | SWP.SWP_NOSENDCHANGING | SWP.SWP_SHOWWINDOW;
+        const SetWindowPosFlags flags = SetWindowPosFlags.FrameChanged | SetWindowPosFlags.NoActivate | SetWindowPosFlags.NoCopyBits |
+          SetWindowPosFlags.NoZOrder | SetWindowPosFlags.NoOwnerZOrder | SetWindowPosFlags.NoSendChanging | SetWindowPosFlags.ShowWindow;
 
         SetWindowPos(
           window.Handle,

@@ -54,7 +54,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       // Create low-level keyboard hook.
       _ = SetWindowsHookEx(
-        HookType.WH_KEYBOARD_LL,
+        HookType.KeyboardLowLevel,
         _hookProc,
         Process.GetCurrentProcess().MainModule.BaseAddress,
         0

@@ -44,7 +44,7 @@ namespace GlazeWM.Bootstrapper
       try
       {
         // Set the process-default DPI awareness.
-        _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.Context_PerMonitorAwareV2);
+        _ = SetProcessDpiAwarenessContext(DpiAwarenessContext.PerMonitorAwareV2);
 
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());

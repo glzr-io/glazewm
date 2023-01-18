@@ -62,7 +62,7 @@ namespace GlazeWM.Domain.Monitors
 
       // Get a handle to the monitor.
       // TODO: Consider adding a `Monitor` getter for a monitor's handle.
-      var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
+      var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.DefaultToNearest);
       _ = GetDpiForMonitor(monitorHandle, DpiType.Effective, out var dpiX, out _);
 
       // DPI X and Y should be equivalent, so it's arbitrary which to return.

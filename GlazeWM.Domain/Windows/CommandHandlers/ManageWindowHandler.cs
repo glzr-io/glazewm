@@ -101,7 +101,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
 
       var windowType = GetWindowTypeToCreate(windowHandle);
-      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
+      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
       return windowType switch
@@ -130,11 +130,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
     {
-      if (WindowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
+      if (WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.Minimize))
         return WindowType.MINIMIZED;
 
       // Initialize windows that can't be resized as floating.
-      if (!WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
+      if (!WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame))
         return WindowType.FLOATING;
 
       return WindowType.TILING;
