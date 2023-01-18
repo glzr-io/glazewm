@@ -11,5 +11,4 @@
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
   </ItemGroup>
-
 </Project>
