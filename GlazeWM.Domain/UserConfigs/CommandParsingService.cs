@@ -237,6 +237,11 @@ namespace GlazeWM.Domain.UserConfigs
           "mode" => new ToggleFocusModeCommand(),
           _ => throw new ArgumentException(null, nameof(commandParts)),
         },
+        "tiling" => commandParts[2] switch
+        {
+          "direction" => new ToggleContainerLayoutCommand(subjectContainer),
+          _ => throw new ArgumentException(null, nameof(commandParts)),
+        },
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
