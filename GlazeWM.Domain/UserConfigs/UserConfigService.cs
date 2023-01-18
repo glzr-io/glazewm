@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using GlazeWM.Domain.Windows;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -16,7 +17,7 @@ namespace GlazeWM.Domain.UserConfigs
 
     public GapsConfig GapsConfig => UserConfig.Gaps;
     public GeneralConfig GeneralConfig => UserConfig.General;
-    public BarConfig BarConfig => UserConfig.Bar;
+    public List<BarConfig> BarsConfig => UserConfig.Bars;
     public List<WorkspaceConfig> WorkspaceConfigs => UserConfig.Workspaces;
     public List<WindowRuleConfig> WindowRules => UserConfig.WindowRules;
     public List<KeybindingConfig> Keybindings => UserConfig.Keybindings;
@@ -97,6 +98,23 @@ namespace GlazeWM.Domain.UserConfigs
       return BindingModes.Find(
         (bindingMode) => bindingMode.Name == bindingModeName
       );
+    }
+
+    public BarConfig GetBarConfigForMonitor(Domain.Monitors.Monitor monitor)
+    {
+      var result = Regex.Match(monitor.DeviceName, @"\d+$", RegexOptions.RightToLeft);
+      if (result.Success)
+      {
+        int monitorIndex = int.Parse(result.Value);
+        BarConfig config = UserConfig.Bars.Find(x => x.BindToMonitor == monitorIndex);
+        // If no config was found, default the bar to the main monitor's config
+        if (config == null)
+        {
+          return UserConfig.Bars.Find(x => x.BindToMonitor == 1);
+        }
+        return config;
+      }
+      return null;
     }
 
     public List<WindowRuleConfig> GetMatchingWindowRules(Window window)

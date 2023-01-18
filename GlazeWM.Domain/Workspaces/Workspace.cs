@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barHeight = UnitsHelper.TrimUnits(_userConfigService.BarConfig.Height);
+        var barHeight = UnitsHelper.TrimUnits(_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Height);
         return Convert.ToInt32(barHeight * (Parent as Monitor).ScaleFactor);
       }
     }
@@ -40,7 +40,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barPosition = _userConfigService.BarConfig.Position;
+        var barPosition = _userConfigService.GetBarConfigForMonitor(Parent as Monitor).Position;
         return barPosition == BarPosition.Top ? _logicalBarHeight : 0;
       }
     }
