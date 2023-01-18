@@ -211,3 +211,6 @@ dotnet_diagnostic.CA1716.severity = none
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
+
+[**/*.xaml.cs]
+dotnet_diagnostic.RCS1043.severity = none
