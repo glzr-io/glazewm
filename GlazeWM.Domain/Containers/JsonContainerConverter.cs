@@ -113,21 +113,36 @@ namespace GlazeWM.Domain.Containers
       var focusIndex = value is RootContainer ? 0 : value.FocusIndex;
       writer.WriteNumber("FocusIndex", focusIndex);
 
+      WriteContainerValue(writer, value);
+
+      // Recursively serialize child containers.
+      writer.WriteStartArray("Children");
+      foreach (var child in value.Children)
+        Write(writer, child, options);
+
+      writer.WriteEndArray();
+      writer.WriteEndObject();
+    }
+
+    private static void WriteContainerValue(
+      Utf8JsonWriter writer,
+      Container value)
+    {
       switch (value)
       {
         case Monitor:
           var monitor = value as Monitor;
           writer.WriteString("DeviceName", monitor.DeviceName);
-          break;
+          return;
         case Workspace:
           var workspace = value as Workspace;
           writer.WriteString("Name", workspace.Name);
-          break;
+          return;
         case SplitContainer:
           var splitContainer = value as SplitContainer;
           writer.WriteString("Layout", splitContainer.Layout.ToString());
           writer.WriteNumber("SizePercentage", splitContainer.SizePercentage);
-          break;
+          return;
         case MinimizedWindow:
           var minimizedWindow = value as MinimizedWindow;
           writer.WriteString(
@@ -139,7 +154,7 @@ namespace GlazeWM.Domain.Containers
           writer.WritePropertyName("BorderDelta");
           JsonSerializer.Serialize(writer, minimizedWindow.BorderDelta);
           writer.WriteString("PreviousState", minimizedWindow.PreviousState.ToString());
-          break;
+          return;
         case FloatingWindow:
           var floatingWindow = value as FloatingWindow;
           writer.WriteString(
@@ -150,7 +165,7 @@ namespace GlazeWM.Domain.Containers
           JsonSerializer.Serialize(writer, floatingWindow.FloatingPlacement);
           writer.WritePropertyName("BorderDelta");
           JsonSerializer.Serialize(writer, floatingWindow.BorderDelta);
-          break;
+          return;
         case TilingWindow:
           var tilingWindow = value as TilingWindow;
           writer.WriteString(
@@ -162,16 +177,10 @@ namespace GlazeWM.Domain.Containers
           writer.WritePropertyName("BorderDelta");
           JsonSerializer.Serialize(writer, tilingWindow.BorderDelta);
           writer.WriteNumber("SizePercentage", tilingWindow.SizePercentage);
-          break;
+          return;
+        default:
+          return;
       }
-
-      // Recursively serialize child containers.
-      writer.WriteStartArray("Children");
-      foreach (var child in value.Children)
-        Write(writer, child, options);
-
-      writer.WriteEndArray();
-      writer.WriteEndObject();
     }
   }
 }
