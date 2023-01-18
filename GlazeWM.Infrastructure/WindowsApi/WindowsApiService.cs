@@ -219,6 +219,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
     public static extern IntPtr GetParent(IntPtr hWnd);
+    public static extern bool SetCursorPos(int X, int Y);
 
     /// <summary>
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
@@ -453,5 +454,18 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("User32.dll")]
     public static extern IntPtr MonitorFromPoint(Point pt, MonitorFromPointFlags dwFlags);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
+
+    public struct SYSTEM_POWER_STATUS
+    {
+      public byte ACLineStatus;
+      public byte BatteryFlag;
+      public byte BatteryLifePercent;
+      public byte SystemStatusFlag;
+      public uint BatteryLifeTime;
+      public uint BatteryFullLifeTime;
+    }
   }
 }

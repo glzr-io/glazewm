@@ -233,6 +233,24 @@ Additionally supported format specifiers:
   time_formatting: "hh:mm tt  ddd MMM d"
 ```
 
+### Bar Component: Battery
+
+The battery component displays the system's battery level in percent.
+There are three labels available that can be customized:
+- `draining`: used when the system is draining battery power(i.e. not charging).
+- `power_saver`: used when the system is on power saving mode.
+- `charging`: used when the system is connected to power.
+
+`{battery_level}` is a variable which is replaced by the actual battery level when the label is displayed.
+
+**Example usage:**
+```yaml
+- type: "battery"
+  draining: " {battery_level}% remaining "
+  power_saver: " {battery_level}% (power saver) "
+  charging: " {battery_level}% (charging) "
+```
+
 ## Window rules
 
 Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.

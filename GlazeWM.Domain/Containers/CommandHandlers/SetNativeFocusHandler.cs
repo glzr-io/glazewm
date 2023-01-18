@@ -42,6 +42,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _bus.Emit(new FocusChangedEvent(containerToFocus));
       }
 
+      _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToFocus));
+
       return CommandResponse.Ok;
     }
   }

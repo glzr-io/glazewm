@@ -43,11 +43,13 @@ namespace GlazeWM.Bar
     {
       return componentConfigs.ConvertAll<ComponentViewModel>(config => config switch
       {
+        BatteryComponentConfig bsc => new BatteryComponentViewModel(this, bsc),
         BindingModeComponentConfig bmc => new BindingModeComponentViewModel(this, bmc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
+        WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }

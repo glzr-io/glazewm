@@ -16,6 +16,9 @@
       <Grid Margin="{Binding Padding}">
         <ContentPresenter Content="{Binding .}">
           <ContentPresenter.Resources>
+            <DataTemplate DataType="{x:Type components:BatteryComponentViewModel}">
+              <components:BatteryComponent />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type components:BindingModeComponentViewModel}">
               <components:BindingModeComponent />
             </DataTemplate>
@@ -24,6 +27,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
               <components:TextComponent />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:WindowTitleComponentViewModel}">
+              <components:WindowTitleComponent />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:TilingDirectionComponentViewModel}">
               <components:TilingDirectionComponent />
