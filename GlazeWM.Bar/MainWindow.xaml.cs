@@ -52,9 +52,9 @@ namespace GlazeWM.Bar
     /// </summary>
     private static void HideFromTaskSwitcher(IntPtr windowHandle)
     {
-      var exstyle = (int)GetWindowLongPtr(windowHandle, GWL_EXSTYLE);
+      var exstyle = (int)GetWindowLongPtr(windowHandle, GWLEXSTYLE);
       exstyle |= (int)WindowStylesEx.ToolWindow;
-      SetWindowLongPtr(windowHandle, GWL_EXSTYLE, (IntPtr)exstyle);
+      SetWindowLongPtr(windowHandle, GWLEXSTYLE, (IntPtr)exstyle);
     }
 
     /// <summary>

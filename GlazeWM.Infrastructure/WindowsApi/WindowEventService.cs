@@ -24,12 +24,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     public void Start()
     {
-      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_OBJECT_DESTROY, EventConstant.EVENT_OBJECT_HIDE, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_MINIMIZESTART, EventConstant.EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_MOVESIZEEND, EventConstant.EVENT_SYSTEM_MOVESIZEEND, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_SYSTEM_FOREGROUND, EventConstant.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.EVENT_OBJECT_LOCATIONCHANGE, EventConstant.EVENT_OBJECT_NAMECHANGE, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.LocationChange, EventConstant.LocationChange, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.Destroy, EventConstant.Hide, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.MinimizeStart, EventConstant.MinimizeEnd, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.MoveSizeEnd, EventConstant.MoveSizeEnd, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.Foreground, EventConstant.Foreground, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.LocationChange, EventConstant.NameChange, IntPtr.Zero, _hookProc, 0, 0, 0);
     }
 
     private void WindowEventHookProc(
@@ -42,7 +42,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       uint dwmsEventTime)
     {
       // Whether the event is actually associated with a window object (instead of a UI control).
-      var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.OBJID_WINDOW
+      var isWindowEvent = idChild == CHILDID_SELF && idObject == ObjectIdentifier.Window
         && hwnd != IntPtr.Zero;
 
       if (!isWindowEvent)
@@ -50,15 +50,15 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       Event eventToRaise = eventType switch
       {
-        EventConstant.EVENT_OBJECT_LOCATIONCHANGE => new WindowLocationChangedEvent(hwnd),
-        EventConstant.EVENT_SYSTEM_FOREGROUND => new WindowFocusedEvent(hwnd),
-        EventConstant.EVENT_SYSTEM_MINIMIZESTART => new WindowMinimizedEvent(hwnd),
-        EventConstant.EVENT_SYSTEM_MINIMIZEEND => new WindowMinimizeEndedEvent(hwnd),
-        EventConstant.EVENT_SYSTEM_MOVESIZEEND => new WindowMovedOrResizedEvent(hwnd),
-        EventConstant.EVENT_OBJECT_DESTROY => new WindowDestroyedEvent(hwnd),
-        EventConstant.EVENT_OBJECT_SHOW => new WindowShownEvent(hwnd),
-        EventConstant.EVENT_OBJECT_NAMECHANGE => new WindowTitleChangedEvent(hwnd),
-        EventConstant.EVENT_OBJECT_HIDE => new WindowHiddenEvent(hwnd),
+        EventConstant.LocationChange => new WindowLocationChangedEvent(hwnd),
+        EventConstant.Foreground => new WindowFocusedEvent(hwnd),
+        EventConstant.MinimizeStart => new WindowMinimizedEvent(hwnd),
+        EventConstant.MinimizeEnd => new WindowMinimizeEndedEvent(hwnd),
+        EventConstant.MoveSizeEnd => new WindowMovedOrResizedEvent(hwnd),
+        EventConstant.Destroy => new WindowDestroyedEvent(hwnd),
+        EventConstant.Show => new WindowShownEvent(hwnd),
+        EventConstant.NameChange => new WindowTitleChangedEvent(hwnd),
+        EventConstant.Hide => new WindowHiddenEvent(hwnd),
         _ => null,
       };
 

@@ -141,8 +141,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Last
     }
 
-    public const int GWL_STYLE = -16;
-    public const int GWL_EXSTYLE = -20;
+    public const int GWLSTYLE = -16;
+    public const int GWLEXSTYLE = -20;
 
     public enum GW : uint
     {

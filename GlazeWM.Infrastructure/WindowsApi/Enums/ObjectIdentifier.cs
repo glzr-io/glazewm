@@ -6,6 +6,6 @@ namespace GlazeWM.Infrastructure.WindowsApi.Enums
   /// </summary>
   public enum ObjectIdentifier
   {
-    OBJID_WINDOW = 0,
+    Window = 0,
   }
 }

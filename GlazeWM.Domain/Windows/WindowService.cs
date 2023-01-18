@@ -117,12 +117,12 @@ namespace GlazeWM.Domain.Windows
 
     public static WindowStylesEx GetWindowStylesEx(IntPtr handle)
     {
-      return unchecked((WindowStylesEx)GetWindowLongPtr(handle, GWL_EXSTYLE).ToInt64());
+      return unchecked((WindowStylesEx)GetWindowLongPtr(handle, GWLEXSTYLE).ToInt64());
     }
 
     public static WindowStyles GetWindowStyles(IntPtr handle)
     {
-      return unchecked((WindowStyles)GetWindowLongPtr(handle, GWL_STYLE).ToInt64());
+      return unchecked((WindowStyles)GetWindowLongPtr(handle, GWLSTYLE).ToInt64());
     }
 
     public static bool HandleHasWindowStyle(IntPtr handle, WindowStyles style)
