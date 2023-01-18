@@ -19,7 +19,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly ContainerService _containerService;
     private readonly ILogger<ManageWindowHandler> _logger;
     private readonly MonitorService _monitorService;
-    private readonly WindowService _windowService;
     private readonly UserConfigService _userConfigService;
 
     public ManageWindowHandler(
@@ -27,17 +26,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       ContainerService containerService,
       ILogger<ManageWindowHandler> logger,
       MonitorService monitorService,
-      WindowService windowService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;
       _logger = logger;
       _monitorService = monitorService;
-      _windowService = windowService;
-
       _userConfigService = userConfigService;
-
     }
 
     public CommandResponse Handle(ManageWindowCommand command)
@@ -74,9 +69,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Run matching window rules.
       var windowRules = _userConfigService.GetMatchingWindowRules(window);
       _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
-
-      // Update window in case the reference changes.
-      window = _windowService.GetWindowByHandle(window.Handle);
 
       // Window might be detached if 'ignore' command has been invoked.
       if (window.IsDetached())
