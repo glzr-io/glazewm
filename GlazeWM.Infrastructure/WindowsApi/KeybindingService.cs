@@ -6,8 +6,6 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
-using Microsoft.Extensions.Logging;
-
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -52,13 +50,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     private readonly HookProc _hookProc;
     private readonly HookProc _hookProcMouse;
-    private readonly ILogger<KeybindingService> _logger;
 
-    public KeybindingService(ILogger<KeybindingService> logger)
+    public KeybindingService()
     {
       _hookProc = new HookProc(KeybindingHookProc);
       _hookProcMouse = new HookProc(MouseHookProc);
-      _logger = logger;
     }
 
     public void Start()
@@ -107,22 +103,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
         typeof(LowLevelMouseInputEvent)
       );
 
-      // Returns window underneath cursor.  This could be a child window.  
+      // Returns window underneath cursor.  This could be a child window or parent.
       IntPtr window = WindowFromPoint(inputEvent.pt);
 
-      // If the mouse is hovering over the currently focused main window or one of it's children, do nothing
+      // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
       if (FocusedWindows.Contains(window))
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
 
-      // If the FocusedWindows list didn't contain the window, this must be a new window being focused
-      // Clear the old windows  
+      // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
       FocusedWindows.Clear();
       FocusedWindows.Add(window);
 
-      // Check if the window is the main window or a child window
+      // Check if the window is the main window or a child window.
       IntPtr parentWindow = GetParent(window);
 
-      // Walk the window up each parent window until you have the main window
+      // Walk the window up each parent window until you have the main window.
       while (parentWindow != IntPtr.Zero)
       {
         window = parentWindow;
@@ -133,9 +128,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
       // Focus the main window
       SetForegroundWindow(window);
       SetFocus(window);
-
-      _logger.LogDebug("switching to window" + window.ToString());
-      _logger.LogDebug("parent window" + parentWindow.ToString());
 
       return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
       // return new IntPtr(1);
