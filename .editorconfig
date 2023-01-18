@@ -159,6 +159,9 @@ dotnet_diagnostic.IDE0011.severity = none
 dotnet_diagnostic.RCS1001.severity = none
 dotnet_diagnostic.RCS1003.severity = none
 
+# Disable rule "Populate switch".
+dotnet_diagnostic.IDE0072.severity = none
+
 # Disable rule "Use bit shift operator".
 dotnet_diagnostic.RCS1237.severity = none
 
@@ -193,14 +196,18 @@ dotnet_diagnostic.CA1707.severity = none
 # Disable rule "Enum should declare explicit values".
 dotnet_diagnostic.RCS1161.severity = none
 
+# Disable rule "Do not declare visible instance fields".
+dotnet_diagnostic.CA1051.severity = none
+
+# Disable rule "Exception type is not sufficiently specific".
+dotnet_diagnostic.CA2201.severity = none
+
+# Disable rule "Identifiers should not have incorrect suffix".
+dotnet_diagnostic.CA1711.severity = none
+
+# Disable rule "Identifiers should not match keywords".
+dotnet_diagnostic.CA1716.severity = none
+
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
-
-# Add rule exception "Fix formatting".
-[**/AssemblyInfo.cs]
-dotnet_diagnostic.IDE0055.severity = none
-
-# Add rule exception "The logging message template should not vary between calls".
-[**/LoggerExtensions.cs]
-dotnet_diagnostic.CA2254.severity = none
