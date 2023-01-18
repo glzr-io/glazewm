@@ -1,14 +1,14 @@
-﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class MoveWindowToWorkspaceHandler : ICommandHandler<MoveWindowToWorkspaceCommand>
+  internal sealed class MoveWindowToWorkspaceHandler : ICommandHandler<MoveWindowToWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

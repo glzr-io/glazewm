@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Windows.Forms;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.CommandHandlers
 {
-  internal class RefreshMonitorStateHandler : ICommandHandler<RefreshMonitorStateCommand>
+  internal sealed class RefreshMonitorStateHandler : ICommandHandler<RefreshMonitorStateCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;

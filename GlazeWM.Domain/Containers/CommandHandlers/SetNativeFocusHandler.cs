@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Windows;
@@ -8,7 +8,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
+  internal sealed class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
   {
     private readonly Bus _bus;
 

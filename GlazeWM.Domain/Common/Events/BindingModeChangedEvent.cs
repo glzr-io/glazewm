@@ -1,6 +1,6 @@
 using GlazeWM.Infrastructure.Bussing;
 
-namespace GlazeWM.Domain.Monitors.Events
+namespace GlazeWM.Domain.Common.Events
 {
   public class BindingModeChangedEvent : Event
   {

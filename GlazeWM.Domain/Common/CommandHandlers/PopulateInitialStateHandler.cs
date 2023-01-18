@@ -14,7 +14,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Common.CommandHandlers
 {
-  internal class PopulateInitialStateHandler : ICommandHandler<PopulateInitialStateCommand>
+  internal sealed class PopulateInitialStateHandler : ICommandHandler<PopulateInitialStateCommand>
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;

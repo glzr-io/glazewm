@@ -1,9 +1,9 @@
-﻿using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
+  internal sealed class ToggleFloatingHandler : ICommandHandler<ToggleFloatingCommand>
   {
     private readonly Bus _bus;
 

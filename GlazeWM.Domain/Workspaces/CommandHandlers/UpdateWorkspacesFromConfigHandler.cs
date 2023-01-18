@@ -1,11 +1,11 @@
-﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class UpdateWorkspacesFromConfigHandler :
+  internal sealed class UpdateWorkspacesFromConfigHandler :
     ICommandHandler<UpdateWorkspacesFromConfigCommand>
   {
     private readonly WorkspaceService _workspaceService;

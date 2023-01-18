@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class AttachContainerHandler : ICommandHandler<AttachContainerCommand>
+  internal sealed class AttachContainerHandler : ICommandHandler<AttachContainerCommand>
   {
     private readonly ContainerService _containerService;
 

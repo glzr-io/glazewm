@@ -1,8 +1,8 @@
-﻿using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Common.Events;
-using Microsoft.Win32;
 using System;
 using System.Reactive.Linq;
+using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
+using Microsoft.Win32;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {

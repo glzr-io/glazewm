@@ -1,9 +1,9 @@
-﻿using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  internal class MoveWindowToWorkspaceCommand : Command
+  internal sealed class MoveWindowToWorkspaceCommand : Command
   {
     public Window WindowToMove { get; }
     public string WorkspaceName { get; }

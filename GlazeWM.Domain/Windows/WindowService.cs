@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -115,22 +115,22 @@ namespace GlazeWM.Domain.Windows
       return windowHandles;
     }
 
-    public static WS_EX GetWindowStylesEx(IntPtr handle)
+    public static WindowStylesEx GetWindowStylesEx(IntPtr handle)
     {
-      return unchecked((WS_EX)GetWindowLongPtr(handle, GWL_EXSTYLE).ToInt64());
+      return unchecked((WindowStylesEx)GetWindowLongPtr(handle, GWLEXSTYLE).ToInt64());
     }
 
-    public static WS GetWindowStyles(IntPtr handle)
+    public static WindowStyles GetWindowStyles(IntPtr handle)
     {
-      return unchecked((WS)GetWindowLongPtr(handle, GWL_STYLE).ToInt64());
+      return unchecked((WindowStyles)GetWindowLongPtr(handle, GWLSTYLE).ToInt64());
     }
 
-    public static bool HandleHasWindowStyle(IntPtr handle, WS style)
+    public static bool HandleHasWindowStyle(IntPtr handle, WindowStyles style)
     {
       return (GetWindowStyles(handle) & style) != 0;
     }
 
-    public static bool HandleHasWindowExStyle(IntPtr handle, WS_EX style)
+    public static bool HandleHasWindowExStyle(IntPtr handle, WindowStylesEx style)
     {
       return (GetWindowStylesEx(handle) & style) != 0;
     }
@@ -144,7 +144,7 @@ namespace GlazeWM.Domain.Windows
     {
       _ = DwmGetWindowAttribute(
         handle,
-        DwmWindowAttribute.DWMWA_CLOAKED,
+        DwmWindowAttribute.Cloaked,
         out var isCloaked,
         Marshal.SizeOf(typeof(bool))
       );
@@ -168,8 +168,8 @@ namespace GlazeWM.Domain.Windows
 
       // Ensure window is top-level (ie. not a child window). Ignore windows that cannot be focused
       // or if they're unavailable in task switcher (alt+tab menu).
-      var isApplicationWindow = !HandleHasWindowStyle(handle, WS.WS_CHILD)
-        && !HandleHasWindowExStyle(handle, WS_EX.WS_EX_NOACTIVATE | WS_EX.WS_EX_TOOLWINDOW);
+      var isApplicationWindow = !HandleHasWindowStyle(handle, WindowStyles.Child)
+        && !HandleHasWindowExStyle(handle, WindowStylesEx.NoActivate | WindowStylesEx.ToolWindow);
 
       if (!isApplicationWindow)
         return false;
@@ -177,8 +177,8 @@ namespace GlazeWM.Domain.Windows
       /// Some applications spawn top-level windows for menus that should be ignored. This includes
       /// the autocomplete popup in Notepad++ and title bar menu in Keepass. Although not
       /// foolproof, these can typically be identified by having an owner window and no title bar.
-      var isMenuWindow = GetWindow(handle, GW.GW_OWNER) != IntPtr.Zero
-        && !HandleHasWindowStyle(handle, WS.WS_CAPTION);
+      var isMenuWindow = GetWindow(handle, GW.Owner) != IntPtr.Zero
+        && !HandleHasWindowStyle(handle, WindowStyles.Capion);
 
       return !isMenuWindow;
     }
@@ -216,10 +216,10 @@ namespace GlazeWM.Domain.Windows
     {
       return window switch
       {
-        TilingWindow => WindowType.TILING,
-        FloatingWindow => WindowType.FLOATING,
-        MaximizedWindow => WindowType.MAXIMIZED,
-        FullscreenWindow => WindowType.FULLSCREEN,
+        TilingWindow => WindowType.Tiling,
+        FloatingWindow => WindowType.Floating,
+        MaximizedWindow => WindowType.Maximized,
+        FullscreenWindow => WindowType.Fullscreen,
         _ => throw new ArgumentException(null, nameof(window)),
       };
     }

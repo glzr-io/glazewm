@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
@@ -65,7 +65,7 @@ namespace GlazeWM.Domain.Workspaces
 
     public Workspace(string name, Layout layout)
     {
-      this.Layout = layout;
+      Layout = layout;
       Id = $"WORKSPACE/{name}";
       Name = name;
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -62,7 +62,7 @@ namespace GlazeWM.Domain.Monitors
 
       // Get a handle to the monitor.
       // TODO: Consider adding a `Monitor` getter for a monitor's handle.
-      var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.MONITOR_DEFAULTTONEAREST);
+      var monitorHandle = MonitorFromPoint(point, MonitorFromPointFlags.DefaultToNearest);
       _ = GetDpiForMonitor(monitorHandle, DpiType.Effective, out var dpiX, out _);
 
       // DPI X and Y should be equivalent, so it's arbitrary which to return.
@@ -96,8 +96,8 @@ namespace GlazeWM.Domain.Monitors
       {
         // Check whether the monitor is to the right/left of the origin monitor.
         if (
-          (direction == Direction.RIGHT && monitor.X > originMonitor.X) ||
-          (direction == Direction.LEFT && monitor.X < originMonitor.X))
+          (direction == Direction.Right && monitor.X > originMonitor.X) ||
+          (direction == Direction.Left && monitor.X < originMonitor.X))
         {
           // Check whether the y-coordinate overlaps with the y-coordinate of the origin monitor.
           if (
@@ -108,8 +108,8 @@ namespace GlazeWM.Domain.Monitors
         }
         // Check whether the monitor is below/above the origin monitor.
         else if (
-          (direction == Direction.DOWN && monitor.Y > originMonitor.Y) ||
-          (direction == Direction.UP && monitor.Y < originMonitor.Y))
+          (direction == Direction.Down && monitor.Y > originMonitor.Y) ||
+          (direction == Direction.Up && monitor.Y < originMonitor.Y))
         {
           // Check whether the x-coordinate overlaps with the x-coordinate of the origin monitor.
           if (
@@ -126,10 +126,10 @@ namespace GlazeWM.Domain.Monitors
         // is closer.
         if (
           monitorInDirection == null ||
-          (direction == Direction.RIGHT && monitor.X < monitorInDirection.X) ||
-          (direction == Direction.LEFT && monitor.X > monitorInDirection.X) ||
-          (direction == Direction.DOWN && monitor.Y < monitorInDirection.Y) ||
-          (direction == Direction.UP && monitor.Y > monitorInDirection.Y)
+          (direction == Direction.Right && monitor.X < monitorInDirection.X) ||
+          (direction == Direction.Left && monitor.X > monitorInDirection.X) ||
+          (direction == Direction.Down && monitor.Y < monitorInDirection.Y) ||
+          (direction == Direction.Up && monitor.Y > monitorInDirection.Y)
         )
           monitorInDirection = monitor;
       }

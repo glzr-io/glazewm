@@ -1,6 +1,6 @@
-﻿using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Common.Events;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;

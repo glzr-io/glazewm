@@ -1,8 +1,8 @@
-﻿using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.UserConfigs;
 using System.Collections.Generic;
 using System.Linq;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.UserConfigs;
 
 namespace GlazeWM.Domain.Workspaces
 {
