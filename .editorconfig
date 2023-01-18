@@ -211,6 +211,10 @@ dotnet_diagnostic.CA1716.severity = none
 # Disable rule "Use the LoggerMessage delegates".
 dotnet_diagnostic.CA1848.severity = none
 
+# TODO: Temporarily disabled.
+# Disable rule "Avoid 'StringBuilder' parameters for P/Invokes".
+dotnet_diagnostic.CA1838.severity = none
+
 # Add rule exception "Types that own disposable fields should be disposable".
 [**/Bus.cs]
 dotnet_diagnostic.CA1001.severity = none
