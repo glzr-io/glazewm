@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -17,7 +18,7 @@ namespace GlazeWM.Bar.Components
     private string FormatLabel()
     {
       WindowsApiService.GetSystemPowerStatus(out var ps);
-      var batteryLevel = ps.BatteryLifePercent.ToString();
+      var batteryLevel = ps.BatteryLifePercent.ToString(CultureInfo.InvariantCulture);
 
       // display the battery level as a 100% if no dedicated battery is available on the device
       if (ps.BatteryFlag == 128)

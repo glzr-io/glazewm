@@ -291,7 +291,10 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string ExtractProcessName(string processNameAndArgs)
     {
-      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
 
       return hasSingleQuotes
         ? processNameAndArgs.Split("'")[1]
@@ -300,7 +303,10 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static List<string> ExtractProcessArgs(string processNameAndArgs)
     {
-      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
 
       var args = hasSingleQuotes
         ? processNameAndArgs.Split("'")[2..]
