@@ -68,7 +68,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       );
       // Create low-level mouse hook.
       _ = SetWindowsHookEx(
-        HookType.WH_MOUSE_LL,
+        HookType.MouseLowLevel,
         _hookProcMouse,
         Process.GetCurrentProcess().MainModule.BaseAddress,
         0
