@@ -130,7 +130,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
       SetFocus(window);
 
       return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-      // return new IntPtr(1);
     }
 
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
