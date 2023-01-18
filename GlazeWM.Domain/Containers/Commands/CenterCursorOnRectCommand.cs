@@ -1,17 +1,18 @@
 ﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers.Commands
 {
-  public class CenterCursorOnContainerCommand : Command
+  public class CenterCursorOnRectCommand : Command
   {
-    public Container TargetContainer { get; }
+    public Rect TargetRect { get; }
 
     /// <summary>
     ///  Center cursor in the middle of target container
     /// </summary>
-    public CenterCursorOnContainerCommand(Container target)
+    public CenterCursorOnRectCommand(Rect target)
     {
-      TargetContainer = target;
+      TargetRect = target;
     }
   }
 }
