@@ -2,6 +2,7 @@
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces.Events;
+using GlazeWM.Domain.Common.Enums;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
@@ -19,7 +20,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceName = command.WorkspaceName;
       var targetMonitor = command.TargetMonitor;
 
-      var newWorkspace = new Workspace(workspaceName);
+      Layout layout = targetMonitor.Height > targetMonitor.Width ? Layout.VERTICAL : Layout.HORIZONTAL;
+      var newWorkspace = new Workspace(workspaceName, layout);
 
       // Attach the created workspace to the specified monitor.
       _bus.Invoke(new AttachContainerCommand(newWorkspace, targetMonitor));
