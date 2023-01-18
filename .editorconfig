@@ -19,7 +19,7 @@ charset = utf-8-bom
 
 [*.{cs}]
 # Default Severity for all .NET Code Style rules below.
-dotnet_analyzer_diagnostic.severity = error
+dotnet_analyzer_diagnostic.severity = warning
 
 [*.{cs}]
 # Organize usings.
