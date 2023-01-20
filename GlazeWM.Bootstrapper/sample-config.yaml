@@ -8,6 +8,7 @@ general:
   cursor_follows_focus: true
 
 bar:
+  gap: false
   height: "30px"
   position: "top"
   opacity: 1.0
