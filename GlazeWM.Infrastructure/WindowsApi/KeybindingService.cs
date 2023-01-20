@@ -27,11 +27,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private const uint WM_SYSKEYDOWN = 0x104;
 
     /// <summary>
-    /// Hwnd of currently focused window and it's known children
-    /// </summary>
-    private readonly List<IntPtr> FocusedWindows = new();
-
-    /// <summary>
     /// Registered keybindings grouped by trigger key (ie. the final key in a key combination).
     /// </summary>
     private readonly Dictionary<Keys, List<Keybinding>> _keybindingsByTriggerKey = new();
@@ -49,12 +44,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// Store a reference to the hook delegate to prevent its garbage collection.
     /// </summary>
     private readonly HookProc _hookProc;
-    private readonly HookProc _hookProcMouse;
 
     public KeybindingService()
     {
       _hookProc = new HookProc(KeybindingHookProc);
-      _hookProcMouse = new HookProc(MouseHookProc);
     }
 
     public void Start()
@@ -63,13 +56,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _ = SetWindowsHookEx(
         HookType.KeyboardLowLevel,
         _hookProc,
-        Process.GetCurrentProcess().MainModule.BaseAddress,
-        0
-      );
-      // Create low-level mouse hook.
-      _ = SetWindowsHookEx(
-        HookType.MouseLowLevel,
-        _hookProcMouse,
         Process.GetCurrentProcess().MainModule.BaseAddress,
         0
       );
@@ -95,43 +81,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       _keybindingsByTriggerKey.Clear();
     }
-
-    private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
-    {
-      var inputEvent = (LowLevelMouseInputEvent)Marshal.PtrToStructure(
-        lParam,
-        typeof(LowLevelMouseInputEvent)
-      );
-
-      // Returns window underneath cursor.  This could be a child window or parent.
-      var window = WindowFromPoint(inputEvent.pt);
-
-      // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
-      if (FocusedWindows.Contains(window))
-        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-
-      // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
-      FocusedWindows.Clear();
-      FocusedWindows.Add(window);
-
-      // Check if the window is the main window or a child window.
-      var parentWindow = GetParent(window);
-
-      // Walk the window up each parent window until you have the main window.
-      while (parentWindow != IntPtr.Zero)
-      {
-        window = parentWindow;
-        FocusedWindows.Add(window);
-        parentWindow = GetParent(window);
-      }
-
-      // Focus the main window
-      SetForegroundWindow(window);
-      SetFocus(window);
-
-      return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-    }
-
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
       var shouldPassThrough =

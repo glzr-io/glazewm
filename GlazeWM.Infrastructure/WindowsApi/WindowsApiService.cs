@@ -397,6 +397,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll")]
     public static extern int GetKeyboardState(byte[] pbKeyState);
 
     [DllImport("user32.dll")]
