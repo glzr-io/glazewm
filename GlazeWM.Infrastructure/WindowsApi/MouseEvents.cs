@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
