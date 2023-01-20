@@ -4,6 +4,8 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
+    public bool Gap { get; set; }
+
     public string Height { get; set; } = "30px";
 
     public BarPosition Position { get; set; } = BarPosition.Top;
