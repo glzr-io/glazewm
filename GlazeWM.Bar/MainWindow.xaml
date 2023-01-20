@@ -21,6 +21,7 @@
   AllowsTransparency="True"
   Topmost="False">
   <Border
+    CornerRadius="{Binding CornerRadius}"
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
     <Grid Margin="{Binding Padding}">
