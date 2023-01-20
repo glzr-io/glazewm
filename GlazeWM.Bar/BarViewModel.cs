@@ -29,14 +29,43 @@ namespace GlazeWM.Bar
     public string Padding => XamlHelper.FormatRectShorthand(_barConfig.Padding);
     public double Opacity => _barConfig.Opacity;
 
+    private TextComponentViewModel _componentSeparatorLeft => new(
+        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Left }
+    );
+
+    private TextComponentViewModel _componentSeparatorCentre => new(
+        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Centre }
+    );
+
+    private TextComponentViewModel _componentSeparatorRight => new(
+        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Right }
+    );
+
     public List<ComponentViewModel> ComponentsLeft =>
-      CreateComponentViewModels(_barConfig.ComponentsLeft);
+      InsertComponentSeparator(
+        CreateComponentViewModels(_barConfig.ComponentsLeft),
+        _componentSeparatorLeft);
 
     public List<ComponentViewModel> ComponentsCenter =>
-      CreateComponentViewModels(_barConfig.ComponentsCenter);
+      InsertComponentSeparator(
+        CreateComponentViewModels(_barConfig.ComponentsCenter),
+        _componentSeparatorCentre);
 
     public List<ComponentViewModel> ComponentsRight =>
-      CreateComponentViewModels(_barConfig.ComponentsRight);
+      InsertComponentSeparator(
+        CreateComponentViewModels(_barConfig.ComponentsRight),
+         _componentSeparatorRight);
+
+    private static List<ComponentViewModel> InsertComponentSeparator(
+      List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
+    )
+    {
+      for (var i = 1; i < componentViewModels.Count; i += 2)
+      {
+        componentViewModels.Insert(i, componentSeparator);
+      }
+      return componentViewModels;
+    }
 
     private List<ComponentViewModel> CreateComponentViewModels(
       List<BarComponentConfig> componentConfigs)

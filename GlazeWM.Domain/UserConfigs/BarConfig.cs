@@ -22,6 +22,8 @@ namespace GlazeWM.Domain.UserConfigs
 
     public string BorderColor { get; set; } = "blue";
 
+    public BarComponentSeparatorConfig ComponentSeparators { get; set; } = new();
+
     /// <summary>
     /// Width of the border in pixels. To set a different border width for each side, specify four
     /// values (eg. "5 0 5 0"). The borders widths apply to the top, right, bottom, and left in that
@@ -39,5 +41,12 @@ namespace GlazeWM.Domain.UserConfigs
     public List<BarComponentConfig> ComponentsCenter { get; set; } = new List<BarComponentConfig>();
 
     public List<BarComponentConfig> ComponentsRight { get; set; } = new List<BarComponentConfig>();
+  }
+
+  public class BarComponentSeparatorConfig
+  {
+    public string Left { get; set; }
+    public string Centre { get; set; }
+    public string Right { get; set; } = "|";
   }
 }
