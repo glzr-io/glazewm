@@ -58,9 +58,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
           SetForegroundWindow(window);
           SetFocus(window);
 
-
-
-
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         });
 
