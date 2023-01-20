@@ -5,8 +5,10 @@ using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
@@ -22,6 +24,8 @@ namespace GlazeWM.Bootstrapper
     private readonly KeybindingService _keybindingService;
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
+    private readonly UserConfigService _userConfigService =
+  ServiceLocator.GetRequiredService<UserConfigService>();
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -29,6 +33,7 @@ namespace GlazeWM.Bootstrapper
       BarService barService,
       Bus bus,
       KeybindingService keybindingService,
+
       SystemEventService systemEventService,
       WindowEventService windowEventService)
     {
@@ -80,7 +85,8 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
-        MouseEvents.MouseMoves.Subscribe(e => { });
+        if (_userConfigService.GeneralConfig.FocusFollowsCursor)
+          MouseEvents.MouseMoves.Subscribe(e => { });
 
         Application.Run();
       }
