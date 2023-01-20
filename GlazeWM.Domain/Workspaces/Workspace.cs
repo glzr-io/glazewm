@@ -48,10 +48,10 @@ namespace GlazeWM.Domain.Workspaces
 
     private int _outerGap => _userConfigService.GapsConfig.OuterGap;
 
-    public override int Height => Parent.Height - (_outerGap * 2) - _logicalBarHeight;
+    public override int Height => Parent.Height - (_outerGap * 3) - _logicalBarHeight;
     public override int Width => Parent.Width - (_outerGap * 2);
     public override int X => Parent.X + _outerGap;
-    public override int Y => Parent.Y + _outerGap + _yOffset;
+    public override int Y => Parent.Y + _outerGap * 2 + _yOffset;
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.
