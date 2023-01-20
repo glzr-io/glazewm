@@ -370,7 +370,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public Point pt;
 
       /// <summary>
-      /// ?? What does this do ?? (TODO)
+      /// Mouse data.
       /// </summary>
       public int mouseData;
 

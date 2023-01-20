@@ -33,7 +33,6 @@ namespace GlazeWM.Bootstrapper
       BarService barService,
       Bus bus,
       KeybindingService keybindingService,
-
       SystemEventService systemEventService,
       WindowEventService windowEventService)
     {
