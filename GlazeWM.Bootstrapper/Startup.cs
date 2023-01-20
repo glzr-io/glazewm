@@ -80,6 +80,8 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
+        MouseEvents.MouseMoves.Subscribe(e => { });
+
         Application.Run();
       }
       catch (Exception exception)
