@@ -5,6 +5,7 @@ using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -51,6 +52,19 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         InitializeSampleUserConfig(userConfigPath);
 
       var deserializedConfig = DeserializeUserConfig(userConfigPath);
+
+      // Determine if user used Bar or Bars, create lookup map
+      if (deserializedConfig.Bars.Count > 0)
+      {
+        foreach (BarsConfig config in deserializedConfig.Bars)
+        {
+          deserializedConfig.BarsMap[config.BindToMonitor] = config;
+        }
+      }
+      else
+      {
+        deserializedConfig.BarsMap[0] = deserializedConfig.Bar;
+      }
 
       // Merge default window rules with user-defined rules.
       var defaultWindowRules = _userConfigService.DefaultWindowRules;

@@ -10,7 +10,9 @@ namespace GlazeWM.Domain.UserConfigs
 
     public BarConfig Bar { get; set; } = new BarConfig();
 
-    public List<BarConfig> Bars { get; set; } = new();
+    public List<BarsConfig> Bars { get; set; } = new();
+
+    public Dictionary<int, BarConfig> BarsMap = new();
 
     public List<WorkspaceConfig> Workspaces { get; set; } = new();
 
