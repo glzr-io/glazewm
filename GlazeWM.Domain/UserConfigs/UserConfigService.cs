@@ -113,7 +113,10 @@ namespace GlazeWM.Domain.UserConfigs
         else
         {
           int monitorIndex = int.Parse(result.Value);
-          return BarsMap[monitorIndex];
+          if (BarsMap.ContainsKey(monitorIndex))
+            return BarsMap[monitorIndex];
+          else
+            return BarsMap.FirstOrDefault().Value;
         }
       }
       return null;
