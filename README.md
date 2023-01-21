@@ -158,7 +158,7 @@ bar:
   # label_{left,center,right} can optionally be set for
   # using different seperators for each section of the bar.
   component_separators:
-    label: ""
+    label: " | "
     # label_left: ""
     # label_center: "" 
     # label_right: "" 
