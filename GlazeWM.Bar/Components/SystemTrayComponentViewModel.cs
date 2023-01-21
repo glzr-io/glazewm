@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Windows.Input;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using ManagedShell;
 
 namespace GlazeWM.Bar.Components
 {
@@ -25,6 +27,19 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
+      ShellConfig shellConfig = ShellManager.DefaultShellConfig;
+
+      // Customize tray service options.
+      shellConfig.EnableTrayService = true; // controls whether the tray objects are instantiated in ShellManager, true by default
+      shellConfig.AutoStartTrayService = false; // controls whether the tray service is started as part of ShellManager instantiation, true by default
+      shellConfig.PinnedNotifyIcons = new[] { "GUID or PathToExe:UID" }; // sets the initial NotifyIcons that should be included in the PinnedIcons collection, by default Action Center (prior to Windows 10 only), Power, Network, and Volume.
+
+      // Initialize the shell manager.
+      ShellManager _shellManager = new ShellManager(shellConfig);
+
+      // Initialize the tray service, since we disabled auto-start above.
+      _shellManager.NotificationArea.Initialize();
+      Debug.WriteLine("--");
     }
 
     public void OnLeftClick()
