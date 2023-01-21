@@ -20,6 +20,12 @@
   Opacity="{Binding Opacity}"
   AllowsTransparency="True"
   Topmost="False">
+  <Window.Resources>
+    <Style x:Key="Header1" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="ExtraBold" />
+    </Style>
+  </Window.Resources>
   <Border
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
