@@ -154,6 +154,15 @@ bar:
   # "Shorthand properties" for more info.
   padding: "1 6 1 6"
 
+  # Separators between components within the bar,
+  # label_{left,center,right} can optionally be set for
+  # using different seperators for each section of the bar.
+  component_separators:
+    label: ""
+    # label_left: ""
+    # label_center: "" 
+    # label_right: "" 
+
   # Components to display on the left side of the bar.
   components_left:
     - type: "workspaces"
