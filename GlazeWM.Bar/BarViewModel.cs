@@ -37,10 +37,10 @@ namespace GlazeWM.Bar
         }
     );
 
-    private TextComponentViewModel _componentSeparatorCentre => new(
+    private TextComponentViewModel _componentSeparatorCenter => new(
         this, new TextComponentConfig
         {
-          Text = _barConfig.ComponentSeparators.LabelCentre
+          Text = _barConfig.ComponentSeparators.LabelCenter
             ?? _barConfig.ComponentSeparators.Label
         }
     );
@@ -61,7 +61,7 @@ namespace GlazeWM.Bar
     public List<ComponentViewModel> ComponentsCenter =>
       InsertComponentSeparator(
         CreateComponentViewModels(_barConfig.ComponentsCenter),
-        _componentSeparatorCentre);
+        _componentSeparatorCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
       InsertComponentSeparator(
