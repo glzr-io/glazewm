@@ -30,15 +30,27 @@ namespace GlazeWM.Bar
     public double Opacity => _barConfig.Opacity;
 
     private TextComponentViewModel _componentSeparatorLeft => new(
-        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Left }
+        this, new TextComponentConfig
+        {
+          Text = _barConfig.ComponentSeparators.LabelLeft
+            ?? _barConfig.ComponentSeparators.Label
+        }
     );
 
     private TextComponentViewModel _componentSeparatorCentre => new(
-        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Centre }
+        this, new TextComponentConfig
+        {
+          Text = _barConfig.ComponentSeparators.LabelCentre
+            ?? _barConfig.ComponentSeparators.Label
+        }
     );
 
     private TextComponentViewModel _componentSeparatorRight => new(
-        this, new TextComponentConfig { Text = _barConfig.ComponentSeparators.Right }
+        this, new TextComponentConfig
+        {
+          Text = _barConfig.ComponentSeparators.LabelRight
+            ?? _barConfig.ComponentSeparators.Label
+        }
     );
 
     public List<ComponentViewModel> ComponentsLeft =>

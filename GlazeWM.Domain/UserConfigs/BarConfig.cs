@@ -45,8 +45,9 @@ namespace GlazeWM.Domain.UserConfigs
 
   public class BarComponentSeparatorConfig
   {
-    public string Left { get; set; }
-    public string Centre { get; set; }
-    public string Right { get; set; } = "|";
+    public string Label { get; set; }
+    public string LabelLeft { get; set; }
+    public string LabelCentre { get; set; }
+    public string LabelRight { get; set; }
   }
 }
