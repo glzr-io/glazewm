@@ -2,7 +2,10 @@ using System;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Text;
+using System.Windows.Input;
+using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
+using ManagedShell.Common.Helpers;
 
 namespace GlazeWM.Bar.Components
 {
@@ -15,6 +18,13 @@ namespace GlazeWM.Bar.Components
     /// Format the current time with the user's formatting config.
     /// </summary>
     public string FormattedTime => DateTime.Now.ToString(_timeFormatting, CultureInfo.InvariantCulture);
+
+    public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
+
+    private void OnLeftClick()
+    {
+      ShellHelper.ShowNotificationCenter();
+    }
 
     private static string FormatCalendarWeek(string timeFormat)
     {

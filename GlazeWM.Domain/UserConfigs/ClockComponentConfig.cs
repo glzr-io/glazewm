@@ -6,5 +6,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// How to format the current time/date via `DateTime.ToString`.
     /// </summary>
     public string TimeFormatting { get; set; } = "hh:mm tt  ddd MMM d";
+
+    /// <summary>
+    /// Command to invoke on left-click.
+    /// </summary>
+    public string LeftClickCommand { get; set; }
   }
 }

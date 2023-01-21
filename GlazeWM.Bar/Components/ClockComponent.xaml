@@ -12,5 +12,9 @@
     FontFamily="{Binding FontFamily}"
     FontWeight="{Binding FontWeight}"
     FontSize="{Binding FontSize}"
-    Text="{Binding FormattedTime}" />
+    Text="{Binding FormattedTime}">
+    <TextBlock.InputBindings>
+      <MouseBinding Gesture="LeftClick" Command="{Binding LeftClickCommand}" />
+    </TextBlock.InputBindings>
+  </TextBlock>
 </UserControl>
