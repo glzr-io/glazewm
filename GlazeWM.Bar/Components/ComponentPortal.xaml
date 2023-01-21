@@ -28,6 +28,9 @@
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
               <components:TextComponent />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:SystemTrayComponentViewModel}">
+              <components:SystemTrayComponent />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type components:WindowTitleComponentViewModel}">
               <components:WindowTitleComponent />
             </DataTemplate>

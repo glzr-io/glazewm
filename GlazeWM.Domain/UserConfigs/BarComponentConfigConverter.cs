@@ -38,6 +38,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "system tray" =>
+          JsonSerializer.Deserialize<SystemTrayComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "tiling direction" =>
           JsonSerializer.Deserialize<TilingDirectionComponentConfig>(
             jsonObject.RootElement.ToString(),
