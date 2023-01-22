@@ -1,0 +1,59 @@
+---
+###########################################
+# These are the rules used for            #
+# linting all the yaml files in the stack #
+# NOTE:                                   #
+# You can disable line with:              #
+# # yamllint disable-line                 #
+###########################################
+rules:
+  braces:
+    level: warning
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+    min-spaces-inside-empty: 1
+    max-spaces-inside-empty: 5
+  brackets:
+    level: warning
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+    min-spaces-inside-empty: 1
+    max-spaces-inside-empty: 5
+  colons:
+    level: warning
+    max-spaces-before: 0
+    max-spaces-after: 1
+  commas:
+    level: warning
+    max-spaces-before: 0
+    min-spaces-after: 1
+    max-spaces-after: 1
+  comments: disable
+  comments-indentation: disable
+  document-end: disable
+  document-start:
+    level: warning
+    present: true
+  empty-lines:
+    level: warning
+    max: 2
+    max-start: 0
+    max-end: 0
+  hyphens:
+    level: warning
+    max-spaces-after: 1
+  indentation:
+    level: warning
+    spaces: consistent
+    indent-sequences: true
+    check-multi-line-strings: false
+  key-duplicates: enable
+  line-length:
+    level: warning
+    max: 80
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  new-line-at-end-of-file: disable
+  new-lines:
+    type: unix
+  trailing-spaces: disable
