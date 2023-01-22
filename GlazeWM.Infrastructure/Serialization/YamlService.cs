@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Serialization;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
 namespace GlazeWM.Infrastructure.Serialization
@@ -21,8 +22,10 @@ namespace GlazeWM.Infrastructure.Serialization
     /// </summary>
     public T Deserialize<T>(string input, List<JsonConverter> converters)
     {
-      // Deserializes YAML into key-value pairs (ie. not an object of type `T`).
-      var yamlObject = _yamlDeserializer.Deserialize(new StringReader(input));
+      // Deserializes YAML into key-value pairs (ie. not an object of type `T`). Merging parser is
+      // used to enable the use of merge keys.
+      var reader = new MergingParser(new Parser(new StringReader(input)));
+      var yamlObject = _yamlDeserializer.Deserialize(reader);
 
       // Convert key-value pairs into a JSON string.
       var jsonString = _jsonService.Serialize(yamlObject, new List<JsonConverter>());
