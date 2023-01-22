@@ -28,40 +28,40 @@ namespace GlazeWM.Bar
     private TextComponentViewModel _componentSeparatorLeft => new(
         this, new TextComponentConfig
         {
-          Text = _barConfig.ComponentSeparators.LabelLeft
-            ?? _barConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.LabelLeft
+            ?? BarConfig.ComponentSeparators.Label
         }
     );
 
     private TextComponentViewModel _componentSeparatorCenter => new(
         this, new TextComponentConfig
         {
-          Text = _barConfig.ComponentSeparators.LabelCenter
-            ?? _barConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.LabelCenter
+            ?? BarConfig.ComponentSeparators.Label
         }
     );
 
     private TextComponentViewModel _componentSeparatorRight => new(
         this, new TextComponentConfig
         {
-          Text = _barConfig.ComponentSeparators.LabelRight
-            ?? _barConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.LabelRight
+            ?? BarConfig.ComponentSeparators.Label
         }
     );
 
     public List<ComponentViewModel> ComponentsLeft =>
       InsertComponentSeparator(
-        CreateComponentViewModels(_barConfig.ComponentsLeft),
+        CreateComponentViewModels(BarConfig.ComponentsLeft),
         _componentSeparatorLeft);
 
     public List<ComponentViewModel> ComponentsCenter =>
       InsertComponentSeparator(
-        CreateComponentViewModels(_barConfig.ComponentsCenter),
+        CreateComponentViewModels(BarConfig.ComponentsCenter),
         _componentSeparatorCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
       InsertComponentSeparator(
-        CreateComponentViewModels(_barConfig.ComponentsRight),
+        CreateComponentViewModels(BarConfig.ComponentsRight),
          _componentSeparatorRight);
 
     private static List<ComponentViewModel> InsertComponentSeparator(
