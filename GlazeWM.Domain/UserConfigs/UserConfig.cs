@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -8,11 +9,13 @@ namespace GlazeWM.Domain.UserConfigs
 
     public GeneralConfig General { get; set; } = new GeneralConfig();
 
-    public BarConfig Bar { get; set; } = new BarConfig();
+    public BarConfig Bar { get; set; } = new();
 
-    public List<BarsConfig> Bars { get; set; } = new();
+    public List<MultiBarConfig> Bars { get; set; } = new();
 
-    public Dictionary<int, BarConfig> BarsMap = new();
+    public List<BarConfig> BarConfigs => Bars.Count == 0
+      ? new List<BarConfig> { Bar }
+      : Bars.Cast<BarConfig>().ToList();
 
     public List<WorkspaceConfig> Workspaces { get; set; } = new();
 

@@ -1,6 +1,5 @@
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
@@ -11,7 +10,6 @@ using System.Linq;
 using System.Windows;
 using System.Collections.Generic;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
-using GlazeWM.Infrastructure;
 
 namespace GlazeWM.Bar
 {
