@@ -28,24 +28,24 @@ namespace GlazeWM.Bar
     private TextComponentViewModel _componentSeparatorLeft => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.LabelLeft
-            ?? BarConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.Left
+            ?? BarConfig.ComponentSeparators.Default
         }
     );
 
     private TextComponentViewModel _componentSeparatorCenter => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.LabelCenter
-            ?? BarConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.Center
+            ?? BarConfig.ComponentSeparators.Default
         }
     );
 
     private TextComponentViewModel _componentSeparatorRight => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.LabelRight
-            ?? BarConfig.ComponentSeparators.Label
+          Text = BarConfig.ComponentSeparators.Right
+            ?? BarConfig.ComponentSeparators.Default
         }
     );
 
@@ -90,7 +90,7 @@ namespace GlazeWM.Bar
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }
-        
+
     public BarViewModel(Monitor monitor, Dispatcher dispatcher, BarConfig barConfig)
     {
       Monitor = monitor;

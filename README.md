@@ -154,14 +154,13 @@ bar:
   # "Shorthand properties" for more info.
   padding: "1 6 1 6"
 
-  # Separators between components within the bar,
-  # label_{left,center,right} can optionally be set for
-  # using different seperators for each section of the bar.
+  # Separators between components within the bar, default is used for each section of the bar
+  # unless {left,centre,right} are explictly set, in which case they are preferred over default.
   component_separators:
-    label: " | "
-    # label_left: ""
-    # label_center: "" 
-    # label_right: "" 
+    default: " | "
+    # left: ""
+    # center: "" 
+    # right: "" 
 
   # Components to display on the left side of the bar.
   components_left:
