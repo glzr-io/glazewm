@@ -4,7 +4,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  internal class UpdateWorkspacesFromConfigCommand : Command
+  internal sealed class UpdateWorkspacesFromConfigCommand : Command
   {
     public List<WorkspaceConfig> WorkspaceConfigs { get; }
 

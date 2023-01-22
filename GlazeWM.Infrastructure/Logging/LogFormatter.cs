@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using System;
+using System.Globalization;
+using System.IO;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
-using System;
-using System.IO;
 
 namespace GlazeWM.Infrastructure.Logging
 {
@@ -44,7 +45,9 @@ namespace GlazeWM.Infrastructure.Logging
         ? DateTime.UtcNow
         : DateTime.Now;
 
-      textWriter.Write($"{timestamp.ToString(_formatterOptions.TimestampFormat)}");
+      textWriter.Write(
+        $"{timestamp.ToString(_formatterOptions.TimestampFormat, CultureInfo.InvariantCulture)}"
+      );
     }
 
     private static void AddTrimmedCategoryPrefix<T>(TextWriter textWriter, LogEntry<T> logEntry)

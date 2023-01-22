@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Infrastructure.WindowsApi
+namespace GlazeWM.Infrastructure.WindowsApi
 {
   public class RectDelta
   {

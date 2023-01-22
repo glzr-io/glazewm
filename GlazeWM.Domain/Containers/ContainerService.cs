@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Containers
     /// Whether a tiling or floating container is currently focused.
     /// </summary>
     public FocusMode FocusMode => FocusedContainer is FloatingWindow ?
-      FocusMode.FLOATING : FocusMode.TILING;
+      FocusMode.Floating : FocusMode.Tiling;
 
     /// <summary>
     /// Name of the currently active binding mode (if one is active).
@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.VERTICAL)
+      if (parent.Layout == Layout.Vertical)
         return parent.Width;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -76,7 +76,7 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.HORIZONTAL)
+      if (parent.Layout == Layout.Horizontal)
         return parent.Height;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -96,7 +96,7 @@ namespace GlazeWM.Domain.Containers
 
       var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
-      if (parent.Layout == Layout.VERTICAL || isFirstOfType)
+      if (parent.Layout == Layout.Vertical || isFirstOfType)
         return parent.X;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -116,7 +116,7 @@ namespace GlazeWM.Domain.Containers
 
       var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
-      if (parent.Layout == Layout.HORIZONTAL || isFirstOfType)
+      if (parent.Layout == Layout.Horizontal || isFirstOfType)
         return parent.Y;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -147,7 +147,7 @@ namespace GlazeWM.Domain.Containers
           originContainer.LastFocusedChildOfType<IResizable>(),
           direction
         );
-      else if (direction is Direction.UP or Direction.LEFT)
+      else if (direction is Direction.Up or Direction.Left)
         return GetDescendantInDirection(
           originContainer.ChildrenOfType<IResizable>().First(),
           direction

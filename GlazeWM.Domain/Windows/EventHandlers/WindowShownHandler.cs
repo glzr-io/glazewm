@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Common.Events;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowShownHandler : IEventHandler<WindowShownEvent>
+  internal sealed class WindowShownHandler : IEventHandler<WindowShownEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

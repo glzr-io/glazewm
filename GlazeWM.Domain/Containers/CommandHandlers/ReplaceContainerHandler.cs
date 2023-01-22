@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
+  internal sealed class ReplaceContainerHandler : ICommandHandler<ReplaceContainerCommand>
   {
     private readonly ContainerService _containerService;
 

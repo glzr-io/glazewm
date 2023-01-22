@@ -31,7 +31,7 @@ namespace GlazeWM.Bar.Components
       (_containerService.FocusedContainer.Parent as SplitContainer)?.Layout;
 
     public string TilingDirectionString =>
-      _tilingDirection == Layout.VERTICAL ? TextVertical : TextHorizontal;
+      _tilingDirection == Layout.Vertical ? TextVertical : TextHorizontal;
 
     public TilingDirectionComponentViewModel(
       BarViewModel parentViewModel,

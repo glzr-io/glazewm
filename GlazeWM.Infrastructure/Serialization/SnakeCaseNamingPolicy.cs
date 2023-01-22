@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 
@@ -20,7 +21,7 @@ namespace GlazeWM.Infrastructure.Serialization
           : letter.ToString()
       );
 
-      return string.Concat(snakeCaseLetters).ToLower();
+      return string.Concat(snakeCaseLetters).ToLower(CultureInfo.InvariantCulture);
     }
   }
 }

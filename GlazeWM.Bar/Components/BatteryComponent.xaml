@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="GlazeWM.Bar.Components.BatteryComponent"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +6,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-    <TextBlock
+  <TextBlock
     VerticalAlignment="Center"
     Foreground="{Binding Foreground}"
     FontFamily="{Binding FontFamily}"

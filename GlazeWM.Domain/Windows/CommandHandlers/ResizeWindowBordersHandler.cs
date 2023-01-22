@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -6,7 +6,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ResizeWindowBordersHandler : ICommandHandler<ResizeWindowBordersCommand>
+  internal sealed class ResizeWindowBordersHandler : ICommandHandler<ResizeWindowBordersCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;

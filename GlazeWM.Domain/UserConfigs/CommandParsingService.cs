@@ -103,8 +103,8 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "direction" => commandParts[2] switch
         {
-          "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.VERTICAL),
-          "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.HORIZONTAL),
+          "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
+          "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
           _ => throw new ArgumentException(null, nameof(commandParts)),
         },
         _ => throw new ArgumentException(null, nameof(commandParts)),
@@ -115,8 +115,8 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
-        "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.VERTICAL),
-        "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.HORIZONTAL),
+        "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
+        "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -125,10 +125,10 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
-        "left" => new FocusInDirectionCommand(Direction.LEFT),
-        "right" => new FocusInDirectionCommand(Direction.RIGHT),
-        "up" => new FocusInDirectionCommand(Direction.UP),
-        "down" => new FocusInDirectionCommand(Direction.DOWN),
+        "left" => new FocusInDirectionCommand(Direction.Left),
+        "right" => new FocusInDirectionCommand(Direction.Right),
+        "up" => new FocusInDirectionCommand(Direction.Up),
+        "down" => new FocusInDirectionCommand(Direction.Down),
         "workspace" => ParseFocusWorkspaceCommand(commandParts),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
@@ -139,8 +139,8 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[2] switch
       {
         "recent" => new FocusWorkspaceRecentCommand(),
-        "prev" => new FocusWorkspaceSequenceCommand(Sequence.PREVIOUS),
-        "next" => new FocusWorkspaceSequenceCommand(Sequence.NEXT),
+        "prev" => new FocusWorkspaceSequenceCommand(Sequence.Previous),
+        "next" => new FocusWorkspaceSequenceCommand(Sequence.Next),
         _ when IsValidWorkspace(commandParts[2]) => new FocusWorkspaceCommand(commandParts[2]),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
@@ -151,16 +151,16 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "left" => subjectContainer is Window
-          ? new MoveWindowCommand(subjectContainer as Window, Direction.LEFT)
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.Left)
           : new NoopCommand(),
         "right" => subjectContainer is Window
-          ? new MoveWindowCommand(subjectContainer as Window, Direction.RIGHT)
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.Right)
           : new NoopCommand(),
         "up" => subjectContainer is Window
-          ? new MoveWindowCommand(subjectContainer as Window, Direction.UP)
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.Up)
           : new NoopCommand(),
         "down" => subjectContainer is Window
-          ? new MoveWindowCommand(subjectContainer as Window, Direction.DOWN)
+          ? new MoveWindowCommand(subjectContainer as Window, Direction.Down)
           : new NoopCommand(),
         "to" when IsValidWorkspace(commandParts[3]) => subjectContainer is Window
           ? new MoveWindowToWorkspaceCommand(subjectContainer as Window, commandParts[3])
@@ -174,10 +174,10 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[2] switch
       {
-        "left" => new MoveWorkspaceInDirectionCommand(Direction.LEFT),
-        "right" => new MoveWorkspaceInDirectionCommand(Direction.RIGHT),
-        "up" => new MoveWorkspaceInDirectionCommand(Direction.UP),
-        "down" => new MoveWorkspaceInDirectionCommand(Direction.DOWN),
+        "left" => new MoveWorkspaceInDirectionCommand(Direction.Left),
+        "right" => new MoveWorkspaceInDirectionCommand(Direction.Right),
+        "up" => new MoveWorkspaceInDirectionCommand(Direction.Up),
+        "down" => new MoveWorkspaceInDirectionCommand(Direction.Down),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -187,10 +187,10 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "height" => subjectContainer is Window
-          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.HEIGHT, commandParts[2])
+          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.Height, commandParts[2])
           : new NoopCommand(),
         "width" => subjectContainer is Window
-          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.WIDTH, commandParts[2])
+          ? new ResizeWindowCommand(subjectContainer as Window, ResizeDimension.Width, commandParts[2])
           : new NoopCommand(),
         "borders" => subjectContainer is Window
           ? new ResizeWindowBordersCommand(
@@ -291,7 +291,10 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string ExtractProcessName(string processNameAndArgs)
     {
-      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
 
       return hasSingleQuotes
         ? processNameAndArgs.Split("'")[1]
@@ -300,7 +303,10 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static List<string> ExtractProcessArgs(string processNameAndArgs)
     {
-      var hasSingleQuotes = processNameAndArgs.StartsWith("'");
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
 
       var args = hasSingleQuotes
         ? processNameAndArgs.Split("'")[2..]

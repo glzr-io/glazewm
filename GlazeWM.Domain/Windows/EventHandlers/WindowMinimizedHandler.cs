@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
-  internal class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
+  internal sealed class WindowMinimizedHandler : IEventHandler<WindowMinimizedEvent>
   {
     private readonly Bus _bus;
     private readonly WindowService _windowService;

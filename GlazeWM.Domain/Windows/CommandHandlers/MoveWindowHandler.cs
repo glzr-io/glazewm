@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,7 +10,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class MoveWindowHandler : ICommandHandler<MoveWindowCommand>
+  internal sealed class MoveWindowHandler : ICommandHandler<MoveWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -75,7 +75,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     /// </summary>
     private static bool HasSiblingInDirection(Window windowToMove, Direction direction)
     {
-      if (direction is Direction.UP or Direction.LEFT)
+      if (direction is Direction.Up or Direction.Left)
         return windowToMove != windowToMove.SelfAndSiblingsOfType<IResizable>().First();
 
       return windowToMove != windowToMove.SelfAndSiblingsOfType<IResizable>().Last();
@@ -83,14 +83,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void SwapSiblingContainers(Window windowToMove, Direction direction)
     {
-      var siblingInDirection = direction is Direction.UP or Direction.LEFT
+      var siblingInDirection = direction is Direction.Up or Direction.Left
         ? windowToMove.PreviousSiblingOfType<IResizable>()
         : windowToMove.NextSiblingOfType<IResizable>();
 
       // Swap the window with sibling in given direction.
       if (siblingInDirection is Window)
       {
-        var targetIndex = direction is Direction.UP or Direction.LEFT ?
+        var targetIndex = direction is Direction.Up or Direction.Left ?
           siblingInDirection.Index : siblingInDirection.Index + 1;
 
         _bus.Invoke(
@@ -116,8 +116,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var layoutForDirection = direction.GetCorrespondingLayout();
       var shouldInsertAfter =
         targetParent.Layout != layoutForDirection ||
-        direction == Direction.UP ||
-        direction == Direction.LEFT;
+        direction == Direction.Up ||
+        direction == Direction.Left;
       var insertionIndex = shouldInsertAfter ? targetDescendant.Index + 1 : targetDescendant.Index;
 
       _bus.Invoke(
@@ -145,7 +145,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         windowToMove.FloatingPlacement.TranslateToCenter(workspaceInDirection.ToRect());
 
       // TODO: Descend into container if possible.
-      if (direction is Direction.UP or Direction.LEFT)
+      if (direction is Direction.Up or Direction.Left)
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, true));
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, 0, true));
@@ -180,7 +180,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionReference = windowToMove.Ancestors
         .FirstOrDefault(container => container.Parent == ancestorWithLayout);
 
-      var insertionReferenceSibling = direction is Direction.UP or Direction.LEFT
+      var insertionReferenceSibling = direction is Direction.Up or Direction.Left
         ? insertionReference.PreviousSiblingOfType<IResizable>()
         : insertionReference.NextSiblingOfType<IResizable>();
 
@@ -196,8 +196,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var layoutForDirection = direction.GetCorrespondingLayout();
         var shouldInsertAfter =
           targetParent.Layout != layoutForDirection ||
-          direction == Direction.UP ||
-          direction == Direction.LEFT;
+          direction == Direction.Up ||
+          direction == Direction.Left;
 
         var insertionIndex = shouldInsertAfter
           ? targetDescendant.Index + 1
@@ -208,7 +208,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
       {
         // Move the window into the container above.
-        var insertionIndex = (direction is Direction.UP or Direction.LEFT) ?
+        var insertionIndex = (direction is Direction.Up or Direction.Left) ?
           insertionReference.Index : insertionReference.Index + 1;
 
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, ancestorWithLayout, insertionIndex, true));

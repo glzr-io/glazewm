@@ -5,7 +5,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class AttachAndResizeContainerHandler : ICommandHandler<AttachAndResizeContainerCommand>
+  internal sealed class AttachAndResizeContainerHandler : ICommandHandler<AttachAndResizeContainerCommand>
   {
     private readonly Bus _bus;
 

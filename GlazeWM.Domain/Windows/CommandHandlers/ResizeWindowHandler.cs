@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,7 +12,7 @@ using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ResizeWindowHandler : ICommandHandler<ResizeWindowCommand>
+  internal sealed class ResizeWindowHandler : ICommandHandler<ResizeWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
@@ -67,8 +67,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Whether the resize is in the inverse direction of its layout.
       var isInverseResize =
-        (layout == Layout.HORIZONTAL && dimensionToResize == ResizeDimension.HEIGHT) ||
-        (layout == Layout.VERTICAL && dimensionToResize == ResizeDimension.WIDTH);
+        (layout == Layout.Horizontal && dimensionToResize == ResizeDimension.Height) ||
+        (layout == Layout.Vertical && dimensionToResize == ResizeDimension.Width);
 
       var hasResizableSiblings = windowToResize.SiblingsOfType<IResizable>().Any();
 
@@ -112,7 +112,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizableLength = containerToResize.SelfAndSiblingsOfType<IResizable>().Aggregate(
         1.0,
         (sum, container) =>
-          dimensionToResize == ResizeDimension.WIDTH
+          dimensionToResize == ResizeDimension.Width
             ? sum + container.Width
             : sum + container.Height
       );

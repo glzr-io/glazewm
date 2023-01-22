@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -13,12 +13,13 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
-  internal class ManageWindowHandler : ICommandHandler<ManageWindowCommand>
+  internal sealed class ManageWindowHandler : ICommandHandler<ManageWindowCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
     private readonly ILogger<ManageWindowHandler> _logger;
     private readonly MonitorService _monitorService;
+    private readonly WindowService _windowService;
     private readonly UserConfigService _userConfigService;
 
     public ManageWindowHandler(
@@ -26,12 +27,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       ContainerService containerService,
       ILogger<ManageWindowHandler> logger,
       MonitorService monitorService,
+      WindowService windowService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;
       _logger = logger;
       _monitorService = monitorService;
+      _windowService = windowService;
       _userConfigService = userConfigService;
     }
 
@@ -70,6 +73,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var windowRules = _userConfigService.GetMatchingWindowRules(window);
       _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
 
+      // Update window in case the reference changes.
+      window = _windowService.GetWindowByHandle(window.Handle);
+
       // Window might be detached if 'ignore' command has been invoked.
       if (window.IsDetached())
         return CommandResponse.Ok;
@@ -95,43 +101,43 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var defaultBorderDelta = new RectDelta(7, 0, 7, 7);
 
       var windowType = GetWindowTypeToCreate(windowHandle);
-      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME);
+      var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
       return windowType switch
       {
-        WindowType.MINIMIZED => new MinimizedWindow(
+        WindowType.Minimized => new MinimizedWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta,
-          isResizable ? WindowType.TILING : WindowType.FLOATING
+          isResizable ? WindowType.Tiling : WindowType.Floating
         ),
-        WindowType.FLOATING => new FloatingWindow(
+        WindowType.Floating => new FloatingWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta
         ),
-        WindowType.TILING => new TilingWindow(
+        WindowType.Tiling => new TilingWindow(
           windowHandle,
           floatingPlacement,
           defaultBorderDelta
         ),
-        WindowType.MAXIMIZED => throw new ArgumentException(null, nameof(windowHandle)),
-        WindowType.FULLSCREEN => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.Maximized => throw new ArgumentException(null, nameof(windowHandle)),
+        WindowType.Fullscreen => throw new ArgumentException(null, nameof(windowHandle)),
         _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
     }
 
     private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
     {
-      if (WindowService.HandleHasWindowStyle(windowHandle, WS.WS_MINIMIZE))
-        return WindowType.MINIMIZED;
+      if (WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.Minimize))
+        return WindowType.Minimized;
 
       // Initialize windows that can't be resized as floating.
-      if (!WindowService.HandleHasWindowStyle(windowHandle, WS.WS_THICKFRAME))
-        return WindowType.FLOATING;
+      if (!WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame))
+        return WindowType.Floating;
 
-      return WindowType.TILING;
+      return WindowType.Tiling;
     }
 
     private (SplitContainer targetParent, int targetIndex) GetInsertionTarget()
