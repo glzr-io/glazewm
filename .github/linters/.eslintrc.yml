@@ -41,11 +41,7 @@ plugins:
 #########
 # Rules #
 #########
-rules:
-  {
-    "max-lines":
-      ["error", { "max": 500, "skipBlankLines": true, "skipComments": true }],
-  }
+rules: { "json/*": ["error", "allowComments"] }
 
 ##############################
 # Overrides for JSON parsing #
