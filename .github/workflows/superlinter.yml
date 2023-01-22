@@ -1,3 +1,4 @@
+---
 name: Super-Linter
 
 on: push
@@ -8,11 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Run Super-Linter
-        uses: github/super-linter@v4.10.1
+        uses: github/super-linter@v4
         env:
-          DEFAULT_BRANCH: main
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: master
           GITHUB_TOKEN: $({ secrets.GITHUB_TOKEN })
-          VALIDATE_MARKDOWN: false
-          VALIDATE_JSON: false
