@@ -25,7 +25,7 @@ namespace GlazeWM.Bar
 
     public BarService(
       Bus bus,
-      MonitorService monitorService,
+          MonitorService monitorService,
       UserConfigService userConfigService)
     {
       _bus = bus;
