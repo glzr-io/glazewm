@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       }
 
       // flip between horizontal and vertical modes
-      Layout newLayout = (container.Parent as SplitContainer).Layout == Layout.HORIZONTAL ? Layout.VERTICAL : Layout.HORIZONTAL;
+      Layout newLayout = (container.Parent as SplitContainer).Layout == Layout.Horizontal ? Layout.Vertical : Layout.Horizontal;
 
       _bus.Emit(new LayoutChangedEvent(newLayout));
 
@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var parent = window.Parent as SplitContainer;
       var currentLayout = parent.Layout;
       // flip between horizontal and vertical modes
-      Layout newLayout = currentLayout == Layout.HORIZONTAL ? Layout.VERTICAL : Layout.HORIZONTAL;
+      Layout newLayout = currentLayout == Layout.Horizontal ? Layout.Vertical : Layout.Horizontal;
 
       // If the window is an only child of a workspace, change layout of the workspace.
       if (!window.HasSiblings() && parent is Workspace)
@@ -81,7 +81,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private void ToggleWorkspaceLayout(Workspace workspace)
     {
       var currentLayout = workspace.Layout;
-      Layout newLayout = currentLayout == Layout.HORIZONTAL ? Layout.VERTICAL : Layout.HORIZONTAL;
+      Layout newLayout = currentLayout == Layout.Horizontal ? Layout.Vertical : Layout.Horizontal;
 
       workspace.Layout = newLayout;
 
