@@ -73,7 +73,7 @@ namespace GlazeWM.Bar
         ? _monitor.Height - scaledBarHeight
         : 0;
 
-      if (_userConfigService.BarConfig.Gap)
+      if (_userConfigService.GetBarConfigForMonitor(_monitor).Gap)
       {
         // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
         MoveWindow(
