@@ -23,7 +23,7 @@ namespace GlazeWM.Bootstrapper
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
 
-    private CalendarIcon _CalendarIcon { get; set; }
+    private SystemTrayIcon _systemTrayIcon { get; set; }
 
     public Startup(
       BarService barService,
@@ -65,7 +65,7 @@ namespace GlazeWM.Bootstrapper
         // Listen for system-related events (eg. changes to display settings).
         _systemEventService.Start();
 
-        var CalendarIconConfig = new CalendarIconConfig
+        var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
           IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
@@ -76,9 +76,9 @@ namespace GlazeWM.Bootstrapper
           }
         };
 
-        // Add application to calendar.
-        _CalendarIcon = new CalendarIcon(CalendarIconConfig);
-        _CalendarIcon.Show();
+        // Add application to system tray.
+        _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
+        _systemTrayIcon.Show();
 
         Application.Run();
       }
@@ -92,7 +92,7 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
-      _CalendarIcon?.Remove();
+      _systemTrayIcon?.Remove();
       Application.Exit();
     }
   }

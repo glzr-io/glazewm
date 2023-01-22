@@ -25,9 +25,6 @@
             <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
               <components:ClockComponent />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:CalendarComponentViewModel}">
-              <components:CalendarComponent />
-            </DataTemplate>
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
               <components:TextComponent />
             </DataTemplate>

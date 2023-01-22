@@ -5,12 +5,12 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class CalendarIcon
+  public class SystemTrayIcon
   {
-    private readonly CalendarIconConfig _config;
+    private readonly SystemTrayIconConfig _config;
     private NotifyIcon _notifyIcon { get; set; }
 
-    public CalendarIcon(CalendarIconConfig config)
+    public SystemTrayIcon(SystemTrayIconConfig config)
     {
       _config = config;
     }
