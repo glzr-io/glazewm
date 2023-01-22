@@ -1,3 +1,4 @@
+using System.IO;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Logger.Loggers;
 
@@ -25,6 +26,7 @@ namespace GlazeWM.Logger
     {
       return _userConfigService.LoggerConfig.Output switch
       {
+        LoggerOutput.Console => new ConsoleLogger(),
         LoggerOutput.Debug => new DebugLogger(),
         LoggerOutput.File => new FileLogger(Path.GetDirectoryName(_userConfigService.UserConfigPath)),
         _ => throw new ArgumentOutOfRangeException()

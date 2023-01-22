@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Logger.Loggers

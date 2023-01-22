@@ -84,6 +84,15 @@ namespace GlazeWM.Domain.UserConfigs
 
       windowRules.Add(resizeElectronBorderWindowRule);
 
+      var loggerConsoleWindowRule = new WindowRuleConfig()
+      {
+        MatchProcessName = "GlazeWM",
+        MatchTitle = "Console",
+        Command = "set tiling"
+      };
+
+      windowRules.Add(loggerConsoleWindowRule);
+
       return windowRules;
     }
 

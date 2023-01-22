@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Logger.Loggers
 {
-  internal class DebugLogger : ILoggerBackend
+  public class DebugLogger : ILoggerBackend
   {
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
