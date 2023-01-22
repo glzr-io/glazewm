@@ -1,3 +1,6 @@
+logger:
+  output: "file"
+
 gaps:
   inner_gap: 20
   outer_gap: 20
