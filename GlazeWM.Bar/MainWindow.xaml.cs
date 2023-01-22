@@ -80,7 +80,7 @@ namespace GlazeWM.Bar
           windowHandle,
           _monitor.X + _userConfigService.GapsConfig.OuterGap,
           _monitor.Y + barOffsetY + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Width - _userConfigService.GapsConfig.OuterGap * 2,
+          _monitor.Width - (_userConfigService.GapsConfig.OuterGap * 2),
           scaledBarHeight,
           true
         );
@@ -90,7 +90,7 @@ namespace GlazeWM.Bar
           windowHandle,
           _monitor.X + _userConfigService.GapsConfig.OuterGap,
           _monitor.Y + barOffsetY + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Width - _userConfigService.GapsConfig.OuterGap * 2,
+          _monitor.Width - (_userConfigService.GapsConfig.OuterGap * 2),
           scaledBarHeight,
           true
         );
@@ -117,7 +117,6 @@ namespace GlazeWM.Bar
           true
         );
       }
-
     }
   }
 }
