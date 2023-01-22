@@ -85,7 +85,7 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon.Show();
 
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)
-          MouseEvents.MouseMoves.Subscribe(e => { });
+          MouseEvents.MouseMoves.Subscribe();
 
         Application.Run();
       }

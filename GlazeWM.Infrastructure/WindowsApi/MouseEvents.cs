@@ -14,7 +14,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Hwnd of currently focused window and it's known children
     /// </summary>
-    private static List<IntPtr> FocusedWindows = new();
+    private static readonly List<IntPtr> FocusedWindows = new();
 
     public static IObservable<LowLevelMouseInputEvent> MouseMoves
     {
