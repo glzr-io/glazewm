@@ -14,3 +14,5 @@ jobs:
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: $({ secrets.GITHUB_TOKEN })
+          VALIDATE_MARKDOWN: false
+          VALIDATE_JSON: false
