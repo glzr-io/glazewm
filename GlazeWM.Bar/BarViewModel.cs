@@ -5,18 +5,14 @@ using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
 
 namespace GlazeWM.Bar
 {
   public class BarViewModel : ViewModelBase
   {
-    public Dispatcher Dispatcher { get; set; }
-    public Monitor Monitor { get; set; }
-
-    private readonly UserConfigService _userConfigService =
-      ServiceLocator.GetRequiredService<UserConfigService>();
-    public BarConfig BarConfig => _userConfigService.GetBarConfigForMonitor(Monitor);
+    public Monitor Monitor { get; }
+    public Dispatcher Dispatcher { get; }
+    public BarConfig BarConfig { get; }
 
     public BarPosition Position => BarConfig.Position;
     public string Background => XamlHelper.FormatColor(BarConfig.Background);
@@ -37,6 +33,13 @@ namespace GlazeWM.Bar
 
     public List<ComponentViewModel> ComponentsRight =>
       CreateComponentViewModels(BarConfig.ComponentsRight);
+
+    public BarViewModel(Monitor monitor, Dispatcher dispatcher, BarConfig barConfig)
+    {
+      Monitor = monitor;
+      Dispatcher = dispatcher;
+      BarConfig = barConfig;
+    }
 
     private List<ComponentViewModel> CreateComponentViewModels(
       List<BarComponentConfig> componentConfigs)
