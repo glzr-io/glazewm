@@ -11,6 +11,7 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Logger;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bootstrapper
@@ -22,6 +23,7 @@ namespace GlazeWM.Bootstrapper
     private readonly KeybindingService _keybindingService;
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
+    private readonly LoggerService _loggerService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -30,13 +32,15 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       SystemEventService systemEventService,
-      WindowEventService windowEventService)
+      WindowEventService windowEventService,
+      LoggerService loggerService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _systemEventService = systemEventService;
       _windowEventService = windowEventService;
+      _loggerService = loggerService;
     }
 
     public void Run()
@@ -92,6 +96,7 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
+      _loggerService.Stop();
       _systemTrayIcon?.Remove();
       Application.Exit();
     }

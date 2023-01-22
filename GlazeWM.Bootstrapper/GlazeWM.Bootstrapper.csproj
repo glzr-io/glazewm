@@ -13,6 +13,7 @@
     <ProjectReference Include="..\GlazeWM.Bar\GlazeWM.Bar.csproj" />
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
+    <ProjectReference Include="..\GlazeWM.Logger\GlazeWM.Logger.csproj" />
   </ItemGroup>
 
   <ItemGroup>

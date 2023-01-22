@@ -64,6 +64,9 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       // Register keybindings.
       _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
+      // Reload logger
+      _bus.Invoke(new ReloadLoggerBackendCommand());
+
       return CommandResponse.Ok;
     }
 

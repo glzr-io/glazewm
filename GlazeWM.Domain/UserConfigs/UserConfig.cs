@@ -5,6 +5,8 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfig
   {
+    public LoggerConfig Logger { get; set; } = new LoggerConfig();
+
     public GapsConfig Gaps { get; set; } = new GapsConfig();
 
     public GeneralConfig General { get; set; } = new GeneralConfig();

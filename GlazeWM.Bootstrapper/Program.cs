@@ -9,13 +9,11 @@ using GlazeWM.Domain;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Exceptions;
-using GlazeWM.Infrastructure.Logging;
 using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Logger;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 
 namespace GlazeWM.Bootstrapper
 {
@@ -29,6 +27,9 @@ namespace GlazeWM.Bootstrapper
     [STAThread]
     private static void Main(string[] args)
     {
+      /*
+       * Write into the debug console until Logger is initialized.
+       */
       Debug.WriteLine("Application started.");
 
       // Prevent multiple app instances using a global UUID mutex.
@@ -61,6 +62,7 @@ namespace GlazeWM.Bootstrapper
         })
         .ConfigureServices((_, services) =>
         {
+          services.AddLoggerServices();
           services.AddInfrastructureServices();
           services.AddDomainServices();
           services.AddBarServices();
@@ -88,12 +90,6 @@ namespace GlazeWM.Bootstrapper
                   + $"State dump: {stateDump}\n\n";
               };
             });
-        })
-        .ConfigureLogging(builder =>
-        {
-          builder.ClearProviders();
-          builder.AddConsole(options => options.FormatterName = "customFormatter")
-            .AddConsoleFormatter<LogFormatter, ConsoleFormatterOptions>();
         })
         .Build();
     }
