@@ -1,10 +1,10 @@
 {
-  "files.eol": "\r\n",
-  "[csharp]": {
-    "editor.defaultFormatter": "ms-dotnettools.csharp"
-  },
+  // Enable Roslyn analyzers. Needed for showing linting errors.
+  "omnisharp.enableRoslynAnalyzers": true,
+
+  // XAML formatting configuration.
   "[xaml]": {
-    "editor.defaultFormatter": "DotJoshJohnson.xml"
+    "editor.defaultFormatter": "redhat.vscode-xml"
   },
   "xml.format.closingBracketNewLine": false,
   "xml.format.emptyElements": "collapse",

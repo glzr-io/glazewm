@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
@@ -8,7 +8,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
+  internal sealed class RedrawContainersHandler : ICommandHandler<RedrawContainersCommand>
   {
     private readonly ContainerService _containerService;
     private readonly UserConfigService _userConfigService;
@@ -35,13 +35,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         .Where(
           (window) =>
             window is not MinimizedWindow &&
-            window.HasWindowStyle(WS.WS_MAXIMIZE | WS.WS_MINIMIZE)
+            window.HasWindowStyle(WindowStyles.Maximize | WindowStyles.Minimize)
         )
         .ToList();
 
       // Restore minimized/maximized windows. Needed to be able to move and resize them.
       foreach (var window in windowsToRestore)
-        ShowWindow(window.Handle, ShowWindowCommands.RESTORE);
+        ShowWindow(window.Handle, ShowWindowFlags.Restore);
 
       foreach (var window in windowsToRedraw)
       {
@@ -65,16 +65,16 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private void SetWindowPosition(Window window)
     {
       var defaultFlags =
-        SWP.SWP_FRAMECHANGED |
-        SWP.SWP_NOACTIVATE |
-        SWP.SWP_NOCOPYBITS |
-        SWP.SWP_NOSENDCHANGING;
+        SetWindowPosFlags.FrameChanged |
+        SetWindowPosFlags.NoActivate |
+        SetWindowPosFlags.NoCopyBits |
+        SetWindowPosFlags.NoSendChanging;
 
       // Show or hide the window depending on whether the workspace is displayed.
       if (window.IsDisplayed)
-        defaultFlags |= SWP.SWP_SHOWWINDOW;
+        defaultFlags |= SetWindowPosFlags.ShowWindow;
       else
-        defaultFlags |= SWP.SWP_HIDEWINDOW;
+        defaultFlags |= SetWindowPosFlags.HideWindow;
 
       if (window is TilingWindow)
       {

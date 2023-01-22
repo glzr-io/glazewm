@@ -1,15 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
+using System.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
-using System.Reactive.Linq;
-using System;
-using System.Threading;
-using System.Linq;
-using System.Windows;
-using System.Collections.Generic;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using GlazeWM.Domain.UserConfigs;
 
 namespace GlazeWM.Bar
 {
@@ -17,13 +18,19 @@ namespace GlazeWM.Bar
   {
     private readonly Bus _bus;
     private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
+
     private Application _application;
     private readonly Dictionary<string, MainWindow> _activeWindowsByDeviceName = new();
 
-    public BarService(Bus bus, MonitorService monitorService)
+    public BarService(
+      Bus bus,
+      MonitorService monitorService,
+      UserConfigService userConfigService)
     {
       _bus = bus;
       _monitorService = monitorService;
+      _userConfigService = userConfigService;
     }
 
     public void StartApp()
@@ -81,11 +88,12 @@ namespace GlazeWM.Bar
       {
         var originalFocusedHandle = GetForegroundWindow();
 
-        var barViewModel = new BarViewModel()
-        {
-          Monitor = targetMonitor,
-          Dispatcher = _application.Dispatcher,
-        };
+        var barConfig = _userConfigService.GetBarConfigForMonitor(targetMonitor);
+        var barViewModel = new BarViewModel(
+          targetMonitor,
+          _application.Dispatcher,
+          barConfig
+        );
 
         var barWindow = new MainWindow(barViewModel);
         barWindow.Show();

@@ -1,42 +1,45 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
 
 namespace GlazeWM.Bar
 {
   public class BarViewModel : ViewModelBase
   {
-    public Dispatcher Dispatcher { get; set; }
-    public Monitor Monitor { get; set; }
+    public Monitor Monitor { get; }
+    public Dispatcher Dispatcher { get; }
+    public BarConfig BarConfig { get; }
 
-    private readonly UserConfigService _userConfigService =
-      ServiceLocator.GetRequiredService<UserConfigService>();
-    private BarConfig _barConfig => _userConfigService.BarConfig;
-
-    public BarPosition Position => _barConfig.Position;
-    public string Background => XamlHelper.FormatColor(_barConfig.Background);
-    public string Foreground => XamlHelper.FormatColor(_barConfig.Foreground);
-    public string FontFamily => _barConfig.FontFamily;
-    public string FontWeight => _barConfig.FontWeight;
-    public string FontSize => XamlHelper.FormatSize(_barConfig.FontSize);
-    public string BorderColor => XamlHelper.FormatColor(_barConfig.BorderColor);
-    public string BorderWidth => XamlHelper.FormatRectShorthand(_barConfig.BorderWidth);
-    public string Padding => XamlHelper.FormatRectShorthand(_barConfig.Padding);
-    public double Opacity => _barConfig.Opacity;
+    public BarPosition Position => BarConfig.Position;
+    public string Background => XamlHelper.FormatColor(BarConfig.Background);
+    public string Foreground => XamlHelper.FormatColor(BarConfig.Foreground);
+    public string FontFamily => BarConfig.FontFamily;
+    public string FontWeight => BarConfig.FontWeight;
+    public string FontSize => XamlHelper.FormatSize(BarConfig.FontSize);
+    public string BorderColor => XamlHelper.FormatColor(BarConfig.BorderColor);
+    public string BorderWidth => XamlHelper.FormatRectShorthand(BarConfig.BorderWidth);
+    public string Padding => XamlHelper.FormatRectShorthand(BarConfig.Padding);
+    public double Opacity => BarConfig.Opacity;
 
     public List<ComponentViewModel> ComponentsLeft =>
-      CreateComponentViewModels(_barConfig.ComponentsLeft);
+      CreateComponentViewModels(BarConfig.ComponentsLeft);
 
     public List<ComponentViewModel> ComponentsCenter =>
-      CreateComponentViewModels(_barConfig.ComponentsCenter);
+      CreateComponentViewModels(BarConfig.ComponentsCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
-      CreateComponentViewModels(_barConfig.ComponentsRight);
+      CreateComponentViewModels(BarConfig.ComponentsRight);
+
+    public BarViewModel(Monitor monitor, Dispatcher dispatcher, BarConfig barConfig)
+    {
+      Monitor = monitor;
+      Dispatcher = dispatcher;
+      BarConfig = barConfig;
+    }
 
     private List<ComponentViewModel> CreateComponentViewModels(
       List<BarComponentConfig> componentConfigs)

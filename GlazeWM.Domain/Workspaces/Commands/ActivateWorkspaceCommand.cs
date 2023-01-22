@@ -1,9 +1,9 @@
-﻿using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  internal class ActivateWorkspaceCommand : Command
+  internal sealed class ActivateWorkspaceCommand : Command
   {
     public string WorkspaceName { get; }
     public Monitor TargetMonitor { get; }

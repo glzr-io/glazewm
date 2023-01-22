@@ -1,11 +1,11 @@
-﻿using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class DeactivateWorkspaceHandler : ICommandHandler<DeactivateWorkspaceCommand>
+  internal sealed class DeactivateWorkspaceHandler : ICommandHandler<DeactivateWorkspaceCommand>
   {
     public Bus _bus { get; }
 

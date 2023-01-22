@@ -1,8 +1,8 @@
-﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands
 {
-  internal class DeactivateWorkspaceCommand : Command
+  internal sealed class DeactivateWorkspaceCommand : Command
   {
     public Workspace Workspace { get; }
 

@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.Events

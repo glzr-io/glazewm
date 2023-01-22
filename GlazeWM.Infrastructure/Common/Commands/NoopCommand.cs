@@ -1,4 +1,4 @@
-﻿using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Infrastructure.Common.Commands
 {

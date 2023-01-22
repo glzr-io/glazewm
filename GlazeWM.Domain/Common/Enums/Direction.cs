@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 
 namespace GlazeWM.Domain.Common.Enums
 {
   public enum Direction
   {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
+    Up,
+    Down,
+    Left,
+    Right,
   }
 
   public static class DirectionExtensions
@@ -20,10 +20,10 @@ namespace GlazeWM.Domain.Common.Enums
     {
       return direction switch
       {
-        Direction.UP => Direction.DOWN,
-        Direction.DOWN => Direction.UP,
-        Direction.LEFT => Direction.RIGHT,
-        Direction.RIGHT => Direction.LEFT,
+        Direction.Up => Direction.Down,
+        Direction.Down => Direction.Up,
+        Direction.Left => Direction.Right,
+        Direction.Right => Direction.Left,
         _ => throw new ArgumentOutOfRangeException(nameof(direction)),
       };
     }
@@ -34,9 +34,9 @@ namespace GlazeWM.Domain.Common.Enums
     /// </summary>
     public static Layout GetCorrespondingLayout(this Direction direction)
     {
-      return (direction is Direction.LEFT or Direction.RIGHT)
-        ? Layout.HORIZONTAL
-        : Layout.VERTICAL;
+      return (direction is Direction.Left or Direction.Right)
+        ? Layout.Horizontal
+        : Layout.Vertical;
     }
   }
 }

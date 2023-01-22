@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
@@ -9,7 +9,7 @@ using GlazeWM.Infrastructure.Exceptions;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class MoveWorkspaceInDirectionHandler :
+  internal sealed class MoveWorkspaceInDirectionHandler :
     ICommandHandler<MoveWorkspaceInDirectionCommand>
   {
     private readonly Bus _bus;

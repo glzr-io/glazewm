@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.Commands

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
@@ -7,7 +7,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal class ResizeContainerHandler : ICommandHandler<ResizeContainerCommand>
+  internal sealed class ResizeContainerHandler : ICommandHandler<ResizeContainerCommand>
   {
     private const double MIN_SIZE_PERCENTAGE = 0.01;
 

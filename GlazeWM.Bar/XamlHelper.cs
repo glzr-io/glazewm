@@ -22,7 +22,7 @@ namespace GlazeWM.Bar
     /// </summary>
     public static string FormatColor(string color)
     {
-      var isHexColor = color.StartsWith("#");
+      var isHexColor = color.StartsWith("#", StringComparison.InvariantCulture);
 
       if (!isHexColor)
         return color;

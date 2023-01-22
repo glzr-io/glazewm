@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -31,7 +32,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barHeight = UnitsHelper.TrimUnits(_userConfigService.BarConfig.Height);
+        var barHeight = UnitsHelper.TrimUnits(_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Height);
         return Convert.ToInt32(barHeight * (Parent as Monitor).ScaleFactor);
       }
     }
@@ -40,7 +41,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        var barPosition = _userConfigService.BarConfig.Position;
+        var barPosition = _userConfigService.GetBarConfigForMonitor(Parent as Monitor).Position;
         return barPosition == BarPosition.Top ? _logicalBarHeight : 0;
       }
     }
@@ -62,8 +63,9 @@ namespace GlazeWM.Domain.Workspaces
     /// </summary>
     public bool IsDisplayed => (Parent as Monitor)?.DisplayedWorkspace == this;
 
-    public Workspace(string name)
+    public Workspace(string name, Layout layout)
     {
+      Layout = layout;
       Id = $"WORKSPACE/{name}";
       Name = name;
     }

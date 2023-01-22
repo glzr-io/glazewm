@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
@@ -7,7 +7,7 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class FocusWorkspaceSequenceHandler : ICommandHandler<FocusWorkspaceSequenceCommand>
+  internal sealed class FocusWorkspaceSequenceHandler : ICommandHandler<FocusWorkspaceSequenceCommand>
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
@@ -44,8 +44,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // there is no previous/next workspace.
       var indexToFocus = direction switch
       {
-        Sequence.PREVIOUS => configIndex == 0 ? sortedWorkspaces.Count - 1 : configIndex - 1,
-        Sequence.NEXT => configIndex == sortedWorkspaces.Count - 1 ? 0 : configIndex + 1,
+        Sequence.Previous => configIndex == 0 ? sortedWorkspaces.Count - 1 : configIndex - 1,
+        Sequence.Next => configIndex == sortedWorkspaces.Count - 1 ? 0 : configIndex + 1,
         _ => throw new ArgumentException(nameof(direction)),
       };
 

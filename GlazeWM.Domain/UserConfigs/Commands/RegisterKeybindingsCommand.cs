@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.UserConfigs.Commands

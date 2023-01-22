@@ -1,15 +1,15 @@
-﻿using GlazeWM.Infrastructure.Bussing;
+using System.Linq;
+using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces.Commands;
-using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Containers.Events;
-using GlazeWM.Domain.Containers.Commands;
-using System.Linq;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
-  internal class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
+  internal sealed class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
