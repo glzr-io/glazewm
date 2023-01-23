@@ -18,5 +18,4 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: $({ secrets.GITHUB_TOKEN })
-          VALIDATE_MARKDOWN: false
-          VALIDATE_JSON: false
+          VALIDATE_JSCPD: false
