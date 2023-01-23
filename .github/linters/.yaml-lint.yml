@@ -54,6 +54,4 @@ rules:
     allow-non-breakable-words: true
     allow-non-breakable-inline-mappings: true
   new-line-at-end-of-file: disable
-  new-lines:
-    type: platform
   trailing-spaces: disable
