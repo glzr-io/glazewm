@@ -15,7 +15,7 @@ jobs:
       - name: Run Super Linter
         uses: github/super-linter@v4
         env:
-          VALIDATE_ENTIRE_CODEBASE: false
+          VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: $({ secrets.GITHUB_TOKEN })
           VALIDATE_JSCPD: false
