@@ -14,7 +14,7 @@ namespace GlazeWM.Bar.Components
     private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
-     ServiceLocator.GetRequiredService<ContainerService>();
+      ServiceLocator.GetRequiredService<ContainerService>();
 
     /// <summary>
     /// Name of the currently active binding mode (if one is active).
