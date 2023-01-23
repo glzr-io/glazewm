@@ -1,0 +1,23 @@
+---
+name: Pull-Request-Linter
+
+on: pull_request
+
+jobs:
+  super-lint:
+    name: Pull-Request-Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run Super Linter
+        uses: github/super-linter@v4
+        env:
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: $({ secrets.GITHUB_TOKEN })
+          VALIDATE_JSCPD: false
+          VALIDATE_JSON: false
+          VALIDATE_MARKDOWN: false
+          VALIDATE_NATURAL_LANGUAGE: false
