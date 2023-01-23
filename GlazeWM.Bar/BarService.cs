@@ -6,11 +6,11 @@ using System.Threading;
 using System.Windows;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Events;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
-using GlazeWM.Domain.UserConfigs;
 
 namespace GlazeWM.Bar
 {

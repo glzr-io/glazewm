@@ -25,7 +25,7 @@ namespace GlazeWM.Bar.Components
       _componentConfig as WorkspacesComponentConfig;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly UserConfigService _userConfigService =
-     ServiceLocator.GetRequiredService<UserConfigService>();
+      ServiceLocator.GetRequiredService<UserConfigService>();
 
     public ObservableCollection<Workspace> Workspaces => new(_orderedWorkspaces);
 
