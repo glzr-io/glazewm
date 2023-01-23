@@ -9,7 +9,7 @@ general:
 
 bar:
   gap: false
-  corner_radius: "0"
+  border_radius: "0"
   height: "30px"
   position: "top"
   opacity: 1.0
