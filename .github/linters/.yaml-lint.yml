@@ -55,5 +55,5 @@ rules:
     allow-non-breakable-inline-mappings: true
   new-line-at-end-of-file: disable
   new-lines:
-    type: unix
+    type: platform
   trailing-spaces: disable
