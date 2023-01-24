@@ -16,7 +16,7 @@ bar:
   font_family: "Segoe UI"
   font_size: "13px"
   padding: "4px 6px"
-  component_separators:
+  component_separator:
     label: " | "
   components_left:
     - type: "workspaces"
