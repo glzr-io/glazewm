@@ -15,7 +15,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     public CommandResponse Handle(ToggleContainerLayoutCommand command)
     {
       var container = command.Container;
-      var currentLayout = (container.Parent as SplitContainer).Layout;
+      var currentLayout = (container as SplitContainer)?.Layout
+        ?? (container.Parent as SplitContainer).Layout;
       var newLayout = currentLayout == Layout.Horizontal ? Layout.Vertical : Layout.Horizontal;
       _bus.Invoke(new ChangeContainerLayoutCommand(container, newLayout));
       return CommandResponse.Ok;
