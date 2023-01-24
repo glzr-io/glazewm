@@ -4,7 +4,10 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
-    public bool Gap { get; set; }
+    public int OffsetX { get; set; } = 0;
+
+    public int OffsetY { get; set; } = 0;
+
     public string BorderRadius { get; set; } = "7px";
 
     public string Height { get; set; } = "30px";

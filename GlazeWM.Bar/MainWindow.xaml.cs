@@ -73,50 +73,28 @@ namespace GlazeWM.Bar
         ? _monitor.Height - scaledBarHeight
         : 0;
 
-      if (_userConfigService.GetBarConfigForMonitor(_monitor).Gap)
-      {
-        // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
-        MoveWindow(
-          windowHandle,
-          _monitor.X + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Y + barOffsetY + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Width - (_userConfigService.GapsConfig.OuterGap * 2),
-          scaledBarHeight,
-          true
-        );
+      var barConfig = _userConfigService.GetBarConfigForMonitor(_monitor);
 
-        // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
-        MoveWindow(
-          windowHandle,
-          _monitor.X + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Y + barOffsetY + _userConfigService.GapsConfig.OuterGap,
-          _monitor.Width - (_userConfigService.GapsConfig.OuterGap * 2),
-          scaledBarHeight,
-          true
-        );
-      }
-      else
-      {
-        // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
-        MoveWindow(
-          windowHandle,
-          _monitor.X + 1,
-          _monitor.Y + barOffsetY,
-          _monitor.Width - 1,
-          scaledBarHeight,
-          false
-        );
+      // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
+      MoveWindow(
+        windowHandle,
+        _monitor.X + barConfig.OffsetX,
+        _monitor.Y + barOffsetY + barConfig.OffsetY,
+        _monitor.Width - (barConfig.OffsetX * 2),
+        scaledBarHeight,
+        true
+      );
 
-        // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
-        MoveWindow(
-          windowHandle,
-          _monitor.X,
-          _monitor.Y + barOffsetY,
-          _monitor.Width,
-          scaledBarHeight,
-          true
-        );
-      }
+      // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
+      MoveWindow(
+        windowHandle,
+        _monitor.X + barConfig.OffsetX,
+        _monitor.Y + barOffsetY + barConfig.OffsetY,
+        _monitor.Width - (barConfig.OffsetX * 2),
+        scaledBarHeight,
+        true
+      );
+
     }
   }
 }
