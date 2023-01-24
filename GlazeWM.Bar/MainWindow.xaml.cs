@@ -94,7 +94,6 @@ namespace GlazeWM.Bar
         scaledBarHeight,
         true
       );
-
     }
   }
 }
