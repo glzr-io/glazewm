@@ -5,6 +5,7 @@ using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Bar
 {
@@ -28,24 +29,24 @@ namespace GlazeWM.Bar
     private TextComponentViewModel _componentSeparatorLeft => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.Left
-            ?? BarConfig.ComponentSeparators.Default
+          Text = BarConfig.ComponentSeparator.LabelLeft
+            ?? BarConfig.ComponentSeparator.Label
         }
     );
 
     private TextComponentViewModel _componentSeparatorCenter => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.Center
-            ?? BarConfig.ComponentSeparators.Default
+          Text = BarConfig.ComponentSeparator.LabelCenter
+            ?? BarConfig.ComponentSeparator.Label
         }
     );
 
     private TextComponentViewModel _componentSeparatorRight => new(
         this, new TextComponentConfig
         {
-          Text = BarConfig.ComponentSeparators.Right
-            ?? BarConfig.ComponentSeparators.Default
+          Text = BarConfig.ComponentSeparator.LabelRight
+            ?? BarConfig.ComponentSeparator.Label
         }
     );
 
@@ -56,8 +57,8 @@ namespace GlazeWM.Bar
 
     public List<ComponentViewModel> ComponentsCenter =>
       InsertComponentSeparator(
-        CreateComponentViewModels(BarConfig.ComponentsCenter),
-        _componentSeparatorCenter);
+        CreateComponentViewModels(BarConfig.ComponentsRight),
+         _componentSeparatorCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
       InsertComponentSeparator(
@@ -68,10 +69,7 @@ namespace GlazeWM.Bar
       List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
     )
     {
-      for (var i = 1; i < componentViewModels.Count; i += 2)
-      {
-        componentViewModels.Insert(i, componentSeparator);
-      }
+      componentViewModels.Intersperse(componentSeparator);
       return componentViewModels;
     }
 
