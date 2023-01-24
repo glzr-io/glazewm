@@ -8,8 +8,8 @@ general:
   cursor_follows_focus: true
 
 bar:
-  offset_x: 0
-  offset_y: 0
+  offset_x: "0px"
+  offset_y: "0px"
   border_radius: "0"
   height: "30px"
   position: "top"
