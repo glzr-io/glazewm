@@ -105,7 +105,7 @@ namespace GlazeWM.Domain.UserConfigs
         {
           "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
           "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
-          _ => throw new ArgumentException(null, nameof(commandParts)),
+          "toggle" => new ToggleContainerLayoutCommand(subjectContainer),
         },
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
@@ -235,11 +235,6 @@ namespace GlazeWM.Domain.UserConfigs
         "focus" => commandParts[2] switch
         {
           "mode" => new ToggleFocusModeCommand(),
-          _ => throw new ArgumentException(null, nameof(commandParts)),
-        },
-        "tiling" => commandParts[2] switch
-        {
-          "direction" => new ToggleContainerLayoutCommand(subjectContainer),
           _ => throw new ArgumentException(null, nameof(commandParts)),
         },
         _ => throw new ArgumentException(null, nameof(commandParts)),
