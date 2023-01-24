@@ -4,9 +4,9 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
-    public int OffsetX { get; set; } = 0;
+    public int OffsetX { get; set; }
 
-    public int OffsetY { get; set; } = 0;
+    public int OffsetY { get; set; }
 
     public string BorderRadius { get; set; } = "7px";
 
