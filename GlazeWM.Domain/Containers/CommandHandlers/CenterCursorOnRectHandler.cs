@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Text;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
@@ -28,6 +31,18 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var centerY = targetRect.Y + (targetRect.Height / 2);
 
       SetCursorPos(centerX, centerY);
+
+      // Get the index of the interface with the best route to the remote address.
+      uint dwDestAddr = System.BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
+      uint dwBestIfIndex = 0;
+      int result = GetBestInterface(dwDestAddr, ref dwBestIfIndex);
+      if (result != 0)
+        throw new NetworkInformationException(result);
+
+      // Find a matching .NET interface object with the given index.
+      foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+        if (networkInterface.GetIPProperties().GetIPv4Properties().Index == dwBestIfIndex)
+          Debug.WriteLine(networkInterface);
 
       return CommandResponse.Ok;
     }

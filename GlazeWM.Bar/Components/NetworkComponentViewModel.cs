@@ -60,7 +60,6 @@ namespace GlazeWM.Bar.Components
         }
       }
 
-
       //https://stackoverflow.com/questions/25303847/rssi-using-windows-api
 
       Debug.WriteLine("--");
