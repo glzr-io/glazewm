@@ -3,11 +3,11 @@ using System.Windows.Controls;
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for SystemTrayComponent.xaml
+  /// Interaction logic for NetworkComponent.xaml
   /// </summary>
-  public partial class SystemTrayComponent : UserControl
+  public partial class NetworkComponent : UserControl
   {
-    public SystemTrayComponent()
+    public NetworkComponent()
     {
       InitializeComponent();
     }

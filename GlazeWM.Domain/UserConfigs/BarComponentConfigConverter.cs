@@ -38,8 +38,8 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "system tray" =>
-          JsonSerializer.Deserialize<SystemTrayComponentConfig>(
+        "network" =>
+          JsonSerializer.Deserialize<NetworkComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

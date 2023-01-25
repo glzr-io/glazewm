@@ -9,23 +9,23 @@ using ManagedShell;
 
 namespace GlazeWM.Bar.Components
 {
-  public class SystemTrayComponentViewModel : ComponentViewModel
+  public class NetworkComponentViewModel : ComponentViewModel
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
       ServiceLocator.GetRequiredService<ContainerService>();
     private readonly CommandParsingService _commandParsingService =
       ServiceLocator.GetRequiredService<CommandParsingService>();
-    private SystemTrayComponentConfig _config => _componentConfig as SystemTrayComponentConfig;
+    private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
 
     public string Text => _config.Text;
 
     public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
     public ICommand RightClickCommand => new RelayCommand(OnRightClick);
 
-    public SystemTrayComponentViewModel(
+    public NetworkComponentViewModel(
       BarViewModel parentViewModel,
-      SystemTrayComponentConfig config) : base(parentViewModel, config)
+      NetworkComponentConfig config) : base(parentViewModel, config)
     {
       // ShellConfig shellConfig = ShellManager.DefaultShellConfig;
 

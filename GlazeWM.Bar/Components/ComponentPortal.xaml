@@ -28,8 +28,8 @@
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
               <components:TextComponent />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:SystemTrayComponentViewModel}">
-              <components:SystemTrayComponent />
+            <DataTemplate DataType="{x:Type components:NetworkComponentViewModel}">
+              <components:NetworkComponent />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:WindowTitleComponentViewModel}">
               <components:WindowTitleComponent />

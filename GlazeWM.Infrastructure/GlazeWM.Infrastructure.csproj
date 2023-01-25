@@ -22,8 +22,8 @@
     <PackageReference
       Include="Microsoft.CodeAnalysis.NetAnalyzers"
       Version="7.0.0" />
-    <PackageReference 
-      Include="ManagedShell" 
-      Version="0.0.198" />
+    <PackageReference
+      Include="ManagedNativeWifi"
+      Version="2.5.0" />
   </ItemGroup>
 </Project>

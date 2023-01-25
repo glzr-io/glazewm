@@ -79,7 +79,7 @@ Keybindings with Alt+Shift pressed:
 
 ![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
-Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the system tray icon.
+Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the network icon.
 
 ## Gap configuration
 
@@ -237,6 +237,7 @@ Additionally supported format specifiers:
 
 The battery component displays the system's battery level in percent.
 There are three labels available that can be customized:
+
 - `draining`: used when the system is draining battery power(i.e. not charging).
 - `power_saver`: used when the system is on power saving mode.
 - `charging`: used when the system is connected to power.
@@ -244,6 +245,7 @@ There are three labels available that can be customized:
 `{battery_level}` is a variable which is replaced by the actual battery level when the label is displayed.
 
 **Example usage:**
+
 ```yaml
 - type: "battery"
   draining: " {battery_level}% remaining "

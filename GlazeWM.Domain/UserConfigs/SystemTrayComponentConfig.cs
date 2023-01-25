@@ -1,6 +1,6 @@
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class SystemTrayComponentConfig : BarComponentConfig
+  public class NetworkComponentConfig : BarComponentConfig
   {
     /// <summary>
     /// Text to display.
