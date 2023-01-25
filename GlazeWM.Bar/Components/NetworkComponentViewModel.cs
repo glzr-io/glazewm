@@ -1,10 +1,13 @@
 using System.Diagnostics;
+using System.Linq;
+using System.Net.NetworkInformation;
 using System.Windows.Input;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using ManagedNativeWifi;
 
 namespace GlazeWM.Bar.Components
 {
@@ -26,18 +29,40 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      // ShellConfig shellConfig = ShellManager.DefaultShellConfig;
+      var availableNetwork = NativeWifi.EnumerateAvailableNetworks()
+      .Where(x => !string.IsNullOrWhiteSpace(x.ProfileName))
+      .OrderByDescending(x => x.SignalQuality)
+      .FirstOrDefault();
 
-      // // Customize tray service options.
-      // shellConfig.EnableTrayService = true; // controls whether the tray objects are instantiated in ShellManager, true by default
-      // shellConfig.AutoStartTrayService = false; // controls whether the tray service is started as part of ShellManager instantiation, true by default
-      // shellConfig.PinnedNotifyIcons = new[] { "GUID or PathToExe:UID" }; // sets the initial NotifyIcons that should be included in the PinnedIcons collection, by default Action Center (prior to Windows 10 only), Power, Network, and Volume.
+      var currentNetwork = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
+      // var currentNetworkInfo = NativeWifi.GetInterfaceRadio(currentNetwork.Id);
+      var allNetworks = NativeWifi.EnumerateAvailableNetworks();
+      var connectedNetworkDetails = NativeWifi.EnumerateAvailableNetworks()
+        .FirstOrDefault(x => x.Ssid.ToString() == currentNetwork.ToString());
 
-      // // Initialize the shell manager.
-      // ShellManager _shellManager = new ShellManager(shellConfig);
 
-      // // Initialize the tray service, since we disabled auto-start above.
-      // _shellManager.NotificationArea.Initialize();
+      NetworkChange.NetworkAddressChanged += (object sender, System.EventArgs e) =>
+    {
+      Debug.WriteLine(e);
+      Debug.WriteLine("connected network changed !");
+    };
+
+
+      foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
+      {
+        if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+        {
+          Debug.WriteLine(adapter.NetworkInterfaceType);
+          if (adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+          {
+            Debug.WriteLine("here");
+          }
+        }
+      }
+
+
+      //https://stackoverflow.com/questions/25303847/rssi-using-windows-api
+
       Debug.WriteLine("--");
     }
 
