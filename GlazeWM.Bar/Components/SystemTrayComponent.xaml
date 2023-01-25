@@ -6,13 +6,22 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-  <Calendar
-    SelectedDate="3/15/2009"
-    DisplayDate="3/15/2009"
-    Background="#121212"
-    Foreground="#ffa752"
-    BorderBrush="#ffa752"
-    BorderThickness="5" />
+  <TextBlock
+    VerticalAlignment="Center"
+    Foreground="{Binding Foreground}"
+    FontFamily="{Binding FontFamily}"
+    FontWeight="{Binding FontWeight}"
+    FontSize="{Binding FontSize}"
+    Text="{Binding Text}">
+    <TextBlock.InputBindings>
+      <MouseBinding
+        Gesture="LeftClick"
+        Command="{Binding LeftClickCommand}" />
+      <MouseBinding
+        Gesture="RightClick"
+        Command="{Binding RightClickCommand}" />
+    </TextBlock.InputBindings>
+  </TextBlock>
 
 </UserControl>
  

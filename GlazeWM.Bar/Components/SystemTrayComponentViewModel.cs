@@ -5,7 +5,6 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using ManagedShell;
 
 namespace GlazeWM.Bar.Components
 {

@@ -10,7 +10,6 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
-using ManagedShell;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Bar
