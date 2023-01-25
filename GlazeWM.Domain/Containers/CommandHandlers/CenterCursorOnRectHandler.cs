@@ -33,14 +33,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       SetCursorPos(centerX, centerY);
 
       // Get the index of the interface with the best route to the remote address.
-      uint dwDestAddr = System.BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
+      var dwDestAddr = System.BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
       uint dwBestIfIndex = 0;
-      int result = GetBestInterface(dwDestAddr, ref dwBestIfIndex);
+      var result = GetBestInterface(dwDestAddr, ref dwBestIfIndex);
       if (result != 0)
         throw new NetworkInformationException(result);
 
       // Find a matching .NET interface object with the given index.
-      foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+      foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
         if (networkInterface.GetIPProperties().GetIPv4Properties().Index == dwBestIfIndex)
           Debug.WriteLine(networkInterface);
 

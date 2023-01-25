@@ -40,15 +40,13 @@ namespace GlazeWM.Bar.Components
       var connectedNetworkDetails = NativeWifi.EnumerateAvailableNetworks()
         .FirstOrDefault(x => x.Ssid.ToString() == currentNetwork.ToString());
 
-
       NetworkChange.NetworkAddressChanged += (object sender, System.EventArgs e) =>
     {
       Debug.WriteLine(e);
       Debug.WriteLine("connected network changed !");
     };
 
-
-      foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
+      foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
       {
         if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
         {
