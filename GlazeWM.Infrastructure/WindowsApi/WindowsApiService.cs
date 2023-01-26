@@ -231,8 +231,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
 
-    [DllImport("iphlpapi")]
-    public static extern int GetBestInterface(uint dwDestAddr, ref uint pdwBestIfIndex);
+    // [DllImport("iphlpapi")]
+    // public static extern int GetBestInterface(uint dwDestAddr, ref uint pdwBestIfIndex);
+
+
+    // [DllImport("Iphlpapi.dll", CharSet = CharSet.Auto)]
+    // public static extern int GetInterfaceInfo(Byte[] PIfTableBuffer, ref int size);
 
     /// <summary>
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to

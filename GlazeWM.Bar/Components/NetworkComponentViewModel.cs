@@ -29,34 +29,39 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      var availableNetwork = NativeWifi.EnumerateAvailableNetworks()
-      .Where(x => !string.IsNullOrWhiteSpace(x.ProfileName))
-      .OrderByDescending(x => x.SignalQuality)
-      .FirstOrDefault();
+      //   var availableNetwork = NativeWifi.EnumerateAvailableNetworks()
+      //   .Where(x => !string.IsNullOrWhiteSpace(x.ProfileName))
+      //   .OrderByDescending(x => x.SignalQuality)
+      //   .FirstOrDefault();
 
-      var currentNetwork = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
-      // var currentNetworkInfo = NativeWifi.GetInterfaceRadio(currentNetwork.Id);
-      var allNetworks = NativeWifi.EnumerateAvailableNetworks();
-      var connectedNetworkDetails = NativeWifi.EnumerateAvailableNetworks()
-        .FirstOrDefault(x => x.Ssid.ToString() == currentNetwork.ToString());
+      //   var bssNetworks = NativeWifi.EnumerateBssNetworks();
 
-      NetworkChange.NetworkAddressChanged += (object sender, System.EventArgs e) =>
-    {
-      Debug.WriteLine(e);
-      Debug.WriteLine("connected network changed !");
-    };
 
-      foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
-      {
-        if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-        {
-          Debug.WriteLine(adapter.NetworkInterfaceType);
-          if (adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
-          {
-            Debug.WriteLine("here");
-          }
-        }
-      }
+      //   // "{1B243423-099E-423F-8500-E5785E026467}"
+
+      //   var currentNetwork = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
+      //   // var currentNetworkInfo = NativeWifi.GetInterfaceRadio(currentNetwork.Id);
+      //   var allNetworks = NativeWifi.EnumerateAvailableNetworks();
+      //   var connectedNetworkDetails = NativeWifi.EnumerateAvailableNetworks()
+      //     .FirstOrDefault(x => x.Ssid.ToString() == currentNetwork.ToString());
+
+      //   NetworkChange.NetworkAddressChanged += (object sender, System.EventArgs e) =>
+      // {
+      //   Debug.WriteLine(e);
+      //   Debug.WriteLine("connected network changed !");
+      // };
+
+      //   foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+      //   {
+      //     if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+      //     {
+      //       Debug.WriteLine(adapter.NetworkInterfaceType);
+      //       if (adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+      //       {
+      //         Debug.WriteLine("here");
+      //       }
+      //     }
+      //   }
 
       //https://stackoverflow.com/questions/25303847/rssi-using-windows-api
 
