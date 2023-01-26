@@ -29,6 +29,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizeAmount = command.ResizeAmount;
       var windowToResize = command.WindowToResize;
 
+      if (windowToResize is FloatingWindow)
+      {
+        ResizeFloatingWindow(windowToResize, dimensionToResize, resizeAmount);
+        return CommandResponse.Ok;
+      }
       // Ignore cases where window is not tiling.
       if (windowToResize is not TilingWindow)
         return CommandResponse.Ok;
@@ -118,6 +123,26 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       );
 
       return 1.0 / resizableLength;
+    }
+    private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
+    {
+      var amount = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
+      amount = amount * 100 * 6;
+      switch (dimensionToResize)
+      {
+        case ResizeDimension.Width:
+          int newWidht = windowToResize.FloatingPlacement.Width + (int)amount;
+          windowToResize.Width = newWidht;
+          break;
+
+        case ResizeDimension.Height:
+          int newHeight = windowToResize.FloatingPlacement.Height + (int)amount;
+          windowToResize.Height = newHeight;
+          break;
+      }
+      _containerService.ContainersToRedraw.Add(windowToResize);
+      _bus.Invoke(new RedrawContainersCommand());
+      // _bus.Emit(new Infrastructure.Common.Events.WindowMovedOrResizedEvent(windowToResize.Handle));
     }
   }
 }

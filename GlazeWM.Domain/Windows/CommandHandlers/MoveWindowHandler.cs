@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
@@ -28,12 +29,21 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(MoveWindowCommand command)
     {
-      var windowToMove = command.WindowToMove as TilingWindow;
+      var wwindowToMove = command.WindowToMove;
       var direction = command.Direction;
+
+      if (wwindowToMove is FloatingWindow)
+      {
+        MoveFloatingWindow(wwindowToMove, direction);
+        return CommandResponse.Ok;
+      }
+
+      var windowToMove = command.WindowToMove as TilingWindow;
 
       // Ignore cases where window is not tiling.
       if (windowToMove is null)
         return CommandResponse.Ok;
+
 
       var layoutForDirection = direction.GetCorrespondingLayout();
       var parentMatchesLayout =
@@ -69,6 +79,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       return CommandResponse.Ok;
     }
+
 
     /// <summary>
     /// Whether the window has a tiling sibling in the given direction.
@@ -214,6 +225,28 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, ancestorWithLayout, insertionIndex, true));
       }
 
+      _bus.Invoke(new RedrawContainersCommand());
+    }
+    private void MoveFloatingWindow(Window windowToMove, Direction direction)
+    {
+      int amount = 12;
+      switch (direction)
+      {
+        case Direction.Up:
+          windowToMove.Y -= amount;
+          break;
+        case Direction.Down:
+          windowToMove.Y += amount;
+          break;
+        case Direction.Left:
+          windowToMove.X -= amount;
+          break;
+        case Direction.Right:
+          windowToMove.X += amount;
+          break;
+
+      }
+      _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
     }
   }

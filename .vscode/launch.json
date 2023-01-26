@@ -8,7 +8,8 @@
       "name": ".NET Core Launch (console)",
       "type": "coreclr",
       "request": "launch",
-      "preLaunchTask": "build",
+      "enableStepFiltering": false,
+      // "preLaunchTask": "build",
       // If you have changed target frameworks, make sure to update the program path.
       "program": "${workspaceFolder}/GlazeWM.Bootstrapper/bin/Debug/net6.0-windows/GlazeWM.dll",
       "args": [],
