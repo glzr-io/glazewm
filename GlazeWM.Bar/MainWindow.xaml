@@ -27,6 +27,7 @@
     </Style>
   </Window.Resources>
   <Border
+    CornerRadius="{Binding BorderRadius}"
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}">
     <Grid Margin="{Binding Padding}">
