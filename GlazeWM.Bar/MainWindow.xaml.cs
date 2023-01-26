@@ -70,9 +70,8 @@ namespace GlazeWM.Bar
         ? _monitor.Height - scaledBarHeight
         : 0;
 
-      var barConfig = _userConfigService.GetBarConfigForMonitor(_monitor);
-      var floatBarOffsetX = UnitsHelper.TrimUnits(barConfig.OffsetX);
-      var floatBarOffsetY = UnitsHelper.TrimUnits(barConfig.OffsetY);
+      var floatBarOffsetX = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetX);
+      var floatBarOffsetY = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetY);
 
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
       MoveWindow(

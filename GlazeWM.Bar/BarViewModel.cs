@@ -58,7 +58,7 @@ namespace GlazeWM.Bar
 
     public List<ComponentViewModel> ComponentsCenter =>
       InsertComponentSeparator(
-        CreateComponentViewModels(BarConfig.ComponentsRight),
+        CreateComponentViewModels(BarConfig.ComponentsCenter),
           _componentSeparatorCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
