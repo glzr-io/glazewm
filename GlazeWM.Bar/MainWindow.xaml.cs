@@ -20,14 +20,12 @@ namespace GlazeWM.Bar
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private BarViewModel _barViewModel { get; }
-    private readonly UserConfigService _userConfigService;
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public MainWindow(BarViewModel barViewModel, UserConfigService userConfigService)
+    public MainWindow(BarViewModel barViewModel)
     {
       _barViewModel = barViewModel;
-      _userConfigService = userConfigService;
       DataContext = barViewModel;
 
       InitializeComponent();
@@ -72,9 +70,8 @@ namespace GlazeWM.Bar
         ? _monitor.Height - scaledBarHeight
         : 0;
 
-      var barConfig = _userConfigService.GetBarConfigForMonitor(_monitor);
-      var floatBarOffsetX = UnitsHelper.TrimUnits(barConfig.OffsetX);
-      var floatBarOffsetY = UnitsHelper.TrimUnits(barConfig.OffsetY);
+      var floatBarOffsetX = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetX);
+      var floatBarOffsetY = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetY);
 
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
       MoveWindow(
