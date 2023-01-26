@@ -70,22 +70,26 @@ namespace GlazeWM.Bar
         ? _monitor.Height - scaledBarHeight
         : 0;
 
+      var barConfig = _userConfigService.GetBarConfigForMonitor(_monitor);
+      var floatBarOffsetX = UnitsHelper.TrimUnits(barConfig.OffsetX);
+      var floatBarOffsetY = UnitsHelper.TrimUnits(barConfig.OffsetY);
+
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
       MoveWindow(
         windowHandle,
-        _monitor.X + 1,
-        _monitor.Y + barOffsetY,
-        _monitor.Width - 1,
+        _monitor.X + floatBarOffsetX,
+        _monitor.Y + barOffsetY + floatBarOffsetY,
+        _monitor.Width - (floatBarOffsetX * 2),
         scaledBarHeight,
-        false
+        true
       );
 
       // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
       MoveWindow(
         windowHandle,
-        _monitor.X,
-        _monitor.Y + barOffsetY,
-        _monitor.Width,
+        _monitor.X + floatBarOffsetX,
+        _monitor.Y + barOffsetY + floatBarOffsetY,
+        _monitor.Width - (floatBarOffsetX * 2),
         scaledBarHeight,
         true
       );

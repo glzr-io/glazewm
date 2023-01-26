@@ -4,6 +4,12 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
+    public string OffsetX { get; set; } = "0px";
+
+    public string OffsetY { get; set; } = "0px";
+
+    public string BorderRadius { get; set; } = "0px";
+
     public string Height { get; set; } = "30px";
 
     public BarPosition Position { get; set; } = BarPosition.Top;
