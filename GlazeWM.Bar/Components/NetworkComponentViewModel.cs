@@ -29,6 +29,27 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
+      foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+      {
+        if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+        {
+          Debug.WriteLine(adapter.NetworkInterfaceType);
+          if (adapter.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+          {
+            Debug.WriteLine("here");
+          }
+        }
+      }
+
+      var bssNetworks = NativeWifi.EnumerateBssNetworks();
+      var allC = NativeWifi.EnumerateConnectedNetworkSsids();
+      var connectedSSID = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
+      var linkQuality = bssNetworks.Where(network => network?.Ssid.ToString() == connectedSSID.ToString())?.FirstOrDefault()?.LinkQuality.ToString();
+      _config.Text = linkQuality != null ? linkQuality : "Eth";
+      // _config.Text = "";
+
+
+
       //   var availableNetwork = NativeWifi.EnumerateAvailableNetworks()
       //   .Where(x => !string.IsNullOrWhiteSpace(x.ProfileName))
       //   .OrderByDescending(x => x.SignalQuality)
@@ -50,18 +71,6 @@ namespace GlazeWM.Bar.Components
       //   Debug.WriteLine(e);
       //   Debug.WriteLine("connected network changed !");
       // };
-
-      //   foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
-      //   {
-      //     if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-      //     {
-      //       Debug.WriteLine(adapter.NetworkInterfaceType);
-      //       if (adapter.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
-      //       {
-      //         Debug.WriteLine("here");
-      //       }
-      //     }
-      //   }
 
       //https://stackoverflow.com/questions/25303847/rssi-using-windows-api
 

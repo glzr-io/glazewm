@@ -46,7 +46,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // "40:E1:E4:63:72:C5"
 
       var bssNetworks = NativeWifi.EnumerateBssNetworks();
-      var connectedSSID = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault()?.ToString();
+      var allC = NativeWifi.EnumerateConnectedNetworkSsids();
+      var connectedSSID = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
+      foreach (var nw in bssNetworks)
+      {
+        Debug.WriteLine(nw.Ssid.ToString() == connectedSSID.ToString());
+      }
+      var speed = bssNetworks.Where(network => network.Ssid.ToString() == connectedSSID.ToString()).FirstOrDefault().LinkQuality;
       var connectedInterface = NativeWifi.EnumerateInterfaceConnections();
 
       // Get the index of the interface with the best route to the remote address.
@@ -98,6 +104,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
 
 
+
       MIB_IPADDRTABLE t = GetIpAddrTable();
 
       uint len = 15000;
@@ -109,6 +116,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
         if (networkInterface.GetIPProperties().GetIPv4Properties().Index == dwBestIfIndex)
         {
+          // "{1B243423-099E-423F-8500-E5785E026467}"
+
           var y = bssNetworks.Where(x => x.Interface.Id.ToString() == networkInterface.Id);
 
         }
