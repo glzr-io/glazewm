@@ -125,9 +125,7 @@ keybindings:
     binding: "Alt+R"
 
   # Change tiling direction. This determines where new tiling windows will be inserted.
-  - command: "tiling direction horizontal"
-    binding: "Alt+Shift+V"
-  - command: "tiling direction vertical"
+  - command: "toggle tiling direction"
     binding: "Alt+V"
 
   # Change focus between floating / tiling windows.
