@@ -55,11 +55,21 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // GetBestInterface(dwDestAddr, ref dwBestIfIndex)
       var result = GetBestInterface(dwDestAddr, out dwBestIfIndex);
 
+
+      // {1b243423-099e-423f-8500-e5785e026467}
       var primaryAdapter = GetAdaptersAddresses(GetAdaptersAddressesFlags.GAA_FLAG_INCLUDE_GATEWAYS).FirstOrDefault(r => r.OperStatus == IF_OPER_STATUS.IfOperStatusUp && r.TunnelType == TUNNEL_TYPE.TUNNEL_TYPE_NONE && r.FirstGatewayAddress != IntPtr.Zero);
       var primaryIndex = primaryAdapter.IfIndex;
 
       var hWlan = WlanOpenHandle();
 
+
+
+      uint alen = 15000;
+      var amem = new SafeCoTaskMemHandle((int)alen);
+      var ai = GetAdaptersInfo((IntPtr)amem, ref alen);
+      // AdapterName [string]:
+      // "{1B243423-099E-423F-8500-E5785E026467}"
+      var az = ((IntPtr)amem).LinkedListToIEnum<IP_ADAPTER_INFO>(i => i.Next);
 
       WlanEnumInterfaces(hWlan, default, out var list).ThrowIfFailed();
       if (list.dwNumberOfItems < 1)
@@ -70,11 +80,24 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       var q = WlanGetNetworkBssList(hWlan, intf, IntPtr.Zero, DOT11_BSS_TYPE.dot11_BSS_type_any, true, default, out var mem);
       var elist = mem.DangerousGetHandle().ToStructure<WLAN_BSS_LIST>();
+      // {40:E1:E4:63:72:C5}
       var x = WlanGetAvailableNetworkList(hWlan, intf, 3, default, out var listz);
       var z = WlanGetInterfaceCapability(hWlan, intf, default, out var listzz);
 
 
+
+      WLAN_PROFILE_FLAGS flags = 0;
+      WlanGetProfileList(hWlan, intf, default, out var qeflist).ThrowIfFailed();
+      WlanGetProfile(hWlan, intf, qeflist.ProfileInfo[0].strProfileName, default, out var xml, ref flags, out var access);
+
+
+
+      var tt = CorrespondingTypeAttribute.GetCorrespondingTypes(WLAN_INTF_OPCODE.wlan_intf_opcode_radio_state, CorrespondingAction.Get).FirstOrDefault();
       var ee = WlanQueryInterface(hWlan, intf, WLAN_INTF_OPCODE.wlan_intf_opcode_radio_state, default, out var sz, out var data, out var type);
+      var yy = data.DangerousGetHandle().Convert(sz, tt);
+
+
+
       MIB_IPADDRTABLE t = GetIpAddrTable();
 
       uint len = 15000;
