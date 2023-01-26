@@ -19,9 +19,6 @@ namespace GlazeWM.Bar
   public partial class MainWindow : Window
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
-    private readonly UserConfigService _userConfigService =
-      ServiceLocator.GetRequiredService<UserConfigService>();
-
     private BarViewModel _barViewModel { get; }
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;

@@ -154,6 +154,15 @@ bar:
   # "Shorthand properties" for more info.
   padding: "1 6 1 6"
 
+  # Separators between components within the bar. label is used for each section
+  # of the bar unless label_{left,centre,right} are explictly set, in which case
+  # they are preferred over default.
+  component_separators:
+    label: " | "
+    # label_left: ""
+    # label_center: "" 
+    # label_right: "" 
+
   # Components to display on the left side of the bar.
   components_left:
     - type: "workspaces"
@@ -246,9 +255,9 @@ There are three labels available that can be customized:
 **Example usage:**
 ```yaml
 - type: "battery"
-  draining: " {battery_level}% remaining "
-  power_saver: " {battery_level}% (power saver) "
-  charging: " {battery_level}% (charging) "
+  draining: "{battery_level}% remaining"
+  power_saver: "{battery_level}% (power saver)"
+  charging: "{battery_level}% (charging)"
 ```
 
 ## Window rules
