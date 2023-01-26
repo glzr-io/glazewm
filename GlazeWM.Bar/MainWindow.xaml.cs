@@ -20,12 +20,14 @@ namespace GlazeWM.Bar
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private BarViewModel _barViewModel { get; }
+    private readonly UserConfigService _userConfigService;
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
 
-    public MainWindow(BarViewModel barViewModel)
+    public MainWindow(BarViewModel barViewModel, UserConfigService userConfigService)
     {
       _barViewModel = barViewModel;
+      _userConfigService = userConfigService;
       DataContext = barViewModel;
 
       InitializeComponent();

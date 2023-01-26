@@ -95,7 +95,7 @@ namespace GlazeWM.Bar
           barConfig
         );
 
-        var barWindow = new MainWindow(barViewModel);
+        var barWindow = new MainWindow(barViewModel, _userConfigService);
         barWindow.Show();
 
         // Store active window.
