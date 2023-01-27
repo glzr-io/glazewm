@@ -7,7 +7,12 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using ManagedNativeWifi;
+using static Vanara.PInvoke.WlanApi;
+using static Vanara.PInvoke.IpHlpApi;
+using static Vanara.PInvoke.Ws2_32;
+using System;
+using System.Text;
+using Vanara.InteropServices;
 
 namespace GlazeWM.Bar.Components
 {
@@ -29,51 +34,57 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+      var dwDestAddr = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
+      GetBestInterface(dwDestAddr, out var dwBestIfIndex);
+      var primaryAdapter = GetAdaptersAddresses(GetAdaptersAddressesFlags.GAA_FLAG_INCLUDE_GATEWAYS).FirstOrDefault(
+          r => r.OperStatus == IF_OPER_STATUS.IfOperStatusUp
+          && r.TunnelType == TUNNEL_TYPE.TUNNEL_TYPE_NONE
+          && r.FirstGatewayAddress != IntPtr.Zero
+          && r.IfIndex == dwBestIfIndex
+        );
+
+      switch (primaryAdapter.IfType)
       {
-        if (adapter.OperationalStatus == OperationalStatus.Up && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-        {
-          Debug.WriteLine(adapter.NetworkInterfaceType);
-          if (adapter.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
-          {
-            Debug.WriteLine("here");
-          }
-        }
+        case IFTYPE.IF_TYPE_ETHERNET_CSMACD:
+        case IFTYPE.IF_TYPE_ETHERNET_3MBIT:
+          Debug.WriteLine("HEREEE");
+          break;
+        case IFTYPE.IF_TYPE_IEEE80211:
+          var hWlan = WlanOpenHandle();
+
+          WlanEnumInterfaces(hWlan, default, out var list).ThrowIfFailed();
+          if (list.dwNumberOfItems < 1)
+            throw new InvalidOperationException("No WLAN interfaces.");
+          var intf = list.InterfaceInfo[0].InterfaceGuid;
+
+          var getType = CorrespondingTypeAttribute.GetCorrespondingTypes(WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, CorrespondingAction.Get).FirstOrDefault();
+          var ee = WlanQueryInterface(hWlan, intf, WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, default, out var sz, out var data, out var type);
+          if (ee.Failed)
+            break;
+          var yyy = (WLAN_CONNECTION_ATTRIBUTES)data.DangerousGetHandle().Convert(sz, getType);
+          var sigQual = yyy.wlanAssociationAttributes.wlanSignalQuality;
+          break;
       }
 
-      var bssNetworks = NativeWifi.EnumerateBssNetworks();
-      var allC = NativeWifi.EnumerateConnectedNetworkSsids();
-      var connectedSSID = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
-      // var linkQuality = bssNetworks.Where(network => network?.Ssid.ToString() == connectedSSID.ToString())?.FirstOrDefault()?.LinkQuality.ToString();
-      // _config.Text = linkQuality != null ? linkQuality : "Eth";
-      // _config.Text = "";
-
-
-
-      //   var availableNetwork = NativeWifi.EnumerateAvailableNetworks()
-      //   .Where(x => !string.IsNullOrWhiteSpace(x.ProfileName))
-      //   .OrderByDescending(x => x.SignalQuality)
-      //   .FirstOrDefault();
-
-      //   var bssNetworks = NativeWifi.EnumerateBssNetworks();
-
-
-      //   // "{1B243423-099E-423F-8500-E5785E026467}"
-
-      //   var currentNetwork = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
-      //   // var currentNetworkInfo = NativeWifi.GetInterfaceRadio(currentNetwork.Id);
-      //   var allNetworks = NativeWifi.EnumerateAvailableNetworks();
-      //   var connectedNetworkDetails = NativeWifi.EnumerateAvailableNetworks()
-      //     .FirstOrDefault(x => x.Ssid.ToString() == currentNetwork.ToString());
-
-      //   NetworkChange.NetworkAddressChanged += (object sender, System.EventArgs e) =>
-      // {
-      //   Debug.WriteLine(e);
-      //   Debug.WriteLine("connected network changed !");
-      // };
-
-      //https://stackoverflow.com/questions/25303847/rssi-using-windows-api
-
+      bool pingable = false;
+      Ping pinger = null;
+      try
+      {
+        pinger = new Ping();
+        PingReply reply = pinger.Send("8.8.8.8");
+        pingable = reply.Status == IPStatus.Success;
+      }
+      catch (PingException)
+      {
+        // Discard PingExceptions and return false;
+      }
+      finally
+      {
+        if (pinger != null)
+        {
+          pinger.Dispose();
+        }
+      }
       Debug.WriteLine("--");
     }
 
