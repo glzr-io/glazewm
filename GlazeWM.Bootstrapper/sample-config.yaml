@@ -8,9 +8,6 @@ general:
   cursor_follows_focus: true
 
 bar:
-  offset_x: "0px"
-  offset_y: "0px"
-  border_radius: "0px"
   height: "30px"
   position: "top"
   opacity: 1.0
@@ -19,6 +16,9 @@ bar:
   font_family: "Segoe UI"
   font_size: "13px"
   padding: "4px 6px"
+  offset_x: "0"
+  offset_y: "0"
+  border_radius: "0"
   component_separator:
     label: " | "
   components_left:
@@ -30,8 +30,8 @@ bar:
     - type: "window title"
   components_right:
     - type: "tiling direction"
-      text_horizontal: "⮂"
-      text_vertical: "⮁"
+      label_horizontal: "⮂"
+      label_vertical: "⮁"
       background: "#ffffff33"
       margin: "0 4px"
       padding: "0 8px"
@@ -42,8 +42,6 @@ bar:
     - type: "clock"
       # supported time format specifier:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
-      # "w"   Calendarweek (ISO 8601 week) 1..53
-      # "ww"  CalendarWeek (ISO 8601 week) 01..53
       time_formatting: "hh:mm tt  ddd MMM d"
       margin: "0 0 0 10px"
 
