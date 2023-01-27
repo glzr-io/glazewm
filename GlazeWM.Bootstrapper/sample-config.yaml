@@ -5,7 +5,6 @@ gaps:
 general:
   # Whether to show floating windows as always on top.
   show_floating_on_top: false
-  cursor_follows_focus: true
 
 bar:
   height: "30px"
