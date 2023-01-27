@@ -19,8 +19,8 @@ namespace GlazeWM.Bar.Components
 
     private TilingDirectionComponentConfig _config => _componentConfig as TilingDirectionComponentConfig;
 
-    private string TextVertical => _config.TextVertical;
-    private string TextHorizontal => _config.TextHorizontal;
+    private string LabelVertical => _config.LabelVertical;
+    private string LabelHorizontal => _config.LabelHorizontal;
 
     /// <summary>
     /// The layout of the currently focused container. Can be null on app startup when
@@ -31,7 +31,7 @@ namespace GlazeWM.Bar.Components
       (_containerService.FocusedContainer.Parent as SplitContainer)?.Layout;
 
     public string TilingDirectionString =>
-      _tilingDirection == Layout.Vertical ? TextVertical : TextHorizontal;
+      _tilingDirection == Layout.Vertical ? LabelVertical : LabelHorizontal;
 
     public TilingDirectionComponentViewModel(
       BarViewModel parentViewModel,

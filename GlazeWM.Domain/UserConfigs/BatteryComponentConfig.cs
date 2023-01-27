@@ -19,14 +19,14 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Formatted text to display when the device is draining battery power.
     /// </summary>
-    public string Draining { get; set; } = " {battery_level}% ";
+    public string LabelDraining { get; set; } = "{battery_level}%";
     /// <summary>
     /// Formatted text to display when the device is in power saving mode.
     /// </summary>
-    public string PowerSaver { get; set; } = " {battery_level}% (power saver) ";
+    public string LabelPowerSaver { get; set; } = "{battery_level}% (power saver)";
     /// <summary>
     /// Formatted text to display when the device is connected to power.
     /// </summary>
-    public string Charging { get; set; } = " {battery_level}% (charging) ";
+    public string LabelCharging { get; set; } = "{battery_level}% (charging)";
   }
 }

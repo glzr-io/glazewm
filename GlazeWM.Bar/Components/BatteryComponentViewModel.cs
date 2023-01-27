@@ -23,20 +23,20 @@ namespace GlazeWM.Bar.Components
       // display the battery level as a 100% if no dedicated battery is available on the device
       if (ps.BatteryFlag == 128)
       {
-        return _batteryComponentConfig.Draining.Replace("{battery_level}", "100");
+        return _batteryComponentConfig.LabelDraining.Replace("{battery_level}", "100");
       }
 
       if (ps.ACLineStatus == 1)
       {
-        return _batteryComponentConfig.Charging.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.LabelCharging.Replace("{battery_level}", batteryLevel);
       }
       else if (ps.SystemStatusFlag == 1)
       {
-        return _batteryComponentConfig.PowerSaver.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.LabelPowerSaver.Replace("{battery_level}", batteryLevel);
       }
       else
       {
-        return _batteryComponentConfig.Draining.Replace("{battery_level}", batteryLevel);
+        return _batteryComponentConfig.LabelDraining.Replace("{battery_level}", batteryLevel);
       }
     }
 
