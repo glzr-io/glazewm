@@ -182,6 +182,7 @@ namespace GlazeWM.Domain.Windows
         var processName = GetProcessOfHandle(handle)?.ProcessName;
         var title = GetTitleOfHandle(handle);
 
+        // TODO: Temporary fix for managing Flow Launcher until a force manage command is added.
         if (processName == "Flow.Launcher" && title == "Flow.Launcher")
           return true;
       }
