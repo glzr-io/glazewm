@@ -5,16 +5,16 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class UserConfig
   {
-    public GapsConfig Gaps { get; set; } = new GapsConfig();
+    public GapsConfig Gaps { get; set; } = new();
 
-    public GeneralConfig General { get; set; } = new GeneralConfig();
+    public GeneralConfig General { get; set; } = new();
 
     public BarConfig Bar { get; set; } = new();
 
     public List<MultiBarConfig> Bars { get; set; } = new();
 
     public List<BarConfig> BarConfigs => Bars.Count == 0
-      ? new List<BarConfig> { Bar }
+      ? new() { Bar }
       : Bars.Cast<BarConfig>().ToList();
 
     public List<WorkspaceConfig> Workspaces { get; set; } = new();
