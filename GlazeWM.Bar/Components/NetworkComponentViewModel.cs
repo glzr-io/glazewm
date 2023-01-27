@@ -44,8 +44,8 @@ namespace GlazeWM.Bar.Components
       var bssNetworks = NativeWifi.EnumerateBssNetworks();
       var allC = NativeWifi.EnumerateConnectedNetworkSsids();
       var connectedSSID = NativeWifi.EnumerateConnectedNetworkSsids().FirstOrDefault();
-      var linkQuality = bssNetworks.Where(network => network?.Ssid.ToString() == connectedSSID.ToString())?.FirstOrDefault()?.LinkQuality.ToString();
-      _config.Text = linkQuality != null ? linkQuality : "Eth";
+      // var linkQuality = bssNetworks.Where(network => network?.Ssid.ToString() == connectedSSID.ToString())?.FirstOrDefault()?.LinkQuality.ToString();
+      // _config.Text = linkQuality != null ? linkQuality : "Eth";
       // _config.Text = "";
 
 
