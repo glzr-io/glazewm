@@ -30,23 +30,30 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       WindowTitleComponentConfig config) : base(parentViewModel, config)
     {
-      void processTitleChange(IntPtr windowHdl)
-      {
-        var focusedWindow = _containerService.FocusedContainer as Window;
+      _bus.Events.OfType<WindowFocusedEvent>()
+        .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
 
-        if (focusedWindow != null && windowHdl != focusedWindow.Handle)
-          return;
+      _bus.Events.OfType<WindowTitleChangedEvent>()
+        .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+    }
 
-        FocusedWindowTitle = focusedWindow?.Title ?? string.Empty;
-      }
+    private void UpdateTitle(IntPtr windowHandle)
+    {
+      var focusedWindow = _containerService.FocusedContainer as Window;
 
-      _bus.Events.Where(
-          (@event) => @event is WindowFocusedEvent or WindowTitleChangedEvent
-        ).Subscribe(e =>
-        {
-          dynamic d = e;
-          processTitleChange(d.WindowHandle);
-        });
+      if (focusedWindow != null && windowHandle != focusedWindow.Handle)
+        return;
+
+      // TODO: Make truncate max length configurable from config.
+      var windowTitle = focusedWindow?.Title ?? string.Empty;
+      FocusedWindowTitle = Truncate(windowTitle, 60);
+    }
+
+    public static string Truncate(string value, int maxLength, string truncationSuffix = "…")
+    {
+      return value?.Length > maxLength
+        ? string.Concat(value.AsSpan(0, maxLength), truncationSuffix)
+        : value;
     }
   }
 }
