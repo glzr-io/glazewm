@@ -77,7 +77,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       window = _windowService.GetWindowByHandle(window.Handle);
 
       // Window might be detached if 'ignore' command has been invoked.
-      if (window.IsDetached())
+      if (window?.IsDetached() != false)
         return CommandResponse.Ok;
 
       if (shouldRedraw)
