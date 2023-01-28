@@ -18,8 +18,6 @@ bar:
   offset_x: "0"
   offset_y: "0"
   border_radius: "0"
-  component_separator:
-    label: " | "
   components_left:
     - type: "workspaces"
       focused_workspace_background: "#ffffff33"
@@ -39,7 +37,7 @@ bar:
       margin: "0 4px 0 0"
       padding: "0 8px"
     - type: "clock"
-      # supported time format specifier:
+      # Documentation on formatting date/time string:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
       time_formatting: "hh:mm tt  ddd MMM d"
       margin: "0 0 0 10px"
