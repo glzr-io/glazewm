@@ -44,7 +44,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (windowToMove is null)
         return CommandResponse.Ok;
 
-
       var layoutForDirection = direction.GetCorrespondingLayout();
       var parentMatchesLayout =
         (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
@@ -79,7 +78,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       return CommandResponse.Ok;
     }
-
 
     /// <summary>
     /// Whether the window has a tiling sibling in the given direction.
@@ -229,7 +227,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     }
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
-      int amount = 12;
+      int amount = 25;
       switch (direction)
       {
         case Direction.Up:

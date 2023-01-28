@@ -127,22 +127,21 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
       var amount = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
-      amount = amount * 100 * 6;
+      amount = amount * 100 * 9;
+
       switch (dimensionToResize)
       {
         case ResizeDimension.Width:
-          int newWidht = windowToResize.FloatingPlacement.Width + (int)amount;
-          windowToResize.Width = newWidht;
+          windowToResize.Width += (int)amount;
           break;
 
         case ResizeDimension.Height:
-          int newHeight = windowToResize.FloatingPlacement.Height + (int)amount;
-          windowToResize.Height = newHeight;
+          int newHeight =
+          windowToResize.Height -= (int)amount;
           break;
       }
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
-      // _bus.Emit(new Infrastructure.Common.Events.WindowMovedOrResizedEvent(windowToResize.Handle));
     }
   }
 }
