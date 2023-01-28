@@ -11,10 +11,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal sealed class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
   {
     private readonly Bus _bus;
+    private readonly WindowService _windowService;
 
-    public SetNativeFocusHandler(Bus bus)
+    public SetNativeFocusHandler(Bus bus, WindowService windowService)
     {
       _bus = bus;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(SetNativeFocusCommand command)
@@ -24,7 +26,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var handleToFocus = containerToFocus switch
       {
         Window window => window.Handle,
-        Workspace => GetDesktopWindow(),
+        Workspace => _windowService.DesktopWindowHandle,
         _ => throw new Exception("Invalid container type to focus. This is a bug."),
       };
 
@@ -36,6 +38,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
+      // TODO: This is called twice unnecessarily when setting workspace focus on unmanage.
       if (containerToFocus is Workspace)
       {
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
