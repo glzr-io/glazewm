@@ -132,14 +132,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       switch (dimensionToResize)
       {
         case ResizeDimension.Width:
-          windowToResize.Width += (int)amount;
+          windowToResize.Width += amount;
           break;
 
         case ResizeDimension.Height:
-          int newHeight =
-          windowToResize.Height -= (int)amount;
+          windowToResize.Height -= amount;
           break;
       }
+
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
     }
