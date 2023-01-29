@@ -5,38 +5,74 @@ using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Bar
 {
   public class BarViewModel : ViewModelBase
   {
-    public Dispatcher Dispatcher { get; set; }
-    public Monitor Monitor { get; set; }
+    public Monitor Monitor { get; }
+    public Dispatcher Dispatcher { get; }
+    public BarConfig BarConfig { get; }
 
-    private readonly UserConfigService _userConfigService =
-      ServiceLocator.GetRequiredService<UserConfigService>();
-    private BarConfig _barConfig => _userConfigService.BarConfig;
+    public BarPosition Position => BarConfig.Position;
+    public string Background => XamlHelper.FormatColor(BarConfig.Background);
+    public string Foreground => XamlHelper.FormatColor(BarConfig.Foreground);
+    public string FontFamily => BarConfig.FontFamily;
+    public string FontWeight => BarConfig.FontWeight;
+    public string FontSize => XamlHelper.FormatSize(BarConfig.FontSize);
+    public string BorderColor => XamlHelper.FormatColor(BarConfig.BorderColor);
+    public string BorderWidth => XamlHelper.FormatRectShorthand(BarConfig.BorderWidth);
+    public string BorderRadius => XamlHelper.FormatSize(BarConfig.BorderRadius);
+    public string Padding => XamlHelper.FormatRectShorthand(BarConfig.Padding);
+    public double Opacity => BarConfig.Opacity;
 
-    public BarPosition Position => _barConfig.Position;
-    public string Background => XamlHelper.FormatColor(_barConfig.Background);
-    public string Foreground => XamlHelper.FormatColor(_barConfig.Foreground);
-    public string FontFamily => _barConfig.FontFamily;
-    public string FontWeight => _barConfig.FontWeight;
-    public string FontSize => XamlHelper.FormatSize(_barConfig.FontSize);
-    public string BorderColor => XamlHelper.FormatColor(_barConfig.BorderColor);
-    public string BorderWidth => XamlHelper.FormatRectShorthand(_barConfig.BorderWidth);
-    public string Padding => XamlHelper.FormatRectShorthand(_barConfig.Padding);
-    public double Opacity => _barConfig.Opacity;
+    private TextComponentViewModel _componentSeparatorLeft => new(
+        this, new TextComponentConfig
+        {
+          Text = BarConfig.ComponentSeparator.LabelLeft
+            ?? BarConfig.ComponentSeparator.Label
+        }
+    );
+
+    private TextComponentViewModel _componentSeparatorCenter => new(
+        this, new TextComponentConfig
+        {
+          Text = BarConfig.ComponentSeparator.LabelCenter
+            ?? BarConfig.ComponentSeparator.Label
+        }
+    );
+
+    private TextComponentViewModel _componentSeparatorRight => new(
+        this, new TextComponentConfig
+        {
+          Text = BarConfig.ComponentSeparator.LabelRight
+            ?? BarConfig.ComponentSeparator.Label
+        }
+    );
 
     public List<ComponentViewModel> ComponentsLeft =>
-      CreateComponentViewModels(_barConfig.ComponentsLeft);
+      InsertComponentSeparator(
+        CreateComponentViewModels(BarConfig.ComponentsLeft),
+          _componentSeparatorLeft);
 
     public List<ComponentViewModel> ComponentsCenter =>
-      CreateComponentViewModels(_barConfig.ComponentsCenter);
+      InsertComponentSeparator(
+        CreateComponentViewModels(BarConfig.ComponentsCenter),
+          _componentSeparatorCenter);
 
     public List<ComponentViewModel> ComponentsRight =>
-      CreateComponentViewModels(_barConfig.ComponentsRight);
+      InsertComponentSeparator(
+        CreateComponentViewModels(BarConfig.ComponentsRight),
+          _componentSeparatorRight);
+
+    private static List<ComponentViewModel> InsertComponentSeparator(
+      List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
+    )
+    {
+      componentViewModels.Intersperse(componentSeparator);
+      return componentViewModels;
+    }
 
     private List<ComponentViewModel> CreateComponentViewModels(
       List<BarComponentConfig> componentConfigs)
@@ -52,6 +88,13 @@ namespace GlazeWM.Bar
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
+    }
+
+    public BarViewModel(Monitor monitor, Dispatcher dispatcher, BarConfig barConfig)
+    {
+      Monitor = monitor;
+      Dispatcher = dispatcher;
+      BarConfig = barConfig;
     }
   }
 }

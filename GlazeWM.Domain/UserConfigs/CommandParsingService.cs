@@ -105,6 +105,7 @@ namespace GlazeWM.Domain.UserConfigs
         {
           "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
           "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
+          "toggle" => new ToggleContainerLayoutCommand(subjectContainer),
           _ => throw new ArgumentException(null, nameof(commandParts)),
         },
         _ => throw new ArgumentException(null, nameof(commandParts)),
@@ -130,6 +131,11 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new FocusInDirectionCommand(Direction.Up),
         "down" => new FocusInDirectionCommand(Direction.Down),
         "workspace" => ParseFocusWorkspaceCommand(commandParts),
+        "mode" => commandParts[2] switch
+        {
+          "toggle" => new ToggleFocusModeCommand(),
+          _ => throw new ArgumentException(null, nameof(commandParts)),
+        },
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
@@ -232,6 +238,7 @@ namespace GlazeWM.Domain.UserConfigs
         "maximized" => subjectContainer is Window
           ? new ToggleMaximizedCommand(subjectContainer as Window)
           : new NoopCommand(),
+        // TODO: "toggle focus mode" command is deprecated. Remove in next major release.
         "focus" => commandParts[2] switch
         {
           "mode" => new ToggleFocusModeCommand(),

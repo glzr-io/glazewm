@@ -25,6 +25,11 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     public List<IntPtr> IgnoredHandles { get; set; } = new();
 
+    /// <summary>
+    /// Handle to the desktop window.
+    /// </summary>
+    public IntPtr DesktopWindowHandle { get; } = GetDesktopWindowHandle();
+
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
 
@@ -115,6 +120,16 @@ namespace GlazeWM.Domain.Windows
       return windowHandles;
     }
 
+    private static IntPtr GetDesktopWindowHandle()
+    {
+      return GetAllWindowHandles().Find(handle =>
+      {
+        var className = GetClassNameOfHandle(handle);
+        var process = GetProcessOfHandle(handle);
+        return className == "Progman" && process.ProcessName == "explorer";
+      });
+    }
+
     public static WindowStylesEx GetWindowStylesEx(IntPtr handle)
     {
       return unchecked((WindowStylesEx)GetWindowLongPtr(handle, GWLEXSTYLE).ToInt64());
@@ -162,6 +177,16 @@ namespace GlazeWM.Domain.Windows
 
     public static bool IsHandleManageable(IntPtr handle)
     {
+      if (GetProcessOfHandle(handle) is not null)
+      {
+        var processName = GetProcessOfHandle(handle)?.ProcessName;
+        var title = GetTitleOfHandle(handle);
+
+        // TODO: Temporary fix for managing Flow Launcher until a force manage command is added.
+        if (processName == "Flow.Launcher" && title == "Flow.Launcher")
+          return true;
+      }
+
       // Ignore windows that are hidden.
       if (!IsHandleVisible(handle))
         return false;
