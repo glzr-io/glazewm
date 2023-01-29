@@ -10,5 +10,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// Center the cursor in the middle of a newly focused window
     /// </summary>
     public bool CursorFollowsFocus { get; set; } = true;
+    /// <summary>
+    /// Amount by which to move floating windows
+    /// </summary>
+    public int FloatingWindowMoveAmount { get; set; } = 20;
   }
 }

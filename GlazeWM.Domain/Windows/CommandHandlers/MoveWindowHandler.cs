@@ -5,6 +5,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -16,15 +17,18 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
 
     public MoveWindowHandler(
       Bus bus,
       ContainerService containerService,
-      MonitorService monitorService)
+      MonitorService monitorService,
+      UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;
       _monitorService = monitorService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(MoveWindowCommand command)
@@ -225,9 +229,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
+
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
-      int amount = 25;
+      int amount = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
       switch (direction)
       {
         case Direction.Up:
@@ -242,7 +247,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         case Direction.Right:
           windowToMove.X += amount;
           break;
-
       }
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());

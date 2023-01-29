@@ -126,8 +126,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     }
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
-      var amount = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
-      amount = amount * 100 * 9;
+      var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
+      int amount = (int)(windowToResize.Parent.Width * resizePercentage);
 
       switch (dimensionToResize)
       {
