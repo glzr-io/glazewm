@@ -134,6 +134,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var y = windowToResize.FloatingPlacement.Y;
       var width = windowToResize.FloatingPlacement.Width;
       var height = windowToResize.FloatingPlacement.Height;
+      //maybe no x and y and rename width and height to newWidth newHeight
 
       switch (dimensionToResize)
       {

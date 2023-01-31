@@ -9,6 +9,7 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -233,21 +234,34 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
       int amount = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
+
+      var x = windowToMove.FloatingPlacement.X;
+      var y = windowToMove.FloatingPlacement.Y;
+      var width = windowToMove.FloatingPlacement.Width;
+      var height = windowToMove.FloatingPlacement.Height;
+      //maybe no widht and height and rename x and y to newX newY
+
       switch (direction)
       {
         case Direction.Up:
-          windowToMove.Y -= amount;
+          y -= amount;
           break;
+
         case Direction.Down:
-          windowToMove.Y += amount;
+          y += amount;
           break;
+
         case Direction.Left:
-          windowToMove.X -= amount;
+          x -= amount;
           break;
+
         case Direction.Right:
-          windowToMove.X += amount;
+          x += amount;
           break;
       }
+
+      windowToMove.FloatingPlacement = Rect.FromXYCoordinates(x, y, width, height);
+
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
     }
