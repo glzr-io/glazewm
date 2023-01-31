@@ -8,12 +8,11 @@
     Loaded="NotifyIconList_OnLoaded"
     mc:Ignorable="d">
     <StackPanel Orientation="Horizontal">
-        <ToggleButton
-            Name="NotifyIconToggleButton"
-            Visibility="Collapsed"
-            Width="10"
-            Click="NotifyIconToggleButton_OnClick"
-            Style="{DynamicResource TrayToggleButton}" />
+        <Button
+            Background="#1b1b1b"
+            Foreground="#ffa752"
+            Content="󰅁"
+            FontFamily="Material Design Icons Desktop" />
         <ItemsControl
             x:Name="NotifyIcons"
             Focusable="False"

@@ -56,10 +56,12 @@ namespace GlazeWM.Bar.Components
       //   }
       //   else
       //   {
-      NotifyIconToggleButton.IsChecked = false;
-      NotifyIconToggleButton.Visibility = Visibility.Collapsed;
+      // NotifyIconToggleButton.IsChecked = false;
+      // NotifyIconToggleButton.Visibility = Visibility.Collapsed;
 
       NotifyIcons.ItemsSource = allNotifyIconsSource.View;
+      NotifyIcons.ItemsSource = notificationArea.AllIcons;
+
       // }
       // }
     }
@@ -81,6 +83,7 @@ namespace GlazeWM.Bar.Components
         notificationArea.UnpinnedIcons.CollectionChanged += UnpinnedIcons_CollectionChanged;
 
         NotifyIcons.ItemsSource = allNotifyIconsSource.View;
+        NotifyIcons.ItemsSource = notificationArea.AllIcons;
 
         _isLoaded = true;
       }
@@ -105,39 +108,39 @@ namespace GlazeWM.Bar.Components
 
     private void UnpinnedIcons_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
-      SetToggleVisibility();
+      // SetToggleVisibility();
     }
 
-    private void NotifyIconToggleButton_OnClick(object sender, RoutedEventArgs e)
-    {
-      if (NotifyIconToggleButton.IsChecked == true)
-      {
+    // private void NotifyIconToggleButton_OnClick(object sender, RoutedEventArgs e)
+    // {
+    //   if (NotifyIconToggleButton.IsChecked == true)
+    //   {
 
-        NotifyIcons.ItemsSource = allNotifyIconsSource.View;
-      }
-      else
-      {
-        NotifyIcons.ItemsSource = pinnedNotifyIconsSource.View;
-      }
-    }
+    //     NotifyIcons.ItemsSource = allNotifyIconsSource.View;
+    //   }
+    //   else
+    //   {
+    //     NotifyIcons.ItemsSource = pinnedNotifyIconsSource.View;
+    //   }
+    // }
 
-    private void SetToggleVisibility()
-    {
-      // if (!Settings.Instance.CollapseNotifyIcons) return;
+    // private void SetToggleVisibility()
+    // {
+    //   // if (!Settings.Instance.CollapseNotifyIcons) return;
 
-      if (notificationArea.UnpinnedIcons.IsEmpty)
-      {
-        NotifyIconToggleButton.Visibility = Visibility.Collapsed;
+    //   if (notificationArea.UnpinnedIcons.IsEmpty)
+    //   {
+    //     NotifyIconToggleButton.Visibility = Visibility.Collapsed;
 
-        if (NotifyIconToggleButton.IsChecked == true)
-        {
-          NotifyIconToggleButton.IsChecked = false;
-        }
-      }
-      else
-      {
-        NotifyIconToggleButton.Visibility = Visibility.Visible;
-      }
-    }
+    //     if (NotifyIconToggleButton.IsChecked == true)
+    //     {
+    //       NotifyIconToggleButton.IsChecked = false;
+    //     }
+    //   }
+    //   else
+    //   {
+    //     NotifyIconToggleButton.Visibility = Visibility.Visible;
+    //   }
+    // }
   }
 }
