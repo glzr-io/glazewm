@@ -27,11 +27,6 @@ bar:
     - type: "window title"
   components_right:
     - type: "system tray"
-      expand_text: ""
-      collapse_text: ""
-      font_family: "pack://application:,,,/Fonts/#Material Icons"
-      background: "#20242cc4"
-      foreground: "#ffffff"
     - type: "tiling direction"
       label_horizontal: "⮂"
       label_vertical: "⮁"

@@ -11,5 +11,13 @@ namespace GlazeWM.Domain.UserConfigs
     /// Collapse to show only pinned icons.
     /// </summary>
     public string CollapseText { get; set; } = "";
+
+    public SystemTrayComponentConfig()
+    {
+      if (FontFamily == null)
+      {
+        FontFamily = "pack://application:,,,/Fonts/#Material Icons";
+      }
+    }
   }
 }
