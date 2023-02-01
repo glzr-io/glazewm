@@ -82,9 +82,9 @@ namespace GlazeWM.Bar.Components
       if (TrayIcon != null)
       {
         // update icon position for Shell_NotifyIconGetRect
-        Decorator sendingDecorator = sender as Decorator;
-        Point location = sendingDecorator.PointToScreen(new Point(0, 0));
-        double dpiScale = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
+        var sendingDecorator = sender as Decorator;
+        var location = sendingDecorator.PointToScreen(new Point(0, 0));
+        var dpiScale = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
 
         TrayIcon.Placement = new NativeMethods.Rect { Top = (int)location.Y, Left = (int)location.X, Bottom = (int)(sendingDecorator.ActualHeight * dpiScale), Right = (int)(sendingDecorator.ActualWidth * dpiScale) };
         TrayIcon.IconMouseEnter(MouseHelper.GetCursorPositionParam());

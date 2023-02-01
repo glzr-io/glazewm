@@ -1,20 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Threading;
 using GlazeWM.Bar.Common;
-using GlazeWM.Domain.Containers.Events;
-using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
-using GlazeWM.Domain.Workspaces.Events;
 using ManagedShell;
 using ManagedShell.WindowsTray;
 
