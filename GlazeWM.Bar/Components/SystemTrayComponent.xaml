@@ -31,8 +31,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <local:NotifyIcon />
-                    <!-- <Image Source="{Binding Path=Icon, Mode=OneWay}" /> -->
+                    <local:NotifyIcon Cursor="Hand" />
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -48,8 +47,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <local:NotifyIcon />
-                    <!-- <Image Source="{Binding Path=Icon, Mode=OneWay}" /> -->
+                    <local:NotifyIcon Cursor="Hand" />
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

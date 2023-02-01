@@ -24,6 +24,7 @@
     <EmbeddedResource Include="icon.ico">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
+    <Resource Include="Fonts\MaterialIcons-Regular.ttf" />
     <EmbeddedResource Include="sample-config.yaml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
