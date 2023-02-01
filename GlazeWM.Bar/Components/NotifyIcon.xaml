@@ -16,8 +16,6 @@
         <Image
             Source="{Binding Path=Icon, Mode=OneWay}"
             Focusable="True"
-            Name="NotifyIconImage"
-            Style="{DynamicResource NotifyIcon}" />
+            Name="NotifyIconImage" />
     </Border>
-    <!-- <local:NotifyBalloon x:Name="BalloonControl" /> -->
 </UserControl>
