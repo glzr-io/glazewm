@@ -12,8 +12,7 @@
         MouseDown="NotifyIcon_OnMouseDown"
         MouseEnter="NotifyIcon_OnMouseEnter"
         MouseLeave="NotifyIcon_OnMouseLeave"
-        MouseMove="NotifyIcon_OnMouseMove"
-        PreviewMouseWheel="NotifyIcon_OnPreviewMouseWheel">
+        MouseMove="NotifyIcon_OnMouseMove">
         <Image
             Source="{Binding Path=Icon, Mode=OneWay}"
             Focusable="True"

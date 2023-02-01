@@ -9,12 +9,31 @@
     mc:Ignorable="d">
     <StackPanel Orientation="Horizontal">
         <Button
+            x:Name="ToggleShowAllIconsBtn"
             Background="#1b1b1b"
             Foreground="#ffa752"
-            Content="󰅁"
-            FontFamily="Material Design Icons Desktop" />
+            Click="ToggleShowAllIcons_OnClick"
+            Content="{Binding ToggleShowAllText}"
+            FontFamily="Material Icons" />
         <ItemsControl
-            x:Name="NotifyIcons"
+            x:Name="NotifyIconsUnpinned"
+            Focusable="False"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <local:NotifyIcon />
+                    <!-- <Image Source="{Binding Path=Icon, Mode=OneWay}" /> -->
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl
+            x:Name="NotifyIconsPinned"
             Focusable="False"
             HorizontalAlignment="Center"
             VerticalAlignment="Center">

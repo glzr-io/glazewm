@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Data;
 using ManagedShell.WindowsTray;
 using ManagedShell;
+using System.Diagnostics;
+using System.Windows.Input;
 
 namespace GlazeWM.Bar.Components
 {
@@ -18,6 +20,8 @@ namespace GlazeWM.Bar.Components
     private CollectionViewSource allNotifyIconsSource;
     private CollectionViewSource pinnedNotifyIconsSource;
     private readonly ObservableCollection<NotifyIcon> promotedIcons = new();
+
+    private bool isExpanded = true;
 
     public NotificationArea notificationArea;
 
@@ -39,10 +43,10 @@ namespace GlazeWM.Bar.Components
       _ = _shellManager.NotificationArea.TrayIcons;
       notificationArea = _shellManager.NotificationArea;
 
-      // var appBar = new MyAppBar(_shellManager, AppBarScreen.FromPrimaryScreen(), AppBarEdge.Top, 30);
-      // appBar.Show();
 
       InitializeComponent();
+      ToggleShowAllIconsBtn.Content = "";
+
     }
 
     private void Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -59,8 +63,8 @@ namespace GlazeWM.Bar.Components
       // NotifyIconToggleButton.IsChecked = false;
       // NotifyIconToggleButton.Visibility = Visibility.Collapsed;
 
-      NotifyIcons.ItemsSource = allNotifyIconsSource.View;
-      NotifyIcons.ItemsSource = notificationArea.AllIcons;
+      // NotifyIcons.ItemsSource = allNotifyIconsSource.View;
+      // NotifyIcons.ItemsSource = notificationArea.AllIcons;
 
       // }
       // }
@@ -83,9 +87,27 @@ namespace GlazeWM.Bar.Components
         notificationArea.UnpinnedIcons.CollectionChanged += UnpinnedIcons_CollectionChanged;
 
         // NotifyIcons.ItemsSource = allNotifyIconsSource.View;
-        NotifyIcons.ItemsSource = notificationArea.AllIcons;
+        NotifyIconsPinned.ItemsSource = notificationArea.PinnedIcons;
+        NotifyIconsUnpinned.ItemsSource = notificationArea.UnpinnedIcons;
+
 
         _isLoaded = true;
+      }
+    }
+
+    private void ToggleShowAllIcons_OnClick(object sender, RoutedEventArgs e)
+    {
+      if (isExpanded)
+      {
+        NotifyIconsUnpinned.ItemsSource = null;
+        ToggleShowAllIconsBtn.Content = "";
+        isExpanded = false;
+      }
+      else
+      {
+        NotifyIconsUnpinned.ItemsSource = notificationArea.UnpinnedIcons;
+        ToggleShowAllIconsBtn.Content = "";
+        isExpanded = true;
       }
     }
 

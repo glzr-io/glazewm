@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,44 +23,6 @@ namespace GlazeWM.Bar.Components
       InitializeComponent();
     }
 
-    private void applyEffects()
-    {
-      if (!EnvironmentHelper.IsWindows10OrBetter || TrayIcon == null)
-      {
-        return;
-      }
-
-      string iconGuid = TrayIcon.GUID.ToString();
-
-      if (!(iconGuid == NotificationArea.HARDWARE_GUID ||
-          iconGuid == NotificationArea.UPDATE_GUID ||
-          iconGuid == NotificationArea.MICROPHONE_GUID ||
-          iconGuid == NotificationArea.LOCATION_GUID ||
-          iconGuid == NotificationArea.MEETNOW_GUID ||
-          iconGuid == NotificationArea.NETWORK_GUID ||
-          iconGuid == NotificationArea.POWER_GUID ||
-          iconGuid == NotificationArea.VOLUME_GUID))
-      {
-        return;
-      }
-
-      //   bool invertByTheme = Application.Current.FindResource("InvertSystemNotifyIcons") as bool? ?? false;
-
-      //   if (NotifyIconImage.Effect == null != invertByTheme)
-      //   {
-      //     return;
-      //   }
-
-      //   if (invertByTheme)
-      //   {
-      //     NotifyIconImage.Effect = new InvertEffect();
-      //   }
-      //   else
-      //   {
-      //     NotifyIconImage.Effect = null;
-      //   }
-    }
-
     private void NotifyIcon_OnLoaded(object sender, RoutedEventArgs e)
     {
       if (!isLoaded)
@@ -71,18 +34,12 @@ namespace GlazeWM.Bar.Components
           return;
         }
 
-        applyEffects();
-
-        TrayIcon.NotificationBalloonShown += TrayIcon_NotificationBalloonShown;
-
-        // If a notification was received before we started listening, it will be here. Show the first one that is not expired.
-        NotificationBalloon firstUnexpiredNotification = TrayIcon.MissedNotifications.FirstOrDefault(balloon => balloon.Received.AddMilliseconds(balloon.Timeout) > DateTime.Now);
-
-        // if (firstUnexpiredNotification != null && Host != null && Host.Screen.Primary)
-        // {
-        //   BalloonControl.Show(firstUnexpiredNotification, NotifyIconBorder);
-        TrayIcon.MissedNotifications.Remove(firstUnexpiredNotification);
-        // }
+        if (TrayIcon.Path.Contains("\\Windows\\explorer.exe"))
+        {
+          Height = 0;
+          Width = 0;
+          Visibility = Visibility.Hidden;
+        }
 
         isLoaded = true;
       }
@@ -90,35 +47,36 @@ namespace GlazeWM.Bar.Components
 
     private void NotifyIcon_OnUnloaded(object sender, RoutedEventArgs e)
     {
-      if (TrayIcon != null)
-      {
-        TrayIcon.NotificationBalloonShown -= TrayIcon_NotificationBalloonShown;
-      }
       isLoaded = false;
-    }
-
-    private void TrayIcon_NotificationBalloonShown(object sender, NotificationBalloonEventArgs e)
-    {
-      //   if (Host == null || !Host.Screen.Primary)
-      //   {
-      //     return;
-      //   }
-
-      //   BalloonControl.Show(e.Balloon, NotifyIconBorder);
-      e.Handled = true;
     }
 
     private void NotifyIcon_OnMouseDown(object sender, MouseButtonEventArgs e)
     {
       e.Handled = true;
-      //   Host?.SetTrayHost();
-      TrayIcon?.IconMouseDown(e.ChangedButton, MouseHelper.GetCursorPositionParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+      if (!Keyboard.IsKeyDown(Key.LeftAlt))
+      {
+        TrayIcon?.IconMouseDown(e.ChangedButton, MouseHelper.GetCursorPositionParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+      }
     }
 
     private void NotifyIcon_OnMouseUp(object sender, MouseButtonEventArgs e)
     {
       e.Handled = true;
-      TrayIcon?.IconMouseUp(e.ChangedButton, MouseHelper.GetCursorPositionParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+      if (Keyboard.IsKeyDown(Key.LeftAlt))
+      {
+        if (TrayIcon.IsPinned)
+        {
+          TrayIcon.Unpin();
+        }
+        else
+        {
+          TrayIcon.Pin();
+        }
+      }
+      else
+      {
+        TrayIcon?.IconMouseUp(e.ChangedButton, MouseHelper.GetCursorPositionParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+      }
     }
 
     private void NotifyIcon_OnMouseEnter(object sender, MouseEventArgs e)
@@ -147,24 +105,6 @@ namespace GlazeWM.Bar.Components
     {
       e.Handled = true;
       TrayIcon?.IconMouseMove(MouseHelper.GetCursorPositionParam());
-    }
-
-    private bool HandleNotificationIconMouseWheel(bool upOrDown)
-    {
-      switch (TrayIcon?.GUID.ToString())
-      {
-        case NotificationArea.VOLUME_GUID:
-          //   VolumeChanger.ChangeVolume(WindowHelper.FindWindowsTray(IntPtr.Zero), upOrDown);
-          return true;
-        default:
-          return false;
-      }
-    }
-
-    private void NotifyIcon_OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-      HandleNotificationIconMouseWheel(e.Delta > 0);
-      e.Handled = true;
     }
   }
 }
