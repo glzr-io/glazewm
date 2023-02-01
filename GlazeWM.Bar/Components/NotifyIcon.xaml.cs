@@ -30,6 +30,7 @@ namespace GlazeWM.Bar.Components
           return;
         }
 
+        // Hide native volume and network tray icons 
         if (TrayIcon.Path.Contains("\\Windows\\explorer.exe"))
         {
           Height = 0;
