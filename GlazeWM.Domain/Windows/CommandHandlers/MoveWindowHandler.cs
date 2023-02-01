@@ -34,12 +34,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(MoveWindowCommand command)
     {
-      var wwindowToMove = command.WindowToMove;
+      var window = command.WindowToMove;
       var direction = command.Direction;
 
-      if (wwindowToMove is FloatingWindow)
+      if (window is FloatingWindow)
       {
-        MoveFloatingWindow(wwindowToMove, direction);
+        MoveFloatingWindow(window, direction);
         return CommandResponse.Ok;
       }
       //move everything below to MoveTilingWindow()
