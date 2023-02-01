@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
@@ -13,8 +15,8 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Domain.Workspaces.Events;
-using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.Bussing;
+using ManagedShell;
+using ManagedShell.WindowsTray;
 
 namespace GlazeWM.Bar.Components
 {
@@ -23,33 +25,49 @@ namespace GlazeWM.Bar.Components
     private readonly SystemTrayComponentConfig _systemTrayComponentConfig;
     public string ExpandCollapseText { get; set; } = string.Empty;
     public ICommand ToggleShowAllIconsCommand => new RelayCommand(ToggleShowAllIcons);
-    private bool isExpanded;
+    private bool isExpanded = true;
+    private static NotificationArea notificationArea;
+    private static ShellManager shellManager;
+    public ICollectionView PinnedNotifyIcons { get; set; }
+    public ICollectionView UnpinnedNotifyIcons { get; set; }
 
     public SystemTrayComponentViewModel(
       BarViewModel parentViewModel,
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
+      if (shellManager == null)
+      {
+        // Initialize the default configuration.
+        var c = ShellManager.DefaultShellConfig;
+        c.EnableTrayService = true;
+
+        // Initialize the shell manager.
+        shellManager = new ShellManager(c);
+
+        notificationArea = shellManager.NotificationArea;
+
+        UnpinnedNotifyIcons = notificationArea.UnpinnedIcons;
+        PinnedNotifyIcons = notificationArea.PinnedIcons;
+      }
       _systemTrayComponentConfig = config;
       ExpandCollapseText = config.CollapseText;
     }
 
     public void ToggleShowAllIcons()
     {
-      Debug.WriteLine("EHERE");
       if (isExpanded)
       {
-        // NotifyIconsUnpinned.ItemsSource = null;
-        ExpandCollapseText = "";
-        // ToggleShowAllIconsBtn.Content = "";
-        isExpanded = false;
+        UnpinnedNotifyIcons = null;
+        ExpandCollapseText = _systemTrayComponentConfig.ExpandText;
       }
       else
       {
-        // NotifyIconsUnpinned.ItemsSource = notificationArea.UnpinnedIcons;
-        ExpandCollapseText = "";
-        isExpanded = true;
+        UnpinnedNotifyIcons = notificationArea.UnpinnedIcons;
+        ExpandCollapseText = _systemTrayComponentConfig.CollapseText;
       }
+      OnPropertyChanged(nameof(ExpandCollapseText));
+      OnPropertyChanged(nameof(UnpinnedNotifyIcons));
+      isExpanded = !isExpanded;
     }
-
   }
 }
