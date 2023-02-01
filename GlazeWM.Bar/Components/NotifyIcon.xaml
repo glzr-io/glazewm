@@ -1,0 +1,24 @@
+<UserControl
+    x:Class="GlazeWM.Bar.Components.NotifyIcon"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GlazeWM.Bar.Components"
+    Loaded="NotifyIcon_OnLoaded"
+    Unloaded="NotifyIcon_OnUnloaded">
+    <Border
+        x:Name="NotifyIconBorder"
+        ToolTip="{Binding Path=Title}"
+        MouseUp="NotifyIcon_OnMouseUp"
+        MouseDown="NotifyIcon_OnMouseDown"
+        MouseEnter="NotifyIcon_OnMouseEnter"
+        MouseLeave="NotifyIcon_OnMouseLeave"
+        MouseMove="NotifyIcon_OnMouseMove"
+        PreviewMouseWheel="NotifyIcon_OnPreviewMouseWheel">
+        <Image
+            Source="{Binding Path=Icon, Mode=OneWay}"
+            Focusable="True"
+            Name="NotifyIconImage"
+            Style="{DynamicResource NotifyIcon}" />
+    </Border>
+    <!-- <local:NotifyBalloon x:Name="BalloonControl" /> -->
+</UserControl>

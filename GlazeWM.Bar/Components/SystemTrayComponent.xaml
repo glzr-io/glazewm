@@ -25,7 +25,8 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Image Source="{Binding Path=Icon, Mode=OneWay}" />
+                    <local:NotifyIcon />
+                    <!-- <Image Source="{Binding Path=Icon, Mode=OneWay}" /> -->
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

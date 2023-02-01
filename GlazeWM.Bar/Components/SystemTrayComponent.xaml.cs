@@ -82,7 +82,7 @@ namespace GlazeWM.Bar.Components
 
         notificationArea.UnpinnedIcons.CollectionChanged += UnpinnedIcons_CollectionChanged;
 
-        NotifyIcons.ItemsSource = allNotifyIconsSource.View;
+        // NotifyIcons.ItemsSource = allNotifyIconsSource.View;
         NotifyIcons.ItemsSource = notificationArea.AllIcons;
 
         _isLoaded = true;
