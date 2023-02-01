@@ -6,9 +6,6 @@ using System.Windows;
 using System.Windows.Data;
 using ManagedShell.WindowsTray;
 using ManagedShell;
-using System.Diagnostics;
-using System.Windows.Input;
-
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
@@ -17,32 +14,29 @@ namespace GlazeWM.Bar.Components
   public partial class SystemTrayComponent : UserControl
   {
     private bool _isLoaded;
-    private CollectionViewSource allNotifyIconsSource;
-    private CollectionViewSource pinnedNotifyIconsSource;
     private readonly ObservableCollection<NotifyIcon> promotedIcons = new();
-
     private bool isExpanded = true;
-
-    public NotificationArea notificationArea;
+    private static NotificationArea notificationArea;
+    private static ShellManager shellManager;
 
     public SystemTrayComponent()
     {
-      // Initialize the default configuration.
-      var c = ShellManager.DefaultShellConfig;
+      if (shellManager == null)
+      {
+        // Initialize the default configuration.
+        var c = ShellManager.DefaultShellConfig;
 
-      // Customize tray service options.
-      c.EnableTrayService = true; // controls whether the tray objects are instantiated in ShellManager, true by default
-      c.AutoStartTrayService = false; // controls whether the tray service is started as part of ShellManager instantiation, true by default
-      c.PinnedNotifyIcons = new[] { "GUID or PathToExe:UID" }; // sets the initial NotifyIcons that should be included in the PinnedIcons collection, by default Action Center (prior to Windows 10 only), Power, Network, and Volume.
+        // Customize tray service options.
+        c.EnableTrayService = true; // controls whether the tray objects are instantiated in ShellManager, true by default
+        c.AutoStartTrayService = false; // controls whether the tray service is started as part of ShellManager instantiation, true by default
 
-      // Initialize the shell manager.
-      var _shellManager = new ShellManager(c);
-
-      // Initialize the tray service, since we disabled auto-start above.
-      _shellManager.NotificationArea.Initialize();
-      _ = _shellManager.NotificationArea.TrayIcons;
-      notificationArea = _shellManager.NotificationArea;
-
+        // Initialize the shell manager.
+        shellManager = new ShellManager(c);
+        // Initialize the tray service, since we disabled auto-start above.
+        shellManager.NotificationArea.Initialize();
+        _ = shellManager.NotificationArea.TrayIcons;
+        notificationArea = shellManager.NotificationArea;
+      }
 
       InitializeComponent();
       ToggleShowAllIconsBtn.Content = "";
@@ -77,12 +71,12 @@ namespace GlazeWM.Bar.Components
         CompositeCollection allNotifyIcons = new CompositeCollection();
         allNotifyIcons.Add(new CollectionContainer { Collection = notificationArea.UnpinnedIcons });
         allNotifyIcons.Add(new CollectionContainer { Collection = notificationArea.PinnedIcons });
-        allNotifyIconsSource = new CollectionViewSource { Source = allNotifyIcons };
+        // allNotifyIconsSource = new CollectionViewSource { Source = allNotifyIcons };
 
         CompositeCollection pinnedNotifyIcons = new CompositeCollection();
         pinnedNotifyIcons.Add(new CollectionContainer { Collection = promotedIcons });
         pinnedNotifyIcons.Add(new CollectionContainer { Collection = notificationArea.PinnedIcons });
-        pinnedNotifyIconsSource = new CollectionViewSource { Source = pinnedNotifyIcons };
+        // pinnedNotifyIconsSource = new CollectionViewSource { Source = pinnedNotifyIcons };
 
         notificationArea.UnpinnedIcons.CollectionChanged += UnpinnedIcons_CollectionChanged;
 
@@ -133,36 +127,5 @@ namespace GlazeWM.Bar.Components
       // SetToggleVisibility();
     }
 
-    // private void NotifyIconToggleButton_OnClick(object sender, RoutedEventArgs e)
-    // {
-    //   if (NotifyIconToggleButton.IsChecked == true)
-    //   {
-
-    //     NotifyIcons.ItemsSource = allNotifyIconsSource.View;
-    //   }
-    //   else
-    //   {
-    //     NotifyIcons.ItemsSource = pinnedNotifyIconsSource.View;
-    //   }
-    // }
-
-    // private void SetToggleVisibility()
-    // {
-    //   // if (!Settings.Instance.CollapseNotifyIcons) return;
-
-    //   if (notificationArea.UnpinnedIcons.IsEmpty)
-    //   {
-    //     NotifyIconToggleButton.Visibility = Visibility.Collapsed;
-
-    //     if (NotifyIconToggleButton.IsChecked == true)
-    //     {
-    //       NotifyIconToggleButton.IsChecked = false;
-    //     }
-    //   }
-    //   else
-    //   {
-    //     NotifyIconToggleButton.Visibility = Visibility.Visible;
-    //   }
-    // }
   }
 }

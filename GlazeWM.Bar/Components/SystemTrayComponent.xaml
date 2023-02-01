@@ -10,11 +10,15 @@
     <StackPanel Orientation="Horizontal">
         <Button
             x:Name="ToggleShowAllIconsBtn"
-            Background="#1b1b1b"
-            Foreground="#ffa752"
+            Background="{Binding Background}"
+            Foreground="{Binding Foreground}"
+            FontFamily="{Binding FontFamily}"
+            FontWeight="{Binding FontWeight}"
+            FontSize="{Binding FontSize}"
             Click="ToggleShowAllIcons_OnClick"
             Content="{Binding ToggleShowAllText}"
-            FontFamily="Material Icons" />
+            BorderThickness="{Binding DataContext.DefaultWorkspaceBorderWidth, ElementName=_workspacesComponent}"
+            Cursor="Hand" />
         <ItemsControl
             x:Name="NotifyIconsUnpinned"
             Focusable="False"

@@ -5,16 +5,11 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Text to display.
     /// </summary>
-    public string Text { get; set; } = "Hello world!";
+    public string ExpandText { get; set; } = "";
 
     /// <summary>
-    /// Command to invoke on left-click.
+    /// 
     /// </summary>
-    public string LeftClickCommand { get; set; }
-
-    /// <summary>
-    /// Command to invoke on right-click.
-    /// </summary>
-    public string RightClickCommand { get; set; }
+    public string CollapseText { get; set; } = "";
   }
 }
