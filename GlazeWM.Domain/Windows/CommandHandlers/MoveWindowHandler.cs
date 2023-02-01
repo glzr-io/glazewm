@@ -42,6 +42,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         MoveFloatingWindow(wwindowToMove, direction);
         return CommandResponse.Ok;
       }
+      //move everything below to MoveTilingWindow()
+      //do MoveTilingWindow(windowToMove as TilingWindow, direction)???
 
       var windowToMove = command.WindowToMove as TilingWindow;
 
