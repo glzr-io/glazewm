@@ -22,6 +22,8 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
+      _systemTrayComponentConfig = config;
+
       if (shellManager == null)
       {
         // Initialize the default configuration.
@@ -30,13 +32,14 @@ namespace GlazeWM.Bar.Components
 
         // Initialize the shell manager.
         shellManager = new ShellManager(c);
-
-        notificationArea = shellManager.NotificationArea;
-
-        UnpinnedNotifyIcons = notificationArea.UnpinnedIcons;
-        PinnedNotifyIcons = notificationArea.PinnedIcons;
       }
-      _systemTrayComponentConfig = config;
+
+      notificationArea = shellManager.NotificationArea;
+      UnpinnedNotifyIcons = notificationArea.UnpinnedIcons;
+      PinnedNotifyIcons = notificationArea.PinnedIcons;
+      OnPropertyChanged(nameof(ExpandCollapseText));
+      OnPropertyChanged(nameof(UnpinnedNotifyIcons));
+
       ExpandCollapseText = config.CollapseText;
     }
 
