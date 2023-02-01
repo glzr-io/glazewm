@@ -5,19 +5,21 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Expands to show both pinned and unppined icons.
     /// </summary>
-    public string ExpandText { get; set; } = "";
+    public string ExpandText { get; set; } = "b";
+    // public string ExpandText { get; set; } = "";
 
     /// <summary>
     /// Collapse to show only pinned icons.
     /// </summary>
-    public string CollapseText { get; set; } = "";
+    public string CollapseText { get; set; } = "a";
+    // public string CollapseText { get; set; } = "";
 
+    /// <summary>
+    /// Sets default icon font if one isn't specified.
+    /// </summary>
     public SystemTrayComponentConfig()
     {
-      if (FontFamily == null)
-      {
-        FontFamily = "pack://application:,,,/Fonts/#Material Icons";
-      }
+      FontFamily = "pack://application:,,,/Fonts/#Material Icons";
     }
   }
 }
