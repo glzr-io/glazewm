@@ -130,11 +130,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       int amount = (int)(windowToResize.Parent.Width * resizePercentage);
 
-      var x = windowToResize.FloatingPlacement.X;
-      var y = windowToResize.FloatingPlacement.Y;
       var width = windowToResize.FloatingPlacement.Width;
       var height = windowToResize.FloatingPlacement.Height;
-      //maybe no x and y and rename width and height to newWidth newHeight
 
       switch (dimensionToResize)
       {
@@ -147,7 +144,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           break;
       }
 
-      windowToResize.FloatingPlacement = Rect.FromXYCoordinates(x, y, width, height);
+      windowToResize.FloatingPlacement = Rect.FromXYCoordinates(windowToResize.FloatingPlacement.X, windowToResize.FloatingPlacement.Y, width, height);
 
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());

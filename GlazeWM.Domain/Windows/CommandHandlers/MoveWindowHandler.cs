@@ -239,20 +239,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var x = windowToMove.FloatingPlacement.X;
       var y = windowToMove.FloatingPlacement.Y;
-      var width = windowToMove.FloatingPlacement.Width;
-      var height = windowToMove.FloatingPlacement.Height;
-      //maybe no widht and height and rename x and y to newX newY
 
       switch (direction)
       {
-        case Direction.Up:
-          y -= amount;
-          break;
-
-        case Direction.Down:
-          y += amount;
-          break;
-
         case Direction.Left:
           x -= amount;
           break;
@@ -260,9 +249,17 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         case Direction.Right:
           x += amount;
           break;
+
+        case Direction.Up:
+          y -= amount;
+          break;
+
+        case Direction.Down:
+          y += amount;
+          break;
       }
 
-      windowToMove.FloatingPlacement = Rect.FromXYCoordinates(x, y, width, height);
+      windowToMove.FloatingPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
 
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
