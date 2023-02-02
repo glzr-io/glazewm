@@ -154,8 +154,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       windowToResize.FloatingPlacement = Rect.FromXYCoordinates(windowToResize.FloatingPlacement.X, windowToResize.FloatingPlacement.Y, width, height);
 
-      // to size floating window to its smalles size (when dragging corners with mouse windows have different min sizes)
-      // _bus.Emit(new WindowMovedOrResizedEvent())
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
     }
