@@ -25,15 +25,16 @@ namespace GlazeWM.Bar.Components
       ServiceLocator.GetRequiredService<CommandParsingService>();
     private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
 
-    public string Text => _config.Text;
-
-    public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
-    public ICommand RightClickCommand => new RelayCommand(OnRightClick);
+    public string Text { get; set; }
+    public string IconText { get; set; }
 
     public NetworkComponentViewModel(
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
+      IconText = _config.IconNoInternet;
+
+      // Get primary adapter using Google DNS as example IP.   
       var dwDestAddr = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
       GetBestInterface(dwDestAddr, out var dwBestIfIndex);
       var primaryAdapter = GetAdaptersAddresses(GetAdaptersAddressesFlags.GAA_FLAG_INCLUDE_GATEWAYS).FirstOrDefault(
@@ -43,10 +44,12 @@ namespace GlazeWM.Bar.Components
           && r.IfIndex == dwBestIfIndex
         );
 
+      // Using Wifi or Ethernet
       switch (primaryAdapter.IfType)
       {
         case IFTYPE.IF_TYPE_ETHERNET_CSMACD:
         case IFTYPE.IF_TYPE_ETHERNET_3MBIT:
+          IconText = _config.IconEthernet;
           Debug.WriteLine("HEREEE");
           break;
         case IFTYPE.IF_TYPE_IEEE80211:
@@ -63,6 +66,26 @@ namespace GlazeWM.Bar.Components
             break;
           var yyy = (WLAN_CONNECTION_ATTRIBUTES)data.DangerousGetHandle().Convert(sz, getType);
           var sigQual = yyy.wlanAssociationAttributes.wlanSignalQuality;
+          var sigQualAdjusted = (int)(sigQual % 25) > (25 / 2) ? (sigQual / 25) + 1 : sigQual / 25;
+          switch (sigQualAdjusted)
+          {
+            case (0):
+              IconText = _config.IconWifiSignal0;
+              break;
+            case (1):
+              IconText = _config.IconWifiSignal25;
+              break;
+            case (2):
+              IconText = _config.IconWifiSignal50;
+              break;
+            case (3):
+              IconText = _config.IconWifiSignal75;
+              break;
+            case (4):
+              IconText = _config.IconWifiSignal100;
+              break;
+          }
+          Text = sigQual + "/" + yyy.strProfileName;
           break;
       }
 
@@ -86,32 +109,6 @@ namespace GlazeWM.Bar.Components
         }
       }
       Debug.WriteLine("--");
-    }
-
-    public void OnLeftClick()
-    {
-      InvokeCommand(_config.LeftClickCommand);
-    }
-
-    public void OnRightClick()
-    {
-      InvokeCommand(_config.RightClickCommand);
-    }
-
-    private void InvokeCommand(string commandString)
-    {
-      if (string.IsNullOrEmpty(commandString))
-        return;
-
-      var subjectContainer = _containerService.FocusedContainer;
-
-      var parsedCommand = _commandParsingService.ParseCommand(
-        commandString,
-        subjectContainer
-      );
-
-      // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
-      _bus.Invoke((dynamic)parsedCommand);
     }
   }
 }

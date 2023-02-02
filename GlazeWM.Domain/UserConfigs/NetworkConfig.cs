@@ -5,16 +5,15 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Text to display.
     /// </summary>
-    public string Text { get; set; } = "Hello world!";
-
     /// <summary>
-    /// Command to invoke on left-click.
+    /// Text to display.
     /// </summary>
-    public string LeftClickCommand { get; set; }
-
-    /// <summary>
-    /// Command to invoke on right-click.
-    /// </summary>
-    public string RightClickCommand { get; set; }
+    public string IconWifiSignal0 { get; set; } = "";
+    public string IconWifiSignal25 { get; set; } = "";
+    public string IconWifiSignal50 { get; set; } = "";
+    public string IconWifiSignal75 { get; set; } = "";
+    public string IconWifiSignal100 { get; set; } = "";
+    public string IconEthernet { get; set; } = "";
+    public string IconNoInternet { get; set; } = "";
   }
 }
