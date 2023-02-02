@@ -127,6 +127,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     }
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
+      int MIN_WIDTH = (int)(windowToResize.Parent.Width * 0.30);
+      int MIN_HEIGHT = (int)(windowToResize.Parent.Width * 0.18);
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       int amount = (int)(windowToResize.Parent.Width * resizePercentage);
 
@@ -140,12 +142,20 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           break;
 
         case ResizeDimension.Height:
-          height -= amount;
+          height += amount;
           break;
       }
 
+      //Return if resize gonna make window smaller than allowed
+      //Allow increasing size (for situations if user made the window smaller
+      //  than MIN_WIDHT or MIN_HEIGHT with the mouse)
+      if ((width < MIN_WIDTH || height < MIN_HEIGHT) && amount < 0)
+        return;
+
       windowToResize.FloatingPlacement = Rect.FromXYCoordinates(windowToResize.FloatingPlacement.X, windowToResize.FloatingPlacement.Y, width, height);
 
+      // to size floating window to its smalles size (when dragging corners with mouse windows have different min sizes)
+      // _bus.Emit(new WindowMovedOrResizedEvent())
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
     }
