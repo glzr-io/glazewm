@@ -14,6 +14,7 @@
         MouseLeave="NotifyIcon_OnMouseLeave"
         MouseMove="NotifyIcon_OnMouseMove">
         <Image
+            Margin="1,0"
             Source="{Binding Path=Icon, Mode=OneWay}"
             Focusable="True"
             Name="NotifyIconImage" />
