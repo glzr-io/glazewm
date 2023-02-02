@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Logging;
 using GlazeWM.Infrastructure.Serialization;
@@ -69,7 +71,7 @@ namespace GlazeWM.Bootstrapper
           // Configure exception handler.
           services
             .AddOptions<ExceptionHandlingOptions>()
-            .Configure<ContainerService, JsonService>((options, containerService, jsonService) =>
+            .Configure<Bus, ContainerService, JsonService>((options, bus, containerService, jsonService) =>
             {
               options.ErrorLogPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -83,8 +85,14 @@ namespace GlazeWM.Bootstrapper
                   new List<JsonConverter> { new JsonContainerConverter() }
                 );
 
+                // History of latest command invocations. Most recent is first.
+                var commandHistory = bus.CommandHistory
+                  .Select(command => command.Name)
+                  .Reverse();
+
                 return $"{DateTime.Now}\n"
                   + $"{exception}\n"
+                  + $"Command history: {string.Join(", ", commandHistory)} \n"
                   + $"State dump: {stateDump}\n\n";
               };
             });
