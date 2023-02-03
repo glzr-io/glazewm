@@ -34,56 +34,22 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     public CommandResponse Handle(MoveWindowCommand command)
     {
-      var window = command.WindowToMove;
+      var windowToMove = command.WindowToMove;
       var direction = command.Direction;
 
-      if (window is FloatingWindow)
+      if (windowToMove is FloatingWindow)
       {
-        MoveFloatingWindow(window, direction);
-        return CommandResponse.Ok;
-      }
-      //move everything below to MoveTilingWindow()
-      //do MoveTilingWindow(windowToMove as TilingWindow, direction)???
-
-      var windowToMove = command.WindowToMove as TilingWindow;
-
-      // Ignore cases where window is not tiling.
-      if (windowToMove is null)
-        return CommandResponse.Ok;
-
-      var layoutForDirection = direction.GetCorrespondingLayout();
-      var parentMatchesLayout =
-        (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
-
-      if (parentMatchesLayout && HasSiblingInDirection(windowToMove, direction))
-      {
-        SwapSiblingContainers(windowToMove, direction);
+        MoveFloatingWindow(windowToMove as FloatingWindow, direction);
         return CommandResponse.Ok;
       }
 
-      // Attempt to the move window to workspace in given direction.
-      if (parentMatchesLayout && windowToMove.Parent is Workspace)
+      if (windowToMove is TilingWindow)
       {
-        MoveToWorkspaceInDirection(windowToMove, direction);
+        MoveTilingWindow(windowToMove as TilingWindow, direction);
         return CommandResponse.Ok;
       }
 
-      // The window cannot be moved within the parent container, so traverse upwards to find a
-      // suitable ancestor to move to.
-      var ancestorWithLayout = windowToMove.Parent.Ancestors.FirstOrDefault(
-        container => (container as SplitContainer)?.Layout == layoutForDirection
-      ) as SplitContainer;
-
-      // Change the layout of the workspace to layout for direction.
-      if (ancestorWithLayout == null)
-      {
-        ChangeWorkspaceLayout(windowToMove, direction);
-        return CommandResponse.Ok;
-      }
-
-      InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
-
-      return CommandResponse.Ok;
+      return CommandResponse.Fail;
     }
 
     /// <summary>
@@ -232,6 +198,40 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
+    private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
+    {
+      var layoutForDirection = direction.GetCorrespondingLayout();
+      var parentMatchesLayout =
+        (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
+
+      if (parentMatchesLayout && HasSiblingInDirection(windowToMove, direction))
+      {
+        SwapSiblingContainers(windowToMove, direction);
+        return;
+      }
+
+      // Attempt to the move window to workspace in given direction.
+      if (parentMatchesLayout && windowToMove.Parent is Workspace)
+      {
+        MoveToWorkspaceInDirection(windowToMove, direction);
+        return;
+      }
+
+      // The window cannot be moved within the parent container, so traverse upwards to find a
+      // suitable ancestor to move to.
+      var ancestorWithLayout = windowToMove.Parent.Ancestors.FirstOrDefault(
+        container => (container as SplitContainer)?.Layout == layoutForDirection
+      ) as SplitContainer;
+
+      // Change the layout of the workspace to layout for direction.
+      if (ancestorWithLayout == null)
+      {
+        ChangeWorkspaceLayout(windowToMove, direction);
+        return;
+      }
+
+      InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
+    }
 
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
@@ -240,24 +240,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var x = windowToMove.FloatingPlacement.X;
       var y = windowToMove.FloatingPlacement.Y;
 
-      switch (direction)
+      _ = direction switch
       {
-        case Direction.Left:
-          x -= amount;
-          break;
-
-        case Direction.Right:
-          x += amount;
-          break;
-
-        case Direction.Up:
-          y -= amount;
-          break;
-
-        case Direction.Down:
-          y += amount;
-          break;
-      }
+        Direction.Left => x -= amount,
+        Direction.Right => x += amount,
+        Direction.Up => y -= amount,
+        Direction.Down => y += amount,
+        _ => throw new ArgumentException(null, nameof(direction))
+      };
 
       windowToMove.FloatingPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
 
