@@ -1,56 +1,56 @@
 <UserControl
-    x:Class="GlazeWM.Bar.Components.SystemTrayComponent"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:GlazeWM.Bar.Components"
-    mc:Ignorable="d">
-    <StackPanel Orientation="Horizontal">
-        <Button
-            x:Name="ToggleShowAllIconsBtn"
-            Background="{Binding Background}"
-            Foreground="{Binding Foreground}"
-            FontFamily="{Binding FontFamily}"
-            Content="{Binding ExpandCollapseText, Mode=OneWay}"
-            FontWeight="{Binding FontWeight}"
-            FontSize="{Binding FontSize}"
-            Command="{Binding ToggleShowAllIconsCommand}"
-            BorderThickness="{Binding DefaultWorkspaceBorderWidth}"
-            Cursor="Hand" />
-        <ItemsControl
-            x:Name="NotifyIconsUnpinned"
-            Focusable="False"
-            ItemsSource="{Binding Path=UnpinnedNotifyIcons, Mode=OneWay}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <local:NotifyIcon Cursor="Hand" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <ItemsControl
-            x:Name="NotifyIconsPinned"
-            Focusable="False"
-            ItemsSource="{Binding Path=PinnedNotifyIcons, Mode=OneWay}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <local:NotifyIcon Cursor="Hand" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </StackPanel>
+  x:Class="GlazeWM.Bar.Components.SystemTrayComponent"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:local="clr-namespace:GlazeWM.Bar.Components"
+  mc:Ignorable="d">
+  <StackPanel Orientation="Horizontal">
+    <Button
+      x:Name="ToggleShowAllIconsBtn"
+      Background="{Binding Background}"
+      Foreground="{Binding Foreground}"
+      FontFamily="{Binding FontFamily}"
+      Content="{Binding ExpandCollapseText, Mode=OneWay}"
+      FontWeight="{Binding FontWeight}"
+      FontSize="{Binding FontSize}"
+      Command="{Binding ToggleShowAllIconsCommand}"
+      BorderThickness="{Binding DefaultWorkspaceBorderWidth}"
+      Cursor="Hand" />
+    <ItemsControl
+      x:Name="NotifyIconsUnpinned"
+      Focusable="False"
+      ItemsSource="{Binding Path=UnpinnedNotifyIcons, Mode=OneWay}"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <local:NotifyIcon Cursor="Hand" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <ItemsControl
+      x:Name="NotifyIconsPinned"
+      Focusable="False"
+      ItemsSource="{Binding Path=PinnedNotifyIcons, Mode=OneWay}"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <local:NotifyIcon Cursor="Hand" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
 </UserControl>
