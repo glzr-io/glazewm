@@ -7,6 +7,7 @@ general:
   show_floating_on_top: true
   cursor_follows_focus: false
   focus_follows_cursor: false
+  show_floating_on_top: false
 
 bar:
   height: "30px"
@@ -17,6 +18,9 @@ bar:
   font_family: "Segoe UI"
   font_size: "13px"
   padding: "4px 6px"
+  offset_x: "0"
+  offset_y: "0"
+  border_radius: "0"
   components_left:
     - type: "workspaces"
       focused_workspace_background: "#ffffff33"
@@ -26,8 +30,8 @@ bar:
     - type: "window title"
   components_right:
     - type: "tiling direction"
-      text_horizontal: "⮂"
-      text_vertical: "⮁"
+      label_horizontal: "⮂"
+      label_vertical: "⮁"
       background: "#ffffff33"
       margin: "0 4px"
       padding: "0 8px"
@@ -36,10 +40,8 @@ bar:
       margin: "0 4px 0 0"
       padding: "0 8px"
     - type: "clock"
-      # supported time format specifier:
+      # Documentation on formatting date/time string:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
-      # "w"   Calendarweek (ISO 8601 week) 1..53
-      # "ww"  CalendarWeek (ISO 8601 week) 01..53
       time_formatting: "hh:mm tt  ddd MMM d"
       margin: "0 0 0 10px"
 
@@ -121,13 +123,11 @@ keybindings:
     binding: "Alt+R"
 
   # Change tiling direction. This determines where new tiling windows will be inserted.
-  - command: "tiling direction horizontal"
-    binding: "Alt+Shift+V"
-  - command: "tiling direction vertical"
+  - command: "tiling direction toggle"
     binding: "Alt+V"
 
   # Change focus between floating / tiling windows.
-  - command: "toggle focus mode"
+  - command: "focus mode toggle"
     binding: "Alt+Space"
 
   # Change the focused window to be floating / tiling.

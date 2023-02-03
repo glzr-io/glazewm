@@ -4,6 +4,12 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
+    public string OffsetX { get; set; } = "0px";
+
+    public string OffsetY { get; set; } = "0px";
+
+    public string BorderRadius { get; set; } = "0px";
+
     public string Height { get; set; } = "30px";
 
     public BarPosition Position { get; set; } = BarPosition.Top;
@@ -21,6 +27,8 @@ namespace GlazeWM.Domain.UserConfigs
     public string FontSize { get; set; } = "13";
 
     public string BorderColor { get; set; } = "blue";
+
+    public BarComponentSeparatorConfig ComponentSeparator { get; set; } = new();
 
     /// <summary>
     /// Width of the border in pixels. To set a different border width for each side, specify four

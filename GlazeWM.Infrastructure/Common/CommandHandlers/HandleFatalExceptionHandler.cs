@@ -23,6 +23,7 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
     {
       // Alert the user of the error.
       var exception = command.Exception;
+      // TODO: Show foreground window.
       MessageBox.Show($"Unhandled exception: {exception.Message}");
 
       WriteToErrorLog(exception);

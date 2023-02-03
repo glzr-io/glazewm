@@ -35,5 +35,16 @@ namespace GlazeWM.Infrastructure.Utils
     {
       ShiftToIndex(source, 0, value);
     }
+
+    /// <summary>
+    /// Insert a value between each element of a list.
+    /// </summary>
+    public static void Intersperse<T>(this IList<T> source, T value)
+    {
+      for (var i = 1; i < source.Count; i += 2)
+      {
+        source.Insert(i, value);
+      }
+    }
   }
 }

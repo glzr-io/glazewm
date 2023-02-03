@@ -102,7 +102,7 @@ Workspaces need to be predefined via the `workspaces` property in the config fil
 workspaces:
   # Uniquely identifies the workspace and is used as the label for the workspace in the bar if
   # `display_name` is not provided.
-  - name: 1
+  - name: "1"
 
     # Optional override for the workspace label in the bar. Does not need to be unique.
     display_name: "Work"
@@ -119,7 +119,7 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 ```yaml
 bar:
   # Height of the bar in pixels.
-  height: 30
+  height: "30px"
 
   # The position of the bar on the screen. Can be either "top" or "bottom".
   position: "top"
@@ -137,7 +137,7 @@ bar:
   font_family: "Segoe UI"
 
   # Default font size. Can be overriden by setting `font_size` in a component's config.
-  font_size: "13"
+  font_size: "13px"
 
   # Default font weight. Typically ranges from 100 to 950, where a higher value is thicker. Can
   # be overriden by setting `font_weight` in a component's config.
@@ -152,7 +152,13 @@ bar:
 
   # Horizontal and vertical spacing between components within the bar and the edges of the bar. See
   # "Shorthand properties" for more info.
-  padding: "1 6 1 6"
+  padding: "4px 6px 4px 6px"
+
+  # Separator between components within the bar. `label` is used for each section
+  # of the bar unless `label_{left,center,right}` is explictly set, in which case
+  # they are preferred over default.
+  component_separator:
+    label: " | "
 
   # Components to display on the left side of the bar.
   components_left:
@@ -168,11 +174,11 @@ bar:
 The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
-# Type of component to display. Currently only 3 component types exist: "workspaces", "clock" and "text".
+# Type of component to display. Currently 7 component types exist: "workspaces", "clock", "text", "battery", "window title", "binding mode" and "tiling direction".
 type: <COMPONENT_TYPE>
 
 # Horizontal and vertical margins. See "Shorthand properties" for more info.
-margin: "0 10 0 0"
+margin: "0 10px 0 0"
 
 # Horizontal and vertical padding. See "Shorthand properties" for more info.
 padding: "0"
@@ -190,7 +196,7 @@ foreground: "white"
 font_family: "Segoe UI"
 
 # Font size used within the component.
-font_size: "13"
+font_size: "13px"
 
 # Font weight used within the component. Typically ranges from 100 to 950, where a higher value is
 # thicker.
@@ -237,18 +243,20 @@ Additionally supported format specifiers:
 
 The battery component displays the system's battery level in percent.
 There are three labels available that can be customized:
-- `draining`: used when the system is draining battery power(i.e. not charging).
-- `power_saver`: used when the system is on power saving mode.
-- `charging`: used when the system is connected to power.
+
+- `label_draining`: used when the system is draining battery power(i.e. not charging).
+- `label_power_saver`: used when the system is on power saving mode.
+- `label_charging`: used when the system is connected to power.
 
 `{battery_level}` is a variable which is replaced by the actual battery level when the label is displayed.
 
 **Example usage:**
+
 ```yaml
 - type: "battery"
-  draining: " {battery_level}% remaining "
-  power_saver: " {battery_level}% (power saver) "
-  charging: " {battery_level}% (charging) "
+  label_draining: "{battery_level}% remaining"
+  label_power_saver: "{battery_level}% (power saver)"
+  label_charging: "{battery_level}% (charging)"
 ```
 
 ## Window rules

@@ -19,9 +19,6 @@ namespace GlazeWM.Bar
   public partial class MainWindow : Window
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
-    private readonly UserConfigService _userConfigService =
-      ServiceLocator.GetRequiredService<UserConfigService>();
-
     private BarViewModel _barViewModel { get; }
     private Dispatcher _dispatcher => _barViewModel.Dispatcher;
     private Monitor _monitor => _barViewModel.Monitor;
@@ -65,30 +62,33 @@ namespace GlazeWM.Bar
     private void PositionWindow(IntPtr windowHandle)
     {
       // Since window size is set manually, need to scale up height to make window DPI responsive.
-      var barHeight = UnitsHelper.TrimUnits(_userConfigService.BarConfig.Height);
+      var barHeight = UnitsHelper.TrimUnits(_barViewModel.BarConfig.Height);
       var scaledBarHeight = Convert.ToInt32(barHeight * _monitor.ScaleFactor);
 
       // Get offset from top of monitor.
-      var barOffsetY = _userConfigService.BarConfig.Position == BarPosition.Bottom
+      var barOffsetY = _barViewModel.BarConfig.Position == BarPosition.Bottom
         ? _monitor.Height - scaledBarHeight
         : 0;
+
+      var floatBarOffsetX = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetX);
+      var floatBarOffsetY = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetY);
 
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
       MoveWindow(
         windowHandle,
-        _monitor.X + 1,
-        _monitor.Y + barOffsetY,
-        _monitor.Width - 1,
+        _monitor.X + floatBarOffsetX,
+        _monitor.Y + barOffsetY + floatBarOffsetY,
+        _monitor.Width - (floatBarOffsetX * 2),
         scaledBarHeight,
-        false
+        true
       );
 
       // The +1/-1 coerces WPF to update Top/Left/Width/Height in the second move.
       MoveWindow(
         windowHandle,
-        _monitor.X,
-        _monitor.Y + barOffsetY,
-        _monitor.Width,
+        _monitor.X + floatBarOffsetX,
+        _monitor.Y + barOffsetY + floatBarOffsetY,
+        _monitor.Width - (floatBarOffsetX * 2),
         scaledBarHeight,
         true
       );
