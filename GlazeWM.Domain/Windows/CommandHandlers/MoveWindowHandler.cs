@@ -9,6 +9,8 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
+using GlazeWM.Infrastructure.Utils;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -235,7 +237,27 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
-      int amount = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
+      var valueFromConfig = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
+
+      var amount = UnitsHelper.TrimUnits(valueFromConfig);
+      var units = UnitsHelper.GetUnits(valueFromConfig);
+      var currentMonitor = windowToMove.Parent.Parent as Monitor;
+
+      if (currentMonitor is null)
+        throw new Exception("Floating window does not have a monitor assigned. This is a bug");
+
+      amount = units switch
+      {
+        //is casting with (int) ok?
+        "%" => (int)(amount * currentMonitor.Width / 100),
+        "ppt" => (int)(amount * currentMonitor.Width / 100),
+        "px" => amount,
+        // in case user only provided a number in the config;
+        // or maybe implement general config amount validating?
+        _ => amount
+        // throwing exception could be default case if general config would be validated and required %/px/ppt
+        // _ => throw new ArgumentException(null, nameof(amount)),
+      };
 
       var x = windowToMove.FloatingPlacement.X;
       var y = windowToMove.FloatingPlacement.Y;
@@ -249,7 +271,31 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _ => throw new ArgumentException(null, nameof(direction))
       };
 
-      windowToMove.FloatingPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
+      var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
+
+      // check if new placement is out of bounds 
+      if (newPlacement.Right > currentMonitor.Width)
+      {
+        // if it was already snapped to the border of monitor, move window to the next monitor
+        if (windowToMove.FloatingPlacement.Right == currentMonitor.Width)
+        {
+          // TODO
+          // MoveToWorkspaceInDirection(windowToMove, direction);
+          // _bus.Emit(new WindowMovedOrResizedEvent(windowToMove.Handle));
+        }
+        else
+        {
+          newPlacement = Rect.FromXYCoordinates(
+            currentMonitor.Width - windowToMove.FloatingPlacement.Width,
+            y,
+            windowToMove.FloatingPlacement.Width,
+            windowToMove.FloatingPlacement.Height
+          );
+
+        }
+      }
+
+      windowToMove.FloatingPlacement = newPlacement;
 
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
