@@ -14,7 +14,7 @@ namespace GlazeWM.Bar.Components
   {
     private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
     public string Text => FormatLabel();
-    public string _iconText;
+    private string _iconText;
     public string IconText
     {
       get => _iconText;
@@ -26,14 +26,14 @@ namespace GlazeWM.Bar.Components
     }
     public string IconFontFamily => _config.IconFontFamily;
 
-    private string currentSSID = "";
-    private string currentSignalQuality = "";
+    private string _currentSSID = "";
+    private string _currentSignalQuality = "";
     private string FormatLabel()
     {
       IconText = getNetworkIcon();
       if (!pingTest())
         IconText = _config.IconNoInternet;
-      return currentSSID + "/" + currentSignalQuality;
+      return _currentSSID + "/" + _currentSignalQuality;
     }
 
     private string getNetworkIcon()
@@ -55,28 +55,28 @@ namespace GlazeWM.Bar.Components
           return _config.IconEthernet
           ;
         case IFTYPE.IF_TYPE_IEEE80211:
-          // Primary adapter is using wifi, find the primary WLAN interface
+          // Primary adapter is using wifi, find the primary WLAN interface.
           var hWlan = WlanOpenHandle();
           WlanEnumInterfaces(hWlan, default, out var list);
           if (list == null || list.dwNumberOfItems < 1)
             return _config.IconNoInternet;
           var primaryIntfGuid = list.InterfaceInfo[0].InterfaceGuid;
 
-          // Get RSSI and wifi connection details
+          // Get wireless connection details.
           var getType = CorrespondingTypeAttribute.GetCorrespondingTypes(WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, CorrespondingAction.Get).FirstOrDefault();
           var interfaceDetails = WlanQueryInterface(hWlan, primaryIntfGuid, WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, default, out var dataSize, out var data, out var type);
           if (interfaceDetails.Failed)
             return _config.IconNoInternet;
 
+          // Get RSSI signal strength of connection.  
           var connectionAttributes = (WLAN_CONNECTION_ATTRIBUTES)data.DangerousGetHandle().Convert(dataSize, getType);
           var signalQuality = connectionAttributes.wlanAssociationAttributes.wlanSignalQuality;
-          currentSignalQuality = signalQuality.ToString();
-          currentSSID = connectionAttributes.strProfileName;
+          _currentSignalQuality = signalQuality.ToString();
+          _currentSSID = connectionAttributes.strProfileName;
           return assignWifiIcon(signalQuality);
         default:
           return _config.IconNoInternet;
       }
-
     }
 
     private static uint getPrimaryAdapterID()
@@ -89,6 +89,7 @@ namespace GlazeWM.Bar.Components
 
     private string assignWifiIcon(uint signalQuality)
     {
+      // Round to nearest multiple of 25
       return ((signalQuality % 25) > (25 / 2) ? (signalQuality / 25) + 1 : signalQuality / 25) switch
       {
         0 => _config.IconWifiSignal0,
@@ -100,14 +101,15 @@ namespace GlazeWM.Bar.Components
       };
     }
 
-    private bool pingTest()
+    private static bool pingTest()
     {
-      bool pingable = false;
+      var pingable = false;
       Ping pinger = null;
       try
       {
         pinger = new Ping();
-        PingReply reply = pinger.Send("8.8.8.8");
+        // Use Google DNS servers to check if online.
+        var reply = pinger.Send("8.8.8.8");
         pingable = reply.Status == IPStatus.Success;
       }
       catch (PingException)
@@ -116,10 +118,7 @@ namespace GlazeWM.Bar.Components
       }
       finally
       {
-        if (pinger != null)
-        {
-          pinger.Dispose();
-        }
+        pinger?.Dispose();
       }
       return pingable;
     }
