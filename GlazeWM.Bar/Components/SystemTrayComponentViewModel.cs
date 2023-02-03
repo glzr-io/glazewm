@@ -43,16 +43,11 @@ namespace GlazeWM.Bar.Components
       _systemTrayComponentConfig = config;
 
       if (_shellManager == null)
-      {
         _shellManager = new ShellManager();
-      }
 
       _notificationArea = _shellManager.NotificationArea;
       UnpinnedNotifyIcons = _notificationArea.UnpinnedIcons;
       PinnedNotifyIcons = _notificationArea.PinnedIcons;
-      OnPropertyChanged(nameof(ExpandCollapseText));
-      OnPropertyChanged(nameof(UnpinnedNotifyIcons));
-
       ExpandCollapseText = config.LabelCollapseText;
     }
 
