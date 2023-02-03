@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reactive.Linq;
 using System.Text;
 using GlazeWM.Domain.UserConfigs;
@@ -30,6 +31,8 @@ namespace GlazeWM.Bar.Components
     private string FormatLabel()
     {
       IconText = getNetworkIcon();
+      if (!pingTest())
+        IconText = _config.IconNoInternet;
       return currentSSID + "/" + currentSignalQuality;
     }
 
@@ -97,6 +100,29 @@ namespace GlazeWM.Bar.Components
       };
     }
 
+    private bool pingTest()
+    {
+      bool pingable = false;
+      Ping pinger = null;
+      try
+      {
+        pinger = new Ping();
+        PingReply reply = pinger.Send("8.8.8.8");
+        pingable = reply.Status == IPStatus.Success;
+      }
+      catch (PingException)
+      {
+        return false;
+      }
+      finally
+      {
+        if (pinger != null)
+        {
+          pinger.Dispose();
+        }
+      }
+      return pingable;
+    }
     public NetworkComponentViewModel(
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
