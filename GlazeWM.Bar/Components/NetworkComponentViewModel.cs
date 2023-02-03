@@ -25,7 +25,6 @@ namespace GlazeWM.Bar.Components
       }
     }
     public string IconFontFamily => _config.IconFontFamily;
-
     private string _currentSSID = "";
     private string _currentSignalQuality = "";
     private string FormatLabel()
@@ -35,7 +34,6 @@ namespace GlazeWM.Bar.Components
         IconText = _config.IconNoInternet;
       return _currentSSID + "/" + _currentSignalQuality;
     }
-
     private string getNetworkIcon()
     {
       var primaryAdapterID = getPrimaryAdapterID();
