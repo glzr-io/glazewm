@@ -75,6 +75,7 @@ namespace GlazeWM.Bootstrapper
             { "Exit", () => _bus.Invoke(new ExitApplicationCommand(false)) },
           }
         };
+
         // Add application to system tray.
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
