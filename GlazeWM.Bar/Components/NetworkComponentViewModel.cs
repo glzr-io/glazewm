@@ -1,25 +1,16 @@
-using System.Linq;
-using System.Net.NetworkInformation;
-using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.Bussing;
-using static Vanara.PInvoke.WlanApi;
-using static Vanara.PInvoke.IpHlpApi;
 using System;
-using System.Text;
-using Vanara.InteropServices;
+using System.Linq;
 using System.Reactive.Linq;
+using System.Text;
+using GlazeWM.Domain.UserConfigs;
+using Vanara.InteropServices;
+using static Vanara.PInvoke.IpHlpApi;
+using static Vanara.PInvoke.WlanApi;
 
 namespace GlazeWM.Bar.Components
 {
   public class NetworkComponentViewModel : ComponentViewModel
   {
-    private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
-    private readonly ContainerService _containerService =
-      ServiceLocator.GetRequiredService<ContainerService>();
-    private readonly CommandParsingService _commandParsingService =
-      ServiceLocator.GetRequiredService<CommandParsingService>();
     private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
     public string Text => FormatLabel();
     public string _iconText;
@@ -72,17 +63,20 @@ namespace GlazeWM.Bar.Components
           var getType = CorrespondingTypeAttribute.GetCorrespondingTypes(WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, CorrespondingAction.Get).FirstOrDefault();
           var interfaceDetails = WlanQueryInterface(hWlan, primaryIntfGuid, WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, default, out var dataSize, out var data, out var type);
           if (interfaceDetails.Failed)
-            break;
+            return _config.IconNoInternet;
+
           var connectionAttributes = (WLAN_CONNECTION_ATTRIBUTES)data.DangerousGetHandle().Convert(dataSize, getType);
           var signalQuality = connectionAttributes.wlanAssociationAttributes.wlanSignalQuality;
           currentSignalQuality = signalQuality.ToString();
           currentSSID = connectionAttributes.strProfileName;
           return assignWifiIcon(signalQuality);
+        default:
+          return _config.IconNoInternet;
       }
-      return _config.IconNoInternet;
+
     }
 
-    private uint getPrimaryAdapterID()
+    private static uint getPrimaryAdapterID()
     {
       // Get primary adapter using Google DNS as example IP for IP to check against.   
       var dwDestAddr = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
@@ -92,44 +86,15 @@ namespace GlazeWM.Bar.Components
 
     private string assignWifiIcon(uint signalQuality)
     {
-      switch ((signalQuality % 25) > (25 / 2) ? (signalQuality / 25) + 1 : signalQuality / 25)
+      return ((signalQuality % 25) > (25 / 2) ? (signalQuality / 25) + 1 : signalQuality / 25) switch
       {
-        case (0):
-          return _config.IconWifiSignal0;
-        case (1):
-          return _config.IconWifiSignal25;
-        case (2):
-          return _config.IconWifiSignal50;
-        case (3):
-          return _config.IconWifiSignal75;
-        case (4):
-          return _config.IconWifiSignal100;
-      }
-      return _config.IconNoInternet;
-    }
-
-    private bool pingTest()
-    {
-      bool pingable = false;
-      Ping pinger = null;
-      try
-      {
-        pinger = new Ping();
-        PingReply reply = pinger.Send("8.8.8.8");
-        pingable = reply.Status == IPStatus.Success;
-      }
-      catch (PingException)
-      {
-        return false;
-      }
-      finally
-      {
-        if (pinger != null)
-        {
-          pinger.Dispose();
-        }
-      }
-      return pingable;
+        0 => _config.IconWifiSignal0,
+        1 => _config.IconWifiSignal25,
+        2 => _config.IconWifiSignal50,
+        3 => _config.IconWifiSignal75,
+        4 => _config.IconWifiSignal100,
+        _ => _config.IconNoInternet,
+      };
     }
 
     public NetworkComponentViewModel(
