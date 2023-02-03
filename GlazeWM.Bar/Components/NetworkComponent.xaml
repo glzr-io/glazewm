@@ -23,4 +23,3 @@
       Text="{Binding Text, Mode=OneWay}" />
   </StackPanel>
 </UserControl>
- 
