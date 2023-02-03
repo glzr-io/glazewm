@@ -79,7 +79,7 @@ Keybindings with Alt+Shift pressed:
 
 ![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
-Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the network icon.
+Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the system tray icon.
 
 ## Gap configuration
 

@@ -23,7 +23,7 @@ namespace GlazeWM.Bootstrapper
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
 
-    private NetworkIcon _NetworkIcon { get; set; }
+    private SystemTrayIcon _systemTrayIcon { get; set; }
 
     public Startup(
       BarService barService,
@@ -65,7 +65,7 @@ namespace GlazeWM.Bootstrapper
         // Listen for system-related events (eg. changes to display settings).
         _systemEventService.Start();
 
-        var NetworkIconConfig = new NetworkIconConfig
+        var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
           IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
@@ -75,10 +75,9 @@ namespace GlazeWM.Bootstrapper
             { "Exit", () => _bus.Invoke(new ExitApplicationCommand(false)) },
           }
         };
-
-        // Add application to network.
-        _NetworkIcon = new NetworkIcon(NetworkIconConfig);
-        _NetworkIcon.Show();
+        // Add application to system tray.
+        _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
+        _systemTrayIcon.Show();
 
         Application.Run();
       }
@@ -92,7 +91,7 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _barService.ExitApp();
-      _NetworkIcon?.Remove();
+      _systemTrayIcon?.Remove();
       Application.Exit();
     }
   }

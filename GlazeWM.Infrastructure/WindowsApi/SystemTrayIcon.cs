@@ -5,12 +5,12 @@ using System.Windows.Forms;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class NetworkIcon
+  public class SystemTrayIcon
   {
-    private readonly NetworkIconConfig _config;
+    private readonly SystemTrayIconConfig _config;
     private NotifyIcon _notifyIcon { get; set; }
 
-    public NetworkIcon(NetworkIconConfig config)
+    public SystemTrayIcon(SystemTrayIconConfig config)
     {
       _config = config;
     }
