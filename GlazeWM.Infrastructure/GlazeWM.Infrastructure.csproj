@@ -23,22 +23,10 @@
       Include="Microsoft.CodeAnalysis.NetAnalyzers"
       Version="7.0.0" />
     <PackageReference
-      Include="ManagedNativeWifi"
-      Version="2.5.0" />
-    <PackageReference
-      Include="PInvoke.Windows.Core"
-      Version="0.7.124" />
-    <PackageReference
-      Include="PInvoke.IPHlpApi"
-      Version="0.7.124" />
-    <PackageReference
       Include="Vanara.PInvoke.WlanApi"
       Version="3.4.12" />
     <PackageReference
       Include="Vanara.PInvoke.IpHlpApi"
-      Version="3.4.12" />
-    <PackageReference
-      Include="Vanara.PInvoke.Ws2_32"
       Version="3.4.12" />
   </ItemGroup>
 </Project>

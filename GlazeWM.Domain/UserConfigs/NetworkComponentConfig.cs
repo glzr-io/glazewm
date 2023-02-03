@@ -15,5 +15,6 @@ namespace GlazeWM.Domain.UserConfigs
     public string IconWifiSignal100 { get; set; } = "";
     public string IconEthernet { get; set; } = "";
     public string IconNoInternet { get; set; } = "";
+    public string IconFontFamily { get; set; }
   }
 }
