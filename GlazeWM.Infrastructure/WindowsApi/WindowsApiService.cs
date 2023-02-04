@@ -451,8 +451,25 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     /// <summary>
+    /// Windows core audio APIs
     /// Big thank you to https://gist.github.com/sverrirs/d099b34b7f72bb4fb386
     /// </summary>
+    [ComImport]
+    [Guid("657804FA-D6AD-4496-8A60-352752AF4F89"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IAudioEndpointVolumeCallback
+    {
+      void OnNotify(IntPtr pNotifyData);
+    }
+
+    public struct AudioVolumeNotificationData
+    {
+      public Guid guidEventContext;
+      public bool bMuted;
+      public float fMasterVolume;
+      public uint nChannels;
+      public float afChannelVolumes;
+    }
+
     [ComImport]
     [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
     public class MMDeviceEnumerator
@@ -473,6 +490,48 @@ namespace GlazeWM.Infrastructure.WindowsApi
       eCommunications,
     }
 
+    /// <summary>
+    /// IMMNotificationClient
+    /// </summary>
+    [Guid("7991EEC9-7E89-4D85-8390-6C703CEC60C0"),
+        InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IMMNotificationClient
+    {
+      /// <summary>
+      /// Device State Changed
+      /// </summary>
+      void OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string deviceId, UIntPtr newState);
+
+      /// <summary>
+      /// Device Added
+      /// </summary>
+      void OnDeviceAdded([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId);
+
+      /// <summary>
+      /// Device Removed
+      /// </summary>
+      void OnDeviceRemoved([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
+
+      /// <summary>
+      /// Default Device Changed
+      /// </summary>
+      void OnDefaultDeviceChanged(EDataFlow flow, ERole role, [MarshalAs(UnmanagedType.LPWStr)] string defaultDeviceId);
+
+      /// <summary>
+      /// Property Value Changed
+      /// </summary>
+      /// <param name="pwstrDeviceId"></param>
+      /// <param name="key"></param>
+      void OnPropertyValueChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, PropertyKey key);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct PropertyKey
+    {
+      public Guid fmtid;
+      public uint pid;
+    }
+
     [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IMMDeviceEnumerator
     {
@@ -480,6 +539,15 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       [PreserveSig]
       int GetDefaultAudioEndpoint(EDataFlow dataFlow, ERole role, out IMMDevice ppDevice);
+
+      [PreserveSig]
+      int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out IMMDevice deviceName);
+
+      [PreserveSig]
+      int RegisterEndpointNotificationCallback(IMMNotificationClient client);
+
+      [PreserveSig]
+      int UnregisterEndpointNotificationCallback(IMMNotificationClient client);
     }
 
     [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -574,11 +642,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IAudioEndpointVolume
     {
-      [PreserveSig]
-      int NotImpl1();
+      /// <summary>
+      /// Registers a client's notification callback interface.
+      /// </summary>
+      int RegisterControlChangeNotify(
+        [In] IAudioEndpointVolumeCallback pNotify
+      );
 
+      /// <summary>
+      /// Deletes the registration of a client's notification callback interface that the client
+      /// registered in a previous call to the RegisterControlChangeNotify method.
+      /// </summary>
       [PreserveSig]
-      int NotImpl2();
+      int UnregisterControlChangeNotify(
+        [In] IAudioEndpointVolumeCallback pNotify
+      );
 
       /// <summary>
       /// Gets a count of the channels in the audio stream.
