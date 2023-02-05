@@ -68,7 +68,7 @@ namespace GlazeWM.Bootstrapper
         var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
-          IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
+          IconResourceName = "GlazeWM.Bootstrapper.Resources.icon.ico",
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },

@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <None Remove="Resources\icon.ico" />
-    <None Remove="sample-config.yaml" />
+    <None Remove="Resources\sample-config.yaml" />
   </ItemGroup>
 
   <ItemGroup>
