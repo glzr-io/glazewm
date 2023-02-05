@@ -5,7 +5,7 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <DebugType>embedded</DebugType>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
     <AssemblyName>GlazeWM</AssemblyName>
   </PropertyGroup>
 
@@ -16,16 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="icon.ico" />
+    <None Remove="Resources\icon.ico" />
     <None Remove="sample-config.yaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="icon.ico">
+    <EmbeddedResource Include="Resources\icon.ico">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
     <Resource Include="Resources\MaterialIcons-Regular.ttf" />
-    <EmbeddedResource Include="sample-config.yaml">
+    <EmbeddedResource Include="Resources\sample-config.yaml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
   </ItemGroup>
