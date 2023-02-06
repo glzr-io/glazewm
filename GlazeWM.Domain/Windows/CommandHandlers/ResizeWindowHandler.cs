@@ -8,6 +8,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 
@@ -127,8 +128,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     }
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
-      int MIN_WIDTH = (int)(windowToResize.Parent.Width * 0.30);
-      int MIN_HEIGHT = (int)(windowToResize.Parent.Width * 0.18);
+      const int MIN_WIDTH = 250;
+      const int MIN_HEIGHT = 140;
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       int amount = (int)(windowToResize.Parent.Width * resizePercentage);
 
@@ -156,6 +157,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
+      _bus.Emit(new WindowMovedOrResizedEvent(windowToResize.Handle));
     }
   }
 }

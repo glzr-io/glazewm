@@ -252,7 +252,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var units = UnitsHelper.GetUnits(valueFromConfig);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToMove);
 
-
       amount = units switch
       {
         //is casting with (int) ok?
@@ -260,7 +259,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         "ppt" => (int)(amount * currentMonitor.Width / 100),
         "px" => amount,
         // in case user only provided a number in the config;
-        // somehow validate floating_window_move_amount in config on startup
+        // TODO: somehow validate floating_window_move_amount in config on startup
         _ => amount
         // _ => throw new ArgumentException(null, nameof(amount)),
       };
@@ -282,7 +281,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       bool windowMovedMonitors = false;
 
-      // If new placement crosses monitors
+      // If new placement wants to cross monitors
       if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
       center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
       {
