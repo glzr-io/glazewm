@@ -200,6 +200,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
+    //maybe implement this to WindowRect.cs ?
+    private Point GetCenterPoint(Rect rect)
+    {
+      return new Point
+      {
+        X = rect.X + (rect.Width / 2),
+        Y = rect.Y + (rect.Height / 2),
+      };
+    }
     private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
     {
       var layoutForDirection = direction.GetCorrespondingLayout();
@@ -241,10 +250,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       var amount = UnitsHelper.TrimUnits(valueFromConfig);
       var units = UnitsHelper.GetUnits(valueFromConfig);
-      var currentMonitor = windowToMove.Parent.Parent as Monitor;
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToMove);
 
-      if (currentMonitor is null)
-        throw new Exception("Floating window does not have a monitor assigned. This is a bug");
 
       amount = units switch
       {
@@ -253,9 +260,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         "ppt" => (int)(amount * currentMonitor.Width / 100),
         "px" => amount,
         // in case user only provided a number in the config;
-        // or maybe implement general config amount validating?
+        // somehow validate floating_window_move_amount in config on startup
         _ => amount
-        // throwing exception could be default case if general config would be validated and required %/px/ppt
         // _ => throw new ArgumentException(null, nameof(amount)),
       };
 
@@ -272,33 +278,33 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       };
 
       var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
+      var center = GetCenterPoint(newPlacement);
 
-      // check if new placement is out of bounds 
-      if (newPlacement.Right > currentMonitor.Width)
+      bool windowMovedMonitors = false;
+
+      // If new placement crosses monitors
+      if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
+      center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
       {
-        // if it was already snapped to the border of monitor, move window to the next monitor
-        if (windowToMove.FloatingPlacement.Right == currentMonitor.Width)
-        {
-          // TODO
-          // MoveToWorkspaceInDirection(windowToMove, direction);
-          // _bus.Emit(new WindowMovedOrResizedEvent(windowToMove.Handle));
-        }
-        else
-        {
-          newPlacement = Rect.FromXYCoordinates(
-            currentMonitor.Width - windowToMove.FloatingPlacement.Width,
-            y,
-            windowToMove.FloatingPlacement.Width,
-            windowToMove.FloatingPlacement.Height
-          );
+        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
+        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
 
+        if (workspaceInDirection == null)
+        {
+          // TODO: snap window center to monitor edge
+          return;
         }
+
+        windowMovedMonitors = true;
       }
 
       windowToMove.FloatingPlacement = newPlacement;
 
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
+
+      if (windowMovedMonitors)
+        _bus.Emit(new WindowMovedOrResizedEvent(windowToMove.Handle));
     }
   }
 }

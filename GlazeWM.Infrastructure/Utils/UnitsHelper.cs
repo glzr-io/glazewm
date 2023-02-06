@@ -22,8 +22,7 @@ namespace GlazeWM.Infrastructure.Utils
     {
       var unitsRegex = new Regex("(%|ppt|px)");
       var match = unitsRegex.Match(amountWithUnits);
-      var units = match.Value;
-      return units;
+      return match.Value;
     }
   }
 }
