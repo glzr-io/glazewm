@@ -243,7 +243,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
     }
-
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
       var valueFromConfig = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
@@ -276,6 +275,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _ => throw new ArgumentException(null, nameof(direction))
       };
 
+      var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
+      var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
+
+      // Make sure grabbable space on top is always visible
+      var monitorAbove = _monitorService.GetMonitorInDirection(Direction.Up, currentMonitor);
+      if (y < currentMonitor.Y && monitorAbove == null)
+      {
+        y = currentMonitor.Y;
+      }
+
       var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
       var center = GetCenterPoint(newPlacement);
 
@@ -285,12 +294,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
       center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
       {
-        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
-        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
-
         if (workspaceInDirection == null)
         {
-          // TODO: snap window center to monitor edge
           return;
         }
 
