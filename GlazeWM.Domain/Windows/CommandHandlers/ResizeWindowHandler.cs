@@ -136,16 +136,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var width = windowToResize.FloatingPlacement.Width;
       var height = windowToResize.FloatingPlacement.Height;
 
-      switch (dimensionToResize)
+      _ = dimensionToResize switch
       {
-        case ResizeDimension.Width:
-          width += amount;
-          break;
-
-        case ResizeDimension.Height:
-          height += amount;
-          break;
-      }
+        ResizeDimension.Width => width += amount,
+        ResizeDimension.Height => height += amount,
+        _ => throw new ArgumentException(null, nameof(dimensionToResize))
+      };
 
       //Return if resize gonna make window smaller than allowed
       //Allow increasing size (for situations if user made the window smaller
