@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,11 +20,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
-    public ResizeWindowHandler(Bus bus, ContainerService containerService)
+    public ResizeWindowHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
+      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(ResizeWindowCommand command)
@@ -153,7 +157,27 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
-      _bus.Emit(new WindowMovedOrResizedEvent(windowToResize.Handle));
+
+      // Check if window now takes up more of another screen
+      var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
+
+      // Get workspace that encompasses most of the window.
+      var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowToResize.Handle);
+      var targetWorkspace = targetMonitor.DisplayedWorkspace;
+
+      // Ignore if window is still within the bounds of its current workspace.
+      if (currentWorkspace == targetWorkspace)
+      {
+        return;
+      }
+
+      // Change the window's parent workspace.
+      _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace, false));
+      _bus.Emit(new FocusChangedEvent(windowToResize));
+
+      // Redrawing again to fix weird WindowsOS behaviour
+      _containerService.ContainersToRedraw.Add(windowToResize);
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }
