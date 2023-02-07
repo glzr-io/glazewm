@@ -200,14 +200,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
-    private Point GetCenterPoint(Rect rect)
-    {
-      return new Point
-      {
-        X = rect.X + (rect.Width / 2),
-        Y = rect.Y + (rect.Height / 2),
-      };
-    }
     private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
     {
       var layoutForDirection = direction.GetCorrespondingLayout();
@@ -284,7 +276,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       }
 
       var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
-      var center = GetCenterPoint(newPlacement);
+      var center = newPlacement.GetCenterPoint();
 
       bool windowMovedMonitors = false;
 

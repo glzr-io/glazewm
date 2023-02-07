@@ -70,5 +70,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
         outerRect.Y + (outerRect.Height / 2) - (Height / 2)
       );
     }
+    public Point GetCenterPoint()
+    {
+      return new Point
+      {
+        X = X + (Width / 2),
+        Y = Y + (Height / 2),
+      };
+    }
+    public Point GetCenterPoint(Rect rect)
+    {
+      return new Point
+      {
+        X = rect.X + (rect.Width / 2),
+        Y = rect.Y + (rect.Height / 2),
+      };
+    }
   }
 }
