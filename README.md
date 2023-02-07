@@ -16,17 +16,22 @@ Under the hood, GlazeWM adds functionality to the built-in window manager and us
 
 # Download
 
-## Binaries
-The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the executable.
+## Direct download
+
+The latest runnable executable can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the `.exe` file.
 
 ## Winget
+
 GlazeWM can be downloaded via Winget package manager:
+
 ```
 winget install lars-berger.GlazeWM
 ```
+
 Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
 
 ## Build from source
+
 Alternatively, to build from source, use the following .NET CLI command:
 
 ```
