@@ -265,9 +265,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _ => throw new ArgumentException(null, nameof(direction))
       };
 
-      var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
-      var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
-
       // Make sure grabbable space on top is always visible
       var monitorAbove = _monitorService.GetMonitorInDirection(Direction.Up, currentMonitor);
       if (y < currentMonitor.Y && monitorAbove == null)
@@ -284,6 +281,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
       center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
       {
+        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
+        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
+
         if (workspaceInDirection == null)
         {
           return;
