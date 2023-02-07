@@ -275,8 +275,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
       var center = newPlacement.GetCenterPoint();
 
-      bool windowMovedMonitors = false;
-
       // If new placement wants to cross monitors
       if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
       center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
@@ -289,16 +287,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           return;
         }
 
-        windowMovedMonitors = true;
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
+        _bus.Emit(new FocusChangedEvent(windowToMove));
       }
 
       windowToMove.FloatingPlacement = newPlacement;
 
       _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
-
-      if (windowMovedMonitors)
-        _bus.Emit(new WindowMovedOrResizedEvent(windowToMove.Handle));
     }
   }
 }
