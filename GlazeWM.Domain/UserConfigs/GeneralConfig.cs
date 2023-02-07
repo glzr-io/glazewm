@@ -14,6 +14,6 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Amount by which to move floating windows
     /// </summary>
-    public string FloatingWindowMoveAmount { get; set; } = "2%";
+    public string FloatingWindowMoveAmount { get; set; } = "5%";
   }
 }
