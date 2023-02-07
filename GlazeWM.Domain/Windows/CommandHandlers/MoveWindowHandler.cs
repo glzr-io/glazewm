@@ -200,7 +200,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
-    //maybe implement this to WindowRect.cs ?
     private Point GetCenterPoint(Rect rect)
     {
       return new Point
@@ -253,7 +252,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       amount = units switch
       {
-        //is casting with (int) ok?
         "%" => (int)(amount * currentMonitor.Width / 100),
         "ppt" => (int)(amount * currentMonitor.Width / 100),
         "px" => amount,
