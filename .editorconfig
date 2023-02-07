@@ -154,6 +154,21 @@ csharp_preserve_single_line_blocks = true
 roslynator_refactorings.enabled = true
 roslynator_compiler_diagnostic_fixes.enabled = true
 
+# Add blank line after using directive list
+dotnet_diagnostic.RCS0003.severity = warning
+
+# Add empty line between block and statement.
+dotnet_diagnostic.RCS0008.severity = warning
+
+# Add blank line between declaration and documentation comment.
+dotnet_diagnostic.RCS0009.severity = warning
+
+# Add empty line between single-line declarations of different kind.
+dotnet_diagnostic.RCS0013.severity = warning
+
+# Use "" instead of string.Empty.
+dotnet_diagnostic.RCS1078.severity = warning
+
 # Disable rule "Add braces (when expression spans over multiple lines)".
 dotnet_diagnostic.IDE0011.severity = none
 dotnet_diagnostic.RCS1001.severity = none
