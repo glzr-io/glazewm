@@ -293,7 +293,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
         _bus.Emit(new FocusChangedEvent(windowToMove));
 
-        // Redrawing twice to fix weird WindowsOS behaviour
+        // Redrawing twice to fix weird WindowsOS dpi behaviour
         windowToMove.HasPendingDpiAdjustment = true;
       }
 

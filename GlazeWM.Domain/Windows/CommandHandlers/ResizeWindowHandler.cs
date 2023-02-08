@@ -135,7 +135,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       const int MIN_WIDTH = 250;
       const int MIN_HEIGHT = 140;
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
-      int amount = (int)(windowToResize.Parent.Width * resizePercentage);
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
+      int amount = (int)(currentMonitor.Width * resizePercentage);
 
       var width = windowToResize.FloatingPlacement.Width;
       var height = windowToResize.FloatingPlacement.Height;
@@ -158,10 +159,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
 
-      // Check if window now takes up more of another screen
+      // Check if window now takes up more of another screen after moving
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
 
-      // Get workspace that encompasses most of the window.
+      // Get workspace that encompasses most of the window after moving
       var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowToResize.Handle);
       var targetWorkspace = targetMonitor.DisplayedWorkspace;
 
@@ -175,7 +176,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace, false));
       _bus.Emit(new FocusChangedEvent(windowToResize));
 
-      // Redrawing again to fix weird WindowsOS behaviour
+      // Redrawing again to fix weird WindowsOS dpi change behaviour
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
     }
