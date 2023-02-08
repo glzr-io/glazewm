@@ -276,8 +276,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var center = newPlacement.GetCenterPoint();
 
       // If new placement wants to cross monitors
-      if (center.X > currentMonitor.Width + currentMonitor.X || center.X < currentMonitor.X ||
-      center.Y < currentMonitor.Y || center.Y > currentMonitor.Height + currentMonitor.Y)
+      // && direction == ... is for edge case when user places window center outside a monitor with a mouse
+      if ((center.X >= currentMonitor.Width + currentMonitor.X && direction == Direction.Right) ||
+      (center.X < currentMonitor.X && direction == Direction.Left) ||
+      (center.Y < currentMonitor.Y && direction == Direction.Up) ||
+      (center.Y >= currentMonitor.Height + currentMonitor.Y && direction == Direction.Down))
       {
         var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
         var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
@@ -289,6 +292,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
         _bus.Emit(new FocusChangedEvent(windowToMove));
+
+        // Redrawing twice to fix weird WindowsOS behaviour
+        windowToMove.HasPendingDpiAdjustment = true;
       }
 
       windowToMove.FloatingPlacement = newPlacement;
