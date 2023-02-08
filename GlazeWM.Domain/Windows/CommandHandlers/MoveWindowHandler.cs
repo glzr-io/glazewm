@@ -200,6 +200,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new RedrawContainersCommand());
     }
+
     private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
     {
       var layoutForDirection = direction.GetCorrespondingLayout();
@@ -234,6 +235,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
     }
+
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
     {
       var valueFromConfig = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
@@ -290,6 +292,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           return;
         }
 
+        // Change the window's parent workspace.
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
         _bus.Emit(new FocusChangedEvent(windowToMove));
 

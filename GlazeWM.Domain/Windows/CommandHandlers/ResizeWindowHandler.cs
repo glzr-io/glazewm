@@ -130,12 +130,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       return 1.0 / resizableLength;
     }
+
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
       const int MIN_WIDTH = 250;
       const int MIN_HEIGHT = 140;
+
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
+
       int amount = (int)(currentMonitor.Width * resizePercentage);
 
       var width = windowToResize.FloatingPlacement.Width;
@@ -149,7 +152,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       };
 
       //Return if resize gonna make window smaller than allowed
-      //Allow increasing size (for situations if user made the window smaller
+      //but allow increasing size (for situations if user made the window smaller
       //  than MIN_WIDHT or MIN_HEIGHT with the mouse)
       if ((width < MIN_WIDTH || height < MIN_HEIGHT) && amount < 0)
         return;
