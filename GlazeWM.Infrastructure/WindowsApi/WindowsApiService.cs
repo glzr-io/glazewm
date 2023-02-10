@@ -449,5 +449,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public uint BatteryLifeTime;
       public uint BatteryFullLifeTime;
     }
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr handle, uint attribute, ref uint value, uint size);
   }
 }

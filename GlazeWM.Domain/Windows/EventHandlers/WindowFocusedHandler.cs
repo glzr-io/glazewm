@@ -7,6 +7,7 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -70,6 +71,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       _logger.LogWindowEvent("Window focused", window);
+
+
+      uint BorderColorAttribute = 34;
+      uint myColor = 5416959;
+      uint defaultColor = 0xFFFFFFFF;
+      var focusedWindow = _containerService.FocusedContainer as Window;
+
+
+      DwmSetWindowAttribute(windowHandle, BorderColorAttribute, ref myColor, 4);
+      DwmSetWindowAttribute(focusedWindow.Handle, BorderColorAttribute, ref defaultColor, 4);
 
       _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.Emit(new FocusChangedEvent(window));
