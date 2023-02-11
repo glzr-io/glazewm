@@ -1,22 +1,34 @@
-
 using System;
-using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.InteropServices;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
+using Vanara.PInvoke;
+using static Vanara.PInvoke.CoreAudio;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class CAudioEndpointVolumeCallback : IAudioEndpointVolumeCallback
+  public class SystemVolumeInformation : IAudioEndpointVolumeCallback, IMMNotificationClient
   {
+    private readonly IMMDeviceEnumerator _deviceEnum = new();
+    private IMMDevice _defaultDevice;
+    private IAudioEndpointVolume _endPointVolume;
+
     public event EventHandler<VolumeChangedEventArgs> VolumeChangedEvent;
 
-    void IAudioEndpointVolumeCallback.OnNotify(IntPtr pNotifyData)
+    public SystemVolumeInformation()
     {
-      var notificationData = Marshal.PtrToStructure<AudioVolumeNotificationData>(pNotifyData);
+      _deviceEnum.RegisterEndpointNotificationCallback(this);
+      _defaultDevice = _deviceEnum.GetDefaultAudioEndpoint(EDataFlow.eRender, ERole.eMultimedia);
 
-      var channelVolumesOffset = Marshal.OffsetOf<AudioVolumeNotificationData>("afChannelVolumes");
-      var firstChannelVolumesMember = (IntPtr)((long)pNotifyData + (long)channelVolumesOffset);
+      _defaultDevice.Activate(typeof(IAudioEndpointVolume).GUID, 0, null, out var epVol);
+      _endPointVolume = epVol as IAudioEndpointVolume;
+      _endPointVolume.RegisterControlChangeNotify(this);
+    }
+
+    public HRESULT OnNotify(IntPtr pNotify)
+    {
+      var notificationData = Marshal.PtrToStructure<AUDIO_VOLUME_NOTIFICATION_DATA>(pNotify);
+
+      var channelVolumesOffset = Marshal.OffsetOf<AUDIO_VOLUME_NOTIFICATION_DATA>("afChannelVolumes");
+      var firstChannelVolumesMember = (IntPtr)((long)pNotify + (long)channelVolumesOffset);
 
       var channelVolumes = new float[notificationData.nChannels];
 
@@ -25,97 +37,50 @@ namespace GlazeWM.Infrastructure.WindowsApi
         channelVolumes[i] = Marshal.PtrToStructure<float>(firstChannelVolumesMember);
       }
 
-      var eventArgs = new VolumeChangedEventArgs
+      VolumeChangedEvent?.Invoke(this, new VolumeChangedEventArgs
       {
-        Volume = notificationData.fMasterVolume.ToString(CultureInfo.InvariantCulture)
-      };
-      VolumeChangedEvent?.Invoke(this, eventArgs);
+        Volume = notificationData.fMasterVolume,
+        Muted = notificationData.bMuted
+      });
+
+      System.Diagnostics.Debug.WriteLine($"{notificationData.fMasterVolume}");
+
+      return HRESULT.S_OK;
     }
-  }
 
-  public class DefaultDeviceChangedEventArgs : EventArgs
-  {
-    public string DefaultDeviceId;
-    public EDataFlow Flow;
-    public ERole Role;
-  }
-
-  public class VolumeChangedEventArgs
-  {
-    public string Volume;
-  }
-
-  public class CMMNotificationClient : IMMNotificationClient
-  {
-    public event EventHandler<DefaultDeviceChangedEventArgs> DefaultDeviceChangedEvent;
-
-    void IMMNotificationClient.OnDefaultDeviceChanged(EDataFlow flow, ERole role, string defaultDeviceId)
+    public HRESULT OnDefaultDeviceChanged(EDataFlow flow, ERole role, string pwstrDefaultDeviceId)
     {
-      var eventArgs = new DefaultDeviceChangedEventArgs
+      if (role.Equals(ERole.eMultimedia))
       {
-        DefaultDeviceId = defaultDeviceId,
-        Flow = flow,
-        Role = role
-      };
-      DefaultDeviceChangedEvent?.Invoke(this, eventArgs);
-    }
+        _endPointVolume.UnregisterControlChangeNotify(this);
 
-    void IMMNotificationClient.OnDeviceAdded(string pwstrDeviceId) { }
-    void IMMNotificationClient.OnDeviceRemoved(string deviceId) { }
-    void IMMNotificationClient.OnDeviceStateChanged(string deviceId, UIntPtr newState) { }
-    void IMMNotificationClient.OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key) { }
-  }
+        _defaultDevice = _deviceEnum.GetDevice(pwstrDefaultDeviceId);
+        _defaultDevice.Activate(typeof(IAudioEndpointVolume).GUID, 0, null, out var epVol);
 
-  public class SystemVolumeInformation
-  {
-    private IAudioEndpointVolume _endPointVol;
-    private CAudioEndpointVolumeCallback _ivc;
-    private readonly CMMNotificationClient _imc;
-    private readonly IMMDeviceEnumerator _deviceEnum;
-    private IMMDevice _defaultDevice;
-
-    private Guid IID_IAudioEndpointVolume = typeof(IAudioEndpointVolume).GUID;
-
-    public SystemVolumeInformation()
-    {
-      _imc = new CMMNotificationClient();
-      _imc.DefaultDeviceChangedEvent += OnDefaultDeviceChanged;
-
-      _deviceEnum = (IMMDeviceEnumerator)new MMDeviceEnumerator();
-      _deviceEnum.RegisterEndpointNotificationCallback(_imc);
-
-      _deviceEnum.GetDefaultAudioEndpoint(EDataFlow.eRender, ERole.eMultimedia, out _defaultDevice);
-
-      _ivc = new CAudioEndpointVolumeCallback();
-      _ivc.VolumeChangedEvent += OnVolumeChanged;
-
-      _defaultDevice.Activate(ref IID_IAudioEndpointVolume, 0, IntPtr.Zero, out var endPointVol);
-      _endPointVol = endPointVol as IAudioEndpointVolume;
-      _endPointVol.RegisterControlChangeNotify(_ivc);
-    }
-
-    private void OnVolumeChanged(object o, VolumeChangedEventArgs e)
-    {
-      Debug.WriteLine(e.Volume);
-    }
-
-    private void OnDefaultDeviceChanged(object o, DefaultDeviceChangedEventArgs e)
-    {
-      Debug.WriteLine($"Device(id: {e.DefaultDeviceId}, role: {e.Role}, flow: {e.Flow}");
-      if (e.Role.Equals(ERole.eMultimedia))
-      {
-        _endPointVol.UnregisterControlChangeNotify(_ivc);
-
-        _deviceEnum.GetDevice(e.DefaultDeviceId, out _defaultDevice);
-
-        _ivc.VolumeChangedEvent -= OnVolumeChanged;
-        _ivc = new CAudioEndpointVolumeCallback();
-        _ivc.VolumeChangedEvent += OnVolumeChanged;
-
-        _defaultDevice.Activate(ref IID_IAudioEndpointVolume, 0, IntPtr.Zero, out var endPointVol);
-        _endPointVol = endPointVol as IAudioEndpointVolume;
-        _endPointVol.RegisterControlChangeNotify(_ivc);
+        _endPointVolume = epVol as IAudioEndpointVolume;
+        _endPointVolume.RegisterControlChangeNotify(this);
       }
+      return HRESULT.S_OK;
+    }
+
+    public HRESULT OnDeviceStateChanged(string pwstrDeviceId, DEVICE_STATE dwNewState)
+    {
+      return HRESULT.S_OK;
+    }
+
+    public HRESULT OnDeviceAdded(string pwstrDeviceId)
+    {
+      return HRESULT.S_OK;
+    }
+
+    public HRESULT OnDeviceRemoved(string pwstrDeviceId)
+    {
+      return HRESULT.S_OK;
+    }
+
+    public HRESULT OnPropertyValueChanged(string pwstrDeviceId, Ole32.PROPERTYKEY key)
+    {
+      return HRESULT.S_OK;
     }
   }
 }
