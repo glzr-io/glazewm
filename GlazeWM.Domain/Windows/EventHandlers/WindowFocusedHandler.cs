@@ -35,6 +35,13 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var windowHandle = @event.WindowHandle;
       var pendingFocusContainer = _containerService.PendingFocusContainer;
 
+      uint defaultColor = 0xFFFFFFFF;
+      var focusedWindow = _containerService.FocusedContainer as Window;
+      uint BorderColorAttribute = 34;
+
+      DwmSetWindowAttribute(focusedWindow.Handle, BorderColorAttribute, ref defaultColor, 4);
+
+
       // Override the container to set focus to (ie. when changing focus after a window is
       // closed or hidden).
       // TODO: This can be simplified a lot. Might also need to handle case where window
@@ -73,14 +80,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _logger.LogWindowEvent("Window focused", window);
 
 
-      uint BorderColorAttribute = 34;
       uint myColor = 5416959;
-      uint defaultColor = 0xFFFFFFFF;
-      var focusedWindow = _containerService.FocusedContainer as Window;
-
-
       DwmSetWindowAttribute(windowHandle, BorderColorAttribute, ref myColor, 4);
-      DwmSetWindowAttribute(focusedWindow.Handle, BorderColorAttribute, ref defaultColor, 4);
+
+
 
       _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.Emit(new FocusChangedEvent(window));
