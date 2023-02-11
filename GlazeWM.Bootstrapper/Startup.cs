@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
@@ -24,8 +27,7 @@ namespace GlazeWM.Bootstrapper
     private readonly KeybindingService _keybindingService;
     private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
-    private readonly UserConfigService _userConfigService =
-  ServiceLocator.GetRequiredService<UserConfigService>();
+    private readonly WindowService _windowService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -34,13 +36,15 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       SystemEventService systemEventService,
-      WindowEventService windowEventService)
+      WindowEventService windowEventService,
+      WindowService windowService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _systemEventService = systemEventService;
       _windowEventService = windowEventService;
+      _windowService = windowService;
     }
 
     public void Run()
@@ -84,8 +88,47 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
-        if (_userConfigService.GeneralConfig.FocusFollowsCursor)
-          MouseEvents.MouseMoves.Subscribe();
+        var focusedWindows = new List<IntPtr>();
+
+        MouseEvents.MouseMoves.Subscribe((@event) =>
+        {
+          // Returns window underneath cursor.  This could be a child window or parent.
+          var windowHandle = WindowFromPoint(@event.pt);
+
+          // TODO: Remove debug logs.
+          Debug.WriteLine($"coord window class: {WindowService.GetClassNameOfHandle(windowHandle)}");
+          Debug.WriteLine($"coord window process: {WindowService.GetProcessOfHandle(windowHandle)?.ProcessName}");
+
+          // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
+          if (focusedWindows.Contains(windowHandle))
+            return;
+
+          // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
+          focusedWindows.Clear();
+          focusedWindows.Add(windowHandle);
+
+          // Check if the window is the main window or a child window.
+          var parentWindow = GetParent(windowHandle);
+
+          // Walk the window up each parent window until you have the main window.
+          while (parentWindow != IntPtr.Zero)
+          {
+            windowHandle = parentWindow;
+            focusedWindows.Add(windowHandle);
+            parentWindow = GetParent(windowHandle);
+          }
+
+          var foundWindow = _windowService
+            .GetWindows()
+            .FirstOrDefault(window => window.Handle == windowHandle);
+
+          // TODO: Remove debug logs.
+          Debug.WriteLine($"found window class: {foundWindow?.ClassName}");
+          Debug.WriteLine($"found window process: {foundWindow?.ProcessName}");
+
+          if (foundWindow is not null)
+            _bus.InvokeAsync(new SetNativeFocusCommand(foundWindow));
+        });
 
         Application.Run();
       }

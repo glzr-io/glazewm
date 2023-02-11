@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -11,11 +10,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public static class MouseEvents
   {
-    /// <summary>
-    /// Hwnd of currently focused window and it's known children
-    /// </summary>
-    private static readonly List<IntPtr> FocusedWindows = new();
-
     public static IObservable<LowLevelMouseInputEvent> MouseMoves
     {
       get
@@ -30,32 +24,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
           );
 
           mouseEvents.OnNext(inputEvent);
-
-          // Returns window underneath cursor.  This could be a child window or parent.
-          var window = WindowFromPoint(inputEvent.pt);
-
-          // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
-          if (FocusedWindows.Contains(window))
-            return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
-
-          // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
-          FocusedWindows.Clear();
-          FocusedWindows.Add(window);
-
-          // Check if the window is the main window or a child window.
-          var parentWindow = GetParent(window);
-
-          // Walk the window up each parent window until you have the main window.
-          while (parentWindow != IntPtr.Zero)
-          {
-            window = parentWindow;
-            FocusedWindows.Add(window);
-            parentWindow = GetParent(window);
-          }
-
-          // Focus the main window
-          SetForegroundWindow(window);
-          SetFocus(window);
 
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         });
