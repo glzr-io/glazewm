@@ -13,6 +13,7 @@ namespace GlazeWM.Infrastructure.Bussing
   public sealed class Bus
   {
     public readonly Subject<Event> Events = new();
+    public readonly Queue<Command> CommandHistory = new();
     public readonly object LockObj = new();
     private readonly ILogger<Bus> _logger;
 
@@ -29,6 +30,12 @@ namespace GlazeWM.Infrastructure.Bussing
       lock (LockObj)
       {
         _logger.LogDebug("Command {CommandName} invoked.", command.Name);
+
+        CommandHistory.Enqueue(command);
+
+        // Maintain a history of the last 15 command invocations for debugging.
+        if (CommandHistory.Count > 15)
+          CommandHistory.Dequeue();
 
         // Create a `Type` object representing the constructed `ICommandHandler` generic.
         var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
