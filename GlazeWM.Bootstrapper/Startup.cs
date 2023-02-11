@@ -5,6 +5,8 @@ using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -45,6 +47,9 @@ namespace GlazeWM.Bootstrapper
 
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());
+
+        _bus.Events.OfType<FocusChangedEvent>()
+          .Subscribe((@event) => _bus.Invoke(new CenterCursorOnRectCommand(@event.FocusedContainer.ToRect())));
 
         // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
         // to be initialized before populating initial state.
