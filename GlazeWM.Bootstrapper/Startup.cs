@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
@@ -23,6 +24,7 @@ namespace GlazeWM.Bootstrapper
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
     private readonly WindowService _windowService;
+    private readonly UserConfigService _userConfigService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -31,6 +33,7 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
+      UserConfigService userConfigService,
       WindowService windowService)
     {
       _barService = barService;
@@ -38,6 +41,7 @@ namespace GlazeWM.Bootstrapper
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
       _windowService = windowService;
+      _userConfigService = userConfigService;
     }
 
     public void Run()
@@ -84,54 +88,55 @@ namespace GlazeWM.Bootstrapper
 
         var focusedWindows = new List<IntPtr>();
         var isMouseDown = false;
-        MouseEvents.MouseMoves.Subscribe((@event) =>
-        {
-          // Returns window underneath cursor.  This could be a child window or parent.
-          var windowHandle = WindowFromPoint(@event.lParam.pt);
-          // Check if mouse click is being held.
-          switch (@event.wParam)
+        if (_userConfigService.GeneralConfig.FocusFollowsCursor)
+          MouseEvents.MouseMoves.Subscribe((@event) =>
           {
-            case WMessages.WM_LBUTTONUP:
-              isMouseDown = false;
-              break;
-            case WMessages.WM_LBUTTONDOWN:
-              isMouseDown = true;
-              break;
-          }
+            // Returns window underneath cursor.  This could be a child window or parent.
+            var windowHandle = WindowFromPoint(@event.lParam.pt);
+            // Check if mouse click is being held.
+            switch (@event.wParam)
+            {
+              case WMessages.WM_LBUTTONUP:
+                isMouseDown = false;
+                break;
+              case WMessages.WM_LBUTTONDOWN:
+                isMouseDown = true;
+                break;
+            }
 
-          // Don't focus if mouse click is being held.  
-          if (isMouseDown)
-            return;
+            // Don't focus if mouse click is being held.  
+            if (isMouseDown)
+              return;
 
-          // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
-          if (focusedWindows.Contains(windowHandle))
-            return;
+            // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
+            if (focusedWindows.Contains(windowHandle))
+              return;
 
-          // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
-          focusedWindows.Clear();
-          focusedWindows.Add(windowHandle);
-
-          // Check if the window is the main window or a child window.
-          var parentWindow = GetParent(windowHandle);
-
-          // Walk the window up each parent window until you have the main window.
-          while (parentWindow != IntPtr.Zero)
-          {
-            windowHandle = parentWindow;
+            // If the FocusedWindows list didn't contain the window, this must be a new window being focused.
+            focusedWindows.Clear();
             focusedWindows.Add(windowHandle);
-            parentWindow = GetParent(windowHandle);
-          }
 
-          var foundWindow = _windowService
-            .GetWindows()
-            .FirstOrDefault(window => window.Handle == windowHandle);
+            // Check if the window is the main window or a child window.
+            var parentWindow = GetParent(windowHandle);
 
-          if (foundWindow is not null)
-          {
-            SetForegroundWindow(foundWindow.Handle);
-            SetFocus(foundWindow.Handle);
-          }
-        });
+            // Walk the window up each parent window until you have the main window.
+            while (parentWindow != IntPtr.Zero)
+            {
+              windowHandle = parentWindow;
+              focusedWindows.Add(windowHandle);
+              parentWindow = GetParent(windowHandle);
+            }
+
+            var foundWindow = _windowService
+              .GetWindows()
+              .FirstOrDefault(window => window.Handle == windowHandle);
+
+            if (foundWindow is not null)
+            {
+              SetForegroundWindow(foundWindow.Handle);
+              SetFocus(foundWindow.Handle);
+            }
+          });
 
         Application.Run();
       }
