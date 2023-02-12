@@ -378,15 +378,18 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public struct LowLevelMouseInputEvent
     {
       /// <summary>
-      /// 
+      /// Mouse event details.
       /// </summary>
       public LowLevelMouseInputEventDetails lParam;
 
       /// <summary>
-      /// 
+      /// Determines how to process the event.
       /// </summary>
       public int nCode;
 
+      /// <summary>
+      /// Identify type of event.
+      /// </summary>
       public WMessages wParam;
     }
 
