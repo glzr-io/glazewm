@@ -1,17 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
-using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
@@ -92,9 +88,8 @@ namespace GlazeWM.Bootstrapper
         {
           // Returns window underneath cursor.  This could be a child window or parent.
           var windowHandle = WindowFromPoint(@event.lParam.pt);
-          var wParam = @event.wParam;
           // Check if mouse click is being held.
-          switch (wParam)
+          switch (@event.wParam)
           {
             case WMessages.WM_LBUTTONUP:
               isMouseDown = false;
@@ -107,10 +102,6 @@ namespace GlazeWM.Bootstrapper
           // Don't focus if mouse click is being held.  
           if (isMouseDown)
             return;
-
-          // TODO: Remove debug logs.
-          Debug.WriteLine($"coord window class: {WindowService.GetClassNameOfHandle(windowHandle)}");
-          Debug.WriteLine($"coord window process: {WindowService.GetProcessOfHandle(windowHandle)?.ProcessName}");
 
           // If the mouse is hovering over the currently focused main window or one of it's children, do nothing.
           if (focusedWindows.Contains(windowHandle))
@@ -134,10 +125,6 @@ namespace GlazeWM.Bootstrapper
           var foundWindow = _windowService
             .GetWindows()
             .FirstOrDefault(window => window.Handle == windowHandle);
-
-          // TODO: Remove debug logs.
-          Debug.WriteLine($"found window class: {foundWindow?.ClassName}");
-          Debug.WriteLine($"found window process: {foundWindow?.ProcessName}");
 
           if (foundWindow is not null)
           {
