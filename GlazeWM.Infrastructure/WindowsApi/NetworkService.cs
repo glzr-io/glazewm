@@ -1,11 +1,10 @@
-using System;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Text;
 using Vanara.InteropServices;
 using static Vanara.PInvoke.WlanApi;
 using static Vanara.PInvoke.IpHlpApi;
-
+using System;
+using System.Text;
+using System.Net.NetworkInformation;
+using System.Linq;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
