@@ -3,8 +3,8 @@ gaps:
   outer_gap: 20
 
 general:
-  # Whether to show floating windows as always on top.
   focus_follows_cursor: false
+  # Whether to show floating windows as always on top.
   show_floating_on_top: false
   floating_window_move_amount: "5%"
 
