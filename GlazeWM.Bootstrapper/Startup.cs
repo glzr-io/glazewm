@@ -127,7 +127,10 @@ namespace GlazeWM.Bootstrapper
           Debug.WriteLine($"found window process: {foundWindow?.ProcessName}");
 
           if (foundWindow is not null)
-            _bus.InvokeAsync(new SetNativeFocusCommand(foundWindow));
+          {
+            SetForegroundWindow(foundWindow.Handle);
+            SetFocus(foundWindow.Handle);
+          }
         });
 
         Application.Run();
