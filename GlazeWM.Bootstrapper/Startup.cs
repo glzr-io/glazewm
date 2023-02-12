@@ -89,11 +89,26 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon.Show();
 
         var focusedWindows = new List<IntPtr>();
-
+        var isMouseDown = false;
         MouseEvents.MouseMoves.Subscribe((@event) =>
         {
           // Returns window underneath cursor.  This could be a child window or parent.
-          var windowHandle = WindowFromPoint(@event.pt);
+          var windowHandle = WindowFromPoint(@event.lParam.pt);
+          var wParam = @event.wParam;
+          // Check if mouse click is being held.
+          switch (wParam)
+          {
+            case WMessages.WM_LBUTTONUP:
+              isMouseDown = false;
+              break;
+            case WMessages.WM_LBUTTONDOWN:
+              isMouseDown = true;
+              break;
+          }
+
+          // Don't focus if mouse click is being held.  
+          if (isMouseDown)
+            return;
 
           // TODO: Remove debug logs.
           Debug.WriteLine($"coord window class: {WindowService.GetClassNameOfHandle(windowHandle)}");

@@ -18,10 +18,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
         var hookProc = new HookProc((nCode, wParam, lParam) =>
         {
-          var inputEvent = (LowLevelMouseInputEvent)Marshal.PtrToStructure(
+          var details = (LowLevelMouseInputEventDetails)Marshal.PtrToStructure(
             lParam,
-            typeof(LowLevelMouseInputEvent)
+            typeof(LowLevelMouseInputEventDetails)
           );
+
+          var inputEvent = new LowLevelMouseInputEvent() { lParam = details, wParam = (WMessages)wParam, nCode = nCode };
 
           mouseEvents.OnNext(inputEvent);
 

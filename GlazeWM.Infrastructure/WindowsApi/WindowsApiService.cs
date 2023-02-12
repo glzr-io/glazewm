@@ -361,8 +361,37 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public IntPtr AdditionalInformation;
     }
 
+    public enum WMessages : int
+    {
+      WM_MOUSEMOVE = 0x0200,
+      WM_LBUTTONDOWN = 0x201,
+      WM_LBUTTONUP = 0x202,
+      WM_RBUTTONDOWN = 0x0204,
+      WM_RBUTTONUP = 0x0205,
+      WM_KEYDOWN = 0x100,
+      WM_KEYUP = 0x101,
+      WH_KEYBOARD_LL = 13,
+      WH_MOUSE_LL = 14,
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct LowLevelMouseInputEvent
+    {
+      /// <summary>
+      /// 
+      /// </summary>
+      public LowLevelMouseInputEventDetails lParam;
+
+      /// <summary>
+      /// 
+      /// </summary>
+      public int nCode;
+
+      public WMessages wParam;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LowLevelMouseInputEventDetails
     {
       /// <summary>
       /// (X,Y) location of mouse with 0,0 being the top-left corner of the main monitor
