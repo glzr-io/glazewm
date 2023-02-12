@@ -5,10 +5,14 @@ using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
+using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.Exceptions;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -16,11 +20,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
+    private readonly MonitorService _monitorService;
 
-    public ResizeWindowHandler(Bus bus, ContainerService containerService)
+    public ResizeWindowHandler(Bus bus, ContainerService containerService, MonitorService monitorService)
     {
       _bus = bus;
       _containerService = containerService;
+      _monitorService = monitorService;
     }
 
     public CommandResponse Handle(ResizeWindowCommand command)
@@ -29,6 +35,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizeAmount = command.ResizeAmount;
       var windowToResize = command.WindowToResize;
 
+      if (windowToResize is FloatingWindow)
+      {
+        ResizeFloatingWindow(windowToResize, dimensionToResize, resizeAmount);
+        return CommandResponse.Ok;
+      }
       // Ignore cases where window is not tiling.
       if (windowToResize is not TilingWindow)
         return CommandResponse.Ok;
@@ -118,6 +129,59 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       );
 
       return 1.0 / resizableLength;
+    }
+
+    private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
+    {
+      const int MIN_WIDTH = 250;
+      const int MIN_HEIGHT = 140;
+
+      var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
+
+      int amount = (int)(currentMonitor.Width * resizePercentage);
+
+      var width = windowToResize.FloatingPlacement.Width;
+      var height = windowToResize.FloatingPlacement.Height;
+
+      _ = dimensionToResize switch
+      {
+        ResizeDimension.Width => width += amount,
+        ResizeDimension.Height => height += amount,
+        _ => throw new ArgumentException(null, nameof(dimensionToResize))
+      };
+
+      //Return if resize gonna make window smaller than allowed
+      //but allow increasing size (for situations if user made the window smaller
+      //  than MIN_WIDHT or MIN_HEIGHT with the mouse)
+      if ((width < MIN_WIDTH || height < MIN_HEIGHT) && amount < 0)
+        return;
+
+      windowToResize.FloatingPlacement = Rect.FromXYCoordinates(windowToResize.FloatingPlacement.X, windowToResize.FloatingPlacement.Y, width, height);
+
+      _containerService.ContainersToRedraw.Add(windowToResize);
+      _bus.Invoke(new RedrawContainersCommand());
+
+      // Check if window now takes up more of another screen after moving
+      var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
+
+      // Get workspace that encompasses most of the window after moving
+      var targetMonitor = _monitorService.GetMonitorFromHandleLocation(windowToResize.Handle);
+      var targetWorkspace = targetMonitor.DisplayedWorkspace;
+
+      // Ignore if window is still within the bounds of its current workspace.
+      if (currentWorkspace == targetWorkspace)
+      {
+        return;
+      }
+
+      // Change the window's parent workspace.
+      _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace, false));
+      _bus.Emit(new FocusChangedEvent(windowToResize));
+
+      // Redrawing again to fix weird WindowsOS dpi change behaviour
+      _containerService.ContainersToRedraw.Add(windowToResize);
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

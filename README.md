@@ -16,7 +16,21 @@ Under the hood, GlazeWM adds functionality to the built-in window manager and us
 
 # Download
 
-The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the executable.
+## Direct download
+
+The latest runnable executable can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the `.exe` file.
+
+## Winget
+
+GlazeWM can be downloaded via Winget package manager:
+
+```
+winget install lars-berger.GlazeWM
+```
+
+Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
+
+## Build from source
 
 Alternatively, to build from source, use the following .NET CLI command:
 
@@ -174,7 +188,7 @@ bar:
 The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
-# Type of component to display. Currently only 3 component types exist: "workspaces", "clock" and "text".
+# Type of component to display. Currently 7 component types exist: "workspaces", "clock", "text", "battery", "window title", "binding mode" and "tiling direction".
 type: <COMPONENT_TYPE>
 
 # Horizontal and vertical margins. See "Shorthand properties" for more info.
@@ -297,6 +311,7 @@ window_rules:
 - set \<floating | minimized | maximized>
 - toggle \<floating | maximized>
 - toggle focus mode
+- tiling direction toggle
 - exit wm
 - reload config
 - close
