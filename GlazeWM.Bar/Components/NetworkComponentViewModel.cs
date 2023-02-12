@@ -13,26 +13,16 @@ namespace GlazeWM.Bar.Components
   public class NetworkComponentViewModel : ComponentViewModel
   {
     private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
+    private string _text;
     public string Text => FormatLabel();
-    private string _iconText;
-    public string IconText
-    {
-      get => _iconText;
-      set
-      {
-        _iconText = value;
-        OnPropertyChanged(nameof(IconText));
-      }
-    }
-    public string IconFontFamily => _config.IconFontFamily;
     private string _currentSSID = "";
     private string _currentSignalQuality = "";
     private string FormatLabel()
     {
-      IconText = getNetworkIcon();
+      _text = getNetworkIcon();
       if (!pingTest())
-        IconText = _config.IconNoInternet;
-      return _currentSSID + "/" + _currentSignalQuality;
+        _text = _config.IconNoInternet;
+      return _text;
     }
     private string getNetworkIcon()
     {

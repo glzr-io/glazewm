@@ -9,17 +9,10 @@
   <StackPanel Orientation="Horizontal">
     <TextBlock
       VerticalAlignment="Center"
-      Foreground="{Binding Foreground}"
-      FontFamily="{Binding IconFontFamily}"
-      FontWeight="{Binding FontWeight}"
-      FontSize="{Binding FontSize}"
-      Text="{Binding IconText, Mode=OneWay}" />
-    <TextBlock
-      VerticalAlignment="Center"
       FontFamily="{Binding FontFamily}"
       Foreground="{Binding Foreground}"
       FontWeight="{Binding FontWeight}"
       FontSize="{Binding FontSize}"
-      Text="{Binding Text, Mode=OneWay}" />
+      Text="{Binding Text}" />
   </StackPanel>
 </UserControl>
