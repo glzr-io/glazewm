@@ -14,6 +14,7 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<Bus>();
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<WindowEventService>();
+      services.AddSingleton<NetworkService>();
       services.AddSingleton<JsonService>();
       services.AddSingleton<YamlService>();
 
