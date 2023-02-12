@@ -14,7 +14,7 @@ namespace GlazeWM.Bar.Components
     private string FormatLabel()
     {
       if (!NetworkService.pingTest())
-        return _config.IconNoInternet;
+        return _config.LabelNoInternet;
       return getNetworkIcon();
     }
 
@@ -26,27 +26,27 @@ namespace GlazeWM.Bar.Components
         case IFTYPE.IF_TYPE_ETHERNET_CSMACD:
         case IFTYPE.IF_TYPE_ETHERNET_3MBIT:
           // Primary adapter is using ethernet.
-          return _config.IconEthernet;
+          return _config.LabelEthernet;
         case IFTYPE.IF_TYPE_IEEE80211:
-          // Primary adapter is using wifi, find the primary WLAN interface.
+          // Primary adapter is using wifi.
           var rssi = NetworkService.getWlanRSSI();
           return assignWifiIcon(rssi);
         default:
-          return _config.IconNoInternet;
+          return _config.LabelNoInternet;
       }
     }
 
     private string assignWifiIcon(int signalQuality)
     {
-      // Round to nearest multiple of 25
+      // Round to nearest multiple and assign icon.  
       return ((signalQuality % 25) > (25 / 2) ? (signalQuality / 25) + 1 : signalQuality / 25) switch
       {
-        0 => _config.IconWifiSignal0,
-        1 => _config.IconWifiSignal25,
-        2 => _config.IconWifiSignal50,
-        3 => _config.IconWifiSignal75,
-        4 => _config.IconWifiSignal100,
-        _ => _config.IconNoInternet,
+        0 => _config.LabelWifiStrength0,
+        1 => _config.LabelWifiStrength25,
+        2 => _config.LabelWifiStrength50,
+        3 => _config.LabelWifiStrength75,
+        4 => _config.LabelWifiStrength100,
+        _ => _config.LabelNoInternet,
       };
     }
 
