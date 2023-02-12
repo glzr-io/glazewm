@@ -15,5 +15,8 @@ namespace GlazeWM.Domain.UserConfigs
     /// Focus the window directly under the cursor at all times
     /// </summary>
     public bool FocusFollowsCursor { get; set; }
+    /// Amount by which to move floating windows
+    /// </summary>
+    public string FloatingWindowMoveAmount { get; set; } = "5%";
   }
 }
