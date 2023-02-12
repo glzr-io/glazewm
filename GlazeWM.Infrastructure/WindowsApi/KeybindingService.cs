@@ -81,6 +81,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       _keybindingsByTriggerKey.Clear();
     }
+
     private IntPtr KeybindingHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
       var shouldPassThrough =
