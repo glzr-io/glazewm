@@ -95,6 +95,7 @@ namespace GlazeWM.Bootstrapper
     private void OnApplicationExit()
     {
       _bus.Invoke(new ShowAllWindowsCommand());
+      _bus.Invoke(new SetActiveWindowBorderCommand(null));
       _barService.ExitApp();
       _systemTrayIcon?.Remove();
       Application.Exit();
