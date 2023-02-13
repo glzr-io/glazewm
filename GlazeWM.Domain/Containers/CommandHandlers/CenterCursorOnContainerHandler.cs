@@ -5,23 +5,23 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal sealed class CenterCursorOnRectHandler : ICommandHandler<CenterCursorOnRectCommand>
+  internal sealed class CenterCursorOnContainerHandler : ICommandHandler<CenterCursorOnContainerCommand>
   {
     private readonly UserConfigService _userConfigService;
 
-    public CenterCursorOnRectHandler(UserConfigService userConfigService)
+    public CenterCursorOnContainerHandler(UserConfigService userConfigService)
     {
       _userConfigService = userConfigService;
     }
 
-    public CommandResponse Handle(CenterCursorOnRectCommand command)
+    public CommandResponse Handle(CenterCursorOnContainerCommand command)
     {
       var isEnabled = _userConfigService.GeneralConfig.CursorFollowsFocus;
 
-      if (!isEnabled)
+      if (!isEnabled || command.TargetContainer == null)
         return CommandResponse.Ok;
 
-      var targetRect = command.TargetRect;
+      var targetRect = command.TargetContainer.ToRect();
 
       // Calculate center point of focused window.
       var centerX = targetRect.X + (targetRect.Width / 2);

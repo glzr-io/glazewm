@@ -48,9 +48,6 @@ namespace GlazeWM.Bootstrapper
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());
 
-        _bus.Events.OfType<FocusChangedEvent>()
-          .Subscribe((@event) => _bus.Invoke(new CenterCursorOnRectCommand(@event.FocusedContainer.ToRect())));
-
         // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
         // to be initialized before populating initial state.
         _barService.StartApp();
