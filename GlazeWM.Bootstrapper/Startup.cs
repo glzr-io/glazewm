@@ -9,6 +9,7 @@ using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -25,7 +26,6 @@ namespace GlazeWM.Bootstrapper
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
-
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
     public Startup(
@@ -50,23 +50,7 @@ namespace GlazeWM.Bootstrapper
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());
 
-        Container lastFocused = null;
-        _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) =>
-        {
-          uint BorderColorAttribute = 34;
-          if (lastFocused != null && lastFocused as Window != null)
-          {
-            uint defaultColor = 0xFFFFFFFF;
-            DwmSetWindowAttribute((lastFocused as Window).Handle, BorderColorAttribute, ref defaultColor, 4);
-          }
-          lastFocused = @event.FocusedContainer;
-          uint myColor = 5416959;
-          var newFocusedWindow = @event.FocusedContainer as Window;
-          DwmSetWindowAttribute(newFocusedWindow.Handle, BorderColorAttribute, ref myColor, 4);
-
-
-          Debug.WriteLine("HERE");
-        });
+        _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
 
         // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
         // to be initialized before populating initial state.

@@ -15,5 +15,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// Amount by which to move floating windows
     /// </summary>
     public string FloatingWindowMoveAmount { get; set; } = "5%";
+    /// <summary>
+    /// Color for border drawn around a focused window.
+    /// </summary>
+    public string FocusBorderColor { get; set; } = "#FFFFFFFF";
   }
 }

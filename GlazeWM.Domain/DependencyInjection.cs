@@ -40,6 +40,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<CenterCursorOnRectCommand>, CenterCursorOnRectHandler>();
+      services.AddSingleton<ICommandHandler<SetActiveWindowBorderCommand>, SetActiveWindowBorderHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<ToggleContainerLayoutCommand>, ToggleContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<DetachAndResizeContainerCommand>, DetachAndResizeContainerHandler>();
