@@ -11,4 +11,8 @@
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CliWrap" Version="3.6.0" />
+  </ItemGroup>
 </Project>
