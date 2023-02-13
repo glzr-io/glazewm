@@ -2,16 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-        "label": "build",
-        "command": "dotnet",
-        "type": "process",
-        "args": [
-            "build",
-            "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
-            "/property:GenerateFullPaths=true",
-            "/consoleloggerparameters:NoSummary"
-        ],
-        "problemMatcher": "$msCompile"
+      "label": "build",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
     },
     {
       "label": "publish (x64)",
@@ -48,28 +48,28 @@
       "problemMatcher": "$msCompile"
     },
     {
-        "label": "watch",
-        "command": "dotnet",
-        "type": "process",
-        "args": [
-            "watch",
-            "run",
-            "--project",
-            "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj"
-        ],
-        "problemMatcher": "$msCompile"
+      "label": "watch",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj"
+      ],
+      "problemMatcher": "$msCompile"
     },
     {
-        "label": "publish",
-        "command": "dotnet",
-        "type": "process",
-        "args": [
-            "publish",
-            "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
-            "/property:GenerateFullPaths=true",
-            "/consoleloggerparameters:NoSummary"
-        ],
-        "problemMatcher": "$msCompile"
+      "label": "publish",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
     }
   ]
 }
