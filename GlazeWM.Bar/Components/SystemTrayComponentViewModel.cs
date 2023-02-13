@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
@@ -21,7 +24,20 @@ namespace GlazeWM.Bar.Components
       }
     }
     public ICommand ToggleShowAllIconsCommand => new RelayCommand(ToggleShowAllIcons);
-    public ICollectionView PinnedNotifyIcons { get; set; }
+    public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons = new();
+    public ObservableCollection<NotifyIconViewModel> UnpinnedTrayIcons = new();
+    public ICollectionView _pinnedNotifyIcons;
+    public ICollectionView PinnedNotifyIcons
+    {
+      get => _pinnedNotifyIcons;
+      set
+      {
+        _pinnedNotifyIcons = value;
+        OnPropertyChanged(nameof(PinnedNotifyIcons));
+        PinnedTrayIcons = new ObservableCollection<NotifyIconViewModel>(_notificationArea.TrayIcons.Where(e => e.IsPinned).Select(e => new NotifyIconViewModel(e)).ToList());
+        OnPropertyChanged(nameof(PinnedTrayIcons));
+      }
+    }
     public ICollectionView _unpinnedNotifyIcons;
     public ICollectionView UnpinnedNotifyIcons
     {
@@ -30,6 +46,8 @@ namespace GlazeWM.Bar.Components
       {
         _unpinnedNotifyIcons = value;
         OnPropertyChanged(nameof(UnpinnedNotifyIcons));
+        UnpinnedTrayIcons = new ObservableCollection<NotifyIconViewModel>(_notificationArea.TrayIcons.Where(e => !e.IsPinned).Select(e => new NotifyIconViewModel(e)).ToList());
+        OnPropertyChanged(nameof(UnpinnedTrayIcons));
       }
     }
     private bool _isExpanded { get; set; } = true;
@@ -41,10 +59,7 @@ namespace GlazeWM.Bar.Components
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
       _systemTrayComponentConfig = config;
-
-      if (_shellManager == null)
-        _shellManager = new ShellManager();
-
+      _shellManager ??= new ShellManager();
       _notificationArea = _shellManager.NotificationArea;
       UnpinnedNotifyIcons = _notificationArea.UnpinnedIcons;
       PinnedNotifyIcons = _notificationArea.PinnedIcons;

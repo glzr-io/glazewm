@@ -21,7 +21,7 @@
     <ItemsControl
       x:Name="NotifyIconsUnpinned"
       Focusable="False"
-      ItemsSource="{Binding Path=UnpinnedNotifyIcons, Mode=OneWay}"
+      ItemsSource="{Binding Path=UnpinnedTrayIcons, Mode=OneWay}"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
       <ItemsControl.ItemsPanel>
@@ -38,7 +38,7 @@
     <ItemsControl
       x:Name="NotifyIconsPinned"
       Focusable="False"
-      ItemsSource="{Binding Path=PinnedNotifyIcons, Mode=OneWay}"
+      ItemsSource="{Binding Path=PinnedTrayIcons, Mode=OneWay}"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
       <ItemsControl.ItemsPanel>
