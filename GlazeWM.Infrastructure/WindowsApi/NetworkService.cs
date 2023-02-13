@@ -1,14 +1,14 @@
-using Vanara.InteropServices;
-using static Vanara.PInvoke.WlanApi;
-using static Vanara.PInvoke.IpHlpApi;
 using System;
-using System.Text;
-using System.Net.NetworkInformation;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Text;
+using Vanara.InteropServices;
+using static Vanara.PInvoke.IpHlpApi;
+using static Vanara.PInvoke.WlanApi;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class NetworkService
+  public static class NetworkService
   {
     public static int getWlanRSSI()
     {
@@ -20,7 +20,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       // Get wireless connection details.
       var getType = CorrespondingTypeAttribute.GetCorrespondingTypes(WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, CorrespondingAction.Get).FirstOrDefault();
-      var interfaceDetails = WlanQueryInterface(hWlan, primaryIntfGuid, WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, default, out var dataSize, out var data, out var type);
+      var interfaceDetails = WlanQueryInterface(hWlan, primaryIntfGuid, WLAN_INTF_OPCODE.wlan_intf_opcode_current_connection, default, out var dataSize, out var data, out _);
       if (interfaceDetails.Failed)
         return -1;
 
