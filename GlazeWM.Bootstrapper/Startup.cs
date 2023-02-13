@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Containers.Commands;
@@ -26,6 +24,7 @@ namespace GlazeWM.Bootstrapper
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
+
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
     public Startup(
