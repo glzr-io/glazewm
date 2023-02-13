@@ -17,7 +17,7 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
   private readonly ScriptedTextConfig _baseConfig;
   private static readonly Regex Regex = new(@"\{[^}]+\}", RegexOptions.Compiled);
 
-  public string FormattedText { get; set; }
+  public string FormattedText { get; set; } = "Loading...";
 
   public ScriptedTextComponentViewModel(BarViewModel parentViewModel, ScriptedTextConfig baseConfig) : base(parentViewModel, baseConfig)
   {
