@@ -54,17 +54,6 @@
       "args": [
         "watch",
         "run",
-        "--project",
-        "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "publish",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "publish",
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
