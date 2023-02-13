@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -24,8 +23,8 @@ namespace GlazeWM.Bar.Components
       }
     }
     public ICommand ToggleShowAllIconsCommand => new RelayCommand(ToggleShowAllIcons);
-    public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons = new();
-    public ObservableCollection<NotifyIconViewModel> UnpinnedTrayIcons = new();
+    public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons { get; set; } = new();
+    public ObservableCollection<NotifyIconViewModel> UnpinnedTrayIcons { get; set; } = new();
     public ICollectionView _pinnedNotifyIcons;
     public ICollectionView PinnedNotifyIcons
     {

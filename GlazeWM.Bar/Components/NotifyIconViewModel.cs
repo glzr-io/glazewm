@@ -5,7 +5,7 @@ namespace GlazeWM.Bar.Components
 {
   public class NotifyIconViewModel : ViewModelBase
   {
-    public ManagedShell.WindowsTray.NotifyIcon TrayIcon;
+    public ManagedShell.WindowsTray.NotifyIcon TrayIcon { get; set; }
 
     public NotifyIconViewModel(ManagedShell.WindowsTray.NotifyIcon trayIcon)
     {
