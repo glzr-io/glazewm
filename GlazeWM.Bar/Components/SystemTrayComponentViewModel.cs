@@ -28,13 +28,13 @@ namespace GlazeWM.Bar.Components
       new(_unpinnedTrayIcons);
 
     private static IEnumerable<NotifyIconViewModel> _pinnedTrayIcons =>
-      _shellManager.NotificationArea.TrayIcons
-        .Where(trayIcon => trayIcon.IsPinned)
+      _shellManager.NotificationArea.PinnedIcons
+        .Cast<ManagedShell.WindowsTray.NotifyIcon>()
         .Select(trayIcon => new NotifyIconViewModel(trayIcon));
 
     private static IEnumerable<NotifyIconViewModel> _unpinnedTrayIcons =>
-      _shellManager.NotificationArea.TrayIcons
-        .Where(trayIcon => !trayIcon.IsPinned)
+      _shellManager.NotificationArea.UnpinnedIcons
+        .Cast<ManagedShell.WindowsTray.NotifyIcon>()
         .Select(trayIcon => new NotifyIconViewModel(trayIcon));
 
     public SystemTrayComponentViewModel(
@@ -43,6 +43,10 @@ namespace GlazeWM.Bar.Components
     {
       _config = config;
       _shellManager ??= new ShellManager();
+      _shellManager.NotificationArea.UnpinnedIcons.CollectionChanged +=
+        (_, _) => OnPropertyChanged(nameof(UnpinnedTrayIcons));
+      _shellManager.NotificationArea.PinnedIcons.CollectionChanged +=
+        (_, _) => OnPropertyChanged(nameof(PinnedTrayIcons));
     }
 
     public void ToggleShowAllIcons()
