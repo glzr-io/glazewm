@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Input;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure;
 using ManagedShell;
 
 namespace GlazeWM.Bar.Components
@@ -12,7 +13,8 @@ namespace GlazeWM.Bar.Components
   {
     private readonly SystemTrayComponentConfig _config;
 
-    private static ShellManager _shellManager { get; set; }
+    private readonly ShellManager _shellManager =
+      ServiceLocator.GetRequiredService<ShellManager>();
 
     public ICommand ToggleShowAllIconsCommand => new RelayCommand(ToggleShowAllIcons);
 
@@ -22,17 +24,17 @@ namespace GlazeWM.Bar.Components
       ? _config.LabelExpandText
       : _config.LabelCollapseText;
 
-    public static ObservableCollection<NotifyIconViewModel> PinnedTrayIcons =>
+    public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons =>
       new(_pinnedTrayIcons);
-    public static ObservableCollection<NotifyIconViewModel> UnpinnedTrayIcons =>
+    public ObservableCollection<NotifyIconViewModel> UnpinnedTrayIcons =>
       new(_unpinnedTrayIcons);
 
-    private static IEnumerable<NotifyIconViewModel> _pinnedTrayIcons =>
+    private IEnumerable<NotifyIconViewModel> _pinnedTrayIcons =>
       _shellManager.NotificationArea.PinnedIcons
         .Cast<ManagedShell.WindowsTray.NotifyIcon>()
         .Select(trayIcon => new NotifyIconViewModel(trayIcon));
 
-    private static IEnumerable<NotifyIconViewModel> _unpinnedTrayIcons =>
+    private IEnumerable<NotifyIconViewModel> _unpinnedTrayIcons =>
       _shellManager.NotificationArea.UnpinnedIcons
         .Cast<ManagedShell.WindowsTray.NotifyIcon>()
         .Select(trayIcon => new NotifyIconViewModel(trayIcon));
@@ -42,7 +44,8 @@ namespace GlazeWM.Bar.Components
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
       _config = config;
-      _shellManager ??= new ShellManager();
+
+      // Subscribe to collection changes of pinned/unpinned tray icons.
       _shellManager.NotificationArea.UnpinnedIcons.CollectionChanged +=
         (_, _) => OnPropertyChanged(nameof(UnpinnedTrayIcons));
       _shellManager.NotificationArea.PinnedIcons.CollectionChanged +=
