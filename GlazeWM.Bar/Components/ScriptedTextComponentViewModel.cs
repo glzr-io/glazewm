@@ -46,9 +46,9 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
 
   private async Task RunScript()
   {
+    var errorBuffer = new StringBuilder(1000);
     try
     {
-      var errorBuffer = new StringBuilder(1000);
       var outSb = new StringBuilder(1000);
       var res = await Cli.Wrap(_baseConfig.ScriptPath)
         .WithArguments(_baseConfig.ScriptArgs)
@@ -63,7 +63,7 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
     }
     catch (Exception e)
     {
-      _logger.LogError(e, "Error while execute text script");
+      _logger.LogError(e, "Error while execute text script, {ErrorOut}", errorBuffer.ToString());
     }
   }
 }
