@@ -10,7 +10,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public static class NetworkService
   {
-    public static int getWlanRSSI()
+    public static int GetWlanRSSI()
     {
       var hWlan = WlanOpenHandle();
       WlanEnumInterfaces(hWlan, default, out var list);
@@ -24,36 +24,26 @@ namespace GlazeWM.Infrastructure.WindowsApi
       if (interfaceDetails.Failed)
         return -1;
 
-      //   _currentSSID = connectionAttributes.strProfileName;
-
       // Get RSSI signal strength of connection.  
       var connectionAttributes = (WLAN_CONNECTION_ATTRIBUTES)data.DangerousGetHandle().Convert(dataSize, getType);
       return (int)connectionAttributes.wlanAssociationAttributes.wlanSignalQuality;
     }
 
-    public static bool pingTest()
+    public static bool PingTest()
     {
-      var pingable = false;
-      Ping pinger = null;
       try
       {
-        pinger = new Ping();
         // Use Google DNS servers to check if online.
-        var reply = pinger.Send("8.8.8.8");
-        pingable = reply.Status == IPStatus.Success;
+        var reply = new Ping().Send("8.8.8.8");
+        return reply.Status == IPStatus.Success;
       }
-      catch (PingException)
+      catch (Exception)
       {
         return false;
       }
-      finally
-      {
-        pinger?.Dispose();
-      }
-      return pingable;
     }
 
-    public static uint getPrimaryAdapterID()
+    public static uint GetPrimaryAdapterID()
     {
       // Using Google DNS as example IP for IP to check against.   
       var dwDestAddr = BitConverter.ToUInt32(Encoding.ASCII.GetBytes("8.8.8.8"));
@@ -61,14 +51,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
       return dwBestIfIndex;
     }
 
-    public static IP_ADAPTER_ADDRESSES getPrimaryAdapter()
+    public static IP_ADAPTER_ADDRESSES GetPrimaryAdapter()
     {
       // Filter out active tunnels and VPNS.
       return GetAdaptersAddresses(GetAdaptersAddressesFlags.GAA_FLAG_INCLUDE_GATEWAYS).FirstOrDefault(
         r => r.OperStatus == IF_OPER_STATUS.IfOperStatusUp
         && r.TunnelType == TUNNEL_TYPE.TUNNEL_TYPE_NONE
         && r.FirstGatewayAddress != IntPtr.Zero
-        && r.IfIndex == getPrimaryAdapterID()
+        && r.IfIndex == GetPrimaryAdapterID()
         );
     }
   }

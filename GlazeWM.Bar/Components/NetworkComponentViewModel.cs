@@ -13,14 +13,14 @@ namespace GlazeWM.Bar.Components
     public string Text => FormatLabel();
     private string FormatLabel()
     {
-      if (!NetworkService.pingTest())
+      if (!NetworkService.PingTest())
         return _config.LabelNoInternet;
       return getNetworkIcon();
     }
 
     private string getNetworkIcon()
     {
-      var primaryAdapter = NetworkService.getPrimaryAdapter();
+      var primaryAdapter = NetworkService.GetPrimaryAdapter();
       switch (primaryAdapter.IfType)
       {
         case IFTYPE.IF_TYPE_ETHERNET_CSMACD:
@@ -29,7 +29,7 @@ namespace GlazeWM.Bar.Components
           return _config.LabelEthernet;
         case IFTYPE.IF_TYPE_IEEE80211:
           // Primary adapter is using wifi.
-          var rssi = NetworkService.getWlanRSSI();
+          var rssi = NetworkService.GetWlanRSSI();
           return assignWifiIcon(rssi);
         default:
           return _config.LabelNoInternet;
