@@ -30,8 +30,8 @@ namespace GlazeWM.Bar.Components
     }
 
     public string ExpandCollapseText => IsExpanded
-      ? _config.LabelExpandText
-      : _config.LabelCollapseText;
+      ? _config.LabelCollapseText
+      : _config.LabelExpandText;
 
     public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons =>
       new(_pinnedTrayIcons);
