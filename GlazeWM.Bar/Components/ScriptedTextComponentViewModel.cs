@@ -30,6 +30,7 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
     _baseConfig = baseConfig;
     _logger = ServiceLocator.GetRequiredService<ILogger<ScriptedTextComponent>>();
     var bus = ServiceLocator.GetRequiredService<Bus>();
+    _ = RunScript();
     Init();
     bus.Events
       .OfType<UserConfigReloadedEvent>()
