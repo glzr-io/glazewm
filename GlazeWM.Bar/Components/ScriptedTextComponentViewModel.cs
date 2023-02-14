@@ -56,9 +56,17 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
         .WithStandardErrorPipe(PipeTarget.ToStringBuilder(errorBuffer))
         .ExecuteAsync();
       var output = outSb.ToString();
-      var json = Regex.Matches(output).Last(); // extract json block
-      var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json.Value);
-      FormattedText = result.Aggregate(_baseConfig.Label, (state, item) => state.Replace($"{{{item.Key}}}", item.Value.ToString()));
+
+      if (string.Equals(_baseConfig.OutputType, "json", StringComparison.OrdinalIgnoreCase))
+      {
+        var json = Regex.Matches(output).Last(); // extract json block
+        var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json.Value);
+        FormattedText = result.Aggregate(_baseConfig.Label, (state, item) => state.Replace($"{{{item.Key}}}", item.Value.ToString()));
+      }
+      else
+      {
+        FormattedText = output;
+      }
       OnPropertyChanged(nameof(FormattedText));
     }
     catch (Exception e)

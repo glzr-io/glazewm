@@ -8,4 +8,5 @@ public class ScriptedTextConfig : BarComponentConfig
   public string Label { get; set; } = "";
   public string ScriptArgs { get; set; } = "";
   public int IntervalMs { get; set; } = 5 * 1000;
+  public string OutputType { get; set; } = "json";
 }
