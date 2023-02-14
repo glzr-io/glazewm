@@ -4,6 +4,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   xmlns:i="http://schemas.microsoft.com/xaml/behaviors">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+  </UserControl.Resources>
   <Border
     x:Name="NotifyIconBorder"
     ToolTip="{Binding Path=TrayIcon.Title}">
@@ -11,6 +14,7 @@
       Margin="1,0"
       Source="{Binding Path=TrayIcon.Icon, Mode=OneWay}"
       Focusable="True"
+      Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
       Name="NotifyIconImage">
       <i:Interaction.Triggers>
         <i:EventTrigger EventName="MouseUp">

@@ -10,7 +10,8 @@ namespace GlazeWM.Bar.Components
   public class NotifyIconViewModel : ViewModelBase
   {
     public ManagedShell.WindowsTray.NotifyIcon TrayIcon { get; set; }
-
+    // Hide native tray icons
+    public bool IsVisible => !TrayIcon.Path.Contains("\\Windows\\explorer.exe");
     public ICommand OnMouseUpCommand =>
       new RelayCommand<MouseButtonEventArgs>(OnMouseUp);
     public ICommand OnMouseDownCommand =>
