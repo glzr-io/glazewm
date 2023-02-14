@@ -14,7 +14,29 @@
       Name="NotifyIconImage">
       <i:Interaction.Triggers>
         <i:EventTrigger EventName="MouseUp">
-          <i:InvokeCommandAction Command="{Binding OnMouseUpCommand}" />
+          <i:InvokeCommandAction
+            Command="{Binding OnMouseUpCommand}"
+            PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseDown">
+          <i:InvokeCommandAction
+            Command="{Binding OnMouseDownCommand}"
+            PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseEnter">
+          <i:InvokeCommandAction
+            Command="{Binding OnMouseEnterCommand}"
+            PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseLeave">
+          <i:InvokeCommandAction
+            Command="{Binding OnMouseLeaveCommand}"
+            PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseMove">
+          <i:InvokeCommandAction
+            Command="{Binding OnMouseMoveCommand}"
+            PassEventArgsToCommand="True" />
         </i:EventTrigger>
       </i:Interaction.Triggers>
     </Image>
