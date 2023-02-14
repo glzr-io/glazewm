@@ -21,7 +21,7 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
   private readonly ScriptedTextConfig _baseConfig;
   private static readonly Regex Regex = new(@"\{[^}]+\}", RegexOptions.Compiled);
   private readonly ILogger<ScriptedTextComponent> _logger;
-  private IDisposable TimerSub { get; set; }
+  private readonly Bus _bus;
 
   public string FormattedText { get; set; } = "Loading...";
 
@@ -29,19 +29,17 @@ public class ScriptedTextComponentViewModel : ComponentViewModel
   {
     _baseConfig = baseConfig;
     _logger = ServiceLocator.GetRequiredService<ILogger<ScriptedTextComponent>>();
-    var bus = ServiceLocator.GetRequiredService<Bus>();
-    _ = RunScript();
+    _bus = ServiceLocator.GetRequiredService<Bus>();
     Init();
-    bus.Events
-      .OfType<UserConfigReloadedEvent>()
-      .Take(1)
-      .Subscribe(_ => TimerSub.Dispose());
   }
 
   private void Init()
   {
+    _ = RunScript();
     var updateInterval = TimeSpan.FromMilliseconds(_baseConfig.IntervalMs);
-    TimerSub = Observable.Interval(updateInterval).Subscribe( _ => RunScript());
+    Observable.Interval(updateInterval)
+      .TakeUntil(_bus.Events.OfType<UserConfigReloadedEvent>())
+      .Subscribe(_ => RunScript());
   }
 
   private async Task RunScript()

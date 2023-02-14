@@ -6,12 +6,12 @@
              xmlns:local="clr-namespace:GlazeWM.Bar.Components"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=local:ScriptedTextComponentViewModel, IsDesignTimeCreatable=False}" >
-    <TextBlock
-      VerticalAlignment="Center"
-      Foreground="{Binding Foreground}"
-      FontFamily="{Binding FontFamily}"
-      FontWeight="{Binding FontWeight}"
-      FontSize="{Binding FontSize}"
-      Text="{Binding FormattedText}"/>
+  <TextBlock
+    VerticalAlignment="Center"
+    Foreground="{Binding Foreground}"
+    FontFamily="{Binding FontFamily}"
+    FontWeight="{Binding FontWeight}"
+    FontSize="{Binding FontSize}"
+    Text="{Binding FormattedText}" />
 </UserControl>
 
