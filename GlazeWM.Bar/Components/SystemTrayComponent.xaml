@@ -6,6 +6,9 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+  </UserControl.Resources>
   <StackPanel Orientation="Horizontal">
     <Button
       Background="{Binding Background}"
@@ -15,24 +18,29 @@
       FontWeight="{Binding FontWeight}"
       FontSize="{Binding FontSize}"
       Command="{Binding ToggleShowAllIconsCommand}"
+      BorderThickness="0"
       Cursor="Hand" />
-
-    <ItemsControl
-      Focusable="False"
-      ItemsSource="{Binding UnpinnedTrayIcons}"
-      HorizontalAlignment="Center"
-      VerticalAlignment="Center">
-      <ItemsControl.ItemsPanel>
-        <ItemsPanelTemplate>
-          <WrapPanel Orientation="Horizontal" />
-        </ItemsPanelTemplate>
-      </ItemsControl.ItemsPanel>
-      <ItemsControl.ItemTemplate>
-        <DataTemplate>
-          <local:NotifyIcon Cursor="Hand" />
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <Border
+      x:Name="NotifyIconBorder"
+      ToolTip="{Binding Path=TrayIcon.Title}"
+      Visibility="{Binding Path=IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
+      <ItemsControl
+        Focusable="False"
+        ItemsSource="{Binding UnpinnedTrayIcons}"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <local:NotifyIcon Cursor="Hand" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
     <ItemsControl
       Focusable="False"
       ItemsSource="{Binding PinnedTrayIcons}"
