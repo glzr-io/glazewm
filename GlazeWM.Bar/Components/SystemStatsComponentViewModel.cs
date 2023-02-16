@@ -11,7 +11,7 @@ namespace GlazeWM.Bar.Components
   {
     private SystemStatsComponentConfig _config => _componentConfig as SystemStatsComponentConfig;
     public string FormattedText => GetSystemStats();
-    private PerformanceCounter cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+    private PerformanceCounter cpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
     private PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
     private string GetSystemStats()
     {
@@ -21,7 +21,7 @@ namespace GlazeWM.Bar.Components
       var ramUsage = 100.0 * (total - used) / total;
       var gpuCounters = GetGPUCounters();
       var gpuUsage = GetGPUUsage(gpuCounters);
-      return "CPU: " + x.ToString("0.00") + "  GPU: " + gpuUsage.ToString("0.00") + "   RAM:" + ramUsage.ToString("0.00");
+      return "   CPU:" + x.ToString("0.00") + "%  RAM:" + ramUsage.ToString("0.00") + "%  GPU:" + gpuUsage.ToString("0.00") + "%";
     }
 
     public static List<PerformanceCounter> GetGPUCounters()
@@ -39,11 +39,7 @@ namespace GlazeWM.Bar.Components
     public static float GetGPUUsage(List<PerformanceCounter> gpuCounters)
     {
       gpuCounters.ForEach(x => x.NextValue());
-
-
-      var result = gpuCounters.Sum(x => x.NextValue());
-
-      return result;
+      return (float)gpuCounters.Sum(x => x.NextValue());
     }
 
     public SystemStatsComponentViewModel(
