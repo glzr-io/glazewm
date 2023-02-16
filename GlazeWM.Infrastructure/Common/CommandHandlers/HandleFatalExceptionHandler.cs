@@ -22,12 +22,14 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
     public CommandResponse Handle(HandleFatalExceptionCommand command)
     {
       var exception = command.Exception;
+      var dialogMesssage =
+        $"Unhandled exception: {exception.Message}\n\n" + "Continue without exiting?";
 
       // Alert the user of the error.
-      MessageBox.Show(
-        $"Unhandled exception: {exception.Message}",
+      var dialogResult = MessageBox.Show(
+        dialogMesssage,
         "Unhandled exception",
-        MessageBoxButtons.OK,
+        MessageBoxButtons.OKCancel,
         MessageBoxIcon.Warning,
         MessageBoxDefaultButton.Button1,
         MessageBoxOptions.DefaultDesktopOnly
@@ -35,7 +37,8 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
 
       WriteToErrorLog(exception);
 
-      _bus.Invoke(new ExitApplicationCommand(true));
+      if (dialogResult == DialogResult.Cancel)
+        _bus.Invoke(new ExitApplicationCommand(true));
 
       return CommandResponse.Ok;
     }
