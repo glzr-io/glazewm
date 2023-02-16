@@ -21,10 +21,17 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
 
     public CommandResponse Handle(HandleFatalExceptionCommand command)
     {
-      // Alert the user of the error.
       var exception = command.Exception;
-      // TODO: Show foreground window.
-      MessageBox.Show($"Unhandled exception: {exception.Message}");
+
+      // Alert the user of the error.
+      MessageBox.Show(
+        $"Unhandled exception: {exception.Message}",
+        "Unhandled exception",
+        MessageBoxButtons.OK,
+        MessageBoxIcon.Warning,
+        MessageBoxDefaultButton.Button1,
+        MessageBoxOptions.DefaultDesktopOnly
+      );
 
       WriteToErrorLog(exception);
 
