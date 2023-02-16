@@ -14,5 +14,7 @@ namespace GlazeWM.Infrastructure.WindowsApi.Enums
     Hide = 0x8003,
     LocationChange = 0x800B,
     NameChange = 0x800C,
+    ObjectCloaked = 0x8017,
+    ObjectUncloaked = 0x8018
   }
 }
