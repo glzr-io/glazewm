@@ -34,7 +34,7 @@ namespace GlazeWM.Infrastructure.Common.CommandHandlers
       // Alert the user of the error.
       var dialogResult = MessageBox.Show(
         dialogMesssage,
-        "Unhandled exception",
+        "Encountered a problem",
         dialogButtons,
         MessageBoxIcon.Warning,
         MessageBoxDefaultButton.Button1,
