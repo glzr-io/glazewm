@@ -5,9 +5,9 @@ namespace GlazeWM.Bar.Components
   /// <summary>
   /// Interaction logic for TextComponent.xaml
   /// </summary>
-  public partial class WeatherComponent : UserControl
+  public partial class SystemStatsComponent : UserControl
   {
-    public WeatherComponent()
+    public SystemStatsComponent()
     {
       InitializeComponent();
     }
