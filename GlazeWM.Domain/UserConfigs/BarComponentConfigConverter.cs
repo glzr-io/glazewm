@@ -53,6 +53,10 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "scripted text" => JsonSerializer.Deserialize<ScriptedTextConfig>(
+          jsonObject.RootElement.ToString(),
+          options
+        ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }
