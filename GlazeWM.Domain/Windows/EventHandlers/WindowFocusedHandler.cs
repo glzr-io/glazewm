@@ -34,6 +34,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var windowHandle = @event.WindowHandle;
       var pendingFocusContainer = _containerService.PendingFocusContainer;
 
+      var window = _windowService.GetWindows()
+        .FirstOrDefault(window => window.Handle == @event.WindowHandle);
+
+      if (window is null || window?.IsDisplayed == false)
+        return;
+
       // Override the container to set focus to (ie. when changing focus after a window is
       // closed or hidden).
       // TODO: This can be simplified a lot. Might also need to handle case where window
@@ -62,12 +68,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         _bus.InvokeAsync(new SetNativeFocusCommand(pendingFocusContainer));
         return;
       }
-
-      var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Handle == @event.WindowHandle);
-
-      if (window is null || window?.IsDisplayed == false)
-        return;
 
       _logger.LogWindowEvent("Window focused", window);
 
