@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
     xmlns:local="clr-namespace:GlazeWM.Bar.Components"
     mc:Ignorable="d">
     <TextBlock
@@ -12,5 +13,5 @@
         FontFamily="{Binding FontFamily}"
         FontWeight="{Binding FontWeight}"
         FontSize="{Binding FontSize}"
-        Text="{Binding FormattedText}" />
+        fa:Awesome.Inline="{Binding FormattedText}" />
 </UserControl>
