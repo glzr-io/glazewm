@@ -37,6 +37,9 @@
             <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
               <components:WorkspacesComponent />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:SystemStatsComponentViewModel}">
+              <components:SystemStatsComponent />
+            </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
       </Grid>
