@@ -11,8 +11,6 @@ namespace GlazeWM.Bar.Components
   {
     private SystemStatsComponentConfig _config => _componentConfig as SystemStatsComponentConfig;
     public string FormattedText => GetSystemStats();
-    private PerformanceCounter cpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
-    private PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
     private string GetSystemStats()
     {
       var x = cpuCounter.NextValue();
@@ -23,6 +21,8 @@ namespace GlazeWM.Bar.Components
       var gpuUsage = GetGPUUsage(gpuCounters);
       return ":microchip:" + x.ToString("0.") + "%  :memory:" + ramUsage.ToString("0.") + "%  :cube:" + gpuUsage.ToString("0.") + "%";
     }
+    private PerformanceCounter cpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
+    private PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
 
     public static List<PerformanceCounter> GetGPUCounters()
     {
@@ -30,10 +30,10 @@ namespace GlazeWM.Bar.Components
       var counterNames = category.GetInstanceNames();
 
       return counterNames
-                          .Where(counterName => counterName.EndsWith("engtype_3D"))
-                          .SelectMany(counterName => category.GetCounters(counterName))
-                          .Where(counter => counter.CounterName.Equals("Utilization Percentage"))
-                          .ToList();
+        .Where(counterName => counterName.EndsWith("engtype_3D"))
+        .SelectMany(counterName => category.GetCounters(counterName))
+        .Where(counter => counter.CounterName.Equals("Utilization Percentage"))
+        .ToList();
     }
 
     public static float GetGPUUsage(List<PerformanceCounter> gpuCounters)

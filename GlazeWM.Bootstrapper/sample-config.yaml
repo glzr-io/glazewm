@@ -24,6 +24,7 @@ bar:
       focused_workspace_background: "#ffffff33"
       displayed_workspace_background: "#00000033"
       default_workspace_background: "transparent"
+    - type: "system stats"
   components_center:
     - type: "window title"
   components_right:
