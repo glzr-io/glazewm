@@ -24,6 +24,10 @@ bar:
       focused_workspace_background: "#ffffff33"
       displayed_workspace_background: "#00000033"
       default_workspace_background: "transparent"
+    - type: "weather"
+      temperature_unit: "fahrenheit"
+      latitude: 40.7128
+      longitude: -74.0060
   components_center:
     - type: "window title"
   components_right:
