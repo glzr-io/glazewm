@@ -21,7 +21,7 @@ namespace GlazeWM.Bar.Components
       var ramUsage = 100.0 * (total - used) / total;
       var gpuCounters = GetGPUCounters();
       var gpuUsage = GetGPUUsage(gpuCounters);
-      return ":microchip:" + x.ToString("0.00") + "%  :memory:" + ramUsage.ToString("0.00") + "%  :film:" + gpuUsage.ToString("0.00") + "%";
+      return ":microchip:" + x.ToString("0.") + "%  :memory:" + ramUsage.ToString("0.") + "%  :cube:" + gpuUsage.ToString("0.") + "%";
     }
 
     public static List<PerformanceCounter> GetGPUCounters()
@@ -46,7 +46,7 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       SystemStatsComponentConfig config) : base(parentViewModel, config)
     {
-      Observable.Interval(TimeSpan.FromSeconds(1))
+      Observable.Interval(TimeSpan.FromSeconds(2))
         .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
     }
   }
