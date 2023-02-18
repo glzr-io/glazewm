@@ -85,6 +85,7 @@ namespace GlazeWM.Domain.UserConfigs
 
       var processNamesToIgnore = new List<string> {
         "SearchHost",
+        "ShellExperienceHost",
         "StartMenuExperienceHost",
       };
 
