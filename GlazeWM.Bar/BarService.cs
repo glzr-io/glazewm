@@ -84,6 +84,11 @@ namespace GlazeWM.Bar
 
     public void ShowWindow(Domain.Monitors.Monitor targetMonitor)
     {
+      if (!_userConfigService.GeneralConfig.ShowBarWindows)
+      {
+        return;
+      }
+
       _application.Dispatcher.Invoke(() =>
       {
         var originalFocusedHandle = GetForegroundWindow();
@@ -112,7 +117,7 @@ namespace GlazeWM.Bar
       {
         // Kill the corresponding bar window.
         var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
-        barWindow.Close();
+        barWindow?.Close();
       });
     }
   }

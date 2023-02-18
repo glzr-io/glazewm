@@ -9,7 +9,6 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.Utils;
 using GlazeWM.Infrastructure.WindowsApi;
 
@@ -246,8 +245,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       amount = units switch
       {
-        "%" => (int)(amount * currentMonitor.Width / 100),
-        "ppt" => (int)(amount * currentMonitor.Width / 100),
+        "%" => amount * currentMonitor.Width / 100,
+        "ppt" => amount * currentMonitor.Width / 100,
         "px" => amount,
         // in case user only provided a number in the config;
         // TODO: somehow validate floating_window_move_amount in config on startup
