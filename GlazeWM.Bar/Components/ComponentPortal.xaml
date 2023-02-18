@@ -31,6 +31,9 @@
             <DataTemplate DataType="{x:Type components:WindowTitleComponentViewModel}">
               <components:WindowTitleComponent />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:SystemTrayComponentViewModel}">
+              <components:SystemTrayComponent />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type components:TilingDirectionComponentViewModel}">
               <components:TilingDirectionComponent />
             </DataTemplate>

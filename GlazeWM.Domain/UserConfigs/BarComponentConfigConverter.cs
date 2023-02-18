@@ -48,6 +48,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "system tray" =>
+          JsonSerializer.Deserialize<SystemTrayComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "workspaces" =>
           JsonSerializer.Deserialize<WorkspacesComponentConfig>(
             jsonObject.RootElement.ToString(),

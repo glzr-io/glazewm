@@ -18,5 +18,6 @@
     <PackageReference Include="YamlDotNet" Version="8.1.0" />
     <PackageReference Include="Roslynator.Analyzers" Version="4.2.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.0" />
+    <PackageReference Include="ManagedShell" Version="0.0.198" />
   </ItemGroup>
 </Project>
