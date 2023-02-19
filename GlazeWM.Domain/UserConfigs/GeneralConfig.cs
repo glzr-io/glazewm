@@ -15,9 +15,5 @@ namespace GlazeWM.Domain.UserConfigs
     /// Amount by which to move floating windows
     /// </summary>
     public string FloatingWindowMoveAmount { get; set; } = "5%";
-    /// <summary>
-    /// Whether to show the bar windows.
-    /// </summary>
-    public bool ShowBarWindows { get; set; } = true;
   }
 }

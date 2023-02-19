@@ -84,7 +84,9 @@ namespace GlazeWM.Bar
 
     public void ShowWindow(Domain.Monitors.Monitor targetMonitor)
     {
-      if (!_userConfigService.GeneralConfig.ShowBarWindows)
+      var barConfig = _userConfigService.GetBarConfigForMonitor(targetMonitor);
+
+      if (!barConfig.Enabled)
       {
         return;
       }
@@ -92,8 +94,6 @@ namespace GlazeWM.Bar
       _application.Dispatcher.Invoke(() =>
       {
         var originalFocusedHandle = GetForegroundWindow();
-
-        var barConfig = _userConfigService.GetBarConfigForMonitor(targetMonitor);
         var barViewModel = new BarViewModel(
           targetMonitor,
           _application.Dispatcher,

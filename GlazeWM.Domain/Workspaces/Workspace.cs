@@ -55,7 +55,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        if (!_userConfigService.GeneralConfig.ShowBarWindows)
+        if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
         {
           return Parent.Height - (_outerGap * 2);
         }
@@ -70,7 +70,7 @@ namespace GlazeWM.Domain.Workspaces
     {
       get
       {
-        if (!_userConfigService.GeneralConfig.ShowBarWindows)
+        if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
         {
           return Parent.Y + _outerGap;
         }
