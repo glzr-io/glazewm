@@ -30,8 +30,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       SetWinEventHook(EventConstant.MoveSizeEnd, EventConstant.MoveSizeEnd, IntPtr.Zero, _hookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.Foreground, EventConstant.Foreground, IntPtr.Zero, _hookProc, 0, 0, 0);
       SetWinEventHook(EventConstant.LocationChange, EventConstant.NameChange, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.ObjectCloaked, EventConstant.ObjectUncloaked, IntPtr.Zero, _hookProc, 0, 0, 0);
-      SetWinEventHook(EventConstant.ObjectUncloaked, EventConstant.ObjectUncloaked, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.Cloaked, EventConstant.Uncloaked, IntPtr.Zero, _hookProc, 0, 0, 0);
+      SetWinEventHook(EventConstant.Uncloaked, EventConstant.Uncloaked, IntPtr.Zero, _hookProc, 0, 0, 0);
     }
 
     private void WindowEventHookProc(
@@ -61,8 +61,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
         EventConstant.Show => new WindowShownEvent(hwnd),
         EventConstant.NameChange => new WindowTitleChangedEvent(hwnd),
         EventConstant.Hide => new WindowHiddenEvent(hwnd),
-        EventConstant.ObjectCloaked => new WindowHiddenEvent(hwnd),
-        EventConstant.ObjectUncloaked => new WindowShownEvent(hwnd),
+        EventConstant.Cloaked => new WindowHiddenEvent(hwnd),
+        EventConstant.Uncloaked => new WindowShownEvent(hwnd),
         _ => null,
       };
 
