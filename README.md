@@ -30,6 +30,15 @@ winget install lars-berger.GlazeWM
 
 Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
 
+## Scoop
+
+GlazeWM can be download via Scoop in the [Extras](https://github.com/ScoopInstaller/Extras) bucket:
+
+```powershell
+scoop bucket add extras # Ensure bucket is added first
+scoop install glazewm
+````
+
 ## Build from source
 
 Alternatively, to build from source, use the following .NET CLI command:
@@ -308,7 +317,7 @@ window_rules:
 - move to workspace \<workspace name>
 - resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
 - resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
-- set \<floating | minimized | maximized>
+- set \<floating | tiling | minimized | maximized>
 - toggle \<floating | maximized>
 - toggle focus mode
 - tiling direction toggle
