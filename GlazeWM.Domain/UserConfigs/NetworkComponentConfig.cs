@@ -30,5 +30,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// Label for connection to the internet.  
     /// </summary>
     public string LabelNoInternet { get; set; } = "  ";
+
+    public NetworkComponentConfig()
+    {
+      FontFamily = "pack://application:,,,/Resources/#Material Icons";
+    }
   }
 }
