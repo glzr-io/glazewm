@@ -132,6 +132,9 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 
 ```yaml
 bar:
+  # The option to enable/disable the bar.
+  enabled: true
+  
   # Height of the bar in pixels.
   height: "30px"
 
