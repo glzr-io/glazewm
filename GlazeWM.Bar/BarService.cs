@@ -117,6 +117,8 @@ namespace GlazeWM.Bar
       {
         // Kill the corresponding bar window.
         var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
+
+        barWindow?.BarViewModel?.Dispose();
         barWindow?.Close();
       });
     }

@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Reactive.Linq;
 using System.Text;
 using GlazeWM.Domain.UserConfigs;
 
@@ -64,11 +63,7 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       ClockComponentConfig config) : base(parentViewModel, config)
     {
-      // Update the displayed time every second.
-      var updateInterval = TimeSpan.FromSeconds(1);
-
-      Observable.Interval(updateInterval)
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedTime)));
+      AddUpdateEvent(TimeSpan.FromSeconds(1), () => OnPropertyChanged(nameof(FormattedTime)));
     }
   }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Net.NetworkInformation;
-using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
 using static Vanara.PInvoke.IpHlpApi;
@@ -54,8 +53,8 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      Observable.Interval(TimeSpan.FromSeconds(10))
-        .Subscribe(_ => OnPropertyChanged(nameof(Text)));
+      AddUpdateEvent(TimeSpan.FromSeconds(10), () => OnPropertyChanged(nameof(Text)));
+
       NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => OnPropertyChanged(nameof(Text)));
     }
   }

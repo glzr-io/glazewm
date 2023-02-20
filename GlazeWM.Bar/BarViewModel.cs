@@ -14,6 +14,7 @@ namespace GlazeWM.Bar
     public Monitor Monitor { get; }
     public Dispatcher Dispatcher { get; }
     public BarConfig BarConfig { get; }
+    public List<IDisposable> Observables { get; } = new();
 
     public BarPosition Position => BarConfig.Position;
     public string Background => XamlHelper.FormatColor(BarConfig.Background);
@@ -65,6 +66,19 @@ namespace GlazeWM.Bar
       InsertComponentSeparator(
         CreateComponentViewModels(BarConfig.ComponentsRight),
           _componentSeparatorRight);
+
+    protected override void Dispose(bool disposing)
+    {
+      if (disposing)
+      {
+        foreach (var observable in Observables)
+        {
+          observable?.Dispose();
+        }
+      }
+
+      base.Dispose(disposing);
+    }
 
     private static List<ComponentViewModel> InsertComponentSeparator(
       List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator

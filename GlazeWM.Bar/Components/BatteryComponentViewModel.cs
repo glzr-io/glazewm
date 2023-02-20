@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.WindowsApi;
 
@@ -46,8 +45,7 @@ namespace GlazeWM.Bar.Components
     {
       _batteryComponentConfig = config;
 
-      Observable.Interval(TimeSpan.FromSeconds(3))
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
+      AddUpdateEvent(TimeSpan.FromSeconds(3), () => OnPropertyChanged(nameof(FormattedPowerStatus)));
     }
   }
 }

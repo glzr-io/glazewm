@@ -1,3 +1,5 @@
+using System;
+using System.Reactive.Linq;
 using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
 
@@ -23,6 +25,11 @@ namespace GlazeWM.Bar.Components
       XamlHelper.FormatRectShorthand(_componentConfig.BorderWidth);
     public string Padding => XamlHelper.FormatRectShorthand(_componentConfig.Padding);
     public string Margin => XamlHelper.FormatRectShorthand(_componentConfig.Margin);
+
+    protected void AddUpdateEvent(TimeSpan interval, Action action)
+    {
+      _parentViewModel.Observables.Add(Observable.Interval(interval).Subscribe(_ => action()));
+    }
 
     protected ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig baseConfig)
     {
