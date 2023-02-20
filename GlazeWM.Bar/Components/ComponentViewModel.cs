@@ -26,9 +26,9 @@ namespace GlazeWM.Bar.Components
     public string Padding => XamlHelper.FormatRectShorthand(_componentConfig.Padding);
     public string Margin => XamlHelper.FormatRectShorthand(_componentConfig.Margin);
 
-    protected void AddUpdateEvent(TimeSpan interval, Action action)
+    protected void RegisterDisposables(params IDisposable[] disposables)
     {
-      _parentViewModel.Observables.Add(Observable.Interval(interval).Subscribe(_ => action()));
+      _parentViewModel.Disposables.AddRange(disposables);
     }
 
     protected ComponentViewModel(BarViewModel parentViewModel, BarComponentConfig baseConfig)

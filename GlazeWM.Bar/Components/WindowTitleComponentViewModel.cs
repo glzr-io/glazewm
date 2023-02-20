@@ -30,11 +30,13 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       WindowTitleComponentConfig config) : base(parentViewModel, config)
     {
-      _bus.Events.OfType<WindowFocusedEvent>()
+      var windowFocusedSubscription = _bus.Events.OfType<WindowFocusedEvent>()
         .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
 
-      _bus.Events.OfType<WindowTitleChangedEvent>()
+      var windowTitleChangedSubscription = _bus.Events.OfType<WindowTitleChangedEvent>()
         .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+
+      RegisterDisposables(windowFocusedSubscription, windowTitleChangedSubscription);
     }
 
     private void UpdateTitle(IntPtr windowHandle)

@@ -37,11 +37,11 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       TilingDirectionComponentConfig config) : base(parentViewModel, config)
     {
-      _bus.Events.Where(
-        (@event) => @event is LayoutChangedEvent or FocusChangedEvent
-      ).Subscribe((_) =>
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString)))
-      );
+      var layoutChangedSubscription = _bus.Events.Where(
+        @event => @event is LayoutChangedEvent or FocusChangedEvent).Subscribe(_ =>
+        _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString))));
+
+      RegisterDisposables(layoutChangedSubscription);
     }
   }
 }

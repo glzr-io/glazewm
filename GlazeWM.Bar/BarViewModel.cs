@@ -14,7 +14,7 @@ namespace GlazeWM.Bar
     public Monitor Monitor { get; }
     public Dispatcher Dispatcher { get; }
     public BarConfig BarConfig { get; }
-    public List<IDisposable> Observables { get; } = new();
+    public List<IDisposable> Disposables { get; } = new();
 
     public BarPosition Position => BarConfig.Position;
     public string Background => XamlHelper.FormatColor(BarConfig.Background);
@@ -71,9 +71,9 @@ namespace GlazeWM.Bar
     {
       if (disposing)
       {
-        foreach (var observable in Observables)
+        foreach (var disposable in Disposables)
         {
-          observable?.Dispose();
+          disposable?.Dispose();
         }
       }
 

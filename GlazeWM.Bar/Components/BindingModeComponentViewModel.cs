@@ -31,13 +31,14 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       BindingModeComponentConfig config) : base(parentViewModel, config)
     {
-      _bus.Events.OfType<BindingModeChangedEvent>().Subscribe(_ =>
+      var bindingModeChangedSubscription = _bus.Events.OfType<BindingModeChangedEvent>().Subscribe(_ =>
         _dispatcher.Invoke(() =>
         {
           OnPropertyChanged(nameof(Visibility));
           OnPropertyChanged(nameof(ActiveBindingMode));
-        })
-      );
+        }));
+
+      RegisterDisposables(bindingModeChangedSubscription);
     }
   }
 }

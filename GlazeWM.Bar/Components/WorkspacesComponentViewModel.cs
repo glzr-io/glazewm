@@ -79,11 +79,11 @@ namespace GlazeWM.Bar.Components
           or WorkspaceDeactivatedEvent
           or FocusChangedEvent
       );
-
       // Refresh contents of workspaces collection.
-      workspacesChangedEvent.Subscribe(_ =>
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces)))
-      );
+      var workspaceChangedEventSubscription = workspacesChangedEvent.Subscribe(_ =>
+        _dispatcher.Invoke(() => OnPropertyChanged(nameof(Workspaces))));
+
+      RegisterDisposables(workspaceChangedEventSubscription);
     }
 
     public void FocusWorkspace(string workspaceName)
