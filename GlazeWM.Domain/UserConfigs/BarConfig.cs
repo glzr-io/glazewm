@@ -4,6 +4,8 @@ namespace GlazeWM.Domain.UserConfigs
 {
   public class BarConfig
   {
+    public bool Enabled { get; set; } = true;
+
     public string OffsetX { get; set; } = "0px";
 
     public string OffsetY { get; set; } = "0px";
