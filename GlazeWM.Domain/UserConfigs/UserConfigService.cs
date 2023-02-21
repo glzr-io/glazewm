@@ -84,6 +84,7 @@ namespace GlazeWM.Domain.UserConfigs
       windowRules.Add(resizeElectronBorderWindowRule);
 
       var processNamesToIgnore = new List<string> {
+        "SearchApp",
         "SearchHost",
         "ShellExperienceHost",
         "StartMenuExperienceHost",
