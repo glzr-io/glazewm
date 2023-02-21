@@ -46,9 +46,8 @@ namespace GlazeWM.Bar.Components
     {
       _batteryComponentConfig = config;
 
-      var updateSubscription = Observable
-                               .Interval(TimeSpan.FromSeconds(3))
-                               .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
+      var updateSubscription = Observable.Interval(TimeSpan.FromSeconds(3))
+        .Subscribe(_ => OnPropertyChanged(nameof(FormattedPowerStatus)));
 
       RegisterDisposables(updateSubscription);
     }

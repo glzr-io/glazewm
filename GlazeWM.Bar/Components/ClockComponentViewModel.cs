@@ -64,9 +64,8 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       ClockComponentConfig config) : base(parentViewModel, config)
     {
-      var updateSubscription = Observable
-                               .Interval(TimeSpan.FromSeconds(1))
-                               .Subscribe(_ => OnPropertyChanged(nameof(FormattedTime)));
+      var updateSubscription = Observable.Interval(TimeSpan.FromSeconds(1))
+        .Subscribe(_ => OnPropertyChanged(nameof(FormattedTime)));
 
       RegisterDisposables(updateSubscription);
     }

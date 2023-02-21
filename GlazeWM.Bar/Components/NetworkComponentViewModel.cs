@@ -54,9 +54,8 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      var updateSubscription = Observable
-                               .Interval(TimeSpan.FromSeconds(10))
-                               .Subscribe(_ => OnPropertyChanged(nameof(Text)));
+      var updateSubscription = Observable.Interval(TimeSpan.FromSeconds(10))
+        .Subscribe(_ => OnPropertyChanged(nameof(Text)));
 
       RegisterDisposables(updateSubscription);
 
