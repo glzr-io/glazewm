@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public CommandResponse Handle(ResizeWindowCommand command)
     {
       var dimensionToResize = command.DimensionToResize;
-      var resizeAmount = command.ResizeAmount;
+      var resizeAmount = CalculateResizeOffset(command);
       var windowToResize = command.WindowToResize;
 
       if (windowToResize is FloatingWindow)
@@ -181,6 +181,43 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Redrawing again to fix weird WindowsOS dpi change behaviour
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private static string CalculateResizeOffset(ResizeWindowCommand command)
+    {
+      // if this is a relative resize, return the raw value (as it is already a relative offset)
+      if(!command.AbsoluteResize)
+      {
+          return command.ResizeAmount;
+      }
+
+      // get the parent dimension (width or height)
+      var parentSize = command.DimensionToResize switch
+      {
+        ResizeDimension.Width => command.WindowToResize.Parent.Width,
+        ResizeDimension.Height => command.WindowToResize.Parent.Height,
+        _ => 0,
+      };
+
+      // get the current window dimension (width or height)
+      var actualSize = command.DimensionToResize switch
+      {
+        ResizeDimension.Width => command.WindowToResize.Width,
+        ResizeDimension.Height => command.WindowToResize.Height,
+        _ => 0,
+      };
+
+      // calculate the desired size (based on parent size)
+      var desiredSize = parentSize * ConvertToResizePercentage(
+          command.WindowToResize,
+          command.DimensionToResize, 
+          command.ResizeAmount);
+
+      // calculate the offset required to achieve the desired size
+      var resizeOffsetAmount = desiredSize - actualSize;
+
+      // return offset (in px)
+      return resizeOffsetAmount > 0 ? $"+{resizeOffsetAmount}px" : $"{resizeOffsetAmount}px";
     }
   }
 }

@@ -8,6 +8,7 @@ namespace GlazeWM.Domain.Windows.Commands
     public Window WindowToResize { get; }
     public ResizeDimension DimensionToResize { get; }
     public string ResizeAmount { get; }
+    public bool AbsoluteResize { get; }
 
     public ResizeWindowCommand(
       Window windowToResize,
@@ -17,6 +18,7 @@ namespace GlazeWM.Domain.Windows.Commands
       WindowToResize = windowToResize;
       DimensionToResize = dimensionToResize;
       ResizeAmount = resizeAmount;
+      AbsoluteResize = !resizeAmount.StartsWith('-') && !resizeAmount.StartsWith('+');
     }
   }
 }
