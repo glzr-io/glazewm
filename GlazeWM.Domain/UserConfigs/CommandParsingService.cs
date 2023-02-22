@@ -79,6 +79,7 @@ namespace GlazeWM.Domain.UserConfigs
         "move" => ParseMoveCommand(commandParts, subjectContainer),
         "resize" => ParseResizeCommand(commandParts, subjectContainer),
         "set" => ParseSetCommand(commandParts, subjectContainer),
+        "hide" => ParseHideCommand(commandParts, subjectContainer),
         "toggle" => ParseToggleCommand(commandParts, subjectContainer),
         "exit" => ParseExitCommand(commandParts),
         "close" => subjectContainer is Window
@@ -223,6 +224,17 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "tiling" => subjectContainer is Window
           ? new SetTilingCommand(subjectContainer as Window)
+          : new NoopCommand(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private static Command ParseHideCommand(string[] commandParts, Container subjectContainer)
+    {
+      return commandParts[1] switch
+      {
+        "titlebar" => subjectContainer is Window
+          ? new HideTitleBarCommand(subjectContainer as Window)
           : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };

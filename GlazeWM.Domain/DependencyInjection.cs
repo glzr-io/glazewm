@@ -51,6 +51,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
       services.AddSingleton<ICommandHandler<ResizeContainerCommand>, ResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
+      services.AddSingleton<ICommandHandler<HideTitleBarCommand>, HideTitleBarHandler>();
       services.AddSingleton<ICommandHandler<SetNativeFocusCommand>, SetNativeFocusHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
       services.AddSingleton<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
