@@ -141,9 +141,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Last
     }
 
+    public static int WS_CAPTION = 0x00C00000;
+
     public const int GWLSTYLE = -16;
     public const int GWLEXSTYLE = -20;
-    public static int WS_CAPTION = 0x00C00000;
+
     public enum GW : uint
     {
       Owner = 4,
@@ -449,7 +451,5 @@ namespace GlazeWM.Infrastructure.WindowsApi
       public uint BatteryLifeTime;
       public uint BatteryFullLifeTime;
     }
-
-
   }
 }
