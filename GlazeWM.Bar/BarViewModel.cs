@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reactive.Subjects;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
 using GlazeWM.Bar.Components;
@@ -11,6 +12,8 @@ namespace GlazeWM.Bar
 {
   public class BarViewModel : ViewModelBase
   {
+    public readonly Subject<bool> WindowClosing = new();
+
     public Monitor Monitor { get; }
     public Dispatcher Dispatcher { get; }
     public BarConfig BarConfig { get; }
@@ -72,6 +75,16 @@ namespace GlazeWM.Bar
     {
       componentViewModels.Intersperse(componentSeparator);
       return componentViewModels;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+      if (disposing)
+      {
+        WindowClosing.Dispose();
+      }
+
+      base.Dispose(disposing);
     }
 
     private List<ComponentViewModel> CreateComponentViewModels(
