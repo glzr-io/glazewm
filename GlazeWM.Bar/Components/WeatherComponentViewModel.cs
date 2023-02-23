@@ -59,12 +59,13 @@ namespace GlazeWM.Bar.Components
 
     private string GetWeatherIcon(int code, bool isDaytime)
     {
+      // https://open-meteo.com/en/docs
       if (code == 0)
-        return isDaytime ? ":Sun:" : ":Moon:";
+        return isDaytime ? _config.LabelSun : _config.LabelMoon;
       else if (code < 3)
-        return isDaytime ? ":CloudSun:" : ":CloudMoon:";
+        return isDaytime ? _config.LabelCloudSun : _config.LabelCloudMoon;
       else if (code < 50)
-        return ":Cloud:";
+        return _config.LabelCloud;
       else if (code < 60)
         return isDaytime ? ":CloudSunRain" : ":CloudMoonRain:";
       else if (code < 70)

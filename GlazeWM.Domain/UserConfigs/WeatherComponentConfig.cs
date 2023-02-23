@@ -18,5 +18,52 @@ namespace GlazeWM.Domain.UserConfigs
     /// Longitude to retrieve weather.
     /// </summary>
     public string TemperatureUnit { get; set; } = "celcius";
+    /// <summary>
+    /// Icon to represet sunny weather.
+    /// </summary>
+    public string LabelSun { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelMoon { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloudMoon { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloudSun { get; set; } = "⛅";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloudMoonRain { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloudSunRain { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloudRain { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelSnowflake { get; set; } = "❄";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelThunderstorm { get; set; } = "";
+    /// <summary>
+    /// 
+    /// </summary>
+    public string LabelCloud { get; set; } = "☁";
+    /// <summary>
+    /// Sets default icon font if one isn't specified.
+    /// </summary>
+    public WeatherComponentConfig()
+    {
+      FontFamily = "pack://application:,,,/Resources/#Font Awesome 6 Free Solid";
+    }
   }
 }
