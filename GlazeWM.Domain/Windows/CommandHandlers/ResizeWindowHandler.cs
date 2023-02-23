@@ -31,7 +31,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public CommandResponse Handle(ResizeWindowCommand command)
     {
       var dimensionToResize = command.DimensionToResize;
-      var resizeAmount = CalculateResizeOffset(command);
+      var resizeAmount = CalculateResizeDelta(command);
       var windowToResize = command.WindowToResize;
 
       if (windowToResize is FloatingWindow)
@@ -183,9 +183,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
     }
 
-    private static string CalculateResizeOffset(ResizeWindowCommand command)
+    private static string CalculateResizeDelta(ResizeWindowCommand command)
     {
-      // if this is a relative resize, return the raw value (as it is already a relative offset)
+      // if this is a relative resize, return the raw value (as it is already a relative delta)
       if (!command.AbsoluteResize)
       {
         return command.ResizeAmount;
@@ -213,11 +213,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           command.DimensionToResize,
           command.ResizeAmount);
 
-      // calculate the offset required to achieve the desired size
-      var resizeOffsetAmount = desiredSize - actualSize;
+      // calculate the delta required to achieve the desired size
+      var resizeDelta = desiredSize - actualSize;
 
-      // return offset (in px)
-      return resizeOffsetAmount > 0 ? $"+{resizeOffsetAmount}px" : $"{resizeOffsetAmount}px";
+      // return delta (in px)
+      return resizeDelta > 0 ? $"+{resizeDelta}px" : $"{resizeDelta}px";
     }
   }
 }
