@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -145,9 +144,9 @@ namespace GlazeWM.Domain.Containers
           return;
         case MinimizedWindow:
           var minimizedWindow = value as MinimizedWindow;
-          writer.WriteString(
+          writer.WriteNumber(
             "Handle",
-            minimizedWindow.Handle.ToString("x", CultureInfo.InvariantCulture)
+            minimizedWindow.Handle.ToInt64()
           );
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, minimizedWindow.FloatingPlacement);
@@ -157,9 +156,9 @@ namespace GlazeWM.Domain.Containers
           return;
         case FloatingWindow:
           var floatingWindow = value as FloatingWindow;
-          writer.WriteString(
+          writer.WriteNumber(
             "Handle",
-            floatingWindow.Handle.ToString("x", CultureInfo.InvariantCulture)
+            floatingWindow.Handle.ToInt64()
           );
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, floatingWindow.FloatingPlacement);
@@ -168,9 +167,9 @@ namespace GlazeWM.Domain.Containers
           return;
         case TilingWindow:
           var tilingWindow = value as TilingWindow;
-          writer.WriteString(
+          writer.WriteNumber(
             "Handle",
-            tilingWindow.Handle.ToString("x", CultureInfo.InvariantCulture)
+            tilingWindow.Handle.ToInt64()
           );
           writer.WritePropertyName("FloatingPlacement");
           JsonSerializer.Serialize(writer, tilingWindow.FloatingPlacement);
