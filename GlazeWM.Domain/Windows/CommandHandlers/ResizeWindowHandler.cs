@@ -186,9 +186,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private static string CalculateResizeOffset(ResizeWindowCommand command)
     {
       // if this is a relative resize, return the raw value (as it is already a relative offset)
-      if(!command.AbsoluteResize)
+      if (!command.AbsoluteResize)
       {
-          return command.ResizeAmount;
+        return command.ResizeAmount;
       }
 
       // get the parent dimension (width or height)
@@ -210,7 +210,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // calculate the desired size (based on parent size)
       var desiredSize = parentSize * ConvertToResizePercentage(
           command.WindowToResize,
-          command.DimensionToResize, 
+          command.DimensionToResize,
           command.ResizeAmount);
 
       // calculate the offset required to achieve the desired size
