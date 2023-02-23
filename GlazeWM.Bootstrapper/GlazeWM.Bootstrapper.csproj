@@ -25,6 +25,9 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
     <Resource Include="Resources\MaterialIcons-Regular.ttf" />
+    <Resource Include="Resources\fa-brands-400.ttf" />
+    <Resource Include="Resources\fa-regular-400.ttf" />
+    <Resource Include="Resources\fa-solid-900.ttf" />
     <EmbeddedResource Include="Resources\sample-config.yaml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>
