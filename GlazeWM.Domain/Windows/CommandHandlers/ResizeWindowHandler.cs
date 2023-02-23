@@ -10,7 +10,6 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 
@@ -139,7 +138,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
 
-      int amount = (int)(currentMonitor.Width * resizePercentage);
+      var amount = (int)(currentMonitor.Width * resizePercentage);
 
       var width = windowToResize.FloatingPlacement.Width;
       var height = windowToResize.FloatingPlacement.Height;
