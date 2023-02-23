@@ -3,13 +3,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.Commands
 {
-  public class ResizeWindowCommand : Command
+  public class SetWindowSizeCommand : Command
   {
     public Window WindowToResize { get; }
     public ResizeDimension DimensionToResize { get; }
     public string ResizeAmount { get; }
 
-    public ResizeWindowCommand(
+    public SetWindowSizeCommand(
       Window windowToResize,
       ResizeDimension dimensionToResize,
       string resizeAmount)

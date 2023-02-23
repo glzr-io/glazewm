@@ -1,7 +1,5 @@
 using System;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,7 +8,6 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -31,7 +28,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public CommandResponse Handle(ResizeWindowCommand command)
     {
       var dimensionToResize = command.DimensionToResize;
-      var resizeAmount = CalculateResizeDelta(command);
+      var resizeAmount = command.ResizeAmount;
       var windowToResize = command.WindowToResize;
 
       if (windowToResize is FloatingWindow)
@@ -52,7 +49,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var resizePercentage = ConvertToResizePercentage(
+      var resizePercentage = ResizeParsingService.ParseResizeAmount(
         containerToResize,
         dimensionToResize,
         resizeAmount
@@ -88,54 +85,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return isInverseResize ? parent : windowToResize;
     }
 
-    private static double ConvertToResizePercentage(
-      Container containerToResize,
-      ResizeDimension dimensionToResize,
-      string resizeAmount)
-    {
-      try
-      {
-        var matchedResizeAmount = new Regex("(.*)(%|ppt|px)").Match(resizeAmount);
-        var amount = matchedResizeAmount.Groups[1].Value;
-        var unit = matchedResizeAmount.Groups[2].Value;
-        var floatAmount = Convert.ToDouble(amount, CultureInfo.InvariantCulture);
-
-        return unit switch
-        {
-          "%" => floatAmount / 100,
-          "ppt" => floatAmount / 100,
-          "px" => floatAmount * GetPixelScaleFactor(containerToResize, dimensionToResize),
-          _ => throw new ArgumentException(null, nameof(resizeAmount)),
-        };
-      }
-      catch
-      {
-        throw new FatalUserException($"Invalid resize amount {resizeAmount}.");
-      }
-    }
-
-    private static double GetPixelScaleFactor(
-      Container containerToResize,
-      ResizeDimension dimensionToResize)
-    {
-      // Get available width/height that can be resized (ie. exclude inner gaps).
-      var resizableLength = containerToResize.SelfAndSiblingsOfType<IResizable>().Aggregate(
-        1.0,
-        (sum, container) =>
-          dimensionToResize == ResizeDimension.Width
-            ? sum + container.Width
-            : sum + container.Height
-      );
-
-      return 1.0 / resizableLength;
-    }
-
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
       const int MIN_WIDTH = 250;
       const int MIN_HEIGHT = 140;
 
-      var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
+      var resizePercentage = ResizeParsingService.ParseResizeAmount(windowToResize, dimensionToResize, resizeAmount);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
 
       var amount = (int)(currentMonitor.Width * resizePercentage);
@@ -181,43 +136,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Redrawing again to fix weird WindowsOS dpi change behaviour
       _containerService.ContainersToRedraw.Add(windowToResize);
       _bus.Invoke(new RedrawContainersCommand());
-    }
-
-    private static string CalculateResizeDelta(ResizeWindowCommand command)
-    {
-      // if this is a relative resize, return the raw value (as it is already a relative delta)
-      if (!command.AbsoluteResize)
-      {
-        return command.ResizeAmount;
-      }
-
-      // get the parent dimension (width or height)
-      var parentSize = command.DimensionToResize switch
-      {
-        ResizeDimension.Width => command.WindowToResize.Parent.Width,
-        ResizeDimension.Height => command.WindowToResize.Parent.Height,
-        _ => 0,
-      };
-
-      // get the current window dimension (width or height)
-      var actualSize = command.DimensionToResize switch
-      {
-        ResizeDimension.Width => command.WindowToResize.Width,
-        ResizeDimension.Height => command.WindowToResize.Height,
-        _ => 0,
-      };
-
-      // calculate the desired size (based on parent size)
-      var desiredSize = parentSize * ConvertToResizePercentage(
-          command.WindowToResize,
-          command.DimensionToResize,
-          command.ResizeAmount);
-
-      // calculate the delta required to achieve the desired size
-      var resizeDelta = desiredSize - actualSize;
-
-      // return delta (in px)
-      return resizeDelta > 0 ? $"+{resizeDelta}px" : $"{resizeDelta}px";
     }
   }
 }

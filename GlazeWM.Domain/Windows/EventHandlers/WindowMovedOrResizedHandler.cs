@@ -79,8 +79,11 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         Bottom = currentPlacement.Bottom - window.BorderDelta.Bottom,
       };
 
-      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Width, $"{adjustedPlacement.Width}px"));
-      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Height, $"{adjustedPlacement.Height}px"));
+      var deltaWidth = adjustedPlacement.Width - window.Width;
+      var deltaHeight = adjustedPlacement.Height - window.Height;
+
+      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Width, $"{deltaWidth}px"));
+      _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Height, $"{deltaHeight}px"));
     }
 
     private void UpdateFloatingWindow(FloatingWindow window)
