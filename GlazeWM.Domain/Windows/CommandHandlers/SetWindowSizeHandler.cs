@@ -43,7 +43,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       };
 
       // calculate the desired size (based on parent size)
-      var desiredSize = parentSize * ResizeParsingService.ParseResizeAmount(
+      var desiredSize = parentSize * ResizeParsingService.ParseResizePercentage(
           command.WindowToResize,
           command.DimensionToResize,
           command.ResizeAmount);

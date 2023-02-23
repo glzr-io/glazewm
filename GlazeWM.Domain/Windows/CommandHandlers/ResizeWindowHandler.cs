@@ -49,7 +49,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var resizePercentage = ResizeParsingService.ParseResizeAmount(
+      var resizePercentage = ResizeParsingService.ParseResizePercentage(
         containerToResize,
         dimensionToResize,
         resizeAmount
@@ -90,7 +90,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       const int MIN_WIDTH = 250;
       const int MIN_HEIGHT = 140;
 
-      var resizePercentage = ResizeParsingService.ParseResizeAmount(windowToResize, dimensionToResize, resizeAmount);
+      var resizePercentage = ResizeParsingService.ParseResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
 
       var amount = (int)(currentMonitor.Width * resizePercentage);

@@ -10,7 +10,7 @@ namespace GlazeWM.Domain.Windows
 {
   public class ResizeParsingService
   {
-    public static double ParseResizeAmount(
+    public static double ParseResizePercentage(
       Container containerToResize,
       ResizeDimension dimensionToResize,
       string resizeAmount)
