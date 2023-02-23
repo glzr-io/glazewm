@@ -82,7 +82,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         throw new FatalUserException("Cannot start the app without a configuration file.");
 
       var assembly = Assembly.GetEntryAssembly();
-      const string sampleConfigResourceName = "GlazeWM.Bootstrapper.sample-config.yaml";
+      const string sampleConfigResourceName = "GlazeWM.Bootstrapper.Resources.sample-config.yaml";
 
       // Create containing directory. Needs to be created before writing to the file.
       Directory.CreateDirectory(Path.GetDirectoryName(userConfigPath));
