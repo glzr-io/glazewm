@@ -19,7 +19,7 @@ namespace GlazeWM.Bar.Components
       var ramUsage = 100.0 * (total - used) / total;
       var gpuCounters = GetGPUCounters();
       var gpuUsage = GetGPUUsage(gpuCounters);
-      return ":microchip:" + x.ToString("0.") + "%  :memory:" + ramUsage.ToString("0.") + "%  :cube:" + gpuUsage.ToString("0.") + "%";
+      return _config.LabelCPU + x.ToString("0.") + "%  " + _config.LabelRAM + ramUsage.ToString("0.") + "%  " + _config.LabelGPU + gpuUsage.ToString("0.") + "%";
     }
     private PerformanceCounter cpuCounter = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
     private PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
