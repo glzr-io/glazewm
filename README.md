@@ -318,7 +318,7 @@ window_rules:
 - focus workspace \<workspace name>
 - move \<left | right | up | down>
 - move to workspace \<workspace name>
-- resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
+- resize \<height | width> \<amount in px | amount in %> (eg. `resize height +3%` or `resize width 200px`)
 - resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
 - set \<floating | tiling | minimized | maximized>
 - toggle \<floating | maximized>
