@@ -13,8 +13,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly WindowService _windowService;
     private readonly ILogger<SaveManagedWindowsHandler> _logger;
 
-    public SaveManagedWindowsHandler(WindowService windowService, ILogger<SaveManagedWindowsHandler> logger
-     )
+    public SaveManagedWindowsHandler(WindowService windowService, ILogger<SaveManagedWindowsHandler> logger)
     {
       _windowService = windowService;
       _logger = logger;
