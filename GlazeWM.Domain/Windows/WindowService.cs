@@ -209,6 +209,14 @@ namespace GlazeWM.Domain.Windows
     }
 
     /// <summary>
+    /// Is handle already managed by WM.
+    /// </summary>
+    public bool IsHandleManaged(IntPtr handle)
+    {
+      return GetWindows().Any(window => window.Handle == handle);
+    }
+
+    /// <summary>
     /// Whether the given handle is an appbar window (application desktop toolbar).
     /// </summary>
     public bool IsHandleAppBar(IntPtr handle)
