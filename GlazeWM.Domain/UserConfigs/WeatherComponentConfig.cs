@@ -15,9 +15,13 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public float Longitude { get; set; } = 74.0060f;
     /// <summary>
-    /// Longitude to retrieve weather.
+    /// Unit of measurement.  Either "celcius" or "fahrenheit"
     /// </summary>
     public string TemperatureUnit { get; set; } = "celcius";
+    /// <summary>
+    /// Timezone to retreive sunset and sunrise time.
+    /// </summary>
+    public string Timezone { get; set; } = "EST";
     /// <summary>
     /// Icon to represet sunny weather.
     /// </summary>

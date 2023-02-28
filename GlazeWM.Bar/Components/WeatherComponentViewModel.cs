@@ -41,7 +41,7 @@ namespace GlazeWM.Bar.Components
       var lng = _config.Longitude.ToString();
 
       HttpClient client = new HttpClient();
-      var res = client.GetStringAsync("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng + "&temperature_unit=" + _config.TemperatureUnit + "&current_weather=true&daily=sunset,sunrise&timezone=Europe/Berlin").Result;
+      var res = client.GetStringAsync("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng + "&temperature_unit=" + _config.TemperatureUnit + "&current_weather=true&daily=sunset,sunrise&timezone=" + _config.Timezone).Result;
       var weather = JsonSerializer.Deserialize<MeteoWeatherResult>(res);
 
       var isDaylight = isDaytime(weather.daily);
@@ -67,17 +67,17 @@ namespace GlazeWM.Bar.Components
       else if (code < 50)
         return _config.LabelCloud;
       else if (code < 60)
-        return isDaytime ? ":CloudSunRain" : ":CloudMoonRain:";
+        return isDaytime ? _config.LabelCloudSunRain : _config.LabelCloudMoonRain;
       else if (code < 70)
-        return "CloudRain:";
+        return _config.LabelCloudRain;
       else if (code < 80)
-        return ":Snowflake:";
+        return _config.LabelSnowflake;
       else if (code < 83)
-        return "CloudRain:";
+        return _config.LabelCloudRain;
       else if (code < 87)
-        return ":Snowflake:";
+        return _config.LabelSnowflake;
       else if (code < 99)
-        return ":Thunderstorm:";
+        return _config.LabelThunderstorm;
       else
         return "";
     }
