@@ -18,6 +18,6 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// If activated, by switching to the current workspace the previous focused workspace is activated.
     /// </summary>
-    public bool WorkspaceAutoBackAndForth { get; set; }
+    public bool ToggleWorkspaceOnRefocus { get; set; }
   }
 }

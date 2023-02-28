@@ -73,7 +73,7 @@ general:
   show_floating_on_top: false
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
-  workspace_auto_back_and_forth: false
+  toggle_workspace_on_refocus: false
 ```
 
 ## Keybindings

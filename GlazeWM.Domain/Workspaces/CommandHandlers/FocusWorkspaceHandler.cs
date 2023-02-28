@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       if (focusedWorkspace == workspaceToFocus)
       {
-        if (!_userConfigService.GeneralConfig.WorkspaceAutoBackAndForth)
+        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus)
           return CommandResponse.Ok;
         workspaceToFocus = _workspaceService.MostRecentWorkspace;
       }
