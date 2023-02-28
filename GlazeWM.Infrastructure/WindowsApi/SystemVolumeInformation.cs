@@ -43,8 +43,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
         Muted = notificationData.bMuted
       });
 
-      System.Diagnostics.Debug.WriteLine($"{notificationData.fMasterVolume}");
-
       return HRESULT.S_OK;
     }
 
