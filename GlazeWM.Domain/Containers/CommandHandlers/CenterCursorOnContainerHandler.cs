@@ -21,6 +21,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (!isEnabled || command.TargetContainer == null)
         return CommandResponse.Ok;
 
+      if (command.TargetContainer.IsDetached())
+        return CommandResponse.Ok;
+
       var targetRect = command.TargetContainer.ToRect();
 
       // Calculate center point of focused window.
