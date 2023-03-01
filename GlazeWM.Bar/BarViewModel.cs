@@ -83,9 +83,11 @@ namespace GlazeWM.Bar
         BindingModeComponentConfig bmc => new BindingModeComponentViewModel(this, bmc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
+        NetworkComponentConfig ncc => new NetworkComponentViewModel(this, ncc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
+        SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }
