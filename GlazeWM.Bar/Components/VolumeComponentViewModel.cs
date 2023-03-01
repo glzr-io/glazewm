@@ -1,19 +1,13 @@
-using System;
 using System.Diagnostics;
-using System.Reactive.Linq;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Domain.Windows;
-using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components
 {
   public class VolumeComponentViewModel : ComponentViewModel
   {
-    private string _formattedText = "ABC";
+    private VolumeComponentConfig _config => _componentConfig as VolumeComponentConfig;
+    private string _formattedText = "NEED INIT VALUE";
     public string FormattedText
     {
       get => _formattedText;
@@ -29,19 +23,27 @@ namespace GlazeWM.Bar.Components
     {
       var sysVolume = new SystemVolumeInformation();
 
-      sysVolume.VolumeChangedEvent += (_, args) =>
+      sysVolume.VolumeChangedEvent += (_, volumeInfo) =>
       {
-        FormattedText = ">" + (args.Volume * 100).ToString("0");
+        var volume = (int)(volumeInfo.Volume * 100);
+        FormattedText = GetVolumeIcon(volume, volumeInfo.Muted) + volume.ToString("00");
         Debug.WriteLine(FormattedText);
       };
+    }
 
-      // var sysControls = SystemMediaTransportControls.GetForCurrentView();
+    private string GetVolumeIcon(int volume, bool isMuted)
+    {
+      if (isMuted)
+        return _config.LabelVolumeMute;
 
-      // _bus.Events.OfType<WindowFocusedEvent>()
-      //   .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+      if (volume < 10)
+        return _config.LabelVolumeLow;
+      else if (volume < 50)
+        return _config.LabelVolumeMed;
+      else if (volume < 100)
+        return _config.LabelVolumeHigh;
 
-      // _bus.Events.OfType<WindowTitleChangedEvent>()
-      //   .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+      return _config.LabelVolumeLow;
     }
   }
 }
