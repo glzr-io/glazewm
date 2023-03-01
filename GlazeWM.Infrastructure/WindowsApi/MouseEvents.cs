@@ -10,12 +10,13 @@ namespace GlazeWM.Infrastructure.WindowsApi
 {
   public static class MouseEvents
   {
-    public static IObservable<LowLevelMouseInputEvent> MouseMoves
+    public static IObservable<MouseMoveEvent> MouseMoves
     {
       get
       {
-        var mouseEvents = new Subject<LowLevelMouseInputEvent>();
+        var mouseEvents = new Subject<MouseMoveEvent>();
 
+        var isMouseDown = false;
         var hookProc = new HookProc((nCode, wParam, lParam) =>
         {
           var details = (LowLevelMouseInputEventDetails)Marshal.PtrToStructure(
@@ -23,16 +24,27 @@ namespace GlazeWM.Infrastructure.WindowsApi
             typeof(LowLevelMouseInputEventDetails)
           );
 
-          var inputEvent = new LowLevelMouseInputEvent() { lParam = details, wParam = (WMessages)wParam, nCode = nCode };
+          // Check if mouse click is being held.
+          switch ((WMessages)wParam)
+          {
+            case WMessages.WM_LBUTTONUP:
+              isMouseDown = false;
+              break;
+            case WMessages.WM_LBUTTONDOWN:
+              isMouseDown = true;
+              break;
+          }
 
-          mouseEvents.OnNext(inputEvent);
+          var filteredEvent = new MouseMoveEvent(details.pt, isMouseDown, details.TimeStamp);
+
+          mouseEvents.OnNext(filteredEvent);
 
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         });
 
         var hookId = CreateHook(hookProc);
 
-        return Observable.Create<LowLevelMouseInputEvent>(observer =>
+        return Observable.Create<MouseMoveEvent>(observer =>
         {
           var subscription = mouseEvents.Subscribe(
             mouseEvent => observer.OnNext(mouseEvent)

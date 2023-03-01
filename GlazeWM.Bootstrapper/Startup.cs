@@ -87,24 +87,12 @@ namespace GlazeWM.Bootstrapper
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
-        var isMouseDown = false;
+        // Hook mouse event for focus follows cursor.
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)
           MouseEvents.MouseMoves.Sample(TimeSpan.FromMilliseconds(50)).Subscribe((@event) =>
           {
-            // Check if mouse click is being held.
-            switch (@event.wParam)
-            {
-              case WMessages.WM_LBUTTONUP:
-                isMouseDown = false;
-                break;
-              case WMessages.WM_LBUTTONDOWN:
-                isMouseDown = true;
-                break;
-            }
-            // Don't focus if mouse click is being held.  
-            if (isMouseDown)
-              return;
-            _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.lParam.pt));
+            if (!@event.IsMouseDown)
+              _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
           });
 
         Application.Run();
