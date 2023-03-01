@@ -15,6 +15,9 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<JsonService>();
+      services.AddSingleton<CPUStatsService>();
+      services.AddSingleton<GPUStatsService>();
+      services.AddSingleton<RAMStatsService>();
       services.AddSingleton<YamlService>();
 
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();

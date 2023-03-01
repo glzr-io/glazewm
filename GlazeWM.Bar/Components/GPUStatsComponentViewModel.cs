@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components
 {
@@ -11,30 +9,12 @@ namespace GlazeWM.Bar.Components
   {
     private GPUStatsComponentConfig _config => _componentConfig as GPUStatsComponentConfig;
     public string FormattedText => GetSystemStats();
+    private readonly GPUStatsService _gpuStatsService = new();
+
     private string GetSystemStats()
     {
-      var gpuCounters = GetGPUCounters();
-      var gpuUsage = GetGPUUsage(gpuCounters);
-      return _config.LabelGPU + gpuUsage.ToString("0.") + "%";
+      return _config.LabelGPU + _gpuStatsService.GetCurrentUtilization().ToString("0.") + "%";
     }
-    public static List<PerformanceCounter> GetGPUCounters()
-    {
-      var category = new PerformanceCounterCategory("GPU Engine");
-      var counterNames = category.GetInstanceNames();
-
-      return counterNames
-        .Where(counterName => counterName.EndsWith("engtype_3D"))
-        .SelectMany(counterName => category.GetCounters(counterName))
-        .Where(counter => counter.CounterName.Equals("Utilization Percentage"))
-        .ToList();
-    }
-
-    public static float GetGPUUsage(List<PerformanceCounter> gpuCounters)
-    {
-      gpuCounters.ForEach(x => x.NextValue());
-      return (float)gpuCounters.Sum(x => x.NextValue());
-    }
-
     public GPUStatsComponentViewModel(
       BarViewModel parentViewModel,
       GPUStatsComponentConfig config) : base(parentViewModel, config)
