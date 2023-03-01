@@ -4,30 +4,25 @@ using System.Linq;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class GPUStatsService : System.IDisposable
+  public class GPUStatsService
   {
-    private readonly List<PerformanceCounter> _gpuCounters;
+    public float GetCurrentUtilization()
+    {
+      var gpuCounters = GetGPUCounters();
+      gpuCounters.ForEach(x => x.NextValue());
+      return (float)gpuCounters.Sum(x => x?.NextValue());
+    }
 
-    public GPUStatsService()
+    public static List<PerformanceCounter> GetGPUCounters()
     {
       var category = new PerformanceCounterCategory("GPU Engine");
       var counterNames = category.GetInstanceNames();
 
-      _gpuCounters = counterNames
+      return counterNames
         .Where(counterName => counterName.EndsWith("engtype_3D"))
         .SelectMany(counterName => category.GetCounters(counterName))
         .Where(counter => counter.CounterName.Equals("Utilization Percentage"))
         .ToList();
-    }
-
-    public float GetCurrentUtilization()
-    {
-      return (float)_gpuCounters.Sum(x => x.NextValue());
-    }
-
-    public void Dispose()
-    {
-      _gpuCounters.ForEach(x => x.Dispose());
     }
   }
 }
