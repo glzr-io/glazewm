@@ -3,11 +3,11 @@ using System.Windows.Controls;
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for SystemStatsComponent.xaml
+  /// Interaction logic for RAMStatsComponent.xaml
   /// </summary>
-  public partial class SystemStatsComponent : UserControl
+  public partial class RAMStatsComponent : UserControl
   {
-    public SystemStatsComponent()
+    public RAMStatsComponent()
     {
       InitializeComponent();
     }

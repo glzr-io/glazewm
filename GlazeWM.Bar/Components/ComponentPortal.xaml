@@ -43,8 +43,14 @@
             <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
               <components:WorkspacesComponent />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:SystemStatsComponentViewModel}">
-              <components:SystemStatsComponent />
+            <DataTemplate DataType="{x:Type components:CPUStatsComponentViewModel}">
+              <components:CPUStatsComponent />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:GPUStatsComponentViewModel}">
+              <components:GPUStatsComponent />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:RAMStatsComponentViewModel}">
+              <components:RAMStatsComponent />
             </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>

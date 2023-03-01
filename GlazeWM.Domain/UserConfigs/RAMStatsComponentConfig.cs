@@ -1,15 +1,7 @@
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class SystemStatsComponentConfig : BarComponentConfig
+  public class RAMStatsComponentConfig : BarComponentConfig
   {
-    /// <summary>
-    /// Icon to represent CPU usage.
-    /// </summary>
-    public string LabelCPU { get; set; } = "";
-    /// <summary>
-    /// Icon to represent GPU usage.
-    /// </summary>
-    public string LabelGPU { get; set; } = "";
     /// <summary>
     /// Icon to represent RAM usage.
     /// </summary>
@@ -17,8 +9,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Sets default icon font if one isn't specified.
     /// </summary>
-    public SystemStatsComponentConfig()
+    public RAMStatsComponentConfig()
     {
+      Padding = "0px 5px";
       FontFamily = "pack://application:,,,/Resources/#Font Awesome 6 Free Solid";
     }
   }

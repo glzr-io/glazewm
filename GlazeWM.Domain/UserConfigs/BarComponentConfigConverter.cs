@@ -53,11 +53,21 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "system stats" =>
-        JsonSerializer.Deserialize<SystemStatsComponentConfig>(
+        "cpu stats" =>
+        JsonSerializer.Deserialize<CPUStatsComponentConfig>(
           jsonObject.RootElement.ToString(),
           options
         ),
+        "gpu stats" =>
+          JsonSerializer.Deserialize<GPUStatsComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "ram stats" =>
+          JsonSerializer.Deserialize<RAMStatsComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "system tray" =>
           JsonSerializer.Deserialize<SystemTrayComponentConfig>(
             jsonObject.RootElement.ToString(),
