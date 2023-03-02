@@ -16,7 +16,30 @@ Under the hood, GlazeWM adds functionality to the built-in window manager and us
 
 # Download
 
-The latest runnable binary can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the executable.
+## Direct download
+
+The latest runnable executable can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the `.exe` file.
+
+## Winget
+
+GlazeWM can be downloaded via Winget package manager:
+
+```
+winget install lars-berger.GlazeWM
+```
+
+Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
+
+## Scoop
+
+GlazeWM can be download via Scoop in the [Extras](https://github.com/ScoopInstaller/Extras) bucket:
+
+```powershell
+scoop bucket add extras # Ensure bucket is added first
+scoop install glazewm
+````
+
+## Build from source
 
 Alternatively, to build from source, use the following .NET CLI command:
 
@@ -118,6 +141,9 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 
 ```yaml
 bar:
+  # The option to enable/disable the bar.
+  enabled: true
+  
   # Height of the bar in pixels.
   height: "30px"
 
@@ -294,9 +320,10 @@ window_rules:
 - move to workspace \<workspace name>
 - resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
 - resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
-- set \<floating | minimized | maximized>
+- set \<floating | tiling | minimized | maximized>
 - toggle \<floating | maximized>
 - toggle focus mode
+- tiling direction toggle
 - exit wm
 - reload config
 - close

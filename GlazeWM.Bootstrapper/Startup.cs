@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
 using System.Windows.Forms;
 using GlazeWM.Bar;
@@ -20,7 +19,6 @@ namespace GlazeWM.Bootstrapper
     private readonly BarService _barService;
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
-    private readonly SystemEventService _systemEventService;
     private readonly WindowEventService _windowEventService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
@@ -29,13 +27,11 @@ namespace GlazeWM.Bootstrapper
       BarService barService,
       Bus bus,
       KeybindingService keybindingService,
-      SystemEventService systemEventService,
       WindowEventService windowEventService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
-      _systemEventService = systemEventService;
       _windowEventService = windowEventService;
     }
 
@@ -62,13 +58,14 @@ namespace GlazeWM.Bootstrapper
         // Listen for window events (eg. close, focus).
         _windowEventService.Start();
 
-        // Listen for system-related events (eg. changes to display settings).
-        _systemEventService.Start();
+        // Listen for changes to display settings.
+        // TODO: Unsubscribe on application exit.
+        SystemEvents.DisplaySettingsChanged.Subscribe((@event) => _bus.EmitAsync(@event));
 
         var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
-          IconResourceName = "GlazeWM.Bootstrapper.icon.ico",
+          IconResourceName = "GlazeWM.Bootstrapper.Resources.icon.ico",
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },

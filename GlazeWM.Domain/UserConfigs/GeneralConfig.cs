@@ -11,5 +11,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// TODO: Not officially released because implementation is buggy. Use at own risk.
     /// </summary>
     public bool CursorFollowsFocus { get; set; }
+    /// <summary>
+    /// Amount by which to move floating windows
+    /// </summary>
+    public string FloatingWindowMoveAmount { get; set; } = "5%";
   }
 }

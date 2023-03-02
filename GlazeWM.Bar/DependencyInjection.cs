@@ -1,3 +1,4 @@
+using ManagedShell;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Bar
@@ -7,6 +8,7 @@ namespace GlazeWM.Bar
     public static IServiceCollection AddBarServices(this IServiceCollection services)
     {
       services.AddSingleton<BarService>();
+      services.AddSingleton<ShellManager>();
 
       return services;
     }

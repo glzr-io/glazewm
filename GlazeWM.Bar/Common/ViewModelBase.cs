@@ -1,16 +1,41 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace GlazeWM.Bar.Common
 {
-  public class ViewModelBase : INotifyPropertyChanged
+  public class ViewModelBase : INotifyPropertyChanged, IDisposable
   {
     public event PropertyChangedEventHandler PropertyChanged;
 
-    protected void OnPropertyChanged(string propertyName)
+    public void Dispose()
     {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+      Dispose(true);
+      GC.SuppressFinalize(this);
     }
 
-    public virtual void Dispose() { }
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+      PropertyChanged?.Invoke(this, new(propertyName));
+    }
+
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+    {
+      if (EqualityComparer<T>.Default.Equals(field, value))
+      {
+        return false;
+      }
+
+      field = value;
+
+      OnPropertyChanged(propertyName);
+
+      return true;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+    }
   }
 }

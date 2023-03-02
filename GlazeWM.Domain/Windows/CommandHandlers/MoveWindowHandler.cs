@@ -1,12 +1,16 @@
+using System;
 using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
 {
@@ -15,59 +19,38 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
+    private readonly UserConfigService _userConfigService;
 
     public MoveWindowHandler(
       Bus bus,
       ContainerService containerService,
-      MonitorService monitorService)
+      MonitorService monitorService,
+      UserConfigService userConfigService)
     {
       _bus = bus;
       _containerService = containerService;
       _monitorService = monitorService;
+      _userConfigService = userConfigService;
     }
 
     public CommandResponse Handle(MoveWindowCommand command)
     {
-      var windowToMove = command.WindowToMove as TilingWindow;
+      var windowToMove = command.WindowToMove;
       var direction = command.Direction;
 
-      // Ignore cases where window is not tiling.
-      if (windowToMove is null)
-        return CommandResponse.Ok;
-
-      var layoutForDirection = direction.GetCorrespondingLayout();
-      var parentMatchesLayout =
-        (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
-
-      if (parentMatchesLayout && HasSiblingInDirection(windowToMove, direction))
+      if (windowToMove is FloatingWindow)
       {
-        SwapSiblingContainers(windowToMove, direction);
+        MoveFloatingWindow(windowToMove as FloatingWindow, direction);
         return CommandResponse.Ok;
       }
 
-      // Attempt to the move window to workspace in given direction.
-      if (parentMatchesLayout && windowToMove.Parent is Workspace)
+      if (windowToMove is TilingWindow)
       {
-        MoveToWorkspaceInDirection(windowToMove, direction);
+        MoveTilingWindow(windowToMove as TilingWindow, direction);
         return CommandResponse.Ok;
       }
 
-      // The window cannot be moved within the parent container, so traverse upwards to find a
-      // suitable ancestor to move to.
-      var ancestorWithLayout = windowToMove.Parent.Ancestors.FirstOrDefault(
-        container => (container as SplitContainer)?.Layout == layoutForDirection
-      ) as SplitContainer;
-
-      // Change the layout of the workspace to layout for direction.
-      if (ancestorWithLayout == null)
-      {
-        ChangeWorkspaceLayout(windowToMove, direction);
-        return CommandResponse.Ok;
-      }
-
-      InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
-
-      return CommandResponse.Ok;
+      return CommandResponse.Fail;
     }
 
     /// <summary>
@@ -214,6 +197,111 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, ancestorWithLayout, insertionIndex, true));
       }
 
+      _bus.Invoke(new RedrawContainersCommand());
+    }
+
+    private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
+    {
+      var layoutForDirection = direction.GetCorrespondingLayout();
+      var parentMatchesLayout =
+        (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
+
+      if (parentMatchesLayout && HasSiblingInDirection(windowToMove, direction))
+      {
+        SwapSiblingContainers(windowToMove, direction);
+        return;
+      }
+
+      // Attempt to the move window to workspace in given direction.
+      if (parentMatchesLayout && windowToMove.Parent is Workspace)
+      {
+        MoveToWorkspaceInDirection(windowToMove, direction);
+        return;
+      }
+
+      // The window cannot be moved within the parent container, so traverse upwards to find a
+      // suitable ancestor to move to.
+      var ancestorWithLayout = windowToMove.Parent.Ancestors.FirstOrDefault(
+        container => (container as SplitContainer)?.Layout == layoutForDirection
+      ) as SplitContainer;
+
+      // Change the layout of the workspace to layout for direction.
+      if (ancestorWithLayout == null)
+      {
+        ChangeWorkspaceLayout(windowToMove, direction);
+        return;
+      }
+
+      InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
+    }
+
+    private void MoveFloatingWindow(Window windowToMove, Direction direction)
+    {
+      var valueFromConfig = _userConfigService.GeneralConfig.FloatingWindowMoveAmount;
+
+      var amount = UnitsHelper.TrimUnits(valueFromConfig);
+      var units = UnitsHelper.GetUnits(valueFromConfig);
+      var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToMove);
+
+      amount = units switch
+      {
+        "%" => amount * currentMonitor.Width / 100,
+        "ppt" => amount * currentMonitor.Width / 100,
+        "px" => amount,
+        // in case user only provided a number in the config;
+        // TODO: somehow validate floating_window_move_amount in config on startup
+        _ => amount
+        // _ => throw new ArgumentException(null, nameof(amount)),
+      };
+
+      var x = windowToMove.FloatingPlacement.X;
+      var y = windowToMove.FloatingPlacement.Y;
+
+      _ = direction switch
+      {
+        Direction.Left => x -= amount,
+        Direction.Right => x += amount,
+        Direction.Up => y -= amount,
+        Direction.Down => y += amount,
+        _ => throw new ArgumentException(null, nameof(direction))
+      };
+
+      // Make sure grabbable space on top is always visible
+      var monitorAbove = _monitorService.GetMonitorInDirection(Direction.Up, currentMonitor);
+      if (y < currentMonitor.Y && monitorAbove == null)
+      {
+        y = currentMonitor.Y;
+      }
+
+      var newPlacement = Rect.FromXYCoordinates(x, y, windowToMove.FloatingPlacement.Width, windowToMove.FloatingPlacement.Height);
+      var center = newPlacement.GetCenterPoint();
+
+      // If new placement wants to cross monitors
+      // && direction == ... is for edge case when user places window center outside a monitor with a mouse
+      if ((center.X >= currentMonitor.Width + currentMonitor.X && direction == Direction.Right) ||
+      (center.X < currentMonitor.X && direction == Direction.Left) ||
+      (center.Y < currentMonitor.Y && direction == Direction.Up) ||
+      (center.Y >= currentMonitor.Height + currentMonitor.Y && direction == Direction.Down))
+      {
+        var monitorInDirection = _monitorService.GetMonitorInDirection(direction, currentMonitor);
+        var workspaceInDirection = monitorInDirection?.DisplayedWorkspace;
+
+        if (workspaceInDirection == null)
+        {
+          return;
+        }
+
+        // Change the window's parent workspace.
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
+        _bus.Emit(new FocusChangedEvent(windowToMove));
+
+        // Redrawing twice to fix weird WindowsOS dpi behaviour
+        windowToMove.HasPendingDpiAdjustment = true;
+      }
+
+      windowToMove.FloatingPlacement = newPlacement;
+
+      _containerService.ContainersToRedraw.Add(windowToMove);
       _bus.Invoke(new RedrawContainersCommand());
     }
   }

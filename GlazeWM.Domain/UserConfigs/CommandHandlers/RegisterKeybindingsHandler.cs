@@ -1,9 +1,11 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -48,32 +50,40 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           {
             Task.Run(() =>
             {
-              // Avoid invoking keybinding if an ignored window currently has focus.
-              if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
-                return;
-
-              var subjectContainer = _containerService.FocusedContainer;
-              var subjectContainerId = subjectContainer.Id;
-
-              // Invoke commands in sequence on keybinding press.
-              foreach (var commandString in formattedCommandStrings)
+              try
               {
-                // Avoid calling command if container gets detached. This is to prevent crashes
-                // for edge cases like ["close", "move to workspace X"].
-                if (subjectContainer.IsDetached())
+                // Avoid invoking keybinding if an ignored window currently has focus.
+                if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
                   return;
 
-                var parsedCommand = _commandParsingService.ParseCommand(
-                  commandString,
-                  subjectContainer
-                );
+                var subjectContainer = _containerService.FocusedContainer;
+                var subjectContainerId = subjectContainer.Id;
 
-                // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
-                _bus.Invoke((dynamic)parsedCommand);
+                // Invoke commands in sequence on keybinding press.
+                foreach (var commandString in formattedCommandStrings)
+                {
+                  // Avoid calling command if container gets detached. This is to prevent crashes
+                  // for edge cases like ["close", "move to workspace X"].
+                  if (subjectContainer.IsDetached())
+                    return;
 
-                // Update subject container in case the reference changes (eg. when going from a tiling to a
-                // floating window).
-                subjectContainer = _containerService.GetContainerById(subjectContainerId);
+                  var parsedCommand = _commandParsingService.ParseCommand(
+                    commandString,
+                    subjectContainer
+                  );
+
+                  // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+                  _bus.Invoke((dynamic)parsedCommand);
+
+                  // Update subject container in case the reference changes (eg. when going from a tiling to a
+                  // floating window).
+                  subjectContainer = _containerService.GetContainerById(subjectContainerId);
+                }
+              }
+              catch (Exception e)
+              {
+                _bus.Invoke(new HandleFatalExceptionCommand(e));
+                throw;
               }
             });
           });

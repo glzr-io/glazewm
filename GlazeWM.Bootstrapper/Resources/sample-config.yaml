@@ -5,6 +5,7 @@ gaps:
 general:
   # Whether to show floating windows as always on top.
   show_floating_on_top: false
+  floating_window_move_amount: "5%"
 
 bar:
   height: "30px"
@@ -26,6 +27,7 @@ bar:
   components_center:
     - type: "window title"
   components_right:
+    - type: "system tray"
     - type: "tiling direction"
       label_horizontal: "⮂"
       label_vertical: "⮁"
