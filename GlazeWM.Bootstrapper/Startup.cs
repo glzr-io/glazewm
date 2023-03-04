@@ -5,8 +5,9 @@ using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Containers.Events;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
@@ -22,6 +23,7 @@ namespace GlazeWM.Bootstrapper
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
+    private readonly UserConfigService _userConfigService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -29,12 +31,16 @@ namespace GlazeWM.Bootstrapper
       BarService barService,
       Bus bus,
       KeybindingService keybindingService,
-      WindowEventService windowEventService)
+      WindowEventService windowEventService,
+      UserConfigService userConfigService,
+      WindowService windowService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
+      _windowService = windowService;
+      _userConfigService = userConfigService;
     }
 
     public void Run()
@@ -78,6 +84,14 @@ namespace GlazeWM.Bootstrapper
         // Add application to system tray.
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
+
+        // Hook mouse event for focus follows cursor.
+        if (_userConfigService.GeneralConfig.FocusFollowsCursor)
+          MouseEvents.MouseMoves.Sample(TimeSpan.FromMilliseconds(50)).Subscribe((@event) =>
+          {
+            if (!@event.IsMouseDown)
+              _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
+          });
 
         Application.Run();
       }

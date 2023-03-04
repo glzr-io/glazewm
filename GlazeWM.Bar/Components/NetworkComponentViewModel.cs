@@ -54,8 +54,11 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       NetworkComponentConfig config) : base(parentViewModel, config)
     {
-      Observable.Interval(TimeSpan.FromSeconds(10))
+      Observable
+        .Interval(TimeSpan.FromSeconds(10))
+        .TakeUntil(_parentViewModel.WindowClosing)
         .Subscribe(_ => OnPropertyChanged(nameof(Text)));
+
       NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => OnPropertyChanged(nameof(Text)));
     }
   }
