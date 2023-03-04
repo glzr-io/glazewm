@@ -32,14 +32,12 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
-      UserConfigService userConfigService,
-      WindowService windowService)
+      UserConfigService userConfigService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
-      _windowService = windowService;
       _userConfigService = userConfigService;
     }
 
