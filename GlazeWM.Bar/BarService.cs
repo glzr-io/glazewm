@@ -115,9 +115,15 @@ namespace GlazeWM.Bar
     {
       _application.Dispatcher.Invoke(() =>
       {
-        // Kill the corresponding bar window.
         var barWindow = _activeWindowsByDeviceName.GetValueOrDefault(deviceName);
-        barWindow?.Close();
+        var barViewModel = barWindow.BarViewModel;
+
+        // Unsubscribe all component observables.
+        barViewModel.WindowClosing.OnNext(true);
+
+        // Dispose view model and close the window.
+        barViewModel.Dispose();
+        barWindow.Close();
       });
     }
   }

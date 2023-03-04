@@ -19,13 +19,13 @@ namespace GlazeWM.Bar
   public partial class MainWindow : Window
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
-    private BarViewModel _barViewModel { get; }
-    private Dispatcher _dispatcher => _barViewModel.Dispatcher;
-    private Monitor _monitor => _barViewModel.Monitor;
+    public BarViewModel BarViewModel { get; }
+    private Dispatcher _dispatcher => BarViewModel.Dispatcher;
+    private Monitor _monitor => BarViewModel.Monitor;
 
     public MainWindow(BarViewModel barViewModel)
     {
-      _barViewModel = barViewModel;
+      BarViewModel = barViewModel;
       DataContext = barViewModel;
 
       InitializeComponent();
@@ -62,16 +62,16 @@ namespace GlazeWM.Bar
     private void PositionWindow(IntPtr windowHandle)
     {
       // Since window size is set manually, need to scale up height to make window DPI responsive.
-      var barHeight = UnitsHelper.TrimUnits(_barViewModel.BarConfig.Height);
+      var barHeight = UnitsHelper.TrimUnits(BarViewModel.BarConfig.Height);
       var scaledBarHeight = Convert.ToInt32(barHeight * _monitor.ScaleFactor);
 
       // Get offset from top of monitor.
-      var barOffsetY = _barViewModel.BarConfig.Position == BarPosition.Bottom
+      var barOffsetY = BarViewModel.BarConfig.Position == BarPosition.Bottom
         ? _monitor.Height - scaledBarHeight
         : 0;
 
-      var floatBarOffsetX = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetX);
-      var floatBarOffsetY = UnitsHelper.TrimUnits(_barViewModel.BarConfig.OffsetY);
+      var floatBarOffsetX = UnitsHelper.TrimUnits(BarViewModel.BarConfig.OffsetX);
+      var floatBarOffsetY = UnitsHelper.TrimUnits(BarViewModel.BarConfig.OffsetY);
 
       // The first move puts it on the correct monitor, which triggers WM_DPICHANGED.
       MoveWindow(
