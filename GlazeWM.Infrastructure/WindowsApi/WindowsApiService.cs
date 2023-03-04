@@ -229,6 +229,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static extern bool SetFocus(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(Point Point);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetParent(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
 
     /// <summary>
@@ -360,6 +366,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("user32.dll")]
     public static extern IntPtr CallNextHookEx([Optional] IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
     [DllImport("user32.dll")]
     public static extern int GetKeyboardState(byte[] pbKeyState);

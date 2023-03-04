@@ -71,6 +71,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetMaximizedCommand>, SetMaximizedHandler>();
       services.AddSingleton<ICommandHandler<SetMinimizedCommand>, SetMinimizedHandler>();
       services.AddSingleton<ICommandHandler<SetTilingCommand>, SetTilingHandler>();
+      services.AddSingleton<ICommandHandler<SetWindowSizeCommand>, SetWindowSizeHandler>();
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
       services.AddSingleton<ICommandHandler<ToggleMaximizedCommand>, ToggleMaximizedHandler>();
@@ -80,6 +81,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceRecentCommand>, FocusWorkspaceRecentHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceSequenceCommand>, FocusWorkspaceSequenceHandler>();
+      services.AddSingleton<ICommandHandler<FocusContainerUnderCursorCommand>, FocusContainerUnderCursorHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
       services.AddSingleton<ICommandHandler<MoveWorkspaceInDirectionCommand>, MoveWorkspaceInDirectionHandler>();

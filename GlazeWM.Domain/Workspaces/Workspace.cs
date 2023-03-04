@@ -51,10 +51,33 @@ namespace GlazeWM.Domain.Workspaces
     private BarConfig barForMonitor => _userConfigService.GetBarConfigForMonitor(Parent as Monitor);
     private int floatBarOffsetY => UnitsHelper.TrimUnits(barForMonitor.OffsetY);
 
-    public override int Height => Parent.Height - (_outerGap * 2) - floatBarOffsetY - _logicalBarHeight;
+    public override int Height
+    {
+      get
+      {
+        if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
+        {
+          return Parent.Height - (_outerGap * 2);
+        }
+
+        return Parent.Height - (_outerGap * 2) - floatBarOffsetY - _logicalBarHeight;
+      }
+    }
+
     public override int Width => Parent.Width - (_outerGap * 2);
     public override int X => Parent.X + _outerGap;
-    public override int Y => Parent.Y + _outerGap + _yOffset + floatBarOffsetY;
+    public override int Y
+    {
+      get
+      {
+        if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
+        {
+          return Parent.Y + _outerGap;
+        }
+
+        return Parent.Y + _outerGap + _yOffset + floatBarOffsetY;
+      }
+    }
 
     /// <summary>
     /// Whether the workspace itself or a descendant container has focus.

@@ -30,6 +30,15 @@ winget install lars-berger.GlazeWM
 
 Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
 
+## Scoop
+
+GlazeWM can be download via Scoop in the [Extras](https://github.com/ScoopInstaller/Extras) bucket:
+
+```powershell
+scoop bucket add extras # Ensure bucket is added first
+scoop install glazewm
+````
+
 ## Build from source
 
 Alternatively, to build from source, use the following .NET CLI command:
@@ -53,8 +62,18 @@ The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
-```
+```console
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
+```
+
+## General
+
+```yaml
+general:
+  show_floating_on_top: false
+  floating_window_move_amount: "5%"
+  # When enabled, switching to the current workspace activates the previously focused workspace
+  toggle_workspace_on_refocus: false
 ```
 
 ## Keybindings
@@ -132,6 +151,9 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 
 ```yaml
 bar:
+  # The option to enable/disable the bar.
+  enabled: true
+  
   # Height of the bar in pixels.
   height: "30px"
 
@@ -308,7 +330,8 @@ window_rules:
 - move to workspace \<workspace name>
 - resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
 - resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
-- set \<floating | minimized | maximized>
+- set \<floating | tiling | minimized | maximized>
+- set \<width | height> \<amount in px | amount in %> (eg. `set height 30%` or `set width 200px`)
 - toggle \<floating | maximized>
 - toggle focus mode
 - tiling direction toggle
