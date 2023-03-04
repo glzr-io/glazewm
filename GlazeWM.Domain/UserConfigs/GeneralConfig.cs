@@ -15,5 +15,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// Amount by which to move floating windows
     /// </summary>
     public string FloatingWindowMoveAmount { get; set; } = "5%";
+    /// <summary>
+    /// If activated, by switching to the current workspace the previous focused workspace is activated.
+    /// </summary>
+    public bool ToggleWorkspaceOnRefocus { get; set; }
   }
 }

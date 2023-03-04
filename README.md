@@ -62,8 +62,18 @@ The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
-```
+```console
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
+```
+
+## General
+
+```yaml
+general:
+  show_floating_on_top: false
+  floating_window_move_amount: "5%"
+  # When enabled, switching to the current workspace activates the previously focused workspace
+  toggle_workspace_on_refocus: false
 ```
 
 ## Keybindings
