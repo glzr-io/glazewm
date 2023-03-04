@@ -224,6 +224,12 @@ namespace GlazeWM.Domain.UserConfigs
         "tiling" => subjectContainer is Window
           ? new SetTilingCommand(subjectContainer as Window)
           : new NoopCommand(),
+        "width" => subjectContainer is Window
+          ? new SetWindowSizeCommand(subjectContainer as Window, ResizeDimension.Width, commandParts[2])
+          : new NoopCommand(),
+        "height" => subjectContainer is Window
+          ? new SetWindowSizeCommand(subjectContainer as Window, ResizeDimension.Height, commandParts[2])
+          : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
