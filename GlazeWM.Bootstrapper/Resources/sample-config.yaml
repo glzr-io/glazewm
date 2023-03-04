@@ -26,6 +26,7 @@ bar:
       default_workspace_background: "transparent"
     - type: "weather"
       temperature_unit: "fahrenheit"
+      timezone: "EST"
       latitude: 40.7128
       longitude: -74.0060
   components_center:
