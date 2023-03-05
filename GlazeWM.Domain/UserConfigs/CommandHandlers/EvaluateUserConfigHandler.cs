@@ -102,6 +102,16 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         var userConfigLines = File.ReadAllLines(userConfigPath);
         var input = string.Join(Environment.NewLine, userConfigLines);
 
+        var globalVariables = _yamlService.Deserialize<UserConfigVariables>(
+          input,
+          new List<JsonConverter>() { new BarComponentConfigConverter() }
+        );
+
+        foreach (var item in globalVariables.Globals)
+        {
+          input = input.Replace($"{{{{{item.Name}}}}}", item.Value);
+        }
+
         return _yamlService.Deserialize<UserConfig>(
           input,
           new List<JsonConverter>() { new BarComponentConfigConverter() }

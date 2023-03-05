@@ -320,6 +320,18 @@ window_rules:
     match_process_name: "notepad"
 ```
 
+## Yaml Global Variables
+```yaml
+globals:
+  - name: "username"
+    value: "user_1"
+  - name: "password"
+    value: "12345"
+
+command: "exec_a {{username}} {{password}} powershell"
+
+```
+
 # Available commands
 
 - layout \<vertical | horizontal>
