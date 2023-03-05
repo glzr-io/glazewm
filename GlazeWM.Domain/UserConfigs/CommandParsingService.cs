@@ -89,6 +89,12 @@ namespace GlazeWM.Domain.UserConfigs
           ExtractProcessName(string.Join(" ", commandParts[1..])),
           ExtractProcessArgs(string.Join(" ", commandParts[1..]))
         ),
+        "exec_a" => new ExecProcessCommand(
+          ExtractProcessAName(string.Join(" ", commandParts[1..])),
+          ExtractProcessAArgs(string.Join(" ", commandParts[1..])),
+          ExtractProcessAUserName(string.Join(" ", commandParts[1..])),
+          ExtractProcessAPassword(string.Join(" ", commandParts[1..]))
+        ),
         "ignore" => subjectContainer is Window
           ? new IgnoreWindowCommand(subjectContainer as Window)
           : new NoopCommand(),
@@ -324,6 +330,56 @@ namespace GlazeWM.Domain.UserConfigs
       var args = hasSingleQuotes
         ? processNameAndArgs.Split("'")[2..]
         : processNameAndArgs.Split(" ")[1..];
+
+      return args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
+    }
+
+    public static string ExtractProcessAUserName(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
+
+      return hasSingleQuotes
+        ? processNameAndArgs.Split("'")[1]
+        : processNameAndArgs.Split(" ")[0];
+    }
+
+    public static string ExtractProcessAPassword(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
+
+      return hasSingleQuotes
+        ? processNameAndArgs.Split("'")[2]
+        : processNameAndArgs.Split(" ")[1];
+    }
+
+    public static string ExtractProcessAName(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
+
+      return hasSingleQuotes
+        ? processNameAndArgs.Split("'")[3]
+        : processNameAndArgs.Split(" ")[2];
+    }
+
+    public static List<string> ExtractProcessAArgs(string processNameAndArgs)
+    {
+      var hasSingleQuotes = processNameAndArgs.StartsWith(
+        "'",
+        StringComparison.InvariantCulture
+      );
+
+      var args = hasSingleQuotes
+        ? processNameAndArgs.Split("'")[4..]
+        : processNameAndArgs.Split(" ")[3..];
 
       return args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
     }
