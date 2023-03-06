@@ -328,7 +328,7 @@ namespace GlazeWM.Domain.UserConfigs
       return args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
     }
 
-    private static RectDelta ShorthandToRectDelta(string shorthand)
+    public static RectDelta ShorthandToRectDelta(string shorthand)
     {
       var shorthandParts = shorthand.Split(" ")
         .Select(shorthandPart => UnitsHelper.TrimUnits(shorthandPart))

@@ -5,6 +5,7 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Utils;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Workspaces
 {
@@ -46,7 +47,7 @@ namespace GlazeWM.Domain.Workspaces
       }
     }
 
-    private int _outerGap => _userConfigService.GapsConfig.OuterGap;
+    private RectDelta _outerGaps => CommandParsingService.ShorthandToRectDelta(_userConfigService.GapsConfig.OuterGap);
 
     private BarConfig barForMonitor => _userConfigService.GetBarConfigForMonitor(Parent as Monitor);
     private int floatBarOffsetY => UnitsHelper.TrimUnits(barForMonitor.OffsetY);
@@ -57,25 +58,25 @@ namespace GlazeWM.Domain.Workspaces
       {
         if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
         {
-          return Parent.Height - (_outerGap * 2);
+          return Parent.Height - _outerGaps.Top - _outerGaps.Bottom;
         }
 
-        return Parent.Height - (_outerGap * 2) - floatBarOffsetY - _logicalBarHeight;
+        return Parent.Height - _outerGaps.Top - _outerGaps.Bottom - floatBarOffsetY - _logicalBarHeight;
       }
     }
 
-    public override int Width => Parent.Width - (_outerGap * 2);
-    public override int X => Parent.X + _outerGap;
+    public override int Width => Parent.Width - _outerGaps.Left - _outerGaps.Right;
+    public override int X => Parent.X + _outerGaps.Left;
     public override int Y
     {
       get
       {
         if (!_userConfigService.GetBarConfigForMonitor(Parent as Monitor).Enabled)
         {
-          return Parent.Y + _outerGap;
+          return Parent.Y + _outerGaps.Top;
         }
 
-        return Parent.Y + _outerGap + _yOffset + floatBarOffsetY;
+        return Parent.Y + _outerGaps.Top + _yOffset + floatBarOffsetY;
       }
     }
 
