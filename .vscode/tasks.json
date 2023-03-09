@@ -2,16 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-        "label": "build",
-        "command": "dotnet",
-        "type": "process",
-        "args": [
-            "build",
-            "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
-            "/property:GenerateFullPaths=true",
-            "/consoleloggerparameters:NoSummary"
-        ],
-        "problemMatcher": "$msCompile"
+      "label": "build",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+          "build",
+          "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
+          "/property:GenerateFullPaths=true",
+          "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
     },
     {
       "label": "publish (x64)",
@@ -21,7 +21,7 @@
         "publish",
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
-        "--runtime=win10-x64",
+        "--runtime=win-x64",
         "--self-contained",
         "-p:PublishSingleFile=true",
         "-p:IncludeAllContentForSelfExtract=true",
@@ -38,7 +38,7 @@
         "publish",
         "${workspaceFolder}/GlazeWM.Bootstrapper/GlazeWM.Bootstrapper.csproj",
         "--configuration=Release",
-        "--runtime=win10-x86",
+        "--runtime=win-x86",
         "--self-contained",
         "-p:PublishSingleFile=true",
         "-p:IncludeAllContentForSelfExtract=true",
