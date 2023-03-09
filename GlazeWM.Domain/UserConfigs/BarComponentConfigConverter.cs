@@ -58,6 +58,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "media" =>
+          JsonSerializer.Deserialize<MediaComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "workspaces" =>
           JsonSerializer.Deserialize<WorkspacesComponentConfig>(
             jsonObject.RootElement.ToString(),
