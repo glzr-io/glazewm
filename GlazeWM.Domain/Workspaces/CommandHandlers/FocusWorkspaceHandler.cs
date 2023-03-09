@@ -44,7 +44,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var displayedWorkspace = (workspaceToFocus.Parent as Monitor).DisplayedWorkspace;
 
       if (focusedWorkspace == workspaceToFocus)
-        return CommandResponse.Ok;
+      {
+        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus)
+          return CommandResponse.Ok;
+        workspaceToFocus = _workspaceService.MostRecentWorkspace;
+      }
 
       // Save currently focused workspace as recent for command "recent"
       _workspaceService.MostRecentWorkspace = focusedWorkspace;
