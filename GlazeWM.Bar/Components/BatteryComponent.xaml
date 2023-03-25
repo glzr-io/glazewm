@@ -6,11 +6,5 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-  <components:Label
-    VerticalAlignment="Center"
-    Foreground="{Binding Foreground}"
-    FontFamily="{Binding FontFamily}"
-    FontWeight="{Binding FontWeight}"
-    FontSize="{Binding FontSize}"
-    Text="{Binding FormattedPowerStatus}" />
+  <components:LabelComponent DataContext="{Binding Label}" />
 </UserControl>

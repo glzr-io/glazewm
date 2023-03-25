@@ -11,5 +11,5 @@
     FontFamily="{Binding FontFamily}"
     FontWeight="{Binding FontWeight}"
     FontSize="{Binding FontSize}"
-    Text="{Binding FormattedPowerStatus}" />
+    Text="fjdiosafjdiosa" />
 </UserControl>
