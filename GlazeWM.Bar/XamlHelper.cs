@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
+using GlazeWM.Bar.Components;
 using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Bar
@@ -54,6 +57,22 @@ namespace GlazeWM.Bar
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         _ => throw new ArgumentException(null, nameof(shorthand)),
       };
+    }
+
+    public static XElement ParseLabel(
+      Dictionary<string, string> labelVariables,
+      string labelString)
+    {
+      var labelWithVariables = labelString;
+
+      // Replace variables in label with their corresponding variable.
+      foreach (var (key, value) in labelVariables)
+        labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value);
+
+      var wrappedLabel = $"<Label>{labelString}</Label>";
+      var labelXml = XElement.Parse(wrappedLabel);
+
+      return labelXml;
     }
   }
 }
