@@ -83,10 +83,23 @@ namespace GlazeWM.Bar
           _ => throw new ArgumentException("Invalid XML.", nameof(labelString))
         };
 
-        return new LabelSpan(value);
+        string foreground = null;
+        string background = null;
+        string fontFamily = null;
+        string fontWeight = null;
+        string fontSize = null;
+
+        return new LabelSpan(
+          value,
+          foreground ?? viewModel.Foreground,
+          background ?? viewModel.Background,
+          fontFamily ?? viewModel.FontFamily,
+          fontWeight ?? viewModel.FontWeight,
+          fontSize ?? viewModel.FontSize
+        );
       }).ToList();
 
-      return new LabelViewModel(labelSpans, viewModel);
+      return new LabelViewModel(labelSpans);
     }
   }
 }
