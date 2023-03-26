@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using GlazeWM.Bar.Components;
 using GlazeWM.Infrastructure.Utils;
 
@@ -74,8 +75,25 @@ namespace GlazeWM.Bar
       var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
       var labelXml = XElement.Parse(wrappedLabel);
 
-      var x = labelXml.Descendants();
+      // var x = labelXml.DescendantNodesAndSelf();
+      var x = labelXml.DescendantsAndSelf();
 
+      var yyy = labelXml.Nodes().Aggregate("", (b, node) =>
+      {
+        var yy = node;
+        var text = node as XText;
+        var element = node as XElement;
+        return b += node.ToString();
+      });
+
+      var yyyy = labelXml.CreateNavigator().InnerXml;
+
+      foreach (var y in x)
+      {
+        var value = y.Value;
+        var value2 = y.ToString();
+        // var value3 = y.
+      }
       var labelNode = labelXml.FirstNode;
       var labelSpans = new List<LabelSpan>();
 
