@@ -61,7 +61,8 @@ namespace GlazeWM.Bar
 
     public static LabelViewModel ParseLabel(
       string labelString,
-      Dictionary<string, string> labelVariables)
+      Dictionary<string, string> labelVariables,
+      ComponentViewModel viewModel)
     {
       var labelWithVariables = labelString;
 
@@ -70,20 +71,25 @@ namespace GlazeWM.Bar
         labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value);
 
       // Wrap `labelString` in arbitrary tag to make it valid XML.
-      var wrappedLabel = $"<Label>{labelString}</Label>";
+      var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
       var labelXml = XElement.Parse(wrappedLabel);
+
+      var x = labelXml.Descendants();
 
       var labelNode = labelXml.FirstNode;
       var labelSpans = new List<LabelSpan>();
 
       while (labelNode is not null)
       {
-        var labelSpan = new LabelSpan(labelNode.ToString());
+        var nodeValue = labelNode.ToString();
+        var labelSpan = new LabelSpan(nodeValue);
         labelSpans.Add(labelSpan);
+
+        // Traverse to next node.
         labelNode = labelNode.NextNode;
       }
 
-      return new LabelViewModel(labelSpans);
+      return new LabelViewModel(labelSpans, viewModel);
     }
   }
 }

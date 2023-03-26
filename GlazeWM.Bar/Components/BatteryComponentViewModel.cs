@@ -42,24 +42,28 @@ namespace GlazeWM.Bar.Components
       if (ps.BatteryFlag == 128)
         return XamlHelper.ParseLabel(
           _config.LabelDraining,
-          CreateVariableDict(batteryLevel)
+          CreateVariableDict(batteryLevel),
+          this
         );
 
       if (ps.ACLineStatus == 1)
         return XamlHelper.ParseLabel(
           _config.LabelCharging,
-          CreateVariableDict(batteryLevel)
+          CreateVariableDict(batteryLevel),
+          this
         );
 
       if (ps.SystemStatusFlag == 1)
         return XamlHelper.ParseLabel(
           _config.LabelPowerSaver,
-          CreateVariableDict(batteryLevel)
+          CreateVariableDict(batteryLevel),
+          this
         );
 
       return XamlHelper.ParseLabel(
         _config.LabelDraining,
-        CreateVariableDict(batteryLevel)
+        CreateVariableDict(batteryLevel),
+        this
       );
     }
 

@@ -21,11 +21,19 @@ namespace GlazeWM.Bar.Components
 
   public class LabelViewModel : ViewModelBase
   {
-    public List<LabelSpan> Spans { get; set; }
+    public List<LabelSpan> Spans { get; }
+    private readonly ComponentViewModel ComponentViewModel;
 
-    public LabelViewModel(List<LabelSpan> spans)
+    public string Background => ComponentViewModel.Background;
+    public string Foreground => ComponentViewModel.Foreground;
+    public string FontFamily => ComponentViewModel.FontFamily;
+    public string FontWeight => ComponentViewModel.FontWeight;
+    public string FontSize => ComponentViewModel.FontSize;
+
+    public LabelViewModel(List<LabelSpan> spans, ComponentViewModel componentViewModel)
     {
       Spans = spans;
+      ComponentViewModel = componentViewModel;
     }
 
     public void UpdateVariables(Dictionary<string, string> labelVariables)
