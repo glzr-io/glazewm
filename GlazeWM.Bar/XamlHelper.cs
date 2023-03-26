@@ -73,7 +73,17 @@ namespace GlazeWM.Bar
       var wrappedLabel = $"<Label>{labelString}</Label>";
       var labelXml = XElement.Parse(wrappedLabel);
 
-      return new LabelViewModel();
+      var labelNode = labelXml.FirstNode;
+      var labelSpans = new List<LabelSpan>();
+
+      while (labelNode is not null)
+      {
+        var labelSpan = new LabelSpan(labelNode.ToString());
+        labelSpans.Add(labelSpan);
+        labelNode = labelNode.NextNode;
+      }
+
+      return new LabelViewModel(labelSpans);
     }
   }
 }

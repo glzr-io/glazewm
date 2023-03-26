@@ -4,8 +4,30 @@ using GlazeWM.Bar.Common;
 
 namespace GlazeWM.Bar.Components
 {
+  public class LabelSpan
+  {
+    public string Background { get; set; }
+    public string Foreground { get; set; }
+    public string FontFamily { get; set; }
+    public string FontWeight { get; set; }
+    public string FontSize { get; set; }
+    public string Text { get; }
+
+    public LabelSpan(string text)
+    {
+      Text = text;
+    }
+  }
+
   public class LabelViewModel : ViewModelBase
   {
+    public List<LabelSpan> Spans { get; set; }
+
+    public LabelViewModel(List<LabelSpan> spans)
+    {
+      Spans = spans;
+    }
+
     public void UpdateVariables(Dictionary<string, string> labelVariables)
     {
       // TODO

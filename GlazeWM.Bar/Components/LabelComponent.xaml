@@ -10,6 +10,9 @@
     Foreground="{Binding Foreground}"
     FontFamily="{Binding FontFamily}"
     FontWeight="{Binding FontWeight}"
-    FontSize="{Binding FontSize}"
-    Text="fjdiosafjdiosa" />
+    FontSize="{Binding FontSize}">
+    <ItemsControl ItemsSource="{Binding Spans}">
+      <Run Text="{Binding Text}" />
+    </ItemsControl>
+  </TextBlock>
 </UserControl>
