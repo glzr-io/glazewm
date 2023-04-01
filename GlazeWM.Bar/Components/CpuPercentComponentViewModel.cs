@@ -18,11 +18,8 @@ public class CpuPercentComponentViewModel : ComponentViewModel
   {
     _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
 
-    // Update the displayed time every second.
-    var updateInterval = TimeSpan.FromSeconds(1);
-
     Observable
-      .Interval(updateInterval)
+      .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
       .TakeUntil(_parentViewModel.WindowClosing)
       .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
   }

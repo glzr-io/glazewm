@@ -295,6 +295,17 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
+### Bar Component: CPU Percentage
+
+Displays the current CPU usage as a percentage.
+
+```yaml
+- type: "cpu percent"
+  string_format: "CPU {0}%" # {0} is substituted by value
+  number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
+  refresh_interval_ms: 1000 # How often this counter is refreshed
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)

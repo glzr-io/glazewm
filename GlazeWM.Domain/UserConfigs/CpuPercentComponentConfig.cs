@@ -12,4 +12,9 @@ public class CpuPercentComponentConfig : BarComponentConfig
   /// Numerical Format to use for the Percentage.
   /// </summary>
   public string NumberFormat { get; set; } = "00";
+
+  /// <summary>
+  /// How often this component refreshes in milliseconds.
+  /// </summary>
+  public int RefreshIntervalMs { get; set; } = 1000;
 }
