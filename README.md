@@ -295,6 +295,10 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
+### Adding Custom Bar Components
+
+[Guide Available Here](./README-ADDINGCOMPONENTS.md)
+
 ## Window rules
 
 Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.
