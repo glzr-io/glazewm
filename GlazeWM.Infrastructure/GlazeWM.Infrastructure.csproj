@@ -17,6 +17,7 @@
     <PackageReference Include="Vanara.PInvoke.User32" Version="3.4.13" />
     <PackageReference Include="Vanara.PInvoke.WlanApi" Version="3.4.12" />
     <PackageReference Include="Vanara.PInvoke.IpHlpApi" Version="3.4.12" />
+    <PackageReference Include="Vostok.Sys.Metrics.PerfCounters" Version="0.0.6" />
     <PackageReference Include="YamlDotNet" Version="8.1.0" />
     <PackageReference Include="Roslynator.Analyzers" Version="4.2.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.0" />

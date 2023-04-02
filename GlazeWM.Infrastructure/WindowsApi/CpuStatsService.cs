@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using Vostok.Sys.Metrics.PerfCounters;
 
 namespace GlazeWM.Infrastructure.WindowsApi;
 
@@ -8,7 +8,7 @@ namespace GlazeWM.Infrastructure.WindowsApi;
 /// </summary>
 public class CpuStatsService : System.IDisposable
 {
-  private readonly PerformanceCounter _cpuCounter = new("Processor Information", "% Processor Utility", "_Total");
+  private readonly IPerformanceCounter<double> _cpuCounter = PerformanceCounterFactory.Default.CreateCounter("Processor Information", "% Processor Utility", "_Total");
 
   /// <inheritdoc />
   ~CpuStatsService() => Dispose();
@@ -23,5 +23,5 @@ public class CpuStatsService : System.IDisposable
   /// <summary>
   /// Returns the current CPU utilization as a percentage.
   /// </summary>
-  public float GetCurrentLoadPercent() => _cpuCounter.NextValue();
+  public float GetCurrentLoadPercent() => (float)_cpuCounter.Observe();
 }

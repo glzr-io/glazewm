@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Windows
     public static Process GetProcessOfHandle(IntPtr handle)
     {
       _ = GetWindowThreadProcessId(handle, out var processId);
-      return Array.Find(Process.GetProcesses(), process => process.Id == (int)processId);
+      return Process.GetProcessById((int)processId);
     }
 
     /// <summary>

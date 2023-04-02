@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Vostok.Sys.Metrics.PerfCounters;
 
 namespace GlazeWM.Infrastructure.WindowsApi;
 
@@ -70,7 +71,7 @@ public class GpuStatsService
       {
         var processUtilization = 0f;
         foreach (var counter in counterForProcess.Value)
-          processUtilization += counter.NextValue();
+          processUtilization += (float)counter.Observe();
 
         totalUtilization += (processUtilization / counterForProcess.Value.Count);
       }
@@ -104,7 +105,7 @@ public class GpuStatsService
     /// <summary>
     /// Counters for each given instance of this counter.
     /// </summary>
-    private readonly Dictionary<string, PerformanceCounter> _counters = new();
+    private readonly Dictionary<string, IPerformanceCounter<double>> _counters = new();
 
     public GpuStatsForType(string counter) => _counter = counter;
 
@@ -112,7 +113,7 @@ public class GpuStatsService
     /// Updates the state of this counter.
     /// </summary>
     /// <param name="instanceNames">Name of all counter instances.</param>
-    public Dictionary<int, List<PerformanceCounter>> Update(string[] instanceNames)
+    public Dictionary<int, List<IPerformanceCounter<double>>> Update(string[] instanceNames)
     {
       // Problem, process can have multiple eng of 1 type; in that case, value should be averaged.
       var filteredInstances = new HashSet<string>(instanceNames.Length);
@@ -136,11 +137,12 @@ public class GpuStatsService
       foreach (var name in filteredInstances)
       {
         if (!_counters.ContainsKey(name))
-          _counters[name] = new PerformanceCounter("GPU Engine", "Utilization Percentage", name);
+          _counters[name] = PerformanceCounterFactory.Default
+                            .CreateCounter("GPU Engine", "Utilization Percentage", name);
       }
 
       // Copy remaining results.
-      var byProcessId = new Dictionary<int, List<PerformanceCounter>>();
+      var byProcessId = new Dictionary<int, List<IPerformanceCounter<double>>>();
       const string searchString = "pid_";
       var stringLength = searchString.Length;
       foreach (var counter in _counters)
@@ -152,7 +154,7 @@ public class GpuStatsService
         var processId = ExtractNumber(counter.Key.AsSpan(pidIndex +stringLength));
         if (!byProcessId.TryGetValue(processId, out var value))
         {
-          value = new List<PerformanceCounter>();
+          value = new List<IPerformanceCounter<double>>();
           byProcessId[processId] = value;
         }
 
