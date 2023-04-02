@@ -68,17 +68,17 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "cpu percent" =>
+        "cpu usage" =>
           JsonSerializer.Deserialize<CpuPercentComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
-        "gpu percent" =>
+        "gpu usage" =>
           JsonSerializer.Deserialize<GpuPercentComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
-        "memory percent" =>
+        "memory usage" =>
           JsonSerializer.Deserialize<MemoryPercentComponentConfig>(
             jsonObject.RootElement.ToString(),
             options

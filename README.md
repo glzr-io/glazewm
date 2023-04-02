@@ -295,23 +295,23 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
-### Bar Component: CPU Percentage
+### Bar Component: CPU Usage
 
-Displays the current CPU usage as a percentage.
+Displays the current CPU usage.
 
 ```yaml
-- type: "cpu percent"
+- type: "cpu usage"
   string_format: "CPU {0}%" # {0} is substituted by value
   number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
   refresh_interval_ms: 1000 # How often this counter is refreshed
 ```
 
-### Bar Component: GPU Percentage
+### Bar Component: GPU Usage
 
 This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
 
 ```yaml
-- type: "gpu percent"
+- type: "gpu usage"
   string_format: "GPU {0}%" # {0} is substituted by number format
   number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
   refresh_interval_ms: 1000 # How often this counter is refreshed
@@ -328,6 +328,33 @@ This component has high CPU requirement (compared to others); due to no efficien
   # Copy: Load copying data without intervention of CPU e.g. copying framebuffer across screens in multi GPU setup or uploading textures.
   # Security: Workloads related to cryptography, such as encryption, decryption, and secure video processing.
   # Vr: Virtual Reality related workloads.
+```
+
+### Bar Component: Memory Usage
+
+Displays the current Memory usage.
+
+```yaml
+- type: "memory usage"
+  # {0} is substituted by percentage, {1} by current value, {2} by max value 
+  # Example: '{1}/{2} MB ({0}%)'
+  #          '{0}%'
+  string_format: "RAM {1}/{2}GB ({0}%)"
+
+  # For formats, see: https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
+  percent_format: "00" # Format for {0}.
+  current_value_format: "00.00" # Format for {1}.
+  max_value_format: "00.00" # Format for {2}.
+  refresh_interval_ms: 1000 # How often this counter is refreshed
+  divide_by: 1000000000 # Convert to GigaBytes.
+
+  # Supported Counters Include:
+  # PhysicalMemory: Current amount of physical RAM in use; i.e. working set.
+  # CacheBytes: Amount of cached file data in physical RAM.
+  # CommitSize: Retrieves the amount of committed virtual memory (bytes); i.e. which has space reserved on the disk paging file(s).
+  # PagedResidentBytes: Size of the active portion of the paged pool in physical memory, storing objects that can be written to disk when they're not in use.
+  counter: PhysicalMemory
+  padding: "0 10 0 0"
 ```
 
 ### Adding Custom Bar Components
