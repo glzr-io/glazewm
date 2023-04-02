@@ -10,7 +10,7 @@ namespace GlazeWM.Bar.Components;
 public class GpuPercentComponentViewModel : ComponentViewModel
 {
   private GpuPercentComponentConfig Config => _componentConfig as GpuPercentComponentConfig;
-  private GpuStatsService _gpuStatsService;
+  private readonly GpuStatsService _gpuStatsService;
   
   public string FormattedText => GetFormattedText();
 

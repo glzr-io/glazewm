@@ -78,6 +78,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "memory percent" =>
+          JsonSerializer.Deserialize<MemoryPercentComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }

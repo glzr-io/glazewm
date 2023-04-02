@@ -19,6 +19,7 @@ namespace GlazeWM.Infrastructure
 
       services.AddSingleton<CpuStatsService>();
       services.AddSingleton<GpuStatsService>();
+      services.AddSingleton<MemoryStatsService>();
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
       services.AddSingleton<ICommandHandler<HandleFatalExceptionCommand>, HandleFatalExceptionHandler>();
       services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();
