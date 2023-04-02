@@ -16,7 +16,7 @@ public class CpuStatsService : System.IDisposable
   /// <inheritdoc />
   public void Dispose()
   {
-    _cpuCounter?.Dispose();
+    _cpuCounter.Dispose();
     GC.SuppressFinalize(this);
   }
 

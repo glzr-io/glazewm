@@ -10,7 +10,7 @@ namespace GlazeWM.Infrastructure.WindowsApi;
 /// <summary>
 /// Provides access to current GPU statistics.
 /// </summary>
-public class GpuStatsService
+public class GpuStatsService : IDisposable
 {
   private readonly PerformanceCounterCategory GpuEngineCategory = new("GPU Engine");
 
@@ -27,6 +27,18 @@ public class GpuStatsService
       new("engtype_VideoEncode"),
       new("engtype_VR")
   };
+
+  public void Dispose()
+  {
+    GC.SuppressFinalize(this);
+    foreach (var stat in StatsForTypes)
+      stat.Dispose();
+  }
+
+  ~GpuStatsService()
+  {
+    Dispose();
+  }
 
   /// <summary>
   /// Returns the current GPU utilization (average of all GPUs) for a given set of categories.
@@ -95,7 +107,7 @@ public class GpuStatsService
     numCategories++;
   }
 
-  private class GpuStatsForType
+  private class GpuStatsForType : IDisposable
   {
     /// <summary>
     /// Name of the counter, e.g. engtype_VR.
@@ -181,6 +193,12 @@ public class GpuStatsService
       }
 
       return result;
+    }
+
+    public void Dispose()
+    {
+      foreach (var counter in _counters)
+        counter.Value.Dispose();
     }
   }
 }
