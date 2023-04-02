@@ -73,6 +73,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "gpu percent" =>
+          JsonSerializer.Deserialize<GpuPercentComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }

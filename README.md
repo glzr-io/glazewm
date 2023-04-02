@@ -306,6 +306,30 @@ Displays the current CPU usage as a percentage.
   refresh_interval_ms: 1000 # How often this counter is refreshed
 ```
 
+### Bar Component: GPU Percentage
+
+This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
+
+```yaml
+- type: "gpu percent"
+  string_format: "GPU {0}%" # {0} is substituted by number format
+  number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
+  refresh_interval_ms: 1000 # How often this counter is refreshed
+  flags: Graphics
+  padding: "0 10 0 0"
+
+  # Supported flags
+  # Multiple flags can be specified by e.g. `flags: Graphics, VideoDecode, VideoEncode, Copy`
+
+  # Graphics: 3D GPU Engine usage. [Probably what you want]
+  # VideoDecode: Load of dedicated video decoding silicon.
+  # VideoEncode: Load of dedicated video encoding silicon, i.e. NVENC/AMD AMF/QuickSync.
+  # LegacyOverlay: Legacy API for overlaying items over other items.
+  # Copy: Load copying data without intervention of CPU e.g. copying framebuffer across screens in multi GPU setup or uploading textures.
+  # Security: Workloads related to cryptography, such as encryption, decryption, and secure video processing.
+  # Vr: Virtual Reality related workloads.
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)

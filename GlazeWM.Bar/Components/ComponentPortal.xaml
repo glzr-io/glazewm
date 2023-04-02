@@ -46,6 +46,9 @@
             <DataTemplate DataType="{x:Type components:CpuPercentComponentViewModel}">
               <components:CpuPercentComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:GpuPercentComponentViewModel}">
+              <components:GpuPercentComponent Padding="{Binding Padding}" Background="{Binding Background}" />
+            </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
       </Grid>
