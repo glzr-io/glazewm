@@ -82,8 +82,14 @@ public class GpuStatsService : IDisposable
       foreach (var counterForProcess in statsForType.Update(instanceNames))
       {
         var processUtilization = 0f;
+
+        // Try/catch here isn't ideal, but this appears to throw on
+        // own PID after a reload; I don't exactly know why.
         foreach (var counter in counterForProcess.Value)
-          processUtilization += (float)counter.Observe();
+        {
+          try { processUtilization += (float)counter.Observe(); }
+          catch { /* ignored */ }
+        }
 
         totalUtilization += (processUtilization / counterForProcess.Value.Count);
       }
