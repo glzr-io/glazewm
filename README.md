@@ -380,6 +380,29 @@ For displaying any content without a native integrated widget; updates in real t
   file_path: "PATH_HERE" # path to file
 ```
 
+### Bar Component: Weather
+
+Uses Open-Meteo API, refreshes every hour.
+
+```yaml
+- type: "weather"
+  latitude: 40.6892
+  longitude: 74.0445
+  format: "{0}{1}°C" # {0} icon, {1} temperature.
+  temperature_unit: Celsius # or Fahrenheit
+  temperature_format: "0" # Format of {1}
+  label_sun: "☀️"
+  label_moon: "🌙"
+  label_cloud_moon: "🌙☁️"
+  label_cloud_sun: "⛅"
+  label_cloud_moon_rain: "🌙🌧️"
+  label_cloud_sun_rain: "🌦️"
+  label_cloud_rain: "🌧️"
+  label_snow_flake: "❄️"
+  label_thunderstorm: "⚡"
+  label_cloud: "☁️"
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)
