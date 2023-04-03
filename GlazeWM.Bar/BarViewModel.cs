@@ -73,7 +73,9 @@ namespace GlazeWM.Bar
       List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
     )
     {
-      componentViewModels.Intersperse(componentSeparator);
+      if (!string.IsNullOrEmpty(componentSeparator.Text))
+        componentViewModels.Intersperse(componentSeparator);
+
       return componentViewModels;
     }
 
