@@ -12,7 +12,8 @@ public class CpuStatsService : System.IDisposable
 {
   private readonly IPerformanceCounter<double> _cpuCounter = PerformanceCounterFactory.Default.CreateCounter("Processor Information", "% Processor Utility", "_Total");
   private readonly IPerformanceCounter<double> _cpuFrequencyCurrent = PerformanceCounterFactory.Default.CreateCounter("Processor Information", "% Processor Performance", "_Total");
-  private static int _maxFrequencyMhz = -1;
+  private static int _baseFrequencyMhz = -1;
+  private float _maxFrequencyMhz = -1;
   private float _maxPackagePower = -1;
   private float _maxCoreTemp = -1;
 
@@ -37,7 +38,7 @@ public class CpuStatsService : System.IDisposable
     return measurement switch
     {
       CpuMeasurement.CpuUsage => new CpuMeasurementResult((float)_cpuCounter.Observe(), 100f),
-      CpuMeasurement.CpuFrequency => new CpuMeasurementResult((float)_cpuFrequencyCurrent.Observe() * _maxFrequencyMhz / 100f, _maxFrequencyMhz),
+      CpuMeasurement.CpuFrequency => GetResultWithMaxObservedValue((float)_cpuFrequencyCurrent.Observe() * _baseFrequencyMhz / 100f, ref _maxFrequencyMhz),
       CpuMeasurement.PackagePower => GetResultWithMaxObservedValue(LibreHardwareMonitorHelper.GetCpuPackagePower(), ref _maxPackagePower),
       CpuMeasurement.CoreTemp => GetResultWithMaxObservedValue(LibreHardwareMonitorHelper.GetCoreTemperature(), ref _maxCoreTemp),
       _ => throw new ArgumentOutOfRangeException(nameof(measurement), measurement, null)
@@ -55,14 +56,14 @@ public class CpuStatsService : System.IDisposable
   private static void GetMaxFrequency()
   {
     // WMI is slow but a necessary evil; we'll only init once; hopefully should be ok.
-    if (_maxFrequencyMhz != -1)
+    if (_baseFrequencyMhz != -1)
       return;
 
     using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
     foreach (var o in searcher.Get())
     {
       var obj = (ManagementObject)o;
-      _maxFrequencyMhz = Convert.ToInt32(obj["MaxClockSpeed"], CultureInfo.InvariantCulture);
+      _baseFrequencyMhz = Convert.ToInt32(obj["MaxClockSpeed"], CultureInfo.InvariantCulture);
     }
   }
 
