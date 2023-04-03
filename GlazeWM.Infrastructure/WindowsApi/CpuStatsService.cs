@@ -13,6 +13,8 @@ public class CpuStatsService : System.IDisposable
   private readonly IPerformanceCounter<double> _cpuCounter = PerformanceCounterFactory.Default.CreateCounter("Processor Information", "% Processor Utility", "_Total");
   private readonly IPerformanceCounter<double> _cpuFrequencyCurrent = PerformanceCounterFactory.Default.CreateCounter("Processor Information", "% Processor Performance", "_Total");
   private static int _maxFrequencyMhz = -1;
+  private float _maxPackagePower = -1;
+  private float _maxCoreTemp = -1;
 
   public CpuStatsService() => GetMaxFrequency();
 
@@ -36,8 +38,18 @@ public class CpuStatsService : System.IDisposable
     {
       CpuMeasurement.CpuUsage => new CpuMeasurementResult((float)_cpuCounter.Observe(), 100f),
       CpuMeasurement.CpuFrequency => new CpuMeasurementResult((float)_cpuFrequencyCurrent.Observe() * _maxFrequencyMhz / 100f, _maxFrequencyMhz),
+      CpuMeasurement.PackagePower => GetResultWithMaxObservedValue(LibreHardwareMonitorHelper.GetCpuPackagePower(), ref _maxPackagePower),
+      CpuMeasurement.CoreTemp => GetResultWithMaxObservedValue(LibreHardwareMonitorHelper.GetCoreTemperature(), ref _maxCoreTemp),
       _ => throw new ArgumentOutOfRangeException(nameof(measurement), measurement, null)
     };
+  }
+
+  private CpuMeasurementResult GetResultWithMaxObservedValue(float curValue, ref float maxValue)
+  {
+    if (curValue > maxValue)
+      maxValue = curValue;
+
+    return new CpuMeasurementResult(curValue, maxValue);
   }
 
   private static void GetMaxFrequency()
@@ -89,7 +101,12 @@ public enum CpuMeasurement
   CpuFrequency,
 
   /// <summary>
-  /// [Placeholder. Not Currently Supported] CPU Package/Full Die Power
+  /// CPU Package/Full Die Power
   /// </summary>
-  PackagePower
+  PackagePower,
+
+  /// <summary>
+  /// CPU Core Temperature
+  /// </summary>
+  CoreTemp,
 }

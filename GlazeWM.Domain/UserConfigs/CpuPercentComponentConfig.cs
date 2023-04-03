@@ -38,5 +38,5 @@ public class CpuPercentComponentConfig : BarComponentConfig
   /// <summary>
   /// The value to pull for RAM usage.
   /// </summary>
-  public CpuMeasurement Counter { get; set; } = CpuMeasurement.CpuFrequency;
+  public CpuMeasurement Counter { get; set; } = CpuMeasurement.CpuUsage;
 }

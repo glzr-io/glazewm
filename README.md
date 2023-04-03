@@ -312,11 +312,14 @@ Displays the current CPU usage.
   current_value_format: "0.00" # Format for {1}.
   max_value_format: "0.00" # Format for {2}.
   refresh_interval_ms: 500 # How often this counter is refreshed
+  divide_by: 1000 # Convert MHz to GHz (where appropriate).
   counter: CpuUsage
 
   # Supported Counters Include:
   # CpuUsage: Overall CPU Usage across All Cores.
   # CpuFrequency: Overall CPU Frequency across All Cores.
+  # PackagePower: [Requires Admin] Overall Power used by CPU Package [not guaranteed to work]
+  # CoreTemp: [Requires Admin] Average Core Temperature of CPU Package [not guaranteed to work]
 ```
 
 ### Bar Component: GPU Usage
