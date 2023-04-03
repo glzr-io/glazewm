@@ -301,9 +301,22 @@ Displays the current CPU usage.
 
 ```yaml
 - type: "cpu usage"
-  string_format: "CPU {0}%" # {0} is substituted by value
-  number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
-  refresh_interval_ms: 1000 # How often this counter is refreshed
+  
+  # {0} is substituted by percentage, {1} by current value, {2} by max value 
+  # Example: '{1}/{2} MHz ({0}%)'
+  #          'CPU {0}%'
+  string_format: "CPU {0}%"
+
+  # For formats, see: https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
+  percent_format: "00" # Format for {0}.
+  current_value_format: "0.00" # Format for {1}.
+  max_value_format: "0.00" # Format for {2}.
+  refresh_interval_ms: 500 # How often this counter is refreshed
+  counter: CpuUsage
+
+  # Supported Counters Include:
+  # CpuUsage: Overall CPU Usage across All Cores.
+  # CpuFrequency: Overall CPU Frequency across All Cores.
 ```
 
 ### Bar Component: GPU Usage
@@ -316,7 +329,6 @@ This component has high CPU requirement (compared to others); due to no efficien
   number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
   refresh_interval_ms: 1000 # How often this counter is refreshed
   flags: Graphics
-  padding: "0 10 0 0"
 
   # Supported flags
   # Multiple flags can be specified by e.g. `flags: Graphics, VideoDecode, VideoEncode, Copy`
@@ -354,7 +366,6 @@ Displays the current Memory usage.
   # CommitSize: Retrieves the amount of committed virtual memory (bytes); i.e. which has space reserved on the disk paging file(s).
   # PagedResidentBytes: Size of the active portion of the paged pool in physical memory, storing objects that can be written to disk when they're not in use.
   counter: PhysicalMemory
-  padding: "0 10 0 0"
 ```
 
 ### Adding Custom Bar Components

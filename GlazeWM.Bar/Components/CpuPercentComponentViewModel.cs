@@ -26,7 +26,13 @@ public class CpuPercentComponentViewModel : ComponentViewModel
 
   private string GetFormattedText()
   {
-    var percent = _cpuStatsService.GetCurrentLoadPercent().ToString(Config.NumberFormat, CultureInfo.InvariantCulture);
-    return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent);
+    var values = _cpuStatsService.GetMeasurement(Config.Counter);
+    values.DivideBy(Config.DivideBy);
+
+    var percent = ((values.CurrentValue / values.MaxValue) * 100).ToString(Config.PercentFormat, CultureInfo.InvariantCulture);
+    var curValue = values.CurrentValue.ToString(Config.CurrentValueFormat, CultureInfo.InvariantCulture);
+    var maxValue = values.MaxValue.ToString(Config.MaxValueFormat, CultureInfo.InvariantCulture);
+
+    return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent, curValue, maxValue);
   }
 }

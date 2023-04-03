@@ -38,7 +38,7 @@ public class MemoryPercentComponentConfig : BarComponentConfig
   public float DivideBy { get; set; } = 1000f * 1000f * 1000f;
 
   /// <summary>
-  /// The value to pull for RAM usage.
+  /// The value to pull for memory usage.
   /// </summary>
   public RamMeasurement Counter { get; set; } = RamMeasurement.PhysicalMemory;
 }
