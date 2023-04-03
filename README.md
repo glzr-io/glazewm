@@ -371,6 +371,15 @@ Displays the current Memory usage.
   counter: PhysicalMemory
 ```
 
+### Bar Component: Text File
+
+For displaying any content without a native integrated widget; updates in real time.
+
+```yaml
+- type: "text file"
+  file_path: "PATH_HERE" # path to file
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)

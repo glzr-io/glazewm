@@ -106,6 +106,7 @@ namespace GlazeWM.Bar
         CpuPercentComponentConfig cpupc => new CpuPercentComponentViewModel(this, cpupc),
         GpuPercentComponentConfig gpupc => new GpuPercentComponentViewModel(this, gpupc),
         MemoryPercentComponentConfig rampc => new MemoryPercentComponentViewModel(this, rampc),
+        TextFileConfig stc => new TextFileComponentViewModel(this, stc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }

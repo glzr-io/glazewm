@@ -83,6 +83,10 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "text file" => JsonSerializer.Deserialize<TextFileConfig>(
+          jsonObject.RootElement.ToString(),
+          options
+        ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }
