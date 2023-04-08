@@ -25,6 +25,8 @@ public class IpcComponentViewModel : ComponentViewModel
     // Note: In constructor we clone parameter; as we want separate one for each bar,
     // to ensure we can properly call OnPropertyChanged with multiple monitors.
     _ipcService = ServiceLocator.GetRequiredService<IpcService>();
+    Text = config.DefaultText;
+    OnPropertyChanged(nameof(Text));
 
     var bus = ServiceLocator.GetRequiredService<Bus>();
     _ipcService.OnMessageReceived += OnIpcMessageReceived;
