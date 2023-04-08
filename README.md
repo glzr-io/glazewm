@@ -444,9 +444,6 @@ client.SendIpcComponentUpdate("uniqueIdForThisLabel", new UpdateIpcComponent()
 });
 ```
 
-The backend for this is implemented using ZeroMQ & Json for serialization,
-so people from other languages could use IPC too.
-
 ### Usage from Other Programming Languages
 
 If you are interfacing from another programming language, do equivalent of:
