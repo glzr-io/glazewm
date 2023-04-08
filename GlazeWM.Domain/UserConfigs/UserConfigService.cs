@@ -4,11 +4,12 @@ using System.IO;
 using System.Linq;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class UserConfigService
+  public class UserConfigService : IIpcConfigContainer
   {
     /// <summary>
     /// The deserialized user config. Sections of the config can be accessed via getters.
@@ -136,5 +137,8 @@ namespace GlazeWM.Domain.UserConfigs
           rule.TitleRegex?.IsMatch(window.Title) != false;
       }).ToList();
     }
+
+    /* Interfaces */
+    public IIpcConfig Config => GeneralConfig;
   }
 }

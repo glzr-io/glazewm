@@ -12,17 +12,16 @@ namespace GlazeWM.Bar.Components;
 
 public class TextFileComponentViewModel : ComponentViewModel
 {
-  private readonly TextFileConfig _baseConfig;
+  private readonly TextFileComponentConfig _baseConfig;
   private readonly IDisposable _disposable;
 
   public string Text { get; set; } = "Loading...";
 
   public FileSystemWatcher Watcher { get; }
 
-  public TextFileComponentViewModel(BarViewModel parentViewModel, TextFileConfig baseConfig) : base(parentViewModel, baseConfig)
+  public TextFileComponentViewModel(BarViewModel parentViewModel, TextFileComponentConfig baseConfig) : base(parentViewModel, baseConfig)
   {
     _baseConfig = baseConfig;
-    ServiceLocator.GetRequiredService<ILogger<TextFileComponentViewModel>>();
 
     var bus = ServiceLocator.GetRequiredService<Bus>();
     _disposable = bus.Events.OfType<UserConfigReloadedEvent>().Subscribe(_ => Dispose(true));

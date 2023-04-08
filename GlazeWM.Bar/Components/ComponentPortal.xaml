@@ -58,6 +58,9 @@
             <DataTemplate DataType="{x:Type components:WeatherComponentViewModel}">
               <components:WeatherComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:IpcComponentViewModel}">
+              <components:IpcComponent Padding="{Binding Padding}" Background="{Binding Background}" />
+            </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
       </Grid>

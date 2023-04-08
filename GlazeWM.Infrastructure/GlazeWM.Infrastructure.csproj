@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+    <PackageReference Include="NetMQ" Version="4.0.1.11" />
     <PackageReference Include="System.Management" Version="7.0.0" />
     <PackageReference Include="System.Reactive" Version="5.0.0" />
     <PackageReference Include="Vanara.Core" Version="3.4.13" />

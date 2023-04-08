@@ -407,6 +407,75 @@ Uses Open-Meteo API, refreshes every hour.
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)
 
+## IPC
+
+GlazeWM includes a component for handling inter-process communication.
+It is based ZeroMQ for message passing and UTF8 JSON for serialization, therefore should be portable across many languages.
+
+[Refer to Client Source for Possible Commands](./GlazeWM.IPC.Client/Client.cs).
+
+By default Port 49999 is used, you can override this in main bar config.
+
+```yaml
+general:
+  net_mq_port: 49999
+```
+
+### Bar Component: IPC Label
+
+This component allows you to update its text and style remotely using interprocess communication:
+
+```yaml
+- type: "ipc"
+  label_id: "uniqueIdForThisLabel"
+  default_text: "placeholder text" # Placeholder
+```
+
+To use this, make a new C# project and add a `Project Reference` to `GlazeWM.IPC.Client`; then use it as follows:
+
+```csharp
+// Connect to IPC
+using var client = new Client(49999);
+
+// Send an update
+client.SendIpcComponentUpdate("uniqueIdForThisLabel", new UpdateIpcComponent()
+{
+  Text = "This label now has cool text"
+});
+```
+
+The backend for this is implemented using ZeroMQ & Json for serialization,
+so people from other languages could use IPC too.
+
+### Usage from Other Programming Languages
+
+If you are interfacing from another programming language, do equivalent of:
+```csharp
+_publisher = new PublisherSocket();
+_publisher.Connect($"tcp://localhost:{port}");
+```
+
+and simply send update messages.
+
+Check the [Messages](./GlazeWM.IPC.Client/Messages). folder for list of available messages.
+
+Example payload for IPC Label Component:
+```json
+{
+  "Text":"This is a cool label.",
+  "Foreground":"#74FFFF74",
+  "Margin":null,
+  "Background":null,
+  "FontFamily":null,
+  "FontWeight":null,
+  "FontSize":null,
+  "BorderColor":null,
+  "BorderRadius":null,
+  "BorderWidth":null,
+  "Padding":null
+}
+```
+
 ## Window rules
 
 Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.

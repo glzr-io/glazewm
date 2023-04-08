@@ -19,6 +19,7 @@ using GlazeWM.Domain.Workspaces.CommandHandlers;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
+using GlazeWM.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GlazeWM.Domain
@@ -33,6 +34,9 @@ namespace GlazeWM.Domain
       services.AddSingleton<UserConfigService>();
       services.AddSingleton<WindowService>();
       services.AddSingleton<WorkspaceService>();
+
+      // Register IIpcConfigContainer as UserConfigService, using same instance
+      services.AddSingleton<IIpcConfigContainer, UserConfigService>(provider => provider.GetRequiredService<UserConfigService>());
 
       services.AddSingleton<ICommandHandler<PopulateInitialStateCommand>, PopulateInitialStateHandler>();
       services.AddSingleton<ICommandHandler<ExecProcessCommand>, ExecProcessHandler>();

@@ -88,7 +88,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "text file" => JsonSerializer.Deserialize<TextFileConfig>(
+        "text file" => JsonSerializer.Deserialize<TextFileComponentConfig>(
+          jsonObject.RootElement.ToString(),
+          options
+        ),
+        "ipc" => JsonSerializer.Deserialize<IpcComponentConfig>(
           jsonObject.RootElement.ToString(),
           options
         ),
