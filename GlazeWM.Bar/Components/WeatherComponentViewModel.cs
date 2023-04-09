@@ -18,7 +18,6 @@ public class WeatherComponentViewModel : ComponentViewModel
     WeatherComponentConfig config) : base(parentViewModel, config)
   {
     // This API is updated hourly.
-    // ReSharper disable once AsyncVoidLambda
     Observable.Interval(TimeSpan.FromHours(1))
       .TakeUntil(_parentViewModel.WindowClosing)
       .Subscribe(async _ => await UpdateWeatherAsync());
@@ -33,7 +32,7 @@ public class WeatherComponentViewModel : ComponentViewModel
     var iconText = GetIconText(weather.Icon);
     var temperatureString = weather.Result.CurrentWeather.Temperature.ToString(Config.TemperatureFormat, CultureInfo.InvariantCulture);
 
-    FormattedWeather = string.Format(Config.Format, iconText, temperatureString);
+    FormattedWeather = string.Format(CultureInfo.InvariantCulture, Config.Format, iconText, temperatureString);
     OnPropertyChanged(nameof(FormattedWeather));
   }
 
