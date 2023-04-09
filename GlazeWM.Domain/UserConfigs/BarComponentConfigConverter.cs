@@ -68,11 +68,6 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "music component" =>
-          JsonSerializer.Deserialize<WorkspacesComponentConfig>(
-            jsonObject.RootElement.ToString(),
-            options
-          ),
         "cpu usage" =>
           JsonSerializer.Deserialize<CpuPercentComponentConfig>(
             jsonObject.RootElement.ToString(),
