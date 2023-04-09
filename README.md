@@ -300,7 +300,7 @@ There are three labels available that can be customized:
 Displays the current CPU usage.
 
 ```yaml
-- type: "cpu usage"
+- type: "cpu"
   
   # {0} is substituted by percentage, {1} by current value, {2} by max value 
   # Example: '{1}/{2} MHz ({0}%)'
@@ -327,7 +327,7 @@ Displays the current CPU usage.
 This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
 
 ```yaml
-- type: "gpu usage"
+- type: "gpu"
   string_format: "GPU {0}%" # {0} is substituted by number format
   number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
   refresh_interval_ms: 1000 # How often this counter is refreshed
@@ -350,7 +350,7 @@ This component has high CPU requirement (compared to others); due to no efficien
 Displays the current Memory usage.
 
 ```yaml
-- type: "memory usage"
+- type: "memory"
   # {0} is substituted by percentage, {1} by current value, {2} by max value 
   # Example: '{1}/{2} MB ({0}%)'
   #          '{0}%'
