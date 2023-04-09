@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for TilingDirectionComponent.xaml
+  /// Interaction logic for MemoryPercentComponent.xaml
   /// </summary>
   public partial class MemoryPercentComponent : UserControl
   {

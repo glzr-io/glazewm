@@ -3,7 +3,7 @@ using System.Windows.Controls;
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for TextComponent.xaml
+  /// Interaction logic for TextFileComponent.xaml
   /// </summary>
   public partial class TextFileComponent : UserControl
   {
