@@ -19,6 +19,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public string FloatingWindowMoveAmount { get; set; } = "5%";
     /// <summary>
+    /// Color for border drawn around a focused window.
+    /// </summary>
+    public string FocusBorderColor { get; set; } = "#FFFFFFFF";
     /// If activated, by switching to the current workspace the previous focused workspace is activated.
     /// </summary>
     public bool ToggleWorkspaceOnRefocus { get; set; }

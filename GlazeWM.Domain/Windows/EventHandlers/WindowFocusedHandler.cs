@@ -7,6 +7,7 @@ using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
