@@ -26,7 +26,7 @@ namespace GlazeWM.Bar.Components
       var initVolume = _sysVolume.GetVolumeInformation();
       FormattedText = GetVolumeIcon(initVolume) + initVolume.Volume.ToString("00");
 
-      _sysVolume.VolumeChangedEvent += (_, volumeInfo) =>
+      _sysVolume.VolumeChanged += (_, volumeInfo) =>
       {
         FormattedText = GetVolumeIcon(volumeInfo) + volumeInfo.Volume.ToString("00");
         Debug.WriteLine(FormattedText);
