@@ -1,7 +1,6 @@
 {
   // Enable Roslyn analyzers. Needed for showing linting errors.
   "omnisharp.enableRoslynAnalyzers": true,
-
   // XAML formatting configuration.
   "[xaml]": {
     "editor.defaultFormatter": "redhat.vscode-xml"
