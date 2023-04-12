@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components
@@ -7,7 +8,8 @@ namespace GlazeWM.Bar.Components
   public class VolumeComponentViewModel : ComponentViewModel
   {
     private VolumeComponentConfig _config => _componentConfig as VolumeComponentConfig;
-    private string _formattedText = "NEED INIT VALUE";
+    private readonly SystemVolumeInformation _sysVolume = ServiceLocator.GetRequiredService<SystemVolumeInformation>();
+    private string _formattedText;
     public string FormattedText
     {
       get => _formattedText;
@@ -21,26 +23,26 @@ namespace GlazeWM.Bar.Components
       BarViewModel parentViewModel,
       VolumeComponentConfig config) : base(parentViewModel, config)
     {
-      var sysVolume = new SystemVolumeInformation();
+      var initVolume = _sysVolume.GetVolumeInformation();
+      FormattedText = GetVolumeIcon(initVolume) + initVolume.Volume.ToString("00");
 
-      sysVolume.VolumeChangedEvent += (_, volumeInfo) =>
+      _sysVolume.VolumeChangedEvent += (_, volumeInfo) =>
       {
-        var volume = (int)(volumeInfo.Volume * 100);
-        FormattedText = GetVolumeIcon(volume, volumeInfo.Muted) + volume.ToString("00");
+        FormattedText = GetVolumeIcon(volumeInfo) + volumeInfo.Volume.ToString("00");
         Debug.WriteLine(FormattedText);
       };
     }
 
-    private string GetVolumeIcon(int volume, bool isMuted)
+    private string GetVolumeIcon(VolumeInformation vol)
     {
-      if (isMuted)
+      if (vol.Muted)
         return _config.LabelVolumeMute;
 
-      if (volume < 10)
+      if (vol.Volume < 10)
         return _config.LabelVolumeLow;
-      else if (volume < 50)
+      else if (vol.Volume < 50)
         return _config.LabelVolumeMed;
-      else if (volume < 100)
+      else if (vol.Volume < 100)
         return _config.LabelVolumeHigh;
 
       return _config.LabelVolumeLow;
