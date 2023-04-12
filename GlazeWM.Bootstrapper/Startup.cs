@@ -23,7 +23,6 @@ namespace GlazeWM.Bootstrapper
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
-    private readonly WindowService _windowService;
     private readonly UserConfigService _userConfigService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
@@ -33,14 +32,12 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
-      UserConfigService userConfigService,
-      WindowService windowService)
+      UserConfigService userConfigService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
-      _windowService = windowService;
       _userConfigService = userConfigService;
     }
 
