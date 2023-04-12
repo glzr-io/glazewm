@@ -21,6 +21,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _defaultDevice.Activate(typeof(IAudioEndpointVolume).GUID, 0, null, out var epVol);
       _endPointVolume = epVol as IAudioEndpointVolume;
       _endPointVolume.RegisterControlChangeNotify(this);
+
+      VolumeChanged?.Invoke(this, new VolumeChangedEventArgs
+      {
+        Volume = _endPointVolume.GetMasterVolumeLevelScalar(),
+        Muted = _endPointVolume.GetMute()
+      });
     }
     public VolumeInformation GetVolumeInformation()
     {

@@ -8,40 +8,40 @@
   mc:Ignorable="d">
   <Grid
     Visibility="{Binding Visibility}"
-    Margin="{Binding Margin}"
-    Background="{Binding Background}">
+    Margin="{Binding Margin}">
     <Border
+      CornerRadius="{Binding BorderRadius}"
       BorderThickness="{Binding BorderWidth}"
       BorderBrush="{Binding BorderColor}">
-      <Grid Margin="{Binding Padding}">
+      <Grid>
         <ContentPresenter Content="{Binding .}">
           <ContentPresenter.Resources>
             <DataTemplate DataType="{x:Type components:BatteryComponentViewModel}">
-              <components:BatteryComponent />
+              <components:BatteryComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:BindingModeComponentViewModel}">
-              <components:BindingModeComponent />
+              <components:BindingModeComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:ClockComponentViewModel}">
-              <components:ClockComponent />
+              <components:ClockComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:TextComponentViewModel}">
-              <components:TextComponent />
+              <components:TextComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:NetworkComponentViewModel}">
-              <components:NetworkComponent />
+              <components:NetworkComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:WindowTitleComponentViewModel}">
-              <components:WindowTitleComponent />
+              <components:WindowTitleComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:SystemTrayComponentViewModel}">
-              <components:SystemTrayComponent />
+              <components:SystemTrayComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:TilingDirectionComponentViewModel}">
-              <components:TilingDirectionComponent />
+              <components:TilingDirectionComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
-              <components:WorkspacesComponent />
+              <components:WorkspacesComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:VolumeComponentViewModel}">
               <components:VolumeComponent />

@@ -67,7 +67,9 @@ namespace GlazeWM.Bar.Components
       // Update the displayed time every second.
       var updateInterval = TimeSpan.FromSeconds(1);
 
-      Observable.Interval(updateInterval)
+      Observable
+        .Interval(updateInterval)
+        .TakeUntil(_parentViewModel.WindowClosing)
         .Subscribe(_ => OnPropertyChanged(nameof(FormattedTime)));
     }
   }

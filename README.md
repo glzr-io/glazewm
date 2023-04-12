@@ -62,8 +62,18 @@ The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
-```
+```console
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
+```
+
+## General
+
+```yaml
+general:
+  show_floating_on_top: false
+  floating_window_move_amount: "5%"
+  # When enabled, switching to the current workspace activates the previously focused workspace
+  toggle_workspace_on_refocus: false
 ```
 
 ## Keybindings
@@ -321,6 +331,7 @@ window_rules:
 - resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
 - resize borders [\<shorthand property>](#shorthand-properties) (eg. `resize borders 0px -7px -7px -7px`)
 - set \<floating | tiling | minimized | maximized>
+- set \<width | height> \<amount in px | amount in %> (eg. `set height 30%` or `set width 200px`)
 - toggle \<floating | maximized>
 - toggle focus mode
 - tiling direction toggle
