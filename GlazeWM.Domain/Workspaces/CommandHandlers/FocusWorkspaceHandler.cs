@@ -6,12 +6,14 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers
 {
   internal sealed class FocusWorkspaceHandler : ICommandHandler<FocusWorkspaceCommand>
   {
     private readonly Bus _bus;
+    private readonly ILogger<FocusWorkspaceHandler> _logger;
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
     private readonly UserConfigService _userConfigService;
@@ -19,12 +21,14 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public FocusWorkspaceHandler(
       Bus bus,
+      ILogger<FocusWorkspaceHandler> logger,
       ContainerService containerService,
       MonitorService monitorService,
       UserConfigService userConfigService,
       WorkspaceService workspaceService)
     {
       _bus = bus;
+      _logger = logger;
       _containerService = containerService;
       _monitorService = monitorService;
       _userConfigService = userConfigService;
@@ -45,7 +49,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       if (focusedWorkspace == workspaceToFocus)
       {
-        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus)
+        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus || _workspaceService.MostRecentWorkspace == null)
           return CommandResponse.Ok;
         workspaceToFocus = _workspaceService.MostRecentWorkspace;
       }
@@ -55,6 +59,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Set focus to the last focused window in workspace. If the workspace has no descendant
       // windows, then set focus to the workspace itself.
+      _logger.LogDebug("WorkspaceToFocus: {WorkspaceToFocusName}", workspaceToFocus.Name);
       var containerToFocus = workspaceToFocus.HasChildren()
         ? workspaceToFocus.LastFocusedDescendant
         : workspaceToFocus;
