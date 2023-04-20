@@ -37,22 +37,24 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
     public CommandResponse Handle(FocusWorkspaceCommand command)
     {
-      var workspaceName = command.WorkspaceName;
+      var workspaceName = "";
+      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
+      if (focusedWorkspace.Name == command.WorkspaceName)
+      {
+        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus || _workspaceService.MostRecentWorkspace == null)
+          return CommandResponse.Ok;
+        workspaceName = _workspaceService.MostRecentWorkspace.Name;
+      }
+      else
+      {
+        workspaceName = command.WorkspaceName;
+      }
 
       // Get workspace to focus. If it's currently inactive, then activate it.
       var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
         ?? ActivateWorkspace(workspaceName);
 
-      // Get the currently focused and displayed workspaces.
-      var focusedWorkspace = _workspaceService.GetFocusedWorkspace();
       var displayedWorkspace = (workspaceToFocus.Parent as Monitor).DisplayedWorkspace;
-
-      if (focusedWorkspace == workspaceToFocus)
-      {
-        if (!_userConfigService.GeneralConfig.ToggleWorkspaceOnRefocus || _workspaceService.MostRecentWorkspace == null)
-          return CommandResponse.Ok;
-        workspaceToFocus = _workspaceService.MostRecentWorkspace;
-      }
 
       // Save currently focused workspace as recent for command "recent"
       _workspaceService.MostRecentWorkspace = focusedWorkspace;
