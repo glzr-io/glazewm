@@ -74,6 +74,7 @@ general:
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
+  focus_border_color: "#42c0fb"
 ```
 
 ## Keybindings
