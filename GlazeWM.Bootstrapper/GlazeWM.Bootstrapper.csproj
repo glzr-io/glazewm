@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Seperators\*.png" />
     <EmbeddedResource Include="Resources\icon.ico">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </EmbeddedResource>

@@ -7,23 +7,23 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Bar.Components
 {
-  public class BarComponentViewModel : ComponentViewModel
+  public class BarSeperatorComponentViewModel : ComponentViewModel
   {
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
       ServiceLocator.GetRequiredService<ContainerService>();
     private readonly CommandParsingService _commandParsingService =
       ServiceLocator.GetRequiredService<CommandParsingService>();
-    private TextComponentConfig _config => _componentConfig as TextComponentConfig;
+    private BarSeperatorComponentConfig _config => _componentConfig as BarSeperatorComponentConfig;
 
     public string Text => _config.Text;
 
     public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
     public ICommand RightClickCommand => new RelayCommand(OnRightClick);
 
-    public BarComponentViewModel(
+    public BarSeperatorComponentViewModel(
       BarViewModel parentViewModel,
-      TextComponentConfig config) : base(parentViewModel, config)
+      BarSeperatorComponentConfig config) : base(parentViewModel, config)
     {
     }
 
