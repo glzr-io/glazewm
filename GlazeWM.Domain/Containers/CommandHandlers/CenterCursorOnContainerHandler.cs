@@ -18,10 +18,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var isEnabled = _userConfigService.GeneralConfig.CursorFollowsFocus;
 
-      if (!isEnabled || command.TargetContainer == null)
-        return CommandResponse.Ok;
-
-      if (command.TargetContainer.IsDetached())
+      if (!isEnabled || command.TargetContainer.IsDetached() || command.TargetContainer.FocusIndex < 0)
         return CommandResponse.Ok;
 
       var targetRect = command.TargetContainer.ToRect();
