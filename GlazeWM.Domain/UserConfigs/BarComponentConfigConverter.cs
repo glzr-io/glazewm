@@ -63,8 +63,8 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
-        "seperator" =>
-          JsonSerializer.Deserialize<BarSeperatorComponentConfig>(
+        "image" =>
+          JsonSerializer.Deserialize<ImageComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

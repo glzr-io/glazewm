@@ -61,8 +61,8 @@
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:BarSeperatorComponentViewModel}">
-              <components:BarSeperatorComponent
+            <DataTemplate DataType="{x:Type components:ImageComponentViewModel}">
+              <components:ImageComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>

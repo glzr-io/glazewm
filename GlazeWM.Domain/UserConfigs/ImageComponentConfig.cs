@@ -1,6 +1,6 @@
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class BarSeperatorComponentConfig : BarComponentConfig
+  public class ImageComponentConfig : BarComponentConfig
   {
     /// <summary>
     /// Text to display.

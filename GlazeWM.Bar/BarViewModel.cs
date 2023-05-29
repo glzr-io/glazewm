@@ -101,7 +101,7 @@ namespace GlazeWM.Bar
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         VolumeComponentConfig vcc => new VolumeComponentViewModel(this, vcc),
-        BarSeperatorComponentConfig bscc => new BarSeperatorComponentViewModel(this, bscc),
+        ImageComponentConfig bscc => new ImageComponentViewModel(this, bscc),
         SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });

@@ -3,11 +3,11 @@ using System.Windows.Controls;
 namespace GlazeWM.Bar.Components
 {
   /// <summary>
-  /// Interaction logic for BarSeperatorComponent.xaml
+  /// Interaction logic for ImageComponent.xaml
   /// </summary>
-  public partial class BarSeperatorComponent : UserControl
+  public partial class ImageComponent : UserControl
   {
-    public BarSeperatorComponent()
+    public ImageComponent()
     {
       InitializeComponent();
     }
