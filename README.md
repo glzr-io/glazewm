@@ -74,6 +74,7 @@ general:
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
+  focus_border_color: "#42c0fb"
 ```
 
 ## Keybindings
@@ -104,11 +105,11 @@ keybindings:
 
 ### Default keybindings
 
-Keybindings with Alt pressed:
+Keybindings with <kbd>Alt</kbd> pressed:
 
 ![Alt key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635035-152ed4a6-e5a1-4878-8863-f62391e7d703.png)
 
-Keybindings with Alt+Shift pressed:
+Keybindings with <kbd>Alt</kbd>+<kbd>Shift</kbd> pressed:
 
 ![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
@@ -349,4 +350,4 @@ An app called "Sonic Studio", which is installed by default on ASUS ROG machines
 
 ## Binding the right-side Alt key `RMenu` on certain keyboard layouts
 
-Most keyboard layouts treat the right-side Alt key as a regular Alt key, while others (eg. US International and German) treat it as AltGr and generate both Ctrl and Alt when it is pressed. For these keyboard layouts, keybindings with the AltGr key need to specify both `RMenu` and `Control` (eg. `RMenu+Control+A`).
+Most keyboard layouts treat the right-side <kbd>Alt</kbd> key the same as the left, while others (eg. US International and German) treat it as <kbd>AltGr</kbd> and generate both <kbd>Ctrl</kbd> and <kbd>Alt</kbd> when it is pressed. For these keyboard layouts, keybindings with the <kbd>AltGr</kbd> key need to specify both `RMenu` and `Control` (eg. `RMenu+Control+A`).
