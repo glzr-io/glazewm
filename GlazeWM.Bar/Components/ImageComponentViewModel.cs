@@ -1,5 +1,3 @@
-using System.Windows.Input;
-using GlazeWM.Bar.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
@@ -16,25 +14,12 @@ namespace GlazeWM.Bar.Components
       ServiceLocator.GetRequiredService<CommandParsingService>();
     private ImageComponentConfig _config => _componentConfig as ImageComponentConfig;
 
-    public string Text => _config.Text;
-
-    public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
-    public ICommand RightClickCommand => new RelayCommand(OnRightClick);
+    public string Source => _config.Source;
 
     public ImageComponentViewModel(
       BarViewModel parentViewModel,
       ImageComponentConfig config) : base(parentViewModel, config)
     {
-    }
-
-    public void OnLeftClick()
-    {
-      InvokeCommand(_config.LeftClickCommand);
-    }
-
-    public void OnRightClick()
-    {
-      InvokeCommand(_config.RightClickCommand);
     }
 
     private void InvokeCommand(string commandString)
