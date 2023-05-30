@@ -12,6 +12,10 @@ namespace GlazeWM.Domain.Common.CommandHandlers
     {
       var processName = command.ProcessName;
       var args = command.Args;
+      var processUserName = command.ProcessUserName;
+      var processPassword = command.ProcessPassword;
+      var useShellExecute = processUserName.Length == 0 || processPassword.Length == 0;
+      var verb = useShellExecute ? "" : "RunAsUser";
 
       try
       {
@@ -21,10 +25,14 @@ namespace GlazeWM.Domain.Common.CommandHandlers
           // Expand env variables in the process name (eg. "%ProgramFiles%").
           FileName = Environment.ExpandEnvironmentVariables(processName),
           Arguments = string.Join(" ", args),
-          UseShellExecute = true,
+          UseShellExecute = useShellExecute,
           // Set user profile directory as the working dir. This affects the starting directory
           // of terminal processes (eg. CMD, Git bash, etc).
           WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+          // Run As User
+          Verb = verb,
+          UserName = processUserName,
+          PasswordInClearText = processPassword,
         };
         process.Start();
       }

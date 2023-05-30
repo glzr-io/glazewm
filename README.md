@@ -154,7 +154,7 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 bar:
   # The option to enable/disable the bar.
   enabled: true
-  
+
   # Height of the bar in pixels.
   height: "30px"
 
@@ -321,6 +321,18 @@ window_rules:
     match_process_name: "notepad"
 ```
 
+## Yaml Global Variables
+```yaml
+globals:
+  - name: "username"
+    value: "user_1"
+  - name: "password"
+    value: "12345"
+
+command: "exec_a {{username}} {{password}} powershell"
+
+```
+
 # Available commands
 
 - layout \<vertical | horizontal>
@@ -340,6 +352,7 @@ window_rules:
 - reload config
 - close
 - exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:/Program Files/Google/Chrome/Application/chrome'`)
+- exec_a \<username> \<password> \<process name | path to executable> (eg. `exec_a user_1 12345 powershell`)
 - ignore
 
 # Known issues
