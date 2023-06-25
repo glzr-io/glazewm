@@ -2,7 +2,7 @@
 
 namespace GlazeWM.Domain.UserConfigs;
 
-public class MemoryPercentComponentConfig : BarComponentConfig
+public class MemoryComponentConfig : BarComponentConfig
 {
   /// <summary>
   /// Label/icon assigned to the RAM component.

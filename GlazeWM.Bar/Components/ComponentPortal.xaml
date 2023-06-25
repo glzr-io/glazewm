@@ -71,8 +71,8 @@
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:MemoryPercentComponentViewModel}">
-              <components:MemoryPercentComponent
+            <DataTemplate DataType="{x:Type components:MemoryComponentViewModel}">
+              <components:MemoryComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>

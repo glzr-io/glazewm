@@ -84,7 +84,7 @@ namespace GlazeWM.Domain.UserConfigs
             options
           ),
         "memory" =>
-          JsonSerializer.Deserialize<MemoryPercentComponentConfig>(
+          JsonSerializer.Deserialize<MemoryComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
