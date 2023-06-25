@@ -406,7 +406,7 @@ Uses Open-Meteo API, refreshes every hour.
 
 ### Adding Custom Bar Components
 
-[Guide Available Here](./README-ADDINGCOMPONENTS.md)
+[Guide Available Here](./docs/contributing-new-components.md)
 
 ## Window rules
 
