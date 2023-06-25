@@ -1,8 +1,8 @@
 namespace GlazeWM.Infrastructure.WindowsApi
 {
-  public class VolumeChangedEventArgs
+  public class VolumeInformation
   {
-    public float Volume { get; set; }
+    public int Volume { get; set; }
     public bool Muted { get; set; }
   }
 }

@@ -60,6 +60,8 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:IpcComponentViewModel}">
               <components:IpcComponent Padding="{Binding Padding}" Background="{Binding Background}" />
+            <DataTemplate DataType="{x:Type components:VolumeComponentViewModel}">
+              <components:VolumeComponent />
             </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>

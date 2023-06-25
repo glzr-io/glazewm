@@ -11,7 +11,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private IMMDevice _defaultDevice;
     private IAudioEndpointVolume _endPointVolume;
 
-    public event EventHandler<VolumeChangedEventArgs> VolumeChanged;
+    public event EventHandler<VolumeInformation> VolumeChanged;
 
     public SystemVolumeInformation()
     {
@@ -22,11 +22,19 @@ namespace GlazeWM.Infrastructure.WindowsApi
       _endPointVolume = epVol as IAudioEndpointVolume;
       _endPointVolume.RegisterControlChangeNotify(this);
 
-      VolumeChanged?.Invoke(this, new VolumeChangedEventArgs
+      VolumeChanged?.Invoke(this, new VolumeInformation
       {
-        Volume = _endPointVolume.GetMasterVolumeLevelScalar(),
+        Volume = (int)(_endPointVolume.GetMasterVolumeLevelScalar() * 100),
         Muted = _endPointVolume.GetMute()
       });
+    }
+    public VolumeInformation GetVolumeInformation()
+    {
+      return new()
+      {
+        Volume = (int)(_endPointVolume.GetMasterVolumeLevelScalar() * 100),
+        Muted = _endPointVolume.GetMute()
+      };
     }
 
     public HRESULT OnNotify(IntPtr pNotify)
@@ -43,9 +51,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
         channelVolumes[i] = Marshal.PtrToStructure<float>(firstChannelVolumesMember);
       }
 
-      VolumeChanged?.Invoke(this, new VolumeChangedEventArgs
+      VolumeChanged?.Invoke(this, new VolumeInformation
       {
-        Volume = notificationData.fMasterVolume,
+        Volume = (int)(notificationData.fMasterVolume * 100),
         Muted = notificationData.bMuted
       });
 

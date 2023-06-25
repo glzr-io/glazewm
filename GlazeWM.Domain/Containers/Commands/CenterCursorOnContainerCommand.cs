@@ -3,16 +3,16 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers.Commands
 {
-  public class CenterCursorOnRectCommand : Command
+  public class CenterCursorOnContainerCommand : Command
   {
-    public Rect TargetRect { get; }
+    public Container TargetContainer { get; }
 
     /// <summary>
     ///  Center cursor in the middle of target container
     /// </summary>
-    public CenterCursorOnRectCommand(Rect target)
+    public CenterCursorOnContainerCommand(Container target)
     {
-      TargetRect = target;
+      TargetContainer = target;
     }
   }
 }

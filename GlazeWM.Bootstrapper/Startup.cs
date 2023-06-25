@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
@@ -23,7 +24,6 @@ namespace GlazeWM.Bootstrapper
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
-    private readonly WindowService _windowService;
     private readonly UserConfigService _userConfigService;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
@@ -33,14 +33,12 @@ namespace GlazeWM.Bootstrapper
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
-      UserConfigService userConfigService,
-      WindowService windowService)
+      UserConfigService userConfigService)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
-      _windowService = windowService;
       _userConfigService = userConfigService;
     }
 
@@ -53,6 +51,8 @@ namespace GlazeWM.Bootstrapper
 
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());
+
+        _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
 
         // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
         // to be initialized before populating initial state.
@@ -105,6 +105,7 @@ namespace GlazeWM.Bootstrapper
     private void OnApplicationExit()
     {
       _bus.Invoke(new ShowAllWindowsCommand());
+      _bus.Invoke(new SetActiveWindowBorderCommand(null));
       _barService.ExitApp();
       _systemTrayIcon?.Remove();
       Application.Exit();

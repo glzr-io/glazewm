@@ -103,6 +103,7 @@ namespace GlazeWM.Bar
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
+        VolumeComponentConfig vcc => new VolumeComponentViewModel(this, vcc),
         SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
         CpuPercentComponentConfig cpupc => new CpuPercentComponentViewModel(this, cpupc),
         GpuPercentComponentConfig gpupc => new GpuPercentComponentViewModel(this, gpupc),

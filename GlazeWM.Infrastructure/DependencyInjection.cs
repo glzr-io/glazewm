@@ -17,11 +17,12 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<WindowEventService>();
       services.AddSingleton<JsonService>();
       services.AddSingleton<YamlService>();
-
       services.AddSingleton<IpcService>();
       services.AddSingleton<CpuStatsService>();
       services.AddSingleton<GpuStatsService>();
       services.AddSingleton<MemoryStatsService>();
+      services.AddSingleton<SystemVolumeInformation>();
+
       services.AddSingleton<ICommandHandler<ExitApplicationCommand>, ExitApplicationHandler>();
       services.AddSingleton<ICommandHandler<HandleFatalExceptionCommand>, HandleFatalExceptionHandler>();
       services.AddSingleton<ICommandHandler<NoopCommand>, NoopHandler>();

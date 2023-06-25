@@ -43,6 +43,11 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "volume" =>
+          JsonSerializer.Deserialize<VolumeComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "tiling direction" =>
           JsonSerializer.Deserialize<TilingDirectionComponentConfig>(
             jsonObject.RootElement.ToString(),
