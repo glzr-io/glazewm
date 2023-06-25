@@ -61,8 +61,8 @@
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:CpuPercentComponentViewModel}">
-              <components:CpuPercentComponent
+            <DataTemplate DataType="{x:Type components:CpuComponentViewModel}">
+              <components:CpuComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>

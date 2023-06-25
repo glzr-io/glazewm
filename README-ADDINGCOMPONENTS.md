@@ -4,10 +4,10 @@ Adding a new component is relatively trivial and involves a few simple steps; th
 
 ## Adding a Config
 
-First add a config to the `GlazeWM.Domain.UserConfigs` namespace; here is an example: 
+First add a config to the `GlazeWM.Domain.UserConfigs` namespace; here is an example:
 
 ```csharp
-public class CpuPercentComponentConfig : BarComponentConfig
+public class CpuComponentConfig : BarComponentConfig
 {
     /// <summary>
     /// Label/icon assigned to the CPU component.
@@ -22,11 +22,11 @@ public class CpuPercentComponentConfig : BarComponentConfig
 }
 ```
 
-Once this is done, you should register this config in `BarComponentConfigConverter.Read`:  
+Once this is done, you should register this config in `BarComponentConfigConverter.Read`:
 
 ```csharp
 "cpu percent" =>
-  JsonSerializer.Deserialize<CpuPercentComponentConfig>(
+  JsonSerializer.Deserialize<CpuComponentConfig>(
     jsonObject.RootElement.ToString(),
     options
   )
@@ -41,13 +41,13 @@ components_right:
     number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
 ```
 
-Each capital letter is prefixed by a space delimited by `_`.  
+Each capital letter is prefixed by a space delimited by `_`.
 
 ## Adding a Service [Optional]
 
 In some cases to add a component, you might want to register a `'Service'`; this will allow your logic to be reused across multiple locations in the program.
 
-To do so, first create the raw service in `GlazeWM.Infrastructure`.  
+To do so, first create the raw service in `GlazeWM.Infrastructure`.
 
 ```csharp
 /// <summary>
@@ -74,7 +74,7 @@ public class CpuStatsService : System.IDisposable
 }
 ```
 
-And register it in the DI container in `GlazeWM.Infrastructure.DependencyInjection`:  
+And register it in the DI container in `GlazeWM.Infrastructure.DependencyInjection`:
 
 ```csharp
 services.AddSingleton<CpuStatsService>();
@@ -84,20 +84,20 @@ Note: I added cleanup/dispose code here because it is good practice; it is not t
 
 ## Adding a ViewModel
 
-This contains the main logic used to fetch the data to be displayed in the UI.  
-You add this file to `GlazeWM.Bar.Components`.  
+This contains the main logic used to fetch the data to be displayed in the UI.
+You add this file to `GlazeWM.Bar.Components`.
 
 Example:
 
 ```csharp
-public class CpuPercentComponentViewModel : ComponentViewModel
+public class CpuComponentViewModel : ComponentViewModel
 {
-  private CpuPercentComponentConfig Config => _componentConfig as CpuPercentComponentConfig;
+  private CpuComponentConfig Config => _componentConfig as CpuComponentConfig;
   private readonly CpuStatsService _cpuStatsService;
 
   public string FormattedText => GetFormattedText();
 
-  public CpuPercentComponentViewModel(BarViewModel parentViewModel, CpuPercentComponentConfig config) : base(parentViewModel, config)
+  public CpuComponentViewModel(BarViewModel parentViewModel, CpuComponentConfig config) : base(parentViewModel, config)
   {
     // Get the service from DI
     _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
@@ -122,13 +122,13 @@ Note the line `.TakeUntil(_parentViewModel.WindowClosing)`. This is necessary to
 Then register your ViewModel to `BarViewModel.CreateComponentViewModels`
 
 ```csharp
-CpuPercentComponentConfig cpupc => new CpuPercentComponentViewModel(this, cpupc),
+CpuComponentConfig cpupc => new CpuComponentViewModel(this, cpupc),
 ```
 
 ## Adding a Component XAML
 
-Each individual component has its own custom XAML WPF UserControl.  
-Most of these don't require much customization; so it's usually easier to just copy an existing component; for example.  
+Each individual component has its own custom XAML WPF UserControl.
+Most of these don't require much customization; so it's usually easier to just copy an existing component; for example.
 
 ### Copy Existing Component
 
@@ -142,7 +142,7 @@ Fix the class name to correspond to your new class in the XAML, i.e.
 
 ```xaml
 <UserControl
-  x:Class="GlazeWM.Bar.Components.CpuPercentComponent"
+  x:Class="GlazeWM.Bar.Components.CpuComponent"
 ```
 
 (first line)
@@ -150,9 +150,9 @@ Fix the class name to correspond to your new class in the XAML, i.e.
 And corresponding `xaml.cs` file.
 
 ```csharp
-public partial class CpuPercentComponent : UserControl
+public partial class CpuComponent : UserControl
 {
-  public CpuPercentComponent() => InitializeComponent();
+  public CpuComponent() => InitializeComponent();
 }
 ```
 
@@ -162,7 +162,7 @@ Change following line in the XAML
 
 ```xaml
 <!-- Or whichever property is here -->
-Text="{Binding TilingDirectionString}" /> 
+Text="{Binding TilingDirectionString}" />
 ```
 
 To match your property from the `ViewModel`, i.e. `FormattedText`, so the XAML reads.
@@ -176,8 +176,8 @@ Text="{Binding FormattedText}" />
 Add your component to `ComponentPortal.xaml` beside all the other components.
 
 ```xaml
-<DataTemplate DataType="{x:Type components:CpuPercentComponentViewModel}">
-  <components:CpuPercentComponent Padding="{Binding Padding}" Background="{Binding Background}" />
+<DataTemplate DataType="{x:Type components:CpuComponentViewModel}">
+  <components:CpuComponent Padding="{Binding Padding}" Background="{Binding Background}" />
 </DataTemplate>
 ```
 

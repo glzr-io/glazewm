@@ -2,7 +2,7 @@
 
 namespace GlazeWM.Domain.UserConfigs;
 
-public class CpuPercentComponentConfig : BarComponentConfig
+public class CpuComponentConfig : BarComponentConfig
 {
   /// <summary>
   /// Label/icon assigned to the CPU component.

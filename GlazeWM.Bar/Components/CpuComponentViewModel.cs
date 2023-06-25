@@ -7,14 +7,14 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components;
 
-public class CpuPercentComponentViewModel : ComponentViewModel
+public class CpuComponentViewModel : ComponentViewModel
 {
-  private CpuPercentComponentConfig Config => _componentConfig as CpuPercentComponentConfig;
+  private CpuComponentConfig Config => _componentConfig as CpuComponentConfig;
   private readonly CpuStatsService _cpuStatsService;
 
   public string FormattedText => GetFormattedText();
 
-  public CpuPercentComponentViewModel(BarViewModel parentViewModel, CpuPercentComponentConfig config) : base(parentViewModel, config)
+  public CpuComponentViewModel(BarViewModel parentViewModel, CpuComponentConfig config) : base(parentViewModel, config)
   {
     _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
 

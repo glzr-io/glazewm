@@ -74,7 +74,7 @@ namespace GlazeWM.Domain.UserConfigs
             options
           ),
         "cpu" =>
-          JsonSerializer.Deserialize<CpuPercentComponentConfig>(
+          JsonSerializer.Deserialize<CpuComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
