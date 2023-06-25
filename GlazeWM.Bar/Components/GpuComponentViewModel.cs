@@ -7,14 +7,14 @@ using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Bar.Components;
 
-public class GpuPercentComponentViewModel : ComponentViewModel
+public class GpuComponentViewModel : ComponentViewModel
 {
-  private GpuPercentComponentConfig Config => _componentConfig as GpuPercentComponentConfig;
+  private GpuComponentConfig Config => _componentConfig as GpuComponentConfig;
   private readonly GpuStatsService _gpuStatsService;
-  
+
   public string FormattedText => GetFormattedText();
 
-  public GpuPercentComponentViewModel(BarViewModel parentViewModel, GpuPercentComponentConfig config) : base(parentViewModel, config)
+  public GpuComponentViewModel(BarViewModel parentViewModel, GpuComponentConfig config) : base(parentViewModel, config)
   {
     _gpuStatsService = ServiceLocator.GetRequiredService<GpuStatsService>();
     Observable

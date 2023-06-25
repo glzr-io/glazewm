@@ -66,8 +66,8 @@
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type components:GpuPercentComponentViewModel}">
-              <components:GpuPercentComponent
+            <DataTemplate DataType="{x:Type components:GpuComponentViewModel}">
+              <components:GpuComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>

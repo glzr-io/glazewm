@@ -79,7 +79,7 @@ namespace GlazeWM.Domain.UserConfigs
             options
           ),
         "gpu" =>
-          JsonSerializer.Deserialize<GpuPercentComponentConfig>(
+          JsonSerializer.Deserialize<GpuComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),

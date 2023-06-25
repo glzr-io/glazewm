@@ -2,7 +2,7 @@
 
 namespace GlazeWM.Domain.UserConfigs;
 
-public class GpuPercentComponentConfig : BarComponentConfig
+public class GpuComponentConfig : BarComponentConfig
 {
   /// <summary>
   /// Label/icon assigned to the GPU component.
