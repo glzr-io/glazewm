@@ -16,10 +16,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 								.editorconfig = .editorconfig
 				EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IPC", "IPC", "{D1259265-37A5-4152-96EA-EA59600EA46C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlazeWM.IPC.Client", "GlazeWM.IPC.Client\GlazeWM.IPC.Client.csproj", "{55265530-B72E-4773-BD63-0E53D15CFC6C}"
-EndProject
 Global
 				GlobalSection(SolutionConfigurationPlatforms) = preSolution
 								Debug|Any CPU = Debug|Any CPU

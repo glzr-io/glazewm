@@ -37,7 +37,7 @@ GlazeWM can be download via Scoop in the [Extras](https://github.com/ScoopInstal
 ```powershell
 scoop bucket add extras # Ensure bucket is added first
 scoop install glazewm
-````
+```
 
 ## Build from source
 
@@ -154,7 +154,7 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 bar:
   # The option to enable/disable the bar.
   enabled: true
-  
+
   # Height of the bar in pixels.
   height: "30px"
 
@@ -302,8 +302,8 @@ Displays the current CPU usage.
 
 ```yaml
 - type: "cpu"
-  
-  # {0} is substituted by percentage, {1} by current value, {2} by max value 
+
+  # {0} is substituted by percentage, {1} by current value, {2} by max value
   # Example: '{1}/{2} MHz ({0}%)'
   #          'CPU {0}%'
   string_format: "CPU {0}%"
@@ -352,7 +352,7 @@ Displays the current Memory usage.
 
 ```yaml
 - type: "memory"
-  # {0} is substituted by percentage, {1} by current value, {2} by max value 
+  # {0} is substituted by percentage, {1} by current value, {2} by max value
   # Example: '{1}/{2} MB ({0}%)'
   #          '{0}%'
   string_format: "RAM {1}/{2}GB ({0}%)"
@@ -407,72 +407,6 @@ Uses Open-Meteo API, refreshes every hour.
 ### Adding Custom Bar Components
 
 [Guide Available Here](./README-ADDINGCOMPONENTS.md)
-
-## IPC
-
-GlazeWM includes a component for handling inter-process communication.
-It is based ZeroMQ for message passing and UTF8 JSON for serialization, therefore should be portable across many languages.
-
-[Refer to Client Source for Possible Commands](./GlazeWM.IPC.Client/Client.cs).
-
-By default Port 49999 is used, you can override this in main bar config.
-
-```yaml
-general:
-  net_mq_port: 49999
-```
-
-### Bar Component: IPC Label
-
-This component allows you to update its text and style remotely using interprocess communication:
-
-```yaml
-- type: "ipc"
-  label_id: "uniqueIdForThisLabel"
-  default_text: "placeholder text" # Placeholder
-```
-
-To use this, make a new C# project and add a `Project Reference` to `GlazeWM.IPC.Client`; then use it as follows:
-
-```csharp
-// Connect to IPC
-using var client = new Client(49999);
-
-// Send an update
-client.SendIpcComponentUpdate("uniqueIdForThisLabel", new UpdateIpcComponent()
-{
-  Text = "This label now has cool text"
-});
-```
-
-### Usage from Other Programming Languages
-
-If you are interfacing from another programming language, do equivalent of:
-```csharp
-_publisher = new PublisherSocket();
-_publisher.Connect($"tcp://localhost:{port}");
-```
-
-and simply send update messages.
-
-Check the [Messages](./GlazeWM.IPC.Client/Messages). folder for list of available messages.
-
-Example payload for IPC Label Component:
-```json
-{
-  "Text":"This is a cool label.",
-  "Foreground":"#74FFFF74",
-  "Margin":null,
-  "Background":null,
-  "FontFamily":null,
-  "FontWeight":null,
-  "FontSize":null,
-  "BorderColor":null,
-  "BorderRadius":null,
-  "BorderWidth":null,
-  "Padding":null
-}
-```
 
 ## Window rules
 

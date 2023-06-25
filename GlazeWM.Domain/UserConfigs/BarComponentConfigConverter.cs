@@ -92,10 +92,6 @@ namespace GlazeWM.Domain.UserConfigs
           jsonObject.RootElement.ToString(),
           options
         ),
-        "ipc" => JsonSerializer.Deserialize<IpcComponentConfig>(
-          jsonObject.RootElement.ToString(),
-          options
-        ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }

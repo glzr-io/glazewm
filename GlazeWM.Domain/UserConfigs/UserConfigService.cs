@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Domain.UserConfigs
 {
-  public class UserConfigService : IIpcConfigContainer
+  public class UserConfigService
   {
     /// <summary>
     /// The deserialized user config. Sections of the config can be accessed via getters.
@@ -137,8 +137,5 @@ namespace GlazeWM.Domain.UserConfigs
           rule.TitleRegex?.IsMatch(window.Title) != false;
       }).ToList();
     }
-
-    /* Interfaces */
-    public IIpcConfig Config => GeneralConfig;
   }
 }
