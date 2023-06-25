@@ -7,6 +7,9 @@ namespace GlazeWM.Bar.Components
   /// </summary>
   public partial class MemoryComponent : UserControl
   {
-    public MemoryComponent() => InitializeComponent();
+    public MemoryComponent()
+    {
+      InitializeComponent();
+    }
   }
 }

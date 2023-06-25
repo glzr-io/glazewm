@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
-using GlazeWM.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Domain.UserConfigs

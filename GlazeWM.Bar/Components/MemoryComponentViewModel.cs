@@ -5,33 +5,34 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
 
-namespace GlazeWM.Bar.Components;
-
-public class MemoryComponentViewModel : ComponentViewModel
+namespace GlazeWM.Bar.Components
 {
-  private MemoryComponentConfig Config => _componentConfig as MemoryComponentConfig;
-  private readonly MemoryStatsService _gpuStatsService;
-
-  public string FormattedText => GetFormattedText();
-
-  public MemoryComponentViewModel(BarViewModel parentViewModel, MemoryComponentConfig config) : base(parentViewModel, config)
+  public class MemoryComponentViewModel : ComponentViewModel
   {
-    _gpuStatsService = ServiceLocator.GetRequiredService<MemoryStatsService>();
-    Observable
-      .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
-      .TakeUntil(_parentViewModel.WindowClosing)
-      .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
-  }
+    private MemoryComponentConfig Config => _componentConfig as MemoryComponentConfig;
+    private readonly MemoryStatsService _gpuStatsService;
 
-  private string GetFormattedText()
-  {
-    var values = _gpuStatsService.GetMeasurement(Config.Counter);
-    values.DivideBy(Config.DivideBy);
+    public string FormattedText => GetFormattedText();
 
-    var percent = ((values.CurrentValue / values.MaxValue) * 100).ToString(Config.PercentFormat, CultureInfo.InvariantCulture);
-    var curValue = values.CurrentValue.ToString(Config.CurrentValueFormat, CultureInfo.InvariantCulture);
-    var maxValue = values.MaxValue.ToString(Config.MaxValueFormat, CultureInfo.InvariantCulture);
+    public MemoryComponentViewModel(BarViewModel parentViewModel, MemoryComponentConfig config) : base(parentViewModel, config)
+    {
+      _gpuStatsService = ServiceLocator.GetRequiredService<MemoryStatsService>();
+      Observable
+        .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
+    }
 
-    return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent, curValue, maxValue);
+    private string GetFormattedText()
+    {
+      var values = _gpuStatsService.GetMeasurement(Config.Counter);
+      values.DivideBy(Config.DivideBy);
+
+      var percent = (values.CurrentValue / values.MaxValue * 100).ToString(Config.PercentFormat, CultureInfo.InvariantCulture);
+      var curValue = values.CurrentValue.ToString(Config.CurrentValueFormat, CultureInfo.InvariantCulture);
+      var maxValue = values.MaxValue.ToString(Config.MaxValueFormat, CultureInfo.InvariantCulture);
+
+      return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent, curValue, maxValue);
+    }
   }
 }

@@ -7,6 +7,9 @@ namespace GlazeWM.Bar.Components
   /// </summary>
   public partial class WeatherComponent : UserControl
   {
-    public WeatherComponent() => InitializeComponent();
+    public WeatherComponent()
+    {
+      InitializeComponent();
+    }
   }
 }

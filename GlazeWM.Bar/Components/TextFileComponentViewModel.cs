@@ -6,75 +6,80 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
-using Microsoft.Extensions.Logging;
 
-namespace GlazeWM.Bar.Components;
-
-public class TextFileComponentViewModel : ComponentViewModel
+namespace GlazeWM.Bar.Components
 {
-  private readonly TextFileComponentConfig _baseConfig;
-  private readonly IDisposable _disposable;
-
-  public string Text { get; set; } = "Loading...";
-
-  public FileSystemWatcher Watcher { get; }
-
-  public TextFileComponentViewModel(BarViewModel parentViewModel, TextFileComponentConfig baseConfig) : base(parentViewModel, baseConfig)
+  public class TextFileComponentViewModel : ComponentViewModel
   {
-    _baseConfig = baseConfig;
+    private readonly TextFileComponentConfig _baseConfig;
+    private readonly IDisposable _disposable;
 
-    var bus = ServiceLocator.GetRequiredService<Bus>();
-    _disposable = bus.Events.OfType<UserConfigReloadedEvent>().Subscribe(_ => Dispose(true));
+    public string Text { get; set; } = "Loading...";
 
-    Watcher = new FileSystemWatcher(Path.GetDirectoryName(_baseConfig.FilePath)!);
-    Watcher.Filter = Path.GetFileName(_baseConfig.FilePath)!;
-    Watcher.EnableRaisingEvents = true;
-    Watcher.NotifyFilter = NotifyFilters.LastWrite;
-    Watcher.Changed += OnFileChanged;
-    Update();
-  }
+    public FileSystemWatcher Watcher { get; }
 
-  protected override void Dispose(bool disposing)
-  {
-    if (disposing)
+    public TextFileComponentViewModel(BarViewModel parentViewModel, TextFileComponentConfig baseConfig) : base(parentViewModel, baseConfig)
     {
-      Watcher.Dispose();
-      _disposable.Dispose();
+      _baseConfig = baseConfig;
+
+      var bus = ServiceLocator.GetRequiredService<Bus>();
+      _disposable = bus.Events.OfType<UserConfigReloadedEvent>().Subscribe(_ => Dispose(true));
+
+      Watcher = new FileSystemWatcher(Path.GetDirectoryName(_baseConfig.FilePath)!)
+      {
+        Filter = Path.GetFileName(_baseConfig.FilePath)!,
+        EnableRaisingEvents = true,
+        NotifyFilter = NotifyFilters.LastWrite
+      };
+      Watcher.Changed += OnFileChanged;
+      Update();
     }
 
-    base.Dispose(disposing);
-  }
-
-  private void OnFileChanged(object sender, FileSystemEventArgs e) => Update();
-
-  private void Update()
-  {
-    int numAttempts = 0;
-    int sleepTime = 32;
-    const int maxRetries = 6;
-
-    try
+    protected override void Dispose(bool disposing)
     {
-      Watcher.EnableRaisingEvents = false;
-      while (true)
+      if (disposing)
       {
-        try
+        Watcher.Dispose();
+        _disposable.Dispose();
+      }
+
+      base.Dispose(disposing);
+    }
+
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    {
+      Update();
+    }
+
+    private void Update()
+    {
+      var numAttempts = 0;
+      var sleepTime = 32;
+      const int maxRetries = 6;
+
+      try
+      {
+        Watcher.EnableRaisingEvents = false;
+        while (true)
         {
-          Text = File.ReadAllText(_baseConfig.FilePath);
-          OnPropertyChanged(nameof(Text));
-          break;
-        }
-        catch (Exception) when (numAttempts < maxRetries)
-        {
-          numAttempts++;
-          Thread.Sleep(sleepTime);
-          sleepTime *= 2;
+          try
+          {
+            Text = File.ReadAllText(_baseConfig.FilePath);
+            OnPropertyChanged(nameof(Text));
+            break;
+          }
+          catch (Exception) when (numAttempts < maxRetries)
+          {
+            numAttempts++;
+            Thread.Sleep(sleepTime);
+            sleepTime *= 2;
+          }
         }
       }
-    }
-    finally
-    {
-      Watcher.EnableRaisingEvents = true;
+      finally
+      {
+        Watcher.EnableRaisingEvents = true;
+      }
     }
   }
 }

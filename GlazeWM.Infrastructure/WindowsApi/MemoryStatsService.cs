@@ -1,98 +1,100 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualBasic.Devices;
 using Vostok.Sys.Metrics.PerfCounters;
 
-namespace GlazeWM.Infrastructure.WindowsApi;
-
-/// <summary>
-/// Provides access to current CPU statistics.
-/// </summary>
-public class MemoryStatsService : IDisposable
+namespace GlazeWM.Infrastructure.WindowsApi
 {
-  private readonly IPerformanceCounter<double> _availableBytes = MakeCounter("Available Bytes");
-  private readonly IPerformanceCounter<double> _cacheBytes = MakeCounter("Cache Bytes");
-  private readonly IPerformanceCounter<double> _commitSize = MakeCounter("Committed Bytes");
-  private readonly IPerformanceCounter<double> _commitLimit = MakeCounter("Commit Limit");
-  private readonly IPerformanceCounter<double> _pagedResidentBytes = MakeCounter("Pool Paged Resident Bytes");
-  private readonly long _physicalBytes = (long)new ComputerInfo().TotalPhysicalMemory;
-
-  /// <inheritdoc />
-  ~MemoryStatsService() => Dispose();
-
-  /// <inheritdoc />
-  public void Dispose()
-  {
-    GC.SuppressFinalize(this);
-    _availableBytes.Dispose();
-    _cacheBytes.Dispose();
-    _commitSize.Dispose();
-    _commitLimit.Dispose();
-    _pagedResidentBytes.Dispose();
-  }
-
   /// <summary>
-  /// Returns the current CPU utilization as a percentage.
+  /// Provides access to current CPU statistics.
   /// </summary>
-  /// <exception cref="ArgumentOutOfRangeException">Invalid measurement.</exception>
-  public MemoryMeasurement GetMeasurement(RamMeasurement measurement)
+  public class MemoryStatsService : IDisposable
   {
-    return measurement switch
+    private readonly IPerformanceCounter<double> _availableBytes = MakeCounter("Available Bytes");
+    private readonly IPerformanceCounter<double> _cacheBytes = MakeCounter("Cache Bytes");
+    private readonly IPerformanceCounter<double> _commitSize = MakeCounter("Committed Bytes");
+    private readonly IPerformanceCounter<double> _commitLimit = MakeCounter("Commit Limit");
+    private readonly IPerformanceCounter<double> _pagedResidentBytes = MakeCounter("Pool Paged Resident Bytes");
+    private readonly long _physicalBytes = (long)new ComputerInfo().TotalPhysicalMemory;
+
+    /// <inheritdoc />
+    ~MemoryStatsService() => Dispose();
+
+    /// <inheritdoc />
+    public void Dispose()
     {
-      RamMeasurement.PhysicalMemory => new MemoryMeasurement((float)(_physicalBytes - _availableBytes.Observe()), _physicalBytes),
-      RamMeasurement.CacheBytes => new MemoryMeasurement((float)_cacheBytes.Observe(), _physicalBytes),
-      RamMeasurement.CommitSize => new MemoryMeasurement((float)_commitSize.Observe(), (float)_commitLimit.Observe()),
-      RamMeasurement.PagedResidentBytes => new MemoryMeasurement((float)_pagedResidentBytes.Observe(), _physicalBytes),
-      _ => throw new ArgumentOutOfRangeException(nameof(measurement), measurement, null)
-    };
+      GC.SuppressFinalize(this);
+      _availableBytes.Dispose();
+      _cacheBytes.Dispose();
+      _commitSize.Dispose();
+      _commitLimit.Dispose();
+      _pagedResidentBytes.Dispose();
+    }
+
+    /// <summary>
+    /// Returns the current CPU utilization as a percentage.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Invalid measurement.</exception>
+    public MemoryMeasurement GetMeasurement(RamMeasurement measurement)
+    {
+      return measurement switch
+      {
+        RamMeasurement.PhysicalMemory => new MemoryMeasurement((float)(_physicalBytes - _availableBytes.Observe()), _physicalBytes),
+        RamMeasurement.CacheBytes => new MemoryMeasurement((float)_cacheBytes.Observe(), _physicalBytes),
+        RamMeasurement.CommitSize => new MemoryMeasurement((float)_commitSize.Observe(), (float)_commitLimit.Observe()),
+        RamMeasurement.PagedResidentBytes => new MemoryMeasurement((float)_pagedResidentBytes.Observe(), _physicalBytes),
+        _ => throw new ArgumentOutOfRangeException(nameof(measurement), measurement, null)
+      };
+    }
+
+    private static IPerformanceCounter<double> MakeCounter(string counter)
+    {
+      return PerformanceCounterFactory.Default.CreateCounter("Memory", counter);
+    }
   }
 
-  private static IPerformanceCounter<double> MakeCounter(string counter) =>
-    PerformanceCounterFactory.Default.CreateCounter("Memory", counter);
-}
-
-/// <summary>
-/// Individual memory measurement.
-/// </summary>
-/// <param name="CurrentValue">Current value for this counter.</param>
-/// <param name="MaxValue">Max value for this counter.</param>
-public record struct MemoryMeasurement(float CurrentValue, float MaxValue)
-{
   /// <summary>
-  /// Divides the items in the measurement by a specific value.
+  /// Individual memory measurement.
   /// </summary>
-  /// <param name="divideBy">Number to divide by.</param>
-  public void DivideBy(float divideBy)
+  /// <param name="CurrentValue">Current value for this counter.</param>
+  /// <param name="MaxValue">Max value for this counter.</param>
+  public record struct MemoryMeasurement(float CurrentValue, float MaxValue)
   {
-    CurrentValue /= divideBy;
-    MaxValue /= divideBy;
+    /// <summary>
+    /// Divides the items in the measurement by a specific value.
+    /// </summary>
+    /// <param name="divideBy">Number to divide by.</param>
+    public void DivideBy(float divideBy)
+    {
+      CurrentValue /= divideBy;
+      MaxValue /= divideBy;
+    }
   }
-}
-
-/// <summary>
-/// The value to obtain measurements for.
-/// </summary>
-public enum RamMeasurement
-{
-  /// <summary>
-  /// Current amount of physical RAM in use; i.e. working set.
-  /// </summary>
-  PhysicalMemory,
 
   /// <summary>
-  /// Amount of cached file data in physical RAM.
+  /// The value to obtain measurements for.
   /// </summary>
-  CacheBytes,
+  public enum RamMeasurement
+  {
+    /// <summary>
+    /// Current amount of physical RAM in use; i.e. working set.
+    /// </summary>
+    PhysicalMemory,
 
-  /// <summary>
-  /// Retrieves the amount of committed virtual memory (bytes); i.e. which has space reserved on the disk paging file(s).
-  /// </summary>
-  CommitSize,
+    /// <summary>
+    /// Amount of cached file data in physical RAM.
+    /// </summary>
+    CacheBytes,
 
-  /// <summary>
-  /// Size of the active portion of the paged pool in physical memory, storing objects that can be written to disk when they're not in use.
-  /// </summary>
-  PagedResidentBytes
+    /// <summary>
+    /// Retrieves the amount of committed virtual memory (bytes); i.e. which has space reserved on the disk paging file(s).
+    /// </summary>
+    CommitSize,
+
+    /// <summary>
+    /// Size of the active portion of the paged pool in physical memory, storing objects that can be written to disk when they're not in use.
+    /// </summary>
+    PagedResidentBytes
+  }
 }
 
 /*

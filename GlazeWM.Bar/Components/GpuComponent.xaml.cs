@@ -7,6 +7,9 @@ namespace GlazeWM.Bar.Components
   /// </summary>
   public partial class GpuComponent : UserControl
   {
-    public GpuComponent() => InitializeComponent();
+    public GpuComponent()
+    {
+      InitializeComponent();
+    }
   }
 }

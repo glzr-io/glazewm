@@ -5,34 +5,38 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
 
-namespace GlazeWM.Bar.Components;
-
-public class CpuComponentViewModel : ComponentViewModel
+namespace GlazeWM.Bar.Components
 {
-  private CpuComponentConfig Config => _componentConfig as CpuComponentConfig;
-  private readonly CpuStatsService _cpuStatsService;
-
-  public string FormattedText => GetFormattedText();
-
-  public CpuComponentViewModel(BarViewModel parentViewModel, CpuComponentConfig config) : base(parentViewModel, config)
+  public class CpuComponentViewModel : ComponentViewModel
   {
-    _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
+    private readonly CpuComponentConfig _config;
+    private readonly CpuStatsService _cpuStatsService;
 
-    Observable
-      .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
-      .TakeUntil(_parentViewModel.WindowClosing)
-      .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
-  }
+    public string FormattedText => GetFormattedText();
 
-  private string GetFormattedText()
-  {
-    var values = _cpuStatsService.GetMeasurement(Config.Counter);
-    values.DivideBy(Config.DivideBy);
+    public CpuComponentViewModel(
+      BarViewModel parentViewModel,
+      CpuComponentConfig config) : base(parentViewModel, config)
+    {
+      _config = config;
+      _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
 
-    var percent = ((values.CurrentValue / values.MaxValue) * 100).ToString(Config.PercentFormat, CultureInfo.InvariantCulture);
-    var curValue = values.CurrentValue.ToString(Config.CurrentValueFormat, CultureInfo.InvariantCulture);
-    var maxValue = values.MaxValue.ToString(Config.MaxValueFormat, CultureInfo.InvariantCulture);
+      Observable
+        .Interval(TimeSpan.FromMilliseconds(_config.RefreshIntervalMs))
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
+    }
 
-    return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent, curValue, maxValue);
+    private string GetFormattedText()
+    {
+      var values = _cpuStatsService.GetMeasurement(_config.Counter);
+      values.DivideBy(_config.DivideBy);
+
+      var percent = (values.CurrentValue / values.MaxValue * 100).ToString(_config.PercentFormat, CultureInfo.InvariantCulture);
+      var curValue = values.CurrentValue.ToString(_config.CurrentValueFormat, CultureInfo.InvariantCulture);
+      var maxValue = values.MaxValue.ToString(_config.MaxValueFormat, CultureInfo.InvariantCulture);
+
+      return string.Format(CultureInfo.InvariantCulture, _config.StringFormat, percent, curValue, maxValue);
+    }
   }
 }
