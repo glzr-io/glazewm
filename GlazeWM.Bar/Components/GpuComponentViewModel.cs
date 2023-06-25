@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;

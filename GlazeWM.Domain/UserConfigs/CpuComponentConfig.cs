@@ -1,4 +1,4 @@
-﻿using GlazeWM.Infrastructure.WindowsApi;
+using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.UserConfigs
 {

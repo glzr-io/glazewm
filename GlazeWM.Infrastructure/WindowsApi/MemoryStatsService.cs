@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.VisualBasic.Devices;
 using Vostok.Sys.Metrics.PerfCounters;
 

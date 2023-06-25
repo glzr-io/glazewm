@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -26,7 +26,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       new("engtype_Copy"),
       new("engtype_VideoEncode"),
       new("engtype_VR")
-  };
+    };
 
     public void Dispose()
     {

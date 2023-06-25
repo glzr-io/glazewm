@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Management;
 using Vostok.Sys.Metrics.PerfCounters;
@@ -17,7 +17,10 @@ namespace GlazeWM.Infrastructure.WindowsApi
     private float _maxPackagePower = -1;
     private float _maxCoreTemp = -1;
 
-    public CpuStatsService() => GetMaxFrequency();
+    public CpuStatsService()
+    {
+      GetMaxFrequency();
+    }
 
     /// <inheritdoc />
     ~CpuStatsService() => Dispose();

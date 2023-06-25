@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Domain.UserConfigs
+namespace GlazeWM.Domain.UserConfigs
 {
   public class TextFileComponentConfig : BarComponentConfig
   {
