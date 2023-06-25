@@ -73,10 +73,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Individual cpu counter measurement.
     /// </summary>
-    /// <param name="CurrentValue">Current value for this counter.</param>
-    /// <param name="MaxValue">Max value for this counter.</param>
-    public record struct CpuMeasurementResult(float CurrentValue, float MaxValue)
+    public struct CpuMeasurementResult
     {
+      public float CurrentValue { get; set; }
+      public float MaxValue { get; set; }
+
+      public CpuMeasurementResult(float currentValue, float maxValue)
+      {
+        CurrentValue = currentValue;
+        MaxValue = maxValue;
+      }
+
       /// <summary>
       /// Divides the items in the measurement by a specific value.
       /// </summary>

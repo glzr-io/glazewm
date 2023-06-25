@@ -55,10 +55,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
   /// <summary>
   /// Individual memory measurement.
   /// </summary>
-  /// <param name="CurrentValue">Current value for this counter.</param>
-  /// <param name="MaxValue">Max value for this counter.</param>
-  public record struct MemoryMeasurement(float CurrentValue, float MaxValue)
+  public struct MemoryMeasurement
   {
+    public float CurrentValue { get; set; }
+    public float MaxValue { get; set; }
+
+    public MemoryMeasurement(float currentValue, float maxValue)
+    {
+      CurrentValue = currentValue;
+      MaxValue = maxValue;
+    }
+
     /// <summary>
     /// Divides the items in the measurement by a specific value.
     /// </summary>
