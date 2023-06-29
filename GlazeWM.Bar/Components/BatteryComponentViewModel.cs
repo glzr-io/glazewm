@@ -67,11 +67,11 @@ namespace GlazeWM.Bar.Components
       );
     }
 
-    public static Dictionary<string, string> CreateVariableDict(string batteryLevel)
+    public static Dictionary<string, Func<string>> CreateVariableDict(string batteryLevel)
     {
       return new()
       {
-        { "battery_level", batteryLevel }
+        { "battery_level", () => batteryLevel }
       };
     }
   }
