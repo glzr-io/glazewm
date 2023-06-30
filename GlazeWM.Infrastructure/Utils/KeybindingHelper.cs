@@ -25,13 +25,19 @@ namespace GlazeWM.Infrastructure.Utils
 
     private static Keys ParseKeyString(string keyString)
     {
-      try
+      switch (keyString)
       {
-        return Enum.Parse<Keys>(keyString);
-      }
-      catch (ArgumentException)
-      {
-        throw new ArgumentException($"Unknown key '{keyString}'");
+        case "Ctrl":
+          return Keys.Control;
+        default:
+          try
+          {
+            return Enum.Parse<Keys>(keyString);
+          }
+          catch (ArgumentException)
+          {
+            throw new ArgumentException($"Unknown key '{keyString}'");
+          }
       }
     }
   }
