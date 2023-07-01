@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
@@ -12,7 +13,12 @@ namespace GlazeWM.Bar.Components
     private readonly CpuComponentConfig _config;
     private readonly CpuStatsService _cpuStatsService;
 
-    public string FormattedText => GetFormattedText();
+    private LabelViewModel _label;
+    public LabelViewModel Label
+    {
+      get => _label;
+      protected set => SetField(ref _label, value);
+    }
 
     public CpuComponentViewModel(
       BarViewModel parentViewModel,
@@ -21,22 +27,25 @@ namespace GlazeWM.Bar.Components
       _config = config;
       _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
 
-      Observable
-        .Interval(TimeSpan.FromMilliseconds(_config.RefreshIntervalMs))
+      Observable.Timer(
+        TimeSpan.Zero,
+        TimeSpan.FromMilliseconds(_config.RefreshIntervalMs)
+      )
         .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
+        .Subscribe((_) => Label = CreateLabel());
     }
 
-    private string GetFormattedText()
+    private LabelViewModel CreateLabel()
     {
-      var values = _cpuStatsService.GetMeasurement(_config.Counter);
-      values.DivideBy(_config.DivideBy);
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
+        {
+          "percent_usage",
+          () => _cpuStatsService.GetCpuUsage().ToString(CultureInfo.InvariantCulture)
+        }
+      };
 
-      var percent = (values.CurrentValue / values.MaxValue * 100).ToString(_config.PercentFormat, CultureInfo.InvariantCulture);
-      var curValue = values.CurrentValue.ToString(_config.CurrentValueFormat, CultureInfo.InvariantCulture);
-      var maxValue = values.MaxValue.ToString(_config.MaxValueFormat, CultureInfo.InvariantCulture);
-
-      return string.Format(CultureInfo.InvariantCulture, _config.StringFormat, percent, curValue, maxValue);
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
     }
   }
 }

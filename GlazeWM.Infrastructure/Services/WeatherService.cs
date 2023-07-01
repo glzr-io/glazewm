@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using static GlazeWM.Infrastructure.Services.WeatherIcon;
+using static GlazeWM.Infrastructure.Services.WeatherStatus;
 
 namespace GlazeWM.Infrastructure.Services
 {
@@ -19,20 +19,26 @@ namespace GlazeWM.Infrastructure.Services
     /// </summary>
     /// <param name="latitude">Current latitude.</param>
     /// <param name="longitude">Current longitude.</param>
-    /// <param name="unit">Temperature unit to return results in.</param>
-    public static async Task<WeatherServiceResult> GetWeatherAsync(float latitude, float longitude, TemperatureUnit unit)
+    public static async Task<WeatherServiceResult> GetWeatherAsync(float latitude, float longitude)
     {
       var lat = latitude.ToString(CultureInfo.InvariantCulture);
       var lng = longitude.ToString(CultureInfo.InvariantCulture);
 
       using var client = new HttpClient();
-      var res = await client.GetStringAsync("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng
-                                      + "&temperature_unit=" + unit.ToApiString() + "&current_weather=true&daily=sunset,sunrise&timezone=auto");
-      var weather = JsonSerializer.Deserialize<MeteoWeatherResult>(res);
 
+      var res = await client.GetStringAsync(
+        "https://api.open-meteo.com/v1/forecast?latitude=" +
+          lat +
+          "&longitude=" +
+          lng +
+          "&temperature_unit=celsius&current_weather=true&daily=sunset,sunrise&timezone=auto"
+      );
+
+      var weather = JsonSerializer.Deserialize<MeteoWeatherResult>(res);
       var isDaylight = IsDaytime(weather.Daily);
-      var icon = GetWeatherIcon(weather.CurrentWeather.WeatherCode, isDaylight);
-      return new WeatherServiceResult(icon, weather);
+      var status = GetWeatherStatus(weather.CurrentWeather.WeatherCode, isDaylight);
+
+      return new WeatherServiceResult(status, weather);
     }
 
     private static bool IsDaytime(MeteoDailyResult times)
@@ -43,7 +49,12 @@ namespace GlazeWM.Infrastructure.Services
       return now > sunriseToday && now < sunsetToday;
     }
 
-    private static WeatherIcon GetWeatherIcon(int code, bool isDaytime)
+    public static double ToFahrenheit()
+    {
+      // TODO
+    }
+
+    private static WeatherStatus GetWeatherStatus(int code, bool isDaytime)
     {
       return code switch
       {
@@ -65,34 +76,14 @@ namespace GlazeWM.Infrastructure.Services
   /// <summary>
   /// Result of individual weather service query.
   /// </summary>
-  /// <param name="Icon">Icon to use for the display.</param>
+  /// <param name="Status">Weather status.</param>
   /// <param name="Result">Result of the weather lookup.</param>
-  public record WeatherServiceResult(WeatherIcon Icon, MeteoWeatherResult Result);
-
-  /// <summary>
-  /// Extension methods related to weather service implementations.
-  /// </summary>
-  public static class WeatherServiceExtensions
-  {
-    /// <summary>
-    /// Converts temperature unit to corresponding API call text.
-    /// </summary>
-    /// <param name="unit"></param>
-    public static string ToApiString(this TemperatureUnit unit)
-    {
-      return unit switch
-      {
-        TemperatureUnit.Celsius => "celsius",
-        TemperatureUnit.Fahrenheit => "fahrenheit",
-        _ => "celsius"
-      };
-    }
-  }
+  public record WeatherServiceResult(WeatherStatus Status, MeteoWeatherResult Result);
 
   /// <summary>
   /// Describes the icon to use for a given returned weather code.
   /// </summary>
-  public enum WeatherIcon
+  public enum WeatherStatus
   {
     Sun,
     Moon,

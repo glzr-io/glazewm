@@ -1,14 +1,7 @@
-using GlazeWM.Infrastructure.Services;
-
 namespace GlazeWM.Domain.UserConfigs
 {
   public class WeatherComponentConfig : BarComponentConfig
   {
-    /// <summary>
-    /// Text to display.
-    /// </summary>
-    public string Text { get; set; } = "Hello world!";
-
     /// <summary>
     /// Latitude to retreive weather.
     /// </summary>
@@ -20,68 +13,63 @@ namespace GlazeWM.Domain.UserConfigs
     public float Longitude { get; set; } = 74.0060f;
 
     /// <summary>
-    /// Format of the final string.
+    /// How often this component refreshes in milliseconds.
     /// </summary>
-    public string Format { get; set; } = "{0}{1}°C";
+    public int RefreshIntervalMs { get; set; } = 60 * 60 * 1000;
 
     /// <summary>
-    /// Unit of measurement. Either "celsius" or "fahrenheit"
+    /// Default label.
     /// </summary>
-    public TemperatureUnit TemperatureUnit { get; set; } = TemperatureUnit.Celsius;
+    public string Label { get; set; } = "{temperature_celsius}°C";
 
     /// <summary>
-    /// Format string used for the temperature.
+    /// Label to represent sunny weather.
     /// </summary>
-    public string TemperatureFormat { get; set; } = "0";
+    public string LabelSun { get; set; } = "☀️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent sunny weather.
+    /// Label to represent clear weather at night.
     /// </summary>
-    public string LabelSun { get; set; } = "☀️";
+    public string LabelMoon { get; set; } = "🌙 {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent clear weather at night.
+    /// Label to represent partly cloudy at night.
     /// </summary>
-    public string LabelMoon { get; set; } = "🌙";
+    public string LabelCloudMoon { get; set; } = "🌙☁️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent partly cloudy at night.
+    /// Label to represent partly cloudy.
     /// </summary>
-    public string LabelCloudMoon { get; set; } = "🌙☁️";
+    public string LabelCloudSun { get; set; } = "⛅ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent partly cloudy.
+    /// Label to represent light rain at night.
     /// </summary>
-    public string LabelCloudSun { get; set; } = "⛅";
+    public string LabelCloudMoonRain { get; set; } = "🌙🌧️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent light rain at night.
+    /// Label to represent light rain.
     /// </summary>
-    public string LabelCloudMoonRain { get; set; } = "🌙🌧️";
+    public string LabelCloudSunRain { get; set; } = "🌦️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent light rain.
+    /// Label to represent heavy rain.
     /// </summary>
-    public string LabelCloudSunRain { get; set; } = "🌦️";
+    public string LabelCloudRain { get; set; } = "🌧️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent heavy rain.
+    /// Label to represent snow.
     /// </summary>
-    public string LabelCloudRain { get; set; } = "🌧️";
+    public string LabelSnowflake { get; set; } = "❄️ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent snow.
+    /// Label to represent a thunderstorm.
     /// </summary>
-    public string LabelSnowflake { get; set; } = "❄️";
+    public string LabelThunderstorm { get; set; } = "⚡ {temperature_celsius}°C";
 
     /// <summary>
-    /// Icon to represent a thunderstorm.
+    /// Label to represent heavy clouds.
     /// </summary>
-    public string LabelThunderstorm { get; set; } = "⚡";
-
-    /// <summary>
-    /// Icon to represent heavy clouds.
-    /// </summary>
-    public string LabelCloud { get; set; } = "☁️";
+    public string LabelCloud { get; set; } = "☁️ {temperature_celsius}°C";
   }
 }

@@ -302,25 +302,9 @@ Displays the current CPU usage.
 
 ```yaml
 - type: "cpu"
-
-  # {0} is substituted by percentage, {1} by current value, {2} by max value
-  # Example: '{1}/{2} MHz ({0}%)'
-  #          'CPU {0}%'
-  string_format: "CPU {0}%"
-
-  # For formats, see: https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
-  percent_format: "00" # Format for {0}.
-  current_value_format: "0.00" # Format for {1}.
-  max_value_format: "0.00" # Format for {2}.
-  refresh_interval_ms: 500 # How often this counter is refreshed
-  divide_by: 1000 # Convert MHz to GHz (where appropriate).
-  counter: CpuUsage
-
-  # Supported Counters Include:
-  # CpuUsage: Overall CPU Usage across All Cores.
-  # CpuFrequency: Overall CPU Frequency across All Cores.
-  # PackagePower: [Requires Admin] Overall Power used by CPU Package [not guaranteed to work]
-  # CoreTemp: [Requires Admin] Average Core Temperature of CPU Package [not guaranteed to work]
+  label: "CPU: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
 ```
 
 ### Bar Component: GPU Usage
@@ -329,21 +313,9 @@ This component has high CPU requirement (compared to others); due to no efficien
 
 ```yaml
 - type: "gpu"
-  string_format: "GPU {0}%" # {0} is substituted by number format
-  number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
-  refresh_interval_ms: 1000 # How often this counter is refreshed
-  flags: Graphics
-
-  # Supported flags
-  # Multiple flags can be specified by e.g. `flags: Graphics, VideoDecode, VideoEncode, Copy`
-
-  # Graphics: 3D GPU Engine usage. [Probably what you want]
-  # VideoDecode: Load of dedicated video decoding silicon.
-  # VideoEncode: Load of dedicated video encoding silicon, i.e. NVENC/AMD AMF/QuickSync.
-  # LegacyOverlay: Legacy API for overlaying items over other items.
-  # Copy: Load copying data without intervention of CPU e.g. copying framebuffer across screens in multi GPU setup or uploading textures.
-  # Security: Workloads related to cryptography, such as encryption, decryption, and secure video processing.
-  # Vr: Virtual Reality related workloads.
+  label: "GPU: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
 ```
 
 ### Bar Component: Memory Usage
@@ -352,24 +324,9 @@ Displays the current Memory usage.
 
 ```yaml
 - type: "memory"
-  # {0} is substituted by percentage, {1} by current value, {2} by max value
-  # Example: '{1}/{2} MB ({0}%)'
-  #          '{0}%'
-  string_format: "RAM {1}/{2}GB ({0}%)"
-
-  # For formats, see: https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
-  percent_format: "00" # Format for {0}.
-  current_value_format: "00.00" # Format for {1}.
-  max_value_format: "00.00" # Format for {2}.
-  refresh_interval_ms: 1000 # How often this counter is refreshed
-  divide_by: 1000000000 # Convert to GigaBytes.
-
-  # Supported Counters Include:
-  # PhysicalMemory: Current amount of physical RAM in use; i.e. working set.
-  # CacheBytes: Amount of cached file data in physical RAM.
-  # CommitSize: Retrieves the amount of committed virtual memory (bytes); i.e. which has space reserved on the disk paging file(s).
-  # PagedResidentBytes: Size of the active portion of the paged pool in physical memory, storing objects that can be written to disk when they're not in use.
-  counter: PhysicalMemory
+  label: "RAM: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
 ```
 
 ### Bar Component: Text File
@@ -378,7 +335,8 @@ For displaying any content without a native integrated widget; updates in real t
 
 ```yaml
 - type: "text file"
-  file_path: "PATH_HERE" # path to file
+  # Path to file.
+  file_path: "PATH_HERE"
 ```
 
 ### Bar Component: Weather
@@ -389,19 +347,17 @@ Uses Open-Meteo API, refreshes every hour.
 - type: "weather"
   latitude: 40.6892
   longitude: 74.0445
-  format: "{0}{1}°C" # {0} icon, {1} temperature.
-  temperature_unit: Celsius # or Fahrenheit
-  temperature_format: "0" # Format of {1}
-  label_sun: "☀️"
-  label_moon: "🌙"
-  label_cloud_moon: "🌙☁️"
-  label_cloud_sun: "⛅"
-  label_cloud_moon_rain: "🌙🌧️"
-  label_cloud_sun_rain: "🌦️"
-  label_cloud_rain: "🌧️"
-  label_snow_flake: "❄️"
-  label_thunderstorm: "⚡"
-  label_cloud: "☁️"
+  label: "{temperature_celsius}°C"
+  label_sun: "☀️ {temperature_celsius}°C"
+  label_moon: "🌙 {temperature_celsius}°C"
+  label_cloud_moon: "🌙☁️ {temperature_celsius}°C"
+  label_cloud_sun: "⛅ {temperature_celsius}°C"
+  label_cloud_moon_rain: "🌙🌧️ {temperature_celsius}°C"
+  label_cloud_sun_rain: "🌦️ {temperature_celsius}°C"
+  label_cloud_rain: "🌧️ {temperature_celsius}°C"
+  label_snow_flake: "❄️ {temperature_celsius}°C"
+  label_thunderstorm: "⚡ {temperature_celsius}°C"
+  label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
 ### Adding Custom Bar Components

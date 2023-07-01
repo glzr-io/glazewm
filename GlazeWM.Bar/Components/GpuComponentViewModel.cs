@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
@@ -9,24 +10,45 @@ namespace GlazeWM.Bar.Components
 {
   public class GpuComponentViewModel : ComponentViewModel
   {
-    private GpuComponentConfig Config => _componentConfig as GpuComponentConfig;
+    private readonly GpuComponentConfig _config;
     private readonly GpuStatsService _gpuStatsService;
 
-    public string FormattedText => GetFormattedText();
-
-    public GpuComponentViewModel(BarViewModel parentViewModel, GpuComponentConfig config) : base(parentViewModel, config)
+    private LabelViewModel _label;
+    public LabelViewModel Label
     {
-      _gpuStatsService = ServiceLocator.GetRequiredService<GpuStatsService>();
-      Observable
-        .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
-        .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
+      get => _label;
+      protected set => SetField(ref _label, value);
     }
 
-    private string GetFormattedText()
+    public GpuComponentViewModel(
+      BarViewModel parentViewModel,
+      GpuComponentConfig config) : base(parentViewModel, config)
     {
-      var percent = _gpuStatsService.GetAverageLoadPercent(Config.Flags).ToString(Config.NumberFormat, CultureInfo.InvariantCulture);
-      return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent);
+      _config = config;
+      _gpuStatsService = ServiceLocator.GetRequiredService<GpuStatsService>();
+
+      Observable.Timer(
+        TimeSpan.Zero,
+        TimeSpan.FromMilliseconds(_config.RefreshIntervalMs)
+      )
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe((_) => Label = CreateLabel());
+    }
+
+    private LabelViewModel CreateLabel()
+    {
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
+        {
+          "percent_usage",
+          () =>
+            _gpuStatsService
+              .GetAverageLoadPercent(GpuPerformanceCategoryFlags.Graphics)
+              .ToString(CultureInfo.InvariantCulture)
+        }
+      };
+
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
     }
   }
 }

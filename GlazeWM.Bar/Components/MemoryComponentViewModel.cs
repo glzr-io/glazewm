@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
@@ -9,30 +10,42 @@ namespace GlazeWM.Bar.Components
 {
   public class MemoryComponentViewModel : ComponentViewModel
   {
-    private MemoryComponentConfig Config => _componentConfig as MemoryComponentConfig;
-    private readonly MemoryStatsService _gpuStatsService;
+    private readonly MemoryComponentConfig _config;
+    private readonly MemoryStatsService _memoryStatsService;
 
-    public string FormattedText => GetFormattedText();
-
-    public MemoryComponentViewModel(BarViewModel parentViewModel, MemoryComponentConfig config) : base(parentViewModel, config)
+    private LabelViewModel _label;
+    public LabelViewModel Label
     {
-      _gpuStatsService = ServiceLocator.GetRequiredService<MemoryStatsService>();
-      Observable
-        .Interval(TimeSpan.FromMilliseconds(Config.RefreshIntervalMs))
-        .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
+      get => _label;
+      protected set => SetField(ref _label, value);
     }
 
-    private string GetFormattedText()
+    public MemoryComponentViewModel(
+      BarViewModel parentViewModel,
+      MemoryComponentConfig config) : base(parentViewModel, config)
     {
-      var values = _gpuStatsService.GetMeasurement(Config.Counter);
-      values.DivideBy(Config.DivideBy);
+      _config = config;
+      _memoryStatsService = ServiceLocator.GetRequiredService<MemoryStatsService>();
 
-      var percent = (values.CurrentValue / values.MaxValue * 100).ToString(Config.PercentFormat, CultureInfo.InvariantCulture);
-      var curValue = values.CurrentValue.ToString(Config.CurrentValueFormat, CultureInfo.InvariantCulture);
-      var maxValue = values.MaxValue.ToString(Config.MaxValueFormat, CultureInfo.InvariantCulture);
+      Observable.Timer(
+        TimeSpan.Zero,
+        TimeSpan.FromMilliseconds(_config.RefreshIntervalMs)
+      )
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe((_) => Label = CreateLabel());
+    }
 
-      return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent, curValue, maxValue);
+    private LabelViewModel CreateLabel()
+    {
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
+        {
+          "percent_usage",
+          () => _memoryStatsService.GetMemoryUsage().ToString(CultureInfo.InvariantCulture)
+        }
+      };
+
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
     }
   }
 }

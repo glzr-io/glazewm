@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -9,48 +10,64 @@ namespace GlazeWM.Bar.Components
 {
   public class WeatherComponentViewModel : ComponentViewModel
   {
-    private WeatherComponentConfig Config => _componentConfig as WeatherComponentConfig;
+    private readonly WeatherComponentConfig _config;
 
-    public string FormattedWeather { get; set; }
+    private LabelViewModel _label;
+    public LabelViewModel Label
+    {
+      get => _label;
+      protected set => SetField(ref _label, value);
+    }
 
     public WeatherComponentViewModel(
       BarViewModel parentViewModel,
       WeatherComponentConfig config) : base(parentViewModel, config)
     {
-      // This API is updated hourly.
-      Observable.Interval(TimeSpan.FromHours(1))
+      _config = config;
+
+      Observable.Timer(
+        TimeSpan.Zero,
+        TimeSpan.FromMilliseconds(_config.RefreshIntervalMs)
+      )
         .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(async _ => await UpdateWeatherAsync());
-
-      // Run immediately
-      _ = UpdateWeatherAsync();
+        .Subscribe(async (_) => await UpdateLabel());
     }
 
-    private async Task UpdateWeatherAsync()
+    private async Task UpdateLabel()
     {
-      var weather = await WeatherService.GetWeatherAsync(Config.Latitude, Config.Longitude, Config.TemperatureUnit);
-      var iconText = GetIconText(weather.Icon);
-      var temperatureString = weather.Result.CurrentWeather.Temperature.ToString(Config.TemperatureFormat, CultureInfo.InvariantCulture);
+      var weather = await WeatherService.GetWeatherAsync(_config.Latitude, _config.Longitude);
 
-      FormattedWeather = string.Format(CultureInfo.InvariantCulture, Config.Format, iconText, temperatureString);
-      OnPropertyChanged(nameof(FormattedWeather));
-    }
-
-    private string GetIconText(WeatherIcon icon)
-    {
-      return icon switch
+      var variableDictionary = new Dictionary<string, Func<string>>()
       {
-        WeatherIcon.Sun => Config.LabelSun,
-        WeatherIcon.Moon => Config.LabelMoon,
-        WeatherIcon.CloudSun => Config.LabelCloudSun,
-        WeatherIcon.CloudMoon => Config.LabelCloudMoon,
-        WeatherIcon.Cloud => Config.LabelCloud,
-        WeatherIcon.CloudSunRain => Config.LabelCloudSunRain,
-        WeatherIcon.CloudMoonRain => Config.LabelCloudMoonRain,
-        WeatherIcon.CloudRain => Config.LabelCloudRain,
-        WeatherIcon.Snowflake => Config.LabelSnowflake,
-        WeatherIcon.Thunder => Config.LabelThunderstorm,
-        _ => ""
+        {
+          "temperature_celsius",
+          () => weather.Result.CurrentWeather.Temperature.ToString(CultureInfo.InvariantCulture)
+        },
+        {
+          "temperature_fahrenheit",
+          () => weather.Result.CurrentWeather.Temperature.ToString(CultureInfo.InvariantCulture)
+        }
+      };
+
+      var labelString = GetLabelStringFromStatus(weather.Status);
+      Label = XamlHelper.ParseLabel(labelString, variableDictionary, this);
+    }
+
+    private string GetLabelStringFromStatus(WeatherStatus status)
+    {
+      return status switch
+      {
+        WeatherStatus.Sun => _config.LabelSun,
+        WeatherStatus.Moon => _config.LabelMoon,
+        WeatherStatus.CloudSun => _config.LabelCloudSun,
+        WeatherStatus.CloudMoon => _config.LabelCloudMoon,
+        WeatherStatus.Cloud => _config.LabelCloud,
+        WeatherStatus.CloudSunRain => _config.LabelCloudSunRain,
+        WeatherStatus.CloudMoonRain => _config.LabelCloudMoonRain,
+        WeatherStatus.CloudRain => _config.LabelCloudRain,
+        WeatherStatus.Snowflake => _config.LabelSnowflake,
+        WeatherStatus.Thunder => _config.LabelThunderstorm,
+        _ => _config.Label
       };
     }
   }

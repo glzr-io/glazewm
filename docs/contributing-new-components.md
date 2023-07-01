@@ -10,22 +10,16 @@ First add a config to the `GlazeWM.Domain.UserConfigs` namespace; here is an exa
 public class CpuComponentConfig : BarComponentConfig
 {
     /// <summary>
-    /// Label/icon assigned to the CPU component.
-    /// {0} is substituted by CPU percentage formatted using <see cref="NumberFormat"/>.
+    /// Label assigned to the CPU component.
     /// </summary>
-    public string StringFormat { get; set; } = "CPU {0}%";
-
-    /// <summary>
-    /// Numerical Format to use for the Percentage.
-    /// </summary>
-    public string NumberFormat { get; set; } = "00";
+    public string Label { get; set; } = "CPU: {usage_percent}%";
 }
 ```
 
 Once this is done, you should register this config in `BarComponentConfigConverter.Read`:
 
 ```csharp
-"cpu percent" =>
+"cpu" =>
   JsonSerializer.Deserialize<CpuComponentConfig>(
     jsonObject.RootElement.ToString(),
     options
@@ -36,9 +30,8 @@ This will map directly to the config using the YAML naming rules, i.e.
 
 ```yaml
 components_right:
-  - type: "cpu percent"
-    string_format: "CPU {0}%" # {0} is substituted by number format
-    number_format: "00" # See https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#standard-format-specifiers.
+  - type: "cpu"
+    label: "CPU: {percent_usage}%"
 ```
 
 Each capital letter is prefixed by a space delimited by `_`.
