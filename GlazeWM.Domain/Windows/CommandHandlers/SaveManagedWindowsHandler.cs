@@ -25,7 +25,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var serializableWindows = windows.Select(window => new SerializeableWindow((long)window.Handle, WindowService.GetTitleOfHandle(window.Handle)));
       var json = JsonSerializer.Serialize(serializableWindows);
       _logger.LogDebug("Windows as JSON: {Json}", json);
-      File.WriteAllTextAsync(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "./.glaze-wm/managedWindows.json", json);
+      try
+      {
+        File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "./.glaze-wm/managedWindows.json", json);
+      }
+      catch (IOException exception)
+      {
+        _logger.LogWarning("Error on save manged windows to file: ", exception.ToString());
+      }
       return CommandResponse.Ok;
     }
   }

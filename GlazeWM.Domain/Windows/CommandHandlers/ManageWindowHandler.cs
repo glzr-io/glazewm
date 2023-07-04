@@ -86,7 +86,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Set OS focus to the newly added window in case it's not already focused.
       _bus.Invoke(new SetNativeFocusCommand(window));
 
-      _bus.Invoke(new SaveManagedWindowsCommand());
+      _bus.InvokeAsync(new SaveManagedWindowsCommand());
 
       return CommandResponse.Ok;
     }
