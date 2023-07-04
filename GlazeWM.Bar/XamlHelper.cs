@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
+using GlazeWM.Bar.Components;
 using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Bar
@@ -54,6 +57,63 @@ namespace GlazeWM.Bar
         4 => $"{shorthandParts[3]},{shorthandParts[0]},{shorthandParts[1]},{shorthandParts[2]}",
         _ => throw new ArgumentException(null, nameof(shorthand)),
       };
+    }
+
+    public static LabelViewModel ParseLabel(
+      string labelString,
+      Dictionary<string, string> labelVariables,
+      ComponentViewModel viewModel)
+    {
+      var labelWithVariables = labelString;
+
+      // Replace variables in label with their corresponding variable.
+      foreach (var (key, value) in labelVariables)
+        labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value);
+
+      // Wrap `labelString` in arbitrary tag to make it valid XML.
+      var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
+      var labelXml = XElement.Parse(wrappedLabel);
+
+      var labelSpans = labelXml.Nodes().Select(node =>
+      {
+        var value = node switch
+        {
+          XText text => text.Value,
+          XElement element => element.Value,
+          _ => throw new ArgumentException("Invalid XML.", nameof(labelString))
+        };
+
+        string background = null;
+        string foreground = null;
+        string fontFamily = null;
+        string fontWeight = null;
+        string fontSize = null;
+
+        var ancestor = node;
+
+        while (ancestor is not null)
+        {
+          background ??= (ancestor as XElement)?.Attribute("bg")?.Value;
+          foreground ??= (ancestor as XElement)?.Attribute("fg")?.Value;
+          fontFamily ??= (ancestor as XElement)?.Attribute("ff")?.Value;
+          fontWeight ??= (ancestor as XElement)?.Attribute("fw")?.Value;
+          fontSize ??= (ancestor as XElement)?.Attribute("fs")?.Value;
+
+          // Traverse upwards to get attributes to apply.
+          ancestor = ancestor.Parent;
+        }
+
+        return new LabelSpan(
+          value,
+          background ?? viewModel.Background,
+          foreground ?? viewModel.Foreground,
+          fontFamily ?? viewModel.FontFamily,
+          fontWeight ?? viewModel.FontWeight,
+          fontSize ?? viewModel.FontSize
+        );
+      }).ToList();
+
+      return new LabelViewModel(labelSpans);
     }
   }
 }

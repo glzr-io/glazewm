@@ -39,7 +39,8 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetBindingModeCommand>, SetBindingModeHandler>();
       services.AddSingleton<ICommandHandler<AttachAndResizeContainerCommand>, AttachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
-      services.AddSingleton<ICommandHandler<CenterCursorOnRectCommand>, CenterCursorOnRectHandler>();
+      services.AddSingleton<ICommandHandler<CenterCursorOnContainerCommand>, CenterCursorOnContainerHandler>();
+      services.AddSingleton<ICommandHandler<SetActiveWindowBorderCommand>, SetActiveWindowBorderHandler>();
       services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<ToggleContainerLayoutCommand>, ToggleContainerLayoutHandler>();
       services.AddSingleton<ICommandHandler<DetachAndResizeContainerCommand>, DetachAndResizeContainerHandler>();
@@ -70,6 +71,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetMaximizedCommand>, SetMaximizedHandler>();
       services.AddSingleton<ICommandHandler<SetMinimizedCommand>, SetMinimizedHandler>();
       services.AddSingleton<ICommandHandler<SetTilingCommand>, SetTilingHandler>();
+      services.AddSingleton<ICommandHandler<SetWindowSizeCommand>, SetWindowSizeHandler>();
       services.AddSingleton<ICommandHandler<ShowAllWindowsCommand>, ShowAllWindowsHandler>();
       services.AddSingleton<ICommandHandler<ToggleFloatingCommand>, ToggleFloatingHandler>();
       services.AddSingleton<ICommandHandler<ToggleMaximizedCommand>, ToggleMaximizedHandler>();
@@ -79,6 +81,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<FocusWorkspaceCommand>, FocusWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceRecentCommand>, FocusWorkspaceRecentHandler>();
       services.AddSingleton<ICommandHandler<FocusWorkspaceSequenceCommand>, FocusWorkspaceSequenceHandler>();
+      services.AddSingleton<ICommandHandler<FocusContainerUnderCursorCommand>, FocusContainerUnderCursorHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
       services.AddSingleton<ICommandHandler<MoveWorkspaceInDirectionCommand>, MoveWorkspaceInDirectionHandler>();

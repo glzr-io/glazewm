@@ -43,6 +43,9 @@
             <DataTemplate DataType="{x:Type components:WorkspacesComponentViewModel}">
               <components:WorkspacesComponent Padding="{Binding Padding}" Background="{Binding Background}" />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:VolumeComponentViewModel}">
+              <components:VolumeComponent />
+            </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
       </Grid>

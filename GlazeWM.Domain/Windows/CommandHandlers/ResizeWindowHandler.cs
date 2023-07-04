@@ -1,7 +1,5 @@
 using System;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
@@ -10,7 +8,6 @@ using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -52,7 +49,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       // Convert `resizeAmount` to a percentage to increase/decrease the window size by.
-      var resizePercentage = ConvertToResizePercentage(
+      var resizePercentage = ResizeParsingService.ParseResizePercentage(
         containerToResize,
         dimensionToResize,
         resizeAmount
@@ -88,54 +85,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return isInverseResize ? parent : windowToResize;
     }
 
-    private static double ConvertToResizePercentage(
-      Container containerToResize,
-      ResizeDimension dimensionToResize,
-      string resizeAmount)
-    {
-      try
-      {
-        var matchedResizeAmount = new Regex("(.*)(%|ppt|px)").Match(resizeAmount);
-        var amount = matchedResizeAmount.Groups[1].Value;
-        var unit = matchedResizeAmount.Groups[2].Value;
-        var floatAmount = Convert.ToDouble(amount, CultureInfo.InvariantCulture);
-
-        return unit switch
-        {
-          "%" => floatAmount / 100,
-          "ppt" => floatAmount / 100,
-          "px" => floatAmount * GetPixelScaleFactor(containerToResize, dimensionToResize),
-          _ => throw new ArgumentException(null, nameof(resizeAmount)),
-        };
-      }
-      catch
-      {
-        throw new FatalUserException($"Invalid resize amount {resizeAmount}.");
-      }
-    }
-
-    private static double GetPixelScaleFactor(
-      Container containerToResize,
-      ResizeDimension dimensionToResize)
-    {
-      // Get available width/height that can be resized (ie. exclude inner gaps).
-      var resizableLength = containerToResize.SelfAndSiblingsOfType<IResizable>().Aggregate(
-        1.0,
-        (sum, container) =>
-          dimensionToResize == ResizeDimension.Width
-            ? sum + container.Width
-            : sum + container.Height
-      );
-
-      return 1.0 / resizableLength;
-    }
-
     private void ResizeFloatingWindow(Window windowToResize, ResizeDimension dimensionToResize, string resizeAmount)
     {
       const int MIN_WIDTH = 250;
       const int MIN_HEIGHT = 140;
 
-      var resizePercentage = ConvertToResizePercentage(windowToResize, dimensionToResize, resizeAmount);
+      var resizePercentage = ResizeParsingService.ParseResizePercentage(windowToResize, dimensionToResize, resizeAmount);
       var currentMonitor = MonitorService.GetMonitorFromChildContainer(windowToResize);
 
       var amount = (int)(currentMonitor.Width * resizePercentage);
