@@ -6,6 +6,8 @@ namespace GlazeWM.Domain.UserConfigs
   {
     public bool Enabled { get; set; } = true;
 
+    public bool show_bar_as_overlay { get; set; } = false;
+
     public string OffsetX { get; set; } = "0px";
 
     public string OffsetY { get; set; } = "0px";

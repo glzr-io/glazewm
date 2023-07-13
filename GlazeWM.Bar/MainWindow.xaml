@@ -19,7 +19,7 @@
   FontSize="{Binding FontSize}"
   Opacity="{Binding Opacity}"
   AllowsTransparency="True"
-  Topmost="False">
+  Topmost="{Binding show_bar_as_overlay}">
   <Border
     CornerRadius="{Binding BorderRadius}"
     BorderThickness="{Binding BorderWidth}"
