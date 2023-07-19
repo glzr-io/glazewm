@@ -10,12 +10,14 @@ namespace GlazeWM.Interprocess.Websocket
     }
 
     /// <summary>
-    /// Emit received text buffers to `Messages` subject.
+    /// Emit received text buffers to `Messages` subject of the server.
     /// </summary>
     public override void OnWsReceived(byte[] buffer, long offset, long size)
     {
       var text = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-      server.Messages.OnNext(new WebsocketMessage(Id, text););
+
+      if (Server is WebsocketServer server)
+        server.Messages.OnNext(new WebsocketMessage(Id, text));
     }
   }
 }

@@ -29,6 +29,6 @@ namespace GlazeWM.Domain.UserConfigs
     public bool ToggleWorkspaceOnRefocus { get; set; }
     /// Port to run the IPC websocket server on.
     /// </summary>
-    public string IpcServerPort { get; set; } = "61423";
+    public int IpcServerPort { get; set; } = 61423;
   }
 }

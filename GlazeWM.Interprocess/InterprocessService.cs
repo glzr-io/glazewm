@@ -1,9 +1,9 @@
 ﻿using System;
-using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Workspaces;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Interprocess.Modules;
+using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Interprocess.Websocket;
 using Microsoft.Extensions.Logging;
 
@@ -19,19 +19,19 @@ namespace GlazeWM.Interprocess
     /// <summary>
     /// The websocket server instance.
     /// </summary>
-    private readonly WebsocketServer _server;
+    private WebsocketServer _server { get; set; }
 
     private readonly Subject<bool> _serverKill = new();
 
     public InterprocessService(
       Bus bus,
       ILogger<InterprocessService> logger,
-      JsonService _jsonService,
+      JsonService jsonService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _logger = logger;
-      _jsonService = _jsonService;
+      _jsonService = jsonService;
       _userConfigService = userConfigService;
     }
 
@@ -54,7 +54,7 @@ namespace GlazeWM.Interprocess
         .TakeUntil(_serverKill)
         .Subscribe(@event => BroadcastEvent(@event));
 
-      _logger.LogDebug("Started IPC server on port {port}.", port);
+      _logger.LogDebug("Started IPC server on port {Port}.", port);
     }
 
     /// <summary>
@@ -67,23 +67,28 @@ namespace GlazeWM.Interprocess
 
       _serverKill.OnNext(true);
       _server.Stop();
-      _logger.LogDebug("Stopped IPC server on port {port}.", _server.Port);
+      _logger.LogDebug("Stopped IPC server on port {Port}.", _server.Port);
     }
 
-    private async void HandleMessage(WebsocketMessage message)
+    private void HandleMessage(WebsocketMessage message)
     {
       // TODO
+      _logger.LogDebug(
+        "IPC message from session {Session}: {Text}.",
+        message.SessionId,
+        message.Text
+      );
     }
 
-    private async void BroadcastEvent(Event @event)
+    private void BroadcastEvent(Event @event)
     {
       var eventJson = _jsonService.Serialize(@event);
-      await _server.MulticastText(eventJson);
+      _server.MulticastText(eventJson);
     }
 
     public void Dispose()
     {
-      if (!_server?.IsDisposed)
+      if (_server?.IsDisposed != true)
         _server.Dispose();
     }
   }

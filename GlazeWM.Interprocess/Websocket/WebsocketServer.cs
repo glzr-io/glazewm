@@ -1,9 +1,5 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Reactive.Subjects;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using GlazeWM.Infrastructure.Serialization;
 using NetCoreServer;
 
 namespace GlazeWM.Interprocess.Websocket
@@ -24,12 +20,12 @@ namespace GlazeWM.Interprocess.Websocket
       return new WebsocketSession(this);
     }
 
-    protected override void Dispose(bool disposing)
+    protected override void Dispose(bool disposingManagedResources)
     {
-      if (disposing)
+      if (disposingManagedResources)
         Messages.Dispose();
 
-      base.Dispose(disposing);
+      base.Dispose(disposingManagedResources);
     }
   }
 }
