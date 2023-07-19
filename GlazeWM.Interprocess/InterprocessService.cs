@@ -6,97 +6,99 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Interprocess.Modules;
 using GlazeWM.Interprocess.Websocket;
 using Microsoft.Extensions.Logging;
-using Qmmands;
 
 namespace GlazeWM.Interprocess
 {
   public sealed class InterprocessService : IDisposable
   {
-    private readonly ILogger<InterprocessService> _logger;
-
-    private readonly IServiceProvider _serviceProvider;
-
     private readonly Bus _bus;
+    private readonly ILogger<InterprocessService> _logger;
+    private readonly JsonService _jsonService;
+    private readonly UserConfigService _userConfigService;
 
-    private readonly ContainerService _containerService;
+    /// <summary>
+    /// The websocket server instance.
+    /// </summary>
+    private readonly WebsocketServer _server;
 
-    private readonly WindowService _windowService;
-
-    private readonly WorkspaceService _workspaceService;
-
-    private readonly WebsocketServer _server = new();
-
-    private readonly CommandService _commandService = new();
+    private readonly Subject<bool> _serverKill = new();
 
     public InterprocessService(
-      ILogger<InterprocessService> logger,
-      IServiceProvider serviceProvider,
       Bus bus,
-      ContainerService containerService,
-      WindowService windowService,
-      WorkspaceService workspaceService
-    )
+      ILogger<InterprocessService> logger,
+      JsonService _jsonService,
+      UserConfigService userConfigService)
     {
-      _logger = logger;
-      _serviceProvider = serviceProvider;
       _bus = bus;
-      _containerService = containerService;
-      _windowService = windowService;
-      _workspaceService = workspaceService;
+      _logger = logger;
+      _jsonService = _jsonService;
+      _userConfigService = userConfigService;
+    }
 
-      Initialize();
+    /// <summary>
+    /// Start the IPC server on user-specified port.
+    /// </summary>
+    public void StartIpcServer()
+    {
+      var port = _userConfigService.GeneralConfig.IpcServerPort;
+      _server = new(port);
+
+      // Start listening for messages.
+      _server.Start();
+      _server.Messages
+        .TakeUntil(_serverKill)
+        .Subscribe(message => HandleMessage(message));
+
+      // Broadcast events to all sessions.
+      _bus.Events
+        .TakeUntil(_serverKill)
+        .Subscribe(@event => BroadcastEvent(@event));
+
+      _logger.LogDebug("Started IPC server on port {port}.", port);
+    }
+
+    /// <summary>
+    /// Kill the IPC server.
+    /// </summary>
+    public void StopIpcServer()
+    {
+      if (_server is null)
+        return;
+
+      _serverKill.OnNext(true);
+      _server.Stop();
+      _logger.LogDebug("Stopped IPC server on port {port}.", _server.Port);
+    }
+
+    private async void HandleMessage(WebsocketMessage message)
+    {
+      // TODO
+    }
+
+    private async void BroadcastEvent(Event @event)
+    {
+      var eventJson = _jsonService.Serialize(@event);
+      await _server.MulticastText(eventJson);
     }
 
     public void Dispose()
     {
-      if (!_server.IsDisposed)
-      {
-        Stop();
-
+      if (!_server?.IsDisposed)
         _server.Dispose();
-      }
-    }
-
-    public void Start()
-    {
-      if (_server.IsStarted)
-      {
-        _logger.LogDebug("The server has already been started");
-
-        return;
-      }
-
-      _server.Start();
-
-      _logger.LogDebug("Started listening on port {Port}", _server.Port);
-    }
-
-    public void Stop()
-    {
-      if (!_server.IsStarted)
-      {
-        _logger.LogDebug("The server has not been started yet");
-
-        return;
-      }
-
-      _server.Stop();
-
-      _logger.LogDebug("Stopped listening on port {Port}", _server.Port);
-    }
-
-    private void Initialize()
-    {
-      _commandService.AddModule<WorkspaceModule>();
-
-      _server.MessageReceived.Subscribe(HandleCommand);
-    }
-
-    private async void HandleCommand(WebsocketMessage message)
-    {
-      var context = new InterprocessContext(_serviceProvider, message, _server);
-
-      await _commandService.ExecuteAsync(message.Text, context);
     }
   }
 }
+
+/**
+Example usage:
+const client = new GwmClient({ port });
+client.on(GwmEvent.ALL, () => {})
+client.on([GwmEvent.WORKSPACE_FOCUSED], () => {})
+
+const targetContainerId = (await client.getWorkspaces())[0].id;
+client.sendCommand('move workspace left', { targetContainerId })
+
+type Direction = 'left' | 'right' | 'up' | 'down';
+type MoveWorkspaceCommand = `move workspace ${Direction}`;
+type GwmCommand = MoveWorkspaceCommand | MoveWindowCommand | ...;
+**/

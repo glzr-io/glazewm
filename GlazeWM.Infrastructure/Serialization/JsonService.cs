@@ -21,6 +21,11 @@ namespace GlazeWM.Infrastructure.Serialization
       }
     };
 
+    public string Serialize<T>(T value)
+    {
+      return JsonSerializer.Serialize(value, _jsonSerializerOptions);
+    }
+
     public string Serialize<T>(T value, List<JsonConverter> converters)
     {
       var jsonSerializerOptions = GetJsonSerializerOptions(converters);

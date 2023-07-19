@@ -98,7 +98,7 @@ namespace GlazeWM.Bootstrapper
               _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
           });
 
-        _interprocessService.Start();
+        _interprocessService.StartIpcServer();
 
         Application.Run();
       }
@@ -114,7 +114,7 @@ namespace GlazeWM.Bootstrapper
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
       _barService.ExitApp();
       _systemTrayIcon?.Remove();
-      _interprocessService.Stop();
+      _interprocessService.StopIpcServer();
       Application.Exit();
     }
   }

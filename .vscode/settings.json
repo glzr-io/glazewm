@@ -8,5 +8,6 @@
   "xml.format.closingBracketNewLine": false,
   "xml.format.emptyElements": "collapse",
   "xml.format.splitAttributesIndentSize": 1,
-  "xml.format.splitAttributes": true
+  "xml.format.splitAttributes": true,
+  "dotnet.defaultSolution": "GlazeWM.sln"
 }
