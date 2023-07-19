@@ -13,6 +13,7 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Logging;
 using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Interprocess;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,6 +67,7 @@ namespace GlazeWM.Bootstrapper
           services.AddInfrastructureServices();
           services.AddDomainServices();
           services.AddBarServices();
+          services.AddInterprocessServices();
           services.AddSingleton<Startup>();
 
           // Configure exception handler.
