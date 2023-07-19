@@ -73,7 +73,7 @@ namespace GlazeWM.Bootstrapper
           // Configure exception handler.
           services
             .AddOptions<ExceptionHandlingOptions>()
-            .Configure<Bus, ContainerService, JsonService>((options, bus, containerService, jsonService) =>
+            .Configure<Bus, ContainerService>((options, bus, containerService) =>
             {
               options.ErrorLogPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -82,9 +82,13 @@ namespace GlazeWM.Bootstrapper
 
               options.ErrorLogMessageDelegate = (Exception exception) =>
               {
-                var stateDump = jsonService.Serialize(
+                var serializeOptions = JsonParser.OptionsFactory(
+                  (options) => options.Converters.Add(new JsonContainerConverter())
+                );
+
+                var stateDump = JsonParser.ToString(
                   containerService.ContainerTree,
-                  new List<JsonConverter> { new JsonContainerConverter() }
+                  serializeOptions
                 );
 
                 // History of latest command invocations. Most recent is first.

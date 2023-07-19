@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows.Forms;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,7 +17,6 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly UserConfigService _userConfigService;
-    private readonly YamlService _yamlService;
     private readonly CommandParsingService _commandParsingService;
 
     /// <summary>
@@ -34,12 +32,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     public EvaluateUserConfigHandler(
       Bus bus,
       UserConfigService userConfigService,
-      YamlService yamlService,
       CommandParsingService commandParsingService)
     {
       _bus = bus;
       _userConfigService = userConfigService;
-      _yamlService = yamlService;
       _commandParsingService = commandParsingService;
     }
 
@@ -95,17 +91,18 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       stream.CopyTo(fileStream);
     }
 
-    private UserConfig DeserializeUserConfig(string userConfigPath)
+    private static UserConfig DeserializeUserConfig(string userConfigPath)
     {
       try
       {
         var userConfigLines = File.ReadAllLines(userConfigPath);
         var input = string.Join(Environment.NewLine, userConfigLines);
 
-        return _yamlService.Deserialize<UserConfig>(
-          input,
-          new List<JsonConverter>() { new BarComponentConfigConverter() }
+        var deserializeOptions = JsonParser.OptionsFactory((options) =>
+          options.Converters.Add(new BarComponentConfigConverter())
         );
+
+        return YamlParser.ToInstance<UserConfig>(input, deserializeOptions);
       }
       catch (Exception exception)
       {

@@ -1,7 +1,6 @@
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.CommandHandlers;
 using GlazeWM.Infrastructure.Common.Commands;
-using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.WindowsApi;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,8 +13,6 @@ namespace GlazeWM.Infrastructure
       services.AddSingleton<Bus>();
       services.AddSingleton<KeybindingService>();
       services.AddSingleton<WindowEventService>();
-      services.AddSingleton<JsonService>();
-      services.AddSingleton<YamlService>();
       services.AddSingleton<CpuStatsService>();
       services.AddSingleton<GpuStatsService>();
       services.AddSingleton<MemoryStatsService>();

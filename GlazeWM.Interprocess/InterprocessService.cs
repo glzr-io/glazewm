@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Serialization;
@@ -13,7 +15,6 @@ namespace GlazeWM.Interprocess
   {
     private readonly Bus _bus;
     private readonly ILogger<InterprocessService> _logger;
-    private readonly JsonService _jsonService;
     private readonly UserConfigService _userConfigService;
 
     /// <summary>
@@ -23,15 +24,18 @@ namespace GlazeWM.Interprocess
 
     private readonly Subject<bool> _serverKill = new();
 
+    private readonly JsonSerializerOptions _serializeOptions =
+      JsonParser.OptionsFactory((options) =>
+        options.Converters.Add(new JsonContainerConverter())
+      );
+
     public InterprocessService(
       Bus bus,
       ILogger<InterprocessService> logger,
-      JsonService jsonService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _logger = logger;
-      _jsonService = jsonService;
       _userConfigService = userConfigService;
     }
 
@@ -82,7 +86,7 @@ namespace GlazeWM.Interprocess
 
     private void BroadcastEvent(Event @event)
     {
-      var eventJson = _jsonService.Serialize(@event);
+      var eventJson = JsonParser.ToString((dynamic)@event, _serializeOptions);
       _server.MulticastText(eventJson);
     }
 
