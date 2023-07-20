@@ -323,7 +323,6 @@ window_rules:
 
 # Available commands
 
-- layout \<vertical | horizontal>
 - focus \<left | right | up | down>
 - focus workspace \<prev | next | recent>
 - focus workspace \<workspace name>
@@ -334,8 +333,8 @@ window_rules:
 - set \<floating | tiling | minimized | maximized>
 - set \<width | height> \<amount in px | amount in %> (eg. `set height 30%` or `set width 200px`)
 - toggle \<floating | maximized>
-- toggle focus mode
-- tiling direction toggle
+- focus mode toggle
+- tiling direction <vertical | horizontal | toggle>
 - exit wm
 - reload config
 - close
