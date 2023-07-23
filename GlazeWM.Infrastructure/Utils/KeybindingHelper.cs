@@ -31,7 +31,11 @@ namespace GlazeWM.Infrastructure.Utils
       }
       catch (ArgumentException)
       {
-        throw new ArgumentException($"Unknown key '{keyString}'");
+        return keyString switch
+        {
+          "Ctrl" => Keys.Control,
+          _ => throw new ArgumentException($"Unknown key '{keyString}'"),
+        };
       }
     }
   }
