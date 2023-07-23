@@ -100,7 +100,7 @@ namespace GlazeWM.Bootstrapper
 
         _interprocessService.StartIpcServer();
 
-        Application.Run();
+        System.Windows.Forms.Application.Run();
       }
       catch (Exception exception)
       {
@@ -115,7 +115,7 @@ namespace GlazeWM.Bootstrapper
       _barService.ExitApp();
       _systemTrayIcon?.Remove();
       _interprocessService.StopIpcServer();
-      Application.Exit();
+      System.Windows.Forms.Application.Exit();
     }
   }
 }
