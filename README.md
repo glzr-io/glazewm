@@ -124,8 +124,8 @@ gaps:
   # Gap between adjacent windows.
   inner_gap: 20
 
-  # Gap between windows and the screen edge.
-  outer_gap: 20
+  # Gap between windows and the screen edge. See "Shorthand properties" for more info.
+  outer_gap: "20px 0 20px 0"
 ```
 
 ## Workspaces configuration
