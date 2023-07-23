@@ -8,7 +8,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Bar", "GlazeWM.Bar\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Infrastructure", "GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Bootstrapper", "GlazeWM.Bootstrapper\GlazeWM.Bootstrapper.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Application", "GlazeWM.Application\GlazeWM.Application.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Interprocess", "GlazeWM.Interprocess\GlazeWM.Interprocess.csproj", "{BBD11CB5-FDF2-4BD5-B3F6-8B75BC3AFD79}"
 EndProject

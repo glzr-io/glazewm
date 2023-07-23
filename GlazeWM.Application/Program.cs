@@ -20,7 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
-namespace GlazeWM.Bootstrapper
+namespace GlazeWM.Application
 {
   internal static class Program
   {
@@ -87,6 +87,9 @@ namespace GlazeWM.Bootstrapper
     [STAThread]
     private static void Main(string[] args)
     {
+      // TODO: Remove use of .NET generic host.
+      // TODO: Build shared/base `ServiceCollection` which is passed to each application.
+
       Debug.WriteLine("Application started.");
       Console.WriteLine($"Application started. {args}");
       var splitArgs = string.Join(",", args).Split(" ");

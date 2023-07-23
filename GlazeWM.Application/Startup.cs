@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Windows.Forms;
 using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers.Commands;
@@ -17,7 +16,7 @@ using GlazeWM.Infrastructure.WindowsApi;
 using GlazeWM.Interprocess;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
-namespace GlazeWM.Bootstrapper
+namespace GlazeWM.Application
 {
   internal sealed class Startup
   {
@@ -78,7 +77,7 @@ namespace GlazeWM.Bootstrapper
         var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
-          IconResourceName = "GlazeWM.Bootstrapper.Resources.icon.ico",
+          IconResourceName = "GlazeWM.Application.Resources.icon.ico",
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },
