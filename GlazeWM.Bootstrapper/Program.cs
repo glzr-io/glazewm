@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System.Threading;
+using CommandLine;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Containers;
@@ -24,6 +24,61 @@ namespace GlazeWM.Bootstrapper
 {
   internal static class Program
   {
+    [Verb("command", HelpText = "Invoke a WM command (eg. `command \"focus workspace 1\"`).")]
+    public class InvokeCommandOptions
+    {
+      [Value(
+        0,
+        MetaName = "meta",
+        Required = true,
+        HelpText = "Input file-name including path"
+      )]
+      public string Command { get; set; }
+
+      [Option(
+        'c',
+        "context-container-id",
+        Required = false,
+        HelpText = "ID of container to use as context."
+      )]
+      public string ContextContainerId { get; set; }
+    }
+
+    [Verb("commit", HelpText = "Subscribe to a WM event (eg. `subscribe -e window_focus,window_close`)")]
+    public class SubscribeOptions
+    {
+      [Option(
+        'e',
+        "events",
+        Required = true,
+        HelpText = "WM events to subscribe to."
+      )]
+      public bool Events { get; set; }
+    }
+
+    [Verb(
+      "containers",
+      HelpText = "Get all containers (monitors, workspaces, windows, split containers)."
+    )]
+    public class GetContainersOptions
+    {
+    }
+
+    [Verb("monitors", HelpText = "Get all monitors.")]
+    public class GetMonitorsOptions
+    {
+    }
+
+    [Verb("workspaces", HelpText = "Get all workspaces.")]
+    public class GetWorkspacesOptions
+    {
+    }
+
+    [Verb("windows", HelpText = "Get all windows.")]
+    public class GetWindowsOptions
+    {
+    }
+
     private const string APP_GUID = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
 
     /// <summary>
@@ -33,9 +88,51 @@ namespace GlazeWM.Bootstrapper
     private static void Main(string[] args)
     {
       Debug.WriteLine("Application started.");
+      Console.WriteLine($"Application started. {args}");
+      var splitArgs = string.Join(",", args).Split(" ");
+      Console.WriteLine($"Application started. {splitArgs}");
+
+      var x = Parser.Default.ParseArguments<
+        InvokeCommandOptions,
+        SubscribeOptions
+      // GetContainersOptions,
+      // GetMonitorsOptions,
+      // GetWorkspacesOptions,
+      // GetWindowsOptions
+      >(args);
+
+      // MessageBox.Show($"x.Value.Command {x.Value.Command}");
+      // MessageBox.Show($"x.Value.Command {x.Value.Command1}");
+      // MessageBox.Show($"x.Value.Command {x.Value.Command2}");
+      // MessageBox.Show($"x.Value.Command {x.Value.Command3}");
+      // Console.WriteLine($"x.Value.Command {x.Value.Command}");
+      // Debug.WriteLine($"x.Value.Command {x.Value.Command}");
+      // Environment.Exit(1);
+
+      // var x = Parser.Default.(splitArgs);
+      // MapResult(
+      //   (InvokeCommandOptions opts) => Debug.WriteLine("jfdiosao"),
+      //   (SubscribeOptions opts) => Debug.WriteLine("jfdiosao"),
+      //   (GetContainersOptions opts) => Debug.WriteLine("jfdiosao"),
+      //   _ => Debug.WriteLine("jfdiosao")
+      // );
 
       // Prevent multiple app instances using a global UUID mutex.
-      using var mutex = new Mutex(false, "Global\\" + APP_GUID);
+      using var mutex = new Mutex(false, "Global\\" + APP_GUID, out var createdNew);
+
+      // return Parser.Default.ParseArguments<
+      //   StartupOptions,
+      //   InvokeCommandOptions
+      //   SubscribeOptions,
+      //   GetContainersOptions,
+      //   GetMonitorsOptions,
+      //   GetWorkspacesOptions,
+      //   GetWindowsOptions
+      // >(args).MapResult(
+      //   (StartupOptions opts) => WindowManager.Startup(opts, createdNew),
+      //   _ => Debug.WriteLine("jfdiosao"),
+      // );
+
       if (!mutex.WaitOne(0, false))
       {
         Debug.Write(
