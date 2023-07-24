@@ -17,7 +17,7 @@ namespace GlazeWM.Application.IpcServer.Websocket
       var text = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
 
       if (Server is WebsocketServer server)
-        server.Messages.OnNext(new WebsocketMessage(Id, text));
+        server.Messages.OnNext(new IncomingIpcMessage(Id, text));
     }
   }
 }

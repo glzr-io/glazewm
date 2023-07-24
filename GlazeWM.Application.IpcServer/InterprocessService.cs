@@ -75,7 +75,7 @@ namespace GlazeWM.Application.IpcServer
       _logger.LogDebug("Stopped IPC server on port {Port}.", _server.Port);
     }
 
-    private void HandleMessage(WebsocketMessage message)
+    private void HandleMessage(IncomingIpcMessage message)
     {
       // TODO
       _logger.LogDebug(
