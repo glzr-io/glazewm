@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GlazeWM.Application.IpcServer.Websocket
+namespace GlazeWM.Application.IpcServer.Server
 {
   internal sealed class IncomingIpcMessage
   {

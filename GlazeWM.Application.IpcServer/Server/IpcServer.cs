@@ -2,22 +2,22 @@
 using System.Reactive.Subjects;
 using NetCoreServer;
 
-namespace GlazeWM.Application.IpcServer.Websocket
+namespace GlazeWM.Application.IpcServer.Server
 {
-  internal sealed class WebsocketServer : WsServer
+  internal sealed class IpcServer : WsServer
   {
     /// <summary>
     /// Messages received from all websocket sessions.
     /// </summary>
     public readonly Subject<IncomingIpcMessage> Messages = new();
 
-    public WebsocketServer(int port) : base(IPAddress.Any, port)
+    public IpcServer(int port) : base(IPAddress.Any, port)
     {
     }
 
     protected override TcpSession CreateSession()
     {
-      return new WebsocketSession(this);
+      return new IpcSession(this);
     }
 
     protected override void Dispose(bool disposingManagedResources)

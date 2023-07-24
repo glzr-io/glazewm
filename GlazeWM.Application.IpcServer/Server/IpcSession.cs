@@ -1,11 +1,11 @@
 ﻿using System.Text;
 using NetCoreServer;
 
-namespace GlazeWM.Application.IpcServer.Websocket
+namespace GlazeWM.Application.IpcServer.Server
 {
-  internal sealed class WebsocketSession : WsSession
+  internal sealed class IpcSession : WsSession
   {
-    public WebsocketSession(WebsocketServer server) : base(server)
+    public IpcSession(IpcServer server) : base(server)
     {
     }
 
@@ -16,7 +16,7 @@ namespace GlazeWM.Application.IpcServer.Websocket
     {
       var text = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
 
-      if (Server is WebsocketServer server)
+      if (Server is IpcServer server)
         server.Messages.OnNext(new IncomingIpcMessage(Id, text));
     }
   }

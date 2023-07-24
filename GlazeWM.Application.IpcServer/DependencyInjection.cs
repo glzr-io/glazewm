@@ -4,9 +4,9 @@ namespace GlazeWM.Application.IpcServer
 {
   public static class DependencyInjection
   {
-    public static IServiceCollection AddInterprocessServices(this IServiceCollection services)
+    public static IServiceCollection AddIpcServerServices(this IServiceCollection services)
     {
-      services.AddSingleton<InterprocessService>();
+      services.AddSingleton<IpcServerManager>();
 
       return services;
     }

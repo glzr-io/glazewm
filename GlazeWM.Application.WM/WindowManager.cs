@@ -25,7 +25,7 @@ namespace GlazeWM.Application.WM
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
     private readonly UserConfigService _userConfigService;
-    private readonly InterprocessService _interprocessService;
+    private readonly IpcServerManager _ipcServerManager;
 
     private SystemTrayIcon _systemTrayIcon { get; set; }
 
@@ -35,14 +35,14 @@ namespace GlazeWM.Application.WM
       KeybindingService keybindingService,
       WindowEventService windowEventService,
       UserConfigService userConfigService,
-      InterprocessService interprocessService)
+      IpcServerManager ipcServerManager)
     {
       _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
       _userConfigService = userConfigService;
-      _interprocessService = interprocessService;
+      _ipcServerManager = ipcServerManager;
     }
 
     public void Start()
@@ -107,7 +107,7 @@ namespace GlazeWM.Application.WM
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
       _barService.ExitApp();
       _systemTrayIcon?.Remove();
-      _interprocessService.StopIpcServer();
+      _ipcServerManager.StopIpcServer();
       System.Windows.Forms.Application.Exit();
     }
   }

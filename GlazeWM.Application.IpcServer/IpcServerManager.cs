@@ -2,26 +2,26 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
+using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Serialization;
-using GlazeWM.Application.IpcServer.Websocket;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
 {
   // TODO: Rename class to `ServerManager`.
-  public sealed class InterprocessService : IDisposable
+  public sealed class IpcServerManager : IDisposable
   {
     private readonly Bus _bus;
-    private readonly ILogger<InterprocessService> _logger;
+    private readonly ILogger<IpcServerManager> _logger;
     private readonly UserConfigService _userConfigService;
 
     /// <summary>
     /// The websocket server instance.
     /// </summary>
-    private WebsocketServer _server { get; set; }
+    private IpcServer _server { get; set; }
 
     private readonly Subject<bool> _serverKill = new();
 
@@ -30,9 +30,9 @@ namespace GlazeWM.Application.IpcServer
         options.Converters.Add(new JsonContainerConverter())
       );
 
-    public InterprocessService(
+    public IpcServerManager(
       Bus bus,
-      ILogger<InterprocessService> logger,
+      ILogger<IpcServerManager> logger,
       UserConfigService userConfigService)
     {
       _bus = bus;
@@ -98,17 +98,3 @@ namespace GlazeWM.Application.IpcServer
     }
   }
 }
-
-/**
-Example usage:
-const client = new GwmClient({ port });
-client.on(GwmEvent.ALL, () => {})
-client.on([GwmEvent.WORKSPACE_FOCUSED], () => {})
-
-const targetContainerId = (await client.getWorkspaces())[0].id;
-client.sendCommand('move workspace left', { targetContainerId })
-
-type Direction = 'left' | 'right' | 'up' | 'down';
-type MoveWorkspaceCommand = `move workspace ${Direction}`;
-type GwmCommand = MoveWorkspaceCommand | MoveWindowCommand | ...;
-**/
