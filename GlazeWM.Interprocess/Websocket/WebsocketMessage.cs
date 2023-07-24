@@ -2,6 +2,7 @@
 
 namespace GlazeWM.Interprocess.Websocket
 {
+  // TODO: Rename to `IncomingIpcMessage`.
   internal sealed class WebsocketMessage
   {
     public Guid SessionId { get; }

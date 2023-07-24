@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Interprocess
 {
+  // TODO: Rename project to `IpcServer`. Rename class to `ServerManager`.
   public sealed class InterprocessService : IDisposable
   {
     private readonly Bus _bus;
