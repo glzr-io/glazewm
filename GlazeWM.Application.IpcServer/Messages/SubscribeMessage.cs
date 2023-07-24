@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace GlazeWM.Interprocess.Messages
+namespace GlazeWM.Application.IpcServer.Messages
 {
   [Verb(
     "commit",

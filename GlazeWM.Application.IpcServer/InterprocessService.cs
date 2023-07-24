@@ -6,12 +6,12 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Serialization;
-using GlazeWM.Interprocess.Websocket;
+using GlazeWM.Application.IpcServer.Websocket;
 using Microsoft.Extensions.Logging;
 
-namespace GlazeWM.Interprocess
+namespace GlazeWM.Application.IpcServer
 {
-  // TODO: Rename project to `IpcServer`. Rename class to `ServerManager`.
+  // TODO: Rename class to `ServerManager`.
   public sealed class InterprocessService : IDisposable
   {
     private readonly Bus _bus;

@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using NetCoreServer;
 
-namespace GlazeWM.Interprocess.Websocket
+namespace GlazeWM.Application.IpcServer.Websocket
 {
   internal sealed class WebsocketSession : WsSession
   {

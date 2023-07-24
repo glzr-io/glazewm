@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GlazeWM.Interprocess.Websocket
+namespace GlazeWM.Application.IpcServer.Websocket
 {
   internal enum IpcPayloadType
   {

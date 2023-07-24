@@ -10,7 +10,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Infrastructure", "G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Application", "GlazeWM.Application\GlazeWM.Application.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Interprocess", "GlazeWM.Interprocess\GlazeWM.Interprocess.csproj", "{BBD11CB5-FDF2-4BD5-B3F6-8B75BC3AFD79}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Application.IpcServer", "GlazeWM.Application.IpcServer\GlazeWM.Application.IpcServer.csproj", "{BBD11CB5-FDF2-4BD5-B3F6-8B75BC3AFD79}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{877CCE5C-94A9-4CE4-8A29-164179ADE9D3}"
 	ProjectSection(SolutionItems) = preProject

@@ -1,6 +1,6 @@
 using CommandLine;
 
-namespace GlazeWM.Interprocess.Messages
+namespace GlazeWM.Application.IpcServer.Messages
 {
   [Verb("monitors", HelpText = "Get all monitors.")]
   public class GetMonitorsMessage

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GlazeWM.Interprocess.Websocket
+namespace GlazeWM.Application.IpcServer.Websocket
 {
   // TODO: Rename to `IncomingIpcMessage`.
   internal sealed class WebsocketMessage

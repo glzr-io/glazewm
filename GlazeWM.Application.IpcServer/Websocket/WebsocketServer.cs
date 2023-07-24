@@ -2,7 +2,7 @@
 using System.Reactive.Subjects;
 using NetCoreServer;
 
-namespace GlazeWM.Interprocess.Websocket
+namespace GlazeWM.Application.IpcServer.Websocket
 {
   internal sealed class WebsocketServer : WsServer
   {

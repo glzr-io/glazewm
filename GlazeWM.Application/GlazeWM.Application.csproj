@@ -14,7 +14,7 @@
     <ProjectReference Include="..\GlazeWM.Bar\GlazeWM.Bar.csproj" />
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
-    <ProjectReference Include="..\GlazeWM.Interprocess\GlazeWM.Interprocess.csproj" />
+    <ProjectReference Include="..\GlazeWM.Application.IpcServer\GlazeWM.Application.IpcServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
