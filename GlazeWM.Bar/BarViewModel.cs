@@ -19,6 +19,7 @@ namespace GlazeWM.Bar
     public BarConfig BarConfig { get; }
 
     public BarPosition Position => BarConfig.Position;
+    public bool AlwaysOnTop => BarConfig.AlwaysOnTop;
     public string Background => XamlHelper.FormatColor(BarConfig.Background);
     public string Foreground => XamlHelper.FormatColor(BarConfig.Foreground);
     public string FontFamily => BarConfig.FontFamily;
