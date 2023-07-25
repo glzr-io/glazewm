@@ -161,6 +161,9 @@ bar:
   # The position of the bar on the screen. Can be either "top" or "bottom".
   position: "top"
 
+  # Whether to show the bar above other windows
+  always_on_top: false
+
   # Opacity value between 0.0 and 1.0.
   opacity: 1.0
 
