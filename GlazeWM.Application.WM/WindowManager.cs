@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reactive.Linq;
-using GlazeWM.Bar;
+﻿using System.Reactive.Linq;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -13,36 +10,29 @@ using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
-using GlazeWM.Application.IpcServer;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Application.WM
 {
   public sealed class WindowManager
   {
-    private readonly BarService _barService;
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
     private readonly UserConfigService _userConfigService;
-    private readonly IpcServerManager _ipcServerManager;
 
-    private SystemTrayIcon _systemTrayIcon { get; set; }
+    private SystemTrayIcon? _systemTrayIcon { get; set; }
 
-    public Startup(
-      BarService barService,
+    public WindowManager(
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
-      UserConfigService userConfigService,
-      IpcServerManager ipcServerManager)
+      UserConfigService userConfigService)
     {
-      _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
       _userConfigService = userConfigService;
-      _ipcServerManager = ipcServerManager;
     }
 
     public void Start()
@@ -105,9 +95,7 @@ namespace GlazeWM.Application.WM
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
-      _barService.ExitApp();
       _systemTrayIcon?.Remove();
-      _ipcServerManager.StopIpcServer();
       System.Windows.Forms.Application.Exit();
     }
   }

@@ -1,5 +1,3 @@
-using GlazeWM.Infrastructure.Bussing;
-
 namespace GlazeWM.Infrastructure.Common
 {
   public enum ExitCode

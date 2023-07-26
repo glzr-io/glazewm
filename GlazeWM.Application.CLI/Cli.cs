@@ -1,24 +1,24 @@
-﻿namespace GlazeWM.Application.CLI
+﻿using GlazeWM.Infrastructure.Utils;
+
+namespace GlazeWM.Application.CLI
 {
   public sealed class Cli
   {
-    private readonly IpcClient _ipcClient;
+    private readonly NamedPipeClient _namedPipeClient;
 
-    public Cli(IpcClient ipcClient)
+    public Cli(NamedPipeClient namedPipeClient)
     {
-      _ipcClient = ipcClient;
+      _namedPipeClient = namedPipeClient;
     }
 
-    public void Start(ParsedArgs<object> parsedArgs)
+    public void Start(string message)
     {
-      var response = parsedArgs.MapResult(
+      var response = message.MapResult(
         (SubscribeMessage message) => HandleSubscribe(message),
-        _ => _ipcClient.Send(parsedArgs.Text)
+        _ => _namedPipeClient.Send(parsedArgs.Text)
       );
 
       Console.WriteLine(response.Message);
-
-      return 1;
     }
 
     /// <summary>

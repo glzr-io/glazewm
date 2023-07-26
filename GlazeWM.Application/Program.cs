@@ -1,28 +1,28 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using CommandLine;
+using GlazeWM.Application.CLI;
 using GlazeWM.Application.IpcServer;
+using GlazeWM.Application.WM;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Exceptions;
 using GlazeWM.Infrastructure.Logging;
 using GlazeWM.Infrastructure.Serialization;
-using Microsoft.Extensions.Configuration;
+using GlazeWM.Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 //// ******
 //// TODO: Create `ThreadUtils`.
-//// TODO: Create `SingleInstanceMutex`.
 //// TODO: How to forward messages from CLI to IPC server?
 //// TODO: Handle message parsing in IPC server.
 
@@ -30,56 +30,63 @@ namespace GlazeWM.Application
 {
   internal static class Program
   {
+    private const string AppGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
+
     /// <summary>
     /// The main entry point for the application. The thread must be an STA
     /// thread in order to run a message loop.
     /// </summary>
     [STAThread]
-    private static int Main(string[] args)
+    private static ExitCode Main(string[] args)
     {
-      using var isSingleInstance = new SingleInstanceMutex();
+      bool isSingleInstance;
+      using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
 
-      var parsedArgs = Parser.Default.ParseArguments<StartWmOptions>(args);
+      var parsedArgs = Parser.Default.ParseArguments<WmStartupOptions>(args);
 
       return parsedArgs.MapResult(
-        (StartWmOptions opts) => StartWm(opts, isSingleInstance),
-        _ => StartCli(parsedArgs, isSingleInstance)
+        (WmStartupOptions options) => StartWm(options, isSingleInstance),
+        _ => StartCli(parsedArgs.ToString(), isSingleInstance)
       );
     }
 
-    private int StartWm(StartWmOptions opts, bool isSingleInstance)
+    private static ExitCode StartWm(WmStartupOptions options, bool isSingleInstance)
     {
       if (!isSingleInstance)
         return ExitCode.Error;
 
       ServiceLocator.Provider = BuildWmServiceProvider();
 
-      var (barService, ipcServer, windowManager) =
-        ServiceLocator.Provider.GetRequiredServices<
+      var (barService, ipcServerManager, windowManager) =
+        ServiceLocator.GetRequiredServices<
           BarService,
-          IpcServer,
+          IpcServerManager,
           WindowManager
         >();
 
-      ThreadUtils.CreateSTA('GlazeWMBar', () => _barService.StartApp());
-      ThreadUtils.Create('GlazeWMIPC', () => _ipcServer.StartServer());
-
-      // Run window manager on the main thread.
+      // Start bar, IPC server, and window manager. The window manager runs on the main
+      // thread.
+      ThreadUtils.CreateSTA("GlazeWMBar", () => barService.StartApp());
+      ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer());
       windowManager.Start();
+
+      return ExitCode.Success;
     }
 
-    private void StartCli(ParsedArgs<object> parsedArgs, bool isSingleInstance)
+    private static ExitCode StartCli(string message, bool isSingleInstance)
     {
       if (isSingleInstance)
         return ExitCode.Error;
 
       ServiceLocator.Provider = BuildCliServiceProvider();
 
-      var cli = ServiceLocator.Provider.GetRequiredService<Cli>();
-      cli.Start(parsedArgs);
+      var cli = ServiceLocator.GetRequiredService<Cli>();
+      cli.Start(message);
+
+      return ExitCode.Success;
     }
 
-    private ServiceProvider BuildWmServiceProvider()
+    private static ServiceProvider BuildWmServiceProvider()
     {
       var services = new ServiceCollection();
       services.AddLoggingService();
@@ -92,11 +99,11 @@ namespace GlazeWM.Application
       return services.BuildServiceProvider();
     }
 
-    private ServiceProvider BuildCliServiceProvider()
+    private static ServiceProvider BuildCliServiceProvider()
     {
       var services = new ServiceCollection();
       services.AddLoggingService();
-      services.AddSingleton<IpcClient>();
+      services.AddSingleton<NamedPipeClient>();
       services.AddSingleton<Cli>();
 
       return services.BuildServiceProvider();
@@ -110,15 +117,15 @@ namespace GlazeWM.Application
       return services.AddLogging(builder =>
       {
         builder.ClearProviders();
-        builder.AddConsole();
+        builder.AddConsoleFormatter<LogFormatter, ConsoleFormatterOptions>();
+        builder.AddConsole(options => options.FormatterName = LogFormatter.Name);
         builder.SetMinimumLevel(LogLevel.Debug);
-        builder.AddFormatter<CustomLoggerFormatter, ConsoleLoggerFormatOptions>();
       });
     }
 
     public static IServiceCollection AddExceptionHandler(this IServiceCollection services)
     {
-      return services
+      services
         .AddOptions<ExceptionHandlingOptions>()
         .Configure<Bus, ContainerService>((options, bus, containerService) =>
         {
@@ -149,6 +156,8 @@ namespace GlazeWM.Application
               + $"State dump: {stateDump}\n\n";
           };
         });
+
+      return services;
     }
   }
 }

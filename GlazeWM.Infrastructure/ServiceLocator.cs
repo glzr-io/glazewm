@@ -22,5 +22,20 @@ namespace GlazeWM.Infrastructure
     {
       return Provider.GetServices(type);
     }
+
+    public static (T1, T2) GetRequiredServices<T1, T2>()
+    {
+      var service1 = Provider.GetRequiredService<T1>();
+      var service2 = Provider.GetRequiredService<T2>();
+      return (service1, service2);
+    }
+
+    public static (T1, T2, T3) GetRequiredServices<T1, T2, T3>()
+    {
+      var service1 = Provider.GetRequiredService<T1>();
+      var service2 = Provider.GetRequiredService<T2>();
+      var service3 = Provider.GetRequiredService<T3>();
+      return (service1, service2, service3);
+    }
   }
 }

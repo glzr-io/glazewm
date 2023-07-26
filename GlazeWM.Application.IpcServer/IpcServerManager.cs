@@ -2,6 +2,8 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
+using CommandLine;
+using GlazeWM.Application.IpcServer.Messages;
 using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
@@ -11,7 +13,6 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
 {
-  // TODO: Rename class to `ServerManager`.
   public sealed class IpcServerManager : IDisposable
   {
     private readonly Bus _bus;
@@ -21,7 +22,7 @@ namespace GlazeWM.Application.IpcServer
     /// <summary>
     /// The websocket server instance.
     /// </summary>
-    private IpcServer _server { get; set; }
+    private Server.IpcServer _server { get; set; }
 
     private readonly Subject<bool> _serverKill = new();
 
@@ -43,7 +44,7 @@ namespace GlazeWM.Application.IpcServer
     /// <summary>
     /// Start the IPC server on user-specified port.
     /// </summary>
-    public void StartIpcServer()
+    public void StartServer()
     {
       var port = _userConfigService.GeneralConfig.IpcServerPort;
       _server = new(port);
@@ -65,7 +66,7 @@ namespace GlazeWM.Application.IpcServer
     /// <summary>
     /// Kill the IPC server.
     /// </summary>
-    public void StopIpcServer()
+    public void StopServer()
     {
       if (_server is null)
         return;
@@ -77,11 +78,29 @@ namespace GlazeWM.Application.IpcServer
 
     private void HandleMessage(IncomingIpcMessage message)
     {
-      // TODO
       _logger.LogDebug(
         "IPC message from session {Session}: {Text}.",
         message.SessionId,
         message.Text
+      );
+
+      var ipcMessage = message.Text.Split(" ");
+
+      Parser.Default.ParseArguments<
+        InvokeCommandMessage,
+        SubscribeMessage,
+        GetContainersMessage,
+        GetMonitorsMessage,
+        GetWorkspacesMessage,
+        GetWindowsMessage
+      >(ipcMessage).MapResult(
+        (InvokeCommandMessage message) => 1,
+        (SubscribeMessage message) => 1,
+        (GetContainersMessage message) => 1,
+        (GetMonitorsMessage message) => 1,
+        (GetWorkspacesMessage message) => 1,
+        (GetWindowsMessage message) => 1,
+        _ => 1
       );
     }
 
