@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GlazeWM.Application.CLI\GlazeWM.Application.CLI.csproj" />
+    <ProjectReference Include="..\GlazeWM.Application.IpcServer\GlazeWM.Application.IpcServer.csproj" />
     <ProjectReference Include="..\GlazeWM.Application.WM\GlazeWM.Application.WM.csproj" />
     <ProjectReference Include="..\GlazeWM.Bar\GlazeWM.Bar.csproj" />
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
-    <ProjectReference Include="..\GlazeWM.Application.IpcServer\GlazeWM.Application.IpcServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

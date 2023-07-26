@@ -11,9 +11,6 @@
       Include="CommandLineParser"
       Version="2.9.1" />
     <PackageReference
-      Include="Microsoft.Extensions.Hosting"
-      Version="6.0.1" />
-    <PackageReference
       Include="System.Reactive"
       Version="5.0.0" />
     <PackageReference
