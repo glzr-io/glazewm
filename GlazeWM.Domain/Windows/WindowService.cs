@@ -177,35 +177,14 @@ namespace GlazeWM.Domain.Windows
 
     public static bool IsHandleManageable(IntPtr handle)
     {
-      if (GetProcessOfHandle(handle) is not null)
-      {
-        var processName = GetProcessOfHandle(handle)?.ProcessName;
-        var title = GetTitleOfHandle(handle);
-
-        // TODO: Temporary fix for managing Flow Launcher until a force manage command is added.
-        if (processName == "Flow.Launcher" && title == "Flow.Launcher")
-          return true;
-      }
-
       // Ignore windows that are hidden.
       if (!IsHandleVisible(handle))
         return false;
 
-      // Ensure window is top-level (ie. not a child window). Ignore windows that cannot be focused
-      // or if they're unavailable in task switcher (alt+tab menu).
-      var isApplicationWindow = !HandleHasWindowStyle(handle, WindowStyles.Child)
+      // Ensure window is top-level (ie. not a child window). Ignore popup windows, windows that
+      // cannot be focused, and windows that are unavailable in task switcher (alt+tab menu).
+      return !HandleHasWindowStyle(handle, WindowStyles.Child | WindowStyles.Popup)
         && !HandleHasWindowExStyle(handle, WindowStylesEx.NoActivate | WindowStylesEx.ToolWindow);
-
-      if (!isApplicationWindow)
-        return false;
-
-      /// Some applications spawn top-level windows for menus that should be ignored. This includes
-      /// the autocomplete popup in Notepad++ and title bar menu in Keepass. Although not
-      /// foolproof, these can typically be identified by having an owner window and no title bar.
-      var isMenuWindow = GetWindow(handle, GW.Owner) != IntPtr.Zero
-        && !HandleHasWindowStyle(handle, WindowStyles.Capion);
-
-      return !isMenuWindow;
     }
 
     /// <summary>
