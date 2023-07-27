@@ -22,7 +22,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 //// ******
-//// TODO: Create `ThreadUtils`.
 //// TODO: How to forward messages from CLI to IPC server?
 //// TODO: Handle message parsing in IPC server.
 
