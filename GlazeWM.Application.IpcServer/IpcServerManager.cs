@@ -61,14 +61,14 @@ namespace GlazeWM.Application.IpcServer
           var subscribedSessionIds = new List<Guid>();
 
           _ipcMessageHandler.SubscribedSessions.TryGetValue(
-            @event.FriendlyName(),
+            @event.FriendlyName,
             out subscribedSessionIds
           );
 
           foreach (var sessionId in subscribedSessionIds)
           {
             var session = _server.FindSession(sessionId);
-            var response = _ipcMessageHandler.ToEventMessage(@event);
+            var response = _ipcMessageHandler.ToEventResponse(@event);
             session.SendAsync(response);
           }
         });

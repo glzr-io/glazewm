@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
 {
-  internal sealed class IpcMessageHandler
+  public sealed class IpcMessageHandler
   {
     private readonly Bus _bus;
     private readonly CommandParsingService _commandParsingService;
@@ -68,14 +68,12 @@ namespace GlazeWM.Application.IpcServer
       return Parser.Default.ParseArguments<
         InvokeCommandMessage,
         SubscribeMessage,
-        GetContainersMessage,
         GetMonitorsMessage,
         GetWorkspacesMessage,
         GetWindowsMessage
       >(ipcMessage).MapResult(
         (InvokeCommandMessage message) => HandleInvokeCommandMessage(message),
         (SubscribeMessage message) => HandleSubscribeMessage(message, sessionId),
-        (GetContainersMessage message) => HandleGetContainersMessage(message),
         (GetMonitorsMessage message) => HandleGetMonitorsMessage(message),
         (GetWorkspacesMessage message) => HandleGetWorkspacesMessage(message),
         (GetWindowsMessage message) => HandleGetWindowsMessage(message),
@@ -94,8 +92,8 @@ namespace GlazeWM.Application.IpcServer
         contextContainer
       );
 
-      var response = _bus.Invoke((dynamic)command);
-      return JsonParser.ToString(response, _serializeOptions);
+      var commandResponse = _bus.Invoke((dynamic)command);
+      return ToMessageResponse(commandResponse);
     }
 
     private string HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
@@ -115,35 +113,45 @@ namespace GlazeWM.Application.IpcServer
         SubscribedSessions.Add(eventName, new List<Guid>() { sessionId });
       }
 
-      return JsonParser.ToString(CommandResponse.Ok, _serializeOptions);
-    }
-
-    private string HandleGetContainersMessage(GetContainersMessage message)
-    {
-      throw new NotImplementedException();
+      return ToMessageResponse(CommandResponse.Ok);
     }
 
     private string HandleGetMonitorsMessage(GetMonitorsMessage _)
     {
       var monitors = _monitorService.GetMonitors();
-      return JsonParser.ToString(monitors, _serializeOptions);
+      return ToMessageResponse(monitors);
     }
 
     private string HandleGetWorkspacesMessage(GetWorkspacesMessage _)
     {
       var workspaces = _workspaceService.GetActiveWorkspaces();
-      return JsonParser.ToString(workspaces, _serializeOptions);
+      return ToMessageResponse(workspaces);
     }
 
     private string HandleGetWindowsMessage(GetWindowsMessage _)
     {
       var windows = _windowService.GetWindows();
-      return JsonParser.ToString(windows, _serializeOptions);
+      return ToMessageResponse(windows);
     }
 
-    internal string ToEventMessage(Event @event)
+    internal string ToMessageResponse<T>(T payload)
     {
-      return JsonParser.ToString((dynamic)@event, _serializeOptions);
+      var messageResponse = new OutgoingIpcMessage<T>(
+        IpcPayloadType.MessageResponse,
+        payload
+      );
+
+      return JsonParser.ToString((dynamic)messageResponse, _serializeOptions);
+    }
+
+    internal string ToEventResponse(Event @event)
+    {
+      var eventResponse = new OutgoingIpcMessage<Event>(
+        IpcPayloadType.SubscribedEvent,
+        @event
+      );
+
+      return JsonParser.ToString((dynamic)eventResponse, _serializeOptions);
     }
   }
 }
