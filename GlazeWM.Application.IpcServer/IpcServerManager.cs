@@ -46,11 +46,11 @@ namespace GlazeWM.Application.IpcServer
       _server.Start();
       _server.Messages
         .TakeUntil(_serverKill)
-        .Subscribe(message =>
+        .Subscribe(clientMessage =>
         {
-          var response = _ipcMessageHandler.GetResponse(message);
-          var session = _server.FindSession(message.SessionId);
-          session.SendAsync(response);
+          var responseMessage = _ipcMessageHandler.GetResponseMessage(clientMessage);
+          var session = _server.FindSession(clientMessage.SessionId);
+          session.SendAsync(responseMessage);
         });
 
       // Broadcast events to subscribed sessions.
@@ -68,8 +68,8 @@ namespace GlazeWM.Application.IpcServer
           foreach (var sessionId in subscribedSessionIds)
           {
             var session = _server.FindSession(sessionId);
-            var response = _ipcMessageHandler.ToEventResponse(@event);
-            session.SendAsync(response);
+            var responseMessage = _ipcMessageHandler.ToEventMessage(@event);
+            session.SendAsync(responseMessage);
           }
         });
 

@@ -17,7 +17,7 @@ namespace GlazeWM.Application.IpcServer.Server
       var text = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
 
       if (Server is IpcServer server)
-        server.Messages.OnNext(new IncomingIpcMessage(Id, text));
+        server.Messages.OnNext(new ClientMessage(Id, text));
     }
   }
 }

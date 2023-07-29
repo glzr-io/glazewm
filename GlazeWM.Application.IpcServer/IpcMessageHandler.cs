@@ -53,17 +53,17 @@ namespace GlazeWM.Application.IpcServer
       _windowService = windowService;
     }
 
-    internal string GetResponse(IncomingIpcMessage message)
+    internal string GetResponseMessage(ClientMessage message)
     {
-      var (sessionId, text) = message;
+      var (sessionId, messageString) = message;
 
       _logger.LogDebug(
-        "IPC message from session {Session}: {Text}.",
+        "IPC message from session {Session}: {Message}.",
         sessionId,
-        text
+        messageString
       );
 
-      var ipcMessage = text.Split(" ");
+      var messageParts = messageString.Split(" ");
 
       return Parser.Default.ParseArguments<
         InvokeCommandMessage,
@@ -71,7 +71,7 @@ namespace GlazeWM.Application.IpcServer
         GetMonitorsMessage,
         GetWorkspacesMessage,
         GetWindowsMessage
-      >(ipcMessage).MapResult(
+      >(messageParts).MapResult(
         (InvokeCommandMessage message) => HandleInvokeCommandMessage(message),
         (SubscribeMessage message) => HandleSubscribeMessage(message, sessionId),
         (GetMonitorsMessage message) => HandleGetMonitorsMessage(message),
@@ -93,7 +93,7 @@ namespace GlazeWM.Application.IpcServer
       );
 
       var commandResponse = _bus.Invoke((dynamic)command);
-      return ToMessageResponse(commandResponse);
+      return ToResponseMessage(commandResponse);
     }
 
     private string HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
@@ -113,45 +113,45 @@ namespace GlazeWM.Application.IpcServer
         SubscribedSessions.Add(eventName, new List<Guid>() { sessionId });
       }
 
-      return ToMessageResponse(CommandResponse.Ok);
+      return ToResponseMessage(CommandResponse.Ok);
     }
 
     private string HandleGetMonitorsMessage(GetMonitorsMessage _)
     {
       var monitors = _monitorService.GetMonitors();
-      return ToMessageResponse(monitors);
+      return ToResponseMessage(monitors);
     }
 
     private string HandleGetWorkspacesMessage(GetWorkspacesMessage _)
     {
       var workspaces = _workspaceService.GetActiveWorkspaces();
-      return ToMessageResponse(workspaces);
+      return ToResponseMessage(workspaces);
     }
 
     private string HandleGetWindowsMessage(GetWindowsMessage _)
     {
       var windows = _windowService.GetWindows();
-      return ToMessageResponse(windows);
+      return ToResponseMessage(windows);
     }
 
-    internal string ToMessageResponse<T>(T payload)
+    internal string ToResponseMessage<T>(T payload)
     {
-      var messageResponse = new OutgoingIpcMessage<T>(
-        IpcPayloadType.MessageResponse,
+      var responseMessage = new ServerMessage<T>(
+        ServerMessagePayloadType.ClientResponse,
         payload
       );
 
-      return JsonParser.ToString((dynamic)messageResponse, _serializeOptions);
+      return JsonParser.ToString((dynamic)responseMessage, _serializeOptions);
     }
 
-    internal string ToEventResponse(Event @event)
+    internal string ToEventMessage(Event @event)
     {
-      var eventResponse = new OutgoingIpcMessage<Event>(
-        IpcPayloadType.SubscribedEvent,
+      var eventMessage = new ServerMessage<Event>(
+        ServerMessagePayloadType.SubscribedEvent,
         @event
       );
 
-      return JsonParser.ToString((dynamic)eventResponse, _serializeOptions);
+      return JsonParser.ToString((dynamic)eventMessage, _serializeOptions);
     }
   }
 }

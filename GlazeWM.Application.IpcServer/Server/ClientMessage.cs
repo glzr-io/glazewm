@@ -2,5 +2,5 @@
 
 namespace GlazeWM.Application.IpcServer.Server
 {
-  internal record IncomingIpcMessage(Guid SessionId, string Text);
+  internal record ClientMessage(Guid SessionId, string Message);
 }

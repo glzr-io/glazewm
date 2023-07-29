@@ -9,7 +9,7 @@ namespace GlazeWM.Application.IpcServer.Server
     /// <summary>
     /// Messages received from all websocket sessions.
     /// </summary>
-    public readonly Subject<IncomingIpcMessage> Messages = new();
+    public readonly Subject<ClientMessage> Messages = new();
 
     public IpcServer(int port) : base(IPAddress.Any, port)
     {
