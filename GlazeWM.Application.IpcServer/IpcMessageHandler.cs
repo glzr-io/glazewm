@@ -1,4 +1,7 @@
-﻿using CommandLine;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using CommandLine;
 using GlazeWM.Application.IpcServer.Messages;
 using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Domain.Containers;
@@ -7,11 +10,12 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
 {
-  public sealed class IpcMessageHandler
+  internal sealed class IpcMessageHandler
   {
     private readonly Bus _bus;
     private readonly CommandParsingService _commandParsingService;
@@ -21,7 +25,17 @@ namespace GlazeWM.Application.IpcServer
     private readonly WorkspaceService _workspaceService;
     private readonly WindowService _windowService;
 
-    public IpcMessageHandler(
+    private readonly JsonSerializerOptions _serializeOptions =
+      JsonParser.OptionsFactory((options) =>
+        options.Converters.Add(new JsonContainerConverter())
+      );
+
+    /// <summary>
+    /// Dictionary of event names and session IDs subscribed to that event.
+    /// </summary>
+    internal Dictionary<string, List<Guid>> SubscribedSessions = new();
+
+    internal IpcMessageHandler(
       Bus bus,
       CommandParsingService commandParsingService,
       ContainerService containerService,
@@ -39,15 +53,17 @@ namespace GlazeWM.Application.IpcServer
       _windowService = windowService;
     }
 
-    public string GetResponse(IncomingIpcMessage message)
+    internal string GetResponse(IncomingIpcMessage message)
     {
+      var (sessionId, text) = message;
+
       _logger.LogDebug(
         "IPC message from session {Session}: {Text}.",
-        message.SessionId,
-        message.Text
+        sessionId,
+        text
       );
 
-      var ipcMessage = message.Text.Split(" ");
+      var ipcMessage = text.Split(" ");
 
       return Parser.Default.ParseArguments<
         InvokeCommandMessage,
@@ -58,16 +74,16 @@ namespace GlazeWM.Application.IpcServer
         GetWindowsMessage
       >(ipcMessage).MapResult(
         (InvokeCommandMessage message) => HandleInvokeCommandMessage(message),
-        (SubscribeMessage message) => 1,
-        (GetContainersMessage message) => 1,
-        (GetMonitorsMessage message) => 1,
-        (GetWorkspacesMessage message) => 1,
-        (GetWindowsMessage message) => 1,
-        _ => 1
+        (SubscribeMessage message) => HandleSubscribeMessage(message, sessionId),
+        (GetContainersMessage message) => HandleGetContainersMessage(message),
+        (GetMonitorsMessage message) => HandleGetMonitorsMessage(message),
+        (GetWorkspacesMessage message) => HandleGetWorkspacesMessage(message),
+        (GetWindowsMessage message) => HandleGetWindowsMessage(message),
+        _ => throw new Exception()
       );
     }
 
-    public string HandleInvokeCommandMessage(InvokeCommandMessage message)
+    private string HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
       var contextContainer = _containerService.GetContainerById(
         message.ContextContainerId
@@ -78,8 +94,56 @@ namespace GlazeWM.Application.IpcServer
         contextContainer
       );
 
-      _bus.Invoke((dynamic)command);
-      return string.Empty;
+      var response = _bus.Invoke((dynamic)command);
+      return JsonParser.ToString(response, _serializeOptions);
+    }
+
+    private string HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
+    {
+      var eventNames = message.Events.Split(',');
+
+      foreach (var eventName in eventNames)
+      {
+        if (SubscribedSessions.ContainsKey(eventName))
+        {
+          var sessionIds = new List<Guid>();
+          SubscribedSessions.TryGetValue(eventName, out sessionIds);
+          sessionIds.Add(sessionId);
+          continue;
+        }
+
+        SubscribedSessions.Add(eventName, new List<Guid>() { sessionId });
+      }
+
+      return JsonParser.ToString(CommandResponse.Ok, _serializeOptions);
+    }
+
+    private string HandleGetContainersMessage(GetContainersMessage message)
+    {
+      throw new NotImplementedException();
+    }
+
+    private string HandleGetMonitorsMessage(GetMonitorsMessage _)
+    {
+      var monitors = _monitorService.GetMonitors();
+      return JsonParser.ToString(monitors, _serializeOptions);
+    }
+
+    private string HandleGetWorkspacesMessage(GetWorkspacesMessage _)
+    {
+      var workspaces = _workspaceService.GetActiveWorkspaces();
+      return JsonParser.ToString(workspaces, _serializeOptions);
+    }
+
+    private string HandleGetWindowsMessage(GetWindowsMessage _)
+    {
+      var windows = _windowService.GetWindows();
+      return JsonParser.ToString(windows, _serializeOptions);
+    }
+
+    internal string ToEventMessage(Event @event)
+    {
+      return JsonParser.ToString((dynamic)@event, _serializeOptions);
     }
   }
 }

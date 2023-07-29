@@ -14,6 +14,6 @@ namespace GlazeWM.Application.IpcServer.Messages
       Required = true,
       HelpText = "WM events to subscribe to."
     )]
-    public bool Events { get; set; }
+    public string Events { get; set; }
   }
 }

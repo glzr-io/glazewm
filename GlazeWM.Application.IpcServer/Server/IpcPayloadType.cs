@@ -2,8 +2,8 @@
 {
   internal enum IpcPayloadType
   {
-    Command,
-    Event,
-    Query
+    CommandResponse,
+    QueryResponse,
+    Event
   }
 }

@@ -1,14 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Text.Json;
-using CommandLine;
-using GlazeWM.Application.IpcServer.Messages;
-using GlazeWM.Application.IpcServer.Server;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
-using GlazeWM.Infrastructure.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
@@ -16,6 +11,7 @@ namespace GlazeWM.Application.IpcServer
   public sealed class IpcServerManager : IDisposable
   {
     private readonly Bus _bus;
+    private readonly IpcMessageHandler _ipcMessageHandler;
     private readonly ILogger<IpcServerManager> _logger;
     private readonly UserConfigService _userConfigService;
 
@@ -26,17 +22,14 @@ namespace GlazeWM.Application.IpcServer
 
     private readonly Subject<bool> _serverKill = new();
 
-    private readonly JsonSerializerOptions _serializeOptions =
-      JsonParser.OptionsFactory((options) =>
-        options.Converters.Add(new JsonContainerConverter())
-      );
-
     public IpcServerManager(
       Bus bus,
+      IpcMessageHandler ipcMessageHandler,
       ILogger<IpcServerManager> logger,
       UserConfigService userConfigService)
     {
       _bus = bus;
+      _ipcMessageHandler = ipcMessageHandler;
       _logger = logger;
       _userConfigService = userConfigService;
     }
@@ -53,12 +46,32 @@ namespace GlazeWM.Application.IpcServer
       _server.Start();
       _server.Messages
         .TakeUntil(_serverKill)
-        .Subscribe(message => HandleMessage(message));
+        .Subscribe(message =>
+        {
+          var response = _ipcMessageHandler.GetResponse(message);
+          var session = _server.FindSession(message.SessionId);
+          session.SendAsync(response);
+        });
 
-      // Broadcast events to all sessions.
+      // Broadcast events to subscribed sessions.
       _bus.Events
         .TakeUntil(_serverKill)
-        .Subscribe(@event => BroadcastEvent(@event));
+        .Subscribe(@event =>
+        {
+          var subscribedSessionIds = new List<Guid>();
+
+          _ipcMessageHandler.SubscribedSessions.TryGetValue(
+            @event.FriendlyName(),
+            out subscribedSessionIds
+          );
+
+          foreach (var sessionId in subscribedSessionIds)
+          {
+            var session = _server.FindSession(sessionId);
+            var response = _ipcMessageHandler.ToEventMessage(@event);
+            session.SendAsync(response);
+          }
+        });
 
       _logger.LogDebug("Started IPC server on port {Port}.", port);
     }
@@ -74,40 +87,6 @@ namespace GlazeWM.Application.IpcServer
       _serverKill.OnNext(true);
       _server.Stop();
       _logger.LogDebug("Stopped IPC server on port {Port}.", _server.Port);
-    }
-
-    private void HandleMessage(IncomingIpcMessage message)
-    {
-      _logger.LogDebug(
-        "IPC message from session {Session}: {Text}.",
-        message.SessionId,
-        message.Text
-      );
-
-      var ipcMessage = message.Text.Split(" ");
-
-      Parser.Default.ParseArguments<
-        InvokeCommandMessage,
-        SubscribeMessage,
-        GetContainersMessage,
-        GetMonitorsMessage,
-        GetWorkspacesMessage,
-        GetWindowsMessage
-      >(ipcMessage).MapResult(
-        (InvokeCommandMessage message) => 1,
-        (SubscribeMessage message) => 1,
-        (GetContainersMessage message) => 1,
-        (GetMonitorsMessage message) => 1,
-        (GetWorkspacesMessage message) => 1,
-        (GetWindowsMessage message) => 1,
-        _ => 1
-      );
-    }
-
-    private void BroadcastEvent(Event @event)
-    {
-      var eventJson = JsonParser.ToString((dynamic)@event, _serializeOptions);
-      _server.MulticastText(eventJson);
     }
 
     public void Dispose()
