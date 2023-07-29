@@ -11,6 +11,7 @@ using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Infrastructure.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Application.IpcServer
@@ -35,7 +36,7 @@ namespace GlazeWM.Application.IpcServer
     /// </summary>
     internal Dictionary<string, List<Guid>> SubscribedSessions = new();
 
-    internal IpcMessageHandler(
+    public IpcMessageHandler(
       Bus bus,
       CommandParsingService commandParsingService,
       ContainerService containerService,
@@ -104,8 +105,7 @@ namespace GlazeWM.Application.IpcServer
       {
         if (SubscribedSessions.ContainsKey(eventName))
         {
-          var sessionIds = new List<Guid>();
-          SubscribedSessions.TryGetValue(eventName, out sessionIds);
+          var sessionIds = SubscribedSessions.GetValueOrThrow(eventName);
           sessionIds.Add(sessionId);
           continue;
         }

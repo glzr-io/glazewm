@@ -39,7 +39,7 @@ namespace GlazeWM.Application.IpcServer
     /// </summary>
     public void StartServer()
     {
-      var port = _userConfigService.GeneralConfig.IpcServerPort;
+      const int port = 61423;
       _server = new(port);
 
       // Start listening for messages.
@@ -58,12 +58,11 @@ namespace GlazeWM.Application.IpcServer
         .TakeUntil(_serverKill)
         .Subscribe(@event =>
         {
-          var subscribedSessionIds = new List<Guid>();
-
-          _ipcMessageHandler.SubscribedSessions.TryGetValue(
-            @event.FriendlyName,
-            out subscribedSessionIds
-          );
+          var subscribedSessionIds =
+            _ipcMessageHandler.SubscribedSessions.GetValueOrDefault(
+              @event.FriendlyName,
+              new List<Guid>()
+            );
 
           foreach (var sessionId in subscribedSessionIds)
           {
