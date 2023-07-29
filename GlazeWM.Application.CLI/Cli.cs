@@ -4,30 +4,32 @@ namespace GlazeWM.Application.CLI
 {
   public sealed class Cli
   {
-    private readonly NamedPipeClient _namedPipeClient;
+    private readonly WebsocketClient _websocketClient;
 
-    public Cli(NamedPipeClient namedPipeClient)
+    public Cli(WebsocketClient websocketClient)
     {
-      _namedPipeClient = namedPipeClient;
+      _websocketClient = websocketClient;
     }
 
     public void Start(string message)
     {
-      var response = message.MapResult(
-        (SubscribeMessage message) => HandleSubscribe(message),
-        _ => _namedPipeClient.Send(parsedArgs.Text)
-      );
+      _websocketClient.Send(message.Split(" "));
+      // var response = _websocketClient.Send(message);
+      // var response = message.MapResult(
+      //   (SubscribeMessage message) => HandleSubscribe(message),
+      //   _ => _websocketClient.Send(parsedArgs.Text)
+      // );
 
-      Console.WriteLine(response.Message);
+      // Console.WriteLine(response.Message);
     }
 
     /// <summary>
     /// Special handling is needed for subscribe messages (eg. `subscribe -e
     /// window_focused`).
     /// </summary>
-    private void HandleSubscribe(SubscribeMessage message)
-    {
-      string line = Console.ReadLine();
-    }
+    // private void HandleSubscribe(SubscribeMessage message)
+    // {
+    //   string line = Console.ReadLine();
+    // }
   }
 }
