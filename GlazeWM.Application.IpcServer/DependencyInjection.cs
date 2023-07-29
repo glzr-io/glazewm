@@ -6,6 +6,7 @@ namespace GlazeWM.Application.IpcServer
   {
     public static IServiceCollection AddIpcServerServices(this IServiceCollection services)
     {
+      services.AddSingleton<IpcMessageHandler>();
       services.AddSingleton<IpcServerManager>();
 
       return services;

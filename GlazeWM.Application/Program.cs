@@ -21,10 +21,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
-//// ******
-//// TODO: How to forward messages from CLI to IPC server?
-//// TODO: Handle message parsing in IPC server.
-
 namespace GlazeWM.Application
 {
   internal static class Program
@@ -36,14 +32,14 @@ namespace GlazeWM.Application
     /// thread in order to run a message loop.
     /// </summary>
     [STAThread]
-    private static ExitCode Main(string[] args)
+    private static int Main(string[] args)
     {
       bool isSingleInstance;
       using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
 
       var parsedArgs = Parser.Default.ParseArguments<WmStartupOptions>(args);
 
-      return parsedArgs.MapResult(
+      return (int)parsedArgs.MapResult(
         (WmStartupOptions options) => StartWm(options, isSingleInstance),
         _ => StartCli(parsedArgs.ToString(), isSingleInstance)
       );
@@ -54,7 +50,7 @@ namespace GlazeWM.Application
       if (!isSingleInstance)
         return ExitCode.Error;
 
-      ServiceLocator.Provider = BuildWmServiceProvider();
+      ServiceLocator.Provider = BuildWmServiceProvider(options);
 
       var (barService, ipcServerManager, windowManager) =
         ServiceLocator.GetRequiredServices<
@@ -85,25 +81,27 @@ namespace GlazeWM.Application
       return ExitCode.Success;
     }
 
-    private static ServiceProvider BuildWmServiceProvider()
+    private static ServiceProvider BuildWmServiceProvider(WmStartupOptions options)
     {
-      var services = new ServiceCollection();
-      services.AddLoggingService();
-      services.AddExceptionHandler();
-      services.AddInfrastructureServices();
-      services.AddDomainServices();
-      services.AddBarServices();
-      services.AddSingleton<WindowManager>();
+      var services = new ServiceCollection()
+        .AddLoggingService()
+        .AddExceptionHandler()
+        .AddInfrastructureServices()
+        .AddDomainServices()
+        .AddBarServices()
+        .AddIpcServerServices()
+        .AddSingleton<WindowManager>()
+        .AddSingleton(options);
 
       return services.BuildServiceProvider();
     }
 
     private static ServiceProvider BuildCliServiceProvider()
     {
-      var services = new ServiceCollection();
-      services.AddLoggingService();
-      services.AddSingleton<NamedPipeClient>();
-      services.AddSingleton<Cli>();
+      var services = new ServiceCollection()
+        .AddLoggingService()
+        .AddSingleton<WebsocketClient>()
+        .AddSingleton<Cli>();
 
       return services.BuildServiceProvider();
     }

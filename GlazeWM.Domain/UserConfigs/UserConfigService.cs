@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
-using Microsoft.Extensions.Configuration;
 
 namespace GlazeWM.Domain.UserConfigs
 {
@@ -27,18 +27,18 @@ namespace GlazeWM.Domain.UserConfigs
     /// Path to the user's config file.
     /// </summary>
     public string UserConfigPath =>
-      _configuration.GetValue<string>("UserConfigPath") ?? _defaultUserConfigPath;
+      _startupOptions.ConfigPath ?? _defaultUserConfigPath;
 
     private readonly string _defaultUserConfigPath = Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
       "./.glaze-wm/config.yaml"
     );
 
-    private readonly IConfiguration _configuration;
+    private readonly WmStartupOptions _startupOptions;
 
-    public UserConfigService(IConfiguration configuration)
+    public UserConfigService(WmStartupOptions startupOptions)
     {
-      _configuration = configuration;
+      _startupOptions = startupOptions;
     }
 
     public readonly List<WindowRuleConfig> DefaultWindowRules = GetDefaultWindowRules();

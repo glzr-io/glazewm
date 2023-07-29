@@ -7,8 +7,5 @@
   <ItemGroup>
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />
     <ProjectReference Include="..\GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj" />
-    <PackageReference
-      Include="NetCoreServer"
-      Version="6.7.0" />
   </ItemGroup>
 </Project>
