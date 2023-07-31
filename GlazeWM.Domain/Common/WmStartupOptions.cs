@@ -2,6 +2,7 @@
 
 namespace GlazeWM.Domain.Common
 {
+  [Verb("start", isDefault: true)]
   public class WmStartupOptions
   {
     [Option(

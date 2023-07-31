@@ -70,17 +70,13 @@ namespace GlazeWM.Infrastructure.Utils
 
   public class WebsocketClient
   {
-    public void Send(string[] args)
+    public void Send(string message)
     {
       // WebSocket server address
-      var address = "127.0.0.1";
-      if (args.Length > 0)
-        address = args[0];
+      const string address = "127.0.0.1";
 
       // WebSocket server port
-      var port = 61423;
-      if (args.Length > 1)
-        port = int.Parse(args[1]);
+      const int port = 61423;
 
       Console.WriteLine($"WebSocket server address: {address}");
       Console.WriteLine($"WebSocket server port: {port}");

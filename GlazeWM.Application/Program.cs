@@ -5,6 +5,7 @@ using System.Threading;
 using CommandLine;
 using GlazeWM.Application.CLI;
 using GlazeWM.Application.IpcServer;
+using GlazeWM.Application.IpcServer.Messages;
 using GlazeWM.Application.WM;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
@@ -37,11 +38,23 @@ namespace GlazeWM.Application
       bool isSingleInstance;
       using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
 
-      var parsedArgs = Parser.Default.ParseArguments<WmStartupOptions>(args);
+      var parsedArgs = Parser.Default.ParseArguments<
+        WmStartupOptions,
+        InvokeCommandMessage,
+        SubscribeMessage,
+        GetMonitorsMessage,
+        GetWorkspacesMessage,
+        GetWindowsMessage
+      >(args);
 
       return (int)parsedArgs.MapResult(
         (WmStartupOptions options) => StartWm(options, isSingleInstance),
-        _ => StartCli(parsedArgs.ToString(), isSingleInstance)
+        (InvokeCommandMessage _) => StartCli(args, isSingleInstance),
+        (SubscribeMessage _) => StartCli(args, isSingleInstance),
+        (GetMonitorsMessage _) => StartCli(args, isSingleInstance),
+        (GetWorkspacesMessage _) => StartCli(args, isSingleInstance),
+        (GetWindowsMessage _) => StartCli(args, isSingleInstance),
+        _ => throw new Exception()
       );
     }
 
@@ -68,7 +81,7 @@ namespace GlazeWM.Application
       return ExitCode.Success;
     }
 
-    private static ExitCode StartCli(string message, bool isSingleInstance)
+    private static ExitCode StartCli(string[] args, bool isSingleInstance)
     {
       if (isSingleInstance)
         return ExitCode.Error;
@@ -76,7 +89,7 @@ namespace GlazeWM.Application
       ServiceLocator.Provider = BuildCliServiceProvider();
 
       var cli = ServiceLocator.GetRequiredService<Cli>();
-      cli.Start(message);
+      cli.Start(args);
 
       return ExitCode.Success;
     }

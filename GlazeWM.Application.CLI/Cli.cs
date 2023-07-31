@@ -11,9 +11,9 @@ namespace GlazeWM.Application.CLI
       _websocketClient = websocketClient;
     }
 
-    public void Start(string message)
+    public void Start(string[] args)
     {
-      _websocketClient.Send(message.Split(" "));
+      _websocketClient.Send(string.Join(" ", args));
       // var response = _websocketClient.Send(message);
       // var response = message.MapResult(
       //   (SubscribeMessage message) => HandleSubscribe(message),
