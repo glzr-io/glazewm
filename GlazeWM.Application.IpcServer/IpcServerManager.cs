@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Infrastructure.Bussing;
 using Microsoft.Extensions.Logging;
+using NetCoreServer;
 
 namespace GlazeWM.Application.IpcServer
 {
@@ -13,7 +14,6 @@ namespace GlazeWM.Application.IpcServer
     private readonly Bus _bus;
     private readonly IpcMessageHandler _ipcMessageHandler;
     private readonly ILogger<IpcServerManager> _logger;
-    private readonly UserConfigService _userConfigService;
 
     /// <summary>
     /// The websocket server instance.
@@ -25,13 +25,11 @@ namespace GlazeWM.Application.IpcServer
     public IpcServerManager(
       Bus bus,
       IpcMessageHandler ipcMessageHandler,
-      ILogger<IpcServerManager> logger,
-      UserConfigService userConfigService)
+      ILogger<IpcServerManager> logger)
     {
       _bus = bus;
       _ipcMessageHandler = ipcMessageHandler;
       _logger = logger;
-      _userConfigService = userConfigService;
     }
 
     /// <summary>
@@ -49,8 +47,7 @@ namespace GlazeWM.Application.IpcServer
         .Subscribe(clientMessage =>
         {
           var responseMessage = _ipcMessageHandler.GetResponseMessage(clientMessage);
-          var session = _server.FindSession(clientMessage.SessionId);
-          session.SendAsync(responseMessage);
+          SendToSession(clientMessage.SessionId, responseMessage);
         });
 
       // Broadcast events to subscribed sessions.
@@ -66,9 +63,8 @@ namespace GlazeWM.Application.IpcServer
 
           foreach (var sessionId in subscribedSessionIds)
           {
-            var session = _server.FindSession(sessionId);
             var responseMessage = _ipcMessageHandler.ToEventMessage(@event);
-            session.SendAsync(responseMessage);
+            SendToSession(sessionId, responseMessage);
           }
         });
 
@@ -86,6 +82,15 @@ namespace GlazeWM.Application.IpcServer
       _serverKill.OnNext(true);
       _server.Stop();
       _logger.LogDebug("Stopped IPC server on port {Port}.", _server.Port);
+    }
+
+    /// <summary>
+    /// Send text message to given session ID.
+    /// </summary>
+    private void SendToSession(Guid sessionId, string text)
+    {
+      var session = _server.FindSession(sessionId) as IpcSession;
+      session?.SendTextAsync(text);
     }
 
     public void Dispose()
