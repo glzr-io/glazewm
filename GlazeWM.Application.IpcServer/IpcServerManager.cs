@@ -5,7 +5,6 @@ using System.Reactive.Subjects;
 using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Infrastructure.Bussing;
 using Microsoft.Extensions.Logging;
-using NetCoreServer;
 
 namespace GlazeWM.Application.IpcServer
 {

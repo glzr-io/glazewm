@@ -1,6 +1,6 @@
 using CommandLine;
 
-namespace GlazeWM.Application.IpcServer.Messages
+namespace GlazeWM.Domain.Common.IpcMessages
 {
   [Verb("windows", HelpText = "Get all windows.")]
   public class GetWindowsMessage
