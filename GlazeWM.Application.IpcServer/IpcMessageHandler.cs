@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using CommandLine;
@@ -28,7 +28,7 @@ namespace GlazeWM.Application.IpcServer
 
     private readonly JsonSerializerOptions _serializeOptions =
       JsonParser.OptionsFactory((options) =>
-        options.Converters.Add(new JsonContainerConverter())
+        options.Converters.Add(new JsonContainerConverterFactory())
       );
 
     /// <summary>

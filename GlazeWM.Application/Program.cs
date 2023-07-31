@@ -134,7 +134,7 @@ namespace GlazeWM.Application
           options.ErrorLogMessageDelegate = (Exception exception) =>
           {
             var serializeOptions = JsonParser.OptionsFactory(
-              (options) => options.Converters.Add(new JsonContainerConverter())
+              (options) => options.Converters.Add(new JsonContainerConverterFactory())
             );
 
             var stateDump = JsonParser.ToString(
