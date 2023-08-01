@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -21,6 +22,12 @@ using GlazeWM.Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+
+//// TODO: JsonContainerConverter should use casing from options.
+//// TODO: Handle circular reference for that one workspace event.
+//// TODO: Properly send and await reply in `Cli`.
+//// TODO: Handle subscribe message specifically in `Cli`.
+//// TODO: Add base flag `FlattenPayload` to IPC messages.
 
 namespace GlazeWM.Application
 {
@@ -54,14 +61,17 @@ namespace GlazeWM.Application
         (GetMonitorsMessage _) => StartCli(args, isSingleInstance),
         (GetWorkspacesMessage _) => StartCli(args, isSingleInstance),
         (GetWindowsMessage _) => StartCli(args, isSingleInstance),
-        _ => throw new Exception()
+        errors => ExitWithError(errors.First())
       );
     }
 
     private static ExitCode StartWm(WmStartupOptions options, bool isSingleInstance)
     {
       if (!isSingleInstance)
+      {
+        Console.Error.WriteLine("Application is already running.");
         return ExitCode.Error;
+      }
 
       ServiceLocator.Provider = BuildWmServiceProvider(options);
 
@@ -84,7 +94,10 @@ namespace GlazeWM.Application
     private static ExitCode StartCli(string[] args, bool isSingleInstance)
     {
       if (isSingleInstance)
+      {
+        Console.Error.WriteLine("No running instance found. Cannot run CLI command.");
         return ExitCode.Error;
+      }
 
       ServiceLocator.Provider = BuildCliServiceProvider();
 
@@ -92,6 +105,12 @@ namespace GlazeWM.Application
       cli.Start(args);
 
       return ExitCode.Success;
+    }
+
+    private static ExitCode ExitWithError(Error error)
+    {
+      Console.Error.WriteLine($"Failed to parse startup arguments: {error}.");
+      return ExitCode.Error;
     }
 
     private static ServiceProvider BuildWmServiceProvider(WmStartupOptions options)
@@ -147,7 +166,7 @@ namespace GlazeWM.Application
           options.ErrorLogMessageDelegate = (Exception exception) =>
           {
             var serializeOptions = JsonParser.OptionsFactory(
-              (options) => options.Converters.Add(new JsonContainerConverterFactory())
+              options => options.Converters.Add(new JsonContainerConverter())
             );
 
             var stateDump = JsonParser.ToString(

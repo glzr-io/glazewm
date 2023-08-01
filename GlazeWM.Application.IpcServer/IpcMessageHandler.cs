@@ -28,7 +28,7 @@ namespace GlazeWM.Application.IpcServer
 
     private readonly JsonSerializerOptions _serializeOptions =
       JsonParser.OptionsFactory((options) =>
-        options.Converters.Add(new JsonContainerConverterFactory())
+        options.Converters.Add(new JsonContainerConverter())
       );
 
     /// <summary>
@@ -119,19 +119,19 @@ namespace GlazeWM.Application.IpcServer
     private string HandleGetMonitorsMessage(GetMonitorsMessage _)
     {
       var monitors = _monitorService.GetMonitors();
-      return ToResponseMessage(monitors);
+      return ToResponseMessage(monitors as IEnumerable<Container>);
     }
 
     private string HandleGetWorkspacesMessage(GetWorkspacesMessage _)
     {
       var workspaces = _workspaceService.GetActiveWorkspaces();
-      return ToResponseMessage(workspaces);
+      return ToResponseMessage(workspaces as IEnumerable<Container>);
     }
 
     private string HandleGetWindowsMessage(GetWindowsMessage _)
     {
       var windows = _windowService.GetWindows();
-      return ToResponseMessage(windows);
+      return ToResponseMessage(windows as IEnumerable<Container>);
     }
 
     internal string ToResponseMessage<T>(T payload)
