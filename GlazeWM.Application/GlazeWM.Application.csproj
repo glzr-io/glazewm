@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net7-windows10.0.17763.0</TargetFramework>
     <DebugType>embedded</DebugType>
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
