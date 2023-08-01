@@ -7,6 +7,7 @@ using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -35,7 +36,7 @@ namespace GlazeWM.Application.WM
       _userConfigService = userConfigService;
     }
 
-    public void Start()
+    public ExitCode Start()
     {
       try
       {
@@ -84,10 +85,12 @@ namespace GlazeWM.Application.WM
           });
 
         System.Windows.Forms.Application.Run();
+        return ExitCode.Success;
       }
       catch (Exception exception)
       {
         _bus.Invoke(new HandleFatalExceptionCommand(exception));
+        return ExitCode.Error;
       }
     }
 

@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging.Console;
 //// TODO: Properly send and await reply in `Cli`.
 //// TODO: Handle subscribe message specifically in `Cli`.
 //// TODO: Add base flag `FlattenPayload` to IPC messages.
+//// TODO: Improve error handling in CLI.
 
 namespace GlazeWM.Application
 {
@@ -82,13 +83,11 @@ namespace GlazeWM.Application
           WindowManager
         >();
 
-      // Start bar, IPC server, and window manager. The window manager runs on the main
-      // thread.
       ThreadUtils.CreateSTA("GlazeWMBar", () => barService.StartApp());
       ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer(IpcServerPort));
-      windowManager.Start();
 
-      return ExitCode.Success;
+      // Run the window manager on the main thread.
+      return windowManager.Start();
     }
 
     private static ExitCode StartCli(string[] args, bool isSingleInstance)
@@ -99,9 +98,7 @@ namespace GlazeWM.Application
         return ExitCode.Error;
       }
 
-      Cli.Start(args, IpcServerPort);
-
-      return ExitCode.Success;
+      return Cli.Start(args, IpcServerPort);
     }
 
     private static ExitCode ExitWithError(Error error)
