@@ -24,10 +24,12 @@ using Microsoft.Extensions.Logging.Console;
 
 //// TODO: JsonContainerConverter should use casing from options.
 //// TODO: Handle circular reference for that one workspace event.
-//// TODO: Properly send and await reply in `Cli`.
-//// TODO: Handle subscribe message specifically in `Cli`.
-//// TODO: Add base flag `FlattenPayload` to IPC messages.
-//// TODO: Improve error handling in CLI.
+//// TODO: Add base flag `FlattenPayload` to IPC messages. Actually maybe it's
+//// better to just deserialize to plain object and access payload in CLI. This
+//// also allows for error handling of subscribe messages.
+//// TODO: Improve error handling in CLI. Subscribe should fail and errors should
+//// propogate to stderr.
+//// TODO: Improve error handling in IPC server.
 
 namespace GlazeWM.Application
 {
@@ -57,11 +59,11 @@ namespace GlazeWM.Application
 
       return (int)parsedArgs.MapResult(
         (WmStartupOptions options) => StartWm(options, isSingleInstance),
-        (InvokeCommandMessage _) => StartCli(args, isSingleInstance),
-        (SubscribeMessage _) => StartCli(args, isSingleInstance),
-        (GetMonitorsMessage _) => StartCli(args, isSingleInstance),
-        (GetWorkspacesMessage _) => StartCli(args, isSingleInstance),
-        (GetWindowsMessage _) => StartCli(args, isSingleInstance),
+        (InvokeCommandMessage _) => StartCli(args, isSingleInstance, false),
+        (SubscribeMessage _) => StartCli(args, isSingleInstance, true),
+        (GetMonitorsMessage _) => StartCli(args, isSingleInstance, false),
+        (GetWorkspacesMessage _) => StartCli(args, isSingleInstance, false),
+        (GetWindowsMessage _) => StartCli(args, isSingleInstance, false),
         errors => ExitWithError(errors.First())
       );
     }
@@ -90,7 +92,10 @@ namespace GlazeWM.Application
       return windowManager.Start();
     }
 
-    private static ExitCode StartCli(string[] args, bool isSingleInstance)
+    private static ExitCode StartCli(
+      string[] args,
+      bool isSingleInstance,
+      bool isSubscribeMessage)
     {
       if (isSingleInstance)
       {
@@ -98,7 +103,7 @@ namespace GlazeWM.Application
         return ExitCode.Error;
       }
 
-      return Cli.Start(args, IpcServerPort);
+      return Cli.Start(args, IpcServerPort, isSubscribeMessage);
     }
 
     private static ExitCode ExitWithError(Error error)
