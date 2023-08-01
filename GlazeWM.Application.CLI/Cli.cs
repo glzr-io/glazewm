@@ -8,15 +8,34 @@ namespace GlazeWM.Application.CLI
     public static void Start(string[] args, int ipcServerPort)
     {
       var client = new WebsocketClient(ipcServerPort);
+      client.ConnectAsync();
+      Console.WriteLine("fjdoisajfdioas");
 
-      client.Connect();
-      client.SendText(string.Join(" ", args));
+      client.Connected.Select((_) =>
+      {
+        Console.WriteLine("Done!");
+        // Thread.Sleep(1000);
+        client.SendBinaryAsync(string.Join(" ", args));
+        // client.SendTextAsync(string.Join(" ", args));
+        Console.WriteLine("Done!");
 
-      client.Messages.TakeWhile(value => true)
+        // client.Messages.TakeWhile(value => true)
+        return client.Messages;
+        // .Subscribe(message => Console.WriteLine(message));
+        // .Subscribe(message =>
+        // {
+        //   Console.WriteLine(message);
+        // });
+      }).Switch()
         .Subscribe(message => Console.WriteLine(message));
-
+      // var x = client.ConnectAsync();
+      // // client.ReceiveAsync();
+      // // client.ReceiveAsync();
+      // if (x)
+      // {
       var _ = Console.ReadLine();
-      client.DisconnectAndStop();
+      // client.DisconnectAndStop();
+      client.Disconnect();
 
       // var response = _websocketClient.Send(message);
       // var response = message.MapResult(
@@ -25,6 +44,8 @@ namespace GlazeWM.Application.CLI
       // );
 
       // Console.WriteLine(response.Message);
+
+      // }
     }
 
     /// <summary>
