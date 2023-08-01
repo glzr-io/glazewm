@@ -1,19 +1,23 @@
-﻿using GlazeWM.Infrastructure.Utils;
+﻿using System.Reactive.Linq;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Application.CLI
 {
   public sealed class Cli
   {
-    private readonly WebsocketClient _websocketClient;
-
-    public Cli(WebsocketClient websocketClient)
+    public static void Start(string[] args, int ipcServerPort)
     {
-      _websocketClient = websocketClient;
-    }
+      var client = new WebsocketClient(ipcServerPort);
 
-    public void Start(string[] args)
-    {
-      _websocketClient.Send(string.Join(" ", args));
+      client.Connect();
+      client.SendText(string.Join(" ", args));
+
+      client.Messages.TakeWhile(value => true)
+        .Subscribe(message => Console.WriteLine(message));
+
+      var _ = Console.ReadLine();
+      client.DisconnectAndStop();
+
       // var response = _websocketClient.Send(message);
       // var response = message.MapResult(
       //   (SubscribeMessage message) => HandleSubscribe(message),

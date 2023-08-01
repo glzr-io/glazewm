@@ -1,14 +1,22 @@
 using System;
 using System.Net.Sockets;
+using System.Reactive.Subjects;
 using System.Text;
 using System.Threading;
 using NetCoreServer;
 
 namespace GlazeWM.Infrastructure.Utils
 {
-  public class ChatClient : WsClient
+  public class WebsocketClient : WsClient
   {
-    public ChatClient(string address, int port) : base(address, port) { }
+    /// <summary>
+    /// Messages received from websocket server.
+    /// </summary>
+    public readonly Subject<string> Messages = new();
+
+    public WebsocketClient(int port) : base("127.0.0.1", port) { }
+
+    public WebsocketClient(string address, int port) : base(address, port) { }
 
     public void DisconnectAndStop()
     {
@@ -44,6 +52,8 @@ namespace GlazeWM.Infrastructure.Utils
     public override void OnWsReceived(byte[] buffer, long offset, long size)
     {
       Console.WriteLine($"Incoming: {Encoding.UTF8.GetString(buffer, (int)offset, (int)size)}");
+      var message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
+      Messages.OnNext(message);
     }
 
     protected override void OnDisconnected()
@@ -66,57 +76,5 @@ namespace GlazeWM.Infrastructure.Utils
     }
 
     private bool _stop;
-  }
-
-  public class WebsocketClient
-  {
-    public void Send(string message)
-    {
-      // WebSocket server address
-      const string address = "127.0.0.1";
-
-      // WebSocket server port
-      const int port = 61423;
-
-      Console.WriteLine($"WebSocket server address: {address}");
-      Console.WriteLine($"WebSocket server port: {port}");
-
-      Console.WriteLine();
-
-      // Create a new TCP chat client
-      var client = new ChatClient(address, port);
-
-      // Connect the client
-      Console.Write("Client connecting...");
-      client.ConnectAsync();
-      Console.WriteLine("Done!");
-
-      Console.WriteLine("Press Enter to stop the client or '!' to reconnect the client...");
-
-      // Perform text input
-      for (; ; )
-      {
-        var line = Console.ReadLine();
-        if (string.IsNullOrEmpty(line))
-          break;
-
-        // Disconnect the client
-        if (line == "!")
-        {
-          Console.Write("Client disconnecting...");
-          client.DisconnectAsync();
-          Console.WriteLine("Done!");
-          continue;
-        }
-
-        // Send the entered text to the chat server
-        client.SendTextAsync(line);
-      }
-
-      // Disconnect the client
-      Console.Write("Client disconnecting...");
-      client.DisconnectAndStop();
-      Console.WriteLine("Done!");
-    }
   }
 }

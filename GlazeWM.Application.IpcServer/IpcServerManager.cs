@@ -32,15 +32,14 @@ namespace GlazeWM.Application.IpcServer
     }
 
     /// <summary>
-    /// Start the IPC server on user-specified port.
+    /// Start the IPC server on specified port.
     /// </summary>
-    public void StartServer()
+    public void StartServer(int port)
     {
-      const int port = 61423;
       _server = new(port);
+      _server.Start();
 
       // Start listening for messages.
-      _server.Start();
       _server.Messages
         .TakeUntil(_serverKill)
         .Subscribe(clientMessage =>

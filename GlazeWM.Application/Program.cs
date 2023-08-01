@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -34,6 +33,7 @@ namespace GlazeWM.Application
   internal static class Program
   {
     private const string AppGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
+    private const int IpcServerPort = 61423;
 
     /// <summary>
     /// The main entry point for the application. The thread must be an STA
@@ -85,7 +85,7 @@ namespace GlazeWM.Application
       // Start bar, IPC server, and window manager. The window manager runs on the main
       // thread.
       ThreadUtils.CreateSTA("GlazeWMBar", () => barService.StartApp());
-      ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer());
+      ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer(IpcServerPort));
       windowManager.Start();
 
       return ExitCode.Success;
@@ -99,10 +99,7 @@ namespace GlazeWM.Application
         return ExitCode.Error;
       }
 
-      ServiceLocator.Provider = BuildCliServiceProvider();
-
-      var cli = ServiceLocator.GetRequiredService<Cli>();
-      cli.Start(args);
+      Cli.Start(args, IpcServerPort);
 
       return ExitCode.Success;
     }
@@ -124,16 +121,6 @@ namespace GlazeWM.Application
         .AddIpcServerServices()
         .AddSingleton<WindowManager>()
         .AddSingleton(options);
-
-      return services.BuildServiceProvider();
-    }
-
-    private static ServiceProvider BuildCliServiceProvider()
-    {
-      var services = new ServiceCollection()
-        .AddLoggingService()
-        .AddSingleton<WebsocketClient>()
-        .AddSingleton<Cli>();
 
       return services.BuildServiceProvider();
     }
