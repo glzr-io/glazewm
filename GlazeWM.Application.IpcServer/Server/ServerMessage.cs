@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Application.IpcServer.Server
+namespace GlazeWM.Application.IpcServer.Server
 {
   internal record ServerMessage<T>(
     bool Success,

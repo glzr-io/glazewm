@@ -1,4 +1,4 @@
-﻿namespace GlazeWM.Application.IpcServer.Server
+namespace GlazeWM.Application.IpcServer.Server
 {
   internal enum ServerMessageType
   {

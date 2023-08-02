@@ -1,4 +1,4 @@
-﻿using System.Reactive.Linq;
+using System.Reactive.Linq;
 using System.Text.Json;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Utils;

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using NetCoreServer;
 
 namespace GlazeWM.Application.IpcServer.Server
