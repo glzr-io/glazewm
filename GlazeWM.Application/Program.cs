@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging.Console;
 //// TODO: JsonContainerConverter should use casing from options.
 //// TODO: Handle circular reference for that one workspace event.
 //// TODO: Improve error handling in IPC server.
+//// TODO: Avoid splitting within "s when parsing IPC message.
 //// TODO: Move message interfaces to within IpcServer project.
 
 namespace GlazeWM.Application

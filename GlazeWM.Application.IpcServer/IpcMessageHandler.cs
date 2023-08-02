@@ -137,7 +137,7 @@ namespace GlazeWM.Application.IpcServer
     internal string ToResponseMessage<T>(T payload)
     {
       var responseMessage = new ServerMessage<T>(
-        ServerMessagePayloadType.ClientResponse,
+        ServerMessageType.ClientResponse,
         payload
       );
 
@@ -147,7 +147,7 @@ namespace GlazeWM.Application.IpcServer
     internal string ToEventMessage(Event @event)
     {
       var eventMessage = new ServerMessage<Event>(
-        ServerMessagePayloadType.SubscribedEvent,
+        ServerMessageType.SubscribedEvent,
         @event
       );
 

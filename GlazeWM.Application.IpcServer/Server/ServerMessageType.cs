@@ -1,6 +1,6 @@
 ﻿namespace GlazeWM.Application.IpcServer.Server
 {
-  internal enum ServerMessagePayloadType
+  internal enum ServerMessageType
   {
     ClientResponse,
     SubscribedEvent
