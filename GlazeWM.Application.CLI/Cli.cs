@@ -33,8 +33,8 @@ namespace GlazeWM.Application.CLI
 
         // Wait for server to respond with a message.
         var firstMessage = await serverMessages
-          .FirstAsync()
-          .Timeout(TimeSpan.FromSeconds(5));
+          .Timeout(TimeSpan.FromSeconds(5))
+          .FirstAsync();
 
         // Exit on first message received when not subscribing to an event.
         if (!isSubscribeMessage)
@@ -66,19 +66,17 @@ namespace GlazeWM.Application.CLI
     /// <summary>
     /// Get `IObservable` of parsed server messages.
     /// </summary>
-    private static IObservable<string?> GetMessagesObservable(WebsocketClient client)
+    private static IObservable<string> GetMessagesObservable(WebsocketClient client)
     {
       return client.Messages.Select(message =>
       {
         var parsedMessage = JsonDocument.Parse(message).RootElement;
-
         var error = parsedMessage.GetProperty("error").GetString();
-        var data = parsedMessage.GetProperty("data").GetString();
 
         if (error is not null)
           throw new Exception(error);
 
-        return data;
+        return parsedMessage.GetProperty("data").ToString();
       });
     }
   }

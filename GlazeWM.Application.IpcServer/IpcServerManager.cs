@@ -17,7 +17,7 @@ namespace GlazeWM.Application.IpcServer
     /// <summary>
     /// The websocket server instance.
     /// </summary>
-    private Server.IpcServer _server { get; set; }
+    private Server.IpcServer? _server { get; set; }
 
     private readonly Subject<bool> _serverKill = new();
 
@@ -87,14 +87,14 @@ namespace GlazeWM.Application.IpcServer
     /// </summary>
     private void SendToSession(Guid sessionId, string text)
     {
-      var session = _server.FindSession(sessionId) as IpcSession;
+      var session = _server?.FindSession(sessionId) as IpcSession;
       session?.SendTextAsync(text);
     }
 
     public void Dispose()
     {
       if (_server?.IsDisposed != true)
-        _server.Dispose();
+        _server?.Dispose();
     }
   }
 }

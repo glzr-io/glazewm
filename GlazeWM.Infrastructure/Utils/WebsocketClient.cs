@@ -10,7 +10,7 @@ namespace GlazeWM.Infrastructure.Utils
     /// <summary>
     /// Messages received from websocket server.
     /// </summary>
-    public readonly Subject<string> Messages = new();
+    public readonly ReplaySubject<string> Messages = new();
 
     public WebsocketClient(int port) : base("127.0.0.1", port) { }
 
