@@ -32,7 +32,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Index of this container in parent's child focus order.
     /// </summary>
-    public int FocusIndex => Parent.ChildFocusOrder.IndexOf(this);
+    public int FocusIndex => this is RootContainer ? 0 : Parent.ChildFocusOrder.IndexOf(this);
 
     public List<Container> SelfAndSiblings => Parent.Children;
 
@@ -42,6 +42,11 @@ namespace GlazeWM.Domain.Containers
     /// Index of this container amongst its siblings.
     /// </summary>
     public int Index => Parent.Children.IndexOf(this);
+
+    /// <summary>
+    /// Name of the derived container type (eg. `Workspace`).
+    /// </summary>
+    public int Type => GetType().Name;
 
     /// <summary>
     /// Get the last focused descendant by traversing downwards.
