@@ -48,5 +48,15 @@ namespace GlazeWM.Infrastructure.Serialization
       callback(options);
       return options;
     }
+
+    /// <summary>
+    /// Convert property name according to naming policy.
+    /// </summary>
+    public static string ConvertPropertyCasing(
+      string propertyName,
+      JsonSerializerOptions options)
+    {
+      return options.PropertyNamingPolicy?.ConvertName(propertyName) ?? propertyName;
+    }
   }
 }
