@@ -137,8 +137,11 @@ namespace GlazeWM.Application.IpcServer
     internal string ToResponseMessage<T>(T payload)
     {
       var responseMessage = new ServerMessage<T>(
-        ServerMessageType.ClientResponse,
-        payload
+        Success: true,
+        MessageType: ServerMessageType.ClientResponse,
+        Data: payload,
+        Error: null,
+        ClientMessage: "TODO"
       );
 
       return JsonParser.ToString((dynamic)responseMessage, _serializeOptions);
@@ -147,8 +150,11 @@ namespace GlazeWM.Application.IpcServer
     internal string ToEventMessage(Event @event)
     {
       var eventMessage = new ServerMessage<Event>(
-        ServerMessageType.SubscribedEvent,
-        @event
+        Success: true,
+        MessageType: ServerMessageType.SubscribedEvent,
+        Data: @event,
+        Error: null,
+        ClientMessage: null
       );
 
       return JsonParser.ToString((dynamic)eventMessage, _serializeOptions);

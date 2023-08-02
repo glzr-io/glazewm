@@ -1,4 +1,5 @@
 ﻿using System.Reactive.Linq;
+using System.Text.Json;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Utils;
 
@@ -65,14 +66,14 @@ namespace GlazeWM.Application.CLI
     /// <summary>
     /// Get `IObservable` of parsed server messages.
     /// </summary>
-    private static IObservable<string> GetMessagesObservable(WebsocketClient client)
+    private static IObservable<string?> GetMessagesObservable(WebsocketClient client)
     {
       return client.Messages.Select(message =>
       {
-        var parsedMessage = JsonDocument.Parse(firstMessage).RootElement;
+        var parsedMessage = JsonDocument.Parse(message).RootElement;
 
-        var error = parsedMessage.Get("error");
-        var data = parsedMessage.Get("data");
+        var error = parsedMessage.GetProperty("error").GetString();
+        var data = parsedMessage.GetProperty("data").GetString();
 
         if (error is not null)
           throw new Exception(error);

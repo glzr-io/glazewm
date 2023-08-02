@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Name of the derived container type (eg. `Workspace`).
     /// </summary>
-    public int Type => GetType().Name;
+    public string Type => GetType().Name;
 
     /// <summary>
     /// Get the last focused descendant by traversing downwards.

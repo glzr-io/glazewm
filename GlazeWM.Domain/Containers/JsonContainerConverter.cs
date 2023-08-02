@@ -1,13 +1,9 @@
 using System;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Infrastructure.Serialization;
-using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -60,14 +56,12 @@ namespace GlazeWM.Domain.Containers
           WriteWindowProperties(writer, tilingWindow, options);
           WriteTilingWindowProperties(writer, tilingWindow, options);
           break;
-        default:
-          break;
       }
 
       writer.WriteEndObject();
     }
 
-    private static void WriteCommonProperties(
+    private void WriteCommonProperties(
       Utf8JsonWriter writer,
       Container value,
       JsonSerializerOptions options)
@@ -87,7 +81,7 @@ namespace GlazeWM.Domain.Containers
       writer.WriteEndArray();
     }
 
-    private static void WriteMonitorProperties(
+    private void WriteMonitorProperties(
       Utf8JsonWriter writer,
       Monitor monitor,
       JsonSerializerOptions options)
@@ -95,7 +89,7 @@ namespace GlazeWM.Domain.Containers
       writer.WriteString("DeviceName", monitor.DeviceName);
     }
 
-    private static void WriteWorkspaceProperties(
+    private void WriteWorkspaceProperties(
       Utf8JsonWriter writer,
       Workspace workspace,
       JsonSerializerOptions options)
@@ -103,7 +97,7 @@ namespace GlazeWM.Domain.Containers
       writer.WriteString("Name", workspace.Name);
     }
 
-    private static void WriteSplitContainerProperties(
+    private void WriteSplitContainerProperties(
       Utf8JsonWriter writer,
       SplitContainer splitContainer,
       JsonSerializerOptions options)
@@ -112,19 +106,19 @@ namespace GlazeWM.Domain.Containers
       writer.WriteNumber("SizePercentage", splitContainer.SizePercentage);
     }
 
-    private static void WriteWindowProperties(
+    private void WriteWindowProperties(
       Utf8JsonWriter writer,
       Window window,
       JsonSerializerOptions options)
     {
-      writer.WriteNumber("Handle", tilingWindow.Handle.ToInt64());
+      writer.WriteNumber("Handle", window.Handle.ToInt64());
       writer.WritePropertyName("FloatingPlacement");
-      JsonSerializer.Serialize(writer, tilingWindow.FloatingPlacement);
+      JsonSerializer.Serialize(writer, window.FloatingPlacement);
       writer.WritePropertyName("BorderDelta");
-      JsonSerializer.Serialize(writer, tilingWindow.BorderDelta);
+      JsonSerializer.Serialize(writer, window.BorderDelta);
     }
 
-    private static void WriteMinimizedWindowProperties(
+    private void WriteMinimizedWindowProperties(
       Utf8JsonWriter writer,
       MinimizedWindow minimizedWindow,
       JsonSerializerOptions options)
@@ -132,7 +126,7 @@ namespace GlazeWM.Domain.Containers
       writer.WriteString("PreviousState", minimizedWindow.PreviousState.ToString());
     }
 
-    private static void WriteTilingWindowProperties(
+    private void WriteTilingWindowProperties(
       Utf8JsonWriter writer,
       TilingWindow tilingWindow,
       JsonSerializerOptions options)

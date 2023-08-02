@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using CommandLine;
 using GlazeWM.Application.CLI;
 using GlazeWM.Application.IpcServer;
@@ -33,14 +34,14 @@ namespace GlazeWM.Application
   internal static class Program
   {
     private const string AppGuid = "325d0ed7-7f60-4925-8d1b-aa287b26b218";
-    private const int IpcServerPort = 61423;
+    private const int IpcServerPort = 6123;
 
     /// <summary>
     /// The main entry point for the application. The thread must be an STA
     /// thread in order to run a message loop.
     /// </summary>
     [STAThread]
-    private static async int Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
       bool isSingleInstance;
       using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
@@ -54,15 +55,16 @@ namespace GlazeWM.Application
         GetWindowsMessage
       >(args);
 
-      var exitCode = await parsedArgs.MapResult(
-        (WmStartupOptions options) => StartWm(options, isSingleInstance),
-        (InvokeCommandMessage _) => StartCli(args, isSingleInstance, false),
-        (SubscribeMessage _) => StartCli(args, isSingleInstance, true),
-        (GetMonitorsMessage _) => StartCli(args, isSingleInstance, false),
-        (GetWorkspacesMessage _) => StartCli(args, isSingleInstance, false),
-        (GetWindowsMessage _) => StartCli(args, isSingleInstance, false),
-        errors => ExitWithError(errors.First())
-      );
+      var exitCode = parsedArgs.Value switch
+      {
+        WmStartupOptions options => StartWm(options, isSingleInstance),
+        InvokeCommandMessage or
+        GetMonitorsMessage or
+        GetWorkspacesMessage or
+        GetWindowsMessage => await StartCli(args, isSingleInstance, false),
+        SubscribeMessage => await StartCli(args, isSingleInstance, true),
+        _ => ExitWithError(parsedArgs.Errors.First())
+      };
 
       return (int)exitCode;
     }
@@ -91,7 +93,7 @@ namespace GlazeWM.Application
       return windowManager.Start();
     }
 
-    private static Task<ExitCode> StartCli(
+    private static async Task<ExitCode> StartCli(
       string[] args,
       bool isSingleInstance,
       bool isSubscribeMessage)
@@ -102,7 +104,7 @@ namespace GlazeWM.Application
         return ExitCode.Error;
       }
 
-      return Cli.Start(args, IpcServerPort, isSubscribeMessage);
+      return await Cli.Start(args, IpcServerPort, isSubscribeMessage);
     }
 
     private static ExitCode ExitWithError(Error error)
