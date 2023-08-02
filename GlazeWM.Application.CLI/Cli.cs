@@ -6,14 +6,15 @@ namespace GlazeWM.Application.CLI
 {
   public sealed class Cli
   {
-    public static ExitCode Start(
+    public static async Task<ExitCode> Start(
       string[] args,
       int ipcServerPort,
       bool isSubscribeMessage)
     {
+      var client = new WebsocketClient(ipcServerPort);
+
       try
       {
-        var client = new WebsocketClient(ipcServerPort);
         var isConnected = client.Connect();
 
         if (!isConnected)
@@ -27,28 +28,47 @@ namespace GlazeWM.Application.CLI
         if (!sendSuccess)
           throw new Exception("Failed to send message to IPC server.");
 
+        // Wait for server to respond with a message.
+        var firstMessage = await client.Messages
+          .FirstAsync()
+          .Timeout(TimeSpan.FromSeconds(5));
+
+        var parsedMessage = JsonDocument.Parse(firstMessage).RootElement;
+        var error = parsedMessage.Get("error");
+
+        if (error is not null)
+          throw new Exception(error);
+
+        // Exit on first message received for messages that aren't subscriptions.
+        if (!isSubscribeMessage)
+        {
+          Console.WriteLine(parsedMessage.Get("data"));
+          client.Disconnect();
+          return ExitCode.Success;
+        }
+
         // Special handling is needed for subscribe messages. For subscribe messages,
-        // skip the acknowledgement message and ignore timeouts. For all other messages,
-        // exit on first message received.
-        if (isSubscribeMessage)
-          client.Messages.Skip(1)
-            .Subscribe(message => Console.WriteLine(message));
-        else
-          client.Messages.Take(1)
-            .Timeout(TimeSpan.FromSeconds(5))
-            .Subscribe(
-              onNext: message => Console.WriteLine(message),
-              onError: _ => Console.Error.WriteLine("IPC message timed out.")
-            );
+        // skip the acknowledgement message and ignore timeouts.
+        client.Messages.Subscribe(message =>
+        {
+          var parsedMessage = JsonDocument.Parse(message).RootElement;
+          var error = parsedMessage.Get("error");
+
+          if (error is not null)
+            Console.Error.WriteLine(error)
+
+          Console.WriteLine(parsedMessage.Get("data"))
+        });
 
         var _ = Console.ReadLine();
-        client.Disconnect();
 
+        client.Disconnect();
         return ExitCode.Success;
       }
       catch (Exception exception)
       {
         Console.Error.WriteLine(exception.Message);
+        client.Disconnect();
         return ExitCode.Error;
       }
     }

@@ -30,6 +30,7 @@ using Microsoft.Extensions.Logging.Console;
 //// TODO: Improve error handling in CLI. Subscribe should fail and errors should
 //// propogate to stderr.
 //// TODO: Improve error handling in IPC server.
+//// TODO: Move message interfaces to within IpcServer project.
 
 namespace GlazeWM.Application
 {
@@ -43,7 +44,7 @@ namespace GlazeWM.Application
     /// thread in order to run a message loop.
     /// </summary>
     [STAThread]
-    private static int Main(string[] args)
+    private static async int Main(string[] args)
     {
       bool isSingleInstance;
       using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
@@ -57,7 +58,7 @@ namespace GlazeWM.Application
         GetWindowsMessage
       >(args);
 
-      return (int)parsedArgs.MapResult(
+      var exitCode = await parsedArgs.MapResult(
         (WmStartupOptions options) => StartWm(options, isSingleInstance),
         (InvokeCommandMessage _) => StartCli(args, isSingleInstance, false),
         (SubscribeMessage _) => StartCli(args, isSingleInstance, true),
@@ -66,6 +67,8 @@ namespace GlazeWM.Application
         (GetWindowsMessage _) => StartCli(args, isSingleInstance, false),
         errors => ExitWithError(errors.First())
       );
+
+      return (int)exitCode;
     }
 
     private static ExitCode StartWm(WmStartupOptions options, bool isSingleInstance)
@@ -92,7 +95,7 @@ namespace GlazeWM.Application
       return windowManager.Start();
     }
 
-    private static ExitCode StartCli(
+    private static Task<ExitCode> StartCli(
       string[] args,
       bool isSingleInstance,
       bool isSubscribeMessage)
