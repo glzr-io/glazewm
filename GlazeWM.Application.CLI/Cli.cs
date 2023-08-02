@@ -28,37 +28,26 @@ namespace GlazeWM.Application.CLI
         if (!sendSuccess)
           throw new Exception("Failed to send message to IPC server.");
 
+        var serverMessages = GetMessagesObservable(client);
+
         // Wait for server to respond with a message.
-        var firstMessage = await client.Messages
+        var firstMessage = await serverMessages
           .FirstAsync()
           .Timeout(TimeSpan.FromSeconds(5));
 
-        var parsedMessage = JsonDocument.Parse(firstMessage).RootElement;
-        var error = parsedMessage.Get("error");
-
-        if (error is not null)
-          throw new Exception(error);
-
-        // Exit on first message received for messages that aren't subscriptions.
+        // Exit on first message received when not subscribing to an event.
         if (!isSubscribeMessage)
         {
-          Console.WriteLine(parsedMessage.Get("data"));
+          Console.WriteLine(firstMessage);
           client.Disconnect();
           return ExitCode.Success;
         }
 
-        // Special handling is needed for subscribe messages. For subscribe messages,
-        // skip the acknowledgement message and ignore timeouts.
-        client.Messages.Subscribe(message =>
-        {
-          var parsedMessage = JsonDocument.Parse(message).RootElement;
-          var error = parsedMessage.Get("error");
-
-          if (error is not null)
-            Console.Error.WriteLine(error)
-
-          Console.WriteLine(parsedMessage.Get("data"))
-        });
+        // Special handling is needed for event subscriptions.
+        serverMessages.Subscribe(
+          onNext: message => Console.WriteLine(message),
+          onError: error => Console.Error.WriteLine(error)
+        );
 
         var _ = Console.ReadLine();
 
@@ -71,6 +60,25 @@ namespace GlazeWM.Application.CLI
         client.Disconnect();
         return ExitCode.Error;
       }
+    }
+
+    /// <summary>
+    /// Get `IObservable` of parsed server messages.
+    /// </summary>
+    private static IObservable<string> GetMessagesObservable(WebsocketClient client)
+    {
+      return client.Messages.Select(message =>
+      {
+        var parsedMessage = JsonDocument.Parse(firstMessage).RootElement;
+
+        var error = parsedMessage.Get("error");
+        var data = parsedMessage.Get("data");
+
+        if (error is not null)
+          throw new Exception(error);
+
+        return data;
+      });
     }
   }
 }

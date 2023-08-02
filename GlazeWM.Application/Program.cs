@@ -24,11 +24,6 @@ using Microsoft.Extensions.Logging.Console;
 
 //// TODO: JsonContainerConverter should use casing from options.
 //// TODO: Handle circular reference for that one workspace event.
-//// TODO: Add base flag `FlattenPayload` to IPC messages. Actually maybe it's
-//// better to just deserialize to plain object and access payload in CLI. This
-//// also allows for error handling of subscribe messages.
-//// TODO: Improve error handling in CLI. Subscribe should fail and errors should
-//// propogate to stderr.
 //// TODO: Improve error handling in IPC server.
 //// TODO: Move message interfaces to within IpcServer project.
 
