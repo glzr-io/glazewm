@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace GlazeWM.Domain.Common.IpcMessages
+namespace GlazeWM.Application.IpcServer.Messages
 {
   [Verb(
     "subscribe",

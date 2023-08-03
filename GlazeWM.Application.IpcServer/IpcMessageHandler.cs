@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using CommandLine;
 using GlazeWM.Application.IpcServer.Server;
-using GlazeWM.Domain.Common.IpcMessages;
+using GlazeWM.Application.IpcServer.Messages;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;

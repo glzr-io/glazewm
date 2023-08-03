@@ -10,7 +10,7 @@ using GlazeWM.Application.WM;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Common;
-using GlazeWM.Domain.Common.IpcMessages;
+using GlazeWM.Application.IpcServer.Messages;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
@@ -25,8 +25,19 @@ using Microsoft.Extensions.Logging.Console;
 
 //// TODO: Handle circular reference for that one workspace event.
 //// TODO: Improve error handling in IPC server.
-//// TODO: Avoid splitting within "s when parsing IPC message.
 //// TODO: Move message interfaces to within IpcServer project.
+//// TODO: Change naming of application directories.
+//// * GlazeWM.App
+//// * GlazeWM.App.Cli
+//// * GlazeWM.App.IpcServer
+//// * GlazeWM.App.Watcher
+//// * GlazeWM.App.WindowManager
+//// * GlazeWM.Domain
+//// * GlazeWM.Infra
+
+//// * GWM.App.Cli
+//// * GWM.App.IpcServer
+//// * GWM.App.WindowManager
 
 namespace GlazeWM.Application
 {
