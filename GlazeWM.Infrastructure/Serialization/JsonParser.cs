@@ -52,7 +52,7 @@ namespace GlazeWM.Infrastructure.Serialization
     /// <summary>
     /// Convert property name according to naming policy.
     /// </summary>
-    public static string ConvertPropertyCasing(
+    public static string ChangeCasing(
       string propertyName,
       JsonSerializerOptions options)
     {

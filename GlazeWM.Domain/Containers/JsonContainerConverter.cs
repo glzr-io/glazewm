@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Infrastructure.Serialization;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -66,72 +67,94 @@ namespace GlazeWM.Domain.Containers
       Container value,
       JsonSerializerOptions options)
     {
-      writer.WriteNumber("X", value.X);
-      writer.WriteNumber("Y", value.Y);
-      writer.WriteNumber("Width", value.Width);
-      writer.WriteNumber("Height", value.Height);
-      writer.WriteNumber("FocusIndex", value.FocusIndex);
-      writer.WriteString("Type", value.Type);
+      writer.WriteNumber(JsonParser.ChangeCasing("X", options), value.X);
+      writer.WriteNumber(JsonParser.ChangeCasing("Y", options), value.Y);
+      writer.WriteNumber(JsonParser.ChangeCasing("Width", options), value.Width);
+      writer.WriteNumber(JsonParser.ChangeCasing("Height", options), value.Height);
+      writer.WriteString(JsonParser.ChangeCasing("Type", options), value.Type);
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("FocusIndex", options),
+        value.FocusIndex
+      );
 
       // Recursively serialize child containers.
-      writer.WriteStartArray("Children");
+      writer.WriteStartArray(JsonParser.ChangeCasing("Children", options));
       foreach (var child in value.Children)
         Write(writer, child, options);
 
       writer.WriteEndArray();
     }
 
-    private void WriteMonitorProperties(
+    private static void WriteMonitorProperties(
       Utf8JsonWriter writer,
       Monitor monitor,
       JsonSerializerOptions options)
     {
-      writer.WriteString("DeviceName", monitor.DeviceName);
+      writer.WriteString(
+        JsonParser.ChangeCasing("DeviceName", options),
+        monitor.DeviceName
+      );
     }
 
-    private void WriteWorkspaceProperties(
+    private static void WriteWorkspaceProperties(
       Utf8JsonWriter writer,
       Workspace workspace,
       JsonSerializerOptions options)
     {
-      writer.WriteString("Name", workspace.Name);
+      writer.WriteString(JsonParser.ChangeCasing("Name", options), workspace.Name);
     }
 
-    private void WriteSplitContainerProperties(
+    private static void WriteSplitContainerProperties(
       Utf8JsonWriter writer,
       SplitContainer splitContainer,
       JsonSerializerOptions options)
     {
-      writer.WriteString("Layout", splitContainer.Layout.ToString());
-      writer.WriteNumber("SizePercentage", splitContainer.SizePercentage);
+      writer.WriteString(
+        JsonParser.ChangeCasing("Layout", options),
+        splitContainer.Layout.ToString()
+      );
+
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("SizePercentage", options),
+        splitContainer.SizePercentage
+      );
     }
 
-    private void WriteWindowProperties(
+    private static void WriteWindowProperties(
       Utf8JsonWriter writer,
       Window window,
       JsonSerializerOptions options)
     {
-      writer.WriteNumber("Handle", window.Handle.ToInt64());
-      writer.WritePropertyName("FloatingPlacement");
+      writer.WritePropertyName(JsonParser.ChangeCasing("FloatingPlacement", options));
       JsonSerializer.Serialize(writer, window.FloatingPlacement);
-      writer.WritePropertyName("BorderDelta");
+      writer.WritePropertyName(JsonParser.ChangeCasing("BorderDelta", options));
       JsonSerializer.Serialize(writer, window.BorderDelta);
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("Handle", options),
+        window.Handle.ToInt64()
+      );
     }
 
-    private void WriteMinimizedWindowProperties(
+    private static void WriteMinimizedWindowProperties(
       Utf8JsonWriter writer,
       MinimizedWindow minimizedWindow,
       JsonSerializerOptions options)
     {
-      writer.WriteString("PreviousState", minimizedWindow.PreviousState.ToString());
+      writer.WriteString(
+        JsonParser.ChangeCasing("PreviousState", options),
+        minimizedWindow.PreviousState.ToString()
+      );
     }
 
-    private void WriteTilingWindowProperties(
+    private static void WriteTilingWindowProperties(
       Utf8JsonWriter writer,
       TilingWindow tilingWindow,
       JsonSerializerOptions options)
     {
-      writer.WriteNumber("SizePercentage", tilingWindow.SizePercentage);
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("SizePercentage", options),
+        tilingWindow.SizePercentage
+      );
     }
   }
 }
