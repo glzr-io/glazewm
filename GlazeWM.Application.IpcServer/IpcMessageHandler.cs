@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using CommandLine;
 using GlazeWM.Application.IpcServer.Server;
 using GlazeWM.Domain.Common.IpcMessages;
@@ -36,6 +38,12 @@ namespace GlazeWM.Application.IpcServer
     /// </summary>
     internal Dictionary<string, List<Guid>> SubscribedSessions = new();
 
+    /// <summary>
+    /// Matches words separated by spaces when not surrounded by double quotes.
+    /// Example: "a \"b c\" d" -> ["a", "\"b c\"", "d"]
+    /// </summary>
+    private static readonly Regex _messagePartsRegex = new("(\".*?\"|\\S+)");
+
     public IpcMessageHandler(
       Bus bus,
       CommandParsingService commandParsingService,
@@ -64,7 +72,9 @@ namespace GlazeWM.Application.IpcServer
         messageString
       );
 
-      var messageParts = messageString.Split(" ");
+      var messageParts = _messagePartsRegex.Matches(messageString)
+        .Select(match => match.Value)
+        .Where(capture => capture is not null);
 
       return Parser.Default.ParseArguments<
         InvokeCommandMessage,
@@ -78,7 +88,7 @@ namespace GlazeWM.Application.IpcServer
         (GetMonitorsMessage message) => HandleGetMonitorsMessage(message),
         (GetWorkspacesMessage message) => HandleGetWorkspacesMessage(message),
         (GetWindowsMessage message) => HandleGetWindowsMessage(message),
-        _ => throw new Exception()
+        _ => throw new Exception($"Invalid message '{messageString}'")
       );
     }
 
