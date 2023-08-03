@@ -78,35 +78,42 @@ namespace GlazeWM.Application.IpcServer
           .Select(match => match.Value)
           .Where(match => match is not null);
 
-        return Parser.Default.ParseArguments<
+        var parsedArgs = Parser.Default.ParseArguments<
           InvokeCommandMessage,
           SubscribeMessage,
           GetMonitorsMessage,
           GetWorkspacesMessage,
           GetWindowsMessage
-        >(messageParts).MapResult(
-          (InvokeCommandMessage message) =>
-            HandleInvokeCommandMessage(message, messageString),
-          (SubscribeMessage message) =>
-            HandleSubscribeMessage(message, sessionId, messageString),
-          (GetMonitorsMessage message) =>
-            HandleGetMonitorsMessage(message, messageString),
-          (GetWorkspacesMessage message) =>
-            HandleGetWorkspacesMessage(message, messageString),
-          (GetWindowsMessage message) =>
-            HandleGetWindowsMessage(message, messageString),
+        >(messageParts);
+
+        object? data = parsedArgs.Value switch
+        {
+          InvokeCommandMessage commandMsg => HandleInvokeCommandMessage(commandMsg),
+          SubscribeMessage subscribeMsg => HandleSubscribeMessage(subscribeMsg, sessionId),
+          GetMonitorsMessage => _monitorService.GetMonitors(),
+          GetWorkspacesMessage => _workspaceService.GetActiveWorkspaces(),
+          GetWindowsMessage => _windowService.GetWindows(),
           _ => throw new Exception($"Invalid message '{messageString}'")
+        };
+
+        return ToResponseMessage(
+          success: true,
+          data: data,
+          clientMessage: messageString
         );
       }
       catch (Exception exception)
       {
-        return ToResponseMessage(false, null, messageString, exception.Message);
+        return ToResponseMessage<bool?>(
+          success: false,
+          data: null,
+          clientMessage: messageString,
+          error: exception.Message
+        );
       }
     }
 
-    private string HandleInvokeCommandMessage(
-      InvokeCommandMessage message,
-      string messageString)
+    private bool? HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
       var contextContainer =
         _containerService.GetContainerById(message.ContextContainerId) ??
@@ -119,14 +126,11 @@ namespace GlazeWM.Application.IpcServer
         contextContainer
       );
 
-      var commandResponse = _bus.Invoke((dynamic)command);
-      return ToResponseMessage(commandResponse);
+      _bus.Invoke((dynamic)command);
+      return null;
     }
 
-    private string HandleSubscribeMessage(
-      SubscribeMessage message,
-      Guid sessionId,
-      string messageString)
+    private bool? HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
     {
       var eventNames = message.Events.Split(',');
 
@@ -142,36 +146,12 @@ namespace GlazeWM.Application.IpcServer
         SubscribedSessions.Add(eventName, new List<Guid>() { sessionId });
       }
 
-      return ToResponseMessage(CommandResponse.Ok);
+      return null;
     }
 
-    private string HandleGetMonitorsMessage(
-      GetMonitorsMessage _,
-      string messageString)
-    {
-      var monitors = _monitorService.GetMonitors();
-      return ToResponseMessage(true, monitors as IEnumerable<Container>);
-    }
-
-    private string HandleGetWorkspacesMessage(
-      GetWorkspacesMessage _,
-      string messageString)
-    {
-      var workspaces = _workspaceService.GetActiveWorkspaces();
-      return ToResponseMessage(true, workspaces as IEnumerable<Container>);
-    }
-
-    private string HandleGetWindowsMessage(
-      GetWindowsMessage _,
-      string messageString)
-    {
-      var windows = _windowService.GetWindows();
-      return ToResponseMessage(true, windows as IEnumerable<Container>);
-    }
-
-    internal string ToResponseMessage<T>(
+    private string ToResponseMessage<T>(
       bool success,
-      T data,
+      T? data,
       string clientMessage,
       string? error = null)
     {

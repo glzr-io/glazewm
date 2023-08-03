@@ -24,8 +24,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 //// TODO: Handle circular reference for that one workspace event.
-//// TODO: Improve error handling in IPC server.
-//// TODO: Move message interfaces to within IpcServer project.
 //// TODO: Change naming of application directories.
 //// * GlazeWM.App
 //// * GlazeWM.App.Cli
