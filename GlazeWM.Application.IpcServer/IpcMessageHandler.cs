@@ -72,27 +72,41 @@ namespace GlazeWM.Application.IpcServer
         messageString
       );
 
-      var messageParts = _messagePartsRegex.Matches(messageString)
-        .Select(match => match.Value)
-        .Where(capture => capture is not null);
+      try
+      {
+        var messageParts = _messagePartsRegex.Matches(messageString)
+          .Select(match => match.Value)
+          .Where(match => match is not null);
 
-      return Parser.Default.ParseArguments<
-        InvokeCommandMessage,
-        SubscribeMessage,
-        GetMonitorsMessage,
-        GetWorkspacesMessage,
-        GetWindowsMessage
-      >(messageParts).MapResult(
-        (InvokeCommandMessage message) => HandleInvokeCommandMessage(message),
-        (SubscribeMessage message) => HandleSubscribeMessage(message, sessionId),
-        (GetMonitorsMessage message) => HandleGetMonitorsMessage(message),
-        (GetWorkspacesMessage message) => HandleGetWorkspacesMessage(message),
-        (GetWindowsMessage message) => HandleGetWindowsMessage(message),
-        _ => throw new Exception($"Invalid message '{messageString}'")
-      );
+        return Parser.Default.ParseArguments<
+          InvokeCommandMessage,
+          SubscribeMessage,
+          GetMonitorsMessage,
+          GetWorkspacesMessage,
+          GetWindowsMessage
+        >(messageParts).MapResult(
+          (InvokeCommandMessage message) =>
+            HandleInvokeCommandMessage(message, messageString),
+          (SubscribeMessage message) =>
+            HandleSubscribeMessage(message, sessionId, messageString),
+          (GetMonitorsMessage message) =>
+            HandleGetMonitorsMessage(message, messageString),
+          (GetWorkspacesMessage message) =>
+            HandleGetWorkspacesMessage(message, messageString),
+          (GetWindowsMessage message) =>
+            HandleGetWindowsMessage(message, messageString),
+          _ => throw new Exception($"Invalid message '{messageString}'")
+        );
+      }
+      catch (Exception exception)
+      {
+        return ToResponseMessage(false, null, messageString, exception.Message);
+      }
     }
 
-    private string HandleInvokeCommandMessage(InvokeCommandMessage message)
+    private string HandleInvokeCommandMessage(
+      InvokeCommandMessage message,
+      string messageString)
     {
       var contextContainer =
         _containerService.GetContainerById(message.ContextContainerId) ??
@@ -109,7 +123,10 @@ namespace GlazeWM.Application.IpcServer
       return ToResponseMessage(commandResponse);
     }
 
-    private string HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
+    private string HandleSubscribeMessage(
+      SubscribeMessage message,
+      Guid sessionId,
+      string messageString)
     {
       var eventNames = message.Events.Split(',');
 
@@ -128,32 +145,42 @@ namespace GlazeWM.Application.IpcServer
       return ToResponseMessage(CommandResponse.Ok);
     }
 
-    private string HandleGetMonitorsMessage(GetMonitorsMessage _)
+    private string HandleGetMonitorsMessage(
+      GetMonitorsMessage _,
+      string messageString)
     {
       var monitors = _monitorService.GetMonitors();
-      return ToResponseMessage(monitors as IEnumerable<Container>);
+      return ToResponseMessage(true, monitors as IEnumerable<Container>);
     }
 
-    private string HandleGetWorkspacesMessage(GetWorkspacesMessage _)
+    private string HandleGetWorkspacesMessage(
+      GetWorkspacesMessage _,
+      string messageString)
     {
       var workspaces = _workspaceService.GetActiveWorkspaces();
-      return ToResponseMessage(workspaces as IEnumerable<Container>);
+      return ToResponseMessage(true, workspaces as IEnumerable<Container>);
     }
 
-    private string HandleGetWindowsMessage(GetWindowsMessage _)
+    private string HandleGetWindowsMessage(
+      GetWindowsMessage _,
+      string messageString)
     {
       var windows = _windowService.GetWindows();
-      return ToResponseMessage(windows as IEnumerable<Container>);
+      return ToResponseMessage(true, windows as IEnumerable<Container>);
     }
 
-    internal string ToResponseMessage<T>(T payload)
+    internal string ToResponseMessage<T>(
+      bool success,
+      T data,
+      string clientMessage,
+      string? error = null)
     {
       var responseMessage = new ServerMessage<T>(
-        Success: true,
+        Success: success,
         MessageType: ServerMessageType.ClientResponse,
-        Data: payload,
-        Error: null,
-        ClientMessage: "TODO"
+        Data: data,
+        Error: error,
+        ClientMessage: clientMessage
       );
 
       return JsonParser.ToString((dynamic)responseMessage, _serializeOptions);
