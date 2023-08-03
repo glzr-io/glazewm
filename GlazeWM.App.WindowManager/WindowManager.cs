@@ -13,7 +13,7 @@ using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
-namespace GlazeWM.Application.WM
+namespace GlazeWM.App.WindowManager
 {
   public sealed class WindowManager
   {
@@ -64,7 +64,7 @@ namespace GlazeWM.Application.WM
         var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
-          IconResourceName = "GlazeWM.Application.Resources.icon.ico",
+          IconResourceName = "GlazeWM.App.Resources.icon.ico",
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },

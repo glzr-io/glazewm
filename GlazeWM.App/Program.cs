@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using GlazeWM.Application.CLI;
-using GlazeWM.Application.IpcServer;
-using GlazeWM.Application.WM;
+using GlazeWM.App.Cli;
+using GlazeWM.App.IpcServer;
+using GlazeWM.App.WindowManager;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Common;
-using GlazeWM.Application.IpcServer.Messages;
+using GlazeWM.App.IpcServer.Messages;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
@@ -24,20 +24,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 //// TODO: Handle circular reference for that one workspace event.
-//// TODO: Change naming of application directories.
-//// * GlazeWM.App
-//// * GlazeWM.App.Cli
-//// * GlazeWM.App.IpcServer
-//// * GlazeWM.App.Watcher
-//// * GlazeWM.App.WindowManager
-//// * GlazeWM.Domain
-//// * GlazeWM.Infra
 
-//// * GWM.App.Cli
-//// * GWM.App.IpcServer
-//// * GWM.App.WindowManager
-
-namespace GlazeWM.Application
+namespace GlazeWM.App
 {
   internal static class Program
   {

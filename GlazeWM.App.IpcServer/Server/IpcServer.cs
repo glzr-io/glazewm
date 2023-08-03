@@ -2,7 +2,7 @@ using System.Net;
 using System.Reactive.Subjects;
 using NetCoreServer;
 
-namespace GlazeWM.Application.IpcServer.Server
+namespace GlazeWM.App.IpcServer.Server
 {
   internal sealed class IpcServer : WsServer
   {

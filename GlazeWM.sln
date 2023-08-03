@@ -8,18 +8,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Bar", "GlazeWM.Bar\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Infrastructure", "GlazeWM.Infrastructure\GlazeWM.Infrastructure.csproj", "{9FA1F058-7ED2-4BC3-B3BC-C8C43B3C62C5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Application", "GlazeWM.Application\GlazeWM.Application.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.App", "GlazeWM.App\GlazeWM.App.csproj", "{86A11BD4-B17A-4422-9D3A-D2516A730BFE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.Application.IpcServer", "GlazeWM.Application.IpcServer\GlazeWM.Application.IpcServer.csproj", "{BBD11CB5-FDF2-4BD5-B3F6-8B75BC3AFD79}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlazeWM.App.IpcServer", "GlazeWM.App.IpcServer\GlazeWM.App.IpcServer.csproj", "{BBD11CB5-FDF2-4BD5-B3F6-8B75BC3AFD79}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{877CCE5C-94A9-4CE4-8A29-164179ADE9D3}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlazeWM.Application.WM", "GlazeWM.Application.WM\GlazeWM.Application.WM.csproj", "{D160D151-C030-4A0E-A805-6E28B533F03F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlazeWM.App.WindowManager", "GlazeWM.App.WindowManager\GlazeWM.App.WindowManager.csproj", "{D160D151-C030-4A0E-A805-6E28B533F03F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlazeWM.Application.CLI", "GlazeWM.Application.CLI\GlazeWM.Application.CLI.csproj", "{BC6D71E7-8D01-4627-A3C9-2B6B9186A36E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlazeWM.App.Cli", "GlazeWM.App.Cli\GlazeWM.App.Cli.csproj", "{BC6D71E7-8D01-4627-A3C9-2B6B9186A36E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

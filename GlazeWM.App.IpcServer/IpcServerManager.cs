@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using GlazeWM.Application.IpcServer.Server;
+using GlazeWM.App.IpcServer.Server;
 using GlazeWM.Infrastructure.Bussing;
 using Microsoft.Extensions.Logging;
 
-namespace GlazeWM.Application.IpcServer
+namespace GlazeWM.App.IpcServer
 {
   public sealed class IpcServerManager : IDisposable
   {

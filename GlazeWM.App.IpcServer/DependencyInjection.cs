@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GlazeWM.Application.IpcServer
+namespace GlazeWM.App.IpcServer
 {
   public static class DependencyInjection
   {

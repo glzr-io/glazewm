@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CommandLine;
-using GlazeWM.Application.IpcServer.Server;
-using GlazeWM.Application.IpcServer.Messages;
+using GlazeWM.App.IpcServer.Server;
+using GlazeWM.App.IpcServer.Messages;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -16,7 +16,7 @@ using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace GlazeWM.Application.IpcServer
+namespace GlazeWM.App.IpcServer
 {
   public sealed class IpcMessageHandler
   {

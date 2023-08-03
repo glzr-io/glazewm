@@ -44,7 +44,7 @@ scoop install glazewm
 Alternatively, to build from source, use the following .NET CLI command:
 
 ```
-dotnet publish ./GlazeWM.Application/GlazeWM.Application.csproj --configuration=Release --runtime=win-x64 --output=. --self-contained -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true
+dotnet publish ./GlazeWM.App/GlazeWM.App.csproj --configuration=Release --runtime=win-x64 --output=. --self-contained -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true
 ```
 
 To build for other runtimes than Windows x64, see [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog#windows-rids).

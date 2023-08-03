@@ -3,7 +3,7 @@ using System.Text.Json;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Utils;
 
-namespace GlazeWM.Application.CLI
+namespace GlazeWM.App.Cli
 {
   public sealed class Cli
   {

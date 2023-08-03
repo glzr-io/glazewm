@@ -1,7 +1,7 @@
 using System.Text;
 using NetCoreServer;
 
-namespace GlazeWM.Application.IpcServer.Server
+namespace GlazeWM.App.IpcServer.Server
 {
   internal sealed class IpcSession : WsSession
   {

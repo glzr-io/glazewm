@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/GlazeWM.Application/GlazeWM.Application.csproj",
+        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -19,7 +19,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/GlazeWM.Application/GlazeWM.Application.csproj",
+        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
         "--configuration=Release",
         "--runtime=win-x64",
         "--self-contained",
@@ -36,7 +36,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/GlazeWM.Application/GlazeWM.Application.csproj",
+        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
         "--configuration=Release",
         "--runtime=win-x86",
         "--self-contained",
@@ -55,7 +55,7 @@
         "watch",
         "run",
         "--project",
-        "${workspaceFolder}/GlazeWM.Application/GlazeWM.Application.csproj"
+        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj"
       ],
       "problemMatcher": "$msCompile"
     },
@@ -65,7 +65,7 @@
       "type": "process",
       "args": [
         "publish",
-        "${workspaceFolder}/GlazeWM.Application/GlazeWM.Application.csproj",
+        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
