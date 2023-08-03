@@ -29,29 +29,27 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string FormatCommand(string commandString)
     {
-      var trimmedCommandString = commandString.Trim().ToLowerInvariant();
-
-      var multipleSpacesRegex = new Regex(@"\s+");
-      var formattedCommandString = multipleSpacesRegex.Replace(trimmedCommandString, " ");
+      // Remove leading/trailing whitespace and double quotes (if present).
+      commandString = commandString.Trim().Trim('"');
 
       var caseSensitiveCommandRegex = new List<Regex>
       {
         new Regex("^(exec).*", RegexOptions.IgnoreCase),
       };
 
-      // Some commands are partially case-sensitive (eg. `exec ...`). To handle such cases, only
-      // format part of the command string to be lowercase.
+      // Some commands are partially case-sensitive (eg. `exec ...`). To handle such
+      // cases, only format part of the command string to be lowercase.
       foreach (var regex in caseSensitiveCommandRegex)
       {
-        if (regex.IsMatch(formattedCommandString))
+        if (regex.IsMatch(commandString))
         {
-          return regex.Replace(formattedCommandString, (Match match) =>
+          return regex.Replace(commandString, (Match match) =>
             match.Value.ToLowerInvariant()
           );
         }
       }
 
-      return formattedCommandString.ToLowerInvariant();
+      return commandString.ToLowerInvariant();
     }
 
     public void ValidateCommand(string commandString)

@@ -94,12 +94,14 @@ namespace GlazeWM.Application.IpcServer
 
     private string HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
-      var contextContainer = _containerService.GetContainerById(
-        message.ContextContainerId
-      );
+      var contextContainer =
+        _containerService.GetContainerById(message.ContextContainerId) ??
+        _containerService.FocusedContainer;
+
+      var commandString = CommandParsingService.FormatCommand(message.Command);
 
       var command = _commandParsingService.ParseCommand(
-        message.Command,
+        commandString,
         contextContainer
       );
 

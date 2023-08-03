@@ -10,7 +10,6 @@ namespace GlazeWM.Domain.Common.IpcMessages
   {
     [Value(
       0,
-      MetaName = "meta",
       Required = true,
       HelpText = "WM command to run (eg. \"focus workspace 1\")"
     )]
