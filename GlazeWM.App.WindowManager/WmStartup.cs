@@ -15,7 +15,7 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.App.WindowManager
 {
-  public sealed class WindowManager
+  public sealed class WmStartup
   {
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
@@ -24,7 +24,7 @@ namespace GlazeWM.App.WindowManager
 
     private SystemTrayIcon? _systemTrayIcon { get; set; }
 
-    public WindowManager(
+    public WmStartup(
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
@@ -36,7 +36,7 @@ namespace GlazeWM.App.WindowManager
       _userConfigService = userConfigService;
     }
 
-    public ExitCode Start()
+    public ExitCode Run()
     {
       try
       {

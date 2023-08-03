@@ -75,18 +75,18 @@ namespace GlazeWM.App
 
       ServiceLocator.Provider = BuildWmServiceProvider(options);
 
-      var (barService, ipcServerManager, windowManager) =
+      var (barService, ipcServerManager, wmStartup) =
         ServiceLocator.GetRequiredServices<
           BarService,
           IpcServerManager,
-          WindowManager
+          WmStartup
         >();
 
       ThreadUtils.CreateSTA("GlazeWMBar", () => barService.StartApp());
       ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer(IpcServerPort));
 
       // Run the window manager on the main thread.
-      return windowManager.Start();
+      return wmStartup.Run();
     }
 
     private static async Task<ExitCode> StartCli(
@@ -100,7 +100,7 @@ namespace GlazeWM.App
         return ExitCode.Error;
       }
 
-      return await Cli.Start(args, IpcServerPort, isSubscribeMessage);
+      return await CliStartup.Run(args, IpcServerPort, isSubscribeMessage);
     }
 
     private static ExitCode ExitWithError(Error error)
@@ -118,7 +118,7 @@ namespace GlazeWM.App
         .AddDomainServices()
         .AddBarServices()
         .AddIpcServerServices()
-        .AddSingleton<WindowManager>()
+        .AddSingleton<WmStartup>()
         .AddSingleton(options);
 
       return services.BuildServiceProvider();

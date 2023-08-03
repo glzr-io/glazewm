@@ -5,9 +5,9 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.App.Cli
 {
-  public sealed class Cli
+  public sealed class CliStartup
   {
-    public static async Task<ExitCode> Start(
+    public static async Task<ExitCode> Run(
       string[] args,
       int ipcServerPort,
       bool isSubscribeMessage)
