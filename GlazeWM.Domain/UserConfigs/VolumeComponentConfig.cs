@@ -3,28 +3,25 @@ namespace GlazeWM.Domain.UserConfigs
   public class VolumeComponentConfig : BarComponentConfig
   {
     /// <summary>
-    /// Formatted text to display current volume level.
+    /// Default label.
     /// </summary>
-    public string Label { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'>{volume_icon}</attr>{volume_level}%";
+    public string Label { get; set; } = "{volume_level}%";
     /// <summary>
-    /// Icon for low volume.
+    /// Label for low volume.
     /// </summary>
-    public string IconVolumeLow { get; set; } = "";
+    public string LabelLow { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'></attr>{volume_level}%";
     /// <summary>
-    /// Icon for medium volume.
+    /// Label for medium volume.
     /// </summary>
-    public string IconVolumeMed { get; set; } = "";
+    public string LabelMedium { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'></attr>{volume_level}%";
     /// <summary>
-    /// Icon for high volume.
+    /// Label for high volume.
     /// </summary>
-    public string IconVolumeHigh { get; set; } = "";
+    public string LabelHigh { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'></attr>{volume_level}%";
     /// <summary>
-    /// Icon for volume mute.
+    /// Label for volume mute.
     /// </summary>
-    public string IconVolumeMute { get; set; } = "";
-    /// <summary>
-    /// Sets default icon font if one isn't specified.
-    /// </summary>
+    public string LabelMute { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'></attr>{volume_level}%";
   }
 
 }

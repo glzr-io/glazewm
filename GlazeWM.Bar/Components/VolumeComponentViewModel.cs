@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -7,58 +8,61 @@ namespace GlazeWM.Bar.Components
 {
   public class VolumeComponentViewModel : ComponentViewModel
   {
-    private VolumeComponentConfig _config => _componentConfig as VolumeComponentConfig;
-    private readonly SystemVolumeInformation _sysVolume = ServiceLocator.GetRequiredService<SystemVolumeInformation>();
+    private readonly VolumeComponentConfig _config;
+
+    private readonly SystemVolumeInformation _sysVolume =
+      ServiceLocator.GetRequiredService<SystemVolumeInformation>();
+
     private LabelViewModel _label;
     public LabelViewModel Label
     {
       get => _label;
       protected set => SetField(ref _label, value);
     }
+
     public VolumeComponentViewModel(
       BarViewModel parentViewModel,
       VolumeComponentConfig config) : base(parentViewModel, config)
     {
+      _config = config;
+
       var initVolume = _sysVolume.GetVolumeInformation();
       Label = CreateLabel(initVolume);
+
       _sysVolume.VolumeChanged += (_, volumeInfo) =>
       {
         Label = CreateLabel(volumeInfo);
       };
     }
 
-    private string GetVolumeIcon(VolumeInformation vol)
+    private string GetVolumeLabel(VolumeInformation volumeInfo)
     {
-      if (vol.Muted)
-        return _config.IconVolumeMute;
+      if (volumeInfo.Muted)
+        return _config.LabelMute;
 
-      if (vol.Volume < 10)
-        return _config.IconVolumeLow;
-      else if (vol.Volume < 50)
-        return _config.IconVolumeMed;
-      else if (vol.Volume <= 100)
-        return _config.IconVolumeHigh;
-
-      return _config.IconVolumeLow;
+      return volumeInfo.Volume switch
+      {
+        > 0 and < 33 => _config.LabelLow,
+        >= 33 and < 66 => _config.LabelMedium,
+        _ => _config.LabelHigh
+      };
     }
 
-    public LabelViewModel CreateLabel(VolumeInformation vol)
+    public LabelViewModel CreateLabel(VolumeInformation volumeInfo)
     {
-      var volumeLevel = vol.Volume.ToString("00");
-      var volumeIcon = GetVolumeIcon(vol);
       return XamlHelper.ParseLabel(
-        _config.Label,
-        CreateVariableDict(volumeLevel, volumeIcon),
+        GetVolumeLabel(volumeInfo),
+        CreateVariableDict(volumeInfo),
         this
       );
     }
 
-    public static Dictionary<string, string> CreateVariableDict(string volumeLevel, string volumeIcon)
+    public static Dictionary<string, string> CreateVariableDict(
+      VolumeInformation volumeInfo)
     {
       return new()
       {
-        { "volume_level", volumeLevel },
-        { "volume_icon", volumeIcon }
+        { "volume_level", volumeInfo.Volume.ToString("0", CultureInfo.InvariantCulture) },
       };
     }
   }
