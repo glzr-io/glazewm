@@ -151,6 +151,9 @@ csharp_preserve_single_line_blocks = true
 # Analyzer Rules              #
 ###############################
 
+# Suppress 'async void lambda' warning in JetBrains editors.
+resharper_async_void_lambda_highlighting = hint
+
 roslynator_refactorings.enabled = true
 roslynator_compiler_diagnostic_fixes.enabled = true
 

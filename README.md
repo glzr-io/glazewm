@@ -37,7 +37,7 @@ GlazeWM can be download via Scoop in the [Extras](https://github.com/ScoopInstal
 ```powershell
 scoop bucket add extras # Ensure bucket is added first
 scoop install glazewm
-````
+```
 
 ## Build from source
 
@@ -154,7 +154,7 @@ The appearance of the bar can be changed via the `bar` property in the config fi
 bar:
   # The option to enable/disable the bar.
   enabled: true
-  
+
   # Height of the bar in pixels.
   height: "30px"
 
@@ -298,6 +298,74 @@ There are three labels available that can be customized:
   label_power_saver: "{battery_level}% (power saver)"
   label_charging: "{battery_level}% (charging)"
 ```
+
+### Bar Component: CPU Usage
+
+Displays the current CPU usage.
+
+```yaml
+- type: "cpu"
+  label: "CPU: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
+```
+
+### Bar Component: GPU Usage
+
+This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
+
+```yaml
+- type: "gpu"
+  label: "GPU: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
+```
+
+### Bar Component: Memory Usage
+
+Displays the current Memory usage.
+
+```yaml
+- type: "memory"
+  label: "RAM: {percent_usage}%"
+  # How often this counter is refreshed.
+  refresh_interval_ms: 1000
+```
+
+### Bar Component: Text File
+
+For displaying any content without a native integrated widget; updates in real time.
+
+```yaml
+- type: "text file"
+  # Path to file.
+  file_path: "PATH_HERE"
+```
+
+### Bar Component: Weather
+
+Uses Open-Meteo API, refreshes every hour.
+
+```yaml
+- type: "weather"
+  latitude: 40.6892
+  longitude: 74.0445
+  label: "{temperature_celsius}°C"
+  label_sun: "☀️ {temperature_celsius}°C"
+  label_moon: "🌙 {temperature_celsius}°C"
+  label_cloud_moon: "🌙☁️ {temperature_celsius}°C"
+  label_cloud_sun: "⛅ {temperature_celsius}°C"
+  label_cloud_moon_rain: "🌙🌧️ {temperature_celsius}°C"
+  label_cloud_sun_rain: "🌦️ {temperature_celsius}°C"
+  label_cloud_rain: "🌧️ {temperature_celsius}°C"
+  label_snow_flake: "❄️ {temperature_celsius}°C"
+  label_thunderstorm: "⚡ {temperature_celsius}°C"
+  label_cloud: "☁️ {temperature_celsius}°C"
+```
+
+### Adding Custom Bar Components
+
+[Guide Available Here](./docs/contributing-new-components.md)
 
 ## Window rules
 

@@ -74,7 +74,9 @@ namespace GlazeWM.Bar
       List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
     )
     {
-      componentViewModels.Intersperse(componentSeparator);
+      if (!string.IsNullOrEmpty(componentSeparator.Text))
+        componentViewModels.Intersperse(componentSeparator);
+
       return componentViewModels;
     }
 
@@ -97,12 +99,17 @@ namespace GlazeWM.Bar
         BindingModeComponentConfig bmc => new BindingModeComponentViewModel(this, bmc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
+        WeatherComponentConfig wcc => new WeatherComponentViewModel(this, wcc),
         NetworkComponentConfig ncc => new NetworkComponentViewModel(this, ncc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         VolumeComponentConfig vcc => new VolumeComponentViewModel(this, vcc),
         SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
+        CpuComponentConfig cpupc => new CpuComponentViewModel(this, cpupc),
+        GpuComponentConfig gpupc => new GpuComponentViewModel(this, gpupc),
+        MemoryComponentConfig rampc => new MemoryComponentViewModel(this, rampc),
+        TextFileComponentConfig stc => new TextFileComponentViewModel(this, stc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }
