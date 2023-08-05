@@ -105,6 +105,7 @@ namespace GlazeWM.Bar
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
         WindowTitleComponentConfig wtcc => new WindowTitleComponentViewModel(this, wtcc),
         VolumeComponentConfig vcc => new VolumeComponentViewModel(this, vcc),
+        ImageComponentConfig bscc => new ImageComponentViewModel(this, bscc),
         SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
         CpuComponentConfig cpupc => new CpuComponentViewModel(this, cpupc),
         GpuComponentConfig gpupc => new GpuComponentViewModel(this, gpupc),
