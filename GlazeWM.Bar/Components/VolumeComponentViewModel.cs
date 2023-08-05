@@ -1,4 +1,5 @@
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.Globalization;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -7,45 +8,62 @@ namespace GlazeWM.Bar.Components
 {
   public class VolumeComponentViewModel : ComponentViewModel
   {
-    private VolumeComponentConfig _config => _componentConfig as VolumeComponentConfig;
-    private readonly SystemVolumeInformation _sysVolume = ServiceLocator.GetRequiredService<SystemVolumeInformation>();
-    private string _formattedText;
-    public string FormattedText
+    private readonly VolumeComponentConfig _config;
+
+    private readonly SystemVolumeInformation _sysVolume =
+      ServiceLocator.GetRequiredService<SystemVolumeInformation>();
+
+    private LabelViewModel _label;
+    public LabelViewModel Label
     {
-      get => _formattedText;
-      set
-      {
-        _formattedText = value;
-        OnPropertyChanged(nameof(FormattedText));
-      }
+      get => _label;
+      protected set => SetField(ref _label, value);
     }
+
     public VolumeComponentViewModel(
       BarViewModel parentViewModel,
       VolumeComponentConfig config) : base(parentViewModel, config)
     {
+      _config = config;
+
       var initVolume = _sysVolume.GetVolumeInformation();
-      FormattedText = GetVolumeIcon(initVolume) + initVolume.Volume.ToString("00");
+      Label = CreateLabel(initVolume);
 
       _sysVolume.VolumeChanged += (_, volumeInfo) =>
       {
-        FormattedText = GetVolumeIcon(volumeInfo) + volumeInfo.Volume.ToString("00");
-        Debug.WriteLine(FormattedText);
+        Label = CreateLabel(volumeInfo);
       };
     }
 
-    private string GetVolumeIcon(VolumeInformation vol)
+    private string GetVolumeLabel(VolumeInformation volumeInfo)
     {
-      if (vol.Muted)
-        return _config.LabelVolumeMute;
+      if (volumeInfo.Muted)
+        return _config.LabelMute;
 
-      if (vol.Volume < 10)
-        return _config.LabelVolumeLow;
-      else if (vol.Volume < 50)
-        return _config.LabelVolumeMed;
-      else if (vol.Volume < 100)
-        return _config.LabelVolumeHigh;
+      return volumeInfo.Volume switch
+      {
+        > 0 and < 33 => _config.LabelLow,
+        >= 33 and < 66 => _config.LabelMedium,
+        _ => _config.LabelHigh
+      };
+    }
 
-      return _config.LabelVolumeLow;
+    public LabelViewModel CreateLabel(VolumeInformation volumeInfo)
+    {
+      return XamlHelper.ParseLabel(
+        GetVolumeLabel(volumeInfo),
+        CreateVariableDict(volumeInfo),
+        this
+      );
+    }
+
+    public static Dictionary<string, string> CreateVariableDict(
+      VolumeInformation volumeInfo)
+    {
+      return new()
+      {
+        { "volume_level", volumeInfo.Volume.ToString("0", CultureInfo.InvariantCulture) },
+      };
     }
   }
 }
