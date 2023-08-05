@@ -5,12 +5,12 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Latitude to retreive weather.
     /// </summary>
-    public float Latitude { get; set; } = 40.7128f;
+    public float Latitude { get; set; }
 
     /// <summary>
     /// Longitude to retrieve weather.
     /// </summary>
-    public float Longitude { get; set; } = 74.0060f;
+    public float Longitude { get; set; }
 
     /// <summary>
     /// How often this component refreshes in milliseconds.

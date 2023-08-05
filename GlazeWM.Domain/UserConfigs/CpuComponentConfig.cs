@@ -5,7 +5,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Label assigned to the CPU component.
     /// </summary>
-    public string Label { get; set; } = "CPU {0}%";
+    public string Label { get; set; } = "CPU: {percent_usage}%";
 
     /// <summary>
     /// How often this component refreshes in milliseconds.

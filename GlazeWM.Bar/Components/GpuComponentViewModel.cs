@@ -44,7 +44,7 @@ namespace GlazeWM.Bar.Components
           () =>
             _gpuStatsService
               .GetAverageLoadPercent(GpuPerformanceCategoryFlags.Graphics)
-              .ToString(CultureInfo.InvariantCulture)
+              .ToString("0", CultureInfo.InvariantCulture)
         }
       };
 

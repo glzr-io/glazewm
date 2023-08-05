@@ -41,7 +41,7 @@ namespace GlazeWM.Bar.Components
       {
         {
           "percent_usage",
-          () => _memoryStatsService.GetMemoryUsage().ToString(CultureInfo.InvariantCulture)
+          () => _memoryStatsService.GetMemoryUsage().ToString("0", CultureInfo.InvariantCulture)
         }
       };
 

@@ -41,11 +41,14 @@ namespace GlazeWM.Bar.Components
       {
         {
           "temperature_celsius",
-          () => weather.Result.CurrentWeather.Temperature.ToString(CultureInfo.InvariantCulture)
+          () => weather.Result.CurrentWeather.Temperature.ToString("0", CultureInfo.InvariantCulture)
         },
         {
           "temperature_fahrenheit",
-          () => weather.Result.CurrentWeather.Temperature.ToString(CultureInfo.InvariantCulture)
+          () =>
+            WeatherService
+              .ToFahrenheit(weather.Result.CurrentWeather.Temperature)
+              .ToString("0", CultureInfo.InvariantCulture)
         }
       };
 

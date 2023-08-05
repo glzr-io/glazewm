@@ -41,7 +41,7 @@ namespace GlazeWM.Bar.Components
       {
         {
           "percent_usage",
-          () => _cpuStatsService.GetCpuUsage().ToString(CultureInfo.InvariantCulture)
+          () => _cpuStatsService.GetCpuUsage().ToString("0", CultureInfo.InvariantCulture)
         }
       };
 

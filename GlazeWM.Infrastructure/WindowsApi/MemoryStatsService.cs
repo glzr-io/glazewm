@@ -29,7 +29,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     public double GetMemoryUsage()
     {
-      return (_physicalBytes - _availableBytes.Observe()) / _physicalBytes;
+      var percent = (_physicalBytes - _availableBytes.Observe()) / _physicalBytes;
+      return percent * 100;
     }
   }
 }

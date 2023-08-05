@@ -49,9 +49,9 @@ namespace GlazeWM.Infrastructure.Services
       return now > sunriseToday && now < sunsetToday;
     }
 
-    public static double ToFahrenheit()
+    public static double ToFahrenheit(double celsius)
     {
-      // TODO
+      return (celsius * 1.8) + 32;
     }
 
     private static WeatherStatus GetWeatherStatus(int code, bool isDaytime)

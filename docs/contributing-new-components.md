@@ -12,7 +12,7 @@ public class CpuComponentConfig : BarComponentConfig
     /// <summary>
     /// Label assigned to the CPU component.
     /// </summary>
-    public string Label { get; set; } = "CPU: {usage_percent}%";
+    public string Label { get; set; } = "CPU: {percent_usage}%";
 }
 ```
 
@@ -46,25 +46,8 @@ To do so, first create the raw service in `GlazeWM.Infrastructure`.
 /// <summary>
 /// Provides access to current CPU statistics.
 /// </summary>
-public class CpuStatsService : System.IDisposable
-{
-  private readonly PerformanceCounter _cpuCounter = new("Processor Information", "% Processor Utility", "_Total");
-
-  /// <inheritdoc />
-  ~CpuStatsService() => Dispose();
-
-  /// <inheritdoc />
-  public void Dispose()
-  {
-    _cpuCounter?.Dispose();
-    GC.SuppressFinalize(this);
-  }
-
-  /// <summary>
-  /// Returns the current CPU utilization as a percentage.
-  /// </summary>
-  public float GetCurrentLoadPercent() => _cpuCounter.NextValue();
-}
+public class CpuStatsService
+{ ...  }
 ```
 
 And register it in the DI container in `GlazeWM.Infrastructure.DependencyInjection`:
@@ -72,8 +55,6 @@ And register it in the DI container in `GlazeWM.Infrastructure.DependencyInjecti
 ```csharp
 services.AddSingleton<CpuStatsService>();
 ```
-
-Note: I added cleanup/dispose code here because it is good practice; it is not technically necessary if the service is a singleton.
 
 ## Adding a ViewModel
 
@@ -85,27 +66,19 @@ Example:
 ```csharp
 public class CpuComponentViewModel : ComponentViewModel
 {
-  private CpuComponentConfig Config => _componentConfig as CpuComponentConfig;
-  private readonly CpuStatsService _cpuStatsService;
-
-  public string FormattedText => GetFormattedText();
-
-  public CpuComponentViewModel(BarViewModel parentViewModel, CpuComponentConfig config) : base(parentViewModel, config)
+  public CpuComponentViewModel(
+    BarViewModel parentViewModel,
+    CpuComponentConfig config) : base(parentViewModel, config)
   {
-    // Get the service from DI
+    _config = config;
     _cpuStatsService = ServiceLocator.GetRequiredService<CpuStatsService>();
 
-    var updateInterval = TimeSpan.FromSeconds(1);
-    Observable
-      .Interval(updateInterval)
+    Observable.Timer(
+      TimeSpan.Zero,
+      TimeSpan.FromMilliseconds(_config.RefreshIntervalMs)
+    )
       .TakeUntil(_parentViewModel.WindowClosing)
-      .Subscribe(_ => OnPropertyChanged(nameof(FormattedText)));
-  }
-
-  private string GetFormattedText()
-  {
-    var percent = _cpuStatsService.GetCurrentLoadPercent().ToString(Config.NumberFormat, CultureInfo.InvariantCulture);
-    return string.Format(CultureInfo.InvariantCulture, Config.StringFormat, percent);
+      .Subscribe((_) => Label = CreateLabel());
   }
 }
 ```
