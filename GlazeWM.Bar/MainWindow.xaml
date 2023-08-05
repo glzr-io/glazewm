@@ -19,21 +19,16 @@
   FontSize="{Binding FontSize}"
   Opacity="{Binding Opacity}"
   AllowsTransparency="True"
-  Topmost="False">
+  Topmost="{Binding AlwaysOnTop}">
   <Border
     CornerRadius="{Binding BorderRadius}"
     BorderThickness="{Binding BorderWidth}"
     BorderBrush="{Binding BorderColor}"
     Background="{Binding Background}">
     <Grid Margin="{Binding Padding}">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="auto" />
-        <ColumnDefinition Width="*" />
-      </Grid.ColumnDefinitions>
 
       <ItemsControl
-        Grid.Column="0"
+        HorizontalAlignment="Left"
         ItemsSource="{Binding ComponentsLeft}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -49,7 +44,7 @@
       </ItemsControl>
 
       <ItemsControl
-        Grid.Column="1"
+        HorizontalAlignment="Center"
         ItemsSource="{Binding ComponentsCenter}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -65,7 +60,6 @@
       </ItemsControl>
 
       <ItemsControl
-        Grid.Column="2"
         HorizontalAlignment="Right"
         ItemsSource="{Binding ComponentsRight}">
         <ItemsControl.ItemsPanel>

@@ -15,6 +15,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// Focus the window directly under the cursor at all times
     /// </summary>
     public bool FocusFollowsCursor { get; set; }
+    /// <summary>
     /// Amount by which to move floating windows
     /// </summary>
     public string FloatingWindowMoveAmount { get; set; } = "5%";
@@ -22,6 +23,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// Color for border drawn around a focused window.
     /// </summary>
     public string FocusBorderColor { get; set; } = "#FFFFFFFF";
+    /// <summary>
     /// If activated, by switching to the current workspace the previous focused workspace is activated.
     /// </summary>
     public bool ToggleWorkspaceOnRefocus { get; set; }

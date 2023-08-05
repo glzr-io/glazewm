@@ -65,6 +65,30 @@
               <components:ImageComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
+            <DataTemplate DataType="{x:Type components:CpuComponentViewModel}">
+              <components:CpuComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:GpuComponentViewModel}">
+              <components:GpuComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:MemoryComponentViewModel}">
+              <components:MemoryComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:TextFileComponentViewModel}">
+              <components:TextFileComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type components:WeatherComponentViewModel}">
+              <components:WeatherComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:VolumeComponentViewModel}">
               <components:VolumeComponent />

@@ -61,14 +61,14 @@ namespace GlazeWM.Bar
 
     public static LabelViewModel ParseLabel(
       string labelString,
-      Dictionary<string, string> labelVariables,
+      Dictionary<string, Func<string>> labelVariables,
       ComponentViewModel viewModel)
     {
       var labelWithVariables = labelString;
 
       // Replace variables in label with their corresponding variable.
       foreach (var (key, value) in labelVariables)
-        labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value);
+        labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value());
 
       // Wrap `labelString` in arbitrary tag to make it valid XML.
       var wrappedLabel = $"<Label>{labelWithVariables}</Label>";

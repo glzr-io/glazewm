@@ -68,11 +68,35 @@ namespace GlazeWM.Domain.UserConfigs
             jsonObject.RootElement.ToString(),
             options
           ),
+        "weather" =>
+          JsonSerializer.Deserialize<WeatherComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
         "workspaces" =>
           JsonSerializer.Deserialize<WorkspacesComponentConfig>(
             jsonObject.RootElement.ToString(),
             options
           ),
+        "cpu" =>
+          JsonSerializer.Deserialize<CpuComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "gpu" =>
+          JsonSerializer.Deserialize<GpuComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "memory" =>
+          JsonSerializer.Deserialize<MemoryComponentConfig>(
+            jsonObject.RootElement.ToString(),
+            options
+          ),
+        "text file" => JsonSerializer.Deserialize<TextFileComponentConfig>(
+          jsonObject.RootElement.ToString(),
+          options
+        ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }

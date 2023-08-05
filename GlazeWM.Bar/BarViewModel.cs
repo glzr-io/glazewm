@@ -19,6 +19,7 @@ namespace GlazeWM.Bar
     public BarConfig BarConfig { get; }
 
     public BarPosition Position => BarConfig.Position;
+    public bool AlwaysOnTop => BarConfig.AlwaysOnTop;
     public string Background => XamlHelper.FormatColor(BarConfig.Background);
     public string Foreground => XamlHelper.FormatColor(BarConfig.Foreground);
     public string FontFamily => BarConfig.FontFamily;
@@ -73,7 +74,9 @@ namespace GlazeWM.Bar
       List<ComponentViewModel> componentViewModels, TextComponentViewModel componentSeparator
     )
     {
-      componentViewModels.Intersperse(componentSeparator);
+      if (!string.IsNullOrEmpty(componentSeparator.Text))
+        componentViewModels.Intersperse(componentSeparator);
+
       return componentViewModels;
     }
 
@@ -96,6 +99,7 @@ namespace GlazeWM.Bar
         BindingModeComponentConfig bmc => new BindingModeComponentViewModel(this, bmc),
         ClockComponentConfig ccc => new ClockComponentViewModel(this, ccc),
         TextComponentConfig tcc => new TextComponentViewModel(this, tcc),
+        WeatherComponentConfig wcc => new WeatherComponentViewModel(this, wcc),
         NetworkComponentConfig ncc => new NetworkComponentViewModel(this, ncc),
         TilingDirectionComponentConfig tdc => new TilingDirectionComponentViewModel(this, tdc),
         WorkspacesComponentConfig wcc => new WorkspacesComponentViewModel(this, wcc),
@@ -103,6 +107,10 @@ namespace GlazeWM.Bar
         VolumeComponentConfig vcc => new VolumeComponentViewModel(this, vcc),
         ImageComponentConfig bscc => new ImageComponentViewModel(this, bscc),
         SystemTrayComponentConfig stcc => new SystemTrayComponentViewModel(this, stcc),
+        CpuComponentConfig cpupc => new CpuComponentViewModel(this, cpupc),
+        GpuComponentConfig gpupc => new GpuComponentViewModel(this, gpupc),
+        MemoryComponentConfig rampc => new MemoryComponentViewModel(this, rampc),
+        TextFileComponentConfig stc => new TextFileComponentViewModel(this, stc),
         _ => throw new ArgumentOutOfRangeException(nameof(config)),
       });
     }

@@ -27,7 +27,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public string LabelEthernet { get; set; } = "  ";
     /// <summary>
-    /// Label for connection to the internet.  
+    /// Label for connection to the internet.
     /// </summary>
     public string LabelNoInternet { get; set; } = "  ";
 
