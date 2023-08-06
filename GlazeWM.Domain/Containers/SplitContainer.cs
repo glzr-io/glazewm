@@ -6,7 +6,7 @@ namespace GlazeWM.Domain.Containers
 {
   public class SplitContainer : Container, IResizable
   {
-    public override string Id { get; init; } = $"SPLIT/{new Guid()}";
+    public override string Id { get; init; } = $"split_container/{new Guid()}";
     public Layout Layout { get; set; } = Layout.Horizontal;
 
     public double SizePercentage { get; set; } = 1;
