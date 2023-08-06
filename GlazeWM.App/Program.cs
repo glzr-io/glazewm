@@ -39,7 +39,8 @@ namespace GlazeWM.App
     [STAThread]
     public static async Task<int> Main(string[] args)
     {
-      using var _ = new Mutex(false, "Global\\" + AppGuid, out var isSingleInstance);
+      bool isSingleInstance;
+      using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
 
       var parsedArgs = Parser.Default.ParseArguments<
         WmStartupOptions,

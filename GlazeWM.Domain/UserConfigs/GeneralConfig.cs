@@ -27,8 +27,5 @@ namespace GlazeWM.Domain.UserConfigs
     /// If activated, by switching to the current workspace the previous focused workspace is activated.
     /// </summary>
     public bool ToggleWorkspaceOnRefocus { get; set; }
-    /// Port to run the IPC websocket server on.
-    /// </summary>
-    public int IpcServerPort { get; set; } = 61423;
   }
 }
