@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Windows.Forms;
-using GlazeWM.Bar;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
@@ -11,38 +7,36 @@ using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
-namespace GlazeWM.Bootstrapper
+namespace GlazeWM.App.WindowManager
 {
-  internal sealed class Startup
+  public sealed class WmStartup
   {
-    private readonly BarService _barService;
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
     private readonly UserConfigService _userConfigService;
 
-    private SystemTrayIcon _systemTrayIcon { get; set; }
+    private SystemTrayIcon? _systemTrayIcon { get; set; }
 
-    public Startup(
-      BarService barService,
+    public WmStartup(
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
       UserConfigService userConfigService)
     {
-      _barService = barService;
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
       _userConfigService = userConfigService;
     }
 
-    public void Run()
+    public ExitCode Run()
     {
       try
       {
@@ -53,10 +47,6 @@ namespace GlazeWM.Bootstrapper
           .Subscribe(_ => OnApplicationExit());
 
         _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
-
-        // Launch bar WPF application. Spawns bar window when monitors are added, so the service needs
-        // to be initialized before populating initial state.
-        _barService.StartApp();
 
         // Populate initial monitors, windows, workspaces and user config.
         _bus.Invoke(new PopulateInitialStateCommand());
@@ -74,7 +64,7 @@ namespace GlazeWM.Bootstrapper
         var systemTrayIconConfig = new SystemTrayIconConfig
         {
           HoverText = "GlazeWM",
-          IconResourceName = "GlazeWM.Bootstrapper.Resources.icon.ico",
+          IconResourceName = "GlazeWM.App.Resources.icon.ico",
           Actions = new Dictionary<string, Action>
           {
             { "Reload config", () => _bus.Invoke(new ReloadUserConfigCommand()) },
@@ -94,11 +84,13 @@ namespace GlazeWM.Bootstrapper
               _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
           });
 
-        Application.Run();
+        System.Windows.Forms.Application.Run();
+        return ExitCode.Success;
       }
       catch (Exception exception)
       {
         _bus.Invoke(new HandleFatalExceptionCommand(exception));
+        return ExitCode.Error;
       }
     }
 
@@ -106,9 +98,8 @@ namespace GlazeWM.Bootstrapper
     {
       _bus.Invoke(new ShowAllWindowsCommand());
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
-      _barService.ExitApp();
       _systemTrayIcon?.Remove();
-      Application.Exit();
+      System.Windows.Forms.Application.Exit();
     }
   }
 }

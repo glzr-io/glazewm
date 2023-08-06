@@ -93,7 +93,7 @@ namespace GlazeWM.Domain.Workspaces
     public Workspace(string name, Layout layout)
     {
       Layout = layout;
-      Id = $"WORKSPACE/{name}";
+      Id = $"workspace/{name}";
       Name = name;
     }
   }

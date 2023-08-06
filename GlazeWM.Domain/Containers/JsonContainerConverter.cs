@@ -1,13 +1,10 @@
 using System;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Serialization;
-using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -23,77 +20,9 @@ namespace GlazeWM.Domain.Containers
       Type typeToConvert,
       JsonSerializerOptions options)
     {
-      using var jsonDocument = JsonDocument.ParseValue(ref reader);
-
-      return DeserializeContainerJson(jsonDocument.RootElement, options);
-    }
-
-    private static Container DeserializeContainerJson(
-      JsonElement jsonObject,
-      JsonSerializerOptions options,
-      Container parent = null)
-    {
-      // Get the type of container (eg. "Workspace", "MinimizedWindow").
-      var typeDiscriminator = jsonObject.GetProperty("__type").ToString();
-
-      Container newContainer = typeDiscriminator switch
-      {
-        "RootContainer" => new RootContainer(),
-        "Monitor" => new Monitor(
-          jsonObject.GetProperty("DeviceName").GetString(),
-          jsonObject.GetProperty("Width").GetInt32(),
-          jsonObject.GetProperty("Height").GetInt32(),
-          jsonObject.GetProperty("X").GetInt32(),
-          jsonObject.GetProperty("Y").GetInt32()
-        ),
-        "Workspace" => new Workspace(
-          jsonObject.GetProperty("Name").GetString(),
-          jsonObject.GetProperty("Layout").Deserialize<Layout>()
-        ),
-        "SplitContainer" => new SplitContainer
-        {
-          Layout = jsonObject.GetProperty("Layout").Deserialize<Layout>(),
-          SizePercentage = jsonObject.GetProperty("SizePercentage").GetDouble()
-        },
-        "MinimizedWindow" => new MinimizedWindow(
-          // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
-          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
-          jsonObject.GetEnumProperty<WindowType>("PreviousState", options)
-        ),
-        "FloatingWindow" => new FloatingWindow(
-          // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
-          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>()
-        ),
-        "TilingWindow" => new TilingWindow(
-          // TODO: Handle `IntPtr` for 32-bit processes.
-          new IntPtr(Convert.ToInt64(jsonObject.GetProperty("Handle").GetString(), 16)),
-          jsonObject.GetProperty("FloatingPlacement").Deserialize<Rect>(),
-          jsonObject.GetProperty("BorderDelta").Deserialize<RectDelta>(),
-          jsonObject.GetProperty("SizePercentage").GetDouble()
-        ),
-        _ => throw new ArgumentException(null, nameof(jsonObject)),
-      };
-
-      newContainer.Parent = parent;
-
-      var children = jsonObject.GetProperty("Children").EnumerateArray();
-      newContainer.Children = children
-        .Select((child) => DeserializeContainerJson(child, options, newContainer))
-        .ToList();
-
-      var focusIndices =
-        children.Select(child => child.GetProperty("FocusIndex").GetInt32());
-
-      // Map focus index to the corresponding child container.
-      newContainer.ChildFocusOrder = focusIndices
-        .Select(focusIndex => newContainer.Children[focusIndex])
-        .ToList();
-
-      return newContainer;
+      throw new NotSupportedException(
+        $"Deserializing {typeToConvert.Name} from JSON is not supported."
+      );
     }
 
     public override void Write(
@@ -102,84 +31,129 @@ namespace GlazeWM.Domain.Containers
       JsonSerializerOptions options)
     {
       writer.WriteStartObject();
-      writer.WriteNumber("X", value.X);
-      writer.WriteNumber("Y", value.Y);
-      writer.WriteNumber("Width", value.Width);
-      writer.WriteNumber("Height", value.Height);
-      writer.WriteString("__type", value.GetType().Name);
 
-      // Handle focus index for root container.
-      var focusIndex = value is RootContainer ? 0 : value.FocusIndex;
-      writer.WriteNumber("FocusIndex", focusIndex);
+      switch (value)
+      {
+        case Monitor monitor:
+          WriteMonitorProperties(writer, monitor, options);
+          break;
+        case Workspace workspace:
+          WriteSplitContainerProperties(writer, workspace, options);
+          WriteWorkspaceProperties(writer, workspace, options);
+          break;
+        case SplitContainer splitContainer:
+          WriteSplitContainerProperties(writer, splitContainer, options);
+          break;
+        case MinimizedWindow minimizedWindow:
+          WriteWindowProperties(writer, minimizedWindow, options);
+          WriteMinimizedWindowProperties(writer, minimizedWindow, options);
+          break;
+        case FloatingWindow floatingWindow:
+          WriteWindowProperties(writer, floatingWindow, options);
+          break;
+        case TilingWindow tilingWindow:
+          WriteWindowProperties(writer, tilingWindow, options);
+          WriteTilingWindowProperties(writer, tilingWindow, options);
+          break;
+      }
 
-      WriteContainerValue(writer, value);
+      // The following properties are required for all container types.
+      WriteCommonProperties(writer, value, options);
+
+      writer.WriteEndObject();
+    }
+
+    private void WriteCommonProperties(
+      Utf8JsonWriter writer,
+      Container value,
+      JsonSerializerOptions options)
+    {
+      writer.WriteString(JsonParser.ChangeCasing("Id", options), value.Id);
+      writer.WriteNumber(JsonParser.ChangeCasing("X", options), value.X);
+      writer.WriteNumber(JsonParser.ChangeCasing("Y", options), value.Y);
+      writer.WriteNumber(JsonParser.ChangeCasing("Width", options), value.Width);
+      writer.WriteNumber(JsonParser.ChangeCasing("Height", options), value.Height);
+      writer.WriteString(JsonParser.ChangeCasing("Type", options), value.Type);
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("FocusIndex", options),
+        value.FocusIndex
+      );
 
       // Recursively serialize child containers.
-      writer.WriteStartArray("Children");
+      writer.WriteStartArray(JsonParser.ChangeCasing("Children", options));
       foreach (var child in value.Children)
         Write(writer, child, options);
 
       writer.WriteEndArray();
-      writer.WriteEndObject();
     }
 
-    private static void WriteContainerValue(
+    private static void WriteMonitorProperties(
       Utf8JsonWriter writer,
-      Container value)
+      Monitor monitor,
+      JsonSerializerOptions options)
     {
-      switch (value)
-      {
-        case Monitor:
-          var monitor = value as Monitor;
-          writer.WriteString("DeviceName", monitor.DeviceName);
-          return;
-        case Workspace:
-          var workspace = value as Workspace;
-          writer.WriteString("Name", workspace.Name);
-          return;
-        case SplitContainer:
-          var splitContainer = value as SplitContainer;
-          writer.WriteString("Layout", splitContainer.Layout.ToString());
-          writer.WriteNumber("SizePercentage", splitContainer.SizePercentage);
-          return;
-        case MinimizedWindow:
-          var minimizedWindow = value as MinimizedWindow;
-          writer.WriteNumber(
-            "Handle",
-            minimizedWindow.Handle.ToInt64()
-          );
-          writer.WritePropertyName("FloatingPlacement");
-          JsonSerializer.Serialize(writer, minimizedWindow.FloatingPlacement);
-          writer.WritePropertyName("BorderDelta");
-          JsonSerializer.Serialize(writer, minimizedWindow.BorderDelta);
-          writer.WriteString("PreviousState", minimizedWindow.PreviousState.ToString());
-          return;
-        case FloatingWindow:
-          var floatingWindow = value as FloatingWindow;
-          writer.WriteNumber(
-            "Handle",
-            floatingWindow.Handle.ToInt64()
-          );
-          writer.WritePropertyName("FloatingPlacement");
-          JsonSerializer.Serialize(writer, floatingWindow.FloatingPlacement);
-          writer.WritePropertyName("BorderDelta");
-          JsonSerializer.Serialize(writer, floatingWindow.BorderDelta);
-          return;
-        case TilingWindow:
-          var tilingWindow = value as TilingWindow;
-          writer.WriteNumber(
-            "Handle",
-            tilingWindow.Handle.ToInt64()
-          );
-          writer.WritePropertyName("FloatingPlacement");
-          JsonSerializer.Serialize(writer, tilingWindow.FloatingPlacement);
-          writer.WritePropertyName("BorderDelta");
-          JsonSerializer.Serialize(writer, tilingWindow.BorderDelta);
-          writer.WriteNumber("SizePercentage", tilingWindow.SizePercentage);
-          return;
-        default:
-          return;
-      }
+      writer.WriteString(
+        JsonParser.ChangeCasing("DeviceName", options),
+        monitor.DeviceName
+      );
+    }
+
+    private static void WriteWorkspaceProperties(
+      Utf8JsonWriter writer,
+      Workspace workspace,
+      JsonSerializerOptions options)
+    {
+      writer.WriteString(JsonParser.ChangeCasing("Name", options), workspace.Name);
+    }
+
+    private static void WriteSplitContainerProperties(
+      Utf8JsonWriter writer,
+      SplitContainer splitContainer,
+      JsonSerializerOptions options)
+    {
+      writer.WritePropertyName(JsonParser.ChangeCasing("Layout", options));
+      JsonSerializer.Serialize(writer, splitContainer.Layout, options);
+
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("SizePercentage", options),
+        splitContainer.SizePercentage
+      );
+    }
+
+    private static void WriteWindowProperties(
+      Utf8JsonWriter writer,
+      Window window,
+      JsonSerializerOptions options)
+    {
+      writer.WritePropertyName(JsonParser.ChangeCasing("FloatingPlacement", options));
+      JsonSerializer.Serialize(writer, window.FloatingPlacement, options);
+      writer.WritePropertyName(JsonParser.ChangeCasing("BorderDelta", options));
+      JsonSerializer.Serialize(writer, window.BorderDelta, options);
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("Handle", options),
+        window.Handle.ToInt64()
+      );
+    }
+
+    private static void WriteMinimizedWindowProperties(
+      Utf8JsonWriter writer,
+      MinimizedWindow minimizedWindow,
+      JsonSerializerOptions options)
+    {
+
+      writer.WritePropertyName(JsonParser.ChangeCasing("PreviousState", options));
+      JsonSerializer.Serialize(writer, minimizedWindow.PreviousState, options);
+    }
+
+    private static void WriteTilingWindowProperties(
+      Utf8JsonWriter writer,
+      TilingWindow tilingWindow,
+      JsonSerializerOptions options)
+    {
+      writer.WriteNumber(
+        JsonParser.ChangeCasing("SizePercentage", options),
+        tilingWindow.SizePercentage
+      );
     }
   }
 }

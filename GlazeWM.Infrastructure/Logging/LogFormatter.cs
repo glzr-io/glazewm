@@ -10,10 +10,12 @@ namespace GlazeWM.Infrastructure.Logging
 {
   public sealed class LogFormatter : ConsoleFormatter, IDisposable
   {
+    public new const string Name = "customFormatter";
+
     private readonly IDisposable _optionsReloadToken;
     private ConsoleFormatterOptions _formatterOptions;
 
-    public LogFormatter(IOptionsMonitor<ConsoleFormatterOptions> options) : base("customFormatter")
+    public LogFormatter(IOptionsMonitor<ConsoleFormatterOptions> options) : base(Name)
     {
       (_optionsReloadToken, _formatterOptions)
         = (options.OnChange(ReloadLoggerOptions), options.CurrentValue);

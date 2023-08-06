@@ -10,9 +10,9 @@
       "request": "launch",
       "preLaunchTask": "build",
       // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/GlazeWM.Bootstrapper/bin/Debug/net7-windows10.0.17763.0/GlazeWM.dll",
+      "program": "${workspaceFolder}/GlazeWM.App/bin/Debug/net7-windows10.0.17763.0/GlazeWM.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/GlazeWM.Bootstrapper",
+      "cwd": "${workspaceFolder}/GlazeWM.App",
       // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
       "console": "internalConsole",
       "stopAtEntry": false
