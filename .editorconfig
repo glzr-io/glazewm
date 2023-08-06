@@ -10,7 +10,7 @@ indent_style = space
 end_of_line = crlf
 
 # Code files
-[*.{cs,yaml,xaml,json,csproj,sln}]
+[*.{cs,yaml,xaml,json,csproj}]
 indent_size = 2
 insert_final_newline = true
 charset = utf-8
