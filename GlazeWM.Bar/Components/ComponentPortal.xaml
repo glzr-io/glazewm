@@ -65,6 +65,7 @@
               <components:ImageComponent
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type components:CpuComponentViewModel}">
               <components:CpuComponent
                 Padding="{Binding Padding}"
