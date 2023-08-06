@@ -126,9 +126,9 @@ namespace GlazeWM.Domain.Containers
       JsonSerializerOptions options)
     {
       writer.WritePropertyName(JsonParser.ChangeCasing("FloatingPlacement", options));
-      JsonSerializer.Serialize(writer, window.FloatingPlacement);
+      JsonSerializer.Serialize(writer, window.FloatingPlacement, options);
       writer.WritePropertyName(JsonParser.ChangeCasing("BorderDelta", options));
-      JsonSerializer.Serialize(writer, window.BorderDelta);
+      JsonSerializer.Serialize(writer, window.BorderDelta, options);
       writer.WriteNumber(
         JsonParser.ChangeCasing("Handle", options),
         window.Handle.ToInt64()

@@ -30,8 +30,10 @@ namespace GlazeWM.App.IpcServer
 
     private readonly JsonSerializerOptions _serializeOptions =
       JsonParser.OptionsFactory((options) =>
-        options.Converters.Add(new JsonContainerConverter())
-      );
+      {
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.Converters.Add(new JsonContainerConverter());
+      });
 
     /// <summary>
     /// Dictionary of event names and session IDs subscribed to that event.
