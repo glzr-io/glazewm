@@ -6,6 +6,9 @@ namespace GlazeWM.Infrastructure.Bussing
   {
     public string Name => GetType().Name;
 
+    /// <summary>
+    /// Name used to subscribe to for IPC and CLI usage.
+    /// </summary>
     public string FriendlyName
     {
       get

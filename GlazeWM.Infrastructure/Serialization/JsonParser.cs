@@ -10,12 +10,12 @@ namespace GlazeWM.Infrastructure.Serialization
     {
       // TODO: Use built-in snake case policy once support is added.
       // Ref: https://github.com/dotnet/runtime/issues/782
-      PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
+      PropertyNamingPolicy = SnakeCaseNamingPolicy.Instance,
       NumberHandling = JsonNumberHandling.AllowReadingFromString,
       IncludeFields = true,
       Converters = {
         // Enable strings to be mapped to a C# enum (eg. `BarPosition` enum).
-        new JsonStringEnumConverter(),
+        new JsonStringEnumConverter(SnakeCaseNamingPolicy.Instance),
         // Enable boolean strings to be mapped to a C# bool (eg. `"true"` -> `true`).
         new JsonStringBoolConverter(),
       }

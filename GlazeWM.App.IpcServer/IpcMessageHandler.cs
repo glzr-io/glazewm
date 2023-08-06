@@ -143,7 +143,7 @@ namespace GlazeWM.App.IpcServer
           continue;
         }
 
-        SubscribedSessions.Add(eventName, new List<Guid>() { sessionId });
+        SubscribedSessions.Add(eventName, new() { sessionId });
       }
 
       return null;

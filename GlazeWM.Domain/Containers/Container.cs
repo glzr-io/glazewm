@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GlazeWM.Infrastructure.Utils;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
@@ -44,9 +45,10 @@ namespace GlazeWM.Domain.Containers
     public int Index => Parent.Children.IndexOf(this);
 
     /// <summary>
-    /// Name of the derived container type (eg. `Workspace`).
+    /// Friendly name of the derived container type (eg. `workspace`). For CLI and IPC
+    /// usage.
     /// </summary>
-    public string Type => GetType().Name;
+    public string Type => CasingUtil.PascalToSnake(GetType().Name);
 
     /// <summary>
     /// Get the last focused descendant by traversing downwards.

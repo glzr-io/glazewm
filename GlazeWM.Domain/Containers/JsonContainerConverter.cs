@@ -32,15 +32,13 @@ namespace GlazeWM.Domain.Containers
     {
       writer.WriteStartObject();
 
-      // The following properties are required for all container types.
-      WriteCommonProperties(writer, value, options);
-
       switch (value)
       {
         case Monitor monitor:
           WriteMonitorProperties(writer, monitor, options);
           break;
         case Workspace workspace:
+          WriteSplitContainerProperties(writer, workspace, options);
           WriteWorkspaceProperties(writer, workspace, options);
           break;
         case SplitContainer splitContainer:
@@ -59,6 +57,9 @@ namespace GlazeWM.Domain.Containers
           break;
       }
 
+      // The following properties are required for all container types.
+      WriteCommonProperties(writer, value, options);
+
       writer.WriteEndObject();
     }
 
@@ -67,6 +68,7 @@ namespace GlazeWM.Domain.Containers
       Container value,
       JsonSerializerOptions options)
     {
+      writer.WriteString(JsonParser.ChangeCasing("Id", options), value.Id);
       writer.WriteNumber(JsonParser.ChangeCasing("X", options), value.X);
       writer.WriteNumber(JsonParser.ChangeCasing("Y", options), value.Y);
       writer.WriteNumber(JsonParser.ChangeCasing("Width", options), value.Width);
@@ -109,10 +111,8 @@ namespace GlazeWM.Domain.Containers
       SplitContainer splitContainer,
       JsonSerializerOptions options)
     {
-      writer.WriteString(
-        JsonParser.ChangeCasing("Layout", options),
-        splitContainer.Layout.ToString()
-      );
+      writer.WritePropertyName(JsonParser.ChangeCasing("Layout", options));
+      JsonSerializer.Serialize(writer, splitContainer.Layout, options);
 
       writer.WriteNumber(
         JsonParser.ChangeCasing("SizePercentage", options),
@@ -140,10 +140,9 @@ namespace GlazeWM.Domain.Containers
       MinimizedWindow minimizedWindow,
       JsonSerializerOptions options)
     {
-      writer.WriteString(
-        JsonParser.ChangeCasing("PreviousState", options),
-        minimizedWindow.PreviousState.ToString()
-      );
+
+      writer.WritePropertyName(JsonParser.ChangeCasing("PreviousState", options));
+      JsonSerializer.Serialize(writer, minimizedWindow.PreviousState, options);
     }
 
     private static void WriteTilingWindowProperties(
