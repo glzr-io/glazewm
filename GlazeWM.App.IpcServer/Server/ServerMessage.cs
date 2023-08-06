@@ -1,6 +1,6 @@
 namespace GlazeWM.App.IpcServer.Server
 {
-  internal record ServerMessage<T>(
+  internal sealed record ServerMessage<T>(
     bool Success,
 
     /// <summary>

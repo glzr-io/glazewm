@@ -46,8 +46,8 @@ namespace GlazeWM.App.Cli
 
         // Special handling is needed for event subscriptions.
         serverMessages.Subscribe(
-          onNext: message => Console.WriteLine(message),
-          onError: error => Console.Error.WriteLine(error)
+          onNext: Console.WriteLine,
+          onError: Console.Error.WriteLine
         );
 
         var _ = Console.ReadLine();

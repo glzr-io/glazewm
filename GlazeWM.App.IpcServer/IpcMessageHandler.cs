@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CommandLine;
-using GlazeWM.App.IpcServer.Server;
 using GlazeWM.App.IpcServer.Messages;
+using GlazeWM.App.IpcServer.Server;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -132,9 +132,7 @@ namespace GlazeWM.App.IpcServer
 
     private bool? HandleSubscribeMessage(SubscribeMessage message, Guid sessionId)
     {
-      var eventNames = message.Events.Split(',');
-
-      foreach (var eventName in eventNames)
+      foreach (var eventName in message.Events.Split(','))
       {
         if (SubscribedSessions.ContainsKey(eventName))
         {

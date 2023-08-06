@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using CommandLine;
 using GlazeWM.App.Cli;
 using GlazeWM.App.IpcServer;
+using GlazeWM.App.IpcServer.Messages;
 using GlazeWM.App.WindowManager;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
 using GlazeWM.Domain.Common;
-using GlazeWM.App.IpcServer.Messages;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
@@ -39,8 +39,7 @@ namespace GlazeWM.App
     [STAThread]
     public static async Task<int> Main(string[] args)
     {
-      bool isSingleInstance;
-      using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
+      using var _ = new Mutex(false, "Global\\" + AppGuid, out var isSingleInstance);
 
       var parsedArgs = Parser.Default.ParseArguments<
         WmStartupOptions,
@@ -82,7 +81,7 @@ namespace GlazeWM.App
           WmStartup
         >();
 
-      ThreadUtils.CreateSTA("GlazeWMBar", () => barService.StartApp());
+      ThreadUtils.CreateSTA("GlazeWMBar", barService.StartApp);
       ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer(IpcServerPort));
 
       // Run the window manager on the main thread.

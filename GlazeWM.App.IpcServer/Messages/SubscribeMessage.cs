@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 
 namespace GlazeWM.App.IpcServer.Messages
 {
