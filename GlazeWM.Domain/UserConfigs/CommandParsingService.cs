@@ -29,8 +29,16 @@ namespace GlazeWM.Domain.UserConfigs
 
     public static string FormatCommand(string commandString)
     {
-      // Remove leading/trailing whitespace and double quotes (if present).
-      commandString = commandString.Trim().Trim('"');
+      // Remove leading/trailing whitespace (if present).
+      commandString = commandString.Trim();
+
+      // Remove leading/trailing single quotes.
+      if (commandString.StartsWith("'") && commandString.EndsWith("'"))
+        commandString = commandString.Trim('\'');
+
+      // Remove leading/trailing double quotes.
+      if (commandString.StartsWith("\"") && commandString.EndsWith("\""))
+        commandString = commandString.Trim('"');
 
       var caseSensitiveCommandRegex = new List<Regex>
       {
