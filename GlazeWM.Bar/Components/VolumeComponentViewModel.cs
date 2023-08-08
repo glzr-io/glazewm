@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using GlazeWM.Domain.UserConfigs;
@@ -57,12 +58,12 @@ namespace GlazeWM.Bar.Components
       );
     }
 
-    public static Dictionary<string, string> CreateVariableDict(
+    public static Dictionary<string, Func<string>> CreateVariableDict(
       VolumeInformation volumeInfo)
     {
       return new()
       {
-        { "volume_level", volumeInfo.Volume.ToString("0", CultureInfo.InvariantCulture) },
+        { "volume_level", () => volumeInfo.Volume.ToString("0", CultureInfo.InvariantCulture) },
       };
     }
   }
