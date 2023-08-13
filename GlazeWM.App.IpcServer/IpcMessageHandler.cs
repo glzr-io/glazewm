@@ -163,12 +163,13 @@ namespace GlazeWM.App.IpcServer
         ClientMessage: clientMessage
       );
 
-      return JsonParser.ToString((dynamic)responseMessage, _serializeOptions);
+      return JsonParser.ToString(responseMessage, _serializeOptions);
     }
 
     internal string ToEventMessage(Event @event)
     {
-      var eventMessage = new ServerMessage<Event>(
+      // Set type to `object` so that the JSON serializer uses derived `Event` type.
+      var eventMessage = new ServerMessage<object>(
         Success: true,
         MessageType: ServerMessageType.SubscribedEvent,
         Data: @event,
@@ -176,7 +177,7 @@ namespace GlazeWM.App.IpcServer
         ClientMessage: null
       );
 
-      return JsonParser.ToString((dynamic)eventMessage, _serializeOptions);
+      return JsonParser.ToString(eventMessage, _serializeOptions);
     }
   }
 }
