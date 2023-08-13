@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GlazeWM.Infrastructure.Utils;
+using GlazeWM.Domain.Common;
 using GlazeWM.Infrastructure.WindowsApi;
 
 namespace GlazeWM.Domain.Containers
@@ -9,14 +9,20 @@ namespace GlazeWM.Domain.Containers
   public abstract class Container
   {
     /// <summary>
-    /// A unique identifier for the particular container. Implementation varies between container
-    /// types (eg. windows use their handle, whereas monitors use device name).
+    /// A unique identifier for the container.
     /// </summary>
-    public abstract string Id { get; init; }
+    public Guid Id { get; } = Guid.NewGuid();
+
+    /// <summary>
+    /// Derived container type (eg. `ContainerType.Monitor`).
+    /// </summary>
+    public abstract ContainerType Type { get; }
+
     public virtual int Height { get; set; }
     public virtual int Width { get; set; }
     public virtual int X { get; set; }
     public virtual int Y { get; set; }
+
     public Container Parent { get; set; }
     public List<Container> Children { get; set; } = new List<Container>();
 
@@ -43,12 +49,6 @@ namespace GlazeWM.Domain.Containers
     /// Index of this container amongst its siblings.
     /// </summary>
     public int Index => Parent.Children.IndexOf(this);
-
-    /// <summary>
-    /// Friendly name of the derived container type (eg. `workspace`). For CLI and IPC
-    /// usage.
-    /// </summary>
-    public string Type => CasingUtil.PascalToSnake(GetType().Name);
 
     /// <summary>
     /// Get the last focused descendant by traversing downwards.

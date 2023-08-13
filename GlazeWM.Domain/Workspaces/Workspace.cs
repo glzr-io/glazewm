@@ -1,4 +1,5 @@
 using System;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
@@ -11,7 +12,9 @@ namespace GlazeWM.Domain.Workspaces
 {
   public sealed class Workspace : SplitContainer
   {
-    public override string Id { get; init; }
+    /// <inheritdoc />
+    public override ContainerType Type { get; } = ContainerType.Workspace;
+
     public string Name { get; set; }
 
     private readonly UserConfigService _userConfigService =
@@ -93,7 +96,6 @@ namespace GlazeWM.Domain.Workspaces
     public Workspace(string name, Layout layout)
     {
       Layout = layout;
-      Id = $"workspace/{name}";
       Name = name;
     }
   }

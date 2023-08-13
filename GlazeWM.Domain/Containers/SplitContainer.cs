@@ -1,4 +1,4 @@
-using System;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Infrastructure;
 
@@ -6,7 +6,9 @@ namespace GlazeWM.Domain.Containers
 {
   public class SplitContainer : Container, IResizable
   {
-    public override string Id { get; init; } = $"split_container/{new Guid()}";
+    /// <inheritdoc />
+    public override ContainerType Type { get; } = ContainerType.Split;
+
     public Layout Layout { get; set; } = Layout.Horizontal;
 
     public double SizePercentage { get; set; } = 1;

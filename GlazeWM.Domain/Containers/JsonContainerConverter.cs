@@ -73,7 +73,8 @@ namespace GlazeWM.Domain.Containers
       writer.WriteNumber(JsonParser.ChangeCasing("Y", options), value.Y);
       writer.WriteNumber(JsonParser.ChangeCasing("Width", options), value.Width);
       writer.WriteNumber(JsonParser.ChangeCasing("Height", options), value.Height);
-      writer.WriteString(JsonParser.ChangeCasing("Type", options), value.Type);
+      writer.WritePropertyName(JsonParser.ChangeCasing("Type", options));
+      JsonSerializer.Serialize(writer, value.Type, options);
       writer.WriteNumber(
         JsonParser.ChangeCasing("FocusIndex", options),
         value.FocusIndex

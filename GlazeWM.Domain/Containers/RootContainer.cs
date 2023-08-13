@@ -1,9 +1,10 @@
-using System;
+using GlazeWM.Domain.Common;
 
 namespace GlazeWM.Domain.Containers
 {
   public sealed class RootContainer : Container
   {
-    public override string Id { get; init; } = $"root_container/{new Guid()}";
+    /// <inheritdoc />
+    public override ContainerType Type { get; } = ContainerType.Root;
   }
 }

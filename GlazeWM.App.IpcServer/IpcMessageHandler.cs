@@ -118,7 +118,7 @@ namespace GlazeWM.App.IpcServer
     private bool? HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
       var contextContainer =
-        _containerService.GetContainerById(message.ContextContainerId) ??
+        _containerService.GetContainerById(Guid.Parse(message.ContextContainerId)) ??
         _containerService.FocusedContainer;
 
       var commandString = CommandParsingService.FormatCommand(message.Command);

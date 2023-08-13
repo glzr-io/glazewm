@@ -1,4 +1,5 @@
 using System;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -8,7 +9,9 @@ namespace GlazeWM.Domain.Windows
 {
   public abstract class Window : Container
   {
-    public override string Id { get; init; }
+    /// <inheritdoc />
+    public override ContainerType Type { get; } = ContainerType.Window;
+
     public IntPtr Handle { get; }
 
     /// <summary>
@@ -31,7 +34,6 @@ namespace GlazeWM.Domain.Windows
 
     protected Window(IntPtr handle, Rect floatingPlacement, RectDelta borderDelta)
     {
-      Id = $"window/{handle}";
       Handle = handle;
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;

@@ -51,7 +51,7 @@ namespace GlazeWM.Domain.Containers
       _userConfigService = userConfigService;
     }
 
-    public Container GetContainerById(string id)
+    public Container GetContainerById(Guid id)
     {
       return ContainerTree.SelfAndDescendants.FirstOrDefault(container => container.Id == id);
     }
