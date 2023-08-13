@@ -461,5 +461,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr handle, uint attribute, ref uint value, uint size);
+
+    [DllImport("kernel32.dll")]
+    internal static extern bool AttachConsole(uint dwProcessId);
+
+    public static bool AttachConsoleToParentProcess()
+    {
+      const uint AttachParentProcess = 0x0ffffffff;
+      return AttachConsole(AttachParentProcess);
+    }
   }
 }

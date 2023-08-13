@@ -22,6 +22,7 @@ using GlazeWM.Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 //// TODO: Handle circular reference for that one workspace event.
 
@@ -39,6 +40,10 @@ namespace GlazeWM.App
     [STAThread]
     public static async Task<int> Main(string[] args)
     {
+      // Allows reading and writing to the console. This is needed since the `OutputType`
+      // is `WinExe` and not a console application.
+      AttachConsoleToParentProcess();
+
       bool isSingleInstance;
       using var _ = new Mutex(false, "Global\\" + AppGuid, out isSingleInstance);
 
