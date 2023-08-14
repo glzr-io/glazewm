@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -35,6 +36,8 @@ namespace GlazeWM.App.IpcServer
         options.Converters.Add(new JsonContainerConverter());
       });
 
+    private List<WebSocket> _connections = new();
+
     /// <summary>
     /// Dictionary of event names and session IDs subscribed to that event.
     /// </summary>
@@ -62,6 +65,12 @@ namespace GlazeWM.App.IpcServer
       _monitorService = monitorService;
       _workspaceService = workspaceService;
       _windowService = windowService;
+    }
+
+    internal void Handle(WebSocketReceiveResult received, byte[] buffer)
+    {
+
+
     }
 
     internal string GetResponseMessage(ClientMessage message)

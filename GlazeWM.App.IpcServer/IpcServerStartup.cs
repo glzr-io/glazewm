@@ -1,30 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
+using System.Net.WebSockets;
+using System.Threading;
 using GlazeWM.App.IpcServer.Server;
 using GlazeWM.Infrastructure.Bussing;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.App.IpcServer
 {
-  public sealed class IpcServerManager : IDisposable
+  public sealed class IpcServerStartup : IDisposable
   {
     private readonly Bus _bus;
     private readonly IpcMessageHandler _ipcMessageHandler;
-    private readonly ILogger<IpcServerManager> _logger;
+    private readonly ILogger<IpcServerStartup> _logger;
 
-    /// <summary>
-    /// The websocket server instance.
-    /// </summary>
-    private Server.IpcServer? _server { get; set; }
+    private List<WebSocket> _connections = new();
 
-    private readonly Subject<bool> _serverKill = new();
-
-    public IpcServerManager(
+    public IpcServerStartup(
       Bus bus,
       IpcMessageHandler ipcMessageHandler,
-      ILogger<IpcServerManager> logger)
+      ILogger<IpcServerStartup> logger)
     {
       _bus = bus;
       _ipcMessageHandler = ipcMessageHandler;
@@ -34,10 +31,40 @@ namespace GlazeWM.App.IpcServer
     /// <summary>
     /// Start the IPC server on specified port.
     /// </summary>
-    public void StartServer(int port)
+    public void Run(int port)
     {
-      _server = new(port);
-      _server.Start();
+      var builder = WebApplication.CreateBuilder();
+      builder.WebHost.UseUrls($"http://localhost:{port}");
+
+      var app = builder.Build();
+      app.UseWebSockets();
+
+      app.Use(async (context, next) =>
+      {
+        if (!context.WebSockets.IsWebSocketRequest)
+          await next();
+
+        using var ws = await context.WebSockets.AcceptWebSocketAsync();
+
+        _connections.Add(ws);
+
+        var buffer = new byte[1024];
+        while (!ws.CloseStatus.HasValue)
+        {
+          var received = await ws.ReceiveAsync(
+            new ArraySegment<byte>(buffer),
+            CancellationToken.None
+          );
+
+          _ipcMessageHandler.Handle(received, buffer);
+        }
+
+        await ws.CloseAsync(
+          ws.CloseStatus.Value,
+          ws.CloseStatusDescription,
+          CancellationToken.None
+        );
+      });
 
       // Start listening for messages.
       _server.Messages
@@ -67,19 +94,6 @@ namespace GlazeWM.App.IpcServer
         });
 
       _logger.LogDebug("Started IPC server on port {Port}.", port);
-    }
-
-    /// <summary>
-    /// Kill the IPC server.
-    /// </summary>
-    public void StopServer()
-    {
-      if (_server is null)
-        return;
-
-      _serverKill.OnNext(true);
-      _server.Stop();
-      _logger.LogDebug("Stopped IPC server on port {Port}.", _server.Port);
     }
 
     /// <summary>
