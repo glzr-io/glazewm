@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +29,8 @@ namespace GlazeWM.App.Watcher
 
     public async Task<ExitCode> Run(int ipcServerPort)
     {
-      System.Windows.MessageBox.Show("started");
+      Console.WriteLine("started");
+      File.WriteAllText("beep.txt", $"fjsdoai");
       var client = new WebSocketClient(ipcServerPort);
 
       try
@@ -44,11 +46,18 @@ namespace GlazeWM.App.Watcher
           _serializeOptions
         );
 
-        return ExitCode.Success;
+        await client.SendTextAsync("subscribe -e focus_changed", CancellationToken.None);
+
+        while (true)
+        {
+          var res = await client.ReceiveTextAsync(CancellationToken.None);
+          Console.WriteLine($"res {res}");
+        }
       }
-      catch (Exception)
+      catch (Exception e)
       {
-        System.Windows.MessageBox.Show("ended");
+        Console.WriteLine($"caught {e}");
+        File.WriteAllText("errors.txt", $"aaaaaaa: {e}");
         RestoreManagedHandles();
         await client.DisconnectAsync(CancellationToken.None);
         return ExitCode.Success;
