@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Reactive.Linq;
@@ -39,8 +38,6 @@ namespace GlazeWM.App.IpcServer
         options.Converters.Add(new JsonContainerConverter());
       });
 
-    private List<WebSocket> _connections = new();
-
     /// <summary>
     /// Matches words separated by spaces when not surrounded by double quotes.
     /// Example: "a \"b c\" d" -> ["a", "\"b c\"", "d"]
@@ -67,9 +64,8 @@ namespace GlazeWM.App.IpcServer
 
     internal async Task Handle(WebSocket ws)
     {
-      _connections.Add(ws);
-
       var buffer = new byte[1024];
+
       while (ws.State == WebSocketState.Open)
       {
         try
@@ -94,17 +90,8 @@ namespace GlazeWM.App.IpcServer
         }
         catch
         {
-          continue;
         }
       }
-
-      await ws.CloseAsync(
-        ws.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
-        ws.CloseStatusDescription,
-        CancellationToken.None
-      );
-
-      _connections.Remove(ws);
     }
 
     private ArraySegment<byte> GetResponseMessage(string message, WebSocket ws)
@@ -157,8 +144,9 @@ namespace GlazeWM.App.IpcServer
     private bool? HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
       var contextContainer =
-        _containerService.GetContainerById(Guid.Parse(message.ContextContainerId)) ??
-        _containerService.FocusedContainer;
+        message.ContextContainerId is not null
+          ? _containerService.GetContainerById(Guid.Parse(message.ContextContainerId))
+          : _containerService.FocusedContainer;
 
       var commandString = CommandParsingService.FormatCommand(message.Command);
 
@@ -177,11 +165,9 @@ namespace GlazeWM.App.IpcServer
 
       _bus.Events
         .TakeWhile((_) => ws.State == WebSocketState.Open)
+        .Where(@event => eventNames.Contains(@event.FriendlyName))
         .Subscribe((@event) =>
         {
-          if (!eventNames.Contains(@event.FriendlyName))
-            return;
-
           var serverMessage = ToServerMessage(
             success: true,
             messageType: ServerMessageType.SubscribedEvent,
