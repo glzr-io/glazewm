@@ -96,18 +96,7 @@ namespace GlazeWM.App
 
       // Spawn watcher process for cleaning up after crashes.
       if (!Debugger.IsAttached)
-      {
-        var currentExecutable = Process.GetCurrentProcess().MainModule.FileName;
-        Process.Start(currentExecutable, "watcher");
-        // using var process = new Process();
-        // process.StartInfo = new ProcessStartInfo
-        // {
-        //   FileName = currentExecutable,
-        //   Arguments = "watcher",
-        //   UseShellExecute = true,
-        // };
-        // process.Start();
-      }
+        Process.Start(Environment.ProcessPath, "watcher");
 
       // Run the window manager on the main thread.
       return wmStartup.Run();

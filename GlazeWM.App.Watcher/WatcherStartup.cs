@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure.Common;
-using GlazeWM.Infrastructure.Serialization;
 using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -14,13 +12,6 @@ namespace GlazeWM.App.Watcher
 {
   public sealed class WatcherStartup
   {
-    private readonly JsonSerializerOptions _serializeOptions =
-      JsonParser.OptionsFactory((options) =>
-      {
-        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.Converters.Add(new JsonContainerConverter());
-      });
-
     /// <summary>
     /// Window handles currently managed by the window manager.
     /// </summary>
@@ -34,19 +25,10 @@ namespace GlazeWM.App.Watcher
       {
         await client.ConnectAsync(CancellationToken.None);
 
-        foreach (var handle in await GetWindowHandles(client))
+        await foreach (var handle in GetWindowHandles(client))
           _managedHandles.Add(handle);
 
-        await client.SendTextAsync(
-          "subscribe -e window_managed,window_unmanaged",
-          CancellationToken.None
-        );
-
-        while (true)
-        {
-          var res = await client.ReceiveTextAsync(CancellationToken.None);
-          Console.WriteLine($"res {res}");
-        }
+        return ExitCode.Success;
       }
       catch (Exception)
       {
@@ -59,15 +41,41 @@ namespace GlazeWM.App.Watcher
     /// <summary>
     /// Query for initial windows via IPC server.
     /// </summary>
-    private async Task<IEnumerable<IntPtr>> GetWindowHandles(WebSocketClient client)
+    private async IAsyncEnumerable<IntPtr> GetWindowHandles(WebSocketClient client)
     {
       await client.SendTextAsync("windows", CancellationToken.None);
-
       var windowsResponse = await client.ReceiveTextAsync(CancellationToken.None);
 
-      return ParseServerMessage(windowsResponse)
+      var initialHandles = ParseServerMessage(windowsResponse)
         .EnumerateArray()
         .Select(value => new IntPtr(value.GetInt32()));
+
+      foreach (var handle in initialHandles)
+        yield return handle;
+
+      await client.SendTextAsync(
+        "subscribe -e window_managed,window_unmanaged",
+        CancellationToken.None
+      );
+
+      while (true)
+      {
+        var response = await client.ReceiveTextAsync(CancellationToken.None);
+        var parsedResponse = ParseServerMessage(windowsResponse);
+        var eventType = parsedResponse.GetProperty("type").GetString();
+
+        switch (eventType)
+        {
+          case "window_managed":
+            var newHandle = parsedResponse.GetProperty("handle").GetInt32();
+            _managedHandles.Add(newHandle);
+            break;
+          case "window_unmanaged":
+            var removedHandle = parsedResponse.GetProperty("removedHandle").GetInt32();
+            _managedHandles.Remove(removedHandle);
+            break;
+        }
+      }
     }
 
     /// <summary>
