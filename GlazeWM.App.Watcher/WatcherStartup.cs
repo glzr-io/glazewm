@@ -1,47 +1,57 @@
-using System.Reactive.Linq;
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using GlazeWM.Domain.Containers;
+using GlazeWM.Infrastructure.Common;
+using GlazeWM.Infrastructure.Serialization;
+using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.App.Watcher
 {
   public sealed class WatcherStartup
   {
+    private readonly JsonSerializerOptions _serializeOptions =
+      JsonParser.OptionsFactory((options) =>
+      {
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.Converters.Add(new JsonContainerConverter());
+      });
+
     /// <summary>
     /// Window handles currently managed by the window manager.
     /// </summary>
-    private List<IntPtr> _managedHandles = new();
+    private readonly List<IntPtr> _managedHandles = new();
 
-    public ExitCode Run(int ipcServerPort)
+    public async Task<ExitCode> Run(int ipcServerPort)
     {
-      var client = new WebsocketClient(ipcServerPort);
+      System.Windows.MessageBox.Show("started");
+      var client = new WebSocketClient(ipcServerPort);
 
       try
       {
-        var isConnected = client.Connect();
+        await client.ConnectAsync(CancellationToken.None);
 
-        if (!isConnected)
-          throw new Exception("Unable to connect to IPC server.");
+        // Query for initial windows via IPC server.
+        await client.SendTextAsync("windows", CancellationToken.None);
+        var windowsResponse = await client.ReceiveTextAsync(CancellationToken.None);
 
-        client.ReceiveAsync();
-        client.SendAsync("windows ls");
-
-        var serverMessages = GetMessagesObservable(client);
-
-        // Special handling is needed for event subscriptions.
-        serverMessages.Subscribe(
-          onNext: message => Console.WriteLine(message),
-          onError: error => Console.Error.WriteLine(error)
+        var initialWindows = JsonParser.ToInstance<ServerMessage<List<Window>>>(
+          windowsResponse,
+          _serializeOptions
         );
 
-        var _ = Console.ReadLine();
-
-        client.Disconnect();
         return ExitCode.Success;
       }
-      catch (Exception exception)
+      catch (Exception)
       {
-        Console.Error.WriteLine(exception.Message);
-        client.Disconnect();
-        return ExitCode.Error;
+        System.Windows.MessageBox.Show("ended");
+        RestoreManagedHandles();
+        await client.DisconnectAsync(CancellationToken.None);
+        return ExitCode.Success;
       }
     }
 

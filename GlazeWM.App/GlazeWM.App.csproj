@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GlazeWM.App.Cli\GlazeWM.App.Cli.csproj" />
     <ProjectReference Include="..\GlazeWM.App.IpcServer\GlazeWM.App.IpcServer.csproj" />
+    <ProjectReference Include="..\GlazeWM.App.Watcher\GlazeWM.App.Watcher.csproj" />
     <ProjectReference Include="..\GlazeWM.App.WindowManager\GlazeWM.App.WindowManager.csproj" />
     <ProjectReference Include="..\GlazeWM.Bar\GlazeWM.Bar.csproj" />
     <ProjectReference Include="..\GlazeWM.Domain\GlazeWM.Domain.csproj" />

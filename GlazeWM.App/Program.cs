@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -7,6 +8,7 @@ using CommandLine;
 using GlazeWM.App.Cli;
 using GlazeWM.App.IpcServer;
 using GlazeWM.App.IpcServer.Messages;
+using GlazeWM.App.Watcher;
 using GlazeWM.App.WindowManager;
 using GlazeWM.Bar;
 using GlazeWM.Domain;
@@ -49,6 +51,7 @@ namespace GlazeWM.App
 
       var parsedArgs = Parser.Default.ParseArguments<
         WmStartupOptions,
+        WatcherStartupOptions,
         InvokeCommandMessage,
         SubscribeMessage,
         GetMonitorsMessage,
@@ -59,6 +62,7 @@ namespace GlazeWM.App
       var exitCode = parsedArgs.Value switch
       {
         WmStartupOptions options => StartWm(options, isSingleInstance),
+        WatcherStartupOptions => await StartWatcher(isSingleInstance),
         InvokeCommandMessage or
         GetMonitorsMessage or
         GetWorkspacesMessage or
@@ -90,6 +94,19 @@ namespace GlazeWM.App
       ThreadUtils.CreateSTA("GlazeWMBar", barService.StartApp);
       ThreadUtils.Create("GlazeWMIPC", () => ipcServerStartup.Run(IpcServerPort));
 
+      if (!Debugger.IsAttached)
+      {
+        var currentExecutable = Process.GetCurrentProcess().MainModule.FileName;
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+          FileName = currentExecutable,
+          Arguments = "watcher",
+          UseShellExecute = true,
+        };
+        process.Start();
+      }
+
       // Run the window manager on the main thread.
       return wmStartup.Run();
     }
@@ -106,6 +123,17 @@ namespace GlazeWM.App
       }
 
       return await CliStartup.Run(args, IpcServerPort, isSubscribeMessage);
+    }
+
+    private static async Task<ExitCode> StartWatcher(bool isSingleInstance)
+    {
+      if (isSingleInstance)
+      {
+        Console.Error.WriteLine("No running instance found. Cannot start watcher.");
+        return ExitCode.Error;
+      }
+
+      return await new WatcherStartup().Run(IpcServerPort);
     }
 
     private static ExitCode ExitWithError(Error error)
