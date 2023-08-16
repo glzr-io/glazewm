@@ -1,6 +1,6 @@
 namespace GlazeWM.Domain.Common.Enums
 {
-  public enum Layout
+  public enum TilingDirection
   {
     Vertical,
     Horizontal,

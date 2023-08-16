@@ -70,12 +70,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var parent = windowToResize.Parent;
       var grandparent = parent.Parent;
-      var layout = (parent as SplitContainer).Layout;
+      var tilingDirection = (parent as SplitContainer).TilingDirection;
 
-      // Whether the resize is in the inverse direction of its layout.
+      // Whether the resize is in the inverse direction of its tiling direction.
       var isInverseResize =
-        (layout == Layout.Horizontal && dimensionToResize == ResizeDimension.Height) ||
-        (layout == Layout.Vertical && dimensionToResize == ResizeDimension.Width);
+        (tilingDirection == TilingDirection.Horizontal &&
+          dimensionToResize == ResizeDimension.Height) ||
+        (tilingDirection == TilingDirection.Vertical &&
+          dimensionToResize == ResizeDimension.Width);
 
       var hasResizableSiblings = windowToResize.SiblingsOfType<IResizable>().Any();
 

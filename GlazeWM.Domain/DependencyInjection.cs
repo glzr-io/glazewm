@@ -41,8 +41,8 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<AttachContainerCommand>, AttachContainerHandler>();
       services.AddSingleton<ICommandHandler<CenterCursorOnContainerCommand>, CenterCursorOnContainerHandler>();
       services.AddSingleton<ICommandHandler<SetActiveWindowBorderCommand>, SetActiveWindowBorderHandler>();
-      services.AddSingleton<ICommandHandler<ChangeContainerLayoutCommand>, ChangeContainerLayoutHandler>();
-      services.AddSingleton<ICommandHandler<ToggleContainerLayoutCommand>, ToggleContainerLayoutHandler>();
+      services.AddSingleton<ICommandHandler<ChangeTilingDirectionCommand>, ChangeTilingDirectionHandler>();
+      services.AddSingleton<ICommandHandler<ToggleTilingDirectionCommand>, ToggleTilingDirectionHandler>();
       services.AddSingleton<ICommandHandler<DetachAndResizeContainerCommand>, DetachAndResizeContainerHandler>();
       services.AddSingleton<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddSingleton<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();

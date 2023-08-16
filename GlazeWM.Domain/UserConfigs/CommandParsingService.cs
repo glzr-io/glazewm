@@ -109,9 +109,9 @@ namespace GlazeWM.Domain.UserConfigs
       {
         "direction" => commandParts[2] switch
         {
-          "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
-          "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
-          "toggle" => new ToggleContainerLayoutCommand(subjectContainer),
+          "vertical" => new ChangeTilingDirectionCommand(subjectContainer, TilingDirection.Vertical),
+          "horizontal" => new ChangeTilingDirectionCommand(subjectContainer, TilingDirection.Horizontal),
+          "toggle" => new ToggleTilingDirectionCommand(subjectContainer),
           _ => throw new ArgumentException(null, nameof(commandParts)),
         },
         _ => throw new ArgumentException(null, nameof(commandParts)),
@@ -122,8 +122,8 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
-        "vertical" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Vertical),
-        "horizontal" => new ChangeContainerLayoutCommand(subjectContainer, Layout.Horizontal),
+        "vertical" => new ChangeTilingDirectionCommand(subjectContainer, TilingDirection.Vertical),
+        "horizontal" => new ChangeTilingDirectionCommand(subjectContainer, TilingDirection.Horizontal),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }

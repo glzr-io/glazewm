@@ -93,10 +93,10 @@ namespace GlazeWM.Domain.Workspaces
     /// </summary>
     public bool IsDisplayed => (Parent as Monitor)?.DisplayedWorkspace == this;
 
-    public Workspace(string name, Layout layout)
+    public Workspace(string name, TilingDirection tilingDirection)
     {
-      Layout = layout;
       Name = name;
+      TilingDirection = tilingDirection;
     }
   }
 }

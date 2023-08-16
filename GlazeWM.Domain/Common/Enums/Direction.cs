@@ -29,14 +29,14 @@ namespace GlazeWM.Domain.Common.Enums
     }
 
     /// <summary>
-    /// Get the layout that is needed for when moving or switching focus in given direction (eg. a
-    /// horizontal layout when moving horizontally).
+    /// Get the tiling direction that is needed for when moving or switching focus in
+    /// given direction (eg. a horizontal tiling direction when moving horizontally).
     /// </summary>
-    public static Layout GetCorrespondingLayout(this Direction direction)
+    public static TilingDirection GetTilingDirection(this Direction direction)
     {
       return (direction is Direction.Left or Direction.Right)
-        ? Layout.Horizontal
-        : Layout.Vertical;
+        ? TilingDirection.Horizontal
+        : TilingDirection.Vertical;
     }
   }
 }

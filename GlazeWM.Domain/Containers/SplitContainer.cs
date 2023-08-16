@@ -9,7 +9,7 @@ namespace GlazeWM.Domain.Containers
     /// <inheritdoc />
     public override ContainerType Type { get; } = ContainerType.Split;
 
-    public Layout Layout { get; set; } = Layout.Horizontal;
+    public TilingDirection TilingDirection { get; set; } = TilingDirection.Horizontal;
 
     public double SizePercentage { get; set; } = 1;
 
