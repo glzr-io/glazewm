@@ -64,7 +64,7 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Vertical)
+      if (parent.TilingDirection == TilingDirection.Vertical)
         return parent.Width;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -82,7 +82,7 @@ namespace GlazeWM.Domain.Containers
     {
       var parent = container.Parent as SplitContainer;
 
-      if (parent.Layout == Layout.Horizontal)
+      if (parent.TilingDirection == TilingDirection.Horizontal)
         return parent.Height;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -102,7 +102,7 @@ namespace GlazeWM.Domain.Containers
 
       var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
-      if (parent.Layout == Layout.Vertical || isFirstOfType)
+      if (parent.TilingDirection == TilingDirection.Vertical || isFirstOfType)
         return parent.X;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -122,7 +122,7 @@ namespace GlazeWM.Domain.Containers
 
       var isFirstOfType = container.SelfAndSiblingsOfType<IResizable>().First() == container;
 
-      if (parent.Layout == Layout.Horizontal || isFirstOfType)
+      if (parent.TilingDirection == TilingDirection.Horizontal || isFirstOfType)
         return parent.Y;
 
       var innerGap = _userConfigService.GapsConfig.InnerGap;
@@ -146,9 +146,9 @@ namespace GlazeWM.Domain.Containers
       if (!isDescendable)
         return originContainer;
 
-      var layout = (originContainer as SplitContainer).Layout;
+      var tilingDirection = (originContainer as SplitContainer).TilingDirection;
 
-      if (layout != direction.GetCorrespondingLayout())
+      if (tilingDirection != direction.GetTilingDirection())
         return GetDescendantInDirection(
           originContainer.LastFocusedChildOfType<IResizable>(),
           direction

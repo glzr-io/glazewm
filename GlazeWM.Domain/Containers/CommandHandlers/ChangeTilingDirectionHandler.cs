@@ -8,44 +8,47 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal sealed class ChangeContainerLayoutHandler : ICommandHandler<ChangeContainerLayoutCommand>
+  internal sealed class ChangeTilingDirectionHandler : ICommandHandler<ChangeTilingDirectionCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
 
-    public ChangeContainerLayoutHandler(Bus bus, ContainerService containerService)
+    public ChangeTilingDirectionHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
     }
 
-    public CommandResponse Handle(ChangeContainerLayoutCommand command)
+    public CommandResponse Handle(ChangeTilingDirectionCommand command)
     {
       var container = command.Container;
-      var newLayout = command.NewLayout;
+      var newTilingDirection = command.TilingDirection;
 
       if (container is TilingWindow)
-        ChangeWindowLayout(container as Window, newLayout);
+        ChangeWindowTilingDirection(container as Window, newTilingDirection);
       else if (container is Workspace)
-        ChangeWorkspaceLayout(container as Workspace, newLayout);
+        ChangeWorkspaceTilingDirection(container as Workspace, newTilingDirection);
 
-      _bus.Emit(new LayoutChangedEvent(newLayout));
+      _bus.Emit(new TilingDirectionChangedEvent(newTilingDirection));
 
       return CommandResponse.Ok;
     }
 
-    private void ChangeWindowLayout(Window window, Layout newLayout)
+    private void ChangeWindowTilingDirection(
+      Window window,
+      TilingDirection newTilingDirection)
     {
       var parent = window.Parent as SplitContainer;
-      var currentLayout = parent.Layout;
+      var currentTilingDirection = parent.TilingDirection;
 
-      if (currentLayout == newLayout)
+      if (currentTilingDirection == newTilingDirection)
         return;
 
-      // If the window is an only child of a workspace, change layout of the workspace.
+      // If the window is an only child of a workspace, change tiling direction of the
+      // workspace.
       if (!window.HasSiblings() && parent is Workspace)
       {
-        ChangeWorkspaceLayout(parent as Workspace, newLayout);
+        ChangeWorkspaceTilingDirection(parent as Workspace, newTilingDirection);
         return;
       }
 
@@ -60,7 +63,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // Create a new split container to wrap the window.
       var splitContainer = new SplitContainer
       {
-        Layout = newLayout,
+        TilingDirection = newTilingDirection,
       };
 
       // Replace the window with the wrapping split container. The window has to be attached to
@@ -73,22 +76,25 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _bus.Invoke(new AttachContainerCommand(window, splitContainer));
     }
 
-    private void ChangeWorkspaceLayout(Workspace workspace, Layout newLayout)
+    private void ChangeWorkspaceTilingDirection(
+      Workspace workspace,
+      TilingDirection newTilingDirection)
     {
-      var currentLayout = workspace.Layout;
+      var currentTilingDirection = workspace.TilingDirection;
 
-      if (currentLayout == newLayout)
+      if (currentTilingDirection == newTilingDirection)
         return;
 
-      workspace.Layout = newLayout;
+      workspace.TilingDirection = newTilingDirection;
 
-      // Flatten any top-level split containers with the same layout as the workspace. Clone the
-      // list since the number of workspace children changes when split containers are flattened.
+      // Flatten any top-level split containers with the same tiling direction as the
+      // workspace. Clone the list since the number of workspace children changes when
+      // split containers are flattened.
       foreach (var child in workspace.Children.ToList())
       {
         var childSplitContainer = child as SplitContainer;
 
-        if (childSplitContainer?.Layout != newLayout)
+        if (childSplitContainer?.TilingDirection != newTilingDirection)
           continue;
 
         _bus.Invoke(new FlattenSplitContainerCommand(childSplitContainer));

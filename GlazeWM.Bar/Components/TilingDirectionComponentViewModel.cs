@@ -23,22 +23,22 @@ namespace GlazeWM.Bar.Components
     private string LabelHorizontal => _config.LabelHorizontal;
 
     /// <summary>
-    /// The layout of the currently focused container. Can be null on app startup when
-    /// workspaces haven't been created yet.
+    /// The tiling direction of the currently focused container. Can be null on app
+    /// startup when workspaces haven't been created yet.
     /// </summary>
-    private Layout? _tilingDirection =>
-      (_containerService.FocusedContainer as SplitContainer)?.Layout ??
-      (_containerService.FocusedContainer.Parent as SplitContainer)?.Layout;
+    private TilingDirection? _tilingDirection =>
+      (_containerService.FocusedContainer as SplitContainer)?.TilingDirection ??
+      (_containerService.FocusedContainer.Parent as SplitContainer)?.TilingDirection;
 
     public string TilingDirectionString =>
-      _tilingDirection == Layout.Vertical ? LabelVertical : LabelHorizontal;
+      _tilingDirection == TilingDirection.Vertical ? LabelVertical : LabelHorizontal;
 
     public TilingDirectionComponentViewModel(
       BarViewModel parentViewModel,
       TilingDirectionComponentConfig config) : base(parentViewModel, config)
     {
       _bus.Events.Where(
-        (@event) => @event is LayoutChangedEvent or FocusChangedEvent
+        (@event) => @event is TilingDirectionChangedEvent or FocusChangedEvent
       ).Subscribe((_) =>
         _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString)))
       );

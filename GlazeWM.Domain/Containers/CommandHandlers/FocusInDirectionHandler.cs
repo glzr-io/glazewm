@@ -85,7 +85,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       Container focusedContainer,
       Direction direction)
     {
-      var layoutForDirection = direction.GetCorrespondingLayout();
+      var tilingDirection = direction.GetTilingDirection();
       var focusReference = focusedContainer;
 
       // Traverse upwards from the focused container. Stop searching when a workspace is
@@ -94,7 +94,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       {
         var parent = focusReference.Parent as SplitContainer;
 
-        if (!focusReference.HasSiblings() || parent.Layout != layoutForDirection)
+        if (!focusReference.HasSiblings() || parent.TilingDirection != tilingDirection)
         {
           focusReference = parent;
           continue;

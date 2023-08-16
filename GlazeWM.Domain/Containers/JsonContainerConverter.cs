@@ -112,8 +112,8 @@ namespace GlazeWM.Domain.Containers
       SplitContainer splitContainer,
       JsonSerializerOptions options)
     {
-      writer.WritePropertyName(JsonParser.ChangeCasing("Layout", options));
-      JsonSerializer.Serialize(writer, splitContainer.Layout, options);
+      writer.WritePropertyName(JsonParser.ChangeCasing("TilingDirection", options));
+      JsonSerializer.Serialize(writer, splitContainer.TilingDirection, options);
 
       writer.WriteNumber(
         JsonParser.ChangeCasing("SizePercentage", options),

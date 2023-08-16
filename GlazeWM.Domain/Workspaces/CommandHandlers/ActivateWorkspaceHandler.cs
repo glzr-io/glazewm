@@ -20,8 +20,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspaceName = command.WorkspaceName;
       var targetMonitor = command.TargetMonitor;
 
-      var layout = targetMonitor.Height > targetMonitor.Width ? Layout.Vertical : Layout.Horizontal;
-      var newWorkspace = new Workspace(workspaceName, layout);
+      var tilingDirection = targetMonitor.Height > targetMonitor.Width
+        ? TilingDirection.Vertical
+        : TilingDirection.Horizontal;
+
+      var newWorkspace = new Workspace(workspaceName, tilingDirection);
 
       // Attach the created workspace to the specified monitor.
       _bus.Invoke(new AttachContainerCommand(newWorkspace, targetMonitor));

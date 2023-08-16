@@ -3,13 +3,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.Events
 {
-  public class LayoutChangedEvent : Event
+  public class TilingDirectionChangedEvent : Event
   {
-    public Layout NewLayout { get; }
+    public TilingDirection NewTilingDirection { get; }
 
-    public LayoutChangedEvent(Layout newLayout)
+    public TilingDirectionChangedEvent(TilingDirection newTilingDirection)
     {
-      NewLayout = newLayout;
+      NewTilingDirection = newTilingDirection;
     }
   }
 }

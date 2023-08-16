@@ -96,9 +96,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       );
       var targetParent = targetDescendant.Parent as SplitContainer;
 
-      var layoutForDirection = direction.GetCorrespondingLayout();
       var shouldInsertAfter =
-        targetParent.Layout != layoutForDirection ||
+        targetParent.TilingDirection != direction.GetTilingDirection() ||
         direction == Direction.Up ||
         direction == Direction.Left;
       var insertionIndex = shouldInsertAfter ? targetDescendant.Index + 1 : targetDescendant.Index;
@@ -139,12 +138,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Emit(new FocusChangedEvent(windowToMove));
     }
 
-    private void ChangeWorkspaceLayout(Window windowToMove, Direction direction)
+    private void ChangeWorkspaceTilingDirection(Window windowToMove, Direction direction)
     {
       var workspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToMove);
 
-      var layoutForDirection = direction.GetCorrespondingLayout();
-      _bus.Invoke(new ChangeContainerLayoutCommand(workspace, layoutForDirection));
+      _bus.Invoke(new ChangeTilingDirectionCommand(workspace, direction.GetTilingDirection()));
 
       // TODO: Should probably descend into sibling if possible.
       if (HasSiblingInDirection(windowToMove, direction))
@@ -156,12 +154,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     private void InsertIntoAncestor(
       TilingWindow windowToMove,
       Direction direction,
-      Container ancestorWithLayout)
+      Container ancestorWithTilingDirection)
     {
-      // Traverse up from `windowToMove` to find container where the parent is `ancestorWithLayout`.
-      // Then, depending on the direction, insert before or after that container.
+      // Traverse up from `windowToMove` to find container where the parent is
+      // `ancestorWithTilingDirection`. Then, depending on the direction, insert before
+      // or after that container.
       var insertionReference = windowToMove.Ancestors
-        .FirstOrDefault(container => container.Parent == ancestorWithLayout);
+        .FirstOrDefault(container => container.Parent == ancestorWithTilingDirection);
 
       var insertionReferenceSibling = direction is Direction.Up or Direction.Left
         ? insertionReference.PreviousSiblingOfType<IResizable>()
@@ -176,9 +175,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         );
         var targetParent = targetDescendant.Parent as SplitContainer;
 
-        var layoutForDirection = direction.GetCorrespondingLayout();
         var shouldInsertAfter =
-          targetParent.Layout != layoutForDirection ||
+          targetParent.TilingDirection != direction.GetTilingDirection() ||
           direction == Direction.Up ||
           direction == Direction.Left;
 
@@ -194,7 +192,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         var insertionIndex = (direction is Direction.Up or Direction.Left) ?
           insertionReference.Index : insertionReference.Index + 1;
 
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, ancestorWithLayout, insertionIndex, true));
+        _bus.Invoke(
+          new MoveContainerWithinTreeCommand(
+            windowToMove,
+            ancestorWithTilingDirection,
+            insertionIndex,
+            true
+          )
+        );
       }
 
       _bus.Invoke(new RedrawContainersCommand());
@@ -202,18 +207,17 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
     private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
     {
-      var layoutForDirection = direction.GetCorrespondingLayout();
-      var parentMatchesLayout =
-        (windowToMove.Parent as SplitContainer).Layout == direction.GetCorrespondingLayout();
+      var parentHasTilingDirection =
+        (windowToMove.Parent as SplitContainer).TilingDirection == direction.GetTilingDirection();
 
-      if (parentMatchesLayout && HasSiblingInDirection(windowToMove, direction))
+      if (parentHasTilingDirection && HasSiblingInDirection(windowToMove, direction))
       {
         SwapSiblingContainers(windowToMove, direction);
         return;
       }
 
       // Attempt to the move window to workspace in given direction.
-      if (parentMatchesLayout && windowToMove.Parent is Workspace)
+      if (parentHasTilingDirection && windowToMove.Parent is Workspace)
       {
         MoveToWorkspaceInDirection(windowToMove, direction);
         return;
@@ -221,18 +225,19 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // The window cannot be moved within the parent container, so traverse upwards to find a
       // suitable ancestor to move to.
-      var ancestorWithLayout = windowToMove.Parent.Ancestors.FirstOrDefault(
-        container => (container as SplitContainer)?.Layout == layoutForDirection
+      var ancestorWithTilingDirection = windowToMove.Parent.Ancestors.FirstOrDefault(
+        (container) =>
+          (container as SplitContainer)?.TilingDirection == direction.GetTilingDirection()
       ) as SplitContainer;
 
-      // Change the layout of the workspace to layout for direction.
-      if (ancestorWithLayout == null)
+      // Change the tiling direction of the workspace to tiling direction for direction.
+      if (ancestorWithTilingDirection == null)
       {
-        ChangeWorkspaceLayout(windowToMove, direction);
+        ChangeWorkspaceTilingDirection(windowToMove, direction);
         return;
       }
 
-      InsertIntoAncestor(windowToMove, direction, ancestorWithLayout);
+      InsertIntoAncestor(windowToMove, direction, ancestorWithTilingDirection);
     }
 
     private void MoveFloatingWindow(Window windowToMove, Direction direction)
