@@ -1,11 +1,6 @@
-using System.Reactive.Linq;
 using System.Text.Json;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Utils;
-
-// TODO: Handle exception:
-// 'System.Net.WebSockets.WebSocketException': 'The remote party closed the WebSocket
-// connection without completing the close handshake.'
 
 namespace GlazeWM.App.Cli
 {
@@ -20,68 +15,51 @@ namespace GlazeWM.App.Cli
 
       try
       {
-        var isConnected = client.Connect();
+        await client.ConnectAsync(CancellationToken.None);
 
-        if (!isConnected)
-          throw new Exception("Unable to connect to IPC server.");
-
-        client.ReceiveAsync();
-
-        var message = string.Join(" ", args);
-        var sendSuccess = client.SendTextAsync(message);
-
-        if (!sendSuccess)
-          throw new Exception("Failed to send message to IPC server.");
-
-        var serverMessages = GetMessagesObservable(client);
+        var clientMessage = string.Join(" ", args);
+        await client.SendTextAsync(clientMessage, CancellationToken.None);
 
         // Wait for server to respond with a message.
-        var firstMessage = await serverMessages
-          .Timeout(TimeSpan.FromSeconds(5))
-          .FirstAsync();
+        var serverResponse = await client.ReceiveTextAsync(CancellationToken.None);
 
         // Exit on first message received when not subscribing to an event.
         if (!isSubscribeMessage)
         {
-          Console.WriteLine(firstMessage);
-          client.Disconnect();
+          var parsedMessage = ParseMessage(serverResponse);
+          Console.WriteLine(parsedMessage);
+          await client.DisconnectAsync(CancellationToken.None);
           return ExitCode.Success;
         }
 
-        // Special handling is needed for event subscriptions.
-        serverMessages.Subscribe(
-          onNext: Console.WriteLine,
-          onError: Console.Error.WriteLine
-        );
-
-        var _ = Console.ReadLine();
-
-        client.Disconnect();
-        return ExitCode.Success;
+        // When subscribing to events, continuously listen for server messages.
+        while (true)
+        {
+          var message = await client.ReceiveTextAsync(CancellationToken.None);
+          var parsedMessage = ParseMessage(message);
+          Console.WriteLine(parsedMessage);
+        }
       }
       catch (Exception exception)
       {
         Console.Error.WriteLine(exception.Message);
-        client.Disconnect();
+        await client.DisconnectAsync(CancellationToken.None);
         return ExitCode.Error;
       }
     }
 
     /// <summary>
-    /// Get `IObservable` of parsed server messages.
+    /// Parse JSON in server message.
     /// </summary>
-    private static IObservable<string> GetMessagesObservable(WebsocketClient client)
+    private static string ParseMessage(string message)
     {
-      return client.Messages.Select(message =>
-      {
-        var parsedMessage = JsonDocument.Parse(message).RootElement;
-        var error = parsedMessage.GetProperty("error").GetString();
+      var parsedMessage = JsonDocument.Parse(message).RootElement;
+      var error = parsedMessage.GetProperty("error").GetString();
 
-        if (error is not null)
-          throw new Exception(error);
+      if (error is not null)
+        throw new Exception(error);
 
-        return parsedMessage.GetProperty("data").ToString();
-      });
+      return parsedMessage.GetProperty("data").ToString();
     }
   }
 }
