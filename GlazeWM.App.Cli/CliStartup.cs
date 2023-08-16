@@ -11,7 +11,7 @@ namespace GlazeWM.App.Cli
       int ipcServerPort,
       bool isSubscribeMessage)
     {
-      var client = new WebsocketClient(ipcServerPort);
+      var client = new WebSocketClient(ipcServerPort);
 
       try
       {

@@ -6,19 +6,19 @@ using System.Threading.Tasks;
 
 namespace GlazeWM.Infrastructure.Utils
 {
-  public class WebsocketClient
+  public class WebSocketClient
   {
     private readonly ClientWebSocket _ws = new();
     private readonly string _address;
     private readonly int _port;
 
-    public WebsocketClient(string address, int port)
+    public WebSocketClient(string address, int port)
     {
       _address = address;
       _port = port;
     }
 
-    public WebsocketClient(int port)
+    public WebSocketClient(int port)
     {
       _address = "localhost";
       _port = port;
