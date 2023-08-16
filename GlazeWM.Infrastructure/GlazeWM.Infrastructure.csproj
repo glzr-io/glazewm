@@ -55,8 +55,5 @@
     <PackageReference
       Include="ManagedShell"
       Version="0.0.198" />
-    <PackageReference
-      Include="NetCoreServer"
-      Version="6.7.0" />
   </ItemGroup>
 </Project>

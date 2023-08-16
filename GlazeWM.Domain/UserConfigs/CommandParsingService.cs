@@ -62,45 +62,45 @@ namespace GlazeWM.Domain.UserConfigs
 
     public void ValidateCommand(string commandString)
     {
+      ParseCommand(commandString, null);
+    }
+
+    public Command ParseCommand(string commandString, Container subjectContainer)
+    {
       try
       {
-        ParseCommand(commandString, null);
+        var commandParts = commandString.Split(" ");
+
+        return commandParts[0] switch
+        {
+          "tiling" => ParseTilingCommand(commandParts, subjectContainer),
+          // TODO: "layout <LAYOUT>" commands are deprecated. Remove in next major release.
+          "layout" => ParseLayoutCommand(commandParts, subjectContainer),
+          "focus" => ParseFocusCommand(commandParts),
+          "move" => ParseMoveCommand(commandParts, subjectContainer),
+          "resize" => ParseResizeCommand(commandParts, subjectContainer),
+          "set" => ParseSetCommand(commandParts, subjectContainer),
+          "toggle" => ParseToggleCommand(commandParts, subjectContainer),
+          "exit" => ParseExitCommand(commandParts),
+          "close" => subjectContainer is Window
+            ? new CloseWindowCommand(subjectContainer as Window)
+            : new NoopCommand(),
+          "reload" => ParseReloadCommand(commandParts),
+          "exec" => new ExecProcessCommand(
+            ExtractProcessName(string.Join(" ", commandParts[1..])),
+            ExtractProcessArgs(string.Join(" ", commandParts[1..]))
+          ),
+          "ignore" => subjectContainer is Window
+            ? new IgnoreWindowCommand(subjectContainer as Window)
+            : new NoopCommand(),
+          "binding" => ParseBindingCommand(commandParts),
+          _ => throw new ArgumentException(null, nameof(commandString)),
+        };
       }
       catch
       {
         throw new FatalUserException($"Invalid command '{commandString}'.");
       }
-    }
-
-    public Command ParseCommand(string commandString, Container subjectContainer)
-    {
-      var commandParts = commandString.Split(" ");
-
-      return commandParts[0] switch
-      {
-        "tiling" => ParseTilingCommand(commandParts, subjectContainer),
-        // TODO: "layout <LAYOUT>" commands are deprecated. Remove in next major release.
-        "layout" => ParseLayoutCommand(commandParts, subjectContainer),
-        "focus" => ParseFocusCommand(commandParts),
-        "move" => ParseMoveCommand(commandParts, subjectContainer),
-        "resize" => ParseResizeCommand(commandParts, subjectContainer),
-        "set" => ParseSetCommand(commandParts, subjectContainer),
-        "toggle" => ParseToggleCommand(commandParts, subjectContainer),
-        "exit" => ParseExitCommand(commandParts),
-        "close" => subjectContainer is Window
-          ? new CloseWindowCommand(subjectContainer as Window)
-          : new NoopCommand(),
-        "reload" => ParseReloadCommand(commandParts),
-        "exec" => new ExecProcessCommand(
-          ExtractProcessName(string.Join(" ", commandParts[1..])),
-          ExtractProcessArgs(string.Join(" ", commandParts[1..]))
-        ),
-        "ignore" => subjectContainer is Window
-          ? new IgnoreWindowCommand(subjectContainer as Window)
-          : new NoopCommand(),
-        "binding" => ParseBindingCommand(commandParts),
-        _ => throw new ArgumentException(null, nameof(commandString)),
-      };
     }
 
     private static Command ParseTilingCommand(string[] commandParts, Container subjectContainer)

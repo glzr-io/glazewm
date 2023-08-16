@@ -80,15 +80,15 @@ namespace GlazeWM.App
 
       ServiceLocator.Provider = BuildWmServiceProvider(options);
 
-      var (barService, ipcServerManager, wmStartup) =
+      var (barService, ipcServerStartup, wmStartup) =
         ServiceLocator.GetRequiredServices<
           BarService,
-          IpcServerManager,
+          IpcServerStartup,
           WmStartup
         >();
 
       ThreadUtils.CreateSTA("GlazeWMBar", barService.StartApp);
-      ThreadUtils.Create("GlazeWMIPC", () => ipcServerManager.StartServer(IpcServerPort));
+      ThreadUtils.Create("GlazeWMIPC", () => ipcServerStartup.Run(IpcServerPort));
 
       // Run the window manager on the main thread.
       return wmStartup.Run();
