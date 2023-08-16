@@ -3,6 +3,10 @@ using System.Text.Json;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Utils;
 
+// TODO: Handle exception:
+// 'System.Net.WebSockets.WebSocketException': 'The remote party closed the WebSocket
+// connection without completing the close handshake.'
+
 namespace GlazeWM.App.Cli
 {
   public sealed class CliStartup

@@ -70,31 +70,36 @@ namespace GlazeWM.App.IpcServer
       _connections.Add(ws);
 
       var buffer = new byte[1024];
-      while (!ws.CloseStatus.HasValue)
+      while (ws.State == WebSocketState.Open)
       {
-        // TODO: This can fail if client closes unexpectedly.
-        var received = await ws.ReceiveAsync(
-          new ArraySegment<byte>(buffer),
-          CancellationToken.None
-        );
+        try
+        {
+          var received = await ws.ReceiveAsync(
+            new ArraySegment<byte>(buffer),
+            CancellationToken.None
+          );
 
-        if (received.MessageType != WebSocketMessageType.Text)
+          if (received.MessageType != WebSocketMessageType.Text)
+            continue;
+
+          var clientMessage = Encoding.UTF8.GetString(buffer, 0, received.Count);
+          var serverMessage = GetResponseMessage(clientMessage, ws);
+
+          await ws.SendAsync(
+            serverMessage,
+            WebSocketMessageType.Text,
+            true,
+            CancellationToken.None
+          );
+        }
+        catch
+        {
           continue;
-
-        // TODO: UTF-8 conversion could fail.
-        var clientMessage = Encoding.UTF8.GetString(buffer, 0, received.Count);
-        var responseBuffer = GetResponseMessage(clientMessage, ws);
-
-        await ws.SendAsync(
-          responseBuffer,
-          WebSocketMessageType.Text,
-          true,
-          CancellationToken.None
-        );
+        }
       }
 
       await ws.CloseAsync(
-        ws.CloseStatus.Value,
+        ws.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
         ws.CloseStatusDescription,
         CancellationToken.None
       );
@@ -130,19 +135,21 @@ namespace GlazeWM.App.IpcServer
           _ => throw new Exception($"Invalid message '{message}'")
         };
 
-        return ToResponseMessage(
+        return ToServerMessage(
           success: true,
+          messageType: ServerMessageType.ClientResponse,
           data: data,
           clientMessage: message
         );
       }
       catch (Exception exception)
       {
-        return ToResponseMessage<bool?>(
+        return ToServerMessage(
           success: false,
+          messageType: ServerMessageType.ClientResponse,
           data: null,
-          clientMessage: message,
-          error: exception.Message
+          error: exception.Message,
+          clientMessage: message
         );
       }
     }
@@ -175,10 +182,14 @@ namespace GlazeWM.App.IpcServer
           if (!eventNames.Contains(@event.FriendlyName))
             return;
 
-          var responseMessage = ToEventMessage(@event);
+          var serverMessage = ToServerMessage(
+            success: true,
+            messageType: ServerMessageType.SubscribedEvent,
+            data: @event
+          );
 
           _ = ws.SendAsync(
-            responseMessage,
+            serverMessage,
             WebSocketMessageType.Text,
             true,
             CancellationToken.None
@@ -188,39 +199,26 @@ namespace GlazeWM.App.IpcServer
       return null;
     }
 
-    private ArraySegment<byte> ToResponseMessage<T>(
+    private ArraySegment<byte> ToServerMessage(
       bool success,
-      T? data,
-      string clientMessage,
-      string? error = null)
+      ServerMessageType messageType,
+      object? data,
+      string? error = null,
+      string? clientMessage = null)
     {
-      var responseMessage = new ServerMessage<T>(
+      // Use `object` type so that the JSON serializer uses derived type.
+      var serverMessage = new ServerMessage<object>(
         Success: success,
-        MessageType: ServerMessageType.ClientResponse,
+        MessageType: messageType,
         Data: data,
         Error: error,
         ClientMessage: clientMessage
       );
 
-      var messageString = JsonParser.ToString(responseMessage, _serializeOptions);
+      var messageString = JsonParser.ToString(serverMessage, _serializeOptions);
+      var messageBytes = Encoding.UTF8.GetBytes(messageString);
 
-      return new ArraySegment<byte>(Encoding.UTF8.GetBytes(messageString));
-    }
-
-    private ArraySegment<byte> ToEventMessage(Event @event)
-    {
-      // Set type to `object` so that the JSON serializer uses derived `Event` type.
-      var eventMessage = new ServerMessage<object>(
-        Success: true,
-        MessageType: ServerMessageType.SubscribedEvent,
-        Data: @event,
-        Error: null,
-        ClientMessage: null
-      );
-
-      var messageString = JsonParser.ToString(eventMessage, _serializeOptions);
-
-      return new ArraySegment<byte>(Encoding.UTF8.GetBytes(messageString));
+      return new ArraySegment<byte>(messageBytes);
     }
   }
 }
