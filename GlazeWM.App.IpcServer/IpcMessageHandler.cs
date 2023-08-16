@@ -75,6 +75,15 @@ namespace GlazeWM.App.IpcServer
             CancellationToken.None
           );
 
+          // Handle close messages.
+          if (received.MessageType == WebSocketMessageType.Close)
+            await ws.CloseAsync(
+              received.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
+              received.CloseStatusDescription,
+              CancellationToken.None
+            );
+
+          // Ignore messages that aren't text.
           if (received.MessageType != WebSocketMessageType.Text)
             continue;
 
