@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Serialization;
@@ -29,24 +28,19 @@ namespace GlazeWM.App.Watcher
 
     public async Task<ExitCode> Run(int ipcServerPort)
     {
-      Console.WriteLine("started");
-      File.WriteAllText("beep.txt", $"fjsdoai");
       var client = new WebSocketClient(ipcServerPort);
 
       try
       {
         await client.ConnectAsync(CancellationToken.None);
 
-        // Query for initial windows via IPC server.
-        await client.SendTextAsync("windows", CancellationToken.None);
-        var windowsResponse = await client.ReceiveTextAsync(CancellationToken.None);
+        foreach (var handle in await GetWindowHandles(client))
+          _managedHandles.Add(handle);
 
-        var initialWindows = JsonParser.ToInstance<ServerMessage<List<Window>>>(
-          windowsResponse,
-          _serializeOptions
+        await client.SendTextAsync(
+          "subscribe -e window_managed,window_unmanaged",
+          CancellationToken.None
         );
-
-        await client.SendTextAsync("subscribe -e focus_changed", CancellationToken.None);
 
         while (true)
         {
@@ -54,14 +48,26 @@ namespace GlazeWM.App.Watcher
           Console.WriteLine($"res {res}");
         }
       }
-      catch (Exception e)
+      catch (Exception)
       {
-        Console.WriteLine($"caught {e}");
-        File.WriteAllText("errors.txt", $"aaaaaaa: {e}");
         RestoreManagedHandles();
         await client.DisconnectAsync(CancellationToken.None);
         return ExitCode.Success;
       }
+    }
+
+    /// <summary>
+    /// Query for initial windows via IPC server.
+    /// </summary>
+    private async Task<IEnumerable<IntPtr>> GetWindowHandles(WebSocketClient client)
+    {
+      await client.SendTextAsync("windows", CancellationToken.None);
+
+      var windowsResponse = await client.ReceiveTextAsync(CancellationToken.None);
+
+      return ParseServerMessage(windowsResponse)
+        .EnumerateArray()
+        .Select(value => new IntPtr(value.GetInt32()));
     }
 
     /// <summary>
@@ -71,6 +77,20 @@ namespace GlazeWM.App.Watcher
     {
       foreach (var windowHandle in _managedHandles)
         ShowWindow(windowHandle, ShowWindowFlags.ShowNoActivate);
+    }
+
+    /// <summary>
+    /// Parse JSON in server message.
+    /// </summary>
+    private static JsonElement ParseServerMessage(string message)
+    {
+      var parsedMessage = JsonDocument.Parse(message).RootElement;
+      var error = parsedMessage.GetProperty("error").GetString();
+
+      if (error is not null)
+        throw new Exception(error);
+
+      return parsedMessage.GetProperty("data");
     }
   }
 }
