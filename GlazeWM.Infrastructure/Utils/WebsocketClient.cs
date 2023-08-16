@@ -1,38 +1,71 @@
 using System;
-using System.Reactive.Subjects;
+using System.Net.WebSockets;
 using System.Text;
-using NetCoreServer;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GlazeWM.Infrastructure.Utils
 {
-  public class WebsocketClient : WsClient
+  public class WebsocketClient
   {
-    /// <summary>
-    /// Messages received from websocket server.
-    /// </summary>
-    public readonly ReplaySubject<string> Messages = new();
+    private readonly ClientWebSocket _ws = new();
+    private readonly string _address;
+    private readonly int _port;
 
-    public WebsocketClient(int port) : base("127.0.0.1", port) { }
-
-    public WebsocketClient(string address, int port) : base(address, port) { }
-
-    public override void OnWsConnecting(HttpRequest request)
+    public WebsocketClient(string address, int port)
     {
-      request.SetBegin("GET", "/")
-        .SetHeader("Host", "localhost")
-        .SetHeader("Origin", "http://localhost")
-        .SetHeader("Upgrade", "websocket")
-        .SetHeader("Connection", "Upgrade")
-        .SetHeader("Sec-WebSocket-Key", Convert.ToBase64String(WsNonce))
-        .SetHeader("Sec-WebSocket-Protocol", "chat, superchat")
-        .SetHeader("Sec-WebSocket-Version", "13")
-        .SetBody();
+      _address = address;
+      _port = port;
     }
 
-    public override void OnWsReceived(byte[] buffer, long offset, long size)
+    public WebsocketClient(int port)
     {
-      var message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-      Messages.OnNext(message);
+      _address = "localhost";
+      _port = port;
+    }
+
+    public async Task ConnectAsync(CancellationToken cancellationToken)
+    {
+      await _ws.ConnectAsync(
+        new Uri($"ws://{_address}:{_port}"),
+        cancellationToken
+      );
+    }
+
+    public async Task<string> ReceiveTextAsync(CancellationToken cancellationToken)
+    {
+      var buffer = new byte[1024 * 4];
+
+      // Continuously listen until a text message is received.
+      while (true)
+      {
+        var result = await _ws.ReceiveAsync(
+          new ArraySegment<byte>(buffer),
+          cancellationToken
+        );
+
+        if (result.MessageType != WebSocketMessageType.Text)
+          continue;
+
+        return Encoding.UTF8.GetString(buffer, 0, result.Count);
+      }
+    }
+
+    public async Task SendTextAsync(string message, CancellationToken cancellationToken)
+    {
+      var messageBytes = Encoding.UTF8.GetBytes(message);
+
+      await _ws.SendAsync(
+        new ArraySegment<byte>(messageBytes),
+        WebSocketMessageType.Text,
+        true,
+        cancellationToken
+      );
+    }
+
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
+    {
+      await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, null, cancellationToken);
     }
   }
 }
