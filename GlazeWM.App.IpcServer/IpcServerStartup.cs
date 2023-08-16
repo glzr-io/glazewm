@@ -1,14 +1,19 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.App.IpcServer
 {
   public sealed class IpcServerStartup
   {
+    private readonly ILogger<IpcServerStartup> _logger;
     private readonly IpcMessageHandler _ipcMessageHandler;
 
-    public IpcServerStartup(IpcMessageHandler ipcMessageHandler)
+    public IpcServerStartup(
+      ILogger<IpcServerStartup> logger,
+      IpcMessageHandler ipcMessageHandler)
     {
+      _logger = logger;
       _ipcMessageHandler = ipcMessageHandler;
     }
 
@@ -17,7 +22,10 @@ namespace GlazeWM.App.IpcServer
     /// </summary>
     public void Run(int port)
     {
+      _logger.LogDebug("Starting IPC server on port {Port}.", port);
+
       var builder = WebApplication.CreateBuilder();
+      builder.Logging.ClearProviders();
       builder.WebHost.UseUrls($"http://localhost:{port}");
 
       var app = builder.Build();
