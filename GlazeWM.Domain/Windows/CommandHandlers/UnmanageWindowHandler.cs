@@ -1,6 +1,7 @@
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Events;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.CommandHandlers
@@ -36,6 +37,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(new RedrawContainersCommand());
       _containerService.PendingFocusContainer = focusTarget;
       _bus.InvokeAsync(new SetNativeFocusCommand(focusTarget));
+
+      _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
 
       return CommandResponse.Ok;
     }
