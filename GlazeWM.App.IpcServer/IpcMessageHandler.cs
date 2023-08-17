@@ -44,6 +44,20 @@ namespace GlazeWM.App.IpcServer
     /// </summary>
     private static readonly Regex _messagePartsRegex = new("(\".*?\"|\\S+)");
 
+    private static readonly List<string> SubscribableEvents = new()
+    {
+      "all",
+      "binding_mode_changed",
+      "focus_changed",
+      "monitor_added",
+      "monitor_removed",
+      "tiling_direction_changed",
+      "user_config_reloaded",
+      "workspace_activated",
+      "workspace_deactivated",
+      "application_exiting",
+    };
+
     public IpcMessageHandler(
       Bus bus,
       CommandParsingService commandParsingService,
@@ -171,6 +185,12 @@ namespace GlazeWM.App.IpcServer
     private bool? HandleSubscribeMessage(SubscribeMessage message, WebSocket ws)
     {
       var eventNames = message.Events.Split(',');
+
+      foreach (var eventName in eventNames)
+      {
+        if (!SubscribableEvents.Contains(eventName))
+          throw new ArgumentException($"Invalid event '{eventName}'.")
+      }
 
       _bus.Events
         .TakeWhile((_) => ws.State == WebSocketState.Open)
