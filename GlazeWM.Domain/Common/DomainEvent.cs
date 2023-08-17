@@ -1,27 +1,6 @@
 namespace GlazeWM.Domain.Common
 {
-  public enum EventType
-  {
-    BindingModeChanged,
-    FocusChanged,
-    MonitorAdded,
-    MonitorRemoved,
-    TilingDirectionChanged,
-    UserConfigReloaded,
-    WorkspaceActivated,
-    WorkspaceDeactivated,
-    ApplicationExiting,
-  }
-
-  public static class EventTypeExtensions
-  {
-    public static string ToString(this EventType eventType)
-    {
-      return;
-    }
-  }
-
-  public static class EventType
+  public static class DomainEvent
   {
     public static string BindingModeChanged = "binding_mode_changed";
     public static string FocusChanged = "focus_changed";

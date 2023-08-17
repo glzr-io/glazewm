@@ -3,13 +3,6 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.Events
 {
-  public class TilingDirectionChangedEvent : Event
-  {
-    public TilingDirection NewTilingDirection { get; }
-
-    public TilingDirectionChangedEvent(TilingDirection newTilingDirection)
-    {
-      NewTilingDirection = newTilingDirection;
-    }
-  }
+  public record TilingDirectionChangedEvent(TilingDirection NewTilingDirection)
+    : Event(DomainEvent.TilingDirectionChanged);
 }
