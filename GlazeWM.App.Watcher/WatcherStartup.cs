@@ -12,79 +12,79 @@ namespace GlazeWM.App.Watcher
 {
   public sealed class WatcherStartup
   {
-    /// <summary>
-    /// Window handles currently managed by the window manager.
-    /// </summary>
-    private readonly List<IntPtr> _managedHandles = new();
-
-    public async Task<ExitCode> Run(int ipcServerPort)
+    public static async Task<ExitCode> Run(int ipcServerPort)
     {
       var client = new WebSocketClient(ipcServerPort);
+      var managedHandles = new List<IntPtr>();
 
       try
       {
         await client.ConnectAsync(CancellationToken.None);
 
-        await foreach (var handle in GetWindowHandles(client))
-          _managedHandles.Add(handle);
+        foreach (var handle in await GetInitialHandles(client))
+          managedHandles.Add(handle);
 
-        return ExitCode.Success;
+        await client.SendTextAsync(
+          "subscribe -e window_managed,window_unmanaged",
+          CancellationToken.None
+        );
+
+        while (true)
+        {
+          var (isManaged, handle) = await GetManagedEvent(client);
+
+          if (isManaged)
+            managedHandles.Add(handle);
+          else
+            managedHandles.Remove(handle);
+        }
       }
       catch (Exception)
       {
-        RestoreManagedHandles();
+        RestoreHandles(managedHandles);
         await client.DisconnectAsync(CancellationToken.None);
         return ExitCode.Success;
       }
     }
 
     /// <summary>
-    /// Query for initial windows via IPC server.
+    /// Query for initial window handles via IPC server.
     /// </summary>
-    private async IAsyncEnumerable<IntPtr> GetWindowHandles(WebSocketClient client)
+    private static async Task<IEnumerable<IntPtr>> GetInitialHandles(WebSocketClient client)
     {
       await client.SendTextAsync("windows", CancellationToken.None);
-      var windowsResponse = await client.ReceiveTextAsync(CancellationToken.None);
+      var response = await client.ReceiveTextAsync(CancellationToken.None);
 
-      var initialHandles = ParseServerMessage(windowsResponse)
+      return ParseServerMessage(response)
         .EnumerateArray()
         .Select(value => new IntPtr(value.GetInt32()));
-
-      foreach (var handle in initialHandles)
-        yield return handle;
-
-      await client.SendTextAsync(
-        "subscribe -e window_managed,window_unmanaged",
-        CancellationToken.None
-      );
-
-      while (true)
-      {
-        var response = await client.ReceiveTextAsync(CancellationToken.None);
-        var parsedResponse = ParseServerMessage(windowsResponse);
-        var eventType = parsedResponse.GetProperty("type").GetString();
-
-        switch (eventType)
-        {
-          case "window_managed":
-            var newHandle = parsedResponse.GetProperty("handle").GetInt32();
-            _managedHandles.Add(newHandle);
-            break;
-          case "window_unmanaged":
-            var removedHandle = parsedResponse.GetProperty("removedHandle").GetInt32();
-            _managedHandles.Remove(removedHandle);
-            break;
-        }
-      }
     }
 
     /// <summary>
-    /// Restore all managed window handles.
+    /// Get window handles from managed and unmanaged window events.
     /// </summary>
-    private void RestoreManagedHandles()
+    private static async Task<(bool, IntPtr)> GetManagedEvent(WebSocketClient client)
     {
-      foreach (var windowHandle in _managedHandles)
-        ShowWindow(windowHandle, ShowWindowFlags.ShowNoActivate);
+      var response = await client.ReceiveTextAsync(CancellationToken.None);
+      var parsedResponse = ParseServerMessage(response);
+
+      return parsedResponse.GetProperty("type").GetString() switch
+      {
+        "window_managed" =>
+          (true, parsedResponse.GetProperty("handle").GetInt32()),
+        "window_unmanaged" =>
+          (false, parsedResponse.GetProperty("removedHandle").GetInt32()),
+        _ => throw new Exception("Received unrecognized event.")
+      };
+    }
+
+    /// <summary>
+    /// Restore given window handles.
+    /// </summary>
+    private static void RestoreHandles(List<IntPtr> managedHandles)
+    {
+      foreach (var handle in managedHandles)
+        ShowWindow(handle, ShowWindowFlags.ShowNoActivate);
     }
 
     /// <summary>

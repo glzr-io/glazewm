@@ -124,7 +124,7 @@ namespace GlazeWM.App
         return ExitCode.Error;
       }
 
-      return await new WatcherStartup().Run(IpcServerPort);
+      return await WatcherStartup.Run(IpcServerPort);
     }
 
     private static ExitCode ExitWithError(Error error)
