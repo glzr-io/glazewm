@@ -26,7 +26,7 @@ namespace GlazeWM.App.Cli
         // Exit on first message received when not subscribing to an event.
         if (!isSubscribeMessage)
         {
-          var parsedMessage = ParseServerMessage(serverResponse);
+          var parsedMessage = ParseMessage(serverResponse);
           Console.WriteLine(parsedMessage);
           await client.DisconnectAsync(CancellationToken.None);
           return ExitCode.Success;
@@ -36,7 +36,7 @@ namespace GlazeWM.App.Cli
         while (true)
         {
           var message = await client.ReceiveTextAsync(CancellationToken.None);
-          var parsedMessage = ParseServerMessage(message);
+          var parsedMessage = ParseMessage(message);
           Console.WriteLine(parsedMessage);
         }
       }
@@ -51,7 +51,7 @@ namespace GlazeWM.App.Cli
     /// <summary>
     /// Parse JSON in server message.
     /// </summary>
-    private static string ParseServerMessage(string message)
+    private static string ParseMessage(string message)
     {
       var parsedMessage = JsonDocument.Parse(message).RootElement;
       var error = parsedMessage.GetProperty("error").GetString();
