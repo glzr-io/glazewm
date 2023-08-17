@@ -44,18 +44,26 @@ namespace GlazeWM.App.IpcServer
     /// </summary>
     private static readonly Regex _messagePartsRegex = new("(\".*?\"|\\S+)");
 
+    /// <summary>
+    /// Used to subscribe to all possible event types at once.
+    /// </summary>
+    private const string SubscribeAllKeyword = "all";
+
+    /// <summary>
+    /// Allowed events to subscribe to via `subscribe` message.
+    /// </summary>
     private static readonly List<string> SubscribableEvents = new()
     {
-      "all",
-      "binding_mode_changed",
-      "focus_changed",
-      "monitor_added",
-      "monitor_removed",
-      "tiling_direction_changed",
-      "user_config_reloaded",
-      "workspace_activated",
-      "workspace_deactivated",
-      "application_exiting",
+      SubscribeAllKeyword,
+      DomainEvent.BindingModeChanged,
+      DomainEvent.FocusChanged,
+      DomainEvent.MonitorAdded,
+      DomainEvent.MonitorRemoved,
+      DomainEvent.TilingDirectionChanged,
+      DomainEvent.UserConfigReloaded,
+      DomainEvent.WorkspaceActivated,
+      DomainEvent.WorkspaceDeactivated,
+      InfraEvent.ApplicationExiting,
     };
 
     public IpcMessageHandler(
@@ -189,7 +197,7 @@ namespace GlazeWM.App.IpcServer
       foreach (var eventName in eventNames)
       {
         if (!SubscribableEvents.Contains(eventName))
-          throw new ArgumentException($"Invalid event '{eventName}'.")
+          throw new ArgumentException($"Invalid event '{eventName}'.");
       }
 
       _bus.Events
