@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
@@ -94,7 +95,8 @@ namespace GlazeWM.App
       ThreadUtils.CreateSTA("GlazeWMBar", barService.StartApp);
       ThreadUtils.Create("GlazeWMIPC", () => ipcServerStartup.Run(IpcServerPort));
 
-      // Spawn watcher process for cleaning up after crashes.
+      // Spawn watcher process for cleaning up after crashes. This is only active when
+      // built for release.
       if (!Debugger.IsAttached)
         Process.Start(Environment.ProcessPath, "watcher");
 

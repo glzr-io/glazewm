@@ -245,7 +245,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       Minimize = 2,
       Maximize = 3,
-      ShowNoActivate = 4,
+      ShowDefault = 10,
       Restore = 9,
     }
 
