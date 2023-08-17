@@ -34,6 +34,7 @@ namespace GlazeWM.App.Watcher
         // Discard reply received for event subscription.
         _ = await client.ReceiveTextAsync(CancellationToken.None);
 
+        // Continuously listen for manage + unmanage events.
         while (true)
         {
           var (isManaged, handle) = await GetManagedEvent(client);
@@ -46,6 +47,8 @@ namespace GlazeWM.App.Watcher
       }
       catch (Exception)
       {
+        // Restore managed handles on failure to communicate with the main process'
+        // IPC server.
         RestoreHandles(managedHandles);
         await client.DisconnectAsync(CancellationToken.None);
         return ExitCode.Success;
