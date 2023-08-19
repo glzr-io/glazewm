@@ -1,6 +1,5 @@
-using System.Text.Json;
+using GlazeWM.Domain.Common;
 using GlazeWM.Infrastructure.Common;
-using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.App.Cli
 {
@@ -11,55 +10,37 @@ namespace GlazeWM.App.Cli
       int ipcServerPort,
       bool isSubscribeMessage)
     {
-      var client = new WebSocketClient(ipcServerPort);
+      var client = new IpcClient(ipcServerPort);
 
       try
       {
-        await client.ConnectAsync(CancellationToken.None);
-
-        var clientMessage = string.Join(" ", args);
-        await client.SendTextAsync(clientMessage, CancellationToken.None);
+        await client.ConnectAsync();
 
         // Wait for server to respond with a message.
-        var serverResponse = await client.ReceiveTextAsync(CancellationToken.None);
+        var clientMessage = string.Join(" ", args);
+        var firstResponse = await client.SendAndWaitReplyAsync(clientMessage);
 
         // Exit on first message received when not subscribing to an event.
         if (!isSubscribeMessage)
         {
-          var parsedMessage = ParseMessage(serverResponse);
-          Console.WriteLine(parsedMessage);
-          await client.DisconnectAsync(CancellationToken.None);
+          Console.WriteLine(firstResponse);
+          await client.DisconnectAsync();
           return ExitCode.Success;
         }
 
         // When subscribing to events, continuously listen for server messages.
         while (true)
         {
-          var message = await client.ReceiveTextAsync(CancellationToken.None);
-          var parsedMessage = ParseMessage(message);
-          Console.WriteLine(parsedMessage);
+          var eventResponse = await client.ReceiveAsync();
+          Console.WriteLine(eventResponse);
         }
       }
       catch (Exception exception)
       {
         Console.Error.WriteLine(exception.Message);
-        await client.DisconnectAsync(CancellationToken.None);
+        await client.DisconnectAsync();
         return ExitCode.Error;
       }
-    }
-
-    /// <summary>
-    /// Parse JSON in server message.
-    /// </summary>
-    private static string ParseMessage(string message)
-    {
-      var parsedMessage = JsonDocument.Parse(message).RootElement;
-      var error = parsedMessage.GetProperty("error").GetString();
-
-      if (error is not null)
-        throw new Exception(error);
-
-      return parsedMessage.GetProperty("data").ToString();
     }
   }
 }

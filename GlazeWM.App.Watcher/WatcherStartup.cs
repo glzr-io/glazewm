@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
+using GlazeWM.Domain.Common;
 using GlazeWM.Infrastructure.Common;
-using GlazeWM.Infrastructure.Utils;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.App.Watcher
@@ -14,25 +12,21 @@ namespace GlazeWM.App.Watcher
   {
     public static async Task<ExitCode> Run(int ipcServerPort)
     {
-      var client = new WebSocketClient(ipcServerPort);
+      var client = new IpcClient(ipcServerPort);
       var managedHandles = new List<IntPtr>();
 
       try
       {
-        await client.ConnectAsync(CancellationToken.None);
+        await client.ConnectAsync();
 
         // Get window handles that are initially managed on startup.
         foreach (var handle in await GetInitialHandles(client))
           managedHandles.Add(handle);
 
         // Subscribe to manage + unmanage window events.
-        await client.SendTextAsync(
-          "subscribe -e window_managed,window_unmanaged",
-          CancellationToken.None
+        _ = await client.SendAndWaitReplyAsync(
+          "subscribe -e window_managed,window_unmanaged"
         );
-
-        // Discard reply received for event subscription.
-        _ = await client.ReceiveTextAsync(CancellationToken.None);
 
         // Continuously listen for manage + unmanage events.
         while (true)
@@ -50,7 +44,7 @@ namespace GlazeWM.App.Watcher
         // Restore managed handles on failure to communicate with the main process'
         // IPC server.
         RestoreHandles(managedHandles);
-        await client.DisconnectAsync(CancellationToken.None);
+        await client.DisconnectAsync();
         return ExitCode.Success;
       }
     }
@@ -58,12 +52,11 @@ namespace GlazeWM.App.Watcher
     /// <summary>
     /// Query for initial window handles via IPC server.
     /// </summary>
-    private static async Task<IEnumerable<IntPtr>> GetInitialHandles(WebSocketClient client)
+    private static async Task<IEnumerable<IntPtr>> GetInitialHandles(IpcClient client)
     {
-      await client.SendTextAsync("windows", CancellationToken.None);
-      var response = await client.ReceiveTextAsync(CancellationToken.None);
+      var response = await client.SendAndWaitReplyAsync("windows");
 
-      return ParseServerMessage(response)
+      return response
         .EnumerateArray()
         .Select(value => new IntPtr(value.GetInt64()));
     }
@@ -72,20 +65,19 @@ namespace GlazeWM.App.Watcher
     /// Get window handles from managed and unmanaged window events.
     /// </summary>
     /// <returns>Tuple of whether the handle is managed, and the handle itself</returns>
-    private static async Task<(bool, IntPtr)> GetManagedEvent(WebSocketClient client)
+    private static async Task<(bool, IntPtr)> GetManagedEvent(IpcClient client)
     {
-      var response = await client.ReceiveTextAsync(CancellationToken.None);
-      var parsedResponse = ParseServerMessage(response);
+      var response = await client.ReceiveAsync();
 
-      return parsedResponse.GetProperty("friendlyName").GetString() switch
+      return response.GetProperty("friendlyName").GetString() switch
       {
         "window_managed" => (
           true,
-          new IntPtr(parsedResponse.GetProperty("window").GetProperty("handle").GetInt64())
+          new IntPtr(response.GetProperty("window").GetProperty("handle").GetInt64())
         ),
         "window_unmanaged" => (
           false,
-          new IntPtr(parsedResponse.GetProperty("removedHandle").GetInt64())
+          new IntPtr(response.GetProperty("removedHandle").GetInt64())
         ),
         _ => throw new Exception("Received unrecognized event.")
       };
@@ -97,21 +89,8 @@ namespace GlazeWM.App.Watcher
     private static void RestoreHandles(List<IntPtr> handles)
     {
       foreach (var handle in handles)
+        // TODO: Change this.
         ShowWindow(handle, ShowWindowFlags.ShowDefault);
-    }
-
-    /// <summary>
-    /// Parse JSON in server message.
-    /// </summary>
-    private static JsonElement ParseServerMessage(string message)
-    {
-      var parsedMessage = JsonDocument.Parse(message).RootElement;
-      var error = parsedMessage.GetProperty("error").GetString();
-
-      if (error is not null)
-        throw new Exception(error);
-
-      return parsedMessage.GetProperty("data");
     }
   }
 }
