@@ -18,6 +18,8 @@ namespace GlazeWM.Infrastructure.Serialization
         new JsonStringEnumConverter(SnakeCaseNamingPolicy.Instance),
         // Enable boolean strings to be mapped to a C# bool (eg. `"true"` -> `true`).
         new JsonStringBoolConverter(),
+        // Enable serialization/deserialization of `System.IntPtr`.
+        new JsonIntPtrConverter(),
       }
     };
 

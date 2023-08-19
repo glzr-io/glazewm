@@ -5,6 +5,7 @@ using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Events;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
@@ -52,8 +53,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Create the window instance.
       var window = CreateWindow(windowHandle, targetParent);
 
-      _logger.LogWindowEvent("New window managed", window);
-
       if (window is IResizable)
         _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
       else
@@ -85,6 +84,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Set OS focus to the newly added window in case it's not already focused.
       _bus.Invoke(new SetNativeFocusCommand(window));
+
+      _logger.LogWindowEvent("New window managed", window);
+      _bus.Emit(new WindowManagedEvent(window));
 
       return CommandResponse.Ok;
     }
