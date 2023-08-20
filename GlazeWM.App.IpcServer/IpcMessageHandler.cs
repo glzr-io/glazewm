@@ -196,6 +196,7 @@ namespace GlazeWM.App.IpcServer
     private bool? HandleSubscribeMessage(SubscribeMessage message, WebSocket ws)
     {
       var eventNames = message.Events.Split(',');
+      var isSubscribeAll = eventNames.Contains(SubscribeAllKeyword);
 
       foreach (var eventName in eventNames)
       {
@@ -205,7 +206,7 @@ namespace GlazeWM.App.IpcServer
 
       _bus.Events
         .TakeWhile((_) => ws.State == WebSocketState.Open)
-        .Where(@event => eventNames.Contains(@event.FriendlyName))
+        .Where(@event => isSubscribeAll || eventNames.Contains(@event.Type))
         .Subscribe((@event) =>
         {
           var serverMessage = ToServerMessage(
