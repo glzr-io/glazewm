@@ -2,14 +2,15 @@ namespace GlazeWM.Domain.Common
 {
   public static class DomainEvent
   {
-    public static string BindingModeChanged = "binding_mode_changed";
-    public static string FocusChanged = "focus_changed";
-    public static string MonitorAdded = "monitor_added";
-    public static string MonitorRemoved = "monitor_removed";
-    public static string TilingDirectionChanged = "tiling_direction_changed";
-    public static string UserConfigReloaded = "user_config_reloaded";
-    public static string WorkspaceActivated = "workspace_activated";
-    public static string WorkspaceDeactivated = "workspace_deactivated";
-    public static string ApplicationExiting = "application_exiting";
+    public const string ApplicationExiting = "application_exiting";
+    public const string BindingModeChanged = "binding_mode_changed";
+    public const string FocusChanged = "focus_changed";
+    public const string MonitorAdded = "monitor_added";
+    public const string MonitorRemoved = "monitor_removed";
+    public const string TilingDirectionChanged = "tiling_direction_changed";
+    public const string UserConfigReloaded = "user_config_reloaded";
+    public const string WorkspaceActivated = "workspace_activated";
+    public const string WorkspaceDeactivated = "workspace_deactivated";
+    public const string WorkingAreaResized = "working_area_resized";
   }
 }

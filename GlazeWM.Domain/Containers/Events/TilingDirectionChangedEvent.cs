@@ -1,3 +1,4 @@
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Infrastructure.Bussing;
 

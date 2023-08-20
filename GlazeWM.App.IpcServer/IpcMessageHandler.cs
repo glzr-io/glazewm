@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Reactive.Linq;
@@ -10,12 +11,14 @@ using System.Threading.Tasks;
 using CommandLine;
 using GlazeWM.App.IpcServer.Messages;
 using GlazeWM.App.IpcServer.Server;
+using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Serialization;
 using Microsoft.Extensions.Logging;
 
