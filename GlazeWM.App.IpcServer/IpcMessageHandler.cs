@@ -104,16 +104,16 @@ namespace GlazeWM.App.IpcServer
     {
       _bus.Events.Subscribe((@event) =>
       {
-        var eventSubscriptions = EventSubscriptions.GetValueOrDefault(@event.Type, new());
-        var allSubscriptions = EventSubscriptions.GetValueOrDefault(
-          SubscribeAllKeyword,
-          new()
-        );
+        var eventSubscriptions = new List<EventSubscription>()
+          .Concat(EventSubscriptions.GetValueOrDefault(@event.Type, new()))
+          .Concat(EventSubscriptions.GetValueOrDefault(SubscribeAllKeyword, new()));
 
-        foreach (var subscription in eventSubscriptions.Concat(allSubscriptions))
+        foreach (var subscription in eventSubscriptions)
         {
           try
           {
+            _logger.LogDebug("Emitting event to IPC subscriber: {Event}", @event.Type);
+
             var serverMessage = new EventSubscriptionMessage<object>(
               SubscriptionId: subscription.SubscriptionId,
               Success: true,
@@ -173,13 +173,14 @@ namespace GlazeWM.App.IpcServer
       }
 
       // Remove event subscription on websocket disconnect.
-      foreach (var (_, subscriptions) in EventSubscriptions)
+      foreach (var (eventName, subscriptions) in EventSubscriptions)
       {
-        foreach (var subscription in subscriptions)
-        {
-          if (subscription.WebSocket == ws)
-            subscriptions.Remove(subscription);
-        }
+        EventSubscriptions.AddOrUpdate(
+          eventName,
+          new List<EventSubscription>(),
+          (_, subscriptions) =>
+            subscriptions.Where((subscription) => subscription.WebSocket == ws).ToList()
+        );
       }
     }
 
