@@ -25,8 +25,6 @@ using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.App.IpcServer
 {
-  public sealed record EventSubscription(Guid SubscriptionId, WebSocket WebSocket);
-
   public sealed class IpcMessageHandler
   {
     private readonly Bus _bus;
