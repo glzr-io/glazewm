@@ -9,8 +9,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using GlazeWM.App.IpcServer.Messages;
-using GlazeWM.App.IpcServer.Server;
+using GlazeWM.App.IpcServer.ClientMessages;
+using GlazeWM.App.IpcServer.ServerMessages;
 using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Monitors;
@@ -69,6 +69,13 @@ namespace GlazeWM.App.IpcServer
       InfraEvent.ApplicationExiting,
     };
 
+    /// <summary>
+    /// Dictionary of event names and WS connections subscribed to that event.
+    /// </summary>
+    /// TODO: Change to hash set.
+    internal Dictionary<string, List<WebSocket>> EventSubscriptions =
+      SubscribableEvents.ToDictionary(eventName => eventName, _ => new List<WebSocket>());
+
     public IpcMessageHandler(
       Bus bus,
       CommandParsingService commandParsingService,
@@ -85,6 +92,36 @@ namespace GlazeWM.App.IpcServer
       _monitorService = monitorService;
       _workspaceService = workspaceService;
       _windowService = windowService;
+    }
+
+    /// <summary>
+    /// Subscribe to events emitted on the bus and emit them to subscribed connections.
+    /// </summary>
+    internal void Init()
+    {
+      _bus.Events.Subscribe((@event) =>
+      {
+        var subscribedConnections = EventSubscriptions.GetValueOrDefault(
+          @event.Type,
+          new()
+        );
+
+        foreach (var ws in subscribedConnections)
+        {
+          var serverMessage = ToClientResponseMessage(
+            success: true,
+            messageType: ServerMessageType.EventSubscription,
+            data: @event
+          );
+
+          _ = ws.SendAsync(
+            serverMessage,
+            WebSocketMessageType.Text,
+            true,
+            CancellationToken.None
+          );
+        }
+      });
     }
 
     internal async Task Handle(WebSocket ws)
@@ -126,6 +163,8 @@ namespace GlazeWM.App.IpcServer
         {
         }
       }
+
+      // TODO: Handle removal of event subscriptions.
     }
 
     private ArraySegment<byte> GetResponseMessage(string message, WebSocket ws)
@@ -146,7 +185,7 @@ namespace GlazeWM.App.IpcServer
           GetWindowsMessage
         >(messageParts);
 
-        object? data = parsedArgs.Value switch
+        var data = parsedArgs.Value switch
         {
           InvokeCommandMessage commandMsg => HandleInvokeCommandMessage(commandMsg),
           SubscribeMessage subscribeMsg => HandleSubscribeMessage(subscribeMsg, ws),
@@ -156,7 +195,7 @@ namespace GlazeWM.App.IpcServer
           _ => throw new Exception($"Invalid message '{message}'")
         };
 
-        return ToServerMessage(
+        return ToClientResponseMessage(
           success: true,
           messageType: ServerMessageType.ClientResponse,
           data: data,
@@ -165,7 +204,7 @@ namespace GlazeWM.App.IpcServer
       }
       catch (Exception exception)
       {
-        return ToServerMessage(
+        return ToClientResponseMessage(
           success: false,
           messageType: ServerMessageType.ClientResponse,
           data: null,
@@ -175,7 +214,7 @@ namespace GlazeWM.App.IpcServer
       }
     }
 
-    private bool? HandleInvokeCommandMessage(InvokeCommandMessage message)
+    private object HandleInvokeCommandMessage(InvokeCommandMessage message)
     {
       var contextContainer =
         message.ContextContainerId is not null
@@ -190,13 +229,15 @@ namespace GlazeWM.App.IpcServer
       );
 
       _bus.Invoke((dynamic)command);
-      return null;
+
+      return new { contextContainerId = contextContainer.Id };
     }
 
-    private bool? HandleSubscribeMessage(SubscribeMessage message, WebSocket ws)
+    private object HandleSubscribeMessage(SubscribeMessage message, WebSocket ws)
     {
-      var eventNames = message.Events.Split(',');
-      var isSubscribeAll = eventNames.Contains(SubscribeAllKeyword);
+      var eventNames = message.Events
+        .Split(',')
+        .Select(eventName => eventName.ToLowerInvariant());
 
       foreach (var eventName in eventNames)
       {
@@ -204,44 +245,69 @@ namespace GlazeWM.App.IpcServer
           throw new ArgumentException($"Invalid event '{eventName}'.");
       }
 
-      _bus.Events
-        .TakeWhile((_) => ws.State == WebSocketState.Open)
-        .Where(@event => isSubscribeAll || eventNames.Contains(@event.Type))
-        .Subscribe((@event) =>
-        {
-          var serverMessage = ToServerMessage(
-            success: true,
-            messageType: ServerMessageType.SubscribedEvent,
-            data: @event
-          );
+      // TODO: Does subscribe all need special handling?
 
-          _ = ws.SendAsync(
-            serverMessage,
-            WebSocketMessageType.Text,
-            true,
-            CancellationToken.None
-          );
-        });
+      // var isSubscribeAll = eventNames.Contains(SubscribeAllKeyword);
+      // var xx = isSubscribeAll ? SubscribableEvents : eventNames;
 
-      return null;
+      foreach (var eventName in eventNames)
+      {
+        var subscribedConnections = EventSubscriptions.GetValueOrDefault(
+          eventName,
+          new()
+        );
+
+        subscribedConnections.Add(ws);
+      }
+
+      // TODO: Add field SubscriptionIds. Contains dictionary of subscription ids
+      // to event names list.
+      return new { subscriptionId = Guid.NewGuid() };
     }
 
-    private ArraySegment<byte> ToServerMessage(
+    private ArraySegment<byte> ToClientResponseMessage(
+      string clientMessage,
       bool success,
-      ServerMessageType messageType,
       object? data,
-      string? error = null,
-      string? clientMessage = null)
+      string? error = null)
     {
       // Use `object` type so that the JSON serializer uses derived type.
-      var serverMessage = new ServerMessage<object>(
+      var serverMessage = new ClientResponseMessage<object>(
+        ClientMessage: clientMessage,
         Success: success,
-        MessageType: messageType,
+        MessageType: ServerMessageType.ClientResponse,
         Data: data,
-        Error: error,
-        ClientMessage: clientMessage
+        Error: error
       );
 
+      var messageString = JsonParser.ToString(serverMessage, _serializeOptions);
+      var messageBytes = Encoding.UTF8.GetBytes(messageString);
+
+      return new ArraySegment<byte>(messageBytes);
+    }
+
+    private ArraySegment<byte> ToEventSubscriptionMessage(
+      string subscriptionId,
+      object? data,
+      string? error = null)
+    {
+      // Use `object` type so that the JSON serializer uses derived type.
+      var serverMessage = new EventSubscriptionMessage<object>(
+        SubscriptionId: subscriptionId,
+        Success: true,
+        MessageType: ServerMessageType.EventSubscription,
+        Data: data,
+        Error: error
+      );
+
+      var messageString = JsonParser.ToString(serverMessage, _serializeOptions);
+      var messageBytes = Encoding.UTF8.GetBytes(messageString);
+
+      return new ArraySegment<byte>(messageBytes);
+    }
+
+    private ArraySegment<byte> MessageToBytes<T>(ServerMessage<T> serverMessage)
+    {
       var messageString = JsonParser.ToString(serverMessage, _serializeOptions);
       var messageBytes = Encoding.UTF8.GetBytes(messageString);
 
