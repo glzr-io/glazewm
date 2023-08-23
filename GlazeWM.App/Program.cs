@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using GlazeWM.App.Cli;
 using GlazeWM.App.IpcServer;
-using GlazeWM.App.IpcServer.Messages;
+using GlazeWM.App.IpcServer.ClientMessages;
 using GlazeWM.App.Watcher;
 using GlazeWM.App.WindowManager;
 using GlazeWM.Bar;
