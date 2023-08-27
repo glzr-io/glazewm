@@ -114,7 +114,7 @@ namespace GlazeWM.App.IpcServer
           {
             _logger.LogDebug("Emitting event to IPC subscriber: {Event}", @event.Type);
 
-            var serverMessage = new EventSubscriptionMessage<object>(
+            var serverMessage = new EventSubscriptionMessage<object?>(
               SubscriptionId: subscription.SubscriptionId,
               Success: true,
               MessageType: ServerMessageType.EventSubscription,
@@ -278,7 +278,8 @@ namespace GlazeWM.App.IpcServer
       return new { subscriptionId };
     }
 
-    private ArraySegment<byte> MessageToBytes<T>(ServerMessage<T> serverMessage)
+    private ArraySegment<byte> MessageToBytes<T>(T serverMessage)
+      where T : ServerMessage<object?>
     {
       var messageString = JsonParser.ToString(serverMessage, _serializeOptions);
       var messageBytes = Encoding.UTF8.GetBytes(messageString);
