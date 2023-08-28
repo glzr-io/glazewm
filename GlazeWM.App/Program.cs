@@ -26,8 +26,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
-//// TODO: Handle circular reference for that one workspace event.
-
 namespace GlazeWM.App
 {
   internal static class Program

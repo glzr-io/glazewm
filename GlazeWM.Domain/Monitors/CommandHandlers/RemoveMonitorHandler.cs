@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       }
 
       _bus.Invoke(new DetachContainerCommand(monitorToRemove));
-      _bus.Emit(new MonitorRemovedEvent(monitorToRemove.DeviceName));
+      _bus.Emit(new MonitorRemovedEvent(monitorToRemove.Id, monitorToRemove.DeviceName));
 
       return CommandResponse.Ok;
     }
