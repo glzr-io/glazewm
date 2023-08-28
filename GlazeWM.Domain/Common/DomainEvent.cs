@@ -9,6 +9,8 @@ namespace GlazeWM.Domain.Common
     public const string MonitorRemoved = "monitor_removed";
     public const string TilingDirectionChanged = "tiling_direction_changed";
     public const string UserConfigReloaded = "user_config_reloaded";
+    public const string WindowManaged = "window_managed";
+    public const string WindowUnmanaged = "window_unmanaged";
     public const string WorkspaceActivated = "workspace_activated";
     public const string WorkspaceDeactivated = "workspace_deactivated";
     public const string WorkingAreaResized = "working_area_resized";
