@@ -4,6 +4,6 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Windows.Events
 {
-  public record WindowUnmanagedEvent(Guid RemovedId, IntPtr RemovedHandle)
+  public record WindowUnmanagedEvent(Guid UnmanagedId, IntPtr UnmanagedHandle)
     : Event(DomainEvent.WindowUnmanaged);
 }

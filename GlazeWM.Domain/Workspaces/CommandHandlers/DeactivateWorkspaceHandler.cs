@@ -19,7 +19,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       var workspace = command.Workspace;
 
       _bus.Invoke(new DetachContainerCommand(workspace));
-      _bus.Emit(new WorkspaceDeactivatedEvent(workspace));
+      _bus.Emit(new WorkspaceDeactivatedEvent(workspace.Id, workspace.Name));
 
       return CommandResponse.Ok;
     }

@@ -25,7 +25,7 @@ namespace GlazeWM.App.Watcher
 
         // Subscribe to manage + unmanage window events.
         _ = await client.SendAndWaitReplyAsync(
-          "subscribe -e window_managed,window_unmanaged"
+          $"subscribe -e {DomainEvent.WindowManaged},{DomainEvent.WindowUnmanaged}"
         );
 
         // Continuously listen for manage + unmanage events.
@@ -73,11 +73,11 @@ namespace GlazeWM.App.Watcher
       {
         DomainEvent.WindowManaged => (
           true,
-          new IntPtr(response.GetProperty("window").GetProperty("handle").GetInt64())
+          new IntPtr(response.GetProperty("managedWindow").GetProperty("handle").GetInt64())
         ),
         DomainEvent.WindowUnmanaged => (
           false,
-          new IntPtr(response.GetProperty("removedHandle").GetInt64())
+          new IntPtr(response.GetProperty("unmanagedHandle").GetInt64())
         ),
         _ => throw new Exception("Received unrecognized event.")
       };
