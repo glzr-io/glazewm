@@ -4,6 +4,7 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Workspaces;
+using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
@@ -67,8 +68,13 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
-      if (window is null || window?.IsDisplayed == false)
+      if (window is null)
         return;
+      if (!window.IsDisplayed)
+      {
+        var offScreenWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
+        _bus.Invoke(new FocusWorkspaceCommand(offScreenWorkspace.Name));
+      }
 
       _logger.LogWindowEvent("Window focused", window);
 
