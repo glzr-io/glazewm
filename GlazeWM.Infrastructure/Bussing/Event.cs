@@ -2,20 +2,12 @@ using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Infrastructure.Bussing
 {
-  public class Event
-  {
-    public string Name => GetType().Name;
-
-    /// <summary>
-    /// Name used to subscribe to for IPC and CLI usage.
-    /// </summary>
-    public string FriendlyName
-    {
-      get
-      {
-        var shortName = Name.Replace("Event", "");
-        return CasingUtil.PascalToSnake(shortName);
-      }
-    }
-  }
+  /// <summary>
+  /// An event emitted on the bus.
+  /// </summary>
+  /// <param name="Type">
+  /// Identifier for the type of event. For CLI and IPC usage when subscribing to a
+  /// given event type.
+  /// </param>
+  public abstract record Event(string Type);
 }

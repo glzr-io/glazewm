@@ -1,14 +1,8 @@
+using GlazeWM.Domain.Common;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Monitors.Events
 {
-  public class MonitorRemovedEvent : Event
-  {
-    public string RemovedDeviceName { get; }
-
-    public MonitorRemovedEvent(string removedDeviceName)
-    {
-      RemovedDeviceName = removedDeviceName;
-    }
-  }
+  public record MonitorRemovedEvent(string RemovedDeviceName)
+    : Event(DomainEvent.MonitorRemoved);
 }

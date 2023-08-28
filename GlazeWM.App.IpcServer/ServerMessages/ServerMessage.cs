@@ -1,6 +1,6 @@
-namespace GlazeWM.App.IpcServer.Server
+namespace GlazeWM.App.IpcServer.ServerMessages
 {
-  internal sealed record ServerMessage<T>(
+  internal abstract record ServerMessage<T>(
     bool Success,
 
     /// <summary>
@@ -18,11 +18,5 @@ namespace GlazeWM.App.IpcServer.Server
     /// The error message. This property is only present for messages where 'Success'
     /// is false.
     /// </summary>
-    string? Error,
-
-    /// <summary>
-    /// The client message that this is in response to. This property is only present for
-    /// 'ClientResponse' message types.
-    /// </summary>
-    string? ClientMessage);
+    string? Error);
 }
