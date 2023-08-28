@@ -58,7 +58,6 @@ namespace GlazeWM.App.IpcServer
     /// </summary>
     private static readonly List<string> SubscribableEvents = new()
     {
-      SubscribeAllKeyword,
       DomainEvent.BindingModeChanged,
       DomainEvent.FocusChanged,
       DomainEvent.MonitorAdded,
@@ -107,9 +106,7 @@ namespace GlazeWM.App.IpcServer
     {
       _bus.Events.Subscribe((@event) =>
       {
-        var eventSubscriptions = new List<EventSubscription>()
-          .Concat(EventSubscriptions.GetValueOrDefault(@event.Type, new()))
-          .Concat(EventSubscriptions.GetValueOrDefault(SubscribeAllKeyword, new()));
+        var eventSubscriptions = EventSubscriptions.GetValueOrDefault(@event.Type, new());
 
         foreach (var subscription in eventSubscriptions)
         {
@@ -182,7 +179,7 @@ namespace GlazeWM.App.IpcServer
           eventName,
           new List<EventSubscription>(),
           (_, subscriptions) =>
-            subscriptions.Where((subscription) => subscription.WebSocket == ws).ToList()
+            subscriptions.Where((subscription) => subscription.WebSocket != ws).ToList()
         );
       }
     }
@@ -260,13 +257,30 @@ namespace GlazeWM.App.IpcServer
         .Split(',')
         .Select(eventName => eventName.ToLowerInvariant());
 
+      // Validate event names.
       foreach (var eventName in eventNames)
       {
-        if (!SubscribableEvents.Contains(eventName))
+        if (!(eventName == SubscribeAllKeyword || SubscribableEvents.Contains(eventName)))
           throw new ArgumentException($"Invalid event '{eventName}'.");
       }
 
       var subscriptionId = Guid.NewGuid();
+
+      // Handle subscription to all events.
+      if (eventNames.Contains(SubscribeAllKeyword))
+      {
+        foreach (var eventName in SubscribableEvents)
+        {
+          var subscriptions = EventSubscriptions.GetValueOrDefault(
+            eventName,
+            new()
+          );
+
+          subscriptions.Add(new(subscriptionId, ws));
+        }
+
+        return new { subscriptionId };
+      }
 
       foreach (var eventName in eventNames)
       {
