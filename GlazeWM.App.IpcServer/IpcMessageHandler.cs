@@ -65,8 +65,11 @@ namespace GlazeWM.App.IpcServer
       DomainEvent.MonitorRemoved,
       DomainEvent.TilingDirectionChanged,
       DomainEvent.UserConfigReloaded,
+      DomainEvent.WindowManaged,
+      DomainEvent.WindowUnmanaged,
       DomainEvent.WorkspaceActivated,
       DomainEvent.WorkspaceDeactivated,
+      DomainEvent.WorkingAreaResized,
       InfraEvent.ApplicationExiting,
     };
 

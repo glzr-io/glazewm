@@ -69,13 +69,13 @@ namespace GlazeWM.App.Watcher
     {
       var response = await client.ReceiveAsync();
 
-      return response.GetProperty("friendlyName").GetString() switch
+      return response.GetProperty("type").GetString() switch
       {
-        "window_managed" => (
+        DomainEvent.WindowManaged => (
           true,
           new IntPtr(response.GetProperty("window").GetProperty("handle").GetInt64())
         ),
-        "window_unmanaged" => (
+        DomainEvent.WindowUnmanaged => (
           false,
           new IntPtr(response.GetProperty("removedHandle").GetInt64())
         ),

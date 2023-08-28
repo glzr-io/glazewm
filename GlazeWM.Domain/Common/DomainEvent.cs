@@ -2,7 +2,6 @@ namespace GlazeWM.Domain.Common
 {
   public static class DomainEvent
   {
-    public const string ApplicationExiting = "application_exiting";
     public const string BindingModeChanged = "binding_mode_changed";
     public const string FocusChanged = "focus_changed";
     public const string MonitorAdded = "monitor_added";
