@@ -13,28 +13,17 @@ public record MouseMoveEvent(
   /// <summary>
   /// Whether left-click is currently pressed.
   /// </summary>
-  public bool IsLMouseDown { get; }
+  bool IsLMouseDown,
 
   /// <summary>
   /// Whether right-click is currently pressed.
   /// </summary>
-  public bool IsRMouseDown { get; }
+  bool IsRMouseDown,
 
   /// <summary>
   /// The time stamp for this message, equivalent to what `GetMessageTime` would
   /// return.
   /// </summary>
-  public int TimeStamp { get; }
-
-  public MouseMoveEvent(Point point, bool isRMouseDown, bool isLMouseDown, int timeStamp)
-  {
-    Point = point;
-    IsLMouseDown = isLMouseDown;
-    IsRMouseDown = isRMouseDown;
-    TimeStamp = timeStamp;
-  }
-}
-
   int TimeStamp
 ) : Event(InfraEvent.MouseMove);
 
