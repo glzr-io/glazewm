@@ -5,14 +5,14 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Border of the focused window.
     /// </summary>
-    public FocusBorder Active { get; set; } = new() { Enabled = true, Color = "#7CE38B"};
-    
+    public FocusBorder Active { get; set; } = new() { Enabled = true, Color = "#7CE38B" };
+
     /// <summary>
     /// Border of non-focused windows.
     /// </summary>
     public FocusBorder Inactive { get; set; } = new() { Enabled = false };
   }
-  
+
   public class FocusBorder
   {
     /// <summary>
