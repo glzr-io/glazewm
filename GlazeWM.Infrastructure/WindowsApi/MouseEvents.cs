@@ -16,7 +16,8 @@ namespace GlazeWM.Infrastructure.WindowsApi
       {
         var mouseEvents = new Subject<MouseMoveEvent>();
 
-        var isMouseDown = false;
+        var isRMouseDown = false;
+        var isLMouseDown = false;
         var hookProc = new HookProc((nCode, wParam, lParam) =>
         {
           var details = (LowLevelMouseInputEventDetails)Marshal.PtrToStructure(
@@ -27,16 +28,21 @@ namespace GlazeWM.Infrastructure.WindowsApi
           // Check if mouse click is being held.
           switch ((WMessages)wParam)
           {
+            case WMessages.WM_RBUTTONUP:
+              isRMouseDown = false;
+              break;
+            case WMessages.WM_RBUTTONDOWN:
+              isRMouseDown = true;
+              break;
             case WMessages.WM_LBUTTONUP:
-              isMouseDown = false;
+              isLMouseDown = false;
               break;
             case WMessages.WM_LBUTTONDOWN:
-              isMouseDown = true;
+              isLMouseDown = true;
               break;
           }
 
-          var filteredEvent = new MouseMoveEvent(details.pt, isMouseDown, details.TimeStamp);
-
+          var filteredEvent = new MouseMoveEvent(details.pt, isRMouseDown, isLMouseDown, details.TimeStamp);
           mouseEvents.OnNext(filteredEvent);
 
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);

@@ -80,7 +80,7 @@ namespace GlazeWM.App.WindowManager
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)
           MouseEvents.MouseMoves.Sample(TimeSpan.FromMilliseconds(50)).Subscribe((@event) =>
           {
-            if (!@event.IsMouseDown)
+            if (!@event.IsLMouseDown && !@event.IsRMouseDown)
               _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
           });
 

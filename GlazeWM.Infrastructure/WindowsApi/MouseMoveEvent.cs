@@ -13,7 +13,12 @@ public record MouseMoveEvent(
   /// <summary>
   /// Whether left-click is currently pressed.
   /// </summary>
-  bool IsMouseDown,
+  bool IsLMouseDown,
+
+  /// <summary>
+  /// Whether right-click is currently pressed.
+  /// </summary>
+  bool IsRMouseDown,
 
   /// <summary>
   /// The time stamp for this message, equivalent to what `GetMessageTime` would
