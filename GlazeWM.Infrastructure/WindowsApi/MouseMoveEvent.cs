@@ -13,7 +13,12 @@ public class MouseMoveEvent : Event
   /// <summary>
   /// Whether left-click is currently pressed.
   /// </summary>
-  public bool IsMouseDown { get; }
+  public bool IsLMouseDown { get; }
+
+  /// <summary>
+  /// Whether right-click is currently pressed.
+  /// </summary>
+  public bool IsRMouseDown { get; }
 
   /// <summary>
   /// The time stamp for this message, equivalent to what `GetMessageTime` would
@@ -21,10 +26,11 @@ public class MouseMoveEvent : Event
   /// </summary>
   public int TimeStamp { get; }
 
-  public MouseMoveEvent(Point point, bool isMouseDown, int timeStamp)
+  public MouseMoveEvent(Point point, bool isRMouseDown, bool isLMouseDown, int timeStamp)
   {
     Point = point;
-    IsMouseDown = isMouseDown;
+    IsLMouseDown = isLMouseDown;
+    IsRMouseDown = isRMouseDown;
     TimeStamp = timeStamp;
   }
 }

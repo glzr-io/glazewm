@@ -42,7 +42,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
               break;
           }
 
-          var filteredEvent = new MouseMoveEvent(details.pt, isRMouseDown || isLMouseDown, details.TimeStamp);
+          var filteredEvent = new MouseMoveEvent(details.pt, isRMouseDown, isLMouseDown, details.TimeStamp);
           mouseEvents.OnNext(filteredEvent);
 
           return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
