@@ -24,6 +24,8 @@ namespace GlazeWM.App.IpcServer
     {
       _logger.LogDebug("Starting IPC server on port {Port}.", port);
 
+      _ipcMessageHandler.Init();
+
       var builder = WebApplication.CreateBuilder();
       builder.Logging.ClearProviders();
       builder.WebHost.UseUrls($"http://localhost:{port}");

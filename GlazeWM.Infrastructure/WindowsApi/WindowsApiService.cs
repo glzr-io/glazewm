@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -469,7 +470,16 @@ namespace GlazeWM.Infrastructure.WindowsApi
     public static bool AttachConsoleToParentProcess()
     {
       const uint AttachParentProcess = 0x0ffffffff;
-      return AttachConsole(AttachParentProcess);
+      var result = AttachConsole(AttachParentProcess);
+
+      var streamWriter = new StreamWriter(Console.OpenStandardOutput())
+      {
+        AutoFlush = true
+      };
+      Console.SetOut(streamWriter);
+      Console.SetError(streamWriter);
+
+      return result;
     }
   }
 }

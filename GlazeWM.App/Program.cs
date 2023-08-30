@@ -2,13 +2,12 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using GlazeWM.App.Cli;
 using GlazeWM.App.IpcServer;
-using GlazeWM.App.IpcServer.Messages;
+using GlazeWM.App.IpcServer.ClientMessages;
 using GlazeWM.App.Watcher;
 using GlazeWM.App.WindowManager;
 using GlazeWM.Bar;
@@ -26,8 +25,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
-
-//// TODO: Handle circular reference for that one workspace event.
 
 namespace GlazeWM.App
 {

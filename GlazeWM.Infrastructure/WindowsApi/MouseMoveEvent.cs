@@ -1,14 +1,14 @@
 using System;
 using System.Runtime.InteropServices;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.WindowsApi;
 
-public class MouseMoveEvent : Event
-{
+public record MouseMoveEvent(
   /// <summary>
   /// (X,Y) location of mouse with 0,0 being the top-left corner of the main monitor
   /// </summary>
-  public Point Point { get; }
+  Point Point,
 
   /// <summary>
   /// Whether left-click is currently pressed.
@@ -35,6 +35,8 @@ public class MouseMoveEvent : Event
   }
 }
 
+  int TimeStamp
+) : Event(InfraEvent.MouseMove);
 
 public enum WMessages
 {

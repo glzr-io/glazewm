@@ -2,7 +2,5 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Infrastructure.Common.Events
 {
-  public class DisplaySettingsChangedEvent : Event
-  {
-  }
+  public record DisplaySettingsChangedEvent() : Event(InfraEvent.DisplaySettingsChanged);
 }
