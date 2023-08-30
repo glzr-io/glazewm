@@ -2,8 +2,17 @@ gaps:
   inner_gap: 20
   outer_gap: 20
 
+# Only supported for Windows 11 Build 22000.51 and above.
+focus_border_color: 
+  active: 
+    enabled: true
+    color: "#7ce38b"
+  inactive: 
+    enabled: false
+    
 general:
   focus_follows_cursor: false
+  cursor_follow_focus: false
   # Whether to show floating windows as always on top.
   show_floating_on_top: false
   floating_window_move_amount: "5%"

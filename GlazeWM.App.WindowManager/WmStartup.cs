@@ -46,8 +46,6 @@ namespace GlazeWM.App.WindowManager
         _bus.Events.OfType<ApplicationExitingEvent>()
           .Subscribe(_ => OnApplicationExit());
 
-        _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
-
         // Populate initial monitors, windows, workspaces and user config.
         _bus.Invoke(new PopulateInitialStateCommand());
 
@@ -75,6 +73,11 @@ namespace GlazeWM.App.WindowManager
         // Add application to system tray.
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
+
+        if (_userConfigService.FocusBorderConfig.Active.Enabled ||
+            _userConfigService.FocusBorderConfig.Inactive.Enabled)
+          _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) =>
+            _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
 
         // Hook mouse event for focus follows cursor.
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)

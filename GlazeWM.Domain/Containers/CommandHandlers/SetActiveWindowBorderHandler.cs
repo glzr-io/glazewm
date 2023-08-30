@@ -30,9 +30,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       uint BorderColorAttribute = 34;
       if (_lastFocused is not null)
       {
-        uint defaultColor = 0xFFFFFFFF;
         // Clear old window border
-        _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref defaultColor, 4);
+        var inactiveColor = _userConfigService.FocusBorderConfig.Inactive.Enabled
+          ? rgbToUint(_userConfigService.FocusBorderConfig.Inactive.Color)
+          : 0xFFFFFFFF;
+        _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref inactiveColor, 4);
       }
 
       var newWindowFocused = command.TargetWindow;
@@ -41,8 +43,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       _lastFocused = command.TargetWindow;
       // Set new window border
-      var configColor = rgbToUint(_userConfigService.GeneralConfig.FocusBorderColor);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref configColor, 4);
+      var activeColor = _userConfigService.FocusBorderConfig.Active.Enabled
+        ? rgbToUint(_userConfigService.FocusBorderConfig.Active.Color)
+        : 0xFFFFFFFF;
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
       return CommandResponse.Ok;
     }
   }
