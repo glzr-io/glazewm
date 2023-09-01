@@ -38,6 +38,6 @@ namespace GlazeWM.Infrastructure.WindowsApi
       {
         return 0;
       }
-  }
+    }
   }
 }
