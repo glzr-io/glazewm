@@ -30,7 +30,14 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// </summary>
     public double GetCpuUsage()
     {
-      return _cpuCounter.Observe();
-    }
+      try
+      {
+        return _cpuCounter.Observe();
+      }
+      catch
+      {
+        return 0;
+      }
+  }
   }
 }
