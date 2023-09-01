@@ -1,5 +1,5 @@
 gaps:
-  inner_gap: 20
+  inner_gap: "20px"
   outer_gap: 20
 
 # Only supported for Windows 11 Build 22000.51 and above.
