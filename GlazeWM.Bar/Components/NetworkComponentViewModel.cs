@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using System.Reactive.Linq;
 using GlazeWM.Domain.UserConfigs;
@@ -10,12 +11,16 @@ namespace GlazeWM.Bar.Components
   public class NetworkComponentViewModel : ComponentViewModel
   {
     private NetworkComponentConfig _config => _componentConfig as NetworkComponentConfig;
-    public string Text => FormatLabel();
-    private string FormatLabel()
+
+    /// <summary>
+    /// Format the current power status with the user's formatting config.
+    /// </summary>
+    private LabelViewModel _label;
+
+    public LabelViewModel Label
     {
-      if (!NetworkService.PingTest())
-        return _config.LabelNoInternet;
-      return getNetworkIcon();
+      get => _label;
+      protected set => SetField(ref _label, value);
     }
 
     private string getNetworkIcon()
@@ -57,9 +62,25 @@ namespace GlazeWM.Bar.Components
       Observable
         .Interval(TimeSpan.FromSeconds(10))
         .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(_ => OnPropertyChanged(nameof(Text)));
+        .Subscribe(_ => Label = CreateLabel());
 
-      NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => OnPropertyChanged(nameof(Text)));
+      NetworkChange.NetworkAddressChanged +=
+        (s, e) => Label = CreateLabel();
+    }
+
+    public LabelViewModel CreateLabel()
+    {
+      string icon;
+      if (!NetworkService.PingTest())
+        icon = _config.LabelNoInternet;
+      else
+        icon = getNetworkIcon();
+
+      return XamlHelper.ParseLabel(
+        icon,
+        null,
+        this
+      );
     }
   }
 }
