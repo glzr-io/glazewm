@@ -76,8 +76,16 @@ namespace GlazeWM.App.WindowManager
 
         if (_userConfigService.FocusBorderConfig.Active.Enabled ||
             _userConfigService.FocusBorderConfig.Inactive.Enabled)
-          _bus.Events.OfType<FocusChangedEvent>().Subscribe((@event) =>
-            _bus.InvokeAsync(new SetActiveWindowBorderCommand(@event.FocusedContainer as Window)));
+          _bus.Events.Where(@event => @event is FocusChangedEvent || @event is NativeFocusReassignedEvent)
+            .Subscribe((@event) =>
+            {
+              var focusedContainer = @event switch
+              {
+                FocusChangedEvent fcEvent => fcEvent.FocusedContainer,
+                NativeFocusReassignedEvent nfrEvent => nfrEvent.FocusedContainer,
+              };
+              _bus.InvokeAsync(new SetActiveWindowBorderCommand(focusedContainer as Window));
+            });
 
         // Hook mouse event for focus follows cursor.
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)
@@ -86,6 +94,20 @@ namespace GlazeWM.App.WindowManager
             if (!@event.IsLMouseDown && !@event.IsRMouseDown)
               _bus.InvokeAsync(new FocusContainerUnderCursorCommand(@event.Point));
           });
+
+        // Setup cursor follows focus
+        if (_userConfigService.GeneralConfig.CursorFollowsFocus)
+          _bus.Events
+            .Where(@event => @event is FocusedContainerMovedEvent || @event is NativeFocusReassignedEvent)
+            .Subscribe((@event) =>
+            {
+              var focusedContainer = @event switch
+              {
+                FocusedContainerMovedEvent fcmEvent => fcmEvent.FocusedContainer,
+                NativeFocusReassignedEvent nfrEvent => nfrEvent.FocusedContainer,
+              };
+              _bus.InvokeAsync(new CenterCursorOnContainerCommand(focusedContainer));
+            });
 
         System.Windows.Forms.Application.Run();
         return ExitCode.Success;

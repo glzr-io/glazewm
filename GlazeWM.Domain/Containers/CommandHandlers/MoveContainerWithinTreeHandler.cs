@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
 
@@ -43,8 +44,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           shouldAdjustSize
         );
 
-        // Center cursor in focused window's new location
-        _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToMove));
+        _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
         return CommandResponse.Ok;
       }
@@ -90,8 +90,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           targetParentAncestor
         );
 
-      // Center cursor in focused window's new location
-      _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToMove));
+      _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
       return CommandResponse.Ok;
     }

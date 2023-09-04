@@ -42,11 +42,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (containerToFocus is Workspace)
       {
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-        _bus.Emit(new FocusChangedEvent(containerToFocus));
       }
 
-      // Center cursor in focused window's new location
-      _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToFocus));
+      _bus.Emit(new NativeFocusReassignedEvent(containerToFocus));
 
       return CommandResponse.Ok;
     }
