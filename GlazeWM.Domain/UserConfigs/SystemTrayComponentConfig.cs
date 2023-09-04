@@ -17,7 +17,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public SystemTrayComponentConfig()
     {
-      FontFamily = "pack://application:,,,/Resources/#Material Icons";
+      FontFamily = "GlazeWM.App.Resources#Material Icons";
     }
   }
 }

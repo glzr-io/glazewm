@@ -33,7 +33,7 @@ namespace GlazeWM.Domain.UserConfigs
 
     public NetworkComponentConfig()
     {
-      FontFamily = "pack://application:,,,/Resources/#Material Icons";
+      FontFamily = "GlazeWM.App.Resources#Material Icons";
     }
   }
 }
