@@ -76,16 +76,19 @@ namespace GlazeWM.App.WindowManager
 
         if (_userConfigService.FocusBorderConfig.Active.Enabled ||
             _userConfigService.FocusBorderConfig.Inactive.Enabled)
-          _bus.Events.Where(@event => @event is FocusChangedEvent || @event is NativeFocusReassignedEvent)
-            .Subscribe((@event) =>
-            {
-              var focusedContainer = @event switch
-              {
-                FocusChangedEvent fcEvent => fcEvent.FocusedContainer,
-                NativeFocusReassignedEvent nfrEvent => nfrEvent.FocusedContainer,
-              };
-              _bus.InvokeAsync(new SetActiveWindowBorderCommand(focusedContainer as Window));
-            });
+        {
+          var focusChanged = _bus.Events
+            .OfType<FocusChangedEvent>()
+            .Select(@event => @event.FocusedContainer);
+
+         var nativeFocusReassigned = _bus.Events
+           .OfType<NativeFocusReassignedEvent>()
+           .Select((@event) => @event.FocusedContainer);
+
+         focusChanged.Merge(nativeFocusReassigned)
+           .Where(container => container is Window)
+           .Subscribe((window) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(window as Window)));
+        }
 
         // Hook mouse event for focus follows cursor.
         if (_userConfigService.GeneralConfig.FocusFollowsCursor)
@@ -97,17 +100,19 @@ namespace GlazeWM.App.WindowManager
 
         // Setup cursor follows focus
         if (_userConfigService.GeneralConfig.CursorFollowsFocus)
-          _bus.Events
-            .Where(@event => @event is FocusedContainerMovedEvent || @event is NativeFocusReassignedEvent)
-            .Subscribe((@event) =>
-            {
-              var focusedContainer = @event switch
-              {
-                FocusedContainerMovedEvent fcmEvent => fcmEvent.FocusedContainer,
-                NativeFocusReassignedEvent nfrEvent => nfrEvent.FocusedContainer,
-              };
-              _bus.InvokeAsync(new CenterCursorOnContainerCommand(focusedContainer));
-            });
+        {
+          var focusChanged = _bus.Events
+            .OfType<FocusedContainerMovedEvent>()
+            .Select(@event => @event.FocusedContainer);
+
+         var nativeFocusReassigned = _bus.Events
+           .OfType<NativeFocusReassignedEvent>()
+           .Select((@event) => @event.FocusedContainer);
+
+         focusChanged.Merge(nativeFocusReassigned)
+           .Where(container => container is Window)
+           .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
+        }
 
         System.Windows.Forms.Application.Run();
         return ExitCode.Success;
