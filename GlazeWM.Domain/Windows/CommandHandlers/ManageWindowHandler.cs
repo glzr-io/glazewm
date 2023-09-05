@@ -58,19 +58,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
         _bus.Invoke(new AttachContainerCommand(window, targetParent, targetIndex));
 
-      // The OS might spawn the window on a different monitor to the target parent, so adjustments
-      // might need to be made because of DPI.
-      var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
-      if (MonitorService.HasDpiDifference(monitor, window.Parent))
-        window.HasPendingDpiAdjustment = true;
+      var windowRules = _userConfigService.GetMatchingWindowRules(window);
+      var windowRuleCommands = windowRules
+        .SelectMany(rule => rule.CommandList)
+        .Select(CommandParsingService.FormatCommand);
 
       // Set the newly added window as focus descendant. This means the window rules will be run as
       // if the window is focused.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
-
-      // Run matching window rules.
-      var windowRules = _userConfigService.GetMatchingWindowRules(window);
-      _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
+      _bus.Invoke(new RunWithSubjectContainerCommand(windowRuleCommands, window));
 
       // Update window in case the reference changes.
       window = _windowService.GetWindowByHandle(window.Handle);
@@ -82,11 +78,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (shouldRedraw)
         _bus.Invoke(new RedrawContainersCommand());
 
-      // Set OS focus to the newly added window in case it's not already focused.
-      _bus.Invoke(new SetNativeFocusCommand(window));
-
       _logger.LogWindowEvent("New window managed", window);
       _bus.Emit(new WindowManagedEvent(window));
+
+      // Set OS focus to the newly added window in case it's not already focused.
+      _bus.Invoke(new SetNativeFocusCommand(window));
 
       return CommandResponse.Ok;
     }
@@ -106,7 +102,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
-      return windowType switch
+      var window = windowType switch
       {
         WindowType.Minimized => new MinimizedWindow(
           windowHandle,
@@ -128,6 +124,14 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         WindowType.Fullscreen => throw new ArgumentException(null, nameof(windowHandle)),
         _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
+
+      // The OS might spawn the window on a different monitor to the target parent, so adjustments
+      // might need to be made because of DPI.
+      var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
+      if (MonitorService.HasDpiDifference(monitor, window.Parent))
+        window.HasPendingDpiAdjustment = true;
+
+      return window;
     }
 
     private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)

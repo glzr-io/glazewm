@@ -60,12 +60,12 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<EvaluateUserConfigCommand>, EvaluateUserConfigHandler>();
       services.AddSingleton<ICommandHandler<RegisterKeybindingsCommand>, RegisterKeybindingsHandler>();
       services.AddSingleton<ICommandHandler<ReloadUserConfigCommand>, ReloadUserConfigHandler>();
+      services.AddSingleton<ICommandHandler<RunWithSubjectContainerCommand>, RunWithSubjectContainerHandler>();
       services.AddSingleton<ICommandHandler<CloseWindowCommand>, CloseWindowHandler>();
       services.AddSingleton<ICommandHandler<IgnoreWindowCommand>, IgnoreWindowHandler>();
       services.AddSingleton<ICommandHandler<ManageWindowCommand>, ManageWindowHandler>();
       services.AddSingleton<ICommandHandler<MoveWindowCommand>, MoveWindowHandler>();
       services.AddSingleton<ICommandHandler<ResizeWindowCommand>, ResizeWindowHandler>();
-      services.AddSingleton<ICommandHandler<RunWindowRulesCommand>, RunWindowRulesHandler>();
       services.AddSingleton<ICommandHandler<ResizeWindowBordersCommand>, ResizeWindowBordersHandler>();
       services.AddSingleton<ICommandHandler<SetFloatingCommand>, SetFloatingHandler>();
       services.AddSingleton<ICommandHandler<SetMaximizedCommand>, SetMaximizedHandler>();

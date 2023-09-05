@@ -40,8 +40,8 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       foreach (var keybindingConfig in command.Keybindings)
       {
         // Format command strings defined in keybinding config.
-        var formattedCommandStrings = keybindingConfig.CommandList.Select(
-          commandString => CommandParsingService.FormatCommand(commandString)
+        var commandStrings = keybindingConfig.CommandList.Select(
+          CommandParsingService.FormatCommand
         );
 
         // Register all keybindings for a command sequence.
@@ -56,29 +56,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
                 if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
                   return;
 
-                var subjectContainer = _containerService.FocusedContainer;
-                var subjectContainerId = subjectContainer.Id;
-
-                // Invoke commands in sequence on keybinding press.
-                foreach (var commandString in formattedCommandStrings)
-                {
-                  // Avoid calling command if container gets detached. This is to prevent crashes
-                  // for edge cases like ["close", "move to workspace X"].
-                  if (subjectContainer.IsDetached())
-                    return;
-
-                  var parsedCommand = _commandParsingService.ParseCommand(
-                    commandString,
-                    subjectContainer
-                  );
-
-                  // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
-                  _bus.Invoke((dynamic)parsedCommand);
-
-                  // Update subject container in case the reference changes (eg. when going from a tiling to a
-                  // floating window).
-                  subjectContainer = _containerService.GetContainerById(subjectContainerId);
-                }
+                _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
               }
               catch (Exception e)
               {
