@@ -4,6 +4,7 @@ using System.Linq;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.Containers
 {
@@ -67,7 +68,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.TilingDirection == TilingDirection.Vertical)
         return parent.Width;
 
-      var innerGap = _userConfigService.GapsConfig.InnerGap;
+      var innerGap = UnitsHelper.TrimUnits(_userConfigService.GapsConfig.InnerGap);
       var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
@@ -85,7 +86,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.TilingDirection == TilingDirection.Horizontal)
         return parent.Height;
 
-      var innerGap = _userConfigService.GapsConfig.InnerGap;
+      var innerGap = UnitsHelper.TrimUnits(_userConfigService.GapsConfig.InnerGap);
       var resizableSiblings = container.SelfAndSiblingsOfType<IResizable>();
 
       return (int)((container as IResizable).SizePercentage
@@ -105,7 +106,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.TilingDirection == TilingDirection.Vertical || isFirstOfType)
         return parent.X;
 
-      var innerGap = _userConfigService.GapsConfig.InnerGap;
+      var innerGap = UnitsHelper.TrimUnits(_userConfigService.GapsConfig.InnerGap);
 
       return container.PreviousSiblingOfType<IResizable>().X
         + container.PreviousSiblingOfType<IResizable>().Width
@@ -125,7 +126,7 @@ namespace GlazeWM.Domain.Containers
       if (parent.TilingDirection == TilingDirection.Horizontal || isFirstOfType)
         return parent.Y;
 
-      var innerGap = _userConfigService.GapsConfig.InnerGap;
+      var innerGap = UnitsHelper.TrimUnits(_userConfigService.GapsConfig.InnerGap);
 
       return container.PreviousSiblingOfType<IResizable>().Y
         + container.PreviousSiblingOfType<IResizable>().Height

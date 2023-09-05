@@ -122,7 +122,7 @@ The gaps between windows can be changed via the `gaps` property in the config fi
 ```yaml
 gaps:
   # Gap between adjacent windows.
-  inner_gap: 20
+  inner_gap: "20px"
 
   # Gap between windows and the screen edge. See "Shorthand properties" for more info.
   outer_gap: "20px 0 20px 0"
