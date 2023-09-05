@@ -60,6 +60,12 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
         _bus.Invoke(new AttachContainerCommand(window, targetParent, targetIndex));
 
+      // The OS might spawn the window on a different monitor to the target parent, so adjustments
+      // might need to be made because of DPI.
+      var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
+      if (MonitorService.HasDpiDifference(monitor, window.Parent))
+        window.HasPendingDpiAdjustment = true;
+
       var windowRules = _userConfigService.GetMatchingWindowRules(window);
       var windowRuleCommands = windowRules
         .SelectMany(rule => rule.CommandList)
@@ -89,7 +95,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private Window CreateWindow(IntPtr windowHandle, Container targetParent)
+    private static Window CreateWindow(IntPtr windowHandle, Container targetParent)
     {
       var originalPlacement = WindowService.GetPlacementOfHandle(windowHandle).NormalPosition;
 
@@ -104,7 +110,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
-      Window window = windowType switch
+      return windowType switch
       {
         WindowType.Minimized => new MinimizedWindow(
           windowHandle,
@@ -126,14 +132,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         WindowType.Fullscreen => throw new ArgumentException(null, nameof(windowHandle)),
         _ => throw new ArgumentException(null, nameof(windowHandle)),
       };
-
-      // The OS might spawn the window on a different monitor to the target parent, so adjustments
-      // might need to be made because of DPI.
-      var monitor = _monitorService.GetMonitorFromHandleLocation(windowHandle);
-      if (MonitorService.HasDpiDifference(monitor, window.Parent))
-        window.HasPendingDpiAdjustment = true;
-
-      return window;
     }
 
     private static WindowType GetWindowTypeToCreate(IntPtr windowHandle)
