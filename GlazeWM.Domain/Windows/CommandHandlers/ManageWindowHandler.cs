@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Windows.Events;
 using GlazeWM.Domain.Workspaces;
@@ -87,7 +89,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       return CommandResponse.Ok;
     }
 
-    private static Window CreateWindow(IntPtr windowHandle, Container targetParent)
+    private Window CreateWindow(IntPtr windowHandle, Container targetParent)
     {
       var originalPlacement = WindowService.GetPlacementOfHandle(windowHandle).NormalPosition;
 
@@ -102,7 +104,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var isResizable = WindowService.HandleHasWindowStyle(windowHandle, WindowStyles.ThickFrame);
 
       // TODO: Handle initialization of maximized and fullscreen windows.
-      var window = windowType switch
+      Window window = windowType switch
       {
         WindowType.Minimized => new MinimizedWindow(
           windowHandle,

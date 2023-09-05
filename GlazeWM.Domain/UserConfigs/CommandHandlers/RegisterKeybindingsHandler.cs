@@ -14,21 +14,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
   internal sealed class RegisterKeybindingsHandler : ICommandHandler<RegisterKeybindingsCommand>
   {
     private readonly Bus _bus;
-    private readonly CommandParsingService _commandParsingService;
-    private readonly ContainerService _containerService;
     private readonly KeybindingService _keybindingService;
     private readonly WindowService _windowService;
 
     public RegisterKeybindingsHandler(
       Bus bus,
-      CommandParsingService commandParsingService,
-      ContainerService containerService,
       KeybindingService keybindingService,
       WindowService windowService)
     {
       _bus = bus;
-      _commandParsingService = commandParsingService;
-      _containerService = containerService;
       _keybindingService = keybindingService;
       _windowService = windowService;
     }

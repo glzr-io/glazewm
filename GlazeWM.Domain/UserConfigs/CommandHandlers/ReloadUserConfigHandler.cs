@@ -1,3 +1,4 @@
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;

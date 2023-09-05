@@ -1,10 +1,6 @@
+using System.Linq;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
-using GlazeWM.Domain.UserConfigs.Events;
-using GlazeWM.Domain.Windows;
-using GlazeWM.Domain.Windows.Commands;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
@@ -16,7 +12,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
     private readonly CommandParsingService _commandParsingService;
     private readonly ContainerService _containerService;
 
-    public RegisterKeybindingsHandler(
+    public RunWithSubjectContainerHandler(
       Bus bus,
       CommandParsingService commandParsingService,
       ContainerService containerService)
@@ -35,7 +31,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       var subjectContainerId = subjectContainer.Id;
 
       // Return early if any of the commands is an ignore command.
-      if (commandStrings.Any(command => command == 'ignore'))
+      if (commandStrings.Any(command => command == "ignore"))
         return CommandResponse.Ok;
 
       // Invoke commands in sequence.
@@ -44,7 +40,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
         // Avoid calling command if container gets detached. This is to prevent crashes
         // for edge cases like ["close", "move to workspace X"].
         if (subjectContainer?.IsDetached() != false)
-          return;
+          return CommandResponse.Ok;
 
         var parsedCommand = _commandParsingService.ParseCommand(
           commandString,
