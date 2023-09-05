@@ -332,6 +332,33 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
+### Bar Component: Network 
+
+Displays the active Network. 
+
+```yaml
+- type: "network"
+  label_no_internet: "NC"
+  label_ethernet: "Eth"
+  label_wifi_strength_0: "WiFi: 0%"
+  label_wifi_strength_25: "WiFi: 25%"
+  label_wifi_strength_50: "WiFi: 50%"
+  label_wifi_strength_75: "WiFi: 75%"
+  label_wifi_strength_100: "WiFi: 100%"
+```
+
+### Bar Component: Volume 
+
+Displays volume level. 
+
+```yaml
+- type: "volume"
+  label_low: "🔊{volume_level}%"
+  label_medium: "🔊{volume_level}%"
+  label_high: "🔊{volume_level}%"
+  label_mute: "🔊{volume_level}%"
+```
+
 ### Bar Component: Text File
 
 For displaying any content without a native integrated widget; updates in real time.

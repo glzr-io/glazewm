@@ -66,9 +66,12 @@ namespace GlazeWM.Bar
     {
       var labelWithVariables = labelString;
 
-      // Replace variables in label with their corresponding variable.
-      foreach (var (key, value) in labelVariables)
-        labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value());
+      if (labelVariables is not null)
+      {
+        // Replace variables in label with their corresponding variable.
+        foreach (var (key, value) in labelVariables)
+          labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value());
+      }
 
       // Wrap `labelString` in arbitrary tag to make it valid XML.
       var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
