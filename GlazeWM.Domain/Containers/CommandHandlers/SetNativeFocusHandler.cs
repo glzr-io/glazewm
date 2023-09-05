@@ -36,6 +36,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       KeybdEvent(0, 0, 0, 0);
       SetForegroundWindow(handleToFocus);
 
+      _bus.Emit(new NativeFocusReassignedEvent(containerToFocus));
+
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
       // TODO: This is called twice unnecessarily when setting workspace focus on unmanage.
@@ -44,9 +46,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
         _bus.Emit(new FocusChangedEvent(containerToFocus));
       }
-
-      // Center cursor in focused window's new location
-      _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToFocus));
 
       return CommandResponse.Ok;
     }

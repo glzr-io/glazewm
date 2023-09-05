@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
+using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Utils;
 
@@ -9,10 +10,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal sealed class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
   {
     private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
-    public MoveContainerWithinTreeHandler(Bus bus)
+    public MoveContainerWithinTreeHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
+      _containerService = containerService;
     }
 
     public CommandResponse Handle(MoveContainerWithinTreeCommand command)
@@ -32,6 +35,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         targetParent
       );
 
+      var focusedContainer = _containerService.FocusedContainer;
+
       // Handle case where target parent is the LCA (eg. in the case of swapping sibling containers
       // or moving a container to a direct ancestor).
       if (targetParent == lowestCommonAncestor)
@@ -43,8 +48,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           shouldAdjustSize
         );
 
-        // Center cursor in focused window's new location
-        _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToMove));
+        if (containerToMove == focusedContainer)
+          _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
         return CommandResponse.Ok;
       }
@@ -90,8 +95,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           targetParentAncestor
         );
 
-      // Center cursor in focused window's new location
-      _bus.InvokeAsync(new CenterCursorOnContainerCommand(containerToMove));
+      if (containerToMove == focusedContainer)
+        _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
       return CommandResponse.Ok;
     }

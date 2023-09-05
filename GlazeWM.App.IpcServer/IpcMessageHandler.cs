@@ -60,6 +60,7 @@ namespace GlazeWM.App.IpcServer
     {
       DomainEvent.BindingModeChanged,
       DomainEvent.FocusChanged,
+      DomainEvent.FocusedContainerMoved,
       DomainEvent.MonitorAdded,
       DomainEvent.MonitorRemoved,
       DomainEvent.TilingDirectionChanged,
