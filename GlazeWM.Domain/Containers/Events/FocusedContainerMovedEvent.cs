@@ -4,5 +4,5 @@ using GlazeWM.Infrastructure.Bussing;
 namespace GlazeWM.Domain.Containers.Events
 {
   public record FocusedContainerMovedEvent(Container FocusedContainer)
-    : Event(DomainEvent.FocusChanged);
+    : Event(DomainEvent.FocusedContainerMoved);
 }

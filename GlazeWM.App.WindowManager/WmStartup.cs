@@ -85,9 +85,11 @@ namespace GlazeWM.App.WindowManager
             .OfType<FocusChangedEvent>()
             .Select(@event => @event.FocusedContainer);
 
-          focusChanged.Merge(nativeFocusReassigned)
-            .Where(container => container is Window)
-            .Subscribe((window) => _bus.InvokeAsync(new SetActiveWindowBorderCommand(window as Window)));
+          focusChanged
+            .Merge(nativeFocusReassigned)
+            .Subscribe((container) =>
+              _bus.InvokeAsync(new SetActiveWindowBorderCommand(container as Window))
+            );
         }
 
         // Hook mouse event for focus follows cursor.

@@ -10,10 +10,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   internal sealed class MoveContainerWithinTreeHandler : ICommandHandler<MoveContainerWithinTreeCommand>
   {
     private readonly Bus _bus;
+    private readonly ContainerService _containerService;
 
-    public MoveContainerWithinTreeHandler(Bus bus)
+    public MoveContainerWithinTreeHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
+      _containerService = containerService;
     }
 
     public CommandResponse Handle(MoveContainerWithinTreeCommand command)
@@ -33,6 +35,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         targetParent
       );
 
+      var focusedContainer = _containerService.FocusedContainer;
+
       // Handle case where target parent is the LCA (eg. in the case of swapping sibling containers
       // or moving a container to a direct ancestor).
       if (targetParent == lowestCommonAncestor)
@@ -44,7 +48,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           shouldAdjustSize
         );
 
-        _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
+        if (containerToMove == focusedContainer)
+          _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
         return CommandResponse.Ok;
       }
@@ -90,7 +95,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           targetParentAncestor
         );
 
-      _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
+      if (containerToMove == focusedContainer)
+        _bus.Emit(new FocusedContainerMovedEvent(containerToMove));
 
       return CommandResponse.Ok;
     }
