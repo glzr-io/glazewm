@@ -34,6 +34,10 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
       var subjectContainerId = subjectContainer.Id;
 
+      // Return early if any of the commands is an ignore command.
+      if (commandStrings.Any(command => command == 'ignore'))
+        return CommandResponse.Ok;
+
       // Invoke commands in sequence.
       foreach (var commandString in commandStrings)
       {
