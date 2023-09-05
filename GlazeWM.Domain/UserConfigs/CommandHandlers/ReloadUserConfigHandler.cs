@@ -1,3 +1,4 @@
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -38,7 +39,12 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       foreach (var window in _windowService.GetWindows())
       {
         var windowRules = _userConfigService.GetMatchingWindowRules(window);
-        _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
+        var windowRuleCommands = windowRules
+          .SelectMany(rule => rule.CommandList)
+          .Select(CommandParsingService.FormatCommand);
+
+        // Run matching window rules.
+        _bus.Invoke(new RunWithSubjectContainerCommand(windowRuleCommands, window));
       }
 
       // Redraw full container tree.

@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Domain.Windows.Events;
 using GlazeWM.Domain.Workspaces;
@@ -64,13 +66,15 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (MonitorService.HasDpiDifference(monitor, window.Parent))
         window.HasPendingDpiAdjustment = true;
 
+      var windowRules = _userConfigService.GetMatchingWindowRules(window);
+      var windowRuleCommands = windowRules
+        .SelectMany(rule => rule.CommandList)
+        .Select(CommandParsingService.FormatCommand);
+
       // Set the newly added window as focus descendant. This means the window rules will be run as
       // if the window is focused.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
-
-      // Run matching window rules.
-      var windowRules = _userConfigService.GetMatchingWindowRules(window);
-      _bus.Invoke(new RunWindowRulesCommand(window, windowRules));
+      _bus.Invoke(new RunWithSubjectContainerCommand(windowRuleCommands, window));
 
       // Update window in case the reference changes.
       window = _windowService.GetWindowByHandle(window.Handle);
@@ -82,11 +86,11 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (shouldRedraw)
         _bus.Invoke(new RedrawContainersCommand());
 
-      // Set OS focus to the newly added window in case it's not already focused.
-      _bus.Invoke(new SetNativeFocusCommand(window));
-
       _logger.LogWindowEvent("New window managed", window);
       _bus.Emit(new WindowManagedEvent(window));
+
+      // Set OS focus to the newly added window in case it's not already focused.
+      _bus.Invoke(new SetNativeFocusCommand(window));
 
       return CommandResponse.Ok;
     }
