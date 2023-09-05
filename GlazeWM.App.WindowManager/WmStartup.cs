@@ -74,16 +74,16 @@ namespace GlazeWM.App.WindowManager
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
+        var nativeFocusReassigned = _bus.Events
+          .OfType<NativeFocusReassignedEvent>()
+          .Select((@event) => @event.FocusedContainer);
+
         if (_userConfigService.FocusBorderConfig.Active.Enabled ||
             _userConfigService.FocusBorderConfig.Inactive.Enabled)
         {
           var focusChanged = _bus.Events
             .OfType<FocusChangedEvent>()
             .Select(@event => @event.FocusedContainer);
-
-          var nativeFocusReassigned = _bus.Events
-            .OfType<NativeFocusReassignedEvent>()
-            .Select((@event) => @event.FocusedContainer);
 
           focusChanged.Merge(nativeFocusReassigned)
             .Where(container => container is Window)
@@ -101,15 +101,11 @@ namespace GlazeWM.App.WindowManager
         // Setup cursor follows focus
         if (_userConfigService.GeneralConfig.CursorFollowsFocus)
         {
-          var focusChanged = _bus.Events
+          var focusedContainerMoved = _bus.Events
             .OfType<FocusedContainerMovedEvent>()
             .Select(@event => @event.FocusedContainer);
 
-          var nativeFocusReassigned = _bus.Events
-            .OfType<NativeFocusReassignedEvent>()
-            .Select((@event) => @event.FocusedContainer);
-
-          focusChanged.Merge(nativeFocusReassigned)
+          focusedContainerMoved.Merge(nativeFocusReassigned)
             .Where(container => container is Window)
             .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
         }
