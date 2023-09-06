@@ -247,3 +247,7 @@ keybindings:
     binding: "Alt+Shift+8"
   - commands: ["move to workspace 9", "focus workspace 9"]
     bindings: ["Alt+Shift+9"]
+
+  # Inspect the current window
+  - command: "inspect"
+    binding: "Alt+Shift+I"
