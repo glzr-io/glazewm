@@ -11,7 +11,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// A unique identifier for the container.
     /// </summary>
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Derived container type (eg. `ContainerType.Monitor`).

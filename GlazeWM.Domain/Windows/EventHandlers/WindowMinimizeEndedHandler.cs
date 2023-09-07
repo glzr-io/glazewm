@@ -68,7 +68,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
     private static Window CreateWindowFromPreviousState(MinimizedWindow window)
     {
-      return window.PreviousState switch
+      Window restoredWindow = window.PreviousState switch
       {
         WindowType.Floating => new FloatingWindow(
           window.Handle,
@@ -95,6 +95,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         WindowType.Minimized => throw new ArgumentException(null, nameof(window)),
         _ => throw new ArgumentException(null, nameof(window)),
       };
+
+      restoredWindow.Id = window.Id;
+      return restoredWindow;
     }
   }
 }

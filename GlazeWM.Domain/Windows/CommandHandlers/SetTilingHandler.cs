@@ -32,7 +32,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         window.FloatingPlacement,
         window.BorderDelta,
         0
-      );
+      )
+      {
+        Id = window.Id
+      };
 
       // Replace the original window with the created tiling window.
       _bus.Invoke(new ReplaceContainerCommand(tilingWindow, window.Parent, window.Index));

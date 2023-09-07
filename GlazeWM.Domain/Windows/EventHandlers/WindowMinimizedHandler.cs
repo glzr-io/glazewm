@@ -50,7 +50,10 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         window.FloatingPlacement,
         window.BorderDelta,
         previousState
-      );
+      )
+      {
+        Id = window.Id
+      };
 
       // Get container to switch focus to after the window has been minimized.
       var focusTarget = WindowService.GetFocusTargetAfterRemoval(window);
