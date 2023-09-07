@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;

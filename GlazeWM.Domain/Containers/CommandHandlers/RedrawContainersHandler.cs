@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 

@@ -1,7 +1,7 @@
 using System;
 using GlazeWM.Domain.Common;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -17,7 +17,7 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether window is shown, hidden, or in an intermediary state.
     /// </summary>
-    public DisplayState DisplayState { get; set; } = DisplayState.Displayed;
+    public DisplayState DisplayState { get; set; } = DisplayState.Shown;
 
     /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch
