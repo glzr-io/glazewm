@@ -35,7 +35,10 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         window.Handle,
         window.FloatingPlacement,
         window.BorderDelta
-      );
+      )
+      {
+        Id = window.Id
+      };
 
       _bus.Invoke(new ReplaceContainerCommand(floatingWindow, window.Parent, window.Index));
       _bus.Invoke(new RedrawContainersCommand());
