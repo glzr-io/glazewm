@@ -1,8 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -41,11 +43,19 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           {
             Task.Run(() =>
             {
-              // Avoid invoking keybinding if an ignored window currently has focus.
-              if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
-                return;
+              try
+              {
+                // Avoid invoking keybinding if an ignored window currently has focus.
+                if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
+                  return;
 
-              _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
+                _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
+              }
+              catch (Exception e)
+              {
+                _bus.Invoke(new HandleFatalExceptionCommand(e));
+                throw;
+              }
             });
           });
       }
