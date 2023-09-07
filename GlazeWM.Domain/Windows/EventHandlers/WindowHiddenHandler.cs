@@ -39,18 +39,26 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Handle == windowHandle);
 
-      // Ignore events where the window isn't managed or is actually supposed to be hidden. Since
-      // window events are processed in a sequence, also handle case where the window is not
-      // actually hidden anymore when the event is processed.
-      if (window?.IsDisplayed != true || WindowService.IsHandleVisible(window.Handle))
+      // Ignore event if window is unmanaged.
+      if (window is null)
         return;
 
       _logger.LogWindowEvent("Window hidden", window);
 
+      // Update display state.
+      if (window.DisplayState is DisplayState.Hiding)
+      {
+        window.DisplayState = DisplayState.Hidden;
+        return;
+      }
+
       // Detach the hidden window from its parent.
-      _bus.Invoke(new UnmanageWindowCommand(window));
-      _bus.Invoke(new RedrawContainersCommand());
-      _bus.Invoke(new SyncNativeFocusCommand());
+      if (window.DisplayState is DisplayState.Shown)
+      {
+        _bus.Invoke(new UnmanageWindowCommand(window));
+        _bus.Invoke(new RedrawContainersCommand());
+        _bus.Invoke(new SyncNativeFocusCommand());
+      }
     }
   }
 }

@@ -15,6 +15,11 @@ namespace GlazeWM.Domain.Windows
     public IntPtr Handle { get; }
 
     /// <summary>
+    /// Whether window is shown, hidden, or in an intermediary state.
+    /// </summary>
+    public DisplayState DisplayState { get; set; } = DisplayState.Displayed;
+
+    /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch
     /// and updated on resize/move whilst floating.
     /// </summary>
@@ -38,11 +43,6 @@ namespace GlazeWM.Domain.Windows
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;
     }
-
-    /// <summary>
-    /// Windows are displayed if their parent workspace is displayed.
-    /// </summary>
-    public bool IsDisplayed => WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
     public string ProcessName =>
       WindowService.GetProcessOfHandle(Handle)?.ProcessName ?? string.Empty;

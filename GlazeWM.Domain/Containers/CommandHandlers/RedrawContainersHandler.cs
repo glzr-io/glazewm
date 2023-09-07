@@ -73,11 +73,19 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosFlags.NoCopyBits |
         SetWindowPosFlags.NoSendChanging;
 
+      var workspace = window.Ancestors.OfType<Workspace>().First();
+
       // Show or hide the window depending on whether the workspace is displayed.
-      if (window.IsDisplayed)
+      if (workspace.IsDisplayed)
+      {
         defaultFlags |= SetWindowPosFlags.ShowWindow;
+        window.DisplayState = DisplayState.Showing;
+      }
       else
+      {
         defaultFlags |= SetWindowPosFlags.HideWindow;
+        window.DisplayState = DisplayState.Hiding;
+      }
 
       if (window is TilingWindow)
       {
