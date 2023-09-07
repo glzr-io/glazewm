@@ -68,8 +68,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosFlags.FrameChanged |
         SetWindowPosFlags.NoActivate |
         SetWindowPosFlags.NoCopyBits |
-        SetWindowPosFlags.NoSendChanging |
-        SetWindowPosFlags.AsyncWindowPos;
+        SetWindowPosFlags.NoSendChanging;
 
       // Show or hide the window depending on whether the workspace is displayed.
       if (window.IsDisplayed)

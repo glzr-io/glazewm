@@ -2,6 +2,7 @@ using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure.Utils;
 
 namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 {
@@ -24,15 +25,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
     public CommandResponse Handle(RunWithSubjectContainerCommand command)
     {
-      var commandStrings = command.CommandStrings;
+      var commandStrings = command.CommandStrings.ToList();
       var subjectContainer =
         command.SubjectContainer ?? _containerService.FocusedContainer;
 
       var subjectContainerId = subjectContainer.Id;
 
-      // Return early if any of the commands is an ignore command.
+      // Evaluate ignore rules first (avoids jitters if another rule triggers a redraw).
       if (commandStrings.Any(command => command == "ignore"))
-        return CommandResponse.Ok;
+        commandStrings.MoveToFront("ignore");
 
       // Invoke commands in sequence.
       foreach (var commandString in commandStrings)
