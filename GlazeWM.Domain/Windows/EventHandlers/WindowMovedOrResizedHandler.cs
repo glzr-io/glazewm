@@ -58,7 +58,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private void UpdateTilingWindow(TilingWindow window)
     {
       // Snap window to its original position even if it's not being resized.
-      var hasNoResizableSiblings = window.Parent is Workspace 
+      var hasNoResizableSiblings = window.Parent is Workspace
       && !window.SiblingsOfType<IResizable>().Any();
 
       if (hasNoResizableSiblings)

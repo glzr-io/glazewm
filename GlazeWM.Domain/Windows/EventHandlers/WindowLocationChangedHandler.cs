@@ -1,3 +1,4 @@
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
@@ -23,6 +24,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       _bus.Invoke(new RefreshMonitorStateCommand());
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

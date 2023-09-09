@@ -70,7 +70,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _bus.Emit(new FocusChangedEvent(containerToFocus));
 
       // Display the workspace to switch focus to.
-      if (focusedWorkspace.Parent as Monitor == workspaceToFocus.Parent as Monitor)
+      if (focusedWorkspace.Parent == workspaceToFocus.Parent)
       {
         _containerService.ContainersToRedraw.Add(displayedWorkspace);
         _containerService.ContainersToRedraw.Add(workspaceToFocus);

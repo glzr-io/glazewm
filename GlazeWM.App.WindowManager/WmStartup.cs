@@ -48,6 +48,7 @@ namespace GlazeWM.App.WindowManager
 
         // Populate initial monitors, windows, workspaces and user config.
         _bus.Invoke(new PopulateInitialStateCommand());
+        _bus.Invoke(new RedrawContainersCommand());
 
         // Listen on registered keybindings.
         _keybindingService.Start();
@@ -111,8 +112,6 @@ namespace GlazeWM.App.WindowManager
             .Where(container => container is Window)
             .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
         }
-
-        _bus.Invoke(new RedrawContainersCommand());
 
         System.Windows.Forms.Application.Run();
         return ExitCode.Success;
