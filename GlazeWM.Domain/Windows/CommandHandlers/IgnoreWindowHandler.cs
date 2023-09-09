@@ -28,8 +28,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
         _bus.Invoke(new DetachContainerCommand(windowToIgnore));
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       return CommandResponse.Ok;
     }
   }

@@ -65,7 +65,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (hasNoResizableSiblings)
       {
         _containerService.ContainersToRedraw.Add(window);
-        _bus.Invoke(new RedrawContainersCommand());
         return;
       }
 

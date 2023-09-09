@@ -68,7 +68,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       _containerService.ContainersToRedraw.Add(currentWorkspace);
       _containerService.ContainersToRedraw.Add(windowToMove);
-      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }

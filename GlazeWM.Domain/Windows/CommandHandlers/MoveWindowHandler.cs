@@ -85,7 +85,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
 
-        _bus.Invoke(new RedrawContainersCommand());
         return;
       }
 
@@ -105,8 +104,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _bus.Invoke(
         new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true)
       );
-
-      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void MoveToWorkspaceInDirection(Window windowToMove, Direction direction)
@@ -132,8 +129,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, 0, true));
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       // Refresh state in bar of which workspace has focus.
       _bus.Emit(new FocusChangedEvent(windowToMove));
     }
@@ -147,8 +142,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // TODO: Should probably descend into sibling if possible.
       if (HasSiblingInDirection(windowToMove, direction))
         SwapSiblingContainers(windowToMove, direction);
-
-      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void InsertIntoAncestor(
@@ -201,8 +194,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
       }
-
-      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void MoveTilingWindow(TilingWindow windowToMove, Direction direction)
@@ -307,7 +298,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       windowToMove.FloatingPlacement = newPlacement;
 
       _containerService.ContainersToRedraw.Add(windowToMove);
-      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

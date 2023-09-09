@@ -72,7 +72,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Display the workspace to switch focus to.
       _containerService.ContainersToRedraw.Add(displayedWorkspace);
       _containerService.ContainersToRedraw.Add(workspaceToFocus);
-      _bus.Invoke(new RedrawContainersCommand());
 
       _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
 

@@ -45,8 +45,6 @@ namespace GlazeWM.Domain.Common.CommandHandlers
         if (_windowService.IsHandleAppBar(windowHandle))
           _windowService.AppBarHandles.Add(windowHandle);
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       // Get the originally focused window when the WM is started.
       var focusedWindow =
         _windowService.GetWindows().FirstOrDefault(window => window.Handle == focusedHandle);
