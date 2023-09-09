@@ -112,6 +112,8 @@ namespace GlazeWM.App.WindowManager
             .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
         }
 
+        _bus.Invoke(new RedrawContainersCommand());
+
         System.Windows.Forms.Application.Run();
         return ExitCode.Success;
       }

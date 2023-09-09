@@ -1,5 +1,6 @@
 using System.Linq;
 using GlazeWM.Domain.Common.Utils;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -48,6 +49,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Detach the hidden window from its parent.
       _bus.Invoke(new UnmanageWindowCommand(window));
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

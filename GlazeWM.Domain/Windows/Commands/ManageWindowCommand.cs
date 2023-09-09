@@ -8,16 +8,13 @@ namespace GlazeWM.Domain.Windows.Commands
   {
     public IntPtr WindowHandle { get; }
     public SplitContainer TargetParent { get; }
-    public bool ShouldRedraw { get; }
 
     public ManageWindowCommand(
       IntPtr windowHandle,
-      SplitContainer targetParent = null,
-      bool shouldRedraw = true)
+      SplitContainer targetParent = null)
     {
       WindowHandle = windowHandle;
       TargetParent = targetParent;
-      ShouldRedraw = shouldRedraw;
     }
   }
 }

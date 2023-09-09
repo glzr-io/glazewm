@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Get workspace to focus. If it's currently inactive, then activate it.
       var workspaceToFocus = _workspaceService.GetActiveWorkspaceByName(workspaceName)
-        ?? ActivateWorkspace(workspaceName);
+                             ?? ActivateWorkspace(workspaceName);
 
       var displayedWorkspace = (workspaceToFocus.Parent as Monitor).DisplayedWorkspace;
 
@@ -70,8 +70,11 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _bus.Emit(new FocusChangedEvent(containerToFocus));
 
       // Display the workspace to switch focus to.
-      _containerService.ContainersToRedraw.Add(displayedWorkspace);
-      _containerService.ContainersToRedraw.Add(workspaceToFocus);
+      if (focusedWorkspace.Parent as Monitor == workspaceToFocus.Parent as Monitor)
+      {
+        _containerService.ContainersToRedraw.Add(displayedWorkspace);
+        _containerService.ContainersToRedraw.Add(workspaceToFocus);
+      }
 
       _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
 

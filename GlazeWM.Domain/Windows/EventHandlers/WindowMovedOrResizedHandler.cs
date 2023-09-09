@@ -60,7 +60,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     {
       // Snap window to its original position even if it's not being resized.
       var hasNoResizableSiblings = window.Parent is Workspace
-        && !window.SiblingsOfType<IResizable>().Any();
+                                   && !window.SiblingsOfType<IResizable>().Any();
 
       if (hasNoResizableSiblings)
       {
@@ -83,6 +83,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Width, $"{deltaWidth}px"));
       _bus.Invoke(new ResizeWindowCommand(window, ResizeDimension.Height, $"{deltaHeight}px"));
+      _bus.Invoke(new RedrawContainersCommand());
     }
 
     private void UpdateFloatingWindow(FloatingWindow window)

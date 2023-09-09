@@ -59,7 +59,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // TODO: Return early if `clampedResizePercentage` is 0 to avoid unnecessary redraws.
       _containerService.ContainersToRedraw.Add(containerToResize.Parent);
-      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
@@ -116,7 +115,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       windowToResize.FloatingPlacement = Rect.FromXYCoordinates(windowToResize.FloatingPlacement.X, windowToResize.FloatingPlacement.Y, width, height);
 
       _containerService.ContainersToRedraw.Add(windowToResize);
-      _bus.Invoke(new RedrawContainersCommand());
 
       // Check if window now takes up more of another screen after moving
       var currentWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(windowToResize);
@@ -134,10 +132,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Change the window's parent workspace.
       _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace, false));
       _bus.Emit(new FocusChangedEvent(windowToResize));
-
-      // Redrawing again to fix weird WindowsOS dpi change behaviour
-      _containerService.ContainersToRedraw.Add(windowToResize);
-      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }
