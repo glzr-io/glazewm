@@ -74,20 +74,33 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosFlags.NoActivate |
         SetWindowPosFlags.NoCopyBits |
         SetWindowPosFlags.NoSendChanging;
+      // SetWindowPosFlags.AsyncWindowPos;
 
       var workspace = window.Ancestors.OfType<Workspace>().First();
+      var isWorkspaceDisplayed = workspace.IsDisplayed;
 
       // Show or hide the window depending on whether the workspace is displayed.
-      if (workspace.IsDisplayed)
+      if (isWorkspaceDisplayed)
       {
         defaultFlags |= SetWindowPosFlags.ShowWindow;
-        window.DisplayState = DisplayState.Showing;
+        // if (window.DisplayState is DisplayState.Hidden or DisplayState.Hiding)
+        //   window.DisplayState = DisplayState.Showing;
       }
       else
       {
         defaultFlags |= SetWindowPosFlags.HideWindow;
-        window.DisplayState = DisplayState.Hiding;
+        // if (window.DisplayState is DisplayState.Shown or DisplayState.Showing)
+        //   window.DisplayState = DisplayState.Hiding;
       }
+
+      window.DisplayState = window.DisplayState switch
+      {
+        DisplayState.Hidden or
+        DisplayState.Hiding when isWorkspaceDisplayed => DisplayState.Showing,
+        DisplayState.Shown or
+        DisplayState.Showing when !isWorkspaceDisplayed => DisplayState.Hiding,
+        _ => window.DisplayState
+      };
 
       if (window is TilingWindow)
       {

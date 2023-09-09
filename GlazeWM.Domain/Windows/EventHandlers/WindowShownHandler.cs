@@ -1,21 +1,29 @@
+using System.Diagnostics;
 using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Common.Utils;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
+using Microsoft.Extensions.Logging;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
   internal sealed class WindowShownHandler : IEventHandler<WindowShownEvent>
   {
     private readonly Bus _bus;
+    private readonly ILogger<WindowShownHandler> _logger;
     private readonly WindowService _windowService;
 
-    public WindowShownHandler(Bus bus, WindowService windowService)
+    public WindowShownHandler(
+      Bus bus,
+      ILogger<WindowShownHandler> logger,
+      WindowService windowService)
     {
       _bus = bus;
+      _logger = logger;
       _windowService = windowService;
     }
 
@@ -41,6 +49,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         _bus.Invoke(new SyncNativeFocusCommand());
         return;
       }
+
+      if (window is not null)
+        _logger.LogWindowEvent("Showing window", window);
 
       // Update display state if window is already managed.
       if (window?.DisplayState == DisplayState.Showing)
