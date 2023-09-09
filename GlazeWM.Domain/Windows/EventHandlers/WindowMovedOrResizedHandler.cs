@@ -38,8 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
     public void Handle(WindowMovedOrResizedEvent @event)
     {
-      var window = _windowService.GetWindows()
-        .FirstOrDefault(window => window.Handle == @event.WindowHandle);
+      var window = _windowService.GetWindows().FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
       if (window is null)
         return;
@@ -59,8 +58,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     private void UpdateTilingWindow(TilingWindow window)
     {
       // Snap window to its original position even if it's not being resized.
-      var hasNoResizableSiblings = window.Parent is Workspace
-                                   && !window.SiblingsOfType<IResizable>().Any();
+      var hasNoResizableSiblings = window.Parent is Workspace 
+      && !window.SiblingsOfType<IResizable>().Any();
 
       if (hasNoResizableSiblings)
       {
