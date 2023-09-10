@@ -44,7 +44,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     public CommandResponse Handle(ManageWindowCommand command)
     {
       var windowHandle = command.WindowHandle;
-      var shouldRedraw = command.ShouldRedraw;
 
       // Attach the new window as first child of the target parent (if provided), otherwise, add as
       // a sibling of the focused container.
@@ -82,9 +81,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Window might be detached if 'ignore' command has been invoked.
       if (window?.IsDetached() != false)
         return CommandResponse.Ok;
-
-      if (shouldRedraw)
-        _bus.Invoke(new RedrawContainersCommand());
 
       _logger.LogWindowEvent("New window managed", window);
       _bus.Emit(new WindowManagedEvent(window));

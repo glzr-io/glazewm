@@ -64,8 +64,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // TODO: Consider creating separate event `WorkspaceMovedEvent`.
       _bus.Emit(new WorkspaceActivatedEvent(focusedWorkspace));
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       return CommandResponse.Ok;
     }
 

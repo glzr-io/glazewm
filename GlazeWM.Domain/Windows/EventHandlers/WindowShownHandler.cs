@@ -1,4 +1,5 @@
 using System.Linq;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
@@ -36,6 +37,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         return;
 
       _bus.Invoke(new ManageWindowCommand(@event.WindowHandle));
+      _bus.Invoke(new RedrawContainersCommand());
     }
   }
 }

@@ -37,7 +37,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         return CommandResponse.Ok;
 
       _containerService.ContainersToRedraw.Add(windowToResize);
-      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }

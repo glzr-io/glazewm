@@ -53,8 +53,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           )
         );
 
-      _bus.Invoke(new RedrawContainersCommand());
-
       return CommandResponse.Ok;
     }
   }

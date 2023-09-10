@@ -41,7 +41,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       };
 
       _bus.Invoke(new ReplaceContainerCommand(floatingWindow, window.Parent, window.Index));
-      _bus.Invoke(new RedrawContainersCommand());
 
       return CommandResponse.Ok;
     }
