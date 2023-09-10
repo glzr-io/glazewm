@@ -46,12 +46,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
             {
               try
               {
-                // Avoid invoking keybinding if an ignored window currently has focus.
-                if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
-                  return;
+                lock (_bus.LockObj)
+                {
+                  // Avoid invoking keybinding if an ignored window currently has focus.
+                  if (_windowService.IgnoredHandles.Contains(GetForegroundWindow()))
+                    return;
 
-                _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
-                _bus.Invoke(new RedrawContainersCommand());
+                  _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
+                  _bus.Invoke(new RedrawContainersCommand());
+                }
               }
               catch (Exception e)
               {
