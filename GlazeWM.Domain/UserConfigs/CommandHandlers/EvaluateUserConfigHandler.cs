@@ -60,6 +60,15 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
       // Register keybindings.
       _bus.Invoke(new RegisterKeybindingsCommand(deserializedConfig.Keybindings));
 
+      // Enable/disable window transition animations.
+      var animationInfo = new AnimationInfo();
+      SystemParametersInfo(
+        SystemParametersInfoFlags.SetAnimation,
+        animationInfo.CallbackSize,
+        ref animationInfo,
+        0
+      );
+
       return CommandResponse.Ok;
     }
 
