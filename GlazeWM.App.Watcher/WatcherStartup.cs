@@ -10,10 +10,25 @@ namespace GlazeWM.App.Watcher
 {
   public sealed class WatcherStartup
   {
+    /// <summary>
+    /// Watcher is responsible for handling cleanup when the main process is killed
+    /// unexpectedly. This includes restoring all managed handles and restoring window
+    /// animation preferences.
+    /// </summary>
     public static async Task<ExitCode> Run(int ipcServerPort)
     {
       var client = new IpcClient(ipcServerPort);
       var managedHandles = new List<IntPtr>();
+
+      // Get user's global setting for whether window animations are enabled. This
+      // needs to be restored on exit.
+      var animationInfo = new AnimationInfo();
+      SystemParametersInfo(
+        SystemParametersInfoFlags.GetAnimation,
+        animationInfo.CallbackSize,
+        ref animationInfo,
+        0
+      );
 
       try
       {
@@ -44,6 +59,15 @@ namespace GlazeWM.App.Watcher
         // Restore managed handles on failure to communicate with the main process'
         // IPC server.
         RestoreHandles(managedHandles);
+
+        // Restore window animations setting to its initial value.
+        SystemParametersInfo(
+          SystemParametersInfoFlags.SetAnimation,
+          animationInfo.CallbackSize,
+          ref animationInfo,
+          0
+        );
+
         await client.DisconnectAsync();
         return ExitCode.Success;
       }
