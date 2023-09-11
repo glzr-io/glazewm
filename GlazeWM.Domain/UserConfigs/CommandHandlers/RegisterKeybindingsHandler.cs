@@ -54,6 +54,7 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
 
                   _bus.Invoke(new RunWithSubjectContainerCommand(commandStrings));
                   _bus.Invoke(new RedrawContainersCommand());
+                  _bus.Invoke(new SetNativeFocusCommand());
                 }
               }
               catch (Exception e)

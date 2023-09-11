@@ -67,7 +67,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         : workspaceToFocus;
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      _bus.Emit(new FocusChangedEvent(containerToFocus));
+      _containerService.HasPendingNativeFocus = true;
 
       // Display the workspace to switch focus to.
       if (focusedWorkspace.Parent == workspaceToFocus.Parent)
@@ -75,8 +75,6 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         _containerService.ContainersToRedraw.Add(displayedWorkspace);
         _containerService.ContainersToRedraw.Add(workspaceToFocus);
       }
-
-      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.

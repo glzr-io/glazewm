@@ -13,6 +13,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private readonly Bus _bus;
     private readonly WindowService _windowService;
 
+    // TODO: Rename `SyncNativeFocusCommand`.
     public SetNativeFocusHandler(Bus bus, WindowService windowService)
     {
       _bus = bus;
@@ -21,9 +22,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(SetNativeFocusCommand command)
     {
-      var containerToFocus = command.ContainerToFocus;
+      var hasPendingNativeFocus = _containerService.HasPendingNativeFocus;
 
-      var handleToFocus = containerToFocus switch
+      if (!hasPendingNativeFocus)
+        return CommandResponse.Ok;
+
+      var focusedContainer = _containerService.FocusedContainer;
+      var handleToFocus = focusedContainer switch
       {
         Window window => window.Handle,
         Workspace => _windowService.DesktopWindowHandle,
@@ -36,15 +41,15 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       KeybdEvent(0, 0, 0, 0);
       SetForegroundWindow(handleToFocus);
 
-      _bus.Emit(new NativeFocusReassignedEvent(containerToFocus));
+      _bus.Emit(new NativeFocusReassignedEvent(focusedContainer));
 
       // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
       // so `SetFocusedDescendantCommand` has to be manually called.
       // TODO: This is called twice unnecessarily when setting workspace focus on unmanage.
-      if (containerToFocus is Workspace)
+      if (focusedContainer is Workspace)
       {
-        _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-        _bus.Emit(new FocusChangedEvent(containerToFocus));
+        _bus.Invoke(new SetFocusedDescendantCommand(focusedContainer));
+        _bus.Emit(new FocusChangedEvent(focusedContainer));
       }
 
       return CommandResponse.Ok;

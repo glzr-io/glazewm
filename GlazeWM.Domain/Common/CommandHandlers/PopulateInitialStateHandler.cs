@@ -59,7 +59,7 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
       _bus.Emit(new FocusChangedEvent(containerToFocus));
-      _bus.Invoke(new SetNativeFocusCommand(containerToFocus));
+      _bus.Invoke(new SetNativeFocusCommand());
 
       return CommandResponse.Ok;
     }

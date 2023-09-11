@@ -34,7 +34,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       if (focusTarget is null || focusTarget == focusedContainer)
         return CommandResponse.Ok;
 
-      _bus.Invoke(new SetNativeFocusCommand(focusTarget));
+      _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
+      _containerService.HasPendingNativeFocus = true;
+
       return CommandResponse.Ok;
     }
 
