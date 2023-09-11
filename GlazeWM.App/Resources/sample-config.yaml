@@ -18,6 +18,8 @@ general:
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
+  # Whether to enable window transition animations (on minimize, close, etc).
+  window_animations: false
 
 bar:
   height: "30px"

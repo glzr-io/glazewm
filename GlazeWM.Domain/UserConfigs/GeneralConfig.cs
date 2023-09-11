@@ -8,7 +8,6 @@ namespace GlazeWM.Domain.UserConfigs
     public bool ShowFloatingOnTop { get; set; }
     /// <summary>
     /// Center the cursor in the middle of a newly focused window
-    /// TODO: Not officially released because implementation is buggy. Use at own risk.
     /// </summary>
     public bool CursorFollowsFocus { get; set; }
     /// <summary>
@@ -23,5 +22,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// If activated, by switching to the current workspace the previous focused workspace is activated.
     /// </summary>
     public bool ToggleWorkspaceOnRefocus { get; set; }
+    /// <summary>
+    /// Whether to enable window transition animations (on minimize, close, etc).
+    /// </summary>
+    public bool WindowAnimations { get; set; }
   }
 }
