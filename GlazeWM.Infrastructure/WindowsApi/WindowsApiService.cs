@@ -464,6 +464,36 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr handle, uint attribute, ref uint value, uint size);
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AnimationInfo
+    {
+      public uint CallbackSize;
+      public int MinAnimate;
+
+      public bool IsEnabled
+      {
+        get { return (this.MinAnimate != 0); }
+        set { this.MinAnimate = (value) ? 1 : 0; }
+      }
+
+      public static AnimationInfo Create(bool isEnabled)
+      {
+        var animationInfo = new AnimationInfo();
+        animationInfo.IsEnabled = isEnabled;
+        animationInfo.CallbackSize = (uint)Marshal.SizeOf(typeof(AnimationInfo));
+        return animationInfo;
+      }
+    }
+
+    public enum SystemParametersInfoFlags : uint
+    {
+      GetAnimation = 72,
+      SetAnimation = 73,
+    }
+
+    [DllImport("User32.dll", SetLastError = true)]
+    static extern bool SystemParametersInfo(SystemParametersInfo uiAction, uint uiParam, ref AnimationInfo pvParam, uint fWinIni);
+
     [DllImport("kernel32.dll")]
     internal static extern bool AttachConsole(uint dwProcessId);
 
