@@ -22,13 +22,7 @@ namespace GlazeWM.App.Watcher
 
       // Get user's global setting for whether window animations are enabled. This
       // needs to be restored on exit.
-      var animationInfo = new AnimationInfo();
-      SystemParametersInfo(
-        SystemParametersInfoFlags.GetAnimation,
-        animationInfo.CallbackSize,
-        ref animationInfo,
-        0
-      );
+      var animationsEnabled = SystemSettings.AreWindowAnimationsEnabled();
 
       try
       {
@@ -61,12 +55,7 @@ namespace GlazeWM.App.Watcher
         RestoreHandles(managedHandles);
 
         // Restore window animations setting to its initial value.
-        SystemParametersInfo(
-          SystemParametersInfoFlags.SetAnimation,
-          animationInfo.CallbackSize,
-          ref animationInfo,
-          0
-        );
+        SystemSettings.SetWindowAnimationsEnabled(animationsEnabled);
 
         await client.DisconnectAsync();
         return ExitCode.Success;
