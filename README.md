@@ -62,6 +62,8 @@ The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
+If this file does not exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) will be generated.
+
 ```console
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
 ```
@@ -74,7 +76,6 @@ general:
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
-  focus_border_color: "#42c0fb"
 ```
 
 ## Keybindings
@@ -114,6 +115,21 @@ Keybindings with <kbd>Alt</kbd>+<kbd>Shift</kbd> pressed:
 ![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
 Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the system tray icon.
+
+## Focus Window Border configuration
+
+The focused and unfocused window border color can be configured via the `focus_border_color` property.
+
+*Requires minimum of Windows 11 Build 22000.51.*
+
+```yaml
+focus_border_color: 
+  active: 
+    enabled: true
+    color: "#7ce38b"
+  inactive: 
+    enabled: false
+```
 
 ## Gap configuration
 
@@ -390,9 +406,34 @@ Uses Open-Meteo API, refreshes every hour.
   label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
+### Bar Component: Image
+
+Supports `.png` and `.jpg` formats.
+
+```yaml
+- type: "image"
+  source: "C:\\Folder\\AnotherFolder\\image.png"
+```
+
+### Bar Component: System Tray
+
+Use `Ctrl+Click` to pin and un-pin an icon. 
+
+```yaml
+- type: "system tray"
+  label_expand_text: "<"
+  label_collapse_text: ">"
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./docs/contributing-new-components.md)
+
+### Icons in Bar Components
+
+It's common to use icons as the `label` in bar components by assigning a `font_family` that contains glyphs.  A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
+
+If `font_family` or `label` properties are left unspecified, the default `Material Icons` font that is packaged with the app is used.  
 
 ## Window rules
 
