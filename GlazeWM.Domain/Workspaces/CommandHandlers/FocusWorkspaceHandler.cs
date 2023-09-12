@@ -67,7 +67,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
         : workspaceToFocus;
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      _containerService.HasPendingNativeFocus = true;
+      _containerService.HasPendingFocusSync = true;
 
       // Display the workspace to switch focus to.
       if (focusedWorkspace.Parent == workspaceToFocus.Parent)

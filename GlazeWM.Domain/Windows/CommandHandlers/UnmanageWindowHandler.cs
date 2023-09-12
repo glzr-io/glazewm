@@ -36,7 +36,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
       _containerService.PendingFocusContainer = focusTarget;
-      _containerService.HasPendingNativeFocus = true;
+      _containerService.HasPendingFocusSync = true;
 
       _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
 

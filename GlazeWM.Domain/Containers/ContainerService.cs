@@ -31,8 +31,7 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Whether native focus will need to be reassigned to the WM's focused container.
     /// </summary>
-    /// TODO: Alternatively: HasPendingFocusSync
-    public bool HasPendingNativeFocus { get; set; }
+    public bool HasPendingFocusSync { get; set; }
 
     /// <summary>
     /// Whether a tiling or floating container is currently focused.

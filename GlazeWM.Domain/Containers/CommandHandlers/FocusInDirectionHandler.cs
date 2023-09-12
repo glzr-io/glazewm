@@ -35,7 +35,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
 
       _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
-      _containerService.HasPendingNativeFocus = true;
+      _containerService.HasPendingFocusSync = true;
 
       return CommandResponse.Ok;
     }

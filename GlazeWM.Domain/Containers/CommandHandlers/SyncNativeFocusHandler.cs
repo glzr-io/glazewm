@@ -8,26 +8,32 @@ using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal sealed class SetNativeFocusHandler : ICommandHandler<SetNativeFocusCommand>
+  internal sealed class SyncNativeFocusHandler : ICommandHandler<SyncNativeFocusCommand>
   {
     private readonly Bus _bus;
+    private readonly ContainerService _containerService;
     private readonly WindowService _windowService;
 
-    // TODO: Rename `SyncNativeFocusCommand`.
-    public SetNativeFocusHandler(Bus bus, WindowService windowService)
+    public SyncNativeFocusHandler(
+      Bus bus,
+      ContainerService containerService,
+      WindowService windowService)
     {
       _bus = bus;
+      _containerService = containerService;
       _windowService = windowService;
     }
 
-    public CommandResponse Handle(SetNativeFocusCommand command)
+    public CommandResponse Handle(SyncNativeFocusCommand command)
     {
-      var hasPendingNativeFocus = _containerService.HasPendingNativeFocus;
+      var hasPendingFocusSync = _containerService.HasPendingFocusSync;
 
-      if (!hasPendingNativeFocus)
+      if (!hasPendingFocusSync)
         return CommandResponse.Ok;
 
+      // Container that the WM believes should have focus.
       var focusedContainer = _containerService.FocusedContainer;
+
       var handleToFocus = focusedContainer switch
       {
         Window window => window.Handle,
@@ -36,21 +42,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       };
 
       // Set focus to the given window handle. If the container is a normal window, then this
-      // will trigger `EVENT_SYSTEM_FOREGROUND` window event and its handler. This, in turn,
-      // calls `SetFocusedDescendantCommand`.
+      // will trigger `EVENT_SYSTEM_FOREGROUND` window event and its handler.
       KeybdEvent(0, 0, 0, 0);
       SetForegroundWindow(handleToFocus);
 
-      _bus.Emit(new NativeFocusReassignedEvent(focusedContainer));
-
-      // Setting focus to the desktop window does not emit `EVENT_SYSTEM_FOREGROUND` window event,
-      // so `SetFocusedDescendantCommand` has to be manually called.
-      // TODO: This is called twice unnecessarily when setting workspace focus on unmanage.
-      if (focusedContainer is Workspace)
-      {
-        _bus.Invoke(new SetFocusedDescendantCommand(focusedContainer));
-        _bus.Emit(new FocusChangedEvent(focusedContainer));
-      }
+      _bus.Emit(new NativeFocusSyncedEvent(focusedContainer));
+      _bus.Emit(new FocusChangedEvent(focusedContainer));
 
       return CommandResponse.Ok;
     }

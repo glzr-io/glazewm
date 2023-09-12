@@ -64,7 +64,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // immediately afterwards and they should behave as if `focusTarget` is the focused
       // descendant.
       _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
-      _containerService.HasPendingNativeFocus = true;
+      _containerService.HasPendingFocusSync = true;
 
       _containerService.ContainersToRedraw.Add(currentWorkspace);
       _containerService.ContainersToRedraw.Add(windowToMove);

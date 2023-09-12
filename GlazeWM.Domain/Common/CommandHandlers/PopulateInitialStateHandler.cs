@@ -58,8 +58,8 @@ namespace GlazeWM.Domain.Common.CommandHandlers
         _workspaceService.GetActiveWorkspaces().FirstOrDefault() as Container;
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
-      _bus.Emit(new FocusChangedEvent(containerToFocus));
-      _bus.Invoke(new SetNativeFocusCommand());
+      _containerService.HasPendingFocusSync = true;
+      _bus.Invoke(new SyncNativeFocusCommand());
 
       return CommandResponse.Ok;
     }
