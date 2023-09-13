@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GlazeWM.Bar.Common;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
@@ -90,6 +91,8 @@ namespace GlazeWM.Bar.Components
     public void FocusWorkspace(string workspaceName)
     {
       _bus.Invoke(new FocusWorkspaceCommand(workspaceName));
+      _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new SyncNativeFocusCommand());
     }
   }
 }
