@@ -2,7 +2,6 @@ using System.Linq;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
-using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.UserConfigs.Commands;
@@ -17,16 +16,20 @@ namespace GlazeWM.Domain.Common.CommandHandlers
   internal sealed class PopulateInitialStateHandler : ICommandHandler<PopulateInitialStateCommand>
   {
     private readonly Bus _bus;
+    private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
     private readonly WindowService _windowService;
     private readonly WorkspaceService _workspaceService;
 
-    public PopulateInitialStateHandler(Bus bus,
+    public PopulateInitialStateHandler(
+      Bus bus,
+      ContainerService containerService,
       MonitorService monitorService,
       WindowService windowService,
       WorkspaceService workspaceService)
     {
       _bus = bus;
+      _containerService = containerService;
       _monitorService = monitorService;
       _windowService = windowService;
       _workspaceService = workspaceService;
@@ -59,7 +62,6 @@ namespace GlazeWM.Domain.Common.CommandHandlers
 
       _bus.Invoke(new SetFocusedDescendantCommand(containerToFocus));
       _containerService.HasPendingFocusSync = true;
-      _bus.Invoke(new SyncNativeFocusCommand());
 
       return CommandResponse.Ok;
     }

@@ -49,6 +49,7 @@ namespace GlazeWM.App.WindowManager
         // Populate initial monitors, windows, workspaces and user config.
         _bus.Invoke(new PopulateInitialStateCommand());
         _bus.Invoke(new RedrawContainersCommand());
+        _bus.Invoke(new SyncNativeFocusCommand());
 
         // Listen on registered keybindings.
         _keybindingService.Start();

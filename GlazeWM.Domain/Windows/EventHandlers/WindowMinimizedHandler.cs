@@ -61,7 +61,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
       // Focus should be reassigned to appropriate container.
-      _bus.InvokeAsync(new SetFocusedDescendant(focusTarget));
+      _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
       _containerService.HasPendingFocusSync = true;
 
       _containerService.ContainersToRedraw.Add(workspace);
