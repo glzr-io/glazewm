@@ -12,16 +12,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
-    private readonly WindowService _windowService;
 
-    public SyncNativeFocusHandler(
-      Bus bus,
-      ContainerService containerService,
-      WindowService windowService)
+    public SyncNativeFocusHandler(Bus bus, ContainerService containerService)
     {
       _bus = bus;
       _containerService = containerService;
-      _windowService = windowService;
     }
 
     public CommandResponse Handle(SyncNativeFocusCommand command)
@@ -37,7 +32,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var handleToFocus = focusedContainer switch
       {
         Window window => window.Handle,
-        Workspace => _windowService.DesktopWindowHandle,
+        Workspace => GetDesktopWindow(),
         _ => throw new Exception("Invalid container type to focus. This is a bug."),
       };
 
@@ -48,6 +43,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       _bus.Emit(new NativeFocusSyncedEvent(focusedContainer));
       _bus.Emit(new FocusChangedEvent(focusedContainer));
+
+      _containerService.HasPendingFocusSync = false;
 
       return CommandResponse.Ok;
     }

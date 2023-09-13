@@ -10,11 +10,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
+    private readonly WindowService _windowService;
 
-    public UnmanageWindowHandler(Bus bus, ContainerService containerService)
+    public UnmanageWindowHandler(
+      Bus bus,
+      ContainerService containerService,
+      WindowService windowService)
     {
       _bus = bus;
       _containerService = containerService;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(UnmanageWindowCommand command)
@@ -22,23 +27,28 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var window = command.Window;
 
       // Get container to switch focus to after the window has been removed.
-      var focusTarget = WindowService.GetFocusTargetAfterRemoval(window);
+      var focusedContainer = _containerService.FocusedContainer;
+      var focusTarget = window == focusedContainer
+        ? WindowService.GetFocusTargetAfterRemoval(window)
+        : null;
 
       if (window is IResizable)
         _bus.Invoke(new DetachAndResizeContainerCommand(window));
       else
         _bus.Invoke(new DetachContainerCommand(window));
 
+      _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
+
+      if (focusTarget is null)
+        return CommandResponse.Ok;
+
       // The OS automatically switches focus to a different window after closing. If
       // there are focusable windows, then set focus *after* the OS sets focus. This will
       // cause focus to briefly flicker to the OS focus target and then to the WM's focus
       // target.
-
       _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
-      _containerService.PendingFocusContainer = focusTarget;
       _containerService.HasPendingFocusSync = true;
-
-      _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
+      _windowService.UnmanagedOrMinimizedStopwatch.Restart();
 
       return CommandResponse.Ok;
     }
