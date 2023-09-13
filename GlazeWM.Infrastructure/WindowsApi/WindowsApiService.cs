@@ -472,16 +472,17 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
       public bool IsEnabled
       {
-        get { return (this.MinAnimate != 0); }
-        set { this.MinAnimate = (value) ? 1 : 0; }
+        readonly get => MinAnimate != 0;
+        set => MinAnimate = value ? 1 : 0;
       }
 
       public static AnimationInfo Create(bool isEnabled)
       {
-        var animationInfo = new AnimationInfo();
-        animationInfo.IsEnabled = isEnabled;
-        animationInfo.CallbackSize = (uint)Marshal.SizeOf(typeof(AnimationInfo));
-        return animationInfo;
+        return new()
+        {
+          IsEnabled = isEnabled,
+          CallbackSize = (uint)Marshal.SizeOf(typeof(AnimationInfo))
+        };
       }
     }
 
@@ -492,7 +493,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("User32.dll", SetLastError = true)]
-    static extern bool SystemParametersInfo(SystemParametersInfo uiAction, uint uiParam, ref AnimationInfo pvParam, uint fWinIni);
+    public static extern bool SystemParametersInfo(SystemParametersInfoFlags uiAction, uint uiParam, ref AnimationInfo pvParam, uint fWinIni);
 
     [DllImport("kernel32.dll")]
     internal static extern bool AttachConsole(uint dwProcessId);

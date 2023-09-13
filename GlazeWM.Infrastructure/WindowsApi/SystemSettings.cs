@@ -1,4 +1,4 @@
-using System;
+using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Infrastructure.WindowsApi
 {
@@ -7,9 +7,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Whether window transition animations are enabled (on minimize, close, etc).
     /// </summary>
-    public bool AreWindowAnimationsEnabled()
+    public static bool AreWindowAnimationsEnabled()
     {
-      var animationInfo = new AnimationInfo(false);
+      var animationInfo = AnimationInfo.Create(false);
 
       SystemParametersInfo(
         SystemParametersInfoFlags.GetAnimation,
@@ -24,9 +24,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     /// <summary>
     /// Modify global setting for whether window transition animations are enabled.
     /// </summary>
-    public void SetWindowAnimationsEnabled(bool enabled)
+    public static void SetWindowAnimationsEnabled(bool enabled)
     {
-      var animationInfo = new AnimationInfo(enabled);
+      var animationInfo = AnimationInfo.Create(enabled);
 
       SystemParametersInfo(
         SystemParametersInfoFlags.SetAnimation,

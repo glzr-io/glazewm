@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GlazeWM.Domain.Common;
 using GlazeWM.Infrastructure.Common;
+using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.App.Watcher
