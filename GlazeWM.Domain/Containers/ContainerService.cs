@@ -29,7 +29,7 @@ namespace GlazeWM.Domain.Containers
     public Container FocusedContainer => ContainerTree.LastFocusedDescendant;
 
     /// <summary>
-    /// Whether native focus will need to be reassigned to the WM's focused container.
+    /// Whether native focus needs to be reassigned to `FocusedContainer`.
     /// </summary>
     public bool HasPendingFocusSync { get; set; }
 

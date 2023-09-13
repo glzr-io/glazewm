@@ -47,6 +47,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // If window is in tree, detach the removed window from its parent.
       _bus.Invoke(new UnmanageWindowCommand(window));
       _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new SyncNativeFocusCommand());
     }
   }
 }
