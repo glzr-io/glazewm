@@ -38,6 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _bus.Invoke(new ManageWindowCommand(@event.WindowHandle));
       _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new SyncNativeFocusCommand());
     }
   }
 }

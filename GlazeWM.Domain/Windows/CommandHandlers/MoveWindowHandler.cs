@@ -128,9 +128,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, true));
       else
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, 0, true));
-
-      // Refresh state in bar of which workspace has focus.
-      _bus.Emit(new FocusChangedEvent(windowToMove));
     }
 
     private void ChangeWorkspaceTilingDirection(Window windowToMove, Direction direction)
@@ -289,7 +286,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
         // Change the window's parent workspace.
         _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
-        _bus.Emit(new FocusChangedEvent(windowToMove));
 
         // Redrawing twice to fix weird WindowsOS dpi behaviour
         windowToMove.HasPendingDpiAdjustment = true;

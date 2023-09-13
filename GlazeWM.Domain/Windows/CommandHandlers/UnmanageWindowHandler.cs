@@ -34,8 +34,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // cause focus to briefly flicker to the OS focus target and then to the WM's focus
       // target.
 
+      _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
       _containerService.PendingFocusContainer = focusTarget;
-      _bus.InvokeAsync(new SetNativeFocusCommand(focusTarget));
+      _containerService.HasPendingFocusSync = true;
 
       _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
 

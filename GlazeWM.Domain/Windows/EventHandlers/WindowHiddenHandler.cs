@@ -50,6 +50,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Detach the hidden window from its parent.
       _bus.Invoke(new UnmanageWindowCommand(window));
       _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new SyncNativeFocusCommand());
     }
   }
 }

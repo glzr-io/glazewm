@@ -78,6 +78,7 @@ namespace GlazeWM.Bar.Components
         @event is WorkspaceActivatedEvent
           or WorkspaceDeactivatedEvent
           or FocusChangedEvent
+          or FocusedContainerMovedEvent
       );
 
       // Refresh contents of workspaces collection.

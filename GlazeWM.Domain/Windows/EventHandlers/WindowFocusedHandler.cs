@@ -4,11 +4,9 @@ using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Workspaces.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common.Events;
 using Microsoft.Extensions.Logging;
-using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.Domain.Windows.EventHandlers
 {
@@ -61,7 +59,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           return;
         }
 
-        _bus.InvokeAsync(new SetNativeFocusCommand(pendingFocusContainer));
+        _bus.InvokeAsync(new SyncNativeFocusCommand());
         return;
       }
 
@@ -71,8 +69,15 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       if (window is null || window?.IsDisplayed == false)
         return;
 
-      _logger.LogWindowEvent("Window focused", window);
+      _logger.LogWindowEvent("Native focus event", window);
 
+      var focusedContainer = _containerService.FocusedContainer;
+
+      // Focus is already set to the WM's focused container.
+      if (window == focusedContainer)
+        return;
+
+      // Update the WM's focus state.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
       _bus.Emit(new FocusChangedEvent(window));
     }

@@ -85,8 +85,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       _logger.LogWindowEvent("New window managed", window);
       _bus.Emit(new WindowManagedEvent(window));
 
-      // Set OS focus to the newly added window in case it's not already focused.
-      _bus.Invoke(new SetNativeFocusCommand(window));
+      // OS focus should be set to the newly added window in case it's not already focused.
+      _containerService.HasPendingFocusSync = true;
 
       return CommandResponse.Ok;
     }
