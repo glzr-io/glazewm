@@ -23,11 +23,14 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(RedrawContainersCommand command)
     {
-      // Get windows that should be redrawn.
+      // Get windows that should be redrawn. When redrawing after a keybinding that
+      // changes a window's type (eg. tiling -> floating), the original detached window
+      // might still be queued for a redraw and should be ignored.
       var windowsToRedraw = _containerService.ContainersToRedraw
         .SelectMany(container => container.Flatten())
         .OfType<Window>()
         .Distinct()
+        .Where(window => !window.IsDetached())
         .ToList();
 
       // Get windows that are minimized/maximized and shouldn't be.
