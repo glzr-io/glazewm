@@ -10,11 +10,16 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
+    private readonly WindowService _windowService;
 
-    public UnmanageWindowHandler(Bus bus, ContainerService containerService)
+    public UnmanageWindowHandler(
+      Bus bus,
+      ContainerService containerService,
+      WindowService windowService)
     {
       _bus = bus;
       _containerService = containerService;
+      _windowService = windowService;
     }
 
     public CommandResponse Handle(UnmanageWindowCommand command)

@@ -44,6 +44,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _bus.Emit(new NativeFocusSyncedEvent(focusedContainer));
       _bus.Emit(new FocusChangedEvent(focusedContainer));
 
+      _containerService.HasPendingFocusSync = false;
+
       return CommandResponse.Ok;
     }
   }

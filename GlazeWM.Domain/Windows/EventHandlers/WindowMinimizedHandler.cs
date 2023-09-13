@@ -67,7 +67,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Focus should be reassigned to appropriate container.
       if (focusTarget is not null)
       {
-        _bus.Invoke(new SetFocusedDescendant(focusTarget));
+        _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
         _containerService.HasPendingFocusSync = true;
         _windowService.UnmanagedOrMinimizedStopwatch.Restart();
       }

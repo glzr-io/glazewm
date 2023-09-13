@@ -51,6 +51,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       if (unmanagedStopwatch?.ElapsedMilliseconds < 100)
       {
+        _logger.LogDebug("Overriding native focus.");
         _bus.Invoke(new SyncNativeFocusCommand());
         return;
       }
