@@ -26,9 +26,10 @@ namespace GlazeWM.Domain.Windows
     public List<IntPtr> IgnoredHandles { get; set; } = new();
 
     /// <summary>
-    /// Handle to the desktop window.
+    /// Time since a previously focused window was unmanaged or minimized. Used to
+    /// decide whether to override incoming focus events.
     /// </summary>
-    public IntPtr DesktopWindowHandle { get; } = GetDesktopWindowHandle();
+    public Stopwatch UnmanagedOrMinimizedStopwatch { get; } = new();
 
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
@@ -125,16 +126,6 @@ namespace GlazeWM.Domain.Windows
       }, IntPtr.Zero);
 
       return windowHandles;
-    }
-
-    private static IntPtr GetDesktopWindowHandle()
-    {
-      return GetAllWindowHandles().Find(handle =>
-      {
-        var className = GetClassNameOfHandle(handle);
-        var process = GetProcessOfHandle(handle);
-        return className == "Progman" && process.ProcessName == "explorer";
-      });
     }
 
     public static WindowStylesEx GetWindowStylesEx(IntPtr handle)

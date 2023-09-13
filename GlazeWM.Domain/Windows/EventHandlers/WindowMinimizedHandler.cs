@@ -55,14 +55,22 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         Id = window.Id
       };
 
-      // Get container to switch focus to after the window has been minimized.
-      var focusTarget = WindowService.GetFocusTargetAfterRemoval(window);
+      // Get container to switch focus to after the window has been minimized. Need to
+      // get focus target prior to calling `ReplaceContainerCommand`.
+      var focusedContainer = _containerService.FocusedContainer;
+      var focusTarget = window == focusedContainer
+        ? WindowService.GetFocusTargetAfterRemoval(window)
+        : null;
 
       _bus.Invoke(new ReplaceContainerCommand(minimizedWindow, window.Parent, window.Index));
 
       // Focus should be reassigned to appropriate container.
-      _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
-      _containerService.HasPendingFocusSync = true;
+      if (focusTarget is not null)
+      {
+        _bus.Invoke(new SetFocusedDescendant(focusTarget));
+        _containerService.HasPendingFocusSync = true;
+        _windowService.UnmanagedOrMinimizedStopwatch.Restart();
+      }
 
       _containerService.ContainersToRedraw.Add(workspace);
       _bus.Invoke(new RedrawContainersCommand());

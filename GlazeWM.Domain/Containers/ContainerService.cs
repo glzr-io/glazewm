@@ -40,15 +40,15 @@ namespace GlazeWM.Domain.Containers
       FocusMode.Floating : FocusMode.Tiling;
 
     /// <summary>
+    /// While active, any this container overrides the target container to set focus to on the next
+    /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
+    /// </summary>
+    public Countdown FocusOverrideCountdown { get; set; } = new(TimeSpan.FromMilliseconds(100));
+
+    /// <summary>
     /// Name of the currently active binding mode (if one is active).
     /// </summary>
     public string ActiveBindingMode { get; set; }
-
-    /// <summary>
-    /// If set, this container overrides the target container to set focus to on the next
-    /// focus window event (ie. `EVENT_SYSTEM_FOREGROUND`).
-    /// </summary>
-    public Container PendingFocusContainer { get; set; }
 
     private readonly UserConfigService _userConfigService;
 
