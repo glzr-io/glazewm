@@ -73,8 +73,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosFlags.FrameChanged |
         SetWindowPosFlags.NoActivate |
         SetWindowPosFlags.NoCopyBits |
-        SetWindowPosFlags.NoSendChanging;
-      // SetWindowPosFlags.AsyncWindowPos;
+        SetWindowPosFlags.NoSendChanging |
+        SetWindowPosFlags.AsyncWindowPos;
 
       var workspace = window.Ancestors.OfType<Workspace>().First();
       var isWorkspaceDisplayed = workspace.IsDisplayed;

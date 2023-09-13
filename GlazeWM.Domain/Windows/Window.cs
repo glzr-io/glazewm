@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
@@ -17,7 +18,17 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether window is shown, hidden, or in an intermediary state.
     /// </summary>
-    public DisplayState DisplayState { get; set; } = DisplayState.Shown;
+    private DisplayState _displayState = DisplayState.Shown;
+    public DisplayState DisplayState
+    {
+      get => _displayState;
+      set
+      {
+        var Asdf = Enum.GetName(value.GetType(), value);
+        Debug.WriteLine($"Display state changed {ProcessName} {Title}: {Asdf}");
+        _displayState = value;
+      }
+    }
 
     /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch

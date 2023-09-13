@@ -54,7 +54,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       }
 
       // Detach the hidden window from its parent.
-      if (window.DisplayState is DisplayState.Shown)
+      if (window.DisplayState is DisplayState.Shown && !WindowService.IsHandleVisible(window.Handle))
       {
         _bus.Invoke(new UnmanageWindowCommand(window));
         _bus.Invoke(new RedrawContainersCommand());
@@ -63,3 +63,23 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     }
   }
 }
+
+// Scenario 1:
+// window hiding (due to focus defocus)
+// window showing (due to focus refocus)
+// window hidden event
+// window shown event
+
+// Scenario 2:
+// window hiding (due to focus defocus)
+// window hidden event
+// window showing (due to focus refocus)
+// window shown event
+
+// Scenario 3:
+// window hiding (due to focus defocus)
+// window showing (due to focus refocus)
+// window hiding (due to focus defocus)
+// window hidden event
+// window shown event
+// window hidden event
