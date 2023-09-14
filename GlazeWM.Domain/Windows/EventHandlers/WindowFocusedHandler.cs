@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
-      if (window is null || window.DisplayState is DisplayState.Hidden or DisplayState.Hiding)
+      if (window is null || window.DisplayState is DisplayState.Hiding)
         // if (window is null || window.DisplayState is DisplayState.Hidden)
         return;
 
@@ -62,14 +62,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // TODO: Need to return early for other display states.
       // TODO: Should this be moved to `WindowShownHandler`. Is show event
       // emitted first, or foreground?
-      // if (window.DisplayState is DisplayState.Hidden)
-      // {
-      //   _logger.LogWindowEvent("Focusing off-screen window", window);
-      //   var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
-      //   _bus.Invoke(new FocusWorkspaceCommand(workspace.Name));
-      //   _bus.Emit(new FocusChangedEvent(window));
-      //   return;
-      // }
+      if (window.DisplayState is DisplayState.Hidden)
+      {
+        _logger.LogWindowEvent("Focusing off-screen window", window);
+        var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
+        _bus.Invoke(new FocusWorkspaceCommand(workspace.Name));
+        _bus.Invoke(new SetFocusedDescendantCommand(window));
+        _bus.Invoke(new RedrawContainersCommand());
+        _bus.Emit(new FocusChangedEvent(window));
+        return;
+      }
 
       // Update the WM's focus state.
       _bus.Invoke(new SetFocusedDescendantCommand(window));
