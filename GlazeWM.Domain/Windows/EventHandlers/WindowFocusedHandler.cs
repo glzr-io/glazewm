@@ -38,7 +38,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var window = _windowService.GetWindows()
         .FirstOrDefault(window => window.Handle == @event.WindowHandle);
 
-      if (window is null || window.DisplayState != DisplayState.Shown)
+      if (window is null || window.DisplayState is DisplayState.Hidden or DisplayState.Hiding)
         // if (window is null || window.DisplayState is DisplayState.Hidden)
         return;
 
@@ -52,7 +52,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       var unmanagedStopwatch = _windowService.UnmanagedOrMinimizedStopwatch;
 
-      if (unmanagedStopwatch?.ElapsedMilliseconds < 100)
+      if (unmanagedStopwatch.IsRunning && unmanagedStopwatch.ElapsedMilliseconds < 100)
       {
         _logger.LogDebug("Overriding native focus.");
         _bus.Invoke(new SyncNativeFocusCommand());

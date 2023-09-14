@@ -150,7 +150,7 @@ namespace GlazeWM.Domain.Containers
 
     public bool IsDetached()
     {
-      return Parent is null;
+      return Parent is null || Index == -1;
     }
 
     public bool HasChildren()

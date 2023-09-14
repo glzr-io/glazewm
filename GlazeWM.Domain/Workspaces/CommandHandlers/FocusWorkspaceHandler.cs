@@ -70,11 +70,8 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       _containerService.HasPendingFocusSync = true;
 
       // Display the workspace to switch focus to.
-      if (focusedWorkspace.Parent == workspaceToFocus.Parent)
-      {
-        _containerService.ContainersToRedraw.Add(displayedWorkspace);
-        _containerService.ContainersToRedraw.Add(workspaceToFocus);
-      }
+      _containerService.ContainersToRedraw.Add(displayedWorkspace);
+      _containerService.ContainersToRedraw.Add(workspaceToFocus);
 
       // Get empty workspace to destroy (if any are found). Cannot destroy empty workspaces if
       // they're the only workspace on the monitor or are pending focus.
