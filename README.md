@@ -58,11 +58,9 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 # Configuration
 
-The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, it can optionally be generated with some sensible defaults on application launch.
+The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) can optionally be generated on launch.
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
-
-If this file does not exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) will be generated.
 
 ```console
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
@@ -118,17 +116,18 @@ Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to 
 
 ## Focus Window Border configuration
 
-The focused and unfocused window border color can be configured via the `focus_border_color` property.
+The focused and unfocused window border color can be configured via the `focus_borders` property.
 
-*Requires minimum of Windows 11 Build 22000.51.*
+_Requires minimum of Windows 11 Build 22000.51._
 
 ```yaml
-focus_border_color: 
-  active: 
+focus_borders:
+  active:
     enabled: true
-    color: "#7ce38b"
-  inactive: 
+    color: "#ff0000"
+  inactive:
     enabled: false
+    color: "#0000ff"
 ```
 
 ## Gap configuration
@@ -348,9 +347,9 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Network 
+### Bar Component: Network
 
-Displays the active Network. 
+Displays the type and signal strength of the active network connection.
 
 ```yaml
 - type: "network"
@@ -363,9 +362,9 @@ Displays the active Network.
   label_wifi_strength_100: "WiFi: 100%"
 ```
 
-### Bar Component: Volume 
+### Bar Component: Volume
 
-Displays volume level. 
+Displays volume level.
 
 ```yaml
 - type: "volume"
@@ -417,7 +416,7 @@ Supports `.png` and `.jpg` formats.
 
 ### Bar Component: System Tray
 
-Use `Ctrl+Click` to pin and un-pin an icon. 
+Use `Ctrl+Click` to pin and un-pin an icon.
 
 ```yaml
 - type: "system tray"
@@ -431,9 +430,9 @@ Use `Ctrl+Click` to pin and un-pin an icon.
 
 ### Icons in Bar Components
 
-It's common to use icons as the `label` in bar components by assigning a `font_family` that contains glyphs.  A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
+It's common to use icons as the `label` in bar components by assigning a `font_family` that contains glyphs. A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
 
-If `font_family` or `label` properties are left unspecified, the default `Material Icons` font that is packaged with the app is used.  
+If `font_family` or `label` properties are left unspecified, the default `Material Icons` font that is packaged with the app is used.
 
 ## Window rules
 
