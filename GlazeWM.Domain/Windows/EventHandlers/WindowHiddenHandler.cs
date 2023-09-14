@@ -46,14 +46,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       _logger.LogWindowEvent("Window hidden", window);
 
-      // Update display state.
+      // Update the display state.
       if (window.DisplayState is DisplayState.Hiding)
       {
         window.DisplayState = DisplayState.Hidden;
         return;
       }
 
-      // Detach the hidden window from its parent.
+      // Unmanage the window if it's not in a display state transition. Also, since window
+      // events are not 100% guaranteed to be in correct order, we need to ignore events
+      // where the window is not actually hidden.
       if (window.DisplayState is DisplayState.Shown && !WindowService.IsHandleVisible(window.Handle))
       {
         _bus.Invoke(new UnmanageWindowCommand(window));
@@ -63,23 +65,3 @@ namespace GlazeWM.Domain.Windows.EventHandlers
     }
   }
 }
-
-// Scenario 1:
-// window hiding (due to focus defocus)
-// window showing (due to focus refocus)
-// window hidden event
-// window shown event
-
-// Scenario 2:
-// window hiding (due to focus defocus)
-// window hidden event
-// window showing (due to focus refocus)
-// window shown event
-
-// Scenario 3:
-// window hiding (due to focus defocus)
-// window showing (due to focus refocus)
-// window hiding (due to focus defocus)
-// window hidden event
-// window shown event
-// window hidden event

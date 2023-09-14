@@ -18,17 +18,7 @@ namespace GlazeWM.Domain.Windows
     /// <summary>
     /// Whether window is shown, hidden, or in an intermediary state.
     /// </summary>
-    private DisplayState _displayState = DisplayState.Shown;
-    public DisplayState DisplayState
-    {
-      get => _displayState;
-      set
-      {
-        var Asdf = Enum.GetName(value.GetType(), value);
-        Debug.WriteLine($"Display state changed {ProcessName} {Title}: {Asdf}");
-        _displayState = value;
-      }
-    }
+    public DisplayState DisplayState { get; set; } = DisplayState.Shown;
 
     /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch

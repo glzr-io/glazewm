@@ -59,9 +59,10 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       // Save currently focused workspace as recent for command "recent"
       _workspaceService.MostRecentWorkspace = focusedWorkspace;
 
+      _logger.LogDebug("WorkspaceToFocus: {WorkspaceToFocusName}", workspaceToFocus.Name);
+
       // Set focus to the last focused window in workspace. If the workspace has no descendant
       // windows, then set focus to the workspace itself.
-      _logger.LogDebug("WorkspaceToFocus: {WorkspaceToFocusName}", workspaceToFocus.Name);
       var containerToFocus = workspaceToFocus.HasChildren()
         ? workspaceToFocus.LastFocusedDescendant
         : workspaceToFocus;

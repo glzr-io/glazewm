@@ -81,18 +81,11 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Show or hide the window depending on whether the workspace is displayed.
       if (isWorkspaceDisplayed)
-      {
         defaultFlags |= SetWindowPosFlags.ShowWindow;
-        // if (window.DisplayState is DisplayState.Hidden or DisplayState.Hiding)
-        //   window.DisplayState = DisplayState.Showing;
-      }
       else
-      {
         defaultFlags |= SetWindowPosFlags.HideWindow;
-        // if (window.DisplayState is DisplayState.Shown or DisplayState.Showing)
-        //   window.DisplayState = DisplayState.Hiding;
-      }
 
+      // Transition display state depending on whether window will be shown/hidden.
       window.DisplayState = window.DisplayState switch
       {
         DisplayState.Hidden or

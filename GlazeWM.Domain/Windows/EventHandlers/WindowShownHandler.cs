@@ -1,8 +1,7 @@
-using System.Diagnostics;
 using System.Linq;
-using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Common.Utils;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
