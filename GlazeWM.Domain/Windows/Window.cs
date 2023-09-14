@@ -1,7 +1,8 @@
 using System;
+using System.Diagnostics;
 using GlazeWM.Domain.Common;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.WindowsApi;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -13,6 +14,11 @@ namespace GlazeWM.Domain.Windows
     public override ContainerType Type { get; } = ContainerType.Window;
 
     public IntPtr Handle { get; }
+
+    /// <summary>
+    /// Whether window is shown, hidden, or in an intermediary state.
+    /// </summary>
+    public DisplayState DisplayState { get; set; } = DisplayState.Shown;
 
     /// <summary>
     /// The placement of the window when floating. Initialized with window's placement on launch
@@ -38,11 +44,6 @@ namespace GlazeWM.Domain.Windows
       FloatingPlacement = floatingPlacement;
       BorderDelta = borderDelta;
     }
-
-    /// <summary>
-    /// Windows are displayed if their parent workspace is displayed.
-    /// </summary>
-    public bool IsDisplayed => WorkspaceService.GetWorkspaceFromChildContainer(this).IsDisplayed;
 
     public string ProcessName =>
       WindowService.GetProcessOfHandle(Handle)?.ProcessName ?? string.Empty;

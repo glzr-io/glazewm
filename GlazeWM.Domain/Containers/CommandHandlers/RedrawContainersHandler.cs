@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
+using GlazeWM.Domain.Common.Enums;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -71,13 +73,27 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         SetWindowPosFlags.FrameChanged |
         SetWindowPosFlags.NoActivate |
         SetWindowPosFlags.NoCopyBits |
-        SetWindowPosFlags.NoSendChanging;
+        SetWindowPosFlags.NoSendChanging |
+        SetWindowPosFlags.AsyncWindowPos;
+
+      var workspace = window.Ancestors.OfType<Workspace>().First();
+      var isWorkspaceDisplayed = workspace.IsDisplayed;
 
       // Show or hide the window depending on whether the workspace is displayed.
-      if (window.IsDisplayed)
+      if (isWorkspaceDisplayed)
         defaultFlags |= SetWindowPosFlags.ShowWindow;
       else
         defaultFlags |= SetWindowPosFlags.HideWindow;
+
+      // Transition display state depending on whether window will be shown/hidden.
+      window.DisplayState = window.DisplayState switch
+      {
+        DisplayState.Hidden or
+        DisplayState.Hiding when isWorkspaceDisplayed => DisplayState.Showing,
+        DisplayState.Shown or
+        DisplayState.Showing when !isWorkspaceDisplayed => DisplayState.Hiding,
+        _ => window.DisplayState
+      };
 
       if (window is TilingWindow)
       {

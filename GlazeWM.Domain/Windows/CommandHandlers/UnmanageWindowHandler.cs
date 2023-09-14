@@ -42,10 +42,6 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       if (focusTarget is null)
         return CommandResponse.Ok;
 
-      // The OS automatically switches focus to a different window after closing. If
-      // there are focusable windows, then set focus *after* the OS sets focus. This will
-      // cause focus to briefly flicker to the OS focus target and then to the WM's focus
-      // target.
       _bus.Invoke(new SetFocusedDescendantCommand(focusTarget));
       _containerService.HasPendingFocusSync = true;
       _windowService.UnmanagedOrMinimizedStopwatch.Restart();
