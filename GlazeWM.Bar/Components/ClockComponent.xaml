@@ -4,13 +4,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-  xmlns:local="clr-namespace:GlazeWM.Bar.Components"
+  xmlns:components="clr-namespace:GlazeWM.Bar.Components"
   mc:Ignorable="d">
-  <TextBlock
-    VerticalAlignment="Center"
-    Foreground="{Binding Foreground}"
-    FontFamily="{Binding FontFamily}"
-    FontWeight="{Binding FontWeight}"
-    FontSize="{Binding FontSize}"
-    Text="{Binding FormattedTime}" />
+  <components:LabelComponent DataContext="{Binding Label}" />
 </UserControl>

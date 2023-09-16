@@ -1,25 +1,26 @@
 <UserControl
   x:Class="GlazeWM.Bar.Components.SystemTrayComponent"
+  x:Name="_workspacesComponent"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
+  xmlns:components="clr-namespace:GlazeWM.Bar.Components"
+xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
   mc:Ignorable="d">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
   </UserControl.Resources>
   <StackPanel Orientation="Horizontal">
-    <Button
-      Background="{Binding Background}"
-      Foreground="{Binding Foreground}"
-      FontFamily="{Binding FontFamily}"
-      Content="{Binding ExpandCollapseText}"
-      FontWeight="{Binding FontWeight}"
-      FontSize="{Binding FontSize}"
-      Command="{Binding ToggleShowAllIconsCommand}"
-      BorderThickness="0"
-      Cursor="Hand" />
+    <components:LabelComponent DataContext="{Binding Label}">
+        <i:Interaction.Triggers>
+          <i:EventTrigger EventName="MouseLeftButtonDown">
+            <i:CallMethodAction MethodName="ToggleShowAllIcons"    TargetObject="{Binding Path=DataContext, ElementName=_workspacesComponent, Mode=OneWay}" />
+
+          </i:EventTrigger>
+        </i:Interaction.Triggers>
+      </components:LabelComponent>
     <Border
       x:Name="NotifyIconBorder"
       ToolTip="{Binding Path=TrayIcon.Title}"

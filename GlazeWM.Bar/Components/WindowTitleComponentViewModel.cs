@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
@@ -11,42 +12,55 @@ namespace GlazeWM.Bar.Components
 {
   public class WindowTitleComponentViewModel : ComponentViewModel
   {
+    private readonly WindowTitleComponentConfig _config;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
       ServiceLocator.GetRequiredService<ContainerService>();
 
-    public string _focusedWindowTitle = string.Empty;
-    public string FocusedWindowTitle
+    private LabelViewModel _label;
+    public LabelViewModel Label
     {
-      get => _focusedWindowTitle;
-      set
-      {
-        _focusedWindowTitle = value;
-        OnPropertyChanged(nameof(FocusedWindowTitle));
-      }
+      get => _label;
+      protected set => SetField(ref _label, value);
     }
 
     public WindowTitleComponentViewModel(
       BarViewModel parentViewModel,
       WindowTitleComponentConfig config) : base(parentViewModel, config)
     {
-      _bus.Events.OfType<WindowFocusedEvent>()
-        .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+      _config = config;
 
-      _bus.Events.OfType<WindowTitleChangedEvent>()
-        .Subscribe((@event) => UpdateTitle(@event.WindowHandle));
+      var windowFocused = _bus.Events
+        .OfType<WindowFocusedEvent>()
+        .Select(@event => @event.WindowHandle);
+
+      var windowTitleChanged = _bus.Events
+        .OfType<WindowTitleChangedEvent>()
+        .Select(@event => @event.WindowHandle);
+
+      windowFocused.Merge(windowTitleChanged)
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe((windowHandle) =>
+        {
+          var focusedWindow = _containerService.FocusedContainer as Window;
+
+          if (focusedWindow != null && windowHandle != focusedWindow.Handle)
+            return;
+
+          var windowTitle = focusedWindow?.Title ?? string.Empty;
+          Label = CreateLabel(windowTitle);
+        });
     }
 
-    private void UpdateTitle(IntPtr windowHandle)
+    private LabelViewModel CreateLabel(string windowTitle)
     {
-      var focusedWindow = _containerService.FocusedContainer as Window;
-
-      if (focusedWindow != null && windowHandle != focusedWindow.Handle)
-        return;
-
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
       // TODO: Make truncate max length configurable from config.
-      var windowTitle = focusedWindow?.Title ?? string.Empty;
-      FocusedWindowTitle = Truncate(windowTitle, 60);
+        { "window_title", () => Truncate(windowTitle, 60) }
+      };
+
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
     }
 
     public static string Truncate(string value, int maxLength, string truncationSuffix = "…")

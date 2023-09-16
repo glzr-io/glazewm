@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Input;
 using GlazeWM.Bar.Common;
@@ -29,9 +31,9 @@ namespace GlazeWM.Bar.Components
       }
     }
 
-    public string ExpandCollapseText => IsExpanded
-      ? _config.LabelCollapseText
-      : _config.LabelExpandText;
+    public LabelViewModel Label => IsExpanded
+      ? XamlHelper.ParseLabel(_config.LabelCollapseText, new Dictionary<string, Func<string>>(), this)
+      : XamlHelper.ParseLabel(_config.LabelExpandText, new Dictionary<string, Func<string>>(), this);
 
     public ObservableCollection<NotifyIconViewModel> PinnedTrayIcons =>
       new(_pinnedTrayIcons);
@@ -63,8 +65,9 @@ namespace GlazeWM.Bar.Components
 
     public void ToggleShowAllIcons()
     {
+      Debug.WriteLine("was called");
       IsExpanded = !IsExpanded;
-      OnPropertyChanged(nameof(ExpandCollapseText));
+      OnPropertyChanged(nameof(Label));
     }
   }
 }

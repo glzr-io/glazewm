@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Text;
@@ -8,13 +9,43 @@ namespace GlazeWM.Bar.Components
 {
   public class ClockComponentViewModel : ComponentViewModel
   {
-    private ClockComponentConfig _config => _componentConfig as ClockComponentConfig;
-    private string _timeFormatting => FormatCalendarWeek(_config.TimeFormatting);
+    private readonly ClockComponentConfig _config;
+    private LabelViewModel _label;
+    public LabelViewModel Label
+    {
+      get => _label;
+      protected set => SetField(ref _label, value);
+    }
 
-    /// <summary>
-    /// Format the current time with the user's formatting config.
-    /// </summary>
-    public string FormattedTime => DateTime.Now.ToString(_timeFormatting, CultureInfo.InvariantCulture);
+    public ClockComponentViewModel(
+      BarViewModel parentViewModel,
+      ClockComponentConfig config) : base(parentViewModel, config)
+    {
+      _config = config;
+
+      // Update the displayed time every second.
+      var updateInterval = TimeSpan.FromSeconds(1);
+
+      Observable
+        .Interval(updateInterval)
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe(_ => Label = CreateLabel());
+    }
+
+    private LabelViewModel CreateLabel()
+    {
+      var timeFormatting = FormatCalendarWeek(_config.TimeFormatting);
+
+      // Format the current time with the user's formatting config.
+      var formattedTime = DateTime.Now.ToString(timeFormatting, CultureInfo.InvariantCulture);
+
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
+        { "formatted_time", () => formattedTime }
+      };
+
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
+    }
 
     private static string FormatCalendarWeek(string timeFormat)
     {
@@ -58,19 +89,6 @@ namespace GlazeWM.Bar.Components
         }
       }
       return result.ToString();
-    }
-
-    public ClockComponentViewModel(
-      BarViewModel parentViewModel,
-      ClockComponentConfig config) : base(parentViewModel, config)
-    {
-      // Update the displayed time every second.
-      var updateInterval = TimeSpan.FromSeconds(1);
-
-      Observable
-        .Interval(updateInterval)
-        .TakeUntil(_parentViewModel.WindowClosing)
-        .Subscribe(_ => OnPropertyChanged(nameof(FormattedTime)));
     }
   }
 }

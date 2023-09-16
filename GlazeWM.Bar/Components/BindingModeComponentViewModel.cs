@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Windows.Threading;
 using GlazeWM.Domain.Common.Events;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.UserConfigs;
@@ -11,7 +11,7 @@ namespace GlazeWM.Bar.Components
 {
   public class BindingModeComponentViewModel : ComponentViewModel
   {
-    private Dispatcher _dispatcher => _parentViewModel.Dispatcher;
+    private readonly BindingModeComponentConfig _config;
     private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
     private readonly ContainerService _containerService =
       ServiceLocator.GetRequiredService<ContainerService>();
@@ -27,17 +27,36 @@ namespace GlazeWM.Bar.Components
     public override string Visibility =>
       ActiveBindingMode is null ? "Collapsed" : "Visible";
 
+    private LabelViewModel _label;
+    public LabelViewModel Label
+    {
+      get => _label;
+      protected set => SetField(ref _label, value);
+    }
+
     public BindingModeComponentViewModel(
       BarViewModel parentViewModel,
       BindingModeComponentConfig config) : base(parentViewModel, config)
     {
-      _bus.Events.OfType<BindingModeChangedEvent>().Subscribe(_ =>
-        _dispatcher.Invoke(() =>
+      _config = config;
+
+      _bus.Events.OfType<BindingModeChangedEvent>()
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe((@event) =>
         {
           OnPropertyChanged(nameof(Visibility));
-          OnPropertyChanged(nameof(ActiveBindingMode));
-        })
-      );
+          Label = CreateLabel(@event.NewBindingMode);
+        });
+    }
+
+    private LabelViewModel CreateLabel(string bindingMode)
+    {
+      var variableDictionary = new Dictionary<string, Func<string>>()
+      {
+        { "binding_mode", () => bindingMode }
+      };
+
+      return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);
     }
   }
 }
