@@ -7,20 +7,24 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:GlazeWM.Bar.Components"
   xmlns:components="clr-namespace:GlazeWM.Bar.Components"
-xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+  xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
   mc:Ignorable="d">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
   </UserControl.Resources>
   <StackPanel Orientation="Horizontal">
-    <components:LabelComponent DataContext="{Binding Label}">
-        <i:Interaction.Triggers>
-          <i:EventTrigger EventName="MouseLeftButtonDown">
-            <i:CallMethodAction MethodName="ToggleShowAllIcons"    TargetObject="{Binding Path=DataContext, ElementName=_workspacesComponent, Mode=OneWay}" />
-
-          </i:EventTrigger>
-        </i:Interaction.Triggers>
-      </components:LabelComponent>
+    <components:LabelComponent
+      DataContext="{Binding Label}"
+      MouseEnter="OnLabelHoverEnter"
+      MouseLeave="OnLabelHoverLeave">
+      <i:Interaction.Triggers>
+        <i:EventTrigger EventName="MouseLeftButtonDown">
+          <i:CallMethodAction
+            MethodName="ToggleShowAllIcons"
+            TargetObject="{Binding Path=DataContext, ElementName=_workspacesComponent, Mode=OneWay}" />
+        </i:EventTrigger>
+      </i:Interaction.Triggers>
+    </components:LabelComponent>
     <Border
       x:Name="NotifyIconBorder"
       ToolTip="{Binding Path=TrayIcon.Title}"
