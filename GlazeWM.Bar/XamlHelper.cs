@@ -86,7 +86,6 @@ namespace GlazeWM.Bar
           _ => throw new ArgumentException("Invalid XML.", nameof(labelString))
         };
 
-        string background = null;
         string foreground = null;
         string fontFamily = null;
         string fontWeight = null;
@@ -96,7 +95,6 @@ namespace GlazeWM.Bar
 
         while (ancestor is not null)
         {
-          background ??= (ancestor as XElement)?.Attribute("bg")?.Value;
           foreground ??= (ancestor as XElement)?.Attribute("fg")?.Value;
           fontFamily ??= (ancestor as XElement)?.Attribute("ff")?.Value;
           fontWeight ??= (ancestor as XElement)?.Attribute("fw")?.Value;
@@ -108,7 +106,6 @@ namespace GlazeWM.Bar
 
         return new LabelSpan(
           value,
-          background ?? viewModel.Background,
           foreground ?? viewModel.Foreground,
           fontFamily ?? viewModel.FontFamily,
           fontWeight ?? viewModel.FontWeight,
