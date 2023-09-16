@@ -65,7 +65,6 @@ namespace GlazeWM.Bar.Components
 
     public void ToggleShowAllIcons()
     {
-      Debug.WriteLine("was called");
       IsExpanded = !IsExpanded;
       OnPropertyChanged(nameof(Label));
     }
