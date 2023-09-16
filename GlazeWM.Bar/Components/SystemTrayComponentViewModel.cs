@@ -18,8 +18,6 @@ namespace GlazeWM.Bar.Components
     private readonly ShellManager _shellManager =
       ServiceLocator.GetRequiredService<ShellManager>();
 
-    public ICommand ToggleShowAllIconsCommand => new RelayCommand(ToggleShowAllIcons);
-
     private bool _isExpanded = true;
     public bool IsExpanded
     {
