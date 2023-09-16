@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Windows.Forms;
 using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 
@@ -7,18 +9,30 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
   {
     public CommandResponse Handle(InspectWindowCommand command)
     {
-      var inspector = new Inspector();
-      inspector.SetTitle(command.WindowToInspect.Title);
-      inspector.SetClassName(command.WindowToInspect.ClassName);
-      inspector.SetProcessName(command.WindowToInspect.ProcessName);
-      inspector.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+      // open inspector on a separate thread
+      var thread = new Thread(() =>
+      {
+        using var inspector = new Inspector();
+        inspector.ShowDialog(GetParentWindow(command.WindowToInspect));
+      });
 
-      // show dialog as child of parent window
-      var parentWindow = new System.Windows.Forms.NativeWindow();
-      parentWindow.AssignHandle(command.WindowToInspect.Handle);
-      inspector.ShowDialog(parentWindow);
+      thread.SetApartmentState(ApartmentState.STA);
+      thread.Start();
 
       return CommandResponse.Ok;
+    }
+
+    private static NativeWindow GetParentWindow(Window windowToInspect)
+    {
+      if (windowToInspect == null)
+      {
+        return null;
+      }
+
+      var parentWindow = new NativeWindow();
+      parentWindow.AssignHandle(windowToInspect.Handle);
+
+      return parentWindow;
     }
   }
 }

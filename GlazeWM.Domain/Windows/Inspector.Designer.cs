@@ -1,3 +1,5 @@
+using System.Windows.Forms;
+
 namespace GlazeWM.Domain.Windows
 {
   partial class Inspector
@@ -17,6 +19,9 @@ namespace GlazeWM.Domain.Windows
       {
         components.Dispose();
       }
+
+      EventListener?.Dispose();
+
       base.Dispose(disposing);
     }
 
@@ -28,12 +33,12 @@ namespace GlazeWM.Domain.Windows
     /// </summary>
     private void InitializeComponent()
     {
-      processNameLabel = new System.Windows.Forms.Label();
-      classNameLabel = new System.Windows.Forms.Label();
-      titleLabel = new System.Windows.Forms.Label();
-      titleValue = new System.Windows.Forms.TextBox();
-      classNameValue = new System.Windows.Forms.TextBox();
-      processNameValue = new System.Windows.Forms.TextBox();
+      processNameLabel = new Label();
+      classNameLabel = new Label();
+      titleLabel = new Label();
+      titleValue = new TextBox();
+      classNameValue = new TextBox();
+      processNameValue = new TextBox();
       SuspendLayout();
       // 
       // processNameLabel
@@ -96,9 +101,9 @@ namespace GlazeWM.Domain.Windows
       // Inspector
       // 
       AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-      AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      AutoScaleMode = AutoScaleMode.Font;
       BackColor = System.Drawing.SystemColors.Control;
-      ClientSize = new System.Drawing.Size(412, 116);
+      ClientSize = new System.Drawing.Size(414, 116);
       Controls.Add(processNameValue);
       Controls.Add(classNameValue);
       Controls.Add(titleValue);
@@ -119,20 +124,5 @@ namespace GlazeWM.Domain.Windows
     private System.Windows.Forms.TextBox titleValue;
     private System.Windows.Forms.TextBox classNameValue;
     private System.Windows.Forms.TextBox processNameValue;
-
-    public void SetTitle(string title)
-    {
-      titleValue.Text = title;
-    }
-
-    public void SetClassName(string className)
-    {
-      classNameValue.Text = className;
-    }
-
-    public void SetProcessName(string processName)
-    {
-      processNameValue.Text = processName;
-    }
   }
 }
