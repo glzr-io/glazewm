@@ -1,20 +1,18 @@
-gaps:
-  inner_gap: "20px"
-  outer_gap: 20
-
-# Only supported for Windows 11 Build 22000.51 and above.
-focus_border_color: 
-  active: 
-    enabled: true
-    color: "#7ce38b"
-  inactive: 
-    enabled: false
-    
 general:
+  # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
+
+  # Whether to jump the cursor between windows focused by the WM.
   cursor_follow_focus: false
+
+  # Whether to switch back and forth between the previously focused workspace
+  # when focusing the current workspace.
+  toggle_workspace_on_refocus: true
+
   # Whether to show floating windows as always on top.
   show_floating_on_top: false
+
+  # Amount to move floating windows by (eg. when using `alt+<hjkl>` on a floating window)
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
@@ -22,6 +20,24 @@ general:
   # window transition animations (on minimize, close, etc). Set to 'unchanged'
   # to make no setting changes.
   window_animations: "unchanged"
+
+gaps:
+  # Gap between adjacent windows.
+  inner_gap: "20px"
+
+  # Gap between windows and the screen edge.
+  outer_gap: "20px"
+
+# Highlight active/inactive windows with a colored border.
+# ** Exclusive to Windows 11 Build 22000 and above.
+focus_borders:
+  active:
+    enabled: true
+    color: "#0000ff"
+
+  inactive:
+    enabled: false
+    color: "#ff0000"
 
 bar:
   height: "30px"
@@ -34,7 +50,7 @@ bar:
   padding: "4px 6px"
   offset_x: "0"
   offset_y: "0"
-  border_radius: "0"
+  border_radius: "4px"
   components_left:
     - type: "workspaces"
       focused_workspace_background: "#ffffff33"
