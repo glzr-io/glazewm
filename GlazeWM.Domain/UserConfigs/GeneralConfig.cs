@@ -25,6 +25,6 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Whether to enable window transition animations (on minimize, close, etc).
     /// </summary>
-    public bool WindowAnimations { get; set; } = true;
+    public WindowAnimations WindowAnimations { get; set; } = WindowAnimations.Unchanged;
   }
 }
