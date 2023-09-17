@@ -1,17 +1,13 @@
 general:
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
-
   # Whether to jump the cursor between windows focused by the WM.
   cursor_follow_focus: false
-
   # Whether to switch back and forth between the previously focused workspace
   # when focusing the current workspace.
   toggle_workspace_on_refocus: true
-
   # Whether to show floating windows as always on top.
   show_floating_on_top: false
-
   # Amount to move floating windows by (eg. when using `alt+<hjkl>` on a floating window)
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
@@ -24,12 +20,11 @@ general:
 gaps:
   # Gap between adjacent windows.
   inner_gap: "20px"
-
   # Gap between windows and the screen edge.
   outer_gap: "20px"
 
 # Highlight active/inactive windows with a colored border.
-# ** Exclusive to Windows 11 Build 22000 and above.
+# ** Exclusive to Windows 11 due to API unavailable on W10.
 focus_borders:
   active:
     enabled: true
@@ -91,7 +86,7 @@ window_rules:
   # Task Manager requires admin privileges to manage and should be ignored unless running
   # the WM as admin.
   - command: "ignore"
-    match_process_name: "Taskmgr"
+    match_process_name: "/Taskmgr|ScreenClippingHost/"
 
   # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
   - command: "set floating"
