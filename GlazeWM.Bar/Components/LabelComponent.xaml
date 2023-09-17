@@ -16,7 +16,6 @@
         <TextBlock
           Text="{Binding Text}"
           VerticalAlignment="Center"
-          Background="{Binding Background}"
           Foreground="{Binding Foreground}"
           FontFamily="{Binding FontFamily}"
           FontWeight="{Binding FontWeight}"

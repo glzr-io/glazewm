@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Windows.Threading;
 using GlazeWM.Domain.Common.Enums;
@@ -17,31 +18,41 @@ namespace GlazeWM.Bar.Components
     private readonly ContainerService _containerService =
       ServiceLocator.GetRequiredService<ContainerService>();
 
-    private TilingDirectionComponentConfig _config => _componentConfig as TilingDirectionComponentConfig;
+    private readonly TilingDirectionComponentConfig _config;
 
-    private string LabelVertical => _config.LabelVertical;
-    private string LabelHorizontal => _config.LabelHorizontal;
-
-    /// <summary>
-    /// The tiling direction of the currently focused container. Can be null on app
-    /// startup when workspaces haven't been created yet.
-    /// </summary>
-    private TilingDirection? _tilingDirection =>
-      (_containerService.FocusedContainer as SplitContainer)?.TilingDirection ??
-      (_containerService.FocusedContainer.Parent as SplitContainer)?.TilingDirection;
-
-    public string TilingDirectionString =>
-      _tilingDirection == TilingDirection.Vertical ? LabelVertical : LabelHorizontal;
+    private LabelViewModel _label;
+    public LabelViewModel Label
+    {
+      get => _label;
+      protected set => SetField(ref _label, value);
+    }
 
     public TilingDirectionComponentViewModel(
       BarViewModel parentViewModel,
       TilingDirectionComponentConfig config) : base(parentViewModel, config)
     {
+      _config = config;
+
       _bus.Events.Where(
         (@event) => @event is TilingDirectionChangedEvent or FocusChangedEvent
-      ).Subscribe((_) =>
-        _dispatcher.Invoke(() => OnPropertyChanged(nameof(TilingDirectionString)))
-      );
+      )
+        .TakeUntil(_parentViewModel.WindowClosing)
+        .Subscribe((_) => _dispatcher.Invoke(() => Label = CreateLabel()));
+    }
+
+    private LabelViewModel CreateLabel()
+    {
+      // The tiling direction of the currently focused container. Can be null on app
+      // startup when workspaces haven't been created yet.
+      var tilingDirection =
+        (_containerService.FocusedContainer as SplitContainer)?.TilingDirection ??
+        (_containerService.FocusedContainer.Parent as SplitContainer)?.TilingDirection;
+
+      var label = tilingDirection == TilingDirection.Vertical
+        ? _config.LabelVertical
+        : _config.LabelHorizontal;
+
+      return XamlHelper.ParseLabel(label, new Dictionary<string, Func<string>>(), this);
     }
   }
 }
