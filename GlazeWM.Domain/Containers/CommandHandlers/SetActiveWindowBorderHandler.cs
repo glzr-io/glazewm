@@ -47,6 +47,30 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         ? rgbToUint(_userConfigService.FocusBorderConfig.Active.Color)
         : 0xFFFFFFFF;
       _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
       return CommandResponse.Ok;
     }
   }

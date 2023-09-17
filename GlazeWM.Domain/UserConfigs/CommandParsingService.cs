@@ -218,6 +218,9 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
+        "roundedwindow" => subjectContainer is Window
+          ? new RoundWindowBorderCommand(subjectContainer as Window)
+          : new NoopCommand(),
         "floating" => subjectContainer is Window
           ? new SetFloatingCommand(subjectContainer as Window)
           : new NoopCommand(),

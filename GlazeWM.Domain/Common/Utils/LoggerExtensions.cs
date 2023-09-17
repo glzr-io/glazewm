@@ -14,10 +14,11 @@ namespace GlazeWM.Domain.Common.Utils
       Window window)
     {
       logger.LogDebug(
-        "{Message}: {ProcessName} {ClassName}",
+        "{Message}: P->{ProcessName} C->{ClassName} T->{Title}",
         message,
         window.ProcessName,
-        window.ClassName
+        window.ClassName,
+        window.Title
       );
     }
   }
