@@ -73,7 +73,6 @@ bar:
       # Documentation on formatting date/time string:
       # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
       time_formatting: "hh:mm tt  ddd MMM d"
-      margin: "0 0 0 10px"
 
 workspaces:
   - name: "1"
