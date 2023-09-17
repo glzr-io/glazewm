@@ -58,7 +58,7 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 # Configuration
 
-The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, it can optionally be generated with some sensible defaults on application launch.
+The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) can optionally be generated on launch.
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
@@ -74,7 +74,6 @@ general:
   floating_window_move_amount: "5%"
   # When enabled, switching to the current workspace activates the previously focused workspace
   toggle_workspace_on_refocus: false
-  focus_border_color: "#42c0fb"
 ```
 
 ## Keybindings
@@ -114,6 +113,22 @@ Keybindings with <kbd>Alt</kbd>+<kbd>Shift</kbd> pressed:
 ![Alt+shift key pressed - with keybindings](https://user-images.githubusercontent.com/34844898/194635089-d5ed152b-1527-43e8-a69c-4e154b97a207.png)
 
 Apart from the `Alt+Shift+E` binding for exiting GlazeWM, it's also possibly to safely exit via the system tray icon.
+
+## Focus Window Border configuration
+
+The focused and unfocused window border color can be configured via the `focus_borders` property.
+
+_Requires minimum of Windows 11 Build 22000.51._
+
+```yaml
+focus_borders:
+  active:
+    enabled: true
+    color: "#ff0000"
+  inactive:
+    enabled: false
+    color: "#0000ff"
+```
 
 ## Gap configuration
 
@@ -332,9 +347,9 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Network 
+### Bar Component: Network
 
-Displays the active Network. 
+Displays the type and signal strength of the active network connection.
 
 ```yaml
 - type: "network"
@@ -347,9 +362,9 @@ Displays the active Network.
   label_wifi_strength_100: "WiFi: 100%"
 ```
 
-### Bar Component: Volume 
+### Bar Component: Volume
 
-Displays volume level. 
+Displays volume level.
 
 ```yaml
 - type: "volume"
@@ -390,9 +405,34 @@ Uses Open-Meteo API, refreshes every hour.
   label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
+### Bar Component: Image
+
+Supports `.png` and `.jpg` formats.
+
+```yaml
+- type: "image"
+  source: "C:\\Folder\\AnotherFolder\\image.png"
+```
+
+### Bar Component: System Tray
+
+Use `Ctrl+Click` to pin and un-pin an icon.
+
+```yaml
+- type: "system tray"
+  label_expand_text: "<"
+  label_collapse_text: ">"
+```
+
 ### Adding Custom Bar Components
 
 [Guide Available Here](./docs/contributing-new-components.md)
+
+### Icons in Bar Components
+
+It's common to use icons as the `label` in bar components by assigning a `font_family` that contains glyphs. A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
+
+If `font_family` or `label` properties are left unspecified, the default `Material Icons` font that is packaged with the app is used.
 
 ## Window rules
 
