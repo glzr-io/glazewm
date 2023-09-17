@@ -76,6 +76,16 @@ namespace GlazeWM.App.WindowManager
         _systemTrayIcon = new SystemTrayIcon(systemTrayIconConfig);
         _systemTrayIcon.Show();
 
+        var windowAnimations = _userConfigService.GeneralConfig.WindowAnimations;
+
+        // Enable/disable window transition animations.
+        if (windowAnimations is not WindowAnimations.Unchanged)
+        {
+          SystemSettings.SetWindowAnimationsEnabled(
+            windowAnimations is WindowAnimations.True
+          );
+        }
+
         if (_userConfigService.FocusBorderConfig.Active.Enabled ||
             _userConfigService.FocusBorderConfig.Inactive.Enabled)
         {

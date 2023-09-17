@@ -10,6 +10,10 @@ namespace GlazeWM.App.Watcher
 {
   public sealed class WatcherStartup
   {
+    /// <summary>
+    /// Watcher is responsible for restoring all managed handles when the main process is
+    /// killed unexpectedly.
+    /// </summary>
     public static async Task<ExitCode> Run(int ipcServerPort)
     {
       var client = new IpcClient(ipcServerPort);
