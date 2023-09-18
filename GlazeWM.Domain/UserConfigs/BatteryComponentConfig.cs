@@ -19,38 +19,38 @@ namespace GlazeWM.Domain.UserConfigs
     /// <summary>
     /// Formatted text to display when the device is draining battery power and battery level is low.
     /// </summary>
-    public string LabelDrainingLow { get; set; } = "Low {battery_level}%";
+    public string LabelDrainingLow { get; set; } = "{battery_level}% (low)";
     /// <summary>
     /// Formatted text to display when the device is draining battery power and battery level is medium.
     /// </summary>
-    public string LabelDrainingMedium { get; set; } = "Medium {battery_level}%";
+    public string LabelDrainingMedium { get; set; } = "{battery_level}% (medium)";
     /// <summary>
     /// Formatted text to display when the device is draining battery power and battery level is high.
     /// </summary>
-    public string LabelDrainingHigh { get; set; } = "High {battery_level}%";
+    public string LabelDrainingHigh { get; set; } = "{battery_level}% (high)";
     /// <summary>
     /// Formatted text to display when the device is in power saving mode and battery level is low.
     /// </summary>
-    public string LabelPowerSaverLow { get; set; } = "Low {battery_level}% (power saver)";
+    public string LabelPowerSaverLow { get; set; } = "{battery_level}% (power saver) (low)";
     /// <summary>
     /// Formatted text to display when the device is in power saving mode and battery level is medium.
     /// </summary>
-    public string LabelPowerSaverMedium { get; set; } = "Medium {battery_level}% (power saver)";
+    public string LabelPowerSaverMedium { get; set; } = "{battery_level}% (power saver) (medium)";
     /// <summary>
     /// Formatted text to display when the device is in power saving mode and battery level is high.
     /// </summary>
-    public string LabelPowerSaverHigh { get; set; } = "High {battery_level}% (power saver)";
+    public string LabelPowerSaverHigh { get; set; } = "{battery_level}% (power saver) (high)";
     /// <summary>
     /// Formatted text to display when the device is connected to power and battery level is low.
     /// </summary>
-    public string LabelChargingLow { get; set; } = "Low {battery_level}% (charging)";
+    public string LabelChargingLow { get; set; } = "{battery_level}% (charging) (low)";
     /// <summary>
     /// Formatted text to display when the device is connected to power and battery level is medium.
     /// </summary>
-    public string LabelChargingMedium { get; set; } = "Medium {battery_level}% (charging)";
+    public string LabelChargingMedium { get; set; } = "{battery_level}% (charging) (medium)";
     /// <summary>
     /// Formatted text to display when the device is connected to power and battery level is high.
     /// </summary>
-    public string LabelChargingHigh { get; set; } = "High {battery_level}% (charging)";
+    public string LabelChargingHigh { get; set; } = "{battery_level}% (charging) (high)";
   }
 }

@@ -297,11 +297,17 @@ Additionally supported format specifiers:
 ### Bar Component: Battery
 
 The battery component displays the system's battery level in percent.
-There are three labels available that can be customized:
+There are nine labels available that can be customized:
 
-- `label_draining`: used when the system is draining battery power(i.e. not charging).
-- `label_power_saver`: used when the system is on power saving mode.
-- `label_charging`: used when the system is connected to power.
+- `label_draining_low`: used when the system is draining battery power(i.e. not charging) and the battery level is low.
+- `label_draining_medium`: used when the system is draining battery power(i.e. not charging) and the battery level is medium.
+- `label_draining_high`: used when the system is draining battery power(i.e. not charging) andthe battery level is high.
+- `label_power_saver_low`: used when the system is on power saving mode and the battery level is low.
+- `label_power_saver_medium`: used when the system is on power saving mode and the battery level is medium.
+- `label_power_saver_high`: used when the system is on power saving mode and the battery level is high.
+- `label_charging_low`: used when the system is connected to power and the battery level is low.
+- `label_charging_medium`: used when the system is connected to power and the battery level is medium.
+- `label_charging_high`: used when the system is connected to power and the battery level is high.
 
 `{battery_level}` is a variable which is replaced by the actual battery level when the label is displayed.
 
@@ -309,9 +315,15 @@ There are three labels available that can be customized:
 
 ```yaml
 - type: "battery"
-  label_draining: "{battery_level}% remaining"
-  label_power_saver: "{battery_level}% (power saver)"
-  label_charging: "{battery_level}% (charging)"
+  label_draining_low: "{battery_level}% remaining (low)"
+  label_draining_medium: "{battery_level}% remaining (medium)"
+  label_draining_high: "{battery_level}% remaining (high)"
+  label_power_saver_low: "{battery_level}% (power saver) (low)"
+  label_power_saver_medium: "{battery_level}% (power saver) (medium)"
+  label_power_saver_high: "{battery_level}% (power saver) (high)"
+  label_charging_low: "{battery_level}% (charging) (low)"
+  label_charging_medium: "{battery_level}% (charging) (medium)"
+  label_charging_high: "{battery_level}% (charging) (high)"
 ```
 
 ### Bar Component: CPU Usage
