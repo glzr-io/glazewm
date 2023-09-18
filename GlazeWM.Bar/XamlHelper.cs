@@ -73,47 +73,73 @@ namespace GlazeWM.Bar
           labelWithVariables = labelWithVariables.Replace($"{{{key}}}", value());
       }
 
-      // Wrap `labelString` in arbitrary tag to make it valid XML.
-      var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
-      var labelXml = XElement.Parse(wrappedLabel);
-
-      var labelSpans = labelXml.Nodes().Select(node =>
-      {
-        var value = node switch
-        {
-          XText text => text.Value,
-          XElement element => element.Value,
-          _ => throw new ArgumentException("Invalid XML.", nameof(labelString))
-        };
-
-        string foreground = null;
-        string fontFamily = null;
-        string fontWeight = null;
-        string fontSize = null;
-
-        var ancestor = node;
-
-        while (ancestor is not null)
-        {
-          foreground ??= (ancestor as XElement)?.Attribute("fg")?.Value;
-          fontFamily ??= (ancestor as XElement)?.Attribute("ff")?.Value;
-          fontWeight ??= (ancestor as XElement)?.Attribute("fw")?.Value;
-          fontSize ??= (ancestor as XElement)?.Attribute("fs")?.Value;
-
-          // Traverse upwards to get attributes to apply.
-          ancestor = ancestor.Parent;
-        }
-
-        return new LabelSpan(
-          value,
-          foreground ?? viewModel.Foreground,
-          fontFamily ?? viewModel.FontFamily,
-          fontWeight ?? viewModel.FontWeight,
-          fontSize ?? viewModel.FontSize
-        );
-      }).ToList();
-
+      var labelSpans = ToLabelSpans(labelWithVariables, viewModel);
       return new LabelViewModel(labelSpans);
+    }
+
+    private static List<LabelSpan> ToLabelSpans(
+      string labelWithVariables,
+      ComponentViewModel viewModel)
+    {
+      var unparsedLabelSpans = new List<LabelSpan>()
+      {
+        new(
+          labelWithVariables,
+          viewModel.Foreground,
+          viewModel.FontFamily,
+          viewModel.FontWeight,
+          viewModel.FontSize)
+      };
+
+      if (!labelWithVariables.Contains("<attr"))
+        return unparsedLabelSpans;
+
+      try
+      {
+        // Wrap `labelString` in arbitrary tag to make it valid XML.
+        var wrappedLabel = $"<Label>{labelWithVariables}</Label>";
+        var labelXml = XElement.Parse(wrappedLabel);
+
+        return labelXml.Nodes().Select(node =>
+        {
+          var value = node switch
+          {
+            XText text => text.Value,
+            XElement element => element.Value,
+            _ => throw new ArgumentException("Invalid XML.", nameof(labelWithVariables))
+          };
+
+          string foreground = null;
+          string fontFamily = null;
+          string fontWeight = null;
+          string fontSize = null;
+
+          var ancestor = node;
+
+          while (ancestor is not null)
+          {
+            foreground ??= (ancestor as XElement)?.Attribute("fg")?.Value;
+            fontFamily ??= (ancestor as XElement)?.Attribute("ff")?.Value;
+            fontWeight ??= (ancestor as XElement)?.Attribute("fw")?.Value;
+            fontSize ??= (ancestor as XElement)?.Attribute("fs")?.Value;
+
+            // Traverse upwards to get attributes to apply.
+            ancestor = ancestor.Parent;
+          }
+
+          return new LabelSpan(
+            value,
+            foreground ?? viewModel.Foreground,
+            fontFamily ?? viewModel.FontFamily,
+            fontWeight ?? viewModel.FontWeight,
+            fontSize ?? viewModel.FontSize
+          );
+        }).ToList();
+      }
+      catch (Exception)
+      {
+        return unparsedLabelSpans;
+      }
     }
   }
 }
