@@ -1,4 +1,4 @@
-# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lars-berger/GlazeWM/pulls) [![License](https://img.shields.io/github/license/lars-berger/GlazeWM)](https://github.com/lars-berger/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052)](https://discord.gg/ud6z3qjRvM)
+# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lars-berger/GlazeWM/pulls) [![License](https://img.shields.io/github/license/lars-berger/GlazeWM)](https://github.com/lars-berger/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
@@ -10,7 +10,9 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 - Customizable rules for specific windows
 - Easy one-click installation
 
-![demo](https://user-images.githubusercontent.com/34844898/142960922-fb3abd0d-082c-4f92-8613-865c68006bd8.gif)
+![demo](https://github.com/glazerdesktop/GlazeWM/assets/34844898/58167ca8-3064-4c5f-a82e-51bd3cd8830b)
+<p align="center"><i>Showcase GIF by <a href="https://github.com/HolbyFPV">@HolbyFPV</a></i></p>
+
 
 Under the hood, GlazeWM adds functionality to the built-in window manager and uses the Windows API via P/Invoke to position windows.
 
@@ -25,7 +27,7 @@ The latest runnable executable can be downloaded via [releases](https://github.c
 GlazeWM can be downloaded via Winget package manager:
 
 ```
-winget install lars-berger.GlazeWM
+winget install GlazeWM
 ```
 
 Winget installs portable packages in `%LOCALAPPDATA%\Microsoft\Winget\Packages\` by default. This can be overrided with the flag `--location \path\to\folder`.
@@ -70,10 +72,26 @@ To use a different config file location, you can launch the GlazeWM executable w
 
 ```yaml
 general:
+  # Whether to automatically focus windows underneath the cursor.
+  focus_follows_cursor: false
+
+  # Whether to jump the cursor between windows focused by the WM.
+  cursor_follow_focus: false
+
+  # Whether to switch back and forth between the previously focused workspace
+  # when focusing the current workspace.
+  toggle_workspace_on_refocus: true
+
+  # Whether to show floating windows as always on top.
   show_floating_on_top: false
+
+  # Amount to move floating windows by (eg. when using `alt+<hjkl>` on a floating window)
   floating_window_move_amount: "5%"
-  # When enabled, switching to the current workspace activates the previously focused workspace
-  toggle_workspace_on_refocus: false
+
+  # Whether to globally enable/disable window transition animations (on minimize, close,
+  # etc). Set to 'unchanged' to make no setting changes.
+  window_animations: "unchanged"
+
 ```
 
 ## Keybindings
@@ -159,6 +177,9 @@ workspaces:
     # Optionally force the workspace on a specific monitor if it exists. Use the monitor's number
     # as shown in the Windows display settings (eg. 1, 2, 3...).
     bind_to_monitor: 1
+
+    # Optionally prevent workspace from being deactivated when empty.
+    keep_alive: false
 ```
 
 ## Bar configuration
@@ -424,15 +445,31 @@ Use `Ctrl+Click` to pin and un-pin an icon.
   label_collapse_text: ">"
 ```
 
-### Adding Custom Bar Components
+## Mixing font properties within a label
+
+Font family, font weight, font size, and foreground color can be changed within parts of a label. This means that icons and text fonts can be used together in a label. To customize a part of the label, wrap it in an <attr> tag:
+
+```yaml
+bar:
+  components_left:
+    - type: "cpu"
+      # Change font family (ie. ff) to Comic Sans for part of the label:
+      label: "<attr ff='Comic Sans'>CPU:</attr> {percent_usage}%"
+      
+    - type: "battery"
+      # Show an icon by using an icon font:
+      label_draining: "<attr ff='Material Icons'></attr> {battery_level}%"
+      # Multiple attributes can be changed at once:
+      label_charging: "{battery_level}% <attr ff='Arial' fg='#228B22' fw='400' fs='13px'>(charging)</attr>"
+```
+
+## Icons in Bar Components
+
+It's common to use icons as the `label` in bar components by assigning a font family that contains glyphs. A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
+
+### Contributing New Bar Components
 
 [Guide Available Here](./docs/contributing-new-components.md)
-
-### Icons in Bar Components
-
-It's common to use icons as the `label` in bar components by assigning a `font_family` that contains glyphs. A popular option is [Nerd Font](https://www.nerdfonts.com/font-downloads) which comes with a [cheat sheet](https://www.nerdfonts.com/cheat-sheet) for easily finding a desired glyph.
-
-If `font_family` or `label` properties are left unspecified, the default `Material Icons` font that is packaged with the app is used.
 
 ## Window rules
 
