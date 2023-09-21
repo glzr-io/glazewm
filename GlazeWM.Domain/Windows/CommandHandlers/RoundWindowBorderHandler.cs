@@ -1,4 +1,4 @@
-﻿using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Windows.Commands;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.WindowsApi;
 
