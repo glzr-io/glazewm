@@ -46,31 +46,12 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var activeColor = _userConfigService.FocusBorderConfig.Active.Enabled
         ? rgbToUint(_userConfigService.FocusBorderConfig.Active.Color)
         : 0xFFFFFFFF;
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
-      _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+
+      for (int i = 0; i < 20; i++)
+      {
+        _ = DwmSetWindowAttribute(_lastFocused.Handle, BorderColorAttribute, ref activeColor, 4);
+      }
+
       return CommandResponse.Ok;
     }
   }
