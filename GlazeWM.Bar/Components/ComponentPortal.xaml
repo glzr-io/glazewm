@@ -92,7 +92,9 @@
                 Background="{Binding Background}" />
             </DataTemplate>
             <DataTemplate DataType="{x:Type components:VolumeComponentViewModel}">
-              <components:VolumeComponent />
+              <components:VolumeComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
             </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
