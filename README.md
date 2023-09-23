@@ -11,8 +11,8 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 - Easy one-click installation
 
 ![demo](https://github.com/glazerdesktop/GlazeWM/assets/34844898/58167ca8-3064-4c5f-a82e-51bd3cd8830b)
-<p align="center"><i>Showcase GIF by <a href="https://github.com/HolbyFPV">@HolbyFPV</a></i></p>
 
+<p align="center"><i>Showcase GIF by <a href="https://github.com/HolbyFPV">@HolbyFPV</a></i></p>
 
 Under the hood, GlazeWM adds functionality to the built-in window manager and uses the Windows API via P/Invoke to position windows.
 
@@ -91,7 +91,6 @@ general:
   # Whether to globally enable/disable window transition animations (on minimize, close,
   # etc). Set to 'unchanged' to make no setting changes.
   window_animations: "unchanged"
-
 ```
 
 ## Keybindings
@@ -437,7 +436,7 @@ Supports `.png` and `.jpg` formats.
 
 ### Bar Component: System Tray
 
-Use `Ctrl+Click` to pin and un-pin an icon.
+Use `Alt+Click` to pin and un-pin an icon.
 
 ```yaml
 - type: "system tray"
@@ -455,7 +454,7 @@ bar:
     - type: "cpu"
       # Change font family (ie. ff) to Comic Sans for part of the label:
       label: "<attr ff='Comic Sans'>CPU:</attr> {percent_usage}%"
-      
+
     - type: "battery"
       # Show an icon by using an icon font:
       label_draining: "<attr ff='Material Icons'></attr> {battery_level}%"
