@@ -436,7 +436,7 @@ Supports `.png` and `.jpg` formats.
 
 ### Bar Component: System Tray
 
-Use `Ctrl+Click` to pin and un-pin an icon.
+Use `Alt+Click` to pin and un-pin an icon.
 
 ```yaml
 - type: "system tray"
