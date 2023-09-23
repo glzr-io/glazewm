@@ -7,7 +7,7 @@ namespace GlazeWM.Domain.UserConfigs
   {
     public GapsConfig Gaps { get; set; } = new();
 
-    public FocusBordersConfig FocusBorderColor { get; set; } = new();
+    public FocusBordersConfig FocusBorders { get; set; } = new();
 
     public GeneralConfig General { get; set; } = new();
 
