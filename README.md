@@ -139,13 +139,12 @@ The focused and unfocused window border color can be configured via the `focus_b
 _Requires minimum of Windows 11 Build 22000.51._
 
 ```yaml
-focus_borders:
+focus_border_color:
   active:
     enabled: true
-    color: "#ff0000"
+    color: "#77bdfb"
   inactive:
     enabled: false
-    color: "#0000ff"
 ```
 
 ## Gap configuration

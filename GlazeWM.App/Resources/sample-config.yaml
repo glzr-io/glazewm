@@ -29,14 +29,12 @@ gaps:
 
 # Highlight active/inactive windows with a colored border.
 # ** Exclusive to Windows 11 due to API limitations.
-focus_borders:
+focus_border_color:
   active:
     enabled: true
-    color: "#0000ff"
-
+    color: "#77bdfb"
   inactive:
     enabled: false
-    color: "#ff0000"
 
 bar:
   height: "30px"
