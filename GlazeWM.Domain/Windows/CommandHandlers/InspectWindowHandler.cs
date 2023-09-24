@@ -13,6 +13,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var thread = new Thread(() =>
       {
         using var inspector = new Inspector();
+
+        // initialize the inspector values with handle under cursor
+        inspector.UpdateInspectorValues(command.WindowToInspect?.Handle);
         inspector.ShowDialog(GetParentWindow(command.WindowToInspect));
       });
 

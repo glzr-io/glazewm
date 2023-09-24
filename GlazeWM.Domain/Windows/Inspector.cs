@@ -8,45 +8,62 @@ namespace GlazeWM.Domain.Windows
 {
   public partial class Inspector : Form
   {
-    public IDisposable EventListener { get; }
+    private Point? cursorPosition { get; set; }
+    private IDisposable cursorSubscription { get; set; }
 
     public Inspector()
     {
       InitializeComponent();
+      InitializeCursorSubscription();
+
       MaximizeBox = false;
       MinimizeBox = false;
       FormBorderStyle = FormBorderStyle.FixedSingle;
       StartPosition = FormStartPosition.CenterParent;
+    }
 
-      var point = new Point();
-      EventListener = MouseEvents.MouseMoves
+    private void InitializeCursorSubscription()
+    {
+      cursorSubscription = MouseEvents.MouseMoves
         .Sample(TimeSpan.FromMilliseconds(50))
         .Subscribe((@event) =>
         {
-          if (point.X == @event.Point.X && point.Y == @event.Point.Y)
+          // skip if the cursor hasn't moved
+          if (cursorPosition?.X == @event.Point.X && cursorPosition?.Y == @event.Point.Y)
           {
             return;
           }
 
-          point.X = @event.Point.X;
-          point.Y = @event.Point.Y;
-          var handle = WindowFromPoint(point);
-
-          // get handle details
-          var processName = WindowService.GetProcessOfHandle(handle)?.ProcessName ?? string.Empty;
-          if (processName == "GlazeWM")
-          {
-            return;
-          }
-
-          var title = WindowService.GetTitleOfHandle(handle) ?? string.Empty;
-          var className = WindowService.GetClassNameOfHandle(handle) ?? string.Empty;
+          // update last known cursor position
+          cursorPosition = @event.Point;
 
           // update the inspector info
-          titleValue.Text = title;
-          classNameValue.Text = className;
-          processNameValue.Text = processName;
+          UpdateInspectorValues(WindowFromPoint(cursorPosition.Value));
         });
+    }
+
+    public void UpdateInspectorValues(IntPtr? handle)
+    {
+      if (handle == null)
+      {
+        return;
+      }
+
+      // get handle details
+      var processName = WindowService.GetProcessOfHandle(handle.Value)?.ProcessName ?? string.Empty;
+      var title = WindowService.GetTitleOfHandle(handle.Value) ?? string.Empty;
+      var className = WindowService.GetClassNameOfHandle(handle.Value) ?? string.Empty;
+
+      // skip if we're inspecting our own process
+      if (processName == "GlazeWM")
+      {
+        return;
+      }
+
+      // update values
+      titleValue.Text = title;
+      classNameValue.Text = className;
+      processNameValue.Text = processName;
     }
   }
 }
