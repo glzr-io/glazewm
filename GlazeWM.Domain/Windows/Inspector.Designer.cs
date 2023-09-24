@@ -20,9 +20,9 @@ namespace GlazeWM.Domain.Windows
         components.Dispose();
       }
 
-      if (disposing && cursorSubscription != null)
+      if (disposing && _cursorSubscription != null)
       {
-        cursorSubscription.Dispose();
+        _cursorSubscription.Dispose();
       }
 
       base.Dispose(disposing);

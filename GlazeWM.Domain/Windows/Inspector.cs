@@ -8,42 +8,34 @@ namespace GlazeWM.Domain.Windows
 {
   public partial class Inspector : Form
   {
-    private Point? cursorPosition { get; set; }
-    private IDisposable cursorSubscription { get; set; }
+    private readonly IDisposable _cursorSubscription;
 
     public Inspector()
     {
       InitializeComponent();
-      InitializeCursorSubscription();
 
       MaximizeBox = false;
       MinimizeBox = false;
       FormBorderStyle = FormBorderStyle.FixedSingle;
       StartPosition = FormStartPosition.CenterParent;
+
+      _cursorSubscription = MouseEvents.MouseMoves
+        .Sample(TimeSpan.FromMilliseconds(50))
+        .Subscribe(OnCursorMove);
     }
 
-    private void InitializeCursorSubscription()
+    private void OnCursorMove(MouseMoveEvent @event)
     {
-      cursorSubscription = MouseEvents.MouseMoves
-        .Sample(TimeSpan.FromMilliseconds(50))
-        .Subscribe((@event) =>
-        {
-          // skip if the cursor hasn't moved
-          if (cursorPosition?.X == @event.Point.X && cursorPosition?.Y == @event.Point.Y)
-          {
-            return;
-          }
+      // get handle under cursor
+      var handle = WindowFromPoint(@event.Point);
 
-          // update last known cursor position
-          cursorPosition = @event.Point;
-
-          // update the inspector info
-          UpdateInspectorValues(WindowFromPoint(cursorPosition.Value));
-        });
+      // update the inspector info
+      UpdateInspectorValues(handle);
     }
 
     public void UpdateInspectorValues(IntPtr? handle)
     {
+      // skip if there is nothing to inspect
       if (handle == null)
       {
         return;
