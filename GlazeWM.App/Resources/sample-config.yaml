@@ -20,6 +20,15 @@ general:
   # to make no setting changes.
   window_animations: "unchanged"
 
+  # Whether to automatically pick a new tiling direction when focusing a new window.
+  # Possible values:
+  # - "unchanged"
+  # - "vertical"
+  # - "horizontal"
+  # - "alternate": alternates between horizontal and vertical
+  # - "largest_dimension": picks between horizontal and vertical depending on the window's largest dimension (width/height)
+  automatic_tiling_direction: "unchanged"
+
 gaps:
   # Gap between adjacent windows.
   inner_gap: "20px"

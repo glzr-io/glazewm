@@ -1,5 +1,7 @@
 using System.Reactive.Linq;
 using GlazeWM.Domain.Common.Commands;
+using GlazeWM.Domain.Common.Enums;
+using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs;
@@ -11,6 +13,7 @@ using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Common.Commands;
 using GlazeWM.Infrastructure.Common.Events;
 using GlazeWM.Infrastructure.WindowsApi;
+using Windows.ApplicationModel.Background;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
 namespace GlazeWM.App.WindowManager
@@ -20,6 +23,7 @@ namespace GlazeWM.App.WindowManager
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
     private readonly WindowEventService _windowEventService;
+    private readonly WindowService _windowService;
     private readonly UserConfigService _userConfigService;
 
     private SystemTrayIcon? _systemTrayIcon { get; set; }
@@ -28,11 +32,13 @@ namespace GlazeWM.App.WindowManager
       Bus bus,
       KeybindingService keybindingService,
       WindowEventService windowEventService,
+      WindowService windowService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _keybindingService = keybindingService;
       _windowEventService = windowEventService;
+      _windowService = windowService;
       _userConfigService = userConfigService;
     }
 
@@ -120,6 +126,21 @@ namespace GlazeWM.App.WindowManager
             .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
         }
 
+        if (_userConfigService.GeneralConfig.AutomaticTilingDirection != AutomaticTilingDirection.Unchanged)
+        {
+          var focusChanged = _bus.Events
+            .OfType<FocusChangedEvent>()
+            .Select(@event => @event.FocusedContainer)
+            .Where(container => container is Window);
+
+          var windowMovedOrResized = _bus.Events
+            .OfType<WindowMovedOrResizedEvent>()
+            .Select(@event => _windowService.GetWindowByHandle(@event.WindowHandle));
+
+          var allWatchedEvents = focusChanged.Merge(windowMovedOrResized);
+          allWatchedEvents.Subscribe(container => SetAutomaticTilingDirection(container as Window));
+        }
+
         System.Windows.Forms.Application.Run();
         return ExitCode.Success;
       }
@@ -136,6 +157,53 @@ namespace GlazeWM.App.WindowManager
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
       _systemTrayIcon?.Remove();
       System.Windows.Forms.Application.Exit();
+    }
+
+    private void SetAutomaticTilingDirection(Window window)
+    {
+      if (window == null)
+        return;
+
+      var splitContainer = (window.Parent as SplitContainer);
+      var currentTilingDirection = splitContainer.TilingDirection;
+      var newTilingDirection = currentTilingDirection;
+
+      switch (_userConfigService.GeneralConfig.AutomaticTilingDirection)
+      {
+        case AutomaticTilingDirection.Unchanged:
+          break;
+        case AutomaticTilingDirection.Vertical:
+          newTilingDirection = TilingDirection.Vertical;
+          break;
+        case AutomaticTilingDirection.Horizontal:
+          newTilingDirection = TilingDirection.Horizontal;
+          break;
+        case AutomaticTilingDirection.Alternate:
+          // If the window is an only child, it's already in a dedicated SplitContainer
+          if (!window.HasSiblings())
+          {
+            var parentContainer = splitContainer.Parent as SplitContainer;
+            if (parentContainer == null || parentContainer.TilingDirection != currentTilingDirection)
+            {
+              // We've already applied the new direction
+              break;
+            }
+          }
+          newTilingDirection = currentTilingDirection == TilingDirection.Horizontal ? TilingDirection.Vertical : TilingDirection.Horizontal;
+          break;
+        case AutomaticTilingDirection.LargestDimension:
+          newTilingDirection = window.Width > window.Height ? TilingDirection.Horizontal : TilingDirection.Vertical;
+          break;
+      }
+
+      if (newTilingDirection != currentTilingDirection)
+      {
+        _bus.Invoke(new ChangeTilingDirectionCommand(window, newTilingDirection));
+        // Immediately redraw, as changing the tiling direction may have created a new
+        // container that gets queued for redraw. Forgetting to do it here might cause
+        // glitches during future commands
+        _bus.Invoke(new RedrawContainersCommand());
+      }
     }
   }
 }
