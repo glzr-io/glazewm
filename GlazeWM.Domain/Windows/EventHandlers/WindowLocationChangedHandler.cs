@@ -59,6 +59,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           Id = window.Id
         };
 
+        if (!window.HasSiblings() && window.Parent is not Workspace)
+          _bus.Invoke(new FlattenSplitContainerCommand(window.Parent as SplitContainer));
+
         _bus.Invoke(new ReplaceContainerCommand(maximizedWindow, window.Parent, window.Index));
       }
 
