@@ -50,13 +50,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       // Window is being maximized.
       if (isMaximized && window is not MaximizedWindow)
       {
-        // Move tiling windows to be direct children of workspace (in case they aren't already).
-        if (window is TilingWindow)
-        {
-          var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
-          _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
-        }
-
         var previousState = WindowService.GetWindowType(window);
         var maximizedWindow = new MaximizedWindow(
           window.Handle,
@@ -67,6 +60,9 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         {
           Id = window.Id
         };
+
+        if (!window.HasSiblings() && window.Parent is not Workspace)
+          _bus.Invoke(new FlattenSplitContainerCommand(window.Parent as SplitContainer));
 
         _bus.Invoke(new ReplaceContainerCommand(maximizedWindow, window.Parent, window.Index));
 
@@ -79,9 +75,6 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       {
         var restoredWindow = CreateWindowFromPreviousState(window as MaximizedWindow);
         _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
-
-        if (restoredWindow is not TilingWindow)
-          return;
 
         var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
         var insertionTarget = workspace.LastFocusedDescendantOfType<IResizable>();
