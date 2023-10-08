@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors.Commands;
@@ -46,8 +47,16 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       var windowPlacement = WindowService.GetPlacementOfHandle(windowHandle);
       var isMaximized = windowPlacement.ShowCommand == ShowWindowFlags.Maximize;
 
+      // Window is being maximized.
       if (isMaximized && window is not MaximizedWindow)
       {
+        // Move tiling windows to be direct children of workspace (in case they aren't already).
+        if (window is TilingWindow)
+        {
+          var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
+          _bus.Invoke(new MoveContainerWithinTreeCommand(window, workspace, true));
+        }
+
         var previousState = WindowService.GetWindowType(window);
         var maximizedWindow = new MaximizedWindow(
           window.Handle,
@@ -59,24 +68,20 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           Id = window.Id
         };
 
-        if (!window.HasSiblings() && window.Parent is not Workspace)
-          _bus.Invoke(new FlattenSplitContainerCommand(window.Parent as SplitContainer));
-
         _bus.Invoke(new ReplaceContainerCommand(maximizedWindow, window.Parent, window.Index));
+
+        _containerService.ContainersToRedraw.Concat(window.Siblings);
+        _bus.Invoke(new RedrawContainersCommand());
       }
 
+      // Window is being unmaximized.
       if (!isMaximized && window is MaximizedWindow)
       {
         var restoredWindow = CreateWindowFromPreviousState(window as MaximizedWindow);
-
         _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
         if (restoredWindow is not TilingWindow)
-        {
-          // Needed to reposition the floating window
-          _bus.Invoke(new RedrawContainersCommand());
           return;
-        }
 
         var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
         var insertionTarget = workspace.LastFocusedDescendantOfType<IResizable>();
@@ -99,6 +104,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
       }
     }
 
+    // TODO: Share logic with `WindowMinimizedHandler`.
     private static Window CreateWindowFromPreviousState(MaximizedWindow window)
     {
       Window restoredWindow = window.PreviousState switch

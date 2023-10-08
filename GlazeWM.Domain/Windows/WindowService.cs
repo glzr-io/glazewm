@@ -241,6 +241,7 @@ namespace GlazeWM.Domain.Windows
       {
         TilingWindow => WindowType.Tiling,
         FloatingWindow => WindowType.Floating,
+        MinimizedWindow => WindowType.Minimized,
         MaximizedWindow => WindowType.Maximized,
         FullscreenWindow => WindowType.Fullscreen,
         _ => throw new ArgumentException(null, nameof(window)),
