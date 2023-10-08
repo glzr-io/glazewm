@@ -70,29 +70,23 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         _bus.Invoke(new RedrawContainersCommand());
       }
 
-      // Window is being unmaximized.
+      // Maximized window is being restored.
       if (!isMaximized && window is MaximizedWindow)
       {
         var restoredWindow = CreateWindowFromPreviousState(window as MaximizedWindow);
         _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
-        var workspace = WorkspaceService.GetWorkspaceFromChildContainer(window);
-        var insertionTarget = workspace.LastFocusedDescendantOfType<IResizable>();
+        // TODO: Temporary hack to resize restored window.
+        _bus.Invoke(
+          new MoveContainerWithinTreeCommand(
+            restoredWindow,
+            restoredWindow.Parent,
+            restoredWindow.Index,
+            true
+          )
+        );
 
-        // Insert the created tiling window after the last focused descendant of the workspace.
-        if (insertionTarget == null)
-          _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
-        else
-          _bus.Invoke(
-            new MoveContainerWithinTreeCommand(
-              restoredWindow,
-              insertionTarget.Parent,
-              insertionTarget.Index + 1,
-              true
-            )
-          );
-
-        _containerService.ContainersToRedraw.Add(workspace);
+        _containerService.ContainersToRedraw.Add(restoredWindow);
         _bus.Invoke(new RedrawContainersCommand());
       }
     }
