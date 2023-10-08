@@ -76,15 +76,24 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         var restoredWindow = CreateWindowFromPreviousState(window as MaximizedWindow);
         _bus.Invoke(new ReplaceContainerCommand(restoredWindow, window.Parent, window.Index));
 
-        // TODO: Temporary hack to resize restored window.
-        _bus.Invoke(
-          new MoveContainerWithinTreeCommand(
-            restoredWindow,
-            restoredWindow.Parent,
-            restoredWindow.Index,
-            true
-          )
-        );
+        // Non-tiling window expect to be direct children of workspace.
+        if (restoredWindow is not TilingWindow)
+        {
+          var workspace = WorkspaceService.GetWorkspaceFromChildContainer(restoredWindow);
+          _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, false));
+        }
+        else
+        {
+          // TODO: Temporary hack to resize restored tiling window.
+          _bus.Invoke(
+            new MoveContainerWithinTreeCommand(
+              restoredWindow,
+              restoredWindow.Parent,
+              restoredWindow.Index,
+              true
+            )
+          );
+        }
 
         _containerService.ContainersToRedraw.Add(restoredWindow);
         _bus.Invoke(new RedrawContainersCommand());
@@ -112,6 +121,12 @@ namespace GlazeWM.Domain.Windows.EventHandlers
           window.FloatingPlacement,
           window.BorderDelta,
           0
+        ),
+        WindowType.Minimized => new MinimizedWindow(
+          window.Handle,
+          window.FloatingPlacement,
+          window.BorderDelta,
+          WindowType.Tiling
         ),
         WindowType.Maximized => throw new ArgumentException(null, nameof(window)),
         _ => throw new ArgumentException(null, nameof(window)),
