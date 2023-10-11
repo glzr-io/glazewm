@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Workspaces
       get
       {
         var barPosition = _userConfigService.GetBarConfigForMonitor(Parent as Monitor).Position;
-        return barPosition == BarPosition.Top ? _logicalBarHeight : 0;
+        return barPosition == BarPosition.Top ? _logicalBarHeight : -_logicalBarHeight;
       }
     }
 
@@ -64,7 +64,8 @@ namespace GlazeWM.Domain.Workspaces
           return Parent.Height - _outerGaps.Top - _outerGaps.Bottom;
         }
 
-        return Parent.Height - _outerGaps.Top - _outerGaps.Bottom - floatBarOffsetY - _logicalBarHeight;
+        var barOffsetY = _userConfigService.GetBarConfigForMonitor(Parent as Monitor).Position == BarPosition.Bottom ? floatBarOffsetY : -floatBarOffsetY;
+        return Parent.Height - _outerGaps.Top - _outerGaps.Bottom + barOffsetY - _logicalBarHeight;
       }
     }
 
