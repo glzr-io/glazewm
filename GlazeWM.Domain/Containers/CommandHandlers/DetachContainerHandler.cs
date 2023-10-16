@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
@@ -20,6 +21,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var childToRemove = command.ChildToRemove;
       var parent = childToRemove.Parent;
+      var siblings = childToRemove.Siblings;
 
       if (parent == null)
         throw new Exception("Cannot detach an already detached container. This is a bug.");
@@ -28,28 +30,31 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       parent.Children.Remove(childToRemove);
       parent.ChildFocusOrder.Remove(childToRemove);
 
-      var isSplitContainer = parent is SplitContainer and not Workspace;
-      if (isSplitContainer)
+      var parentSiblings = parent.Siblings;
+      var isEmptySplitContainer =
+        !parent.HasChildren() && parent is SplitContainer and not Workspace;
+
+      // If the parent of the removed child is now an empty split container, detach the
+      // split container as well.
+      // TODO: Move out calls to `ContainersToRedraw.Add(...)`, since detaching might not
+      // always require a redraw.
+      if (isEmptySplitContainer)
       {
-        // If the parent of the removed child is an empty split container, detach the split container
-        // as well.
-        if (!parent.HasChildren())
-        {
-          _bus.Invoke(new DetachContainerCommand(parent));
-          return CommandResponse.Ok;
-        }
-
-        // If the parent of the removed child is a split container with an only child that is itself a split container,
-        // flatten the outer, unnecessary split container
-        if (parent.Children.Count == 1 && parent.Children[0] is SplitContainer)
-        {
-          (parent.Children[0] as IResizable).SizePercentage = 1; // The only child now takes up the full container
-          _bus.Invoke(new FlattenSplitContainerCommand(parent as SplitContainer));
-          return CommandResponse.Ok;
-        }
+        _containerService.ContainersToRedraw.Add(parent.Parent);
+        _bus.Invoke(new DetachContainerCommand(parent));
       }
+      else
+        _containerService.ContainersToRedraw.Add(parent);
 
-      _containerService.ContainersToRedraw.Add(parent);
+      var detachedSiblings = isEmptySplitContainer ? parentSiblings : siblings;
+
+      // If there is exactly *one* sibling to the detached container, then flatten that
+      // sibling if it's a split container. This is to handle layouts like H[1 V[2 H[3]]],
+      // where container 2 gets detached.
+      if (detachedSiblings.Count() == 1 && detachedSiblings.ElementAt(0) is SplitContainer)
+        _bus.Invoke(
+          new FlattenSplitContainerCommand(detachedSiblings.ElementAt(0) as SplitContainer)
+        );
 
       return CommandResponse.Ok;
     }
