@@ -78,7 +78,8 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         WindowType.Maximized => new MaximizedWindow(
           window.Handle,
           window.FloatingPlacement,
-          window.BorderDelta
+          window.BorderDelta,
+          WindowType.Tiling
         ),
         WindowType.Fullscreen => new FullscreenWindow(
           window.Handle,

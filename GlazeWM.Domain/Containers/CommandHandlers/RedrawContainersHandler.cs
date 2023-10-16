@@ -39,8 +39,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var windowsToRestore = windowsToRedraw
         .Where(
           (window) =>
-            window is not MinimizedWindow &&
-            window.HasWindowStyle(WindowStyles.Maximize | WindowStyles.Minimize)
+            (window is not MinimizedWindow && window.HasWindowStyle(WindowStyles.Minimize)) ||
+            (window is not MaximizedWindow && window.HasWindowStyle(WindowStyles.Maximize))
         )
         .ToList();
 
@@ -84,6 +84,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         defaultFlags |= SetWindowPosFlags.ShowWindow;
       else
         defaultFlags |= SetWindowPosFlags.HideWindow;
+
+      if (window is MaximizedWindow)
+        defaultFlags |= SetWindowPosFlags.NoSize;
 
       // Transition display state depending on whether window will be shown/hidden.
       window.DisplayState = window.DisplayState switch
