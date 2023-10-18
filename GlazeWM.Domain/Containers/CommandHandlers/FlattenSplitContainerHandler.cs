@@ -19,40 +19,46 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     public CommandResponse Handle(FlattenSplitContainerCommand command)
     {
-      var containerToFlatten = command.ContainerToFlatten;
+      var splitContainer = command.ContainerToFlatten;
 
       // Keep references to properties of container to flatten prior to detaching.
-      var originalParent = containerToFlatten.Parent;
-      var originalChildren = containerToFlatten.Children.ToList();
-      var originalFocusIndex = containerToFlatten.FocusIndex;
-      var originalIndex = containerToFlatten.Index;
-      var originalFocusOrder = containerToFlatten.ChildFocusOrder.ToList();
+      var parent = splitContainer.Parent;
+      var index = splitContainer.Index;
+      var focusIndex = splitContainer.FocusIndex;
+      var children = splitContainer.Children.ToList();
+      var focusOrder = splitContainer.ChildFocusOrder.ToList();
 
-      foreach (var (child, index) in originalChildren.WithIndex())
+      foreach (var (child, childIndex) in children.WithIndex())
       {
-        // TODO: Not 100% sure what to do here. When flattening a split container, inverse
-        // the tiling direction of child split containers. Atm this crashes with H[1 V[2 H[3 V[4]]]],
-        // where container 2 is closed.
-        if (child is SplitContainer splitContainer)
-          (child as SplitContainer).TilingDirection = splitContainer.TilingDirection.Inverse();
+        // Remove the child from the split container.
+        splitContainer.Children.Remove(child);
+        splitContainer.ChildFocusOrder.Remove(child);
 
-        // Insert children of the split container at its original index in the parent. The split
-        // container will automatically detach once its last child is detached.
-        _bus.Invoke(new DetachContainerCommand(child));
-        _bus.Invoke(new AttachContainerCommand(child, originalParent, originalIndex + index));
+        // Insert child at its original index in the parent.
+        parent.Children.Insert(index + childIndex, child);
+        child.Parent = parent;
 
-        (child as IResizable).SizePercentage = (containerToFlatten as IResizable).SizePercentage
-          * (child as IResizable).SizePercentage;
+        if (child is IResizable childResizable)
+          childResizable.SizePercentage = splitContainer.SizePercentage * childResizable.SizePercentage;
+
+        // Inverse the tiling direction of any child split containers.
+        if (child is SplitContainer childSplitContainer)
+          childSplitContainer.TilingDirection = childSplitContainer.TilingDirection.Inverse();
       }
+
+      // Remove the split container from the tree.
+      parent.Children.Remove(splitContainer);
+      splitContainer.Parent = null;
 
       // Correct focus order of the inserted containers.
-      foreach (var child in originalChildren)
+      foreach (var child in children)
       {
-        var childFocusIndex = originalFocusOrder.IndexOf(child);
-        originalParent.ChildFocusOrder.ShiftToIndex(originalFocusIndex + childFocusIndex, child);
+        var childFocusIndex = focusOrder.IndexOf(child);
+        parent.ChildFocusOrder.ShiftToIndex(focusIndex + childFocusIndex, child);
       }
 
-      _containerService.ContainersToRedraw.Add(originalParent);
+      // TODO: Remove unnecessary redraws.
+      _containerService.ContainersToRedraw.Add(parent);
 
       return CommandResponse.Ok;
     }
