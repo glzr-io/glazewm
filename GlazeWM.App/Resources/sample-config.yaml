@@ -3,7 +3,7 @@ general:
   focus_follows_cursor: false
 
   # Whether to jump the cursor between windows focused by the WM.
-  cursor_follow_focus: false
+  cursor_follows_focus: false
 
   # Whether to switch back and forth between the previously focused workspace
   # when focusing the current workspace.
