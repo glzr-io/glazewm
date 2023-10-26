@@ -62,7 +62,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
       if (windowToMove is TilingWindow)
         MoveTilingWindowToWorkspace(windowToMove as TilingWindow, targetWorkspace);
       else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, false));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace));
 
       if (focusResetTarget is not null)
         _bus.Invoke(new SetFocusedDescendantCommand(focusResetTarget));
@@ -102,14 +102,13 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Insert the window into the target workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetWorkspace));
       else
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             windowToMove,
             insertionTarget.Parent,
-            insertionTarget.Index + 1,
-            true
+            insertionTarget.Index + 1
           )
         );
     }

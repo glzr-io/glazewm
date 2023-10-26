@@ -37,7 +37,7 @@ namespace GlazeWM.Domain.Monitors.CommandHandlers
       foreach (var workspace in workspacesToMove.ToList())
       {
         // Move workspace to target monitor.
-        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor, false));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(workspace, targetMonitor));
 
         // Update workspaces displayed in bar window.
         // TODO: Consider creating separate event `WorkspaceMovedEvent`.

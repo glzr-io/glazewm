@@ -70,10 +70,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // the split container after the replacement.
       _bus.Invoke(new ReplaceContainerCommand(splitContainer, parent, window.Index));
 
-      // The child window takes up the full size of its parent split container.
+      // Add the window as a child of the split container and ensure it takes up the full size
+      // of its parent split container.
+      splitContainer.InsertChild(0, window);
       (window as IResizable).SizePercentage = 1;
-      _bus.Invoke(new DetachContainerCommand(window));
-      _bus.Invoke(new AttachContainerCommand(window, splitContainer));
     }
 
     private void ChangeWorkspaceTilingDirection(

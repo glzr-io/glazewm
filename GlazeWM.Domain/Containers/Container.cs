@@ -148,6 +148,20 @@ namespace GlazeWM.Domain.Containers
       }
     }
 
+    public void InsertChild(int targetIndex, Container child)
+    {
+      Children.Insert(targetIndex, child);
+      ChildFocusOrder.Add(child);
+      child.Parent = this;
+    }
+
+    public void RemoveChild(Container child)
+    {
+      child.Parent = null;
+      Children.Remove(child);
+      ChildFocusOrder.Remove(child);
+    }
+
     public bool IsDetached()
     {
       return Parent is null || Index == -1;

@@ -8,12 +8,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 {
   internal sealed class FlattenSplitContainerHandler : ICommandHandler<FlattenSplitContainerCommand>
   {
-    private readonly Bus _bus;
     private readonly ContainerService _containerService;
 
-    public FlattenSplitContainerHandler(Bus bus, ContainerService containerService)
+    public FlattenSplitContainerHandler(ContainerService containerService)
     {
-      _bus = bus;
       _containerService = containerService;
     }
 
@@ -30,13 +28,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       foreach (var (child, childIndex) in children.WithIndex())
       {
-        // Remove the child from the split container.
-        splitContainer.Children.Remove(child);
-        splitContainer.ChildFocusOrder.Remove(child);
-
         // Insert child at its original index in the parent.
-        parent.Children.Insert(index + childIndex, child);
-        child.Parent = parent;
+        splitContainer.RemoveChild(child);
+        parent.InsertChild(index + childIndex, child);
 
         if (child is IResizable childResizable)
           childResizable.SizePercentage = splitContainer.SizePercentage * childResizable.SizePercentage;
@@ -47,8 +41,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       }
 
       // Remove the split container from the tree.
-      parent.Children.Remove(splitContainer);
-      splitContainer.Parent = null;
+      parent.RemoveChild(splitContainer);
 
       // Correct focus order of the inserted containers.
       foreach (var child in children)

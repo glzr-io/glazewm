@@ -23,10 +23,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var containerToMove = command.ContainerToMove;
       var targetParent = command.TargetParent;
       var targetIndex = command.TargetIndex;
-      var shouldAdjustSize = command.ShouldAdjustSize;
-
-      if (shouldAdjustSize && containerToMove is not IResizable)
-        throw new Exception("Cannot resize a non-resizable container. This is a bug.");
 
       // Get lowest common ancestor (LCA) between `containerToMove` and `targetParent`. This could
       // be the `targetParent` itself.
@@ -44,8 +40,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         MoveToLowestCommonAncestor(
           containerToMove,
           lowestCommonAncestor,
-          targetIndex,
-          shouldAdjustSize
+          targetIndex
         );
 
         if (containerToMove == focusedContainer)
@@ -71,16 +66,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var originalFocusIndex = containerToMoveAncestor.FocusIndex;
       var isSubtreeFocused = originalFocusIndex < targetParentAncestor.FocusIndex;
 
-      if (shouldAdjustSize)
-      {
-        _bus.Invoke(new DetachAndResizeContainerCommand(containerToMove));
-        _bus.Invoke(new AttachAndResizeContainerCommand(containerToMove, targetParent, targetIndex));
-      }
-      else
-      {
-        _bus.Invoke(new DetachContainerCommand(containerToMove));
-        _bus.Invoke(new AttachContainerCommand(containerToMove, targetParent, targetIndex));
-      }
+      _bus.Invoke(new DetachContainerCommand(containerToMove));
+      _bus.Invoke(new AttachContainerCommand(containerToMove, targetParent, targetIndex));
 
       // Set `containerToMove` as focused descendant within target subtree if its original subtree
       // had focus more recently (even if the container is not the last focused within that subtree).
@@ -104,9 +91,20 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     private void MoveToLowestCommonAncestor(
       Container containerToMove,
       Container lowestCommonAncestor,
-      int targetIndex,
-      bool shouldAdjustSize)
+      int targetIndex)
     {
+      if (containerToMove.Parent == lowestCommonAncestor)
+      {
+        // var adjustedTargetIndex = containerToMove.Index < targetIndex ? targetIndex - 1 : targetIndex;
+        lowestCommonAncestor.Children.ShiftToIndex(
+          containerToMove.Index < targetIndex ? targetIndex - 1 : targetIndex,
+          containerToMove
+        );
+        // TODO: Move this out. Also, only need to redraw self and one sibling.
+        _containerService.ContainersToRedraw.Add(containerToMove.Parent);
+        return;
+      }
+
       // Keep reference to focus index of container's ancestor in LCA's `ChildFocusOrder`.
       var originalFocusIndex = containerToMove.SelfAndAncestors
         .First(ancestor => ancestor.Parent == lowestCommonAncestor)
@@ -116,10 +114,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var originalIndex = containerToMove.Index;
       var originalLcaChildCount = lowestCommonAncestor.Children.Count;
 
-      if (shouldAdjustSize)
-        _bus.Invoke(new DetachAndResizeContainerCommand(containerToMove));
-      else
-        _bus.Invoke(new DetachContainerCommand(containerToMove));
+      _bus.Invoke(new DetachContainerCommand(containerToMove));
 
       var newLcaChildCount = lowestCommonAncestor.Children.Count;
       var shouldAdjustTargetIndex = originalLcaChildCount > newLcaChildCount
@@ -129,22 +124,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       // top-level container to the right in a workspace.
       var adjustedTargetIndex = shouldAdjustTargetIndex ? targetIndex - 1 : targetIndex;
 
-      if (shouldAdjustSize)
-        _bus.Invoke(
-          new AttachAndResizeContainerCommand(
-            containerToMove,
-            lowestCommonAncestor,
-            adjustedTargetIndex
-          )
-        );
-      else
-        _bus.Invoke(
-          new AttachContainerCommand(
-            containerToMove,
-            lowestCommonAncestor,
-            adjustedTargetIndex
-          )
-        );
+      _bus.Invoke(
+        new AttachContainerCommand(
+          containerToMove,
+          lowestCommonAncestor,
+          adjustedTargetIndex
+        )
+      );
 
       lowestCommonAncestor.ChildFocusOrder.ShiftToIndex(originalFocusIndex, containerToMove);
     }

@@ -130,7 +130,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       }
 
       // Change the window's parent workspace.
-      _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace, false));
+      _bus.Invoke(new MoveContainerWithinTreeCommand(windowToResize, targetWorkspace));
 
       windowToResize.HasPendingDpiAdjustment = true;
     }

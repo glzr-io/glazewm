@@ -51,14 +51,13 @@ namespace GlazeWM.Domain.Windows.EventHandlers
 
       // Insert the created tiling window after the last focused descendant of the workspace.
       if (insertionTarget == null)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, 0));
       else
         _bus.Invoke(
           new MoveContainerWithinTreeCommand(
             restoredWindow,
             insertionTarget.Parent,
-            insertionTarget.Index + 1,
-            true
+            insertionTarget.Index + 1
           )
         );
 

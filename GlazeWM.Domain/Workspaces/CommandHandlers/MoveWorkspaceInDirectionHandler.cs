@@ -45,7 +45,7 @@ namespace GlazeWM.Domain.Workspaces.CommandHandlers
 
       // Move workspace to target monitor.
       _bus.Invoke(
-        new MoveContainerWithinTreeCommand(focusedWorkspace, targetMonitor, false)
+        new MoveContainerWithinTreeCommand(focusedWorkspace, targetMonitor)
       );
 
       // Update floating placement since the windows have to cross monitors.
