@@ -30,7 +30,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       {
         // Insert child at its original index in the parent.
         splitContainer.RemoveChild(child);
-        parent.InsertChild(index + childIndex, child);
+        parent.Children.Insert(index + childIndex, child);
+        child.Parent = parent;
 
         if (child is IResizable childResizable)
           childResizable.SizePercentage = splitContainer.SizePercentage * childResizable.SizePercentage;
@@ -44,11 +45,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       parent.RemoveChild(splitContainer);
 
       // Correct focus order of the inserted containers.
-      foreach (var child in children)
-      {
-        var childFocusIndex = focusOrder.IndexOf(child);
-        parent.ChildFocusOrder.ShiftToIndex(focusIndex + childFocusIndex, child);
-      }
+      parent.ChildFocusOrder.InsertRange(focusIndex, focusOrder);
 
       // TODO: Remove unnecessary redraws.
       _containerService.ContainersToRedraw.Add(parent);

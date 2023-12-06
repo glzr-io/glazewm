@@ -64,8 +64,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           ((IResizable)containerToResize).SizePercentage += sizePercentageIncrement;
       }
 
-      // var detachedSiblings = topMostDetached.Siblings;
       var detachedSiblings = isEmptySplitContainer ? parentSiblings : siblings;
+      var detachedParent = isEmptySplitContainer ? grandparent : parent;
 
       // If there is exactly *one* sibling to the detached container, then flatten that
       // sibling if it's a split container. This is to handle layouts like H[1 V[2 H[3]]],
@@ -76,12 +76,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           new FlattenSplitContainerCommand(detachedSiblings.ElementAt(0) as SplitContainer)
         );
 
-        // var topMostDetached = isEmptySplitContainer ? parent : childToRemove;
-        var detachedParent = isEmptySplitContainer ? grandparent : parent;
-
-        _bus.Invoke(
-          new FlattenSplitContainerCommand(detachedParent as SplitContainer)
-        );
+        _bus.Invoke(new FlattenSplitContainerCommand(detachedParent as SplitContainer));
       }
 
       return CommandResponse.Ok;

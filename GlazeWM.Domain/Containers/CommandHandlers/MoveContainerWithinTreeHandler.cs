@@ -93,13 +93,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       Container lowestCommonAncestor,
       int targetIndex)
     {
-      if (containerToMove.Parent == lowestCommonAncestor)
+      if (containerToMove is IResizable && containerToMove.Parent == lowestCommonAncestor)
       {
-        // var adjustedTargetIndex = containerToMove.Index < targetIndex ? targetIndex - 1 : targetIndex;
         lowestCommonAncestor.Children.ShiftToIndex(
           containerToMove.Index < targetIndex ? targetIndex - 1 : targetIndex,
           containerToMove
         );
+
         // TODO: Move this out. Also, only need to redraw self and one sibling.
         _containerService.ContainersToRedraw.Add(containerToMove.Parent);
         return;

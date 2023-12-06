@@ -27,27 +27,29 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       targetParent.InsertChild(targetIndex, childToAdd);
 
-      // Return early if child doesn't have to be resized.
-      if (childToAdd is not IResizable)
-        return CommandResponse.Ok;
+      if (childToAdd is IResizable)
+        ResizeAttachedContainer(childToAdd);
 
-      var resizableSiblings = childToAdd.SiblingsOfType<IResizable>();
+      _containerService.ContainersToRedraw.Add(targetParent);
+
+      return CommandResponse.Ok;
+    }
+
+    public void ResizeAttachedContainer(Container attachedContainer)
+    {
+      var resizableSiblings = attachedContainer.SiblingsOfType<IResizable>();
 
       if (!resizableSiblings.Any())
       {
-        (childToAdd as IResizable).SizePercentage = 1;
-        return CommandResponse.Ok;
+        (attachedContainer as IResizable).SizePercentage = 1;
+        return;
       }
 
       var defaultPercent = 1.0 / (resizableSiblings.Count() + 1);
 
       // Set initial size percentage to 0, and then size up the container to `defaultPercent`.
-      (childToAdd as IResizable).SizePercentage = 0;
-      _bus.Invoke(new ResizeContainerCommand(childToAdd, defaultPercent));
-
-      _containerService.ContainersToRedraw.Add(targetParent);
-
-      return CommandResponse.Ok;
+      (attachedContainer as IResizable).SizePercentage = 0;
+      _bus.Invoke(new ResizeContainerCommand(attachedContainer, defaultPercent));
     }
   }
 }
