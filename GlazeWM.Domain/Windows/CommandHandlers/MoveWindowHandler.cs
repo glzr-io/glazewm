@@ -73,17 +73,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Swap the window with sibling in given direction.
       if (siblingInDirection is Window)
       {
-        var targetIndex = direction is Direction.Up or Direction.Left ?
-          siblingInDirection.Index : siblingInDirection.Index + 1;
-
-        _bus.Invoke(
-          new MoveContainerWithinTreeCommand(
-            windowToMove,
-            windowToMove.Parent,
-            targetIndex
-          )
+        windowToMove.Parent.Children.ShiftToIndex(
+          siblingInDirection.Index,
+          windowToMove
         );
 
+        _containerService.ContainersToRedraw.Add(windowToMove);
+        _containerService.ContainersToRedraw.Add(siblingInDirection);
         return;
       }
 

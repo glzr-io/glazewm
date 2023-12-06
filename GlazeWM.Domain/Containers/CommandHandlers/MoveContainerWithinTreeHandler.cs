@@ -93,18 +93,6 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       Container lowestCommonAncestor,
       int targetIndex)
     {
-      if (containerToMove is IResizable && containerToMove.Parent == lowestCommonAncestor)
-      {
-        lowestCommonAncestor.Children.ShiftToIndex(
-          containerToMove.Index < targetIndex ? targetIndex - 1 : targetIndex,
-          containerToMove
-        );
-
-        // TODO: Move this out. Also, only need to redraw self and one sibling.
-        _containerService.ContainersToRedraw.Add(containerToMove.Parent);
-        return;
-      }
-
       // Keep reference to focus index of container's ancestor in LCA's `ChildFocusOrder`.
       var originalFocusIndex = containerToMove.SelfAndAncestors
         .First(ancestor => ancestor.Parent == lowestCommonAncestor)
