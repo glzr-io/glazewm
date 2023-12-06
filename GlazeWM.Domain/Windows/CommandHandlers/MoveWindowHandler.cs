@@ -73,18 +73,13 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // Swap the window with sibling in given direction.
       if (siblingInDirection is Window)
       {
-        var targetIndex = direction is Direction.Up or Direction.Left ?
-          siblingInDirection.Index : siblingInDirection.Index + 1;
-
-        _bus.Invoke(
-          new MoveContainerWithinTreeCommand(
-            windowToMove,
-            windowToMove.Parent,
-            targetIndex,
-            false
-          )
+        windowToMove.Parent.Children.ShiftToIndex(
+          siblingInDirection.Index,
+          windowToMove
         );
 
+        _containerService.ContainersToRedraw.Add(windowToMove);
+        _containerService.ContainersToRedraw.Add(siblingInDirection);
         return;
       }
 
@@ -102,7 +97,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       var insertionIndex = shouldInsertAfter ? targetDescendant.Index + 1 : targetDescendant.Index;
 
       _bus.Invoke(
-        new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true)
+        new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex)
       );
     }
 
@@ -125,9 +120,9 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // TODO: Descend into container if possible.
       if (direction is Direction.Up or Direction.Left)
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection));
       else
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, 0, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, 0));
     }
 
     private void ChangeWorkspaceTilingDirection(Window windowToMove, Direction direction)
@@ -174,7 +169,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           ? targetDescendant.Index + 1
           : targetDescendant.Index;
 
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex, true));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, targetParent, insertionIndex));
       }
       else
       {
@@ -186,8 +181,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
           new MoveContainerWithinTreeCommand(
             windowToMove,
             ancestorWithTilingDirection,
-            insertionIndex,
-            true
+            insertionIndex
           )
         );
       }
@@ -285,7 +279,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         }
 
         // Change the window's parent workspace.
-        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection, false));
+        _bus.Invoke(new MoveContainerWithinTreeCommand(windowToMove, workspaceInDirection));
 
         // Redrawing twice to fix weird WindowsOS dpi behaviour
         windowToMove.HasPendingDpiAdjustment = true;

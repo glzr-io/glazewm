@@ -53,11 +53,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
 
       // Create the window instance.
       var window = CreateWindow(windowHandle, targetParent);
-
-      if (window is IResizable)
-        _bus.Invoke(new AttachAndResizeContainerCommand(window, targetParent, targetIndex));
-      else
-        _bus.Invoke(new AttachContainerCommand(window, targetParent, targetIndex));
+      _bus.Invoke(new AttachContainerCommand(window, targetParent, targetIndex));
 
       // The OS might spawn the window on a different monitor to the target parent, so adjustments
       // might need to be made because of DPI.

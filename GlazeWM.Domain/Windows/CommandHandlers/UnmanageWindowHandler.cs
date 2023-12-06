@@ -32,11 +32,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
         ? WindowService.GetFocusTargetAfterRemoval(window)
         : null;
 
-      if (window is IResizable)
-        _bus.Invoke(new DetachAndResizeContainerCommand(window));
-      else
-        _bus.Invoke(new DetachContainerCommand(window));
-
+      _bus.Invoke(new DetachContainerCommand(window));
       _bus.Emit(new WindowUnmanagedEvent(window.Id, window.Handle));
 
       if (focusTarget is null)
