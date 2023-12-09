@@ -524,3 +524,69 @@ An app called "Sonic Studio", which is installed by default on ASUS ROG machines
 ## Binding the right-side Alt key `RMenu` on certain keyboard layouts
 
 Most keyboard layouts treat the right-side <kbd>Alt</kbd> key the same as the left, while others (eg. US International and German) treat it as <kbd>AltGr</kbd> and generate both <kbd>Ctrl</kbd> and <kbd>Alt</kbd> when it is pressed. For these keyboard layouts, keybindings with the <kbd>AltGr</kbd> key need to specify both `RMenu` and `Control` (eg. `RMenu+Control+A`).
+
+## How to remap `LWin`
+
+Example:
+
+Run the following autohotkey v1 script as administrator
+```
+; https://superuser.com/a/1819950/881662
+
+
+#InstallKeybdHook
+
+
+; Disable win + l key locking (This line must come before any hotkey assignments in the .ahk file)
+
+
+RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 1
+
+
+; Optional: Remap winKey + <someKey> here: 
+
+
+#space::return
+#s::return
+
+#h::
+Send, ^{F9}       ; It's important to chose some random intermediary hotkey, I choose ctrl + F9
+return
+
+#j::
+Send, ^{F10}
+return
+
+#k::
+Send, ^{F11}
+return
+
+#l::
+Send, ^{F12}
+return
+
+
+;CTRL+WIN+L
+^F12::
+RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 0
+DllCall("LockWorkStation")
+;after locking workstation force a reload of this script which effectively disables Win + L locking the computer again
+Reload
+```
+
+Next, amend the keybindings section in config.yaml:
+
+```
+keybindings:
+  # Shift focus in a given direction.
+  - command: "focus left"
+    bindings: ["Ctrl+F9"]      ; Notice I am using the intermediary hotkeys here
+  - command: "focus right"
+    bindings: ["Ctrl+F12"]
+  - command: "focus up"
+    bindings: ["Ctrl+F11"]
+  - command: "focus down"
+    bindings: ["Ctrl+F10"]
+ ```
+
+That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
