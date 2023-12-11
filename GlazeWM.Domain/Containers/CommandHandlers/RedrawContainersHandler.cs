@@ -86,7 +86,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         defaultFlags |= SetWindowPosFlags.HideWindow;
 
       if (window is MaximizedWindow)
+      {
         defaultFlags |= SetWindowPosFlags.NoSize;
+        defaultFlags |= SetWindowPosFlags.NoMove;
+      }
 
       // Transition display state depending on whether window will be shown/hidden.
       window.DisplayState = window.DisplayState switch
