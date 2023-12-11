@@ -94,7 +94,7 @@ namespace GlazeWM.App.Watcher
     {
       foreach (var handle in handles)
         // TODO: Change this.
-        ShowWindow(handle, ShowWindowFlags.ShowDefault);
+        ShowWindowAsync(handle, ShowWindowFlags.ShowDefault);
     }
   }
 }

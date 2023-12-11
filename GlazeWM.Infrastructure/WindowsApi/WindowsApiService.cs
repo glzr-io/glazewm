@@ -251,7 +251,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, ShowWindowFlags flags);
+    public static extern bool ShowWindowAsync(IntPtr hWnd, ShowWindowFlags flags);
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern int GetWindowTextLength(IntPtr hWnd);
@@ -399,7 +399,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern IntPtr SendMessage(IntPtr hWnd, SendMessageType msg, IntPtr wParam, IntPtr lParam);
+    public static extern IntPtr SendNotifyMessage(IntPtr hWnd, SendMessageType msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool IsProcessDPIAware();
