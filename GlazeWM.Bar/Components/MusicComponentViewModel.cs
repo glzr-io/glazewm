@@ -16,21 +16,32 @@ namespace GlazeWM.Bar.Components
       get => _label;
       protected set => SetField(ref _label, value);
     }
-    public string songTitle;
-    public string artistName;
-    public GlobalSystemMediaTransportControlsSessionPlaybackStatus musicStatus;
+    public struct SongSession
+    {
+      public SongSession(GlobalSystemMediaTransportControlsSessionPlaybackStatus musicStatus, string songTitle, string artistName)
+      {
+        SongTitle = songTitle;
+        ArtistName = artistName;
+        MusicStatus = musicStatus;
+      }
+      public string SongTitle { get; set; }
+      public string ArtistName { get; set; }
+      public GlobalSystemMediaTransportControlsSessionPlaybackStatus MusicStatus;
+    }
+    private readonly Dictionary<string, SongSession> songSessionDict;
     public MusicComponentViewModel(
       BarViewModel parentViewModel,
       MusicComponentConfig config) : base(parentViewModel, config)
     {
       _config = config;
       mediaManager = new MediaManager();
-      mediaManager.OnAnyMediaPropertyChanged += (_, args) => MusicTitleChanged(args.Artist, args.Title);
-      mediaManager.OnAnyPlaybackStateChanged += (_, args) => PlaybackStateChanged(args.PlaybackStatus);
+      mediaManager.OnAnyMediaPropertyChanged += (session, args) => MusicTitleChanged(session.Id, args.Artist, args.Title);
+      mediaManager.OnAnyPlaybackStateChanged += (session, args) => PlaybackStateChanged(session.Id, args.PlaybackStatus);
+      mediaManager.OnAnySessionOpened += (session) => OpenedSession(session.Id);
+      mediaManager.OnAnySessionClosed += (session) => ClosedSession(session.Id);
       mediaManager.Start();
     }
-
-    private string GetLabel()
+    private string GetLabel(GlobalSystemMediaTransportControlsSessionPlaybackStatus musicStatus)
     {
       return musicStatus switch
       {
@@ -39,28 +50,62 @@ namespace GlazeWM.Bar.Components
         _ => _config.LabelNotPlaying,
       };
     }
-    private void MusicTitleChanged(string name, string title)
+    private void MusicTitleChanged(string sessionId, string artistName, string songTitle)
     {
-      songTitle = title;
-      artistName = name;
+      var session = songSessionDict[sessionId];
+      session.ArtistName = artistName;
+      session.SongTitle = songTitle;
+      songSessionDict[sessionId] = session;
       Label = CreateLabel();
     }
-    private void PlaybackStateChanged(GlobalSystemMediaTransportControlsSessionPlaybackStatus status)
+    private void PlaybackStateChanged(string sessionId, GlobalSystemMediaTransportControlsSessionPlaybackStatus status)
     {
-      musicStatus = status;
+      var session = songSessionDict[sessionId];
+      session.MusicStatus = status;
+      songSessionDict[sessionId] = session;
+      Label = CreateLabel();
+    }
+    private void OpenedSession(string sessionId)
+    {
+      var session = new SongSession(GlobalSystemMediaTransportControlsSessionPlaybackStatus.Opened, "", "");
+      songSessionDict.Add(sessionId, session);
+    }
+    private void ClosedSession(string sessionId)
+    {
+      songSessionDict.Remove(sessionId);
       Label = CreateLabel();
     }
     private LabelViewModel CreateLabel()
     {
-      var variablesDictionary = new Dictionary<string, Func<string>>()
+      var label = _config.LabelNotPlaying;
+      var variableDictionary = new Dictionary<string, Func<string>>()
       {
-          {"song_title", () => songTitle},
-          {"artist_name", () => artistName}
+        {
+          "song_title", () => ""
+        },
+        {
+          "artist_name", () => ""
+        }
       };
 
+      foreach (var session in songSessionDict)
+      {
+        if(GetLabel(session.Value.MusicStatus) == _config.LabelPaused && label != _config.LabelPlaying)
+        {
+          label = _config.LabelPaused;
+          variableDictionary["song_title"] = () => session.Value.SongTitle;
+          variableDictionary["artist_name"] = () => session.Value.ArtistName;
+        }
+        else if (GetLabel(session.Value.MusicStatus) == _config.LabelPlaying)
+        {
+          label = _config.LabelPlaying;
+          variableDictionary["song_title"] = () => session.Value.SongTitle;
+          variableDictionary["artist_name"] = () => session.Value.ArtistName;
+        }
+      }
       return XamlHelper.ParseLabel(
-        GetLabel(),
-        variablesDictionary,
+        label,
+        variableDictionary,
         this
       );
     }
