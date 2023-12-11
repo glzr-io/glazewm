@@ -80,7 +80,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
         if (restoredWindow is not TilingWindow)
         {
           var workspace = WorkspaceService.GetWorkspaceFromChildContainer(restoredWindow);
-          _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace, false));
+          _bus.Invoke(new MoveContainerWithinTreeCommand(restoredWindow, workspace));
         }
         else
         {
@@ -89,8 +89,7 @@ namespace GlazeWM.Domain.Windows.EventHandlers
             new MoveContainerWithinTreeCommand(
               restoredWindow,
               restoredWindow.Parent,
-              restoredWindow.Index,
-              true
+              restoredWindow.Index
             )
           );
         }
