@@ -246,8 +246,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
     {
       Minimize = 2,
       Maximize = 3,
-      ShowDefault = 10,
+      ShowNoActivate = 8,
       Restore = 9,
+      ShowDefault = 10,
     }
 
     [DllImport("user32.dll")]

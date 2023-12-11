@@ -93,8 +93,7 @@ namespace GlazeWM.App.Watcher
     private static void RestoreHandles(List<IntPtr> handles)
     {
       foreach (var handle in handles)
-        // TODO: Change this.
-        ShowWindowAsync(handle, ShowWindowFlags.ShowDefault);
+        ShowWindowAsync(handle, ShowWindowFlags.ShowNoActivate);
     }
   }
 }
