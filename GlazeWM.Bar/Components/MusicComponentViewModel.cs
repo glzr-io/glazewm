@@ -91,7 +91,6 @@ namespace GlazeWM.Bar.Components
 
       foreach (var session in songSessionDict)
       {
-        Console.WriteLine(session.Value.ArtistName + session.Value.SongTitle);
         if(GetLabel(session.Value.MusicStatus) == _config.LabelPaused && label != _config.LabelPlaying)
         {
           label = _config.LabelPaused;
