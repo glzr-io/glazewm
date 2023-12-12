@@ -26,13 +26,14 @@ namespace GlazeWM.Bar.Components
       }
       public string SongTitle { get; set; }
       public string ArtistName { get; set; }
-      public GlobalSystemMediaTransportControlsSessionPlaybackStatus MusicStatus;
+      public GlobalSystemMediaTransportControlsSessionPlaybackStatus MusicStatus { get; set; }
     }
     private readonly Dictionary<string, SongSession> songSessionDict;
     public MusicComponentViewModel(
       BarViewModel parentViewModel,
       MusicComponentConfig config) : base(parentViewModel, config)
     {
+      songSessionDict = new Dictionary<string, SongSession>();
       _config = config;
       mediaManager = new MediaManager();
       mediaManager.OnAnyMediaPropertyChanged += (session, args) => MusicTitleChanged(session.Id, args.Artist, args.Title);
@@ -90,6 +91,7 @@ namespace GlazeWM.Bar.Components
 
       foreach (var session in songSessionDict)
       {
+        Console.WriteLine(session.Value.ArtistName + session.Value.SongTitle);
         if(GetLabel(session.Value.MusicStatus) == _config.LabelPaused && label != _config.LabelPlaying)
         {
           label = _config.LabelPaused;
