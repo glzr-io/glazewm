@@ -554,6 +554,7 @@ window_rules:
 - focus \<left | right | up | down>
 - focus workspace \<prev | next | recent>
 - focus workspace \<workspace name>
+- focus monitor \<left | right | up | down>
 - move \<left | right | up | down>
 - move to workspace \<workspace name>
 - resize \<height | width> \<amount in px | amount in %> (eg. `resize height 3%` or `resize width 20px`)
