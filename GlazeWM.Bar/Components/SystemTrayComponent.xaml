@@ -18,7 +18,7 @@
       MouseEnter="OnLabelHoverEnter"
       MouseLeave="OnLabelHoverLeave">
       <i:Interaction.Triggers>
-        <i:EventTrigger EventName="MouseLeftButtonDown">
+        <i:EventTrigger EventName="MouseLeftButtonUp">
           <i:CallMethodAction
             MethodName="ToggleShowAllIcons"
             TargetObject="{Binding Path=DataContext, ElementName=_workspacesComponent, Mode=OneWay}" />
