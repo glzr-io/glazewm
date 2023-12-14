@@ -444,6 +444,17 @@ Use `Alt+Click` to pin and un-pin an icon.
   label_collapse_text: ">"
 ```
 
+### Bar Component: Music
+
+Displays currently playing music.
+
+```yaml
+- type: "musc"
+  label_not_playing: ""
+  label_paused: "{song_title} - {artist name}"
+  label_playing: "{song_title} - {artist name} ▶"
+```
+
 ## Mixing font properties within a label
 
 Font family, font weight, font size, and foreground color can be changed within parts of a label. This means that icons and text fonts can be used together in a label. To customize a part of the label, wrap it in an <attr> tag:
