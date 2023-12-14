@@ -91,6 +91,9 @@ general:
   # Whether to globally enable/disable window transition animations (on minimize, close,
   # etc). Set to 'unchanged' to make no setting changes.
   window_animations: "unchanged"
+
+  # Whether to center new floating windows (default is true)
+  center_new_floating_windows: true
 ```
 
 ## Keybindings

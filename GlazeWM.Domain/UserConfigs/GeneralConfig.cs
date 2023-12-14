@@ -26,5 +26,9 @@ namespace GlazeWM.Domain.UserConfigs
     /// Whether to enable window transition animations (on minimize, close, etc).
     /// </summary>
     public WindowAnimations WindowAnimations { get; set; } = WindowAnimations.Unchanged;
+    /// <summary>
+    /// Weather to center new floating windows
+    /// </summary>
+    public bool CenterNewFloatingWindows { get; set; } = true;
   }
 }

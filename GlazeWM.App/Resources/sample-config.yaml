@@ -20,6 +20,9 @@ general:
   # to make no setting changes.
   window_animations: "unchanged"
 
+  # Whether to center new floating windows (default is true)
+  center_new_floating_windows: true
+
 gaps:
   # Gap between adjacent windows.
   inner_gap: "20px"
