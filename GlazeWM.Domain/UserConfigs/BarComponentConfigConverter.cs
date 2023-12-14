@@ -97,6 +97,10 @@ namespace GlazeWM.Domain.UserConfigs
           jsonObject.RootElement.ToString(),
           options
         ),
+        "music" => JsonSerializer.Deserialize<MusicComponentConfig>(
+          jsonObject.RootElement.ToString(),
+          options
+        ),
         _ => throw new ArgumentException($"Invalid component type '{typeDiscriminator}'."),
       };
     }
