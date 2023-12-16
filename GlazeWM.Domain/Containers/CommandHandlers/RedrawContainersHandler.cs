@@ -101,6 +101,19 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _ => window.DisplayState
       };
 
+      if (workspace.isMonocle)
+      {
+        SetWindowPos(
+          window.Handle,
+          new IntPtr((int)ZOrderFlags.NoTopMost),
+          workspace.X - window.BorderDelta.Left,
+          workspace.Y - window.BorderDelta.Top,
+          workspace.Width + window.BorderDelta.Left + window.BorderDelta.Right,
+          workspace.Height + window.BorderDelta.Top + window.BorderDelta.Right,
+          defaultFlags
+        );
+        return;
+      }
       if (window is TilingWindow)
       {
         SetWindowPos(

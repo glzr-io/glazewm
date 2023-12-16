@@ -29,6 +29,25 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var direction = command.Direction;
       var focusedContainer = _containerService.FocusedContainer;
 
+      var focusedWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(focusedContainer);
+
+      // in monocle mode, there are only two directions: next/prev
+      // thus we need to override the focusInDirection command
+      // and use focusInCycle instead
+      if (focusedWorkspace.isMonocle)
+      {
+        var cycleDirection = direction;
+        if (direction is Direction.Left || direction is Direction.Up)
+          cycleDirection = Direction.Prev;
+        if (direction is Direction.Right || direction is Direction.Down)
+          cycleDirection = Direction.Next;
+
+        _bus.Invoke(new FocusInCycleCommand(
+          cycleDirection
+        ));
+        return CommandResponse.Ok;
+      }
+
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is null || focusTarget == focusedContainer)
