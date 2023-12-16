@@ -132,6 +132,9 @@ namespace GlazeWM.Domain.UserConfigs
     {
       return commandParts[1] switch
       {
+        "next" => new FocusInCycleCommand(Direction.Next),
+        "prev" => new FocusInCycleCommand(Direction.Prev),
+
         "left" => new FocusInDirectionCommand(Direction.Left),
         "right" => new FocusInDirectionCommand(Direction.Right),
         "up" => new FocusInDirectionCommand(Direction.Up),
