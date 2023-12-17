@@ -105,6 +105,7 @@ namespace GlazeWM.Domain.Containers
       JsonSerializerOptions options)
     {
       writer.WriteString(JsonParser.ChangeCasing("Name", options), workspace.Name);
+      writer.WriteString(JsonParser.ChangeCasing("IsMonocle", options), workspace.isMonocle.ToString());
     }
 
     private static void WriteSplitContainerProperties(
