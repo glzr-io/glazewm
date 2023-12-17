@@ -15,5 +15,7 @@ namespace GlazeWM.Domain.Common
     public const string WorkspaceActivated = "workspace_activated";
     public const string WorkspaceDeactivated = "workspace_deactivated";
     public const string WorkingAreaResized = "working_area_resized";
+    public const string WorkspaceMonocleEntered = "workspace_monocle_entered";
+    public const string WorkspaceMonocleExited = "workspace_monocle_exited";
   }
 }

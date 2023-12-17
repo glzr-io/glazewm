@@ -53,7 +53,6 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<SetFocusedDescendantCommand>, SetFocusedDescendantHandler>();
       services.AddSingleton<ICommandHandler<SyncNativeFocusCommand>, SyncNativeFocusHandler>();
       services.AddSingleton<ICommandHandler<ToggleFocusModeCommand>, ToggleFocusModeHandler>();
-      services.AddSingleton<ICommandHandler<ToggleMonocleCommand>, ToggleMonocleHandler>();
       services.AddSingleton<ICommandHandler<AddMonitorCommand>, AddMonitorHandler>();
       services.AddSingleton<ICommandHandler<RefreshMonitorStateCommand>, RefreshMonitorStateHandler>();
       services.AddSingleton<ICommandHandler<RemoveMonitorCommand>, RemoveMonitorHandler>();
@@ -85,6 +84,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
       services.AddSingleton<ICommandHandler<MoveWorkspaceInDirectionCommand>, MoveWorkspaceInDirectionHandler>();
+      services.AddSingleton<ICommandHandler<ToggleWorkspaceMonocleCommand>, ToggleWorkspaceMonocleHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();
