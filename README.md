@@ -449,10 +449,10 @@ Use `Alt+Click` to pin and un-pin an icon.
 Displays currently playing music.
 
 ```yaml
-- type: "musc"
+- type: "music"
   label_not_playing: ""
-  label_paused: "{song_title} - {artist name}"
-  label_playing: "{song_title} - {artist name} ▶"
+  label_paused: "{song_title} - {artist_name}"
+  label_playing: "{song_title} - {artist_name} ▶"
 ```
 
 ## Mixing font properties within a label
