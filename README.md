@@ -453,6 +453,8 @@ Displays currently playing music.
   label_not_playing: ""
   label_paused: "{song_title} - {artist_name}"
   label_playing: "{song_title} - {artist_name} ▶"
+  max_title_length: 20
+  max_artist_length: 20
 ```
 
 ## Mixing font properties within a label

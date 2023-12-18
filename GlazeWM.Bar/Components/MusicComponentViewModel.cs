@@ -91,17 +91,19 @@ namespace GlazeWM.Bar.Components
 
       foreach (var session in songSessionDict)
       {
-        if(GetLabel(session.Value.MusicStatus) == _config.LabelPaused && label != _config.LabelPlaying)
+        var title = Truncate(session.Value.SongTitle, _config.MaxTitleLength);
+        var artist = Truncate(session.Value.ArtistName, _config.MaxArtistLength);
+        if (GetLabel(session.Value.MusicStatus) == _config.LabelPaused && label != _config.LabelPlaying)
         {
           label = _config.LabelPaused;
-          variableDictionary["song_title"] = () => session.Value.SongTitle;
-          variableDictionary["artist_name"] = () => session.Value.ArtistName;
+          variableDictionary["song_title"] = () => title;
+          variableDictionary["artist_name"] = () => artist;
         }
         else if (GetLabel(session.Value.MusicStatus) == _config.LabelPlaying)
         {
           label = _config.LabelPlaying;
-          variableDictionary["song_title"] = () => session.Value.SongTitle;
-          variableDictionary["artist_name"] = () => session.Value.ArtistName;
+          variableDictionary["song_title"] = () => title;
+          variableDictionary["artist_name"] = () => artist;
         }
       }
       return XamlHelper.ParseLabel(
@@ -109,6 +111,12 @@ namespace GlazeWM.Bar.Components
         variableDictionary,
         this
       );
+    }
+    public static string Truncate(string value, int maxLength, string truncationSuffix = "…")
+    {
+      return value?.Length > maxLength && maxLength >= 0
+        ? string.Concat(value.AsSpan(0, maxLength), truncationSuffix)
+        : value;
     }
   }
 }
