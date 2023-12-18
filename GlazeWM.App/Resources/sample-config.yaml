@@ -95,7 +95,8 @@ window_rules:
   - command: "set floating"
     match_class_name: "#32770"
 
-# Do not manage Picture-in-picture windows. Default is for english, change the match_title to the appropriate window's name if you use another language. 
+  # Do not manage picture-in-picture windows for browsers. Note that the default is for
+  # English; change `match_title` to the window's title if you use another language.
   - command: "ignore"
     match_title: "[Pp]icture.in.[Pp]icture"
     match_class_name: "Chrome_WidgetWin_1|MozillaDialogClass"
