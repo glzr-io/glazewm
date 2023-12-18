@@ -494,6 +494,14 @@ window_rules:
   - command: "ignore"
     match_process_name: "notepad"
 ```
+#### Picture in Picture mode :
+Change the `match_title` to the appropriate window's name
+```
+# Do not manage Picture-in-picture windows
+  - command: "ignore"
+    match_title: "[Pp]icture.in.[Pp]icture"
+    match_class_name: "Chrome_WidgetWin_1|MozillaDialogClass"
+```
 
 # Available commands
 
