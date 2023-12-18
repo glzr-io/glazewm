@@ -19,6 +19,7 @@ namespace GlazeWM.App.WindowManager
   {
     private readonly Bus _bus;
     private readonly KeybindingService _keybindingService;
+    private readonly WindowService _windowService;
     private readonly WindowEventService _windowEventService;
     private readonly UserConfigService _userConfigService;
 
@@ -27,11 +28,13 @@ namespace GlazeWM.App.WindowManager
     public WmStartup(
       Bus bus,
       KeybindingService keybindingService,
+      WindowService windowService,
       WindowEventService windowEventService,
       UserConfigService userConfigService)
     {
       _bus = bus;
       _keybindingService = keybindingService;
+      _windowService = windowService;
       _windowEventService = windowEventService;
       _userConfigService = userConfigService;
     }
@@ -132,9 +135,16 @@ namespace GlazeWM.App.WindowManager
 
     private void OnApplicationExit()
     {
-      _bus.Invoke(new ShowAllWindowsCommand());
+      // Show all windows regardless of whether their workspace is displayed.
+      foreach (var window in _windowService.GetWindows())
+        ShowWindowAsync(window.Handle, ShowWindowFlags.ShowNoActivate);
+
+      // Clear border on the active window.
       _bus.Invoke(new SetActiveWindowBorderCommand(null));
+
+      // Destroy the system tray icon.
       _systemTrayIcon?.Remove();
+
       System.Windows.Forms.Application.Exit();
     }
   }
