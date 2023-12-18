@@ -101,7 +101,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _ => window.DisplayState
       };
 
-      if (workspace.isMonocle && window is not MaximizedWindow)
+      if (workspace.isMonocle && window is TilingWindow)
       {
         SetWindowPos(
           window.Handle,
