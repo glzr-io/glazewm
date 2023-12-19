@@ -11,7 +11,7 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
     {
       var windowToClose = command.WindowToClose;
 
-      SendMessage(windowToClose.Handle, SendMessageType.Close, IntPtr.Zero, IntPtr.Zero);
+      SendNotifyMessage(windowToClose.Handle, SendMessageType.Close, IntPtr.Zero, IntPtr.Zero);
 
       return CommandResponse.Ok;
     }

@@ -46,7 +46,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
       // Restore minimized/maximized windows. Needed to be able to move and resize them.
       foreach (var window in windowsToRestore)
-        ShowWindow(window.Handle, ShowWindowFlags.Restore);
+        ShowWindowAsync(window.Handle, ShowWindowFlags.Restore);
 
       foreach (var window in windowsToRedraw)
       {
