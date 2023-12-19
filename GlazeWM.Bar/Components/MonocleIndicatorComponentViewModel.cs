@@ -6,8 +6,8 @@ using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Events;
-using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure;
+using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Bar.Components
 {
