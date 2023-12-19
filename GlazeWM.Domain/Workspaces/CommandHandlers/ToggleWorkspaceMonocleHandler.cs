@@ -1,6 +1,6 @@
 using GlazeWM.Domain.Containers;
-using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Domain.Workspaces.Commands;
+using GlazeWM.Domain.Workspaces.Events;
 using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Workspaces.CommandHandlers

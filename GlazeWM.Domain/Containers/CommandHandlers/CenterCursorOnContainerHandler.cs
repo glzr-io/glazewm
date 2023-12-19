@@ -1,6 +1,6 @@
-using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 

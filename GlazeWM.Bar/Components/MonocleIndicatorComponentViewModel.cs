@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Windows.Threading;
-using GlazeWM.Domain.Workspaces;
-using GlazeWM.Domain.Common.Enums;
-using GlazeWM.Domain.Containers;
 using GlazeWM.Domain.Containers.Events;
 using GlazeWM.Domain.UserConfigs;
-using GlazeWM.Infrastructure;
-using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Domain.Workspaces.Events;
+using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Infrastructure;
 
 namespace GlazeWM.Bar.Components
 {
