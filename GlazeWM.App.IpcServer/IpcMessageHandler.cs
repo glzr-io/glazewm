@@ -14,6 +14,7 @@ using GlazeWM.App.IpcServer.ClientMessages;
 using GlazeWM.App.IpcServer.ServerMessages;
 using GlazeWM.Domain.Common;
 using GlazeWM.Domain.Containers;
+using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.Monitors;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.Windows;
@@ -250,6 +251,8 @@ namespace GlazeWM.App.IpcServer
       );
 
       _bus.Invoke((dynamic)command);
+      _bus.Invoke(new RedrawContainersCommand());
+      _bus.Invoke(new SyncNativeFocusCommand());
 
       return new { contextContainerId = contextContainer.Id };
     }

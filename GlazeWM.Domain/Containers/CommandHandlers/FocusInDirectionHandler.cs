@@ -48,6 +48,9 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         return CommandResponse.Ok;
       }
 
+      if (focusedContainer is MaximizedWindow)
+        return CommandResponse.Ok;
+
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
       if (focusTarget is null || focusTarget == focusedContainer)
