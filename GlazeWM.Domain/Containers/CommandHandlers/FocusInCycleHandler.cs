@@ -8,13 +8,13 @@ using GlazeWM.Infrastructure.Bussing;
 
 namespace GlazeWM.Domain.Containers.CommandHandlers
 {
-  internal sealed class FocusInDirectionHandler : ICommandHandler<FocusInDirectionCommand>
+  internal sealed class FocusInCycleHandler : ICommandHandler<FocusInCycleCommand>
   {
     private readonly Bus _bus;
     private readonly ContainerService _containerService;
     private readonly MonitorService _monitorService;
 
-    public FocusInDirectionHandler(
+    public FocusInCycleHandler(
       Bus bus,
       ContainerService containerService,
       MonitorService monitorService)
@@ -24,32 +24,10 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       _monitorService = monitorService;
     }
 
-    public CommandResponse Handle(FocusInDirectionCommand command)
+    public CommandResponse Handle(FocusInCycleCommand command)
     {
       var direction = command.Direction;
       var focusedContainer = _containerService.FocusedContainer;
-
-      var focusedWorkspace = WorkspaceService.GetWorkspaceFromChildContainer(focusedContainer);
-
-      // in monocle mode, there are only two directions: next/prev
-      // thus we need to override the focusInDirection command
-      // and use focusInCycle instead
-      if (focusedWorkspace.isMonocle)
-      {
-        var cycleDirection = direction;
-        if (direction is Direction.Left || direction is Direction.Up)
-          cycleDirection = Direction.Prev;
-        if (direction is Direction.Right || direction is Direction.Down)
-          cycleDirection = Direction.Next;
-
-        _bus.Invoke(new FocusInCycleCommand(
-          cycleDirection
-        ));
-        return CommandResponse.Ok;
-      }
-
-      if (focusedContainer is MaximizedWindow)
-        return CommandResponse.Ok;
 
       var focusTarget = GetFocusTarget(focusedContainer, direction);
 
@@ -72,59 +50,37 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
 
     private static Container GetFocusTargetFromFloating(Container focusedContainer, Direction direction)
     {
-      // Cannot focus vertically from a floating window.
-      if (direction is Direction.Up or Direction.Down)
-        return null;
-
-      var focusTarget = direction is Direction.Right
+      var focusTarget = direction is Direction.Next
         ? focusedContainer.NextSiblingOfType<FloatingWindow>()
         : focusedContainer.PreviousSiblingOfType<FloatingWindow>();
 
-      if (focusTarget is not null)
-        return focusTarget;
-
-      // Wrap if next/previous floating window is not found.
-      return direction is Direction.Right
+      return focusTarget ?? (direction is Direction.Next
         ? focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().FirstOrDefault()
-        : focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().LastOrDefault();
+        : focusedContainer.SelfAndSiblingsOfType<FloatingWindow>().LastOrDefault());
     }
-
     private Container GetFocusTargetFromTiling(Container focusedContainer, Direction direction)
     {
-      var focusTargetWithinWorkspace = GetFocusTargetWithinWorkspace(focusedContainer, direction);
-
-      if (focusTargetWithinWorkspace != null)
-        return focusTargetWithinWorkspace;
-
-      // If a suitable focus target isn't found in the current workspace, attempt to find
-      // a workspace in the given direction.
-      return GetFocusTargetOutsideWorkspace(direction);
+      return GetFocusTargetWithinWorkspace(focusedContainer, direction)
+        ?? GetFocusTargetOutsideWorkspace(direction);
     }
 
-    /// <summary>
-    /// Attempt to find a focus target within the focused workspace. Traverse upwards from the
-    /// focused container to find an adjacent container that can be focused.
-    /// </summary>
     private Container GetFocusTargetWithinWorkspace(
       Container focusedContainer,
       Direction direction)
     {
-      var tilingDirection = direction.GetTilingDirection();
       var focusReference = focusedContainer;
 
-      // Traverse upwards from the focused container. Stop searching when a workspace is
-      // encountered.
       while (focusReference is not Workspace)
       {
         var parent = focusReference.Parent as SplitContainer;
 
-        if (!focusReference.HasSiblings() || parent.TilingDirection != tilingDirection)
+        if (!focusReference.HasSiblings())
         {
           focusReference = parent;
           continue;
         }
 
-        var focusTarget = direction is Direction.Up or Direction.Left
+        var focusTarget = direction is Direction.Prev
           ? focusReference.PreviousSiblingOfType<IResizable>()
           : focusReference.NextSiblingOfType<IResizable>();
 
@@ -134,15 +90,13 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
           continue;
         }
 
-        return _containerService.GetDescendantInDirection(focusTarget, direction.Inverse());
+        if (focusTarget is SplitContainer)
+          return _containerService.GetDescendantInCycle(focusTarget, direction);
+
+        return focusTarget;
       }
-
-      return null;
+      return _containerService.GetDescendantInCycle(focusReference, direction);
     }
-
-    /// <summary>
-    /// Attempt to find a focus target in a different workspace than the focused workspace.
-    /// </summary>
     private Container GetFocusTargetOutsideWorkspace(Direction direction)
     {
       var focusedMonitor = _monitorService.GetFocusedMonitor();

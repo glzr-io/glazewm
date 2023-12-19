@@ -45,6 +45,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<DetachContainerCommand>, DetachContainerHandler>();
       services.AddSingleton<ICommandHandler<FlattenSplitContainerCommand>, FlattenSplitContainerHandler>();
       services.AddSingleton<ICommandHandler<FocusInDirectionCommand>, FocusInDirectionHandler>();
+      services.AddSingleton<ICommandHandler<FocusInCycleCommand>, FocusInCycleHandler>();
       services.AddSingleton<ICommandHandler<MoveContainerWithinTreeCommand>, MoveContainerWithinTreeHandler>();
       services.AddSingleton<ICommandHandler<RedrawContainersCommand>, RedrawContainersHandler>();
       services.AddSingleton<ICommandHandler<ReplaceContainerCommand>, ReplaceContainerHandler>();
@@ -82,6 +83,7 @@ namespace GlazeWM.Domain
       services.AddSingleton<ICommandHandler<MoveWindowToWorkspaceCommand>, MoveWindowToWorkspaceHandler>();
       services.AddSingleton<ICommandHandler<UpdateWorkspacesFromConfigCommand>, UpdateWorkspacesFromConfigHandler>();
       services.AddSingleton<ICommandHandler<MoveWorkspaceInDirectionCommand>, MoveWorkspaceInDirectionHandler>();
+      services.AddSingleton<ICommandHandler<ToggleWorkspaceMonocleCommand>, ToggleWorkspaceMonocleHandler>();
 
       services.AddSingleton<IEventHandler<DisplaySettingsChangedEvent>, DisplaySettingsChangedHandler>();
       services.AddSingleton<IEventHandler<WindowDestroyedEvent>, WindowDestroyedHandler>();

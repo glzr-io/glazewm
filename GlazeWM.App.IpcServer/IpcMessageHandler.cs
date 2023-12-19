@@ -71,6 +71,8 @@ namespace GlazeWM.App.IpcServer
       DomainEvent.WorkspaceActivated,
       DomainEvent.WorkspaceDeactivated,
       DomainEvent.WorkingAreaResized,
+      DomainEvent.WorkspaceMonocleEntered,
+      DomainEvent.WorkspaceMonocleExited,
       InfraEvent.ApplicationExiting,
     };
 

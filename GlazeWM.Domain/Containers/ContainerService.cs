@@ -166,6 +166,33 @@ namespace GlazeWM.Domain.Containers
     }
 
     /// <summary>
+    /// Traverse down a container in search of a descendant in the given direction(next/prev).
+    /// </summary>
+    public Container GetDescendantInCycle(Container originContainer, Direction direction)
+    {
+      var isDescendable =
+        originContainer is SplitContainer &&
+        originContainer.ChildrenOfType<IResizable>().Any();
+
+      if (!isDescendable)
+        return originContainer;
+
+      if (direction is Direction.Prev)
+      {
+        return GetDescendantInCycle(
+          originContainer.ChildrenOfType<IResizable>().Last(),
+          direction
+        );
+      }
+
+      return GetDescendantInCycle(
+        originContainer.ChildrenOfType<IResizable>().First(),
+        direction
+      );
+    }
+
+
+    /// <summary>
     /// Get the lowest container in the tree that has both `containerA` and `containerB` as
     /// descendants.
     /// </summary>

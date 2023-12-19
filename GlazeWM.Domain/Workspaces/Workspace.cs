@@ -92,6 +92,7 @@ namespace GlazeWM.Domain.Workspaces
     /// Whether the workspace is currently displayed by the parent monitor.
     /// </summary>
     public bool IsDisplayed => (Parent as Monitor)?.DisplayedWorkspace == this;
+    public bool isMonocle { get; set; }
 
     public Workspace(string name, TilingDirection tilingDirection)
     {

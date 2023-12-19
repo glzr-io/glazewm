@@ -8,6 +8,8 @@ namespace GlazeWM.Domain.Common.Enums
     Down,
     Left,
     Right,
+    Next,
+    Prev
   }
 
   public static class DirectionExtensions
@@ -24,6 +26,8 @@ namespace GlazeWM.Domain.Common.Enums
         Direction.Down => Direction.Up,
         Direction.Left => Direction.Right,
         Direction.Right => Direction.Left,
+        Direction.Next => Direction.Prev,
+        Direction.Prev => Direction.Next,
         _ => throw new ArgumentOutOfRangeException(nameof(direction)),
       };
     }
