@@ -26,5 +26,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// Whether to enable window transition animations (on minimize, close, etc).
     /// </summary>
     public WindowAnimations WindowAnimations { get; set; } = WindowAnimations.Unchanged;
+
+    /// <summary>
+    /// Tiling direction that will be automatically set when focusing a window
+    /// </summary>
+    public AutomaticTilingDirection AutomaticTilingDirection { get; set; } = AutomaticTilingDirection.Unchanged;
   }
 }
