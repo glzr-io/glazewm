@@ -19,6 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+  <PackageReference Include="Dubya.WindowsMediaController">
+    <Version>2.5.2</Version>
+  </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Page Update="Components\TextFileComponent.xaml">
       <Generator>MSBuild:Compile</Generator>
       <XamlRuntime>Wpf</XamlRuntime>
