@@ -27,7 +27,7 @@ namespace GlazeWM.Domain.UserConfigs
     /// </summary>
     public WindowAnimations WindowAnimations { get; set; } = WindowAnimations.Unchanged;
     /// <summary>
-    /// Weather to center new floating windows
+    /// Whether to center new floating windows
     /// </summary>
     public bool CenterNewFloatingWindows { get; set; } = true;
   }
