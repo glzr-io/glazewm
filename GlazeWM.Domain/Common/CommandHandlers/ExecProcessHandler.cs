@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
 using System.Windows.Forms;
 using GlazeWM.Domain.Common.Commands;
 using GlazeWM.Infrastructure.Bussing;
