@@ -528,7 +528,7 @@ window_rules:
 - exit wm
 - reload config
 - close
-- exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:/Program Files/Google/Chrome/Application/chrome'`)
+- (sudo) exec \<process name | path to executable> (eg. `exec chrome` or `exec 'C:/Program Files/Google/Chrome/Application/chrome'`. Adding prefix `sudo` allows you to exec in admin mode, but if you do not explicitly state so, the process will open without elevation even if you are running an elevated `GlazeWM`)
 - ignore
 
 # Known issues
