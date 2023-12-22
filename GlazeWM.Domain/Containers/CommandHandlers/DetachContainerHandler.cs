@@ -75,8 +75,8 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
         _bus.Invoke(
           new FlattenSplitContainerCommand(detachedSiblings.ElementAt(0) as SplitContainer)
         );
-
-        _bus.Invoke(new FlattenSplitContainerCommand(detachedParent as SplitContainer));
+        if (detachedParent is not Workspace)
+          _bus.Invoke(new FlattenSplitContainerCommand(detachedParent as SplitContainer));
       }
 
       return CommandResponse.Ok;
