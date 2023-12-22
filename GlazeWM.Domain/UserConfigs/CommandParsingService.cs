@@ -86,10 +86,8 @@ namespace GlazeWM.Domain.UserConfigs
             ? new CloseWindowCommand(subjectContainer as Window)
             : new NoopCommand(),
           "reload" => ParseReloadCommand(commandParts),
-          "exec" => new ExecProcessCommand(
-            ExtractProcessName(string.Join(" ", commandParts[1..])),
-            ExtractProcessArgs(string.Join(" ", commandParts[1..]))
-          ),
+          "sudo" => ParseExecCommand(commandParts),
+          "exec" => ParseExecCommand(commandParts),
           "ignore" => subjectContainer is Window
             ? new IgnoreWindowCommand(subjectContainer as Window)
             : new NoopCommand(),
@@ -284,6 +282,22 @@ namespace GlazeWM.Domain.UserConfigs
       return commandParts[1] switch
       {
         "config" => new ReloadUserConfigCommand(),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private static Command ParseExecCommand(string[] commandParts)
+    {
+      var shouldElevated = commandParts[0] == "sudo";
+      var keywordIndex = shouldElevated ? 1 : 0;
+      var argsIndex = keywordIndex + 1;
+      return commandParts[keywordIndex] switch
+      {
+        "exec" => new ExecProcessCommand(
+          ExtractProcessName(string.Join(" ", commandParts[argsIndex..])),
+          ExtractProcessArgs(string.Join(" ", commandParts[argsIndex..])),
+          shouldElevated
+        ),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }

@@ -7,11 +7,13 @@ namespace GlazeWM.Domain.Common.Commands
   {
     public string ProcessName { get; }
     public List<string> Args { get; }
+    public bool ShouldElevated { get; }
 
-    public ExecProcessCommand(string processName, List<string> args)
+    public ExecProcessCommand(string processName, List<string> args, bool shouldElevated)
     {
       ProcessName = processName;
       Args = args;
+      ShouldElevated = shouldElevated;
     }
   }
 }
