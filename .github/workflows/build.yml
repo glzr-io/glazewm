@@ -27,15 +27,17 @@ jobs:
           dotnet publish GlazeWM.App/GlazeWM.App.csproj
           --configuration Release
           --runtime ${{ matrix.runtime }}
+          --output GlazeWM.App/publish/
           --self-contained
           -p:PublishSingleFile=true
           -p:IncludeAllContentForSelfExtract=true
 
-      - name: Upload build
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           # TODO: Get commit hash
           name: glazewm-${{ matrix.runtime }}
           # path: GlazeWM.App/bin/Release/${{ matrix.runtime }}/publish/*
-          path: GlazeWM.App/bin/*
+          # path: GlazeWM.App/bin/*
+          path: GlazeWM.App/publish/*
           if-no-files-found: error
