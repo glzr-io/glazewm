@@ -22,15 +22,14 @@ jobs:
         with:
           dotnet-version: 7.x
 
-      - name: Run dotnet publish
-        run: |
-          dotnet publish `\
-            GlazeWM.App/GlazeWM.App.csproj `\
-            --configuration=Release `\
-            --runtime=${{ matrix.runtime }} `\
-            --self-contained `\
-            -p:PublishSingleFile=true `\
-            -p:IncludeAllContentForSelfExtract=true `\
+      - name: Publish
+        run: >
+          dotnet publish GlazeWM.App/GlazeWM.App.csproj
+          --configuration Release
+          --runtime ${{ matrix.runtime }}
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeAllContentForSelfExtract=true
 
       - name: Upload build
         uses: actions/upload-artifact@v4
