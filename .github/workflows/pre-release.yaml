@@ -2,7 +2,7 @@ name: Pre-release
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
 
 permissions:
   contents: write

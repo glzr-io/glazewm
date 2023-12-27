@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+    # TODO: Remove temp ci branch.
+    branches: [main, ci/overhaul-github-workflows]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-x86]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.x
+
+      - name: Run dotnet publish
+        run: |
+          dotnet publish \
+            GlazeWM.App/GlazeWM.App.csproj \
+            --configuration=Release \
+            --runtime=${{ matrix.runtime }} \
+            --self-contained \
+            -p:PublishSingleFile=true \
+            -p:IncludeAllContentForSelfExtract=true
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          # TODO: Get commit hash
+          name: glazewm-${{ matrix.runtime }}
+          # path: GlazeWM.App/bin/Release/${{ matrix.runtime }}/publish/*
+          path: GlazeWM.App/bin/*
+          if-no-files-found: error
