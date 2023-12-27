@@ -1,0 +1,29 @@
+name: Pre-release
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Semantic release
+        uses: glzr-io/actions/semantic-release@main
+        with:
+          is_prerelease: true
+          repository_url: "github.com:glzr-io/glazewm.git"
+          gh_publish: true
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          gh_assets: |
+            TODO

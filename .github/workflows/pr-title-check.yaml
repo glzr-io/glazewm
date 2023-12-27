@@ -1,0 +1,14 @@
+name: PR title check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-title-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR title check
+        uses: glzr-io/actions/semantic-prs@main
+        with:
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
