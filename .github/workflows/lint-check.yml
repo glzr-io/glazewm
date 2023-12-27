@@ -13,7 +13,6 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: "7.x"
-          cache: true
 
       - name: Run dotnet format
         run: dotnet format --verify-no-changes
