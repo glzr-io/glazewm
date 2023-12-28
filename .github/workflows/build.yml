@@ -1,9 +1,10 @@
 name: Build
 
 on:
+  # TODO: Remove temp ci branch.
   push:
-    # TODO: Remove temp ci branch.
     branches: [main, ci/overhaul-github-workflows]
+  workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
 
