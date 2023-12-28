@@ -2,7 +2,7 @@ name: Pre-release
 
 on:
   push:
-    branches: [main, ci/overhaul-github-workflows]
+    branches: [main, ci-test]
 
 permissions:
   contents: write
