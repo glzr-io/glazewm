@@ -50,5 +50,5 @@ jobs:
           gh_assets: |
             [
               { "path": "artifacts/win-x64", "name": "GlazeWM_x64_${nextRelease.gitTag}" },
-              { "path": "artifacts/win-x86", "name": "GlazeWM_x86_${nextRelease.gitTag}" },
+              { "path": "artifacts/win-x86", "name": "GlazeWM_x86_${nextRelease.gitTag}" }
             ]
