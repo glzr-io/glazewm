@@ -40,6 +40,9 @@ jobs:
           name: glazewm-win-x86-${{ github.sha }}
           path: artifacts/win-x86
 
+      - name: Debug
+        run: ls -la
+
       - name: Semantic release
         uses: glzr-io/actions/semantic-release@main
         with:
