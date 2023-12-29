@@ -22,7 +22,7 @@ runs:
     - uses: glzr-io/actions/semantic-release@main
       with:
         is-prerelease: ${{ inputs.is-prerelease }}
-        prerelease_tag: nightly
+        prerelease-tag: nightly
         gh-publish: true
         gh-draft-release: ${{ !inputs.is-prerelease }}
         gh-token: ${{ github.token }}
