@@ -41,7 +41,10 @@ jobs:
           path: artifacts/win-x86
 
       - name: Debug
-        run: ls -la
+        run: |
+          ls -la
+          cd artifacts
+          ls -la
 
       - name: Semantic release
         uses: glzr-io/actions/semantic-release@main
