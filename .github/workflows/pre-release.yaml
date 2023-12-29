@@ -22,11 +22,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Download artifacts
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: glazewm-*-${{ github.sha }}
-      #     path: artifacts
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: glazewm-*-${{ github.sha }}
+          path: temp
 
       - name: Download artifacts (win-x64)
         uses: actions/download-artifact@v4
@@ -45,6 +45,10 @@ jobs:
           ls -la
           cd artifacts
           ls -la
+          cd win-x64
+          ls -la
+          cd ../../temp
+          ls -la
 
       - name: Semantic release
         uses: glzr-io/actions/semantic-release@main
@@ -55,6 +59,6 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           gh_assets: |
             [
-              { "path": "artifacts/win-x64", "name": "GlazeWM_x64_${nextRelease.gitTag}" },
-              { "path": "artifacts/win-x86", "name": "GlazeWM_x86_${nextRelease.gitTag}" }
+              { "path": "artifacts/win-x64/GlazeWM.exe", "name": "GlazeWM_x64_${nextRelease.gitTag}" },
+              { "path": "artifacts/win-x86/GlazeWM.exe", "name": "GlazeWM_x86_${nextRelease.gitTag}" }
             ]
