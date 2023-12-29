@@ -8,20 +8,13 @@ permissions:
   pull-requests: write
 
 jobs:
-  release:
+  build:
+    uses: ./.github/workflows/build.yaml
+
+  pre-release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: ./.github/actions/release-with-artifacts
         with:
-          fetch-depth: 0
-
-      - name: Semantic release
-        uses: glzr-io/actions/semantic-release@main
-        with:
-          is_prerelease: false
-          repository_url: "github.com:glzr-io/glazewm.git"
-          gh_publish: true
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
-          npm_publish: true
-          npm_token: ${{ secrets.NPM_TOKEN }}
+          is-prerelease: false

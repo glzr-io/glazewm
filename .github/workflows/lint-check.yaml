@@ -6,13 +6,10 @@ jobs:
   lint-check:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.x
 
-      - name: Run dotnet format
-        run: dotnet format --verify-no-changes
+      - run: dotnet format --verify-no-changes

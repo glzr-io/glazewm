@@ -17,48 +17,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: ./.github/actions/release-with-artifacts
         with:
-          fetch-depth: 0
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: glazewm-win-*-${{ github.sha }}
-          path: temp
-
-      - name: Download artifacts (win-x64)
-        uses: actions/download-artifact@v4
-        with:
-          name: glazewm-win-x64-${{ github.sha }}
-          path: artifacts/win-x64
-
-      - name: Download artifacts (win-x86)
-        uses: actions/download-artifact@v4
-        with:
-          name: glazewm-win-x86-${{ github.sha }}
-          path: artifacts/win-x86
-
-      - name: Debug
-        run: |
-          ls -la
-          cd artifacts
-          ls -la
-          cd win-x64
-          ls -la
-          cd ../../temp
-          ls -la
-
-      - name: Semantic release
-        uses: glzr-io/actions/semantic-release@main
-        with:
-          is_prerelease: true
-          repository_url: "github.com:glzr-io/glazewm.git"
-          gh_publish: true
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
-          gh_assets: |
-            [
-              { "path": "artifacts/win-x64/GlazeWM.exe", "name": "GlazeWM_x64_${nextRelease.gitTag}" },
-              { "path": "artifacts/win-x86/GlazeWM.exe", "name": "GlazeWM_x86_${nextRelease.gitTag}" }
-            ]
+          is-prerelease: true
