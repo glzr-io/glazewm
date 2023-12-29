@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  workflow_call:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-x86]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.x
+
+      - run: >
+          dotnet publish GlazeWM.App/GlazeWM.App.csproj
+          --configuration Release
+          --runtime ${{ matrix.runtime }}
+          --output GlazeWM.App/publish/
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeAllContentForSelfExtract=true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glazewm-${{ matrix.runtime }}-${{ github.sha }}
+          path: GlazeWM.App/publish/GlazeWM.exe
+          if-no-files-found: error

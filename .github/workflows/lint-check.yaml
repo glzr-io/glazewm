@@ -1,0 +1,15 @@
+name: Lint check
+
+on: push
+
+jobs:
+  lint-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.x
+
+      - run: dotnet format --verify-no-changes

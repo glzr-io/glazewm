@@ -1,0 +1,24 @@
+name: Release
+
+on: workflow_dispatch
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+
+  pre-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/release-with-artifacts
+        with:
+          is-prerelease: false
