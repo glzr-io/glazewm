@@ -25,7 +25,7 @@ runs:
         prerelease_tag: nightly
         gh-publish: true
         gh-draft-release: ${{ !inputs.is-prerelease }}
-        gh-token: ${{ secrets.GITHUB_TOKEN }}
+        gh-token: ${{ github.token }}
         gh-assets: |
           [
             {
