@@ -16,7 +16,21 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 
 Under the hood, GlazeWM adds functionality to the built-in window manager and uses the Windows API via P/Invoke to position windows.
 
+# Table of Contents
+
+- [Download](#download)
+- [Roadmap](#roadmap)
+- [Configuration](#configuration)
+- [Available Commands](#available-commands)
+- [Known Issues](#known-issues)
+- [Contributing](#contributing)
+
 # Download
+
+- [Direct download](#direct-download)
+- [Winget](#winget)
+- [Scoop](#scoop)
+- [Build from source](#build-from-source)
 
 ## Direct download
 
@@ -59,6 +73,13 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 [📋 Full roadmap](https://github.com/users/lars-berger/projects/2/views/1)
 
 # Configuration
+
+- [General](#general)
+- [Keybindings](#keybindings)
+- [Focus Window Border](#focus-window-border)
+- [Gap Configuration](#gap-configuration)
+- [Workspaces](#workspaces)
+- [Bar Configuration](#bar-configuration)
 
 The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) can optionally be generated on launch.
 
@@ -185,6 +206,20 @@ workspaces:
 ```
 
 ## Bar configuration
+
+- [Bar Components](#bar-components)
+  - [Clock](#component-clock)
+  - [Battery](#component-battery)
+  - [CPU Usage](#component-cpu-usage)
+  - [GPU Usage](#component-gpu-usage)
+  - [Memory Usage](#component-memory-usage)
+  - [Network](#component-network)
+  - [Volume](#component-volume)
+  - [Text File](#component-text-file)
+  - [Weather](#component-weather)
+  - [Image](#component-image)
+  - [System Tray](#component-system-tray)
+  - [Music](#component-music)
 
 The appearance of the bar can be changed via the `bar` property in the config file.
 
