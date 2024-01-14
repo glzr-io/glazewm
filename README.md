@@ -247,12 +247,12 @@ bar:
     - type: "clock"
 ```
 
-### Bar component configuration
+### Bar Component configuration
 
 The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
-# Type of component to display. Currently 7 component types exist: "workspaces", "clock", "text", "battery", "window title", "binding mode" and "tiling direction".
+# Type of component to display. See "Bar Components" for all available components.
 type: <COMPONENT_TYPE>
 
 # Horizontal and vertical margins. See "Shorthand properties" for more info.
@@ -299,7 +299,9 @@ Using the example of padding:
 - When three values are specified, the first padding applies to the top, the second to the right and left, the third to the bottom.
 - When four values are specified, the paddings apply to the top, right, bottom, and left in that order (clockwise).
 
-### Bar component: Clock
+### Bar Components
+
+#### Bar Component: Clock
 
 The text shown in the clock component is specified via `time_formatting`. The supported time format specifiers are defined by [.NET's time/date string formatting](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
 
@@ -317,7 +319,7 @@ Additionally supported format specifiers:
   time_formatting: "hh:mm tt  ddd MMM d"
 ```
 
-### Bar Component: Battery
+#### Bar Component: Battery
 
 The battery component displays the system's battery level in percent.
 There are three labels available that can be customized:
@@ -337,7 +339,7 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
-### Bar Component: CPU Usage
+#### Bar Component: CPU Usage
 
 Displays the current CPU usage.
 
@@ -348,7 +350,7 @@ Displays the current CPU usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: GPU Usage
+#### Bar Component: GPU Usage
 
 This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
 
@@ -359,7 +361,7 @@ This component has high CPU requirement (compared to others); due to no efficien
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Memory Usage
+#### Bar Component: Memory Usage
 
 Displays the current Memory usage.
 
@@ -370,7 +372,7 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Network
+#### Bar Component: Network
 
 Displays the type and signal strength of the active network connection.
 
@@ -385,7 +387,7 @@ Displays the type and signal strength of the active network connection.
   label_wifi_strength_100: "WiFi: 100%"
 ```
 
-### Bar Component: Volume
+#### Bar Component: Volume
 
 Displays volume level.
 
@@ -397,7 +399,7 @@ Displays volume level.
   label_mute: "🔊{volume_level}%"
 ```
 
-### Bar Component: Text File
+#### Bar Component: Text File
 
 For displaying any content without a native integrated widget; updates in real time.
 
@@ -407,7 +409,7 @@ For displaying any content without a native integrated widget; updates in real t
   file_path: "PATH_HERE"
 ```
 
-### Bar Component: Weather
+#### Bar Component: Weather
 
 Uses Open-Meteo API, refreshes every hour.
 
@@ -428,7 +430,7 @@ Uses Open-Meteo API, refreshes every hour.
   label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
-### Bar Component: Image
+#### Bar Component: Image
 
 Supports `.png` and `.jpg` formats.
 
@@ -437,7 +439,7 @@ Supports `.png` and `.jpg` formats.
   source: "C:\\Folder\\AnotherFolder\\image.png"
 ```
 
-### Bar Component: System Tray
+#### Bar Component: System Tray
 
 Use `Alt+Click` to pin and un-pin an icon.
 
@@ -447,7 +449,7 @@ Use `Alt+Click` to pin and un-pin an icon.
   label_collapse_text: ">"
 ```
 
-### Bar Component: Music
+#### Bar Component: Music
 
 Displays currently playing music.
 
@@ -546,6 +548,7 @@ Most keyboard layouts treat the right-side <kbd>Alt</kbd> key the same as the le
 Example:
 
 Run the following autohotkey v1 script as administrator
+
 ```
 ; https://superuser.com/a/1819950/881662
 
@@ -559,7 +562,7 @@ Run the following autohotkey v1 script as administrator
 RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 1
 
 
-; Optional: Remap winKey + <someKey> here: 
+; Optional: Remap winKey + <someKey> here:
 
 
 #space::return
@@ -603,6 +606,6 @@ keybindings:
     bindings: ["Ctrl+F11"]
   - command: "focus down"
     bindings: ["Ctrl+F10"]
- ```
+```
 
 That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
