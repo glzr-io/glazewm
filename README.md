@@ -299,9 +299,9 @@ Using the example of padding:
 - When three values are specified, the first padding applies to the top, the second to the right and left, the third to the bottom.
 - When four values are specified, the paddings apply to the top, right, bottom, and left in that order (clockwise).
 
-### Bar Components
+### Bar components
 
-#### Bar Component: Clock
+#### Bar component: Clock
 
 The text shown in the clock component is specified via `time_formatting`. The supported time format specifiers are defined by [.NET's time/date string formatting](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
 
@@ -319,7 +319,7 @@ Additionally supported format specifiers:
   time_formatting: "hh:mm tt  ddd MMM d"
 ```
 
-#### Bar Component: Battery
+#### Bar component: Battery
 
 The battery component displays the system's battery level in percent.
 There are three labels available that can be customized:
@@ -339,7 +339,7 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
-#### Bar Component: CPU Usage
+#### Bar component: CPU Usage
 
 Displays the current CPU usage.
 
@@ -350,7 +350,7 @@ Displays the current CPU usage.
   refresh_interval_ms: 1000
 ```
 
-#### Bar Component: GPU Usage
+#### Bar component: GPU Usage
 
 This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
 
@@ -361,7 +361,7 @@ This component has high CPU requirement (compared to others); due to no efficien
   refresh_interval_ms: 1000
 ```
 
-#### Bar Component: Memory Usage
+#### Bar component: Memory Usage
 
 Displays the current Memory usage.
 
@@ -372,7 +372,7 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
-#### Bar Component: Network
+#### Bar component: Network
 
 Displays the type and signal strength of the active network connection.
 
@@ -387,7 +387,7 @@ Displays the type and signal strength of the active network connection.
   label_wifi_strength_100: "WiFi: 100%"
 ```
 
-#### Bar Component: Volume
+#### Bar component: Volume
 
 Displays volume level.
 
@@ -399,7 +399,7 @@ Displays volume level.
   label_mute: "🔊{volume_level}%"
 ```
 
-#### Bar Component: Text File
+#### Bar component: Text File
 
 For displaying any content without a native integrated widget; updates in real time.
 
@@ -409,7 +409,7 @@ For displaying any content without a native integrated widget; updates in real t
   file_path: "PATH_HERE"
 ```
 
-#### Bar Component: Weather
+#### Bar component: Weather
 
 Uses Open-Meteo API, refreshes every hour.
 
@@ -430,7 +430,7 @@ Uses Open-Meteo API, refreshes every hour.
   label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
-#### Bar Component: Image
+#### Bar component: Image
 
 Supports `.png` and `.jpg` formats.
 
@@ -439,7 +439,7 @@ Supports `.png` and `.jpg` formats.
   source: "C:\\Folder\\AnotherFolder\\image.png"
 ```
 
-#### Bar Component: System Tray
+#### Bar component: System Tray
 
 Use `Alt+Click` to pin and un-pin an icon.
 
@@ -449,7 +449,7 @@ Use `Alt+Click` to pin and un-pin an icon.
   label_collapse_text: ">"
 ```
 
-#### Bar Component: Music
+#### Bar component: Music
 
 Displays currently playing music.
 
