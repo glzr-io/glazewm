@@ -647,4 +647,4 @@ keybindings:
     bindings: ["Ctrl+F10"]
 ```
 
-hat's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
+That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
