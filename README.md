@@ -1,4 +1,4 @@
-# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/glzr-io/glazewm/pulls) [![License](https://img.shields.io/github/license/lars-berger/GlazeWM)](https://github.com/glzr-io/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
+# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/glzr-io/glazewm/pulls) [![License](https://img.shields.io/github/license/glzr-io/GlazeWM)](https://github.com/glzr-io/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
@@ -647,4 +647,4 @@ keybindings:
     bindings: ["Ctrl+F10"]
 ```
 
-That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
+hat's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
