@@ -39,16 +39,22 @@ namespace GlazeWM.Domain.Containers
     /// <summary>
     /// Index of this container in parent's child focus order.
     /// </summary>
-    public int FocusIndex => this is RootContainer ? 0 : Parent.ChildFocusOrder.IndexOf(this);
+    public int FocusIndex => this is RootContainer ? 0 : Parent?.ChildFocusOrder?.IndexOf(this) ?? 0;
 
-    public List<Container> SelfAndSiblings => Parent.Children;
+    /// <summary>
+    /// The siblings of this container including itself.
+    /// </summary>
+    public IEnumerable<Container> SelfAndSiblings => Parent?.Children?.AsEnumerable() ?? Array.Empty<Container>();
 
-    public IEnumerable<Container> Siblings => Parent.Children.Where(children => children != this);
+    /// <summary>
+    /// The siblings of this container excluding itself.
+    /// </summary>
+    public IEnumerable<Container> Siblings => Parent?.Children?.Where(children => children != this) ?? Array.Empty<Container>();
 
     /// <summary>
     /// Index of this container amongst its siblings.
     /// </summary>
-    public int Index => Parent.Children.IndexOf(this);
+    public int Index => Parent?.Children?.IndexOf(this) ?? 0;
 
     /// <summary>
     /// Get the last focused descendant by traversing downwards.
@@ -93,7 +99,7 @@ namespace GlazeWM.Domain.Containers
         while (parent != null)
         {
           yield return parent;
-          parent = parent.Parent;
+          parent = Parent?.Parent;
         }
       }
     }
