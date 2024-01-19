@@ -1,4 +1,4 @@
-# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lars-berger/GlazeWM/pulls) [![License](https://img.shields.io/github/license/lars-berger/GlazeWM)](https://github.com/lars-berger/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
+# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/glzr-io/glazewm/pulls) [![License](https://img.shields.io/github/license/glzr-io/GlazeWM)](https://github.com/glzr-io/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
@@ -10,23 +10,37 @@ Why use a tiling window manager? A tiling WM lets you easily organize windows an
 - Customizable rules for specific windows
 - Easy one-click installation
 
-![demo](https://github.com/glazerdesktop/GlazeWM/assets/34844898/58167ca8-3064-4c5f-a82e-51bd3cd8830b)
+![demo](https://github.com/glzr-io/glazewm/assets/34844898/58167ca8-3064-4c5f-a82e-51bd3cd8830b)
 
 <p align="center"><i>Showcase GIF by <a href="https://github.com/HolbyFPV">@HolbyFPV</a></i></p>
 
 Under the hood, GlazeWM adds functionality to the built-in window manager and uses the Windows API via P/Invoke to position windows.
 
+# Table of Contents
+
+- [Download](#download)
+- [Roadmap](#roadmap)
+- [Configuration](#configuration)
+- [Available Commands](#available-commands)
+- [Known Issues](#known-issues)
+- [Contributing](#contributing)
+
 # Download
+
+- [Direct download](#direct-download)
+- [Winget](#winget)
+- [Scoop](#scoop)
+- [Build from source](#build-from-source)
 
 ## Direct download
 
-The latest runnable executable can be downloaded via [releases](https://github.com/lars-berger/GlazeWM/releases). No installation necessary, simply run the `.exe` file.
+The latest runnable executable can be downloaded via [releases](https://github.com/glzr-io/GlazeWM/releases). No installation necessary, simply run the `.exe` file.
 
 ## Winget
 
 GlazeWM can be downloaded via Winget package manager:
 
-```
+```sh
 winget install GlazeWM
 ```
 
@@ -45,7 +59,7 @@ scoop install glazewm
 
 Alternatively, to build from source, use the following .NET CLI command:
 
-```
+```sh
 dotnet publish ./GlazeWM.App/GlazeWM.App.csproj --configuration=Release --runtime=win-x64 --output=. --self-contained -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true
 ```
 
@@ -60,11 +74,18 @@ To build for other runtimes than Windows x64, see [here](https://docs.microsoft.
 
 # Configuration
 
-The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, the [default config](https://github.com/lars-berger/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) can optionally be generated on launch.
+- [General](#general)
+- [Keybindings](#keybindings)
+- [Focus Window Border](#focus-window-border)
+- [Gap Configuration](#gap-configuration)
+- [Workspaces](#workspaces)
+- [Bar Configuration](#bar-configuration)
+
+The configuration file for GlazeWM can be found at `C:\Users\<YOUR_USER>\.glaze-wm\config.yaml`. If this file doesn't exist, the [default config](https://github.com/glzr-io/GlazeWM/blob/master/GlazeWM.App/Resources/sample-config.yaml) can optionally be generated on launch.
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
-```console
+```sh
 ./GlazeWM.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
 ```
 
@@ -186,6 +207,9 @@ workspaces:
 
 ## Bar configuration
 
+- [Bar Component configuration](#bar-component-configuration)
+- [Bar Components](#bar-components)
+
 The appearance of the bar can be changed via the `bar` property in the config file.
 
 ```yaml
@@ -247,12 +271,12 @@ bar:
     - type: "clock"
 ```
 
-### Bar component configuration
+### Bar Component configuration
 
 The appearance of bar components can also be customized. The following properties can change the styling of a component, regardless of the component type.
 
 ```yaml
-# Type of component to display. Currently 7 component types exist: "workspaces", "clock", "text", "battery", "window title", "binding mode" and "tiling direction".
+# Type of component to display. See "Bar Components" for all available components.
 type: <COMPONENT_TYPE>
 
 # Horizontal and vertical margins. See "Shorthand properties" for more info.
@@ -299,7 +323,22 @@ Using the example of padding:
 - When three values are specified, the first padding applies to the top, the second to the right and left, the third to the bottom.
 - When four values are specified, the paddings apply to the top, right, bottom, and left in that order (clockwise).
 
-### Bar component: Clock
+### Bar components
+
+- [Clock](#bar-component-clock)
+- [Battery](#bar-component-battery)
+- [CPU Usage](#bar-component-cpu-usage)
+- [GPU Usage](#bar-component-gpu-usage)
+- [Memory Usage](#bar-component-memory-usage)
+- [Network](#bar-component-network)
+- [Volume](#bar-component-volume)
+- [Text File](#bar-component-text-file)
+- [Weather](#bar-component-weather)
+- [Image](#bar-component-image)
+- [System Tray](#bar-component-system-tray)
+- [Music](#bar-component-music)
+
+#### Bar component: Clock
 
 The text shown in the clock component is specified via `time_formatting`. The supported time format specifiers are defined by [.NET's time/date string formatting](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).
 
@@ -317,7 +356,7 @@ Additionally supported format specifiers:
   time_formatting: "hh:mm tt  ddd MMM d"
 ```
 
-### Bar Component: Battery
+#### Bar component: Battery
 
 The battery component displays the system's battery level in percent.
 There are three labels available that can be customized:
@@ -325,7 +364,6 @@ There are three labels available that can be customized:
 - `label_draining`: used when the system is draining battery power(i.e. not charging).
 - `label_power_saver`: used when the system is on power saving mode.
 - `label_charging`: used when the system is connected to power.
-
 `{battery_level}` is a variable which is replaced by the actual battery level when the label is displayed.
 
 **Example usage:**
@@ -337,7 +375,7 @@ There are three labels available that can be customized:
   label_charging: "{battery_level}% (charging)"
 ```
 
-### Bar Component: CPU Usage
+#### Bar component: CPU Usage
 
 Displays the current CPU usage.
 
@@ -348,7 +386,7 @@ Displays the current CPU usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: GPU Usage
+#### Bar component: GPU Usage
 
 This component has high CPU requirement (compared to others); due to no efficient way to pull data from Windows API. Avoid using low refresh intervals.
 
@@ -359,7 +397,7 @@ This component has high CPU requirement (compared to others); due to no efficien
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Memory Usage
+#### Bar component: Memory Usage
 
 Displays the current Memory usage.
 
@@ -370,7 +408,7 @@ Displays the current Memory usage.
   refresh_interval_ms: 1000
 ```
 
-### Bar Component: Network
+#### Bar component: Network
 
 Displays the type and signal strength of the active network connection.
 
@@ -385,7 +423,7 @@ Displays the type and signal strength of the active network connection.
   label_wifi_strength_100: "WiFi: 100%"
 ```
 
-### Bar Component: Volume
+#### Bar component: Volume
 
 Displays volume level.
 
@@ -397,7 +435,7 @@ Displays volume level.
   label_mute: "🔊{volume_level}%"
 ```
 
-### Bar Component: Text File
+#### Bar component: Text File
 
 For displaying any content without a native integrated widget; updates in real time.
 
@@ -407,7 +445,7 @@ For displaying any content without a native integrated widget; updates in real t
   file_path: "PATH_HERE"
 ```
 
-### Bar Component: Weather
+#### Bar component: Weather
 
 Uses Open-Meteo API, refreshes every hour.
 
@@ -428,7 +466,7 @@ Uses Open-Meteo API, refreshes every hour.
   label_cloud: "☁️ {temperature_celsius}°C"
 ```
 
-### Bar Component: Image
+#### Bar component: Image
 
 Supports `.png` and `.jpg` formats.
 
@@ -437,7 +475,7 @@ Supports `.png` and `.jpg` formats.
   source: "C:\\Folder\\AnotherFolder\\image.png"
 ```
 
-### Bar Component: System Tray
+#### Bar component: System Tray
 
 Use `Alt+Click` to pin and un-pin an icon.
 
@@ -447,7 +485,7 @@ Use `Alt+Click` to pin and un-pin an icon.
   label_collapse_text: ">"
 ```
 
-### Bar Component: Music
+#### Bar component: Music
 
 Displays currently playing music.
 
@@ -533,6 +571,10 @@ window_rules:
 
 # Known issues
 
+- [Blurry buttons in bar window](#blurry-buttons-in-bar-window)
+- [Binding the right-side Alt key `RMenu` on certain keyboard layouts](#binding-the-right-side-alt-key-rmenu-on-certain-keyboard-layouts)
+- [How to remap `LWin`](#how-to-remap-lwin)
+
 ## Blurry buttons in bar window
 
 An app called "Sonic Studio", which is installed by default on ASUS ROG machines can cause rendering issues with WPF apps. This can be resolved by disabling `NahimicService` in Windows Services Manager.
@@ -546,6 +588,7 @@ Most keyboard layouts treat the right-side <kbd>Alt</kbd> key the same as the le
 Example:
 
 Run the following autohotkey v1 script as administrator
+
 ```
 ; https://superuser.com/a/1819950/881662
 
@@ -559,7 +602,7 @@ Run the following autohotkey v1 script as administrator
 RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 1
 
 
-; Optional: Remap winKey + <someKey> here: 
+; Optional: Remap winKey + <someKey> here:
 
 
 #space::return
@@ -580,7 +623,6 @@ return
 #l::
 Send, ^{F12}
 return
-
 
 ;CTRL+WIN+L
 ^F12::
@@ -603,6 +645,6 @@ keybindings:
     bindings: ["Ctrl+F11"]
   - command: "focus down"
     bindings: ["Ctrl+F10"]
- ```
+```
 
 That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
