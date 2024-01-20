@@ -460,6 +460,15 @@ Displays currently playing music.
   max_artist_length: 20
 ```
 
+### Bar Component: Input language
+
+Displays current input language (keyboard layout).
+
+```yaml
+- type: "input language"
+  label: "Input: {input_language}"
+```
+
 ## Mixing font properties within a label
 
 Font family, font weight, font size, and foreground color can be changed within parts of a label. This means that icons and text fonts can be used together in a label. To customize a part of the label, wrap it in an <attr> tag:
