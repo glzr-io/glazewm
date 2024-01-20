@@ -9,6 +9,8 @@ namespace GlazeWM.Bar.Components
 {
   public class InputLanguageComponentViewModel : ComponentViewModel
   {
+    private const uint LOCALE_ALLOW_NEUTRAL_NAMES = 0x08000000;
+
     private readonly InputLanguageComponentConfig _config;
 
     private LabelViewModel _label;
@@ -51,7 +53,7 @@ namespace GlazeWM.Bar.Components
       var localeId = (uint)layout >> 16;
 
       var sb = new StringBuilder();
-      _ = LCIDToLocaleName(localeId, sb, sb.Capacity, 0x08000000);
+      _ = LCIDToLocaleName(localeId, sb, sb.Capacity, LOCALE_ALLOW_NEUTRAL_NAMES);
 
       return sb.ToString();
     }
