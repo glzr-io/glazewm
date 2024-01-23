@@ -50,10 +50,21 @@ namespace GlazeWM.Bar.Components
     private static string GetInputLanguage()
     {
       var layout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
-      var localeId = (uint)layout >> 16;
+
+      const ulong big = 0xffffffff;
+
+      uint layoutId;
+      if ((ulong)layout > big)
+      {
+        layoutId = (uint)layout & 0xffff;
+      }
+      else
+      {
+        layoutId = (uint)layout >> 16;
+      }
 
       var sb = new StringBuilder();
-      _ = LCIDToLocaleName(localeId, sb, sb.Capacity, LOCALE_ALLOW_NEUTRAL_NAMES);
+      _ = LCIDToLocaleName(layoutId, sb, sb.Capacity, LOCALE_ALLOW_NEUTRAL_NAMES);
 
       return sb.ToString();
     }
