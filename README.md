@@ -467,6 +467,8 @@ Displays current input language (keyboard layout).
 ```yaml
 - type: "input language"
   label: "Input: {input_language}"
+  # Optional: How often this counter is refreshed. Default 1000
+  refresh_interval_ms: 1000
 ```
 
 ## Mixing font properties within a label

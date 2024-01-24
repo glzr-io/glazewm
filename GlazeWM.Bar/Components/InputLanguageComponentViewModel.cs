@@ -26,7 +26,7 @@ namespace GlazeWM.Bar.Components
     {
       _config = config;
 
-      var updateInterval = TimeSpan.FromSeconds(1);
+      var updateInterval = TimeSpan.FromMilliseconds(_config.RefreshIntervalMs);
 
       Observable
         .Interval(updateInterval)
@@ -51,6 +51,7 @@ namespace GlazeWM.Bar.Components
     {
       var layout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
 
+      // If the layout is larger than this, need different handling.
       const ulong big = 0xffffffff;
 
       uint layoutId;
