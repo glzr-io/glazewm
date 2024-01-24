@@ -42,7 +42,7 @@ namespace GlazeWM.Domain.Containers
     public int FocusIndex => this is RootContainer ? 0 : Parent.ChildFocusOrder.IndexOf(this);
 
     public List<Container> SelfAndSiblings =>
-      this is RootContainer ? new List<Container>() : Parent.Children;
+      this is RootContainer ? new List<Container>() { this } : Parent.Children;
 
     public IEnumerable<Container> Siblings =>
       this is RootContainer
