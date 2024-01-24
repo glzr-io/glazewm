@@ -30,10 +30,10 @@ runs:
           [
             {
               "path": "artifacts/win-x64/GlazeWM.exe",
-              "name": "GlazeWM_x64_${nextRelease.gitTag}"
+              "name": "GlazeWM_x64_${nextRelease.version}.exe"
             },
             {
               "path": "artifacts/win-x86/GlazeWM.exe",
-              "name": "GlazeWM_x86_${nextRelease.gitTag}"
+              "name": "GlazeWM_x86_${nextRelease.version}.exe"
             }
           ]
