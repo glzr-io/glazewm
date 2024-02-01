@@ -1,11 +1,20 @@
 name: Release
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      draft-release:
+        type: boolean
+        default: false
+        description: Whether to publish the release as a draft.
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+
+concurrency:
+  group: release
 
 jobs:
   build:
@@ -19,6 +28,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: ./.github/actions/release-with-artifacts
+      - name: Download artifacts (win-x64)
+        uses: actions/download-artifact@v4
         with:
-          is-prerelease: false
+          name: glazewm-win-x64-${{ github.sha }}
+          path: artifacts/win-x64
+
+      - name: Download artifacts (win-x86)
+        uses: actions/download-artifact@v4
+        with:
+          name: glazewm-win-x86-${{ github.sha }}
+          path: artifacts/win-x86
+
+      - uses: glzr-io/actions/semantic-release@main
+        with:
+          gh-publish: true
+          gh-draft-release: ${{ inputs.draft-release }}
+          gh-token: ${{ github.token }}
+          gh-assets: |
+            [
+              {
+                "path": "artifacts/win-x64/GlazeWM.exe",
+                "name": "GlazeWM_x64_${nextRelease.gitTag}"
+              },
+              {
+                "path": "artifacts/win-x86/GlazeWM.exe",
+                "name": "GlazeWM_x86_${nextRelease.gitTag}"
+              }
+            ]
