@@ -84,6 +84,8 @@ namespace GlazeWM.Domain.Windows.CommandHandlers
       // OS focus should be set to the newly added window in case it's not already focused.
       _containerService.HasPendingFocusSync = true;
 
+      _bus.InvokeAsync(new SaveManagedWindowsCommand());
+
       return CommandResponse.Ok;
     }
 
