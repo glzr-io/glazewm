@@ -52,12 +52,12 @@ namespace GlazeWM.Domain.UserConfigs
         if (regex.IsMatch(commandString))
         {
           return regex.Replace(commandString, (Match match) =>
-            match.Value.ToLowerInvariant()
+            match.Value
           );
         }
       }
 
-      return commandString.ToLowerInvariant();
+      return commandString;
     }
 
     public void ValidateCommand(string commandString)
@@ -235,6 +235,9 @@ namespace GlazeWM.Domain.UserConfigs
           : new NoopCommand(),
         "height" => subjectContainer is Window
           ? new SetWindowSizeCommand(subjectContainer as Window, ResizeDimension.Height, commandParts[2])
+          : new NoopCommand(),
+        "no_title" => subjectContainer is Window
+          ? new RemoveTitleBarCommand(subjectContainer as Window)
           : new NoopCommand(),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };

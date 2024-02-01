@@ -139,6 +139,7 @@ namespace GlazeWM.Infrastructure.WindowsApi
       Cloak,
       Cloaked,
       FreezeRepresentation,
+      WindowCornerPreference = 33,
       Last
     }
 
@@ -172,18 +173,11 @@ namespace GlazeWM.Infrastructure.WindowsApi
         : GetWindowLongPtr32(hWnd, index);
     }
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-    private static extern IntPtr SetWindowLongPtr32(IntPtr hWnd, int index, IntPtr newLong);
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetWindowLong(IntPtr hWnd, int index, int newLong);
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-    private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int index, IntPtr newLong);
-
-    public static IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong)
-    {
-      return Environment.Is64BitProcess
-        ? SetWindowLongPtr64(hWnd, index, newLong)
-        : SetWindowLongPtr32(hWnd, index, newLong);
-    }
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newLong);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(
