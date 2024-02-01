@@ -365,6 +365,12 @@ namespace GlazeWM.Infrastructure.WindowsApi
     }
 
     [DllImport("user32.dll")]
+    public static extern IntPtr GetKeyboardLayout(uint idThread);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr processId);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr SetWindowsHookEx(HookType hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, int dwThreadId);
 
     [DllImport("user32.dll")]
@@ -447,6 +453,9 @@ namespace GlazeWM.Infrastructure.WindowsApi
 
     [DllImport("User32.dll")]
     public static extern IntPtr MonitorFromPoint(Point pt, MonitorFromPointFlags dwFlags);
+
+    [DllImport("kernel32.dll")]
+    public static extern int LCIDToLocaleName(uint locale, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpName, int cchName, uint dwFlags);
 
     [DllImport("kernel32.dll")]
     public static extern bool GetSystemPowerStatus(out SystemPowerStatus lpSystemPowerStatus);

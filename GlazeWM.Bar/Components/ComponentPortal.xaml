@@ -101,6 +101,11 @@
                 Padding="{Binding Padding}"
                 Background="{Binding Background}" />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type components:InputLanguageComponentViewModel}">
+              <components:InputLanguageComponent
+                Padding="{Binding Padding}"
+                Background="{Binding Background}" />
+            </DataTemplate>
           </ContentPresenter.Resources>
         </ContentPresenter>
       </Grid>
