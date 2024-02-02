@@ -137,6 +137,7 @@ namespace GlazeWM.Domain.UserConfigs
         "up" => new FocusInDirectionCommand(Direction.Up),
         "down" => new FocusInDirectionCommand(Direction.Down),
         "workspace" => ParseFocusWorkspaceCommand(commandParts),
+        "monitor" => ParseFocusMonitorCommand(commandParts),
         "mode" => commandParts[2] switch
         {
           "toggle" => new ToggleFocusModeCommand(),
@@ -154,6 +155,18 @@ namespace GlazeWM.Domain.UserConfigs
         "prev" => new FocusWorkspaceSequenceCommand(Sequence.Previous),
         "next" => new FocusWorkspaceSequenceCommand(Sequence.Next),
         _ when IsValidWorkspace(commandParts[2]) => new FocusWorkspaceCommand(commandParts[2]),
+        _ => throw new ArgumentException(null, nameof(commandParts)),
+      };
+    }
+
+    private static Command ParseFocusMonitorCommand(string[] commandParts)
+    {
+      return commandParts[2] switch
+      {
+        "left" => new FocusMonitorCommand(Direction.Left),
+        "right" => new FocusMonitorCommand(Direction.Right),
+        "up" => new FocusMonitorCommand(Direction.Up),
+        "down" => new FocusMonitorCommand(Direction.Down),
         _ => throw new ArgumentException(null, nameof(commandParts)),
       };
     }
