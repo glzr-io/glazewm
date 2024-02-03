@@ -94,6 +94,7 @@ namespace GlazeWM.Domain.UserConfigs
             ? new IgnoreWindowCommand(subjectContainer as Window)
             : new NoopCommand(),
           "binding" => ParseBindingCommand(commandParts),
+          "inspect" => new InspectWindowCommand(subjectContainer as Window),
           _ => throw new ArgumentException(null, nameof(commandString)),
         };
       }
