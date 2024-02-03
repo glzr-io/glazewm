@@ -1,3 +1,4 @@
+using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure.Bussing;
@@ -18,7 +19,7 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
     {
       var isEnabled = _userConfigService.GeneralConfig.CursorFollowsFocus;
 
-      if (!isEnabled || command.TargetContainer.IsDetached() || command.TargetContainer.FocusIndex < 0)
+      if (!isEnabled || command.TargetContainer.IsDetached() || command.TargetContainer is MaximizedWindow || command.TargetContainer.FocusIndex < 0)
         return CommandResponse.Ok;
 
       var targetRect = command.TargetContainer.ToRect();
