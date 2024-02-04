@@ -6,6 +6,9 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Events;
 using GlazeWM.Infrastructure;
 using GlazeWM.Infrastructure.Bussing;
+using GlazeWM.Domain.Containers;
+using System.Windows.Input;
+using GlazeWM.Bar.Common;
 
 namespace GlazeWM.Bar.Components
 {
@@ -13,8 +16,16 @@ namespace GlazeWM.Bar.Components
   {
     private readonly TextFileComponentConfig _baseConfig;
     private readonly IDisposable _disposable;
+    private readonly Bus _bus = ServiceLocator.GetRequiredService<Bus>();
+    private readonly ContainerService _containerService =
+      ServiceLocator.GetRequiredService<ContainerService>();
+    private readonly CommandParsingService _commandParsingService =
+      ServiceLocator.GetRequiredService<CommandParsingService>();
 
     public string Text { get; set; } = "Loading...";
+
+    public ICommand LeftClickCommand => new RelayCommand(OnLeftClick);
+    public ICommand RightClickCommand => new RelayCommand(OnRightClick);
 
     public FileSystemWatcher Watcher { get; }
 
@@ -33,6 +44,32 @@ namespace GlazeWM.Bar.Components
       };
       Watcher.Changed += OnFileChanged;
       Update();
+    }
+
+    public void OnLeftClick()
+    {
+      InvokeCommand(_baseConfig.LeftClickCommand);
+    }
+
+    public void OnRightClick()
+    {
+      InvokeCommand(_baseConfig.RightClickCommand);
+    }
+
+    private void InvokeCommand(string commandString)
+    {
+      if (string.IsNullOrEmpty(commandString))
+        return;
+
+      var subjectContainer = _containerService.FocusedContainer;
+
+      var parsedCommand = _commandParsingService.ParseCommand(
+        commandString,
+        subjectContainer
+      );
+
+      // Use `dynamic` to resolve the command type at runtime and allow multiple dispatch.
+      _bus.Invoke((dynamic)parsedCommand);
     }
 
     protected override void Dispose(bool disposing)
