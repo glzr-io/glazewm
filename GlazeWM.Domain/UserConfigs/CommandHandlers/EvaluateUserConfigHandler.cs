@@ -195,10 +195,21 @@ namespace GlazeWM.Domain.UserConfigs.CommandHandlers
           )
           .Where((commandString) => !string.IsNullOrEmpty(commandString));
 
+        var textFileComponentCommands = componentConfigs
+          .OfType<TextFileComponentConfig>()
+          .SelectMany(
+            (componentConfig) => new List<string> {
+              componentConfig.LeftClickCommand,
+              componentConfig.RightClickCommand
+            }
+          )
+          .Where((commandString) => !string.IsNullOrEmpty(commandString));
+
         var allCommandStrings = new List<string>()
           .Concat(keybindingsConfig.SelectMany((keybinding) => keybinding.CommandList))
           .Concat(windowRulesConfig.SelectMany((windowRule) => windowRule.CommandList))
           .Concat(textComponentCommands)
+          .Concat(textFileComponentCommands)
           .Select((commandString) => CommandParsingService.FormatCommand(commandString));
 
         foreach (var commandString in allCommandStrings)
