@@ -1,6 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "invalid-shorthand-property": {
+      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s"
+    },
     "command": {
       "description": "A command",
       "type": "string",
@@ -213,6 +216,34 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "gaps": {
+      "title": "gaps",
+      "description": "Gap settings",
+      "type": "object",
+      "properties": {
+        "inner_gap": {
+          "title": "inner gap",
+          "description": "An inner gap",
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "$ref": "#/definitions/invalid-shorthand-property"
+          },
+          "default": "20px"
+        },
+        "outer_gap": {
+          "title": "outer gap",
+          "description": "An outer gap",
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "$ref": "#/definitions/invalid-shorthand-property"
+          },
+          "default": "20px"
         }
       },
       "additionalProperties": false
