@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GlazeWM settings",
+  "description": "GlazeWM settings",
+  "type": "object",
+  "properties": {
+    "general": {
+      "title": "general",
+      "description": "General settings",
+      "type": "object",
+      "properties": {
+        "focus_follows_cursor": {
+          "title": "focus follows cursor",
+          "description": "Whether to automatically focus windows underneath the cursor",
+          "type": "boolean",
+          "default": false
+        },
+        "cursor_follows_focus": {
+          "title": "cursor follows focus",
+          "description": "Whether to jump the cursor between windows focused by the WM",
+          "type": "boolean",
+          "default": false
+        },
+        "toggle_workspace_on_refocus": {
+          "title": "toggle workspace on refocus",
+          "description": "Whether to switch back and forth between the previously focused workspace when focusing the current workspace",
+          "type": "boolean",
+          "default": true
+        },
+        "show_floating_on_top": {
+          "title": "show floating on top",
+          "description": "Whether to show floating windows as always on top",
+          "type": "boolean",
+          "default": false
+        },
+        "floating_window_move_amount": {
+          "title": "floating window move amount",
+          "description": "Amount to move floating windows by",
+          "type": "string",
+          "minLength": 2,
+          "pattern": "^\\d+%$",
+          "default": "5%"
+        },
+        "center_new_floating_windows": {
+          "title": "center new floating windows",
+          "description": "Whether to center new floating windows",
+          "type": "boolean",
+          "default": true
+        },
+        "window_animations": {
+          "title": "window animations",
+          "description": "Whether to globally enable window transition animations",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            { "type": "string", "const": "unchanged" }
+          ],
+          "default": "unchanged"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
