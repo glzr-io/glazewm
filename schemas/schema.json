@@ -115,6 +115,7 @@
       "description": "Keybindings",
       "type": "array",
       "uniqueItems": true,
+      "minItems": 1,
       "items": {
         "description": "A keybinding",
         "type": "object",
