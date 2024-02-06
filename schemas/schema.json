@@ -1,6 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "empty": {
+      "pattern": "^\\s+$"
+    },
     "invalid-shorthand-property": {
       "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|^\\S+(\\s\\S+){4}$"
     },
@@ -247,6 +250,51 @@
         }
       },
       "additionalProperties": false
+    },
+    "workspaces": {
+      "title": "workspaces",
+      "description": "Workspace settings",
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "description": "A workspace setting",
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "name",
+            "description": "A unique name",
+            "type": "string",
+            "minLength": 1,
+            "not": {
+              "$ref": "#/definitions/empty"
+            },
+            "examples": ["1"]
+          },
+          "display_name": {
+            "title": "display name",
+            "description": "A display name",
+            "type": "string",
+            "minLength": 1,
+            "not": {
+              "$ref": "#/definitions/empty"
+            },
+            "examples": ["1"]
+          },
+          "bind_to_monitor": {
+            "title": "bind to monitor",
+            "description": "Whether to bind a workspace to a specific monitor",
+            "type": "boolean"
+          },
+          "keep_alive": {
+            "title": "keep alive",
+            "description": "Whether not to destroy a workspace when it's empty",
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false
