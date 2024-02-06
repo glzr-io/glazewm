@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
     "invalid-shorthand-property": {
-      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s"
+      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|^\\S+(\\s\\S+){4}$"
     },
     "command": {
       "description": "A command",
