@@ -1,5 +1,38 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "command": {
+      "description": "A command",
+      "type": "string",
+      "examples": [
+        "focus",
+        "focus workspace",
+        "focus workspace",
+        "move",
+        "move to workspace",
+        "resize",
+        "resize borders",
+        "set",
+        "set",
+        "toggle",
+        "focus mode toggle",
+        "tiling direction",
+        "exit wm",
+        "reload config",
+        "close",
+        "exec",
+        "ignore"
+      ]
+    },
+    "binding": {
+      "description": "A binding",
+      "type": "string",
+      "not": {
+        "pattern": "^\\s+$"
+      },
+      "examples": ["Alt+H"]
+    }
+  },
   "title": "GlazeWM settings",
   "description": "GlazeWM settings",
   "type": "object",
@@ -58,6 +91,68 @@
           ],
           "default": "unchanged"
         }
+      },
+      "additionalProperties": false
+    },
+    "keybindings": {
+      "title": "keybindings",
+      "description": "Keybindings",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "description": "A keybinding",
+        "type": "object",
+        "oneOf": [
+          {
+            "properties": {
+              "binding": {
+                "title": "binding",
+                "$ref": "#/definitions/binding"
+              },
+              "command": {
+                "title": "command",
+                "$ref": "#/definitions/command"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "binding": {
+                "title": "binding",
+                "$ref": "#/definitions/binding"
+              },
+              "commands": {
+                "title": "commands",
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 2,
+                "items": {
+                  "$ref": "#/definitions/command"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "bindings": {
+                "title": "bindings",
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 2,
+                "items": {
+                  "$ref": "#/definitions/binding"
+                }
+              },
+              "command": {
+                "title": "command",
+                "$ref": "#/definitions/command"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "additionalProperties": false
     }
