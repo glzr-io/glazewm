@@ -31,6 +31,22 @@
         "pattern": "^\\s+$"
       },
       "examples": ["Alt+H"]
+    },
+    "color": {
+      "description": "A color",
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 7,
+      "pattern": "^#[A-Za-z0-9]{6}$",
+      "examples": [
+        "#000000",
+        "#FF0000",
+        "#00FF00",
+        "#0000FF",
+        "#FFFF00",
+        "#FF00FF",
+        "#FFFFFF"
+      ]
     }
   },
   "title": "GlazeWM settings",
@@ -153,6 +169,50 @@
             "additionalProperties": false
           }
         ]
+      },
+      "additionalProperties": false
+    },
+    "focus_borders": {
+      "title": "focus borders",
+      "description": "Focus settings",
+      "type": "object",
+      "properties": {
+        "active": {
+          "title": "active",
+          "description": "An active border",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "enabled",
+              "description": "Whether to enable an active border",
+              "type": "boolean",
+              "default": true
+            },
+            "color": {
+              "title": "color",
+              "$ref": "#/definitions/color"
+            }
+          },
+          "additionalProperties": false
+        },
+        "inactive": {
+          "title": "inactive",
+          "description": "An inactive border",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "enabled",
+              "description": "Whether to enable an inactive border",
+              "type": "boolean",
+              "default": false
+            },
+            "color": {
+              "title": "color",
+              "$ref": "#/definitions/color"
+            }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     }
