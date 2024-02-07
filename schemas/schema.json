@@ -81,6 +81,1004 @@
       "type": "string",
       "pattern": "^\\d+px$",
       "examples": ["20px"]
+    },
+    "padding-property": {
+      "title": "padding",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "$ref": "#/definitions/invalid-shorthand-property"
+      },
+      "default": "0"
+    },
+    "opacity-property": {
+      "title": "opacity",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1
+    },
+    "background-property": {
+      "title": "background",
+      "$ref": "#/definitions/color",
+      "default": "#101010"
+    },
+    "foreground-property": {
+      "title": "foreground",
+      "$ref": "#/definitions/color",
+      "default": "white"
+    },
+    "font-family-property": {
+      "title": "font family",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S+(\\s+\\S+)*$",
+      "default": "Segoe UI"
+    },
+    "font-size-property": {
+      "title": "font size",
+      "$ref": "#/definitions/length",
+      "default": "13px"
+    },
+    "font-weight-property": {
+      "title": "font weight",
+      "type": "integer",
+      "minimum": 0,
+      "default": 400,
+      "examples": ["100", "950"]
+    },
+    "border-width-property": {
+      "title": "border width",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "$ref": "#/definitions/invalid-shorthand-property"
+      },
+      "default": "0"
+    },
+    "border-color-property": {
+      "title": "border color",
+      "$ref": "#/definitions/color",
+      "default": "blue"
+    },
+    "component.type-property": {
+      "title": "type",
+      "description": "A type of the component",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "examples": [
+        "clock",
+        "battery",
+        "cpu",
+        "gpu",
+        "network",
+        "volume",
+        "text file",
+        "weather",
+        "image",
+        "system tray",
+        "music"
+      ]
+    },
+    "component.margin-property": {
+      "title": "margin",
+      "description": "A margin of the component",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "$ref": "#/definitions/invalid-shorthand-property"
+      },
+      "default": "0 10px 0 0"
+    },
+    "component.padding-property": {
+      "description": "A padding of the component",
+      "$ref": "#/definitions/padding-property"
+    },
+    "component.opacity-property": {
+      "description": "An opacity of the component",
+      "$ref": "#/definitions/opacity-property"
+    },
+    "component.background-property": {
+      "description": "A background of the component",
+      "$ref": "#/definitions/background-property"
+    },
+    "component.foreground-property": {
+      "description": "A foreground of the component",
+      "$ref": "#/definitions/foreground-property"
+    },
+    "component.font-family-property": {
+      "description": "A font family of the component",
+      "$ref": "#/definitions/font-family-property"
+    },
+    "component.font-size-property": {
+      "description": "A font size of the component",
+      "$ref": "#/definitions/font-size-property"
+    },
+    "component.font-weight-property": {
+      "description": "A font weight of the component",
+      "$ref": "#/definitions/font-weight-property"
+    },
+    "component.border-width-property": {
+      "description": "A border width of the component",
+      "$ref": "#/definitions/border-width-property"
+    },
+    "component.border-color-property": {
+      "description": "A border color of the component",
+      "$ref": "#/definitions/border-color-property"
+    },
+    "components": {
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "description": "Component settings",
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/definitions/component.type-property"
+          },
+          "margin": {
+            "$ref": "#/definitions/component.margin-property"
+          },
+          "padding": {
+            "$ref": "#/definitions/component.padding-property"
+          },
+          "opacity": {
+            "$ref": "#/definitions/component.opacity-property"
+          },
+          "background": {
+            "$ref": "#/definitions/component.background-property"
+          },
+          "foreground": {
+            "$ref": "#/definitions/component.foreground-property"
+          },
+          "font_family": {
+            "$ref": "#/definitions/component.font-family-property"
+          },
+          "font_size": {
+            "$ref": "#/definitions/component.font-size-property"
+          },
+          "font_weight": {
+            "$ref": "#/definitions/component.font-weight-property"
+          },
+          "border_width": {
+            "$ref": "#/definitions/component.border-width-property"
+          },
+          "border_color": {
+            "$ref": "#/definitions/component.border-color-property"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "clock"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "time_formatting": {
+                  "title": "time formatting",
+                  "description": "A time formatting of the 'Clock' component",
+                  "type": "string",
+                  "examples": ["hh:mm tt  ddd MMM d"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "battery"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label_draining": {
+                  "title": "label draining",
+                  "description": "A draining label of the 'Battery' component",
+                  "type": "string",
+                  "examples": ["{battery_level}% remaining"]
+                },
+                "label_power_saver": {
+                  "title": "label power saver",
+                  "description": "A power saver label of the 'Battery' component",
+                  "type": "string",
+                  "examples": ["{battery_level}% (power saver)"]
+                },
+                "label_charging": {
+                  "title": "label charging",
+                  "description": "A charging label of the 'Battery' component",
+                  "type": "string",
+                  "examples": ["{battery_level}% (charging)"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "cpu"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label": {
+                  "title": "label",
+                  "description": "A label for the 'CPU Usage' component",
+                  "type": "string",
+                  "examples": ["CPU: {percent_usage}%"]
+                },
+                "refresh_interval_ms": {
+                  "title": "refresh interval ms",
+                  "description": "A refresh interval for the 'CPU Usage' component",
+                  "type": "integer",
+                  "minimum": 0,
+                  "examples": [1000]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "gpu"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label": {
+                  "title": "label",
+                  "description": "A label for the 'GPU Usage' component",
+                  "type": "string",
+                  "examples": ["GPU: {percent_usage}%"]
+                },
+                "refresh_interval_ms": {
+                  "title": "refresh interval ms",
+                  "description": "A refresh interval for the 'GPU Usage' component",
+                  "type": "integer",
+                  "minimum": 0,
+                  "examples": [1000]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "memory"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label": {
+                  "title": "label",
+                  "description": "A label for the 'Memory Usage' component",
+                  "type": "string",
+                  "examples": ["RAM: {percent_usage}%"]
+                },
+                "refresh_interval_ms": {
+                  "title": "refresh interval ms",
+                  "description": "A refresh interval for the 'Memory Usage' component",
+                  "type": "integer",
+                  "minimum": 0,
+                  "examples": [1000]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "network"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label_no_internet": {
+                  "title": "label no internet",
+                  "description": "A label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["NC"]
+                },
+                "label_ethernet": {
+                  "title": "label ethernet",
+                  "description": "An ethernet label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["Eth"]
+                },
+                "label_wifi_strength_0": {
+                  "title": "label wifi strength 0",
+                  "description": "A 0% strength WiFi label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["WiFi: 0%"]
+                },
+                "label_wifi_strength_25": {
+                  "title": "label wifi strength 25",
+                  "description": "A 25% strength WiFi label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["WiFi: 25%"]
+                },
+                "label_wifi_strength_50": {
+                  "title": "label wifi strength 50",
+                  "description": "A 50% strength WiFi label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["WiFi: 50%"]
+                },
+                "label_wifi_strength_75": {
+                  "title": "label wifi strength 75",
+                  "description": "A 75% strength WiFi label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["WiFi: 75%"]
+                },
+                "label_wifi_strength_100": {
+                  "title": "label wifi strength 100",
+                  "description": "A 100% strength WiFi label for the 'Network' component",
+                  "type": "string",
+                  "examples": ["WiFi: 100%"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "volume"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label_low": {
+                  "title": "label low",
+                  "description": "A low volume label for the 'Volume' component",
+                  "type": "string",
+                  "examples": ["🔊{volume_level}%"]
+                },
+                "label_medium": {
+                  "title": "label medium",
+                  "description": "A medium volume label for the 'Volume' component",
+                  "type": "string",
+                  "examples": ["🔊{volume_level}%"]
+                },
+                "label_high": {
+                  "title": "label high",
+                  "description": "A high volume label for the 'Volume' component",
+                  "type": "string",
+                  "examples": ["🔊{volume_level}%"]
+                },
+                "label_mute": {
+                  "title": "label mute",
+                  "description": "A no volume label for the 'Volume' component",
+                  "type": "string",
+                  "examples": ["🔊{volume_level}%"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "text file"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "file_path": {
+                  "title": "file path",
+                  "description": "A file path for the 'Text File' component",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "weather"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "latitude": {
+                  "title": "latitude",
+                  "description": "A latitude for the 'Weather' component",
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "longitude": {
+                  "title": "longitude",
+                  "description": "A longitude for the 'Weather' component",
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "label": {
+                  "title": "label",
+                  "description": "A label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["{temperature_celsius}°C"]
+                },
+                "label_sun": {
+                  "title": "label sun",
+                  "description": "A sun label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["☀️ {temperature_celsius}°C"]
+                },
+                "label_moon": {
+                  "title": "label moon",
+                  "description": "A moon label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["🌙 {temperature_celsius}°C"]
+                },
+                "label_cloud_moon": {
+                  "title": "label cloud moon",
+                  "description": "A cloud moon label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["🌙☁️ {temperature_celsius}°C"]
+                },
+                "label_cloud_sun": {
+                  "title": "label cloud sun",
+                  "description": "A cloud sun label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["⛅ {temperature_celsius}°C"]
+                },
+                "label_cloud_moon_rain": {
+                  "title": "label cloud moon rain",
+                  "description": "A cloud moon rain label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["🌙🌧️ {temperature_celsius}°C"]
+                },
+                "label_cloud_sun_rain": {
+                  "title": "label cloud sun rain",
+                  "description": "A cloud sun rain label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["🌦️ {temperature_celsius}°C"]
+                },
+                "label_cloud_rain": {
+                  "title": "label cloud rain",
+                  "description": "A cloud rain label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["🌧️ {temperature_celsius}°C"]
+                },
+                "label_snow_flake": {
+                  "title": "label snow flake",
+                  "description": "A snow flake label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["❄️ {temperature_celsius}°C"]
+                },
+                "label_thunderstorm": {
+                  "title": "label thunderstorm",
+                  "description": "A thunderstorm label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["⚡ {temperature_celsius}°C"]
+                },
+                "label_cloud": {
+                  "title": "label cloud",
+                  "description": "A cloud label for the 'Weather' component",
+                  "type": "string",
+                  "examples": ["☁️ {temperature_celsius}°C"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "image"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "source": {
+                  "title": "source",
+                  "description": "A source path for the 'Image' component",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "system tray"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label_expand_text": {
+                  "title": "label expand text",
+                  "description": "An expand label for the 'System Tray' component",
+                  "type": "string",
+                  "examples": ["<"]
+                },
+                "label_collapse_text": {
+                  "title": "label collapse text",
+                  "description": "An collapse label for the 'System Tray' component",
+                  "type": "string",
+                  "examples": [">"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "music"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "type": {
+                  "$ref": "#/definitions/component.type-property"
+                },
+                "margin": {
+                  "$ref": "#/definitions/component.margin-property"
+                },
+                "padding": {
+                  "$ref": "#/definitions/component.padding-property"
+                },
+                "opacity": {
+                  "$ref": "#/definitions/component.opacity-property"
+                },
+                "background": {
+                  "$ref": "#/definitions/component.background-property"
+                },
+                "foreground": {
+                  "$ref": "#/definitions/component.foreground-property"
+                },
+                "font_family": {
+                  "$ref": "#/definitions/component.font-family-property"
+                },
+                "font_size": {
+                  "$ref": "#/definitions/component.font-size-property"
+                },
+                "font_weight": {
+                  "$ref": "#/definitions/component.font-weight-property"
+                },
+                "border_width": {
+                  "$ref": "#/definitions/component.border-width-property"
+                },
+                "border_color": {
+                  "$ref": "#/definitions/component.border-color-property"
+                },
+                "label_not_playing": {
+                  "title": "label not playing",
+                  "description": "A not playing label for the 'Music' component",
+                  "type": "string"
+                },
+                "label_paused": {
+                  "title": "label paused",
+                  "description": "A paused label for the 'Music' component",
+                  "type": "string",
+                  "examples": ["{song_title} - {artist_name}"]
+                },
+                "label_playing": {
+                  "title": "label playing",
+                  "description": "A playing label for the 'Music' component",
+                  "type": "string",
+                  "examples": ["{song_title} - {artist_name}"]
+                },
+                "max_title_length": {
+                  "title": "max title length",
+                  "description": "A maximum title length for the 'Music' component",
+                  "type": "integer",
+                  "minimum": 0,
+                  "examples": [20]
+                },
+                "max_artist_length": {
+                  "title": "max artist length",
+                  "description": "A maximum artist length for the 'Music' component",
+                  "type": "integer",
+                  "minimum": 0,
+                  "examples": [20]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
     }
   },
   "title": "GlazeWM settings",
@@ -353,62 +1351,36 @@
           "default": false
         },
         "opacity": {
-          "title": "opacity",
           "description": "An opacity of the bar",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "default": 1
+          "$ref": "#/definitions/opacity-property"
         },
         "background": {
-          "title": "background",
           "description": "A background of the bar",
-          "$ref": "#/definitions/color",
-          "default": "#101010"
+          "$ref": "#/definitions/background-property"
         },
         "foreground": {
-          "title": "foreground",
           "description": "A foreground of the bar",
-          "$ref": "#/definitions/color",
-          "default": "white"
+          "$ref": "#/definitions/foreground-property"
         },
         "font_family": {
-          "title": "font family",
           "description": "A font family of the bar",
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^\\S+(\\s+\\S+)*$",
-          "default": "Segoe UI"
+          "$ref": "#/definitions/font-family-property"
         },
         "font_size": {
-          "title": "font size",
           "description": "A font size of the bar",
-          "$ref": "#/definitions/length",
-          "default": "13px"
+          "$ref": "#/definitions/font-size-property"
         },
         "font_weight": {
-          "title": "font weight",
           "description": "A font weight of the bar",
-          "type": "integer",
-          "minimum": 0,
-          "default": 400,
-          "examples": ["100", "950"]
+          "$ref": "#/definitions/font-weight-property"
         },
         "border_width": {
-          "title": "border width",
           "description": "A border width of the bar",
-          "type": "string",
-          "minLength": 1,
-          "not": {
-            "$ref": "#/definitions/invalid-shorthand-property"
-          },
-          "default": "0"
+          "$ref": "#/definitions/border-width-property"
         },
         "border_color": {
-          "title": "border color",
           "description": "A border color of the bar",
-          "$ref": "#/definitions/color",
-          "default": "blue"
+          "$ref": "#/definitions/border-color-property"
         },
         "padding": {
           "title": "padding",
@@ -437,6 +1409,21 @@
           "description": "A border radius of the bar",
           "type": "integer",
           "default": 0
+        },
+        "components_left": {
+          "title": "components left",
+          "description": "Left component settings",
+          "$ref": "#/definitions/components"
+        },
+        "components_center": {
+          "title": "components center",
+          "description": "Center component settings",
+          "$ref": "#/definitions/components"
+        },
+        "components_right": {
+          "title": "components right",
+          "description": "Right component settings",
+          "$ref": "#/definitions/components"
         }
       },
       "additionalProperties": false
