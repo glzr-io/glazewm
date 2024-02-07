@@ -5,7 +5,7 @@
       "pattern": "^\\s+$"
     },
     "invalid-shorthand-property": {
-      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|^\\S+(\\s\\S+){4}$"
+      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|^\\s*\\S+(\\s+\\S+){4,}\\s*$"
     },
     "command": {
       "description": "A command",
@@ -41,10 +41,18 @@
     "color": {
       "description": "A color",
       "type": "string",
-      "minLength": 7,
-      "maxLength": 7,
-      "pattern": "^#[A-Za-z0-9]{6}$",
+      "pattern": "^\\S+$",
       "examples": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "cyan",
+        "blue",
+        "purple",
+        "pink",
+        "white",
+        "black",
         "#000000",
         "#FF0000",
         "#00FF00",
@@ -53,6 +61,11 @@
         "#FF00FF",
         "#FFFFFF"
       ]
+    },
+    "length": {
+      "type": "string",
+      "pattern": "^\\d+px$",
+      "examples": ["20px"]
     }
   },
   "title": "GlazeWM settings",
@@ -295,6 +308,125 @@
         },
         "additionalProperties": false
       }
+    },
+    "bar": {
+      "title": "bar",
+      "description": "Bar settings",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "title",
+          "description": "Whether to enable the bar",
+          "type": "boolean",
+          "default": true
+        },
+        "height": {
+          "title": "height",
+          "description": "A height of the bar",
+          "$ref": "#/definitions/length",
+          "default": "30px"
+        },
+        "position": {
+          "title": "position",
+          "description": "A position of the bar",
+          "type": "string",
+          "enum": ["top", "bottom"],
+          "default": "top"
+        },
+        "always_on_top": {
+          "title": "always on top",
+          "description": "Whether to keep the bar above other windows",
+          "type": "boolean",
+          "default": false
+        },
+        "opacity": {
+          "title": "opacity",
+          "description": "An opacity of the bar",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "background": {
+          "title": "background",
+          "description": "A background of the bar",
+          "$ref": "#/definitions/color",
+          "default": "#101010"
+        },
+        "foreground": {
+          "title": "foreground",
+          "description": "A foreground of the bar",
+          "$ref": "#/definitions/color",
+          "default": "white"
+        },
+        "font_family": {
+          "title": "font family",
+          "description": "A font family of the bar",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\S+(\\s+\\S+)*$",
+          "default": "Segoe UI"
+        },
+        "font_size": {
+          "title": "font size",
+          "description": "A font size of the bar",
+          "$ref": "#/definitions/length",
+          "default": "13px"
+        },
+        "font_weight": {
+          "title": "font weight",
+          "description": "A font weight of the bar",
+          "type": "integer",
+          "minimum": 0,
+          "default": 400,
+          "examples": ["100", "950"]
+        },
+        "border_width": {
+          "title": "border width",
+          "description": "A border width of the bar",
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "$ref": "#/definitions/invalid-shorthand-property"
+          },
+          "default": "0"
+        },
+        "border_color": {
+          "title": "border color",
+          "description": "A border color of the bar",
+          "$ref": "#/definitions/color",
+          "default": "blue"
+        },
+        "padding": {
+          "title": "padding",
+          "description": "A padding of the bar",
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "$ref": "#/definitions/invalid-shorthand-property"
+          },
+          "default": "4px 6px 4px 6px"
+        },
+        "offset_x": {
+          "title": "offset x",
+          "description": "A horizontal offset of the bar",
+          "type": "integer",
+          "default": 0
+        },
+        "offset_y": {
+          "title": "offset y",
+          "description": "A vertical offset of the bar",
+          "type": "integer",
+          "default": 0
+        },
+        "border_radius": {
+          "title": "border radius",
+          "description": "A border radius of the bar",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
