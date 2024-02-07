@@ -10,23 +10,38 @@
     "command": {
       "description": "A command",
       "type": "string",
+      "not": {
+        "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|([A-Za-z]+)\\s\\1|%%"
+      },
       "examples": [
-        "focus",
-        "focus workspace",
-        "focus workspace",
-        "move",
-        "move to workspace",
-        "resize",
-        "resize borders",
-        "set",
-        "set",
-        "toggle",
+        "focus left",
+        "focus right",
+        "focus up",
+        "focus down",
+        "focus workspace prev",
+        "focus workspace next",
+        "focus workspace recent",
+        "move left",
+        "move right",
+        "move up",
+        "move down",
+        "move to workspace WORKSPACE_NAME",
+        "resize HEIGHT WIDTH",
+        "resize borders SHORTHAND_PROPERTY",
+        "set floating",
+        "set tiling",
+        "set minimized",
+        "set maximized",
+        "toggle floating",
+        "toggle maximized",
         "focus mode toggle",
-        "tiling direction",
+        "tiling direction vertical",
+        "tiling direction horizontal",
+        "tiling direction toggle",
         "exit wm",
         "reload config",
         "close",
-        "exec",
+        "exec PROCESS_NAME",
         "ignore"
       ]
     },
@@ -39,7 +54,6 @@
       "examples": ["Alt+H"]
     },
     "color": {
-      "description": "A color",
       "type": "string",
       "pattern": "^\\S+$",
       "examples": [
@@ -103,7 +117,7 @@
         },
         "floating_window_move_amount": {
           "title": "floating window move amount",
-          "description": "Amount to move floating windows by",
+          "description": "An amount to move floating windows by",
           "type": "string",
           "minLength": 2,
           "pattern": "^\\d+%$",
@@ -117,7 +131,7 @@
         },
         "window_animations": {
           "title": "window animations",
-          "description": "Whether to globally enable window transition animations",
+          "description": "Whether to enable window transition animations",
           "oneOf": [
             {
               "type": "boolean"
@@ -204,12 +218,13 @@
           "properties": {
             "enabled": {
               "title": "enabled",
-              "description": "Whether to enable an active border",
+              "description": "Whether to enable the active border",
               "type": "boolean",
               "default": true
             },
             "color": {
               "title": "color",
+              "description": "A color of the active border",
               "$ref": "#/definitions/color"
             }
           },
@@ -222,12 +237,13 @@
           "properties": {
             "enabled": {
               "title": "enabled",
-              "description": "Whether to enable an inactive border",
+              "description": "Whether to enable the inactive border",
               "type": "boolean",
               "default": false
             },
             "color": {
               "title": "color",
+              "description": "A color of the active border",
               "$ref": "#/definitions/color"
             }
           },
@@ -276,32 +292,28 @@
         "properties": {
           "name": {
             "title": "name",
-            "description": "A unique name",
+            "description": "A unique name of the workspace",
             "type": "string",
             "minLength": 1,
-            "not": {
-              "$ref": "#/definitions/empty"
-            },
+            "pattern": "\\S",
             "examples": ["1"]
           },
           "display_name": {
             "title": "display name",
-            "description": "A display name",
+            "description": "A display name of the workspace",
             "type": "string",
             "minLength": 1,
-            "not": {
-              "$ref": "#/definitions/empty"
-            },
+            "pattern": "\\S",
             "examples": ["1"]
           },
           "bind_to_monitor": {
             "title": "bind to monitor",
-            "description": "Whether to bind a workspace to a specific monitor",
+            "description": "Whether to bind the workspace to a specific monitor",
             "type": "boolean"
           },
           "keep_alive": {
             "title": "keep alive",
-            "description": "Whether not to destroy a workspace when it's empty",
+            "description": "Whether not to destroy the workspace when it's empty",
             "type": "boolean",
             "default": false
           }
