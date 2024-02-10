@@ -5,14 +5,15 @@
       "pattern": "^\\s+$"
     },
     "invalid-shorthand-property": {
-      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|^\\s*\\S+(\\s+\\S+){4,}\\s*$"
+      "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s$"
     },
     "command": {
+      "title": "command",
       "description": "A command",
       "type": "string",
       "minLength": 1,
       "not": {
-        "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s|\\b([A-Za-z]+)\\b\\s+\\1|%%"
+        "pattern": "^\\s+$|\\spx\\s|\\spx$|^px\\s"
       },
       "examples": [
         "focus left",
@@ -47,12 +48,33 @@
       ]
     },
     "binding": {
+      "title": "binding",
       "description": "A binding",
       "type": "string",
       "not": {
         "pattern": "^\\s+$"
       },
       "examples": ["Alt+H"]
+    },
+    "commands": {
+      "title": "commands",
+      "description": "Commands",
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 2,
+      "items": {
+        "$ref": "#/definitions/command"
+      }
+    },
+    "bindings": {
+      "title": "bindings",
+      "description": "Bindings",
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 2,
+      "items": {
+        "$ref": "#/definitions/binding"
+      }
     },
     "color": {
       "type": "string",
@@ -1155,11 +1177,20 @@
           {
             "properties": {
               "binding": {
-                "title": "binding",
                 "$ref": "#/definitions/binding"
               },
               "command": {
-                "title": "command",
+                "$ref": "#/definitions/command"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "bindings": {
+                "$ref": "#/definitions/bindings"
+              },
+              "command": {
                 "$ref": "#/definitions/command"
               }
             },
@@ -1168,17 +1199,10 @@
           {
             "properties": {
               "binding": {
-                "title": "binding",
                 "$ref": "#/definitions/binding"
               },
               "commands": {
-                "title": "commands",
-                "type": "array",
-                "uniqueItems": true,
-                "minItems": 2,
-                "items": {
-                  "$ref": "#/definitions/command"
-                }
+                "$ref": "#/definitions/commands"
               }
             },
             "additionalProperties": false
@@ -1186,22 +1210,17 @@
           {
             "properties": {
               "bindings": {
-                "title": "bindings",
-                "type": "array",
-                "uniqueItems": true,
-                "minItems": 2,
-                "items": {
-                  "$ref": "#/definitions/binding"
-                }
+                "$ref": "#/definitions/bindings"
               },
-              "command": {
-                "title": "command",
-                "$ref": "#/definitions/command"
+              "commands": {
+                "$ref": "#/definitions/commands"
               }
             },
             "additionalProperties": false
           }
-        ]
+        ],
+        "minProperties": 2,
+        "maxProperties": 2
       },
       "additionalProperties": false
     },
