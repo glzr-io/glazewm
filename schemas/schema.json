@@ -1446,6 +1446,42 @@
         }
       },
       "additionalProperties": false
+    },
+    "window_rules": {
+      "title": "windows rules",
+      "description": "Windows rule settings\nhttps://github.com/glzr-io/glazewm?tab=readme-ov-file#window-rules",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "$ref": "#/definitions/command"
+          },
+          "match_process_name": {
+            "title": "match process name",
+            "description": "A process name to match\nhttps://github.com/glzr-io/glazewm?tab=readme-ov-file#window-rules",
+            "type": "string",
+            "minLength": 1,
+            "examples": ["chrome"]
+          },
+          "match_title": {
+            "title": "match title",
+            "description": "A window title to match\nhttps://github.com/glzr-io/glazewm?tab=readme-ov-file#window-rules",
+            "type": "string",
+            "minLength": 1,
+            "examples": ["/.*/"]
+          },
+          "match_class_name": {
+            "title": "match class name",
+            "description": "A class name to match\nhttps://github.com/glzr-io/glazewm?tab=readme-ov-file#window-rules",
+            "type": "string",
+            "minLength": 1,
+            "examples": ["Chrome_WidgetWin_1"]
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": true
