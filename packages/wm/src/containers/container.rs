@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
 use super::container_type::ContainerType;
@@ -6,7 +8,7 @@ pub trait Container {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
-  /// Derived container type (eg. `ContainerType.Monitor`).
+  /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
   fn height(&self) -> u32;
@@ -14,14 +16,23 @@ pub trait Container {
   fn x(&self) -> u32;
   fn y(&self) -> u32;
 
-  fn parent(&self) -> Box<dyn Container>;
-  fn children(&self) -> Vec<Box<dyn Container>>;
+  fn parent(&self) -> Option<Arc<dyn Container>>;
+  fn set_parent(&mut self, parent: Arc<dyn Container>) -> ();
+
+  fn children(&self) -> Vec<Arc<dyn Container>>;
+  fn set_children(&self, children: Vec<Arc<dyn Container>>) -> ();
 
   /// The order of which child containers last had focus.
-  fn child_focus_order(&self) -> Vec<Box<dyn Container>>;
+  fn child_focus_order(&self) -> Vec<Arc<dyn Container>>;
+  fn set_child_focus_order(
+    &self,
+    child_focus_order: Vec<Arc<dyn Container>>,
+  ) -> ();
 
-  // /// The child container that last had focus.
-  // public Container LastFocusedChild => ChildFocusOrder.ElementAtOrDefault(0);
+  /// The child container that last had focus.
+  fn last_focused_child(&self) -> Option<Arc<dyn Container>> {
+    self.child_focus_order().get(0).cloned()
+  }
 
   // /// Index of this container in parent's child focus order.
   // public int FocusIndex => this is RootContainer ? 0 : Parent.ChildFocusOrder.IndexOf(this);

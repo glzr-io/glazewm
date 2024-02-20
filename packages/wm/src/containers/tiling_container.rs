@@ -1,4 +1,4 @@
 pub trait TilingContainer {
-  fn is_tiling_active(&self) -> bool;
+  fn can_tile(&self) -> bool;
   fn size_percentage(&self) -> f32;
 }
