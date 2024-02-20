@@ -1,0 +1,22 @@
+[package]
+name = "wm"
+version = "0.0.0"
+description = "GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar."
+repository = "https://github.com/glzr-io/glazewm"
+license = "GPL-3"
+edition = "2021"
+
+[dependencies]
+ipc-client = { path = "../ipc-client" }
+ipc-server = { path = "../ipc-server" }
+watcher = { path = "../watcher" }
+
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+regex = { workspace = true }
+tokio = { workspace = true }
+windows = { workspace = true }

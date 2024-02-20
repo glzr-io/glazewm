@@ -145,12 +145,6 @@ publish/
 
 # NuGet Packages
 *.nupkg
-# The packages folder can be ignored because of Package Restore
-**/packages/*
-# except build/, which is used as an MSBuild target.
-!**/packages/build/
-# Uncomment if necessary however generally it will be regenerated when needed
-#!**/packages/repositories.config
 
 # Microsoft Azure Build Output
 csx/
@@ -235,3 +229,5 @@ _Pvt_Extensions
 
 # IDEA files
 .idea/
+
+target
