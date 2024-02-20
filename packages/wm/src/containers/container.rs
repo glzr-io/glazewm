@@ -4,7 +4,35 @@ use uuid::Uuid;
 
 use super::container_type::ContainerType;
 
+pub struct ContainerInner {
+  id: Uuid,
+  parent: Option<Box<ContainerInner>>,
+  children: Vec<Box<ContainerInner>>,
+  child_focus_order: Vec<Box<ContainerInner>>,
+}
+
+impl ContainerInner {
+  fn new(
+    parent: Option<Box<ContainerInner>>,
+    children: Vec<Box<ContainerInner>>,
+  ) -> Self {
+    Self {
+      id: Uuid::new_v4(),
+      parent,
+      children,
+      child_focus_order: children,
+    }
+  }
+
+  fn set_parent(&mut self, parent: ContainerInner) -> () {
+    self.parent = Some(Box::new(parent))
+  }
+}
+
 pub trait Container {
+  /// A unique identifier for the container.
+  fn inner(&self) -> ContainerInner;
+
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
@@ -16,17 +44,23 @@ pub trait Container {
   fn x(&self) -> u32;
   fn y(&self) -> u32;
 
-  fn parent(&self) -> Option<Arc<dyn Container>>;
-  fn set_parent(&mut self, parent: Arc<dyn Container>) -> ();
+  fn parent(&self) -> Option<Box<dyn Container>>;
 
-  fn children(&self) -> Vec<Arc<dyn Container>>;
-  fn set_children(&self, children: Vec<Arc<dyn Container>>) -> ();
+  fn set_parent(&mut self, parent: &dyn Container) -> () {
+    self.inner().set_parent(parent.inner())
+  }
+
+  fn children(&self) -> Vec<Box<dyn Container>> {
+    // ??????
+  }
+
+  fn set_children(&self, children: Vec<Box<dyn Container>>) -> ();
 
   /// The order of which child containers last had focus.
-  fn child_focus_order(&self) -> Vec<Arc<dyn Container>>;
+  fn child_focus_order(&self) -> Vec<Box<dyn Container>>;
   fn set_child_focus_order(
     &self,
-    child_focus_order: Vec<Arc<dyn Container>>,
+    child_focus_order: Vec<Box<dyn Container>>,
   ) -> ();
 
   /// The child container that last had focus.
