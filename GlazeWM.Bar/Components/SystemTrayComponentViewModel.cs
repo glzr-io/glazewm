@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Windows.Input;
-using GlazeWM.Bar.Common;
 using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Infrastructure;
 using ManagedShell;
@@ -18,7 +15,7 @@ namespace GlazeWM.Bar.Components
     private readonly ShellManager _shellManager =
       ServiceLocator.GetRequiredService<ShellManager>();
 
-    private bool _isExpanded = true;
+    private bool _isExpanded;
     public bool IsExpanded
     {
       get => _isExpanded;
@@ -53,6 +50,8 @@ namespace GlazeWM.Bar.Components
       SystemTrayComponentConfig config) : base(parentViewModel, config)
     {
       _config = config;
+
+      _isExpanded = _config.Expanded;
 
       // Subscribe to collection changes of pinned/unpinned tray icons.
       _shellManager.NotificationArea.UnpinnedIcons.CollectionChanged +=
