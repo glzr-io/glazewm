@@ -7,7 +7,7 @@ pub enum Unit {
   None,
 }
 
-/// Parses a string containing a number followed by a unit (px, %).
+/// Parses a string containing a number followed by a unit (`px`, `%`).
 ///
 /// Returns a tuple where the first element is a float, and the second
 /// element is the unit as an enum value.

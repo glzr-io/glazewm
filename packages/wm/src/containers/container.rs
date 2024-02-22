@@ -4,17 +4,17 @@ use uuid::Uuid;
 
 use super::container_type::ContainerType;
 
-pub struct ContainerInner {
+pub struct InnerContainer {
   id: Uuid,
-  parent: Option<Box<ContainerInner>>,
-  children: Vec<Box<ContainerInner>>,
-  child_focus_order: Vec<Box<ContainerInner>>,
+  parent: Option<Arc<dyn Container>>,
+  children: Vec<Arc<dyn Container>>,
+  child_focus_order: Vec<Arc<dyn Container>>,
 }
 
-impl ContainerInner {
-  fn new(
-    parent: Option<Box<ContainerInner>>,
-    children: Vec<Box<ContainerInner>>,
+impl InnerContainer {
+  pub fn new(
+    parent: Option<Arc<dyn Container>>,
+    children: Vec<Arc<dyn Container>>,
   ) -> Self {
     Self {
       id: Uuid::new_v4(),
@@ -24,18 +24,23 @@ impl ContainerInner {
     }
   }
 
-  fn set_parent(&mut self, parent: ContainerInner) -> () {
-    self.parent = Some(Box::new(parent))
+  pub fn set_parent(&mut self, parent: Arc<dyn Container>) {
+    self.parent = Some(parent);
+  }
+
+  pub fn set_children(&mut self, children: Vec<Arc<dyn Container>>) {
+    self.children = children;
+  }
+
+  pub fn set_child_focus_order(
+    &mut self,
+    child_focus_order: Vec<Arc<dyn Container>>,
+  ) {
+    self.child_focus_order = child_focus_order;
   }
 }
 
 pub trait Container {
-  /// A unique identifier for the container.
-  fn inner(&self) -> ContainerInner;
-
-  /// A unique identifier for the container.
-  fn id(&self) -> Uuid;
-
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
@@ -44,32 +49,56 @@ pub trait Container {
   fn x(&self) -> u32;
   fn y(&self) -> u32;
 
-  fn parent(&self) -> Option<Box<dyn Container>>;
+  /// A unique identifier for the container.
+  fn inner(&self) -> InnerContainer;
 
-  fn set_parent(&mut self, parent: &dyn Container) -> () {
-    self.inner().set_parent(parent.inner())
+  /// A unique identifier for the container.
+  fn id(&self) -> Uuid {
+    self.inner().id
   }
 
-  fn children(&self) -> Vec<Box<dyn Container>> {
-    // ??????
+  fn parent(&self) -> Option<Arc<dyn Container>> {
+    self.inner().parent
   }
 
-  fn set_children(&self, children: Vec<Box<dyn Container>>) -> ();
+  fn set_parent(&mut self, parent: Arc<dyn Container>) {
+    self.inner().set_parent(parent)
+  }
 
-  /// The order of which child containers last had focus.
-  fn child_focus_order(&self) -> Vec<Box<dyn Container>>;
+  fn children(&self) -> Vec<Arc<dyn Container>> {
+    self.inner().children
+  }
+
+  /// Order of which child containers last had focus.
+  fn child_focus_order(&self) -> Vec<Arc<dyn Container>> {
+    self.inner().child_focus_order
+  }
+
   fn set_child_focus_order(
     &self,
-    child_focus_order: Vec<Box<dyn Container>>,
-  ) -> ();
+    child_focus_order: Vec<Arc<dyn Container>>,
+  ) {
+    self.inner().set_child_focus_order(child_focus_order)
+  }
 
-  /// The child container that last had focus.
+  /// Child container that last had focus.
   fn last_focused_child(&self) -> Option<Arc<dyn Container>> {
     self.child_focus_order().get(0).cloned()
   }
 
-  // /// Index of this container in parent's child focus order.
-  // public int FocusIndex => this is RootContainer ? 0 : Parent.ChildFocusOrder.IndexOf(this);
+  /// Index of this container in parent's child focus order.
+  fn focus_index(&self) -> u32 {
+    match self.inner().parent {
+      None => 0,
+      Some(p) => p
+        .child_focus_order()
+        .iter()
+        .position(|child| child.id() == self.id())
+        .unwrap()
+        .try_into()
+        .unwrap(),
+    }
+  }
 
   // public List<Container> SelfAndSiblings =>
   //   this is RootContainer ? new List<Container>() { this } : Parent.Children;
