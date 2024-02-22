@@ -1,15 +1,13 @@
-use uuid::Uuid;
-
 use crate::containers::{Container, ContainerType};
 
 use super::InnerContainer;
 
 pub struct RootContainer {
+  inner: InnerContainer,
   width: u32,
   height: u32,
   x: u32,
   y: u32,
-  inner: InnerContainer,
 }
 
 impl RootContainer {
