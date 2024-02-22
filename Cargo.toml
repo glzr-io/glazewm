@@ -8,6 +8,7 @@ members = [
 ]
 
 [workspace.dependencies]
+anyhow = "1"
 regex = "1"
 tokio = { version = "1", features = ["full"] }
 windows = { version = "0.52", features = [

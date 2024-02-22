@@ -11,7 +11,7 @@ ipc-client = { path = "../ipc-client" }
 ipc-server = { path = "../ipc-server" }
 watcher = { path = "../watcher" }
 
-anyhow = "1"
+anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 uuid = { version = "1", features = ["v4"] }
 serde = { version = "1", features = ["derive"] }
@@ -20,3 +20,4 @@ serde_yaml = "0.9"
 regex = { workspace = true }
 tokio = { workspace = true }
 windows = { workspace = true }
+wineventhook = "0.9"
