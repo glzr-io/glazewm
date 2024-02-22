@@ -1,6 +1,7 @@
 use clap::Parser;
 use common::RectDelta;
 use ipc_client;
+use ipc_server::IpcServer;
 use tokio::sync::mpsc;
 use wineventhook::{EventFilter, WindowEventHook};
 use wm_state::WmState;
@@ -9,6 +10,7 @@ use workspaces::Workspace;
 use crate::cli::{Cli, CliCommand};
 
 mod cli;
+mod ipc_server;
 mod common;
 mod containers;
 mod monitors;
@@ -46,6 +48,8 @@ async fn start_wm() {
   let hook = WindowEventHook::hook(EventFilter::default(), event_tx)
     .await
     .unwrap();
+
+  let ipc_server = IpcServer::new(ipc_tx);
 
   tokio::spawn(async move {
     let wm_state = WmState::new();

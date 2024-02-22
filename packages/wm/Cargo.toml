@@ -13,11 +13,13 @@ watcher = { path = "../watcher" }
 
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
+futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 regex = { workspace = true }
 tokio = { workspace = true }
+tokio-tungstenite = "0.21"
 windows = { workspace = true }
 wineventhook = "0.9"
