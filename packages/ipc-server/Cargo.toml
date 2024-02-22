@@ -7,4 +7,5 @@ edition = "2021"
 ipc-client = { path = "../ipc-client" }
 
 anyhow = { workspace = true }
+tokio = { workspace = true }
 tungstenite = "0.21"
