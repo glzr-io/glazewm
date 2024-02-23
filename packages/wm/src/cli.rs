@@ -16,7 +16,7 @@ pub enum CliCommand {
   Start {
     /// Custom path to user config file.
     #[clap(short, long)]
-    config: String,
+    config_path: Option<String>,
   },
 
   /// Query the window manager's state.

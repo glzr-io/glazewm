@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-  "packages/ipc-client",
-  "packages/ipc-server",
-  "packages/watcher",
-  "packages/wm",
-]
+members = ["packages/*"]
 
 [workspace.dependencies]
 anyhow = "1"

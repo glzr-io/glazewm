@@ -7,9 +7,5 @@ pub enum ContainerType {
   Monitor,
   Workspace,
   SplitContainer,
-  FloatingWindow,
-  TilingWindow,
-  MinimizedWindow,
-  MaximizedWindow,
-  FullscreenWindow,
+  Window,
 }

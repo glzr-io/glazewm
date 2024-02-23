@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::container_type::ContainerType;
 
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct InnerContainer {
   id: Uuid,
   parent: Option<Arc<dyn Container>>,
@@ -44,15 +45,22 @@ pub trait Container {
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
+  /// Height of the container. Implementation varies by container type.
   fn height(&self) -> u32;
+
+  /// Width of the container. Implementation varies by container type.
   fn width(&self) -> u32;
+
+  /// X-coordinate of the container. Implementation varies by container type.
   fn x(&self) -> u32;
+
+  /// Y-coordinate of the container. Implementation varies by container type.
   fn y(&self) -> u32;
 
   /// A unique identifier for the container.
   fn inner(&self) -> InnerContainer;
 
-  /// A unique identifier for the container.
+  /// Unique identifier for the container.
   fn id(&self) -> Uuid {
     self.inner().id
   }

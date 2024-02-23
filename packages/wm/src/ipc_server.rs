@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ipc_client::DEFAULT_IPC_ADDR;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpListener, sync::mpsc::UnboundedSender};
 use tokio_tungstenite::accept_async;
@@ -12,20 +13,21 @@ pub enum IpcMessage {
 
 pub struct IpcServer {
   message_tx: UnboundedSender<IpcMessage>,
+  message_rx: UnboundedReceiver<IpcMessage>,
 }
-
-const DEFAULT_PORT: u32 = 6123;
 
 impl IpcServer {
   pub fn new(message_tx: UnboundedSender<IpcMessage>) -> Self {
-    Self { message_tx }
+    let (message_tx, mut message_rx) = mpsc::unbounded_channel::<i32>();
+    Self { message_tx, message_rx }
   }
 
   pub async fn start(&self) -> Result<()> {
-    let server = TcpListener::bind("127.0.0.1:6123").await?;
+    let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 
     while let Ok((stream, _)) = server.accept().await {
       let mut ws_stream = accept_async(stream).await?;
+      info!("Received new IPC connection.");
 
       while let Some(msg) = ws_stream.next().await {
         let msg = msg?;

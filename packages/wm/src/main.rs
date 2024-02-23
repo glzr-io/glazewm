@@ -14,9 +14,12 @@ mod ipc_server;
 mod common;
 mod containers;
 mod monitors;
-// mod user_config;
+mod user_config;
 // mod windows;
+mod wm;
 mod wm_state;
+mod wm_command;
+mod wm_event;
 mod workspaces;
 
 #[tokio::main]
@@ -24,53 +27,36 @@ async fn main() {
   let cli = Cli::parse();
 
   match cli.command {
-    CliCommand::Start { config } => {
-      let workspace = Workspace::new(
-        "name".into(),
-        "display_name".into(),
-        true,
-        RectDelta::new(1, 2, 3, 4),
-      );
+    CliCommand::Start { config_path } => {
+      let _ = start_wm(config_path).await;
     }
     _ => {
       let args = std::env::args_os();
-      ipc_client::send_raw(args).unwrap()
+      ipc_client::new().send_raw(args).unwrap()
     }
   }
 }
 
-async fn start_wm() {
-  let (event_tx, mut event_rx) = mpsc::unbounded_channel();
-
-  // TODO
-  let (ipc_tx, mut ipc_rx) = mpsc::unbounded_channel::<i32>();
-
-  let hook = WindowEventHook::hook(EventFilter::default(), event_tx)
-    .await
-    .unwrap();
-
-  let ipc_server = IpcServer::new(ipc_tx);
-
-  tokio::spawn(async move {
-    let wm_state = WmState::new();
-
-    // Wait and print events
-    while let Some(event) = event_rx.recv().await {
-      println!("{:#?}", event);
-      wm_state.focus_mode();
-    }
-  });
-
-  let mut foo = None;
-  let mut bar = None;
+async fn start_wm(config_path: Option<&str>) {
+  let user_config = UserConfig::read(config_path).await;
+  let event_listener = platform::EventListener::new().start().await;
+  let ipc_server = IpcServer::new().start().await;
+  let wm = WindowManager::new(user_config).start().await;
 
   loop {
     tokio::select! {
-        f = event_rx.recv() => foo = f,
-        b = ipc_rx.recv() => bar = b,
+      Some(event) = event_listener.event_rx.recv() => {
+        info!("Received platform event: {}", event);
+        wm.process_event(event).await
+      },
+      Some(wm_event) = wm.event_rx.recv() => {
+        info!("Received WM event: {}", wm_event);
+        ipc_server.process_event(wm_event).await
+      },
+      Some(ipc_message) = ipc_server.message_rx.recv() => {
+        info!("Received IPC message: {}", ipc_message);
+        ipc_server.process_message(ipc_message, wm.state).await
+      },
     }
   }
-
-  // Unhook the hook
-  hook.unhook().await.unwrap();
 }

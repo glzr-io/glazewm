@@ -20,7 +20,7 @@ pub struct WmState {
   has_pending_focus_sync: bool,
 
   /// Name of the currently active binding mode (if one is active).
-  active_binding_mode: String,
+  active_binding_mode: Option<String>,
 }
 
 impl WmState {
@@ -29,7 +29,7 @@ impl WmState {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
-      active_binding_mode: String::new(),
+      active_binding_mode: None,
     }
   }
 
