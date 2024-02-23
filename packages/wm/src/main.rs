@@ -1,25 +1,29 @@
+use std::env;
+
+use anyhow::{Context, Result};
 use clap::Parser;
-use common::RectDelta;
-use ipc_client;
+use common::platform::EventListener;
+use ipc_client::{self, IpcClient};
+
 use ipc_server::IpcServer;
-use tokio::sync::mpsc;
-use wineventhook::{EventFilter, WindowEventHook};
-use wm_state::WmState;
-use workspaces::Workspace;
+use tokio::process::Command;
+use tracing::info;
+use user_config::UserConfig;
+use wm::WindowManager;
 
 use crate::cli::{Cli, CliCommand};
 
 mod cli;
-mod ipc_server;
 mod common;
 mod containers;
+mod ipc_server;
 mod monitors;
 mod user_config;
 // mod windows;
 mod wm;
-mod wm_state;
 mod wm_command;
 mod wm_event;
+mod wm_state;
 mod workspaces;
 
 #[tokio::main]
@@ -32,7 +36,7 @@ async fn main() {
     }
     _ => {
       let args = std::env::args_os();
-      ipc_client::new().send_raw(args).unwrap()
+      IpcClient::new().send_raw(args).unwrap()
     }
   }
 }
@@ -41,7 +45,7 @@ async fn start_wm(config_path: Option<&str>) {
   // Parse and validate user config.
   let user_config = UserConfig::read(config_path).await;
 
-  let event_listener = platform::EventListener::new().start().await;
+  let event_listener = EventListener::new().start().await;
   let ipc_server = IpcServer::new().start().await;
 
   // Start watcher process for restoring hidden windows on crash.
@@ -67,8 +71,9 @@ async fn start_wm(config_path: Option<&str>) {
   }
 }
 
-fn start_watcher_process() -> Result<()> {
-  let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER").expect("watcher binary");
-  let mut watcher = Command::new(watcher_path);
-  watcher.status().expect("watcher failed").success();
+async fn start_watcher_process() -> Result<Command> {
+  let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER")
+    .context("Failed to resolve path to watcher process.")?;
+
+  Command::new(watcher_path);
 }

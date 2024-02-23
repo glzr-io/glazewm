@@ -1,3 +1,7 @@
+use anyhow::{bail, Result};
+
+use super::LengthValue;
+
 pub struct RectDelta {
   /// The delta in x-coordinates on the left of the rectangle.
   left: LengthValue,
@@ -32,7 +36,7 @@ impl RectDelta {
 
     match parts.len() {
       1 => {
-        let value = parse_length_value(&parts[0])?;
+        let value = LengthValue::from_str(&parts[0])?;
         Ok(Self::new(
           value.clone(),
           value.clone(),
@@ -41,8 +45,8 @@ impl RectDelta {
         ))
       }
       2 => {
-        let top_bottom = parse_length_value(&parts[0])?;
-        let left_right = parse_length_value(&parts[1])?;
+        let top_bottom = LengthValue::from_str(&parts[0])?;
+        let left_right = LengthValue::from_str(&parts[1])?;
         Ok(Self::new(
           left_right.clone(),
           top_bottom.clone(),
@@ -51,19 +55,19 @@ impl RectDelta {
         ))
       }
       3 => {
-        let top = parse_length_value(&parts[0])?;
-        let left_right = parse_length_value(&parts[1])?;
-        let bottom = parse_length_value(&parts[2])?;
+        let top = LengthValue::from_str(&parts[0])?;
+        let left_right = LengthValue::from_str(&parts[1])?;
+        let bottom = LengthValue::from_str(&parts[2])?;
         Ok(Self::new(left_right.clone(), top, left_right, bottom))
       }
       4 => {
-        let top = parse_length_value(&parts[0])?;
-        let right = parse_length_value(&parts[1])?;
-        let bottom = parse_length_value(&parts[2])?;
-        let left = parse_length_value(&parts[3])?;
+        let top = LengthValue::from_str(&parts[0])?;
+        let right = LengthValue::from_str(&parts[1])?;
+        let bottom = LengthValue::from_str(&parts[2])?;
+        let left = LengthValue::from_str(&parts[3])?;
         Ok(Self::new(left, top, right, bottom))
       }
-      _ => Err("Invalid shorthand.".into()),
+      _ => bail!("Invalid shorthand."),
     }
   }
 }

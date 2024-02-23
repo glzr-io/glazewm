@@ -1,3 +1,10 @@
+use std::path::PathBuf;
+
+use serde::{Deserialize, Deserializer};
+use tokio::fs;
+
+use crate::common::{LengthValue, RectDelta};
+
 #[derive(Debug, Deserialize)]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
@@ -47,46 +54,48 @@ pub struct UserConfig {
   pub workspaces: Vec<WorkspaceConfig>,
 }
 
-const SAMPLE_CONFIG: &str = include_str!("resources/sample-config.yaml");
+const SAMPLE_CONFIG: &str =
+  include_str!("../../../resources/sample-config.yaml");
 
 impl UserConfig {
   pub async fn read(config_path: Option<&str>) -> Self {
-  let default_config_path = home::home_dir().context("Unable to get home directory.")?.resolve(".glzr/glazewm/config.yaml");
+    let default_config_path = home::home_dir()
+      .context("Unable to get home directory.")?
+      .resolve(".glzr/glazewm/config.yaml");
 
+    let config_path = match config_path {
+      Some(val) => PathBuf::from(val),
+      None => default_config_path,
+    };
 
-  let config_path = match config_path {
-    Some(val) => PathBuf::from(val),
-    None => default_config_path,
-  };
+    // Create new config file from sample if it doesn't exist.
+    if !config_path.exists() {
+      fs::create_dir_all(&config_path).await.with_context(|| {
+        format!("Unable to create directory {}.", &config_path.display())
+      })?;
 
-  // Create new config file from sample if it doesn't exist.
-  if !config_path.exists() {
-    fs::create_dir_all(&config_path).with_context(|| {
-      format!("Unable to create directory {}.", &config_path.display())
-    })?;
+      fs::write(&config_path, SAMPLE_CONFIG)
+        .await
+        .with_context(|| {
+          format!("Unable to write to {}.", config_path.display())
+        })?;
+    }
 
-  fs::write(&config_path, SAMPLE_CONFIG).with_context(|| {
-    format!("Unable to write to {}.", config_path.display())
-  })?;
+    let config_str = fs::read_to_string(&config_path)
+      .context("Unable to read config file.");
 
-  let config_str = fs::read_to_string(&config_path).context("Unable to read config file.");
+    serde_yaml::from_str(config_str)
   }
 
-    UserConfig {
-      gaps: GapsConfig::new(),
-      focus_borders: FocusBordersConfig::new(),
-      general: GeneralConfig::new(),
-      bar: BarConfig::new(),
-      bars: Vec::new(),
-      workspaces: Vec::new(),
-      window_rules: Vec::new(),
-      keybindings: Vec::new(),
-      binding_modes: Vec::new(),
-    }
+  fn create_from_sample() -> Self {
+    let config_str = SAMPLE_CONFIG;
+    serde_yaml::from_str(config_str).unwrap()
   }
 }
 
-fn to_length_value<'de, D>(deserializer: D) -> Result<LengthValue, D::Error>
+fn to_length_value<'de, D>(
+  deserializer: D,
+) -> Result<LengthValue, D::Error>
 where
   D: Deserializer<'de>,
 {

@@ -1,4 +1,5 @@
-use anyhow::Result;
+use tokio::sync::mpsc::{self, Receiver, Sender};
+use wineventhook::{EventFilter, WindowEvent, WindowEventHook};
 
 pub enum PlatformEvent {
   DisplaySettingsChanged,
@@ -21,16 +22,17 @@ pub struct EventListener {
 }
 
 impl EventListener {
-  pub fn new() -> Self {
+  /// Start listening for platform events.
+  pub async fn start() -> Self {
     let (event_tx, mut event_rx) = mpsc::unbounded_channel();
-    Self { event_tx, event_rx }
-  }
+    let hook =
+      WindowEventHook::hook(EventFilter::default(), event_tx).await?;
 
-  pub async fn start(&mut self) -> Self {
-    self.hook =
-      WindowEventHook::hook(EventFilter::default(), self.event_tx).await?;
-
-    self
+    Self {
+      event_tx,
+      event_rx,
+      hook,
+    }
   }
 }
 

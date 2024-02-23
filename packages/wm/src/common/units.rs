@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use anyhow::{bail, Result};
 use regex::Regex;
 
 pub struct LengthValue {
@@ -19,7 +20,7 @@ impl LengthValue {
   /// ```
   /// LengthValue::from_str("100px") // { amount: 100.0, unit: LengthUnit::Pixel }
   /// ```
-  fn from_str(unparsed: &str) -> Result<LengthValue> {
+  pub fn from_str(unparsed: &str) -> Result<LengthValue> {
     let units_regex = Regex::new(r"(\d+)(%|ppt|px)?")?;
 
     let captures = units_regex.captures(unparsed)?;
@@ -27,8 +28,8 @@ impl LengthValue {
 
     let unit_str = captures.get(2).map_or("", |m| m.as_str());
     let unit = match unit_str {
-      "px" | "" => Unit::Pixel,
-      "%" => Unit::Percentage,
+      "px" | "" => LengthUnit::Pixel,
+      "%" => LengthUnit::Percentage,
       _ => bail!("Not a valid unit '{}'.", unit_str),
     };
 

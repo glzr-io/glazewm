@@ -1,8 +1,14 @@
 use anyhow::Result;
-use ipc_client::DEFAULT_IPC_ADDR;
 use futures_util::{SinkExt, StreamExt};
-use tokio::{net::TcpListener, sync::mpsc::UnboundedSender};
+use ipc_client::DEFAULT_IPC_ADDR;
+use tokio::{
+  net::TcpListener,
+  sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+};
 use tokio_tungstenite::accept_async;
+use tracing::info;
+
+use crate::wm_state::WmState;
 
 pub enum IpcMessage {
   Monitors,
@@ -17,9 +23,12 @@ pub struct IpcServer {
 }
 
 impl IpcServer {
-  pub fn new(message_tx: UnboundedSender<IpcMessage>) -> Self {
+  pub fn new() -> Self {
     let (message_tx, mut message_rx) = mpsc::unbounded_channel::<i32>();
-    Self { message_tx, message_rx }
+    Self {
+      message_tx,
+      message_rx,
+    }
   }
 
   pub async fn start(&self) -> Result<()> {
@@ -44,7 +53,11 @@ impl IpcServer {
     todo!()
   }
 
-  pub async fn process_message(&self, _message: IpcMessage, wm_state: WmState) {
+  pub async fn process_message(
+    &self,
+    _message: IpcMessage,
+    wm_state: WmState,
+  ) {
     todo!()
   }
 }

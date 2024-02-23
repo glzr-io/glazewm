@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::container_type::ContainerType;
@@ -35,7 +36,7 @@ pub enum Container {
   Window(Window),
 }
 
-pub trait Container {
+pub trait Containeraa {
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 

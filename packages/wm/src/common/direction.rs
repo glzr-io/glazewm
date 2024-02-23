@@ -1,3 +1,5 @@
+use anyhow::{bail, Result};
+
 pub enum Direction {
   Left,
   Right,
@@ -28,11 +30,11 @@ impl Direction {
   /// Direction::from_str("left") // Direction::Left
   /// ```
   pub fn from_str(unparsed: &str) -> Result<Direction> {
-    match self {
-      "left" => Direction::Left,
-      "right" => Direction::Right,
-      "up" => Direction::Up,
-      "down" => Direction::Down,
+    match unparsed {
+      "left" => Ok(Direction::Left),
+      "right" => Ok(Direction::Right),
+      "up" => Ok(Direction::Up),
+      "down" => Ok(Direction::Down),
       _ => bail!("Not a valid direction: {}", unparsed),
     }
   }

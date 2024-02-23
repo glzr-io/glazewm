@@ -1,3 +1,8 @@
+use crate::{
+  common::{Direction, TilingDirection},
+  containers::Container,
+};
+
 pub enum WmCommand {
   CloseWindow(Container),
   ExitWm,

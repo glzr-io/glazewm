@@ -4,16 +4,16 @@ use uuid::Uuid;
 use crate::{
   common::FocusMode,
   containers::{Container, ContainerType, RootContainer},
+  user_config::UserConfig,
 };
 
 pub struct WmState {
-  /// The root node of the container tree. Monitors are the children of the
+  /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
   root_container: RootContainer,
 
-  /// Containers (and their descendants) to redraw on the next invocation
-  /// of `RedrawContainersCommand`.
-  containers_to_redraw: Vec<Arc<dyn Container>>,
+  /// Containers (and their descendants) that have a pending redraw.
+  containers_to_redraw: Vec<Arc<Container>>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
@@ -21,21 +21,25 @@ pub struct WmState {
 
   /// Name of the currently active binding mode (if one is active).
   active_binding_mode: Option<String>,
+
+  /// Parsed user config.
+  user_config: UserConfig,
 }
 
 impl WmState {
-  pub fn new() -> Self {
+  pub fn new(user_config: UserConfig) -> Self {
     Self {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       active_binding_mode: None,
+      user_config,
     }
   }
 
-  /// The currently focused container. This can either be a `Window` or a
-  /// `Workspace` without any descendant windows.
-  pub fn focused_container(&self) -> Arc<dyn Container> {
+  /// Get the currently focused container. This can either be a `Window` or
+  /// a `Workspace` without any descendant windows.
+  pub fn focused_container(&self) -> Arc<Container> {
     self
       .root_container
       .last_focused_descendant()
@@ -51,10 +55,7 @@ impl WmState {
     }
   }
 
-  pub fn get_container_by_id(
-    &self,
-    id: Uuid,
-  ) -> Option<Arc<dyn Container>> {
+  pub fn container_by_id(&self, id: Uuid) -> Option<Arc<Container>> {
     self
       .root_container
       .self_and_descendants()

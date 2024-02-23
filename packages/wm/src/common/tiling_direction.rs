@@ -1,3 +1,7 @@
+use anyhow::{bail, Result};
+
+use super::Direction;
+
 pub enum TilingDirection {
   Vertical,
   Horizontal,
@@ -26,8 +30,8 @@ impl TilingDirection {
   /// ```
   pub fn from_direction(&self, direction: Direction) -> TilingDirection {
     match direction {
-      Direction::Left | Direction::Right => TilingDirection.Horizontal,
-      Direction::Up | Direction::Down => TilingDirection.Vertical,
+      Direction::Left | Direction::Right => TilingDirection::Horizontal,
+      Direction::Up | Direction::Down => TilingDirection::Vertical,
     }
   }
 
@@ -38,9 +42,9 @@ impl TilingDirection {
   /// TilingDirection::from_str("horizontal") // TilingDirection::Horizontal
   /// ```
   pub fn from_str(unparsed: &str) -> Result<TilingDirection> {
-    match self {
-      "horizontal" => TilingDirection.Horizontal,
-      "vertical" => TilingDirection.Vertical,
+    match unparsed {
+      "horizontal" => Ok(TilingDirection::Horizontal),
+      "vertical" => Ok(TilingDirection::Vertical),
       _ => bail!("Not a valid tiling direction: {}", unparsed),
     }
   }

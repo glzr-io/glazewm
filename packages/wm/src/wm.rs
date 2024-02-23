@@ -1,11 +1,15 @@
+use wineventhook::WindowEvent;
+
+use crate::{user_config::UserConfig, wm_state::WmState};
+
 pub struct WindowManager {
   state: WmState,
 }
 
 impl WindowManager {
-  pub fn new() -> Self {
+  pub fn new(user_config: UserConfig) -> Self {
     Self {
-      state: WmState::new(),
+      state: WmState::new(user_config),
     }
   }
 
