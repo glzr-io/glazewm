@@ -7,10 +7,6 @@ pub const DEFAULT_IPC_ADDR: &'static str = "127.0.0.1:6123";
 pub struct IpcClient {}
 
 impl IpcClient {
-  pub fn new() -> Self {
-    Self {}
-  }
-
   pub async fn connect() -> Result<()> {
     todo!()
   }

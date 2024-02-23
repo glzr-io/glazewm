@@ -38,9 +38,15 @@ async fn main() {
 }
 
 async fn start_wm(config_path: Option<&str>) {
+  // Parse and validate user config.
   let user_config = UserConfig::read(config_path).await;
+
   let event_listener = platform::EventListener::new().start().await;
   let ipc_server = IpcServer::new().start().await;
+
+  // Start watcher process for restoring hidden windows on crash.
+  start_watcher_process()?;
+
   let wm = WindowManager::new(user_config).start().await;
 
   loop {
@@ -59,4 +65,10 @@ async fn start_wm(config_path: Option<&str>) {
       },
     }
   }
+}
+
+fn start_watcher_process() -> Result<()> {
+  let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER").expect("watcher binary");
+  let mut watcher = Command::new(watcher_path);
+  watcher.status().expect("watcher failed").success();
 }

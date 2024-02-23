@@ -8,8 +8,7 @@ edition = "2021"
 
 [dependencies]
 ipc-client = { path = "../ipc-client" }
-ipc-server = { path = "../ipc-server" }
-watcher = { path = "../watcher" }
+watcher = { path = "../watcher", artifact = "bin" }
 
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }

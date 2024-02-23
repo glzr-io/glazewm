@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 ipc-client = { path = "../ipc-client" }
+
+anyhow = { workspace = true }
+tokio = { workspace = true }
