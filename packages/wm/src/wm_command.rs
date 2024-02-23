@@ -1,29 +1,32 @@
 pub enum WmCommand {
-  CloseWindow(dyn Container),
+  CloseWindow(Container),
   ExitWm,
-  Focus(dyn Container, Direction),
-  FocusWorkspace(dyn Container, String),
-  IgnoreWindow(dyn Container),
-  MoveWindow(dyn Container, Direction),
-  MoveWorkspace(dyn Container, Direction),
+  FocusInDirection(Container, Direction),
+  FocusRecentWorkspace,
+  FocusWorkspaceInSequence,
+  FocusWorkspace(Container, String),
+  IgnoreWindow(Container),
+  MoveWindow(Container, Direction),
+  MoveWorkspace(Container, Direction),
   Noop,
+  Redraw,
   ReloadConfig,
-  SetTilingDirection(dyn Container, TilingDirection),
-  ToggleTilingDirection(dyn Container),
+  SetTilingDirection(Container, TilingDirection),
+  ToggleTilingDirection(Container),
 }
 
 impl WmCommand {
   pub fn from_str(
     unparsed: &str,
-    subject_container: dyn Container,
-  ) -> Result<Command> {
+    subject_container: Container,
+  ) -> Result<Self> {
     let parts: Vec<&str> = unparsed.split_whitespace().collect();
 
     let command = match parts.as_slice() {
       ["close_window"] => WmCommand::CloseWindow(subject_container),
       ["exit_wm"] => WmCommand::ExitWm,
       ["focus", "left"] => {
-        WmCommand::Focus(subject_container, Direction::Left)
+        WmCommand::FocusInDirection(subject_container, Direction::Left)
       }
       ["focus", "right"] => {
         WmCommand::Focus(subject_container, Direction::Right)
@@ -35,8 +38,9 @@ impl WmCommand {
         WmCommand::Focus(subject_container, Direction::Down)
       }
       ["focus_workspace", name] => {
-        WmCommand::FocusWorkspace(subject_container, Direction::Down)
+        WmCommand::FocusWorkspace(subject_container, name)
       }
+      ["ignore_window"] => WmCommand::IgnoreWindow(subject_container),
       ["move_window", "left"] => {
         WmCommand::MoveWindow(subject_container, Direction::Left)
       }
@@ -62,7 +66,23 @@ impl WmCommand {
         WmCommand::MoveWorkspace(subject_container, Direction::Down)
       }
       ["noop"] => WmCommand::Noop,
+      ["redraw"] => WmCommand::Redraw,
       ["reload_config"] => WmCommand::ReloadConfig,
+      ["set_tiling_direction", "horizontal"] => {
+        WmCommand::SetTilingDirection(
+          subject_container,
+          TilingDirection::Horizontal,
+        )
+      }
+      ["set_tiling_direction", "vertical"] => {
+        WmCommand::SetTilingDirection(
+          subject_container,
+          TilingDirection::Vertical,
+        )
+      }
+      ["toggle_tiling_direction", "vertical"] => {
+        WmCommand::ToggleTilingDirection(subject_container)
+      }
       _ => Err("Not a known command."),
     };
 

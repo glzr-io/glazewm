@@ -21,17 +21,19 @@ impl Direction {
     }
   }
 
-  /// Get the tiling direction that is needed when moving or switching
-  /// focus in given direction.
+  /// Parse a string into a direction.
   ///
   /// Example:
   /// ```
-  /// Direction::Left.to_tiling_direction() // TilingDirection::Horizontal
+  /// Direction::from_str("left") // Direction::Left
   /// ```
-  pub fn to_tiling_direction(&self) -> TilingDirection {
+  pub fn from_str(unparsed: &str) -> Result<Direction> {
     match self {
-      Direction::Left | Direction::Right => TilingDirection.Horizontal,
-      Direction::Up | Direction::Down => TilingDirection.Vertical,
+      "left" => Direction::Left,
+      "right" => Direction::Right,
+      "up" => Direction::Up,
+      "down" => Direction::Down,
+      _ => bail!("Not a valid direction: {}", unparsed),
     }
   }
 }

@@ -16,4 +16,32 @@ impl TilingDirection {
       TilingDirection::Vertical => TilingDirection::Horizontal,
     }
   }
+
+  /// Get the tiling direction that is needed when moving or shifting
+  /// focus in a given direction.
+  ///
+  /// Example:
+  /// ```
+  /// TilingDirection::from_direction(Direction::Left) // TilingDirection::Horizontal
+  /// ```
+  pub fn from_direction(&self, direction: Direction) -> TilingDirection {
+    match direction {
+      Direction::Left | Direction::Right => TilingDirection.Horizontal,
+      Direction::Up | Direction::Down => TilingDirection.Vertical,
+    }
+  }
+
+  /// Parse a string into a tiling direction.
+  ///
+  /// Example:
+  /// ```
+  /// TilingDirection::from_str("horizontal") // TilingDirection::Horizontal
+  /// ```
+  pub fn from_str(unparsed: &str) -> Result<TilingDirection> {
+    match self {
+      "horizontal" => TilingDirection.Horizontal,
+      "vertical" => TilingDirection.Vertical,
+      _ => bail!("Not a valid tiling direction: {}", unparsed),
+    }
+  }
 }

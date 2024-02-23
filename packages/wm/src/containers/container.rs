@@ -6,16 +6,16 @@ use super::container_type::ContainerType;
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct InnerContainer {
-  id: Uuid,
-  parent: Option<Arc<dyn Container>>,
-  children: Vec<Arc<dyn Container>>,
-  child_focus_order: Vec<Arc<dyn Container>>,
+  pub id: Uuid,
+  pub parent: Option<Arc<Container>>,
+  pub children: Vec<Arc<Container>>,
+  pub child_focus_order: Vec<Arc<Container>>,
 }
 
 impl InnerContainer {
   pub fn new(
-    parent: Option<Arc<dyn Container>>,
-    children: Vec<Arc<dyn Container>>,
+    parent: Option<Arc<Container>>,
+    children: Vec<Arc<Container>>,
   ) -> Self {
     Self {
       id: Uuid::new_v4(),
@@ -24,21 +24,15 @@ impl InnerContainer {
       child_focus_order: children,
     }
   }
+}
 
-  pub fn set_parent(&mut self, parent: Arc<dyn Container>) {
-    self.parent = Some(parent);
-  }
-
-  pub fn set_children(&mut self, children: Vec<Arc<dyn Container>>) {
-    self.children = children;
-  }
-
-  pub fn set_child_focus_order(
-    &mut self,
-    child_focus_order: Vec<Arc<dyn Container>>,
-  ) {
-    self.child_focus_order = child_focus_order;
-  }
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub enum Container {
+  RootContainer(RootContainer),
+  Monitor(Monitor),
+  Workspace(Workspace),
+  SplitContainer(SplitContainer),
+  Window(Window),
 }
 
 pub trait Container {
@@ -65,32 +59,32 @@ pub trait Container {
     self.inner().id
   }
 
-  fn parent(&self) -> Option<Arc<dyn Container>> {
+  fn parent(&self) -> Option<Arc<Container>> {
     self.inner().parent
   }
 
-  fn set_parent(&mut self, parent: Arc<dyn Container>) {
-    self.inner().set_parent(parent)
+  fn set_parent(&mut self, parent: Option<Arc<Container>>) {
+    self.inner().parent = parent;
   }
 
-  fn children(&self) -> Vec<Arc<dyn Container>> {
+  fn children(&self) -> Vec<Arc<Container>> {
     self.inner().children
   }
 
   /// Order of which child containers last had focus.
-  fn child_focus_order(&self) -> Vec<Arc<dyn Container>> {
+  fn child_focus_order(&self) -> Vec<Arc<Container>> {
     self.inner().child_focus_order
   }
 
   fn set_child_focus_order(
-    &self,
-    child_focus_order: Vec<Arc<dyn Container>>,
+    &mut self,
+    child_focus_order: Vec<Arc<Container>>,
   ) {
-    self.inner().set_child_focus_order(child_focus_order)
+    self.inner().child_focus_order = child_focus_order;
   }
 
   /// Child container that last had focus.
-  fn last_focused_child(&self) -> Option<Arc<dyn Container>> {
+  fn last_focused_child(&self) -> Option<Arc<Container>> {
     self.child_focus_order().get(0).cloned()
   }
 
