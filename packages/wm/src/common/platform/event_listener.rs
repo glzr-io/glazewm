@@ -1,4 +1,5 @@
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use anyhow::Result;
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 use wineventhook::{EventFilter, WindowEvent, WindowEventHook};
 
 pub enum PlatformEvent {
@@ -16,28 +17,24 @@ pub enum PlatformEvent {
 }
 
 pub struct EventListener {
-  event_tx: Sender<WindowEvent>,
-  pub event_rx: Receiver<WindowEvent>,
+  pub event_rx: UnboundedReceiver<WindowEvent>,
   hook: WindowEventHook,
 }
 
 impl EventListener {
   /// Start listening for platform events.
-  pub async fn start() -> Self {
-    let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+  pub async fn start() -> Result<Self> {
+    let (event_tx, event_rx) = mpsc::unbounded_channel();
     let hook =
       WindowEventHook::hook(EventFilter::default(), event_tx).await?;
 
-    Self {
-      event_tx,
-      event_rx,
-      hook,
-    }
+    Ok(Self { event_rx, hook })
   }
 }
 
 impl Drop for EventListener {
   fn drop(&mut self) {
-    self.hook.unhook().unwrap();
+    // TODO
+    // self.hook.unhook().unwrap();
   }
 }

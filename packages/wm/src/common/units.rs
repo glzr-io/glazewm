@@ -1,13 +1,15 @@
 use std::str::FromStr;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use regex::Regex;
 
+#[derive(Debug)]
 pub struct LengthValue {
   pub amount: f32,
   pub unit: LengthUnit,
 }
 
+#[derive(Debug)]
 pub enum LengthUnit {
   Pixel,
   Percentage,
@@ -23,7 +25,10 @@ impl LengthValue {
   pub fn from_str(unparsed: &str) -> Result<LengthValue> {
     let units_regex = Regex::new(r"(\d+)(%|ppt|px)?")?;
 
-    let captures = units_regex.captures(unparsed)?;
+    let captures = units_regex
+      .captures(unparsed)
+      .context("Invalid length value.")?;
+
     let amount = f32::from_str(&captures[1])?;
 
     let unit_str = captures.get(2).map_or("", |m| m.as_str());

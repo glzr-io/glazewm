@@ -3,7 +3,7 @@ use std::env;
 use anyhow::{Context, Result};
 use clap::Parser;
 use common::platform::EventListener;
-use ipc_client::{self, IpcClient};
+use ipc_client::IpcClient;
 
 use ipc_server::IpcServer;
 use tokio::process::Command;
@@ -19,7 +19,7 @@ mod containers;
 mod ipc_server;
 mod monitors;
 mod user_config;
-// mod windows;
+mod windows;
 mod wm;
 mod wm_command;
 mod wm_event;

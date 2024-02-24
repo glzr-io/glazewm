@@ -3,7 +3,11 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::container_type::ContainerType;
+use crate::{monitors::Monitor, windows::Window, workspaces::Workspace};
+
+use super::{
+  container_type::ContainerType, RootContainer, SplitContainer,
+};
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct InnerContainer {
@@ -27,7 +31,7 @@ impl InnerContainer {
   }
 }
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug)]
 pub enum Container {
   RootContainer(RootContainer),
   Monitor(Monitor),
@@ -36,7 +40,7 @@ pub enum Container {
   Window(Window),
 }
 
-pub trait Containeraa {
+pub trait ContainerVariant {
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 

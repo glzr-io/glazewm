@@ -1,41 +1,35 @@
-use crate::containers::{ContainerType, ContainerVariant, InnerContainer};
+use crate::containers::ContainerType;
+
+use super::{ContainerVariant, InnerContainer};
 
 #[derive(Debug)]
-pub struct Monitor {
+pub struct SplitContainer {
   inner: InnerContainer,
-  device_name: String,
   width: u32,
   height: u32,
   x: u32,
   y: u32,
 }
 
-impl Monitor {
-  pub fn new(
-    device_name: String,
-    width: u32,
-    height: u32,
-    x: u32,
-    y: u32,
-  ) -> Self {
+impl SplitContainer {
+  pub fn new() -> Self {
     Self {
       inner: InnerContainer::new(None, vec![]),
-      device_name,
-      width,
-      height,
-      x,
-      y,
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 0,
     }
   }
 }
 
-impl ContainerVariant for Monitor {
+impl ContainerVariant for SplitContainer {
   fn inner(&self) -> InnerContainer {
     self.inner
   }
 
   fn r#type(&self) -> ContainerType {
-    ContainerType::Monitor
+    ContainerType::SplitContainer
   }
 
   fn height(&self) -> u32 {

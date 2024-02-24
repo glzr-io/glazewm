@@ -1,8 +1,9 @@
 use crate::{
   common::RectDelta,
-  containers::{Container, ContainerType, InnerContainer},
+  containers::{ContainerType, ContainerVariant, InnerContainer},
 };
 
+#[derive(Debug)]
 pub struct Workspace {
   inner: InnerContainer,
   name: String,
@@ -28,7 +29,7 @@ impl Workspace {
   }
 }
 
-impl Container for Workspace {
+impl ContainerVariant for Workspace {
   fn inner(&self) -> InnerContainer {
     self.inner
   }

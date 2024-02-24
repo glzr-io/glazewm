@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 
 use super::Direction;
 
+#[derive(Debug)]
 pub enum TilingDirection {
   Vertical,
   Horizontal,

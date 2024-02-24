@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 
+#[derive(Debug)]
 pub enum Direction {
   Left,
   Right,
