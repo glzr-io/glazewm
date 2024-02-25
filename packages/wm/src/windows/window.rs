@@ -2,7 +2,7 @@ use crate::containers::{ContainerType, ContainerVariant, InnerContainer};
 
 #[derive(Debug)]
 pub struct Window {
-  inner: InnerContainer,
+  pub inner: InnerContainer,
   width: u32,
   height: u32,
   x: u32,

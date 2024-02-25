@@ -4,7 +4,7 @@ use super::{ContainerVariant, InnerContainer};
 
 #[derive(Debug)]
 pub struct RootContainer {
-  inner: InnerContainer,
+  pub inner: InnerContainer,
   width: u32,
   height: u32,
   x: u32,

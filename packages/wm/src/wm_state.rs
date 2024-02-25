@@ -39,27 +39,27 @@ impl WmState {
 
   /// Get the currently focused container. This can either be a `Window` or
   /// a `Workspace` without any descendant windows.
-  pub fn focused_container(&self) -> Arc<Container> {
-    self
-      .root_container
-      .last_focused_descendant()
-      .unwrap()
-      .clone()
-  }
+  // pub fn focused_container(&self) -> Arc<Container> {
+  //   self
+  //     .root_container
+  //     .last_focused_descendant()
+  //     .unwrap()
+  //     .clone()
+  // }
 
-  /// Whether a tiling or floating container is currently focused.
-  pub fn focus_mode(&self) -> FocusMode {
-    match self.focused_container().r#type() {
-      ContainerType::FloatingWindow => FocusMode::Floating,
-      _ => FocusMode::Tiling,
-    }
-  }
+  // /// Whether a tiling or floating container is currently focused.
+  // pub fn focus_mode(&self) -> FocusMode {
+  //   match self.focused_container().r#type() {
+  //     ContainerType::FloatingWindow => FocusMode::Floating,
+  //     _ => FocusMode::Tiling,
+  //   }
+  // }
 
-  pub fn container_by_id(&self, id: Uuid) -> Option<Arc<Container>> {
-    self
-      .root_container
-      .self_and_descendants()
-      .into_iter()
-      .find(|container| container.id() == id)
-  }
+  // pub fn container_by_id(&self, id: Uuid) -> Option<Arc<Container>> {
+  //   self
+  //     .root_container
+  //     .self_and_descendants()
+  //     .into_iter()
+  //     .find(|container| container.id() == id)
+  // }
 }

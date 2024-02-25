@@ -1,23 +1,27 @@
+use anyhow::Result;
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 use wineventhook::WindowEvent;
 
-use crate::{user_config::UserConfig, wm_state::WmState};
+use crate::{
+  user_config::UserConfig, wm_event::WmEvent, wm_state::WmState,
+};
 
 pub struct WindowManager {
-  state: WmState,
+  pub event_rx: UnboundedReceiver<WmEvent>,
+  pub state: WmState,
 }
 
 impl WindowManager {
-  pub fn new(user_config: UserConfig) -> Self {
-    Self {
+  pub async fn start(user_config: UserConfig) -> Result<Self> {
+    let (event_tx, event_rx) = mpsc::unbounded_channel();
+
+    Ok(Self {
+      event_rx,
       state: WmState::new(user_config),
-    }
+    })
   }
 
-  pub fn init(&mut self) {
-    todo!()
-  }
-
-  pub fn process_event(event: WindowEvent) {
+  pub async fn process_event(&mut self, event: WindowEvent) {
     todo!()
   }
 }

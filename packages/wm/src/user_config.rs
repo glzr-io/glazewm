@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Deserializer};
 use tokio::fs;
 
@@ -119,10 +120,10 @@ const SAMPLE_CONFIG: &str =
   include_str!("../../../resources/sample-config.yaml");
 
 impl UserConfig {
-  pub async fn read(config_path: Option<&str>) -> Self {
+  pub async fn read(config_path: Option<String>) -> Result<Self> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
-      .resolve(".glzr/glazewm/config.yaml");
+      .join(".glzr/glazewm/config.yaml");
 
     let config_path = match config_path {
       Some(val) => PathBuf::from(val),
@@ -143,9 +144,11 @@ impl UserConfig {
     }
 
     let config_str = fs::read_to_string(&config_path)
-      .context("Unable to read config file.");
+      .await
+      .context("Unable to read config file.")?;
 
-    serde_yaml::from_str(config_str)
+    let parsed_config = serde_yaml::from_str(&config_str)?;
+    Ok(parsed_config)
   }
 
   fn create_from_sample() -> Self {

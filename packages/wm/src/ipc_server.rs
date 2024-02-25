@@ -8,8 +8,9 @@ use tokio::{
 use tokio_tungstenite::accept_async;
 use tracing::info;
 
-use crate::wm_state::WmState;
+use crate::{wm_event::WmEvent, wm_state::WmState};
 
+#[derive(Debug)]
 pub enum IpcMessage {
   Monitors,
   Windows,
@@ -19,19 +20,13 @@ pub enum IpcMessage {
 
 pub struct IpcServer {
   message_tx: UnboundedSender<IpcMessage>,
-  message_rx: UnboundedReceiver<IpcMessage>,
+  pub message_rx: UnboundedReceiver<IpcMessage>,
 }
 
 impl IpcServer {
-  pub fn new() -> Self {
-    let (message_tx, mut message_rx) = mpsc::unbounded_channel::<i32>();
-    Self {
-      message_tx,
-      message_rx,
-    }
-  }
+  pub async fn start() -> Result<Self> {
+    let (message_tx, message_rx) = mpsc::unbounded_channel::<IpcMessage>();
 
-  pub async fn start(&self) -> Result<()> {
     let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 
     while let Ok((stream, _)) = server.accept().await {
@@ -46,7 +41,10 @@ impl IpcServer {
       }
     }
 
-    Ok(())
+    Ok(Self {
+      message_tx,
+      message_rx,
+    })
   }
 
   pub async fn stop(&self) {
@@ -58,6 +56,10 @@ impl IpcServer {
     _message: IpcMessage,
     wm_state: WmState,
   ) {
+    todo!()
+  }
+
+  pub async fn process_event(&mut self, event: WmEvent) {
     todo!()
   }
 }

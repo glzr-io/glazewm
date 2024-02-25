@@ -5,7 +5,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Workspace {
-  inner: InnerContainer,
+  pub inner: InnerContainer,
   name: String,
   display_name: String,
   keep_alive: bool,

@@ -1,6 +1,3 @@
-use std::process;
-
-use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]

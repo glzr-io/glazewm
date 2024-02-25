@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -6,8 +5,7 @@ use crate::{
   containers::Container,
 };
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug)]
 pub enum WmEvent {
   BindingModeChanged {
     new_binding_mode: String,

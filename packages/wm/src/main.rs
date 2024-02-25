@@ -36,44 +36,49 @@ async fn main() {
     }
     _ => {
       let args = std::env::args_os();
-      IpcClient::new().send_raw(args).unwrap()
+      IpcClient::connect()
+        .await
+        .unwrap()
+        .send_raw(args)
+        .await
+        .unwrap()
     }
   }
 }
 
-async fn start_wm(config_path: Option<&str>) {
+async fn start_wm(config_path: Option<String>) -> Result<()> {
   // Parse and validate user config.
-  let user_config = UserConfig::read(config_path).await;
+  let user_config = UserConfig::read(config_path).await?;
 
-  let event_listener = EventListener::new().start().await;
-  let ipc_server = IpcServer::new().start().await;
+  let mut event_listener = EventListener::start().await?;
+  let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let wm = WindowManager::new(user_config).start().await;
+  let mut wm = WindowManager::start(user_config).await?;
 
   loop {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
-        info!("Received platform event: {}", event);
+        info!("Received platform event: {:?}", event);
         wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {
-        info!("Received WM event: {}", wm_event);
+        info!("Received WM event: {:?}", wm_event);
         ipc_server.process_event(wm_event).await
       },
       Some(ipc_message) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {}", ipc_message);
+        info!("Received IPC message: {:?}", ipc_message);
         ipc_server.process_message(ipc_message, wm.state).await
       },
     }
   }
 }
 
-async fn start_watcher_process() -> Result<Command> {
+fn start_watcher_process() -> Result<Command> {
   let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER")
     .context("Failed to resolve path to watcher process.")?;
 
-  Command::new(watcher_path);
+  Ok(Command::new(watcher_path))
 }

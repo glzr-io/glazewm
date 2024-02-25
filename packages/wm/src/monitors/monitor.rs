@@ -2,7 +2,7 @@ use crate::containers::{ContainerType, ContainerVariant, InnerContainer};
 
 #[derive(Debug)]
 pub struct Monitor {
-  inner: InnerContainer,
+  pub inner: InnerContainer,
   device_name: String,
   width: u32,
   height: u32,

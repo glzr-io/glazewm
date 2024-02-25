@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{monitors::Monitor, windows::Window, workspaces::Workspace};
@@ -9,7 +8,90 @@ use super::{
   container_type::ContainerType, RootContainer, SplitContainer,
 };
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug)]
+pub enum Container {
+  RootContainer(RootContainer),
+  Monitor(Monitor),
+  Workspace(Workspace),
+  SplitContainer(SplitContainer),
+  Window(Window),
+}
+
+impl Container {
+  pub fn inner(&self) -> &InnerContainer {
+    match self {
+      Self::RootContainer(c) => &c.inner,
+      Self::Monitor(c) => &c.inner,
+      Self::Workspace(c) => &c.inner,
+      Self::SplitContainer(c) => &c.inner,
+      Self::Window(c) => &c.inner,
+    }
+  }
+
+  pub fn inner_mut(&mut self) -> &mut InnerContainer {
+    match self {
+      Self::RootContainer(c) => &mut c.inner,
+      Self::Monitor(c) => &mut c.inner,
+      Self::Workspace(c) => &mut c.inner,
+      Self::SplitContainer(c) => &mut c.inner,
+      Self::Window(c) => &mut c.inner,
+    }
+  }
+
+  /// Unique identifier for the container.
+  fn id(&self) -> Uuid {
+    self.inner().id
+  }
+
+  pub fn parent(&self) -> Option<Arc<Container>> {
+    self.inner().parent
+  }
+
+  pub fn set_parent(&mut self, parent: Option<Arc<Container>>) {
+    self.inner().parent = parent;
+  }
+
+  pub fn children(&self) -> Vec<Arc<Container>> {
+    self.inner().children
+  }
+
+  pub fn set_children(&self, children: Vec<Arc<Container>>) {
+    self.inner().children = children;
+  }
+
+  /// Order of which child containers last had focus.
+  pub fn child_focus_order(&self) -> Vec<Arc<Container>> {
+    self.inner().child_focus_order
+  }
+
+  pub fn set_child_focus_order(
+    &mut self,
+    child_focus_order: Vec<Arc<Container>>,
+  ) {
+    self.inner().child_focus_order = child_focus_order;
+  }
+
+  /// Child container that last had focus.
+  pub fn last_focused_child(&self) -> Option<Arc<Container>> {
+    self.child_focus_order().get(0).cloned()
+  }
+
+  /// Index of this container in parent's child focus order.
+  pub fn focus_index(&self) -> u32 {
+    match self.inner().parent {
+      None => 0,
+      Some(p) => p
+        .child_focus_order()
+        .iter()
+        .position(|child| child.id() == self.id())
+        .unwrap()
+        .try_into()
+        .unwrap(),
+    }
+  }
+}
+
+#[derive(Debug)]
 pub struct InnerContainer {
   pub id: Uuid,
   pub parent: Option<Arc<Container>>,
@@ -29,15 +111,6 @@ impl InnerContainer {
       child_focus_order: children,
     }
   }
-}
-
-#[derive(Debug)]
-pub enum Container {
-  RootContainer(RootContainer),
-  Monitor(Monitor),
-  Workspace(Workspace),
-  SplitContainer(SplitContainer),
-  Window(Window),
 }
 
 pub trait ContainerVariant {
