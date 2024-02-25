@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use wineventhook::WindowEvent;
@@ -8,7 +10,7 @@ use crate::{
 
 pub struct WindowManager {
   pub event_rx: UnboundedReceiver<WmEvent>,
-  pub state: WmState,
+  pub state: Arc<WmState>,
 }
 
 impl WindowManager {
@@ -17,7 +19,7 @@ impl WindowManager {
 
     Ok(Self {
       event_rx,
-      state: WmState::new(user_config),
+      state: Arc::new(WmState::new(user_config)),
     })
   }
 

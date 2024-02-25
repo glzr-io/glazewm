@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 
 use super::LengthValue;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RectDelta {
   /// The delta in x-coordinates on the left of the rectangle.
   left: LengthValue,
@@ -33,29 +33,39 @@ impl RectDelta {
   }
 
   pub fn from_str(unparsed: &str) -> Result<Self> {
-    let mut parts = unparsed.split_whitespace();
+    let parts: Vec<&str> = unparsed.split_whitespace().collect();
 
-    match parts.count() {
+    match parts.len() {
       1 => {
-        let value = LengthValue::from_str(parts.next().unwrap())?;
-        Ok(Self::new(value, value, value, value))
+        let value = LengthValue::from_str(parts[0])?;
+        Ok(Self::new(
+          value.clone(),
+          value.clone(),
+          value.clone(),
+          value,
+        ))
       }
       2 => {
-        let top_bottom = LengthValue::from_str(parts.next().unwrap())?;
-        let left_right = LengthValue::from_str(parts.next().unwrap())?;
-        Ok(Self::new(left_right, top_bottom, left_right, top_bottom))
+        let top_bottom = LengthValue::from_str(parts[0])?;
+        let left_right = LengthValue::from_str(parts[1])?;
+        Ok(Self::new(
+          left_right.clone(),
+          top_bottom.clone(),
+          left_right,
+          top_bottom,
+        ))
       }
       3 => {
-        let top = LengthValue::from_str(parts.next().unwrap())?;
-        let left_right = LengthValue::from_str(parts.next().unwrap())?;
-        let bottom = LengthValue::from_str(parts.next().unwrap())?;
-        Ok(Self::new(left_right, top, left_right, bottom))
+        let top = LengthValue::from_str(parts[0])?;
+        let left_right = LengthValue::from_str(parts[1])?;
+        let bottom = LengthValue::from_str(parts[2])?;
+        Ok(Self::new(left_right.clone(), top, left_right, bottom))
       }
       4 => {
-        let top = LengthValue::from_str(parts.next().unwrap())?;
-        let right = LengthValue::from_str(parts.next().unwrap())?;
-        let bottom = LengthValue::from_str(parts.next().unwrap())?;
-        let left = LengthValue::from_str(parts.next().unwrap())?;
+        let top = LengthValue::from_str(parts[0])?;
+        let right = LengthValue::from_str(parts[1])?;
+        let bottom = LengthValue::from_str(parts[2])?;
+        let left = LengthValue::from_str(parts[3])?;
         Ok(Self::new(left, top, right, bottom))
       }
       _ => bail!("Invalid shorthand."),

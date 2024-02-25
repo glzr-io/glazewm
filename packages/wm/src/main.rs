@@ -59,6 +59,8 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   let mut wm = WindowManager::start(user_config).await?;
 
   loop {
+    let wm_state = wm.state.clone();
+
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         info!("Received platform event: {:?}", event);
@@ -70,7 +72,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
       },
       Some(ipc_message) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", ipc_message);
-        ipc_server.process_message(ipc_message, wm.state).await
+        ipc_server.process_message(ipc_message, wm_state).await
       },
     }
   }

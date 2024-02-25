@@ -29,28 +29,28 @@ impl Monitor {
   }
 }
 
-impl ContainerVariant for Monitor {
-  fn inner(&self) -> InnerContainer {
-    self.inner
-  }
+// impl ContainerVariant for Monitor {
+//   fn inner(&self) -> InnerContainer {
+//     self.inner
+//   }
 
-  fn r#type(&self) -> ContainerType {
-    ContainerType::Monitor
-  }
+//   fn r#type(&self) -> ContainerType {
+//     ContainerType::Monitor
+//   }
 
-  fn height(&self) -> u32 {
-    self.height
-  }
+//   fn height(&self) -> u32 {
+//     self.height
+//   }
 
-  fn width(&self) -> u32 {
-    self.width
-  }
+//   fn width(&self) -> u32 {
+//     self.width
+//   }
 
-  fn x(&self) -> u32 {
-    self.x
-  }
+//   fn x(&self) -> u32 {
+//     self.x
+//   }
 
-  fn y(&self) -> u32 {
-    self.y
-  }
-}
+//   fn y(&self) -> u32 {
+//     self.y
+//   }
+// }

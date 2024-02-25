@@ -3,13 +3,13 @@ use std::str::FromStr;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LengthValue {
   pub amount: f32,
   pub unit: LengthUnit,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LengthUnit {
   Pixel,
   Percentage,

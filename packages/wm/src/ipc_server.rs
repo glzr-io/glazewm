@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use ipc_client::DEFAULT_IPC_ADDR;
@@ -54,7 +56,7 @@ impl IpcServer {
   pub async fn process_message(
     &self,
     _message: IpcMessage,
-    wm_state: WmState,
+    wm_state: Arc<WmState>,
   ) {
     todo!()
   }

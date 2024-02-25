@@ -37,8 +37,8 @@ impl WmState {
     }
   }
 
-  /// Get the currently focused container. This can either be a `Window` or
-  /// a `Workspace` without any descendant windows.
+  // Get the currently focused container. This can either be a `Window` or
+  // a `Workspace` without any descendant windows.
   // pub fn focused_container(&self) -> Arc<Container> {
   //   self
   //     .root_container

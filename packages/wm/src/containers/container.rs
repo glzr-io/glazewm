@@ -44,15 +44,15 @@ impl Container {
   }
 
   pub fn parent(&self) -> Option<Arc<Container>> {
-    self.inner().parent
+    self.inner().parent.clone()
   }
 
   pub fn set_parent(&mut self, parent: Option<Arc<Container>>) {
-    self.inner().parent = parent;
+    self.inner_mut().parent = parent;
   }
 
   pub fn children(&self) -> Vec<Arc<Container>> {
-    self.inner().children
+    self.inner().children.clone()
   }
 
   pub fn set_children(&self, children: Vec<Arc<Container>>) {
@@ -61,7 +61,7 @@ impl Container {
 
   /// Order of which child containers last had focus.
   pub fn child_focus_order(&self) -> Vec<Arc<Container>> {
-    self.inner().child_focus_order
+    self.inner().child_focus_order.clone()
   }
 
   pub fn set_child_focus_order(
@@ -78,7 +78,7 @@ impl Container {
 
   /// Index of this container in parent's child focus order.
   pub fn focus_index(&self) -> u32 {
-    match self.inner().parent {
+    match &self.inner().parent {
       None => 0,
       Some(p) => p
         .child_focus_order()
