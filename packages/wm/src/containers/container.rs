@@ -38,6 +38,26 @@ impl Container {
     }
   }
 
+  /// Height of the container. Implementation varies by container type.
+  fn height(&self) -> u32 {
+    match self {
+      Self::RootContainer(c) => c.height(),
+      Self::Monitor(c) => c.height(),
+      Self::Workspace(c) => c.height(),
+      Self::SplitContainer(c) => c.height(),
+      Self::Window(c) => c.height(),
+    }
+  }
+
+  /// Width of the container. Implementation varies by container type.
+  fn width(&self) -> u32;
+
+  /// X-coordinate of the container. Implementation varies by container type.
+  fn x(&self) -> u32;
+
+  /// Y-coordinate of the container. Implementation varies by container type.
+  fn y(&self) -> u32;
+
   /// Unique identifier for the container.
   fn id(&self) -> Uuid {
     self.inner().id
@@ -364,4 +384,122 @@ pub trait ContainerVariant {
   //     container => typeof(T).IsAssignableFrom(container.GetType())
   //   );
   // }
+}
+
+/// Aproach 1:
+#[derive(Debug)]
+struct Container {
+  parent: Weak<RefCell<Node>>,
+  children: VecDeque<Rc<RefCell<Node>>>,
+  value: ContainerValue,
+}
+
+impl Container {
+  /// Height of the container. Implementation varies by container type.
+  pub fn height(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.height,
+      Self::Workspace(c) => c.height,
+      Self::Split(c) => c.height(),
+      Self::Window(c) => c.height(),
+      _ => 0,
+    }
+  }
+
+  /// Width of the container. Implementation varies by container type.
+  pub fn width(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.width,
+      Self::Workspace(c) => c.width,
+      Self::Split(c) => c.width(),
+      Self::Window(c) => c.width(),
+      _ => 0,
+    }
+  }
+
+  /// X-coordinate of the container. Implementation varies by container type.
+  pub fn x(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.x,
+      Self::Workspace(c) => c.x,
+      Self::Split(c) => c.x(),
+      Self::Window(c) => c.x(),
+      _ => 0,
+    }
+  }
+
+  /// Y-coordinate of the container. Implementation varies by container type.
+  pub fn y(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.y,
+      Self::Workspace(c) => c.y,
+      Self::Split(c) => c.y(),
+      Self::Window(c) => c.y(),
+      _ => 0,
+    }
+  }
+
+  /// Whether the container can be tiled.
+  pub fn can_tile(&self) -> bool {
+    match self.value {
+      Self::Window(c) => c.state == WindowState::Tiling,
+      _ => true,
+    }
+  }
+}
+
+enum ContainerValue {
+  Root,
+  Monitor(MonitorValue),
+  Workspace(WorkspaceValue),
+  Split(SplitValue),
+  Window(WindowValue),
+}
+
+/// Approach 2 ****:
+#[derive(Debug)]
+pub enum Container {
+  RootContainer(RootContainer),
+  Monitor(Monitor),
+  Workspace(Workspace),
+  SplitContainer(SplitContainer),
+  Window(Window),
+}
+
+pub struct InnerContainer {
+  parent: Weak<RefCell<Node>>,
+  children: VecDeque<Rc<RefCell<Node>>>,
+}
+
+impl Container {
+  pub fn inner(&self) -> &InnerContainer {
+    match self {
+      Self::RootContainer(c) => &c.inner,
+      Self::Monitor(c) => &c.inner,
+      Self::Workspace(c) => &c.inner,
+      Self::SplitContainer(c) => &c.inner,
+      Self::Window(c) => &c.inner,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct RootContainer {
+  pub inner: InnerContainer,
+  width: u32,
+  height: u32,
+  x: u32,
+  y: u32,
+}
+
+impl RootContainer {
+  pub fn new() -> Self {
+    Self {
+      inner: InnerContainer::new(None, vec![]),
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 0,
+    }
+  }
 }
