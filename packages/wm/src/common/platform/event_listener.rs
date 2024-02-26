@@ -1,6 +1,13 @@
+use std::sync::Arc;
+
 use anyhow::Result;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::{
+  mpsc::{self, UnboundedReceiver},
+  Mutex,
+};
 use wineventhook::{EventFilter, WindowEvent, WindowEventHook};
+
+use crate::user_config::UserConfig;
 
 pub enum PlatformEvent {
   DisplaySettingsChanged,
@@ -17,18 +24,29 @@ pub enum PlatformEvent {
 }
 
 pub struct EventListener {
+  config: Arc<Mutex<UserConfig>>,
+  config_changes_rx: UnboundedReceiver<UserConfig>,
   pub event_rx: UnboundedReceiver<WindowEvent>,
   hook: WindowEventHook,
 }
 
 impl EventListener {
   /// Start listening for platform events.
-  pub async fn start() -> Result<Self> {
+  pub async fn start(
+    config: Arc<Mutex<UserConfig>>,
+    config_changes_rx: UnboundedReceiver<UserConfig>,
+  ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
+
     let hook =
       WindowEventHook::hook(EventFilter::default(), event_tx).await?;
 
-    Ok(Self { event_rx, hook })
+    Ok(Self {
+      config,
+      config_changes_rx,
+      event_rx,
+      hook,
+    })
   }
 }
 

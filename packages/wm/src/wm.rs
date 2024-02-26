@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::{
+  mpsc::{self, UnboundedReceiver, UnboundedSender},
+  Mutex,
+};
 use wineventhook::WindowEvent;
 
 use crate::{
@@ -14,12 +17,15 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub async fn start(user_config: UserConfig) -> Result<Self> {
+  pub async fn start(
+    config: Arc<Mutex<UserConfig>>,
+    config_changes_tx: UnboundedSender<UserConfig>,
+  ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     Ok(Self {
       event_rx,
-      state: Arc::new(WmState::new(user_config)),
+      state: Arc::new(WmState::new(config)),
     })
   }
 

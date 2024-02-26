@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::{
@@ -23,17 +24,17 @@ pub struct WmState {
   active_binding_mode: Option<String>,
 
   /// Parsed user config.
-  user_config: UserConfig,
+  config: Arc<Mutex<UserConfig>>,
 }
 
 impl WmState {
-  pub fn new(user_config: UserConfig) -> Self {
+  pub fn new(config: Arc<Mutex<UserConfig>>) -> Self {
     Self {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       active_binding_mode: None,
-      user_config,
+      config,
     }
   }
 

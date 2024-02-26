@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, sync::Arc};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -6,7 +6,10 @@ use common::platform::EventListener;
 use ipc_client::IpcClient;
 
 use ipc_server::IpcServer;
-use tokio::process::Command;
+use tokio::{
+  process::Command,
+  sync::{mpsc, Mutex},
+};
 use tracing::info;
 use user_config::UserConfig;
 use wm::WindowManager;
@@ -48,15 +51,18 @@ async fn main() {
 
 async fn start_wm(config_path: Option<String>) -> Result<()> {
   // Parse and validate user config.
-  let user_config = UserConfig::read(config_path).await?;
+  let config = Arc::new(Mutex::new(UserConfig::read(config_path).await?));
+  let (config_changes_tx, config_changes_rx) =
+    mpsc::unbounded_channel::<UserConfig>();
 
-  let mut event_listener = EventListener::start().await?;
+  let mut event_listener =
+    EventListener::start(config.clone(), config_changes_rx).await?;
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::start(user_config).await?;
+  let mut wm = WindowManager::start(config, config_changes_tx).await?;
 
   loop {
     let wm_state = wm.state.clone();
