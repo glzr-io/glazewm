@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{bail, Context, Result};
 use regex::Regex;
+use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Clone)]
 pub struct LengthValue {
@@ -39,5 +40,15 @@ impl LengthValue {
     };
 
     Ok(LengthValue { amount, unit })
+  }
+}
+
+impl<'de> Deserialize<'de> for LengthValue {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let str = String::deserialize(deserializer)?;
+    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

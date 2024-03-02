@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use serde::{Deserialize, Deserializer};
 
 use super::LengthValue;
 
@@ -70,5 +71,15 @@ impl RectDelta {
       }
       _ => bail!("Invalid shorthand."),
     }
+  }
+}
+
+impl<'de> Deserialize<'de> for RectDelta {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let str = String::deserialize(deserializer)?;
+    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

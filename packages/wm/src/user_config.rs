@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use tokio::fs;
 
 use crate::{
@@ -30,11 +30,9 @@ pub struct BindingModeConfig {
 #[derive(Debug, Deserialize)]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
-  #[serde(deserialize_with = "to_length_value")]
   pub inner_gap: LengthValue,
 
   /// Gap between windows and the screen edge.
-  #[serde(deserialize_with = "to_rect_delta")]
   pub outer_gap: RectDelta,
 }
 
@@ -50,7 +48,6 @@ pub struct GeneralConfig {
   pub focus_follows_cursor: bool,
 
   /// Amount by which to move floating windows
-  #[serde(deserialize_with = "to_length_value")]
   pub floating_window_move_amount: LengthValue,
 
   /// If activated, by switching to the current workspace the previous
@@ -160,22 +157,4 @@ impl UserConfig {
 
     Ok(())
   }
-}
-
-fn to_length_value<'de, D>(
-  deserializer: D,
-) -> Result<LengthValue, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let str = String::deserialize(deserializer)?;
-  LengthValue::from_str(&str).map_err(serde::de::Error::custom)
-}
-
-fn to_rect_delta<'de, D>(deserializer: D) -> Result<RectDelta, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let str = String::deserialize(deserializer)?;
-  RectDelta::from_str(&str).map_err(serde::de::Error::custom)
 }
