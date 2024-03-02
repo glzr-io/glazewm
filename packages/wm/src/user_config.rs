@@ -2,10 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Deserializer};
-use tokio::{
-  fs,
-  sync::mpsc::{self, UnboundedReceiver},
-};
+use tokio::fs;
 
 use crate::{
   common::{LengthValue, RectDelta},
@@ -68,6 +65,7 @@ pub struct GeneralConfig {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum WindowAnimations {
   Enabled,
   Disabled,
@@ -105,7 +103,7 @@ pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,
   pub bind_to_monitor: Option<String>,
-  pub keep_alive: bool,
+  pub keep_alive: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,15 +133,7 @@ impl UserConfig {
 
     // Create new config file from sample if it doesn't exist.
     if !config_path.exists() {
-      fs::create_dir_all(&config_path).await.with_context(|| {
-        format!("Unable to create directory {}.", &config_path.display())
-      })?;
-
-      fs::write(&config_path, SAMPLE_CONFIG)
-        .await
-        .with_context(|| {
-          format!("Unable to write to {}.", config_path.display())
-        })?;
+      Self::create_from_sample(config_path.clone()).await?;
     }
 
     let config_str = fs::read_to_string(&config_path)
@@ -154,9 +144,21 @@ impl UserConfig {
     Ok(parsed_config)
   }
 
-  fn create_from_sample() -> Self {
-    let config_str = SAMPLE_CONFIG;
-    serde_yaml::from_str(config_str).unwrap()
+  async fn create_from_sample(config_path: PathBuf) -> Result<()> {
+    let parent_dir =
+      config_path.parent().context("Invalid config path.")?;
+
+    fs::create_dir_all(parent_dir).await.with_context(|| {
+      format!("Unable to create directory {}.", &config_path.display())
+    })?;
+
+    fs::write(&config_path, SAMPLE_CONFIG)
+      .await
+      .with_context(|| {
+        format!("Unable to write to {}.", config_path.display())
+      })?;
+
+    Ok(())
   }
 }
 
