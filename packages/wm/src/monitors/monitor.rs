@@ -1,4 +1,4 @@
-use crate::containers::{ContainerType, ContainerVariant, InnerContainer};
+use crate::containers::{ContainerType, InnerContainer};
 
 #[derive(Debug)]
 pub struct Monitor {
@@ -19,7 +19,7 @@ impl Monitor {
     y: u32,
   ) -> Self {
     Self {
-      inner: InnerContainer::new(None, vec![]),
+      inner: InnerContainer::new(ContainerType::Monitor),
       device_name,
       width,
       height,
@@ -28,29 +28,3 @@ impl Monitor {
     }
   }
 }
-
-// impl ContainerVariant for Monitor {
-//   fn inner(&self) -> InnerContainer {
-//     self.inner
-//   }
-
-//   fn r#type(&self) -> ContainerType {
-//     ContainerType::Monitor
-//   }
-
-//   fn height(&self) -> u32 {
-//     self.height
-//   }
-
-//   fn width(&self) -> u32 {
-//     self.width
-//   }
-
-//   fn x(&self) -> u32 {
-//     self.x
-//   }
-
-//   fn y(&self) -> u32 {
-//     self.y
-//   }
-// }

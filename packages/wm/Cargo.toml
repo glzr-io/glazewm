@@ -25,7 +25,3 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 windows = { workspace = true }
 wineventhook = "0.9"
-
-[unstable]
-# Enables Cargo artifact dependencies.
-bindeps = true

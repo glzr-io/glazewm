@@ -41,42 +41,6 @@ focus_borders:
     enabled: false
     color: "#ff0000"
 
-bar:
-  height: "30px"
-  position: "top"
-  opacity: 1.0
-  background: "#20242cc4"
-  foreground: "#ffffff"
-  font_family: "Segoe UI"
-  font_size: "13px"
-  padding: "4px 6px"
-  offset_x: "0"
-  offset_y: "0"
-  border_radius: "0"
-  components_left:
-    - type: "workspaces"
-      focused_workspace_background: "#ffffff33"
-      displayed_workspace_background: "#00000033"
-      default_workspace_background: "transparent"
-  components_center:
-    - type: "window title"
-  components_right:
-    - type: "system tray"
-    - type: "tiling direction"
-      label_horizontal: "⮂"
-      label_vertical: "⮁"
-      background: "#ffffff33"
-      margin: "0 4px"
-      padding: "0 8px"
-    - type: "binding mode"
-      background: "#ffffff33"
-      margin: "0 4px 0 0"
-      padding: "0 8px"
-    - type: "clock"
-      # Documentation on formatting date/time string:
-      # https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
-      time_formatting: "hh:mm tt  ddd MMM d"
-
 workspaces:
   - name: "1"
   - name: "2"

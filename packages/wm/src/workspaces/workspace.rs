@@ -1,6 +1,6 @@
 use crate::{
   common::RectDelta,
-  containers::{ContainerType, ContainerVariant, InnerContainer},
+  containers::{ContainerType, InnerContainer},
 };
 
 #[derive(Debug)]
@@ -20,37 +20,11 @@ impl Workspace {
     outer_gaps: RectDelta,
   ) -> Self {
     Self {
-      inner: InnerContainer::new(None, vec![]),
+      inner: InnerContainer::new(ContainerType::Workspace),
       name,
       display_name,
       keep_alive,
       outer_gaps,
     }
-  }
-}
-
-impl ContainerVariant for Workspace {
-  fn inner(&self) -> InnerContainer {
-    self.inner
-  }
-
-  fn r#type(&self) -> ContainerType {
-    ContainerType::Workspace
-  }
-
-  fn height(&self) -> u32 {
-    todo!()
-  }
-
-  fn width(&self) -> u32 {
-    todo!()
-  }
-
-  fn x(&self) -> u32 {
-    todo!()
-  }
-
-  fn y(&self) -> u32 {
-    todo!()
   }
 }

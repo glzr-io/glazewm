@@ -1,6 +1,6 @@
 use crate::containers::ContainerType;
 
-use super::{ContainerVariant, InnerContainer};
+use super::InnerContainer;
 
 #[derive(Debug)]
 pub struct SplitContainer {
@@ -14,37 +14,11 @@ pub struct SplitContainer {
 impl SplitContainer {
   pub fn new() -> Self {
     Self {
-      inner: InnerContainer::new(None, vec![]),
+      inner: InnerContainer::new(ContainerType::SplitContainer),
       width: 0,
       height: 0,
       x: 0,
       y: 0,
     }
-  }
-}
-
-impl ContainerVariant for SplitContainer {
-  fn inner(&self) -> InnerContainer {
-    self.inner
-  }
-
-  fn r#type(&self) -> ContainerType {
-    ContainerType::SplitContainer
-  }
-
-  fn height(&self) -> u32 {
-    self.height
-  }
-
-  fn width(&self) -> u32 {
-    self.width
-  }
-
-  fn x(&self) -> u32 {
-    self.x
-  }
-
-  fn y(&self) -> u32 {
-    self.y
   }
 }

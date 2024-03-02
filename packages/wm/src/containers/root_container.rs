@@ -1,4 +1,4 @@
-use super::InnerContainer;
+use super::{ContainerType, InnerContainer};
 
 #[derive(Debug)]
 pub struct RootContainer {
@@ -12,7 +12,7 @@ pub struct RootContainer {
 impl RootContainer {
   pub fn new() -> Self {
     Self {
-      inner: InnerContainer::new(None, vec![]),
+      inner: InnerContainer::new(ContainerType::RootContainer),
       width: 0,
       height: 0,
       x: 0,

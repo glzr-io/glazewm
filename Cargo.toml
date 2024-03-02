@@ -24,7 +24,3 @@ windows = { version = "0.52", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_System_SystemServices",
 ] }
-
-[unstable]
-# Enables Cargo artifact dependencies.
-bindeps = true
