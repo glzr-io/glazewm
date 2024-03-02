@@ -23,4 +23,7 @@ pub enum CliCommand {
     binding_mode: bool,
     focused_container: bool,
   },
+
+  /// Run a window manager command.
+  Cmd {},
 }

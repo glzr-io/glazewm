@@ -1,4 +1,9 @@
-use std::{borrow::BorrowMut, cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+  borrow::BorrowMut,
+  cell::RefCell,
+  rc::{Rc, Weak},
+  sync::Arc,
+};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -6,7 +11,7 @@ use crate::{
   common::FocusMode,
   containers::{Container, ContainerType, RootContainer},
   monitors::Monitor,
-  user_config::UserConfig,
+  user_config::{BindingModeConfig, UserConfig},
 };
 
 pub struct WmState {
@@ -15,14 +20,14 @@ pub struct WmState {
   root_container: RootContainer,
 
   /// Containers (and their descendants) that have a pending redraw.
-  containers_to_redraw: Vec<Arc<Container>>,
+  containers_to_redraw: Vec<Weak<Container>>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
   has_pending_focus_sync: bool,
 
-  /// Name of the currently active binding mode (if one is active).
-  active_binding_mode: Option<String>,
+  /// Currently enabled binding modes.
+  binding_modes: Vec<BindingModeConfig>,
 
   /// Parsed user config.
   config: Arc<Mutex<UserConfig>>,
@@ -34,7 +39,7 @@ impl WmState {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
-      active_binding_mode: None,
+      binding_modes: Vec::new(),
       config,
     }
   }

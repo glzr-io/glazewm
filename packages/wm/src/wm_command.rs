@@ -1,14 +1,14 @@
-use std::string;
-
 use anyhow::{bail, Result};
 use serde::{Deserialize, Deserializer};
 
-use crate::common::{Direction, TilingDirection};
+use crate::common::{Direction, LengthUnit, TilingDirection};
 
 #[derive(Debug)]
 pub enum WmCommand {
   CloseWindow,
+  DisableBindingMode(String),
   ExitWm,
+  EnableBindingMode(String),
   FocusInDirection(Direction),
   FocusRecentWorkspace,
   FocusWorkspaceInSequence,
@@ -20,7 +20,11 @@ pub enum WmCommand {
   Noop,
   Redraw,
   ReloadConfig,
+  ResizeWindowWidth(LengthUnit),
+  ResizeWindowHeight(LengthUnit),
   SetTilingDirection(TilingDirection),
+  SetWindowBorders(LengthUnit),
+  SetWindowFloating,
   ToggleTilingDirection,
   ToggleFocusMode,
 }
@@ -32,11 +36,17 @@ impl WmCommand {
     let command = match parts.as_slice() {
       ["close_window"] => WmCommand::CloseWindow,
       ["exit_wm"] => WmCommand::ExitWm,
+      ["disable_binding_mode", name] => {
+        WmCommand::DisableBindingMode(name.to_string())
+      }
       ["focus", direction] => {
         WmCommand::FocusInDirection(Direction::from_str(direction)?)
       }
       ["focus_workspace", name] => {
         WmCommand::FocusWorkspace(name.to_string())
+      }
+      ["enable_binding_mode", name] => {
+        WmCommand::EnableBindingMode(name.to_string())
       }
       ["ignore_window"] => WmCommand::IgnoreWindow,
       ["move_window", direction] => {

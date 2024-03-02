@@ -169,4 +169,7 @@ impl Container {
   //       .unwrap(),
   //   }
   // }
+
+  // pub fn parent_workspace(&self) -> Option<Rc<RefCell<Container>>> {}
+  // pub fn parent_monitor(&self) -> Option<Rc<RefCell<Container>>> {}
 }

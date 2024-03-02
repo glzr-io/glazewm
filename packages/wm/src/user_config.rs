@@ -23,6 +23,9 @@ pub struct BindingModeConfig {
   /// Name of the binding mode.
   pub name: String,
 
+  /// Display name of the binding mode.
+  pub display_name: Option<String>,
+
   /// Keybindings that will be active when the binding mode is active.
   pub keybindings: Vec<KeybindingConfig>,
 }
