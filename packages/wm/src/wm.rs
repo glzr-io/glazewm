@@ -13,7 +13,7 @@ use crate::{
 
 pub struct WindowManager {
   pub event_rx: UnboundedReceiver<WmEvent>,
-  pub state: Arc<WmState>,
+  pub state: Arc<Mutex<WmState>>,
 }
 
 impl WindowManager {
@@ -25,7 +25,7 @@ impl WindowManager {
 
     Ok(Self {
       event_rx,
-      state: Arc::new(WmState::new(config)),
+      state: Arc::new(Mutex::new(WmState::new(config))),
     })
   }
 

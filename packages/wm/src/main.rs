@@ -35,7 +35,9 @@ async fn main() {
 
   match cli.command {
     CliCommand::Start { config_path } => {
-      let _ = start_wm(config_path).await;
+      if let Err(err) = start_wm(config_path).await {
+        eprintln!("Error starting WM: {}", err);
+      }
     }
     _ => {
       let args = std::env::args_os();
@@ -66,10 +68,14 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
 
   loop {
     let wm_state = wm.state.clone();
+    // let wm_state = wm.state.clone().lock().await;
 
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         info!("Received platform event: {:?}", event);
+        wm_state.lock().await.add_monitor();
+        wm_state.lock().await.add_monitor();
+        wm_state.lock().await.add_monitor();
         wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {

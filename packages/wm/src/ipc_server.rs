@@ -5,7 +5,10 @@ use futures_util::{SinkExt, StreamExt};
 use ipc_client::DEFAULT_IPC_ADDR;
 use tokio::{
   net::TcpListener,
-  sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+  sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    Mutex,
+  },
 };
 use tokio_tungstenite::accept_async;
 use tracing::info;
@@ -56,7 +59,7 @@ impl IpcServer {
   pub async fn process_message(
     &self,
     _message: IpcMessage,
-    wm_state: Arc<WmState>,
+    wm_state: Arc<Mutex<WmState>>,
   ) {
     todo!()
   }

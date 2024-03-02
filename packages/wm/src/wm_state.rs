@@ -1,10 +1,11 @@
-use std::sync::Arc;
+use std::{borrow::BorrowMut, cell::RefCell, rc::Rc, sync::Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::{
   common::FocusMode,
   containers::{Container, ContainerType, RootContainer},
+  monitors::Monitor,
   user_config::UserConfig,
 };
 
@@ -36,6 +37,17 @@ impl WmState {
       active_binding_mode: None,
       config,
     }
+  }
+
+  pub fn add_monitor(&mut self) {
+    // self.root_container.add_monitor(monitor_id);
+    let monitor = Monitor::new(String::from("aaa"), 0, 0, 0, 0);
+    self
+      .root_container
+      .inner
+      .children
+      .borrow_mut()
+      .push_front(Rc::new(RefCell::new(Container::Monitor(monitor))));
   }
 
   // Get the currently focused container. This can either be a `Window` or
