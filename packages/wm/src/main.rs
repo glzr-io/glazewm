@@ -57,9 +57,11 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   let (config_changes_tx, config_changes_rx) =
     mpsc::unbounded_channel::<UserConfig>();
 
+  // Start listening for platform events.
   let mut event_listener =
     Platform::new_event_listener(config.clone(), config_changes_rx)
       .await?;
+
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.

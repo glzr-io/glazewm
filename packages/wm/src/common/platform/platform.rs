@@ -21,10 +21,10 @@ impl Platform {
     Ok(())
   }
 
-  pub fn new_event_listener(
+  pub async fn new_event_listener(
     config: Arc<Mutex<UserConfig>>,
     config_changes_rx: UnboundedReceiver<UserConfig>,
   ) -> Result<EventListener> {
-    EventListener::start(config, config_changes_rx)
+    EventListener::start(config, config_changes_rx).await
   }
 }
