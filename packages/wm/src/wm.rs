@@ -8,7 +8,8 @@ use tokio::sync::{
 use wineventhook::WindowEvent;
 
 use crate::{
-  user_config::UserConfig, wm_event::WmEvent, wm_state::WmState,
+  user_config::UserConfig, wm_command::WmCommand, wm_event::WmEvent,
+  wm_state::WmState,
 };
 
 pub struct WindowManager {
@@ -25,11 +26,19 @@ impl WindowManager {
 
     Ok(Self {
       event_rx,
-      state: Arc::new(Mutex::new(WmState::new(config))),
+      state: Arc::new(Mutex::new(WmState::new(
+        config,
+        config_changes_tx,
+        event_tx,
+      ))),
     })
   }
 
   pub async fn process_event(&mut self, event: WindowEvent) {
+    todo!()
+  }
+
+  pub async fn process_command(&mut self, command: WmCommand) {
     todo!()
   }
 }

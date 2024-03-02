@@ -13,7 +13,7 @@ use tokio::{
 use tokio_tungstenite::accept_async;
 use tracing::info;
 
-use crate::{wm_event::WmEvent, wm_state::WmState};
+use crate::{wm_command::WmCommand, wm_event::WmEvent, wm_state::WmState};
 
 #[derive(Debug)]
 pub enum IpcMessage {
@@ -24,13 +24,16 @@ pub enum IpcMessage {
 }
 
 pub struct IpcServer {
-  message_tx: UnboundedSender<IpcMessage>,
   pub message_rx: UnboundedReceiver<IpcMessage>,
+  pub wm_command_rx: UnboundedReceiver<WmCommand>,
 }
 
 impl IpcServer {
   pub async fn start() -> Result<Self> {
     let (message_tx, message_rx) = mpsc::unbounded_channel::<IpcMessage>();
+
+    let (wm_command_tx, wm_command_rx) =
+      mpsc::unbounded_channel::<WmCommand>();
 
     let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 
@@ -47,8 +50,8 @@ impl IpcServer {
     }
 
     Ok(Self {
-      message_tx,
       message_rx,
+      wm_command_rx,
     })
   }
 

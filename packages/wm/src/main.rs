@@ -2,7 +2,7 @@ use std::{env, sync::Arc};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use common::platform::{EventListener, Platform};
+use common::platform::Platform;
 use ipc_client::IpcClient;
 
 use ipc_server::IpcServer;
@@ -71,7 +71,6 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
 
   loop {
     let wm_state = wm.state.clone();
-    // let wm_state = wm.state.clone().lock().await;
 
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
@@ -88,6 +87,10 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
       Some(ipc_message) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", ipc_message);
         ipc_server.process_message(ipc_message, wm_state).await
+      },
+      Some(wm_command) = ipc_server.wm_command_rx.recv() => {
+        info!("Received WM command via IPC: {:?}", wm_command);
+        wm.process_command(wm_command).await
       },
     }
   }

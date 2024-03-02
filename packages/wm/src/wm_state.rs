@@ -5,7 +5,8 @@ use std::{
   sync::Arc,
 };
 
-use tokio::sync::Mutex;
+use anyhow::Result;
+use tokio::sync::{mpsc::UnboundedSender, Mutex};
 use uuid::Uuid;
 
 use crate::{
@@ -13,6 +14,7 @@ use crate::{
   containers::{Container, ContainerType, RootContainer},
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
+  wm_event::WmEvent,
 };
 
 pub struct WmState {
@@ -32,16 +34,26 @@ pub struct WmState {
 
   /// Parsed user config.
   config: Arc<Mutex<UserConfig>>,
+
+  config_changes_tx: UnboundedSender<UserConfig>,
+
+  event_tx: UnboundedSender<WmEvent>,
 }
 
 impl WmState {
-  pub fn new(config: Arc<Mutex<UserConfig>>) -> Self {
+  pub fn new(
+    config: Arc<Mutex<UserConfig>>,
+    config_changes_tx: UnboundedSender<UserConfig>,
+    event_tx: UnboundedSender<WmEvent>,
+  ) -> Self {
     Self {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       binding_modes: Vec::new(),
       config,
+      config_changes_tx,
+      event_tx,
     }
   }
 
@@ -54,6 +66,10 @@ impl WmState {
       .children
       .borrow_mut()
       .push_front(Rc::new(RefCell::new(Container::Monitor(monitor))));
+  }
+
+  pub fn emit_event(&self, event: WmEvent) -> Result<()> {
+    self.event_tx.send(event)
   }
 
   // Get the currently focused container. This can either be a `Window` or
