@@ -98,7 +98,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
 
 fn start_watcher_process() -> Result<Command> {
   let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER")
-    .context("Failed to resolve path to watcher process.")?;
+    .context("Failed to resolve path to the watcher process.")?;
 
   Ok(Command::new(watcher_path))
 }

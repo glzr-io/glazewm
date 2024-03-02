@@ -1,0 +1,11 @@
+[package]
+name = "cli"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+ipc-client = { path = "../ipc-client" }
+wm = { path = "../wm", artifact = "bin" }
+
+anyhow = { workspace = true }
+tokio = { workspace = true }
