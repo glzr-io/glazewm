@@ -20,8 +20,7 @@ pub struct InnerContainer {
   container_type: ContainerType,
   pub parent: Option<Weak<RefCell<Container>>>,
   pub children: VecDeque<Rc<RefCell<Container>>>,
-  // TODO: Use vec of ids instead and a getter to get the actual containers.
-  pub child_focus_order: VecDeque<Rc<RefCell<Container>>>,
+  pub child_focus_order: VecDeque<Uuid>,
 }
 
 impl InnerContainer {
@@ -32,6 +31,45 @@ impl InnerContainer {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
+    }
+  }
+
+  pub fn r#type(&self) -> ContainerType {
+    self.container_type
+  }
+
+  pub fn insert_child(&mut self, target_index: usize, child: Container) {
+    child.inner_mut().parent = Some(Rc::downgrade(&self));
+    self.children.insert(target_index, child);
+    self.child_focus_order.push_front(child.id());
+  }
+
+  pub fn remove_child(&mut self, child_id: Uuid) {
+    if let Some(index) = self
+      .children
+      .iter()
+      .position(|child| child.id() == child_id)
+    {
+      self.children.remove(index);
+      self.child_focus_order.retain(|id| *id != child_id);
+    }
+  }
+
+  pub fn is_detached(&self) -> bool {
+    self.parent.is_none()
+  }
+
+  pub fn has_children(&self) -> bool {
+    !self.children.is_empty()
+  }
+
+  pub fn siblings(&self) -> Vec<Rc<RefCell<Container>>> {
+    if let Some(parent) = self.parent.as_ref() {
+      let parent = parent.upgrade().unwrap();
+      let parent = parent.borrow();
+      parent.children.clone().into()
+    } else {
+      vec![]
     }
   }
 }
@@ -66,62 +104,62 @@ impl Container {
     }
   }
 
-  // / Height of the container. Implementation varies by container type.
-  // pub fn height(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.height,
-  //     Self::Workspace(c) => c.height,
-  //     Self::SplitContainer(c) => c.height(),
-  //     Self::Window(c) => c.height(),
-  //     _ => 0,
-  //   }
-  // }
+  /// Height of the container. Implementation varies by container type.
+  pub fn height(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.height,
+      Self::Workspace(c) => c.height,
+      Self::SplitContainer(c) => c.height(),
+      Self::Window(c) => c.height(),
+      _ => 0,
+    }
+  }
 
-  // /// Width of the container. Implementation varies by container type.
-  // pub fn width(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.width,
-  //     Self::Workspace(c) => c.width,
-  //     Self::SplitContainer(c) => c.width(),
-  //     Self::Window(c) => c.width(),
-  //     _ => 0,
-  //   }
-  // }
+  /// Width of the container. Implementation varies by container type.
+  pub fn width(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.width,
+      Self::Workspace(c) => c.width,
+      Self::SplitContainer(c) => c.width(),
+      Self::Window(c) => c.width(),
+      _ => 0,
+    }
+  }
 
-  // /// X-coordinate of the container. Implementation varies by container type.
-  // pub fn x(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.x,
-  //     Self::Workspace(c) => c.x,
-  //     Self::SplitContainer(c) => c.x(),
-  //     Self::Window(c) => c.x(),
-  //     _ => 0,
-  //   }
-  // }
+  /// X-coordinate of the container. Implementation varies by container type.
+  pub fn x(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.x,
+      Self::Workspace(c) => c.x,
+      Self::SplitContainer(c) => c.x(),
+      Self::Window(c) => c.x(),
+      _ => 0,
+    }
+  }
 
-  // /// Y-coordinate of the container. Implementation varies by container type.
-  // pub fn y(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.y,
-  //     Self::Workspace(c) => c.y,
-  //     Self::SplitContainer(c) => c.y(),
-  //     Self::Window(c) => c.y(),
-  //     _ => 0,
-  //   }
-  // }
+  /// Y-coordinate of the container. Implementation varies by container type.
+  pub fn y(&self) -> u32 {
+    match self.value {
+      Self::Monitor(c) => c.y,
+      Self::Workspace(c) => c.y,
+      Self::SplitContainer(c) => c.y(),
+      Self::Window(c) => c.y(),
+      _ => 0,
+    }
+  }
 
-  // /// Whether the container can be tiled.
-  // pub fn can_tile(&self) -> bool {
-  //   match self.value {
-  //     Self::Window(c) => c.state == WindowState::Tiling,
-  //     _ => true,
-  //   }
-  // }
+  /// Whether the container can be tiled.
+  pub fn can_tile(&self) -> bool {
+    match self.value {
+      Self::Window(c) => c.state == WindowState::Tiling,
+      _ => true,
+    }
+  }
 
-  // /// Unique identifier for the container.
-  // fn id(&self) -> Uuid {
-  //   self.inner().id
-  // }
+  /// Unique identifier for the container.
+  fn id(&self) -> Uuid {
+    self.inner().id
+  }
 
   // pub fn parent(&self) -> Option<Arc<Container>> {
   //   self.inner().parent.clone()
