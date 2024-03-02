@@ -1,4 +1,4 @@
-use crate::containers::{ContainerType, ContainerVariant, InnerContainer};
+use crate::containers::InnerContainer;
 
 #[derive(Debug)]
 pub struct Window {
@@ -18,31 +18,5 @@ impl Window {
       x: 0,
       y: 0,
     }
-  }
-}
-
-impl ContainerVariant for Window {
-  fn inner(&self) -> InnerContainer {
-    self.inner
-  }
-
-  fn r#type(&self) -> ContainerType {
-    ContainerType::Window
-  }
-
-  fn height(&self) -> u32 {
-    self.height
-  }
-
-  fn width(&self) -> u32 {
-    self.width
-  }
-
-  fn x(&self) -> u32 {
-    self.x
-  }
-
-  fn y(&self) -> u32 {
-    self.y
   }
 }

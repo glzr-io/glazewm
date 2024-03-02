@@ -1,6 +1,4 @@
-use crate::containers::ContainerType;
-
-use super::{ContainerVariant, InnerContainer};
+use super::InnerContainer;
 
 #[derive(Debug)]
 pub struct RootContainer {
@@ -20,31 +18,5 @@ impl RootContainer {
       x: 0,
       y: 0,
     }
-  }
-}
-
-impl ContainerVariant for RootContainer {
-  fn inner(&self) -> InnerContainer {
-    self.inner
-  }
-
-  fn r#type(&self) -> ContainerType {
-    ContainerType::RootContainer
-  }
-
-  fn height(&self) -> u32 {
-    self.height
-  }
-
-  fn width(&self) -> u32 {
-    self.width
-  }
-
-  fn x(&self) -> u32 {
-    self.x
-  }
-
-  fn y(&self) -> u32 {
-    self.y
   }
 }
