@@ -1,30 +1,27 @@
-use crate::containers::{ContainerType, InnerContainer};
+use crate::{
+  common::platform::NativeMonitor,
+  containers::{ContainerType, InnerContainer},
+};
 
 #[derive(Debug)]
 pub struct Monitor {
   pub inner: InnerContainer,
-  device_name: String,
-  width: u32,
-  height: u32,
-  x: u32,
-  y: u32,
+  pub device_name: String,
+  pub width: u32,
+  pub height: u32,
+  pub x: u32,
+  pub y: u32,
 }
 
 impl Monitor {
-  pub fn new(
-    device_name: String,
-    width: u32,
-    height: u32,
-    x: u32,
-    y: u32,
-  ) -> Self {
+  pub fn from_native(native_monitor: NativeMonitor) -> Self {
     Self {
       inner: InnerContainer::new(ContainerType::Monitor),
-      device_name,
-      width,
-      height,
-      x,
-      y,
+      device_name: native_monitor.device_name,
+      width: native_monitor.width,
+      height: native_monitor.height,
+      x: native_monitor.x,
+      y: native_monitor.y,
     }
   }
 }

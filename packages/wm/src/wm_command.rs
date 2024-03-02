@@ -70,7 +70,9 @@ impl WmCommand {
         WmCommand::ToggleTilingDirection
       }
       ["toggle_focus_mode"] => WmCommand::ToggleFocusMode,
-      _ => bail!("Not a known command."),
+      // _ => bail!("Not a known command."),
+      // TODO
+      _ => WmCommand::Noop,
     };
 
     Ok(command)

@@ -2,7 +2,7 @@ use std::{env, sync::Arc};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use common::platform::EventListener;
+use common::platform::{EventListener, Platform};
 use ipc_client::IpcClient;
 
 use ipc_server::IpcServer;
@@ -58,7 +58,8 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
     mpsc::unbounded_channel::<UserConfig>();
 
   let mut event_listener =
-    EventListener::start(config.clone(), config_changes_rx).await?;
+    Platform::new_event_listener(config.clone(), config_changes_rx)
+      .await?;
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
