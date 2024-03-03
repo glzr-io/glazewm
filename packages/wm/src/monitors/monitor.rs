@@ -14,7 +14,7 @@ pub struct Monitor {
 }
 
 impl Monitor {
-  pub fn from_native(native_monitor: NativeMonitor) -> Self {
+  pub fn new(native_monitor: NativeMonitor) -> Self {
     Self {
       inner: InnerContainer::new(ContainerType::Monitor),
       device_name: native_monitor.device_name,

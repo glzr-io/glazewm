@@ -15,6 +15,32 @@ use crate::{
 use super::{ContainerType, RootContainer, SplitContainer};
 
 #[derive(Debug)]
+// TODO: Consider renaming to ContainerRelations and removing `container_type`.
+// Instead create a `CommonContainer` trait that all containers implement (including
+// the `Container` enum itself). Then change `relations` to be private and only
+// accessible through `CommonContainer` trait methods.
+// pub trait CommonContainer {
+//   id() -> Uuid;
+//   r#type() -> ContainerType;
+//   relations() -> ContainerRelations;
+// }
+
+// It's possible to get `InnerContainer` to point to the outer via `Rc::new_cyclic`
+// eg. https://stackoverflow.com/questions/67525645/constructor-for-a-structure-with-weak-reference-to-its-owner
+
+// ----------
+
+// If RcTree was used instead, could do:
+
+/// Strong reference to an element in the SVG tree.
+// pub type Node = rctree::Node<ContainerProperties>;
+
+/// Weak reference to an element in the SVG tree.
+// pub type WeakNode = rctree::WeakNode<ContainerProperties>;
+
+// Could do `borrow_monitor` to get derived type.
+// Ref: https://github.com/GNOME/librsvg/blob/d3c3269fa54c9b3fb60fcfdba29ff97e2029f600/rsvg/src/node.rs#L223
+
 pub struct InnerContainer {
   pub id: Uuid,
   container_type: ContainerType,
@@ -38,9 +64,13 @@ impl InnerContainer {
     self.container_type
   }
 
-  pub fn insert_child(&mut self, target_index: usize, child: Container) {
-    child.inner_mut().parent = Some(Rc::downgrade(&self));
-    self.children.insert(target_index, child);
+  pub fn insert_child(&self, target_index: usize, child: Container) {
+    child.inner_mut().parent = Some(Weak::new(RefCell::new(self)));
+
+    self
+      .children
+      .insert(target_index, Rc::new(RefCell::new(child)));
+
     self.child_focus_order.push_front(child.id());
   }
 
@@ -48,7 +78,7 @@ impl InnerContainer {
     if let Some(index) = self
       .children
       .iter()
-      .position(|child| child.id() == child_id)
+      .position(|child| child.borrow().id() == child_id)
     {
       self.children.remove(index);
       self.child_focus_order.retain(|id| *id != child_id);
@@ -104,57 +134,57 @@ impl Container {
     }
   }
 
-  /// Height of the container. Implementation varies by container type.
-  pub fn height(&self) -> u32 {
-    match self.value {
-      Self::Monitor(c) => c.height,
-      Self::Workspace(c) => c.height,
-      Self::SplitContainer(c) => c.height(),
-      Self::Window(c) => c.height(),
-      _ => 0,
-    }
-  }
+  // /// Height of the container. Implementation varies by container type.
+  // pub fn height(&self) -> u32 {
+  //   match self.value {
+  //     Self::Monitor(c) => c.height,
+  //     Self::Workspace(c) => c.height,
+  //     Self::SplitContainer(c) => c.height(),
+  //     Self::Window(c) => c.height(),
+  //     _ => 0,
+  //   }
+  // }
 
-  /// Width of the container. Implementation varies by container type.
-  pub fn width(&self) -> u32 {
-    match self.value {
-      Self::Monitor(c) => c.width,
-      Self::Workspace(c) => c.width,
-      Self::SplitContainer(c) => c.width(),
-      Self::Window(c) => c.width(),
-      _ => 0,
-    }
-  }
+  // /// Width of the container. Implementation varies by container type.
+  // pub fn width(&self) -> u32 {
+  //   match self.value {
+  //     Self::Monitor(c) => c.width,
+  //     Self::Workspace(c) => c.width,
+  //     Self::SplitContainer(c) => c.width(),
+  //     Self::Window(c) => c.width(),
+  //     _ => 0,
+  //   }
+  // }
 
-  /// X-coordinate of the container. Implementation varies by container type.
-  pub fn x(&self) -> u32 {
-    match self.value {
-      Self::Monitor(c) => c.x,
-      Self::Workspace(c) => c.x,
-      Self::SplitContainer(c) => c.x(),
-      Self::Window(c) => c.x(),
-      _ => 0,
-    }
-  }
+  // /// X-coordinate of the container. Implementation varies by container type.
+  // pub fn x(&self) -> u32 {
+  //   match self.value {
+  //     Self::Monitor(c) => c.x,
+  //     Self::Workspace(c) => c.x,
+  //     Self::SplitContainer(c) => c.x(),
+  //     Self::Window(c) => c.x(),
+  //     _ => 0,
+  //   }
+  // }
 
-  /// Y-coordinate of the container. Implementation varies by container type.
-  pub fn y(&self) -> u32 {
-    match self.value {
-      Self::Monitor(c) => c.y,
-      Self::Workspace(c) => c.y,
-      Self::SplitContainer(c) => c.y(),
-      Self::Window(c) => c.y(),
-      _ => 0,
-    }
-  }
+  // /// Y-coordinate of the container. Implementation varies by container type.
+  // pub fn y(&self) -> u32 {
+  //   match self.value {
+  //     Self::Monitor(c) => c.y,
+  //     Self::Workspace(c) => c.y,
+  //     Self::SplitContainer(c) => c.y(),
+  //     Self::Window(c) => c.y(),
+  //     _ => 0,
+  //   }
+  // }
 
-  /// Whether the container can be tiled.
-  pub fn can_tile(&self) -> bool {
-    match self.value {
-      Self::Window(c) => c.state == WindowState::Tiling,
-      _ => true,
-    }
-  }
+  // /// Whether the container can be tiled.
+  // pub fn can_tile(&self) -> bool {
+  //   match self.value {
+  //     Self::Window(c) => c.state == WindowState::Tiling,
+  //     _ => true,
+  //   }
+  // }
 
   /// Unique identifier for the container.
   fn id(&self) -> Uuid {

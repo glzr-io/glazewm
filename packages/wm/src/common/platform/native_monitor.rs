@@ -5,3 +5,21 @@ pub struct NativeMonitor {
   pub x: u32,
   pub y: u32,
 }
+
+impl NativeMonitor {
+  pub fn new(
+    device_name: String,
+    width: u32,
+    height: u32,
+    x: u32,
+    y: u32,
+  ) -> Self {
+    Self {
+      device_name,
+      width,
+      height,
+      x,
+      y,
+    }
+  }
+}

@@ -14,11 +14,11 @@ pub struct Platform;
 
 impl Platform {
   pub fn monitors() -> Result<Vec<NativeMonitor>> {
-    Ok(())
+    todo!()
   }
 
   pub fn manageable_windows() -> Result<Vec<NativeWindow>> {
-    Ok(())
+    todo!()
   }
 
   pub async fn new_event_listener(

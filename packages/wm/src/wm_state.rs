@@ -7,10 +7,11 @@ use std::{
 
 use anyhow::Result;
 use tokio::sync::{mpsc::UnboundedSender, Mutex};
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
-  common::FocusMode,
+  common::{platform::NativeMonitor, FocusMode},
   containers::{Container, ContainerType, RootContainer},
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
@@ -58,8 +59,9 @@ impl WmState {
   }
 
   pub fn add_monitor(&mut self) {
-    // self.root_container.add_monitor(monitor_id);
-    let monitor = Monitor::new(String::from("aaa"), 0, 0, 0, 0);
+    let monitor =
+      Monitor::new(NativeMonitor::new(String::from("aaa"), 0, 0, 0, 0));
+
     self
       .root_container
       .inner
@@ -69,7 +71,11 @@ impl WmState {
   }
 
   pub fn emit_event(&self, event: WmEvent) -> Result<()> {
-    self.event_tx.send(event)
+    if let Err(err) = self.event_tx.send(event) {
+      warn!("Failed to send event: {}", err);
+    }
+
+    Ok(())
   }
 
   // Get the currently focused container. This can either be a `Window` or
