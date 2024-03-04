@@ -1,97 +1,95 @@
+use core::fmt;
 use std::{
-  cell::RefCell,
+  cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
   rc::{Rc, Weak},
 };
 
 use uuid::Uuid;
 
-use crate::{
-  monitors::Monitor,
-  windows::{Window, WindowState},
-  workspaces::Workspace,
-};
-
 use super::{ContainerType, RootContainer, SplitContainer};
 
-// TODO: Consider renaming to ContainerRelations and removing `container_type`.
-// Instead create a `CommonContainer` trait that all containers implement (including
-// the `Container` enum itself). Then change `relations` to be private and only
-// accessible through `CommonContainer` trait methods.
-// pub trait CommonContainer {
-//   id() -> Uuid;
-//   r#type() -> ContainerType;
-//   relations() -> ContainerRelations;
-// }
+/// A reference to a `Container`.
+///
+/// Internally, this uses reference counting for lifetime tracking and
+/// `std::cell::RefCell` for interior mutability.
+///
+/// **Note:** Cloning a `ContainerRef` only increments a reference count.
+pub struct ContainerRef(Rc<RefCell<Container>>);
 
-// It's possible to get `InnerContainer` to point to the outer via `Rc::new_cyclic`
-// eg. https://stackoverflow.com/questions/67525645/constructor-for-a-structure-with-weak-reference-to-its-owner
-
-// ----------
-
-// If RcTree was used instead, could do:
-// Could do `borrow_monitor` to get derived type.
-// Ref: https://github.com/GNOME/librsvg/blob/d3c3269fa54c9b3fb60fcfdba29ff97e2029f600/rsvg/src/node.rs#L223
-
-/// Strong reference to a container.
-pub type Container = rctree::Node<ContainerData>;
-
-/// Weak reference to a container.
-pub type WeakContainer = rctree::WeakNode<ContainerData>;
+struct Container {
+  parent: Option<Weak<RefCell<Container>>>,
+  children: Vec<Rc<RefCell<Container>>>,
+  data: ContainerData,
+}
 
 #[derive(Debug)]
 pub enum ContainerData {
-  RootContainer(RootContainer),
-  Monitor(Monitor),
-  Workspace(Workspace),
-  SplitContainer(SplitContainer),
-  Window(Window),
+  RootContainer,
+  Monitor,
+  Workspace,
+  SplitContainer,
+  Window,
+  // RootContainer(RootContainer),
+  // Monitor(Monitor),
+  // Workspace(Workspace),
+  // SplitContainer(SplitContainer),
+  // Window(Window),
 }
 
-trait CommonContainer {
-  fn id(&self) -> Uuid;
+/// Cloning a `ContainerRef` only increments a reference count. It does not
+/// copy the data.
+impl Clone for ContainerRef {
+  fn clone(&self) -> ContainerRef {
+    ContainerRef(self.0.clone())
+  }
+}
 
-  fn r#type(&self) -> ContainerType;
+impl fmt::Debug for ContainerRef {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fmt::Debug::fmt(&*self.borrow(), f)
+  }
+}
 
-  fn child_focus_order(&self) -> VecDeque<Uuid>;
-  fn child_focus_order_mut(&self) -> VecDeque<Uuid>;
-
-  fn insert_child(&self, target_index: usize, child: Container) {
-    child.inner_mut().parent = Some(Weak::new(RefCell::new(self)));
-
-    self
-      .children
-      .insert(target_index, Rc::new(RefCell::new(child)));
-
-    self.child_focus_order.push_front(child.id());
+impl ContainerRef {
+  /// Create a new node from its associated data.
+  pub fn new(data: ContainerData) -> ContainerRef {
+    ContainerRef(Rc::new(RefCell::new(Container {
+      parent: None,
+      children: Vec::new(),
+      data,
+    })))
   }
 
-  fn remove_child(&mut self, child_id: Uuid) {
-    if let Some(index) = self
-      .children
-      .iter()
-      .position(|child| child.borrow().id() == child_id)
-    {
-      self.children.remove(index);
-      self.child_focus_order.retain(|id| *id != child_id);
+  /// Return a reference to the parent node, unless this node is the root
+  /// of the tree.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the node is currently mutability borrowed.
+  pub fn parent(&self) -> Option<ContainerRef> {
+    Some(ContainerRef(self.0.borrow().parent.as_ref()?.upgrade()?))
+  }
+
+  /// Return a shared reference to this node’s data
+  ///
+  /// # Panics
+  ///
+  /// Panics if the node is currently mutability borrowed.
+  pub fn borrow(&self) -> Ref<ContainerData> {
+    Ref {
+      _ref: self.0.borrow(),
     }
   }
 
-  fn is_detached(&self) -> bool {
-    self.parent.is_none()
-  }
-
-  fn has_children(&self) -> bool {
-    !self.children.is_empty()
-  }
-
-  fn siblings(&self) -> Vec<Rc<RefCell<Container>>> {
-    if let Some(parent) = self.parent.as_ref() {
-      let parent = parent.upgrade().unwrap();
-      let parent = parent.borrow();
-      parent.children.clone().into()
-    } else {
-      vec![]
+  /// Return a unique/mutable reference to this node’s data
+  ///
+  /// # Panics
+  ///
+  /// Panics if the node is currently borrowed.
+  pub fn borrow_mut(&self) -> RefMut<ContainerData> {
+    RefMut {
+      _ref: self.0.borrow_mut(),
     }
   }
 }
