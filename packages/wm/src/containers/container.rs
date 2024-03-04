@@ -14,7 +14,6 @@ use crate::{
 
 use super::{ContainerType, RootContainer, SplitContainer};
 
-#[derive(Debug)]
 // TODO: Consider renaming to ContainerRelations and removing `container_type`.
 // Instead create a `CommonContainer` trait that all containers implement (including
 // the `Container` enum itself). Then change `relations` to be private and only
@@ -31,40 +30,33 @@ use super::{ContainerType, RootContainer, SplitContainer};
 // ----------
 
 // If RcTree was used instead, could do:
-
-/// Strong reference to an element in the SVG tree.
-// pub type Node = rctree::Node<ContainerProperties>;
-
-/// Weak reference to an element in the SVG tree.
-// pub type WeakNode = rctree::WeakNode<ContainerProperties>;
-
 // Could do `borrow_monitor` to get derived type.
 // Ref: https://github.com/GNOME/librsvg/blob/d3c3269fa54c9b3fb60fcfdba29ff97e2029f600/rsvg/src/node.rs#L223
 
-pub struct InnerContainer {
-  pub id: Uuid,
-  container_type: ContainerType,
-  pub parent: Option<Weak<RefCell<Container>>>,
-  pub children: VecDeque<Rc<RefCell<Container>>>,
-  pub child_focus_order: VecDeque<Uuid>,
+/// Strong reference to a container.
+pub type Container = rctree::Node<ContainerData>;
+
+/// Weak reference to a container.
+pub type WeakContainer = rctree::WeakNode<ContainerData>;
+
+#[derive(Debug)]
+pub enum ContainerData {
+  RootContainer(RootContainer),
+  Monitor(Monitor),
+  Workspace(Workspace),
+  SplitContainer(SplitContainer),
+  Window(Window),
 }
 
-impl InnerContainer {
-  pub fn new(container_type: ContainerType) -> Self {
-    Self {
-      id: Uuid::new_v4(),
-      container_type,
-      parent: None,
-      children: VecDeque::new(),
-      child_focus_order: VecDeque::new(),
-    }
-  }
+trait CommonContainer {
+  fn id(&self) -> Uuid;
 
-  pub fn r#type(&self) -> ContainerType {
-    self.container_type
-  }
+  fn r#type(&self) -> ContainerType;
 
-  pub fn insert_child(&self, target_index: usize, child: Container) {
+  fn child_focus_order(&self) -> VecDeque<Uuid>;
+  fn child_focus_order_mut(&self) -> VecDeque<Uuid>;
+
+  fn insert_child(&self, target_index: usize, child: Container) {
     child.inner_mut().parent = Some(Weak::new(RefCell::new(self)));
 
     self
@@ -74,7 +66,7 @@ impl InnerContainer {
     self.child_focus_order.push_front(child.id());
   }
 
-  pub fn remove_child(&mut self, child_id: Uuid) {
+  fn remove_child(&mut self, child_id: Uuid) {
     if let Some(index) = self
       .children
       .iter()
@@ -85,15 +77,15 @@ impl InnerContainer {
     }
   }
 
-  pub fn is_detached(&self) -> bool {
+  fn is_detached(&self) -> bool {
     self.parent.is_none()
   }
 
-  pub fn has_children(&self) -> bool {
+  fn has_children(&self) -> bool {
     !self.children.is_empty()
   }
 
-  pub fn siblings(&self) -> Vec<Rc<RefCell<Container>>> {
+  fn siblings(&self) -> Vec<Rc<RefCell<Container>>> {
     if let Some(parent) = self.parent.as_ref() {
       let parent = parent.upgrade().unwrap();
       let parent = parent.borrow();
@@ -102,142 +94,4 @@ impl InnerContainer {
       vec![]
     }
   }
-}
-
-#[derive(Debug)]
-pub enum Container {
-  RootContainer(RootContainer),
-  Monitor(Monitor),
-  Workspace(Workspace),
-  SplitContainer(SplitContainer),
-  Window(Window),
-}
-
-impl Container {
-  pub fn inner(&self) -> &InnerContainer {
-    match self {
-      Self::RootContainer(c) => &c.inner,
-      Self::Monitor(c) => &c.inner,
-      Self::Workspace(c) => &c.inner,
-      Self::SplitContainer(c) => &c.inner,
-      Self::Window(c) => &c.inner,
-    }
-  }
-
-  pub fn inner_mut(&mut self) -> &mut InnerContainer {
-    match self {
-      Self::RootContainer(c) => &mut c.inner,
-      Self::Monitor(c) => &mut c.inner,
-      Self::Workspace(c) => &mut c.inner,
-      Self::SplitContainer(c) => &mut c.inner,
-      Self::Window(c) => &mut c.inner,
-    }
-  }
-
-  // /// Height of the container. Implementation varies by container type.
-  // pub fn height(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.height,
-  //     Self::Workspace(c) => c.height,
-  //     Self::SplitContainer(c) => c.height(),
-  //     Self::Window(c) => c.height(),
-  //     _ => 0,
-  //   }
-  // }
-
-  // /// Width of the container. Implementation varies by container type.
-  // pub fn width(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.width,
-  //     Self::Workspace(c) => c.width,
-  //     Self::SplitContainer(c) => c.width(),
-  //     Self::Window(c) => c.width(),
-  //     _ => 0,
-  //   }
-  // }
-
-  // /// X-coordinate of the container. Implementation varies by container type.
-  // pub fn x(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.x,
-  //     Self::Workspace(c) => c.x,
-  //     Self::SplitContainer(c) => c.x(),
-  //     Self::Window(c) => c.x(),
-  //     _ => 0,
-  //   }
-  // }
-
-  // /// Y-coordinate of the container. Implementation varies by container type.
-  // pub fn y(&self) -> u32 {
-  //   match self.value {
-  //     Self::Monitor(c) => c.y,
-  //     Self::Workspace(c) => c.y,
-  //     Self::SplitContainer(c) => c.y(),
-  //     Self::Window(c) => c.y(),
-  //     _ => 0,
-  //   }
-  // }
-
-  // /// Whether the container can be tiled.
-  // pub fn can_tile(&self) -> bool {
-  //   match self.value {
-  //     Self::Window(c) => c.state == WindowState::Tiling,
-  //     _ => true,
-  //   }
-  // }
-
-  /// Unique identifier for the container.
-  fn id(&self) -> Uuid {
-    self.inner().id
-  }
-
-  // pub fn parent(&self) -> Option<Arc<Container>> {
-  //   self.inner().parent.clone()
-  // }
-
-  // pub fn set_parent(&mut self, parent: Option<Arc<Container>>) {
-  //   self.inner_mut().parent = parent;
-  // }
-
-  // pub fn children(&self) -> Vec<Arc<Container>> {
-  //   self.inner().children.clone()
-  // }
-
-  // pub fn set_children(&self, children: Vec<Arc<Container>>) {
-  //   self.inner().children = children;
-  // }
-
-  // /// Order of which child containers last had focus.
-  // pub fn child_focus_order(&self) -> Vec<Arc<Container>> {
-  //   self.inner().child_focus_order.clone()
-  // }
-
-  // pub fn set_child_focus_order(
-  //   &mut self,
-  //   child_focus_order: Vec<Arc<Container>>,
-  // ) {
-  //   self.inner().child_focus_order = child_focus_order;
-  // }
-
-  // /// Child container that last had focus.
-  // pub fn last_focused_child(&self) -> Option<Arc<Container>> {
-  //   self.child_focus_order().get(0).cloned()
-  // }
-
-  // /// Index of this container in parent's child focus order.
-  // pub fn focus_index(&self) -> u32 {
-  //   match &self.inner().parent {
-  //     None => 0,
-  //     Some(p) => p
-  //       .child_focus_order()
-  //       .iter()
-  //       .position(|child| child.id() == self.id())
-  //       .unwrap()
-  //       .try_into()
-  //       .unwrap(),
-  //   }
-  // }
-
-  // pub fn parent_workspace(&self) -> Option<Rc<RefCell<Container>>> {}
-  // pub fn parent_monitor(&self) -> Option<Rc<RefCell<Container>>> {}
 }
