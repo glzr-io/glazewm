@@ -78,6 +78,22 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
         wm_state.lock().await.add_monitor();
         wm_state.lock().await.add_monitor();
         wm_state.lock().await.add_monitor();
+
+        let root = RootContainerRef::new(1);
+        let leaf = RootContainerRef::new(2);
+        root.insert_child(ContainerRef::RootContainer(leaf.clone()));
+
+        let leaf_deep = RootContainerRef::new(3);
+        leaf.insert_child(ContainerRef::RootContainer(leaf_deep.clone()));
+
+        match leaf_deep.grandparent().unwrap() {
+          ContainerRef::RootContainer(val) => val.set_val(999),
+        }
+        println!("aaaa {:?}", root);
+        println!("aaaa {:?}", leaf);
+        println!("aaaa {:?}", leaf_deep);
+        println!("aaaa {:?}", leaf_deep.grandparent());
+
         wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {

@@ -7,7 +7,17 @@ use std::{
 
 use uuid::Uuid;
 
-use super::{ContainerType, RootContainer, SplitContainer};
+// use super::{ContainerType, SplitContainer};
+
+#[derive(Clone)]
+pub struct RootContainerRef(Rc<RefCell<RootContainer>>);
+
+#[derive(Debug)]
+pub struct RootContainer {
+  pub parent: Option<ContainerRef>,
+  pub children: Vec<ContainerRef>,
+  pub val: i32,
+}
 
 /// A reference to a `Container`.
 ///
@@ -15,81 +25,76 @@ use super::{ContainerType, RootContainer, SplitContainer};
 /// `std::cell::RefCell` for interior mutability.
 ///
 /// **Note:** Cloning a `ContainerRef` only increments a reference count.
-pub struct ContainerRef(Rc<RefCell<Container>>);
-
-struct Container {
-  parent: Option<Weak<RefCell<Container>>>,
-  children: Vec<Rc<RefCell<Container>>>,
-  data: ContainerData,
+#[derive(Clone, Debug)]
+pub enum ContainerRef {
+  RootContainer(RootContainerRef),
+  // Monitor(MonitorRef),
+  // Workspace(WorkspaceRef),
+  // SplitContainer(SplitContainerRef),
+  // Window(WindowRef),
 }
 
-#[derive(Debug)]
-pub enum ContainerData {
-  RootContainer,
-  Monitor,
-  Workspace,
-  SplitContainer,
-  Window,
-  // RootContainer(RootContainer),
-  // Monitor(Monitor),
-  // Workspace(Workspace),
-  // SplitContainer(SplitContainer),
-  // Window(Window),
-}
-
-/// Cloning a `ContainerRef` only increments a reference count. It does not
-/// copy the data.
-impl Clone for ContainerRef {
-  fn clone(&self) -> ContainerRef {
-    ContainerRef(self.0.clone())
-  }
-}
-
-impl fmt::Debug for ContainerRef {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&*self.borrow(), f)
-  }
-}
-
-impl ContainerRef {
-  /// Create a new node from its associated data.
-  pub fn new(data: ContainerData) -> ContainerRef {
-    ContainerRef(Rc::new(RefCell::new(Container {
-      parent: None,
-      children: Vec::new(),
-      data,
-    })))
-  }
-
+pub trait CommonContainer {
   /// Return a reference to the parent node, unless this node is the root
   /// of the tree.
   ///
   /// # Panics
   ///
   /// Panics if the node is currently mutability borrowed.
-  pub fn parent(&self) -> Option<ContainerRef> {
-    Some(ContainerRef(self.0.borrow().parent.as_ref()?.upgrade()?))
+  fn parent(&self) -> Option<ContainerRef>;
+  fn set_parent(&self, parent: ContainerRef);
+  fn grandparent(&self) -> Option<ContainerRef>;
+
+  fn insert_child(&self, child: ContainerRef);
+}
+
+impl RootContainerRef {
+  pub fn new(val: i32) -> Self {
+    let root = RootContainer {
+      parent: None,
+      children: Vec::new(),
+      val,
+    };
+
+    Self(Rc::new(RefCell::new(root)))
   }
 
-  /// Return a shared reference to this node’s data
-  ///
-  /// # Panics
-  ///
-  /// Panics if the node is currently mutability borrowed.
-  pub fn borrow(&self) -> Ref<ContainerData> {
-    Ref {
-      _ref: self.0.borrow(),
-    }
+  pub fn set_val(&self, val: i32) {
+    self.0.borrow_mut().val = val
+  }
+}
+
+impl CommonContainer for RootContainerRef {
+  fn grandparent(&self) -> Option<ContainerRef> {
+    self.parent()?.common().parent()
   }
 
-  /// Return a unique/mutable reference to this node’s data
-  ///
-  /// # Panics
-  ///
-  /// Panics if the node is currently borrowed.
-  pub fn borrow_mut(&self) -> RefMut<ContainerData> {
-    RefMut {
-      _ref: self.0.borrow_mut(),
+  fn parent(&self) -> Option<ContainerRef> {
+    self.0.borrow().parent.clone()
+  }
+
+  fn insert_child(&self, child: ContainerRef) {
+    self.0.borrow_mut().children.push(child.clone());
+    child
+      .common()
+      .set_parent(ContainerRef::RootContainer(self.clone()))
+  }
+
+  fn set_parent(&self, parent: ContainerRef) {
+    self.0.borrow_mut().parent = Some(parent)
+  }
+}
+
+impl ContainerRef {
+  fn common(&self) -> &dyn CommonContainer {
+    match self {
+      ContainerRef::RootContainer(c) => c,
     }
+  }
+}
+
+impl fmt::Debug for RootContainerRef {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fmt::Debug::fmt(&self.0.borrow().val, f)
   }
 }
