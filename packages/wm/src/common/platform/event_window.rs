@@ -13,9 +13,9 @@ use windows::{
     UI::{
       Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK},
       WindowsAndMessaging::{
-        CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW,
-        PostQuitMessage, RegisterClassW, TranslateMessage, CS_HREDRAW,
-        CS_VREDRAW, CW_USEDEFAULT, DBT_DEVNODES_CHANGED,
+        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
+        GetMessageW, PostQuitMessage, RegisterClassW, TranslateMessage,
+        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, DBT_DEVNODES_CHANGED,
         EVENT_OBJECT_CLOAKED, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE,
         EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE,
         EVENT_OBJECT_SHOW, EVENT_OBJECT_UNCLOAKED,
@@ -43,7 +43,7 @@ thread_local! {
 extern "system" fn event_hook_proc(
   _hook: HWINEVENTHOOK,
   event: u32,
-  hwnd: HWND,
+  handle: HWND,
   id_object: i32,
   id_child: i32,
   _event_thread: u32,
@@ -52,7 +52,7 @@ extern "system" fn event_hook_proc(
   HOOK_EVENT_TX.with(|event_tx| {
     if let Some(event_tx) = event_tx.get() {
       let is_window_event =
-        id_object == OBJID_WINDOW.0 && id_child == 0 && hwnd != HWND(0);
+        id_object == OBJID_WINDOW.0 && id_child == 0 && handle != HWND(0);
 
       // Check whether the event is associated with a window object instead
       // of a UI control.
@@ -60,7 +60,7 @@ extern "system" fn event_hook_proc(
         return;
       }
 
-      let window = NativeWindow::new(hwnd);
+      let window = NativeWindow::new(handle);
 
       let platform_event = match event {
         EVENT_OBJECT_DESTROY => PlatformEvent::WindowDestroyed(window),
@@ -101,22 +101,22 @@ extern "system" fn event_hook_proc(
 /// This function handles messages for the event window, and forwards
 /// display change events through an MPSC channel for the WM to process.
 pub extern "system" fn event_window_proc(
-  hwnd: HWND,
-  msg: u32,
+  handle: HWND,
+  message: u32,
   wparam: WPARAM,
   lparam: LPARAM,
 ) -> LRESULT {
   HOOK_EVENT_TX.with(|event_tx| {
     if let Some(event_tx) = event_tx.get() {
-      return match msg {
+      return match message {
         WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-          handle_display_change_msg(msg, wparam, event_tx)
+          handle_display_change_msg(message, wparam, event_tx)
         }
         WM_DESTROY => {
           unsafe { PostQuitMessage(0) };
           LRESULT(0)
         }
-        _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
+        _ => unsafe { DefWindowProcW(handle, message, wparam, lparam) },
       };
     }
 
@@ -126,11 +126,11 @@ pub extern "system" fn event_window_proc(
 
 /// Handle display change messages and emit the corresponding event.
 fn handle_display_change_msg(
-  msg: u32,
+  message: u32,
   wparam: WPARAM,
   event_tx: &UnboundedSender<PlatformEvent>,
 ) -> LRESULT {
-  let should_emit_event = match msg {
+  let should_emit_event = match message {
     WM_SETTINGCHANGE => {
       wparam.0 as u32 == SPI_SETWORKAREA.0
         || wparam.0 as u32 == SPI_ICONVERTICALSPACING.0
@@ -165,7 +165,7 @@ impl EventWindow {
 
       let hook_handles = Self::hook_win_events()?;
 
-      Self::create_message_loop(abort_rx)?;
+      Self::create_window(abort_rx)?;
 
       // Unhook from all window events.
       for hook_handle in hook_handles {
@@ -229,10 +229,10 @@ impl EventWindow {
     Ok(hook_handle)
   }
 
-  /// Create the event window and its message loop.
-  unsafe fn create_message_loop(
+  /// Create the event window and start a message loop.
+  unsafe fn create_window(
     mut abort_rx: oneshot::Receiver<()>,
-  ) -> Result<()> {
+  ) -> Result<HWND> {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("EventWindow"),
       style: CS_HREDRAW | CS_VREDRAW,
@@ -242,7 +242,7 @@ impl EventWindow {
 
     RegisterClassW(&wnd_class);
 
-    let hwnd = CreateWindowExW(
+    let handle = CreateWindowExW(
       Default::default(),
       w!("EventWindow"),
       w!("EventWindow"),
@@ -257,11 +257,18 @@ impl EventWindow {
       None,
     );
 
+    if handle.0 == 0 {
+      bail!("`CreateWindowExW` failed.");
+    }
+
     let mut msg = MSG::default();
 
     loop {
       // Check whether the abort signal has been received.
       if abort_rx.try_recv().is_ok() {
+        if let Err(err) = DestroyWindow(handle) {
+          warn!("Failed to destroy event window '{}'.", err);
+        }
         break;
       }
 
@@ -273,7 +280,7 @@ impl EventWindow {
       }
     }
 
-    Ok(())
+    Ok(handle)
   }
 
   /// Destroy the event window and stop the message loop.
