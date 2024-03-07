@@ -5,12 +5,12 @@ use tokio::sync::{
   mpsc::{self, UnboundedReceiver},
   Mutex,
 };
-use wineventhook::{EventFilter, WindowEvent, WindowEventHook};
 
 use crate::user_config::{KeybindingConfig, UserConfig};
 
 use super::{EventWindow, NativeWindow};
 
+#[derive(Debug)]
 pub enum PlatformEvent {
   DisplaySettingsChanged,
   KeybindingTriggered(KeybindingConfig),
@@ -29,7 +29,7 @@ pub enum PlatformEvent {
 pub struct EventListener {
   config: Arc<Mutex<UserConfig>>,
   config_changes_rx: UnboundedReceiver<UserConfig>,
-  pub event_rx: UnboundedReceiver<WindowEvent>,
+  pub event_rx: UnboundedReceiver<PlatformEvent>,
   event_window: EventWindow,
 }
 
@@ -40,7 +40,7 @@ impl EventListener {
     config_changes_rx: UnboundedReceiver<UserConfig>,
   ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
-
+    // let event_window = EventWindow::new(Arc::new(event_tx));
     let event_window = EventWindow::new(event_tx);
 
     Ok(Self {
@@ -49,12 +49,5 @@ impl EventListener {
       event_rx,
       event_window,
     })
-  }
-}
-
-impl Drop for EventListener {
-  fn drop(&mut self) {
-    // TODO
-    // self.hook.unhook().unwrap();
   }
 }

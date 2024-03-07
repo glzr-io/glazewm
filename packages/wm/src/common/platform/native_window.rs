@@ -4,6 +4,7 @@ use anyhow::Result;
 
 use super::WindowHandle;
 
+#[derive(Debug)]
 pub struct NativeWindow {
   pub handle: WindowHandle,
   title: Option<RefCell<String>>,

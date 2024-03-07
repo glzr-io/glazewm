@@ -25,6 +25,7 @@ use windows::Win32::{
 use super::{NativeWindow, PlatformEvent};
 
 thread_local! {
+  // static HOOK_EVENT_TX: OnceCell<Arc<UnboundedSender<PlatformEvent>>> = OnceCell::new();
   static HOOK_EVENT_TX: OnceCell<UnboundedSender<PlatformEvent>> = OnceCell::new();
 }
 
@@ -86,8 +87,8 @@ extern "system" fn event_hook_proc(
 
 #[derive(Debug)]
 pub struct EventWindow {
-  abort_tx: oneshot::Sender<()>,
-  window_thread: JoinHandle<Result<()>>,
+  abort_tx: Option<oneshot::Sender<()>>,
+  window_thread: Option<JoinHandle<Result<()>>>,
 }
 
 impl EventWindow {
@@ -95,8 +96,8 @@ impl EventWindow {
     let (abort_tx, abort_rx) = oneshot::channel();
 
     let window_thread = thread::spawn(|| unsafe {
-      // Initialize the `HOOK_EVENT_TX`` thread-local static.
-      HOOK_EVENT_TX.with(|cell| cell.get_or_init(|| event_tx));
+      // Initialize the `HOOK_EVENT_TX` thread-local static.
+      HOOK_EVENT_TX.with(|cell| cell.set(event_tx)).unwrap();
 
       let hook_handles = Self::hook_win_events()?;
 
@@ -113,8 +114,8 @@ impl EventWindow {
     });
 
     Self {
-      abort_tx,
-      window_thread,
+      abort_tx: Some(abort_tx),
+      window_thread: Some(window_thread),
     }
   }
 
@@ -163,13 +164,22 @@ impl EventWindow {
   }
 
   unsafe fn create_message_loop(
-    abort_rx: oneshot::Receiver<()>,
+    mut abort_rx: oneshot::Receiver<()>,
   ) -> Result<()> {
     let mut msg = MSG::default();
 
-    while GetMessageW(&mut msg, None, 0, 0).as_bool() {
-      TranslateMessage(&msg);
-      DispatchMessageW(&msg);
+    loop {
+      // Check whether the abort signal has been received.
+      if abort_rx.try_recv().is_ok() {
+        break;
+      }
+
+      if GetMessageW(&mut msg, None, 0, 0).as_bool() {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+      } else {
+        break;
+      }
     }
 
     Ok(())
@@ -177,13 +187,18 @@ impl EventWindow {
 
   pub fn destroy(&mut self) {
     // Send a signal to the spawned thread to stop the message loop.
-    if self.abort_tx.send(()).is_err() {
-      warn!("Failed to send abort signal to the event window thread.");
+    // if self.abort_tx.send(()).is_err() {
+    if let Some(abort_tx) = self.abort_tx.take() {
+      if abort_tx.send(()).is_err() {
+        warn!("Failed to send abort signal to the event window thread.");
+      }
     }
 
     // Wait for the spawned thread to finish.
-    if let Err(err) = self.window_thread.join() {
-      warn!("Failed to join event window thread '{:?}'.", err);
+    if let Some(window_thread) = self.window_thread.take() {
+      if let Err(err) = window_thread.join() {
+        warn!("Failed to join event window thread '{:?}'.", err);
+      }
     }
   }
 }
