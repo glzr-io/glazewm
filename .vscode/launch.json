@@ -2,25 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      // Use IntelliSense to find out which attributes exist for C# debugging
-      // Use hover for the description of the existing attributes
-      // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
-      "name": ".NET Core Launch (console)",
-      "type": "coreclr",
+      "name": "Launch",
+      "type": "cppvsdbg",
       "request": "launch",
-      "preLaunchTask": "build",
-      // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/GlazeWM.App/bin/Debug/net7-windows10.0.17763.0/GlazeWM.exe",
-      "args": [],
-      "cwd": "${workspaceFolder}/GlazeWM.App",
-      // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-      "console": "internalConsole",
-      "stopAtEntry": false
-    },
-    {
-      "name": ".NET Core Attach",
-      "type": "coreclr",
-      "request": "attach"
+      "program": "${workspaceRoot}/target/debug/wm.exe",
+      "preLaunchTask": "rust: cargo build",
+      "args": ["start"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceRoot}",
+      "environment": [],
+      "console": "integratedTerminal"
+      // "externalConsole": true
     }
   ]
 }

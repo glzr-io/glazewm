@@ -9,6 +9,7 @@ use tokio::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
   },
+  task,
 };
 use tokio_tungstenite::accept_async;
 use tracing::info;
@@ -37,17 +38,19 @@ impl IpcServer {
 
     let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 
-    while let Ok((stream, _)) = server.accept().await {
-      let mut ws_stream = accept_async(stream).await?;
-      info!("Received new IPC connection.");
+    task::spawn(async move {
+      while let Ok((stream, _)) = server.accept().await {
+        let mut ws_stream = accept_async(stream).await.unwrap();
+        info!("Received new IPC connection.");
 
-      while let Some(msg) = ws_stream.next().await {
-        let msg = msg?;
-        if msg.is_text() || msg.is_binary() {
-          ws_stream.send(msg).await?;
+        while let Some(msg) = ws_stream.next().await {
+          let msg = msg.unwrap();
+          if msg.is_text() || msg.is_binary() {
+            ws_stream.send(msg).await.unwrap();
+          }
         }
       }
-    }
+    });
 
     Ok(Self {
       message_rx,

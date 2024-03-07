@@ -1,11 +1,12 @@
-use crate::{
-  common::RectDelta,
-  containers::{ContainerType, InnerContainer},
-};
+use std::{cell::RefCell, rc::Rc};
+
+use crate::common::RectDelta;
+
+#[derive(Clone, Debug)]
+pub struct WorkspaceRef(Rc<RefCell<Workspace>>);
 
 #[derive(Debug)]
 pub struct Workspace {
-  pub inner: InnerContainer,
   name: String,
   display_name: String,
   keep_alive: bool,
@@ -20,7 +21,6 @@ impl Workspace {
     outer_gaps: RectDelta,
   ) -> Self {
     Self {
-      inner: InnerContainer::new(ContainerType::Workspace),
       name,
       display_name,
       keep_alive,

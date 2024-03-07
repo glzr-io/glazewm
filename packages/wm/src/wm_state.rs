@@ -12,8 +12,11 @@ use uuid::Uuid;
 
 use crate::{
   common::{platform::NativeMonitor, FocusMode},
-  containers::{Container, ContainerType, RootContainer},
-  monitors::Monitor,
+  containers::{
+    CommonContainer, ContainerRef, ContainerType, RootContainer,
+    RootContainerRef,
+  },
+  monitors::{Monitor, MonitorRef},
   user_config::{BindingModeConfig, UserConfig},
   wm_event::WmEvent,
 };
@@ -21,10 +24,10 @@ use crate::{
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
-  root_container: RootContainer,
+  root_container: RootContainerRef,
 
   /// Containers (and their descendants) that have a pending redraw.
-  containers_to_redraw: Vec<Weak<Container>>,
+  containers_to_redraw: Vec<Weak<ContainerRef>>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
@@ -48,7 +51,7 @@ impl WmState {
     event_tx: UnboundedSender<WmEvent>,
   ) -> Self {
     Self {
-      root_container: RootContainer::new(),
+      root_container: RootContainerRef::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       binding_modes: Vec::new(),
@@ -60,14 +63,11 @@ impl WmState {
 
   pub fn add_monitor(&mut self) {
     let monitor =
-      Monitor::new(NativeMonitor::new(String::from("aaa"), 0, 0, 0, 0));
+      MonitorRef::new(NativeMonitor::new(String::from("aaa"), 0, 0, 0, 0));
 
     self
       .root_container
-      .inner
-      .children
-      .borrow_mut()
-      .push_front(Rc::new(RefCell::new(Container::Monitor(monitor))));
+      .insert_child(0, ContainerRef::Monitor(monitor))
   }
 
   pub fn emit_event(&self, event: WmEvent) -> Result<()> {

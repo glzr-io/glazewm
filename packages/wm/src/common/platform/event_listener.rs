@@ -7,27 +7,30 @@ use tokio::sync::{
 };
 use wineventhook::{EventFilter, WindowEvent, WindowEventHook};
 
-use crate::user_config::UserConfig;
+use crate::user_config::{KeybindingConfig, UserConfig};
+
+use super::{EventWindow, NativeWindow};
 
 pub enum PlatformEvent {
   DisplaySettingsChanged,
+  KeybindingTriggered(KeybindingConfig),
   MouseMove,
-  WindowDestroyed,
-  WindowFocused,
-  WindowHidden,
-  WindowLocationChanged,
-  WindowMinimizeEnded,
-  WindowMinimized,
-  WindowMovedOrResized,
-  WindowShown,
-  WindowTitleChanged,
+  WindowDestroyed(NativeWindow),
+  WindowFocused(NativeWindow),
+  WindowHidden(NativeWindow),
+  WindowLocationChanged(NativeWindow),
+  WindowMinimized(NativeWindow),
+  WindowMinimizeEnded(NativeWindow),
+  WindowMovedOrResized(NativeWindow),
+  WindowShown(NativeWindow),
+  WindowTitleChanged(NativeWindow),
 }
 
 pub struct EventListener {
   config: Arc<Mutex<UserConfig>>,
   config_changes_rx: UnboundedReceiver<UserConfig>,
   pub event_rx: UnboundedReceiver<WindowEvent>,
-  hook: WindowEventHook,
+  event_window: EventWindow,
 }
 
 impl EventListener {
@@ -38,14 +41,13 @@ impl EventListener {
   ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
-    let hook =
-      WindowEventHook::hook(EventFilter::default(), event_tx).await?;
+    let event_window = EventWindow::new();
 
     Ok(Self {
       config,
       config_changes_rx,
       event_rx,
-      hook,
+      event_window,
     })
   }
 }

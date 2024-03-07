@@ -10,11 +10,15 @@ use tokio::{
   process::Command,
   sync::{mpsc, Mutex},
 };
-use tracing::info;
+use tracing::{info, level_filters::LevelFilter};
+use tracing_subscriber::EnvFilter;
 use user_config::UserConfig;
 use wm::WindowManager;
 
-use crate::cli::{Cli, CliCommand};
+use crate::{
+  cli::{Cli, CliCommand},
+  containers::{CommonContainer, ContainerRef, RootContainerRef},
+};
 
 mod cli;
 mod common;
@@ -31,23 +35,18 @@ mod workspaces;
 
 #[tokio::main]
 async fn main() {
-  let cli = Cli::parse();
+  // TODO: Take log level and config path from `start` command arguments.
+  tracing_subscriber::fmt()
+    .with_env_filter(
+      EnvFilter::from_env("LOG_LEVEL")
+        .add_directive(LevelFilter::INFO.into()),
+    )
+    .init();
 
-  match cli.command {
-    CliCommand::Start { config_path } => {
-      if let Err(err) = start_wm(config_path).await {
-        eprintln!("Error starting WM: {}", err);
-      }
-    }
-    _ => {
-      let args = std::env::args_os();
-      IpcClient::connect()
-        .await
-        .unwrap()
-        .send_raw(args)
-        .await
-        .unwrap()
-    }
+  let config_path = None;
+
+  if let Err(err) = start_wm(config_path).await {
+    eprintln!("Failed to start GlazeWM: {}", err);
   }
 }
 
@@ -57,17 +56,17 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   let (config_changes_tx, config_changes_rx) =
     mpsc::unbounded_channel::<UserConfig>();
 
-  // Start listening for platform events.
-  let mut event_listener =
-    Platform::new_event_listener(config.clone(), config_changes_rx)
-      .await?;
-
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::start(config, config_changes_tx).await?;
+  let mut wm =
+    WindowManager::start(config.clone(), config_changes_tx).await?;
+
+  // Start listening for platform events.
+  let mut event_listener =
+    Platform::new_event_listener(config, config_changes_rx).await?;
 
   loop {
     let wm_state = wm.state.clone();
@@ -79,22 +78,19 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
         wm_state.lock().await.add_monitor();
         wm_state.lock().await.add_monitor();
 
-        let root = RootContainerRef::new(1);
-        let leaf = RootContainerRef::new(2);
-        root.insert_child(ContainerRef::RootContainer(leaf.clone()));
+        let root = RootContainerRef::new();
+        let leaf = RootContainerRef::new();
+        root.insert_child(0, ContainerRef::RootContainer(leaf.clone()));
 
-        let leaf_deep = RootContainerRef::new(3);
-        leaf.insert_child(ContainerRef::RootContainer(leaf_deep.clone()));
+        let leaf_deep = RootContainerRef::new();
+        leaf.insert_child(0, ContainerRef::RootContainer(leaf_deep.clone()));
 
-        match leaf_deep.grandparent().unwrap() {
-          ContainerRef::RootContainer(val) => val.set_val(999),
-        }
-        println!("aaaa {:?}", root);
-        println!("aaaa {:?}", leaf);
-        println!("aaaa {:?}", leaf_deep);
-        println!("aaaa {:?}", leaf_deep.grandparent());
+        // println!("aaaa {:?}", root);
+        // println!("aaaa {:?}", leaf);
+        // println!("aaaa {:?}", leaf_deep);
+        // println!("aaaa {:?}", leaf_deep.grandparent());
 
-        wm.process_event(event).await
+        // wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);
@@ -112,9 +108,16 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   }
 }
 
+/// Launch watcher binary. This is a separate process that is responsible
+/// for restoring hidden windows in case the main WM process crashes.
+///
+/// This assumes the watcher binary exists in the same directory as the WM
+/// binary.
 fn start_watcher_process() -> Result<Command> {
-  let watcher_path = env::var_os("CARGO_BIN_FILE_WATCHER")
-    .context("Failed to resolve path to the watcher process.")?;
+  let watcher_path = env::current_exe()?
+    .parent()
+    .context("Failed to resolve path to the watcher process.")?
+    .join("watcher");
 
   Ok(Command::new(watcher_path))
 }

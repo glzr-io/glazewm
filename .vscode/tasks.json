@@ -2,74 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "publish (x64)",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "publish",
-        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
-        "--configuration=Release",
-        "--runtime=win-x64",
-        "--self-contained",
-        "-p:PublishSingleFile=true",
-        "-p:IncludeAllContentForSelfExtract=true",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "publish (x86)",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "publish",
-        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
-        "--configuration=Release",
-        "--runtime=win-x86",
-        "--self-contained",
-        "-p:PublishSingleFile=true",
-        "-p:IncludeAllContentForSelfExtract=true",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "watch",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "watch",
-        "run",
-        "--project",
-        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "publish",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "publish",
-        "${workspaceFolder}/GlazeWM.App/GlazeWM.App.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
+      "type": "cargo",
+      "command": "build",
+      "problemMatcher": ["$rustc"],
+      "group": "build",
+      "label": "rust: cargo build"
     }
   ]
 }
