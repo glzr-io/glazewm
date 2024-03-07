@@ -40,7 +40,6 @@ impl EventListener {
     config_changes_rx: UnboundedReceiver<UserConfig>,
   ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
-    // let event_window = EventWindow::new(Arc::new(event_tx));
     let event_window = EventWindow::new(event_tx);
 
     Ok(Self {
