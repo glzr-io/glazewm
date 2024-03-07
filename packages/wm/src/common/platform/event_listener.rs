@@ -41,7 +41,7 @@ impl EventListener {
   ) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
-    let event_window = EventWindow::new();
+    let event_window = EventWindow::new(event_tx);
 
     Ok(Self {
       config,
