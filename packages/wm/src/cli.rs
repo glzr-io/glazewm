@@ -9,14 +9,14 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum CliCommand {
-  /// Start the window manager.
+  /// Starts the window manager.
   Start {
     /// Custom path to user config file.
     #[clap(short, long)]
     config_path: Option<String>,
   },
 
-  /// Query the window manager's state.
+  /// Queries the window manager's state.
   Query {
     windows: bool,
     monitors: bool,
@@ -24,6 +24,6 @@ pub enum CliCommand {
     focused_container: bool,
   },
 
-  /// Run a window manager command.
+  /// Runs a window manager command.
   Cmd {},
 }

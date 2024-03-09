@@ -9,7 +9,7 @@ pub enum TilingDirection {
 }
 
 impl TilingDirection {
-  /// Get the inverse of a given tiling direction.
+  /// Gets the inverse of a given tiling direction.
   ///
   /// Example:
   /// ```
@@ -22,7 +22,7 @@ impl TilingDirection {
     }
   }
 
-  /// Get the tiling direction that is needed when moving or shifting
+  /// Gets the tiling direction that is needed when moving or shifting
   /// focus in a given direction.
   ///
   /// Example:

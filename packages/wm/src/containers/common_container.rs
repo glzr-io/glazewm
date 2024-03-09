@@ -9,7 +9,7 @@ pub trait CommonContainer {
   fn borrow_children(&self) -> Ref<'_, Vec<ContainerRef>>;
   fn borrow_children_mut(&self) -> RefMut<'_, Vec<ContainerRef>>;
 
-  /// Return a reference to the parent node, unless this node is the root
+  /// Returns a reference to the parent node, unless this node is the root
   /// of the tree.
   ///
   /// # Panics

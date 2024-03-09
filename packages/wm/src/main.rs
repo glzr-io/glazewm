@@ -108,7 +108,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   }
 }
 
-/// Launch watcher binary. This is a separate process that is responsible
+/// Launches watcher binary. This is a separate process that is responsible
 /// for restoring hidden windows in case the main WM process crashes.
 ///
 /// This assumes the watcher binary exists in the same directory as the WM

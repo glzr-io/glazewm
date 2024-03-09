@@ -9,7 +9,7 @@ pub enum Direction {
 }
 
 impl Direction {
-  /// Get the inverse of a given direction.
+  /// Gets the inverse of a given direction.
   ///
   /// Example:
   /// ```
@@ -24,7 +24,7 @@ impl Direction {
     }
   }
 
-  /// Parse a string into a direction.
+  /// Parses a string into a direction.
   ///
   /// Example:
   /// ```

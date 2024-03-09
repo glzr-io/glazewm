@@ -183,7 +183,7 @@ impl EventWindow {
     }
   }
 
-  /// Create several window event hooks via `SetWinEventHook`.
+  /// Creates several window event hooks via `SetWinEventHook`.
   fn hook_win_events() -> Result<Vec<HWINEVENTHOOK>> {
     let event_ranges = [
       (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
@@ -207,7 +207,7 @@ impl EventWindow {
       })
   }
 
-  /// Create a window hook for the specified event range.
+  /// Creates a window hook for the specified event range.
   unsafe fn hook_win_event(
     event_min: u32,
     event_max: u32,
@@ -229,7 +229,7 @@ impl EventWindow {
     Ok(hook_handle)
   }
 
-  /// Create the event window and start a message loop.
+  /// Creates the event window and starts a message loop.
   unsafe fn create_window(
     mut abort_rx: oneshot::Receiver<()>,
   ) -> Result<HWND> {
@@ -283,7 +283,7 @@ impl EventWindow {
     Ok(handle)
   }
 
-  /// Destroy the event window and stop the message loop.
+  /// Destroys the event window and stops the message loop.
   pub fn destroy(&mut self) {
     if let Some(abort_tx) = self.abort_tx.take() {
       if abort_tx.send(()).is_err() {

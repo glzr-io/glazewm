@@ -34,7 +34,7 @@ pub struct EventListener {
 }
 
 impl EventListener {
-  /// Start listening for platform events.
+  /// Starts listening for platform events.
   pub async fn start(
     config: Arc<Mutex<UserConfig>>,
     config_changes_rx: UnboundedReceiver<UserConfig>,
