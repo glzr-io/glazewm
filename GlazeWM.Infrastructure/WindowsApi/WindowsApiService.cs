@@ -238,6 +238,41 @@ namespace GlazeWM.Infrastructure.WindowsApi
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
 
+    public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    public const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+    [DllImport("user32.dll")]
+    public static extern uint SendInput(
+        uint nInputs,
+        INPUT[] pInputs,
+        int cbSize
+    );
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT
+    {
+      public uint type;
+      public INPUTUNION data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION
+    {
+      [FieldOffset(0)]
+      public MOUSEINPUT mi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+      public int dx;
+      public int dy;
+      public uint mouseData;
+      public uint dwFlags;
+      public uint time;
+      public IntPtr dwExtraInfo;
+    }
+
     /// <summary>
     /// Params that can be passed to `ShowWindow`. Only the subset of flags relevant to
     /// this application are included.
