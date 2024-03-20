@@ -2,19 +2,16 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
-use windows::Win32::Foundation::HWND;
 
 use crate::user_config::UserConfig;
 
-use super::{EventListener, NativeMonitor, NativeWindow};
-
-pub type WindowHandle = HWND;
+use super::{native_monitor, EventListener, NativeMonitor, NativeWindow};
 
 pub struct Platform;
 
 impl Platform {
-  pub fn monitors() -> Result<Vec<NativeMonitor>> {
-    todo!()
+  pub fn monitors() -> Vec<NativeMonitor> {
+    native_monitor::available_monitors()
   }
 
   pub fn manageable_windows() -> Result<Vec<NativeWindow>> {

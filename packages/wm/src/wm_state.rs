@@ -62,8 +62,14 @@ impl WmState {
   }
 
   pub fn add_monitor(&mut self) {
-    let monitor =
-      MonitorRef::new(NativeMonitor::new(String::from("aaa"), 0, 0, 0, 0));
+    let monitor = MonitorRef::new(NativeMonitor::new(
+      windows::Win32::Graphics::Gdi::HMONITOR(1),
+      String::from("aaa"),
+      0,
+      0,
+      0,
+      0,
+    ));
 
     self
       .root_container

@@ -68,6 +68,9 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   let mut event_listener =
     Platform::new_event_listener(config, config_changes_rx).await?;
 
+  let monitors = Platform::monitors();
+  info!("Available monitors: {:?}", monitors);
+
   loop {
     let wm_state = wm.state.clone();
 
