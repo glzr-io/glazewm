@@ -1,3 +1,4 @@
+pub mod commands;
 mod common_container;
 mod container_ref;
 mod container_type;

@@ -12,7 +12,7 @@ use tokio::{
 };
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
-use user_config::UserConfig;
+use user_config::ConfigReader;
 use wm::WindowManager;
 
 use crate::{
@@ -52,20 +52,22 @@ async fn main() {
 
 async fn start_wm(config_path: Option<String>) -> Result<()> {
   // Parse and validate user config.
-  let config = Arc::new(Mutex::new(UserConfig::read(config_path).await?));
-  let (config_changes_tx, config_changes_rx) =
-    mpsc::unbounded_channel::<UserConfig>();
+  let mut config_reader = ConfigReader::read(config_path).await?;
 
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::start(config.clone(), config_changes_tx)?;
+  let mut wm = WindowManager::start(
+    config_reader.config(),
+    config_reader.changes_tx.clone(),
+  )
+  .await?;
 
   // Start listening for platform events.
   let mut event_listener =
-    Platform::new_event_listener(config, config_changes_rx).await?;
+    Platform::new_event_listener(config_reader.config()).await?;
 
   loop {
     let wm_state = wm.state.clone();
@@ -73,22 +75,6 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         info!("Received platform event: {:?}", event);
-        wm_state.lock().await.add_monitor();
-        wm_state.lock().await.add_monitor();
-        wm_state.lock().await.add_monitor();
-
-        let root = RootContainerRef::new();
-        let leaf = RootContainerRef::new();
-        root.insert_child(0, ContainerRef::RootContainer(leaf.clone()));
-
-        let leaf_deep = RootContainerRef::new();
-        leaf.insert_child(0, ContainerRef::RootContainer(leaf_deep.clone()));
-
-        // println!("aaaa {:?}", root);
-        // println!("aaaa {:?}", leaf);
-        // println!("aaaa {:?}", leaf_deep);
-        // println!("aaaa {:?}", leaf_deep.grandparent());
-
         wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {
@@ -102,6 +88,10 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
         wm.process_command(wm_command).await
+      },
+      Some(config) = config_reader.changes_rx.recv() => {
+        info!("Received user config update: {:?}", config);
+        event_listener.update();
       },
     }
   }

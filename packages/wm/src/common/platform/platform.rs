@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
+use tokio::sync::Mutex;
 use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
 use crate::user_config::UserConfig;
@@ -39,8 +39,7 @@ impl Platform {
 
   pub async fn new_event_listener(
     config: Arc<Mutex<UserConfig>>,
-    config_changes_rx: UnboundedReceiver<UserConfig>,
   ) -> anyhow::Result<EventListener> {
-    EventListener::start(config, config_changes_rx).await
+    EventListener::start(config).await
   }
 }

@@ -1,8 +1,11 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use tokio::fs;
+use tokio::{
+  fs,
+  sync::{mpsc, Mutex},
+};
 
 use crate::{
   common::{LengthValue, RectDelta},
@@ -74,7 +77,7 @@ pub enum WindowAnimations {
 
 #[derive(Debug, Deserialize)]
 pub struct FocusBorder {
-  /// Whether the default transparent border be used.
+  /// Whether to use a custom border color.
   pub enabled: bool,
 
   /// Border color of the window.
@@ -117,10 +120,18 @@ pub struct UserConfig {
   pub workspaces: Vec<WorkspaceConfig>,
 }
 
+#[derive(Debug)]
+pub struct ConfigReader {
+  pub config: Arc<Mutex<UserConfig>>,
+  pub changes_rx: mpsc::UnboundedReceiver<UserConfig>,
+  pub changes_tx: mpsc::UnboundedSender<UserConfig>,
+}
+
 const SAMPLE_CONFIG: &str =
   include_str!("../../../resources/sample-config.yaml");
 
-impl UserConfig {
+impl ConfigReader {
+  /// Read and validate the user config from the given path.
   pub async fn read(config_path: Option<String>) -> Result<Self> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
@@ -133,7 +144,7 @@ impl UserConfig {
 
     // Create new config file from sample if it doesn't exist.
     if !config_path.exists() {
-      Self::create_from_sample(config_path.clone()).await?;
+      Self::create_sample(config_path.clone()).await?;
     }
 
     let config_str = fs::read_to_string(&config_path)
@@ -141,10 +152,18 @@ impl UserConfig {
       .context("Unable to read config file.")?;
 
     let parsed_config = serde_yaml::from_str(&config_str)?;
-    Ok(parsed_config)
+
+    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<UserConfig>();
+
+    Ok(Self {
+      config: Arc::new(Mutex::new(parsed_config)),
+      changes_rx,
+      changes_tx,
+    })
   }
 
-  async fn create_from_sample(config_path: PathBuf) -> Result<()> {
+  /// Initialize a new config file from the sample config resource.
+  async fn create_sample(config_path: PathBuf) -> Result<()> {
     let parent_dir =
       config_path.parent().context("Invalid config path.")?;
 
@@ -158,6 +177,15 @@ impl UserConfig {
         format!("Unable to write to {}.", config_path.display())
       })?;
 
+    Ok(())
+  }
+
+  pub fn config(&self) -> Arc<Mutex<UserConfig>> {
+    self.config.clone()
+  }
+
+  // TODO: Maybe this should be on the impl of `UserConfig` instead.
+  async fn refresh(&self) -> Result<()> {
     Ok(())
   }
 }
