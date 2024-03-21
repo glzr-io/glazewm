@@ -1,3 +1,4 @@
+pub mod commands;
 mod non_tiling_window;
 mod tiling_window;
 pub mod traits;

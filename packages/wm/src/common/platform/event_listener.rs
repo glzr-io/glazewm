@@ -32,7 +32,9 @@ pub struct EventListener {
 }
 
 impl EventListener {
-  /// Starts listening for platform events.
+  /// Initializes listener for platform events.
+  ///
+  /// Creates an instance of `EventListener`.
   pub async fn start(config: Arc<Mutex<UserConfig>>) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let config = config.lock().await;
@@ -49,6 +51,7 @@ impl EventListener {
     })
   }
 
+  /// Updates the event listener with the latest user config.
   pub fn update(&mut self, config: &UserConfig) {
     self.event_window.update(
       config.keybindings.clone(),
