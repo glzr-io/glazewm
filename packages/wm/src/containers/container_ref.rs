@@ -1,10 +1,15 @@
 use crate::{
-  monitors::MonitorRef, windows::WindowRef, workspaces::WorkspaceRef,
+  monitors::MonitorRef,
+  windows::{NonTilingWindowRef, TilingWindowRef},
+  workspaces::WorkspaceRef,
 };
 
-use super::{CommonContainer, RootContainerRef, SplitContainerRef};
+use super::{
+  traits::{CommonContainer, TilingContainer},
+  RootContainerRef, SplitContainerRef,
+};
 
-/// A reference to a `Container`.
+/// A reference to a container.
 ///
 /// Internally, this uses reference counting for lifetime tracking and
 /// `std::cell::RefCell` for interior mutability.
@@ -16,11 +21,12 @@ pub enum ContainerRef {
   Monitor(MonitorRef),
   Workspace(WorkspaceRef),
   SplitContainer(SplitContainerRef),
-  Window(WindowRef),
+  TilingWindow(TilingWindowRef),
+  NonTilingWindow(NonTilingWindowRef),
 }
 
 impl ContainerRef {
-  pub fn common(&self) -> &dyn CommonContainer {
+  pub fn as_common(&self) -> &dyn CommonContainer {
     match self {
       ContainerRef::RootContainer(c) => c,
       ContainerRef::Monitor(c) => c,
@@ -30,4 +36,24 @@ impl ContainerRef {
       _ => todo!(),
     }
   }
+
+  pub fn as_tiling(&self) -> &dyn TilingContainer {
+    match self {
+      ContainerRef::RootContainer(c) => c,
+      ContainerRef::Monitor(c) => c,
+      // ContainerRef::Workspace(c) => c,
+      // ContainerRef::SplitContainer(c) => c,
+      // ContainerRef::Window(c) => c,
+      _ => todo!(),
+    }
+  }
+}
+
+#[derive(Clone, Debug)]
+pub enum TilingContainerRef {
+  RootContainer(RootContainerRef),
+  Monitor(MonitorRef),
+  Workspace(WorkspaceRef),
+  SplitContainer(SplitContainerRef),
+  TilingWindow(TilingWindowRef),
 }

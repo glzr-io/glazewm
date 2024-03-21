@@ -3,13 +3,19 @@ use std::{
   rc::Rc,
 };
 
-use super::{CommonContainer, ContainerRef};
+use uuid::Uuid;
+
+use super::{
+  traits::{CommonContainer, TilingContainer},
+  ContainerRef, ContainerType,
+};
 
 #[derive(Clone, Debug)]
 pub struct RootContainerRef(Rc<RefCell<RootContainer>>);
 
 #[derive(Debug)]
 pub struct RootContainer {
+  id: Uuid,
   pub parent: Option<ContainerRef>,
   pub children: Vec<ContainerRef>,
 }
@@ -17,6 +23,7 @@ pub struct RootContainer {
 impl RootContainerRef {
   pub fn new() -> Self {
     let root = RootContainer {
+      id: Uuid::new_v4(),
       parent: None,
       children: Vec::new(),
     };
@@ -26,6 +33,16 @@ impl RootContainerRef {
 }
 
 impl CommonContainer for RootContainerRef {
+  fn id(&self) -> Uuid {
+    self.0.borrow().id
+  }
+
+  fn r#type(&self) -> ContainerType {
+    ContainerType::RootContainer
+  }
+}
+
+impl TilingContainer for RootContainerRef {
   fn borrow_parent(&self) -> Ref<'_, Option<ContainerRef>> {
     Ref::map(self.0.borrow(), |c| &c.parent)
   }

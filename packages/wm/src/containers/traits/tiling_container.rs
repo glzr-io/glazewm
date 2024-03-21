@@ -1,9 +1,10 @@
 use std::cell::{Ref, RefMut};
 
-use super::ContainerRef;
+use crate::containers::ContainerRef;
 
-// TODO: Consider renaming to `TilingContainer`.
-pub trait CommonContainer {
+use super::CommonContainer;
+
+pub trait TilingContainer: CommonContainer {
   fn borrow_parent(&self) -> Ref<'_, Option<ContainerRef>>;
   fn borrow_parent_mut(&self) -> RefMut<'_, Option<ContainerRef>>;
   fn borrow_children(&self) -> Ref<'_, Vec<ContainerRef>>;
@@ -24,10 +25,10 @@ pub trait CommonContainer {
       .borrow_children_mut()
       .insert(target_index, child.clone());
 
-    *child.common().borrow_parent_mut() = Some(child.clone());
+    *child.as_tiling().borrow_parent_mut() = Some(child.clone());
   }
 
   fn grandparent(&self) -> Option<ContainerRef> {
-    self.parent()?.common().parent()
+    self.parent()?.as_tiling().parent()
   }
 }

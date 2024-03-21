@@ -1,11 +1,10 @@
 pub mod commands;
-mod common_container;
 mod container_ref;
 mod container_type;
 mod root_container;
 mod split_container;
+pub mod traits;
 
-pub use common_container::*;
 pub use container_ref::*;
 pub use container_type::*;
 pub use root_container::*;

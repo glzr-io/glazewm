@@ -1,18 +1,17 @@
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Clone, Debug)]
-pub struct WindowRef(Rc<RefCell<Window>>);
+pub struct NonTilingWindowRef(Rc<RefCell<NonTilingWindow>>);
 
-// TODO: Consider renaming to `TilingWindow` and splitting out `NonTilingWindow`.
 #[derive(Debug)]
-pub struct Window {
+pub struct NonTilingWindow {
   width: u32,
   height: u32,
   x: u32,
   y: u32,
 }
 
-impl Window {
+impl NonTilingWindow {
   pub fn new() -> Self {
     Self {
       width: 0,
