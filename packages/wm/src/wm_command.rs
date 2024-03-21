@@ -1,9 +1,9 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use serde::{Deserialize, Deserializer};
 
 use crate::common::{Direction, LengthUnit, TilingDirection};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum WmCommand {
   CloseWindow,
   DisableBindingMode(String),

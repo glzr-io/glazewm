@@ -27,7 +27,6 @@ pub enum PlatformEvent {
 }
 
 pub struct EventListener {
-  config: Arc<Mutex<UserConfig>>,
   pub event_rx: UnboundedReceiver<PlatformEvent>,
   event_window: EventWindow,
 }
@@ -36,16 +35,24 @@ impl EventListener {
   /// Starts listening for platform events.
   pub async fn start(config: Arc<Mutex<UserConfig>>) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
-    let event_window = EventWindow::new(event_tx);
+    let config = config.lock().await;
+
+    let event_window = EventWindow::new(
+      event_tx,
+      config.keybindings.clone(),
+      config.general.focus_follows_cursor,
+    );
 
     Ok(Self {
-      config,
       event_rx,
       event_window,
     })
   }
 
-  pub fn update(&self) {
-    todo!()
+  pub fn update(&mut self, config: &UserConfig) {
+    self.event_window.update(
+      config.keybindings.clone(),
+      config.general.focus_follows_cursor,
+    );
   }
 }

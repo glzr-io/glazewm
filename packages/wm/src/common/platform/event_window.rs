@@ -30,6 +30,8 @@ use windows::{
   },
 };
 
+use crate::user_config::KeybindingConfig;
+
 use super::{NativeWindow, PlatformEvent};
 
 thread_local! {
@@ -156,7 +158,11 @@ pub struct EventWindow {
 }
 
 impl EventWindow {
-  pub fn new(event_tx: UnboundedSender<PlatformEvent>) -> Self {
+  pub fn new(
+    event_tx: UnboundedSender<PlatformEvent>,
+    keybindings: Vec<KeybindingConfig>,
+    enable_mouse_listener: bool,
+  ) -> Self {
     let (abort_tx, abort_rx) = oneshot::channel();
 
     let window_thread = thread::spawn(|| unsafe {
@@ -181,6 +187,14 @@ impl EventWindow {
       abort_tx: Some(abort_tx),
       window_thread: Some(window_thread),
     }
+  }
+
+  pub fn update(
+    &mut self,
+    keybindings: Vec<KeybindingConfig>,
+    enable_mouse_listener: bool,
+  ) {
+    todo!()
   }
 
   /// Creates several window event hooks via `SetWinEventHook`.

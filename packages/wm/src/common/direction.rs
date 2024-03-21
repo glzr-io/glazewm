@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Direction {
   Left,
   Right,

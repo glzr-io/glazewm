@@ -87,7 +87,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
       },
       Some(config) = config_reader.changes_rx.recv() => {
         info!("Received user config update: {:?}", config);
-        event_listener.update();
+        event_listener.update(&config);
       },
     }
   }

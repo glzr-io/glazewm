@@ -12,7 +12,7 @@ use crate::{
   wm_command::WmCommand,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
   pub bindings: Vec<String>,
@@ -21,7 +21,7 @@ pub struct KeybindingConfig {
   pub commands: Vec<WmCommand>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct BindingModeConfig {
   /// Name of the binding mode.
   pub name: String,
@@ -33,7 +33,7 @@ pub struct BindingModeConfig {
   pub keybindings: Vec<KeybindingConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
   pub inner_gap: LengthValue,
@@ -42,7 +42,7 @@ pub struct GapsConfig {
   pub outer_gap: RectDelta,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GeneralConfig {
   /// Whether to show floating windows as always on top.
   pub show_floating_on_top: bool,
@@ -67,7 +67,7 @@ pub struct GeneralConfig {
   pub center_new_floating_windows: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WindowAnimations {
   Enabled,
@@ -75,7 +75,7 @@ pub enum WindowAnimations {
   Unchanged,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct FocusBorder {
   /// Whether to use a custom border color.
   pub enabled: bool,
@@ -84,7 +84,7 @@ pub struct FocusBorder {
   pub color: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct FocusBordersConfig {
   /// Border of the focused window.
   pub active: FocusBorder,
@@ -93,7 +93,7 @@ pub struct FocusBordersConfig {
   pub inactive: FocusBorder,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct WindowRuleConfig {
   pub match_process_name: Option<String>,
   pub match_class_name: Option<String>,
@@ -101,7 +101,7 @@ pub struct WindowRuleConfig {
   pub commands: Vec<WmCommand>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,
@@ -109,7 +109,7 @@ pub struct WorkspaceConfig {
   pub keep_alive: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct UserConfig {
   pub binding_modes: Vec<BindingModeConfig>,
   pub focus_borders: FocusBordersConfig,
