@@ -11,7 +11,10 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
-  common::{platform::NativeMonitor, FocusMode},
+  common::{
+    platform::{NativeMonitor, Platform},
+    FocusMode,
+  },
   containers::{
     CommonContainer, ContainerRef, ContainerType, RootContainer,
     RootContainerRef,
@@ -59,6 +62,38 @@ impl WmState {
       config_changes_tx,
       event_tx,
     }
+  }
+
+  pub fn populate(&mut self) -> anyhow::Result<()> {
+    let foreground_window = Platform::foreground_window();
+    let native_monitors = Platform::monitors()?;
+
+    for native_monitor in native_monitors {
+      let monitor = MonitorRef::new(native_monitor);
+
+      self
+        .root_container
+        .insert_child(0, ContainerRef::Monitor(monitor));
+    }
+
+    for native_window in Platform::manageable_windows()? {
+      let window = ContainerRef::Window(native_window);
+      self.root_container.insert_child(0, window);
+    }
+
+    Ok(())
+  }
+
+  pub fn nearest_monitor(&self) -> Option<MonitorRef> {
+    self
+      .root_container
+      .self_and_descendants()
+      .into_iter()
+      .filter_map(|container| match container {
+        ContainerRef::Monitor(monitor) => Some(monitor.clone()),
+        _ => None,
+      })
+      .next()
   }
 
   pub fn add_monitor(&mut self) {

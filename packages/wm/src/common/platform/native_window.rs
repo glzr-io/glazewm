@@ -4,13 +4,21 @@ use anyhow::Result;
 use windows::{
   core::PWSTR,
   Win32::{
-    Foundation::{CloseHandle, HWND},
+    Foundation::{CloseHandle, BOOL, HWND, LPARAM},
+    Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED},
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
       PROCESS_QUERY_INFORMATION,
     },
-    UI::WindowsAndMessaging::{
-      GetClassNameW, GetWindowTextW, GetWindowThreadProcessId,
+    UI::{
+      Input::KeyboardAndMouse::{
+        SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
+        KEYBD_EVENT_FLAGS, VIRTUAL_KEY,
+      },
+      WindowsAndMessaging::{
+        EnumWindows, GetClassNameW, GetWindowTextW,
+        GetWindowThreadProcessId, IsWindowVisible, SetForegroundWindow,
+      },
     },
   },
 };
@@ -35,9 +43,10 @@ impl NativeWindow {
     }
   }
 
-  /// Gets the window's title.
+  /// Gets the window's title. If the window is invalid, returns an empty
+  /// string.
   ///
-  /// If the window is invalid, returns an empty string.
+  /// This value is lazily retrieved and is cached after first retrieval.
   pub fn title(&self) -> String {
     let title_guard = self.title.read().unwrap();
     match *title_guard {
@@ -54,6 +63,8 @@ impl NativeWindow {
   }
 
   /// Gets the process name associated with the window.
+  ///
+  /// This value is lazily retrieved and is cached after first retrieval.
   pub fn process_name(&self) -> Result<String> {
     let process_name_guard = self.process_name.read().unwrap();
     match *process_name_guard {
@@ -89,6 +100,8 @@ impl NativeWindow {
   }
 
   /// Gets the class name of the window.
+  ///
+  /// This value is lazily retrieved and is cached after first retrieval.
   pub fn class_name(&self) -> Result<String> {
     let class_name_guard = self.class_name.read().unwrap();
     match *class_name_guard {
@@ -109,12 +122,38 @@ impl NativeWindow {
     }
   }
 
+  /// Whether the window is actually visible.
   pub fn is_visible(&self) -> bool {
-    todo!()
+    let is_visible = unsafe { IsWindowVisible(self.handle) }.as_bool();
+    is_visible && !self.is_cloaked()
+  }
+
+  /// Whether the window is cloaked. For some UWP apps, `WS_VISIBLE` will
+  /// be present even if the window isn't actually visible. The
+  /// `DWMWA_CLOAKED` attribute is used to check whether these apps are
+  /// visible.
+  fn is_cloaked(&self) -> bool {
+    let mut cloaked = 0u32;
+
+    let _ = unsafe {
+      DwmGetWindowAttribute(
+        self.handle,
+        DWMWA_CLOAKED,
+        &mut cloaked as *mut u32 as _,
+        std::mem::size_of::<u32>() as u32,
+      )
+    };
+
+    cloaked != 0
   }
 
   pub fn is_manageable(&self) -> bool {
-    todo!()
+    // Ignore windows that are hidden.
+    if !self.is_visible() {
+      return false;
+    }
+
+    true
   }
 
   pub fn is_minimized(&self) -> bool {
@@ -133,6 +172,31 @@ impl NativeWindow {
     todo!()
   }
 
+  pub fn set_foreground(&self) -> anyhow::Result<()> {
+    // Simulate a key press event to activate the window.
+    let input = INPUT {
+      r#type: INPUT_KEYBOARD,
+      Anonymous: INPUT_0 {
+        ki: KEYBDINPUT {
+          wVk: VIRTUAL_KEY(0),
+          wScan: 0,
+          dwFlags: KEYBD_EVENT_FLAGS(0),
+          time: 0,
+          dwExtraInfo: 0,
+        },
+      },
+    };
+
+    unsafe {
+      SendInput(&[input], std::mem::size_of::<INPUT>() as i32);
+    }
+
+    // Set as the foreground window.
+    unsafe { SetForegroundWindow(self.handle) }.ok()?;
+
+    Ok(())
+  }
+
   // fn window_styles(&self) -> Vec<WindowStyle> {
   //   todo!()
   // }
@@ -140,4 +204,41 @@ impl NativeWindow {
   // fn window_styles_ex(&self) -> Vec<WindowStyleEx> {
   //   todo!()
   // }
+}
+
+impl PartialEq for NativeWindow {
+  fn eq(&self, other: &Self) -> bool {
+    self.handle == other.handle
+  }
+}
+
+impl Eq for NativeWindow {}
+
+pub fn available_windows() -> Result<Vec<NativeWindow>> {
+  available_window_handles()?
+    .into_iter()
+    .map(|handle| Ok(NativeWindow::new(handle)))
+    .collect()
+}
+
+pub fn available_window_handles() -> anyhow::Result<Vec<WindowHandle>> {
+  let mut handles: Vec<WindowHandle> = Vec::new();
+
+  unsafe {
+    EnumWindows(
+      Some(available_window_handles_proc),
+      LPARAM(&mut handles as *mut _ as _),
+    )
+  }?;
+
+  Ok(handles)
+}
+
+extern "system" fn available_window_handles_proc(
+  handle: HWND,
+  data: LPARAM,
+) -> BOOL {
+  let handles = data.0 as *mut Vec<HWND>;
+  unsafe { (*handles).push(handle) };
+  true.into()
 }

@@ -61,15 +61,11 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm =
-    WindowManager::start(config.clone(), config_changes_tx).await?;
+  let mut wm = WindowManager::start(config.clone(), config_changes_tx)?;
 
   // Start listening for platform events.
   let mut event_listener =
     Platform::new_event_listener(config, config_changes_rx).await?;
-
-  let monitors = Platform::monitors();
-  info!("Available monitors: {:?}", monitors);
 
   loop {
     let wm_state = wm.state.clone();
@@ -93,7 +89,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
         // println!("aaaa {:?}", leaf_deep);
         // println!("aaaa {:?}", leaf_deep.grandparent());
 
-        // wm.process_event(event).await
+        wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);

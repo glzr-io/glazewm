@@ -7,7 +7,10 @@ use windows::Win32::{
 
 pub type MonitorHandle = HMONITOR;
 
-#[derive(Debug)]
+// TODO: Consider changing `device_name`, `width`, `height`, `x`, and `y` to
+// be lazily retrieved similar to in `NativeWindow`. Add an `refresh` method
+// to `NativeMonitor` to refresh the values.
+#[derive(Clone, Debug)]
 pub struct NativeMonitor {
   pub handle: MonitorHandle,
   pub device_name: String,
@@ -37,15 +40,25 @@ impl NativeMonitor {
   }
 }
 
-pub fn available_monitors() -> Vec<NativeMonitor> {
-  available_monitor_handles()
-    .into_iter()
-    .filter_map(|handle| handle_to_monitor(handle).ok())
-    .collect()
+impl PartialEq for NativeMonitor {
+  fn eq(&self, other: &Self) -> bool {
+    self.handle == other.handle
+  }
+}
+
+impl Eq for NativeMonitor {}
+
+pub fn available_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
+  Ok(
+    available_monitor_handles()?
+      .into_iter()
+      .filter_map(|handle| handle_to_monitor(handle).ok())
+      .collect(),
+  )
 }
 
 /// Gets all available monitor handles.
-fn available_monitor_handles() -> Vec<MonitorHandle> {
+fn available_monitor_handles() -> anyhow::Result<Vec<MonitorHandle>> {
   let mut monitors: Vec<MonitorHandle> = Vec::new();
 
   unsafe {
@@ -54,10 +67,11 @@ fn available_monitor_handles() -> Vec<MonitorHandle> {
       None,
       Some(available_monitor_handles_proc),
       LPARAM(&mut monitors as *mut _ as _),
-    );
+    )
   }
+  .ok()?;
 
-  monitors
+  Ok(monitors)
 }
 
 /// Callback passed to `EnumDisplayMonitors` to get all available monitor
@@ -68,8 +82,8 @@ unsafe extern "system" fn available_monitor_handles_proc(
   _clip: *mut RECT,
   data: LPARAM,
 ) -> BOOL {
-  let monitors = data.0 as *mut Vec<MonitorHandle>;
-  unsafe { (*monitors).push(handle) };
+  let handles = data.0 as *mut Vec<MonitorHandle>;
+  unsafe { (*handles).push(handle) };
   true.into()
 }
 
