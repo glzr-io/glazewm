@@ -15,10 +15,7 @@ use tracing_subscriber::EnvFilter;
 use user_config::ConfigReader;
 use wm::WindowManager;
 
-use crate::{
-  cli::{Cli, CliCommand},
-  containers::{CommonContainer, ContainerRef, RootContainerRef},
-};
+use crate::cli::{Cli, CliCommand};
 
 mod cli;
 mod common;
@@ -62,8 +59,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
   let mut wm = WindowManager::start(
     config_reader.config(),
     config_reader.changes_tx.clone(),
-  )
-  .await?;
+  )?;
 
   // Start listening for platform events.
   let mut event_listener =

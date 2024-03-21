@@ -16,7 +16,7 @@ use crate::{
     FocusMode,
   },
   containers::{
-    CommonContainer, ContainerRef, ContainerType, RootContainer,
+    traits::TilingContainer, ContainerRef, ContainerType, RootContainer,
     RootContainerRef,
   },
   monitors::{Monitor, MonitorRef},
@@ -77,23 +77,15 @@ impl WmState {
     }
 
     for native_window in Platform::manageable_windows()? {
-      let window = ContainerRef::Window(native_window);
-      self.root_container.insert_child(0, window);
+      // let window = ContainerRef::Window(native_window);
+      // self.root_container.insert_child(0, window);
     }
 
     Ok(())
   }
 
   pub fn nearest_monitor(&self) -> Option<MonitorRef> {
-    self
-      .root_container
-      .self_and_descendants()
-      .into_iter()
-      .filter_map(|container| match container {
-        ContainerRef::Monitor(monitor) => Some(monitor.clone()),
-        _ => None,
-      })
-      .next()
+    todo!()
   }
 
   pub fn add_monitor(&mut self) {
