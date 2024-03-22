@@ -1,13 +1,12 @@
+use enum_dispatch::enum_dispatch;
+
 use crate::{
-  monitors::MonitorRef,
-  windows::{NonTilingWindowRef, TilingWindowRef},
-  workspaces::WorkspaceRef,
+  monitors::Monitor,
+  windows::{NonTilingWindow, TilingWindow},
+  workspaces::Workspace,
 };
 
-use super::{
-  traits::{CommonContainer, TilingContainer},
-  RootContainerRef, SplitContainerRef,
-};
+use super::{traits::TilingContainer, RootContainer, SplitContainer};
 
 /// A reference to a container.
 ///
@@ -16,31 +15,21 @@ use super::{
 ///
 /// **Note:** Cloning a `ContainerRef` only increments a reference count.
 #[derive(Clone, Debug)]
-pub enum ContainerRef {
-  RootContainer(RootContainerRef),
-  Monitor(MonitorRef),
-  Workspace(WorkspaceRef),
-  SplitContainer(SplitContainerRef),
-  TilingWindow(TilingWindowRef),
-  NonTilingWindow(NonTilingWindowRef),
+#[enum_dispatch(CommonContainer)]
+pub enum Container {
+  Root(RootContainer),
+  Monitor(Monitor),
+  Workspace(Workspace),
+  Split(SplitContainer),
+  TilingWindow(TilingWindow),
+  NonTilingWindow(NonTilingWindow),
 }
 
-impl ContainerRef {
-  pub fn as_common(&self) -> &dyn CommonContainer {
-    match self {
-      ContainerRef::RootContainer(c) => c,
-      ContainerRef::Monitor(c) => c,
-      // ContainerRef::Workspace(c) => c,
-      // ContainerRef::SplitContainer(c) => c,
-      // ContainerRef::Window(c) => c,
-      _ => todo!(),
-    }
-  }
-
+impl Container {
   pub fn as_tiling(&self) -> &dyn TilingContainer {
     match self {
-      ContainerRef::RootContainer(c) => c,
-      ContainerRef::Monitor(c) => c,
+      Container::Root(c) => c,
+      Container::Monitor(c) => c,
       // ContainerRef::Workspace(c) => c,
       // ContainerRef::SplitContainer(c) => c,
       // ContainerRef::Window(c) => c,
@@ -49,11 +38,24 @@ impl ContainerRef {
   }
 }
 
-#[derive(Clone, Debug)]
-pub enum TilingContainerRef {
-  RootContainer(RootContainerRef),
-  Monitor(MonitorRef),
-  Workspace(WorkspaceRef),
-  SplitContainer(SplitContainerRef),
-  TilingWindow(TilingWindowRef),
-}
+// impl CommonContainer for ContainerRef {
+//   fn id(&self) -> Uuid {
+//     self.as_common().id()
+//   }
+
+//   fn r#type(&self) -> ContainerType {
+//     self.as_common().r#type()
+//   }
+
+//   fn borrow_parent(&self) -> Ref<'_, Option<ContainerRef>> {
+//     self.as_common().borrow_parent()
+//   }
+
+//   fn borrow_parent_mut(&self) -> RefMut<'_, Option<ContainerRef>> {
+//     self.as_common().borrow_parent_mut()
+//   }
+
+//   fn parent(&self) -> Option<ContainerRef> {
+//     self.as_common().parent()
+//   }
+// }

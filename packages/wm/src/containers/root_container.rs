@@ -5,24 +5,26 @@ use std::{
 
 use uuid::Uuid;
 
+use crate::impl_common_container;
+
 use super::{
   traits::{CommonContainer, TilingContainer},
-  ContainerRef, ContainerType,
+  Container, ContainerType,
 };
 
 #[derive(Clone, Debug)]
-pub struct RootContainerRef(Rc<RefCell<RootContainer>>);
+pub struct RootContainer(Rc<RefCell<RootContainerInner>>);
 
 #[derive(Debug)]
-pub struct RootContainer {
+struct RootContainerInner {
   id: Uuid,
-  pub parent: Option<ContainerRef>,
-  pub children: Vec<ContainerRef>,
+  parent: Option<Container>,
+  children: Vec<Container>,
 }
 
-impl RootContainerRef {
+impl RootContainer {
   pub fn new() -> Self {
-    let root = RootContainer {
+    let root = RootContainerInner {
       id: Uuid::new_v4(),
       parent: None,
       children: Vec::new(),
@@ -32,30 +34,14 @@ impl RootContainerRef {
   }
 }
 
-impl CommonContainer for RootContainerRef {
-  fn id(&self) -> Uuid {
-    self.0.borrow().id
-  }
+impl_common_container!(RootContainer, ContainerType::Root);
 
-  fn r#type(&self) -> ContainerType {
-    ContainerType::RootContainer
-  }
-}
-
-impl TilingContainer for RootContainerRef {
-  fn borrow_parent(&self) -> Ref<'_, Option<ContainerRef>> {
-    Ref::map(self.0.borrow(), |c| &c.parent)
-  }
-
-  fn borrow_parent_mut(&self) -> RefMut<'_, Option<ContainerRef>> {
-    RefMut::map(self.0.borrow_mut(), |c| &mut c.parent)
-  }
-
-  fn borrow_children(&self) -> Ref<'_, Vec<ContainerRef>> {
+impl TilingContainer for RootContainer {
+  fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }
 
-  fn borrow_children_mut(&self) -> RefMut<'_, Vec<ContainerRef>> {
+  fn borrow_tiling_children_mut(&self) -> RefMut<'_, Vec<Container>> {
     RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
   }
 }

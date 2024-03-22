@@ -16,10 +16,10 @@ use crate::{
     FocusMode,
   },
   containers::{
-    traits::TilingContainer, ContainerRef, ContainerType, RootContainer,
-    RootContainerRef,
+    traits::{CommonContainer, TilingContainer},
+    Container, ContainerType, RootContainer,
   },
-  monitors::{Monitor, MonitorRef},
+  monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
   wm_event::WmEvent,
 };
@@ -27,10 +27,10 @@ use crate::{
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
-  root_container: RootContainerRef,
+  root_container: RootContainer,
 
   /// Containers (and their descendants) that have a pending redraw.
-  containers_to_redraw: Vec<Weak<ContainerRef>>,
+  containers_to_redraw: Vec<Weak<Container>>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
@@ -54,7 +54,7 @@ impl WmState {
     event_tx: UnboundedSender<WmEvent>,
   ) -> Self {
     Self {
-      root_container: RootContainerRef::new(),
+      root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       binding_modes: Vec::new(),
@@ -69,27 +69,27 @@ impl WmState {
     let native_monitors = Platform::monitors()?;
 
     for native_monitor in native_monitors {
-      let monitor = MonitorRef::new(native_monitor);
+      let monitor = Monitor::new(native_monitor);
 
       self
         .root_container
-        .insert_child(0, ContainerRef::Monitor(monitor));
+        .insert_tiling_child(0, Container::Monitor(monitor));
     }
 
     for native_window in Platform::manageable_windows()? {
       // let window = ContainerRef::Window(native_window);
-      // self.root_container.insert_child(0, window);
+      // self.root_container.insert_tiling_child(0, window);
     }
 
     Ok(())
   }
 
-  pub fn nearest_monitor(&self) -> Option<MonitorRef> {
+  pub fn nearest_monitor(&self) -> Option<Monitor> {
     todo!()
   }
 
   pub fn add_monitor(&mut self) {
-    let monitor = MonitorRef::new(NativeMonitor::new(
+    let monitor = Monitor::new(NativeMonitor::new(
       windows::Win32::Graphics::Gdi::HMONITOR(1),
       String::from("aaa"),
       0,
@@ -98,9 +98,10 @@ impl WmState {
       0,
     ));
 
+    let xx = self.root_container.parent().unwrap().parent();
     self
       .root_container
-      .insert_child(0, ContainerRef::Monitor(monitor))
+      .insert_tiling_child(0, Container::Monitor(monitor))
   }
 
   pub fn emit_event(&self, event: WmEvent) -> Result<()> {

@@ -1,27 +1,36 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+  cell::{Ref, RefCell, RefMut},
+  rc::Rc,
+};
 
-use crate::workspaces::WorkspaceRef;
+use uuid::Uuid;
+
+use crate::{
+  common::platform::NativeWindow,
+  containers::{traits::CommonContainer, Container, ContainerType},
+  impl_common_container,
+};
 
 #[derive(Clone, Debug)]
-pub struct NonTilingWindowRef(Rc<RefCell<NonTilingWindow>>);
+pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 
 #[derive(Debug)]
-pub struct NonTilingWindow {
-  parent: Option<WorkspaceRef>,
-  width: u32,
-  height: u32,
-  x: u32,
-  y: u32,
+struct NonTilingWindowInner {
+  id: Uuid,
+  parent: Option<Container>,
+  native: NativeWindow,
 }
 
 impl NonTilingWindow {
-  pub fn new() -> Self {
-    Self {
+  pub fn new(native_window: NativeWindow) -> Self {
+    let window = NonTilingWindowInner {
+      id: Uuid::new_v4(),
       parent: None,
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
-    }
+      native: native_window,
+    };
+
+    Self(Rc::new(RefCell::new(window)))
   }
 }
+
+impl_common_container!(NonTilingWindow, ContainerType::Window);

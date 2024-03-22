@@ -1,34 +1,23 @@
 use std::cell::{Ref, RefMut};
 
-use crate::containers::ContainerRef;
+use crate::containers::Container;
 
 use super::CommonContainer;
 
 pub trait TilingContainer: CommonContainer {
-  fn borrow_parent(&self) -> Ref<'_, Option<ContainerRef>>;
-  fn borrow_parent_mut(&self) -> RefMut<'_, Option<ContainerRef>>;
-  fn borrow_children(&self) -> Ref<'_, Vec<ContainerRef>>;
-  fn borrow_children_mut(&self) -> RefMut<'_, Vec<ContainerRef>>;
+  fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>>;
 
-  /// Returns a reference to the parent node, unless this node is the root
-  /// of the tree.
-  ///
-  /// # Panics
-  ///
-  /// Panics if the node is currently mutability borrowed.
-  fn parent(&self) -> Option<ContainerRef> {
-    self.borrow_parent().clone()
+  fn borrow_tiling_children_mut(&self) -> RefMut<'_, Vec<Container>>;
+
+  fn tiling_children(&self) -> Vec<Container> {
+    self.borrow_tiling_children().clone()
   }
 
-  fn insert_child(&self, target_index: usize, child: ContainerRef) {
+  fn insert_tiling_child(&self, target_index: usize, child: Container) {
     self
-      .borrow_children_mut()
+      .borrow_tiling_children_mut()
       .insert(target_index, child.clone());
 
     *child.as_tiling().borrow_parent_mut() = Some(child.clone());
-  }
-
-  fn grandparent(&self) -> Option<ContainerRef> {
-    self.parent()?.as_tiling().parent()
   }
 }

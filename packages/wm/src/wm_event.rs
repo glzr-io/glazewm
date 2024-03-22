@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::{
   common::{platform::WindowHandle, TilingDirection},
-  containers::ContainerRef,
+  containers::Container,
 };
 
 #[derive(Debug)]
@@ -12,17 +12,17 @@ pub struct BindingModeChangedEvent {
 
 #[derive(Debug)]
 pub struct FocusChangedEvent {
-  pub focused_container: ContainerRef,
+  pub focused_container: Container,
 }
 
 #[derive(Debug)]
 pub struct FocusedContainerMovedEvent {
-  pub focused_container: ContainerRef,
+  pub focused_container: Container,
 }
 
 #[derive(Debug)]
 pub struct MonitorAddedEvent {
-  pub added_monitor: ContainerRef,
+  pub added_monitor: Container,
 }
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ pub struct MonitorRemovedEvent {
 
 #[derive(Debug)]
 pub struct NativeFocusSyncedEvent {
-  pub focused_container: ContainerRef,
+  pub focused_container: Container,
 }
 
 #[derive(Debug)]
@@ -43,7 +43,7 @@ pub struct TilingDirectionChangedEvent {
 
 #[derive(Debug)]
 pub struct WindowManagedEvent {
-  pub managed_window: ContainerRef,
+  pub managed_window: Container,
 }
 
 #[derive(Debug)]
@@ -54,7 +54,7 @@ pub struct WindowUnmanagedEvent {
 
 #[derive(Debug)]
 pub struct WorkspaceActivatedEvent {
-  pub activated_workspace: ContainerRef,
+  pub activated_workspace: Container,
 }
 
 #[derive(Debug)]
@@ -65,7 +65,7 @@ pub struct WorkspaceDeactivatedEvent {
 
 #[derive(Debug)]
 pub struct WorkingAreaResizedEvent {
-  pub affected_monitor: ContainerRef,
+  pub affected_monitor: Container,
 }
 
 #[derive(Debug)]

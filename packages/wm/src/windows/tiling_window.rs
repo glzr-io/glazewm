@@ -1,23 +1,51 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+  cell::{Ref, RefCell, RefMut},
+  rc::Rc,
+};
+
+use uuid::Uuid;
+
+use crate::{
+  common::platform::NativeWindow,
+  containers::{
+    traits::{CommonContainer, TilingContainer},
+    Container, ContainerType,
+  },
+  impl_common_container,
+};
 
 #[derive(Clone, Debug)]
-pub struct TilingWindowRef(Rc<RefCell<TilingWindow>>);
+pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
 
 #[derive(Debug)]
-pub struct TilingWindow {
-  width: u32,
-  height: u32,
-  x: u32,
-  y: u32,
+struct TilingWindowInner {
+  id: Uuid,
+  parent: Option<Container>,
+  children: Vec<Container>,
+  native: NativeWindow,
 }
 
 impl TilingWindow {
-  pub fn new() -> Self {
-    Self {
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
-    }
+  pub fn new(native_window: NativeWindow) -> Self {
+    let window = TilingWindowInner {
+      id: Uuid::new_v4(),
+      parent: None,
+      children: Vec::new(),
+      native: native_window,
+    };
+
+    Self(Rc::new(RefCell::new(window)))
+  }
+}
+
+impl_common_container!(TilingWindow, ContainerType::Window);
+
+impl TilingContainer for TilingWindow {
+  fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
+    Ref::map(self.0.borrow(), |c| &c.children)
+  }
+
+  fn borrow_tiling_children_mut(&self) -> RefMut<'_, Vec<Container>> {
+    RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
   }
 }
