@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::{
   common::platform::NativeWindow,
-  containers::{traits::CommonContainer, Container, ContainerType},
-  impl_common_container,
+  containers::{traits::CommonBehavior, Container, ContainerType},
+  impl_common_behavior,
 };
 
 #[derive(Clone, Debug)]
@@ -33,4 +33,4 @@ impl NonTilingWindow {
   }
 }
 
-impl_common_container!(NonTilingWindow, ContainerType::Window);
+impl_common_behavior!(NonTilingWindow, ContainerType::Window);

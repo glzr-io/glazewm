@@ -8,10 +8,10 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeMonitor,
   containers::{
-    traits::{CommonContainer, TilingContainer},
+    traits::{CommonBehavior, TilingBehavior},
     Container, ContainerType,
   },
-  impl_common_container,
+  impl_common_behavior,
 };
 
 #[derive(Clone, Debug)]
@@ -38,9 +38,9 @@ impl Monitor {
   }
 }
 
-impl_common_container!(Monitor, ContainerType::Monitor);
+impl_common_behavior!(Monitor, ContainerType::Monitor);
 
-impl TilingContainer for Monitor {
+impl TilingBehavior for Monitor {
   fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }

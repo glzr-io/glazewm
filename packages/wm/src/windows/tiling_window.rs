@@ -8,10 +8,10 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeWindow,
   containers::{
-    traits::{CommonContainer, TilingContainer},
+    traits::{CommonBehavior, TilingBehavior},
     Container, ContainerType,
   },
-  impl_common_container,
+  impl_common_behavior,
 };
 
 #[derive(Clone, Debug)]
@@ -38,9 +38,9 @@ impl TilingWindow {
   }
 }
 
-impl_common_container!(TilingWindow, ContainerType::Window);
+impl_common_behavior!(TilingWindow, ContainerType::Window);
 
-impl TilingContainer for TilingWindow {
+impl TilingBehavior for TilingWindow {
   fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }

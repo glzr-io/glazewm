@@ -1,5 +1,5 @@
-mod common_container;
-mod tiling_container;
+mod common_behavior;
+mod tiling_behavior;
 
-pub use common_container::*;
-pub use tiling_container::*;
+pub use common_behavior::*;
+pub use tiling_behavior::*;

@@ -5,10 +5,10 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::impl_common_container;
+use crate::impl_common_behavior;
 
 use super::{
-  traits::{CommonContainer, TilingContainer},
+  traits::{CommonBehavior, TilingBehavior},
   Container, ContainerType,
 };
 
@@ -34,9 +34,9 @@ impl RootContainer {
   }
 }
 
-impl_common_container!(RootContainer, ContainerType::Root);
+impl_common_behavior!(RootContainer, ContainerType::Root);
 
-impl TilingContainer for RootContainer {
+impl TilingBehavior for RootContainer {
   fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }

@@ -1,3 +1,3 @@
-mod common_window;
+mod window_behavior;
 
-pub use common_window::*;
+pub use window_behavior::*;

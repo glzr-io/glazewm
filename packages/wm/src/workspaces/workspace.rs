@@ -8,10 +8,10 @@ use uuid::Uuid;
 use crate::{
   common::RectDelta,
   containers::{
-    traits::{CommonContainer, TilingContainer},
+    traits::{CommonBehavior, TilingBehavior},
     Container, ContainerType,
   },
-  impl_common_container,
+  impl_common_behavior,
   user_config::WorkspaceConfig,
 };
 
@@ -43,9 +43,9 @@ impl Workspace {
   }
 }
 
-impl_common_container!(Workspace, ContainerType::Workspace);
+impl_common_behavior!(Workspace, ContainerType::Workspace);
 
-impl TilingContainer for Workspace {
+impl TilingBehavior for Workspace {
   fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.tiling_children)
   }

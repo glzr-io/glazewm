@@ -4,14 +4,17 @@ use enum_dispatch::enum_dispatch;
 use uuid::Uuid;
 
 use crate::{
-  containers::{Container, ContainerType, RootContainer, SplitContainer},
+  containers::{
+    Container, ContainerType, RootContainer, SplitContainer,
+    TilingContainer,
+  },
   monitors::Monitor,
   windows::{NonTilingWindow, TilingWindow},
   workspaces::Workspace,
 };
 
-#[enum_dispatch(ContainerRef)]
-pub trait CommonContainer {
+#[enum_dispatch]
+pub trait CommonBehavior {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
@@ -33,14 +36,14 @@ pub trait CommonContainer {
   }
 }
 
-/// Implements the `CommonContainer` trait for a given struct.
+/// Implements the `CommonBehavior` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
 /// with an `id` and a `parent` field.
 #[macro_export]
-macro_rules! impl_common_container {
+macro_rules! impl_common_behavior {
   ($struct_name:ident, $container_type:expr) => {
-    impl CommonContainer for $struct_name {
+    impl CommonBehavior for $struct_name {
       fn id(&self) -> Uuid {
         self.0.borrow().id
       }

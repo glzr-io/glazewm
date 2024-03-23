@@ -5,10 +5,10 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::{common::TilingDirection, impl_common_container};
+use crate::{common::TilingDirection, impl_common_behavior};
 
 use super::{
-  traits::{CommonContainer, TilingContainer},
+  traits::{CommonBehavior, TilingBehavior},
   Container, ContainerType,
 };
 
@@ -16,7 +16,7 @@ use super::{
 pub struct SplitContainer(Rc<RefCell<SplitContainerInner>>);
 
 #[derive(Debug)]
-pub struct SplitContainerInner {
+struct SplitContainerInner {
   id: Uuid,
   parent: Option<Container>,
   children: Vec<Container>,
@@ -36,9 +36,9 @@ impl SplitContainer {
   }
 }
 
-impl_common_container!(SplitContainer, ContainerType::Split);
+impl_common_behavior!(SplitContainer, ContainerType::Split);
 
-impl TilingContainer for SplitContainer {
+impl TilingBehavior for SplitContainer {
   fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }

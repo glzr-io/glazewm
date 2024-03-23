@@ -16,7 +16,7 @@ use crate::{
     FocusMode,
   },
   containers::{
-    traits::{CommonContainer, TilingContainer},
+    traits::{CommonBehavior, TilingBehavior},
     Container, ContainerType, RootContainer,
   },
   monitors::Monitor,
