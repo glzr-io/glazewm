@@ -9,7 +9,7 @@ use crate::{
   common::platform::NativeWindow,
   containers::{
     traits::{CommonBehavior, TilingBehavior},
-    Container, ContainerType,
+    ContainerType, TilingContainer,
   },
   impl_common_behavior,
 };
@@ -20,8 +20,8 @@ pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
 #[derive(Debug)]
 struct TilingWindowInner {
   id: Uuid,
-  parent: Option<Container>,
-  children: Vec<Container>,
+  parent: Option<TilingContainer>,
+  children: Vec<TilingContainer>,
   native: NativeWindow,
 }
 
@@ -41,11 +41,13 @@ impl TilingWindow {
 impl_common_behavior!(TilingWindow, ContainerType::Window);
 
 impl TilingBehavior for TilingWindow {
-  fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
+  fn borrow_tiling_children(&self) -> Ref<'_, Vec<TilingContainer>> {
     Ref::map(self.0.borrow(), |c| &c.children)
   }
 
-  fn borrow_tiling_children_mut(&self) -> RefMut<'_, Vec<Container>> {
+  fn borrow_tiling_children_mut(
+    &self,
+  ) -> RefMut<'_, Vec<TilingContainer>> {
     RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
   }
 }

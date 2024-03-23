@@ -9,7 +9,7 @@ use crate::{
   common::RectDelta,
   containers::{
     traits::{CommonBehavior, TilingBehavior},
-    Container, ContainerType,
+    ContainerType, TilingContainer,
   },
   impl_common_behavior,
   user_config::WorkspaceConfig,
@@ -21,9 +21,9 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 #[derive(Debug)]
 struct WorkspaceInner {
   id: Uuid,
-  parent: Option<Container>,
-  tiling_children: Vec<Container>,
-  non_tiling_children: Vec<Container>,
+  parent: Option<TilingContainer>,
+  tiling_children: Vec<TilingContainer>,
+  non_tiling_children: Vec<TilingContainer>,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
 }
@@ -46,11 +46,13 @@ impl Workspace {
 impl_common_behavior!(Workspace, ContainerType::Workspace);
 
 impl TilingBehavior for Workspace {
-  fn borrow_tiling_children(&self) -> Ref<'_, Vec<Container>> {
+  fn borrow_tiling_children(&self) -> Ref<'_, Vec<TilingContainer>> {
     Ref::map(self.0.borrow(), |c| &c.tiling_children)
   }
 
-  fn borrow_tiling_children_mut(&self) -> RefMut<'_, Vec<Container>> {
+  fn borrow_tiling_children_mut(
+    &self,
+  ) -> RefMut<'_, Vec<TilingContainer>> {
     RefMut::map(self.0.borrow_mut(), |c| &mut c.tiling_children)
   }
 }

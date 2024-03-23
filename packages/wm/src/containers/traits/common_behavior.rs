@@ -21,9 +21,9 @@ pub trait CommonBehavior {
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
-  fn borrow_parent(&self) -> Ref<'_, Option<Container>>;
+  fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>>;
 
-  fn borrow_parent_mut(&self) -> RefMut<'_, Option<Container>>;
+  fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>>;
 
   /// Returns a reference to the parent container, unless this container is
   /// the root container.
@@ -31,7 +31,7 @@ pub trait CommonBehavior {
   /// # Panics
   ///
   /// Panics if the container is currently mutably borrowed.
-  fn parent(&self) -> Option<Container> {
+  fn parent(&self) -> Option<TilingContainer> {
     self.borrow_parent().clone()
   }
 }
@@ -52,11 +52,11 @@ macro_rules! impl_common_behavior {
         $container_type
       }
 
-      fn borrow_parent(&self) -> Ref<'_, Option<Container>> {
+      fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>> {
         Ref::map(self.0.borrow(), |c| &c.parent)
       }
 
-      fn borrow_parent_mut(&self) -> RefMut<'_, Option<Container>> {
+      fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.parent)
       }
     }

@@ -17,7 +17,7 @@ use crate::{
   },
   containers::{
     traits::{CommonBehavior, TilingBehavior},
-    Container, ContainerType, RootContainer,
+    Container, ContainerType, RootContainer, TilingContainer,
   },
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
@@ -73,7 +73,7 @@ impl WmState {
 
       self
         .root_container
-        .insert_tiling_child(0, Container::Monitor(monitor));
+        .insert_tiling_child(0, TilingContainer::Monitor(monitor));
     }
 
     for native_window in Platform::manageable_windows()? {
@@ -98,10 +98,9 @@ impl WmState {
       0,
     ));
 
-    let xx = self.root_container.parent().unwrap().parent();
     self
       .root_container
-      .insert_tiling_child(0, Container::Monitor(monitor))
+      .insert_tiling_child(0, TilingContainer::Monitor(monitor))
   }
 
   pub fn emit_event(&self, event: WmEvent) -> Result<()> {

@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
   common::platform::NativeWindow,
-  containers::{traits::CommonBehavior, Container, ContainerType},
+  containers::{traits::CommonBehavior, ContainerType, TilingContainer},
   impl_common_behavior,
 };
 
@@ -17,7 +17,7 @@ pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 #[derive(Debug)]
 struct NonTilingWindowInner {
   id: Uuid,
-  parent: Option<Container>,
+  parent: Option<TilingContainer>,
   native: NativeWindow,
 }
 
