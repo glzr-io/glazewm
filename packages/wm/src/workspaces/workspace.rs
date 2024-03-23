@@ -11,7 +11,7 @@ use crate::{
     traits::{CommonBehavior, TilingBehavior},
     ContainerType, TilingContainer,
   },
-  impl_common_behavior,
+  impl_common_behavior, impl_tiling_behavior,
   user_config::WorkspaceConfig,
 };
 
@@ -24,6 +24,7 @@ struct WorkspaceInner {
   parent: Option<TilingContainer>,
   tiling_children: Vec<TilingContainer>,
   non_tiling_children: Vec<TilingContainer>,
+  size_percent: f32,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
 }
@@ -35,6 +36,7 @@ impl Workspace {
       parent: None,
       tiling_children: Vec::new(),
       non_tiling_children: Vec::new(),
+      size_percent: 1.0,
       config,
       outer_gaps,
     };
@@ -44,15 +46,4 @@ impl Workspace {
 }
 
 impl_common_behavior!(Workspace, ContainerType::Workspace);
-
-impl TilingBehavior for Workspace {
-  fn borrow_tiling_children(&self) -> Ref<'_, Vec<TilingContainer>> {
-    Ref::map(self.0.borrow(), |c| &c.tiling_children)
-  }
-
-  fn borrow_tiling_children_mut(
-    &self,
-  ) -> RefMut<'_, Vec<TilingContainer>> {
-    RefMut::map(self.0.borrow_mut(), |c| &mut c.tiling_children)
-  }
-}
+impl_tiling_behavior!(Workspace);
