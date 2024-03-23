@@ -26,7 +26,7 @@ pub trait CommonBehavior {
   fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>>;
 
   /// Returns a reference to the parent container, unless this container is
-  /// the root container.
+  /// the root.
   ///
   /// # Panics
   ///

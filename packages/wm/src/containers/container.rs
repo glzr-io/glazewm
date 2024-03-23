@@ -10,7 +10,7 @@ use super::{RootContainer, SplitContainer};
 
 /// A reference to a container of any type.
 #[derive(Clone, Debug)]
-#[enum_dispatch(CommonBehavior)]
+#[enum_dispatch(CommonBehavior, PositionBehavior)]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),
@@ -34,7 +34,7 @@ impl From<TilingContainer> for Container {
 
 /// A reference to a tiling container.
 #[derive(Clone, Debug)]
-#[enum_dispatch(CommonBehavior, TilingBehavior)]
+#[enum_dispatch(CommonBehavior, PositionBehavior, TilingBehavior)]
 pub enum TilingContainer {
   Root(RootContainer),
   Monitor(Monitor),

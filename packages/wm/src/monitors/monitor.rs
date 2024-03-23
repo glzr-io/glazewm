@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeMonitor,
   containers::{
-    traits::{CommonBehavior, TilingBehavior},
+    traits::{CommonBehavior, PositionBehavior, TilingBehavior},
     ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_tiling_behavior,
@@ -42,3 +42,21 @@ impl Monitor {
 
 impl_common_behavior!(Monitor, ContainerType::Monitor);
 impl_tiling_behavior!(Monitor);
+
+impl PositionBehavior for Monitor {
+  fn width(&self) -> i32 {
+    self.0.borrow().native.width
+  }
+
+  fn height(&self) -> i32 {
+    self.0.borrow().native.height
+  }
+
+  fn x(&self) -> i32 {
+    self.0.borrow().native.x
+  }
+
+  fn y(&self) -> i32 {
+    self.0.borrow().native.y
+  }
+}

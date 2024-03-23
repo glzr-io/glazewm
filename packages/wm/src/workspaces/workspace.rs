@@ -8,8 +8,8 @@ use uuid::Uuid;
 use crate::{
   common::RectDelta,
   containers::{
-    traits::{CommonBehavior, TilingBehavior},
-    ContainerType, TilingContainer,
+    traits::{CommonBehavior, PositionBehavior, TilingBehavior},
+    Container, ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_tiling_behavior,
   user_config::WorkspaceConfig,
@@ -23,7 +23,9 @@ struct WorkspaceInner {
   id: Uuid,
   parent: Option<TilingContainer>,
   tiling_children: Vec<TilingContainer>,
-  non_tiling_children: Vec<TilingContainer>,
+  // TODO: Consider changing `non_tiling_children` to several fields for
+  // each window type (ie. `floating_windows`, `maximized_windows`, etc.)
+  non_tiling_children: Vec<Container>,
   size_percent: f32,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
@@ -47,3 +49,25 @@ impl Workspace {
 
 impl_common_behavior!(Workspace, ContainerType::Workspace);
 impl_tiling_behavior!(Workspace);
+
+impl PositionBehavior for Workspace {
+  fn width(&self) -> i32 {
+    self.parent().unwrap().width()
+      - self.outer_gaps().left
+      - self.outer_gaps().right
+  }
+
+  fn height(&self) -> i32 {
+    self.parent().unwrap().height()
+      - self.outer_gaps().top
+      - self.outer_gaps().bottom
+  }
+
+  fn x(&self) -> i32 {
+    self.parent().unwrap().x() + self.outer_gaps().left
+  }
+
+  fn y(&self) -> i32 {
+    self.parent().unwrap().y() + self.outer_gaps().top
+  }
+}

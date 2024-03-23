@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{impl_common_behavior, impl_tiling_behavior};
 
 use super::{
-  traits::{CommonBehavior, TilingBehavior},
+  traits::{CommonBehavior, PositionBehavior, TilingBehavior},
   ContainerType, TilingContainer,
 };
 
@@ -39,3 +39,21 @@ impl RootContainer {
 
 impl_common_behavior!(RootContainer, ContainerType::Root);
 impl_tiling_behavior!(RootContainer);
+
+impl PositionBehavior for RootContainer {
+  fn width(&self) -> i32 {
+    0
+  }
+
+  fn height(&self) -> i32 {
+    0
+  }
+
+  fn x(&self) -> i32 {
+    0
+  }
+
+  fn y(&self) -> i32 {
+    0
+  }
+}

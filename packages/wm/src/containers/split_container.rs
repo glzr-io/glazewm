@@ -6,11 +6,12 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-  common::TilingDirection, impl_common_behavior, impl_tiling_behavior,
+  common::TilingDirection, impl_common_behavior,
+  impl_position_behavior_as_resizable, impl_tiling_behavior,
 };
 
 use super::{
-  traits::{CommonBehavior, TilingBehavior},
+  traits::{CommonBehavior, PositionBehavior, TilingBehavior},
   ContainerType, TilingContainer,
 };
 
@@ -42,3 +43,4 @@ impl SplitContainer {
 
 impl_common_behavior!(SplitContainer, ContainerType::Split);
 impl_tiling_behavior!(SplitContainer);
+impl_position_behavior_as_resizable!(SplitContainer);

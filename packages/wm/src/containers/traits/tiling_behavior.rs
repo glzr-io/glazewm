@@ -29,6 +29,7 @@ pub trait TilingBehavior: CommonBehavior {
     *child.borrow_parent_mut() = Some(child.clone());
   }
 }
+
 /// Implements the `TilingBehavior` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct

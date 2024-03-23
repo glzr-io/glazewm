@@ -8,10 +8,11 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeWindow,
   containers::{
-    traits::{CommonBehavior, TilingBehavior},
+    traits::{CommonBehavior, PositionBehavior, TilingBehavior},
     ContainerType, TilingContainer,
   },
-  impl_common_behavior, impl_tiling_behavior,
+  impl_common_behavior, impl_position_behavior_as_resizable,
+  impl_tiling_behavior,
 };
 
 #[derive(Clone, Debug)]
@@ -42,3 +43,4 @@ impl TilingWindow {
 
 impl_common_behavior!(TilingWindow, ContainerType::Window);
 impl_tiling_behavior!(TilingWindow);
+impl_position_behavior_as_resizable!(TilingWindow);
