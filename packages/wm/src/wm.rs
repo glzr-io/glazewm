@@ -32,15 +32,6 @@ impl WindowManager {
     })
   }
 
-  // pub fn init() -> Result<()> {
-  //   let foreground_window = Platform::foreground_window();
-
-  //   let monitors = Platform::monitors()?;
-  //   let manageable_windows = Platform::manageable_windows()?;
-
-  //   Ok(())
-  // }
-
   pub async fn process_event(&mut self, event: PlatformEvent) {
     todo!()
   }

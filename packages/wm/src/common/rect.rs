@@ -58,8 +58,8 @@ impl Rect {
   pub fn translate_to_center(&mut self, outer_rect: Rect) -> Self {
     Self::translate_to_coordinates(
       self,
-      outer_rect.x + (outer_rect.width() / 2) - (self.width() / 2),
-      outer_rect.y + (outer_rect.height() / 2) - (self.height() / 2),
+      outer_rect.left + (outer_rect.width() / 2) - (self.width() / 2),
+      outer_rect.top + (outer_rect.height() / 2) - (self.height() / 2),
     )
   }
 

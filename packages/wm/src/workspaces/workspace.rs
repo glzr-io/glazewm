@@ -45,6 +45,10 @@ impl Workspace {
 
     Self(Rc::new(RefCell::new(workspace)))
   }
+
+  pub fn outer_gaps(&self) -> &RectDelta {
+    &self.0.borrow().outer_gaps
+  }
 }
 
 impl_common_behavior!(Workspace, ContainerType::Workspace);
@@ -53,21 +57,21 @@ impl_tiling_behavior!(Workspace);
 impl PositionBehavior for Workspace {
   fn width(&self) -> i32 {
     self.parent().unwrap().width()
-      - self.outer_gaps().left
-      - self.outer_gaps().right
+      - self.outer_gaps().left.amount
+      - self.outer_gaps().right.amount
   }
 
   fn height(&self) -> i32 {
     self.parent().unwrap().height()
-      - self.outer_gaps().top
-      - self.outer_gaps().bottom
+      - self.outer_gaps().top.amount
+      - self.outer_gaps().bottom.amount
   }
 
   fn x(&self) -> i32 {
-    self.parent().unwrap().x() + self.outer_gaps().left
+    self.parent().unwrap().x() + self.outer_gaps().left.amount
   }
 
   fn y(&self) -> i32 {
-    self.parent().unwrap().y() + self.outer_gaps().top
+    self.parent().unwrap().y() + self.outer_gaps().top.amount
   }
 }

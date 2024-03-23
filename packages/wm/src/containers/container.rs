@@ -59,3 +59,19 @@ impl TryFrom<Container> for TilingContainer {
     }
   }
 }
+
+impl TilingContainer {
+  pub fn as_monitor(&self) -> Option<Monitor> {
+    match self {
+      TilingContainer::Monitor(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
+
+  pub fn as_workspace(&self) -> Option<Workspace> {
+    match self {
+      TilingContainer::Workspace(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
+}

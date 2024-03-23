@@ -1,27 +1,17 @@
-use std::{
-  borrow::BorrowMut,
-  cell::RefCell,
-  rc::{Rc, Weak},
-  sync::Arc,
-};
+use std::{rc::Weak, sync::Arc};
 
-use anyhow::Result;
 use tokio::sync::{mpsc::UnboundedSender, Mutex};
-use tracing::warn;
-use uuid::Uuid;
 
 use crate::{
-  common::{
-    platform::{NativeMonitor, Platform},
-    FocusMode,
-  },
+  common::platform::{NativeMonitor, NativeWindow, Platform},
   containers::{
-    traits::{CommonBehavior, TilingBehavior},
-    Container, ContainerType, RootContainer, TilingContainer,
+    traits::TilingBehavior, Container, RootContainer, TilingContainer,
   },
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
+  windows::TilingWindow,
   wm_event::WmEvent,
+  workspaces::Workspace,
 };
 
 pub struct WmState {
@@ -64,7 +54,10 @@ impl WmState {
     }
   }
 
+  /// Populates the initial WM state by creating containers for all
+  /// existing windows and monitors.
   pub fn populate(&mut self) -> anyhow::Result<()> {
+    // Get the originally focused window when the WM is started.
     let foreground_window = Platform::foreground_window();
     let native_monitors = Platform::monitors()?;
 
@@ -77,38 +70,55 @@ impl WmState {
     }
 
     for native_window in Platform::manageable_windows()? {
-      // let window = ContainerRef::Window(native_window);
-      // self.root_container.insert_tiling_child(0, window);
+      let nearest_monitor = Platform::nearest_monitor(&native_window)
+        .and_then(|native| self.monitor_from_native(&native))
+        .or(self.monitors().first().cloned());
+
+      if let Some(monitor) = nearest_monitor {
+        // TODO: This should actually add to the monitor's displayed workspace.
+        let window = TilingWindow::new(native_window);
+        monitor
+          .insert_tiling_child(0, TilingContainer::TilingWindow(window));
+      }
     }
 
     Ok(())
   }
 
-  pub fn nearest_monitor(&self) -> Option<Monitor> {
-    todo!()
-  }
-
-  pub fn add_monitor(&mut self) {
-    let monitor = Monitor::new(NativeMonitor::new(
-      windows::Win32::Graphics::Gdi::HMONITOR(1),
-      String::from("aaa"),
-      0,
-      0,
-      0,
-      0,
-    ));
-
+  pub fn monitors(&self) -> Vec<Monitor> {
     self
       .root_container
-      .insert_tiling_child(0, TilingContainer::Monitor(monitor))
+      .tiling_children()
+      .iter()
+      .map(|c| c.as_monitor().unwrap())
+      .collect()
   }
 
-  pub fn emit_event(&self, event: WmEvent) -> Result<()> {
-    if let Err(err) = self.event_tx.send(event) {
-      warn!("Failed to send event: {}", err);
-    }
+  pub fn workspaces(&self) -> Vec<Workspace> {
+    self
+      .monitors()
+      .iter()
+      .flat_map(|c| c.tiling_children())
+      .map(|c| c.as_workspace().unwrap())
+      .collect()
+  }
 
-    Ok(())
+  pub fn monitor_from_native(
+    &self,
+    native_monitor: &NativeMonitor,
+  ) -> Option<Monitor> {
+    self
+      .monitors()
+      .iter()
+      .find(|&m| m.native() == *native_monitor)
+      .cloned()
+  }
+
+  pub fn window_from_native(
+    &self,
+    native_window: NativeWindow,
+  ) -> Option<Container> {
+    todo!()
   }
 
   // Get the currently focused container. This can either be a `Window` or

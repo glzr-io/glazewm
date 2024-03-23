@@ -6,16 +6,16 @@ use super::LengthValue;
 #[derive(Debug, Clone)]
 pub struct RectDelta {
   /// The delta in x-coordinates on the left of the rectangle.
-  left: LengthValue,
+  pub left: LengthValue,
 
   /// The delta in y-coordinates on the top of the rectangle.
-  top: LengthValue,
+  pub top: LengthValue,
 
   /// The delta in x-coordinates on the right of the rectangle.
-  right: LengthValue,
+  pub right: LengthValue,
 
   /// The delta in y-coordinates on the bottom of the rectangle.
-  bottom: LengthValue,
+  pub bottom: LengthValue,
 }
 
 impl RectDelta {

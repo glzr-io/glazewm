@@ -38,6 +38,10 @@ impl Monitor {
 
     Self(Rc::new(RefCell::new(monitor)))
   }
+
+  pub fn native(&self) -> NativeMonitor {
+    todo!()
+  }
 }
 
 impl_common_behavior!(Monitor, ContainerType::Monitor);
