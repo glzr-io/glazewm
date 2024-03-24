@@ -12,7 +12,7 @@ use tokio::{
 };
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
-use user_config::ConfigReader;
+use user_config::UserConfig;
 use wm::WindowManager;
 
 use crate::cli::{Cli, CliCommand};
@@ -49,26 +49,21 @@ async fn main() {
 
 async fn start_wm(config_path: Option<String>) -> Result<()> {
   // Parse and validate user config.
-  let mut config_reader = ConfigReader::read(config_path).await?;
+  let config = UserConfig::read(config_path).await?;
 
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::start(
-    config_reader.config(),
-    config_reader.changes_tx.clone(),
-  )?;
+  let mut wm = WindowManager::start(&config).await?;
 
   // Start listening for platform events.
-  let mut event_listener =
-    Platform::new_event_listener(config_reader.config()).await?;
+  let mut event_listener = Platform::new_event_listener(&config).await?;
 
   loop {
     let wm_state = wm.state.clone();
-    let config = config_reader.config();
-    let config = config.lock().await;
+    let mut config = config.lock().await;
 
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
@@ -87,7 +82,7 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
         info!("Received WM command via IPC: {:?}", wm_command);
         wm.process_command(wm_command).await
       },
-      Some(config) = config_reader.changes_rx.recv() => {
+      Some(config) = config.changes_rx.recv() => {
         info!("Received user config update: {:?}", config);
         event_listener.update(&config);
       },

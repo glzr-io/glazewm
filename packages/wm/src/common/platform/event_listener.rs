@@ -6,7 +6,7 @@ use tokio::sync::{
   Mutex,
 };
 
-use crate::user_config::{KeybindingConfig, UserConfig};
+use crate::user_config::{KeybindingConfig, ParsedConfig, UserConfig};
 
 use super::{EventWindow, NativeWindow};
 
@@ -35,14 +35,14 @@ impl EventListener {
   /// Initializes listener for platform events.
   ///
   /// Creates an instance of `EventListener`.
-  pub async fn start(config: Arc<Mutex<UserConfig>>) -> Result<Self> {
+  pub async fn start(config: &Arc<Mutex<UserConfig>>) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let config = config.lock().await;
 
     let event_window = EventWindow::new(
       event_tx,
-      config.keybindings.clone(),
-      config.general.focus_follows_cursor,
+      config.value.keybindings.clone(),
+      config.value.general.focus_follows_cursor,
     );
 
     Ok(Self {
@@ -52,7 +52,7 @@ impl EventListener {
   }
 
   /// Updates the event listener with the latest user config.
-  pub fn update(&mut self, config: &UserConfig) {
+  pub fn update(&mut self, config: &ParsedConfig) {
     self.event_window.update(
       config.keybindings.clone(),
       config.general.focus_follows_cursor,

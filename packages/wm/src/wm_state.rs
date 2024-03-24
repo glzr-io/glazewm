@@ -1,13 +1,11 @@
-use std::{rc::Weak, sync::Arc};
-
 use anyhow::anyhow;
-use tokio::sync::{mpsc::UnboundedSender, Mutex};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   common::platform::{NativeMonitor, NativeWindow, Platform},
   containers::{traits::TilingBehavior, Container, RootContainer},
   monitors::Monitor,
-  user_config::{BindingModeConfig, UserConfig},
+  user_config::{BindingModeConfig, ParsedConfig, UserConfig},
   windows::TilingWindow,
   wm_event::WmEvent,
   workspaces::Workspace,
@@ -28,38 +26,26 @@ pub struct WmState {
   /// Currently enabled binding modes.
   binding_modes: Vec<BindingModeConfig>,
 
-  /// Parsed user config.
-  config: Arc<Mutex<UserConfig>>,
-
-  config_changes_tx: UnboundedSender<UserConfig>,
-
   event_tx: UnboundedSender<WmEvent>,
 }
 
 impl WmState {
-  pub fn new(
-    config: Arc<Mutex<UserConfig>>,
-    config_changes_tx: UnboundedSender<UserConfig>,
-    event_tx: UnboundedSender<WmEvent>,
-  ) -> Self {
+  pub fn new(event_tx: UnboundedSender<WmEvent>) -> Self {
     Self {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       binding_modes: Vec::new(),
-      config,
-      config_changes_tx,
       event_tx,
     }
   }
 
   /// Populates the initial WM state by creating containers for all
   /// existing windows and monitors.
-  pub fn populate(&mut self) -> anyhow::Result<()> {
-    // Get the originally focused window when the WM is started.
+  pub fn populate(&mut self, config: &UserConfig) -> anyhow::Result<()> {
+    // Get the originally focused window when the WM was started.
     let foreground_window = Platform::foreground_window();
     let native_monitors = Platform::monitors()?;
-    let config = self.config.try_lock()?;
 
     for native_monitor in native_monitors {
       let monitor = Monitor::new(native_monitor);
@@ -68,8 +54,10 @@ impl WmState {
         .workspace_config_for_monitor(&monitor, &self.workspaces())
         .ok_or(anyhow!("No workspace config found for monitor."))?;
 
-      let workspace =
-        Workspace::new(workspace_config, config.gaps.outer_gap.clone());
+      let workspace = Workspace::new(
+        workspace_config,
+        config.value.gaps.outer_gap.clone(),
+      );
 
       monitor.insert_child(0, workspace.into());
       self.root_container.insert_child(0, monitor.into());

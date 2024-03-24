@@ -71,6 +71,7 @@ impl IpcServer {
   }
 
   pub async fn process_event(&mut self, event: WmEvent) {
+    // TODO: Spawn a task so that it doesn't block main thread execution.
     todo!()
   }
 }

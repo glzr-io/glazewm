@@ -112,7 +112,7 @@ pub struct WorkspaceConfig {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct UserConfig {
+pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
   pub focus_borders: FocusBordersConfig,
   pub gaps: GapsConfig,
@@ -122,47 +122,21 @@ pub struct UserConfig {
   pub workspaces: Vec<WorkspaceConfig>,
 }
 
-impl UserConfig {
-  pub fn workspace_config_for_monitor(
-    &self,
-    monitor: &Monitor,
-    active_workspaces: &Vec<Workspace>,
-  ) -> Option<WorkspaceConfig> {
-    let mut inactive_configs = self.workspaces.iter().filter(|config| {
-      active_workspaces
-        .iter()
-        .find(|workspace| workspace.config().name == config.name)
-        .is_none()
-    });
-
-    let bound_config = inactive_configs.find(|config| {
-      config
-        .bind_to_monitor
-        .as_ref()
-        .map(|m| m == &monitor.name())
-        .unwrap_or(false)
-    });
-
-    // Get the first workspace config that isn't bound to a monitor.
-    bound_config
-      .or(inactive_configs.find(|config| config.bind_to_monitor.is_none()))
-      .cloned()
-  }
-}
-
 #[derive(Debug)]
-pub struct ConfigReader {
-  pub config: Arc<Mutex<UserConfig>>,
-  pub changes_rx: mpsc::UnboundedReceiver<UserConfig>,
-  pub changes_tx: mpsc::UnboundedSender<UserConfig>,
+pub struct UserConfig {
+  pub value: ParsedConfig,
+  pub changes_rx: mpsc::UnboundedReceiver<ParsedConfig>,
+  pub changes_tx: mpsc::UnboundedSender<ParsedConfig>,
 }
 
 const SAMPLE_CONFIG: &str =
   include_str!("../../../resources/sample-config.yaml");
 
-impl ConfigReader {
+impl UserConfig {
   /// Read and validate the user config from the given path.
-  pub async fn read(config_path: Option<String>) -> Result<Self> {
+  pub async fn read(
+    config_path: Option<String>,
+  ) -> Result<Arc<Mutex<Self>>> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
@@ -183,13 +157,14 @@ impl ConfigReader {
 
     let parsed_config = serde_yaml::from_str(&config_str)?;
 
-    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<UserConfig>();
+    let (changes_tx, changes_rx) =
+      mpsc::unbounded_channel::<ParsedConfig>();
 
-    Ok(Self {
-      config: Arc::new(Mutex::new(parsed_config)),
+    Ok(Arc::new(Mutex::new(Self {
+      value: parsed_config,
       changes_rx,
       changes_tx,
-    })
+    })))
   }
 
   /// Initialize a new config file from the sample config resource.
@@ -210,12 +185,45 @@ impl ConfigReader {
     Ok(())
   }
 
-  pub fn config(&self) -> Arc<Mutex<UserConfig>> {
-    self.config.clone()
-  }
-
   // TODO: Maybe this should be on the impl of `UserConfig` instead.
   async fn refresh(&self) -> Result<()> {
     Ok(())
+  }
+
+  pub fn workspace_config_for_monitor(
+    &self,
+    monitor: &Monitor,
+    active_workspaces: &Vec<Workspace>,
+  ) -> Option<WorkspaceConfig> {
+    let inactive_configs = self
+      .value
+      .workspaces
+      .iter()
+      .filter(|config| {
+        active_workspaces
+          .iter()
+          .find(|workspace| workspace.config().name == config.name)
+          .is_none()
+      })
+      .collect::<Vec<_>>();
+
+    let bound_config = inactive_configs.iter().find(|&config| {
+      config
+        .bind_to_monitor
+        .as_ref()
+        .map(|monitor_name| monitor_name == &monitor.name())
+        .unwrap_or(false)
+    });
+
+    // Get the first workspace config that isn't bound to a monitor.
+    bound_config
+      .or(
+        inactive_configs
+          .iter()
+          .find(|config| config.bind_to_monitor.is_none()),
+      )
+      .or(inactive_configs.first())
+      .cloned()
+      .cloned()
   }
 }

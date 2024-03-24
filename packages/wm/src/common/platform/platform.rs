@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
-use crate::user_config::UserConfig;
+use crate::user_config::{ParsedConfig, UserConfig};
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
@@ -38,7 +38,7 @@ impl Platform {
   }
 
   pub async fn new_event_listener(
-    config: Arc<Mutex<UserConfig>>,
+    config: &Arc<Mutex<UserConfig>>,
   ) -> anyhow::Result<EventListener> {
     EventListener::start(config).await
   }
