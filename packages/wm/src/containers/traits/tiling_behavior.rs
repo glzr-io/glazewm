@@ -12,6 +12,8 @@ pub trait TilingBehavior: CommonBehavior {
 
   fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>>;
 
+  fn self_as_tiling(&self) -> TilingContainer;
+
   fn children(&self) -> Vec<Container> {
     self.borrow_children().clone()
   }
@@ -21,7 +23,7 @@ pub trait TilingBehavior: CommonBehavior {
       .borrow_children_mut()
       .insert(target_index, child.clone());
 
-    *child.borrow_parent_mut() = Some(child.clone());
+    *child.borrow_parent_mut() = Some(self.self_as_tiling());
   }
 }
 
@@ -39,6 +41,10 @@ macro_rules! impl_tiling_behavior {
 
       fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
+      }
+
+      fn self_as_tiling(&self) -> TilingContainer {
+        self.clone().into()
       }
     }
   };

@@ -32,6 +32,22 @@ impl From<TilingContainer> for Container {
   }
 }
 
+impl Container {
+  pub fn as_monitor(&self) -> Option<Monitor> {
+    match self {
+      Container::Monitor(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
+
+  pub fn as_workspace(&self) -> Option<Workspace> {
+    match self {
+      Container::Workspace(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
+}
+
 /// A reference to a tiling container.
 #[derive(Clone, Debug)]
 #[enum_dispatch(CommonBehavior, PositionBehavior, TilingBehavior)]

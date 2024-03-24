@@ -41,6 +41,15 @@ impl LengthValue {
 
     Ok(LengthValue { amount, unit })
   }
+
+  pub fn to_pixels(&self, total: i32) -> i32 {
+    match self.unit {
+      LengthUnit::Pixel => self.amount as i32,
+      LengthUnit::Percentage => {
+        (self.amount / 100.0 * total as f32) as i32
+      }
+    }
+  }
 }
 
 impl<'de> Deserialize<'de> for LengthValue {

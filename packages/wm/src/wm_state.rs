@@ -64,9 +64,7 @@ impl WmState {
     for native_monitor in native_monitors {
       let monitor = Monitor::new(native_monitor);
 
-      self
-        .root_container
-        .insert_child(0, TilingContainer::Monitor(monitor));
+      self.root_container.insert_child(0, monitor.into());
     }
 
     for native_window in Platform::manageable_windows()? {
@@ -77,7 +75,7 @@ impl WmState {
       if let Some(monitor) = nearest_monitor {
         // TODO: This should actually add to the monitor's displayed workspace.
         let window = TilingWindow::new(native_window);
-        monitor.insert_child(0, TilingContainer::TilingWindow(window));
+        monitor.insert_child(0, window.into());
       }
     }
 

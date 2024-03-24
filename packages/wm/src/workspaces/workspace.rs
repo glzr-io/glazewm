@@ -46,8 +46,8 @@ impl Workspace {
     Self(Rc::new(RefCell::new(workspace)))
   }
 
-  pub fn outer_gaps(&self) -> &RectDelta {
-    &self.0.borrow().outer_gaps
+  fn outer_gaps(&self) -> Ref<'_, RectDelta> {
+    Ref::map(self.0.borrow(), |c| &c.outer_gaps)
   }
 }
 
@@ -56,22 +56,28 @@ impl_tiling_behavior!(Workspace);
 
 impl PositionBehavior for Workspace {
   fn width(&self) -> i32 {
-    self.parent().unwrap().width()
-      - self.outer_gaps().left.amount
-      - self.outer_gaps().right.amount
+    let monitor_width = self.parent().unwrap().width();
+    monitor_width
+      - self.outer_gaps().left.to_pixels(monitor_width)
+      - self.outer_gaps().right.to_pixels(monitor_width)
   }
 
   fn height(&self) -> i32 {
-    self.parent().unwrap().height()
-      - self.outer_gaps().top.amount
-      - self.outer_gaps().bottom.amount
+    let monitor_height = self.parent().unwrap().height();
+    monitor_height
+      - self.outer_gaps().top.to_pixels(monitor_height)
+      - self.outer_gaps().bottom.to_pixels(monitor_height)
   }
 
   fn x(&self) -> i32 {
-    self.parent().unwrap().x() + self.outer_gaps().left.amount
+    let monitor_width = self.parent().unwrap().width();
+    self.parent().unwrap().x()
+      + self.outer_gaps().left.to_pixels(monitor_width)
   }
 
   fn y(&self) -> i32 {
-    self.parent().unwrap().y() + self.outer_gaps().top.amount
+    let monitor_height = self.parent().unwrap().height();
+    self.parent().unwrap().y()
+      + self.outer_gaps().top.to_pixels(monitor_height)
   }
 }
