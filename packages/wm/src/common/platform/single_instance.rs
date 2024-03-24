@@ -1,52 +1,61 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use windows::{
   core::{w, PCWSTR},
   Win32::{
     Foundation::{
-      CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HANDLE,
+      CloseHandle, GetLastError, ERROR_ALREADY_EXISTS,
+      ERROR_FILE_NOT_FOUND, HANDLE,
     },
-    System::Threading::{CreateMutexW, ReleaseMutex},
+    System::Threading::{
+      CreateMutexW, OpenMutexW, ReleaseMutex,
+      SYNCHRONIZATION_ACCESS_RIGHTS,
+    },
   },
 };
 
 pub struct SingleInstance {
-  handle: Option<HANDLE>,
+  handle: HANDLE,
 }
 
 const APP_GUID: PCWSTR =
   w!("Global\\325d0ed7-7f60-4925-8d1b-aa287b26b218");
 
 impl SingleInstance {
-  /// Creates a new instance of `SingleInstance` struct.
+  /// Creates a new system-wide mutex to ensure that only one instance of
+  /// the application is running.
   pub fn new() -> Result<Self> {
     let handle = unsafe { CreateMutexW(None, true, APP_GUID) }
       .context("Failed to create single instance mutex.")?;
 
-    if let Err(error) = unsafe { GetLastError() } {
-      if error == ERROR_ALREADY_EXISTS.into() {
-        // Another instance of the application is already running.
-        return Ok(Self { handle: None });
+    if let Err(err) = unsafe { GetLastError() } {
+      if err == ERROR_ALREADY_EXISTS.into() {
+        bail!("Another instance of the application is already running.");
       }
     }
 
-    Ok(Self {
-      handle: Some(handle),
-    })
+    Ok(Self { handle })
   }
 
-  /// Gets whether this is the only active instance of the application.
-  pub fn is_single(&self) -> bool {
-    self.handle.is_some()
+  /// Gets whether there is an active instance of the application.
+  pub fn is_running() -> bool {
+    let res = unsafe {
+      OpenMutexW(SYNCHRONIZATION_ACCESS_RIGHTS::default(), false, APP_GUID)
+    };
+
+    // Check whether the mutex exists. If it doesn't, then this is the
+    // only instance.
+    match res {
+      Ok(_) => false,
+      Err(err) => err == ERROR_FILE_NOT_FOUND.into(),
+    }
   }
 }
 
 impl Drop for SingleInstance {
   fn drop(&mut self) {
-    if let Some(handle) = self.handle.take() {
-      unsafe {
-        let _ = ReleaseMutex(handle);
-        let _ = CloseHandle(handle);
-      }
+    unsafe {
+      let _ = ReleaseMutex(self.handle);
+      let _ = CloseHandle(self.handle);
     }
   }
 }
