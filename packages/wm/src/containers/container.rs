@@ -6,7 +6,7 @@ use crate::{
   workspaces::Workspace,
 };
 
-use super::{RootContainer, SplitContainer};
+use super::{traits::CommonBehavior, RootContainer, SplitContainer};
 
 /// A reference to a container of any type.
 #[derive(Clone, Debug)]
@@ -18,18 +18,6 @@ pub enum Container {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
-}
-
-impl From<TilingContainer> for Container {
-  fn from(tiling_container: TilingContainer) -> Self {
-    match tiling_container {
-      TilingContainer::Root(c) => Container::Root(c),
-      TilingContainer::Monitor(c) => Container::Monitor(c),
-      TilingContainer::Workspace(c) => Container::Workspace(c),
-      TilingContainer::Split(c) => Container::Split(c),
-      TilingContainer::TilingWindow(c) => Container::TilingWindow(c),
-    }
-  }
 }
 
 impl Container {
@@ -48,6 +36,26 @@ impl Container {
   }
 }
 
+impl From<TilingContainer> for Container {
+  fn from(tiling_container: TilingContainer) -> Self {
+    match tiling_container {
+      TilingContainer::Root(c) => Container::Root(c),
+      TilingContainer::Monitor(c) => Container::Monitor(c),
+      TilingContainer::Workspace(c) => Container::Workspace(c),
+      TilingContainer::Split(c) => Container::Split(c),
+      TilingContainer::TilingWindow(c) => Container::TilingWindow(c),
+    }
+  }
+}
+
+impl PartialEq for Container {
+  fn eq(&self, other: &Self) -> bool {
+    self.id() == other.id()
+  }
+}
+
+impl Eq for Container {}
+
 /// A reference to a tiling container.
 #[derive(Clone, Debug)]
 #[enum_dispatch(CommonBehavior, PositionBehavior, TilingBehavior)]
@@ -57,6 +65,22 @@ pub enum TilingContainer {
   Workspace(Workspace),
   Split(SplitContainer),
   TilingWindow(TilingWindow),
+}
+
+impl TilingContainer {
+  pub fn as_monitor(&self) -> Option<Monitor> {
+    match self {
+      TilingContainer::Monitor(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
+
+  pub fn as_workspace(&self) -> Option<Workspace> {
+    match self {
+      TilingContainer::Workspace(c) => Some(c.clone()),
+      _ => None,
+    }
+  }
 }
 
 impl TryFrom<Container> for TilingContainer {
@@ -76,18 +100,10 @@ impl TryFrom<Container> for TilingContainer {
   }
 }
 
-impl TilingContainer {
-  pub fn as_monitor(&self) -> Option<Monitor> {
-    match self {
-      TilingContainer::Monitor(c) => Some(c.clone()),
-      _ => None,
-    }
-  }
-
-  pub fn as_workspace(&self) -> Option<Workspace> {
-    match self {
-      TilingContainer::Workspace(c) => Some(c.clone()),
-      _ => None,
-    }
+impl PartialEq for TilingContainer {
+  fn eq(&self, other: &Self) -> bool {
+    self.id() == other.id()
   }
 }
+
+impl Eq for TilingContainer {}

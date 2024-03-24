@@ -67,6 +67,8 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
 
   loop {
     let wm_state = wm.state.clone();
+    let config = config_reader.config();
+    let config = config.lock().await;
 
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {

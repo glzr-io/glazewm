@@ -9,7 +9,9 @@ use tokio::{
 
 use crate::{
   common::{LengthValue, RectDelta},
+  monitors::Monitor,
   wm_command::WmCommand,
+  workspaces::Workspace,
 };
 
 #[derive(Clone, Debug, Deserialize)]
@@ -118,6 +120,34 @@ pub struct UserConfig {
   pub keybindings: Vec<KeybindingConfig>,
   pub window_rules: Vec<WindowRuleConfig>,
   pub workspaces: Vec<WorkspaceConfig>,
+}
+
+impl UserConfig {
+  pub fn workspace_config_for_monitor(
+    &self,
+    monitor: &Monitor,
+    active_workspaces: &Vec<Workspace>,
+  ) -> Option<WorkspaceConfig> {
+    let mut inactive_configs = self.workspaces.iter().filter(|config| {
+      active_workspaces
+        .iter()
+        .find(|workspace| workspace.config().name == config.name)
+        .is_none()
+    });
+
+    let bound_config = inactive_configs.find(|config| {
+      config
+        .bind_to_monitor
+        .as_ref()
+        .map(|m| m == &monitor.name())
+        .unwrap_or(false)
+    });
+
+    // Get the first workspace config that isn't bound to a monitor.
+    bound_config
+      .or(inactive_configs.find(|config| config.bind_to_monitor.is_none()))
+      .cloned()
+  }
 }
 
 #[derive(Debug)]

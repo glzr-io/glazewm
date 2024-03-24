@@ -23,9 +23,6 @@ struct WorkspaceInner {
   id: Uuid,
   parent: Option<TilingContainer>,
   children: Vec<Container>,
-  // TODO: Consider changing `non_tiling_children` to several fields for
-  // each window type (ie. `floating_windows`, `maximized_windows`, etc.)
-  non_tiling_children: Vec<Container>,
   size_percent: f32,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
@@ -37,13 +34,16 @@ impl Workspace {
       id: Uuid::new_v4(),
       parent: None,
       children: Vec::new(),
-      non_tiling_children: Vec::new(),
       size_percent: 1.0,
       config,
       outer_gaps,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
+  }
+
+  pub fn config(&self) -> WorkspaceConfig {
+    self.0.borrow().config.clone()
   }
 
   fn outer_gaps(&self) -> Ref<'_, RectDelta> {

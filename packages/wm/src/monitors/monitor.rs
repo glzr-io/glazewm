@@ -12,6 +12,7 @@ use crate::{
     Container, ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_tiling_behavior,
+  workspaces::Workspace,
 };
 
 #[derive(Clone, Debug)]
@@ -40,6 +41,18 @@ impl Monitor {
   }
 
   pub fn native(&self) -> NativeMonitor {
+    self.0.borrow().native.clone()
+  }
+
+  pub fn name(&self) -> String {
+    self.native().device_name
+  }
+
+  pub fn workspaces(&self) -> Vec<Workspace> {
+    todo!()
+  }
+
+  pub fn displayed_workspace(&self) -> Workspace {
     todo!()
   }
 }

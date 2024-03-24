@@ -1,12 +1,11 @@
 use std::{rc::Weak, sync::Arc};
 
+use anyhow::anyhow;
 use tokio::sync::{mpsc::UnboundedSender, Mutex};
 
 use crate::{
   common::platform::{NativeMonitor, NativeWindow, Platform},
-  containers::{
-    traits::TilingBehavior, Container, RootContainer, TilingContainer,
-  },
+  containers::{traits::TilingBehavior, Container, RootContainer},
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
   windows::TilingWindow,
@@ -20,7 +19,7 @@ pub struct WmState {
   root_container: RootContainer,
 
   /// Containers (and their descendants) that have a pending redraw.
-  containers_to_redraw: Vec<Weak<Container>>,
+  containers_to_redraw: Vec<Container>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
@@ -60,10 +59,19 @@ impl WmState {
     // Get the originally focused window when the WM is started.
     let foreground_window = Platform::foreground_window();
     let native_monitors = Platform::monitors()?;
+    let config = self.config.try_lock()?;
 
     for native_monitor in native_monitors {
       let monitor = Monitor::new(native_monitor);
 
+      let workspace_config = config
+        .workspace_config_for_monitor(&monitor, &self.workspaces())
+        .ok_or(anyhow!("No workspace config found for monitor."))?;
+
+      let workspace =
+        Workspace::new(workspace_config, config.gaps.outer_gap.clone());
+
+      monitor.insert_child(0, workspace.into());
       self.root_container.insert_child(0, monitor.into());
     }
 
@@ -78,6 +86,8 @@ impl WmState {
         monitor.insert_child(0, window.into());
       }
     }
+
+    self.has_pending_focus_sync = true;
 
     Ok(())
   }
