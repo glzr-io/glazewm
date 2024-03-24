@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
   traits::{CommonBehavior, PositionBehavior, TilingBehavior},
-  ContainerType, TilingContainer,
+  Container, ContainerType, TilingContainer,
 };
 
 #[derive(Clone, Debug)]
@@ -22,7 +22,7 @@ pub struct SplitContainer(Rc<RefCell<SplitContainerInner>>);
 struct SplitContainerInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<TilingContainer>,
+  children: Vec<Container>,
   size_percent: f32,
   tiling_direction: TilingDirection,
 }

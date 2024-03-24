@@ -9,7 +9,7 @@ use crate::{
   common::platform::NativeWindow,
   containers::{
     traits::{CommonBehavior, PositionBehavior, TilingBehavior},
-    ContainerType, TilingContainer,
+    Container, ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_position_behavior_as_resizable,
   impl_tiling_behavior,
@@ -22,7 +22,7 @@ pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
 struct TilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<TilingContainer>,
+  children: Vec<Container>,
   size_percent: f32,
   native: NativeWindow,
 }

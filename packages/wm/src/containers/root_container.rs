@@ -9,7 +9,7 @@ use crate::{impl_common_behavior, impl_tiling_behavior};
 
 use super::{
   traits::{CommonBehavior, PositionBehavior, TilingBehavior},
-  ContainerType, TilingContainer,
+  Container, ContainerType, TilingContainer,
 };
 
 /// Root node of the container tree.
@@ -20,7 +20,7 @@ pub struct RootContainer(Rc<RefCell<RootContainerInner>>);
 struct RootContainerInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<TilingContainer>,
+  children: Vec<Container>,
   size_percent: f32,
 }
 

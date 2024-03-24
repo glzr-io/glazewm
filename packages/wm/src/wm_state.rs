@@ -66,7 +66,7 @@ impl WmState {
 
       self
         .root_container
-        .insert_tiling_child(0, TilingContainer::Monitor(monitor));
+        .insert_child(0, TilingContainer::Monitor(monitor));
     }
 
     for native_window in Platform::manageable_windows()? {
@@ -77,8 +77,7 @@ impl WmState {
       if let Some(monitor) = nearest_monitor {
         // TODO: This should actually add to the monitor's displayed workspace.
         let window = TilingWindow::new(native_window);
-        monitor
-          .insert_tiling_child(0, TilingContainer::TilingWindow(window));
+        monitor.insert_child(0, TilingContainer::TilingWindow(window));
       }
     }
 
@@ -88,7 +87,7 @@ impl WmState {
   pub fn monitors(&self) -> Vec<Monitor> {
     self
       .root_container
-      .tiling_children()
+      .children()
       .iter()
       .map(|c| c.as_monitor().unwrap())
       .collect()
@@ -98,7 +97,7 @@ impl WmState {
     self
       .monitors()
       .iter()
-      .flat_map(|c| c.tiling_children())
+      .flat_map(|c| c.children())
       .map(|c| c.as_workspace().unwrap())
       .collect()
   }

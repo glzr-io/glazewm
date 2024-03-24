@@ -22,7 +22,7 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 struct WorkspaceInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  tiling_children: Vec<TilingContainer>,
+  children: Vec<Container>,
   // TODO: Consider changing `non_tiling_children` to several fields for
   // each window type (ie. `floating_windows`, `maximized_windows`, etc.)
   non_tiling_children: Vec<Container>,
@@ -36,7 +36,7 @@ impl Workspace {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
       parent: None,
-      tiling_children: Vec::new(),
+      children: Vec::new(),
       non_tiling_children: Vec::new(),
       size_percent: 1.0,
       config,

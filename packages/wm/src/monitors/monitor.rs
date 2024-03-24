@@ -9,7 +9,7 @@ use crate::{
   common::platform::NativeMonitor,
   containers::{
     traits::{CommonBehavior, PositionBehavior, TilingBehavior},
-    ContainerType, TilingContainer,
+    Container, ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_tiling_behavior,
 };
@@ -21,7 +21,7 @@ pub struct Monitor(Rc<RefCell<MonitorInner>>);
 struct MonitorInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<TilingContainer>,
+  children: Vec<Container>,
   size_percent: f32,
   native: NativeMonitor,
 }

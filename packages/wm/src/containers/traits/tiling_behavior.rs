@@ -2,28 +2,23 @@ use std::cell::{Ref, RefMut};
 
 use enum_dispatch::enum_dispatch;
 
-use crate::containers::TilingContainer;
+use crate::containers::{Container, TilingContainer};
 
 use super::CommonBehavior;
 
 #[enum_dispatch]
 pub trait TilingBehavior: CommonBehavior {
-  fn borrow_tiling_children(&self) -> Ref<'_, Vec<TilingContainer>>;
+  fn borrow_children(&self) -> Ref<'_, Vec<Container>>;
 
-  fn borrow_tiling_children_mut(&self)
-    -> RefMut<'_, Vec<TilingContainer>>;
+  fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>>;
 
-  fn tiling_children(&self) -> Vec<TilingContainer> {
-    self.borrow_tiling_children().clone()
+  fn children(&self) -> Vec<Container> {
+    self.borrow_children().clone()
   }
 
-  fn insert_tiling_child(
-    &self,
-    target_index: usize,
-    child: TilingContainer,
-  ) {
+  fn insert_child(&self, target_index: usize, child: Container) {
     self
-      .borrow_tiling_children_mut()
+      .borrow_children_mut()
       .insert(target_index, child.clone());
 
     *child.borrow_parent_mut() = Some(child.clone());
@@ -38,13 +33,11 @@ pub trait TilingBehavior: CommonBehavior {
 macro_rules! impl_tiling_behavior {
   ($struct_name:ident) => {
     impl TilingBehavior for $struct_name {
-      fn borrow_tiling_children(&self) -> Ref<'_, Vec<TilingContainer>> {
+      fn borrow_children(&self) -> Ref<'_, Vec<Container>> {
         Ref::map(self.0.borrow(), |c| &c.children)
       }
 
-      fn borrow_tiling_children_mut(
-        &self,
-      ) -> RefMut<'_, Vec<TilingContainer>> {
+      fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
       }
     }
