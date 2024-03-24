@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 ipc-client = { path = "../ipc-client" }
-wm = { path = "../wm", artifact = "bin" }
+wm = { path = "../wm" }
 
 anyhow = { workspace = true }
 tokio = { workspace = true }
