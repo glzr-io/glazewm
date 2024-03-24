@@ -16,8 +16,11 @@ use windows::{
         KEYBD_EVENT_FLAGS, VIRTUAL_KEY,
       },
       WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetWindowTextW,
-        GetWindowThreadProcessId, IsWindowVisible, SetForegroundWindow,
+        EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
+        GetWindowPlacement, GetWindowTextW, GetWindowThreadProcessId,
+        IsWindowVisible, SetForegroundWindow, GWL_EXSTYLE, GWL_STYLE,
+        GW_OWNER, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
+        WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
       },
     },
   },
@@ -153,7 +156,25 @@ impl NativeWindow {
       return false;
     }
 
-    true
+    // Ensure window is top-level (ie. not a child window). Ignore windows
+    // that cannot be focused or if they're unavailable in task switcher
+    // (alt+tab menu).
+    let is_application_window = !self.has_window_style(WS_CHILD)
+      && !self.has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
+    if !is_application_window {
+      return false;
+    }
+
+    // Some applications spawn top-level windows for menus that should be
+    // ignored. This includes the autocomplete popup in Notepad++ and title
+    // bar menu in Keepass. Although not foolproof, these can typically be
+    // identified by having an owner window and no title bar.
+    let is_menu_window = unsafe { GetWindow(self.handle, GW_OWNER) }.0
+      != 0
+      && !self.has_window_style(WS_CAPTION);
+
+    !is_menu_window
   }
 
   pub fn is_minimized(&self) -> bool {
@@ -197,13 +218,26 @@ impl NativeWindow {
     Ok(())
   }
 
-  // fn window_styles(&self) -> Vec<WindowStyle> {
-  //   todo!()
-  // }
+  fn size(&self) -> (i32, i32) {
+    let mut placement = WINDOWPLACEMENT::default();
+    let _ = unsafe { GetWindowPlacement(self.handle, &mut placement) };
+    let rect = placement.rcNormalPosition;
+    ((rect.right - rect.left), (rect.bottom - rect.top))
+  }
 
-  // fn window_styles_ex(&self) -> Vec<WindowStyleEx> {
-  //   todo!()
-  // }
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
+    unsafe {
+      let current_style = GetWindowLongPtrW(self.handle, GWL_STYLE);
+      (current_style & style.0 as isize) != 0
+    }
+  }
+
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
+    unsafe {
+      let current_style = GetWindowLongPtrW(self.handle, GWL_EXSTYLE);
+      (current_style & style.0 as isize) != 0
+    }
+  }
 }
 
 impl PartialEq for NativeWindow {
