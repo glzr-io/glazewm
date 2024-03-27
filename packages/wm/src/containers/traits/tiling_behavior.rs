@@ -6,14 +6,14 @@ use super::CommonBehavior;
 
 #[enum_dispatch]
 pub trait TilingBehavior: CommonBehavior {
-  fn self_as_tiling_container(&self) -> TilingContainer;
+  fn as_tiling_container(&self) -> TilingContainer;
 
   fn insert_child(&self, target_index: usize, child: Container) {
     self
       .borrow_children_mut()
       .insert(target_index, child.clone());
 
-    *child.borrow_parent_mut() = Some(self.self_as_tiling_container());
+    *child.borrow_parent_mut() = Some(self.as_tiling_container());
   }
 }
 
@@ -25,7 +25,7 @@ pub trait TilingBehavior: CommonBehavior {
 macro_rules! impl_tiling_behavior {
   ($struct_name:ident) => {
     impl TilingBehavior for $struct_name {
-      fn self_as_tiling_container(&self) -> TilingContainer {
+      fn as_tiling_container(&self) -> TilingContainer {
         self.clone().into()
       }
     }

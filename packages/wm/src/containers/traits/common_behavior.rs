@@ -21,7 +21,7 @@ pub trait CommonBehavior {
   /// Derived container type (eg. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
-  fn self_as_container(&self) -> Container;
+  fn as_container(&self) -> Container;
 
   fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>>;
 
@@ -51,12 +51,22 @@ pub trait CommonBehavior {
     }
   }
 
+  fn self_and_descendants(&self) -> Descendants {
+    let mut stack = self.children();
+    stack.push(self.as_container());
+    Descendants { stack }
+  }
+
   fn siblings(&self) -> Siblings {
-    Siblings(Some(self.self_as_container()))
+    Siblings(Some(self.as_container()))
   }
 
   fn ancestors(&self) -> Ancestors {
     Ancestors(self.parent())
+  }
+
+  fn self_and_ancestors(&self) -> SelfAndAncestors {
+    SelfAndAncestors(Some(self.as_container()))
   }
 }
 
@@ -107,6 +117,12 @@ impl_tiling_container_iterator!(
   |container: &TilingContainer| { container.parent() }
 );
 
+/// An iterator over itself and ancestors of a given container.
+pub struct SelfAndAncestors(Option<Container>);
+impl_container_iterator!(SelfAndAncestors, |container: &Container| {
+  container.parent().map(|parent| parent.into())
+});
+
 /// An iterator over siblings of a given container.
 pub struct Siblings(Option<Container>);
 impl_container_iterator!(Siblings, |container: &Container| {
@@ -151,7 +167,7 @@ macro_rules! impl_common_behavior {
         $container_type
       }
 
-      fn self_as_container(&self) -> Container {
+      fn as_container(&self) -> Container {
         self.clone().into()
       }
 
