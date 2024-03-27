@@ -1,5 +1,6 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
+  collections::VecDeque,
   rc::Rc,
 };
 
@@ -22,7 +23,7 @@ pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
 struct TilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<Container>,
+  children: VecDeque<Container>,
   size_percent: f32,
   native: NativeWindow,
 }
@@ -32,7 +33,7 @@ impl TilingWindow {
     let window = TilingWindowInner {
       id: Uuid::new_v4(),
       parent: None,
-      children: Vec::new(),
+      children: VecDeque::new(),
       size_percent: 1.0,
       native: native_window,
     };

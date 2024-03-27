@@ -1,5 +1,6 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
+  collections::VecDeque,
   rc::Rc,
 };
 
@@ -21,7 +22,7 @@ pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 struct NonTilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<Container>,
+  children: VecDeque<Container>,
   native: NativeWindow,
   position: Rect,
 }
@@ -31,7 +32,7 @@ impl NonTilingWindow {
     let window = NonTilingWindowInner {
       id: Uuid::new_v4(),
       parent: None,
-      children: Vec::new(),
+      children: VecDeque::new(),
       native: native_window,
       position: Rect::from_xy(0, 0, 0, 0),
     };

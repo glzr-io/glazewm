@@ -1,5 +1,6 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
+  collections::VecDeque,
   rc::Rc,
 };
 
@@ -22,7 +23,7 @@ pub struct Monitor(Rc<RefCell<MonitorInner>>);
 struct MonitorInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<Container>,
+  children: VecDeque<Container>,
   size_percent: f32,
   native: NativeMonitor,
 }
@@ -32,7 +33,7 @@ impl Monitor {
     let monitor = MonitorInner {
       id: Uuid::new_v4(),
       parent: None,
-      children: Vec::new(),
+      children: VecDeque::new(),
       size_percent: 1.0,
       native: native_monitor,
     };

@@ -1,4 +1,7 @@
-use std::cell::{Ref, RefMut};
+use std::{
+  cell::{Ref, RefMut},
+  collections::VecDeque,
+};
 
 use enum_dispatch::enum_dispatch;
 use uuid::Uuid;
@@ -27,9 +30,9 @@ pub trait CommonBehavior {
 
   fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>>;
 
-  fn borrow_children(&self) -> Ref<'_, Vec<Container>>;
+  fn borrow_children(&self) -> Ref<'_, VecDeque<Container>>;
 
-  fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>>;
+  fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>>;
 
   /// Returns a reference to the parent container, unless this container is
   /// the root.
@@ -41,7 +44,7 @@ pub trait CommonBehavior {
     self.borrow_parent().clone()
   }
 
-  fn children(&self) -> Vec<Container> {
+  fn children(&self) -> VecDeque<Container> {
     self.borrow_children().clone()
   }
 
@@ -53,7 +56,7 @@ pub trait CommonBehavior {
 
   fn self_and_descendants(&self) -> Descendants {
     let mut stack = self.children();
-    stack.push(self.as_container());
+    stack.push_front(self.as_container());
     Descendants { stack }
   }
 
@@ -136,14 +139,14 @@ impl_container_iterator!(Siblings, |container: &Container| {
 
 /// An iterator over descendants of a given container.
 pub struct Descendants {
-  stack: Vec<Container>,
+  stack: VecDeque<Container>,
 }
 
 impl Iterator for Descendants {
   type Item = Container;
 
   fn next(&mut self) -> Option<Container> {
-    while let Some(container) = self.stack.pop() {
+    while let Some(container) = self.stack.pop_front() {
       self.stack.extend(container.children());
       return Some(container);
     }
@@ -179,11 +182,11 @@ macro_rules! impl_common_behavior {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.parent)
       }
 
-      fn borrow_children(&self) -> Ref<'_, Vec<Container>> {
+      fn borrow_children(&self) -> Ref<'_, VecDeque<Container>> {
         Ref::map(self.0.borrow(), |c| &c.children)
       }
 
-      fn borrow_children_mut(&self) -> RefMut<'_, Vec<Container>> {
+      fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
       }
     }

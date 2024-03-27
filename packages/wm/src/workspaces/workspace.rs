@@ -1,5 +1,6 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
+  collections::VecDeque,
   rc::Rc,
 };
 
@@ -22,7 +23,7 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 struct WorkspaceInner {
   id: Uuid,
   parent: Option<TilingContainer>,
-  children: Vec<Container>,
+  children: VecDeque<Container>,
   size_percent: f32,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
@@ -33,7 +34,7 @@ impl Workspace {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
       parent: None,
-      children: Vec::new(),
+      children: VecDeque::new(),
       size_percent: 1.0,
       config,
       outer_gaps,
