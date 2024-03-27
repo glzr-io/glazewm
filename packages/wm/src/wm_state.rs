@@ -3,9 +3,12 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   common::platform::{NativeMonitor, NativeWindow, Platform},
-  containers::{traits::TilingBehavior, Container, RootContainer},
+  containers::{
+    traits::{CommonBehavior, TilingBehavior},
+    Container, RootContainer,
+  },
   monitors::Monitor,
-  user_config::{BindingModeConfig, ParsedConfig, UserConfig},
+  user_config::{BindingModeConfig, UserConfig},
   windows::TilingWindow,
   wm_event::WmEvent,
   workspaces::Workspace,

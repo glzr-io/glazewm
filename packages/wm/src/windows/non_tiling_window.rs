@@ -9,7 +9,7 @@ use crate::{
   common::{platform::NativeWindow, Rect},
   containers::{
     traits::{CommonBehavior, PositionBehavior},
-    ContainerType, TilingContainer,
+    Container, ContainerType, TilingContainer,
   },
   impl_common_behavior,
 };
@@ -21,6 +21,7 @@ pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 struct NonTilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
+  children: Vec<Container>,
   native: NativeWindow,
   position: Rect,
 }
@@ -30,6 +31,7 @@ impl NonTilingWindow {
     let window = NonTilingWindowInner {
       id: Uuid::new_v4(),
       parent: None,
+      children: Vec::new(),
       native: native_window,
       position: Rect::from_xy(0, 0, 0, 0),
     };
