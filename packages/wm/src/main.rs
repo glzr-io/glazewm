@@ -48,6 +48,9 @@ async fn main() {
 }
 
 async fn start_wm(config_path: Option<String>) -> Result<()> {
+  // Ensure that only one instance of the WM is running.
+  let _ = Platform::new_single_instance()?;
+
   // Parse and validate user config.
   let config = UserConfig::read(config_path).await?;
 

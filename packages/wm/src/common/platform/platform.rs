@@ -3,11 +3,11 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
-use crate::user_config::{ParsedConfig, UserConfig};
+use crate::user_config::UserConfig;
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
-  NativeWindow,
+  NativeWindow, SingleInstance,
 };
 
 pub struct Platform;
@@ -41,5 +41,9 @@ impl Platform {
     config: &Arc<Mutex<UserConfig>>,
   ) -> anyhow::Result<EventListener> {
     EventListener::start(config).await
+  }
+
+  pub fn new_single_instance() -> anyhow::Result<SingleInstance> {
+    SingleInstance::new()
   }
 }
