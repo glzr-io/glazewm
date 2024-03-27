@@ -1,3 +1,4 @@
+use enum_as_inner::EnumAsInner;
 use enum_dispatch::enum_dispatch;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
 use super::{traits::CommonBehavior, RootContainer, SplitContainer};
 
 /// A reference to a container of any type.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonBehavior, PositionBehavior)]
 pub enum Container {
   Root(RootContainer),
@@ -18,22 +19,6 @@ pub enum Container {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
-}
-
-impl Container {
-  pub fn as_monitor(&self) -> Option<Monitor> {
-    match self {
-      Container::Monitor(c) => Some(c.clone()),
-      _ => None,
-    }
-  }
-
-  pub fn as_workspace(&self) -> Option<Workspace> {
-    match self {
-      Container::Workspace(c) => Some(c.clone()),
-      _ => None,
-    }
-  }
 }
 
 impl From<TilingContainer> for Container {
@@ -57,7 +42,7 @@ impl PartialEq for Container {
 impl Eq for Container {}
 
 /// A reference to a tiling container.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonBehavior, PositionBehavior, TilingBehavior)]
 pub enum TilingContainer {
   Root(RootContainer),
@@ -65,22 +50,6 @@ pub enum TilingContainer {
   Workspace(Workspace),
   Split(SplitContainer),
   TilingWindow(TilingWindow),
-}
-
-impl TilingContainer {
-  pub fn as_monitor(&self) -> Option<Monitor> {
-    match self {
-      TilingContainer::Monitor(c) => Some(c.clone()),
-      _ => None,
-    }
-  }
-
-  pub fn as_workspace(&self) -> Option<Workspace> {
-    match self {
-      TilingContainer::Workspace(c) => Some(c.clone()),
-      _ => None,
-    }
-  }
 }
 
 impl TryFrom<Container> for TilingContainer {

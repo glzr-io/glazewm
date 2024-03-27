@@ -88,7 +88,7 @@ impl WmState {
       .root_container
       .children()
       .iter()
-      .map(|c| c.as_monitor().unwrap())
+      .map(|c| c.as_monitor().cloned().unwrap())
       .collect()
   }
 
@@ -97,7 +97,7 @@ impl WmState {
       .monitors()
       .iter()
       .flat_map(|c| c.children())
-      .map(|c| c.as_workspace().unwrap())
+      .map(|c| c.as_workspace().cloned().unwrap())
       .collect()
   }
 
@@ -114,8 +114,8 @@ impl WmState {
 
   pub fn window_from_native(
     &self,
-    native_window: NativeWindow,
-  ) -> Option<Container> {
+    native_window: &NativeWindow,
+  ) -> Option<&Container> {
     todo!()
   }
 

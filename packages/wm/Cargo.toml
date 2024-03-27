@@ -13,6 +13,7 @@ watcher = { path = "../watcher" }
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 enum_dispatch = "0.3"
+enum-as-inner = "0.6"
 futures-util = "0.3"
 home = "0.5"
 uuid = { version = "1", features = ["v4"] }

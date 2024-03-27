@@ -64,6 +64,14 @@ pub trait CommonBehavior {
     Siblings(Some(self.as_container()))
   }
 
+  fn tiling_siblings(&self) -> Box<dyn Iterator<Item = TilingContainer>> {
+    Box::new(
+      self
+        .siblings()
+        .filter_map(|container| container.try_into().ok()),
+    )
+  }
+
   fn ancestors(&self) -> Ancestors {
     Ancestors(self.parent())
   }
