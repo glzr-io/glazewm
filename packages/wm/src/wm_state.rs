@@ -119,6 +119,27 @@ impl WmState {
     todo!()
   }
 
+  /// Gets windows that should be redrawn.
+  ///
+  /// When redrawing after a keybinding that changes a window's type
+  /// (eg. tiling -> floating), the original detached window might still
+  /// be queued for a redraw and should be ignored.
+  pub fn windows_to_redraw(&self) -> Vec<TilingWindow> {
+    self
+      .containers_to_redraw
+      .iter()
+      .flat_map(|container| container.self_and_descendants())
+      .filter_map(|container| container.as_window())
+      .unique()
+      .filter(|window| !window.is_detached())
+      .collect()
+  }
+
+  /// Removes all containers from the redraw queue.
+  pub fn clear_containers_to_redraw(&mut self) {
+    self.containers_to_redraw.clear();
+  }
+
   // Get the currently focused container. This can either be a `Window` or
   // a `Workspace` without any descendant windows.
   // pub fn focused_container(&self) -> Arc<Container> {

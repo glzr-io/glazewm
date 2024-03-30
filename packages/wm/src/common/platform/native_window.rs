@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
 use windows::{
   core::PWSTR,
   Win32::{
@@ -18,9 +17,10 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowPlacement, GetWindowTextW, GetWindowThreadProcessId,
-        IsWindowVisible, SetForegroundWindow, GWL_EXSTYLE, GWL_STYLE,
-        GW_OWNER, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
-        WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        IsWindowVisible, SetForegroundWindow, ShowWindowAsync,
+        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, SW_RESTORE, WINDOWPLACEMENT,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION, WS_CHILD,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
       },
     },
   },
@@ -68,7 +68,7 @@ impl NativeWindow {
   /// Gets the process name associated with the window.
   ///
   /// This value is lazily retrieved and is cached after first retrieval.
-  pub fn process_name(&self) -> Result<String> {
+  pub fn process_name(&self) -> anyhow::Result<String> {
     let process_name_guard = self.process_name.read().unwrap();
     match *process_name_guard {
       Some(ref process_name) => Ok(process_name.clone()),
@@ -105,7 +105,7 @@ impl NativeWindow {
   /// Gets the class name of the window.
   ///
   /// This value is lazily retrieved and is cached after first retrieval.
-  pub fn class_name(&self) -> Result<String> {
+  pub fn class_name(&self) -> anyhow::Result<String> {
     let class_name_guard = self.class_name.read().unwrap();
     match *class_name_guard {
       Some(ref class_name) => Ok(class_name.clone()),
@@ -238,6 +238,11 @@ impl NativeWindow {
       (current_style & style.0 as isize) != 0
     }
   }
+
+  fn restore(&self) -> anyhow::Result<()> {
+    unsafe { ShowWindowAsync(self.handle, SW_RESTORE).ok() }?;
+    Ok(())
+  }
 }
 
 impl PartialEq for NativeWindow {
@@ -248,7 +253,7 @@ impl PartialEq for NativeWindow {
 
 impl Eq for NativeWindow {}
 
-pub fn available_windows() -> Result<Vec<NativeWindow>> {
+pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
   available_window_handles()?
     .into_iter()
     .map(|handle| Ok(NativeWindow::new(handle)))
