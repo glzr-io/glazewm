@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::{
   containers::{
     Container, ContainerType, RootContainer, SplitContainer,
-    TilingContainer,
+    TilingContainer, WindowContainer,
   },
   monitors::Monitor,
   windows::{NonTilingWindow, TilingWindow},
@@ -46,6 +46,10 @@ pub trait CommonBehavior {
 
   fn children(&self) -> VecDeque<Container> {
     self.borrow_children().clone()
+  }
+
+  fn is_detached(&self) -> bool {
+    self.parent().is_none()
   }
 
   fn descendants(&self) -> Descendants {

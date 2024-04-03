@@ -5,7 +5,7 @@ use crate::{
   common::platform::{NativeMonitor, NativeWindow, Platform},
   containers::{
     traits::{CommonBehavior, TilingBehavior},
-    Container, RootContainer,
+    Container, RootContainer, WindowContainer,
   },
   monitors::Monitor,
   user_config::{BindingModeConfig, UserConfig},
@@ -121,17 +121,17 @@ impl WmState {
 
   /// Gets windows that should be redrawn.
   ///
-  /// When redrawing after a keybinding that changes a window's type
-  /// (eg. tiling -> floating), the original detached window might still
-  /// be queued for a redraw and should be ignored.
-  pub fn windows_to_redraw(&self) -> Vec<TilingWindow> {
+  /// When redrawing after a command that changes a window's type (eg.
+  /// tiling -> floating), the original detached window might still be
+  /// queued for a redraw and should be ignored.
+  pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
     self
       .containers_to_redraw
       .iter()
       .flat_map(|container| container.self_and_descendants())
-      .filter_map(|container| container.as_window())
-      .unique()
-      .filter(|window| !window.is_detached())
+      .filter(|container| !container.is_detached())
+      .filter_map(|container| container.try_into().ok())
+      // .unique()
       .collect()
   }
 

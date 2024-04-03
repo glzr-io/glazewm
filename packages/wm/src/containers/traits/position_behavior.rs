@@ -1,6 +1,6 @@
 use enum_dispatch::enum_dispatch;
 
-use crate::containers::{Container, TilingContainer};
+use crate::containers::{Container, TilingContainer, WindowContainer};
 
 #[enum_dispatch]
 pub trait PositionBehavior {

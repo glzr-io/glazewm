@@ -7,14 +7,16 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-  common::platform::NativeWindow,
+  common::{platform::NativeWindow, DisplayState},
   containers::{
     traits::{CommonBehavior, PositionBehavior, TilingBehavior},
     Container, ContainerType, TilingContainer,
   },
   impl_common_behavior, impl_position_behavior_as_resizable,
-  impl_tiling_behavior,
+  impl_tiling_behavior, impl_window_behavior,
 };
+
+use super::{traits::WindowBehavior, WindowState};
 
 #[derive(Clone, Debug)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -26,6 +28,9 @@ struct TilingWindowInner {
   children: VecDeque<Container>,
   size_percent: f32,
   native: NativeWindow,
+  state: WindowState,
+  display_state: DisplayState,
+  has_pending_dpi_adjustment: bool,
 }
 
 impl TilingWindow {
@@ -36,6 +41,9 @@ impl TilingWindow {
       children: VecDeque::new(),
       size_percent: 1.0,
       native: native_window,
+      state: WindowState::Tiling,
+      display_state: DisplayState::Shown,
+      has_pending_dpi_adjustment: false,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -45,3 +53,4 @@ impl TilingWindow {
 impl_common_behavior!(TilingWindow, ContainerType::Window);
 impl_tiling_behavior!(TilingWindow);
 impl_position_behavior_as_resizable!(TilingWindow);
+impl_window_behavior!(TilingWindow);

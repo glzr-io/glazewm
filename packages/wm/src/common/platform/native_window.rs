@@ -26,6 +26,8 @@ use windows::{
   },
 };
 
+use crate::common::Rect;
+
 pub type WindowHandle = HWND;
 
 #[derive(Debug)]
@@ -239,8 +241,12 @@ impl NativeWindow {
     }
   }
 
-  fn restore(&self) -> anyhow::Result<()> {
+  pub fn restore(&self) -> anyhow::Result<()> {
     unsafe { ShowWindowAsync(self.handle, SW_RESTORE).ok() }?;
+    Ok(())
+  }
+
+  pub fn set_position(&self) -> anyhow::Result<()> {
     Ok(())
   }
 }
@@ -271,6 +277,12 @@ pub fn available_window_handles() -> anyhow::Result<Vec<WindowHandle>> {
   }?;
 
   Ok(handles)
+}
+
+pub struct SetPositionArgs {
+  show: bool,
+  show_on_top: bool,
+  rect: Rect,
 }
 
 extern "system" fn available_window_handles_proc(

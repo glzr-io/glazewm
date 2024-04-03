@@ -76,3 +76,46 @@ impl PartialEq for TilingContainer {
 }
 
 impl Eq for TilingContainer {}
+
+/// A reference to a window container.
+#[derive(Clone, Debug, EnumAsInner)]
+#[enum_dispatch(CommonBehavior, PositionBehavior, WindowBehavior)]
+pub enum WindowContainer {
+  TilingWindow(TilingWindow),
+  NonTilingWindow(NonTilingWindow),
+}
+
+impl TryFrom<Container> for WindowContainer {
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::TilingWindow(c) => Ok(WindowContainer::TilingWindow(c)),
+      Container::NonTilingWindow(c) => {
+        Ok(WindowContainer::NonTilingWindow(c))
+      }
+      _ => Err("Cannot convert type to a `WindowContainer`."),
+    }
+  }
+}
+
+impl TryFrom<TilingContainer> for WindowContainer {
+  type Error = &'static str;
+
+  fn try_from(container: TilingContainer) -> Result<Self, Self::Error> {
+    match container {
+      TilingContainer::TilingWindow(c) => {
+        Ok(WindowContainer::TilingWindow(c))
+      }
+      _ => Err("Cannot convert type to a `WindowContainer`."),
+    }
+  }
+}
+
+impl PartialEq for WindowContainer {
+  fn eq(&self, other: &Self) -> bool {
+    self.id() == other.id()
+  }
+}
+
+impl Eq for WindowContainer {}

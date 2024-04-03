@@ -1,4 +1,5 @@
 mod direction;
+mod display_state;
 mod focus_mode;
 pub mod platform;
 mod rect;
@@ -7,6 +8,7 @@ mod tiling_direction;
 mod units;
 
 pub use direction::*;
+pub use display_state::*;
 pub use focus_mode::*;
 pub use rect::*;
 pub use rect_delta::*;

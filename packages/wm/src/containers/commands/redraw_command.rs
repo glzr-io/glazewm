@@ -1,7 +1,10 @@
 use std::ptr::null_mut;
 
 use crate::{
-  user_config::UserConfig, windows::WindowState, wm_state::WmState,
+  common::DisplayState,
+  user_config::UserConfig,
+  windows::{traits::WindowBehavior, WindowState},
+  wm_state::WmState,
 };
 
 pub struct RedrawCommand;
@@ -16,11 +19,10 @@ pub fn redraw_handler(
   // Get windows that are minimized/maximized and shouldn't be.
   let windows_to_restore = windows_to_redraw
     .iter()
-    .filter(|window| {
-      window.state == WindowState::Minimized
-        && !window.native().is_minimized()
-        || window.state == WindowState::Maximized
-          && window.native().is_maximized()
+    .filter(|window| match window.state() {
+      WindowState::Maximized => window.native().is_maximized(),
+      WindowState::Minimized => window.native().is_minimized(),
+      _ => false,
     })
     .collect::<Vec<_>>();
 
@@ -31,10 +33,7 @@ pub fn redraw_handler(
   }
 
   // Get z-order to set for floating windows.
-  let should_show_on_top = self
-    .user_config_service
-    .general_config()
-    .show_floating_on_top;
+  let should_show_on_top = user_config.value.general.show_floating_on_top;
 
   for window in &windows_to_redraw {
     let workspace = window
@@ -56,6 +55,7 @@ pub fn redraw_handler(
       },
     );
 
+    let position = get_redraw_position(&window);
     window.native().set_position(position);
 
     // When there's a mismatch between the DPI of the monitor and the window,
@@ -69,6 +69,15 @@ pub fn redraw_handler(
 
   state.clear_containers_to_redraw();
   Ok(state)
+}
+
+fn get_redraw_position(window: &Window) {
+  SetPositionArgs {
+    show: match window.display_state() {
+      DisplayState::Showing | DisplayState::Shown => true,
+      _ => false,
+    },
+  }
 }
 
 fn set_window_position(&self, window: &Window) {
