@@ -2,7 +2,9 @@ use enum_dispatch::enum_dispatch;
 
 use crate::{
   common::Rect,
-  containers::{Container, TilingContainer, WindowContainer},
+  containers::{
+    Container, DirectionContainer, TilingContainer, WindowContainer,
+  },
 };
 
 #[enum_dispatch]

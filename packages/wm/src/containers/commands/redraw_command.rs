@@ -11,7 +11,7 @@ use crate::{
   wm_state::WmState,
 };
 
-pub fn redraw_handler(
+pub fn redraw_command(
   state: &mut WmState,
   user_config: UserConfig,
 ) -> anyhow::Result<&mut WmState> {
@@ -36,8 +36,7 @@ pub fn redraw_handler(
 
   for window in &windows_to_redraw {
     let workspace = window
-      .ancestors()
-      .find_map(|ancestor| ancestor.as_workspace().cloned())
+      .parent_workspace()
       .context("Window has no workspace.")?;
 
     // Transition display state depending on whether window will be

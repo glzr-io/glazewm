@@ -7,12 +7,14 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-  common::RectDelta,
+  common::{RectDelta, TilingDirection},
   containers::{
-    traits::{CommonBehavior, PositionBehavior, TilingBehavior},
+    traits::{
+      CommonBehavior, DirectionBehavior, PositionBehavior, TilingBehavior,
+    },
     Container, ContainerType, TilingContainer,
   },
-  impl_common_behavior, impl_tiling_behavior,
+  impl_common_behavior, impl_direction_behavior, impl_tiling_behavior,
   user_config::WorkspaceConfig,
 };
 
@@ -25,17 +27,23 @@ struct WorkspaceInner {
   parent: Option<TilingContainer>,
   children: VecDeque<Container>,
   size_percent: f32,
+  tiling_direction: TilingDirection,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
 }
 
 impl Workspace {
-  pub fn new(config: WorkspaceConfig, outer_gaps: RectDelta) -> Self {
+  pub fn new(
+    config: WorkspaceConfig,
+    outer_gaps: RectDelta,
+    tiling_direction: TilingDirection,
+  ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
       size_percent: 1.0,
+      tiling_direction,
       config,
       outer_gaps,
     };
@@ -60,6 +68,7 @@ impl Workspace {
 
 impl_common_behavior!(Workspace, ContainerType::Workspace);
 impl_tiling_behavior!(Workspace);
+impl_direction_behavior!(Workspace);
 
 impl PositionBehavior for Workspace {
   fn width(&self) -> i32 {

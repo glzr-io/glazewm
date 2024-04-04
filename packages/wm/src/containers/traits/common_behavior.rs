@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 use crate::{
   containers::{
-    Container, ContainerType, RootContainer, SplitContainer,
-    TilingContainer, WindowContainer,
+    Container, ContainerType, DirectionContainer, RootContainer,
+    SplitContainer, TilingContainer, WindowContainer,
   },
   monitors::Monitor,
   windows::{NonTilingWindow, TilingWindow},
@@ -102,6 +102,24 @@ pub trait CommonBehavior {
     Ancestors {
       start: Some(self.as_container()),
     }
+  }
+
+  fn parent_workspace(&self) -> Option<Workspace> {
+    self
+      .ancestors()
+      .find_map(|container| container.as_workspace().cloned())
+  }
+
+  fn parent_monitor(&self) -> Option<Monitor> {
+    self
+      .ancestors()
+      .find_map(|container| container.as_monitor().cloned())
+  }
+
+  fn parent_direction_container(&self) -> Option<DirectionContainer> {
+    self
+      .ancestors()
+      .find_map(|container| container.try_into().ok())
   }
 }
 

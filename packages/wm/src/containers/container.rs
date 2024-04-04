@@ -119,3 +119,50 @@ impl PartialEq for WindowContainer {
 }
 
 impl Eq for WindowContainer {}
+
+/// A reference to a direction container.
+#[derive(Clone, Debug, EnumAsInner)]
+#[enum_dispatch(
+  CommonBehavior,
+  PositionBehavior,
+  TilingBehavior,
+  DirectionBehavior
+)]
+pub enum DirectionContainer {
+  Workspace(Workspace),
+  Split(SplitContainer),
+}
+
+impl TryFrom<Container> for DirectionContainer {
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::Workspace(c) => Ok(DirectionContainer::Workspace(c)),
+      Container::Split(c) => Ok(DirectionContainer::Split(c)),
+      _ => Err("Cannot convert type to a `DirectionContainer`."),
+    }
+  }
+}
+
+impl TryFrom<TilingContainer> for DirectionContainer {
+  type Error = &'static str;
+
+  fn try_from(container: TilingContainer) -> Result<Self, Self::Error> {
+    match container {
+      TilingContainer::Workspace(c) => {
+        Ok(DirectionContainer::Workspace(c))
+      }
+      TilingContainer::Split(c) => Ok(DirectionContainer::Split(c)),
+      _ => Err("Cannot convert type to a `DirectionContainer`."),
+    }
+  }
+}
+
+impl PartialEq for DirectionContainer {
+  fn eq(&self, other: &Self) -> bool {
+    self.id() == other.id()
+  }
+}
+
+impl Eq for DirectionContainer {}
