@@ -1,13 +1,23 @@
 use enum_dispatch::enum_dispatch;
 
-use crate::containers::{Container, TilingContainer, WindowContainer};
+use crate::{
+  common::Rect,
+  containers::{Container, TilingContainer, WindowContainer},
+};
 
 #[enum_dispatch]
 pub trait PositionBehavior {
   fn width(&self) -> i32;
+
   fn height(&self) -> i32;
+
   fn x(&self) -> i32;
+
   fn y(&self) -> i32;
+
+  fn to_rect(&self) -> Rect {
+    Rect::from_xy(self.x(), self.y(), self.width(), self.height())
+  }
 }
 
 /// Implements the `PositionBehavior` trait for tiling containers that can

@@ -7,7 +7,9 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState, Rect},
+  common::{
+    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
+  },
   containers::{
     traits::{CommonBehavior, PositionBehavior},
     Container, ContainerType, TilingContainer,
@@ -29,6 +31,7 @@ struct NonTilingWindowInner {
   position: Rect,
   state: WindowState,
   display_state: DisplayState,
+  border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
 }
 
@@ -42,6 +45,12 @@ impl NonTilingWindow {
       position: Rect::from_xy(0, 0, 0, 0),
       state,
       display_state: DisplayState::Shown,
+      border_delta: RectDelta::new(
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+      ),
       has_pending_dpi_adjustment: false,
     };
 

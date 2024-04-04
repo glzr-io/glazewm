@@ -17,6 +17,13 @@ pub enum LengthUnit {
 }
 
 impl LengthValue {
+  pub fn new_px(amount: f32) -> Self {
+    Self {
+      amount,
+      unit: LengthUnit::Pixel,
+    }
+  }
+
   /// Parses a string containing a number followed by a unit (`px`, `%`).
   ///
   /// Example:

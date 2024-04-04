@@ -17,10 +17,13 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowPlacement, GetWindowTextW, GetWindowThreadProcessId,
-        IsWindowVisible, SetForegroundWindow, ShowWindowAsync,
-        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, SW_RESTORE, WINDOWPLACEMENT,
-        WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION, WS_CHILD,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        IsWindowVisible, SetForegroundWindow, SetWindowPos,
+        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
+        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_SHOWWINDOW, SW_RESTORE,
+        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION,
+        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
       },
     },
   },
@@ -30,7 +33,7 @@ use crate::common::Rect;
 
 pub type WindowHandle = HWND;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NativeWindow {
   pub handle: WindowHandle,
   title: Arc<RwLock<Option<String>>>,
@@ -246,7 +249,47 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_position(&self) -> anyhow::Result<()> {
+  pub fn set_position(
+    &self,
+    args: &SetPositionArgs,
+  ) -> anyhow::Result<()> {
+    let mut swp_flags = SWP_FRAMECHANGED
+      | SWP_NOACTIVATE
+      | SWP_NOCOPYBITS
+      | SWP_NOSENDCHANGING
+      | SWP_ASYNCWINDOWPOS;
+
+    // Whether to show or hide the window.
+    if args.visible {
+      swp_flags |= SWP_SHOWWINDOW;
+    } else {
+      swp_flags |= SWP_HIDEWINDOW;
+    };
+
+    // Whether to actually move and resize the window.
+    if !args.move_and_resize {
+      swp_flags |= SWP_NOSIZE;
+      swp_flags |= SWP_NOMOVE;
+    }
+
+    // Whether the window should be shown above all other windows.
+    let z_order = match args.show_on_top {
+      true => HWND_TOPMOST,
+      false => HWND_NOTOPMOST,
+    };
+
+    unsafe {
+      SetWindowPos(
+        args.window_handle,
+        z_order,
+        args.rect.x(),
+        args.rect.y(),
+        args.rect.width(),
+        args.rect.height(),
+        swp_flags,
+      )
+    }?;
+
     Ok(())
   }
 }
@@ -258,6 +301,15 @@ impl PartialEq for NativeWindow {
 }
 
 impl Eq for NativeWindow {}
+
+/// Arguments to pass to `NativeWindow::set_position`.
+pub struct SetPositionArgs {
+  pub window_handle: WindowHandle,
+  pub visible: bool,
+  pub show_on_top: bool,
+  pub move_and_resize: bool,
+  pub rect: Rect,
+}
 
 pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
   available_window_handles()?
@@ -277,12 +329,6 @@ pub fn available_window_handles() -> anyhow::Result<Vec<WindowHandle>> {
   }?;
 
   Ok(handles)
-}
-
-pub struct SetPositionArgs {
-  show: bool,
-  show_on_top: bool,
-  rect: Rect,
 }
 
 extern "system" fn available_window_handles_proc(

@@ -43,8 +43,14 @@ impl Workspace {
     Self(Rc::new(RefCell::new(workspace)))
   }
 
+  /// Underlying config for the workspace.
   pub fn config(&self) -> WorkspaceConfig {
     self.0.borrow().config.clone()
+  }
+
+  pub fn is_displayed(&self) -> bool {
+    // TODO
+    true
   }
 
   fn outer_gaps(&self) -> Ref<'_, RectDelta> {

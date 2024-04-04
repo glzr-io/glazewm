@@ -1,6 +1,6 @@
 use enum_dispatch::enum_dispatch;
 
-use crate::containers::{Container, TilingContainer, WindowContainer};
+use crate::containers::{Container, TilingContainer};
 
 use super::CommonBehavior;
 
@@ -14,6 +14,10 @@ pub trait TilingBehavior: CommonBehavior {
 
   fn set_size_percent(&self, size_percent: f32) -> ();
 
+  /// Inserts a child container at the specified index. Only tiling
+  /// containers can have children.
+  ///
+  /// The inserted child will be resized to fit the available space.
   fn insert_child(&self, target_index: usize, child: Container) {
     self
       .borrow_children_mut()
@@ -29,7 +33,8 @@ pub trait TilingBehavior: CommonBehavior {
         return;
       }
 
-      // Set initial size percentage to 0, and then size up the container to `defaultPercent`.
+      // Set initial size percentage to 0, and then size up the container
+      // to the default percentage.
       let default_percentage = 1.0 / (resizable_siblings.len() + 1) as f32;
       child.set_size_percent(0.0);
       resize_tiling_container(&child, default_percentage);

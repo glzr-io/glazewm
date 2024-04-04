@@ -7,7 +7,7 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState},
+  common::{platform::NativeWindow, DisplayState, LengthValue, RectDelta},
   containers::{
     traits::{CommonBehavior, PositionBehavior, TilingBehavior},
     Container, ContainerType, TilingContainer,
@@ -30,6 +30,7 @@ struct TilingWindowInner {
   native: NativeWindow,
   state: WindowState,
   display_state: DisplayState,
+  border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
 }
 
@@ -43,6 +44,12 @@ impl TilingWindow {
       native: native_window,
       state: WindowState::Tiling,
       display_state: DisplayState::Shown,
+      border_delta: RectDelta::new(
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+        LengthValue::new_px(0.),
+      ),
       has_pending_dpi_adjustment: false,
     };
 

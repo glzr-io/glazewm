@@ -34,22 +34,30 @@ pub trait CommonBehavior {
 
   fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>>;
 
-  /// Returns a reference to the parent container, unless this container is
-  /// the root.
-  ///
-  /// # Panics
-  ///
-  /// Panics if the container is currently mutably borrowed.
+  /// Gets the parent container, unless this container is the root.
   fn parent(&self) -> Option<TilingContainer> {
     self.borrow_parent().clone()
   }
 
+  /// Direct children of this container.
   fn children(&self) -> VecDeque<Container> {
     self.borrow_children().clone()
   }
 
+  /// Whether this container is detached from the tree (ie. it does not
+  /// have a parent).
   fn is_detached(&self) -> bool {
-    self.parent().is_none()
+    self.borrow_parent().as_ref().is_none()
+  }
+
+  /// Index of this container amongst its siblings.
+  fn index(&self) -> Option<usize> {
+    self.borrow_parent().as_ref().and_then(|parent| {
+      parent
+        .children()
+        .iter()
+        .position(|child| child.id() == self.id())
+    })
   }
 
   fn descendants(&self) -> Descendants {
@@ -64,11 +72,19 @@ pub trait CommonBehavior {
     Descendants { stack }
   }
 
-  fn siblings(&self) -> Siblings {
-    Siblings(Some(self.as_container()))
+  fn siblings(&self) -> Box<dyn Iterator<Item = Container> + '_> {
+    Box::new(
+      self
+        .parent()
+        .into_iter()
+        .flat_map(|parent| parent.children())
+        .filter(move |sibling| sibling.id() != self.id()),
+    )
   }
 
-  fn tiling_siblings(&self) -> Box<dyn Iterator<Item = TilingContainer>> {
+  fn tiling_siblings(
+    &self,
+  ) -> Box<dyn Iterator<Item = TilingContainer> + '_> {
     Box::new(
       self
         .siblings()
@@ -77,77 +93,60 @@ pub trait CommonBehavior {
   }
 
   fn ancestors(&self) -> Ancestors {
-    Ancestors(self.parent())
+    Ancestors {
+      start: self.parent().map(|c| c.into()),
+    }
   }
 
-  fn self_and_ancestors(&self) -> SelfAndAncestors {
-    SelfAndAncestors(Some(self.as_container()))
+  fn self_and_ancestors(&self) -> Ancestors {
+    Ancestors {
+      start: Some(self.as_container()),
+    }
   }
-}
-
-/// Helper macro for implementing iterators that return `Option<Container>`.
-#[macro_export]
-macro_rules! impl_container_iterator {
-  ($name: ident, $next: expr) => {
-    impl Iterator for $name {
-      type Item = Container;
-
-      fn next(&mut self) -> Option<Container> {
-        match self.0.take() {
-          Some(container) => {
-            self.0 = $next(&container);
-            Some(container)
-          }
-          None => None,
-        }
-      }
-    }
-  };
-}
-
-/// Helper macro for implementing iterators that return `Option<TilingContainer>`.
-#[macro_export]
-macro_rules! impl_tiling_container_iterator {
-  ($name: ident, $next: expr) => {
-    impl Iterator for $name {
-      type Item = TilingContainer;
-
-      fn next(&mut self) -> Option<TilingContainer> {
-        match self.0.take() {
-          Some(container) => {
-            self.0 = $next(&container);
-            Some(container)
-          }
-          None => None,
-        }
-      }
-    }
-  };
 }
 
 /// An iterator over ancestors of a given container.
-pub struct Ancestors(Option<TilingContainer>);
-impl_tiling_container_iterator!(
-  Ancestors,
-  |container: &TilingContainer| { container.parent() }
-);
+pub struct Ancestors {
+  start: Option<Container>,
+}
 
-/// An iterator over itself and ancestors of a given container.
-pub struct SelfAndAncestors(Option<Container>);
-impl_container_iterator!(SelfAndAncestors, |container: &Container| {
-  container.parent().map(|parent| parent.into())
-});
+impl Iterator for Ancestors {
+  type Item = Container;
+
+  fn next(&mut self) -> Option<Container> {
+    self.start.take().map(|container| {
+      self.start = container.parent().map(|c| c.into());
+      container
+    })
+  }
+}
 
 /// An iterator over siblings of a given container.
-pub struct Siblings(Option<Container>);
-impl_container_iterator!(Siblings, |container: &Container| {
-  container.parent().and_then(|parent| {
-    parent
-      .children()
-      .into_iter()
-      .find(|child| child != container)
-  })
-});
+// pub struct Siblings {
+//   ignore: Container,
+//   current: Option<Container>,
+// }
+
+// impl Iterator for Siblings {
+//   type Item = Container;
+
+//   fn next(&mut self) -> Option<Container> {
+//     self.current.take().map(|container| {
+//       self.ignore = container.parent().map(|c| c.into());
+//       container
+//     })
+//   }
+// }
+
+// impl_container_iterator!(Siblings, |container: &Container| {
+//   println!("siblings: {:?}", container.id());
+//   container.parent().and_then(|parent| {
+//     parent
+//       .children()
+//       .into_iter()
+//       .find(|child| child != container)
+//   })
+// });
 
 /// An iterator over descendants of a given container.
 pub struct Descendants {

@@ -1,16 +1,17 @@
-use std::ptr::null_mut;
+use anyhow::Context;
 
 use crate::{
-  common::DisplayState,
+  common::{platform::SetPositionArgs, DisplayState},
+  containers::{
+    traits::{CommonBehavior, PositionBehavior},
+    WindowContainer,
+  },
   user_config::UserConfig,
   windows::{traits::WindowBehavior, WindowState},
   wm_state::WmState,
 };
 
-pub struct RedrawCommand;
-
 pub fn redraw_handler(
-  command: RedrawCommand,
   state: &mut WmState,
   user_config: UserConfig,
 ) -> anyhow::Result<&mut WmState> {
@@ -20,9 +21,10 @@ pub fn redraw_handler(
   let windows_to_restore = windows_to_redraw
     .iter()
     .filter(|window| match window.state() {
-      WindowState::Maximized => window.native().is_maximized(),
-      WindowState::Minimized => window.native().is_minimized(),
-      _ => false,
+      WindowState::Minimized | WindowState::Maximized => false,
+      _ => {
+        window.native().is_maximized() || window.native().is_minimized()
+      }
     })
     .collect::<Vec<_>>();
 
@@ -32,13 +34,10 @@ pub fn redraw_handler(
     let _ = window.native().restore();
   }
 
-  // Get z-order to set for floating windows.
-  let should_show_on_top = user_config.value.general.show_floating_on_top;
-
   for window in &windows_to_redraw {
     let workspace = window
       .ancestors()
-      .find_map(|ancestor| ancestor.as_workspace())
+      .find_map(|ancestor| ancestor.as_workspace().cloned())
       .context("Window has no workspace.")?;
 
     // Transition display state depending on whether window will be
@@ -55,14 +54,19 @@ pub fn redraw_handler(
       },
     );
 
-    let position = get_redraw_position(&window);
-    window.native().set_position(position);
+    let position_args = get_position_args(
+      &window,
+      user_config.value.general.show_floating_on_top,
+    );
 
-    // When there's a mismatch between the DPI of the monitor and the window,
-    // `SetWindowPos` might size the window incorrectly. By calling `SetWindowPos`
-    // twice, inconsistencies after the first move are resolved.
+    let _ = window.native().set_position(&position_args);
+
+    // When there's a mismatch between the DPI of the monitor and the
+    // window, the window might be sized incorrectly after the first move.
+    // If we set the position twice, inconsistencies after the first move
+    // are resolved.
     if window.has_pending_dpi_adjustment() {
-      window.native().set_position(position);
+      let _ = window.native().set_position(&position_args);
       window.set_has_pending_dpi_adjustment(false);
     }
   }
@@ -71,93 +75,33 @@ pub fn redraw_handler(
   Ok(state)
 }
 
-fn get_redraw_position(window: &Window) {
+fn get_position_args(
+  window: &WindowContainer,
+  show_floating_on_top: bool,
+) -> SetPositionArgs {
+  // Avoid adjusting the borders of non-tiling windows. Otherwise the
+  // window will increase in size from its original placement.
+  let rect = match window.state() {
+    WindowState::Tiling => {
+      window.to_rect().apply_delta(window.border_delta())
+    }
+    _ => window.to_rect(),
+  };
+
   SetPositionArgs {
-    show: match window.display_state() {
+    window_handle: window.native().handle,
+    visible: match window.display_state() {
       DisplayState::Showing | DisplayState::Shown => true,
       _ => false,
     },
-  }
-}
-
-fn set_window_position(&self, window: &Window) {
-  let default_flags = SetWindowPosFlags::FRAME_CHANGED
-    | SetWindowPosFlags::NO_ACTIVATE
-    | SetWindowPosFlags::NO_COPY_BITS
-    | SetWindowPosFlags::NO_SEND_CHANGING
-    | SetWindowPosFlags::ASYNC_WINDOW_POS;
-
-  let workspace = window
-    .ancestors()
-    .find_map(|ancestor| ancestor.as_workspace())
-    .context("Window has no workspace.")?;
-
-  let is_workspace_displayed = workspace.is_displayed();
-
-  // Show or hide the window depending on whether the workspace is displayed.
-  let default_flags = if is_workspace_displayed {
-    default_flags | SetWindowPosFlags::SHOW_WINDOW
-  } else {
-    default_flags | SetWindowPosFlags::HIDE_WINDOW
-  };
-
-  let default_flags = if window.is::<MaximizedWindow>() {
-    default_flags | SetWindowPosFlags::NO_SIZE | SetWindowPosFlags::NO_MOVE
-  } else {
-    default_flags
-  };
-
-  // Transition display state depending on whether window will be shown/hidden.
-  window.set_display_state(
-    match (window.display_state(), is_workspace_displayed) {
-      (DisplayState::Hidden | DisplayState::Hiding, true) => {
-        DisplayState::Showing
-      }
-      (DisplayState::Shown | DisplayState::Showing, false) => {
-        DisplayState::Hiding
-      }
-      _ => window.display_state(),
+    show_on_top: match window.state() {
+      WindowState::Floating => show_floating_on_top,
+      _ => false,
     },
-  );
-
-  if window.is::<TilingWindow>() {
-    set_window_pos(
-      window.handle(),
-      null_mut(),
-      window.x() - window.border_delta().left,
-      window.y() - window.border_delta().top,
-      window.width()
-        + window.border_delta().left
-        + window.border_delta().right,
-      window.height()
-        + window.border_delta().top
-        + window.border_delta().bottom,
-      default_flags,
-    );
-    return;
+    move_and_resize: match window.state() {
+      WindowState::Floating | WindowState::Tiling => true,
+      _ => false,
+    },
+    rect,
   }
-
-  // Get z-order to set for floating windows.
-  let should_show_on_top = self
-    .user_config_service
-    .general_config()
-    .show_floating_on_top;
-
-  let floating_z_order = if should_show_on_top {
-    ZOrderFlags::TopMost
-  } else {
-    ZOrderFlags::NoTopMost
-  };
-
-  // Avoid adjusting the borders of floating windows. Otherwise the window will
-  // increase in size from its original placement.
-  set_window_pos(
-    window.handle(),
-    floating_z_order as _,
-    window.x(),
-    window.y(),
-    window.width(),
-    window.height(),
-    default_flags,
-  );
 }

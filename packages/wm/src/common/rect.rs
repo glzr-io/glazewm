@@ -1,3 +1,5 @@
+use super::RectDelta;
+
 #[derive(Debug, Clone)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
@@ -67,6 +69,15 @@ impl Rect {
     (
       self.left + (self.width() / 2),
       self.top + (self.height() / 2),
+    )
+  }
+
+  pub fn apply_delta(&self, delta: RectDelta) -> Self {
+    Self::from_ltrb(
+      self.left - delta.left.to_pixels(self.width()),
+      self.top - delta.top.to_pixels(self.height()),
+      self.right + delta.right.to_pixels(self.width()),
+      self.bottom + delta.bottom.to_pixels(self.height()),
     )
   }
 }
