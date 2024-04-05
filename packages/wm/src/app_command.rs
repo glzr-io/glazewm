@@ -97,8 +97,15 @@ pub enum QueryCommand {
 #[derive(Subcommand, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum InvokeCommand {
-  AdjustBorders(InvokeAdjustBordersCommand),
   Close,
+  ChangeBorders(InvokeChangeBordersCommand),
+  ChangeTilingDirection {
+    #[clap(long = "tiling_dir")]
+    tiling_direction: Option<TilingDirection>,
+
+    #[clap(long)]
+    toggle: bool,
+  },
   Focus(InvokeFocusCommand),
   Ignore,
   Move(InvokeMoveCommand),
@@ -107,25 +114,30 @@ pub enum InvokeCommand {
     direction: Direction,
   },
   Resize(InvokeResizeCommand),
-  SetFloating,
-  SetFullscreen,
-  SetMaximized,
-  SetMinimized,
-  SetTiling,
-  SetTilingDirection {
-    #[clap(long = "tiling_dir")]
-    tiling_direction: TilingDirection,
+  SetFloating {
+    #[clap(long)]
+    toggle: bool,
+  },
+  SetFullscreen {
+    #[clap(long)]
+    toggle: bool,
+  },
+  SetMaximized {
+    #[clap(long)]
+    toggle: bool,
+  },
+  SetMinimized {
+    #[clap(long)]
+    toggle: bool,
+  },
+  SetTiling {
+    #[clap(long)]
+    toggle: bool,
   },
   ShellExec {
     #[clap(long, num_args = 1..)]
     command: Vec<String>,
   },
-  ToggleFloating,
-  ToggleFullscreen,
-  ToggleMaximized,
-  ToggleMinimized,
-  ToggleTiling,
-  ToggleTilingDirection,
   WmDisableBindingMode {
     #[clap(long)]
     name: String,
@@ -137,7 +149,20 @@ pub enum InvokeCommand {
   },
   WmRedraw,
   WmReloadConfig,
-  WmToggleFocusMode,
+  WmChangeFocusMode {
+    #[clap(long)]
+    toggle: bool,
+  },
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = true)]
+pub struct InvokeChangeBordersCommand {
+  #[clap(long)]
+  width: Option<LengthValue>,
+
+  #[clap(long)]
+  height: Option<LengthValue>,
 }
 
 #[derive(Args, Debug)]
@@ -174,16 +199,6 @@ pub struct InvokeMoveCommand {
 #[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
-  #[clap(long)]
-  width: Option<LengthValue>,
-
-  #[clap(long)]
-  height: Option<LengthValue>,
-}
-
-#[derive(Args, Debug)]
-#[group(required = true, multiple = true)]
-pub struct InvokeAdjustBordersCommand {
   #[clap(long)]
   width: Option<LengthValue>,
 
