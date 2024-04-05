@@ -1,4 +1,6 @@
-use anyhow::{bail, Result};
+use std::str::FromStr;
+
+use anyhow::bail;
 
 #[derive(Clone, Debug)]
 pub enum Direction {
@@ -23,6 +25,10 @@ impl Direction {
       Direction::Down => Direction::Up,
     }
   }
+}
+
+impl FromStr for Direction {
+  type Err = anyhow::Error;
 
   /// Parses a string into a direction.
   ///
@@ -30,7 +36,7 @@ impl Direction {
   /// ```
   /// Direction::from_str("left") // Direction::Left
   /// ```
-  pub fn from_str(unparsed: &str) -> Result<Direction> {
+  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
       "left" => Ok(Direction::Left),
       "right" => Ok(Direction::Right),

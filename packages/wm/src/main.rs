@@ -1,50 +1,49 @@
-use std::{env, sync::Arc};
-
-use anyhow::{Context, Result};
 use clap::Parser;
-use common::platform::Platform;
-use ipc_client::IpcClient;
+use tracing::info;
 
-use ipc_server::IpcServer;
-use tokio::{
-  process::Command,
-  sync::{mpsc, Mutex},
-};
-use tracing::{info, level_filters::LevelFilter};
-use tracing_subscriber::EnvFilter;
-use user_config::UserConfig;
-use wm::WindowManager;
+use crate::app_command::AppCommand;
 
-use crate::cli::{Cli, CliCommand};
-
-mod cli;
+mod app_command;
 mod common;
-mod containers;
-mod ipc_server;
-mod monitors;
-mod user_config;
+// mod containers;
+// mod ipc_server;
+// mod monitors;
+// mod user_config;
 mod windows;
-mod wm;
-mod wm_command;
-mod wm_event;
-mod wm_state;
-mod workspaces;
+// mod wm;
+// mod wm_command;
+// mod wm_event;
+// mod wm_state;
+// mod workspaces;
 
 #[tokio::main]
 async fn main() {
-  // TODO: Take log level and config path from `start` command arguments.
-  tracing_subscriber::fmt()
-    .with_env_filter(
-      EnvFilter::from_env("LOG_LEVEL")
-        .add_directive(LevelFilter::INFO.into()),
-    )
-    .init();
+  let app_command = AppCommand::parse_with_default();
 
-  let config_path = None;
+  match app_command {
+    AppCommand::Start {
+      config_path,
+      verbosity,
+    } => {
+      tracing_subscriber::fmt()
+        .with_max_level(verbosity.level())
+        .init();
 
-  if let Err(err) = start_wm(config_path).await {
-    eprintln!("Failed to start GlazeWM: {}", err);
+      info!(
+        "Starting WM with log level {:?}.",
+        verbosity.level().to_string()
+      );
+
+      // start_wm(config_path).await?;
+    }
+    _ => todo!(),
   }
+
+  // let config_path = None;
+
+  // if let Err(err) = start_wm(config_path).await {
+  //   eprintln!("Failed to start GlazeWM: {}", err);
+  // }
 }
 
 async fn start_wm(config_path: Option<String>) -> Result<()> {

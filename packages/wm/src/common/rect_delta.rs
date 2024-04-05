@@ -1,4 +1,6 @@
-use anyhow::{bail, Result};
+use std::str::FromStr;
+
+use anyhow::bail;
 use serde::{Deserialize, Deserializer};
 
 use super::LengthValue;
@@ -32,8 +34,18 @@ impl RectDelta {
       bottom,
     }
   }
+}
 
-  pub fn from_str(unparsed: &str) -> Result<Self> {
+impl FromStr for RectDelta {
+  type Err = anyhow::Error;
+
+  /// Parses a string into a rect delta.
+  ///
+  /// Example:
+  /// ```
+  /// RectDelta::from_str("5px 10px 5px") // RectDelta { left: 5px, top: 10px, right: 5px, bottom: 10px }
+  /// ```
+  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     let parts: Vec<&str> = unparsed.split_whitespace().collect();
 
     match parts.len() {

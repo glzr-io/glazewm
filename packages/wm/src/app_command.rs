@@ -1,0 +1,177 @@
+use std::path::PathBuf;
+
+use clap::{Args, Parser, Subcommand};
+use tracing::Level;
+
+use crate::{
+  common::{Direction, LengthValue, TilingDirection},
+  windows::WindowState,
+};
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+pub enum AppCommand {
+  /// Starts the window manager.
+  Start {
+    /// Custom path to user config file.
+    ///
+    /// The default path is `%userprofile%/.glzr/glazewm/config.yaml`
+    #[clap(short = 'c', long = "config", value_hint = clap::ValueHint::FilePath)]
+    config_path: Option<PathBuf>,
+
+    #[clap(flatten)]
+    verbosity: Verbosity,
+  },
+
+  /// Prints the window manager's state.
+  ///
+  /// Requires an already running instance of the window manager.
+  Query {
+    #[clap(subcommand)]
+    command: QueryCommand,
+  },
+
+  /// Invokes a window manager command.
+  ///
+  /// Requires an already running instance of the window manager.
+  Cmd {
+    #[clap(subcommand)]
+    command: InvokeCommand,
+  },
+}
+
+impl AppCommand {
+  /// Parses `AppCommand` from command line arguments.
+  ///
+  /// Defaults to `AppCommand::Start` if no arguments are provided.
+  pub fn parse_with_default() -> Self {
+    let args = std::env::args().skip(1);
+
+    match args.len() == 0 {
+      true => AppCommand::Start {
+        config_path: None,
+        verbosity: Verbosity {
+          verbose: false,
+          quiet: false,
+        },
+      },
+      false => AppCommand::parse(),
+    }
+  }
+}
+
+/// Verbosity flags to be used with `#[command(flatten)]`.
+#[derive(Args, Debug)]
+#[clap(about = None, long_about = None)]
+pub struct Verbosity {
+  /// Enables verbose logging.
+  #[clap(short = 'v', long, action)]
+  verbose: bool,
+
+  /// Disables logging.
+  #[clap(short = 'q', long, action, conflicts_with = "verbose")]
+  quiet: bool,
+}
+
+impl Verbosity {
+  /// Gets the log level based on the verbosity flags.
+  pub fn level(&self) -> Level {
+    match (self.verbose, self.quiet) {
+      (true, _) => Level::DEBUG,
+      (_, true) => Level::ERROR,
+      _ => Level::INFO,
+    }
+  }
+}
+
+#[derive(Subcommand, Debug)]
+#[clap(rename_all = "snake_case")]
+pub enum QueryCommand {
+  /// Prints all windows.
+  Windows,
+  /// Prints all monitors.
+  Monitors,
+  /// Prints the active binding modes.
+  BindingMode,
+  /// Prints the focused container (either a window or an empty workspace).
+  Focused,
+}
+
+#[derive(Subcommand, Debug)]
+#[clap(rename_all = "snake_case")]
+pub enum InvokeCommand {
+  CloseWindow,
+  DisableBindingMode {
+    #[clap(long)]
+    name: String,
+  },
+  Exec {
+    #[clap(long, num_args = 1..)]
+    command: Vec<String>,
+  },
+  ExitWm,
+  EnableBindingMode {
+    #[clap(long)]
+    name: String,
+  },
+  Focus {
+    #[clap(long = "dir")]
+    direction: Direction,
+  },
+  FocusWorkspace {
+    #[clap(long, group = "focus_workspace")]
+    name: Option<String>,
+
+    #[clap(long, group = "focus_workspace")]
+    next: bool,
+
+    #[clap(long, group = "focus_workspace")]
+    prev: bool,
+
+    #[clap(long, group = "focus_workspace")]
+    recent: bool,
+  },
+  IgnoreWindow,
+  MoveWindow {
+    #[clap(long = "dir")]
+    direction: Direction,
+  },
+  MoveWindowToWorkspace {
+    #[clap(long)]
+    name: String,
+  },
+  MoveWorkspace {
+    #[clap(long = "dir")]
+    direction: Direction,
+  },
+  Redraw,
+  ReloadConfig,
+  ResizeWindow {
+    #[clap(long)]
+    width: Option<LengthValue>,
+
+    #[clap(long)]
+    height: Option<LengthValue>,
+  },
+  SetTilingDirection {
+    #[clap(long = "tiling_dir")]
+    tiling_direction: TilingDirection,
+  },
+  SetWindowBorders {
+    #[clap(long)]
+    width: Option<LengthValue>,
+
+    #[clap(long)]
+    height: Option<LengthValue>,
+  },
+  SetWindowState {
+    #[clap(long)]
+    state: WindowState,
+  },
+  ToggleFocusMode,
+  ToggleTilingDirection,
+  ToggleWindowState {
+    #[clap(long)]
+    state: WindowState,
+  },
+}

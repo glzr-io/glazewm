@@ -1,4 +1,6 @@
-use anyhow::{bail, Result};
+use std::str::FromStr;
+
+use anyhow::bail;
 
 use super::Direction;
 
@@ -29,20 +31,24 @@ impl TilingDirection {
   /// ```
   /// TilingDirection::from_direction(Direction::Left) // TilingDirection::Horizontal
   /// ```
-  pub fn from_direction(&self, direction: Direction) -> TilingDirection {
+  pub fn from_direction(direction: Direction) -> TilingDirection {
     match direction {
       Direction::Left | Direction::Right => TilingDirection::Horizontal,
       Direction::Up | Direction::Down => TilingDirection::Vertical,
     }
   }
+}
 
-  /// Parse a string into a tiling direction.
+impl FromStr for TilingDirection {
+  type Err = anyhow::Error;
+
+  /// Parses a string into a tiling direction.
   ///
   /// Example:
   /// ```
   /// TilingDirection::from_str("horizontal") // TilingDirection::Horizontal
   /// ```
-  pub fn from_str(unparsed: &str) -> Result<TilingDirection> {
+  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
       "horizontal" => Ok(TilingDirection::Horizontal),
       "vertical" => Ok(TilingDirection::Vertical),
