@@ -55,37 +55,37 @@ workspaces:
 window_rules:
   # Task Manager requires admin privileges to manage and should be ignored unless running
   # the WM as admin.
-  - commands: ['ignore_window']
+  - commands: ['ignore']
     match_process_name: '/Taskmgr|ScreenClippingHost/'
 
   # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
-  - commands: ['set_window_state --state floating']
+  - commands: ['set_floating']
     match_class_name: '#32770'
 
   # Do not manage picture-in-picture windows for browsers. Note that the default is for
   # English; change `match_title` to the window's title if you use another language.
-  - commands: ['ignore_window']
+  - commands: ['ignore']
     match_title: '[Pp]icture.in.[Pp]icture'
     match_class_name: 'Chrome_WidgetWin_1|MozillaDialogClass'
 
   # Some applications (eg. Steam) have borders that extend past the normal border size.
-  - commands: ['set_window_borders --right -7px --bottom -7px --left -7px']
+  - commands: ['adjust_borders --right -7px --bottom -7px --left -7px']
     match_process_name: 'steam'
 
 binding_modes:
   - name: 'resize'
     keybindings:
       # Resize focused window by a percentage or pixel amount.
-      - commands: ['resize_window --width -2%']
+      - commands: ['resize --width -2%']
         bindings: ['H', 'Left']
-      - commands: ['resize_window --width +2%']
+      - commands: ['resize --width +2%']
         bindings: ['L', 'Right']
-      - commands: ['resize_window --height +2%']
+      - commands: ['resize --height +2%']
         bindings: ['K', 'Up']
-      - commands: ['resize_window --height -2%']
+      - commands: ['resize --height -2%']
         bindings: ['J', 'Down']
       # Press enter/escape to return to default keybindings.
-      - commands: ['disable_binding_mode --name resize']
+      - commands: ['wm_disable_binding_mode --name resize']
         bindings: ['Escape', 'Enter']
 
 keybindings:
@@ -100,28 +100,28 @@ keybindings:
     bindings: ['Alt+J', 'Alt+Down']
 
   # Move focused window in a given direction.
-  - commands: ['move_window --dir left']
+  - commands: ['move --dir left']
     bindings: ['Alt+Shift+H', 'Alt+Shift+Left']
-  - commands: ['move_window --dir right']
+  - commands: ['move --dir right']
     bindings: ['Alt+Shift+L', 'Alt+Shift+Right']
-  - commands: ['move_window --dir up']
+  - commands: ['move --dir up']
     bindings: ['Alt+Shift+K', 'Alt+Shift+Up']
-  - commands: ['move_window --dir down']
+  - commands: ['move --dir down']
     bindings: ['Alt+Shift+J', 'Alt+Shift+Down']
 
   # Resize focused window by a percentage or pixel amount.
-  - commands: ['resize_window --width -2%']
+  - commands: ['resize --width -2%']
     bindings: ['Alt+U']
-  - commands: ['resize_window --width +2%']
+  - commands: ['resize --width +2%']
     bindings: ['Alt+P']
-  - commands: ['resize_window --height +2%']
+  - commands: ['resize --height +2%']
     bindings: ['Alt+O']
-  - commands: ['resize_window --height -2%']
+  - commands: ['resize --height -2%']
     bindings: ['Alt+I']
 
   # As an alternative to the resize keybindings above, resize mode enables resizing via
   # HJKL or arrow keys. The binding mode is defined above with the name 'resize'.
-  - commands: ['enable_binding_mode --name resize']
+  - commands: ['wm_enable_binding_mode --name resize']
     bindings: ['Alt+R']
 
   # Change tiling direction. This determines where new tiling windows will be inserted.
@@ -129,36 +129,36 @@ keybindings:
     bindings: ['Alt+V']
 
   # Change focus between floating / tiling windows.
-  - commands: ['toggle_focus_mode']
+  - commands: ['wm_toggle_focus_mode']
     bindings: ['Alt+Space']
 
   # Change the focused window to be floating / tiling.
-  - commands: ['toggle_window_state --state floating']
+  - commands: ['toggle_floating --centered']
     bindings: ['Alt+Shift+Space']
 
   # Change the focused window to be maximized / unmaximized.
-  - commands: ['toggle_window_state --state maximized']
+  - commands: ['toggle_maximized']
     bindings: ['Alt+X']
 
   # Minimize focused window.
-  - commands: ['set_window_state --state minimized']
+  - commands: ['set_minimized']
     bindings: ['Alt+M']
 
   # Close focused window.
-  - commands: ['close_window']
+  - commands: ['close']
     bindings: ['Alt+Shift+Q']
 
   # Kill GlazeWM process safely.
-  - commands: ['exit_wm']
+  - commands: ['wm_exit']
     bindings: ['Alt+Shift+E']
 
   # Re-evaluate configuration file.
-  - commands: ['reload_config']
+  - commands: ['wm_reload_config']
     bindings: ['Alt+Shift+R']
 
   # Launch CMD terminal (alternatively `exec wt` or `exec %ProgramFiles%/Git/git-bash.exe`
   # to start Windows Terminal and Git Bash respectively.
-  - commands: ['exec --command cmd']
+  - commands: ['shell_exec --command cmd']
     bindings: ['Alt+Enter']
 
   # Focus the workspace that last had focus.
@@ -191,7 +191,7 @@ keybindings:
   - commands: ['focus --workspace 9']
     bindings: ['Alt+9']
 
-  # Move focused workspace to a monitor in a given direction.
+  # Move the focused window's parent workspace to a monitor in a given direction.
   - commands: ['move_workspace --dir left']
     bindings: ['Alt+A']
   - commands: ['move_workspace --dir right']
@@ -202,21 +202,21 @@ keybindings:
     bindings: ['Alt+S']
 
   # Move focused window to a workspace defined in `workspaces` config.
-  - commands: ['move_window --workspace 1', 'focus --workspace 1']
+  - commands: ['move --workspace 1', 'focus --workspace 1']
     bindings: ['Alt+Shift+1']
-  - commands: ['move_window --workspace 2', 'focus --workspace 2']
+  - commands: ['move --workspace 2', 'focus --workspace 2']
     bindings: ['Alt+Shift+2']
-  - commands: ['move_window --workspace 3', 'focus --workspace 3']
+  - commands: ['move --workspace 3', 'focus --workspace 3']
     bindings: ['Alt+Shift+3']
-  - commands: ['move_window --workspace 4', 'focus --workspace 4']
+  - commands: ['move --workspace 4', 'focus --workspace 4']
     bindings: ['Alt+Shift+4']
-  - commands: ['move_window --workspace 5', 'focus --workspace 5']
+  - commands: ['move --workspace 5', 'focus --workspace 5']
     bindings: ['Alt+Shift+5']
-  - commands: ['move_window --workspace 6', 'focus --workspace 6']
+  - commands: ['move --workspace 6', 'focus --workspace 6']
     bindings: ['Alt+Shift+6']
-  - commands: ['move_window --workspace 7', 'focus --workspace 7']
+  - commands: ['move --workspace 7', 'focus --workspace 7']
     bindings: ['Alt+Shift+7']
-  - commands: ['move_window --workspace 8', 'focus --workspace 8']
+  - commands: ['move --workspace 8', 'focus --workspace 8']
     bindings: ['Alt+Shift+8']
-  - commands: ['move_window --workspace 9', 'focus --workspace 9']
+  - commands: ['move --workspace 9', 'focus --workspace 9']
     bindings: ['Alt+Shift+9']

@@ -114,56 +114,21 @@ pub enum InvokeCommand {
     #[clap(long)]
     name: String,
   },
-  Focus {
-    #[clap(long = "dir")]
-    direction: Direction,
-  },
-  FocusWorkspace {
-    #[clap(long, group = "focus_workspace")]
-    name: Option<String>,
-
-    #[clap(long, group = "focus_workspace")]
-    next: bool,
-
-    #[clap(long, group = "focus_workspace")]
-    prev: bool,
-
-    #[clap(long, group = "focus_workspace")]
-    recent: bool,
-  },
+  Focus(InvokeFocusCommand),
   IgnoreWindow,
-  MoveWindow {
-    #[clap(long = "dir")]
-    direction: Direction,
-  },
-  MoveWindowToWorkspace {
-    #[clap(long)]
-    name: String,
-  },
+  MoveWindow(InvokeMoveWindowCommand),
   MoveWorkspace {
     #[clap(long = "dir")]
     direction: Direction,
   },
   Redraw,
   ReloadConfig,
-  ResizeWindow {
-    #[clap(long)]
-    width: Option<LengthValue>,
-
-    #[clap(long)]
-    height: Option<LengthValue>,
-  },
+  ResizeWindow(InvokeResizeWindowCommand),
   SetTilingDirection {
     #[clap(long = "tiling_dir")]
     tiling_direction: TilingDirection,
   },
-  SetWindowBorders {
-    #[clap(long)]
-    width: Option<LengthValue>,
-
-    #[clap(long)]
-    height: Option<LengthValue>,
-  },
+  SetWindowBorders(InvokeSetWindowBordersCommand),
   SetWindowState {
     #[clap(long)]
     state: WindowState,
@@ -174,4 +139,55 @@ pub enum InvokeCommand {
     #[clap(long)]
     state: WindowState,
   },
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+pub struct InvokeFocusCommand {
+  #[clap(long = "dir")]
+  direction: Option<Direction>,
+
+  #[clap(long)]
+  workspace: Option<String>,
+
+  #[clap(long)]
+  next_workspace: bool,
+
+  #[clap(long)]
+  prev_workspace: bool,
+
+  #[clap(long)]
+  recent_workspace: bool,
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+pub struct InvokeMoveWindowCommand {
+  /// Direction to move the window.
+  #[clap(long = "dir")]
+  direction: Option<Direction>,
+
+  /// Name of workspace to move the window.
+  #[clap(long)]
+  workspace: Option<String>,
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = true)]
+pub struct InvokeResizeWindowCommand {
+  #[clap(long)]
+  width: Option<LengthValue>,
+
+  #[clap(long)]
+  height: Option<LengthValue>,
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = true)]
+pub struct InvokeSetWindowBordersCommand {
+  #[clap(long)]
+  width: Option<LengthValue>,
+
+  #[clap(long)]
+  height: Option<LengthValue>,
 }

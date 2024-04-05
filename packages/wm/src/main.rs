@@ -18,9 +18,7 @@ mod windows;
 
 #[tokio::main]
 async fn main() {
-  let app_command = AppCommand::parse_with_default();
-
-  match app_command {
+  match AppCommand::parse_with_default() {
     AppCommand::Start {
       config_path,
       verbosity,
