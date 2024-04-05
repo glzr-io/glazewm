@@ -3,10 +3,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use tracing::Level;
 
-use crate::{
-  common::{Direction, LengthValue, TilingDirection},
-  windows::WindowState,
-};
+use crate::common::{Direction, LengthValue, TilingDirection};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -100,45 +97,47 @@ pub enum QueryCommand {
 #[derive(Subcommand, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum InvokeCommand {
-  CloseWindow,
-  DisableBindingMode {
-    #[clap(long)]
-    name: String,
-  },
-  Exec {
-    #[clap(long, num_args = 1..)]
-    command: Vec<String>,
-  },
-  ExitWm,
-  EnableBindingMode {
-    #[clap(long)]
-    name: String,
-  },
+  AdjustBorders(InvokeAdjustBordersCommand),
+  Close,
   Focus(InvokeFocusCommand),
-  IgnoreWindow,
-  MoveWindow(InvokeMoveWindowCommand),
+  Ignore,
+  Move(InvokeMoveCommand),
   MoveWorkspace {
     #[clap(long = "dir")]
     direction: Direction,
   },
-  Redraw,
-  ReloadConfig,
-  ResizeWindow(InvokeResizeWindowCommand),
+  Resize(InvokeResizeCommand),
+  SetFloating,
+  SetFullscreen,
+  SetMaximized,
+  SetMinimized,
+  SetTiling,
   SetTilingDirection {
     #[clap(long = "tiling_dir")]
     tiling_direction: TilingDirection,
   },
-  SetWindowBorders(InvokeSetWindowBordersCommand),
-  SetWindowState {
-    #[clap(long)]
-    state: WindowState,
+  ShellExec {
+    #[clap(long, num_args = 1..)]
+    command: Vec<String>,
   },
-  ToggleFocusMode,
+  ToggleFloating,
+  ToggleFullscreen,
+  ToggleMaximized,
+  ToggleMinimized,
+  ToggleTiling,
   ToggleTilingDirection,
-  ToggleWindowState {
+  WmDisableBindingMode {
     #[clap(long)]
-    state: WindowState,
+    name: String,
   },
+  WmExit,
+  WmEnableBindingMode {
+    #[clap(long)]
+    name: String,
+  },
+  WmRedraw,
+  WmReloadConfig,
+  WmToggleFocusMode,
 }
 
 #[derive(Args, Debug)]
@@ -162,7 +161,7 @@ pub struct InvokeFocusCommand {
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
-pub struct InvokeMoveWindowCommand {
+pub struct InvokeMoveCommand {
   /// Direction to move the window.
   #[clap(long = "dir")]
   direction: Option<Direction>,
@@ -174,7 +173,7 @@ pub struct InvokeMoveWindowCommand {
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
-pub struct InvokeResizeWindowCommand {
+pub struct InvokeResizeCommand {
   #[clap(long)]
   width: Option<LengthValue>,
 
@@ -184,7 +183,7 @@ pub struct InvokeResizeWindowCommand {
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
-pub struct InvokeSetWindowBordersCommand {
+pub struct InvokeAdjustBordersCommand {
   #[clap(long)]
   width: Option<LengthValue>,
 
