@@ -1,20 +1,27 @@
-use clap::Parser;
+use std::{env, path::PathBuf};
+
+use anyhow::{Context, Result};
+use tokio::process::Command;
 use tracing::info;
+
+use common::platform::Platform;
+use ipc_server::IpcServer;
+use user_config::UserConfig;
+use wm::WindowManager;
 
 use crate::app_command::AppCommand;
 
 mod app_command;
 mod common;
-// mod containers;
-// mod ipc_server;
-// mod monitors;
-// mod user_config;
+mod containers;
+mod ipc_server;
+mod monitors;
+mod user_config;
 mod windows;
-// mod wm;
-// mod wm_command;
-// mod wm_event;
-// mod wm_state;
-// mod workspaces;
+mod wm;
+mod wm_event;
+mod wm_state;
+mod workspaces;
 
 #[tokio::main]
 async fn main() {
@@ -23,6 +30,7 @@ async fn main() {
       config_path,
       verbosity,
     } => {
+      // Set log level based on verbosity flag.
       tracing_subscriber::fmt()
         .with_max_level(verbosity.level())
         .init();
@@ -32,19 +40,15 @@ async fn main() {
         verbosity.level().to_string()
       );
 
-      // start_wm(config_path).await?;
+      if let Err(err) = start_wm(config_path).await {
+        eprintln!("Failed to start GlazeWM: {}", err);
+      }
     }
     _ => todo!(),
   }
-
-  // let config_path = None;
-
-  // if let Err(err) = start_wm(config_path).await {
-  //   eprintln!("Failed to start GlazeWM: {}", err);
-  // }
 }
 
-async fn start_wm(config_path: Option<String>) -> Result<()> {
+async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   // Ensure that only one instance of the WM is running.
   let _ = Platform::new_single_instance()?;
 

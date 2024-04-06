@@ -6,7 +6,7 @@ use ipc_client::DEFAULT_IPC_ADDR;
 use tokio::{
   net::TcpListener,
   sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    mpsc::{self},
     Mutex,
   },
   task,
@@ -14,7 +14,9 @@ use tokio::{
 use tokio_tungstenite::accept_async;
 use tracing::info;
 
-use crate::{wm_command::WmCommand, wm_event::WmEvent, wm_state::WmState};
+use crate::{
+  app_command::InvokeCommand, wm_event::WmEvent, wm_state::WmState,
+};
 
 #[derive(Debug)]
 pub enum IpcMessage {
@@ -25,8 +27,8 @@ pub enum IpcMessage {
 }
 
 pub struct IpcServer {
-  pub message_rx: UnboundedReceiver<IpcMessage>,
-  pub wm_command_rx: UnboundedReceiver<WmCommand>,
+  pub message_rx: mpsc::UnboundedReceiver<IpcMessage>,
+  pub wm_command_rx: mpsc::UnboundedReceiver<InvokeCommand>,
 }
 
 impl IpcServer {
@@ -34,7 +36,7 @@ impl IpcServer {
     let (message_tx, message_rx) = mpsc::unbounded_channel::<IpcMessage>();
 
     let (wm_command_tx, wm_command_rx) =
-      mpsc::unbounded_channel::<WmCommand>();
+      mpsc::unbounded_channel::<InvokeCommand>();
 
     let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 

@@ -1,17 +1,12 @@
-use anyhow::anyhow;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
-  common::{
-    platform::{NativeMonitor, NativeWindow, Platform},
-    TilingDirection,
-  },
+  common::platform::{NativeMonitor, NativeWindow, Platform},
   containers::{
-    commands::attach_container,
-    traits::{CommonBehavior, TilingBehavior},
-    Container, RootContainer, WindowContainer,
+    commands::attach_container, traits::CommonBehavior, Container,
+    RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
   user_config::{BindingModeConfig, UserConfig},

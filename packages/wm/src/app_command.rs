@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
+use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
 use crate::common::{Direction, LengthValue, TilingDirection};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub enum AppCommand {
   /// Starts the window manager.
@@ -58,7 +59,7 @@ impl AppCommand {
 }
 
 /// Verbosity flags to be used with `#[command(flatten)]`.
-#[derive(Args, Debug)]
+#[derive(Args, Clone, Debug)]
 #[clap(about = None, long_about = None)]
 pub struct Verbosity {
   /// Enables verbose logging.
@@ -81,7 +82,7 @@ impl Verbosity {
   }
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Clone, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum QueryCommand {
   /// Prints all windows.
@@ -94,7 +95,7 @@ pub enum QueryCommand {
   Focused,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum InvokeCommand {
   Close,
@@ -155,7 +156,18 @@ pub enum InvokeCommand {
   },
 }
 
-#[derive(Args, Debug)]
+impl<'de> Deserialize<'de> for InvokeCommand {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let str = String::deserialize(deserializer)?;
+    InvokeCommand::try_parse_from(str.split_whitespace())
+      .map_err(serde::de::Error::custom)
+  }
+}
+
+#[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = true)]
 pub struct InvokeChangeBordersCommand {
   #[clap(long)]
@@ -165,7 +177,7 @@ pub struct InvokeChangeBordersCommand {
   height: Option<LengthValue>,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = false)]
 pub struct InvokeFocusCommand {
   #[clap(long = "dir")]
@@ -184,7 +196,7 @@ pub struct InvokeFocusCommand {
   recent_workspace: bool,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = false)]
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
@@ -196,7 +208,7 @@ pub struct InvokeMoveCommand {
   workspace: Option<String>,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
   #[clap(long)]

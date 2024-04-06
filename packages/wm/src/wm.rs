@@ -2,20 +2,17 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use tokio::sync::{
-  mpsc::{self, UnboundedReceiver, UnboundedSender},
+  mpsc::{self},
   Mutex,
 };
 
 use crate::{
-  common::platform::PlatformEvent,
-  user_config::{ParsedConfig, UserConfig},
-  wm_command::WmCommand,
-  wm_event::WmEvent,
-  wm_state::WmState,
+  app_command::InvokeCommand, common::platform::PlatformEvent,
+  user_config::UserConfig, wm_event::WmEvent, wm_state::WmState,
 };
 
 pub struct WindowManager {
-  pub event_rx: UnboundedReceiver<WmEvent>,
+  pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub state: Arc<Mutex<WmState>>,
 }
 
@@ -37,74 +34,7 @@ impl WindowManager {
     // TODO
   }
 
-  pub async fn process_command(&mut self, command: WmCommand) {
-    match command {
-      WmCommand::CloseWindow => {
-        todo!()
-      }
-      WmCommand::DisableBindingMode(_) => {
-        todo!()
-      }
-      WmCommand::ExitWm => {
-        todo!()
-      }
-      WmCommand::EnableBindingMode(_) => {
-        todo!()
-      }
-      WmCommand::FocusInDirection(_) => {
-        todo!()
-      }
-      WmCommand::FocusRecentWorkspace => {
-        todo!()
-      }
-      WmCommand::FocusWorkspaceInSequence => {
-        todo!()
-      }
-      WmCommand::FocusWorkspace(_) => {
-        todo!()
-      }
-      WmCommand::IgnoreWindow => {
-        todo!()
-      }
-      WmCommand::MoveWindow(_) => {
-        todo!()
-      }
-      WmCommand::MoveWindowToWorkspace(_) => {
-        todo!()
-      }
-      WmCommand::MoveWorkspace(_) => {
-        todo!()
-      }
-      WmCommand::Noop => {
-        todo!()
-      }
-      WmCommand::Redraw => {
-        todo!()
-      }
-      WmCommand::ReloadConfig => {
-        todo!()
-      }
-      WmCommand::ResizeWindowWidth(_) => {
-        todo!()
-      }
-      WmCommand::ResizeWindowHeight(_) => {
-        todo!()
-      }
-      WmCommand::SetTilingDirection(_) => {
-        todo!()
-      }
-      WmCommand::SetWindowBorders(_) => {
-        todo!()
-      }
-      WmCommand::SetWindowFloating => {
-        todo!()
-      }
-      WmCommand::ToggleTilingDirection => {
-        todo!()
-      }
-      WmCommand::ToggleFocusMode => {
-        todo!()
-      }
-    }
+  pub async fn process_command(&mut self, command: InvokeCommand) {
+    // TODO
   }
 }

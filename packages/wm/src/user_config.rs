@@ -8,9 +8,9 @@ use tokio::{
 };
 
 use crate::{
+  app_command::InvokeCommand,
   common::{LengthValue, RectDelta},
   monitors::Monitor,
-  wm_command::WmCommand,
   workspaces::Workspace,
 };
 
@@ -20,7 +20,7 @@ pub struct KeybindingConfig {
   pub bindings: Vec<String>,
 
   /// WM commands to run when the keybinding is triggered.
-  pub commands: Vec<WmCommand>,
+  pub commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -100,7 +100,7 @@ pub struct WindowRuleConfig {
   pub match_process_name: Option<String>,
   pub match_class_name: Option<String>,
   pub match_title: Option<String>,
-  pub commands: Vec<WmCommand>,
+  pub commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -135,16 +135,13 @@ const SAMPLE_CONFIG: &str =
 impl UserConfig {
   /// Read and validate the user config from the given path.
   pub async fn read(
-    config_path: Option<String>,
+    config_path: Option<PathBuf>,
   ) -> Result<Arc<Mutex<Self>>> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
-    let config_path = match config_path {
-      Some(val) => PathBuf::from(val),
-      None => default_config_path,
-    };
+    let config_path = config_path.unwrap_or(default_config_path);
 
     // Create new config file from sample if it doesn't exist.
     if !config_path.exists() {
