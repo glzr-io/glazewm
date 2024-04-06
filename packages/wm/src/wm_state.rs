@@ -1,13 +1,19 @@
 use anyhow::anyhow;
 use tokio::sync::mpsc::UnboundedSender;
+use tracing::warn;
+use uuid::Uuid;
 
 use crate::{
-  common::platform::{NativeMonitor, NativeWindow, Platform},
+  common::{
+    platform::{NativeMonitor, NativeWindow, Platform},
+    TilingDirection,
+  },
   containers::{
+    commands::attach_container,
     traits::{CommonBehavior, TilingBehavior},
     Container, RootContainer, WindowContainer,
   },
-  monitors::Monitor,
+  monitors::{commands::add_monitor, Monitor},
   user_config::{BindingModeConfig, UserConfig},
   windows::TilingWindow,
   wm_event::WmEvent,
@@ -17,17 +23,17 @@ use crate::{
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
-  root_container: RootContainer,
+  pub root_container: RootContainer,
 
   /// Containers (and their descendants) that have a pending redraw.
   containers_to_redraw: Vec<Container>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.
-  has_pending_focus_sync: bool,
+  pub has_pending_focus_sync: bool,
 
   /// Currently enabled binding modes.
-  binding_modes: Vec<BindingModeConfig>,
+  pub binding_modes: Vec<BindingModeConfig>,
 
   event_tx: UnboundedSender<WmEvent>,
 }
@@ -48,22 +54,11 @@ impl WmState {
   pub fn populate(&mut self, config: &UserConfig) -> anyhow::Result<()> {
     // Get the originally focused window when the WM was started.
     let foreground_window = Platform::foreground_window();
-    let native_monitors = Platform::monitors()?;
 
-    for native_monitor in native_monitors {
-      let monitor = Monitor::new(native_monitor);
-
-      let workspace_config = config
-        .workspace_config_for_monitor(&monitor, &self.workspaces())
-        .ok_or(anyhow!("No workspace config found for monitor."))?;
-
-      let workspace = Workspace::new(
-        workspace_config,
-        config.value.gaps.outer_gap.clone(),
-      );
-
-      monitor.insert_child(0, workspace.into());
-      self.root_container.insert_child(0, monitor.into());
+    // Create a monitor, and consequently a workspace, for each detected
+    // native monitor.
+    for native_monitor in Platform::monitors()? {
+      add_monitor(native_monitor, self, config)?;
     }
 
     for native_window in Platform::manageable_windows()? {
@@ -74,12 +69,11 @@ impl WmState {
       if let Some(monitor) = nearest_monitor {
         // TODO: This should actually add to the monitor's displayed workspace.
         let window = TilingWindow::new(native_window);
-        monitor.insert_child(0, window.into());
+        attach_container(window.into(), &monitor.into(), 0)?;
       }
     }
 
     self.has_pending_focus_sync = true;
-
     Ok(())
   }
 
@@ -158,11 +152,17 @@ impl WmState {
   //   }
   // }
 
-  // pub fn container_by_id(&self, id: Uuid) -> Option<Arc<Container>> {
-  //   self
-  //     .root_container
-  //     .self_and_descendants()
-  //     .into_iter()
-  //     .find(|container| container.id() == id)
-  // }
+  pub fn emit_event(&self, event: WmEvent) {
+    if let Err(err) = self.event_tx.send(event) {
+      warn!("Failed to send event: {}", err);
+    }
+  }
+
+  pub fn container_by_id(&self, id: Uuid) -> Option<Container> {
+    self
+      .root_container
+      .self_and_descendants()
+      .into_iter()
+      .find(|container| container.id() == id)
+  }
 }

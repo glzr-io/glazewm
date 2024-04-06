@@ -11,10 +11,10 @@ use crate::{
   wm_state::WmState,
 };
 
-pub fn redraw_command(
+pub fn redraw(
   state: &mut WmState,
-  user_config: UserConfig,
-) -> anyhow::Result<&mut WmState> {
+  config: &UserConfig,
+) -> anyhow::Result<()> {
   let windows_to_redraw = state.windows_to_redraw();
 
   // Get windows that are minimized/maximized and shouldn't be.
@@ -55,7 +55,7 @@ pub fn redraw_command(
 
     let position_args = get_position_args(
       &window,
-      user_config.value.general.show_floating_on_top,
+      config.value.general.show_floating_on_top,
     );
 
     let _ = window.native().set_position(&position_args);
@@ -71,7 +71,7 @@ pub fn redraw_command(
   }
 
   state.clear_containers_to_redraw();
-  Ok(state)
+  Ok(())
 }
 
 fn get_position_args(

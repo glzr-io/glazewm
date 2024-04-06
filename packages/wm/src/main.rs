@@ -71,7 +71,8 @@ async fn start_wm(config_path: Option<String>) -> Result<()> {
         wm.process_event(event).await
       },
       Some(wm_event) = wm.event_rx.recv() => {
-        info!("Received WM event: {:?}", wm_event);
+        // TODO: Log event struct when debug of containers isn't recursive.
+        info!("Received WM event");
         ipc_server.process_event(wm_event).await
       },
       Some(ipc_message) = ipc_server.message_rx.recv() => {

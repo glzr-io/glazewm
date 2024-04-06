@@ -67,11 +67,10 @@ impl IpcServer {
     _message: IpcMessage,
     wm_state: Arc<Mutex<WmState>>,
   ) {
-    todo!()
+    // TODO: Spawn a task so that it doesn't block main thread execution.
   }
 
   pub async fn process_event(&mut self, event: WmEvent) {
     // TODO: Spawn a task so that it doesn't block main thread execution.
-    todo!()
   }
 }
