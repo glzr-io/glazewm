@@ -1,12 +1,12 @@
-use std::path::PathBuf;
+use std::{iter, path::PathBuf};
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Command, CommandFactory, Parser, Subcommand};
 use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
 use crate::common::{Direction, LengthValue, TilingDirection};
 
-#[derive(Parser, Clone, Debug)]
+#[derive(Clone, Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 pub enum AppCommand {
   /// Starts the window manager.
@@ -82,7 +82,7 @@ impl Verbosity {
   }
 }
 
-#[derive(Subcommand, Clone, Debug)]
+#[derive(Clone, Debug, Parser)]
 #[clap(rename_all = "snake_case")]
 pub enum QueryCommand {
   /// Prints all windows.
@@ -95,8 +95,13 @@ pub enum QueryCommand {
   Focused,
 }
 
-#[derive(Parser, Clone, Debug)]
+#[derive(Clone, Debug, Parser)]
 #[clap(rename_all = "snake_case")]
+#[clap(
+  rename_all = "snake_case",
+  disable_help_flag = true,
+  disable_help_subcommand = true
+)]
 pub enum InvokeCommand {
   Close,
   ChangeBorders(InvokeChangeBordersCommand),
@@ -161,9 +166,37 @@ impl<'de> Deserialize<'de> for InvokeCommand {
   where
     D: Deserializer<'de>,
   {
-    let str = String::deserialize(deserializer)?;
-    InvokeCommand::try_parse_from(str.split_whitespace())
-      .map_err(serde::de::Error::custom)
+    // Clap expects an array of string slices where the first argument is
+    // the binary name/path. When deserializing commands from the user
+    // config, we therefore have to prepend an additional empty argument.
+    let unparsed = String::deserialize(deserializer)?;
+    let unparsed_split = iter::once("").chain(unparsed.split_whitespace());
+
+    InvokeCommand::try_parse_from(unparsed_split).map_err(|e| {
+      for (kind, value) in e.context() {
+        println!("{:?} {:?}", kind, value);
+      }
+      serde::de::Error::custom(e)
+    })
+
+    // let xxx = InvokeCommand::command()
+    //   .disable_help_flag(true)
+    //   .disable_version_flag(true)
+    //   .disable_help_subcommand(true)
+    //   .try_get_matches_from(unparsed_split)
+    //   .map_err(|e| {
+    //     for (kind, value) in e.context() {
+    //       println!("{:?} {:?}", kind, value);
+    //     }
+    //     // e.
+    //     // e.apply()
+    //     // e.format(cmd)
+    //     // Err("fjdsiaofjdsao")
+    //     serde::de::Error::custom(e)
+    //   });
+
+    //   xxx.unwrap().
+    // // .map_err(serde::de::Error::custom)
   }
 }
 
