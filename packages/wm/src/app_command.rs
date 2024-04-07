@@ -1,6 +1,9 @@
 use std::{iter, path::PathBuf};
 
-use clap::{Args, Command, CommandFactory, Parser, Subcommand};
+use clap::{
+  error::{KindFormatter, RichFormatter},
+  Args, Command, CommandFactory, Parser, Subcommand,
+};
 use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
@@ -97,11 +100,6 @@ pub enum QueryCommand {
 
 #[derive(Clone, Debug, Parser)]
 #[clap(rename_all = "snake_case")]
-#[clap(
-  rename_all = "snake_case",
-  disable_help_flag = true,
-  disable_help_subcommand = true
-)]
 pub enum InvokeCommand {
   Close,
   ChangeBorders(InvokeChangeBordersCommand),
@@ -172,31 +170,11 @@ impl<'de> Deserialize<'de> for InvokeCommand {
     let unparsed = String::deserialize(deserializer)?;
     let unparsed_split = iter::once("").chain(unparsed.split_whitespace());
 
-    InvokeCommand::try_parse_from(unparsed_split).map_err(|e| {
-      for (kind, value) in e.context() {
-        println!("{:?} {:?}", kind, value);
-      }
-      serde::de::Error::custom(e)
+    InvokeCommand::try_parse_from(unparsed_split).map_err(|err| {
+      // Format the error message and remove the "error: " prefix.
+      let err_msg = err.apply::<KindFormatter>().to_string();
+      serde::de::Error::custom(err_msg.trim_start_matches("error: "))
     })
-
-    // let xxx = InvokeCommand::command()
-    //   .disable_help_flag(true)
-    //   .disable_version_flag(true)
-    //   .disable_help_subcommand(true)
-    //   .try_get_matches_from(unparsed_split)
-    //   .map_err(|e| {
-    //     for (kind, value) in e.context() {
-    //       println!("{:?} {:?}", kind, value);
-    //     }
-    //     // e.
-    //     // e.apply()
-    //     // e.format(cmd)
-    //     // Err("fjdsiaofjdsao")
-    //     serde::de::Error::custom(e)
-    //   });
-
-    //   xxx.unwrap().
-    // // .map_err(serde::de::Error::custom)
   }
 }
 

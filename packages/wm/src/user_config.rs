@@ -152,6 +152,8 @@ impl UserConfig {
       .await
       .context("Unable to read config file.")?;
 
+    // TODO: Improve error formatting of serde_yaml errors. Something
+    // similar to https://github.com/AlexanderThaller/format_serde_error
     let parsed_config = serde_yaml::from_str(&config_str)?;
 
     let (changes_tx, changes_rx) =
