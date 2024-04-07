@@ -8,81 +8,45 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct BindingModeChangedEvent {
-  pub new_binding_mode: String,
-}
-
-#[derive(Debug)]
-pub struct FocusChangedEvent {
-  pub focused_container: Container,
-}
-
-#[derive(Debug)]
-pub struct FocusedContainerMovedEvent {
-  pub focused_container: Container,
-}
-
-#[derive(Debug)]
-pub struct MonitorAddedEvent {
-  pub added_monitor: Monitor,
-}
-
-#[derive(Debug)]
-pub struct MonitorRemovedEvent {
-  pub removed_id: Uuid,
-  pub removed_device_name: String,
-}
-
-#[derive(Debug)]
-pub struct NativeFocusSyncedEvent {
-  pub focused_container: Container,
-}
-
-#[derive(Debug)]
-pub struct TilingDirectionChangedEvent {
-  pub new_tiling_direction: TilingDirection,
-}
-
-#[derive(Debug)]
-pub struct WindowManagedEvent {
-  pub managed_window: Container,
-}
-
-#[derive(Debug)]
-pub struct WindowUnmanagedEvent {
-  pub unmanaged_id: Uuid,
-  pub unmanaged_handle: WindowHandle,
-}
-
-#[derive(Debug)]
-pub struct WorkspaceActivatedEvent {
-  pub activated_workspace: Workspace,
-}
-
-#[derive(Debug)]
-pub struct WorkspaceDeactivatedEvent {
-  pub deactivated_id: Uuid,
-  pub deactivated_name: String,
-}
-
-#[derive(Debug)]
-pub struct WorkingAreaResizedEvent {
-  pub affected_monitor: Container,
-}
-
-#[derive(Debug)]
 pub enum WmEvent {
-  BindingModeChanged(BindingModeChangedEvent),
-  FocusChanged(FocusChangedEvent),
-  FocusedContainerMoved(FocusedContainerMovedEvent),
-  MonitorAdded(MonitorAddedEvent),
-  MonitorRemoved(MonitorRemovedEvent),
-  NativeFocusSynced(NativeFocusSyncedEvent),
-  TilingDirectionChanged(TilingDirectionChangedEvent),
+  BindingModeChanged {
+    new_binding_mode: String,
+  },
+  FocusChanged {
+    focused_container: Container,
+  },
+  FocusedContainerMoved {
+    focused_container: Container,
+  },
+  MonitorAdded {
+    added_monitor: Monitor,
+  },
+  MonitorRemoved {
+    removed_id: Uuid,
+    removed_device_name: String,
+  },
+  NativeFocusSynced {
+    focused_container: Container,
+  },
+  TilingDirectionChanged {
+    new_tiling_direction: TilingDirection,
+  },
   UserConfigReloaded,
-  WindowManaged(WindowManagedEvent),
-  WindowUnmanaged(WindowUnmanagedEvent),
-  WorkspaceActivated(WorkspaceActivatedEvent),
-  WorkspaceDeactivated(WorkspaceDeactivatedEvent),
-  WorkingAreaResized(WorkingAreaResizedEvent),
+  WindowManaged {
+    managed_window: Container,
+  },
+  WindowUnmanaged {
+    unmanaged_id: Uuid,
+    unmanaged_handle: WindowHandle,
+  },
+  WorkspaceActivated {
+    activated_workspace: Workspace,
+  },
+  WorkspaceDeactivated {
+    deactivated_id: Uuid,
+    deactivated_name: String,
+  },
+  WorkingAreaResized {
+    affected_monitor: Monitor,
+  },
 }

@@ -1,13 +1,9 @@
 use anyhow::Context;
 
 use crate::{
-  common::platform::NativeMonitor,
-  containers::commands::attach_container,
-  monitors::Monitor,
-  user_config::UserConfig,
-  wm_event::{MonitorAddedEvent, WmEvent},
-  wm_state::WmState,
-  workspaces::commands::activate_workspace,
+  common::platform::NativeMonitor, containers::commands::attach_container,
+  monitors::Monitor, user_config::UserConfig, wm_event::WmEvent,
+  wm_state::WmState, workspaces::commands::activate_workspace,
 };
 
 pub fn add_monitor(
@@ -26,9 +22,9 @@ pub fn add_monitor(
     0,
   )?;
 
-  state.emit_event(WmEvent::MonitorAdded(MonitorAddedEvent {
+  state.emit_event(WmEvent::MonitorAdded {
     added_monitor: monitor.clone(),
-  }));
+  });
 
   // Activate a workspace on the newly added monitor.
   activate_workspace(None, &monitor, state, config)

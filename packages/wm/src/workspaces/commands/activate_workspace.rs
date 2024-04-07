@@ -5,7 +5,7 @@ use crate::{
   containers::{commands::attach_container, traits::PositionBehavior},
   monitors::Monitor,
   user_config::{UserConfig, WorkspaceConfig},
-  wm_event::{WmEvent, WorkspaceActivatedEvent},
+  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::Workspace,
 };
@@ -42,9 +42,9 @@ pub fn activate_workspace(
     0,
   )?;
 
-  state.emit_event(WmEvent::WorkspaceActivated(WorkspaceActivatedEvent {
+  state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace,
-  }));
+  });
 
   Ok(())
 }
