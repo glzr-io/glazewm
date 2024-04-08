@@ -4,6 +4,7 @@ use std::{
   rc::Rc,
 };
 
+use anyhow::Context;
 use uuid::Uuid;
 
 use crate::{
@@ -24,6 +25,7 @@ struct MonitorInner {
   id: Uuid,
   parent: Option<TilingContainer>,
   children: VecDeque<Container>,
+  child_focus_order: VecDeque<Uuid>,
   size_percent: f32,
   native: NativeMonitor,
 }
@@ -34,6 +36,7 @@ impl Monitor {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
+      child_focus_order: VecDeque::new(),
       size_percent: 1.0,
       native: native_monitor,
     };
@@ -53,8 +56,24 @@ impl Monitor {
     todo!()
   }
 
-  pub fn displayed_workspace(&self) -> Workspace {
-    todo!()
+  pub fn displayed_workspace(&self) -> Option<Workspace> {
+    self
+      .borrow_children()
+      .front()
+      .and_then(|c| c.as_workspace())
+      .cloned()
+  }
+
+  /// Whether there is a difference in DPI between this monitor and the
+  /// parent monitor of another container.
+  pub fn has_dpi_difference(
+    &self,
+    other: &Container,
+  ) -> anyhow::Result<bool> {
+    let other_monitor =
+      other.parent_monitor().context("No parent monitor.")?;
+
+    Ok(self.native().dpi != other_monitor.native().dpi)
   }
 }
 

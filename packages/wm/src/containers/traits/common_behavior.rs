@@ -34,6 +34,10 @@ pub trait CommonBehavior {
 
   fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>>;
 
+  fn borrow_child_focus_order(&self) -> Ref<'_, VecDeque<Uuid>>;
+
+  fn borrow_child_focus_order_mut(&self) -> RefMut<'_, VecDeque<Uuid>>;
+
   /// Gets the parent container, unless this container is the root.
   fn parent(&self) -> Option<TilingContainer> {
     self.borrow_parent().clone()
@@ -51,13 +55,19 @@ pub trait CommonBehavior {
   }
 
   /// Index of this container amongst its siblings.
-  fn index(&self) -> Option<usize> {
-    self.borrow_parent().as_ref().and_then(|parent| {
-      parent
-        .children()
-        .iter()
-        .position(|child| child.id() == self.id())
-    })
+  ///
+  /// Returns 0 if the container has no parent.
+  fn index(&self) -> usize {
+    self
+      .borrow_parent()
+      .as_ref()
+      .and_then(|parent| {
+        parent
+          .borrow_children()
+          .iter()
+          .position(|child| child.id() == self.id())
+      })
+      .unwrap_or(0)
   }
 
   fn descendants(&self) -> Descendants {
@@ -106,20 +116,58 @@ pub trait CommonBehavior {
 
   fn parent_workspace(&self) -> Option<Workspace> {
     self
-      .ancestors()
+      .self_and_ancestors()
       .find_map(|container| container.as_workspace().cloned())
   }
 
   fn parent_monitor(&self) -> Option<Monitor> {
     self
-      .ancestors()
+      .self_and_ancestors()
       .find_map(|container| container.as_monitor().cloned())
   }
 
   fn parent_direction_container(&self) -> Option<DirectionContainer> {
     self
-      .ancestors()
+      .self_and_ancestors()
       .find_map(|container| container.try_into().ok())
+  }
+
+  /// Index of this container in parent's child focus order.
+  ///
+  /// Returns 0 if the container has no parent.
+  fn focus_index(&self) -> usize {
+    self
+      .parent()
+      .and_then(|parent| {
+        parent
+          .borrow_child_focus_order()
+          .iter()
+          .position(|id| id == &self.id())
+      })
+      .unwrap_or(0)
+  }
+
+  /// Child container that last had focus.
+  fn last_focused_child(&self) -> Option<Container> {
+    let child_focus_order = self.borrow_child_focus_order();
+    let child_id = child_focus_order.front()?;
+
+    self
+      .borrow_children()
+      .iter()
+      .find(|child| child.id() == *child_id)
+      .cloned()
+  }
+
+  /// Gets the last focused descendant by traversing downwards.
+  fn last_focused_descendant(&self) -> Option<Container> {
+    let mut descendant = self.last_focused_child()?;
+
+    while let Some(child) = descendant.last_focused_child() {
+      descendant = child;
+    }
+
+    Some(descendant)
   }
 }
 
@@ -217,6 +265,16 @@ macro_rules! impl_common_behavior {
 
       fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
+      }
+
+      fn borrow_child_focus_order(&self) -> Ref<'_, VecDeque<Uuid>> {
+        Ref::map(self.0.borrow(), |c| &c.child_focus_order)
+      }
+
+      fn borrow_child_focus_order_mut(
+        &self,
+      ) -> RefMut<'_, VecDeque<Uuid>> {
+        RefMut::map(self.0.borrow_mut(), |c| &mut c.child_focus_order)
       }
     }
   };

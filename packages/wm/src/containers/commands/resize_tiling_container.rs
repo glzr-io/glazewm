@@ -22,7 +22,7 @@ pub fn resize_tiling_container(
 
   // Get available size percentage amongst siblings.
   let available_size_percentage =
-    get_available_size_percentage(&resizable_siblings);
+    available_size_percentage(&resizable_siblings);
 
   let min_resize_delta =
     MIN_SIZE_PERCENTAGE - container_to_resize.size_percent();
@@ -41,7 +41,7 @@ pub fn resize_tiling_container(
   // Distribute the size percentage amongst its siblings.
   let sibling_count = resizable_siblings.len();
   for sibling in resizable_siblings {
-    let sibling_resize_percentage = get_sibling_resize_percentage(
+    let sibling_resize_percentage = sibling_resize_percentage(
       &sibling,
       sibling_count,
       clamped_resize_percentage,
@@ -54,15 +54,13 @@ pub fn resize_tiling_container(
   }
 }
 
-fn get_available_size_percentage(
-  containers: &Vec<TilingContainer>,
-) -> f32 {
+fn available_size_percentage(containers: &Vec<TilingContainer>) -> f32 {
   containers.iter().fold(0.0, |sum, container| {
     sum + container.size_percent() - MIN_SIZE_PERCENTAGE
   })
 }
 
-fn get_sibling_resize_percentage(
+fn sibling_resize_percentage(
   sibling_to_resize: &TilingContainer,
   sibling_count: usize,
   size_percentage: f32,

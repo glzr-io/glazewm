@@ -23,7 +23,8 @@ use windows::{
         SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
         SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_SHOWWINDOW, SW_RESTORE,
         WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION,
-        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZE,
+        WS_MINIMIZE, WS_THICKFRAME,
       },
     },
   },
@@ -183,15 +184,15 @@ impl NativeWindow {
   }
 
   pub fn is_minimized(&self) -> bool {
-    todo!()
+    self.has_window_style(WS_MINIMIZE)
   }
 
   pub fn is_maximized(&self) -> bool {
-    todo!()
+    self.has_window_style(WS_MAXIMIZE)
   }
 
   pub fn is_resizable(&self) -> bool {
-    todo!()
+    self.has_window_style(WS_THICKFRAME)
   }
 
   pub fn is_app_bar(&self) -> bool {
@@ -223,11 +224,11 @@ impl NativeWindow {
     Ok(())
   }
 
-  fn size(&self) -> (i32, i32) {
+  pub fn placement(&self) -> Rect {
     let mut placement = WINDOWPLACEMENT::default();
     let _ = unsafe { GetWindowPlacement(self.handle, &mut placement) };
     let rect = placement.rcNormalPosition;
-    ((rect.right - rect.left), (rect.bottom - rect.top))
+    Rect::from_ltrb(rect.left, rect.top, rect.right, rect.bottom)
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {

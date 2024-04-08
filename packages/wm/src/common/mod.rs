@@ -1,3 +1,4 @@
+pub mod commands;
 mod direction;
 mod display_state;
 mod focus_mode;

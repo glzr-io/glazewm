@@ -33,6 +33,15 @@ impl From<TilingContainer> for Container {
   }
 }
 
+impl From<WindowContainer> for Container {
+  fn from(window_container: WindowContainer) -> Self {
+    match window_container {
+      WindowContainer::NonTilingWindow(c) => Container::NonTilingWindow(c),
+      WindowContainer::TilingWindow(c) => Container::TilingWindow(c),
+    }
+  }
+}
+
 impl PartialEq for Container {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()

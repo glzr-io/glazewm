@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use anyhow::Result;
 use tokio::sync::{
@@ -8,7 +11,8 @@ use tokio::sync::{
 
 use crate::{
   app_command::InvokeCommand, common::platform::PlatformEvent,
-  user_config::UserConfig, wm_event::WmEvent, wm_state::WmState,
+  containers::commands::redraw, user_config::UserConfig,
+  wm_event::WmEvent, wm_state::WmState,
 };
 
 pub struct WindowManager {
@@ -34,7 +38,39 @@ impl WindowManager {
     // TODO
   }
 
-  pub async fn process_command(&mut self, command: InvokeCommand) {
-    // TODO
+  pub async fn process_command(
+    &mut self,
+    command: InvokeCommand,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    let mut state = self.state.lock().await;
+
+    match command {
+      InvokeCommand::AdjustBorders(_) => todo!(),
+      InvokeCommand::Close => todo!(),
+      InvokeCommand::Focus(_) => todo!(),
+      InvokeCommand::Ignore => todo!(),
+      InvokeCommand::Move(_) => todo!(),
+      InvokeCommand::MoveWorkspace { direction } => todo!(),
+      InvokeCommand::Resize(_) => todo!(),
+      InvokeCommand::SetFloating { centered } => todo!(),
+      InvokeCommand::SetFullscreen => todo!(),
+      InvokeCommand::SetMaximized => todo!(),
+      InvokeCommand::SetMinimized => todo!(),
+      InvokeCommand::SetTiling => todo!(),
+      InvokeCommand::ShellExec { command } => todo!(),
+      InvokeCommand::ToggleFloating { centered } => todo!(),
+      InvokeCommand::ToggleFullscreen => todo!(),
+      InvokeCommand::ToggleMaximized => todo!(),
+      InvokeCommand::ToggleMinimized => todo!(),
+      InvokeCommand::ToggleTiling => todo!(),
+      InvokeCommand::ToggleTilingDirection => todo!(),
+      InvokeCommand::WmDisableBindingMode { name } => todo!(),
+      InvokeCommand::WmExit => todo!(),
+      InvokeCommand::WmEnableBindingMode { name } => todo!(),
+      InvokeCommand::WmRedraw => redraw(state.deref_mut(), &config),
+      InvokeCommand::WmReloadConfig => todo!(),
+      InvokeCommand::WmToggleFocusMode => todo!(),
+    }
   }
 }

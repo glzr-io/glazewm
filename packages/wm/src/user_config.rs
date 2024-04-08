@@ -125,8 +125,8 @@ pub struct ParsedConfig {
 #[derive(Debug)]
 pub struct UserConfig {
   pub value: ParsedConfig,
-  pub changes_rx: mpsc::UnboundedReceiver<ParsedConfig>,
-  pub changes_tx: mpsc::UnboundedSender<ParsedConfig>,
+  pub changes_rx: mpsc::UnboundedReceiver<()>,
+  pub changes_tx: mpsc::UnboundedSender<()>,
 }
 
 const SAMPLE_CONFIG: &str =
@@ -156,8 +156,7 @@ impl UserConfig {
     // similar to https://github.com/AlexanderThaller/format_serde_error
     let parsed_config = serde_yaml::from_str(&config_str)?;
 
-    let (changes_tx, changes_rx) =
-      mpsc::unbounded_channel::<ParsedConfig>();
+    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
 
     Ok(Arc::new(Mutex::new(Self {
       value: parsed_config,

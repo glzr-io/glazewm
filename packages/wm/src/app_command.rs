@@ -101,15 +101,8 @@ pub enum QueryCommand {
 #[derive(Clone, Debug, Parser)]
 #[clap(rename_all = "snake_case")]
 pub enum InvokeCommand {
+  AdjustBorders(InvokeAdjustBordersCommand),
   Close,
-  ChangeBorders(InvokeChangeBordersCommand),
-  ChangeTilingDirection {
-    #[clap(long = "tiling_dir")]
-    tiling_direction: Option<TilingDirection>,
-
-    #[clap(long)]
-    toggle: bool,
-  },
   Focus(InvokeFocusCommand),
   Ignore,
   Move(InvokeMoveCommand),
@@ -120,28 +113,25 @@ pub enum InvokeCommand {
   Resize(InvokeResizeCommand),
   SetFloating {
     #[clap(long)]
-    toggle: bool,
+    centered: bool,
   },
-  SetFullscreen {
-    #[clap(long)]
-    toggle: bool,
-  },
-  SetMaximized {
-    #[clap(long)]
-    toggle: bool,
-  },
-  SetMinimized {
-    #[clap(long)]
-    toggle: bool,
-  },
-  SetTiling {
-    #[clap(long)]
-    toggle: bool,
-  },
+  SetFullscreen,
+  SetMaximized,
+  SetMinimized,
+  SetTiling,
   ShellExec {
     #[clap(long, num_args = 1..)]
     command: Vec<String>,
   },
+  ToggleFloating {
+    #[clap(long)]
+    centered: bool,
+  },
+  ToggleFullscreen,
+  ToggleMaximized,
+  ToggleMinimized,
+  ToggleTiling,
+  ToggleTilingDirection,
   WmDisableBindingMode {
     #[clap(long)]
     name: String,
@@ -153,10 +143,7 @@ pub enum InvokeCommand {
   },
   WmRedraw,
   WmReloadConfig,
-  WmChangeFocusMode {
-    #[clap(long)]
-    toggle: bool,
-  },
+  WmToggleFocusMode,
 }
 
 impl<'de> Deserialize<'de> for InvokeCommand {
@@ -180,12 +167,18 @@ impl<'de> Deserialize<'de> for InvokeCommand {
 
 #[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = true)]
-pub struct InvokeChangeBordersCommand {
-  #[clap(long)]
-  width: Option<LengthValue>,
+pub struct InvokeAdjustBordersCommand {
+  #[clap(long, allow_hyphen_values = true)]
+  top: Option<LengthValue>,
 
-  #[clap(long)]
-  height: Option<LengthValue>,
+  #[clap(long, allow_hyphen_values = true)]
+  right: Option<LengthValue>,
+
+  #[clap(long, allow_hyphen_values = true)]
+  bottom: Option<LengthValue>,
+
+  #[clap(long, allow_hyphen_values = true)]
+  left: Option<LengthValue>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -222,9 +215,9 @@ pub struct InvokeMoveCommand {
 #[derive(Args, Clone, Debug)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
-  #[clap(long)]
+  #[clap(long, allow_hyphen_values = true)]
   width: Option<LengthValue>,
 
-  #[clap(long)]
+  #[clap(long, allow_hyphen_values = true)]
   height: Option<LengthValue>,
 }

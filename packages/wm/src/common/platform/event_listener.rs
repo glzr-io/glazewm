@@ -6,7 +6,7 @@ use tokio::sync::{
   Mutex,
 };
 
-use crate::user_config::{KeybindingConfig, ParsedConfig, UserConfig};
+use crate::user_config::{KeybindingConfig, UserConfig};
 
 use super::{EventWindow, NativeWindow};
 
@@ -52,10 +52,10 @@ impl EventListener {
   }
 
   /// Updates the event listener with the latest user config.
-  pub fn update(&mut self, config: &ParsedConfig) {
+  pub fn update(&mut self, config: &UserConfig) {
     self.event_window.update(
-      config.keybindings.clone(),
-      config.general.focus_follows_cursor,
+      config.value.keybindings.clone(),
+      config.value.general.focus_follows_cursor,
     );
   }
 }

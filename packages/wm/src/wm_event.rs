@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::{
   common::{platform::WindowHandle, TilingDirection},
-  containers::Container,
+  containers::{Container, WindowContainer},
   monitors::Monitor,
   workspaces::Workspace,
 };
@@ -33,7 +33,7 @@ pub enum WmEvent {
   },
   UserConfigReloaded,
   WindowManaged {
-    managed_window: Container,
+    managed_window: WindowContainer,
   },
   WindowUnmanaged {
     unmanaged_id: Uuid,

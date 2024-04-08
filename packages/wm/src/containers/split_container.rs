@@ -26,6 +26,7 @@ struct SplitContainerInner {
   id: Uuid,
   parent: Option<TilingContainer>,
   children: VecDeque<Container>,
+  child_focus_order: VecDeque<Uuid>,
   size_percent: f32,
   tiling_direction: TilingDirection,
 }
@@ -36,6 +37,7 @@ impl SplitContainer {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
+      child_focus_order: VecDeque::new(),
       size_percent: 1.0,
       tiling_direction,
     };

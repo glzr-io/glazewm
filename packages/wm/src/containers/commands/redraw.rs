@@ -82,7 +82,7 @@ fn get_position_args(
   // window will increase in size from its original placement.
   let rect = match window.state() {
     WindowState::Tiling => {
-      window.to_rect().apply_delta(window.border_delta())
+      window.to_rect().apply_delta(&window.border_delta())
     }
     _ => window.to_rect(),
   };

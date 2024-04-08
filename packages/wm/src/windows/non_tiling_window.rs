@@ -27,23 +27,31 @@ struct NonTilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
   children: VecDeque<Container>,
+  child_focus_order: VecDeque<Uuid>,
   native: NativeWindow,
-  position: Rect,
   state: WindowState,
+  prev_state: Option<WindowState>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
+  floating_placement: Rect,
 }
 
 impl NonTilingWindow {
-  pub fn new(native_window: NativeWindow, state: WindowState) -> Self {
+  pub fn new(
+    native_window: NativeWindow,
+    state: WindowState,
+    prev_state: Option<WindowState>,
+    floating_placement: Rect,
+  ) -> Self {
     let window = NonTilingWindowInner {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
+      child_focus_order: VecDeque::new(),
       native: native_window,
-      position: Rect::from_xy(0, 0, 0, 0),
       state,
+      prev_state,
       display_state: DisplayState::Shown,
       border_delta: RectDelta::new(
         LengthValue::new_px(0.),
@@ -52,6 +60,7 @@ impl NonTilingWindow {
         LengthValue::new_px(0.),
       ),
       has_pending_dpi_adjustment: false,
+      floating_placement,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -63,18 +72,18 @@ impl_window_behavior!(NonTilingWindow);
 
 impl PositionBehavior for NonTilingWindow {
   fn width(&self) -> i32 {
-    self.0.borrow().position.width()
+    self.0.borrow().floating_placement.width()
   }
 
   fn height(&self) -> i32 {
-    self.0.borrow().position.height()
+    self.0.borrow().floating_placement.height()
   }
 
   fn x(&self) -> i32 {
-    self.0.borrow().position.x()
+    self.0.borrow().floating_placement.x()
   }
 
   fn y(&self) -> i32 {
-    self.0.borrow().position.y()
+    self.0.borrow().floating_placement.y()
   }
 }

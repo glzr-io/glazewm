@@ -57,7 +57,7 @@ impl Rect {
     Self::from_xy(x, y, self.width(), self.height())
   }
 
-  pub fn translate_to_center(&mut self, outer_rect: Rect) -> Self {
+  pub fn translate_to_center(&mut self, outer_rect: &Rect) -> Self {
     Self::translate_to_coordinates(
       self,
       outer_rect.left + (outer_rect.width() / 2) - (self.width() / 2),
@@ -72,7 +72,7 @@ impl Rect {
     )
   }
 
-  pub fn apply_delta(&self, delta: RectDelta) -> Self {
+  pub fn apply_delta(&self, delta: &RectDelta) -> Self {
     Self::from_ltrb(
       self.left - delta.left.to_pixels(self.width()),
       self.top - delta.top.to_pixels(self.height()),

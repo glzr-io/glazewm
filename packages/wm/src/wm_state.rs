@@ -1,16 +1,22 @@
-use tokio::sync::mpsc::UnboundedSender;
+use anyhow::Context;
+use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
-  common::platform::{NativeMonitor, NativeWindow, Platform},
+  common::{
+    commands::sync_native_focus,
+    platform::{NativeMonitor, NativeWindow, Platform},
+    FocusMode,
+  },
   containers::{
-    commands::attach_container, traits::CommonBehavior, Container,
-    RootContainer, WindowContainer,
+    commands::{redraw, set_focused_descendant},
+    traits::CommonBehavior,
+    Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
-  user_config::{BindingModeConfig, UserConfig},
-  windows::TilingWindow,
+  user_config::UserConfig,
+  windows::{commands::manage_window, traits::WindowBehavior},
   wm_event::WmEvent,
   workspaces::Workspace,
 };
@@ -27,14 +33,15 @@ pub struct WmState {
   /// container.
   pub has_pending_focus_sync: bool,
 
-  /// Currently enabled binding modes.
-  pub binding_modes: Vec<BindingModeConfig>,
+  /// Names of any currently enabled binding modes.
+  pub binding_modes: Vec<String>,
 
-  event_tx: UnboundedSender<WmEvent>,
+  /// Sender for emitting WM-related events.
+  event_tx: mpsc::UnboundedSender<WmEvent>,
 }
 
 impl WmState {
-  pub fn new(event_tx: UnboundedSender<WmEvent>) -> Self {
+  pub fn new(event_tx: mpsc::UnboundedSender<WmEvent>) -> Self {
     Self {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
@@ -57,18 +64,33 @@ impl WmState {
     }
 
     for native_window in Platform::manageable_windows()? {
-      let nearest_monitor = Platform::nearest_monitor(&native_window)
-        .and_then(|native| self.monitor_from_native(&native))
-        .or(self.monitors().first().cloned());
+      let nearest_workspace = self
+        .nearest_monitor(&native_window)
+        .and_then(|m| m.displayed_workspace());
 
-      if let Some(monitor) = nearest_monitor {
-        // TODO: This should actually add to the monitor's displayed workspace.
-        let window = TilingWindow::new(native_window);
-        attach_container(window.into(), &monitor.into(), 0)?;
+      if let Some(workspace) = nearest_workspace {
+        manage_window(
+          native_window,
+          Some(workspace.into()),
+          self,
+          config,
+        )?;
       }
     }
 
+    let container_to_focus = self
+      .window_from_native(&foreground_window)
+      .map(|c| c.as_container())
+      .or(self.windows().pop().map(|c| c.into()))
+      .or(self.workspaces().pop().map(|c| c.into()))
+      .context("Failed to get container to focus.")?;
+
+    set_focused_descendant(container_to_focus, None, self);
     self.has_pending_focus_sync = true;
+
+    redraw(self, config)?;
+    sync_native_focus(self)?;
+
     Ok(())
   }
 
@@ -77,6 +99,7 @@ impl WmState {
       .root_container
       .children()
       .iter()
+      // Safety: Direct children of the root container are always monitors.
       .map(|c| c.as_monitor().cloned().unwrap())
       .collect()
   }
@@ -86,8 +109,28 @@ impl WmState {
       .monitors()
       .iter()
       .flat_map(|c| c.children())
+      // Safety: Direct children of monitors are always workspaces.
       .map(|c| c.as_workspace().cloned().unwrap())
       .collect()
+  }
+
+  pub fn windows(&self) -> Vec<WindowContainer> {
+    self
+      .root_container
+      .descendants()
+      .filter_map(|container| container.try_into().ok())
+      .collect()
+  }
+
+  /// Gets the monitor that encompasses the largest portion of a given
+  /// window.
+  pub fn nearest_monitor(
+    &self,
+    native_window: &NativeWindow,
+  ) -> Option<Monitor> {
+    Platform::nearest_monitor(&native_window)
+      .and_then(|native| self.monitor_from_native(&native))
+      .or(self.monitors().first().cloned())
   }
 
   pub fn monitor_from_native(
@@ -104,8 +147,12 @@ impl WmState {
   pub fn window_from_native(
     &self,
     native_window: &NativeWindow,
-  ) -> Option<&Container> {
-    todo!()
+  ) -> Option<WindowContainer> {
+    self
+      .windows()
+      .iter()
+      .find(|w| w.native() == *native_window)
+      .cloned()
   }
 
   /// Gets windows that should be redrawn.
@@ -129,23 +176,19 @@ impl WmState {
     self.containers_to_redraw.clear();
   }
 
-  // Get the currently focused container. This can either be a `Window` or
-  // a `Workspace` without any descendant windows.
-  // pub fn focused_container(&self) -> Arc<Container> {
-  //   self
-  //     .root_container
-  //     .last_focused_descendant()
-  //     .unwrap()
-  //     .clone()
-  // }
+  /// Gets the currently focused container. This can either be a window or
+  /// a workspace without any descendant windows.
+  pub fn focused_container(&self) -> Option<Container> {
+    self.root_container.last_focused_descendant()
+  }
 
-  // /// Whether a tiling or floating container is currently focused.
-  // pub fn focus_mode(&self) -> FocusMode {
-  //   match self.focused_container().r#type() {
-  //     ContainerType::FloatingWindow => FocusMode::Floating,
-  //     _ => FocusMode::Tiling,
-  //   }
-  // }
+  /// Whether a tiling or floating container is currently focused.
+  pub fn focus_mode(&self) -> Option<FocusMode> {
+    self.focused_container().map(|c| match c {
+      Container::NonTilingWindow(_) => FocusMode::Floating,
+      _ => FocusMode::Tiling,
+    })
+  }
 
   pub fn emit_event(&self, event: WmEvent) {
     if let Err(err) = self.event_tx.send(event) {

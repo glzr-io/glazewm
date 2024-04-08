@@ -3,6 +3,7 @@ use windows::Win32::{
   Graphics::Gdi::{
     EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFOEXW,
   },
+  UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
 };
 
 pub type MonitorHandle = HMONITOR;
@@ -18,6 +19,7 @@ pub struct NativeMonitor {
   pub height: i32,
   pub x: i32,
   pub y: i32,
+  pub dpi: f32,
 }
 
 impl NativeMonitor {
@@ -28,6 +30,7 @@ impl NativeMonitor {
     height: i32,
     x: i32,
     y: i32,
+    dpi: f32,
   ) -> Self {
     Self {
       handle,
@@ -36,6 +39,7 @@ impl NativeMonitor {
       height,
       x,
       y,
+      dpi,
     }
   }
 }
@@ -95,12 +99,11 @@ fn handle_to_monitor(
   monitor_info.monitorInfo.cbSize =
     std::mem::size_of::<MONITORINFOEXW>() as u32;
 
-  unsafe {
-    GetMonitorInfoW(handle, &mut monitor_info as *mut _ as *mut _)
-  }
-  .ok()?;
+  unsafe { GetMonitorInfoW(handle, &mut monitor_info as *mut _ as _) }
+    .ok()?;
 
   let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
+  let dpi = monitor_dpi(handle)?;
 
   Ok(NativeMonitor::new(
     handle,
@@ -111,5 +114,17 @@ fn handle_to_monitor(
       - monitor_info.monitorInfo.rcMonitor.top,
     monitor_info.monitorInfo.rcMonitor.left,
     monitor_info.monitorInfo.rcMonitor.top,
+    dpi,
   ))
+}
+
+fn monitor_dpi(handle: MonitorHandle) -> anyhow::Result<f32> {
+  let mut dpi_x = u32::default();
+  let mut dpi_y = u32::default();
+
+  unsafe {
+    GetDpiForMonitor(handle, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)
+  }?;
+
+  Ok(dpi_y as f32 / 96.0)
 }

@@ -69,7 +69,7 @@ window_rules:
     match_class_name: 'Chrome_WidgetWin_1|MozillaDialogClass'
 
   # Some applications (eg. Steam) have borders that extend past the normal border size.
-  - commands: ['change_borders --right -7px --bottom -7px --left -7px']
+  - commands: ['adjust_borders --right -7px --bottom -7px --left -7px']
     match_process_name: 'steam'
 
 binding_modes:
@@ -125,23 +125,23 @@ keybindings:
     bindings: ['Alt+R']
 
   # Change tiling direction. This determines where new tiling windows will be inserted.
-  - commands: ['change_tiling_direction --toggle']
+  - commands: ['toggle_tiling_direction']
     bindings: ['Alt+V']
 
   # Change focus between floating / tiling windows.
-  - commands: ['wm_change_focus_mode --toggle']
+  - commands: ['wm_toggle_focus_mode']
     bindings: ['Alt+Space']
 
   # Change the focused window to be floating / tiling.
-  - commands: ['set_floating --centered --toggle']
+  - commands: ['toggle_floating --centered']
     bindings: ['Alt+Shift+Space']
 
   # Change the focused window to be maximized / unmaximized.
-  - commands: ['set_maximized --toggle']
+  - commands: ['toggle_maximized']
     bindings: ['Alt+X']
 
   # Minimize focused window.
-  - commands: ['set_minimized --toggle']
+  - commands: ['toggle_minimized']
     bindings: ['Alt+M']
 
   # Close focused window.

@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
-use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+use windows::Win32::UI::WindowsAndMessaging::{
+  GetDesktopWindow, GetForegroundWindow,
+};
 
 use crate::user_config::UserConfig;
 
@@ -15,6 +17,11 @@ pub struct Platform;
 impl Platform {
   pub fn foreground_window() -> NativeWindow {
     let handle = unsafe { GetForegroundWindow() };
+    NativeWindow::new(handle)
+  }
+
+  pub fn desktop_window() -> NativeWindow {
+    let handle = unsafe { GetDesktopWindow() };
     NativeWindow::new(handle)
   }
 
