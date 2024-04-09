@@ -10,14 +10,14 @@ use uuid::Uuid;
 
 use crate::{
   common::{LengthValue, TilingDirection},
-  impl_common_behavior, impl_direction_behavior,
-  impl_position_behavior_as_resizable, impl_tiling_behavior,
+  impl_common_getters, impl_direction_getters,
+  impl_position_getters_as_resizable, impl_tiling_getters,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
 use super::{
   traits::{
-    CommonBehavior, DirectionBehavior, PositionBehavior, TilingBehavior,
+    CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
   },
   Container, ContainerType, DirectionContainer, TilingContainer,
   WindowContainer,
@@ -91,10 +91,10 @@ impl SplitContainer {
   }
 }
 
-impl_common_behavior!(SplitContainer, ContainerType::Split);
-impl_tiling_behavior!(SplitContainer);
-impl_direction_behavior!(SplitContainer);
-impl_position_behavior_as_resizable!(SplitContainer);
+impl_common_getters!(SplitContainer, ContainerType::Split);
+impl_tiling_getters!(SplitContainer);
+impl_direction_getters!(SplitContainer);
+impl_position_getters_as_resizable!(SplitContainer);
 
 impl fmt::Debug for SplitContainer {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

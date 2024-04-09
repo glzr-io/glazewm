@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[enum_dispatch]
-pub trait CommonBehavior {
+pub trait CommonGetters {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
@@ -257,14 +257,14 @@ impl Iterator for Descendants {
   }
 }
 
-/// Implements the `CommonBehavior` trait for a given struct.
+/// Implements the `CommonGetters` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
 /// with an `id` and a `parent` field.
 #[macro_export]
-macro_rules! impl_common_behavior {
+macro_rules! impl_common_getters {
   ($struct_name:ident, $container_type:expr) => {
-    impl CommonBehavior for $struct_name {
+    impl CommonGetters for $struct_name {
       fn id(&self) -> Uuid {
         self.0.borrow().id
       }

@@ -1,5 +1,5 @@
 use crate::{
-  containers::{traits::CommonBehavior, Container},
+  containers::{traits::CommonGetters, Container},
   wm_state::WmState,
 };
 

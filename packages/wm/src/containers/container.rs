@@ -7,11 +7,11 @@ use crate::{
   workspaces::Workspace,
 };
 
-use super::{traits::CommonBehavior, RootContainer, SplitContainer};
+use super::{traits::CommonGetters, RootContainer, SplitContainer};
 
 /// A reference to a container of any type.
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonBehavior, PositionBehavior)]
+#[enum_dispatch(CommonGetters, PositionGetters)]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),
@@ -52,7 +52,7 @@ impl Eq for Container {}
 
 /// A reference to a tiling container.
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonBehavior, PositionBehavior, TilingBehavior)]
+#[enum_dispatch(CommonGetters, PositionGetters, TilingGetters)]
 pub enum TilingContainer {
   Root(RootContainer),
   Monitor(Monitor),
@@ -88,7 +88,7 @@ impl Eq for TilingContainer {}
 
 /// A reference to a window container.
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonBehavior, PositionBehavior, WindowBehavior)]
+#[enum_dispatch(CommonGetters, PositionGetters, WindowGetters)]
 pub enum WindowContainer {
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
@@ -132,10 +132,10 @@ impl Eq for WindowContainer {}
 /// A reference to a direction container.
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(
-  CommonBehavior,
-  PositionBehavior,
-  TilingBehavior,
-  DirectionBehavior
+  CommonGetters,
+  PositionGetters,
+  TilingGetters,
+  DirectionGetters
 )]
 pub enum DirectionContainer {
   Workspace(Workspace),

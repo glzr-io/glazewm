@@ -1,5 +1,5 @@
 use crate::containers::{
-  traits::{CommonBehavior, TilingBehavior},
+  traits::{CommonGetters, TilingGetters},
   TilingContainer,
 };
 

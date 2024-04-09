@@ -11,11 +11,11 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeMonitor,
   containers::{
-    traits::{CommonBehavior, PositionBehavior, TilingBehavior},
+    traits::{CommonGetters, PositionGetters, TilingGetters},
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_behavior, impl_tiling_behavior,
+  impl_common_getters, impl_tiling_getters,
   workspaces::{Workspace, WorkspaceDto},
 };
 
@@ -103,10 +103,10 @@ impl Monitor {
   }
 }
 
-impl_common_behavior!(Monitor, ContainerType::Monitor);
-impl_tiling_behavior!(Monitor);
+impl_common_getters!(Monitor, ContainerType::Monitor);
+impl_tiling_getters!(Monitor);
 
-impl PositionBehavior for Monitor {
+impl PositionGetters for Monitor {
   fn width(&self) -> anyhow::Result<i32> {
     Ok(self.0.borrow().native.width)
   }

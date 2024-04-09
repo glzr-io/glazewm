@@ -1,3 +1,3 @@
-mod window_behavior;
+mod window_getters;
 
-pub use window_behavior::*;
+pub use window_getters::*;

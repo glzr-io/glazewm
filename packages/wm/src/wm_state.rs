@@ -11,12 +11,12 @@ use crate::{
   },
   containers::{
     commands::{redraw, set_focused_descendant},
-    traits::CommonBehavior,
+    traits::CommonGetters,
     Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
   user_config::UserConfig,
-  windows::{commands::manage_window, traits::WindowBehavior},
+  windows::{commands::manage_window, traits::WindowGetters},
   wm_event::WmEvent,
   workspaces::Workspace,
 };

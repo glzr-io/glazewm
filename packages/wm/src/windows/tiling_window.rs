@@ -15,16 +15,16 @@ use crate::{
   },
   containers::{
     traits::{
-      CommonBehavior, DirectionBehavior, PositionBehavior, TilingBehavior,
+      CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
     },
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_behavior, impl_position_behavior_as_resizable,
-  impl_tiling_behavior, impl_window_behavior,
+  impl_common_getters, impl_position_getters_as_resizable,
+  impl_tiling_getters, impl_window_getters,
 };
 
-use super::{traits::WindowBehavior, WindowState};
+use super::{traits::WindowGetters, WindowState};
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -95,10 +95,10 @@ impl TilingWindow {
   }
 }
 
-impl_common_behavior!(TilingWindow, ContainerType::Window);
-impl_tiling_behavior!(TilingWindow);
-impl_position_behavior_as_resizable!(TilingWindow);
-impl_window_behavior!(TilingWindow);
+impl_common_getters!(TilingWindow, ContainerType::Window);
+impl_tiling_getters!(TilingWindow);
+impl_position_getters_as_resizable!(TilingWindow);
+impl_window_getters!(TilingWindow);
 
 impl fmt::Debug for TilingWindow {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -1,7 +1,7 @@
 use anyhow::bail;
 
 use crate::containers::{
-  traits::{CommonBehavior, TilingBehavior},
+  traits::{CommonGetters, TilingGetters},
   Container, TilingContainer,
 };
 

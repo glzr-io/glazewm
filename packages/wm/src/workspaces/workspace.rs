@@ -11,12 +11,12 @@ use crate::{
   common::{RectDelta, TilingDirection},
   containers::{
     traits::{
-      CommonBehavior, DirectionBehavior, PositionBehavior, TilingBehavior,
+      CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
     },
     Container, ContainerType, DirectionContainer, SplitContainerDto,
     TilingContainer, WindowContainer,
   },
-  impl_common_behavior, impl_direction_behavior, impl_tiling_behavior,
+  impl_common_getters, impl_direction_getters, impl_tiling_getters,
   user_config::WorkspaceConfig,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
@@ -101,11 +101,11 @@ impl Workspace {
   }
 }
 
-impl_common_behavior!(Workspace, ContainerType::Workspace);
-impl_tiling_behavior!(Workspace);
-impl_direction_behavior!(Workspace);
+impl_common_getters!(Workspace, ContainerType::Workspace);
+impl_tiling_getters!(Workspace);
+impl_direction_getters!(Workspace);
 
-impl PositionBehavior for Workspace {
+impl PositionGetters for Workspace {
   fn width(&self) -> anyhow::Result<i32> {
     let parent = self.parent().context("Workspace has no parent.")?;
 

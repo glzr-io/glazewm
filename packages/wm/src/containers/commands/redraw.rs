@@ -3,11 +3,11 @@ use anyhow::Context;
 use crate::{
   common::{platform::SetPositionArgs, DisplayState},
   containers::{
-    traits::{CommonBehavior, PositionBehavior},
+    traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
   user_config::UserConfig,
-  windows::{traits::WindowBehavior, WindowState},
+  windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
 

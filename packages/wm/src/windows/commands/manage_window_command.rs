@@ -5,12 +5,12 @@ use crate::{
   common::platform::NativeWindow,
   containers::{
     commands::attach_container,
-    traits::{CommonBehavior, PositionBehavior},
+    traits::{CommonGetters, PositionGetters},
     TilingContainer, WindowContainer,
   },
   user_config::UserConfig,
   windows::{
-    traits::WindowBehavior, NonTilingWindow, TilingWindow, WindowState,
+    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
   },
   wm_event::WmEvent,
   wm_state::WmState,

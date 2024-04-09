@@ -9,11 +9,11 @@ use anyhow::Context;
 use uuid::Uuid;
 
 use crate::{
-  impl_common_behavior, impl_tiling_behavior, monitors::MonitorDto,
+  impl_common_getters, impl_tiling_getters, monitors::MonitorDto,
 };
 
 use super::{
-  traits::{CommonBehavior, PositionBehavior, TilingBehavior},
+  traits::{CommonGetters, PositionGetters, TilingGetters},
   Container, ContainerType, DirectionContainer, TilingContainer,
   WindowContainer,
 };
@@ -64,10 +64,10 @@ impl RootContainer {
   }
 }
 
-impl_common_behavior!(RootContainer, ContainerType::Root);
-impl_tiling_behavior!(RootContainer);
+impl_common_getters!(RootContainer, ContainerType::Root);
+impl_tiling_getters!(RootContainer);
 
-impl PositionBehavior for RootContainer {
+impl PositionGetters for RootContainer {
   fn width(&self) -> anyhow::Result<i32> {
     Ok(0)
   }

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[enum_dispatch]
-pub trait PositionBehavior {
+pub trait PositionGetters {
   fn width(&self) -> anyhow::Result<i32>;
 
   fn height(&self) -> anyhow::Result<i32>;
@@ -27,15 +27,15 @@ pub trait PositionBehavior {
   }
 }
 
-/// Implements the `PositionBehavior` trait for tiling containers that can
+/// Implements the `PositionGetters` trait for tiling containers that can
 /// be resized. Specifically, this is for `SplitContainer` and `TilingWindow`.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
 /// with an `id` and a `parent` field.
 #[macro_export]
-macro_rules! impl_position_behavior_as_resizable {
+macro_rules! impl_position_getters_as_resizable {
   ($struct_name:ident) => {
-    impl PositionBehavior for $struct_name {
+    impl PositionGetters for $struct_name {
       fn width(&self) -> anyhow::Result<i32> {
         let parent = self
           .parent()

@@ -12,14 +12,14 @@ use crate::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
   },
   containers::{
-    traits::{CommonBehavior, PositionBehavior},
+    traits::{CommonGetters, PositionGetters},
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_behavior, impl_window_behavior,
+  impl_common_getters, impl_window_getters,
 };
 
-use super::{traits::WindowBehavior, WindowState};
+use super::{traits::WindowGetters, WindowState};
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
@@ -85,10 +85,10 @@ impl NonTilingWindow {
   }
 }
 
-impl_common_behavior!(NonTilingWindow, ContainerType::Window);
-impl_window_behavior!(NonTilingWindow);
+impl_common_getters!(NonTilingWindow, ContainerType::Window);
+impl_window_getters!(NonTilingWindow);
 
-impl PositionBehavior for NonTilingWindow {
+impl PositionGetters for NonTilingWindow {
   fn width(&self) -> anyhow::Result<i32> {
     Ok(self.0.borrow().floating_placement.width())
   }

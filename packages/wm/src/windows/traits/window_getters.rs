@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[enum_dispatch]
-pub trait WindowBehavior {
+pub trait WindowGetters {
   fn state(&self) -> WindowState;
 
   fn native(&self) -> NativeWindow;
@@ -30,14 +30,14 @@ pub trait WindowBehavior {
   fn set_floating_placement(&self, floating_placement: Rect) -> ();
 }
 
-/// Implements the `WindowBehavior` trait for a given struct.
+/// Implements the `WindowGetters` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
 /// with a `state`, `native`, and a `display_state` field.
 #[macro_export]
-macro_rules! impl_window_behavior {
+macro_rules! impl_window_getters {
   ($struct_name:ident) => {
-    impl WindowBehavior for $struct_name {
+    impl WindowGetters for $struct_name {
       fn state(&self) -> WindowState {
         self.0.borrow().state.clone()
       }
