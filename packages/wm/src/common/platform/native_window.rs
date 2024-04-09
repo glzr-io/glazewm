@@ -196,7 +196,8 @@ impl NativeWindow {
   }
 
   pub fn is_app_bar(&self) -> bool {
-    todo!()
+    // TODO
+    false
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {

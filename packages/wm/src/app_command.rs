@@ -1,13 +1,10 @@
 use std::{iter, path::PathBuf};
 
-use clap::{
-  error::{KindFormatter, RichFormatter},
-  Args, Command, CommandFactory, Parser, Subcommand,
-};
+use clap::{error::KindFormatter, Args, Parser};
 use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
-use crate::common::{Direction, LengthValue, TilingDirection};
+use crate::common::{Direction, LengthValue};
 
 #[derive(Clone, Debug, Parser)]
 #[clap(author, version, about, long_about = None)]

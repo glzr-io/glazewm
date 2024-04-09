@@ -15,25 +15,19 @@ use tokio_tungstenite::accept_async;
 use tracing::info;
 
 use crate::{
-  app_command::InvokeCommand, wm_event::WmEvent, wm_state::WmState,
+  app_command::{AppCommand, InvokeCommand},
+  wm_event::WmEvent,
+  wm_state::WmState,
 };
 
-#[derive(Debug)]
-pub enum IpcMessage {
-  Monitors,
-  Windows,
-  InvokeCommand,
-  Subscribe,
-}
-
 pub struct IpcServer {
-  pub message_rx: mpsc::UnboundedReceiver<IpcMessage>,
+  pub message_rx: mpsc::UnboundedReceiver<AppCommand>,
   pub wm_command_rx: mpsc::UnboundedReceiver<InvokeCommand>,
 }
 
 impl IpcServer {
   pub async fn start() -> Result<Self> {
-    let (message_tx, message_rx) = mpsc::unbounded_channel::<IpcMessage>();
+    let (message_tx, message_rx) = mpsc::unbounded_channel::<AppCommand>();
 
     let (wm_command_tx, wm_command_rx) =
       mpsc::unbounded_channel::<InvokeCommand>();
@@ -66,7 +60,7 @@ impl IpcServer {
 
   pub async fn process_message(
     &self,
-    _message: IpcMessage,
+    _message: AppCommand,
     wm_state: Arc<Mutex<WmState>>,
   ) {
     // TODO: Spawn a task so that it doesn't block main thread execution.

@@ -1,6 +1,7 @@
 pub mod commands;
 mod direction;
 mod display_state;
+pub mod events;
 mod focus_mode;
 pub mod platform;
 mod rect;

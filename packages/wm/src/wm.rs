@@ -10,9 +10,12 @@ use tokio::sync::{
 };
 
 use crate::{
-  app_command::InvokeCommand, common::platform::PlatformEvent,
-  containers::commands::redraw, user_config::UserConfig,
-  wm_event::WmEvent, wm_state::WmState,
+  app_command::InvokeCommand,
+  common::{events::handle_window_shown, platform::PlatformEvent},
+  containers::commands::redraw,
+  user_config::UserConfig,
+  wm_event::WmEvent,
+  wm_state::WmState,
 };
 
 pub struct WindowManager {
@@ -34,8 +37,29 @@ impl WindowManager {
     })
   }
 
-  pub async fn process_event(&mut self, event: PlatformEvent) {
-    // TODO
+  pub async fn process_event(
+    &mut self,
+    event: PlatformEvent,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    let mut state = self.state.lock().await;
+
+    match event {
+      PlatformEvent::DisplaySettingsChanged => Ok(()),
+      PlatformEvent::KeybindingTriggered(_) => Ok(()),
+      PlatformEvent::MouseMove => Ok(()),
+      PlatformEvent::WindowDestroyed(_) => Ok(()),
+      PlatformEvent::WindowFocused(_) => Ok(()),
+      PlatformEvent::WindowHidden(_) => Ok(()),
+      PlatformEvent::WindowLocationChanged(_) => Ok(()),
+      PlatformEvent::WindowMinimized(_) => Ok(()),
+      PlatformEvent::WindowMinimizeEnded(_) => Ok(()),
+      PlatformEvent::WindowMovedOrResized(_) => Ok(()),
+      PlatformEvent::WindowShown(w) => {
+        handle_window_shown(w, state.deref_mut(), config)
+      }
+      PlatformEvent::WindowTitleChanged(_) => Ok(()),
+    }
   }
 
   pub async fn process_command(
