@@ -21,8 +21,7 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
   };
 
   // Set focus to the given window handle. If the container is a normal
-  // window, then this will trigger `EVENT_SYSTEM_FOREGROUND` window event
-  // and its handler.
+  // window, then this will trigger a `PlatformEvent::WindowFocused` event.
   let _ = native_window.set_foreground();
 
   state.emit_event(WmEvent::NativeFocusSynced {
