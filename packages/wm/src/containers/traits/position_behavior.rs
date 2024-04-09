@@ -92,34 +92,27 @@ macro_rules! impl_position_behavior_as_resizable {
           .and_then(|p| p.as_direction_container().ok())
           .context("Parent does not have a tiling direction.")?;
 
-        let first_tiling_sibling = self
-          .self_and_siblings()
-          .filter_map(|c| c.as_tiling_container().ok())
-          .next();
+        let mut prev_siblings = self
+          .prev_siblings()
+          .filter_map(|c| c.as_tiling_container().ok());
 
-        let is_first_of_type = first_tiling_sibling
-          .as_ref()
-          .map(|s| s.id() == self.id())
-          .unwrap_or(false);
+        match prev_siblings.next() {
+          None => parent.x(),
+          Some(prev_sibling) => {
+            if parent.tiling_direction() == TilingDirection::Vertical {
+              return parent.x();
+            }
 
-        if parent.tiling_direction() == TilingDirection::Vertical
-          || is_first_of_type
-        {
-          return parent.x();
+            let inner_gap = self.inner_gap().to_pixels(
+              self
+                .parent_monitor()
+                .context("No parent monitor.")?
+                .width()?,
+            );
+
+            Ok(prev_sibling.x()? + prev_sibling.width()? + inner_gap)
+          }
         }
-
-        let inner_gap = self.inner_gap().to_pixels(
-          self
-            .parent_monitor()
-            .context("No parent monitor.")?
-            .width()?,
-        );
-
-        Ok(
-          first_tiling_sibling.clone().unwrap().x()?
-            + first_tiling_sibling.unwrap().width()?
-            + inner_gap,
-        )
       }
 
       fn y(&self) -> anyhow::Result<i32> {
@@ -128,34 +121,27 @@ macro_rules! impl_position_behavior_as_resizable {
           .and_then(|p| p.as_direction_container().ok())
           .context("Parent does not have a tiling direction.")?;
 
-        let first_tiling_sibling = self
-          .self_and_siblings()
-          .filter_map(|c| c.as_tiling_container().ok())
-          .next();
+        let mut prev_siblings = self
+          .prev_siblings()
+          .filter_map(|c| c.as_tiling_container().ok());
 
-        let is_first_of_type = first_tiling_sibling
-          .as_ref()
-          .map(|s| s.id() == self.id())
-          .unwrap_or(false);
+        match prev_siblings.next() {
+          None => parent.y(),
+          Some(prev_sibling) => {
+            if parent.tiling_direction() == TilingDirection::Horizontal {
+              return parent.y();
+            }
 
-        if parent.tiling_direction() == TilingDirection::Horizontal
-          || is_first_of_type
-        {
-          return parent.y();
+            let inner_gap = self.inner_gap().to_pixels(
+              self
+                .parent_monitor()
+                .context("No parent monitor.")?
+                .width()?,
+            );
+
+            Ok(prev_sibling.y()? + prev_sibling.height()? + inner_gap)
+          }
         }
-
-        let inner_gap = self.inner_gap().to_pixels(
-          self
-            .parent_monitor()
-            .context("No parent monitor.")?
-            .width()?,
-        );
-
-        Ok(
-          first_tiling_sibling.clone().unwrap().y()?
-            + first_tiling_sibling.unwrap().height()?
-            + inner_gap,
-        )
       }
     }
   };

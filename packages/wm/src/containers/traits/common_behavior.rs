@@ -107,6 +107,17 @@ pub trait CommonBehavior {
     )
   }
 
+  fn prev_siblings(&self) -> Box<dyn Iterator<Item = Container> + '_> {
+    Box::new(
+      self
+        .self_and_siblings()
+        .collect::<Vec<_>>()
+        .into_iter()
+        .take(self.index())
+        .rev(),
+    )
+  }
+
   fn tiling_siblings(
     &self,
   ) -> Box<dyn Iterator<Item = TilingContainer> + '_> {
