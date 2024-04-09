@@ -9,7 +9,7 @@ use crate::{
 
 use super::{traits::CommonGetters, RootContainer, SplitContainer};
 
-/// A reference to a container of any type.
+/// A container of any type.
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters)]
 pub enum Container {
@@ -50,7 +50,10 @@ impl PartialEq for Container {
 
 impl Eq for Container {}
 
-/// A reference to a tiling container.
+/// Subset of containers that implement the following traits:
+///  * `CommonGetters`
+///  * `PositionGetters`
+///  * `TilingGetters`
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, TilingGetters)]
 pub enum TilingContainer {
@@ -86,7 +89,10 @@ impl PartialEq for TilingContainer {
 
 impl Eq for TilingContainer {}
 
-/// A reference to a window container.
+/// Subset of containers that implement the following traits:
+///  * `CommonGetters`
+///  * `PositionGetters`
+///  * `WindowGetters`
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, WindowGetters)]
 pub enum WindowContainer {
@@ -129,7 +135,11 @@ impl PartialEq for WindowContainer {
 
 impl Eq for WindowContainer {}
 
-/// A reference to a direction container.
+/// Subset of containers that implement the following traits:
+///  * `CommonGetters`
+///  * `PositionGetters`
+///  * `TilingGetters`
+///  * `DirectionGetters`
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(
   CommonGetters,

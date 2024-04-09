@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
-use windows::Win32::UI::WindowsAndMessaging::{
-  GetDesktopWindow, GetForegroundWindow,
+use windows::Win32::UI::{
+  HiDpi::{
+    SetProcessDpiAwarenessContext,
+    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+  },
+  WindowsAndMessaging::{GetDesktopWindow, GetForegroundWindow},
 };
 
 use crate::user_config::UserConfig;
@@ -52,5 +56,15 @@ impl Platform {
 
   pub fn new_single_instance() -> anyhow::Result<SingleInstance> {
     SingleInstance::new()
+  }
+
+  pub fn set_dpi_awareness() -> anyhow::Result<()> {
+    unsafe {
+      SetProcessDpiAwarenessContext(
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+      )
+    }?;
+
+    Ok(())
   }
 }
