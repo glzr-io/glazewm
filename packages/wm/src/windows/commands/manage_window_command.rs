@@ -22,18 +22,8 @@ pub fn manage_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // Attach the new window as the first child of the target parent (if
-  // provided), otherwise, add as a sibling of the focused container.
-  let (target_parent, target_index) = match target_parent {
-    Some(parent) => (parent, 0),
-    None => insertion_target(state)?,
-  };
-
   // Create the window instance.
-  let window =
-    create_window(native_window, &target_parent, state, config)?;
-
-  attach_container(window.clone().into(), &target_parent, target_index)?;
+  let window = create_window(native_window, target_parent, state, config)?;
 
   // let window_rules = config.matching_window_rules(&window);
   // let window_rule_commands =
@@ -60,16 +50,24 @@ pub fn manage_window(
   // OS focus should be set to the newly added window in case it's not
   // already focused.
   state.has_pending_focus_sync = true;
+  state.add_container_to_redraw(window.clone().into());
 
   Ok(())
 }
 
 fn create_window(
   native_window: NativeWindow,
-  target_parent: &TilingContainer,
+  target_parent: Option<TilingContainer>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
+  // Attach the new window as the first child of the target parent (if
+  // provided), otherwise, add as a sibling of the focused container.
+  let (target_parent, target_index) = match target_parent {
+    Some(parent) => (parent, 0),
+    None => insertion_target(state)?,
+  };
+
   let target_workspace = target_parent
     .parent_workspace()
     .context("No target workspace.")?;
@@ -92,7 +90,7 @@ fn create_window(
   } else {
     native_window
       .placement()
-      .translate_to_center(&target_workspace.to_rect())
+      .translate_to_center(&target_workspace.to_rect()?)
   };
 
   let window_state = window_state_to_create(&native_window);
@@ -111,9 +109,12 @@ fn create_window(
   };
 
   let window_container: WindowContainer = match window_state {
-    WindowState::Tiling => {
-      TilingWindow::new(native_window, floating_placement).into()
-    }
+    WindowState::Tiling => TilingWindow::new(
+      native_window,
+      floating_placement,
+      config.value.gaps.inner_gap.clone(),
+    )
+    .into(),
     _ => NonTilingWindow::new(
       native_window,
       window_state,
@@ -122,6 +123,12 @@ fn create_window(
     )
     .into(),
   };
+
+  attach_container(
+    window_container.clone().into(),
+    &target_parent,
+    target_index,
+  )?;
 
   // The OS might spawn the window on a different monitor to the target
   // parent, so adjustments might need to be made because of DPI.

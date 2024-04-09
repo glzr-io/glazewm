@@ -304,6 +304,7 @@ impl PartialEq for NativeWindow {
 impl Eq for NativeWindow {}
 
 /// Arguments to pass to `NativeWindow::set_position`.
+#[derive(Debug)]
 pub struct SetPositionArgs {
   pub window_handle: WindowHandle,
   pub visible: bool,

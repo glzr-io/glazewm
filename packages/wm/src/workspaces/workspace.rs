@@ -4,6 +4,7 @@ use std::{
   rc::Rc,
 };
 
+use anyhow::{bail, Context};
 use uuid::Uuid;
 
 use crate::{
@@ -12,10 +13,12 @@ use crate::{
     traits::{
       CommonBehavior, DirectionBehavior, PositionBehavior, TilingBehavior,
     },
-    Container, ContainerType, TilingContainer,
+    Container, ContainerType, DirectionContainer, SplitContainerDto,
+    TilingContainer, WindowContainer,
   },
   impl_common_behavior, impl_direction_behavior, impl_tiling_behavior,
   user_config::WorkspaceConfig,
+  windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
 #[derive(Clone, Debug)]
@@ -66,6 +69,36 @@ impl Workspace {
   fn outer_gaps(&self) -> Ref<'_, RectDelta> {
     Ref::map(self.0.borrow(), |c| &c.outer_gaps)
   }
+
+  pub fn to_dto(&self) -> anyhow::Result<WorkspaceDto> {
+    let children = self
+      .children()
+      .iter()
+      .map(|child| match child {
+        Container::NonTilingWindow(c) => {
+          Ok(WorkspaceChildDto::NonTilingWindow(c.to_dto()?))
+        }
+        Container::TilingWindow(c) => {
+          Ok(WorkspaceChildDto::TilingWindow(c.to_dto()?))
+        }
+        Container::Split(c) => Ok(WorkspaceChildDto::Split(c.to_dto()?)),
+        _ => bail!("Workspace has an invalid child type."),
+      })
+      .try_collect()?;
+
+    Ok(WorkspaceDto {
+      id: self.id(),
+      parent: self.parent().map(|p| p.id()),
+      children,
+      child_focus_order: self.0.borrow().child_focus_order.clone().into(),
+      size_percent: self.size_percent(),
+      width: self.width()?,
+      height: self.height()?,
+      x: self.x()?,
+      y: self.y()?,
+      tiling_direction: self.tiling_direction(),
+    })
+  }
 }
 
 impl_common_behavior!(Workspace, ContainerType::Workspace);
@@ -73,29 +106,59 @@ impl_tiling_behavior!(Workspace);
 impl_direction_behavior!(Workspace);
 
 impl PositionBehavior for Workspace {
-  fn width(&self) -> i32 {
-    let monitor_width = self.parent().unwrap().width();
-    monitor_width
-      - self.outer_gaps().left.to_pixels(monitor_width)
-      - self.outer_gaps().right.to_pixels(monitor_width)
+  fn width(&self) -> anyhow::Result<i32> {
+    let parent = self.parent().context("Workspace has no parent.")?;
+
+    Ok(
+      parent.width()?
+        - self.outer_gaps().left.to_pixels(parent.width()?)
+        - self.outer_gaps().right.to_pixels(parent.width()?),
+    )
   }
 
-  fn height(&self) -> i32 {
-    let monitor_height = self.parent().unwrap().height();
-    monitor_height
-      - self.outer_gaps().top.to_pixels(monitor_height)
-      - self.outer_gaps().bottom.to_pixels(monitor_height)
+  fn height(&self) -> anyhow::Result<i32> {
+    let parent = self.parent().context("Workspace has no parent.")?;
+
+    Ok(
+      parent.height()?
+        - self.outer_gaps().top.to_pixels(parent.height()?)
+        - self.outer_gaps().bottom.to_pixels(parent.height()?),
+    )
   }
 
-  fn x(&self) -> i32 {
-    let monitor_width = self.parent().unwrap().width();
-    self.parent().unwrap().x()
-      + self.outer_gaps().left.to_pixels(monitor_width)
+  fn x(&self) -> anyhow::Result<i32> {
+    let parent = self.parent().context("Workspace has no parent.")?;
+
+    Ok(parent.x()? + self.outer_gaps().left.to_pixels(parent.width()?))
   }
 
-  fn y(&self) -> i32 {
-    let monitor_height = self.parent().unwrap().height();
-    self.parent().unwrap().y()
-      + self.outer_gaps().top.to_pixels(monitor_height)
+  fn y(&self) -> anyhow::Result<i32> {
+    let parent = self.parent().context("Workspace has no parent.")?;
+
+    Ok(parent.y()? + self.outer_gaps().top.to_pixels(parent.height()?))
   }
+}
+
+/// User-friendly representation of a workspace.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug)]
+pub struct WorkspaceDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<WorkspaceChildDto>,
+  child_focus_order: Vec<Uuid>,
+  size_percent: f32,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  tiling_direction: TilingDirection,
+}
+
+#[derive(Debug)]
+pub enum WorkspaceChildDto {
+  NonTilingWindow(NonTilingWindowDto),
+  TilingWindow(TilingWindowDto),
+  Split(SplitContainerDto),
 }

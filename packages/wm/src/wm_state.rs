@@ -99,8 +99,7 @@ impl WmState {
       .root_container
       .children()
       .iter()
-      // Safety: Direct children of the root container are always monitors.
-      .map(|c| c.as_monitor().cloned().unwrap())
+      .filter_map(|c| c.as_monitor().cloned())
       .collect()
   }
 
@@ -109,8 +108,7 @@ impl WmState {
       .monitors()
       .iter()
       .flat_map(|c| c.children())
-      // Safety: Direct children of monitors are always workspaces.
-      .map(|c| c.as_workspace().cloned().unwrap())
+      .filter_map(|c| c.as_workspace().cloned())
       .collect()
   }
 
@@ -124,6 +122,8 @@ impl WmState {
 
   /// Gets the monitor that encompasses the largest portion of a given
   /// window.
+  ///
+  /// Defaults to the first monitor if the nearest monitor is invalid.
   pub fn nearest_monitor(
     &self,
     native_window: &NativeWindow,
@@ -169,6 +169,10 @@ impl WmState {
       .filter_map(|container| container.try_into().ok())
       // .unique()
       .collect()
+  }
+
+  pub fn add_container_to_redraw(&mut self, container: Container) {
+    self.containers_to_redraw.push(container);
   }
 
   /// Removes all containers from the redraw queue.

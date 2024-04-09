@@ -56,7 +56,7 @@ pub fn redraw(
     let position_args = get_position_args(
       &window,
       config.value.general.show_floating_on_top,
-    );
+    )?;
 
     let _ = window.native().set_position(&position_args);
 
@@ -77,17 +77,17 @@ pub fn redraw(
 fn get_position_args(
   window: &WindowContainer,
   show_floating_on_top: bool,
-) -> SetPositionArgs {
+) -> anyhow::Result<SetPositionArgs> {
   // Avoid adjusting the borders of non-tiling windows. Otherwise the
   // window will increase in size from its original placement.
   let rect = match window.state() {
     WindowState::Tiling => {
-      window.to_rect().apply_delta(&window.border_delta())
+      window.to_rect()?.apply_delta(&window.border_delta())
     }
-    _ => window.to_rect(),
+    _ => window.to_rect()?,
   };
 
-  SetPositionArgs {
+  Ok(SetPositionArgs {
     window_handle: window.native().handle,
     visible: match window.display_state() {
       DisplayState::Showing | DisplayState::Shown => true,
@@ -102,5 +102,5 @@ fn get_position_args(
       _ => false,
     },
     rect,
-  }
+  })
 }

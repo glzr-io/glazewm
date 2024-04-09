@@ -1,6 +1,7 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
+  fmt,
   rc::Rc,
 };
 
@@ -12,17 +13,17 @@ use crate::{
   },
   containers::{
     traits::{CommonBehavior, PositionBehavior},
-    Container, ContainerType, TilingContainer,
+    Container, ContainerType, DirectionContainer, TilingContainer,
+    WindowContainer,
   },
   impl_common_behavior, impl_window_behavior,
 };
 
 use super::{traits::WindowBehavior, WindowState};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 
-#[derive(Debug)]
 struct NonTilingWindowInner {
   id: Uuid,
   parent: Option<TilingContainer>,
@@ -65,25 +66,67 @@ impl NonTilingWindow {
 
     Self(Rc::new(RefCell::new(window)))
   }
+
+  pub fn to_dto(&self) -> anyhow::Result<NonTilingWindowDto> {
+    Ok(NonTilingWindowDto {
+      id: self.id(),
+      parent: self.parent().map(|p| p.id()),
+      width: self.width()?,
+      height: self.height()?,
+      x: self.x()?,
+      y: self.y()?,
+      state: self.state(),
+      prev_state: self.0.borrow().prev_state.clone(),
+      display_state: self.display_state(),
+      border_delta: self.border_delta(),
+      has_pending_dpi_adjustment: self.has_pending_dpi_adjustment(),
+      floating_placement: self.floating_placement(),
+    })
+  }
 }
 
 impl_common_behavior!(NonTilingWindow, ContainerType::Window);
 impl_window_behavior!(NonTilingWindow);
 
 impl PositionBehavior for NonTilingWindow {
-  fn width(&self) -> i32 {
-    self.0.borrow().floating_placement.width()
+  fn width(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().floating_placement.width())
   }
 
-  fn height(&self) -> i32 {
-    self.0.borrow().floating_placement.height()
+  fn height(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().floating_placement.height())
   }
 
-  fn x(&self) -> i32 {
-    self.0.borrow().floating_placement.x()
+  fn x(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().floating_placement.x())
   }
 
-  fn y(&self) -> i32 {
-    self.0.borrow().floating_placement.y()
+  fn y(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().floating_placement.y())
   }
+}
+
+impl fmt::Debug for NonTilingWindow {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
+  }
+}
+
+/// User-friendly representation of a non-tiling window.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug)]
+pub struct NonTilingWindowDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  state: WindowState,
+  prev_state: Option<WindowState>,
+  display_state: DisplayState,
+  border_delta: RectDelta,
+  has_pending_dpi_adjustment: bool,
+  floating_placement: Rect,
 }

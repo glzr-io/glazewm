@@ -1,7 +1,7 @@
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState, RectDelta},
+  common::{platform::NativeWindow, DisplayState, Rect, RectDelta},
   containers::WindowContainer,
   windows::WindowState,
 };
@@ -24,6 +24,10 @@ pub trait WindowBehavior {
     &self,
     has_pending_dpi_adjustment: bool,
   ) -> ();
+
+  fn floating_placement(&self) -> Rect;
+
+  fn set_floating_placement(&self, floating_placement: Rect) -> ();
 }
 
 /// Implements the `WindowBehavior` trait for a given struct.
@@ -64,6 +68,14 @@ macro_rules! impl_window_behavior {
       ) {
         self.0.borrow_mut().has_pending_dpi_adjustment =
           has_pending_dpi_adjustment;
+      }
+
+      fn floating_placement(&self) -> Rect {
+        self.0.borrow().floating_placement.clone()
+      }
+
+      fn set_floating_placement(&self, floating_placement: Rect) {
+        self.0.borrow_mut().floating_placement = floating_placement;
       }
     }
   };

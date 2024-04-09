@@ -6,8 +6,6 @@ use super::CommonBehavior;
 
 #[enum_dispatch]
 pub trait TilingBehavior: CommonBehavior {
-  fn as_tiling_container(&self) -> TilingContainer;
-
   fn size_percent(&self) -> f32;
 
   fn set_size_percent(&self, size_percent: f32) -> ();
@@ -21,10 +19,6 @@ pub trait TilingBehavior: CommonBehavior {
 macro_rules! impl_tiling_behavior {
   ($struct_name:ident) => {
     impl TilingBehavior for $struct_name {
-      fn as_tiling_container(&self) -> TilingContainer {
-        self.clone().into()
-      }
-
       fn size_percent(&self) -> f32 {
         self.0.borrow().size_percent
       }

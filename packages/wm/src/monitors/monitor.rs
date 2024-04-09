@@ -1,6 +1,7 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
+  fmt,
   rc::Rc,
 };
 
@@ -11,16 +12,16 @@ use crate::{
   common::platform::NativeMonitor,
   containers::{
     traits::{CommonBehavior, PositionBehavior, TilingBehavior},
-    Container, ContainerType, TilingContainer,
+    Container, ContainerType, DirectionContainer, TilingContainer,
+    WindowContainer,
   },
   impl_common_behavior, impl_tiling_behavior,
-  workspaces::Workspace,
+  workspaces::{Workspace, WorkspaceDto},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Monitor(Rc<RefCell<MonitorInner>>);
 
-#[derive(Debug)]
 struct MonitorInner {
   id: Uuid,
   parent: Option<TilingContainer>,
@@ -75,25 +76,73 @@ impl Monitor {
 
     Ok(self.native().dpi != other_monitor.native().dpi)
   }
+
+  pub fn to_dto(&self) -> anyhow::Result<MonitorDto> {
+    let children = self
+      .children()
+      .iter()
+      .map(|c| {
+        c.as_workspace()
+          .context("Monitor has an invalid child type.")
+          .and_then(|c| c.to_dto())
+      })
+      .try_collect()?;
+
+    Ok(MonitorDto {
+      id: self.id(),
+      parent: self.parent().map(|p| p.id()),
+      children,
+      child_focus_order: self.0.borrow().child_focus_order.clone().into(),
+      size_percent: self.size_percent(),
+      width: self.width()?,
+      height: self.height()?,
+      x: self.x()?,
+      y: self.y()?,
+      dpi: self.native().dpi,
+    })
+  }
 }
 
 impl_common_behavior!(Monitor, ContainerType::Monitor);
 impl_tiling_behavior!(Monitor);
 
 impl PositionBehavior for Monitor {
-  fn width(&self) -> i32 {
-    self.0.borrow().native.width
+  fn width(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().native.width)
   }
 
-  fn height(&self) -> i32 {
-    self.0.borrow().native.height
+  fn height(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().native.height)
   }
 
-  fn x(&self) -> i32 {
-    self.0.borrow().native.x
+  fn x(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().native.x)
   }
 
-  fn y(&self) -> i32 {
-    self.0.borrow().native.y
+  fn y(&self) -> anyhow::Result<i32> {
+    Ok(self.0.borrow().native.y)
   }
+}
+
+impl fmt::Debug for Monitor {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
+  }
+}
+
+/// User-friendly representation of a monitor.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug)]
+pub struct MonitorDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<WorkspaceDto>,
+  child_focus_order: Vec<Uuid>,
+  size_percent: f32,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  dpi: f32,
 }

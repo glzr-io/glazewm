@@ -4,7 +4,7 @@ use anyhow::bail;
 
 use super::Direction;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TilingDirection {
   Vertical,
   Horizontal,

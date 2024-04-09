@@ -26,6 +26,12 @@ pub trait CommonBehavior {
 
   fn as_container(&self) -> Container;
 
+  fn as_tiling_container(&self) -> anyhow::Result<TilingContainer>;
+
+  fn as_window_container(&self) -> anyhow::Result<WindowContainer>;
+
+  fn as_direction_container(&self) -> anyhow::Result<DirectionContainer>;
+
   fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>>;
 
   fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>>;
@@ -89,6 +95,15 @@ pub trait CommonBehavior {
         .into_iter()
         .flat_map(|parent| parent.children())
         .filter(move |sibling| sibling.id() != self.id()),
+    )
+  }
+
+  fn self_and_siblings(&self) -> Box<dyn Iterator<Item = Container> + '_> {
+    Box::new(
+      self
+        .parent()
+        .into_iter()
+        .flat_map(|parent| parent.children()),
     )
   }
 
@@ -249,6 +264,23 @@ macro_rules! impl_common_behavior {
 
       fn as_container(&self) -> Container {
         self.clone().into()
+      }
+
+      fn as_tiling_container(&self) -> anyhow::Result<TilingContainer> {
+        TryInto::<TilingContainer>::try_into(self.as_container())
+          .map_err(anyhow::Error::msg)
+      }
+
+      fn as_window_container(&self) -> anyhow::Result<WindowContainer> {
+        TryInto::<WindowContainer>::try_into(self.as_container())
+          .map_err(anyhow::Error::msg)
+      }
+
+      fn as_direction_container(
+        &self,
+      ) -> anyhow::Result<DirectionContainer> {
+        TryInto::<DirectionContainer>::try_into(self.as_container())
+          .map_err(anyhow::Error::msg)
       }
 
       fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>> {

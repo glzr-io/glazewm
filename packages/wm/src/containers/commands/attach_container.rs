@@ -24,10 +24,14 @@ pub fn attach_container(
     .borrow_children_mut()
     .insert(target_index, child.clone());
 
-  *child.borrow_parent_mut() = Some(target_parent.as_tiling_container());
+  target_parent
+    .borrow_child_focus_order_mut()
+    .push_back(child.id());
+
+  *child.borrow_parent_mut() = Some(target_parent.as_tiling_container()?);
 
   // Resize the child and its siblings if it is a tiling container.
-  if let Ok(child) = TryInto::<TilingContainer>::try_into(child) {
+  if let Ok(child) = child.as_tiling_container() {
     let resizable_siblings = child.tiling_siblings().collect::<Vec<_>>();
 
     if resizable_siblings.is_empty() {

@@ -24,7 +24,7 @@ pub fn activate_workspace(
     get_workspace_config(workspace_name, target_monitor, state, config)?;
 
   let tiling_direction =
-    match target_monitor.height() > target_monitor.width() {
+    match target_monitor.height()? > target_monitor.width()? {
       true => TilingDirection::Vertical,
       false => TilingDirection::Horizontal,
     };

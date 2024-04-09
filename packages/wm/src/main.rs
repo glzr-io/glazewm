@@ -1,3 +1,5 @@
+#![feature(iterator_try_collect)]
+
 use std::{env, ops::DerefMut, path::PathBuf};
 
 use anyhow::{Context, Result};
