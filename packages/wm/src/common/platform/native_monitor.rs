@@ -1,10 +1,13 @@
 use windows::Win32::{
   Foundation::{BOOL, LPARAM, RECT},
   Graphics::Gdi::{
-    EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFOEXW,
+    EnumDisplayMonitors, GetMonitorInfoW, MonitorFromWindow, HDC,
+    HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
   },
   UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
 };
+
+use super::WindowHandle;
 
 pub type MonitorHandle = HMONITOR;
 
@@ -116,6 +119,15 @@ fn handle_to_monitor(
     monitor_info.monitorInfo.rcMonitor.top,
     dpi,
   ))
+}
+
+pub fn nearest_monitor(
+  window_handle: WindowHandle,
+) -> anyhow::Result<NativeMonitor> {
+  let handle =
+    unsafe { MonitorFromWindow(window_handle, MONITOR_DEFAULTTONEAREST) };
+
+  handle_to_monitor(handle)
 }
 
 fn monitor_dpi(handle: MonitorHandle) -> anyhow::Result<f32> {

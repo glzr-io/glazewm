@@ -29,10 +29,10 @@ impl Platform {
     native_monitor::available_monitors()
   }
 
-  pub fn nearest_monitor(window: &NativeWindow) -> Option<NativeMonitor> {
-    native_monitor::available_monitors()
-      .ok()
-      .and_then(|m| m.first().cloned())
+  pub fn nearest_monitor(
+    window: &NativeWindow,
+  ) -> anyhow::Result<NativeMonitor> {
+    native_monitor::nearest_monitor(window.handle)
   }
 
   pub fn manageable_windows() -> anyhow::Result<Vec<NativeWindow>> {

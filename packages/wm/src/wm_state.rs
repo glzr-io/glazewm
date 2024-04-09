@@ -129,6 +129,7 @@ impl WmState {
     native_window: &NativeWindow,
   ) -> Option<Monitor> {
     Platform::nearest_monitor(&native_window)
+      .ok()
       .and_then(|native| self.monitor_from_native(&native))
       .or(self.monitors().first().cloned())
   }
