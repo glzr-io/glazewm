@@ -4,7 +4,7 @@ use tracing::info;
 use crate::{
   common::platform::NativeWindow,
   containers::{
-    commands::attach_container,
+    commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
     TilingContainer, WindowContainer,
   },
@@ -29,9 +29,9 @@ pub fn manage_window(
   // let window_rule_commands =
   //   window_rules.iter().flat_map(|rule| &rule.commands);
 
-  // // Set the newly added window as focus descendant. This means the window rules will be run as
-  // // if the window is focused.
-  // set_focused_descendant(window.clone());
+  // Set the newly added window as focus descendant. This means the window
+  // rules will be run as if the window is focused.
+  set_focused_descendant(window.clone().into(), None, &state);
   // run_with_subject_container(window_rule_commands, window.clone());
 
   // // Update window in case the reference changes.
@@ -42,6 +42,7 @@ pub fn manage_window(
   //   return Ok(());
   // }
 
+  // TODO: Log window details.
   info!("New window managed");
   state.emit_event(WmEvent::WindowManaged {
     managed_window: window.clone(),
@@ -50,7 +51,15 @@ pub fn manage_window(
   // OS focus should be set to the newly added window in case it's not
   // already focused.
   state.has_pending_focus_sync = true;
-  state.add_container_to_redraw(window.clone().into());
+
+  // Sibling containers need to be redrawn if the window is tiling.
+  if window.state() == WindowState::Tiling {
+    state.add_container_to_redraw(
+      window.parent().context("No parent.")?.into(),
+    );
+  } else {
+    state.add_container_to_redraw(window.into());
+  }
 
   Ok(())
 }

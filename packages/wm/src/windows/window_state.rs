@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::bail;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WindowState {
   Floating,
   Fullscreen,
