@@ -5,6 +5,10 @@ use crate::containers::{
   SplitContainer,
 };
 
+/// Removes a split container from the tree and moves its children
+/// into the parent container.
+///
+/// The children will be resized to fit the size of the split container.
 pub fn flatten_split_container(
   split_container: SplitContainer,
 ) -> anyhow::Result<()> {

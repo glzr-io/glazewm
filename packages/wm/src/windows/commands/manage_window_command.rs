@@ -136,7 +136,7 @@ fn create_window(
   attach_container(
     window_container.clone().into(),
     &target_parent,
-    target_index,
+    Some(target_index),
   )?;
 
   // The OS might spawn the window on a different monitor to the target

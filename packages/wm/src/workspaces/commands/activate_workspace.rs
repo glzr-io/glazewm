@@ -39,7 +39,7 @@ pub fn activate_workspace(
   attach_container(
     workspace.clone().into(),
     &target_monitor.clone().into(),
-    0,
+    None,
   )?;
 
   state.emit_event(WmEvent::WorkspaceActivated {

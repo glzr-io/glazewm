@@ -14,15 +14,20 @@ use super::resize_tiling_container;
 pub fn attach_container(
   child: Container,
   target_parent: &TilingContainer,
-  target_index: usize,
+  target_index: Option<usize>,
 ) -> anyhow::Result<()> {
   if !child.is_detached() {
     bail!("Cannot attach an already attached container.");
   }
 
-  target_parent
-    .borrow_children_mut()
-    .insert(target_index, child.clone());
+  // Insert the child at the specified index.
+  if let Some(target_index) = target_index {
+    target_parent
+      .borrow_children_mut()
+      .insert(target_index, child.clone());
+  } else {
+    target_parent.borrow_children_mut().push_back(child.clone());
+  }
 
   target_parent
     .borrow_child_focus_order_mut()

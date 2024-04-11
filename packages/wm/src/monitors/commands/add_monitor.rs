@@ -19,7 +19,7 @@ pub fn add_monitor(
   attach_container(
     monitor.clone().into(),
     &state.root_container.clone().into(),
-    0,
+    None,
   )?;
 
   state.emit_event(WmEvent::MonitorAdded {
