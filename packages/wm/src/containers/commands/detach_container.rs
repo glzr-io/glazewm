@@ -1,12 +1,24 @@
 use anyhow::Context;
 
-use crate::containers::{traits::CommonGetters, Container};
+use crate::containers::{
+  traits::{CommonGetters, TilingGetters},
+  Container, TilingContainer,
+};
+
+use super::flatten_split_container;
 
 /// Removes a container from the tree.
 pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
-  let parent = child_to_remove.parent().context("No parent.")?;
-  let grandparent = parent.parent();
-  let siblings = child_to_remove.siblings();
+  let mut parent = child_to_remove.parent().context("No parent.")?;
+
+  // Flatten the parent split container if it'll be empty after removing
+  // the child.
+  if let Some(split_parent) = parent.as_split().cloned() {
+    if split_parent.children().len() == 1 {
+      parent = parent.parent().context("No parent.")?;
+      flatten_split_container(split_parent)?;
+    }
+  }
 
   parent
     .borrow_children_mut()
@@ -18,96 +30,52 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
 
   *child_to_remove.borrow_parent_mut() = None;
 
-  // // Resize the siblings if it is a tiling container.
-  // if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
-  //   resize_detached_container(child_to_remove)?;
-  // }
-
-  let parent_siblings = parent.siblings();
-  let is_empty_split_container =
-    !parent.has_children() && parent.is_split();
-
-  // Get the freed up space after container is detached.
-  let available_size_percentage = if is_empty_split_container {
-    parent
-      .as_resizable()
-      .map(|r| r.size_percentage())
-      .unwrap_or(0.0)
-  } else {
-    child_to_remove
-      .as_resizable()
-      .map(|r| r.size_percentage())
-      .unwrap_or(0.0)
-  };
-
-  // Resize children of grandparent if `child_to_remove`'s parent is also to be detached.
-  let containers_to_resize = if is_empty_split_container {
-    grandparent.unwrap().children_of_type::<dyn IResizable>()
-  } else {
-    parent.children_of_type::<dyn IResizable>()
-  };
-
-  // If the parent of the removed child is now an empty split container, detach the
-  // split container as well.
-  // TODO: Move out calls to `ContainersToRedraw.Add(...)`, since detaching might not
-  // always require a redraw.
-  if is_empty_split_container {
-    self
-      .container_service
-      .containers_to_redraw
-      .add(grandparent.as_ref().unwrap());
-    grandparent.unwrap().remove_child(&parent);
-  } else {
-    self.container_service.containers_to_redraw.add(&parent);
-  }
-
-  if available_size_percentage != 0.0 {
-    let size_percentage_increment =
-      available_size_percentage / containers_to_resize.len() as f32;
-
-    // Adjust `SizePercentage` of the siblings of the removed container.
-    for container_to_resize in containers_to_resize {
-      let resizable = container_to_resize.as_resizable_mut().unwrap();
-      resizable.set_size_percentage(
-        resizable.size_percentage() + size_percentage_increment,
-      );
-    }
-  }
-
-  let detached_siblings = if is_empty_split_container {
-    parent_siblings
-  } else {
-    siblings
-  };
-
-  let detached_parent = if is_empty_split_container {
-    grandparent.unwrap()
-  } else {
-    parent
-  };
-
-  // If there is exactly *one* sibling to the detached container, then flatten that
-  // sibling if it's a split container. This is to handle layouts like H[1 V[2 H[3]]],
-  // where container 2 gets detached.
-  if detached_siblings.len() == 1
-    && matches!(detached_siblings[0].as_ref(), Container::Split(_))
-    && !matches!(child_to_remove.as_ref(), Container::Workspace(_))
-  {
-    self.bus.invoke(FlattenSplitContainerCommand {
-      split_container: detached_siblings[0].as_split_container().unwrap(),
-    });
-    if !matches!(detached_parent.as_ref(), Container::Workspace(_)) {
-      self.bus.invoke(FlattenSplitContainerCommand {
-        split_container: detached_parent.as_split_container().unwrap(),
-      });
-    }
+  // Resize the siblings if it is a tiling container.
+  if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
+    resize_sibling_containers(child_to_remove, parent)?;
   }
 
   Ok(())
 }
 
-fn resize_detached_container(
-  child_to_remove: Container,
+fn resize_sibling_containers(
+  child_to_remove: TilingContainer,
+  parent: TilingContainer,
 ) -> anyhow::Result<()> {
+  let tiling_siblings = parent
+    .children()
+    .into_iter()
+    .filter_map(|c| c.as_tiling_container().ok())
+    .collect::<Vec<_>>();
+
+  let size_percent_increment =
+    child_to_remove.size_percent() / tiling_siblings.len() as f32;
+
+  // Adjust size of the siblings of the removed container.
+  for container_to_resize in &tiling_siblings {
+    container_to_resize.set_size_percent(
+      container_to_resize.size_percent() + size_percent_increment,
+    );
+  }
+
+  // If there is exactly *one* sibling to the detached container, then flatten that
+  // sibling if it's a split container. This is to handle layouts like H[1 V[2 H[3]]],
+  // where container 2 gets detached.
+  if tiling_siblings.len() == 1 {
+    if let Some(split_sibling) = tiling_siblings[0].as_split().cloned() {
+      let split_sibling_parent =
+        split_sibling.parent().context("No parent.")?;
+
+      flatten_split_container(split_sibling)?;
+
+      // Additionally flatten parent to handle deeply nested layouts.
+      if let Some(split_sibling_parent) =
+        split_sibling_parent.as_split().cloned()
+      {
+        flatten_split_container(split_sibling_parent)?;
+      }
+    }
+  }
+
   Ok(())
 }
