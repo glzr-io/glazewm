@@ -1,17 +1,18 @@
-use std::{
-  ops::{Deref, DerefMut},
-  sync::Arc,
-};
+use std::{ops::DerefMut, sync::Arc};
 
 use anyhow::Result;
 use tokio::sync::{
   mpsc::{self},
   Mutex,
 };
+use tracing::error;
 
 use crate::{
   app_command::InvokeCommand,
-  common::{events::handle_window_shown, platform::PlatformEvent},
+  common::{
+    events::{handle_window_destroyed, handle_window_shown},
+    platform::PlatformEvent,
+  },
   containers::commands::redraw,
   user_config::UserConfig,
   wm_event::WmEvent,
@@ -41,14 +42,16 @@ impl WindowManager {
     &mut self,
     event: PlatformEvent,
     config: &mut UserConfig,
-  ) -> anyhow::Result<()> {
+  ) {
     let mut state = self.state.lock().await;
 
-    match event {
+    let res = match event {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
       PlatformEvent::KeybindingTriggered(_) => Ok(()),
       PlatformEvent::MouseMove => Ok(()),
-      PlatformEvent::WindowDestroyed(_) => Ok(()),
+      PlatformEvent::WindowDestroyed(w) => {
+        handle_window_destroyed(w, state.deref_mut(), config)
+      }
       PlatformEvent::WindowFocused(_) => Ok(()),
       PlatformEvent::WindowHidden(_) => Ok(()),
       PlatformEvent::WindowLocationChanged(_) => Ok(()),
@@ -59,6 +62,10 @@ impl WindowManager {
         handle_window_shown(w, state.deref_mut(), config)
       }
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
+    };
+
+    if let Err(err) = res {
+      error!("Failed to process event: {:?}", err);
     }
   }
 
@@ -66,10 +73,10 @@ impl WindowManager {
     &mut self,
     command: InvokeCommand,
     config: &mut UserConfig,
-  ) -> anyhow::Result<()> {
+  ) {
     let mut state = self.state.lock().await;
 
-    match command {
+    let res = match command {
       InvokeCommand::AdjustBorders(_) => todo!(),
       InvokeCommand::Close => todo!(),
       InvokeCommand::Focus(_) => todo!(),
@@ -95,6 +102,10 @@ impl WindowManager {
       InvokeCommand::WmRedraw => redraw(state.deref_mut(), &config),
       InvokeCommand::WmReloadConfig => todo!(),
       InvokeCommand::WmToggleFocusMode => todo!(),
+    };
+
+    if let Err(err) = res {
+      error!("Failed to process command: {:?}", err);
     }
   }
 }
