@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::containers::{
-  traits::{CommonGetters, TilingDirectionGetters, TilingGetters},
+  traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters},
   SplitContainer,
 };
 

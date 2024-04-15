@@ -16,13 +16,13 @@ use crate::{
   containers::{
     traits::{
       CommonGetters, PositionGetters, TilingDirectionGetters,
-      TilingGetters,
+      TilingSizeGetters,
     },
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
   impl_common_getters, impl_position_getters_as_resizable,
-  impl_tiling_getters, impl_window_getters,
+  impl_tiling_size_getters, impl_window_getters,
 };
 
 use super::{traits::WindowGetters, WindowState};
@@ -97,7 +97,7 @@ impl TilingWindow {
 }
 
 impl_common_getters!(TilingWindow, ContainerType::Window);
-impl_tiling_getters!(TilingWindow);
+impl_tiling_size_getters!(TilingWindow);
 impl_position_getters_as_resizable!(TilingWindow);
 impl_window_getters!(TilingWindow);
 

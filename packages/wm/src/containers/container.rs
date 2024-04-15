@@ -50,9 +50,9 @@ impl Eq for Container {}
 /// Subset of containers that implement the following traits:
 ///  * `CommonGetters`
 ///  * `PositionGetters`
-///  * `TilingGetters`
+///  * `TilingSizeGetters`
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters, TilingGetters)]
+#[enum_dispatch(CommonGetters, PositionGetters, TilingSizeGetters)]
 pub enum TilingContainer {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
