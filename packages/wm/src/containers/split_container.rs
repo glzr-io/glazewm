@@ -10,14 +10,14 @@ use uuid::Uuid;
 
 use crate::{
   common::{LengthValue, TilingDirection},
-  impl_common_getters, impl_direction_getters,
-  impl_position_getters_as_resizable, impl_tiling_getters,
+  impl_common_getters, impl_position_getters_as_resizable,
+  impl_tiling_direction_getters, impl_tiling_getters,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
 use super::{
   traits::{
-    CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
+    CommonGetters, PositionGetters, TilingDirectionGetters, TilingGetters,
   },
   Container, ContainerType, DirectionContainer, TilingContainer,
   WindowContainer,
@@ -93,7 +93,7 @@ impl SplitContainer {
 
 impl_common_getters!(SplitContainer, ContainerType::Split);
 impl_tiling_getters!(SplitContainer);
-impl_direction_getters!(SplitContainer);
+impl_tiling_direction_getters!(SplitContainer);
 impl_position_getters_as_resizable!(SplitContainer);
 
 impl fmt::Debug for SplitContainer {

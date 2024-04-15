@@ -15,7 +15,8 @@ use crate::{
   },
   containers::{
     traits::{
-      CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
+      CommonGetters, PositionGetters, TilingDirectionGetters,
+      TilingGetters,
     },
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,

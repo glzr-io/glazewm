@@ -10,11 +10,11 @@ use uuid::Uuid;
 use crate::{
   common::{RectDelta, TilingDirection},
   containers::{
-    traits::{CommonGetters, DirectionGetters, PositionGetters},
+    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, ContainerType, DirectionContainer, SplitContainerDto,
     TilingContainer, WindowContainer,
   },
-  impl_common_getters, impl_direction_getters,
+  impl_common_getters, impl_tiling_direction_getters,
   user_config::WorkspaceConfig,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
@@ -97,7 +97,7 @@ impl Workspace {
 }
 
 impl_common_getters!(Workspace, ContainerType::Workspace);
-impl_direction_getters!(Workspace);
+impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
   fn width(&self) -> anyhow::Result<i32> {

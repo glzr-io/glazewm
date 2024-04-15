@@ -127,9 +127,9 @@ impl Eq for WindowContainer {}
 /// Subset of containers that implement the following traits:
 ///  * `CommonGetters`
 ///  * `PositionGetters`
-///  * `DirectionGetters`
+///  * `TilingDirectionGetters`
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters, DirectionGetters)]
+#[enum_dispatch(CommonGetters, PositionGetters, TilingDirectionGetters)]
 pub enum DirectionContainer {
   Workspace(Workspace),
   Split(SplitContainer),
