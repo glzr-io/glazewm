@@ -4,7 +4,7 @@ use std::{env, ops::DerefMut, path::PathBuf};
 
 use anyhow::{Context, Result};
 use tokio::process::Command;
-use tracing::info;
+use tracing::{debug, info};
 
 use common::platform::Platform;
 use ipc_server::IpcServer;
@@ -76,8 +76,8 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
 
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
-        info!("Received platform event: {:?}", event);
-        let _ = wm.process_event(event, config.deref_mut()).await;
+        debug!("Received platform event: {:?}", event);
+        wm.process_event(event, config.deref_mut()).await;
       },
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);
