@@ -48,13 +48,13 @@ fn resize_sibling_containers(
     .filter_map(|c| c.as_tiling_container().ok())
     .collect::<Vec<_>>();
 
-  let size_percent_increment =
-    child_to_remove.size_percent() / tiling_siblings.len() as f32;
+  let tiling_size_increment =
+    child_to_remove.tiling_size() / tiling_siblings.len() as f32;
 
   // Adjust size of the siblings of the removed container.
   for container_to_resize in &tiling_siblings {
-    container_to_resize.set_size_percent(
-      container_to_resize.size_percent() + size_percent_increment,
+    container_to_resize.set_tiling_size(
+      container_to_resize.tiling_size() + tiling_size_increment,
     );
   }
 

@@ -39,15 +39,15 @@ pub fn attach_container(
     let tiling_siblings = child.tiling_siblings().collect::<Vec<_>>();
 
     if tiling_siblings.is_empty() {
-      child.set_size_percent(1.0);
+      child.set_tiling_size(1.0);
       return Ok(());
     }
 
-    // Set initial size percentage to 0, and then size up the container
-    // to the default percentage.
-    let default_percentage = 1.0 / (tiling_siblings.len() + 1) as f32;
-    child.set_size_percent(0.0);
-    resize_tiling_container(&child, default_percentage);
+    // Set initial tiling size to 0, and then size up the container
+    // to the target size.
+    let target_size = 1.0 / (tiling_siblings.len() + 1) as f32;
+    child.set_tiling_size(0.0);
+    resize_tiling_container(&child, target_size);
   }
 
   Ok(())

@@ -32,7 +32,7 @@ struct SplitContainerInner {
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  size_percent: f32,
+  tiling_size: f32,
   tiling_direction: TilingDirection,
   inner_gap: LengthValue,
 }
@@ -47,7 +47,7 @@ impl SplitContainer {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      size_percent: 1.0,
+      tiling_size: 1.0,
       tiling_direction,
       inner_gap,
     };
@@ -82,12 +82,12 @@ impl SplitContainer {
       parent: self.parent().map(|p| p.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      size_percent: self.size_percent(),
+      tiling_size: self.tiling_size(),
+      tiling_direction: self.tiling_direction(),
       width: self.width()?,
       height: self.height()?,
       x: self.x()?,
       y: self.y()?,
-      tiling_direction: self.tiling_direction(),
     })
   }
 }
@@ -112,7 +112,7 @@ pub struct SplitContainerDto {
   parent: Option<Uuid>,
   children: Vec<SplitContainerChildDto>,
   child_focus_order: Vec<Uuid>,
-  size_percent: f32,
+  tiling_size: f32,
   width: i32,
   height: i32,
   x: i32,

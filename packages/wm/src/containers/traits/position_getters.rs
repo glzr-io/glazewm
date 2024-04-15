@@ -55,7 +55,7 @@ macro_rules! impl_position_getters_as_resizable {
             let available_width = parent.width()?
               - inner_gap * self.tiling_siblings().count() as i32;
 
-            Ok((self.size_percent() * available_width as f32) as i32)
+            Ok((self.tiling_size() * available_width as f32) as i32)
           }
         }
       }
@@ -79,7 +79,7 @@ macro_rules! impl_position_getters_as_resizable {
             let available_height = parent.height()?
               - inner_gap * self.tiling_siblings().count() as i32;
 
-            Ok((self.size_percent() * available_height as f32) as i32)
+            Ok((self.tiling_size() * available_height as f32) as i32)
           }
         }
       }
