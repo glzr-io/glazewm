@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{bail, Result};
-use tokio::sync::{mpsc::UnboundedSender, oneshot};
+use tokio::sync::{mpsc, oneshot};
 use tracing::warn;
 use windows::{
   core::w,
@@ -35,7 +35,7 @@ use crate::user_config::KeybindingConfig;
 use super::{NativeWindow, PlatformEvent};
 
 thread_local! {
-  static HOOK_EVENT_TX: OnceCell<UnboundedSender<PlatformEvent>> = OnceCell::new();
+  static HOOK_EVENT_TX: OnceCell<mpsc::UnboundedSender<PlatformEvent>> = OnceCell::new();
 }
 
 /// Callback passed to `SetWinEventHook` to handle window events.
@@ -100,8 +100,8 @@ extern "system" fn event_hook_proc(
 
 /// Window procedure for the event window.
 ///
-/// This function handles messages for the event window, and forwards
-/// display change events through an MPSC channel for the WM to process.
+/// Handles messages for the event window, and forwards display change
+/// events through an MPSC channel for the WM to process.
 pub extern "system" fn event_window_proc(
   handle: HWND,
   message: u32,
@@ -126,11 +126,12 @@ pub extern "system" fn event_window_proc(
   })
 }
 
-/// Handle display change messages and emit the corresponding event.
+/// Handles display change messages and emits the corresponding platform
+/// event through an MPSC channel.
 fn handle_display_change_msg(
   message: u32,
   wparam: WPARAM,
-  event_tx: &UnboundedSender<PlatformEvent>,
+  event_tx: &mpsc::UnboundedSender<PlatformEvent>,
 ) -> LRESULT {
   let should_emit_event = match message {
     WM_SETTINGCHANGE => {
@@ -159,7 +160,7 @@ pub struct EventWindow {
 
 impl EventWindow {
   pub fn new(
-    event_tx: UnboundedSender<PlatformEvent>,
+    event_tx: mpsc::UnboundedSender<PlatformEvent>,
     keybindings: Vec<KeybindingConfig>,
     enable_mouse_listener: bool,
   ) -> Self {
@@ -189,11 +190,14 @@ impl EventWindow {
     }
   }
 
-  pub fn update(
+  pub fn update_keybindings(
     &mut self,
     keybindings: Vec<KeybindingConfig>,
-    enable_mouse_listener: bool,
   ) {
+    todo!()
+  }
+
+  pub fn enable_mouse_listener(&mut self, is_enabled: bool) {
     todo!()
   }
 

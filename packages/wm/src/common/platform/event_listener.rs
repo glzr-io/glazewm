@@ -6,7 +6,9 @@ use tokio::sync::{
   Mutex,
 };
 
-use crate::user_config::{KeybindingConfig, UserConfig};
+use crate::user_config::{
+  BindingModeConfig, KeybindingConfig, UserConfig,
+};
 
 use super::{EventWindow, NativeWindow};
 
@@ -51,11 +53,20 @@ impl EventListener {
     })
   }
 
-  /// Updates the event listener with the latest user config.
-  pub fn update(&mut self, config: &UserConfig) {
-    self.event_window.update(
-      config.value.keybindings.clone(),
-      config.value.general.focus_follows_cursor,
-    );
+  /// Updates the event listener with the latest user config and the
+  /// currently active binding modes.
+  pub fn update(
+    &mut self,
+    config: &UserConfig,
+    binding_modes: &Vec<BindingModeConfig>,
+  ) {
+    // TODO: Modify keybindings based on active binding modes.
+    self
+      .event_window
+      .update_keybindings(config.value.keybindings.clone());
+
+    self
+      .event_window
+      .enable_mouse_listener(config.value.general.focus_follows_cursor);
   }
 }

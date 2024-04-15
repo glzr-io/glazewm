@@ -4,13 +4,14 @@ use crate::{
   common::{platform::WindowHandle, TilingDirection},
   containers::{Container, WindowContainer},
   monitors::Monitor,
+  user_config::BindingModeConfig,
   workspaces::Workspace,
 };
 
 #[derive(Debug)]
 pub enum WmEvent {
-  BindingModeChanged {
-    new_binding_mode: String,
+  BindingModesChanged {
+    active_binding_modes: Vec<BindingModeConfig>,
   },
   FocusChanged {
     focused_container: Container,

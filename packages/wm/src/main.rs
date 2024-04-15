@@ -11,7 +11,7 @@ use ipc_server::IpcServer;
 use user_config::UserConfig;
 use wm::WindowManager;
 
-use crate::app_command::AppCommand;
+use crate::{app_command::AppCommand, wm_event::WmEvent};
 
 mod app_command;
 mod common;
@@ -71,7 +71,6 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   let mut event_listener = Platform::new_event_listener(&config).await?;
 
   loop {
-    let wm_state = wm.state.clone();
     let mut config = config.lock().await;
 
     tokio::select! {
@@ -79,21 +78,26 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
         debug!("Received platform event: {:?}", event);
         wm.process_event(event, config.deref_mut()).await;
       },
-      Some(wm_event) = wm.event_rx.recv() => {
-        info!("Received WM event: {:?}", wm_event);
-        ipc_server.process_event(wm_event).await
-      },
       Some(ipc_message) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", ipc_message);
-        ipc_server.process_message(ipc_message, wm_state).await
+        ipc_server.process_message(ipc_message, wm.state.clone()).await;
       },
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
-        let _ = wm.process_command(wm_command, config.deref_mut()).await;
+        wm.process_command(wm_command, config.deref_mut()).await;
       },
       Some(_) = config.changes_rx.recv() => {
         info!("Received user config update: {:?}", config);
-        event_listener.update(&config);
+        event_listener.update(&config, &Vec::new());
+      },
+      Some(wm_event) = wm.event_rx.recv() => {
+        info!("Received WM event: {:?}", wm_event);
+
+        if let WmEvent::BindingModesChanged { active_binding_modes } = &wm_event {
+          event_listener.update(&config, active_binding_modes);
+        }
+
+        ipc_server.process_event(wm_event).await;
       },
     }
   }
