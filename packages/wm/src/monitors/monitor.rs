@@ -11,11 +11,11 @@ use uuid::Uuid;
 use crate::{
   common::platform::NativeMonitor,
   containers::{
-    traits::{CommonGetters, PositionGetters, TilingGetters},
+    traits::{CommonGetters, PositionGetters},
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters, impl_tiling_getters,
+  impl_common_getters,
   workspaces::{Workspace, WorkspaceDto},
 };
 
@@ -24,10 +24,9 @@ pub struct Monitor(Rc<RefCell<MonitorInner>>);
 
 struct MonitorInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  size_percent: f32,
   native: NativeMonitor,
 }
 
@@ -38,7 +37,6 @@ impl Monitor {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      size_percent: 1.0,
       native: native_monitor,
     };
 
@@ -93,7 +91,6 @@ impl Monitor {
       parent: self.parent().map(|p| p.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      size_percent: self.size_percent(),
       width: self.width()?,
       height: self.height()?,
       x: self.x()?,
@@ -104,7 +101,6 @@ impl Monitor {
 }
 
 impl_common_getters!(Monitor, ContainerType::Monitor);
-impl_tiling_getters!(Monitor);
 
 impl PositionGetters for Monitor {
   fn width(&self) -> anyhow::Result<i32> {
@@ -139,7 +135,6 @@ pub struct MonitorDto {
   parent: Option<Uuid>,
   children: Vec<WorkspaceDto>,
   child_focus_order: Vec<Uuid>,
-  size_percent: f32,
   width: i32,
   height: i32,
   x: i32,

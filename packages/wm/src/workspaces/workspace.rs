@@ -10,13 +10,11 @@ use uuid::Uuid;
 use crate::{
   common::{RectDelta, TilingDirection},
   containers::{
-    traits::{
-      CommonGetters, DirectionGetters, PositionGetters, TilingGetters,
-    },
+    traits::{CommonGetters, DirectionGetters, PositionGetters},
     Container, ContainerType, DirectionContainer, SplitContainerDto,
     TilingContainer, WindowContainer,
   },
-  impl_common_getters, impl_direction_getters, impl_tiling_getters,
+  impl_common_getters, impl_direction_getters,
   user_config::WorkspaceConfig,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
@@ -27,10 +25,9 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 #[derive(Debug)]
 struct WorkspaceInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  size_percent: f32,
   tiling_direction: TilingDirection,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
@@ -47,7 +44,6 @@ impl Workspace {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      size_percent: 1.0,
       tiling_direction,
       config,
       outer_gaps,
@@ -91,7 +87,6 @@ impl Workspace {
       parent: self.parent().map(|p| p.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      size_percent: self.size_percent(),
       width: self.width()?,
       height: self.height()?,
       x: self.x()?,
@@ -102,7 +97,6 @@ impl Workspace {
 }
 
 impl_common_getters!(Workspace, ContainerType::Workspace);
-impl_tiling_getters!(Workspace);
 impl_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
@@ -148,7 +142,6 @@ pub struct WorkspaceDto {
   parent: Option<Uuid>,
   children: Vec<WorkspaceChildDto>,
   child_focus_order: Vec<Uuid>,
-  size_percent: f32,
   width: i32,
   height: i32,
   x: i32,

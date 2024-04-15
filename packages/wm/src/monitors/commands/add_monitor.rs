@@ -17,7 +17,7 @@ pub fn add_monitor(
   let monitor = Monitor::new(native_monitor);
 
   attach_container(
-    monitor.clone().into(),
+    &monitor.clone().into(),
     &state.root_container.clone().into(),
     None,
   )?;

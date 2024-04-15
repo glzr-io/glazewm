@@ -6,7 +6,7 @@ use crate::{
   containers::{
     commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
-    TilingContainer, WindowContainer,
+    Container, WindowContainer,
   },
   user_config::UserConfig,
   windows::{
@@ -18,7 +18,7 @@ use crate::{
 
 pub fn manage_window(
   native_window: NativeWindow,
-  target_parent: Option<TilingContainer>,
+  target_parent: Option<Container>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -66,7 +66,7 @@ pub fn manage_window(
 
 fn create_window(
   native_window: NativeWindow,
-  target_parent: Option<TilingContainer>,
+  target_parent: Option<Container>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
@@ -134,7 +134,7 @@ fn create_window(
   };
 
   attach_container(
-    window_container.clone().into(),
+    &window_container.clone().into(),
     &target_parent,
     Some(target_index),
   )?;
@@ -171,18 +171,16 @@ fn window_state_to_create(native_window: &NativeWindow) -> WindowState {
 
 fn insertion_target(
   state: &WmState,
-) -> anyhow::Result<(TilingContainer, usize)> {
+) -> anyhow::Result<(Container, usize)> {
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
   if focused_container.is_workspace() {
-    Ok((focused_container.try_into().map_err(anyhow::Error::msg)?, 0))
+    Ok((focused_container, 0))
   } else {
-    let parent = focused_container
-      .parent()
-      .map(|p| p.into())
-      .context("No insertion target.")?;
-
-    Ok((parent, focused_container.index() + 1))
+    Ok((
+      focused_container.parent().context("No insertion target.")?,
+      focused_container.index() + 1,
+    ))
   }
 }

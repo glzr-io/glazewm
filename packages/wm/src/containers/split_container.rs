@@ -28,7 +28,7 @@ pub struct SplitContainer(Rc<RefCell<SplitContainerInner>>);
 
 struct SplitContainerInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
   size_percent: f32,

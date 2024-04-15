@@ -24,9 +24,6 @@ pub enum Container {
 impl From<TilingContainer> for Container {
   fn from(tiling_container: TilingContainer) -> Self {
     match tiling_container {
-      TilingContainer::Root(c) => Container::Root(c),
-      TilingContainer::Monitor(c) => Container::Monitor(c),
-      TilingContainer::Workspace(c) => Container::Workspace(c),
       TilingContainer::Split(c) => Container::Split(c),
       TilingContainer::TilingWindow(c) => Container::TilingWindow(c),
     }
@@ -57,9 +54,6 @@ impl Eq for Container {}
 #[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, TilingGetters)]
 pub enum TilingContainer {
-  Root(RootContainer),
-  Monitor(Monitor),
-  Workspace(Workspace),
   Split(SplitContainer),
   TilingWindow(TilingWindow),
 }
@@ -69,14 +63,9 @@ impl TryFrom<Container> for TilingContainer {
 
   fn try_from(container: Container) -> Result<Self, Self::Error> {
     match container {
-      Container::Root(c) => Ok(TilingContainer::Root(c)),
-      Container::Monitor(c) => Ok(TilingContainer::Monitor(c)),
-      Container::Workspace(c) => Ok(TilingContainer::Workspace(c)),
       Container::Split(c) => Ok(TilingContainer::Split(c)),
       Container::TilingWindow(c) => Ok(TilingContainer::TilingWindow(c)),
-      Container::NonTilingWindow(_) => {
-        Err("Cannot convert `NonTilingWindow` to `TilingContainer`.")
-      }
+      _ => Err("Cannot convert type to `TilingContainer`."),
     }
   }
 }
@@ -138,15 +127,9 @@ impl Eq for WindowContainer {}
 /// Subset of containers that implement the following traits:
 ///  * `CommonGetters`
 ///  * `PositionGetters`
-///  * `TilingGetters`
 ///  * `DirectionGetters`
 #[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(
-  CommonGetters,
-  PositionGetters,
-  TilingGetters,
-  DirectionGetters
-)]
+#[enum_dispatch(CommonGetters, PositionGetters, DirectionGetters)]
 pub enum DirectionContainer {
   Workspace(Workspace),
   Split(SplitContainer),
@@ -169,9 +152,6 @@ impl TryFrom<TilingContainer> for DirectionContainer {
 
   fn try_from(container: TilingContainer) -> Result<Self, Self::Error> {
     match container {
-      TilingContainer::Workspace(c) => {
-        Ok(DirectionContainer::Workspace(c))
-      }
       TilingContainer::Split(c) => Ok(DirectionContainer::Split(c)),
       _ => Err("Cannot convert type to a `DirectionContainer`."),
     }

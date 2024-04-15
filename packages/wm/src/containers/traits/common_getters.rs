@@ -32,9 +32,9 @@ pub trait CommonGetters {
 
   fn as_direction_container(&self) -> anyhow::Result<DirectionContainer>;
 
-  fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>>;
+  fn borrow_parent(&self) -> Ref<'_, Option<Container>>;
 
-  fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>>;
+  fn borrow_parent_mut(&self) -> RefMut<'_, Option<Container>>;
 
   fn borrow_children(&self) -> Ref<'_, VecDeque<Container>>;
 
@@ -45,7 +45,7 @@ pub trait CommonGetters {
   fn borrow_child_focus_order_mut(&self) -> RefMut<'_, VecDeque<Uuid>>;
 
   /// Gets the parent container, unless this container is the root.
-  fn parent(&self) -> Option<TilingContainer> {
+  fn parent(&self) -> Option<Container> {
     self.borrow_parent().clone()
   }
 
@@ -218,33 +218,6 @@ impl Iterator for Ancestors {
   }
 }
 
-/// An iterator over siblings of a given container.
-// pub struct Siblings {
-//   ignore: Container,
-//   current: Option<Container>,
-// }
-
-// impl Iterator for Siblings {
-//   type Item = Container;
-
-//   fn next(&mut self) -> Option<Container> {
-//     self.current.take().map(|container| {
-//       self.ignore = container.parent().map(|c| c.into());
-//       container
-//     })
-//   }
-// }
-
-// impl_container_iterator!(Siblings, |container: &Container| {
-//   println!("siblings: {:?}", container.id());
-//   container.parent().and_then(|parent| {
-//     parent
-//       .children()
-//       .into_iter()
-//       .find(|child| child != container)
-//   })
-// });
-
 /// An iterator over descendants of a given container.
 pub struct Descendants {
   stack: VecDeque<Container>,
@@ -299,11 +272,11 @@ macro_rules! impl_common_getters {
           .map_err(anyhow::Error::msg)
       }
 
-      fn borrow_parent(&self) -> Ref<'_, Option<TilingContainer>> {
+      fn borrow_parent(&self) -> Ref<'_, Option<Container>> {
         Ref::map(self.0.borrow(), |c| &c.parent)
       }
 
-      fn borrow_parent_mut(&self) -> RefMut<'_, Option<TilingContainer>> {
+      fn borrow_parent_mut(&self) -> RefMut<'_, Option<Container>> {
         RefMut::map(self.0.borrow_mut(), |c| &mut c.parent)
       }
 

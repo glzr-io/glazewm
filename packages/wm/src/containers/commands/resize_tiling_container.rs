@@ -12,11 +12,8 @@ pub fn resize_tiling_container(
   let resizable_siblings =
     container_to_resize.tiling_siblings().collect::<Vec<_>>();
 
-  // Ignore cases where the container to resize is a workspace or the only
-  // child.
-  if resizable_siblings.is_empty()
-    || container_to_resize.as_workspace().is_some()
-  {
+  // Ignore cases where the container is the only child.
+  if resizable_siblings.is_empty() {
     return;
   }
 

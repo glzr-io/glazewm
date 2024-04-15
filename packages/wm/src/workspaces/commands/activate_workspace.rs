@@ -37,7 +37,7 @@ pub fn activate_workspace(
 
   // Attach the created workspace to the specified monitor.
   attach_container(
-    workspace.clone().into(),
+    &workspace.clone().into(),
     &target_monitor.clone().into(),
     None,
   )?;

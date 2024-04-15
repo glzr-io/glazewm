@@ -31,7 +31,7 @@ pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
 
 struct TilingWindowInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
   size_percent: f32,

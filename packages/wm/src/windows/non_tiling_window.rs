@@ -26,7 +26,7 @@ pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
 
 struct NonTilingWindowInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
   native: NativeWindow,

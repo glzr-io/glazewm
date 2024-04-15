@@ -8,12 +8,10 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 
-use crate::{
-  impl_common_getters, impl_tiling_getters, monitors::MonitorDto,
-};
+use crate::{impl_common_getters, monitors::MonitorDto};
 
 use super::{
-  traits::{CommonGetters, PositionGetters, TilingGetters},
+  traits::{CommonGetters, PositionGetters},
   Container, ContainerType, DirectionContainer, TilingContainer,
   WindowContainer,
 };
@@ -24,10 +22,9 @@ pub struct RootContainer(Rc<RefCell<RootContainerInner>>);
 
 struct RootContainerInner {
   id: Uuid,
-  parent: Option<TilingContainer>,
+  parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  size_percent: f32,
 }
 
 impl RootContainer {
@@ -37,7 +34,6 @@ impl RootContainer {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      size_percent: 1.0,
     };
 
     Self(Rc::new(RefCell::new(root)))
@@ -59,13 +55,11 @@ impl RootContainer {
       parent: self.parent().map(|p| p.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      size_percent: self.size_percent(),
     })
   }
 }
 
 impl_common_getters!(RootContainer, ContainerType::Root);
-impl_tiling_getters!(RootContainer);
 
 impl PositionGetters for RootContainer {
   fn width(&self) -> anyhow::Result<i32> {
@@ -100,5 +94,4 @@ pub struct RootContainerDto {
   parent: Option<Uuid>,
   children: Vec<MonitorDto>,
   child_focus_order: Vec<Uuid>,
-  size_percent: f32,
 }

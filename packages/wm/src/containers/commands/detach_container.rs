@@ -40,7 +40,7 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
 
 fn resize_sibling_containers(
   child_to_remove: TilingContainer,
-  parent: TilingContainer,
+  parent: Container,
 ) -> anyhow::Result<()> {
   let tiling_siblings = parent
     .children()
