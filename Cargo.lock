@@ -1277,6 +1277,5 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "watcher",
- "winapi",
  "windows",
 ]

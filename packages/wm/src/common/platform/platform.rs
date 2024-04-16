@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
+use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
 use windows::Win32::UI::{
   HiDpi::{
     SetProcessDpiAwarenessContext,
@@ -64,6 +65,14 @@ impl Platform {
         DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
       )
     }?;
+
+    Ok(())
+  }
+
+  pub fn set_cursor_pos(x: i32, y: i32) -> anyhow::Result<()> {
+    unsafe {
+      SetCursorPos(x, y)?;
+    };
 
     Ok(())
   }

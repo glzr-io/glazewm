@@ -1,29 +1,24 @@
-extern crate winapi;
-
-use winapi::um::winuser::SetCursorPos;
-use anyhow::{Result, Error};
-use crate::containers::{Container, SplitContainer};
+use crate::common::platform::Platform;
 use crate::containers::traits::PositionGetters;
+use crate::containers::Container;
+use crate::user_config::UserConfig;
+use anyhow::{Error, Result};
 
 pub fn center_cursor_on_container(
-    target: &Container 
+  target: &Container,
+  config: &UserConfig,
 ) -> Result<(), Error> {
-    // do i pull from user config here or is that handled elsewhere?
-    let is_enabled = true;
+  if !config.value.general.cursor_follows_focus
+  // || target.is_detached()
+  // || target.focus_index() < 0
+  {
+    return Ok(());
+  }
 
-    // target is currently missing is_detached and focus_index 
-    // if !is_enabled || target.is_detached() || target.focus_index < 0 {
-    if !is_enabled {
-        return Ok(());
-    }
+  let center_x = target.x()? + (target.width()? / 2);
+  let center_y = target.y()? + (target.height()? / 2);
 
-    // Calculate center point of focused window.
-    let center_x = target.x()? + (target.width()? / 2);
-    let center_y = target.y()? + (target.height()? / 2);
+  Platform::set_cursor_pos(center_x, center_y)?;
 
-    unsafe {
-        SetCursorPos(center_x, center_y);
-    }
-    
-    Ok(())
+  Ok(())
 }

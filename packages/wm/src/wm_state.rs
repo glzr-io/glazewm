@@ -10,7 +10,9 @@ use crate::{
     FocusMode,
   },
   containers::{
-    commands::{redraw, set_focused_descendant},
+    commands::{
+      handle_set_active_window_border, redraw, set_focused_descendant,
+    },
     traits::CommonGetters,
     Container, RootContainer, WindowContainer,
   },
@@ -33,6 +35,8 @@ pub struct WmState {
   /// container.
   pub has_pending_focus_sync: bool,
 
+  pub active_border_window: Option<NativeWindow>,
+
   /// Names of any currently enabled binding modes.
   pub binding_modes: Vec<String>,
 
@@ -51,6 +55,7 @@ impl WmState {
       root_container: RootContainer::new(),
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
+      active_border_window: None,
       binding_modes: Vec::new(),
       app_bar_windows: Vec::new(),
       event_tx,

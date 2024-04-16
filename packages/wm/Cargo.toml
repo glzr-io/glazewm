@@ -25,4 +25,3 @@ tokio-tungstenite = "0.21"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 windows = { workspace = true }
-winapi = { version = "0.3.9", features = ["dwmapi", "windef", "ntdef", "minwindef", "winuser"] }
