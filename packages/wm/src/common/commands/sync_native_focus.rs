@@ -10,7 +10,7 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
     return Ok(());
   }
 
-  // Container that the WM believes should have focus.
+  // Get the container that the WM believes should have focus.
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
@@ -22,7 +22,9 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
 
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  let _ = native_window.set_foreground();
+  if Platform::foreground_window() != native_window {
+    let _ = native_window.set_foreground();
+  }
 
   state.emit_event(WmEvent::NativeFocusSynced {
     focused_container: focused_container.clone(),

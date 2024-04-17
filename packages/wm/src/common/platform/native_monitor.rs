@@ -83,7 +83,7 @@ fn available_monitor_handles() -> anyhow::Result<Vec<MonitorHandle>> {
 
 /// Callback passed to `EnumDisplayMonitors` to get all available monitor
 /// handles.
-unsafe extern "system" fn available_monitor_handles_proc(
+extern "system" fn available_monitor_handles_proc(
   handle: MonitorHandle,
   _hdc: HDC,
   _clip: *mut RECT,

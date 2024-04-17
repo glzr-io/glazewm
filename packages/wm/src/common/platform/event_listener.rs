@@ -10,7 +10,7 @@ use crate::user_config::{
   BindingModeConfig, KeybindingConfig, UserConfig,
 };
 
-use super::{EventWindow, NativeWindow};
+use super::{EventWindow, EventWindowOptions, NativeWindow};
 
 #[derive(Debug)]
 pub enum PlatformEvent {
@@ -43,8 +43,10 @@ impl EventListener {
 
     let event_window = EventWindow::new(
       event_tx,
-      config.value.keybindings.clone(),
-      config.value.general.focus_follows_cursor,
+      EventWindowOptions {
+        keybindings: config.value.keybindings.clone(),
+        enable_mouse_events: config.value.general.focus_follows_cursor,
+      },
     );
 
     Ok(Self {

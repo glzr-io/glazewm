@@ -53,13 +53,13 @@ pub fn manage_window(
   state.has_pending_focus_sync = true;
 
   // Sibling containers need to be redrawn if the window is tiling.
-  if window.state() == WindowState::Tiling {
-    state.add_container_to_redraw(
-      window.parent().context("No parent.")?.into(),
-    );
-  } else {
-    state.add_container_to_redraw(window.into());
-  }
+  state.add_container_to_redraw(
+    if window.state() == WindowState::Tiling {
+      window.parent().context("No parent.")?
+    } else {
+      window.into()
+    },
+  );
 
   Ok(())
 }

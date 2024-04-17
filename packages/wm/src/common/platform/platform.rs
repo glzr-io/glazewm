@@ -1,7 +1,14 @@
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
-use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
+use anyhow::bail;
+use tokio::sync::{oneshot, Mutex};
+use tracing::warn;
+use windows::core::w;
+use windows::Win32::UI::WindowsAndMessaging::{
+  CreateWindowExW, DestroyWindow, DispatchMessageW, GetMessageW,
+  RegisterClassW, SetCursorPos, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
+  CW_USEDEFAULT, MSG, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+};
 use windows::Win32::UI::{
   HiDpi::{
     SetProcessDpiAwarenessContext,
@@ -14,8 +21,10 @@ use crate::user_config::UserConfig;
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
-  NativeWindow, SingleInstance,
+  NativeWindow, SingleInstance, WindowHandle,
 };
+
+pub type WindowProcedure = WNDPROC;
 
 pub struct Platform;
 
@@ -75,5 +84,60 @@ impl Platform {
     };
 
     Ok(())
+  }
+
+  /// Creates a message window and starts a message loop.
+  pub unsafe fn create_message_loop(
+    mut abort_rx: oneshot::Receiver<()>,
+    window_procedure: WindowProcedure,
+  ) -> anyhow::Result<WindowHandle> {
+    let wnd_class = WNDCLASSW {
+      lpszClassName: w!("MessageWindow"),
+      style: CS_HREDRAW | CS_VREDRAW,
+      lpfnWndProc: window_procedure,
+      ..Default::default()
+    };
+
+    RegisterClassW(&wnd_class);
+
+    let handle = CreateWindowExW(
+      Default::default(),
+      w!("MessageWindow"),
+      w!("MessageWindow"),
+      WS_OVERLAPPEDWINDOW,
+      CW_USEDEFAULT,
+      CW_USEDEFAULT,
+      CW_USEDEFAULT,
+      CW_USEDEFAULT,
+      None,
+      None,
+      wnd_class.hInstance,
+      None,
+    );
+
+    if handle.0 == 0 {
+      bail!("Creation of message window failed.");
+    }
+
+    let mut msg = MSG::default();
+
+    loop {
+      // Check whether the abort signal has been received.
+      if abort_rx.try_recv().is_ok() {
+        if let Err(err) = DestroyWindow(handle) {
+          warn!("Failed to destroy message window '{}'.", err);
+        }
+        break;
+      }
+
+      if GetMessageW(&mut msg, None, 0, 0).as_bool() {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+      } else {
+        break;
+      }
+    }
+
+    Ok(handle)
   }
 }

@@ -32,10 +32,13 @@ use windows::{
 
 use crate::user_config::KeybindingConfig;
 
-use super::{NativeWindow, PlatformEvent};
+use super::{
+  set_local_keyboard_hook, KeyboardHook, NativeWindow, Platform,
+  PlatformEvent,
+};
 
 thread_local! {
-  static HOOK_EVENT_TX: OnceCell<mpsc::UnboundedSender<PlatformEvent>> = OnceCell::new();
+  static PLATFORM_EVENT_TX: OnceCell<mpsc::UnboundedSender<PlatformEvent>> = OnceCell::new();
 }
 
 /// Callback passed to `SetWinEventHook` to handle window events.
@@ -51,7 +54,7 @@ extern "system" fn event_hook_proc(
   _event_thread: u32,
   _event_time: u32,
 ) {
-  HOOK_EVENT_TX.with(|event_tx| {
+  PLATFORM_EVENT_TX.with(|event_tx| {
     if let Some(event_tx) = event_tx.get() {
       let is_window_event =
         id_object == OBJID_WINDOW.0 && id_child == 0 && handle != HWND(0);
@@ -108,7 +111,7 @@ pub extern "system" fn event_window_proc(
   wparam: WPARAM,
   lparam: LPARAM,
 ) -> LRESULT {
-  HOOK_EVENT_TX.with(|event_tx| {
+  PLATFORM_EVENT_TX.with(|event_tx| {
     if let Some(event_tx) = event_tx.get() {
       return match message {
         WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
@@ -153,6 +156,12 @@ fn handle_display_change_msg(
 }
 
 #[derive(Debug)]
+pub struct EventWindowOptions {
+  pub keybindings: Vec<KeybindingConfig>,
+  pub enable_mouse_events: bool,
+}
+
+#[derive(Debug)]
 pub struct EventWindow {
   abort_tx: Option<oneshot::Sender<()>>,
   window_thread: Option<JoinHandle<Result<()>>>,
@@ -161,18 +170,26 @@ pub struct EventWindow {
 impl EventWindow {
   pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-    keybindings: Vec<KeybindingConfig>,
-    enable_mouse_listener: bool,
+    options: EventWindowOptions,
   ) -> Self {
     let (abort_tx, abort_rx) = oneshot::channel();
 
     let window_thread = thread::spawn(|| unsafe {
-      // Initialize the `HOOK_EVENT_TX` thread-local static.
-      HOOK_EVENT_TX.with(|cell| cell.set(event_tx)).unwrap();
+      // Initialize the thread-local sender for platform events.
+      PLATFORM_EVENT_TX
+        .with(|cell| cell.set(event_tx.clone()))
+        .map_err(|_| {
+          anyhow::anyhow!("Platform event sender already set.")
+        })?;
+
+      set_local_keyboard_hook(KeyboardHook::start(
+        options.keybindings,
+        event_tx,
+      )?);
 
       let hook_handles = Self::hook_win_events()?;
 
-      Self::create_window(abort_rx)?;
+      Platform::create_message_loop(abort_rx, Some(event_window_proc))?;
 
       // Unhook from all window events.
       for hook_handle in hook_handles {
@@ -241,64 +258,10 @@ impl EventWindow {
     );
 
     if hook_handle.is_invalid() {
-      bail!("`SetWinEventHook` failed.");
+      bail!("Failed to set window event hook.");
     }
 
     Ok(hook_handle)
-  }
-
-  /// Creates the event window and starts a message loop.
-  unsafe fn create_window(
-    mut abort_rx: oneshot::Receiver<()>,
-  ) -> Result<HWND> {
-    let wnd_class = WNDCLASSW {
-      lpszClassName: w!("EventWindow"),
-      style: CS_HREDRAW | CS_VREDRAW,
-      lpfnWndProc: Some(event_window_proc),
-      ..Default::default()
-    };
-
-    RegisterClassW(&wnd_class);
-
-    let handle = CreateWindowExW(
-      Default::default(),
-      w!("EventWindow"),
-      w!("EventWindow"),
-      WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      None,
-      None,
-      wnd_class.hInstance,
-      None,
-    );
-
-    if handle.0 == 0 {
-      bail!("`CreateWindowExW` failed.");
-    }
-
-    let mut msg = MSG::default();
-
-    loop {
-      // Check whether the abort signal has been received.
-      if abort_rx.try_recv().is_ok() {
-        if let Err(err) = DestroyWindow(handle) {
-          warn!("Failed to destroy event window '{}'.", err);
-        }
-        break;
-      }
-
-      if GetMessageW(&mut msg, None, 0, 0).as_bool() {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-      } else {
-        break;
-      }
-    }
-
-    Ok(handle)
   }
 
   /// Destroys the event window and stops the message loop.
