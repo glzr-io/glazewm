@@ -5,7 +5,7 @@ use tracing::warn;
 use windows::Win32::{
   Foundation::{LPARAM, LRESULT, WPARAM},
   UI::{
-    Input::KeyboardAndMouse::{GetKeyboardLayout, VkKeyScanExW, VK_4},
+    Input::KeyboardAndMouse::*,
     WindowsAndMessaging::{
       CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
       KBDLLHOOKSTRUCT, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
@@ -26,7 +26,7 @@ pub fn set_local_keyboard_hook(hook: KeyboardHook) {
 }
 
 pub struct ActiveKeybinding {
-  pub vk_codes: Vec<u32>,
+  pub vk_codes: Vec<u16>,
   pub config: KeybindingConfig,
 }
 
@@ -39,7 +39,7 @@ pub struct KeyboardHook {
 
   /// Active keybindings grouped by trigger key. The trigger key is the
   /// final key in a key combination.
-  keybindings_by_trigger_key: HashMap<u32, Vec<ActiveKeybinding>>,
+  keybindings_by_trigger_key: HashMap<u16, Vec<ActiveKeybinding>>,
 }
 
 impl KeyboardHook {
@@ -80,7 +80,7 @@ impl KeyboardHook {
 
   fn keybindings_by_trigger_key(
     keybindings: Vec<KeybindingConfig>,
-  ) -> HashMap<u32, Vec<ActiveKeybinding>> {
+  ) -> HashMap<u16, Vec<ActiveKeybinding>> {
     let mut keybinding_map = HashMap::new();
 
     for keybinding in &keybindings {
@@ -114,12 +114,172 @@ impl KeyboardHook {
     keybinding_map
   }
 
-  fn key_to_vk_code(key: &str) -> Option<u32> {
-    match key {
-      "ctrl" => Some(0x11),
-      "alt" => Some(0x12),
-      "shift" => Some(0x10),
-      "win" => Some(0x5B),
+  fn key_to_vk_code(key: &str) -> Option<u16> {
+    match key.to_lowercase().as_str() {
+      "a" => Some(VK_A.0),
+      "b" => Some(VK_B.0),
+      "c" => Some(VK_C.0),
+      "d" => Some(VK_D.0),
+      "e" => Some(VK_E.0),
+      "f" => Some(VK_F.0),
+      "g" => Some(VK_G.0),
+      "h" => Some(VK_H.0),
+      "i" => Some(VK_I.0),
+      "j" => Some(VK_J.0),
+      "k" => Some(VK_K.0),
+      "l" => Some(VK_L.0),
+      "m" => Some(VK_M.0),
+      "n" => Some(VK_N.0),
+      "o" => Some(VK_O.0),
+      "p" => Some(VK_P.0),
+      "q" => Some(VK_Q.0),
+      "r" => Some(VK_R.0),
+      "s" => Some(VK_S.0),
+      "t" => Some(VK_T.0),
+      "u" => Some(VK_U.0),
+      "v" => Some(VK_V.0),
+      "w" => Some(VK_W.0),
+      "x" => Some(VK_X.0),
+      "y" => Some(VK_Y.0),
+      "z" => Some(VK_Z.0),
+      "d0" | "0" => Some(VK_0.0),
+      "d1" | "1" => Some(VK_1.0),
+      "d2" | "2" => Some(VK_2.0),
+      "d3" | "3" => Some(VK_3.0),
+      "d4" | "4" => Some(VK_4.0),
+      "d5" | "5" => Some(VK_5.0),
+      "d6" | "6" => Some(VK_6.0),
+      "d7" | "7" => Some(VK_7.0),
+      "d8" | "8" => Some(VK_8.0),
+      "d9" | "9" => Some(VK_9.0),
+      "shiftkey" | "shift" => Some(VK_SHIFT.0),
+      "controlkey" | "control" => Some(VK_CONTROL.0),
+      "lshiftkey" | "lshift" => Some(VK_LSHIFT.0),
+      "rshiftkey" | "rshift" => Some(VK_RSHIFT.0),
+      "menu" | "alt" => Some(VK_MENU.0),
+      "win" | "lwin" => Some(VK_LWIN.0),
+      "rwin" => Some(VK_RWIN.0),
+      "lcontrolkey" | "lcontrol" | "lctrl" => Some(VK_LCONTROL.0),
+      "rcontrolkey" | "rcontrol" | "rctrl" => Some(VK_RCONTROL.0),
+      "lmenu" | "lalt" => Some(VK_LMENU.0),
+      "rmenu" | "ralt" => Some(VK_RMENU.0),
+      "back" => Some(VK_BACK.0),
+      "tab" => Some(VK_TAB.0),
+      "clear" => Some(VK_CLEAR.0),
+      "enter" | "return" => Some(VK_RETURN.0),
+      "pause" => Some(VK_PAUSE.0),
+      "capital" | "capslock" => Some(VK_CAPITAL.0),
+      "kanamode" | "hangulmode" => Some(VK_KANA.0),
+      "junjamode" => Some(VK_JUNJA.0),
+      "finalmode" => Some(VK_FINAL.0),
+      "hanjamode" | "kanjimode" => Some(VK_HANJA.0),
+      "escape" => Some(VK_ESCAPE.0),
+      "imeconvert" => Some(VK_CONVERT.0),
+      "imenonconvert" => Some(VK_NONCONVERT.0),
+      "imeaccept" => Some(VK_ACCEPT.0),
+      "imemodechange" => Some(VK_MODECHANGE.0),
+      "space" => Some(VK_SPACE.0),
+      "prior" | "pageup" => Some(VK_PRIOR.0),
+      "next" | "pagedown" => Some(VK_NEXT.0),
+      "end" => Some(VK_END.0),
+      "home" => Some(VK_HOME.0),
+      "left" => Some(VK_LEFT.0),
+      "up" => Some(VK_UP.0),
+      "right" => Some(VK_RIGHT.0),
+      "down" => Some(VK_DOWN.0),
+      "select" => Some(VK_SELECT.0),
+      "print" => Some(VK_PRINT.0),
+      "execute" => Some(VK_EXECUTE.0),
+      "snapshot" | "printscreen" => Some(VK_SNAPSHOT.0),
+      "insert" => Some(VK_INSERT.0),
+      "delete" => Some(VK_DELETE.0),
+      "help" => Some(VK_HELP.0),
+      "apps" => Some(VK_APPS.0),
+      "sleep" => Some(VK_SLEEP.0),
+      "numpad0" => Some(VK_NUMPAD0.0),
+      "numpad1" => Some(VK_NUMPAD1.0),
+      "numpad2" => Some(VK_NUMPAD2.0),
+      "numpad3" => Some(VK_NUMPAD3.0),
+      "numpad4" => Some(VK_NUMPAD4.0),
+      "numpad5" => Some(VK_NUMPAD5.0),
+      "numpad6" => Some(VK_NUMPAD6.0),
+      "numpad7" => Some(VK_NUMPAD7.0),
+      "numpad8" => Some(VK_NUMPAD8.0),
+      "numpad9" => Some(VK_NUMPAD9.0),
+      "multiply" => Some(VK_MULTIPLY.0),
+      "add" => Some(VK_ADD.0),
+      "separator" => Some(VK_SEPARATOR.0),
+      "subtract" => Some(VK_SUBTRACT.0),
+      "decimal" => Some(VK_DECIMAL.0),
+      "divide" => Some(VK_DIVIDE.0),
+      "f1" => Some(VK_F1.0),
+      "f2" => Some(VK_F2.0),
+      "f3" => Some(VK_F3.0),
+      "f4" => Some(VK_F4.0),
+      "f5" => Some(VK_F5.0),
+      "f6" => Some(VK_F6.0),
+      "f7" => Some(VK_F7.0),
+      "f8" => Some(VK_F8.0),
+      "f9" => Some(VK_F9.0),
+      "f10" => Some(VK_F10.0),
+      "f11" => Some(VK_F11.0),
+      "f12" => Some(VK_F12.0),
+      "f13" => Some(VK_F13.0),
+      "f14" => Some(VK_F14.0),
+      "f15" => Some(VK_F15.0),
+      "f16" => Some(VK_F16.0),
+      "f17" => Some(VK_F17.0),
+      "f18" => Some(VK_F18.0),
+      "f19" => Some(VK_F19.0),
+      "f20" => Some(VK_F20.0),
+      "f21" => Some(VK_F21.0),
+      "f22" => Some(VK_F22.0),
+      "f23" => Some(VK_F23.0),
+      "f24" => Some(VK_F24.0),
+      "numlock" => Some(VK_NUMLOCK.0),
+      "scroll" => Some(VK_SCROLL.0),
+      "browserback" => Some(VK_BROWSER_BACK.0),
+      "browserforward" => Some(VK_BROWSER_FORWARD.0),
+      "browserrefresh" => Some(VK_BROWSER_REFRESH.0),
+      "browserstop" => Some(VK_BROWSER_STOP.0),
+      "browsersearch" => Some(VK_BROWSER_SEARCH.0),
+      "browserfavorites" => Some(VK_BROWSER_FAVORITES.0),
+      "browserhome" => Some(VK_BROWSER_HOME.0),
+      "volumemute" => Some(VK_VOLUME_MUTE.0),
+      "volumedown" => Some(VK_VOLUME_DOWN.0),
+      "volumeup" => Some(VK_VOLUME_UP.0),
+      "medianexttrack" => Some(VK_MEDIA_NEXT_TRACK.0),
+      "mediaprevioustrack" => Some(VK_MEDIA_PREV_TRACK.0),
+      "mediastop" => Some(VK_MEDIA_STOP.0),
+      "mediaplaypause" => Some(VK_MEDIA_PLAY_PAUSE.0),
+      "launchmail" => Some(VK_LAUNCH_MAIL.0),
+      "selectmedia" => Some(VK_LAUNCH_MEDIA_SELECT.0),
+      "launchapplication1" | "launchapp1" => Some(VK_LAUNCH_APP1.0),
+      "launchapplication2" | "launchapp2" => Some(VK_LAUNCH_APP2.0),
+      "oem1" | "oemsemicolon" => Some(VK_OEM_1.0),
+      "oemplus" => Some(VK_OEM_PLUS.0),
+      "oemcomma" => Some(VK_OEM_COMMA.0),
+      "oemminus" => Some(VK_OEM_MINUS.0),
+      "oemperiod" => Some(VK_OEM_PERIOD.0),
+      "oem2" | "oemquestion" => Some(VK_OEM_2.0),
+      "oem3" | "oemtilde" => Some(VK_OEM_3.0),
+      "oem4" | "oemopenbrackets" => Some(VK_OEM_4.0),
+      "oem5" | "oempipe" => Some(VK_OEM_5.0),
+      "oem6" | "oemclosebrackets" => Some(VK_OEM_6.0),
+      "oem7" | "oemquotes" => Some(VK_OEM_7.0),
+      "oem8" => Some(VK_OEM_8.0),
+      "oembackslash" | "oembacktab" => Some(VK_OEM_BACKTAB.0),
+      "oem102" => Some(VK_OEM_102.0),
+      "processkey" => Some(VK_PROCESSKEY.0),
+      "packet" => Some(VK_PACKET.0),
+      "attn" => Some(VK_ATTN.0),
+      "crsel" => Some(VK_CRSEL.0),
+      "exsel" => Some(VK_EXSEL.0),
+      "eraseeof" => Some(VK_EREOF.0),
+      "play" => Some(VK_PLAY.0),
+      "zoom" => Some(VK_ZOOM.0),
+      "pa1" => Some(VK_PA1.0),
+      "oemclear" => Some(VK_OEM_CLEAR.0),
       _ => {
         // TODO: Check if the key exists on the current keyboard layout.
         // let xx = unsafe { GetKeyboardLayout(0) };
@@ -131,17 +291,18 @@ impl KeyboardHook {
 
   /// Emits a platform event if a keybinding should be triggered.
   ///
-  /// Returns `true` if the event should be forwarded.
-  fn handle_key_event(&self, vk_code: u32) -> bool {
+  /// Returns `true` if the event should be blocked and not sent to other
+  /// applications.
+  fn handle_key_event(&self, vk_code: u16) -> bool {
     println!("Key event: {}", vk_code);
 
     match self.keybindings_by_trigger_key.get(&vk_code) {
       // Forward the event if no keybindings exist for the trigger key.
-      None => true,
+      None => false,
       Some(keybinding) => {
         // TODO: Emit platform event.
         // let _ = self.event_tx.send(keybinding.clone());
-        false
+        true
       }
     }
   }
@@ -167,13 +328,14 @@ extern "system" fn keyboard_hook_proc(
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
   KEYBOARD_HOOK.with(|hook| {
-    let should_forward =
-      hook.get().unwrap().handle_key_event(input.vkCode);
+    if let Some(hook) = hook.get() {
+      let should_block = hook.handle_key_event(input.vkCode as u16);
 
-    if should_forward {
-      unsafe { CallNextHookEx(None, code, wparam, lparam) }
-    } else {
-      LRESULT(1)
+      if should_block {
+        return LRESULT(1);
+      }
     }
+
+    return unsafe { CallNextHookEx(None, code, wparam, lparam) };
   })
 }
