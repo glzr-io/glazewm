@@ -166,16 +166,16 @@ impl KeyboardHook {
       "d8" | "8" => Some(VK_8.0),
       "d9" | "9" => Some(VK_9.0),
       "shiftkey" | "shift" => Some(VK_SHIFT.0),
-      "controlkey" | "control" => Some(VK_CONTROL.0),
       "lshiftkey" | "lshift" => Some(VK_LSHIFT.0),
       "rshiftkey" | "rshift" => Some(VK_RSHIFT.0),
-      "menu" | "alt" => Some(VK_MENU.0),
-      "win" | "lwin" => Some(VK_LWIN.0),
-      "rwin" => Some(VK_RWIN.0),
+      "controlkey" | "control" => Some(VK_CONTROL.0),
       "lcontrolkey" | "lcontrol" | "lctrl" => Some(VK_LCONTROL.0),
       "rcontrolkey" | "rcontrol" | "rctrl" => Some(VK_RCONTROL.0),
+      "menu" | "alt" => Some(VK_MENU.0),
       "lmenu" | "lalt" => Some(VK_LMENU.0),
       "rmenu" | "ralt" => Some(VK_RMENU.0),
+      "win" | "lwin" => Some(VK_LWIN.0),
+      "rwin" => Some(VK_RWIN.0),
       "back" => Some(VK_BACK.0),
       "tab" => Some(VK_TAB.0),
       "clear" => Some(VK_CLEAR.0),
@@ -250,7 +250,7 @@ impl KeyboardHook {
       "f23" => Some(VK_F23.0),
       "f24" => Some(VK_F24.0),
       "numlock" => Some(VK_NUMLOCK.0),
-      "scroll" => Some(VK_SCROLL.0),
+      "scrolllock" | "scroll" => Some(VK_SCROLL.0),
       "browserback" => Some(VK_BROWSER_BACK.0),
       "browserforward" => Some(VK_BROWSER_FORWARD.0),
       "browserrefresh" => Some(VK_BROWSER_REFRESH.0),
@@ -281,8 +281,7 @@ impl KeyboardHook {
       "oem6" | "oemclosebrackets" => Some(VK_OEM_6.0),
       "oem7" | "oemquotes" => Some(VK_OEM_7.0),
       "oem8" => Some(VK_OEM_8.0),
-      "oembackslash" | "oembacktab" => Some(VK_OEM_BACKTAB.0),
-      "oem102" => Some(VK_OEM_102.0),
+      "oem102" | "oembackslash" => Some(VK_OEM_102.0),
       "processkey" => Some(VK_PROCESSKEY.0),
       "packet" => Some(VK_PACKET.0),
       "attn" => Some(VK_ATTN.0),
@@ -294,10 +293,16 @@ impl KeyboardHook {
       "pa1" => Some(VK_PA1.0),
       "oemclear" => Some(VK_OEM_CLEAR.0),
       _ => {
-        // TODO: Check if the key exists on the current keyboard layout.
-        // let xx = unsafe { GetKeyboardLayout(0) };
-        // unsafe { VkKeyScanExW(key, xx) as _ }
-        None
+        // Check if the key exists on the current keyboard layout.
+        let utf16_key = key.encode_utf16().next()?;
+        let layout = unsafe { GetKeyboardLayout(0) };
+        let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
+
+        if vk_code == -1 {
+          return None;
+        }
+
+        Some((vk_code & 0xFF) as u16)
       }
     }
   }
