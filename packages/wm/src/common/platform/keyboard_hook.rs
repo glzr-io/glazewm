@@ -319,102 +319,104 @@ impl KeyboardHook {
       None => false,
       // Otherwise, check if there is a matching keybinding.
       Some(keybindings) => {
-        // let mut cached_key_states = HashMap::new();
+        let mut cached_key_states = HashMap::new();
 
-        // // Find the matching keybindings based on the pressed keys.
-        // let matched_keybindings =
-        //   keybindings.iter().filter(|keybinding| {
-        //     keybinding.vk_codes.iter().all(|&key| {
-        //       if key == vk_code {
-        //         return true;
-        //       }
+        // Find the matching keybindings based on the pressed keys.
+        let matched_keybindings =
+          keybindings.iter().filter(|keybinding| {
+            keybinding.vk_codes.iter().all(|&key| {
+              if key == vk_code {
+                return true;
+              }
 
-        //       if let Some(&is_key_down) = cached_key_states.get(&key) {
-        //         return is_key_down;
-        //       }
+              if let Some(&is_key_down) = cached_key_states.get(&key) {
+                return is_key_down;
+              }
 
-        //       let is_key_down = Self::is_key_down(key);
-        //       cached_key_states.insert(key, is_key_down);
-        //       is_key_down
-        //     })
-        //   });
+              let is_key_down = Self::is_key_down(key);
+              cached_key_states.insert(key, is_key_down);
+              is_key_down
+            })
+          });
 
-        // // Find the longest matching keybinding.
-        // let longest_keybinding = matched_keybindings
-        //   .max_by_key(|keybinding| keybinding.vk_codes.len());
+        // Find the longest matching keybinding.
+        let longest_keybinding = matched_keybindings
+          .max_by_key(|keybinding| keybinding.vk_codes.len());
 
-        // if longest_keybinding.is_none() {
-        //   return false;
-        // }
+        if longest_keybinding.is_none() {
+          return false;
+        }
 
-        // let longest_keybinding = longest_keybinding.unwrap();
+        let longest_keybinding = longest_keybinding.unwrap();
 
-        // // Get the modifier keys to reject based on the longest matching keybinding.
-        // let modifier_keys_to_reject =
-        //   MODIFIER_KEYS.iter().filter(|&&modifier_key| {
-        //     !longest_keybinding.vk_codes.contains(&modifier_key)
-        //       && !longest_keybinding
-        //         .vk_codes
-        //         .contains(&Self::get_generic_key(modifier_key))
-        //   });
+        // Get the modifier keys to reject based on the longest matching keybinding.
+        let mut modifier_keys_to_reject =
+          MODIFIER_KEYS.iter().filter(|&&modifier_key| {
+            !longest_keybinding.vk_codes.contains(&modifier_key)
+              && !longest_keybinding
+                .vk_codes
+                .contains(&Self::get_generic_key(modifier_key))
+          });
 
-        // // Check if any modifier keys to reject are currently down.
-        // let has_modifier_keys_to_reject =
-        //   modifier_keys_to_reject.any(|&modifier_key| {
-        //     if let Some(&is_key_down) =
-        //       cached_key_states.get(&modifier_key)
-        //     {
-        //       is_key_down
-        //     } else {
-        //       Self::is_key_down(modifier_key)
-        //     }
-        //   });
+        // Check if any modifier keys to reject are currently down.
+        let has_modifier_keys_to_reject =
+          modifier_keys_to_reject.any(|&modifier_key| {
+            if let Some(&is_key_down) =
+              cached_key_states.get(&modifier_key)
+            {
+              is_key_down
+            } else {
+              Self::is_key_down(modifier_key)
+            }
+          });
 
-        // if has_modifier_keys_to_reject {
-        //   return false;
-        // }
+        if has_modifier_keys_to_reject {
+          return false;
+        }
 
-        // // Invoke the callback function for the longest matching keybinding.
-        // let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(
-        //   longest_keybinding.clone(),
-        // ));
+        // Invoke the callback function for the longest matching keybinding.
+        let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(
+          longest_keybinding.config.clone(),
+        ));
+
         true
       }
     }
   }
 
-  // /// Gets the generic key code for a given key code.
-  // fn get_generic_key(key: u16) -> u16 {
-  //   match key {
-  //     VK_LMENU | VK_RMENU => VK_MENU,
-  //     VK_LSHIFT | VK_RSHIFT => VK_SHIFT,
-  //     VK_LCONTROL | VK_RCONTROL => VK_CONTROL,
-  //     _ => key,
-  //   }
-  // }
+  /// Gets the generic key code for a given key code.
+  fn get_generic_key(key: u16) -> u16 {
+    match VIRTUAL_KEY(key) {
+      VK_LMENU | VK_RMENU => VK_MENU.0,
+      VK_LSHIFT | VK_RSHIFT => VK_SHIFT.0,
+      VK_LCONTROL | VK_RCONTROL => VK_CONTROL.0,
+      _ => key,
+    }
+  }
 
-  // /// Checks if the specified key is currently down.
-  // fn is_key_down(key: u16) -> bool {
-  //   match key {
-  //     VK_MENU => {
-  //       Self::is_key_down_raw(VK_LMENU) || Self::is_key_down_raw(VK_RMENU)
-  //     }
-  //     VK_SHIFT => {
-  //       Self::is_key_down_raw(VK_LSHIFT)
-  //         || Self::is_key_down_raw(VK_RSHIFT)
-  //     }
-  //     VK_CONTROL => {
-  //       Self::is_key_down_raw(VK_LCONTROL)
-  //         || Self::is_key_down_raw(VK_RCONTROL)
-  //     }
-  //     _ => Self::is_key_down_raw(key),
-  //   }
-  // }
+  /// Checks if the specified key is currently down.
+  fn is_key_down(key: u16) -> bool {
+    match VIRTUAL_KEY(key) {
+      VK_MENU => {
+        Self::is_key_down_raw(VK_LMENU.0)
+          || Self::is_key_down_raw(VK_RMENU.0)
+      }
+      VK_SHIFT => {
+        Self::is_key_down_raw(VK_LSHIFT.0)
+          || Self::is_key_down_raw(VK_RSHIFT.0)
+      }
+      VK_CONTROL => {
+        Self::is_key_down_raw(VK_LCONTROL.0)
+          || Self::is_key_down_raw(VK_RCONTROL.0)
+      }
+      _ => Self::is_key_down_raw(key),
+    }
+  }
 
-  // /// Checks if the specified key is currently down using the raw key code.
-  // fn is_key_down_raw(key: u16) -> bool {
-  //   unsafe { (GetKeyState(key) & 0x8000) == 0x8000 }
-  // }
+  /// Checks if the specified key is currently down using the raw key code.
+  fn is_key_down_raw(key: u16) -> bool {
+    unsafe { (GetKeyState(key.into()) & 0x80) == 0x80 }
+  }
 }
 
 extern "system" fn keyboard_hook_proc(

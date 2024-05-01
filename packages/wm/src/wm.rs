@@ -43,24 +43,31 @@ impl WindowManager {
     event: PlatformEvent,
     config: &mut UserConfig,
   ) {
-    let mut state = self.state.lock().await;
-
     let res = match event {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
-      PlatformEvent::KeybindingTriggered(_) => Ok(()),
-      PlatformEvent::MouseMove => Ok(()),
-      PlatformEvent::WindowDestroyed(w) => {
-        handle_window_destroyed(w, state.deref_mut(), config)
+      PlatformEvent::KeybindingTriggered(kb_config) => {
+        for command in kb_config.commands {
+          self.process_command(command, config).await;
+        }
+        Ok(())
       }
+      PlatformEvent::MouseMove => Ok(()),
+      PlatformEvent::WindowDestroyed(window) => handle_window_destroyed(
+        window,
+        self.state.lock().await.deref_mut(),
+        config,
+      ),
       PlatformEvent::WindowFocused(_) => Ok(()),
       PlatformEvent::WindowHidden(_) => Ok(()),
       PlatformEvent::WindowLocationChanged(_) => Ok(()),
       PlatformEvent::WindowMinimized(_) => Ok(()),
       PlatformEvent::WindowMinimizeEnded(_) => Ok(()),
       PlatformEvent::WindowMovedOrResized(_) => Ok(()),
-      PlatformEvent::WindowShown(w) => {
-        handle_window_shown(w, state.deref_mut(), config)
-      }
+      PlatformEvent::WindowShown(window) => handle_window_shown(
+        window,
+        self.state.lock().await.deref_mut(),
+        config,
+      ),
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
     };
 
