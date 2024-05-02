@@ -10,7 +10,10 @@ use tracing::error;
 use crate::{
   app_command::InvokeCommand,
   common::{
-    events::{handle_window_destroyed, handle_window_shown},
+    events::{
+      handle_window_destroyed, handle_window_focused,
+      handle_window_hidden, handle_window_shown,
+    },
     platform::PlatformEvent,
   },
   containers::commands::redraw,
@@ -51,14 +54,22 @@ impl WindowManager {
         }
         Ok(())
       }
-      PlatformEvent::MouseMove => Ok(()),
+      PlatformEvent::MouseMove(_) => Ok(()),
       PlatformEvent::WindowDestroyed(window) => handle_window_destroyed(
         window,
         self.state.lock().await.deref_mut(),
         config,
       ),
-      PlatformEvent::WindowFocused(_) => Ok(()),
-      PlatformEvent::WindowHidden(_) => Ok(()),
+      PlatformEvent::WindowFocused(window) => handle_window_focused(
+        window,
+        self.state.lock().await.deref_mut(),
+        config,
+      ),
+      PlatformEvent::WindowHidden(window) => handle_window_hidden(
+        window,
+        self.state.lock().await.deref_mut(),
+        config,
+      ),
       PlatformEvent::WindowLocationChanged(_) => Ok(()),
       PlatformEvent::WindowMinimized(_) => Ok(()),
       PlatformEvent::WindowMinimizeEnded(_) => Ok(()),

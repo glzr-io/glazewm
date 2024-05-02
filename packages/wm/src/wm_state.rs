@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
@@ -10,9 +12,7 @@ use crate::{
     FocusMode,
   },
   containers::{
-    commands::{
-      handle_set_active_window_border, redraw, set_focused_descendant,
-    },
+    commands::{redraw, set_focused_descendant},
     traits::CommonGetters,
     Container, RootContainer, WindowContainer,
   },
@@ -37,6 +37,10 @@ pub struct WmState {
 
   pub active_border_window: Option<NativeWindow>,
 
+  /// Time since a previously focused window was unmanaged or minimized.
+  /// Used to decide whether to override incoming focus events.
+  pub unmanaged_or_minimized_timestamp: Option<Instant>,
+
   /// Names of any currently enabled binding modes.
   pub binding_modes: Vec<String>,
 
@@ -56,6 +60,7 @@ impl WmState {
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       active_border_window: None,
+      unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       app_bar_windows: Vec::new(),
       event_tx,

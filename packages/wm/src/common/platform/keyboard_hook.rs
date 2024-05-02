@@ -1,4 +1,4 @@
-use std::{cell::OnceCell, collections::HashMap};
+use std::{cell::OnceCell, collections::HashMap, sync::Arc};
 
 use tokio::sync::mpsc;
 use tracing::warn;
@@ -21,7 +21,7 @@ thread_local! {
   /// Thread-local for instance of `KeyboardHook`.
   ///
   /// For use with hook procedure.
-  static KEYBOARD_HOOK: OnceCell<KeyboardHook> = OnceCell::new();
+  static KEYBOARD_HOOK: OnceCell<Arc<KeyboardHook>> = OnceCell::new();
 }
 
 /// Available modifier keys.
@@ -33,10 +33,6 @@ const MODIFIER_KEYS: [u16; 6] = [
   VK_LMENU.0,
   VK_RMENU.0,
 ];
-
-pub fn set_local_keyboard_hook(hook: KeyboardHook) {
-  let _ = KEYBOARD_HOOK.with(|cell| cell.set(hook));
-}
 
 pub struct ActiveKeybinding {
   pub vk_codes: Vec<u16>,
@@ -56,29 +52,33 @@ pub struct KeyboardHook {
 }
 
 impl KeyboardHook {
-  pub fn new() -> Self {
-    todo!()
-  }
-
   /// Starts a keyboard hook on the current thread.
   ///
   /// Assumes that a message loop is currently running.
   pub fn start(
     keybindings: Vec<KeybindingConfig>,
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> anyhow::Result<Self> {
-    // Register low-level keyboard hook.
+  ) -> anyhow::Result<Arc<Self>> {
+    // Register the low-level keyboard hook.
     let hook = unsafe {
       SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)?
     };
 
-    Ok(Self {
+    let keyboard_hook = Arc::new(Self {
       event_tx,
       hook,
       keybindings_by_trigger_key: Self::keybindings_by_trigger_key(
         keybindings,
       ),
-    })
+    });
+
+    KEYBOARD_HOOK
+      .with(|cell| cell.set(keyboard_hook.clone()))
+      .map_err(|_| {
+        anyhow::anyhow!("Keyboard hook already started on current thread.")
+      })?;
+
+    Ok(keyboard_hook)
   }
 
   pub fn update(&mut self, keybindings: Vec<KeybindingConfig>) {
@@ -116,7 +116,7 @@ impl KeyboardHook {
 
         keybinding_map
           .entry(trigger_key)
-          .or_insert_with(|| Vec::new()) // vec only created if needed.
+          .or_insert_with(|| Vec::new())
           .push(ActiveKeybinding {
             vk_codes,
             config: keybinding.clone(),
@@ -128,7 +128,7 @@ impl KeyboardHook {
   }
 
   fn key_to_vk_code(key: &str) -> Option<u16> {
-    match key.to_lowercase().as_str() {
+    match key.to_lowercase().replace("_", "").as_str() {
       "a" => Some(VK_A.0),
       "b" => Some(VK_B.0),
       "c" => Some(VK_C.0),
@@ -302,6 +302,7 @@ impl KeyboardHook {
           return None;
         }
 
+        // TODO: Check whether shift or alt is required for the key.
         Some((vk_code & 0xFF) as u16)
       }
     }
@@ -312,8 +313,6 @@ impl KeyboardHook {
   /// Returns `true` if the event should be blocked and not sent to other
   /// applications.
   fn handle_key_event(&self, vk_code: u16) -> bool {
-    println!("Key event: {}", vk_code);
-
     match self.keybindings_by_trigger_key.get(&vk_code) {
       // Forward the event if no keybindings exist for the trigger key.
       None => false,
@@ -349,7 +348,8 @@ impl KeyboardHook {
 
         let longest_keybinding = longest_keybinding.unwrap();
 
-        // Get the modifier keys to reject based on the longest matching keybinding.
+        // Get the modifier keys to reject based on the longest matching
+        // keybinding.
         let mut modifier_keys_to_reject =
           MODIFIER_KEYS.iter().filter(|&&modifier_key| {
             !longest_keybinding.vk_codes.contains(&modifier_key)
@@ -416,6 +416,12 @@ impl KeyboardHook {
   /// Checks if the specified key is currently down using the raw key code.
   fn is_key_down_raw(key: u16) -> bool {
     unsafe { (GetKeyState(key.into()) & 0x80) == 0x80 }
+  }
+}
+
+impl Drop for KeyboardHook {
+  fn drop(&mut self) {
+    self.stop();
   }
 }
 

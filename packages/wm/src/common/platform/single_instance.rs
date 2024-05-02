@@ -17,6 +17,7 @@ pub struct SingleInstance {
   handle: HANDLE,
 }
 
+/// Arbitrary GUID used to identify the application.
 const APP_GUID: PCWSTR =
   w!("Global\\325d0ed7-7f60-4925-8d1b-aa287b26b218");
 

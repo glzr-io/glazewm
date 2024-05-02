@@ -3,102 +3,103 @@ use std::{
   thread::{self, JoinHandle},
 };
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use tokio::sync::{mpsc, oneshot};
 use tracing::warn;
-use windows::{
-  core::w,
-  Win32::{
-    Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-    UI::{
-      Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK},
-      WindowsAndMessaging::{
-        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
-        GetMessageW, PostQuitMessage, RegisterClassW, TranslateMessage,
-        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, DBT_DEVNODES_CHANGED,
-        EVENT_OBJECT_CLOAKED, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE,
-        EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE,
-        EVENT_OBJECT_SHOW, EVENT_OBJECT_UNCLOAKED,
-        EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND,
-        EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MOVESIZEEND, MSG,
-        OBJID_WINDOW, SPI_ICONVERTICALSPACING, SPI_SETWORKAREA,
-        WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, WM_DESTROY,
-        WM_DEVICECHANGE, WM_DISPLAYCHANGE, WM_SETTINGCHANGE, WNDCLASSW,
-        WS_OVERLAPPEDWINDOW,
-      },
-    },
+use windows::Win32::{
+  Foundation::{HWND, LPARAM, LRESULT, WPARAM},
+  UI::WindowsAndMessaging::{
+    DefWindowProcW, PostQuitMessage, DBT_DEVNODES_CHANGED,
+    SPI_ICONVERTICALSPACING, SPI_SETWORKAREA, WM_DESTROY, WM_DEVICECHANGE,
+    WM_DISPLAYCHANGE, WM_SETTINGCHANGE,
   },
 };
 
 use crate::user_config::KeybindingConfig;
 
 use super::{
-  set_local_keyboard_hook, KeyboardHook, NativeWindow, Platform,
-  PlatformEvent,
+  KeyboardHook, MouseHook, Platform, PlatformEvent, WinEventHook,
 };
 
 thread_local! {
   static PLATFORM_EVENT_TX: OnceCell<mpsc::UnboundedSender<PlatformEvent>> = OnceCell::new();
 }
 
-/// Callback passed to `SetWinEventHook` to handle window events.
-///
-/// This function is called on selected window events, and forwards them
-/// through an MPSC channel for the WM to process.
-extern "system" fn event_hook_proc(
-  _hook: HWINEVENTHOOK,
-  event: u32,
-  handle: HWND,
-  id_object: i32,
-  id_child: i32,
-  _event_thread: u32,
-  _event_time: u32,
-) {
-  PLATFORM_EVENT_TX.with(|event_tx| {
-    if let Some(event_tx) = event_tx.get() {
-      let is_window_event =
-        id_object == OBJID_WINDOW.0 && id_child == 0 && handle != HWND(0);
+#[derive(Debug)]
+pub struct EventWindowOptions {
+  pub keybindings: Vec<KeybindingConfig>,
+  pub enable_mouse_events: bool,
+}
 
-      // Check whether the event is associated with a window object instead
-      // of a UI control.
-      if !is_window_event {
-        return;
-      }
+#[derive(Debug)]
+pub struct EventWindow {
+  abort_tx: Option<oneshot::Sender<()>>,
+  window_thread: Option<JoinHandle<Result<()>>>,
+}
 
-      let window = NativeWindow::new(handle);
+impl EventWindow {
+  pub fn new(
+    event_tx: mpsc::UnboundedSender<PlatformEvent>,
+    options: EventWindowOptions,
+  ) -> Self {
+    let (abort_tx, abort_rx) = oneshot::channel();
 
-      let platform_event = match event {
-        EVENT_OBJECT_DESTROY => PlatformEvent::WindowDestroyed(window),
-        EVENT_SYSTEM_FOREGROUND => PlatformEvent::WindowFocused(window),
-        EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => {
-          PlatformEvent::WindowHidden(window)
-        }
-        EVENT_OBJECT_LOCATIONCHANGE => {
-          PlatformEvent::WindowLocationChanged(window)
-        }
-        EVENT_SYSTEM_MINIMIZESTART => {
-          PlatformEvent::WindowMinimized(window)
-        }
-        EVENT_SYSTEM_MINIMIZEEND => {
-          PlatformEvent::WindowMinimizeEnded(window)
-        }
-        EVENT_SYSTEM_MOVESIZEEND => {
-          PlatformEvent::WindowMovedOrResized(window)
-        }
-        EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => {
-          PlatformEvent::WindowShown(window)
-        }
-        EVENT_OBJECT_NAMECHANGE => {
-          PlatformEvent::WindowTitleChanged(window)
-        }
-        _ => return,
-      };
+    let window_thread = thread::spawn(|| unsafe {
+      // Initialize the thread-local sender for platform events.
+      PLATFORM_EVENT_TX
+        .with(|cell| cell.set(event_tx.clone()))
+        .map_err(|_| {
+          anyhow::anyhow!("Platform event sender already set.")
+        })?;
 
-      if let Err(err) = event_tx.send(platform_event) {
-        warn!("Failed to send platform event '{}'.", err);
+      // Start hooks for listening to platform events.
+      KeyboardHook::start(options.keybindings, event_tx.clone())?;
+      WinEventHook::start(event_tx.clone())?;
+      MouseHook::start(event_tx)?;
+
+      // Create a hidden window with a message loop on the current thread.
+      Platform::create_message_loop(abort_rx, Some(event_window_proc))?;
+      Ok(())
+    });
+
+    Self {
+      abort_tx: Some(abort_tx),
+      window_thread: Some(window_thread),
+    }
+  }
+
+  pub fn update_keybindings(
+    &mut self,
+    keybindings: Vec<KeybindingConfig>,
+  ) {
+    todo!()
+  }
+
+  pub fn enable_mouse_listener(&mut self, is_enabled: bool) {
+    todo!()
+  }
+
+  /// Destroys the event window and stops the message loop.
+  pub fn destroy(&mut self) {
+    if let Some(abort_tx) = self.abort_tx.take() {
+      if abort_tx.send(()).is_err() {
+        warn!("Failed to send abort signal to the event window thread.");
       }
     }
-  });
+
+    // Wait for the spawned thread to finish.
+    if let Some(window_thread) = self.window_thread.take() {
+      if let Err(err) = window_thread.join() {
+        warn!("Failed to join event window thread '{:?}'.", err);
+      }
+    }
+  }
+}
+
+impl Drop for EventWindow {
+  fn drop(&mut self) {
+    self.destroy();
+  }
 }
 
 /// Window procedure for the event window.
@@ -153,136 +154,4 @@ fn handle_display_change_msg(
   }
 
   LRESULT(0)
-}
-
-#[derive(Debug)]
-pub struct EventWindowOptions {
-  pub keybindings: Vec<KeybindingConfig>,
-  pub enable_mouse_events: bool,
-}
-
-#[derive(Debug)]
-pub struct EventWindow {
-  abort_tx: Option<oneshot::Sender<()>>,
-  window_thread: Option<JoinHandle<Result<()>>>,
-}
-
-impl EventWindow {
-  pub fn new(
-    event_tx: mpsc::UnboundedSender<PlatformEvent>,
-    options: EventWindowOptions,
-  ) -> Self {
-    let (abort_tx, abort_rx) = oneshot::channel();
-
-    let window_thread = thread::spawn(|| unsafe {
-      // Initialize the thread-local sender for platform events.
-      PLATFORM_EVENT_TX
-        .with(|cell| cell.set(event_tx.clone()))
-        .map_err(|_| {
-          anyhow::anyhow!("Platform event sender already set.")
-        })?;
-
-      set_local_keyboard_hook(KeyboardHook::start(
-        options.keybindings,
-        event_tx,
-      )?);
-
-      let hook_handles = Self::hook_win_events()?;
-
-      Platform::create_message_loop(abort_rx, Some(event_window_proc))?;
-
-      // Unhook from all window events.
-      for hook_handle in hook_handles {
-        if let false = UnhookWinEvent(hook_handle).as_bool() {
-          bail!("`UnhookWinEvent` failed.");
-        }
-      }
-
-      Ok(())
-    });
-
-    Self {
-      abort_tx: Some(abort_tx),
-      window_thread: Some(window_thread),
-    }
-  }
-
-  pub fn update_keybindings(
-    &mut self,
-    keybindings: Vec<KeybindingConfig>,
-  ) {
-    todo!()
-  }
-
-  pub fn enable_mouse_listener(&mut self, is_enabled: bool) {
-    todo!()
-  }
-
-  /// Creates several window event hooks via `SetWinEventHook`.
-  fn hook_win_events() -> Result<Vec<HWINEVENTHOOK>> {
-    let event_ranges = [
-      (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
-      (EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE),
-      (EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND),
-      (EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZEEND),
-      (EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND),
-      (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE),
-      (EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED),
-    ];
-
-    // Create separate hooks for each event range. This is more performant
-    // than creating a single hook for all events and filtering them.
-    event_ranges
-      .iter()
-      .try_fold(Vec::new(), |mut handles, event_range| {
-        let hook_handle =
-          unsafe { Self::hook_win_event(event_range.0, event_range.1) }?;
-        handles.push(hook_handle);
-        Ok(handles)
-      })
-  }
-
-  /// Creates a window hook for the specified event range.
-  unsafe fn hook_win_event(
-    event_min: u32,
-    event_max: u32,
-  ) -> Result<HWINEVENTHOOK> {
-    let hook_handle = SetWinEventHook(
-      event_min,
-      event_max,
-      None,
-      Some(event_hook_proc),
-      0,
-      0,
-      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
-    );
-
-    if hook_handle.is_invalid() {
-      bail!("Failed to set window event hook.");
-    }
-
-    Ok(hook_handle)
-  }
-
-  /// Destroys the event window and stops the message loop.
-  pub fn destroy(&mut self) {
-    if let Some(abort_tx) = self.abort_tx.take() {
-      if abort_tx.send(()).is_err() {
-        warn!("Failed to send abort signal to the event window thread.");
-      }
-    }
-
-    // Wait for the spawned thread to finish.
-    if let Some(window_thread) = self.window_thread.take() {
-      if let Err(err) = window_thread.join() {
-        warn!("Failed to join event window thread '{:?}'.", err);
-      }
-    }
-  }
-}
-
-impl Drop for EventWindow {
-  fn drop(&mut self) {
-    self.destroy();
-  }
 }

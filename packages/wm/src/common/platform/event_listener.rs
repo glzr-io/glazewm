@@ -6,8 +6,9 @@ use tokio::sync::{
   Mutex,
 };
 
-use crate::user_config::{
-  BindingModeConfig, KeybindingConfig, UserConfig,
+use crate::{
+  common::Point,
+  user_config::{BindingModeConfig, KeybindingConfig, UserConfig},
 };
 
 use super::{EventWindow, EventWindowOptions, NativeWindow};
@@ -16,7 +17,7 @@ use super::{EventWindow, EventWindowOptions, NativeWindow};
 pub enum PlatformEvent {
   DisplaySettingsChanged,
   KeybindingTriggered(KeybindingConfig),
-  MouseMove,
+  MouseMove(MouseMoveEvent),
   WindowDestroyed(NativeWindow),
   WindowFocused(NativeWindow),
   WindowHidden(NativeWindow),
@@ -26,6 +27,16 @@ pub enum PlatformEvent {
   WindowMovedOrResized(NativeWindow),
   WindowShown(NativeWindow),
   WindowTitleChanged(NativeWindow),
+}
+
+#[derive(Debug, Clone)]
+pub struct MouseMoveEvent {
+  /// Location of mouse with 0,0 being the top-left corner of the primary
+  /// monitor.
+  pub point: Point,
+
+  /// Whether either left or right-click is currently pressed.
+  pub is_mouse_down: bool,
 }
 
 pub struct EventListener {
