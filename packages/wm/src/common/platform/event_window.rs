@@ -44,7 +44,7 @@ impl EventWindow {
   ) -> Self {
     let (abort_tx, abort_rx) = oneshot::channel();
 
-    let window_thread = thread::spawn(|| unsafe {
+    let window_thread = thread::spawn(move || unsafe {
       // Initialize the thread-local sender for platform events.
       PLATFORM_EVENT_TX
         .with(|cell| cell.set(event_tx.clone()))
@@ -55,7 +55,7 @@ impl EventWindow {
       // Start hooks for listening to platform events.
       KeyboardHook::start(options.keybindings, event_tx.clone())?;
       WinEventHook::start(event_tx.clone())?;
-      MouseHook::start(event_tx)?;
+      MouseHook::start(options.enable_mouse_events, event_tx)?;
 
       // Create a hidden window with a message loop on the current thread.
       Platform::create_message_loop(abort_rx, Some(event_window_proc))?;

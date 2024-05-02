@@ -30,7 +30,7 @@ pub struct MouseHook {
   event_tx: mpsc::UnboundedSender<PlatformEvent>,
 
   /// Handle to the mouse hook.
-  hook: HHOOK,
+  hook: Option<HHOOK>,
 
   /// Whether left-click is currently pressed.
   is_l_mouse_down: bool,
@@ -47,10 +47,18 @@ impl MouseHook {
   ///
   /// Assumes that a message loop is currently running.
   pub fn start(
+    enabled: bool,
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
   ) -> Result<Arc<Mutex<MouseHook>>> {
-    let hook = unsafe {
-      SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0)?
+    let hook = match enabled {
+      false => None,
+      true => {
+        let hook = unsafe {
+          SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0)
+        }?;
+
+        Some(hook)
+      }
     };
 
     let mouse_hook = Arc::new(Mutex::new(Self {
@@ -117,7 +125,10 @@ impl MouseHook {
 
   /// Stops the low-level mouse hook.
   pub fn stop(&mut self) -> anyhow::Result<()> {
-    unsafe { UnhookWindowsHookEx(self.hook) }?;
+    if let Some(hook) = self.hook.take() {
+      unsafe { UnhookWindowsHookEx(hook) }?;
+    }
+
     Ok(())
   }
 }
