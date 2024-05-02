@@ -1,11 +1,10 @@
 use std::{ops::DerefMut, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tokio::sync::{
   mpsc::{self},
   Mutex,
 };
-use tracing::error;
 
 use crate::{
   app_command::InvokeCommand,
@@ -16,8 +15,9 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::commands::redraw,
+  containers::{commands::redraw, traits::CommonGetters},
   user_config::UserConfig,
+  windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -45,12 +45,12 @@ impl WindowManager {
     &mut self,
     event: PlatformEvent,
     config: &mut UserConfig,
-  ) {
-    let res = match event {
+  ) -> anyhow::Result<()> {
+    match event {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
       PlatformEvent::KeybindingTriggered(kb_config) => {
         for command in kb_config.commands {
-          self.process_command(command, config).await;
+          self.process_command(command, config).await?;
         }
         Ok(())
       }
@@ -80,10 +80,6 @@ impl WindowManager {
         config,
       ),
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
-    };
-
-    if let Err(err) = res {
-      error!("Failed to process event: {:?}", err);
     }
   }
 
@@ -91,12 +87,21 @@ impl WindowManager {
     &mut self,
     command: InvokeCommand,
     config: &mut UserConfig,
-  ) {
+  ) -> anyhow::Result<()> {
     let mut state = self.state.lock().await;
 
-    let res = match command {
+    let subject_container = state
+      .focused_container()
+      .context("No subject container for command.")?;
+
+    match command {
       InvokeCommand::AdjustBorders(_) => todo!(),
-      InvokeCommand::Close => todo!(),
+      InvokeCommand::Close => {
+        if let Ok(window) = subject_container.as_window_container() {
+          window.native().close()?
+        }
+        Ok(())
+      }
       InvokeCommand::Focus(_) => todo!(),
       InvokeCommand::Ignore => todo!(),
       InvokeCommand::Move(_) => todo!(),
@@ -104,8 +109,18 @@ impl WindowManager {
       InvokeCommand::Resize(_) => todo!(),
       InvokeCommand::SetFloating { centered } => todo!(),
       InvokeCommand::SetFullscreen => todo!(),
-      InvokeCommand::SetMaximized => todo!(),
-      InvokeCommand::SetMinimized => todo!(),
+      InvokeCommand::SetMaximized => {
+        if let Ok(window) = subject_container.as_window_container() {
+          window.native().maximize()?
+        }
+        Ok(())
+      }
+      InvokeCommand::SetMinimized => {
+        if let Ok(window) = subject_container.as_window_container() {
+          window.native().minimize()?
+        }
+        Ok(())
+      }
       InvokeCommand::SetTiling => todo!(),
       InvokeCommand::ShellExec { command } => todo!(),
       InvokeCommand::ToggleFloating { centered } => todo!(),
@@ -120,10 +135,6 @@ impl WindowManager {
       InvokeCommand::WmRedraw => redraw(state.deref_mut(), &config),
       InvokeCommand::WmReloadConfig => todo!(),
       InvokeCommand::WmToggleFocusMode => todo!(),
-    };
-
-    if let Err(err) = res {
-      error!("Failed to process command: {:?}", err);
     }
   }
 }

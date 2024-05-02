@@ -17,14 +17,15 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowPlacement, GetWindowTextW, GetWindowThreadProcessId,
-        IsWindowVisible, SetForegroundWindow, SetWindowPos,
-        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
-        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_SHOWWINDOW, SW_RESTORE,
-        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION,
-        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZE,
-        WS_MINIMIZE, WS_THICKFRAME,
+        IsWindowVisible, SendNotifyMessageW, SetForegroundWindow,
+        SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
+        HWND_NOTOPMOST, HWND_TOPMOST, SWP_ASYNCWINDOWPOS,
+        SWP_FRAMECHANGED, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+        SWP_NOMOVE, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_SHOWWINDOW,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, WINDOWPLACEMENT,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZE, WS_MINIMIZE,
+        WS_THICKFRAME,
       },
     },
   },
@@ -248,6 +249,21 @@ impl NativeWindow {
 
   pub fn restore(&self) -> anyhow::Result<()> {
     unsafe { ShowWindowAsync(self.handle, SW_RESTORE).ok() }?;
+    Ok(())
+  }
+
+  pub fn maximize(&self) -> anyhow::Result<()> {
+    unsafe { ShowWindowAsync(self.handle, SW_MAXIMIZE).ok() }?;
+    Ok(())
+  }
+
+  pub fn minimize(&self) -> anyhow::Result<()> {
+    unsafe { ShowWindowAsync(self.handle, SW_MINIMIZE).ok() }?;
+    Ok(())
+  }
+
+  pub fn close(&self) -> anyhow::Result<()> {
+    unsafe { SendNotifyMessageW(self.handle, WM_CLOSE, None, None) }?;
     Ok(())
   }
 

@@ -4,7 +4,7 @@ use std::{env, ops::DerefMut, path::PathBuf};
 
 use anyhow::{Context, Result};
 use tokio::process::Command;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use common::platform::Platform;
 use ipc_server::IpcServer;
@@ -76,7 +76,11 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
-        wm.process_event(event, config.deref_mut()).await;
+        let res = wm.process_event(event, config.deref_mut()).await;
+
+        if let Err(err) = res {
+          error!("Failed to process event: {:?}", err);
+        }
       },
       Some(ipc_message) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", ipc_message);
@@ -84,7 +88,11 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
       },
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
-        wm.process_command(wm_command, config.deref_mut()).await;
+        let res = wm.process_command(wm_command, config.deref_mut()).await;
+
+        if let Err(err) = res {
+          error!("Failed to process command: {:?}", err);
+        }
       },
       Some(_) = config.changes_rx.recv() => {
         info!("Received user config update: {:?}", config);
