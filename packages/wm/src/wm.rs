@@ -97,10 +97,10 @@ impl WindowManager {
     match command {
       InvokeCommand::AdjustBorders(_) => todo!(),
       InvokeCommand::Close => {
-        if let Ok(window) = subject_container.as_window_container() {
-          window.native().close()?
+        match subject_container.as_window_container() {
+          Ok(window) => window.native().close(),
+          _ => Ok(()),
         }
-        Ok(())
       }
       InvokeCommand::Focus(_) => todo!(),
       InvokeCommand::Ignore => todo!(),
@@ -110,23 +110,45 @@ impl WindowManager {
       InvokeCommand::SetFloating { centered } => todo!(),
       InvokeCommand::SetFullscreen => todo!(),
       InvokeCommand::SetMaximized => {
-        if let Ok(window) = subject_container.as_window_container() {
-          window.native().maximize()?
+        match subject_container.as_window_container() {
+          Ok(window) => window.native().maximize(),
+          _ => Ok(()),
         }
-        Ok(())
       }
       InvokeCommand::SetMinimized => {
-        if let Ok(window) = subject_container.as_window_container() {
-          window.native().minimize()?
+        match subject_container.as_window_container() {
+          Ok(window) => window.native().minimize(),
+          _ => Ok(()),
         }
-        Ok(())
       }
       InvokeCommand::SetTiling => todo!(),
       InvokeCommand::ShellExec { command } => todo!(),
       InvokeCommand::ToggleFloating { centered } => todo!(),
       InvokeCommand::ToggleFullscreen => todo!(),
-      InvokeCommand::ToggleMaximized => todo!(),
-      InvokeCommand::ToggleMinimized => todo!(),
+      InvokeCommand::ToggleMaximized => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            if window.native().is_maximized() {
+              window.native().restore()
+            } else {
+              window.native().maximize()
+            }
+          }
+          _ => Ok(()),
+        }
+      }
+      InvokeCommand::ToggleMinimized => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            if window.native().is_minimized() {
+              window.native().restore()
+            } else {
+              window.native().minimize()
+            }
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::ToggleTiling => todo!(),
       InvokeCommand::ToggleTilingDirection => todo!(),
       InvokeCommand::WmDisableBindingMode { name } => todo!(),

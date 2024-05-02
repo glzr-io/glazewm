@@ -1,5 +1,5 @@
-mod manage_window_command;
+mod manage_window;
 mod unmanage_window;
 
-pub use manage_window_command::*;
+pub use manage_window::*;
 pub use unmanage_window::*;
