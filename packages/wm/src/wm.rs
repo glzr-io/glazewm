@@ -47,43 +47,40 @@ impl WindowManager {
     event: PlatformEvent,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
+    let mut state = self.state.lock().await;
+
     match event {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
       PlatformEvent::KeybindingTriggered(kb_config) => {
+        drop(state);
         for command in kb_config.commands {
+          // TODO: Postpone redraw + focus sync till after all commands are run.
           self.process_command(command, config).await?;
         }
-        Ok(())
+        return Ok(());
       }
       PlatformEvent::MouseMove(_) => Ok(()),
-      PlatformEvent::WindowDestroyed(window) => handle_window_destroyed(
-        window,
-        self.state.lock().await.deref_mut(),
-      ),
-      PlatformEvent::WindowFocused(window) => handle_window_focused(
-        window,
-        self.state.lock().await.deref_mut(),
-        config,
-      ),
-      PlatformEvent::WindowHidden(window) => handle_window_hidden(
-        window,
-        self.state.lock().await.deref_mut(),
-        config,
-      ),
+      PlatformEvent::WindowDestroyed(window) => {
+        handle_window_destroyed(window, &mut state)
+      }
+      PlatformEvent::WindowFocused(window) => {
+        handle_window_focused(window, &mut state, config)
+      }
+      PlatformEvent::WindowHidden(window) => {
+        handle_window_hidden(window, &mut state, config)
+      }
       PlatformEvent::WindowLocationChanged(_) => Ok(()),
       PlatformEvent::WindowMinimized(_) => Ok(()),
       PlatformEvent::WindowMinimizeEnded(_) => Ok(()),
       PlatformEvent::WindowMovedOrResized(_) => Ok(()),
-      PlatformEvent::WindowShown(window) => handle_window_shown(
-        window,
-        self.state.lock().await.deref_mut(),
-        config,
-      ),
+      PlatformEvent::WindowShown(window) => {
+        handle_window_shown(window, &mut state, config)
+      }
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
     }?;
 
-    redraw(self.state.lock().await.deref_mut(), config)?;
-    sync_native_focus(self.state.lock().await.deref_mut())?;
+    redraw(&mut state, config)?;
+    sync_native_focus(&mut state)?;
 
     Ok(())
   }
@@ -118,7 +115,7 @@ impl WindowManager {
       InvokeCommand::Resize(_) => todo!(),
       InvokeCommand::SetFloating { centered } => {
         match subject_container.as_window_container() {
-          Ok(window) => set_floating(window, state.deref_mut()),
+          Ok(window) => set_floating(window, &mut state),
           _ => Ok(()),
         }
       }
@@ -140,7 +137,7 @@ impl WindowManager {
       InvokeCommand::ToggleFloating { centered } => {
         match subject_container.as_window_container() {
           // TODO: Toggle floating.
-          Ok(window) => set_floating(window, state.deref_mut()),
+          Ok(window) => set_floating(window, &mut state),
           _ => Ok(()),
         }
       }
@@ -183,8 +180,8 @@ impl WindowManager {
       InvokeCommand::WmToggleFocusMode => todo!(),
     }?;
 
-    redraw(state.deref_mut(), config)?;
-    sync_native_focus(state.deref_mut())?;
+    redraw(&mut state, config)?;
+    sync_native_focus(&mut state)?;
 
     Ok(())
   }
