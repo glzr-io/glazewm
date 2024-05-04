@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use tokio::sync::{
   mpsc::{self},
   Mutex,
@@ -17,9 +17,8 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::{commands::redraw, traits::CommonGetters},
+  containers::commands::redraw,
   user_config::UserConfig,
-  windows::{commands::set_floating, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -100,89 +99,7 @@ impl WindowManager {
       .or_else(|| state.focused_container())
       .context("No subject container for command.")?;
 
-    if subject_container.is_detached() {
-      bail!("Cannot run command because subject container is detached.");
-    }
-
-    match command {
-      InvokeCommand::AdjustBorders(_) => todo!(),
-      InvokeCommand::Close => {
-        match subject_container.as_window_container() {
-          Ok(window) => window.native().close(),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::Focus(_) => todo!(),
-      InvokeCommand::Ignore => todo!(),
-      InvokeCommand::Move(_) => todo!(),
-      InvokeCommand::MoveWorkspace { direction } => todo!(),
-      InvokeCommand::Resize(_) => todo!(),
-      InvokeCommand::SetFloating { centered } => {
-        match subject_container.as_window_container() {
-          Ok(window) => set_floating(window, &mut state),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::SetFullscreen => todo!(),
-      InvokeCommand::SetMaximized => {
-        match subject_container.as_window_container() {
-          Ok(window) => window.native().maximize(),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::SetMinimized => {
-        match subject_container.as_window_container() {
-          Ok(window) => window.native().minimize(),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::SetTiling => todo!(),
-      InvokeCommand::ShellExec { command } => todo!(),
-      InvokeCommand::ToggleFloating { centered } => {
-        match subject_container.as_window_container() {
-          // TODO: Toggle floating.
-          Ok(window) => set_floating(window, &mut state),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::ToggleFullscreen => todo!(),
-      InvokeCommand::ToggleMaximized => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            if window.native().is_maximized() {
-              window.native().restore()
-            } else {
-              window.native().maximize()
-            }
-          }
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::ToggleMinimized => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            if window.native().is_minimized() {
-              window.native().restore()
-            } else {
-              window.native().minimize()
-            }
-          }
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::ToggleTiling => todo!(),
-      InvokeCommand::ToggleTilingDirection => todo!(),
-      InvokeCommand::WmDisableBindingMode { name } => todo!(),
-      InvokeCommand::WmExit => todo!(),
-      InvokeCommand::WmEnableBindingMode { name } => todo!(),
-      InvokeCommand::WmRedraw => {
-        let root_container = state.root_container.clone();
-        state.add_container_to_redraw(root_container.into());
-        Ok(())
-      }
-      InvokeCommand::WmReloadConfig => todo!(),
-      InvokeCommand::WmToggleFocusMode => todo!(),
-    }?;
+    command.run(subject_container, &mut state, config)?;
 
     redraw(&mut state, config)?;
     sync_native_focus(&mut state)?;
