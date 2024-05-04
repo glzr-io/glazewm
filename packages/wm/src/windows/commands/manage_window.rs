@@ -119,12 +119,14 @@ fn create_window(
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
+      None,
       native_window,
       floating_placement,
       config.value.gaps.inner_gap.clone(),
     )
     .into(),
     _ => NonTilingWindow::new(
+      None,
       native_window,
       window_state,
       prev_window_state,

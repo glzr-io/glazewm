@@ -47,12 +47,13 @@ struct TilingWindowInner {
 
 impl TilingWindow {
   pub fn new(
+    id: Option<Uuid>,
     native: NativeWindow,
     floating_placement: Rect,
     inner_gap: LengthValue,
   ) -> Self {
     let window = TilingWindowInner {
-      id: Uuid::new_v4(),
+      id: id.unwrap_or_else(|| Uuid::new_v4()),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
@@ -80,6 +81,7 @@ impl TilingWindow {
 
   pub fn to_non_tiling(&self, state: WindowState) -> NonTilingWindow {
     NonTilingWindow::new(
+      Some(self.id()),
       self.native(),
       state,
       Some(WindowState::Tiling),
