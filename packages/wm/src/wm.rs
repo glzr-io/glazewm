@@ -47,20 +47,20 @@ impl WindowManager {
     event: PlatformEvent,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
+    // Handle keybinding events separately since they would cause a double
+    // borrow of the `state` mutex.
+    if let PlatformEvent::KeybindingTriggered(kb_config) = event {
+      self
+        .process_commands(kb_config.commands, None, config)
+        .await?;
+
+      return Ok(());
+    }
+
     let mut state = self.state.lock().await;
 
     match event {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
-      PlatformEvent::KeybindingTriggered(kb_config) => {
-        drop(state);
-        self
-          .process_commands(kb_config.commands, None, config)
-          .await?;
-
-        // Return early since `process_commands` already handles redraw and
-        // focus sync.
-        return Ok(());
-      }
       PlatformEvent::MouseMove(_) => Ok(()),
       PlatformEvent::WindowDestroyed(window) => {
         handle_window_destroyed(window, &mut state)
@@ -79,6 +79,7 @@ impl WindowManager {
         handle_window_shown(window, &mut state, config)
       }
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
+      _ => Ok(()),
     }?;
 
     redraw(&mut state, config)?;
