@@ -1,6 +1,6 @@
 #![feature(iterator_try_collect)]
 
-use std::{env, ops::DerefMut, path::PathBuf};
+use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
 use tokio::process::Command;
@@ -89,7 +89,9 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
         let (command, subject_container_id) = wm_command;
-        let res = wm.process_command(command, subject_container_id, &mut config).await;
+        let res = wm
+          .process_commands(vec![command], subject_container_id, &mut config)
+          .await;
 
         if let Err(err) = res {
           error!("Failed to process command: {:?}", err);

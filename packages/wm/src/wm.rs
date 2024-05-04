@@ -17,7 +17,7 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::commands::redraw,
+  containers::{commands::redraw, traits::CommonGetters},
   user_config::UserConfig,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -53,10 +53,12 @@ impl WindowManager {
       PlatformEvent::DisplaySettingsChanged => Ok(()),
       PlatformEvent::KeybindingTriggered(kb_config) => {
         drop(state);
-        for command in kb_config.commands {
-          // TODO: Postpone redraw + focus sync till after all commands are run.
-          self.process_command(command, None, config).await?;
-        }
+        self
+          .process_commands(kb_config.commands, None, config)
+          .await?;
+
+        // Return early since `process_commands` already handles redraw and
+        // focus sync.
         return Ok(());
       }
       PlatformEvent::MouseMove(_) => Ok(()),
@@ -85,21 +87,32 @@ impl WindowManager {
     Ok(())
   }
 
-  pub async fn process_command(
+  pub async fn process_commands(
     &mut self,
-    command: InvokeCommand,
+    commands: Vec<InvokeCommand>,
     subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     let mut state = self.state.lock().await;
 
-    let subject_container = subject_container_id
+    // Get container to run WM commands with.
+    let mut subject_container = subject_container_id
       .map(|id| state.container_by_id(id))
       .context("No container found with the given ID.")?
       .or_else(|| state.focused_container())
       .context("No subject container for command.")?;
 
-    command.run(subject_container, &mut state, config)?;
+    for command in commands {
+      command.run(subject_container.clone(), &mut state, config)?;
+
+      // Update the subject container in case the container type changes.
+      // For example, when going from a tiling to a floating window.
+      subject_container =
+        match state.container_by_id(subject_container.id()) {
+          Some(container) => container,
+          None => break,
+        }
+    }
 
     redraw(&mut state, config)?;
     sync_native_focus(&mut state)?;
