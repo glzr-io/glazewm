@@ -76,7 +76,7 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
-        let res = wm.process_event(event, config.deref_mut()).await;
+        let res = wm.process_event(event, &mut config).await;
 
         if let Err(err) = res {
           error!("Failed to process event: {:?}", err);
@@ -88,9 +88,8 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
       },
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
-        // TODO: Pass the UUID for the subject container.
-        let (command, _) = wm_command;
-        let res = wm.process_command(command, config.deref_mut()).await;
+        let (command, subject_container_id) = wm_command;
+        let res = wm.process_command(command, subject_container_id, &mut config).await;
 
         if let Err(err) = res {
           error!("Failed to process command: {:?}", err);

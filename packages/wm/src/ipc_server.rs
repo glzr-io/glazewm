@@ -23,7 +23,8 @@ use crate::{
 
 pub struct IpcServer {
   pub message_rx: mpsc::UnboundedReceiver<AppCommand>,
-  pub wm_command_rx: mpsc::UnboundedReceiver<(InvokeCommand, Uuid)>,
+  pub wm_command_rx:
+    mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
 }
 
 impl IpcServer {

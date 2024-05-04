@@ -1,10 +1,11 @@
-use std::{ops::DerefMut, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
 use tokio::sync::{
   mpsc::{self},
   Mutex,
 };
+use uuid::Uuid;
 
 use crate::{
   app_command::InvokeCommand,
@@ -55,7 +56,7 @@ impl WindowManager {
         drop(state);
         for command in kb_config.commands {
           // TODO: Postpone redraw + focus sync till after all commands are run.
-          self.process_command(command, config).await?;
+          self.process_command(command, None, config).await?;
         }
         return Ok(());
       }
@@ -88,16 +89,19 @@ impl WindowManager {
   pub async fn process_command(
     &mut self,
     command: InvokeCommand,
+    subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     let mut state = self.state.lock().await;
 
-    let subject_container = state
-      .focused_container()
+    let subject_container = subject_container_id
+      .map(|id| state.container_by_id(id))
+      .context("No container found with the given ID.")?
+      .or_else(|| state.focused_container())
       .context("No subject container for command.")?;
 
     if subject_container.is_detached() {
-      bail!("Subject container is detached.");
+      bail!("Cannot run command because subject container is detached.");
     }
 
     match command {
@@ -172,9 +176,9 @@ impl WindowManager {
       InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmEnableBindingMode { name } => todo!(),
       InvokeCommand::WmRedraw => {
-        let state = state.deref_mut();
-        state.add_container_to_redraw(state.root_container.clone().into());
-        redraw(state, &config)
+        let root_container = state.root_container.clone();
+        state.add_container_to_redraw(root_container.into());
+        Ok(())
       }
       InvokeCommand::WmReloadConfig => todo!(),
       InvokeCommand::WmToggleFocusMode => todo!(),
