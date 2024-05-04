@@ -54,6 +54,11 @@ pub trait CommonGetters {
     self.borrow_children().clone()
   }
 
+  /// Number of children that this container has.
+  fn child_count(&self) -> usize {
+    self.borrow_children().len()
+  }
+
   /// Whether this container has any direct children.
   fn has_children(&self) -> bool {
     !self.borrow_children().is_empty()

@@ -18,6 +18,14 @@ pub fn move_container_within_tree(
     lowest_common_ancestor(&container_to_move, &target_parent)
       .context("No common ancestor between containers.")?;
 
+  if container_to_move.parent().context("No parent.")? == target_parent {
+    target_parent
+      .borrow_children_mut()
+      .shift_to_index(target_index, container_to_move);
+
+    return Ok(());
+  }
+
   // Handle case where target parent is the LCA. For example, when swapping
   // sibling containers or moving a container to a direct ancestor.
   if target_parent == lowest_common_ancestor {
