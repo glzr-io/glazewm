@@ -17,7 +17,7 @@ use crate::{
   },
   containers::{commands::redraw, traits::CommonGetters},
   user_config::UserConfig,
-  windows::traits::WindowGetters,
+  windows::{commands::set_floating, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -107,7 +107,12 @@ impl WindowManager {
       InvokeCommand::Move(_) => todo!(),
       InvokeCommand::MoveWorkspace { direction } => todo!(),
       InvokeCommand::Resize(_) => todo!(),
-      InvokeCommand::SetFloating { centered } => todo!(),
+      InvokeCommand::SetFloating { centered } => {
+        match subject_container.as_window_container() {
+          Ok(window) => set_floating(window, state.deref_mut()),
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::SetFullscreen => todo!(),
       InvokeCommand::SetMaximized => {
         match subject_container.as_window_container() {
@@ -123,7 +128,13 @@ impl WindowManager {
       }
       InvokeCommand::SetTiling => todo!(),
       InvokeCommand::ShellExec { command } => todo!(),
-      InvokeCommand::ToggleFloating { centered } => todo!(),
+      InvokeCommand::ToggleFloating { centered } => {
+        match subject_container.as_window_container() {
+          // TODO: Toggle floating.
+          Ok(window) => set_floating(window, state.deref_mut()),
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::ToggleFullscreen => todo!(),
       InvokeCommand::ToggleMaximized => {
         match subject_container.as_window_container() {

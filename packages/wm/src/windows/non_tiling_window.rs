@@ -70,6 +70,10 @@ impl NonTilingWindow {
     Self(Rc::new(RefCell::new(window)))
   }
 
+  pub fn set_state(&self, state: WindowState) {
+    self.0.borrow_mut().state = state;
+  }
+
   pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
     TilingWindow::new(self.native(), self.floating_placement(), inner_gap)
   }
