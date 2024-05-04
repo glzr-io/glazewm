@@ -29,7 +29,6 @@ pub fn handle_window_focused(
 
     // Focus is already set to the WM's focused container.
     if state.focused_container() == Some(window.clone().into()) {
-      info!("already focused {:?}", state.root_container.clone());
       return Ok(());
     }
 
@@ -54,13 +53,13 @@ pub fn handle_window_focused(
     // workspace, switch focus to Discord's workspace.
     if window.clone().display_state() == DisplayState::Hidden {
       // TODO: Log window details.
-      info!("Focusing off-screen window");
+      info!("Focusing off-screen window.");
       // TODO: Focus the workspace of the hidden window.
       return Ok(());
     }
 
     // Update the WM's focus state.
-    set_focused_descendant(window.clone().into(), None, state);
+    set_focused_descendant(window.clone().into(), None);
 
     state.emit_event(WmEvent::FocusChanged {
       focused_container: Into::<Container>::into(window).clone(),

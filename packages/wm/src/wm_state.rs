@@ -106,7 +106,7 @@ impl WmState {
       .or(self.workspaces().pop().map(|c| c.into()))
       .context("Failed to get container to focus.")?;
 
-    set_focused_descendant(container_to_focus, None, self);
+    set_focused_descendant(container_to_focus, None);
     self.has_pending_focus_sync = true;
 
     redraw(self, config)?;

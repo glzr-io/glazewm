@@ -9,6 +9,7 @@ mod rect;
 mod rect_delta;
 mod tiling_direction;
 mod units;
+mod vec_deque_ext;
 
 pub use direction::*;
 pub use display_state::*;
@@ -18,3 +19,4 @@ pub use rect::*;
 pub use rect_delta::*;
 pub use tiling_direction::*;
 pub use units::*;
+pub use vec_deque_ext::*;

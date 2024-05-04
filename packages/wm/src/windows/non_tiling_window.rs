@@ -19,7 +19,7 @@ use crate::{
   impl_common_getters, impl_window_getters,
 };
 
-use super::{traits::WindowGetters, WindowState};
+use super::{traits::WindowGetters, TilingWindow, WindowState};
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
@@ -32,6 +32,7 @@ struct NonTilingWindowInner {
   native: NativeWindow,
   state: WindowState,
   prev_state: Option<WindowState>,
+  insertion_reference: Option<(Container, usize)>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -40,9 +41,10 @@ struct NonTilingWindowInner {
 
 impl NonTilingWindow {
   pub fn new(
-    native_window: NativeWindow,
+    native: NativeWindow,
     state: WindowState,
     prev_state: Option<WindowState>,
+    insertion_reference: Option<(Container, usize)>,
     floating_placement: Rect,
   ) -> Self {
     let window = NonTilingWindowInner {
@@ -50,9 +52,10 @@ impl NonTilingWindow {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      native: native_window,
+      native,
       state,
       prev_state,
+      insertion_reference,
       display_state: DisplayState::Shown,
       border_delta: RectDelta::new(
         LengthValue::new_px(0.),
@@ -65,6 +68,10 @@ impl NonTilingWindow {
     };
 
     Self(Rc::new(RefCell::new(window)))
+  }
+
+  pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
+    TilingWindow::new(self.native(), self.floating_placement(), inner_gap)
   }
 
   pub fn to_dto(&self) -> anyhow::Result<NonTilingWindowDto> {

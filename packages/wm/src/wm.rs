@@ -154,7 +154,11 @@ impl WindowManager {
       InvokeCommand::WmDisableBindingMode { name } => todo!(),
       InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmEnableBindingMode { name } => todo!(),
-      InvokeCommand::WmRedraw => redraw(state.deref_mut(), &config),
+      InvokeCommand::WmRedraw => {
+        let state = state.deref_mut();
+        state.add_container_to_redraw(state.root_container.clone().into());
+        redraw(state, &config)
+      }
       InvokeCommand::WmReloadConfig => todo!(),
       InvokeCommand::WmToggleFocusMode => todo!(),
     }

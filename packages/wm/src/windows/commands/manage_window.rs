@@ -31,7 +31,7 @@ pub fn manage_window(
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
-  set_focused_descendant(window.clone().into(), None, &state);
+  set_focused_descendant(window.clone().into(), None);
   // run_with_subject_container(window_rule_commands, window.clone());
 
   // // Update window in case the reference changes.
@@ -128,6 +128,7 @@ fn create_window(
       native_window,
       window_state,
       prev_window_state,
+      None,
       floating_placement,
     )
     .into(),

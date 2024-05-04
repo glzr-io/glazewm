@@ -25,7 +25,7 @@ use crate::{
   impl_tiling_size_getters, impl_window_getters,
 };
 
-use super::{traits::WindowGetters, WindowState};
+use super::{traits::WindowGetters, NonTilingWindow, WindowState};
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -47,7 +47,7 @@ struct TilingWindowInner {
 
 impl TilingWindow {
   pub fn new(
-    native_window: NativeWindow,
+    native: NativeWindow,
     floating_placement: Rect,
     inner_gap: LengthValue,
   ) -> Self {
@@ -57,7 +57,7 @@ impl TilingWindow {
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
       tiling_size: 1.0,
-      native: native_window,
+      native,
       state: WindowState::Tiling,
       display_state: DisplayState::Shown,
       border_delta: RectDelta::new(
@@ -76,6 +76,16 @@ impl TilingWindow {
 
   pub fn inner_gap(&self) -> LengthValue {
     self.0.borrow().inner_gap.clone()
+  }
+
+  pub fn to_non_tiling(&self, state: WindowState) -> NonTilingWindow {
+    NonTilingWindow::new(
+      self.native(),
+      state,
+      Some(WindowState::Tiling),
+      None,
+      self.floating_placement(),
+    )
   }
 
   pub fn to_dto(&self) -> anyhow::Result<TilingWindowDto> {

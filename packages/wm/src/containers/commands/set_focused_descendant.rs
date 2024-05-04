@@ -1,34 +1,29 @@
 use crate::{
+  common::VecDequeExt,
   containers::{traits::CommonGetters, Container},
-  wm_state::WmState,
 };
 
+/// Set a given container as the focused container up to and including the
+/// end ancestor.
 pub fn set_focused_descendant(
   focused_descendant: Container,
   end_ancestor: Option<Container>,
-  state: &WmState,
 ) {
-  let end_ancestor =
-    end_ancestor.unwrap_or_else(|| state.root_container.clone().into());
-
-  // Traverse upwards, setting the container as the last focused up to and
-  // including the end ancestor.
   let mut target = focused_descendant;
 
+  // Traverse upwards, shifting the container's ancestors to the front in
+  // their focus order.
   while let Some(parent) = target.parent() {
-    {
-      let mut child_focus_order = parent.borrow_child_focus_order_mut();
-
-      if let Some(index) =
-        child_focus_order.iter().position(|id| id == &target.id())
-      {
-        child_focus_order.remove(index);
-        child_focus_order.push_front(target.id());
-      }
-    }
+    parent
+      .borrow_child_focus_order_mut()
+      .shift_to_index(0, target.id());
 
     // Exit if we've reached the end ancestor.
-    if target.id() == end_ancestor.id() {
+    if end_ancestor
+      .as_ref()
+      .map(|end_ancestor| target.id() == end_ancestor.id())
+      .unwrap_or(false)
+    {
       break;
     }
 
