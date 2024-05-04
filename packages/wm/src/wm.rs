@@ -1,6 +1,6 @@
 use std::{ops::DerefMut, sync::Arc};
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use tokio::sync::{
   mpsc::{self},
   Mutex,
@@ -9,6 +9,7 @@ use tokio::sync::{
 use crate::{
   app_command::InvokeCommand,
   common::{
+    commands::sync_native_focus,
     events::{
       handle_window_destroyed, handle_window_focused,
       handle_window_hidden, handle_window_shown,
@@ -58,7 +59,6 @@ impl WindowManager {
       PlatformEvent::WindowDestroyed(window) => handle_window_destroyed(
         window,
         self.state.lock().await.deref_mut(),
-        config,
       ),
       PlatformEvent::WindowFocused(window) => handle_window_focused(
         window,
@@ -80,7 +80,12 @@ impl WindowManager {
         config,
       ),
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
-    }
+    }?;
+
+    redraw(self.state.lock().await.deref_mut(), config)?;
+    sync_native_focus(self.state.lock().await.deref_mut())?;
+
+    Ok(())
   }
 
   pub async fn process_command(
@@ -93,6 +98,10 @@ impl WindowManager {
     let subject_container = state
       .focused_container()
       .context("No subject container for command.")?;
+
+    if subject_container.is_detached() {
+      bail!("Subject container is detached.");
+    }
 
     match command {
       InvokeCommand::AdjustBorders(_) => todo!(),
@@ -172,6 +181,11 @@ impl WindowManager {
       }
       InvokeCommand::WmReloadConfig => todo!(),
       InvokeCommand::WmToggleFocusMode => todo!(),
-    }
+    }?;
+
+    redraw(state.deref_mut(), config)?;
+    sync_native_focus(state.deref_mut())?;
+
+    Ok(())
   }
 }

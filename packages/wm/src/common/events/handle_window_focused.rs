@@ -1,9 +1,7 @@
 use tracing::info;
 
 use crate::{
-  common::{
-    commands::sync_native_focus, platform::NativeWindow, DisplayState,
-  },
+  common::{platform::NativeWindow, DisplayState},
   containers::{commands::set_focused_descendant, Container},
   user_config::UserConfig,
   windows::traits::WindowGetters,
@@ -44,7 +42,7 @@ pub fn handle_window_focused(
       .unwrap_or(false)
     {
       info!("Overriding native focus.");
-      sync_native_focus(state)?;
+      state.has_pending_focus_sync = true;
       return Ok(());
     }
 

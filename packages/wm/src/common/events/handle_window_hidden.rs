@@ -1,10 +1,7 @@
 use tracing::info;
 
 use crate::{
-  common::{
-    commands::sync_native_focus, platform::NativeWindow, DisplayState,
-  },
-  containers::commands::redraw,
+  common::{platform::NativeWindow, DisplayState},
   user_config::UserConfig,
   windows::{commands::unmanage_window, traits::WindowGetters},
   wm_state::WmState,
@@ -40,8 +37,6 @@ pub fn handle_window_hidden(
       && !window.native().is_visible()
     {
       unmanage_window(window, state)?;
-      redraw(state, config)?;
-      sync_native_focus(state)?;
     }
   }
 

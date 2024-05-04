@@ -1,10 +1,7 @@
 use tracing::info;
 
 use crate::{
-  common::{
-    commands::sync_native_focus, platform::NativeWindow, DisplayState,
-  },
-  containers::commands::redraw,
+  common::{platform::NativeWindow, DisplayState},
   user_config::UserConfig,
   windows::{commands::manage_window, traits::WindowGetters},
   wm_state::WmState,
@@ -26,8 +23,6 @@ pub fn handle_window_shown(
   // Manage the window if it's manageable.
   if found_window.is_none() && native_window.is_manageable() {
     manage_window(native_window, None, state, config)?;
-    redraw(state, config)?;
-    sync_native_focus(state)?;
     return Ok(());
   }
 

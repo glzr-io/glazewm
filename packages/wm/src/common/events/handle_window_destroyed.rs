@@ -1,17 +1,13 @@
 use tracing::info;
 
 use crate::{
-  common::{commands::sync_native_focus, platform::NativeWindow},
-  containers::commands::redraw,
-  user_config::UserConfig,
-  windows::commands::unmanage_window,
+  common::platform::NativeWindow, windows::commands::unmanage_window,
   wm_state::WmState,
 };
 
 pub fn handle_window_destroyed(
   native_window: NativeWindow,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   // TODO: Refresh monitor state.
   if native_window.is_app_bar() {
@@ -26,8 +22,6 @@ pub fn handle_window_destroyed(
     // TODO: Log window details.
     info!("Window closed");
     unmanage_window(window, state)?;
-    redraw(state, config)?;
-    sync_native_focus(state)?;
   }
 
   Ok(())
