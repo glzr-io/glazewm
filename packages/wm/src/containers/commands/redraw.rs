@@ -21,7 +21,7 @@ pub fn redraw(
   let windows_to_restore = windows_to_redraw
     .iter()
     .filter(|window| match window.state() {
-      WindowState::Minimized | WindowState::Maximized => false,
+      WindowState::Minimized | WindowState::Fullscreen => false,
       _ => {
         window.native().is_maximized() || window.native().is_minimized()
       }

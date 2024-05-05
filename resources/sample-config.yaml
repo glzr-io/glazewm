@@ -128,17 +128,17 @@ keybindings:
   - commands: ['toggle_tiling_direction']
     bindings: ['Alt+V']
 
-  # Change focus between floating / tiling windows.
+  # Change focus between tiling windows and floating/fullscreen windows.
   - commands: ['wm_toggle_focus_mode']
     bindings: ['Alt+Space']
 
-  # Change the focused window to be floating / tiling.
+  # Change the focused window to be floating.
   - commands: ['toggle_floating --centered']
     bindings: ['Alt+Shift+Space']
 
-  # Change the focused window to be maximized / unmaximized.
-  - commands: ['toggle_maximized']
-    bindings: ['Alt+X']
+  # Change the focused window to be fullscreen.
+  - commands: ['toggle_fullscreen']
+    bindings: ['Alt+F']
 
   # Minimize focused window.
   - commands: ['toggle_minimized']

@@ -121,8 +121,10 @@ pub enum InvokeCommand {
     #[clap(long)]
     centered: bool,
   },
-  SetFullscreen,
-  SetMaximized,
+  SetFullscreen {
+    #[clap(long)]
+    maximized: bool,
+  },
   SetMinimized,
   SetTiling,
   ShellExec {
@@ -133,8 +135,10 @@ pub enum InvokeCommand {
     #[clap(long)]
     centered: bool,
   },
-  ToggleFullscreen,
-  ToggleMaximized,
+  ToggleFullscreen {
+    #[clap(long)]
+    maximized: bool,
+  },
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
@@ -187,10 +191,13 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetFullscreen => todo!(),
-      InvokeCommand::SetMaximized => {
+      InvokeCommand::SetFullscreen { maximized } => {
         match subject_container.as_window_container() {
-          Ok(window) => window.native().maximize(),
+          Ok(window) => match maximized {
+            true => window.native().maximize(),
+            // false => window.native().set_position(),
+            false => Ok(()),
+          },
           _ => Ok(()),
         }
       }
@@ -221,19 +228,7 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::ToggleFullscreen => todo!(),
-      InvokeCommand::ToggleMaximized => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            if window.native().is_maximized() {
-              window.native().restore()
-            } else {
-              window.native().maximize()
-            }
-          }
-          _ => Ok(()),
-        }
-      }
+      InvokeCommand::ToggleFullscreen { maximized } => todo!(),
       InvokeCommand::ToggleMinimized => {
         match subject_container.as_window_container() {
           Ok(window) => {

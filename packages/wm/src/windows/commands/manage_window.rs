@@ -153,15 +153,11 @@ fn create_window(
   Ok(window_container)
 }
 
+/// Note that maximized windows are initialized as tiling.
 /// TODO: Handle detection of fullscreen windows.
-/// TODO: Consider initializing maximized windows as tiling.
 fn window_state_to_create(native_window: &NativeWindow) -> WindowState {
   if native_window.is_minimized() {
     return WindowState::Minimized;
-  }
-
-  if native_window.is_maximized() {
-    return WindowState::Maximized;
   }
 
   // Initialize windows that can't be resized as floating.
