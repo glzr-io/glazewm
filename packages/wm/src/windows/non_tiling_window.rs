@@ -32,7 +32,7 @@ struct NonTilingWindowInner {
   native: NativeWindow,
   state: WindowState,
   prev_state: Option<WindowState>,
-  insertion_reference: Option<(Container, usize)>,
+  insertion_target: Option<(Container, usize)>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -45,7 +45,7 @@ impl NonTilingWindow {
     native: NativeWindow,
     state: WindowState,
     prev_state: Option<WindowState>,
-    insertion_reference: Option<(Container, usize)>,
+    insertion_target: Option<(Container, usize)>,
     floating_placement: Rect,
   ) -> Self {
     let window = NonTilingWindowInner {
@@ -56,7 +56,7 @@ impl NonTilingWindow {
       native,
       state,
       prev_state,
-      insertion_reference,
+      insertion_target,
       display_state: DisplayState::Shown,
       border_delta: RectDelta::new(
         LengthValue::new_px(0.),
@@ -69,6 +69,10 @@ impl NonTilingWindow {
     };
 
     Self(Rc::new(RefCell::new(window)))
+  }
+
+  pub fn insertion_target(&self) -> Option<(Container, usize)> {
+    self.0.borrow().insertion_target.clone()
   }
 
   pub fn set_state(&self, state: WindowState) {

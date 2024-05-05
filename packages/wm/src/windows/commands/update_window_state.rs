@@ -37,10 +37,21 @@ fn set_tiling(
       .parent_workspace()
       .context("Window has no workspace.")?;
 
-    let insertion_target = window
-      .descendant_focus_order()
-      .filter(|c| c.is_tiling_window())
-      .next();
+    // Get the position in the tree to insert the new tiling window. This
+    // will be the window's previous tiling position if it has one, or
+    // instead beside the last focused tiling window in the workspace.
+    let (target_parent, target_index) = window
+      .insertion_target()
+      .or_else(|| {
+        // Get the last focused tiling window within the workspace.
+        let focused_window = window
+          .descendant_focus_order()
+          .filter(|c| c.is_tiling_window())
+          .next()?;
+
+        Some((focused_window.parent()?, focused_window.index() + 1))
+      })
+      .unwrap_or((workspace.into(), 0));
 
     let tiling_window =
       window.to_tiling(config.value.gaps.inner_gap.clone());
@@ -52,24 +63,11 @@ fn set_tiling(
       window.index(),
     )?;
 
-    // Insert the created tiling window after the last focused tiling
-    // window within the workspace.
-    match insertion_target {
-      Some(insertion_target) => {
-        move_container_within_tree(
-          tiling_window.clone().into(),
-          insertion_target.parent().context("No parent.")?,
-          insertion_target.index() + 1,
-        )?;
-      }
-      None => {
-        move_container_within_tree(
-          tiling_window.clone().into(),
-          workspace.into(),
-          0,
-        )?;
-      }
-    }
+    move_container_within_tree(
+      tiling_window.clone().into(),
+      target_parent,
+      target_index,
+    )?;
 
     state.add_container_to_redraw(tiling_window.into());
   }
