@@ -9,7 +9,9 @@ use crate::{
   common::{Direction, LengthValue},
   containers::{traits::CommonGetters, Container},
   user_config::UserConfig,
-  windows::{commands::set_floating, traits::WindowGetters},
+  windows::{
+    commands::update_window_state, traits::WindowGetters, WindowState,
+  },
   wm_state::WmState,
 };
 
@@ -176,7 +178,12 @@ impl InvokeCommand {
       InvokeCommand::Resize(_) => todo!(),
       InvokeCommand::SetFloating { centered } => {
         match subject_container.as_window_container() {
-          Ok(window) => set_floating(window, state),
+          Ok(window) => update_window_state(
+            window,
+            WindowState::Floating,
+            state,
+            config,
+          ),
           _ => Ok(()),
         }
       }
@@ -193,12 +200,24 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTiling => todo!(),
+      InvokeCommand::SetTiling => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            update_window_state(window, WindowState::Tiling, state, config)
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::ShellExec { command } => todo!(),
       InvokeCommand::ToggleFloating { centered } => {
         match subject_container.as_window_container() {
           // TODO: Toggle floating.
-          Ok(window) => set_floating(window, state),
+          Ok(window) => update_window_state(
+            window,
+            WindowState::Floating,
+            state,
+            config,
+          ),
           _ => Ok(()),
         }
       }

@@ -163,7 +163,7 @@ impl NativeWindow {
       return false;
     }
 
-    // Ensure window is top-level (ie. not a child window). Ignore windows
+    // Ensure window is top-level (i.e. not a child window). Ignore windows
     // that cannot be focused or if they're unavailable in task switcher
     // (alt+tab menu).
     let is_application_window = !self.has_window_style(WS_CHILD)

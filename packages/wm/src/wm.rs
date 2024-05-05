@@ -97,11 +97,14 @@ impl WindowManager {
     let mut state = self.state.lock().await;
 
     // Get container to run WM commands with.
-    let mut subject_container = subject_container_id
-      .map(|id| state.container_by_id(id))
-      .context("No container found with the given ID.")?
-      .or_else(|| state.focused_container())
-      .context("No subject container for command.")?;
+    let mut subject_container = match subject_container_id {
+      Some(id) => state.container_by_id(id).with_context(|| {
+        format!("No container found with the given ID '{}'.", id)
+      })?,
+      None => state
+        .focused_container()
+        .context("No subject container for command.")?,
+    };
 
     for command in commands {
       command.run(subject_container.clone(), &mut state, config)?;

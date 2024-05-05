@@ -116,13 +116,12 @@ fn move_to_lowest_common_ancestor(
 
   // Keep reference to container index and number of children that LCA has.
   let original_index = container_to_move.index();
-  let original_lca_child_count = lowest_common_ancestor.children().len();
+  let original_lca_child_count = lowest_common_ancestor.child_count();
 
   detach_container(container_to_move.clone())?;
 
-  let new_lca_child_count = lowest_common_ancestor.children().len();
   let should_adjust_target_index = original_lca_child_count
-    > new_lca_child_count
+    > lowest_common_ancestor.child_count()
     && original_index < target_index;
 
   // Adjust for when target index changes on detach of container. For

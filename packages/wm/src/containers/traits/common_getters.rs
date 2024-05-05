@@ -21,7 +21,7 @@ pub trait CommonGetters {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
-  /// Derived container type (eg. `ContainerType::Monitor`).
+  /// Derived container type (e.g. `ContainerType::Monitor`).
   fn r#type(&self) -> ContainerType;
 
   fn as_container(&self) -> Container;
@@ -64,7 +64,7 @@ pub trait CommonGetters {
     !self.borrow_children().is_empty()
   }
 
-  /// Whether this container is detached from the tree (ie. it does not
+  /// Whether this container is detached from the tree (i.e. it does not
   /// have a parent).
   fn is_detached(&self) -> bool {
     self.borrow_parent().as_ref().is_none()
@@ -96,6 +96,40 @@ pub trait CommonGetters {
     let mut stack = self.children();
     stack.push_front(self.as_container());
     Descendants { stack }
+  }
+
+  /// Leaf nodes (i.e. windows and workspaces) in order of last focus.
+  fn descendant_focus_order(
+    &self,
+  ) -> Box<dyn Iterator<Item = Container> + '_> {
+    let mut stack = Vec::new();
+    stack.push(self.as_container());
+
+    Box::new(std::iter::from_fn(move || {
+      while let Some(current) = stack.pop() {
+        // Get containers that have no children. Descendant also cannot be
+        // the container itself.
+        if current.id() != self.id() && !current.has_children() {
+          return Some(current);
+        }
+
+        // Reverse the child focus order so that the first element is
+        // pushed last and popped first.
+        for focus_child_id in
+          current.borrow_child_focus_order().iter().rev()
+        {
+          if let Some(focus_child) = current
+            .borrow_children()
+            .iter()
+            .find(|child| child.id() == *focus_child_id)
+            .cloned()
+          {
+            stack.push(focus_child);
+          }
+        }
+      }
+      None
+    }))
   }
 
   fn siblings(&self) -> Box<dyn Iterator<Item = Container> + '_> {

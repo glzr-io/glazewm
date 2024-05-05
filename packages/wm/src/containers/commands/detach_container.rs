@@ -14,7 +14,7 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
   // Flatten the parent split container if it'll be empty after removing
   // the child.
   if let Some(split_parent) = parent.as_split().cloned() {
-    if split_parent.children().len() == 1 {
+    if split_parent.child_count() == 1 {
       parent = parent.parent().context("No parent.")?;
       flatten_split_container(split_parent)?;
     }
