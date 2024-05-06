@@ -2,7 +2,10 @@ use anyhow::Context;
 
 use crate::{
   containers::{
-    commands::{move_container_within_tree, replace_container},
+    commands::{
+      move_container_within_tree, replace_container,
+      set_focused_descendant,
+    },
     traits::CommonGetters,
     WindowContainer,
   },
@@ -96,15 +99,28 @@ fn set_non_tiling(
         workspace.child_count() - 1,
       )?;
 
-      let non_tiling_window = window.to_non_tiling(window_state);
+      let non_tiling_window = window.to_non_tiling(window_state.clone());
+      let parent = window.parent().context("No parent")?;
 
       replace_container(
         non_tiling_window.clone().into(),
-        window.parent().context("No parent")?,
+        parent.clone(),
         window.index(),
       )?;
 
-      state.add_container_to_redraw(non_tiling_window.into());
+      if window_state == WindowState::Minimized {
+        state.unmanaged_or_minimized_timestamp =
+          Some(std::time::Instant::now());
+        state.has_pending_focus_sync = true;
+
+        if let Some(focus_target) =
+          state.focus_target_after_removal(&non_tiling_window.into())
+        {
+          set_focused_descendant(focus_target, None);
+        }
+      }
+
+      state.add_container_to_redraw(parent);
     }
   }
 

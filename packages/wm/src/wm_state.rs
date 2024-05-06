@@ -18,7 +18,7 @@ use crate::{
   },
   monitors::{commands::add_monitor, Monitor},
   user_config::UserConfig,
-  windows::{commands::manage_window, traits::WindowGetters},
+  windows::{commands::manage_window, traits::WindowGetters, WindowState},
   wm_event::WmEvent,
   workspaces::Workspace,
 };
@@ -217,5 +217,53 @@ impl WmState {
       .self_and_descendants()
       .into_iter()
       .find(|container| container.id() == id)
+  }
+
+  /// Gets container to focus after the given window is unmanaged,
+  /// minimized, or moved to another workspace.
+  pub fn focus_target_after_removal(
+    &self,
+    removed_window: &WindowContainer,
+  ) -> Option<Container> {
+    // If the removed window is not focused, no need to change focus.
+    if self.focused_container() != Some(removed_window.clone().into()) {
+      return None;
+    }
+
+    // Get descendant focus order excluding the removed container.
+    let workspace = removed_window.parent_workspace()?;
+    let descendant_focus_order = workspace
+      .descendant_focus_order()
+      .filter(|descendant| descendant.id() != removed_window.id())
+      .collect::<Vec<_>>();
+
+    // Get focus target that matches the removed window type. This applies
+    // for windows that aren't in a minimized state.
+    let focus_target_of_type = descendant_focus_order
+      .iter()
+      .filter_map(|c| c.as_window_container().ok())
+      .find(|descendant| {
+        match (descendant.state(), removed_window.state()) {
+          (WindowState::Tiling, WindowState::Tiling) => true,
+          (WindowState::Floating(_), WindowState::Floating(_)) => true,
+          (WindowState::Fullscreen(_), WindowState::Fullscreen(_)) => true,
+          _ => false,
+        }
+      })
+      .map(|c| c.into());
+
+    if focus_target_of_type.is_some() {
+      return focus_target_of_type;
+    }
+
+    let non_minimized_focus_target = descendant_focus_order
+      .iter()
+      .filter_map(|c| c.as_window_container().ok())
+      .find(|descendant| descendant.state() != WindowState::Minimized)
+      .map(|c| c.into());
+
+    non_minimized_focus_target
+      .or(descendant_focus_order.first().cloned())
+      .or(Some(workspace.into()))
   }
 }
