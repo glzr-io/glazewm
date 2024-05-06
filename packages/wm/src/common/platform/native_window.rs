@@ -293,19 +293,27 @@ impl NativeWindow {
       _ => HWND_NOTOPMOST,
     };
 
-    unsafe {
-      SetWindowPos(
-        self.handle,
-        z_order,
-        rect.x(),
-        rect.y(),
-        rect.width(),
-        rect.height(),
-        swp_flags,
-      )
-    }?;
+    match state {
+      WindowState::Minimized => self.minimize(),
+      // TODO: Handle non-maximized fullscreen.
+      // TODO: Handle fullscreen on different monitor than window's current position.
+      WindowState::Fullscreen(_) => self.maximize(),
+      _ => {
+        unsafe {
+          SetWindowPos(
+            self.handle,
+            z_order,
+            rect.x(),
+            rect.y(),
+            rect.width(),
+            rect.height(),
+            swp_flags,
+          )
+        }?;
 
-    Ok(())
+        Ok(())
+      }
+    }
   }
 }
 

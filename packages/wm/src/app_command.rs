@@ -10,7 +10,9 @@ use crate::{
   containers::{traits::CommonGetters, Container},
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state, traits::WindowGetters, WindowState,
+    commands::{toggle_window_state, update_window_state},
+    traits::WindowGetters,
+    WindowState,
   },
   wm_state::WmState,
 };
@@ -289,14 +291,68 @@ impl InvokeCommand {
       InvokeCommand::ToggleFloating {
         centered,
         show_on_top,
-      } => todo!(),
+      } => match subject_container.as_window_container() {
+        Ok(window) => {
+          let floating_defaults =
+            &config.value.window_state_defaults.floating;
+
+          toggle_window_state(
+            window,
+            WindowState::Floating(FloatingStateConfig {
+              centered: centered.unwrap_or(floating_defaults.centered),
+              show_on_top: show_on_top
+                .unwrap_or(floating_defaults.show_on_top),
+            }),
+            state,
+            config,
+          )
+        }
+        _ => Ok(()),
+      },
       InvokeCommand::ToggleFullscreen {
         maximized,
         show_on_top,
         remove_title_bar,
-      } => todo!(),
-      InvokeCommand::ToggleMinimized => todo!(),
-      InvokeCommand::ToggleTiling => todo!(),
+      } => match subject_container.as_window_container() {
+        Ok(window) => {
+          let fullscreen_defaults =
+            &config.value.window_state_defaults.fullscreen;
+
+          toggle_window_state(
+            window,
+            WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: maximized
+                .unwrap_or(fullscreen_defaults.maximized),
+              show_on_top: show_on_top
+                .unwrap_or(fullscreen_defaults.show_on_top),
+              remove_title_bar: remove_title_bar
+                .unwrap_or(fullscreen_defaults.remove_title_bar),
+            }),
+            state,
+            config,
+          )
+        }
+        _ => Ok(()),
+      },
+      InvokeCommand::ToggleMinimized => {
+        match subject_container.as_window_container() {
+          Ok(window) => toggle_window_state(
+            window,
+            WindowState::Minimized,
+            state,
+            config,
+          ),
+          _ => Ok(()),
+        }
+      }
+      InvokeCommand::ToggleTiling => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            toggle_window_state(window, WindowState::Tiling, state, config)
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::ToggleTilingDirection => todo!(),
       InvokeCommand::WmDisableBindingMode { name } => todo!(),
       InvokeCommand::WmExit => todo!(),

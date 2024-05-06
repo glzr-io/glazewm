@@ -26,6 +26,24 @@ focus_borders:
     enabled: false
     color: '#ff0000'
 
+window_state_defaults:
+  floating:
+    # Whether to center floating windows by default.
+    centered: true
+
+    # Whether to show floating windows as always on top.
+    show_on_top: true
+
+  fullscreen:
+    # Whether to prefer fullscreen windows to be maximized.
+    maximized: true
+
+    # Whether to show fullscreen windows as always on top.
+    show_on_top: true
+
+    # Whether to remove the window's title bar when fullscreen.
+    remove_title_bar: false
+
 workspaces:
   - name: '1'
   - name: '2'
@@ -185,13 +203,13 @@ keybindings:
   # Move the focused window's parent workspace to a monitor in a given
   # direction.
   - commands: ['move_workspace --dir left']
-    bindings: ['Alt+A']
+    bindings: ['Alt+Shift+A']
   - commands: ['move_workspace --dir right']
-    bindings: ['Alt+F']
+    bindings: ['Alt+Shift+F']
   - commands: ['move_workspace --dir up']
-    bindings: ['Alt+D']
+    bindings: ['Alt+Shift+D']
   - commands: ['move_workspace --dir down']
-    bindings: ['Alt+S']
+    bindings: ['Alt+Shift+S']
 
   # Move focused window to a workspace defined in `workspaces` config.
   - commands: ['move --workspace 1', 'focus --workspace 1']

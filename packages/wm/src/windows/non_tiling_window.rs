@@ -83,6 +83,7 @@ impl NonTilingWindow {
     TilingWindow::new(
       Some(self.id()),
       self.native(),
+      Some(self.state()),
       self.floating_placement(),
       inner_gap,
     )
@@ -97,7 +98,7 @@ impl NonTilingWindow {
       x: self.x()?,
       y: self.y()?,
       state: self.state(),
-      prev_state: self.0.borrow().prev_state.clone(),
+      prev_state: self.prev_state(),
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       has_pending_dpi_adjustment: self.has_pending_dpi_adjustment(),

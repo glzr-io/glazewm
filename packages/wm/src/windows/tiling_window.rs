@@ -38,6 +38,7 @@ struct TilingWindowInner {
   tiling_size: f32,
   native: NativeWindow,
   state: WindowState,
+  prev_state: Option<WindowState>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -49,6 +50,7 @@ impl TilingWindow {
   pub fn new(
     id: Option<Uuid>,
     native: NativeWindow,
+    prev_state: Option<WindowState>,
     floating_placement: Rect,
     inner_gap: LengthValue,
   ) -> Self {
@@ -60,6 +62,7 @@ impl TilingWindow {
       tiling_size: 1.0,
       native,
       state: WindowState::Tiling,
+      prev_state,
       display_state: DisplayState::Shown,
       border_delta: RectDelta::new(
         LengthValue::new_px(0.),
@@ -100,6 +103,7 @@ impl TilingWindow {
       x: self.x()?,
       y: self.y()?,
       state: self.state(),
+      prev_state: self.prev_state(),
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       has_pending_dpi_adjustment: self.has_pending_dpi_adjustment(),
@@ -132,6 +136,7 @@ pub struct TilingWindowDto {
   x: i32,
   y: i32,
   state: WindowState,
+  prev_state: Option<WindowState>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,

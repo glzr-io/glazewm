@@ -109,6 +109,7 @@ fn create_window(
     WindowState::Tiling => TilingWindow::new(
       None,
       native_window,
+      None,
       floating_placement,
       config.value.gaps.inner_gap.clone(),
     )

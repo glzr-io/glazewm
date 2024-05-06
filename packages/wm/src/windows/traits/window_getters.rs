@@ -10,6 +10,8 @@ use crate::{
 pub trait WindowGetters {
   fn state(&self) -> WindowState;
 
+  fn prev_state(&self) -> Option<WindowState>;
+
   fn native(&self) -> NativeWindow;
 
   fn border_delta(&self) -> RectDelta;
@@ -40,6 +42,10 @@ macro_rules! impl_window_getters {
     impl WindowGetters for $struct_name {
       fn state(&self) -> WindowState {
         self.0.borrow().state.clone()
+      }
+
+      fn prev_state(&self) -> Option<WindowState> {
+        self.0.borrow().prev_state.clone()
       }
 
       fn native(&self) -> NativeWindow {
