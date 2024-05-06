@@ -15,7 +15,7 @@ pub fn update_window_state(
   window: WindowContainer,
   window_state: WindowState,
   state: &mut WmState,
-  config: &mut UserConfig,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   if window.state() == window_state {
     return Ok(());
@@ -30,7 +30,7 @@ pub fn update_window_state(
 fn set_tiling(
   window: WindowContainer,
   state: &mut WmState,
-  config: &mut UserConfig,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   if let WindowContainer::NonTilingWindow(window) = window {
     let workspace = window

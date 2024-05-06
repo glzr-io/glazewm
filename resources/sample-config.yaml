@@ -5,23 +5,9 @@ general:
   # Whether to jump the cursor between windows focused by the WM.
   cursor_follows_focus: false
 
-  # Whether to switch back and forth between the previously focused workspace
-  # when focusing the current workspace.
+  # Whether to switch back and forth between the previously focused
+  # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: true
-
-  # Whether to show floating windows as always on top.
-  show_floating_on_top: false
-
-  # Amount to move floating windows by (eg. when using `alt+<hjkl>` on a floating window)
-  floating_window_move_amount: '5%'
-
-  # Whether to center new floating windows by default.
-  center_new_floating_windows: true
-
-  # *Strongly* recommended to set to 'false'. Whether to globally enable/disable
-  # window transition animations (on minimize, close, etc). Set to 'unchanged'
-  # to make no setting changes.
-  window_animations: 'unchanged'
 
 gaps:
   # Gap between adjacent windows.
@@ -36,7 +22,6 @@ focus_borders:
   active:
     enabled: true
     color: '#0000ff'
-
   inactive:
     enabled: false
     color: '#ff0000'
@@ -53,22 +38,25 @@ workspaces:
   - name: '9'
 
 window_rules:
-  # Task Manager requires admin privileges to manage and should be ignored unless running
-  # the WM as admin.
+  # Task Manager requires admin privileges to manage and should be ignored
+  # unless running the WM as admin.
   - commands: ['ignore']
     match_process_name: '/Taskmgr|ScreenClippingHost/'
 
-  # Launches system dialogs as floating by default (eg. File Explorer save/open dialog).
+  # Launches system dialogs as floating by default (e.g. File Explorer save
+  # and open dialog).
   - commands: ['set_floating']
     match_class_name: '#32770'
 
-  # Do not manage picture-in-picture windows for browsers. Note that the default is for
-  # English; change `match_title` to the window's title if you use another language.
+  # Do not manage picture-in-picture windows for browsers. Note that the
+  # default is for English; change `match_title` to the window's title if
+  # you use another language.
   - commands: ['ignore']
     match_title: '[Pp]icture.in.[Pp]icture'
     match_class_name: 'Chrome_WidgetWin_1|MozillaDialogClass'
 
-  # Some applications (eg. Steam) have borders that extend past the normal border size.
+  # Some applications (e.g. Steam) have borders that extend past the normal
+  # border size.
   - commands: ['adjust_borders --right -7px --bottom -7px --left -7px']
     match_process_name: 'steam'
 
@@ -119,12 +107,14 @@ keybindings:
   - commands: ['resize --height -2%']
     bindings: ['Alt+I']
 
-  # As an alternative to the resize keybindings above, resize mode enables resizing via
-  # HJKL or arrow keys. The binding mode is defined above with the name 'resize'.
+  # As an alternative to the resize keybindings above, resize mode enables
+  # resizing via HJKL or arrow keys. The binding mode is defined above with
+  # the name 'resize'.
   - commands: ['wm_enable_binding_mode --name resize']
     bindings: ['Alt+R']
 
-  # Change tiling direction. This determines where new tiling windows will be inserted.
+  # Change tiling direction. This determines where new tiling windows will
+  # be inserted.
   - commands: ['toggle_tiling_direction']
     bindings: ['Alt+V']
 
@@ -156,8 +146,9 @@ keybindings:
   - commands: ['wm_reload_config']
     bindings: ['Alt+Shift+R']
 
-  # Launch CMD terminal (alternatively `exec wt` or `exec %ProgramFiles%/Git/git-bash.exe`
-  # to start Windows Terminal and Git Bash respectively.
+  # Launch CMD terminal. Alternatively `shell_exec --command wt` or
+  # `shell_exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
+  # Terminal and Git Bash respectively.
   - commands: ['shell_exec --command cmd']
     bindings: ['Alt+Enter']
 
@@ -191,7 +182,8 @@ keybindings:
   - commands: ['focus --workspace 9']
     bindings: ['Alt+9']
 
-  # Move the focused window's parent workspace to a monitor in a given direction.
+  # Move the focused window's parent workspace to a monitor in a given
+  # direction.
   - commands: ['move_workspace --dir left']
     bindings: ['Alt+A']
   - commands: ['move_workspace --dir right']

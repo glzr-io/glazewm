@@ -82,7 +82,7 @@ impl WindowManager {
       _ => Ok(()),
     }?;
 
-    redraw(&mut state, config)?;
+    redraw(&mut state)?;
     sync_native_focus(&mut state)?;
 
     Ok(())
@@ -118,7 +118,7 @@ impl WindowManager {
         }
     }
 
-    redraw(&mut state, config)?;
+    redraw(&mut state)?;
     sync_native_focus(&mut state)?;
 
     Ok(())

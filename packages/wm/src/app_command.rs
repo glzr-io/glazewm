@@ -8,7 +8,7 @@ use tracing::Level;
 use crate::{
   common::{Direction, LengthValue},
   containers::{traits::CommonGetters, Container},
-  user_config::UserConfig,
+  user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::update_window_state, traits::WindowGetters, WindowState,
   },
@@ -118,12 +118,21 @@ pub enum InvokeCommand {
   },
   Resize(InvokeResizeCommand),
   SetFloating {
-    #[clap(long)]
-    centered: bool,
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    show_on_top: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    centered: Option<bool>,
   },
   SetFullscreen {
-    #[clap(long)]
-    maximized: bool,
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    show_on_top: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    maximized: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    remove_title_bar: Option<bool>,
   },
   SetMinimized,
   SetTiling,
@@ -132,12 +141,21 @@ pub enum InvokeCommand {
     command: Vec<String>,
   },
   ToggleFloating {
-    #[clap(long)]
-    centered: bool,
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    show_on_top: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    centered: Option<bool>,
   },
   ToggleFullscreen {
-    #[clap(long)]
-    maximized: bool,
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    show_on_top: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    maximized: Option<bool>,
+
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    remove_title_bar: Option<bool>,
   },
   ToggleMinimized,
   ToggleTiling,
@@ -146,11 +164,11 @@ pub enum InvokeCommand {
     #[clap(long)]
     name: String,
   },
-  WmExit,
   WmEnableBindingMode {
     #[clap(long)]
     name: String,
   },
+  WmExit,
   WmRedraw,
   WmReloadConfig,
   WmToggleFocusMode,
@@ -175,35 +193,87 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::Focus(_) => todo!(),
+      InvokeCommand::Focus(args) => {
+        if let Some(direction) = &args.direction {
+          todo!()
+        }
+
+        if let Some(workspace) = &args.workspace {
+          todo!()
+        }
+
+        if args.next_workspace {
+          todo!()
+        }
+
+        if args.prev_workspace {
+          todo!()
+        }
+
+        if args.recent_workspace {
+          todo!()
+        }
+
+        Ok(())
+      }
       InvokeCommand::Ignore => todo!(),
       InvokeCommand::Move(_) => todo!(),
       InvokeCommand::MoveWorkspace { direction } => todo!(),
       InvokeCommand::Resize(_) => todo!(),
-      InvokeCommand::SetFloating { centered } => {
+      InvokeCommand::SetFloating {
+        centered,
+        show_on_top,
+      } => match subject_container.as_window_container() {
+        Ok(window) => {
+          let floating_defaults =
+            &config.value.window_state_defaults.floating;
+
+          update_window_state(
+            window,
+            WindowState::Floating(FloatingStateConfig {
+              centered: centered.unwrap_or(floating_defaults.centered),
+              show_on_top: show_on_top
+                .unwrap_or(floating_defaults.show_on_top),
+            }),
+            state,
+            config,
+          )
+        }
+        _ => Ok(()),
+      },
+      InvokeCommand::SetFullscreen {
+        maximized,
+        show_on_top,
+        remove_title_bar,
+      } => match subject_container.as_window_container() {
+        Ok(window) => {
+          let fullscreen_defaults =
+            &config.value.window_state_defaults.fullscreen;
+
+          update_window_state(
+            window,
+            WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: maximized
+                .unwrap_or(fullscreen_defaults.maximized),
+              show_on_top: show_on_top
+                .unwrap_or(fullscreen_defaults.show_on_top),
+              remove_title_bar: remove_title_bar
+                .unwrap_or(fullscreen_defaults.remove_title_bar),
+            }),
+            state,
+            config,
+          )
+        }
+        _ => Ok(()),
+      },
+      InvokeCommand::SetMinimized => {
         match subject_container.as_window_container() {
           Ok(window) => update_window_state(
             window,
-            WindowState::Floating,
+            WindowState::Minimized,
             state,
             config,
           ),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::SetFullscreen { maximized } => {
-        match subject_container.as_window_container() {
-          Ok(window) => match maximized {
-            true => window.native().maximize(),
-            // false => window.native().set_position(),
-            false => Ok(()),
-          },
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::SetMinimized => {
-        match subject_container.as_window_container() {
-          Ok(window) => window.native().minimize(),
           _ => Ok(()),
         }
       }
@@ -216,31 +286,16 @@ impl InvokeCommand {
         }
       }
       InvokeCommand::ShellExec { command } => todo!(),
-      InvokeCommand::ToggleFloating { centered } => {
-        match subject_container.as_window_container() {
-          // TODO: Toggle floating.
-          Ok(window) => update_window_state(
-            window,
-            WindowState::Floating,
-            state,
-            config,
-          ),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::ToggleFullscreen { maximized } => todo!(),
-      InvokeCommand::ToggleMinimized => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            if window.native().is_minimized() {
-              window.native().restore()
-            } else {
-              window.native().minimize()
-            }
-          }
-          _ => Ok(()),
-        }
-      }
+      InvokeCommand::ToggleFloating {
+        centered,
+        show_on_top,
+      } => todo!(),
+      InvokeCommand::ToggleFullscreen {
+        maximized,
+        show_on_top,
+        remove_title_bar,
+      } => todo!(),
+      InvokeCommand::ToggleMinimized => todo!(),
       InvokeCommand::ToggleTiling => todo!(),
       InvokeCommand::ToggleTilingDirection => todo!(),
       InvokeCommand::WmDisableBindingMode { name } => todo!(),

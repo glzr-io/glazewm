@@ -89,11 +89,12 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
-  // Calculate where window should be placed when floating is enabled. Use the original
-  // width/height of the window and optionally position it in the center of the workspace.
+  // Calculate where window should be placed when floating is enabled. Use
+  // the original width/height of the window and optionally position it in
+  // the center of the workspace.
   let floating_placement = if nearest_workspace.id()
     == target_workspace.id()
-    && !config.value.general.center_new_floating_windows
+    && !config.value.window_state_defaults.floating.centered
   {
     native_window.placement()
   } else {
@@ -102,20 +103,7 @@ fn create_window(
       .translate_to_center(&target_workspace.to_rect()?)
   };
 
-  let window_state = window_state_to_create(&native_window);
-
-  // TODO: Instead always use None and move this logic to handler for
-  // toggling minimized state.
-  let prev_window_state = match window_state {
-    WindowState::Minimized => {
-      if native_window.is_resizable() {
-        Some(WindowState::Tiling)
-      } else {
-        Some(WindowState::Floating)
-      }
-    }
-    _ => None,
-  };
+  let window_state = window_state_to_create(&native_window, config);
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
@@ -129,7 +117,7 @@ fn create_window(
       None,
       native_window,
       window_state,
-      prev_window_state,
+      None,
       None,
       floating_placement,
     )
@@ -153,16 +141,28 @@ fn create_window(
   Ok(window_container)
 }
 
+/// Gets the initial state for a window based on its native state.
+///
 /// Note that maximized windows are initialized as tiling.
-/// TODO: Handle detection of fullscreen windows.
-fn window_state_to_create(native_window: &NativeWindow) -> WindowState {
+fn window_state_to_create(
+  native_window: &NativeWindow,
+  config: &UserConfig,
+) -> WindowState {
   if native_window.is_minimized() {
     return WindowState::Minimized;
   }
 
+  if native_window.is_fullscreen() {
+    return WindowState::Fullscreen(
+      config.value.window_state_defaults.fullscreen.clone(),
+    );
+  }
+
   // Initialize windows that can't be resized as floating.
   if !native_window.is_resizable() {
-    return WindowState::Floating;
+    return WindowState::Floating(
+      config.value.window_state_defaults.floating.clone(),
+    );
   }
 
   WindowState::Tiling
@@ -174,12 +174,11 @@ fn insertion_target(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  if focused_container.is_workspace() {
-    Ok((focused_container, 0))
-  } else {
-    Ok((
+  match focused_container.is_workspace() {
+    true => Ok((focused_container, 0)),
+    false => Ok((
       focused_container.parent().context("No insertion target.")?,
       focused_container.index() + 1,
-    ))
+    )),
   }
 }

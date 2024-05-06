@@ -31,7 +31,7 @@ use windows::{
   },
 };
 
-use crate::common::Rect;
+use crate::{common::Rect, windows::WindowState};
 
 pub type WindowHandle = HWND;
 
@@ -196,7 +196,7 @@ impl NativeWindow {
     self.has_window_style(WS_THICKFRAME)
   }
 
-  pub fn is_app_bar(&self) -> bool {
+  pub fn is_fullscreen(&self) -> bool {
     // TODO
     false
   }
@@ -269,7 +269,9 @@ impl NativeWindow {
 
   pub fn set_position(
     &self,
-    args: &SetPositionArgs,
+    state: &WindowState,
+    is_visible: bool,
+    rect: &Rect,
   ) -> anyhow::Result<()> {
     let mut swp_flags = SWP_FRAMECHANGED
       | SWP_NOACTIVATE
@@ -278,32 +280,27 @@ impl NativeWindow {
       | SWP_ASYNCWINDOWPOS;
 
     // Whether to show or hide the window.
-    if args.visible {
+    if is_visible {
       swp_flags |= SWP_SHOWWINDOW;
     } else {
       swp_flags |= SWP_HIDEWINDOW;
     };
 
-    // Whether to actually move and resize the window.
-    if !args.move_and_resize {
-      swp_flags |= SWP_NOSIZE;
-      swp_flags |= SWP_NOMOVE;
-    }
-
     // Whether the window should be shown above all other windows.
-    let z_order = match args.show_on_top {
-      true => HWND_TOPMOST,
-      false => HWND_NOTOPMOST,
+    let z_order = match state {
+      WindowState::Floating(s) if s.show_on_top => HWND_TOPMOST,
+      WindowState::Fullscreen(s) if s.show_on_top => HWND_TOPMOST,
+      _ => HWND_NOTOPMOST,
     };
 
     unsafe {
       SetWindowPos(
-        args.window_handle,
+        self.handle,
         z_order,
-        args.rect.x(),
-        args.rect.y(),
-        args.rect.width(),
-        args.rect.height(),
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
         swp_flags,
       )
     }?;
@@ -319,16 +316,6 @@ impl PartialEq for NativeWindow {
 }
 
 impl Eq for NativeWindow {}
-
-/// Arguments to pass to `NativeWindow::set_position`.
-#[derive(Debug)]
-pub struct SetPositionArgs {
-  pub window_handle: WindowHandle,
-  pub visible: bool,
-  pub show_on_top: bool,
-  pub move_and_resize: bool,
-  pub rect: Rect,
-}
 
 pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
   available_window_handles()?

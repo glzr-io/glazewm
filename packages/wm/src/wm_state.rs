@@ -44,11 +44,6 @@ pub struct WmState {
   /// Names of any currently enabled binding modes.
   pub binding_modes: Vec<String>,
 
-  /// Any appbar windows (application desktop toolbars) that have been
-  /// detected. Positioning changes of appbars can affect the working area
-  /// of the parent monitor, and requires windows to be redrawn.
-  pub app_bar_windows: Vec<NativeWindow>,
-
   /// Sender for emitting WM-related events.
   event_tx: mpsc::UnboundedSender<WmEvent>,
 }
@@ -62,7 +57,6 @@ impl WmState {
       active_border_window: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
-      app_bar_windows: Vec::new(),
       event_tx,
     }
   }
@@ -80,11 +74,6 @@ impl WmState {
     }
 
     for native_window in Platform::manageable_windows()? {
-      // Register appbar windows.
-      if native_window.is_app_bar() {
-        self.app_bar_windows.push(native_window.clone());
-      }
-
       let nearest_workspace = self
         .nearest_monitor(&native_window)
         .and_then(|m| m.displayed_workspace());
@@ -109,7 +98,7 @@ impl WmState {
     set_focused_descendant(container_to_focus, None);
     self.has_pending_focus_sync = true;
 
-    redraw(self, config)?;
+    redraw(self)?;
     sync_native_focus(self)?;
 
     Ok(())
@@ -179,7 +168,7 @@ impl WmState {
 
   /// Gets windows that should be redrawn.
   ///
-  /// When redrawing after a command that changes a window's type (eg.
+  /// When redrawing after a command that changes a window's type (e.g.
   /// tiling -> floating), the original detached window might still be
   /// queued for a redraw and should be ignored.
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {

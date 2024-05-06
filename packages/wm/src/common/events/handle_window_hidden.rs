@@ -12,12 +12,6 @@ pub fn handle_window_hidden(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // TODO: Refresh monitor state.
-  if native_window.is_app_bar() {
-    state.app_bar_windows.retain(|w| w != &native_window);
-    return Ok(());
-  }
-
   let found_window = state.window_from_native(&native_window);
 
   if let Some(window) = found_window {

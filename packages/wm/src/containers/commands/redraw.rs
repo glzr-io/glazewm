@@ -1,40 +1,14 @@
 use anyhow::Context;
 
 use crate::{
-  common::{platform::SetPositionArgs, DisplayState},
-  containers::{
-    traits::{CommonGetters, PositionGetters},
-    WindowContainer,
-  },
-  user_config::UserConfig,
+  common::DisplayState,
+  containers::traits::{CommonGetters, PositionGetters},
   windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
 
-pub fn redraw(
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  let windows_to_redraw = state.windows_to_redraw();
-
-  // Get windows that are minimized/maximized and shouldn't be.
-  let windows_to_restore = windows_to_redraw
-    .iter()
-    .filter(|window| match window.state() {
-      WindowState::Minimized | WindowState::Fullscreen => false,
-      _ => {
-        window.native().is_maximized() || window.native().is_minimized()
-      }
-    })
-    .collect::<Vec<_>>();
-
-  // Restore minimized and maximized windows. Needed to be able to move and
-  // resize them.
-  for window in &windows_to_restore {
-    let _ = window.native().restore();
-  }
-
-  for window in &windows_to_redraw {
+pub fn redraw(state: &mut WmState) -> anyhow::Result<()> {
+  for window in &state.windows_to_redraw() {
     let workspace = window
       .parent_workspace()
       .context("Window has no workspace.")?;
@@ -53,54 +27,48 @@ pub fn redraw(
       },
     );
 
-    let position_args = get_position_args(
-      &window,
-      config.value.general.show_floating_on_top,
-    )?;
+    // Restore window if it's minimized and shouldn't be. This is needed to
+    // be able to move and resize it.
+    if window.state() != WindowState::Minimized
+      && window.native().is_minimized()
+    {
+      let _ = window.native().restore();
+    }
 
-    let _ = window.native().set_position(&position_args);
+    // Avoid adjusting the borders of non-tiling windows. Otherwise the
+    // window will increase in size from its original placement.
+    let rect = match window.state() {
+      WindowState::Tiling => {
+        window.to_rect()?.apply_delta(&window.border_delta())
+      }
+      _ => window.to_rect()?,
+    };
+
+    let is_visible = match window.display_state() {
+      DisplayState::Showing | DisplayState::Shown => true,
+      _ => false,
+    };
+
+    let _ =
+      window
+        .native()
+        .set_position(&window.state(), is_visible, &rect);
 
     // When there's a mismatch between the DPI of the monitor and the
     // window, the window might be sized incorrectly after the first move.
     // If we set the position twice, inconsistencies after the first move
     // are resolved.
     if window.has_pending_dpi_adjustment() {
-      let _ = window.native().set_position(&position_args);
+      let _ =
+        window
+          .native()
+          .set_position(&window.state(), is_visible, &rect);
+
       window.set_has_pending_dpi_adjustment(false);
     }
   }
 
   state.clear_containers_to_redraw();
+
   Ok(())
-}
-
-fn get_position_args(
-  window: &WindowContainer,
-  show_floating_on_top: bool,
-) -> anyhow::Result<SetPositionArgs> {
-  // Avoid adjusting the borders of non-tiling windows. Otherwise the
-  // window will increase in size from its original placement.
-  let rect = match window.state() {
-    WindowState::Tiling => {
-      window.to_rect()?.apply_delta(&window.border_delta())
-    }
-    _ => window.to_rect()?,
-  };
-
-  Ok(SetPositionArgs {
-    window_handle: window.native().handle,
-    visible: match window.display_state() {
-      DisplayState::Showing | DisplayState::Shown => true,
-      _ => false,
-    },
-    show_on_top: match window.state() {
-      WindowState::Floating => show_floating_on_top,
-      _ => false,
-    },
-    move_and_resize: match window.state() {
-      WindowState::Floating | WindowState::Tiling => true,
-      _ => false,
-    },
-    rect,
-  })
 }

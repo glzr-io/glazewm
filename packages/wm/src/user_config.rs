@@ -14,113 +14,8 @@ use crate::{
   workspaces::Workspace,
 };
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct KeybindingConfig {
-  /// Keyboard shortcut to trigger the keybinding.
-  pub bindings: Vec<String>,
-
-  /// WM commands to run when the keybinding is triggered.
-  pub commands: Vec<InvokeCommand>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct BindingModeConfig {
-  /// Name of the binding mode.
-  pub name: String,
-
-  /// Display name of the binding mode.
-  pub display_name: Option<String>,
-
-  /// Keybindings that will be active when the binding mode is active.
-  pub keybindings: Vec<KeybindingConfig>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct GapsConfig {
-  /// Gap between adjacent windows.
-  pub inner_gap: LengthValue,
-
-  /// Gap between windows and the screen edge.
-  pub outer_gap: RectDelta,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct GeneralConfig {
-  /// Whether to show floating windows as always on top.
-  pub show_floating_on_top: bool,
-
-  /// Center the cursor in the middle of a newly focused window.
-  pub cursor_follows_focus: bool,
-
-  /// Focus the window directly under the cursor at all times.
-  pub focus_follows_cursor: bool,
-
-  /// Amount by which to move floating windows
-  pub floating_window_move_amount: LengthValue,
-
-  /// If activated, by switching to the current workspace the previous
-  /// focused workspace is activated.
-  pub toggle_workspace_on_refocus: bool,
-
-  /// Whether to enable window transition animations (on minimize, close).
-  pub window_animations: WindowAnimations,
-
-  /// Whether to center new floating windows
-  pub center_new_floating_windows: bool,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum WindowAnimations {
-  Enabled,
-  Disabled,
-  Unchanged,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct FocusBorder {
-  /// Whether to use a custom border color.
-  pub enabled: bool,
-
-  /// Border color of the window.
-  pub color: String,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct FocusBordersConfig {
-  /// Border of the focused window.
-  pub active: FocusBorder,
-
-  /// Border of non-focused windows.
-  pub inactive: FocusBorder,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct WindowRuleConfig {
-  pub match_process_name: Option<String>,
-  pub match_class_name: Option<String>,
-  pub match_title: Option<String>,
-  pub commands: Vec<InvokeCommand>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct WorkspaceConfig {
-  pub name: String,
-  pub display_name: Option<String>,
-  pub bind_to_monitor: Option<String>,
-  pub keep_alive: Option<bool>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct ParsedConfig {
-  pub binding_modes: Vec<BindingModeConfig>,
-  pub focus_borders: FocusBordersConfig,
-  pub gaps: GapsConfig,
-  pub general: GeneralConfig,
-  pub keybindings: Vec<KeybindingConfig>,
-  pub window_rules: Vec<WindowRuleConfig>,
-  pub workspaces: Vec<WorkspaceConfig>,
-}
+const SAMPLE_CONFIG: &str =
+  include_str!("../../../resources/sample-config.yaml");
 
 #[derive(Debug)]
 pub struct UserConfig {
@@ -128,9 +23,6 @@ pub struct UserConfig {
   pub changes_rx: mpsc::UnboundedReceiver<()>,
   pub changes_tx: mpsc::UnboundedSender<()>,
 }
-
-const SAMPLE_CONFIG: &str =
-  include_str!("../../../resources/sample-config.yaml");
 
 impl UserConfig {
   /// Read and validate the user config from the given path.
@@ -183,8 +75,8 @@ impl UserConfig {
     Ok(())
   }
 
-  // TODO: Maybe this should be on the impl of `UserConfig` instead.
   async fn refresh(&self) -> Result<()> {
+    // TODO
     Ok(())
   }
 
@@ -224,4 +116,134 @@ impl UserConfig {
       .cloned()
       .cloned()
   }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ParsedConfig {
+  pub binding_modes: Vec<BindingModeConfig>,
+  pub focus_borders: FocusBordersConfig,
+  pub gaps: GapsConfig,
+  pub general: GeneralConfig,
+  pub keybindings: Vec<KeybindingConfig>,
+  pub window_rules: Vec<WindowRuleConfig>,
+  pub window_state_defaults: WindowStateDefaultsConfig,
+  pub workspaces: Vec<WorkspaceConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct BindingModeConfig {
+  /// Name of the binding mode.
+  pub name: String,
+
+  /// Display name of the binding mode.
+  pub display_name: Option<String>,
+
+  /// Keybindings that will be active when the binding mode is active.
+  pub keybindings: Vec<KeybindingConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct FocusBordersConfig {
+  /// Border of the focused window.
+  pub active: FocusBorder,
+
+  /// Border of non-focused windows.
+  pub inactive: FocusBorder,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct FocusBorder {
+  /// Whether to use a custom border color.
+  pub enabled: bool,
+
+  /// Border color of the window.
+  pub color: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GapsConfig {
+  /// Gap between adjacent windows.
+  pub inner_gap: LengthValue,
+
+  /// Gap between windows and the screen edge.
+  pub outer_gap: RectDelta,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GeneralConfig {
+  /// Center the cursor in the middle of a newly focused window.
+  pub cursor_follows_focus: bool,
+
+  /// Focus the window directly under the cursor at all times.
+  pub focus_follows_cursor: bool,
+
+  /// Amount by which to move floating windows
+  pub floating_window_move_amount: LengthValue,
+
+  /// If activated, by switching to the current workspace the previous
+  /// focused workspace is activated.
+  pub toggle_workspace_on_refocus: bool,
+
+  /// Whether to enable window transition animations (on minimize, close).
+  pub window_animations: WindowAnimations,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowAnimations {
+  Enabled,
+  Disabled,
+  Unchanged,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KeybindingConfig {
+  /// Keyboard shortcut to trigger the keybinding.
+  pub bindings: Vec<String>,
+
+  /// WM commands to run when the keybinding is triggered.
+  pub commands: Vec<InvokeCommand>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct WindowRuleConfig {
+  pub match_process_name: Option<String>,
+  pub match_class_name: Option<String>,
+  pub match_title: Option<String>,
+  pub commands: Vec<InvokeCommand>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct WindowStateDefaultsConfig {
+  pub floating: FloatingStateConfig,
+  pub fullscreen: FullscreenStateConfig,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct FloatingStateConfig {
+  /// Whether to center new floating windows.
+  pub centered: bool,
+
+  /// Whether to show floating windows as always on top.
+  pub show_on_top: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct FullscreenStateConfig {
+  /// Whether to prefer fullscreen windows to be maximized.
+  pub maximized: bool,
+
+  /// Whether to show fullscreen windows as always on top.
+  pub show_on_top: bool,
+
+  /// Whether to remove the window's title bar when fullscreen.
+  pub remove_title_bar: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceConfig {
+  pub name: String,
+  pub display_name: Option<String>,
+  pub bind_to_monitor: Option<String>,
+  pub keep_alive: Option<bool>,
 }
