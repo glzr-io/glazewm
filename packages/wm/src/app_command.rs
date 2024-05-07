@@ -173,7 +173,7 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
-  WmToggleFocusMode,
+  WmToggleFocusState,
 }
 
 impl InvokeCommand {
@@ -363,7 +363,7 @@ impl InvokeCommand {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => todo!(),
-      InvokeCommand::WmToggleFocusMode => todo!(),
+      InvokeCommand::WmToggleFocusState => todo!(),
     }
   }
 }

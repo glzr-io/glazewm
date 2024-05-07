@@ -27,12 +27,25 @@ pub fn redraw(state: &mut WmState) -> anyhow::Result<()> {
       },
     );
 
-    // Restore window if it's minimized and shouldn't be. This is needed to
-    // be able to move and resize it.
-    if window.state() != WindowState::Minimized
-      && window.native().is_minimized()
-    {
-      let _ = window.native().restore();
+    // Restore window if it's minimized/maximized and shouldn't be. This is
+    // needed to be able to move and resize it.
+    match window.state() {
+      // Need to restore window if transitioning from maximized fullscreen
+      // to non-maximized fullscreen.
+      WindowState::Fullscreen(s) => {
+        if !s.maximized && window.native().is_maximized() {
+          let _ = window.native().restore();
+        }
+      }
+      // No need to restore window if it'll be minimized. Transitioning
+      // from maximized to minimized works without restoring.
+      WindowState::Minimized => {}
+      _ => {
+        if window.native().is_minimized() || window.native().is_maximized()
+        {
+          let _ = window.native().restore();
+        }
+      }
     }
 
     // Avoid adjusting the borders of non-tiling windows. Otherwise the

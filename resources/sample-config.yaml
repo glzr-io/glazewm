@@ -32,14 +32,14 @@ window_state_defaults:
     centered: true
 
     # Whether to show floating windows as always on top.
-    show_on_top: true
+    show_on_top: false
 
   fullscreen:
     # Whether to prefer fullscreen windows to be maximized.
     maximized: true
 
     # Whether to show fullscreen windows as always on top.
-    show_on_top: true
+    show_on_top: false
 
     # Whether to remove the window's title bar when fullscreen.
     remove_title_bar: false
@@ -137,7 +137,7 @@ keybindings:
     bindings: ['Alt+V']
 
   # Change focus between tiling windows and floating/fullscreen windows.
-  - commands: ['wm_toggle_focus_mode']
+  - commands: ['wm_toggle_focus_state']
     bindings: ['Alt+Space']
 
   # Change the focused window to be floating.

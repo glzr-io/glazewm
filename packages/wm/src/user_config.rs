@@ -172,28 +172,17 @@ pub struct GapsConfig {
 #[derive(Clone, Debug, Deserialize)]
 pub struct GeneralConfig {
   /// Center the cursor in the middle of a newly focused window.
+  #[serde(default = "default_bool::<false>")]
   pub cursor_follows_focus: bool,
 
   /// Focus the window directly under the cursor at all times.
+  #[serde(default = "default_bool::<false>")]
   pub focus_follows_cursor: bool,
-
-  /// Amount by which to move floating windows
-  pub floating_window_move_amount: LengthValue,
 
   /// If activated, by switching to the current workspace the previous
   /// focused workspace is activated.
+  #[serde(default = "default_bool::<true>")]
   pub toggle_workspace_on_refocus: bool,
-
-  /// Whether to enable window transition animations (on minimize, close).
-  pub window_animations: WindowAnimations,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum WindowAnimations {
-  Enabled,
-  Disabled,
-  Unchanged,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -222,21 +211,26 @@ pub struct WindowStateDefaultsConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct FloatingStateConfig {
   /// Whether to center new floating windows.
+  #[serde(default = "default_bool::<true>")]
   pub centered: bool,
 
   /// Whether to show floating windows as always on top.
+  #[serde(default = "default_bool::<false>")]
   pub show_on_top: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct FullscreenStateConfig {
   /// Whether to prefer fullscreen windows to be maximized.
+  #[serde(default = "default_bool::<true>")]
   pub maximized: bool,
 
   /// Whether to show fullscreen windows as always on top.
+  #[serde(default = "default_bool::<false>")]
   pub show_on_top: bool,
 
   /// Whether to remove the window's title bar when fullscreen.
+  #[serde(default = "default_bool::<false>")]
   pub remove_title_bar: bool,
 }
 
@@ -245,5 +239,11 @@ pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,
   pub bind_to_monitor: Option<String>,
-  pub keep_alive: Option<bool>,
+  #[serde(default = "default_bool::<false>")]
+  pub keep_alive: bool,
+}
+
+/// Helper function for setting a default value for a boolean field.
+const fn default_bool<const V: bool>() -> bool {
+  V
 }
