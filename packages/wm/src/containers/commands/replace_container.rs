@@ -8,6 +8,8 @@ use crate::{
   },
 };
 
+use super::{attach_container, detach_container, resize_tiling_container};
+
 /// Replaces a container at the specified index.
 ///
 /// The replaced container will be detached from the tree.
@@ -28,41 +30,37 @@ pub fn replace_container(
     .cloned()
     .with_context(|| format!("No container at index {}.", target_index))?;
 
-  match (
-    container_to_replace.as_tiling_container(),
-    replacement_container.as_tiling_container(),
-  ) {
-    (Ok(container_to_replace), Ok(replacement_container)) => {
-      replacement_container
-        .set_tiling_size(container_to_replace.tiling_size());
-    }
-    (Ok(container_to_replace), Err(_)) => {
-      let tiling_siblings =
-        container_to_replace.tiling_siblings().collect::<Vec<_>>();
+  let focus_index = container_to_replace.focus_index();
+  let tiling_size = container_to_replace
+    .as_tiling_container()
+    .map(|c| c.tiling_size());
 
-      let tiling_size_increment =
-        container_to_replace.tiling_size() / tiling_siblings.len() as f32;
+  // TODO: This will cause issues if the detach causes a wrapping split
+  // container to flatten. Currently, that scenario shouldn't be possible.
+  // We also can't attach first before detaching, because detaching
+  // removes child based on ID and both containers might have the same ID.
+  detach_container(container_to_replace)?;
 
-      // Adjust size of the siblings of the removed container.
-      for sibling in &tiling_siblings {
-        sibling
-          .set_tiling_size(sibling.tiling_size() + tiling_size_increment);
-      }
-    }
-    _ => {}
-  }
+  attach_container(
+    &replacement_container,
+    &target_parent,
+    Some(target_index),
+  )?;
 
-  // Replace the container at the given index.
-  target_parent
-    .borrow_children_mut()
-    .replace(&container_to_replace, replacement_container.clone());
-
+  // Shift to the correct focus index.
   target_parent
     .borrow_child_focus_order_mut()
-    .replace(&container_to_replace.id(), replacement_container.id());
+    .shift_to_index(focus_index, replacement_container.id());
 
-  *replacement_container.borrow_parent_mut() = Some(target_parent.clone());
-  *container_to_replace.borrow_parent_mut() = None;
+  // Match the tiling size of the replaced container if the replacement
+  // is also a tiling container.
+  if let Ok(tiling_size) = tiling_size {
+    if let Ok(replacement_container) =
+      replacement_container.as_tiling_container()
+    {
+      resize_tiling_container(&replacement_container, tiling_size);
+    }
+  }
 
   Ok(())
 }
