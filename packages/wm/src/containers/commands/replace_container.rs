@@ -28,12 +28,28 @@ pub fn replace_container(
     .cloned()
     .with_context(|| format!("No container at index {}.", target_index))?;
 
-  if let (Ok(container_to_replace), Ok(replacement_container)) = (
+  match (
     container_to_replace.as_tiling_container(),
     replacement_container.as_tiling_container(),
   ) {
-    replacement_container
-      .set_tiling_size(container_to_replace.tiling_size());
+    (Ok(container_to_replace), Ok(replacement_container)) => {
+      replacement_container
+        .set_tiling_size(container_to_replace.tiling_size());
+    }
+    (Ok(container_to_replace), Err(_)) => {
+      let tiling_siblings =
+        container_to_replace.tiling_siblings().collect::<Vec<_>>();
+
+      let tiling_size_increment =
+        container_to_replace.tiling_size() / tiling_siblings.len() as f32;
+
+      // Adjust size of the siblings of the removed container.
+      for sibling in &tiling_siblings {
+        sibling
+          .set_tiling_size(sibling.tiling_size() + tiling_size_increment);
+      }
+    }
+    _ => {}
   }
 
   // Replace the container at the given index.

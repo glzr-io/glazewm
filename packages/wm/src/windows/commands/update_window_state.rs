@@ -68,11 +68,11 @@ fn set_tiling(
 
     move_container_within_tree(
       tiling_window.clone().into(),
-      target_parent,
+      target_parent.clone(),
       target_index,
     )?;
 
-    state.add_container_to_redraw(tiling_window.into());
+    state.add_container_to_redraw(target_parent);
   }
 
   Ok(())
@@ -108,15 +108,15 @@ fn set_non_tiling(
         window.index(),
       )?;
 
+      // Focus should be reassigned after a window has been minimized.
       if window_state == WindowState::Minimized {
-        state.unmanaged_or_minimized_timestamp =
-          Some(std::time::Instant::now());
-        state.has_pending_focus_sync = true;
-
         if let Some(focus_target) =
           state.focus_target_after_removal(&non_tiling_window.into())
         {
           set_focused_descendant(focus_target, None);
+          state.has_pending_focus_sync = true;
+          state.unmanaged_or_minimized_timestamp =
+            Some(std::time::Instant::now());
         }
       }
 

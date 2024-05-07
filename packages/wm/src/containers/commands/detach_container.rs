@@ -51,16 +51,14 @@ fn resize_sibling_containers(
   let tiling_size_increment =
     child_to_remove.tiling_size() / tiling_siblings.len() as f32;
 
-  // Adjust size of the siblings of the removed container.
-  for container_to_resize in &tiling_siblings {
-    container_to_resize.set_tiling_size(
-      container_to_resize.tiling_size() + tiling_size_increment,
-    );
+  // Adjust size of the siblings based on the freed up space.
+  for sibling in &tiling_siblings {
+    sibling.set_tiling_size(sibling.tiling_size() + tiling_size_increment);
   }
 
-  // If there is exactly *one* sibling to the detached container, then flatten that
-  // sibling if it's a split container. This is to handle layouts like H[1 V[2 H[3]]],
-  // where container 2 gets detached.
+  // If there is exactly *one* sibling to the detached container, then
+  // flatten that sibling if it's a split container. This is to handle
+  // layouts like H[1 V[2 H[3]]], where container 2 gets detached.
   if tiling_siblings.len() == 1 {
     if let Some(split_sibling) = tiling_siblings[0].as_split().cloned() {
       let split_sibling_parent =

@@ -13,7 +13,9 @@ use crate::{
     commands::sync_native_focus,
     events::{
       handle_window_destroyed, handle_window_focused,
-      handle_window_hidden, handle_window_minimized, handle_window_shown,
+      handle_window_hidden, handle_window_location_changed,
+      handle_window_minimize_ended, handle_window_minimized,
+      handle_window_shown,
     },
     platform::PlatformEvent,
   },
@@ -71,11 +73,15 @@ impl WindowManager {
       PlatformEvent::WindowHidden(window) => {
         handle_window_hidden(window, &mut state, config)
       }
-      PlatformEvent::WindowLocationChanged(_) => Ok(()),
+      PlatformEvent::WindowLocationChanged(window) => {
+        handle_window_location_changed(window, &mut state, config)
+      }
       PlatformEvent::WindowMinimized(window) => {
         handle_window_minimized(window, &mut state, config)
       }
-      PlatformEvent::WindowMinimizeEnded(_) => Ok(()),
+      PlatformEvent::WindowMinimizeEnded(window) => {
+        handle_window_minimize_ended(window, &mut state, config)
+      }
       PlatformEvent::WindowMovedOrResized(_) => Ok(()),
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, &mut state, config)
