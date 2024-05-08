@@ -21,11 +21,20 @@ namespace GlazeWM.Bar.Components
     /// </summary>
     public string ActiveBindingMode => _containerService.ActiveBindingMode;
 
+    private string GetVisibility()
+    {
+      if (_config.DefaultLabel.Length == 0)
+      {
+        return ActiveBindingMode is null ? "Collapsed" : "Visible";
+      }
+
+      return "Visible";
+    }
+
     /// <summary>
     /// Hide component when no binding mode is active.
     /// </summary>
-    public override string Visibility =>
-      _config.DefaultLabel is "" ? "Collapsed" : "Visible"; //Uses the config value as the deciding factor on visibility, seems to work
+    public override string Visibility => GetVisibility();
 
     private LabelViewModel _label;
     public LabelViewModel Label
