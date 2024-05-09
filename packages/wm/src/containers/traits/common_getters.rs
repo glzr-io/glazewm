@@ -64,6 +64,11 @@ pub trait CommonGetters {
     !self.borrow_children().is_empty()
   }
 
+  /// Whether this container has any siblings.
+  fn has_siblings(&self) -> bool {
+    self.siblings().count() > 0
+  }
+
   /// Whether this container is detached from the tree (i.e. it does not
   /// have a parent).
   fn is_detached(&self) -> bool {
@@ -184,19 +189,28 @@ pub trait CommonGetters {
     }
   }
 
-  fn parent_workspace(&self) -> Option<Workspace> {
+  /// Workspace that this container belongs to.
+  ///
+  /// Note that this might return the container itself.
+  fn workspace(&self) -> Option<Workspace> {
     self
       .self_and_ancestors()
       .find_map(|container| container.as_workspace().cloned())
   }
 
-  fn parent_monitor(&self) -> Option<Monitor> {
+  /// Monitor that this container belongs to.
+  ///
+  /// Note that this might return the container itself.
+  fn monitor(&self) -> Option<Monitor> {
     self
       .self_and_ancestors()
       .find_map(|container| container.as_monitor().cloned())
   }
 
-  fn parent_direction_container(&self) -> Option<DirectionContainer> {
+  /// Nearest direction container (i.e. split container or workspace).
+  ///
+  /// Note that this might return the container itself.
+  fn direction_container(&self) -> Option<DirectionContainer> {
     self
       .self_and_ancestors()
       .find_map(|container| container.try_into().ok())

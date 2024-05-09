@@ -43,7 +43,7 @@ async fn main() {
       );
 
       if let Err(err) = start_wm(config_path).await {
-        eprintln!("Failed to start GlazeWM: {}", err);
+        error!("Failed to start GlazeWM: {}", err);
       }
     }
     _ => todo!(),

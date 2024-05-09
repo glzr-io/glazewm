@@ -71,7 +71,7 @@ impl WindowManager {
         handle_window_focused(window, &mut state, config)
       }
       PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(window, &mut state, config)
+        handle_window_hidden(window, &mut state)
       }
       PlatformEvent::WindowLocationChanged(window) => {
         handle_window_location_changed(window, &mut state, config)

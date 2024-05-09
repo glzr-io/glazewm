@@ -9,9 +9,8 @@ use crate::{
 
 pub fn redraw(state: &mut WmState) -> anyhow::Result<()> {
   for window in &state.windows_to_redraw() {
-    let workspace = window
-      .parent_workspace()
-      .context("Window has no workspace.")?;
+    let workspace =
+      window.workspace().context("Window has no workspace.")?;
 
     // Transition display state depending on whether window will be
     // shown or hidden.

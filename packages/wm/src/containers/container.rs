@@ -39,6 +39,15 @@ impl From<WindowContainer> for Container {
   }
 }
 
+impl From<DirectionContainer> for Container {
+  fn from(direction_container: DirectionContainer) -> Self {
+    match direction_container {
+      DirectionContainer::Split(c) => Container::Split(c),
+      DirectionContainer::Workspace(c) => Container::Workspace(c),
+    }
+  }
+}
+
 impl PartialEq for Container {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()

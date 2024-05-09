@@ -69,8 +69,7 @@ impl Monitor {
     &self,
     other: &Container,
   ) -> anyhow::Result<bool> {
-    let other_monitor =
-      other.parent_monitor().context("No parent monitor.")?;
+    let other_monitor = other.monitor().context("No parent monitor.")?;
 
     Ok(self.native().dpi != other_monitor.native().dpi)
   }

@@ -7,7 +7,9 @@ use tracing::Level;
 
 use crate::{
   common::{Direction, LengthValue},
-  containers::{traits::CommonGetters, Container},
+  containers::{
+    commands::toggle_tiling_direction, traits::CommonGetters, Container,
+  },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{toggle_window_state, update_window_state},
@@ -353,7 +355,9 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::ToggleTilingDirection => todo!(),
+      InvokeCommand::ToggleTilingDirection => {
+        toggle_tiling_direction(subject_container, state, config)
+      }
       InvokeCommand::WmDisableBindingMode { name } => todo!(),
       InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmEnableBindingMode { name } => todo!(),

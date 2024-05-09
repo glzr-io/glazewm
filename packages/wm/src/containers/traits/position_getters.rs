@@ -46,10 +46,7 @@ macro_rules! impl_position_getters_as_resizable {
           TilingDirection::Vertical => parent.width(),
           TilingDirection::Horizontal => {
             let inner_gap = self.inner_gap().to_pixels(
-              self
-                .parent_monitor()
-                .context("No parent monitor.")?
-                .width()?,
+              self.monitor().context("No parent monitor.")?.width()?,
             );
 
             let available_width = parent.width()?
@@ -70,10 +67,7 @@ macro_rules! impl_position_getters_as_resizable {
           TilingDirection::Horizontal => parent.height(),
           TilingDirection::Vertical => {
             let inner_gap = self.inner_gap().to_pixels(
-              self
-                .parent_monitor()
-                .context("No parent monitor.")?
-                .width()?,
+              self.monitor().context("No parent monitor.")?.width()?,
             );
 
             let available_height = parent.height()?
@@ -102,10 +96,7 @@ macro_rules! impl_position_getters_as_resizable {
             }
 
             let inner_gap = self.inner_gap().to_pixels(
-              self
-                .parent_monitor()
-                .context("No parent monitor.")?
-                .width()?,
+              self.monitor().context("No parent monitor.")?.width()?,
             );
 
             Ok(prev_sibling.x()? + prev_sibling.width()? + inner_gap)
@@ -131,10 +122,7 @@ macro_rules! impl_position_getters_as_resizable {
             }
 
             let inner_gap = self.inner_gap().to_pixels(
-              self
-                .parent_monitor()
-                .context("No parent monitor.")?
-                .width()?,
+              self.monitor().context("No parent monitor.")?.width()?,
             );
 
             Ok(prev_sibling.y()? + prev_sibling.height()? + inner_gap)

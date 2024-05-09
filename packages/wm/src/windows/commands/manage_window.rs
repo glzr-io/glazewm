@@ -77,9 +77,8 @@ fn create_window(
     None => insertion_target(state)?,
   };
 
-  let target_workspace = target_parent
-    .parent_workspace()
-    .context("No target workspace.")?;
+  let target_workspace =
+    target_parent.workspace().context("No target workspace.")?;
 
   let nearest_monitor = state
     .nearest_monitor(&native_window)

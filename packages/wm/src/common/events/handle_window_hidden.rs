@@ -2,7 +2,6 @@ use tracing::info;
 
 use crate::{
   common::{platform::NativeWindow, DisplayState},
-  user_config::UserConfig,
   windows::{commands::unmanage_window, traits::WindowGetters},
   wm_state::WmState,
 };
@@ -10,7 +9,6 @@ use crate::{
 pub fn handle_window_hidden(
   native_window: NativeWindow,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
 

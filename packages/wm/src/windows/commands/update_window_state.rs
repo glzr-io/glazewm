@@ -37,7 +37,7 @@ fn set_tiling(
 ) -> anyhow::Result<()> {
   if let WindowContainer::NonTilingWindow(window) = window {
     let workspace = window
-      .parent_workspace()
+      .workspace()
       .context("Window has no workspace.")?;
 
     // Get the position in the tree to insert the new tiling window. This
@@ -90,7 +90,7 @@ fn set_non_tiling(
     }
     WindowContainer::TilingWindow(window) => {
       let workspace = window
-        .parent_workspace()
+        .workspace()
         .context("Window has no workspace.")?;
 
       move_container_within_tree(

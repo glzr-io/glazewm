@@ -37,7 +37,6 @@ pub fn flatten_split_container(
 
   let index = split_container.index();
   let focus_index = split_container.focus_index();
-  let child_focus_order = split_container.borrow_child_focus_order();
 
   // Insert child at its original index in the parent.
   for (child_index, child) in updated_children.enumerate() {
@@ -47,7 +46,10 @@ pub fn flatten_split_container(
   }
 
   // Insert child at its original focus index in the parent.
-  for (child_focus_index, child_id) in child_focus_order.iter().enumerate()
+  for (child_focus_index, child_id) in split_container
+    .borrow_child_focus_order()
+    .iter()
+    .enumerate()
   {
     parent
       .borrow_child_focus_order_mut()

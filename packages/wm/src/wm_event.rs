@@ -30,6 +30,7 @@ pub enum WmEvent {
     focused_container: Container,
   },
   TilingDirectionChanged {
+    modified_id: Uuid,
     new_tiling_direction: TilingDirection,
   },
   UserConfigReloaded,

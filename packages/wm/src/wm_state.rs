@@ -231,7 +231,7 @@ impl WmState {
     }
 
     // Get descendant focus order excluding the removed container.
-    let workspace = removed_window.parent_workspace()?;
+    let workspace = removed_window.workspace()?;
     let descendant_focus_order = workspace
       .descendant_focus_order()
       .filter(|descendant| descendant.id() != removed_window.id())
