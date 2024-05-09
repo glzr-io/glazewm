@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
   common::TilingDirection,
   containers::{
-    traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters},
+    traits::{CommonGetters, TilingDirectionGetters},
     Container, DirectionContainer, SplitContainer,
   },
   user_config::UserConfig,
@@ -15,8 +15,7 @@ use crate::{
 };
 
 use super::{
-  attach_container, detach_container, flatten_split_container,
-  replace_container,
+  attach_container, flatten_split_container, replace_container,
 };
 
 pub fn toggle_tiling_direction(

@@ -3,16 +3,16 @@ use super::RectDelta;
 #[derive(Debug, Clone)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
-  left: i32,
+  pub left: i32,
 
   /// Y-coordinate of the top edge of the rectangle.
-  top: i32,
+  pub top: i32,
 
   /// X-coordinate of the right edge of the rectangle.
-  right: i32,
+  pub right: i32,
 
   /// Y-coordinate of the bottom edge of the rectangle.
-  bottom: i32,
+  pub bottom: i32,
 }
 
 impl Rect {

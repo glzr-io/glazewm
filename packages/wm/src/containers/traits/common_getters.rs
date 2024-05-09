@@ -264,6 +264,11 @@ pub trait CommonGetters {
 
     Some(descendant)
   }
+
+  /// Whether this container is currently focused.
+  fn is_focused(&self) -> bool {
+    self.self_and_ancestors().all(|c| c.focus_index() == 0)
+  }
 }
 
 /// An iterator over ancestors of a given container.

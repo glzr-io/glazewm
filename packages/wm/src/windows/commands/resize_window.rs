@@ -141,7 +141,7 @@ fn resize_floating_window(
   // Prevent resize from making the window smaller than minimum dimensions.
   // Always allow the size to be increased, even if the window would still
   // be within minimum dimension values.
-  if resize_pixels < 0
+  if resize_pixels <= 0
     && (new_width < MIN_FLOATING_WIDTH || new_height < MIN_FLOATING_HEIGHT)
   {
     return Ok(());

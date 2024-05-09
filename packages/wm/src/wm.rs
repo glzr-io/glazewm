@@ -15,7 +15,7 @@ use crate::{
       handle_window_destroyed, handle_window_focused,
       handle_window_hidden, handle_window_location_changed,
       handle_window_minimize_ended, handle_window_minimized,
-      handle_window_shown,
+      handle_window_moved_or_resized, handle_window_shown,
     },
     platform::PlatformEvent,
   },
@@ -82,7 +82,9 @@ impl WindowManager {
       PlatformEvent::WindowMinimizeEnded(window) => {
         handle_window_minimize_ended(window, &mut state, config)
       }
-      PlatformEvent::WindowMovedOrResized(_) => Ok(()),
+      PlatformEvent::WindowMovedOrResized(window) => {
+        handle_window_moved_or_resized(window, &mut state)
+      }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, &mut state, config)
       }
