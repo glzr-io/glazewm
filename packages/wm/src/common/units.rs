@@ -32,19 +32,27 @@ impl LengthValue {
       }
     }
   }
+
+  pub fn to_percent(&self, total: i32) -> f32 {
+    match self.unit {
+      LengthUnit::Pixel => self.amount / total as f32,
+      LengthUnit::Percentage => self.amount / 100.0,
+    }
+  }
 }
 
 impl FromStr for LengthValue {
   type Err = anyhow::Error;
 
   /// Parses a string containing a number followed by a unit (`px`, `%`).
+  /// Allows for negative numbers.
   ///
   /// Example:
   /// ```
   /// LengthValue::from_str("100px") // { amount: 100.0, unit: LengthUnit::Pixel }
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
-    let units_regex = Regex::new(r"(\d+)(%|ppt|px)?")?;
+    let units_regex = Regex::new(r"(-?\d+)(%|ppt|px)?")?;
 
     let err_msg = format!(
       "Not a valid length value '{}'. Must be of format '10px' or '10%'.",

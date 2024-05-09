@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use regex::Regex;
 use std::env;
 use std::process::Command;
+use tracing::error;
 
 pub fn exec_process(process_name: &str, args: &[String]) -> Result<()> {
   // Expand user profile environment variable

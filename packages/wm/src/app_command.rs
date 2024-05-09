@@ -6,13 +6,13 @@ use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
 use crate::{
-  common::{Direction, LengthValue},
+  common::{Direction, LengthValue, ResizeDimension},
   containers::{
     commands::toggle_tiling_direction, traits::CommonGetters, Container,
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::{toggle_window_state, update_window_state},
+    commands::{resize_window, toggle_window_state, update_window_state},
     traits::WindowGetters,
     WindowState,
   },
@@ -223,7 +223,32 @@ impl InvokeCommand {
       InvokeCommand::Ignore => todo!(),
       InvokeCommand::Move(_) => todo!(),
       InvokeCommand::MoveWorkspace { direction } => todo!(),
-      InvokeCommand::Resize(_) => todo!(),
+      InvokeCommand::Resize(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            if let Some(width) = &args.width {
+              resize_window(
+                window.clone(),
+                ResizeDimension::Width,
+                width.clone(),
+                state,
+              )?
+            }
+
+            if let Some(height) = &args.height {
+              resize_window(
+                window,
+                ResizeDimension::Height,
+                height.clone(),
+                state,
+              )?
+            }
+
+            Ok(())
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::SetFloating {
         centered,
         show_on_top,
@@ -359,8 +384,8 @@ impl InvokeCommand {
         toggle_tiling_direction(subject_container, state, config)
       }
       InvokeCommand::WmDisableBindingMode { name } => todo!(),
-      InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmEnableBindingMode { name } => todo!(),
+      InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();
         state.add_container_to_redraw(root_container.into());

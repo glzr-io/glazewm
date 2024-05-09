@@ -4,10 +4,12 @@ use crate::{
   common::{LengthValue, Rect, ResizeDimension, TilingDirection},
   containers::{
     commands::resize_tiling_container,
-    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, WindowContainer,
+    traits::{
+      CommonGetters, PositionGetters, TilingDirectionGetters,
+      TilingSizeGetters,
+    },
+    Container, DirectionContainer, TilingContainer, WindowContainer,
   },
-  user_config::UserConfig,
   windows::{
     traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
   },
@@ -22,16 +24,16 @@ pub fn resize_window(
   resize_dimension: ResizeDimension,
   resize_amount: LengthValue,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   match window {
-    WindowContainer::TilingWindow(window) => resize_tiling_window(
-      window,
-      resize_dimension,
-      resize_amount,
-      state,
-      config,
-    ),
+    WindowContainer::TilingWindow(window) => {
+      resize_tiling_window(
+        window,
+        resize_dimension,
+        resize_amount,
+        state,
+      )?;
+    }
     WindowContainer::NonTilingWindow(window) => {
       if matches!(window.state(), WindowState::Floating(_)) {
         resize_floating_window(
@@ -39,13 +41,12 @@ pub fn resize_window(
           resize_dimension,
           resize_amount,
           state,
-          config,
         )?;
       }
-
-      Ok(())
     }
   }
+
+  Ok(())
 }
 
 fn resize_tiling_window(
@@ -53,24 +54,26 @@ fn resize_tiling_window(
   resize_dimension: ResizeDimension,
   resize_amount: LengthValue,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   // When resizing a tiling window, the container to resize can actually be
   // an ancestor split container.
   if let Some(container_to_resize) =
     container_to_resize(window.clone(), resize_dimension)?
   {
-    // Convert to a percentage to increase/decrease the window size by.
-    // let tiling_size_delta =
-    //   resize_amount.to_percentage(container_to_resize.tiling_size());
+    // Convert to a percentage to increase/decrease the tiling size by.
+    let parent = container_to_resize.parent().context("No parent.")?;
+    let resize_delta = resize_amount.to_percent(parent.width()?);
 
-    // resize_tiling_container(container_to_resize, tiling_size_delta);
+    if resize_delta != 0. {
+      resize_tiling_container(
+        &container_to_resize,
+        container_to_resize.tiling_size() + resize_delta,
+      );
 
-    // // TODO: Return early if `clamped_resize_percentage` is 0 to avoid
-    // // unnecessary redraws.
-    // state.add_container_to_redraw(
-    //   container_to_resize.parent().context("No parent.")?,
-    // );
+      state
+        .containers_to_redraw
+        .extend(parent.tiling_children().map(|c| c.into()));
+    }
   }
 
   Ok(())
@@ -79,7 +82,7 @@ fn resize_tiling_window(
 fn container_to_resize(
   window: TilingWindow,
   resize_dimension: ResizeDimension,
-) -> anyhow::Result<Option<Container>> {
+) -> anyhow::Result<Option<TilingContainer>> {
   let parent = window.direction_container().context("No parent.")?;
   let tiling_direction = parent.tiling_direction();
 
@@ -94,29 +97,28 @@ fn container_to_resize(
   };
 
   let container_to_resize = match is_inverse_resize {
-    true => parent.into(),
+    true => match parent {
+      // Prevent workspaces from being resized.
+      DirectionContainer::Split(parent) => Some(parent.into()),
+      _ => None,
+    },
     false => {
       let grandparent = parent.parent().context("No grandparent.")?;
 
-      // Resize grandparent in layouts like H[1 V[2 H[3]]], where container
-      // 3 is resized horizontally.
-      if window.tiling_siblings().count() == 0 && grandparent.is_split() {
-        grandparent
-      } else {
-        window.into()
+      match window.tiling_siblings().count() > 0 {
+        // Window can only be resized if it has siblings.
+        true => Some(window.into()),
+        // Resize grandparent in layouts like H[1 V[2 H[3]]], where
+        // container 3 is resized horizontally.
+        false => match grandparent {
+          Container::Split(grandparent) => Some(grandparent.into()),
+          _ => None,
+        },
       }
     }
   };
 
-  // Ignore cases where the container to resize is a workspace or the only
-  // child.
-  if container_to_resize.tiling_siblings().count() > 0
-    || container_to_resize.is_workspace()
-  {
-    return Ok(None);
-  }
-
-  Ok(Some(container_to_resize))
+  Ok(container_to_resize)
 }
 
 fn resize_floating_window(
@@ -124,24 +126,23 @@ fn resize_floating_window(
   resize_dimension: ResizeDimension,
   resize_amount: LengthValue,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let monitor = window.monitor().context("No monitor")?;
-  let amount = resize_amount.to_pixels(monitor.width()?);
+  let resize_pixels = resize_amount.to_pixels(monitor.width()?);
 
-  let mut width = window.floating_placement().width();
-  let mut height = window.floating_placement().height();
+  let mut new_width = window.floating_placement().width();
+  let mut new_height = window.floating_placement().height();
 
   match resize_dimension {
-    ResizeDimension::Width => width += amount,
-    ResizeDimension::Height => height += amount,
+    ResizeDimension::Width => new_width += resize_pixels,
+    ResizeDimension::Height => new_height += resize_pixels,
   }
 
   // Prevent resize from making the window smaller than minimum dimensions.
   // Always allow the size to be increased, even if the window would still
   // be within minimum dimension values.
-  if amount < 0
-    && (width < MIN_FLOATING_WIDTH || height < MIN_FLOATING_HEIGHT)
+  if resize_pixels < 0
+    && (new_width < MIN_FLOATING_WIDTH || new_height < MIN_FLOATING_HEIGHT)
   {
     return Ok(());
   }
@@ -149,8 +150,8 @@ fn resize_floating_window(
   window.set_floating_placement(Rect::from_xy(
     window.floating_placement().x(),
     window.floating_placement().y(),
-    width,
-    height,
+    new_width,
+    new_height,
   ));
 
   state.add_container_to_redraw(window.clone().into());

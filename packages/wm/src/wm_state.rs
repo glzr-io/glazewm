@@ -29,7 +29,7 @@ pub struct WmState {
   pub root_container: RootContainer,
 
   /// Containers (and their descendants) that have a pending redraw.
-  containers_to_redraw: Vec<Container>,
+  pub containers_to_redraw: Vec<Container>,
 
   /// Whether native focus needs to be reassigned to the WM's focused
   /// container.

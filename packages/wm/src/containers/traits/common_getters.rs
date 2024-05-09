@@ -91,6 +91,17 @@ pub trait CommonGetters {
       .unwrap_or(0)
   }
 
+  fn tiling_children(
+    &self,
+  ) -> Box<dyn Iterator<Item = TilingContainer> + '_> {
+    Box::new(
+      self
+        .children()
+        .into_iter()
+        .filter_map(|container| container.try_into().ok()),
+    )
+  }
+
   fn descendants(&self) -> Descendants {
     Descendants {
       stack: self.children(),
