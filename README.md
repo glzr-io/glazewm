@@ -1,4 +1,13 @@
-# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/glzr-io/glazewm/pulls) [![License](https://img.shields.io/github/license/glzr-io/GlazeWM)](https://github.com/glzr-io/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)
+# GlazeWM &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/glzr-io/glazewm/pulls) [![License](https://img.shields.io/github/license/glzr-io/GlazeWM)](https://github.com/glzr-io/GlazeWM/blob/master/LICENSE.md) [![Discord invite](https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA)](https://discord.gg/ud6z3qjRvM)  
+  
+### !!! ATTENTION !!!  
+
+GlazeWM's V3 overhaul is currently underway, including porting it over to Rust! Because of this, Pull Requests and additions in general will be put on hold bar any exceptions.
+Please [join the Discord server](https://discord.gg/ud6z3qjRvM) for up-to-date news and announcements, and [view the current rewrite progress in the tracker here.](https://github.com/glzr-io/glazewm/issues/604)  
+
+Thank you for your patience and understanding.  
+
+-----
 
 GlazeWM is a tiling window manager for Windows inspired by i3 and Polybar.
 
