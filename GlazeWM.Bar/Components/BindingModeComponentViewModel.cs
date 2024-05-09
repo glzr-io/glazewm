@@ -21,11 +21,20 @@ namespace GlazeWM.Bar.Components
     /// </summary>
     public string ActiveBindingMode => _containerService.ActiveBindingMode;
 
+    private string GetVisibility()
+    {
+      if (_config.DefaultLabel.Length == 0)
+      {
+        return ActiveBindingMode is null ? "Collapsed" : "Visible";
+      }
+
+      return "Visible";
+    }
+
     /// <summary>
     /// Hide component when no binding mode is active.
     /// </summary>
-    public override string Visibility =>
-      ActiveBindingMode is null ? "Collapsed" : "Visible";
+    public override string Visibility => GetVisibility();
 
     private LabelViewModel _label;
     public LabelViewModel Label
@@ -39,13 +48,14 @@ namespace GlazeWM.Bar.Components
       BindingModeComponentConfig config) : base(parentViewModel, config)
     {
       _config = config;
+      Label = CreateLabel(_config.DefaultLabel); //Propagates the default tag on startup
 
       _bus.Events.OfType<BindingModeChangedEvent>()
         .TakeUntil(_parentViewModel.WindowClosing)
         .Subscribe((@event) =>
         {
           OnPropertyChanged(nameof(Visibility));
-          Label = CreateLabel(@event.NewBindingMode);
+          Label = ActiveBindingMode is null ? CreateLabel(_config.DefaultLabel) : CreateLabel(@event.NewBindingMode); //Ensures that Label reverts to default tag once binding mode is exited.
         });
     }
 
