@@ -492,6 +492,7 @@ Use `Alt+Click` to pin and un-pin an icon.
 - type: "system tray"
   label_expand_text: "<"
   label_collapse_text: ">"
+  expanded: true
 ```
 
 #### Bar component: Music

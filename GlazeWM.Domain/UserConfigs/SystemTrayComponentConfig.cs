@@ -11,5 +11,10 @@ namespace GlazeWM.Domain.UserConfigs
     /// Collapse to show only pinned icons.
     /// </summary>
     public string LabelCollapseText { get; set; } = "<attr ff='pack://application:,,,/Resources/#Material Icons'></attr>";
+
+    /// <summary>
+    /// Expanded on startup
+    /// </summary>
+    public bool Expanded { get; set; } = true;
   }
 }
