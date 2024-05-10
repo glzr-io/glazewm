@@ -57,7 +57,7 @@ namespace GlazeWM.Bar.Components
       var variableDictionary = new Dictionary<string, Func<string>>()
       {
       // TODO: Make truncate max length configurable from config.
-        { "window_title", () => Truncate(windowTitle, 60) }
+        { "window_title", () => Truncate(windowTitle, _config.MaxWindowTitleLength) }
       };
 
       return XamlHelper.ParseLabel(_config.Label, variableDictionary, this);

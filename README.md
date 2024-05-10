@@ -346,6 +346,7 @@ Using the example of padding:
 - [Image](#bar-component-image)
 - [System Tray](#bar-component-system-tray)
 - [Music](#bar-component-music)
+- [Window Title](#bar-component-window-title)
 
 #### Bar component: Clock
 
@@ -505,6 +506,15 @@ Displays currently playing music.
   label_playing: "{song_title} - {artist_name} ▶"
   max_title_length: 20
   max_artist_length: 20
+```
+
+#### Bar component: Window Title
+
+Displays the title of the currently-selected window.
+
+```yaml
+- type: "window title"
+  max_window_title_length: 60
 ```
 
 ## Mixing font properties within a label
