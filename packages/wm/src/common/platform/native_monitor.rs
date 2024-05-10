@@ -1,49 +1,152 @@
-use windows::Win32::{
-  Foundation::{BOOL, LPARAM, RECT},
-  Graphics::Gdi::{
-    EnumDisplayMonitors, GetMonitorInfoW, MonitorFromWindow, HDC,
-    HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+use std::cell::OnceCell;
+
+use windows::{
+  core::PCWSTR,
+  Win32::{
+    Foundation::{BOOL, LPARAM, RECT},
+    Graphics::Gdi::{
+      EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
+      MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
+      HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+    },
+    UI::{
+      HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
+      WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME,
+    },
   },
-  UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
 };
 
 use super::WindowHandle;
 
 pub type MonitorHandle = HMONITOR;
 
-// TODO: Consider changing `device_name`, `width`, `height`, `x`, and `y` to
-// be lazily retrieved similar to in `NativeWindow`. Add an `refresh` method
-// to `NativeMonitor` to refresh the values.
 #[derive(Clone, Debug)]
 pub struct NativeMonitor {
   pub handle: MonitorHandle,
-  pub device_name: String,
-  pub width: i32,
-  pub height: i32,
-  pub x: i32,
-  pub y: i32,
-  pub dpi: f32,
+  info: OnceCell<MonitorInfo>,
+}
+
+#[derive(Clone, Debug)]
+struct MonitorInfo {
+  device_name: String,
+  device_path: Option<String>,
+  hardware_id: Option<String>,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  dpi: f32,
 }
 
 impl NativeMonitor {
-  pub fn new(
-    handle: MonitorHandle,
-    device_name: String,
-    width: i32,
-    height: i32,
-    x: i32,
-    y: i32,
-    dpi: f32,
-  ) -> Self {
+  pub fn new(handle: MonitorHandle) -> Self {
     Self {
       handle,
-      device_name,
-      width,
-      height,
-      x,
-      y,
-      dpi,
+      info: OnceCell::new(),
     }
+  }
+
+  pub fn device_name(&self) -> anyhow::Result<&String> {
+    self.monitor_info().map(|info| &info.device_name)
+  }
+
+  pub fn device_path(&self) -> anyhow::Result<Option<&String>> {
+    self.monitor_info().map(|info| info.device_path.as_ref())
+  }
+
+  pub fn hardware_id(&self) -> anyhow::Result<Option<&String>> {
+    self.monitor_info().map(|info| info.hardware_id.as_ref())
+  }
+
+  pub fn width(&self) -> anyhow::Result<i32> {
+    self.monitor_info().map(|info| info.width)
+  }
+
+  pub fn height(&self) -> anyhow::Result<i32> {
+    self.monitor_info().map(|info| info.height)
+  }
+
+  pub fn x(&self) -> anyhow::Result<i32> {
+    self.monitor_info().map(|info| info.x)
+  }
+
+  pub fn y(&self) -> anyhow::Result<i32> {
+    self.monitor_info().map(|info| info.y)
+  }
+
+  pub fn dpi(&self) -> anyhow::Result<f32> {
+    self.monitor_info().map(|info| info.dpi)
+  }
+
+  fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
+    self.info.get_or_try_init(|| {
+      let mut monitor_info = MONITORINFOEXW::default();
+      monitor_info.monitorInfo.cbSize =
+        std::mem::size_of::<MONITORINFOEXW>() as u32;
+
+      unsafe {
+        GetMonitorInfoW(self.handle, &mut monitor_info as *mut _ as _)
+      }
+      .ok()?;
+
+      // Get the display devices associated with the monitor.
+      let mut display_devices = (0..)
+        .map_while(|index| {
+          let mut display_device = DISPLAY_DEVICEW::default();
+          display_device.cb =
+            std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
+
+          // Due to the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the device
+          // struct will contain the DOS device path under the `DeviceId`
+          // field.
+          unsafe {
+            EnumDisplayDevicesW(
+              PCWSTR(monitor_info.szDevice.as_ptr()),
+              index,
+              &mut display_device,
+              EDD_GET_DEVICE_INTERFACE_NAME,
+            )
+          }
+          .as_bool()
+          .then(|| display_device)
+        })
+        // Filter out any devices that are not active.
+        .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0);
+
+      // Get the device path and hardware ID from the first valid device.
+      let (device_path, hardware_id) = display_devices
+        .next()
+        .map(|device| {
+          let device_path = String::from_utf16_lossy(&device.DeviceID)
+            .trim_end_matches('\0')
+            .to_string();
+
+          let hardware_id = device_path
+            .split("#")
+            .collect::<Vec<_>>()
+            .get(1)
+            .map(|id| id.to_string());
+
+          (Some(device_path), hardware_id)
+        })
+        .unwrap_or((None, None));
+
+      let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
+      let dpi = monitor_dpi(self.handle)?;
+
+      Ok(MonitorInfo {
+        device_name,
+        device_path,
+        hardware_id,
+        width: monitor_info.monitorInfo.rcMonitor.right
+          - monitor_info.monitorInfo.rcMonitor.left,
+        height: monitor_info.monitorInfo.rcMonitor.bottom
+          - monitor_info.monitorInfo.rcMonitor.top,
+        x: monitor_info.monitorInfo.rcMonitor.left,
+        y: monitor_info.monitorInfo.rcMonitor.top,
+        dpi,
+      })
+    })
   }
 }
 
@@ -55,11 +158,12 @@ impl PartialEq for NativeMonitor {
 
 impl Eq for NativeMonitor {}
 
+/// Gets all available monitors.
 pub fn available_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
   Ok(
     available_monitor_handles()?
       .into_iter()
-      .filter_map(|handle| handle_to_monitor(handle).ok())
+      .map(|handle| NativeMonitor::new(handle))
       .collect(),
   )
 }
@@ -94,40 +198,11 @@ extern "system" fn available_monitor_handles_proc(
   true.into()
 }
 
-/// Converts a monitor handle to an instance of `NativeMonitor`.
-fn handle_to_monitor(
-  handle: MonitorHandle,
-) -> anyhow::Result<NativeMonitor> {
-  let mut monitor_info = MONITORINFOEXW::default();
-  monitor_info.monitorInfo.cbSize =
-    std::mem::size_of::<MONITORINFOEXW>() as u32;
-
-  unsafe { GetMonitorInfoW(handle, &mut monitor_info as *mut _ as _) }
-    .ok()?;
-
-  let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
-  let dpi = monitor_dpi(handle)?;
-
-  Ok(NativeMonitor::new(
-    handle,
-    device_name,
-    monitor_info.monitorInfo.rcMonitor.right
-      - monitor_info.monitorInfo.rcMonitor.left,
-    monitor_info.monitorInfo.rcMonitor.bottom
-      - monitor_info.monitorInfo.rcMonitor.top,
-    monitor_info.monitorInfo.rcMonitor.left,
-    monitor_info.monitorInfo.rcMonitor.top,
-    dpi,
-  ))
-}
-
-pub fn nearest_monitor(
-  window_handle: WindowHandle,
-) -> anyhow::Result<NativeMonitor> {
+pub fn nearest_monitor(window_handle: WindowHandle) -> NativeMonitor {
   let handle =
     unsafe { MonitorFromWindow(window_handle, MONITOR_DEFAULTTONEAREST) };
 
-  handle_to_monitor(handle)
+  NativeMonitor::new(handle)
 }
 
 fn monitor_dpi(handle: MonitorHandle) -> anyhow::Result<f32> {

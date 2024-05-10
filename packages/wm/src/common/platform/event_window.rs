@@ -5,13 +5,13 @@ use std::{
 
 use anyhow::Result;
 use tokio::sync::{mpsc, oneshot};
-use tracing::warn;
+use tracing::{info, warn};
 use windows::Win32::{
   Foundation::{HWND, LPARAM, LRESULT, WPARAM},
   UI::WindowsAndMessaging::{
     DefWindowProcW, PostQuitMessage, DBT_DEVNODES_CHANGED,
     SPI_ICONVERTICALSPACING, SPI_SETWORKAREA, WM_DESTROY, WM_DEVICECHANGE,
-    WM_DISPLAYCHANGE, WM_SETTINGCHANGE,
+    WM_DISPLAYCHANGE, WM_POWERBROADCAST, WM_SETTINGCHANGE,
   },
 };
 
@@ -117,6 +117,11 @@ pub extern "system" fn event_window_proc(
       return match message {
         WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
           handle_display_change_msg(message, wparam, event_tx)
+        }
+        WM_POWERBROADCAST => {
+          info!("power mode changed------- {}", wparam.0 as u32);
+          event_tx.send(PlatformEvent::PowerModeChanged).unwrap();
+          LRESULT(0)
         }
         WM_DESTROY => {
           unsafe { PostQuitMessage(0) };

@@ -47,12 +47,8 @@ impl Monitor {
     self.0.borrow().native.clone()
   }
 
-  pub fn name(&self) -> String {
-    self.native().device_name
-  }
-
-  pub fn workspaces(&self) -> Vec<Workspace> {
-    todo!()
+  pub fn name(&self) -> anyhow::Result<String> {
+    self.native().device_name().cloned()
   }
 
   pub fn displayed_workspace(&self) -> Option<Workspace> {
@@ -71,7 +67,7 @@ impl Monitor {
   ) -> anyhow::Result<bool> {
     let other_monitor = other.monitor().context("No parent monitor.")?;
 
-    Ok(self.native().dpi != other_monitor.native().dpi)
+    Ok(self.native().dpi()? != other_monitor.native().dpi()?)
   }
 
   pub fn to_dto(&self) -> anyhow::Result<MonitorDto> {
@@ -94,7 +90,7 @@ impl Monitor {
       height: self.height()?,
       x: self.x()?,
       y: self.y()?,
-      dpi: self.native().dpi,
+      dpi: self.native().dpi()?,
     })
   }
 }
@@ -103,19 +99,19 @@ impl_common_getters!(Monitor, ContainerType::Monitor);
 
 impl PositionGetters for Monitor {
   fn width(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.width)
+    Ok(self.0.borrow().native.width()?)
   }
 
   fn height(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.height)
+    Ok(self.0.borrow().native.height()?)
   }
 
   fn x(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.x)
+    Ok(self.0.borrow().native.x()?)
   }
 
   fn y(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.y)
+    Ok(self.0.borrow().native.y()?)
   }
 }
 

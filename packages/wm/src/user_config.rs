@@ -101,7 +101,9 @@ impl UserConfig {
       config
         .bind_to_monitor
         .as_ref()
-        .map(|monitor_name| monitor_name == &monitor.name())
+        .and_then(|monitor_name| {
+          monitor.name().map(|n| &n == monitor_name).ok()
+        })
         .unwrap_or(false)
     });
 

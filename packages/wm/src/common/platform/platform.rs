@@ -43,9 +43,7 @@ impl Platform {
     native_monitor::available_monitors()
   }
 
-  pub fn nearest_monitor(
-    window: &NativeWindow,
-  ) -> anyhow::Result<NativeMonitor> {
+  pub fn nearest_monitor(window: &NativeWindow) -> NativeMonitor {
     native_monitor::nearest_monitor(window.handle)
   }
 

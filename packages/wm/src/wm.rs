@@ -12,10 +12,11 @@ use crate::{
   common::{
     commands::sync_native_focus,
     events::{
-      handle_window_destroyed, handle_window_focused,
-      handle_window_hidden, handle_window_location_changed,
-      handle_window_minimize_ended, handle_window_minimized,
-      handle_window_moved_or_resized, handle_window_shown,
+      handle_display_settings_changed, handle_window_destroyed,
+      handle_window_focused, handle_window_hidden,
+      handle_window_location_changed, handle_window_minimize_ended,
+      handle_window_minimized, handle_window_moved_or_resized,
+      handle_window_shown,
     },
     platform::PlatformEvent,
   },
@@ -62,7 +63,10 @@ impl WindowManager {
     let mut state = self.state.lock().await;
 
     match event {
-      PlatformEvent::DisplaySettingsChanged => Ok(()),
+      PlatformEvent::PowerModeChanged => Ok(()),
+      PlatformEvent::DisplaySettingsChanged => {
+        handle_display_settings_changed(&mut state, config)
+      }
       PlatformEvent::MouseMove(_) => Ok(()),
       PlatformEvent::WindowDestroyed(window) => {
         handle_window_destroyed(window, &mut state)

@@ -22,6 +22,9 @@ pub enum WmEvent {
   MonitorAdded {
     added_monitor: Monitor,
   },
+  MonitorUpdated {
+    updated_monitor: Monitor,
+  },
   MonitorRemoved {
     removed_id: Uuid,
     removed_device_name: String,

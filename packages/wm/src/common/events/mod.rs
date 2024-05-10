@@ -1,3 +1,4 @@
+mod handle_display_settings_changed;
 mod handle_window_destroyed;
 mod handle_window_focused;
 mod handle_window_hidden;
@@ -7,6 +8,7 @@ mod handle_window_minimized;
 mod handle_window_moved_or_resized;
 mod handle_window_shown;
 
+pub use handle_display_settings_changed::*;
 pub use handle_window_destroyed::*;
 pub use handle_window_focused::*;
 pub use handle_window_hidden::*;
