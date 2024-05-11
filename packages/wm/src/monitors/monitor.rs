@@ -103,19 +103,19 @@ impl_common_getters!(Monitor, ContainerType::Monitor);
 
 impl PositionGetters for Monitor {
   fn width(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.width()?)
+    Ok(self.0.borrow().native.working_rect()?.width())
   }
 
   fn height(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.height()?)
+    Ok(self.0.borrow().native.working_rect()?.height())
   }
 
   fn x(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.x()?)
+    Ok(self.0.borrow().native.working_rect()?.x())
   }
 
   fn y(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.y()?)
+    Ok(self.0.borrow().native.working_rect()?.y())
   }
 }
 

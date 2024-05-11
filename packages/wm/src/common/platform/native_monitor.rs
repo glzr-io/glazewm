@@ -16,6 +16,8 @@ use windows::{
   },
 };
 
+use crate::common::Rect;
+
 use super::WindowHandle;
 
 pub type MonitorHandle = HMONITOR;
@@ -31,10 +33,8 @@ struct MonitorInfo {
   device_name: String,
   device_path: Option<String>,
   hardware_id: Option<String>,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
+  rect: Rect,
+  working_rect: Rect,
   dpi: f32,
 }
 
@@ -58,20 +58,12 @@ impl NativeMonitor {
     self.monitor_info().map(|info| info.hardware_id.as_ref())
   }
 
-  pub fn width(&self) -> anyhow::Result<i32> {
-    self.monitor_info().map(|info| info.width)
+  pub fn rect(&self) -> anyhow::Result<&Rect> {
+    self.monitor_info().map(|info| &info.rect)
   }
 
-  pub fn height(&self) -> anyhow::Result<i32> {
-    self.monitor_info().map(|info| info.height)
-  }
-
-  pub fn x(&self) -> anyhow::Result<i32> {
-    self.monitor_info().map(|info| info.x)
-  }
-
-  pub fn y(&self) -> anyhow::Result<i32> {
-    self.monitor_info().map(|info| info.y)
+  pub fn working_rect(&self) -> anyhow::Result<&Rect> {
+    self.monitor_info().map(|info| &info.working_rect)
   }
 
   pub fn dpi(&self) -> anyhow::Result<f32> {
@@ -134,16 +126,28 @@ impl NativeMonitor {
       let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
       let dpi = monitor_dpi(self.handle)?;
 
+      let rc_monitor = monitor_info.monitorInfo.rcMonitor;
+      let rect = Rect::from_ltrb(
+        rc_monitor.left,
+        rc_monitor.top,
+        rc_monitor.right,
+        rc_monitor.bottom,
+      );
+
+      let rc_work = monitor_info.monitorInfo.rcWork;
+      let working_rect = Rect::from_ltrb(
+        rc_work.left,
+        rc_work.top,
+        rc_work.right,
+        rc_work.bottom,
+      );
+
       Ok(MonitorInfo {
         device_name,
         device_path,
         hardware_id,
-        width: monitor_info.monitorInfo.rcMonitor.right
-          - monitor_info.monitorInfo.rcMonitor.left,
-        height: monitor_info.monitorInfo.rcMonitor.bottom
-          - monitor_info.monitorInfo.rcMonitor.top,
-        x: monitor_info.monitorInfo.rcMonitor.left,
-        y: monitor_info.monitorInfo.rcMonitor.top,
+        rect,
+        working_rect,
         dpi,
       })
     })
