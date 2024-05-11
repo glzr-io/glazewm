@@ -47,6 +47,10 @@ impl Monitor {
     self.0.borrow().native.clone()
   }
 
+  pub fn set_native(&self, native: NativeMonitor) {
+    self.0.borrow_mut().native = native;
+  }
+
   pub fn name(&self) -> anyhow::Result<String> {
     self.native().device_name().cloned()
   }
