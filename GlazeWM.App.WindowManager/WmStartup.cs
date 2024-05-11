@@ -6,6 +6,7 @@ using GlazeWM.Domain.UserConfigs;
 using GlazeWM.Domain.UserConfigs.Commands;
 using GlazeWM.Domain.Windows;
 using GlazeWM.Domain.Windows.Commands;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using GlazeWM.Infrastructure.Common;
 using GlazeWM.Infrastructure.Common.Commands;
@@ -119,7 +120,7 @@ namespace GlazeWM.App.WindowManager
             .Select((@event) => @event.FocusedContainer);
 
           focusedContainerMoved.Merge(nativeFocusSynced)
-            .Where(container => container is Window)
+            .Where(container => container is Window or Workspace)
             .Subscribe((window) => _bus.InvokeAsync(new CenterCursorOnContainerCommand(window)));
         }
 

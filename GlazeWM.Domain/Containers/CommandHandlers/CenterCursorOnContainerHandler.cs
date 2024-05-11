@@ -1,5 +1,8 @@
+using System;
+using System.Runtime.InteropServices;
 using GlazeWM.Domain.Containers.Commands;
 using GlazeWM.Domain.UserConfigs;
+using GlazeWM.Domain.Workspaces;
 using GlazeWM.Infrastructure.Bussing;
 using static GlazeWM.Infrastructure.WindowsApi.WindowsApiService;
 
@@ -28,6 +31,23 @@ namespace GlazeWM.Domain.Containers.CommandHandlers
       var centerY = targetRect.Y + (targetRect.Height / 2);
 
       SetCursorPos(centerX, centerY);
+
+      var container = command.TargetContainer;
+
+      if (container is Workspace)
+      {
+        var inputs = new INPUT[1];
+        inputs[0].type = 0;
+        inputs[0].data.mi.dx = centerX;
+        inputs[0].data.mi.dy = centerY;
+        inputs[0].data.mi.dwFlags = MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP;
+
+        var result = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        if (result == 0)
+        {
+          throw new Exception("Error occurred while simulating mouse click. This is a bug.");
+        }
+      }
 
       return CommandResponse.Ok;
     }
