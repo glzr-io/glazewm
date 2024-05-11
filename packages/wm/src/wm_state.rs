@@ -9,7 +9,6 @@ use crate::{
   common::{
     commands::sync_native_focus,
     platform::{NativeMonitor, NativeWindow, Platform},
-    FocusMode,
   },
   containers::{
     commands::{redraw, set_focused_descendant},
@@ -196,14 +195,6 @@ impl WmState {
   /// a workspace without any descendant windows.
   pub fn focused_container(&self) -> Option<Container> {
     self.root_container.last_focused_descendant()
-  }
-
-  /// Whether a tiling or floating container is currently focused.
-  pub fn focus_mode(&self) -> Option<FocusMode> {
-    self.focused_container().map(|c| match c {
-      Container::NonTilingWindow(_) => FocusMode::Floating,
-      _ => FocusMode::Tiling,
-    })
   }
 
   pub fn emit_event(&self, event: WmEvent) {
