@@ -2,7 +2,7 @@ use tracing::info;
 
 use crate::{
   common::{platform::NativeWindow, DisplayState},
-  containers::{commands::set_focused_descendant, Container},
+  containers::commands::set_focused_descendant,
   user_config::UserConfig,
   windows::traits::WindowGetters,
   wm_event::WmEvent,
@@ -60,7 +60,7 @@ pub fn handle_window_focused(
     set_focused_descendant(window.clone().into(), None);
 
     state.emit_event(WmEvent::FocusChanged {
-      focused_container: Into::<Container>::into(window).clone(),
+      focused_container: window.clone().into(),
     })
   }
 

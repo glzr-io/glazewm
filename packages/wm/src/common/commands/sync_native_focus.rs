@@ -26,9 +26,8 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
     let _ = native_window.set_foreground();
   }
 
-  state.emit_event(WmEvent::NativeFocusSynced {
-    focused_container: focused_container.clone(),
-  });
+  // TODO: Change z-index of workspace windows that match the focused
+  // container's state.
 
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container,

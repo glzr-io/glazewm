@@ -29,9 +29,6 @@ pub enum WmEvent {
     removed_id: Uuid,
     removed_device_name: String,
   },
-  NativeFocusSynced {
-    focused_container: Container,
-  },
   TilingDirectionChanged {
     modified_id: Uuid,
     new_tiling_direction: TilingDirection,
