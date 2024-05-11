@@ -125,7 +125,7 @@ fn update_parent_workspace(
   move_container_within_tree(
     window.clone().into(),
     target_workspace.clone().into(),
-    target_workspace.children().len() - 1,
+    target_workspace.child_count(),
   )?;
 
   if window.is_focused() {

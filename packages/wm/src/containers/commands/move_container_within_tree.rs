@@ -114,24 +114,13 @@ fn move_to_lowest_common_ancestor(
     .context("TODO.")?
     .focus_index();
 
-  // Keep reference to container index and number of children that LCA has.
-  let original_index = container_to_move.index();
-  let original_lca_child_count = lowest_common_ancestor.child_count();
-
   detach_container(container_to_move.clone())?;
-
-  let should_adjust_target_index = original_lca_child_count
-    > lowest_common_ancestor.child_count()
-    && original_index < target_index;
 
   // Adjust for when target index changes on detach of container. For
   // example, when shifting a top-level container to the right in a
   // workspace.
-  let adjusted_target_index = if should_adjust_target_index {
-    target_index - 1
-  } else {
-    target_index
-  };
+  let adjusted_target_index =
+    target_index.clamp(0, lowest_common_ancestor.child_count());
 
   attach_container(
     &container_to_move.clone(),

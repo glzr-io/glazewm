@@ -36,13 +36,13 @@ fn set_tiling(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   if let WindowContainer::NonTilingWindow(window) = window {
-    let workspace = window
-      .workspace()
-      .context("Window has no workspace.")?;
+    let workspace =
+      window.workspace().context("Window has no workspace.")?;
 
     // Get the position in the tree to insert the new tiling window. This
     // will be the window's previous tiling position if it has one, or
     // instead beside the last focused tiling window in the workspace.
+    // TODO: Something is going wrong here.
     let (target_parent, target_index) = window
       .insertion_target()
       .or_else(|| {
@@ -89,22 +89,24 @@ fn set_non_tiling(
       state.add_container_to_redraw(window.into());
     }
     WindowContainer::TilingWindow(window) => {
-      let workspace = window
-        .workspace()
-        .context("Window has no workspace.")?;
+      let parent = window.parent().context("No parent")?;
+      let workspace = window.workspace().context("No workspace.")?;
 
-      move_container_within_tree(
-        window.clone().into(),
-        workspace.clone().into(),
-        workspace.child_count() - 1,
-      )?;
+      // Non-tiling windows should always be direct children of the
+      // workspace.
+      if parent != workspace.clone().into() {
+        move_container_within_tree(
+          window.clone().into(),
+          workspace.clone().into(),
+          workspace.child_count(),
+        )?;
+      }
 
       let non_tiling_window = window.to_non_tiling(window_state.clone());
-      let parent = window.parent().context("No parent")?;
 
       replace_container(
         non_tiling_window.clone().into(),
-        parent.clone(),
+        workspace.clone().into(),
         window.index(),
       )?;
 
@@ -120,7 +122,8 @@ fn set_non_tiling(
         }
       }
 
-      state.add_container_to_redraw(parent);
+      // TODO: Only redraw tiling descendants of the workspace.
+      state.add_container_to_redraw(workspace.into());
     }
   }
 

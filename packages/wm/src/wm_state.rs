@@ -143,6 +143,7 @@ impl WmState {
       .or(self.monitors().first().cloned())
   }
 
+  /// Gets monitor that corresponds to the given `NativeMonitor`.
   pub fn monitor_from_native(
     &self,
     native_monitor: &NativeMonitor,
@@ -154,6 +155,7 @@ impl WmState {
       .cloned()
   }
 
+  /// Gets window that corresponds to the given `NativeWindow`.
   pub fn window_from_native(
     &self,
     native_window: &NativeWindow,
