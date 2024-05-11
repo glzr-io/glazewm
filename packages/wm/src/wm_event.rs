@@ -51,7 +51,8 @@ pub enum WmEvent {
     deactivated_id: Uuid,
     deactivated_name: String,
   },
-  WorkingAreaResized {
-    affected_monitor: Monitor,
+  WorkspaceMoved {
+    workspace: Workspace,
+    new_monitor: Monitor,
   },
 }
