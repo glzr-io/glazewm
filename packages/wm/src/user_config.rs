@@ -80,12 +80,11 @@ impl UserConfig {
     Ok(())
   }
 
-  pub fn workspace_config_for_monitor(
+  pub fn inactive_workspace_configs(
     &self,
-    monitor: &Monitor,
     active_workspaces: &Vec<Workspace>,
-  ) -> Option<WorkspaceConfig> {
-    let inactive_configs = self
+  ) -> Vec<&WorkspaceConfig> {
+    self
       .value
       .workspaces
       .iter()
@@ -95,7 +94,16 @@ impl UserConfig {
           .find(|workspace| workspace.config().name == config.name)
           .is_none()
       })
-      .collect::<Vec<_>>();
+      .collect()
+  }
+
+  pub fn workspace_config_for_monitor(
+    &self,
+    monitor: &Monitor,
+    active_workspaces: &Vec<Workspace>,
+  ) -> Option<&WorkspaceConfig> {
+    let inactive_configs =
+      self.inactive_workspace_configs(active_workspaces);
 
     let bound_config = inactive_configs.iter().find(|&config| {
       config
@@ -115,7 +123,6 @@ impl UserConfig {
           .find(|config| config.bind_to_monitor.is_none()),
       )
       .or(inactive_configs.first())
-      .cloned()
       .cloned()
   }
 }

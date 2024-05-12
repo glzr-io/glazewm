@@ -21,7 +21,7 @@ pub fn activate_workspace(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let workspace_config =
-    get_workspace_config(workspace_name, target_monitor, state, config)?;
+    workspace_config(workspace_name, target_monitor, state, config)?;
 
   let tiling_direction =
     match target_monitor.height()? > target_monitor.width()? {
@@ -30,7 +30,7 @@ pub fn activate_workspace(
     };
 
   let workspace = Workspace::new(
-    workspace_config,
+    workspace_config.clone(),
     config.value.gaps.outer_gap.clone(),
     tiling_direction,
   );
@@ -49,7 +49,8 @@ pub fn activate_workspace(
   Ok(())
 }
 
-fn get_workspace_config(
+/// Gets config for the workspace to activate.
+fn workspace_config(
   workspace_name: Option<String>,
   target_monitor: &Monitor,
   state: &mut WmState,
@@ -57,23 +58,22 @@ fn get_workspace_config(
 ) -> anyhow::Result<WorkspaceConfig> {
   match workspace_name {
     Some(workspace_name) => {
-      let found_config = state
-        .workspaces()
-        .iter()
-        .find(|w| w.config().name == workspace_name)
+      let found_config = config
+        .inactive_workspace_configs(&state.workspaces())
+        .into_iter()
+        .find(|config| config.name == workspace_name)
         .with_context(|| {
           format!("Workspace with name {} doesn't exist.", workspace_name)
-        })?
-        .config();
+        })?;
 
-      Ok(found_config)
+      Ok(found_config.clone())
     }
     None => {
       let inactive_config = config
         .workspace_config_for_monitor(&target_monitor, &state.workspaces())
         .context("No workspace config found for monitor.")?;
 
-      Ok(inactive_config)
+      Ok(inactive_config.clone())
     }
   }
 }
