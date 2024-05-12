@@ -20,8 +20,8 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  // TODO: Sort `new_native_monitors` by position.
-  let native_monitors = Platform::monitors()?;
+  let native_monitors = Platform::sorted_monitors()?;
+
   let hardware_ids = native_monitors
     .iter()
     .filter_map(|m| m.hardware_id().ok())
@@ -33,11 +33,10 @@ pub fn handle_display_settings_changed(
   let mut new_native_monitors = Vec::new();
 
   for native_monitor in native_monitors {
-    // The `monitor_from_native` function uses the monitor's handle to
-    // find the corresponding monitor. Since the monitor handle can change
-    // after a display setting change, we also look for a matching device
-    // path or hardware ID. The hardware ID is not guaranteed to be unique,
-    // so we match against that last.
+    // Get the corresponding `Monitor` instance by either its handle,
+    // device path, or hardware ID. Monitor handles and device paths
+    // *should* be unique, but can both change over time. The hardware ID
+    // is not guaranteed to be unique, so we match against that last.
     let found_monitor = pending_monitors
       .iter()
       .find_map(|monitor| {
@@ -100,8 +99,15 @@ pub fn handle_display_settings_changed(
 
   // Remove any monitors that no longer exist and move their workspaces
   // to other monitors.
+  //
+  // Prevent removal of the last monitor (i.e. for when all monitors are
+  // disconnected). This will cause the WM's monitors to mismatch the OS
+  // monitor state, however, it'll be updated correctly when a new monitor
+  // is connected again.
   for pending_monitor in pending_monitors {
-    remove_monitor(pending_monitor, state)?;
+    if state.monitors().len() != 1 {
+      remove_monitor(pending_monitor, state)?;
+    }
   }
 
   for window in state.windows() {
@@ -112,7 +118,7 @@ pub fn handle_display_settings_changed(
     // Need to update floating position of moved windows when a monitor is
     // disconnected or if the primary display is changed. The primary
     // display dictates the position of 0,0.
-    let workspace = window.workspace().context("No workspace")?;
+    let workspace = window.workspace().context("No workspace.")?;
     window.set_floating_placement(
       window
         .floating_placement()
@@ -133,8 +139,9 @@ fn update_monitor(
   native_monitor: NativeMonitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  // TODO: Add monitor display trait.
   info!(
-    "Monitor: {:?} {} {:?} {:?}",
+    "Updating monitor: {:?} {} {:?} {:?}",
     native_monitor.handle,
     native_monitor.device_name()?,
     native_monitor.device_path()?,
@@ -155,6 +162,15 @@ fn remove_monitor(
   monitor: Monitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  // TODO: Add monitor display trait.
+  info!(
+    "Removing monitor: {:?} {} {:?} {:?}",
+    monitor.native().handle,
+    monitor.native().device_name()?,
+    monitor.native().device_path()?,
+    monitor.native().hardware_id()?
+  );
+
   let target_monitor = state
     .monitors()
     .into_iter()

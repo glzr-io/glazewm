@@ -17,6 +17,7 @@ use windows::Win32::UI::{
   WindowsAndMessaging::{GetDesktopWindow, GetForegroundWindow},
 };
 
+use crate::common::Rect;
 use crate::user_config::UserConfig;
 
 use super::{
@@ -39,8 +40,38 @@ impl Platform {
     NativeWindow::new(handle)
   }
 
-  pub fn monitors() -> anyhow::Result<Vec<NativeMonitor>> {
-    native_monitor::available_monitors()
+  /// Monitors sorted from left-to-right, top-to-bottom.
+  ///
+  /// Note that this also ensures that the `NativeMonitor` instances have
+  /// valid position values.
+  pub fn sorted_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
+    let monitors = native_monitor::available_monitors()?;
+
+    // Create a tuple of monitor and its rect.
+    let mut monitors_with_rect = monitors
+      .into_iter()
+      .map(|monitor| {
+        let rect = monitor.rect()?.clone();
+        anyhow::Ok((monitor, rect))
+      })
+      .try_collect::<Vec<_>>()?;
+
+    // Sort monitors from left-to-right, top-to-bottom.
+    monitors_with_rect.sort_by(|(_, rect_a), (_, rect_b)| {
+      if rect_a.x() == rect_b.x() {
+        rect_a.y().cmp(&rect_b.y())
+      } else {
+        rect_a.x().cmp(&rect_b.x())
+      }
+    });
+
+    // Convert back to a regular vector of monitors.
+    Ok(
+      monitors_with_rect
+        .into_iter()
+        .map(|(monitor, _)| monitor)
+        .collect(),
+    )
   }
 
   pub fn nearest_monitor(window: &NativeWindow) -> NativeMonitor {
