@@ -441,7 +441,7 @@ Displays volume level.
   label_low: "🔊{volume_level}%"
   label_medium: "🔊{volume_level}%"
   label_high: "🔊{volume_level}%"
-  label_mute: "🔊{volume_level}%"
+  label_mute: "🔇{volume_level}%"
 ```
 
 #### Bar component: Text File
