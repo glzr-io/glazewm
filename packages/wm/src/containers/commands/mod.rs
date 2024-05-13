@@ -1,7 +1,6 @@
 mod attach_container;
 mod center_cursor_on_container;
 mod detach_container;
-mod exec_process;
 mod flatten_split_container;
 mod move_container_within_tree;
 mod redraw;
@@ -14,7 +13,6 @@ mod toggle_tiling_direction;
 pub use attach_container::*;
 pub use center_cursor_on_container::*;
 pub use detach_container::*;
-pub use exec_process::*;
 pub use flatten_split_container::*;
 pub use move_container_within_tree::*;
 pub use redraw::*;

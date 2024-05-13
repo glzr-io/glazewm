@@ -6,11 +6,11 @@ use serde::{Deserialize, Deserializer};
 use tracing::Level;
 
 use crate::{
-  common::{Direction, LengthValue, ResizeDimension},
+  common::{
+    commands::shell_exec, Direction, LengthValue, ResizeDimension,
+  },
   containers::{
-    commands::{shell_exec, toggle_tiling_direction},
-    traits::CommonGetters,
-    Container,
+    commands::toggle_tiling_direction, traits::CommonGetters, Container,
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
