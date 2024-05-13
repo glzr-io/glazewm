@@ -8,7 +8,9 @@ use tracing::Level;
 use crate::{
   common::{Direction, LengthValue, ResizeDimension},
   containers::{
-    commands::toggle_tiling_direction, traits::CommonGetters, Container,
+    commands::{shell_exec, toggle_tiling_direction},
+    traits::CommonGetters,
+    Container,
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
@@ -141,7 +143,7 @@ pub enum InvokeCommand {
   SetMinimized,
   SetTiling,
   ShellExec {
-    #[clap(long, num_args = 1..)]
+    #[clap(long, num_args = 1.., allow_hyphen_values = true)]
     command: Vec<String>,
   },
   ToggleFloating {
@@ -314,7 +316,9 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::ShellExec { command } => todo!(),
+      InvokeCommand::ShellExec { command } => {
+        shell_exec(&command.join(" "))
+      }
       InvokeCommand::ToggleFloating {
         centered,
         show_on_top,
