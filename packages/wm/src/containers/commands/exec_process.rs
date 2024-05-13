@@ -4,12 +4,15 @@ use anyhow::Context;
 use tracing::info;
 use windows::{
   core::PCWSTR,
-  Win32::UI::{
-    Shell::{
-      ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
-      SHELLEXECUTEINFOW,
+  Win32::{
+    System::Environment::ExpandEnvironmentStringsW,
+    UI::{
+      Shell::{
+        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
+        SHELLEXECUTEINFOW,
+      },
+      WindowsAndMessaging::SW_NORMAL,
     },
-    WindowsAndMessaging::SW_NORMAL,
   },
 };
 
@@ -51,11 +54,14 @@ pub fn shell_exec(command: &str) -> anyhow::Result<()> {
   Ok(())
 }
 
-/// Parses a command string into a program name/path and arguments. The
-/// command string may contain environment variables wrapped in `%`
-/// characters.
+/// Parses a command string into a program name/path and arguments. This
+/// also expands any environment variables found in the command string if
+/// they are wrapped in `%` characters. If the command string is a path, a
+/// file extension is required.
 ///
-/// If the command string is a path, a file extension is required.
+/// This is similar to the `SHEvaluateSystemCommandTemplate` function. It
+/// also parses program name/path and arguments, but can't handle `/` as
+/// file path delimiters and it errors for certain programs (e.g. `code`).
 ///
 /// Returns a tuple containing the program name/path and arguments.
 ///
@@ -73,12 +79,37 @@ pub fn shell_exec(command: &str) -> anyhow::Result<()> {
 /// assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
 /// ```
 fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
-  // TODO: Expand environment variables in the command string.
-  let expanded_command = command;
+  // Expand environment variables in the command string.
+  let expanded_command = {
+    let wide_command = to_wide(command);
+    let size = unsafe {
+      ExpandEnvironmentStringsW(PCWSTR(wide_command.as_ptr()), None)
+    };
+
+    if size == 0 {
+      anyhow::bail!(
+        "Failed to expand environment strings in command '{}'.",
+        command
+      );
+    }
+
+    let mut buffer = vec![0; size as usize];
+    let size = unsafe {
+      ExpandEnvironmentStringsW(
+        PCWSTR(wide_command.as_ptr()),
+        Some(&mut buffer),
+      )
+    };
+
+    // The size includes the null terminator, so we need to subtract one.
+    String::from_utf16_lossy(&buffer[..(size - 1) as usize])
+  };
 
   let command_parts: Vec<&str> =
     expanded_command.trim().split_whitespace().collect();
 
+  // If the command starts with double quotes, then the program name/path
+  // is wrapped in double quotes (e.g. `"C:\path\to\app.exe" --flag`).
   if command.starts_with("\"") {
     // Find the closing double quote.
     let (closing_index, _) =
@@ -103,6 +134,7 @@ fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
 
   let mut cumulative_path = Vec::new();
 
+  // Lastly, iterate over the command until a valid file path is found.
   for (part_index, &part) in command_parts.iter().enumerate() {
     cumulative_path.push(part);
 
