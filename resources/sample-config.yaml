@@ -63,7 +63,7 @@ window_rules:
 
   # Launches system dialogs as floating by default (e.g. File Explorer save
   # and open dialog).
-  - commands: ['set_floating']
+  - commands: ['set-floating']
     match_class_name: '#32770'
 
   # Do not manage picture-in-picture windows for browsers. Note that the
@@ -75,7 +75,7 @@ window_rules:
 
   # Some applications (e.g. Steam) have borders that extend past the normal
   # border size.
-  - commands: ['adjust_borders --right -7px --bottom -7px --left -7px']
+  - commands: ['adjust-borders --right -7px --bottom -7px --left -7px']
     match_process_name: 'steam'
 
 binding_modes:
@@ -91,7 +91,7 @@ binding_modes:
       - commands: ['resize --height -2%']
         bindings: ['J', 'Down']
       # Press enter/escape to return to default keybindings.
-      - commands: ['wm_disable_binding_mode --name resize']
+      - commands: ['wm-disable-binding-mode --name resize']
         bindings: ['Escape', 'Enter']
 
 keybindings:
@@ -128,28 +128,28 @@ keybindings:
   # As an alternative to the resize keybindings above, resize mode enables
   # resizing via HJKL or arrow keys. The binding mode is defined above with
   # the name 'resize'.
-  - commands: ['wm_enable_binding_mode --name resize']
+  - commands: ['wm-enable-binding-mode --name resize']
     bindings: ['Alt+R']
 
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
-  - commands: ['toggle_tiling_direction']
+  - commands: ['toggle-tiling-direction']
     bindings: ['Alt+V']
 
   # Change focus between tiling windows and floating/fullscreen windows.
-  - commands: ['wm_toggle_focus_state']
+  - commands: ['wm-toggle-focus-state']
     bindings: ['Alt+Space']
 
   # Change the focused window to be floating.
-  - commands: ['toggle_floating --centered']
+  - commands: ['toggle-floating --centered']
     bindings: ['Alt+Shift+Space']
 
   # Change the focused window to be fullscreen.
-  - commands: ['toggle_fullscreen']
+  - commands: ['toggle-fullscreen']
     bindings: ['Alt+F']
 
   # Minimize focused window.
-  - commands: ['toggle_minimized']
+  - commands: ['toggle-minimized']
     bindings: ['Alt+M']
 
   # Close focused window.
@@ -157,17 +157,17 @@ keybindings:
     bindings: ['Alt+Shift+Q']
 
   # Kill GlazeWM process safely.
-  - commands: ['wm_exit']
+  - commands: ['wm-exit']
     bindings: ['Alt+Shift+E']
 
   # Re-evaluate configuration file.
-  - commands: ['wm_reload_config']
+  - commands: ['wm-reload-config']
     bindings: ['Alt+Shift+R']
 
   # Launch CMD terminal. Alternatively `shell_exec --command wt` or
   # `shell_exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
   # Terminal and Git Bash respectively.
-  - commands: ['shell_exec --command cmd']
+  - commands: ['shell-exec --command cmd']
     bindings: ['Alt+Enter']
 
   # Focus the workspace that last had focus.
@@ -202,13 +202,13 @@ keybindings:
 
   # Move the focused window's parent workspace to a monitor in a given
   # direction.
-  - commands: ['move_workspace --dir left']
+  - commands: ['move-workspace --dir left']
     bindings: ['Alt+Shift+A']
-  - commands: ['move_workspace --dir right']
+  - commands: ['move-workspace --dir right']
     bindings: ['Alt+Shift+F']
-  - commands: ['move_workspace --dir up']
+  - commands: ['move-workspace --dir up']
     bindings: ['Alt+Shift+D']
-  - commands: ['move_workspace --dir down']
+  - commands: ['move-workspace --dir down']
     bindings: ['Alt+Shift+S']
 
   # Move focused window to a workspace defined in `workspaces` config.

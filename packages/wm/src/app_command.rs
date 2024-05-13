@@ -98,7 +98,6 @@ impl Verbosity {
 }
 
 #[derive(Clone, Debug, Parser)]
-#[clap(rename_all = "snake_case")]
 pub enum QueryCommand {
   /// Prints all windows.
   Windows,
@@ -111,7 +110,6 @@ pub enum QueryCommand {
 }
 
 #[derive(Clone, Debug, Parser)]
-#[clap(rename_all = "snake_case")]
 pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
