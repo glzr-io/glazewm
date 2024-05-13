@@ -25,6 +25,7 @@ pub struct IpcServer {
   pub message_rx: mpsc::UnboundedReceiver<AppCommand>,
   pub wm_command_rx:
     mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
+  abort_handle: task::AbortHandle,
 }
 
 impl IpcServer {
@@ -34,7 +35,7 @@ impl IpcServer {
 
     let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
 
-    task::spawn(async move {
+    let task = task::spawn(async move {
       while let Ok((stream, _)) = server.accept().await {
         let mut ws_stream = accept_async(stream).await.unwrap();
         info!("Received new IPC connection.");
@@ -51,6 +52,7 @@ impl IpcServer {
     Ok(Self {
       message_rx,
       wm_command_rx,
+      abort_handle: task.abort_handle(),
     })
   }
 
@@ -68,5 +70,11 @@ impl IpcServer {
 
   pub async fn process_event(&mut self, event: WmEvent) {
     // TODO: Spawn a task so that it doesn't block main thread execution.
+  }
+}
+
+impl Drop for IpcServer {
+  fn drop(&mut self) {
+    self.abort_handle.abort();
   }
 }
