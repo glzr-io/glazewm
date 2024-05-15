@@ -36,46 +36,23 @@ pub fn focus_workspace(
     .and_then(|c| c.workspace())
     .context("No workspace is currently focused.")?;
 
-  let workspace_name =
-    target_workspace_name(target, &focused_workspace, state, config)?;
-
-  if let Some(workspace_name) = workspace_name {
-    // Get the workspace to focus. If it's currently inactive, then
-    // activate it on the currently focused monitor.
-    let workspace_to_focus =
-      match state.workspace_by_name(&workspace_name) {
-        Some(workspace) => Some(workspace),
-        None => {
-          let focused_monitor =
-            focused_workspace.monitor().context("No focused monitor.")?;
-
-          activate_workspace(
-            Some(&workspace_name),
-            &focused_monitor,
-            state,
-            config,
-          )?;
-
-          state.workspace_by_name(&workspace_name)
-        }
-      }
-      .context("Failed to get workspace to focus.")?;
-
-    let displayed_workspace = workspace_to_focus
-      .monitor()
-      .and_then(|monitor| monitor.displayed_workspace())
-      .context("No workspace is currently displayed.")?;
-
-    // Save the currently focused workspace as recent.
-    state.recent_workspace_name = Some(focused_workspace.config().name);
-
+  if let Some(workspace_to_focus) =
+    target_workspace(target, &focused_workspace, state, config)?
+  {
     info!(
       "Focusing workspace: '{}'.",
       workspace_to_focus.config().name
     );
 
-    // Set focus to the last focused window in workspace. If the workspace
-    // has no descendant windows, then set focus to the workspace itself.
+    // Get the currently displayed workspace on the same monitor that the
+    // workspace to focus is on.
+    let displayed_workspace = workspace_to_focus
+      .monitor()
+      .and_then(|monitor| monitor.displayed_workspace())
+      .context("No workspace is currently displayed.")?;
+
+    // Set focus to whichever window last had focus in workspace. If the
+    // workspace has no windows, then set focus to the workspace itself.
     let container_to_focus = workspace_to_focus
       .last_focused_descendant()
       .unwrap_or_else(|| workspace_to_focus.clone().into());
@@ -87,8 +64,8 @@ pub fn focus_workspace(
     state.containers_to_redraw.push(displayed_workspace.into());
     state.containers_to_redraw.push(workspace_to_focus.into());
 
-    // Get empty workspace to destroy (if one is found). Cannot destroy empty
-    // workspaces if they're the only workspace on the monitor.
+    // Get empty workspace to destroy (if one is found). Cannot destroy
+    // empty workspaces if they're the only workspace on the monitor.
     let workspace_to_destroy =
       state.workspaces().into_iter().find(|workspace| {
         !workspace.config().keep_alive
@@ -99,60 +76,57 @@ pub fn focus_workspace(
     if let Some(workspace) = workspace_to_destroy {
       deactivate_workspace(workspace, state)?;
     }
+
+    // Save the currently focused workspace as recent.
+    state.recent_workspace_name = Some(focused_workspace.config().name);
   }
   Ok(())
 }
 
-/// Gets the name of the workspace to focus.
-fn target_workspace_name(
+/// Gets the workspace to focus based on the given target.
+///
+/// If the target workspace is currently inactive, it gets activated on the
+/// currently focused monitor.
+fn target_workspace(
   target: FocusWorkspaceTarget,
   focused_workspace: &Workspace,
-  state: &WmState,
+  state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<Option<String>> {
-  let workspace_configs = &config.value.workspaces;
-  let mut workspaces = state.workspaces();
-
-  // Sort workspaces by their position in the user config.
-  workspaces.sort_by_key(|workspace| {
-    workspace_configs
-      .iter()
-      .position(|config| config.name == workspace.config().name)
-  });
-
-  // Get index of the currently focused workspace within the sorted vector
-  // of workspaces.
-  let focused_index = workspaces
-    .iter()
-    .position(|workspace| workspace.id() == focused_workspace.id())
-    .context("Unable to get config position of focused workspace.")?;
-
-  let workspace_name = match target {
+) -> anyhow::Result<Option<Workspace>> {
+  let target_workspace = match target {
     FocusWorkspaceTarget::Name(name) => {
       match focused_workspace.config().name == name {
-        false => Some(name),
+        false => {
+          let workspace =
+            name_to_workspace(&name, focused_workspace, state, config)?;
+
+          Some(workspace)
+        }
         true if config.value.general.toggle_workspace_on_refocus => {
-          state.recent_workspace_name.clone()
+          recent_workspace(focused_workspace, state, config)?
         }
         true => None,
       }
     }
-    FocusWorkspaceTarget::Recent => state.recent_workspace_name.clone(),
+    FocusWorkspaceTarget::Recent => {
+      recent_workspace(focused_workspace, state, config)?
+    }
     FocusWorkspaceTarget::Next => {
-      let index = match focused_index == workspaces.len() - 1 {
-        true => 0,
-        _ => focused_index + 1,
-      };
+      let workspaces = sorted_workspaces(state, config);
+      let focused_index = workspace_index(&workspaces, focused_workspace)?;
 
-      workspaces.get(index).map(|w| w.config().name.clone())
+      workspaces
+        .get(focused_index + 1)
+        .or_else(|| workspaces.first())
+        .cloned()
     }
     FocusWorkspaceTarget::Previous => {
-      let index = match focused_index {
-        0 => workspaces.len() - 1,
-        _ => focused_index - 1,
-      };
+      let workspaces = sorted_workspaces(state, config);
+      let focused_index = workspace_index(&workspaces, focused_workspace)?;
 
-      workspaces.get(index).map(|w| w.config().name.clone())
+      workspaces
+        .get(focused_index.checked_sub(1).unwrap_or(workspaces.len() - 1))
+        .cloned()
     }
     FocusWorkspaceTarget::Direction(direction) => {
       let focused_monitor =
@@ -161,11 +135,77 @@ fn target_workspace_name(
       let monitor =
         state.monitor_in_direction(direction, &focused_monitor)?;
 
-      monitor
-        .and_then(|m| m.displayed_workspace())
-        .map(|w| w.config().name.clone())
+      monitor.and_then(|monitor| monitor.displayed_workspace())
     }
   };
 
-  Ok(workspace_name)
+  Ok(target_workspace)
+}
+
+/// Retrieves or activates a workspace by its name.
+fn name_to_workspace(
+  workspace_name: &str,
+  focused_workspace: &Workspace,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<Workspace> {
+  state
+    .workspace_by_name(&workspace_name)
+    .map(Ok)
+    .unwrap_or_else(|| {
+      let focused_monitor =
+        focused_workspace.monitor().context("No focused monitor.")?;
+
+      activate_workspace(
+        Some(&workspace_name),
+        &focused_monitor,
+        state,
+        config,
+      )?;
+
+      state
+        .workspace_by_name(&workspace_name)
+        .context("Failed to get workspace from name.")
+    })
+}
+
+/// Gets the recent workspace based on `recent_workspace_name` in state.
+fn recent_workspace(
+  focused_workspace: &Workspace,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<Option<Workspace>> {
+  state
+    .recent_workspace_name
+    .clone()
+    .map(|name| name_to_workspace(&name, focused_workspace, state, config))
+    .transpose()
+}
+
+// Gets workspaces sorted by their position in the user config.
+fn sorted_workspaces(
+  state: &WmState,
+  config: &UserConfig,
+) -> Vec<Workspace> {
+  let workspace_configs = &config.value.workspaces;
+  let mut workspaces = state.workspaces();
+
+  workspaces.sort_by_key(|workspace| {
+    workspace_configs
+      .iter()
+      .position(|config| config.name == workspace.config().name)
+  });
+
+  workspaces
+}
+
+// Gets index of the given workspace within the vector of workspaces.
+fn workspace_index(
+  workspaces: &[Workspace],
+  workspace: &Workspace,
+) -> anyhow::Result<usize> {
+  workspaces
+    .iter()
+    .position(|w| w.id() == workspace.id())
+    .context("Failed to get index of given workspace.")
 }

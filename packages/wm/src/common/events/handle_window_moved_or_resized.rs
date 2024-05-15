@@ -128,7 +128,7 @@ fn update_parent_workspace(
     target_workspace.child_count(),
   )?;
 
-  if window.is_focused() {
+  if window.has_focus() {
     state.emit_event(WmEvent::FocusedContainerMoved {
       focused_container: window.into(),
     });

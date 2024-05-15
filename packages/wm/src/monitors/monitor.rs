@@ -57,10 +57,8 @@ impl Monitor {
 
   pub fn displayed_workspace(&self) -> Option<Workspace> {
     self
-      .borrow_children()
-      .front()
-      .and_then(|c| c.as_workspace())
-      .cloned()
+      .last_focused_child()
+      .and_then(|c| c.as_workspace().cloned())
   }
 
   /// Whether there is a difference in DPI between this monitor and the

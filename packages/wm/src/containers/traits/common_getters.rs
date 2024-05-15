@@ -265,8 +265,8 @@ pub trait CommonGetters {
     Some(descendant)
   }
 
-  /// Whether this container is currently focused.
-  fn is_focused(&self) -> bool {
+  /// Whether this container or a descendant has focus.
+  fn has_focus(&self) -> bool {
     self.self_and_ancestors().all(|c| c.focus_index() == 0)
   }
 }

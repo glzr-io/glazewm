@@ -57,9 +57,13 @@ impl Workspace {
     self.0.borrow().config.clone()
   }
 
+  /// Whether the workspace is currently displayed by the parent monitor.
   pub fn is_displayed(&self) -> bool {
-    // TODO
-    true
+    self
+      .monitor()
+      .and_then(|monitor| monitor.displayed_workspace())
+      .map(|workspace| workspace.id() == self.id())
+      .unwrap_or(false)
   }
 
   fn outer_gaps(&self) -> Ref<'_, RectDelta> {
