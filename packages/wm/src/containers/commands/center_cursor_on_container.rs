@@ -9,8 +9,6 @@ pub fn center_cursor_on_container(
   config: &UserConfig,
 ) -> Result<(), Error> {
   if !config.value.general.cursor_follows_focus
-  // || target.is_detached()
-  // || target.focus_index() < 0
   {
     return Ok(());
   }

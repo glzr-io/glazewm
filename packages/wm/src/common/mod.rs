@@ -10,12 +10,14 @@ mod resize_dimension;
 mod tiling_direction;
 mod units;
 mod vec_deque_ext;
+mod color;
 
 pub use direction::*;
 pub use display_state::*;
 pub use point::*;
 pub use rect::*;
 pub use rect_delta::*;
+pub use color::*;
 pub use resize_dimension::*;
 pub use tiling_direction::*;
 pub use units::*;

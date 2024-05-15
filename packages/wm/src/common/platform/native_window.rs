@@ -1,10 +1,16 @@
+use std::os::raw::c_void;
 use std::sync::{Arc, RwLock};
 
+use crate::common::Rect;
+use crate::windows::WindowState;
+use windows::Win32::Graphics::Dwm::DWMWA_BORDER_COLOR;
 use windows::{
   core::PWSTR,
   Win32::{
     Foundation::{CloseHandle, BOOL, HWND, LPARAM},
-    Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED},
+    Graphics::Dwm::{
+      DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_CLOAKED,
+    },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
       PROCESS_QUERY_INFORMATION,
@@ -30,8 +36,6 @@ use windows::{
     },
   },
 };
-
-use crate::{common::Rect, windows::WindowState};
 
 pub type WindowHandle = HWND;
 
@@ -225,6 +229,18 @@ impl NativeWindow {
     // Set as the foreground window.
     unsafe { SetForegroundWindow(self.handle) }.ok()?;
 
+    Ok(())
+  }
+
+  pub fn set_border_color(&self, color_rgba: u32) -> anyhow::Result<()> {
+    unsafe {
+      DwmSetWindowAttribute(
+        self.handle,
+        DWMWA_BORDER_COLOR,
+        &color_rgba as *const _ as *const c_void,
+        std::mem::size_of::<u32>() as u32,
+      )?;
+    }
     Ok(())
   }
 

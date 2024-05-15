@@ -9,7 +9,7 @@ use tokio::{
 
 use crate::{
   app_command::InvokeCommand,
-  common::{LengthValue, RectDelta},
+  common::{LengthValue, RectDelta, ColorRGBA},
   monitors::Monitor,
   workspaces::Workspace,
 };
@@ -166,7 +166,7 @@ pub struct FocusBorder {
   pub enabled: bool,
 
   /// Border color of the window.
-  pub color: String,
+  pub color: ColorRGBA,
 }
 
 #[derive(Clone, Debug, Deserialize)]
