@@ -80,4 +80,18 @@ impl Rect {
       self.bottom + delta.bottom.to_pixels(self.height()),
     )
   }
+
+  // Gets whether the x-coordinate overlaps with the x-coordinate of the
+  // other rect.
+  pub fn has_overlap_x(&self, other: &Rect) -> bool {
+    !(self.x() + self.width() <= other.x()
+      || other.x() + other.width() <= self.x())
+  }
+
+  // Gets whether the y-coordinate overlaps with the y-coordinate of the
+  // other rect.
+  pub fn has_overlap_y(&self, other: &Rect) -> bool {
+    !(self.y() + self.height() <= other.y()
+      || other.y() + other.height() <= self.y())
+  }
 }

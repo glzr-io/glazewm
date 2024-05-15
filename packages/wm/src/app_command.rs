@@ -19,6 +19,7 @@ use crate::{
     WindowState,
   },
   wm_state::WmState,
+  workspaces::commands::{focus_workspace, FocusWorkspaceTarget},
 };
 
 #[derive(Clone, Debug, Parser)]
@@ -202,20 +203,24 @@ impl InvokeCommand {
           todo!()
         }
 
-        if let Some(workspace) = &args.workspace {
-          todo!()
+        if let Some(name) = &args.workspace {
+          focus_workspace(
+            FocusWorkspaceTarget::Name(name.to_string()),
+            state,
+            config,
+          )?;
         }
 
         if args.next_workspace {
-          todo!()
+          focus_workspace(FocusWorkspaceTarget::Next, state, config)?;
         }
 
         if args.prev_workspace {
-          todo!()
+          focus_workspace(FocusWorkspaceTarget::Previous, state, config)?;
         }
 
         if args.recent_workspace {
-          todo!()
+          focus_workspace(FocusWorkspaceTarget::Recent, state, config)?;
         }
 
         Ok(())

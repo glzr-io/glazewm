@@ -15,7 +15,7 @@ use crate::{
 /// If no workspace name is provided, the first suitable workspace defined
 /// in the user's config will be used.
 pub fn activate_workspace(
-  workspace_name: Option<String>,
+  workspace_name: Option<&str>,
   target_monitor: &Monitor,
   state: &mut WmState,
   config: &UserConfig,
@@ -51,7 +51,7 @@ pub fn activate_workspace(
 
 /// Gets config for the workspace to activate.
 fn workspace_config(
-  workspace_name: Option<String>,
+  workspace_name: Option<&str>,
   target_monitor: &Monitor,
   state: &mut WmState,
   config: &UserConfig,

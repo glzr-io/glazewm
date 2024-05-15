@@ -9,10 +9,11 @@ use crate::{
   common::{
     commands::sync_native_focus,
     platform::{NativeMonitor, NativeWindow, Platform},
+    Direction, Rect,
   },
   containers::{
     commands::{redraw, set_focused_descendant},
-    traits::CommonGetters,
+    traits::{CommonGetters, PositionGetters},
     Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
@@ -36,7 +37,14 @@ pub struct WmState {
 
   pub active_border_window: Option<NativeWindow>,
 
+  /// Name of the most recently focused workspace.
+  ///
+  /// Used for the `general.toggle_workspace_on_refocus` option on
+  /// workspace focus.
+  pub recent_workspace_name: Option<String>,
+
   /// Time since a previously focused window was unmanaged or minimized.
+  ///
   /// Used to decide whether to override incoming focus events.
   pub unmanaged_or_minimized_timestamp: Option<Instant>,
 
@@ -54,6 +62,7 @@ impl WmState {
       containers_to_redraw: Vec::new(),
       has_pending_focus_sync: false,
       active_border_window: None,
+      recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       event_tx,
@@ -149,9 +158,55 @@ impl WmState {
   ) -> Option<Monitor> {
     self
       .monitors()
-      .iter()
-      .find(|&m| m.native() == *native_monitor)
-      .cloned()
+      .into_iter()
+      .find(|m| m.native() == *native_monitor)
+  }
+
+  /// Gets the closest monitor in a given direction.
+  ///
+  /// Uses i3wm's algorithm for finding best guess.
+  pub fn monitor_in_direction(
+    &self,
+    direction: Direction,
+    origin_monitor: &Monitor,
+  ) -> anyhow::Result<Option<Monitor>> {
+    let origin_rect = origin_monitor.native().rect()?.clone();
+
+    // Create a tuple of monitors and their rect.
+    let monitors_with_rect = self
+      .monitors()
+      .into_iter()
+      .map(|monitor| {
+        let rect = monitor.native().rect()?.clone();
+        anyhow::Ok((monitor, rect))
+      })
+      .try_collect::<Vec<_>>()?;
+
+    let closest_monitor = monitors_with_rect
+      .into_iter()
+      .filter(|(_, rect)| match direction {
+        Direction::Right => {
+          rect.x() > origin_rect.x() && rect.has_overlap_y(&origin_rect)
+        }
+        Direction::Left => {
+          rect.x() < origin_rect.x() && rect.has_overlap_y(&origin_rect)
+        }
+        Direction::Down => {
+          rect.y() > origin_rect.y() && rect.has_overlap_x(&origin_rect)
+        }
+        Direction::Up => {
+          rect.y() < origin_rect.y() && rect.has_overlap_x(&origin_rect)
+        }
+      })
+      .min_by(|(_, rect_a), (_, rect_b)| match direction {
+        Direction::Right => rect_a.x().cmp(&rect_b.x()),
+        Direction::Left => rect_b.x().cmp(&rect_a.x()),
+        Direction::Down => rect_a.y().cmp(&rect_b.y()),
+        Direction::Up => rect_b.y().cmp(&rect_a.y()),
+      })
+      .map(|(monitor, _)| monitor);
+
+    Ok(closest_monitor)
   }
 
   /// Gets window that corresponds to the given `NativeWindow`.
@@ -161,9 +216,18 @@ impl WmState {
   ) -> Option<WindowContainer> {
     self
       .windows()
-      .iter()
+      .into_iter()
       .find(|w| w.native() == *native_window)
-      .cloned()
+  }
+
+  pub fn workspace_by_name(
+    &self,
+    workspace_name: &str,
+  ) -> Option<Workspace> {
+    self
+      .workspaces()
+      .into_iter()
+      .find(|w| w.config().name == workspace_name)
   }
 
   /// Gets windows that should be redrawn.
