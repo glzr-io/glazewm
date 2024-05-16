@@ -16,7 +16,10 @@ use crate::{
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::{resize_window, toggle_window_state, update_window_state},
+    commands::{
+      move_window_in_direction, resize_window, toggle_window_state,
+      update_window_state,
+    },
     traits::WindowGetters,
     WindowState,
   },
@@ -228,7 +231,18 @@ impl InvokeCommand {
         Ok(())
       }
       InvokeCommand::Ignore => todo!(),
-      InvokeCommand::Move(_) => todo!(),
+      InvokeCommand::Move(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            if let Some(direction) = &args.direction {
+              move_window_in_direction(window, direction, state, config)?;
+            };
+
+            Ok(())
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::MoveWorkspace { direction } => todo!(),
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
