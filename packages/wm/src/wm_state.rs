@@ -99,8 +99,8 @@ impl WmState {
     let container_to_focus = self
       .window_from_native(&foreground_window)
       .map(|c| c.as_container())
-      .or(self.windows().pop().map(|c| c.into()))
-      .or(self.workspaces().pop().map(|c| c.into()))
+      .or(self.windows().pop().map(Into::into))
+      .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
     set_focused_descendant(container_to_focus, None);
@@ -167,8 +167,8 @@ impl WmState {
   /// Uses i3wm's algorithm for finding best guess.
   pub fn monitor_in_direction(
     &self,
-    direction: Direction,
     origin_monitor: &Monitor,
+    direction: &Direction,
   ) -> anyhow::Result<Option<Monitor>> {
     let origin_rect = origin_monitor.native().rect()?.clone();
 
@@ -258,7 +258,7 @@ impl WmState {
   /// Gets the currently focused container. This can either be a window or
   /// a workspace without any descendant windows.
   pub fn focused_container(&self) -> Option<Container> {
-    self.root_container.last_focused_descendant()
+    self.root_container.descendant_focus_order().next()
   }
 
   pub fn emit_event(&self, event: WmEvent) {
@@ -306,7 +306,7 @@ impl WmState {
           _ => false,
         }
       })
-      .map(|c| c.into());
+      .map(Into::into);
 
     if focus_target_of_type.is_some() {
       return focus_target_of_type;
@@ -316,7 +316,7 @@ impl WmState {
       .iter()
       .filter_map(|c| c.as_window_container().ok())
       .find(|descendant| descendant.state() != WindowState::Minimized)
-      .map(|c| c.into());
+      .map(Into::into);
 
     non_minimized_focus_target
       .or(descendant_focus_order.first().cloned())

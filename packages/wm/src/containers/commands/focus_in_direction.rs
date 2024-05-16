@@ -1,52 +1,50 @@
+use anyhow::Context;
+
 use crate::{
-  common::Direction,
-  containers::{traits::CommonGetters, Container},
-  user_config::UserConfig,
-  windows::{traits::WindowGetters, TilingWindow, WindowState},
-  wm_state::WmState,
-  workspaces::{
-    commands::{focus_workspace, FocusWorkspaceTarget},
-    Workspace,
+  common::{Direction, TilingDirection},
+  containers::{
+    traits::{CommonGetters, TilingDirectionGetters},
+    Container, TilingContainer,
   },
+  windows::{traits::WindowGetters, WindowState},
+  wm_state::WmState,
 };
 
 use super::set_focused_descendant;
 
 pub fn focus_in_direction(
   origin_container: Container,
-  direction: Direction,
+  direction: &Direction,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let focus_target = match origin_container {
     Container::TilingWindow(_) => {
-      focus_target_from_tiling(origin_container, direction, state, config)
+      // If a suitable focus target isn't found in the current workspace,
+      // attempt to find a workspace in the given direction.
+      tiling_focus_target(origin_container.clone(), &direction)?
+        .map_or_else(
+          || workspace_focus_target(origin_container, &direction, state),
+          |container| Ok(Some(container)),
+        )?
     }
-    Container::NonTilingWindow(non_tiling_window) => {
+    Container::NonTilingWindow(ref non_tiling_window) => {
       match non_tiling_window.state() {
-        // WindowState::Floating(floating_window) => {
-        //   focus_target_from_floating(origin_container, direction)
-        // }
-        // WindowState::Fullscreen(_) => {
-        //   return focus_workspace(
-        //     FocusWorkspaceTarget::Direction(direction),
-        //     state,
-        //     config,
-        //   );
-        // }
+        WindowState::Floating(_) => {
+          floating_focus_target(origin_container, &direction)
+        }
+        WindowState::Fullscreen(_) => {
+          workspace_focus_target(origin_container, &direction, state)?
+        }
         _ => None,
       }
     }
     Container::Workspace(_) => {
-      return focus_workspace(
-        FocusWorkspaceTarget::Direction(direction),
-        state,
-        config,
-      );
+      workspace_focus_target(origin_container, &direction, state)?
     }
     _ => None,
   };
 
+  // Set focus to the target container.
   if let Some(focus_target) = focus_target {
     set_focused_descendant(focus_target, None);
     state.has_pending_focus_sync = true;
@@ -55,125 +53,103 @@ pub fn focus_in_direction(
   Ok(())
 }
 
-fn focus_target_from_floating(
+fn floating_focus_target(
   origin_container: Container,
-  direction: Direction,
+  direction: &Direction,
 ) -> Option<Container> {
-  let floating_siblings = origin_container
-    .siblings()
-    .filter_map(|s| s.as_non_tiling_window().cloned())
-    .filter(|w| matches!(w.state(), WindowState::Floating(_)))
-    .collect::<Vec<_>>();
+  let is_floating = |sibling: &Container| {
+    sibling.as_non_tiling_window().map_or(false, |window| {
+      matches!(window.state(), WindowState::Floating(_))
+    })
+  };
 
+  let mut floating_siblings =
+    origin_container.siblings().filter(is_floating);
+
+  // Wrap if next/previous floating window is not found.
   match direction {
-    Direction::Left => {
-      // Wrap if next/previous floating window is not found.
-      origin_container
-        .next_siblings()
-        .filter_map(|s| s.as_non_tiling_window().cloned())
-        .filter(|w| matches!(w.state(), WindowState::Floating(_)))
-        .next()
-        .or_else(|| floating_siblings.last().cloned())
-        .map(|c| c.into())
-    }
-    Direction::Right => {
-      // Wrap if next/previous floating window is not found.
-      origin_container
-        .prev_siblings()
-        .filter_map(|s| s.as_non_tiling_window().cloned())
-        .filter(|w| matches!(w.state(), WindowState::Floating(_)))
-        .next()
-        .or_else(|| floating_siblings.first().cloned())
-        .map(|c| c.into())
-    }
+    Direction::Left => origin_container
+      .next_siblings()
+      .find(is_floating)
+      .or_else(|| floating_siblings.last()),
+    Direction::Right => origin_container
+      .prev_siblings()
+      .find(is_floating)
+      .or_else(|| floating_siblings.next()),
     // Cannot focus vertically from a floating window.
     _ => None,
   }
 }
 
-fn focus_target_from_tiling(
-  origin_container: Container,
-  direction: Direction,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> Option<Container> {
-  let focus_target_within_workspace =
-    focus_target_within_workspace(origin_container, &direction);
-
-  if focus_target_within_workspace.is_some() {
-    return focus_target_within_workspace;
-  }
-
-  // If a suitable focus target isn't found in the current workspace, attempt to find
-  // a workspace in the given direction.
-  focus_target_outside_workspace(direction)
-}
-
-/// Attempt to find a focus target within the focused workspace. Traverse upwards from the
-/// focused container to find an adjacent container that can be focused.
-fn focus_target_within_workspace(
+/// Gets a focus target within the current workspace. Traverse upwards from
+/// the origin container to find an adjacent container that can be focused.
+fn tiling_focus_target(
   origin_container: Container,
   direction: &Direction,
-) -> Option<Container> {
-  todo!()
-  //   let tiling_direction = direction.get_tiling_direction();
-  //   let mut focus_reference = origin_container.clone();
+) -> anyhow::Result<Option<Container>> {
+  let tiling_direction = TilingDirection::from_direction(direction);
+  let mut origin_or_ancestor = origin_container.clone();
 
-  //   // Traverse upwards from the focused container. Stop searching when a workspace is
-  //   // encountered.
-  //   while !focus_reference.is_workspace() {
-  //     let parent = focus_reference
-  //       .parent()
-  //       .unwrap()
-  //       .as_split_container()
-  //       .unwrap();
+  // Traverse upwards from the focused container. Stop searching when a
+  // workspace is encountered.
+  while !origin_or_ancestor.is_workspace() {
+    let parent = origin_or_ancestor
+      .parent()
+      .and_then(|parent| parent.as_direction_container().ok())
+      .context("No direction container.")?;
 
-  //     if !focus_reference.has_siblings()
-  //       || parent.tiling_direction() != tiling_direction
-  //     {
-  //       focus_reference = parent.clone().into();
-  //       continue;
-  //     }
+    // Skip if the tiling direction doesn't match.
+    if parent.tiling_direction() != tiling_direction {
+      origin_or_ancestor = parent.into();
+      continue;
+    }
 
-  //     let focus_target =
-  //       if direction == Direction::Up || direction == Direction::Left {
-  //         focus_reference.previous_sibling_of_type::<dyn IResizable>()
-  //       } else {
-  //         focus_reference.next_sibling_of_type::<dyn IResizable>()
-  //       };
+    // Get the next/prev tiling sibling depending on the tiling direction.
+    let focus_target = match direction {
+      Direction::Up | Direction::Left => origin_or_ancestor
+        .prev_siblings()
+        .find_map(|c| c.as_tiling_container().ok()),
+      _ => origin_or_ancestor
+        .next_siblings()
+        .find_map(|c| c.as_tiling_container().ok()),
+    };
 
-  //     if focus_target.is_none() {
-  //       focus_reference = parent.into();
-  //       continue;
-  //     }
+    match focus_target {
+      Some(target) => {
+        // Return once a suitable focus target is found.
+        return Ok(match target {
+          TilingContainer::TilingWindow(_) => Some(target.into()),
+          TilingContainer::Split(split) => split
+            .descendant_in_direction(&direction.inverse())
+            .map(Into::into),
+        });
+      }
+      None => origin_or_ancestor = parent.into(),
+    }
+  }
 
-  //     return container_service.get_descendant_in_direction(
-  //       &focus_target.unwrap(),
-  //       direction.inverse(),
-  //     );
-  //   }
-
-  //   None
+  Ok(None)
 }
 
-/// Attempt to find a focus target in a different workspace than the focused workspace.
-fn focus_target_outside_workspace(
-  direction: Direction,
-) -> Option<Container> {
-  todo!()
-  // let focused_monitor = monitor_service.get_focused_monitor();
+/// Gets a focus target outside of the current workspace in the given
+/// direction.
+///
+/// This will descend into the workspace in the given direction, and will
+/// always return a tiling container. This makes it different from the
+/// `focus_worskspace` command with `FocusWorkspaceTarget::Direction`.
+fn workspace_focus_target(
+  origin_container: Container,
+  direction: &Direction,
+  state: &WmState,
+) -> anyhow::Result<Option<Container>> {
+  let monitor = origin_container.monitor().context("No monitor.")?;
 
-  // let monitor_in_direction =
-  //   monitor_service.get_monitor_in_direction(direction, &focused_monitor);
-  // let workspace_in_direction =
-  //   monitor_in_direction.and_then(|m| m.displayed_workspace());
+  let focus_target = state
+    .monitor_in_direction(&monitor, direction)?
+    .and_then(|monitor| monitor.displayed_workspace())
+    .and_then(|workspace| {
+      workspace.descendant_in_direction(&direction.inverse())
+    });
 
-  // if workspace_in_direction.is_none() {
-  //   return None;
-  // }
-
-  // container_service.get_descendant_in_direction(
-  //   &workspace_in_direction.unwrap(),
-  //   direction.inverse(),
-  // )
+  Ok(focus_target.map(Into::into))
 }

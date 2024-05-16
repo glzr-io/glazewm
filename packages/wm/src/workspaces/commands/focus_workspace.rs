@@ -54,7 +54,8 @@ pub fn focus_workspace(
     // Set focus to whichever window last had focus in workspace. If the
     // workspace has no windows, then set focus to the workspace itself.
     let container_to_focus = workspace_to_focus
-      .last_focused_descendant()
+      .descendant_focus_order()
+      .next()
       .unwrap_or_else(|| workspace_to_focus.clone().into());
 
     set_focused_descendant(container_to_focus, None);
@@ -133,7 +134,7 @@ fn target_workspace(
         focused_workspace.monitor().context("No focused monitor.")?;
 
       let monitor =
-        state.monitor_in_direction(direction, &focused_monitor)?;
+        state.monitor_in_direction(&focused_monitor, &direction)?;
 
       monitor.and_then(|monitor| monitor.displayed_workspace())
     }

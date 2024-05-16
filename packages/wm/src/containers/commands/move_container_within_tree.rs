@@ -59,7 +59,8 @@ pub fn move_container_within_tree(
   let is_focused_descendant = container_to_move
     == container_to_move_ancestor
     || container_to_move_ancestor
-      .last_focused_descendant()
+      .descendant_focus_order()
+      .next()
       .context("TODO.")?
       .self_and_ancestors()
       .any(|ancestor| ancestor == container_to_move);

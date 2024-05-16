@@ -72,7 +72,7 @@ fn resize_tiling_window(
 
       state
         .containers_to_redraw
-        .extend(parent.tiling_children().map(|c| c.into()));
+        .extend(parent.tiling_children().map(Into::into));
     }
   }
 

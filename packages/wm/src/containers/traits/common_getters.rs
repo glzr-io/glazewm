@@ -91,6 +91,15 @@ pub trait CommonGetters {
       .unwrap_or(0)
   }
 
+  /// Gets child container with the given ID.
+  fn child_by_id(&self, child_id: &Uuid) -> Option<Container> {
+    self
+      .borrow_children()
+      .iter()
+      .find(|child| &child.id() == child_id)
+      .cloned()
+  }
+
   fn tiling_children(
     &self,
   ) -> Box<dyn Iterator<Item = TilingContainer> + '_> {
@@ -114,6 +123,21 @@ pub trait CommonGetters {
     Descendants { stack }
   }
 
+  /// Children in order of last focus.
+  fn child_focus_order(&self) -> Box<dyn Iterator<Item = Container> + '_> {
+    let child_focus_order = self.borrow_child_focus_order();
+
+    Box::new(std::iter::from_fn(move || {
+      for child_id in child_focus_order.iter() {
+        if let Some(child) = self.child_by_id(&child_id) {
+          return Some(child);
+        }
+      }
+
+      None
+    }))
+  }
+
   /// Leaf nodes (i.e. windows and workspaces) in order of last focus.
   fn descendant_focus_order(
     &self,
@@ -134,16 +158,12 @@ pub trait CommonGetters {
         for focus_child_id in
           current.borrow_child_focus_order().iter().rev()
         {
-          if let Some(focus_child) = current
-            .borrow_children()
-            .iter()
-            .find(|child| child.id() == *focus_child_id)
-            .cloned()
-          {
+          if let Some(focus_child) = current.child_by_id(&focus_child_id) {
             stack.push(focus_child);
           }
         }
       }
+
       None
     }))
   }
@@ -200,7 +220,7 @@ pub trait CommonGetters {
 
   fn ancestors(&self) -> Ancestors {
     Ancestors {
-      start: self.parent().map(|c| c.into()),
+      start: self.parent().map(Into::into),
     }
   }
 
@@ -228,7 +248,8 @@ pub trait CommonGetters {
       .find_map(|container| container.as_monitor().cloned())
   }
 
-  /// Nearest direction container (i.e. split container or workspace).
+  /// Nearest direction container (i.e. split container or workspace) that
+  /// this container belongs to.
   ///
   /// Note that this might return the container itself.
   fn direction_container(&self) -> Option<DirectionContainer> {
@@ -252,29 +273,6 @@ pub trait CommonGetters {
       .unwrap_or(0)
   }
 
-  /// Child container that last had focus.
-  fn last_focused_child(&self) -> Option<Container> {
-    let child_focus_order = self.borrow_child_focus_order();
-    let child_id = child_focus_order.front()?;
-
-    self
-      .borrow_children()
-      .iter()
-      .find(|child| child.id() == *child_id)
-      .cloned()
-  }
-
-  /// Gets the last focused descendant by traversing downwards.
-  fn last_focused_descendant(&self) -> Option<Container> {
-    let mut descendant = self.last_focused_child()?;
-
-    while let Some(child) = descendant.last_focused_child() {
-      descendant = child;
-    }
-
-    Some(descendant)
-  }
-
   /// Whether this container or a descendant has focus.
   fn has_focus(&self) -> bool {
     self.self_and_ancestors().all(|c| c.focus_index() == 0)
@@ -291,7 +289,7 @@ impl Iterator for Ancestors {
 
   fn next(&mut self) -> Option<Container> {
     self.start.take().map(|container| {
-      self.start = container.parent().map(|c| c.into());
+      self.start = container.parent().map(Into::into);
       container
     })
   }

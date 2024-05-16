@@ -10,7 +10,9 @@ use crate::{
     commands::shell_exec, Direction, LengthValue, ResizeDimension,
   },
   containers::{
-    commands::toggle_tiling_direction, traits::CommonGetters, Container,
+    commands::{focus_in_direction, toggle_tiling_direction},
+    traits::CommonGetters,
+    Container,
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
@@ -200,7 +202,7 @@ impl InvokeCommand {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
-          todo!()
+          focus_in_direction(subject_container, direction, state)?;
         }
 
         if let Some(name) = &args.workspace {

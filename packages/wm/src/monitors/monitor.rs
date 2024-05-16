@@ -57,7 +57,8 @@ impl Monitor {
 
   pub fn displayed_workspace(&self) -> Option<Workspace> {
     self
-      .last_focused_child()
+      .child_focus_order()
+      .next()
       .and_then(|c| c.as_workspace().cloned())
   }
 

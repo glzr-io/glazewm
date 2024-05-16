@@ -31,7 +31,7 @@ impl TilingDirection {
   /// ```
   /// TilingDirection::from_direction(Direction::Left) // TilingDirection::Horizontal
   /// ```
-  pub fn from_direction(direction: Direction) -> TilingDirection {
+  pub fn from_direction(direction: &Direction) -> TilingDirection {
     match direction {
       Direction::Left | Direction::Right => TilingDirection::Horizontal,
       Direction::Up | Direction::Down => TilingDirection::Vertical,
