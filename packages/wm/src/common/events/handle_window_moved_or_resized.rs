@@ -12,7 +12,6 @@ use crate::{
     commands::resize_window, traits::WindowGetters, NonTilingWindow,
     TilingWindow, WindowState,
   },
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 
@@ -35,7 +34,6 @@ pub fn handle_window_moved_or_resized(
           update_floating_window(non_tiling_window, state)?;
         }
       }
-      _ => (),
     }
   }
 
@@ -46,15 +44,16 @@ fn update_tiling_window(
   window: TilingWindow,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  // Snap window to its original position if it's not being resized.
+  // Snap window to its original position if it's the only window in the
+  // workspace.
   if window.parent().context("No parent.")?.is_workspace()
     && window.tiling_siblings().count() == 0
   {
-    state.containers_to_redraw.push(window.clone().into());
+    state.containers_to_redraw.push(window.into());
     return Ok(());
   }
 
-  let monitor = window.monitor().context("Window has no monitor.")?;
+  let monitor = window.monitor().context("No monitor.")?;
 
   // Remove invisible borders from current placement to be able to compare
   // window width/height.
@@ -81,13 +80,11 @@ fn update_tiling_window(
   )?;
 
   resize_window(
-    window.clone().into(),
+    window.into(),
     ResizeDimension::Height,
     LengthValue::new_px(delta_height as f32),
     state,
-  )?;
-
-  Ok(())
+  )
 }
 
 fn update_floating_window(
@@ -99,8 +96,7 @@ fn update_floating_window(
   window.set_floating_placement(new_placement);
 
   // Change floating window's parent workspace if moved out of its bounds.
-  update_parent_workspace(window.clone().into(), state)?;
-  Ok(())
+  update_parent_workspace(window.clone().into(), state)
 }
 
 fn update_parent_workspace(
@@ -110,9 +106,8 @@ fn update_parent_workspace(
   // Get workspace that encompasses most of the window.
   let target_workspace = state
     .nearest_monitor(&window.native())
-    .context("Couldn't find nearest monitor.")?
-    .displayed_workspace()
-    .context("Monitor has no displayed workspace.")?;
+    .and_then(|monitor| monitor.displayed_workspace())
+    .context("Failed to get workspace of nearest monitor.")?;
 
   // Ignore if window is still within the bounds of its current workspace.
   if target_workspace.id()
@@ -126,13 +121,6 @@ fn update_parent_workspace(
     window.clone().into(),
     target_workspace.clone().into(),
     target_workspace.child_count(),
-  )?;
-
-  if window.has_focus() {
-    state.emit_event(WmEvent::FocusedContainerMoved {
-      focused_container: window.into(),
-    });
-  }
-
-  Ok(())
+    state,
+  )
 }

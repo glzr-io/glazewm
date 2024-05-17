@@ -45,6 +45,7 @@ pub fn remove_monitor(
       workspace.clone().into(),
       target_monitor.clone().into(),
       target_monitor.child_count(),
+      state,
     )?;
 
     state.emit_event(WmEvent::WorkspaceMoved {

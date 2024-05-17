@@ -3,10 +3,9 @@ use anyhow::Context;
 use crate::{
   common::{Direction, TilingDirection},
   containers::{
-    commands::{move_container_within_tree, toggle_tiling_direction},
+    commands::move_container_within_tree,
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, DirectionContainer, SplitContainer, TilingContainer,
-    WindowContainer,
+    DirectionContainer, TilingContainer, WindowContainer,
   },
   user_config::UserConfig,
   windows::{
@@ -107,6 +106,8 @@ fn move_tiling_window(
   }
 }
 
+/// Gets the next sibling `TilingWindow` or `SplitContainer` in the given
+/// direction.
 fn tiling_sibling_in_direction(
   window: TilingWindow,
   direction: &Direction,
@@ -114,10 +115,10 @@ fn tiling_sibling_in_direction(
   match direction {
     Direction::Up | Direction::Left => window
       .prev_siblings()
-      .find_map(|c| c.as_tiling_container().ok()),
+      .find_map(|sibling| sibling.as_tiling_container().ok()),
     _ => window
       .next_siblings()
-      .find_map(|c| c.as_tiling_container().ok()),
+      .find_map(|sibling| sibling.as_tiling_container().ok()),
   }
 }
 
@@ -136,6 +137,7 @@ fn move_to_sibling_container(
         window_to_move.clone().into(),
         parent,
         sibling_window.index(),
+        state,
       )?;
 
       state
@@ -169,8 +171,10 @@ fn move_to_sibling_container(
           window_to_move.into(),
           target_parent.clone().into(),
           target_index,
+          state,
         )?;
 
+        // TODO: Only redraw tiling containers.
         state
           .containers_to_redraw
           .extend([target_parent.into(), parent.into()]);
@@ -209,15 +213,17 @@ fn move_to_workspace_in_direction(
 
     let target_index = match direction {
       Direction::Down | Direction::Right => 0,
-      _ => workspace.child_count() - 1,
+      _ => workspace.child_count(),
     };
 
     move_container_within_tree(
       window_to_move.into(),
       workspace.clone().into(),
       target_index,
+      state,
     )?;
 
+    // TODO: Only redraw tiling containers.
     state
       .containers_to_redraw
       .extend([workspace.into(), parent.into()]);
@@ -232,11 +238,21 @@ fn change_workspace_tiling_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // 1. Change the tiling direction of the workspace.
+  // 2. All other containers are wrapped in a split container.
+  // 3. Split container is resized to be 50% (and window is also 50%).
+  // 4. Depending on direction, place window before/after split container.
+
   let workspace = window_to_move.workspace().context("No workspace.")?;
 
-  toggle_tiling_direction(workspace.clone().into(), state, config)?;
-  state.containers_to_redraw.push(workspace.into());
+  // Invert the tiling direction of the workspace.
+  workspace.set_tiling_direction(workspace.tiling_direction().inverse());
 
+  state
+    .containers_to_redraw
+    .extend(workspace.tiling_children().map(Into::into));
+
+  // Re-attempt to swap siblings after changing workspace layout.
   if let Some(sibling) =
     tiling_sibling_in_direction(window_to_move.clone(), direction)
   {
@@ -264,19 +280,22 @@ fn insert_into_ancestor(
     })
     .context("Window ancestor not found.")?;
 
-  // Move the window into the container above.
   let target_index = match direction {
     Direction::Up | Direction::Left => window_ancestor.index(),
     _ => window_ancestor.index() + 1,
   };
 
+  // Move the window into the container above.
   move_container_within_tree(
     window_to_move.clone().into(),
     target_ancestor.clone().into(),
     target_index,
+    state,
   )?;
 
-  state.containers_to_redraw.push(target_ancestor.into());
+  state
+    .containers_to_redraw
+    .extend(target_ancestor.tiling_children().map(Into::into));
 
   Ok(())
 }

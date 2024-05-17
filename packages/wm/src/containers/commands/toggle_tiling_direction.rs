@@ -25,10 +25,10 @@ pub fn toggle_tiling_direction(
 ) -> anyhow::Result<()> {
   let (modified_id, new_tiling_direction) = match container {
     Container::TilingWindow(tiling_window) => {
-      toggle_window_direction(tiling_window, state, config)
+      toggle_window_direction(tiling_window, config)
     }
     Container::Workspace(workspace) => {
-      toggle_workspace_direction(workspace, state)
+      toggle_workspace_direction(workspace)
     }
     // Can only toggle tiling direction from a tiling window or workspace.
     _ => return Ok(()),
@@ -44,7 +44,6 @@ pub fn toggle_tiling_direction(
 
 fn toggle_window_direction(
   tiling_window: TilingWindow,
-  state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<(Uuid, TilingDirection)> {
   let parent = tiling_window
@@ -54,10 +53,10 @@ fn toggle_window_direction(
   // If the window is an only child, then either change the tiling
   // direction of its parent workspace or flatten its parent split
   // container.
-  if !tiling_window.has_siblings() {
+  if tiling_window.tiling_siblings().count() == 0 {
     match parent {
       DirectionContainer::Workspace(workspace) => {
-        return toggle_workspace_direction(workspace, state);
+        return toggle_workspace_direction(workspace);
       }
       DirectionContainer::Split(split_container) => {
         flatten_split_container(split_container.clone())?;
@@ -96,31 +95,8 @@ fn toggle_window_direction(
 
 fn toggle_workspace_direction(
   workspace: Workspace,
-  state: &mut WmState,
 ) -> anyhow::Result<(Uuid, TilingDirection)> {
   workspace.set_tiling_direction(workspace.tiling_direction().inverse());
-
-  let inverse_split_containers = workspace
-    .children()
-    .iter()
-    .filter_map(|child| match child.as_split() {
-      Some(split)
-        if split.tiling_direction() == workspace.tiling_direction() =>
-      {
-        Some(split)
-      }
-      _ => None,
-    })
-    .cloned()
-    .collect::<Vec<_>>();
-
-  // Flatten any top-level split containers with the same tiling
-  // direction as the workspace.
-  for split_container in inverse_split_containers {
-    flatten_split_container(split_container)?;
-  }
-
-  state.add_container_to_redraw(workspace.clone().into());
 
   Ok((workspace.id(), workspace.tiling_direction()))
 }

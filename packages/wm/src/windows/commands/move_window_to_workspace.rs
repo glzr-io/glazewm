@@ -50,6 +50,7 @@ fn move_tiling_window_to_workspace(
     window_container_to_move.clone().into(),
     target_container,
     workspace.index(),
+    state,
   )?;
 
   Ok(())

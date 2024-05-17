@@ -70,6 +70,7 @@ fn set_tiling(
       tiling_window.clone().into(),
       target_parent.clone(),
       target_index,
+      state,
     )?;
 
     state.add_container_to_redraw(target_parent);
@@ -99,6 +100,7 @@ fn set_non_tiling(
           window.clone().into(),
           workspace.clone().into(),
           workspace.child_count(),
+          state,
         )?;
       }
 

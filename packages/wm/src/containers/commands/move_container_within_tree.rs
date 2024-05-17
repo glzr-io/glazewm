@@ -3,14 +3,25 @@ use anyhow::Context;
 use crate::{
   common::VecDequeExt,
   containers::{traits::CommonGetters, Container},
+  wm_event::WmEvent,
+  wm_state::WmState,
 };
 
 use super::{attach_container, detach_container, set_focused_descendant};
 
+/// Move a container to a new location in the tree. This detaches the
+/// container from its current parent and attaches it to the new parent at
+/// the specified index.
+///
+/// If this container is a tiling container, its siblings are resized on
+/// detach, and the container is sized to the default tiling size with its
+/// new siblings. No changes to the container's tiling size are made if
+/// its parent stays the same.
 pub fn move_container_within_tree(
   container_to_move: Container,
   target_parent: Container,
   target_index: usize,
+  state: &WmState,
 ) -> anyhow::Result<()> {
   // Get lowest common ancestor (LCA) between `container_to_move` and
   // `target_parent`. This could be the `target_parent` itself.
@@ -21,7 +32,13 @@ pub fn move_container_within_tree(
   if container_to_move.parent().context("No parent.")? == target_parent {
     target_parent
       .borrow_children_mut()
-      .shift_to_index(target_index, container_to_move);
+      .shift_to_index(target_index, container_to_move.clone());
+
+    if container_to_move.has_focus() {
+      state.emit_event(WmEvent::FocusedContainerMoved {
+        focused_container: container_to_move.into(),
+      });
+    }
 
     return Ok(());
   }
@@ -33,6 +50,7 @@ pub fn move_container_within_tree(
       container_to_move,
       lowest_common_ancestor,
       target_index,
+      state,
     );
   }
 
@@ -61,9 +79,14 @@ pub fn move_container_within_tree(
     || container_to_move_ancestor
       .descendant_focus_order()
       .next()
-      .context("TODO.")?
-      .self_and_ancestors()
-      .any(|ancestor| ancestor == container_to_move);
+      .map(|last_focused| {
+        last_focused
+          .self_and_ancestors()
+          .any(|ancestor| ancestor == container_to_move)
+      })
+      .context(
+        "Failed to get whether container is the focused descendant.",
+      )?;
 
   // Get whether the ancestor of `container_to_move` appears before
   // `target_parent`'s ancestor in the child focus order of the LCA.
@@ -71,6 +94,7 @@ pub fn move_container_within_tree(
   let is_subtree_focused =
     original_focus_index < target_parent_ancestor.focus_index();
 
+  // TODO: This will cause a crash if the detach flattens the target parent.
   detach_container(container_to_move.clone())?;
   attach_container(
     &container_to_move.clone(),
@@ -83,7 +107,7 @@ pub fn move_container_within_tree(
   // not the last focused within that subtree).
   if is_subtree_focused {
     set_focused_descendant(
-      container_to_move,
+      container_to_move.clone(),
       Some(target_parent_ancestor.clone()),
     );
   }
@@ -97,6 +121,12 @@ pub fn move_container_within_tree(
       .shift_to_index(original_focus_index, target_parent_ancestor.id());
   }
 
+  if container_to_move.has_focus() {
+    state.emit_event(WmEvent::FocusedContainerMoved {
+      focused_container: container_to_move.into(),
+    });
+  }
+
   Ok(())
 }
 
@@ -104,6 +134,7 @@ fn move_to_lowest_common_ancestor(
   container_to_move: Container,
   lowest_common_ancestor: Container,
   target_index: usize,
+  state: &WmState,
 ) -> anyhow::Result<()> {
   // Keep reference to focus index of container's ancestor in LCA's child
   // focus order.
@@ -112,8 +143,8 @@ fn move_to_lowest_common_ancestor(
     .find(|ancestor| {
       ancestor.parent() == Some(lowest_common_ancestor.clone())
     })
-    .context("TODO.")?
-    .focus_index();
+    .map(|ancestor| ancestor.focus_index())
+    .context("Unable to get focus index of container's ancestor.")?;
 
   detach_container(container_to_move.clone())?;
 
@@ -132,6 +163,12 @@ fn move_to_lowest_common_ancestor(
   lowest_common_ancestor
     .borrow_child_focus_order_mut()
     .shift_to_index(original_focus_index, container_to_move.id());
+
+  if container_to_move.has_focus() {
+    state.emit_event(WmEvent::FocusedContainerMoved {
+      focused_container: container_to_move.into(),
+    });
+  }
 
   Ok(())
 }
