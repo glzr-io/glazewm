@@ -22,8 +22,12 @@ pub fn handle_window_location_changed(
   if let Some(window) = found_window {
     match window.state() {
       WindowState::Fullscreen(_) => {
+        // A window's location is changed when it gets minimized, so ignore
+        // the event if the window is currently minimized.
         // TODO: Add fullscreen check.
-        if !window.native().is_maximized() {
+        if !window.native().is_maximized()
+          && !window.native().is_minimized()
+        {
           info!("Window restored");
           toggle_window_state(
             window.clone(),
