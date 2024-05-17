@@ -18,7 +18,7 @@ use crate::{
   windows::{
     commands::{
       move_window_in_direction, resize_window, toggle_window_state,
-      update_window_state,
+      update_window_state, move_window_to_workspace
     },
     traits::WindowGetters,
     WindowState,
@@ -235,8 +235,12 @@ impl InvokeCommand {
         match subject_container.as_window_container() {
           Ok(window) => {
             if let Some(direction) = &args.direction {
-              move_window_in_direction(window, direction, state, config)?;
+              move_window_in_direction(window.clone(), direction, state, config)?;
             };
+            
+            if let Some(workspace) = &args.workspace {
+                move_window_to_workspace(window, workspace, state, config)?;
+            }
 
             Ok(())
           }
