@@ -2,7 +2,9 @@ use anyhow::Context;
 
 use crate::{
   containers::{
-    commands::detach_container, traits::CommonGetters, WindowContainer,
+    commands::{detach_container, set_focused_descendant},
+    traits::CommonGetters,
+    WindowContainer,
   },
   windows::{traits::WindowGetters, WindowState},
   wm_event::WmEvent,
@@ -13,24 +15,38 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let unmanaged_id = window.id();
-  let unmanaged_handle = window.native().handle;
-
   let parent = window.parent().context("No parent.")?;
-  let window_state = window.state();
+  let grandparent = parent.parent().context("No grandparent.")?;
 
-  detach_container(window.into())?;
+  // Get whether the window's parent will be an empty split container.
+  let has_empty_split_container =
+    parent.is_split() && parent.child_count() == 1;
+
+  // Get container to switch focus to after the window has been removed.
+  let focus_target =
+    state.focus_target_after_removal(&window.clone().into());
+
+  detach_container(window.clone().into())?;
 
   state.emit_event(WmEvent::WindowUnmanaged {
-    unmanaged_id,
-    unmanaged_handle,
+    unmanaged_id: window.id(),
+    unmanaged_handle: window.native().handle,
   });
 
-  // TODO: Handle focus after removal.
+  // Reassign focus to suitable target.
+  if let Some(focus_target) = focus_target {
+    set_focused_descendant(focus_target, None);
+    state.has_pending_focus_sync = true;
+    state.unmanaged_or_minimized_timestamp =
+      Some(std::time::Instant::now());
+  }
 
   // Sibling containers need to be redrawn if the window was tiling.
-  if window_state == WindowState::Tiling {
-    state.add_container_to_redraw(parent.into());
+  if window.state() == WindowState::Tiling {
+    state.add_container_to_redraw(match has_empty_split_container {
+      true => grandparent.into(),
+      false => parent.into(),
+    });
   }
 
   Ok(())
