@@ -14,6 +14,11 @@ use crate::{
   wm_state::WmState,
 };
 
+/// Updates the state of a window.
+///
+/// Adds the window for redraw if the window's state changes between
+/// tiling and non-tiling. Does not add the window for redraw if the
+/// window stays in a non-tiling state.
 pub fn update_window_state(
   window: WindowContainer,
   window_state: WindowState,
@@ -30,6 +35,7 @@ pub fn update_window_state(
   }
 }
 
+/// Updates the state of a window to be `WindowState::Tiling`.
 fn set_tiling(
   window: WindowContainer,
   state: &mut WmState,
@@ -73,12 +79,16 @@ fn set_tiling(
       state,
     )?;
 
-    state.add_container_to_redraw(target_parent);
+    state
+      .containers_to_redraw
+      .extend(target_parent.tiling_children().map(Into::into))
   }
 
   Ok(())
 }
 
+/// Updates the state of a window to be either `WindowState::Floating`,
+/// `WindowState::Fullscreen`, or `WindowState::Minimized`.
 fn set_non_tiling(
   window: WindowContainer,
   window_state: WindowState,
@@ -87,7 +97,6 @@ fn set_non_tiling(
   match window {
     WindowContainer::NonTilingWindow(window) => {
       window.set_state(window_state);
-      state.add_container_to_redraw(window.into());
     }
     WindowContainer::TilingWindow(window) => {
       let parent = window.parent().context("No parent")?;
@@ -124,8 +133,9 @@ fn set_non_tiling(
         }
       }
 
-      // TODO: Only redraw tiling descendants of the workspace.
-      state.add_container_to_redraw(workspace.into());
+      state
+        .containers_to_redraw
+        .extend(workspace.tiling_children().map(Into::into))
     }
   }
 

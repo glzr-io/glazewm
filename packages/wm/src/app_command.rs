@@ -17,8 +17,8 @@ use crate::{
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
-      move_window_in_direction, resize_window, toggle_window_state,
-      update_window_state, move_window_to_workspace
+      move_window_in_direction, move_window_to_workspace, resize_window,
+      toggle_window_state, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -235,11 +235,16 @@ impl InvokeCommand {
         match subject_container.as_window_container() {
           Ok(window) => {
             if let Some(direction) = &args.direction {
-              move_window_in_direction(window.clone(), direction, state, config)?;
+              move_window_in_direction(
+                window.clone(),
+                direction,
+                state,
+                config,
+              )?;
             };
-            
+
             if let Some(workspace) = &args.workspace {
-                move_window_to_workspace(window, workspace, state, config)?;
+              move_window_to_workspace(window, workspace, state, config)?;
             }
 
             Ok(())
@@ -283,7 +288,7 @@ impl InvokeCommand {
             &config.value.window_state_defaults.floating;
 
           update_window_state(
-            window,
+            window.clone(),
             WindowState::Floating(FloatingStateConfig {
               centered: centered.unwrap_or(floating_defaults.centered),
               show_on_top: show_on_top
@@ -291,7 +296,10 @@ impl InvokeCommand {
             }),
             state,
             config,
-          )
+          )?;
+
+          state.containers_to_redraw.push(window.into());
+          Ok(())
         }
         _ => Ok(()),
       },
@@ -305,7 +313,7 @@ impl InvokeCommand {
             &config.value.window_state_defaults.fullscreen;
 
           update_window_state(
-            window,
+            window.clone(),
             WindowState::Fullscreen(FullscreenStateConfig {
               maximized: maximized
                 .unwrap_or(fullscreen_defaults.maximized),
@@ -316,18 +324,26 @@ impl InvokeCommand {
             }),
             state,
             config,
-          )
+          )?;
+
+          state.containers_to_redraw.push(window.into());
+          Ok(())
         }
         _ => Ok(()),
       },
       InvokeCommand::SetMinimized => {
         match subject_container.as_window_container() {
-          Ok(window) => update_window_state(
-            window,
-            WindowState::Minimized,
-            state,
-            config,
-          ),
+          Ok(window) => {
+            update_window_state(
+              window.clone(),
+              WindowState::Minimized,
+              state,
+              config,
+            )?;
+
+            state.containers_to_redraw.push(window.into());
+            Ok(())
+          }
           _ => Ok(()),
         }
       }

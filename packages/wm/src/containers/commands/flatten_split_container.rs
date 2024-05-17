@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use anyhow::Context;
 
 use crate::containers::{
@@ -66,6 +68,7 @@ pub fn flatten_split_container(
     .retain(|id| *id != split_container.id());
 
   *split_container.borrow_parent_mut() = None;
+  *split_container.borrow_children_mut() = VecDeque::new();
 
   Ok(())
 }

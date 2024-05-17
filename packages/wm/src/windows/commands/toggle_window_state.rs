@@ -7,6 +7,10 @@ use crate::{
 
 use super::update_window_state;
 
+/// Toggles the state of a window between its previous state if the window
+/// has one, or tiling if it does not.
+///
+/// Always adds the window for redraw.
 pub fn toggle_window_state(
   window: WindowContainer,
   window_state: WindowState,
@@ -23,11 +27,21 @@ pub fn toggle_window_state(
   // a previous state, the window is updated to be tiling.
   match window.prev_state() {
     Some(prev_state) => {
-      update_window_state(window, prev_state, state, config)
+      update_window_state(window.clone(), prev_state, state, config)
     }
-    None if window.state() != WindowState::Tiling => {
-      update_window_state(window, WindowState::Tiling, state, config)
-    }
+    None if window.state() != WindowState::Tiling => update_window_state(
+      window.clone(),
+      WindowState::Tiling,
+      state,
+      config,
+    ),
     None => Ok(()),
-  }
+  }?;
+
+  // The `update_window_state` call will already add the window for redraw
+  // on tiling <-> non-tiling state changes. However, on toggle, we always
+  // want to add the window for redraw.
+  state.containers_to_redraw.push(window.into());
+
+  Ok(())
 }

@@ -1,8 +1,10 @@
+use std::collections::VecDeque;
+
 use anyhow::Context;
 
 use crate::containers::{
   traits::{CommonGetters, TilingSizeGetters},
-  Container, TilingContainer,
+  Container,
 };
 
 use super::flatten_split_container;
@@ -29,27 +31,22 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
     .retain(|id| *id != child_to_remove.id());
 
   *child_to_remove.borrow_parent_mut() = None;
+  *child_to_remove.borrow_children_mut() = VecDeque::new();
 
   // Resize the siblings if it is a tiling container.
   if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
-    resize_sibling_containers(child_to_remove, parent)?;
+    resize_sibling_containers(parent, child_to_remove.tiling_size())?;
   }
 
   Ok(())
 }
 
 fn resize_sibling_containers(
-  child_to_remove: TilingContainer,
   parent: Container,
+  tiling_size: f32,
 ) -> anyhow::Result<()> {
-  let tiling_siblings = parent
-    .children()
-    .into_iter()
-    .filter_map(|c| c.as_tiling_container().ok())
-    .collect::<Vec<_>>();
-
-  let tiling_size_increment =
-    child_to_remove.tiling_size() / tiling_siblings.len() as f32;
+  let tiling_siblings = parent.tiling_children().collect::<Vec<_>>();
+  let tiling_size_increment = tiling_size / tiling_siblings.len() as f32;
 
   // Adjust size of the siblings based on the freed up space.
   for sibling in &tiling_siblings {
