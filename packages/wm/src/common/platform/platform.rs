@@ -1,10 +1,12 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::common::Point;
 use anyhow::{bail, Context};
 use tokio::sync::{oneshot, Mutex};
 use tracing::warn;
 use windows::core::{w, PCWSTR};
+use windows::Win32::Foundation::POINT;
 use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
 use windows::Win32::UI::Shell::{
   ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
@@ -12,8 +14,9 @@ use windows::Win32::UI::Shell::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
   CreateWindowExW, DestroyWindow, DispatchMessageW, GetMessageW,
-  RegisterClassW, SetCursorPos, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
-  CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+  RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
+  CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW,
+  WNDPROC, WS_OVERLAPPEDWINDOW,
 };
 use windows::Win32::UI::{
   HiDpi::{
@@ -121,6 +124,15 @@ impl Platform {
     }?;
 
     Ok(())
+  }
+
+  pub fn window_from_point(point: &Point) -> anyhow::Result<NativeWindow> {
+    let point = POINT {
+      x: point.x,
+      y: point.y,
+    };
+    let handle = unsafe { WindowFromPoint(point) };
+    Ok(NativeWindow::new(handle))
   }
 
   /// Sets the cursor position to the specified coordinates.
