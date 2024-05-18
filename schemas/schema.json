@@ -1327,7 +1327,8 @@
           "bind_to_monitor": {
             "title": "bind to monitor",
             "description": "A monitor number workspace is expected to be on\nhttps://github.com/glzr-io/glazewm?tab=readme-ov-file#workspaces-configuration",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           },
           "keep_alive": {
             "title": "keep alive",
