@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use anyhow::Context;
 
 use crate::containers::{
-  traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters},
+  traits::{CommonGetters, TilingSizeGetters},
   SplitContainer,
 };
 
@@ -24,13 +24,6 @@ pub fn flatten_split_container(
       if let Ok(tiling_child) = child.as_tiling_container() {
         tiling_child.set_tiling_size(
           split_container.tiling_size() * tiling_child.tiling_size(),
-        );
-      }
-
-      // Inverse the tiling direction of any child split containers.
-      if let Some(split_child) = child.as_split() {
-        split_child.set_tiling_direction(
-          split_container.tiling_direction().inverse(),
         );
       }
 

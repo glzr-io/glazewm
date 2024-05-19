@@ -275,8 +275,19 @@ pub trait CommonGetters {
   }
 
   /// Whether this container or a descendant has focus.
-  fn has_focus(&self) -> bool {
-    self.self_and_ancestors().all(|c| c.focus_index() == 0)
+  ///
+  /// If `end_ancestor` is provided, then the check for focus will be up to
+  /// and including the `end_ancestor`.
+  fn has_focus(&self, end_ancestor: Option<Container>) -> bool {
+    self
+      .self_and_ancestors()
+      .take_while(|ancestor| {
+        end_ancestor
+          .as_ref()
+          .map_or(true, |end_ancestor| end_ancestor != ancestor)
+      })
+      .chain(end_ancestor.clone())
+      .all(|ancestor| ancestor.focus_index() == 0)
   }
 
   fn containers_to_flatten_on_detach(

@@ -41,12 +41,14 @@ pub fn move_container_within_tree(
     lowest_common_ancestor(&container_to_move, &target_parent)
       .context("No common ancestor between containers.")?;
 
+  // If the container is already a child of the target parent, then shift
+  // it to the target index.
   if container_to_move.parent().context("No parent.")? == target_parent {
     target_parent
       .borrow_children_mut()
       .shift_to_index(target_index, container_to_move.clone());
 
-    if container_to_move.has_focus() {
+    if container_to_move.has_focus(None) {
       state.emit_event(WmEvent::FocusedContainerMoved {
         focused_container: container_to_move.into(),
       });
@@ -73,7 +75,7 @@ pub fn move_container_within_tree(
     .find(|ancestor| {
       ancestor.parent() == Some(lowest_common_ancestor.clone())
     })
-    .context("TODO.")?;
+    .context("Failed to get ancestor of container to move.")?;
 
   // Likewise, get ancestor of `target_parent` that is a direct child of
   // the LCA.
@@ -82,23 +84,14 @@ pub fn move_container_within_tree(
     .find(|ancestor| {
       ancestor.parent() == Some(lowest_common_ancestor.clone())
     })
-    .context("TODO.")?;
+    .context("Failed to get ancestor of target parent.")?;
 
   // Get whether the container is the focused descendant in its original
   // subtree from the LCA.
   let is_focused_descendant = container_to_move
     == container_to_move_ancestor
-    || container_to_move_ancestor
-      .descendant_focus_order()
-      .next()
-      .map(|last_focused| {
-        last_focused
-          .self_and_ancestors()
-          .any(|ancestor| ancestor == container_to_move)
-      })
-      .context(
-        "Failed to get whether container is the focused descendant.",
-      )?;
+    || container_to_move
+      .has_focus(Some(container_to_move_ancestor.clone()));
 
   // Get whether the ancestor of `container_to_move` appears before
   // `target_parent`'s ancestor in the child focus order of the LCA.
@@ -139,7 +132,7 @@ pub fn move_container_within_tree(
     flatten_child_split_containers(ancestor.clone())?;
   }
 
-  if container_to_move.has_focus() {
+  if container_to_move.has_focus(None) {
     state.emit_event(WmEvent::FocusedContainerMoved {
       focused_container: container_to_move.into(),
     });
@@ -162,7 +155,7 @@ fn move_to_lowest_common_ancestor(
       ancestor.parent() == Some(lowest_common_ancestor.clone())
     })
     .map(|ancestor| ancestor.focus_index())
-    .context("Unable to get focus index of container's ancestor.")?;
+    .context("Failed to get focus index of container's ancestor.")?;
 
   detach_container(container_to_move.clone())?;
 
@@ -182,7 +175,7 @@ fn move_to_lowest_common_ancestor(
     .borrow_child_focus_order_mut()
     .shift_to_index(original_focus_index, container_to_move.id());
 
-  if container_to_move.has_focus() {
+  if container_to_move.has_focus(None) {
     state.emit_event(WmEvent::FocusedContainerMoved {
       focused_container: container_to_move.into(),
     });
