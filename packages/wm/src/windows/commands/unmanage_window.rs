@@ -15,12 +15,9 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let parent = window.parent().context("No parent.")?;
-  let grandparent = parent.parent().context("No grandparent.")?;
-
-  // Get whether the window's parent will be an empty split container.
-  let has_empty_split_container =
-    parent.is_split() && parent.child_count() == 1;
+  // Create iterator of window's parent, grandparent, and great-
+  // grandparent.
+  let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
   // Get container to switch focus to after the window has been removed.
   let focus_target =
@@ -43,10 +40,14 @@ pub fn unmanage_window(
 
   // Sibling containers need to be redrawn if the window was tiling.
   if window.state() == WindowState::Tiling {
-    state.add_container_to_redraw(match has_empty_split_container {
-      true => grandparent.into(),
-      false => parent.into(),
-    });
+    let ancestor_to_redraw = ancestors
+      .into_iter()
+      .find(|ancestor| !ancestor.is_detached())
+      .context("No ancestor to redraw.")?;
+
+    state
+      .containers_to_redraw
+      .extend(ancestor_to_redraw.tiling_children().map(Into::into));
   }
 
   Ok(())
