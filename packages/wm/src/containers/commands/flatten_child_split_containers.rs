@@ -13,21 +13,27 @@ use super::flatten_split_container;
 pub fn flatten_child_split_containers(
   parent: Container,
 ) -> anyhow::Result<()> {
-  match parent.child_count() {
+  // Get children that are either tiling windows or split containers.
+  let tiling_children = parent
+    .children()
+    .into_iter()
+    .filter(|child| child.is_tiling_window() || child.is_split())
+    .collect::<Vec<_>>();
+
+  match tiling_children.len() {
     1 => {
       // Handle case where the parent is a split container and has a single
       // split container child.
-      if parent.as_direction_container().is_ok() {
-        if let Some(split_child) = parent.children()[0].as_split() {
+      if tiling_children.len() == 1 {
+        if let Some(split_child) = tiling_children[0].as_split() {
           flatten_split_container(split_child.clone())?;
         }
       }
     }
     _ => {
-      for split_child in parent
-        .children()
-        .iter()
-        .filter_map(|child| child.as_split())
+      for split_child in tiling_children
+        .into_iter()
+        .filter_map(|child| child.as_split().cloned())
         .filter(|split_child| split_child.child_count() == 1)
       {
         if let Some(split_grandchild) =
