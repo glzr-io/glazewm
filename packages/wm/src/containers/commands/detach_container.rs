@@ -11,30 +11,22 @@ use super::flatten_split_container;
 
 /// Removes a container from the tree.
 pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
-  let containers_to_flatten =
-    child_to_remove.containers_to_flatten_on_detach()?;
+  let mut parent = child_to_remove.parent().context("No parent.")?;
 
-  // Get first ancestor that will remain after flattening.
-  // TODO: Need to flatten parent *before* resizing siblings, but sibling +
-  // sibling parent need to be flattened *after* resizing siblings.
-  let adjusted_parent = child_to_remove
-    .ancestors()
-    .find(|ancestor| {
-      containers_to_flatten
-        .iter()
-        .any(|to_flatten| to_flatten.id() != ancestor.id())
-    })
-    .context("No parent.")?;
-
-  for split_container in containers_to_flatten {
-    flatten_split_container(split_container)?;
+  // Flatten the parent split container if it'll be empty after removing
+  // the child.
+  if let Some(split_parent) = parent.as_split().cloned() {
+    if split_parent.child_count() == 1 {
+      parent = parent.parent().context("No parent.")?;
+      flatten_split_container(split_parent)?;
+    }
   }
 
-  adjusted_parent
+  parent
     .borrow_children_mut()
     .retain(|c| c.id() != child_to_remove.id());
 
-  adjusted_parent
+  parent
     .borrow_child_focus_order_mut()
     .retain(|id| *id != child_to_remove.id());
 
@@ -43,8 +35,7 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
 
   // Resize the siblings if it is a tiling container.
   if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
-    let tiling_siblings =
-      adjusted_parent.tiling_children().collect::<Vec<_>>();
+    let tiling_siblings = parent.tiling_children().collect::<Vec<_>>();
 
     let tiling_size_increment =
       child_to_remove.tiling_size() / tiling_siblings.len() as f32;

@@ -7,7 +7,10 @@ use crate::{
   wm_state::WmState,
 };
 
-use super::{attach_container, detach_container, set_focused_descendant};
+use super::{
+  attach_container, detach_container, flatten_child_split_containers,
+  set_focused_descendant,
+};
 
 /// Move a container to a new location in the tree. This detaches the
 /// container from its current parent and attaches it to the new parent at
@@ -17,12 +20,21 @@ use super::{attach_container, detach_container, set_focused_descendant};
 /// detach, and the container is sized to the default tiling size with its
 /// new siblings. No changes to the container's tiling size are made if
 /// its parent stays the same.
+///
+/// This will flatten any redundant split containers after moving the
+/// container, which can cause the target parent to become detached. For
+/// example, in the layout V[1 H[2]] where container 1 is moved down, the
+/// parent gets removed resulting in V[1 2].
 pub fn move_container_within_tree(
   container_to_move: Container,
   target_parent: Container,
   target_index: usize,
   state: &WmState,
 ) -> anyhow::Result<()> {
+  // Create iterator of parent, grandparent, and great-grandparent.
+  let ancestors =
+    container_to_move.ancestors().take(3).collect::<Vec<_>>();
+
   // Get lowest common ancestor (LCA) between `container_to_move` and
   // `target_parent`. This could be the `target_parent` itself.
   let lowest_common_ancestor =
@@ -73,7 +85,7 @@ pub fn move_container_within_tree(
     .context("TODO.")?;
 
   // Get whether the container is the focused descendant in its original
-  // subtree.
+  // subtree from the LCA.
   let is_focused_descendant = container_to_move
     == container_to_move_ancestor
     || container_to_move_ancestor
@@ -94,7 +106,6 @@ pub fn move_container_within_tree(
   let is_subtree_focused =
     original_focus_index < target_parent_ancestor.focus_index();
 
-  // TODO: This will cause a crash if the detach flattens the target parent.
   detach_container(container_to_move.clone())?;
   attach_container(
     &container_to_move.clone(),
@@ -119,6 +130,13 @@ pub fn move_container_within_tree(
     lowest_common_ancestor
       .borrow_child_focus_order_mut()
       .shift_to_index(original_focus_index, target_parent_ancestor.id());
+  }
+
+  // After moving the container, flatten any redundant split containers.
+  // For example, in the layout V[1 H[2]] where container 1 is moved down
+  // to become V[H[1 2]], this will then need to be flattened to V[1 2].
+  for ancestor in ancestors.iter().rev() {
+    flatten_child_split_containers(ancestor.clone())?;
   }
 
   if container_to_move.has_focus() {

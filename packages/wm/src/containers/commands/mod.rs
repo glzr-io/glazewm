@@ -1,6 +1,7 @@
 mod attach_container;
 mod center_cursor_on_container;
 mod detach_container;
+mod flatten_child_split_containers;
 mod flatten_split_container;
 mod focus_in_direction;
 mod move_container_within_tree;
@@ -14,6 +15,7 @@ mod toggle_tiling_direction;
 pub use attach_container::*;
 pub use center_cursor_on_container::*;
 pub use detach_container::*;
+pub use flatten_child_split_containers::*;
 pub use flatten_split_container::*;
 pub use focus_in_direction::*;
 pub use move_container_within_tree::*;
