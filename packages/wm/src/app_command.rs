@@ -4,6 +4,7 @@ use anyhow::bail;
 use clap::{error::KindFormatter, Args, Parser};
 use serde::{Deserialize, Deserializer};
 use tracing::Level;
+use uuid::Uuid;
 
 use crate::{
   common::{
@@ -54,6 +55,9 @@ pub enum AppCommand {
   ///
   /// Requires an already running instance of the window manager.
   Cmd {
+    #[clap(short = 'c')]
+    context_container_id: Option<Uuid>,
+
     #[clap(subcommand)]
     command: InvokeCommand,
   },
