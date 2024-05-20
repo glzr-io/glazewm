@@ -6,24 +6,25 @@ use anyhow::{bail, Context};
 use tokio::sync::{oneshot, Mutex};
 use tracing::warn;
 use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::POINT;
+use windows::Win32::Foundation::{HWND, POINT};
 use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
 use windows::Win32::UI::Shell::{
   ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
   SHELLEXECUTEINFOW,
 };
-use windows::Win32::UI::WindowsAndMessaging::{
-  CreateWindowExW, DestroyWindow, DispatchMessageW, GetMessageW,
-  RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
-  CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW,
-  WNDPROC, WS_OVERLAPPEDWINDOW,
-};
+
 use windows::Win32::UI::{
   HiDpi::{
     SetProcessDpiAwarenessContext,
     DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
   },
-  WindowsAndMessaging::{GetDesktopWindow, GetForegroundWindow},
+  WindowsAndMessaging::{
+    CreateWindowExW, DestroyWindow, DispatchMessageW, GetDesktopWindow,
+    GetForegroundWindow, GetMessageW, GetParent, RegisterClassW,
+    SetCursorPos, TranslateMessage, WindowFromPoint, CS_HREDRAW,
+    CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
+    WS_OVERLAPPEDWINDOW,
+  },
 };
 
 use crate::user_config::UserConfig;
@@ -113,6 +114,27 @@ impl Platform {
   pub fn new_single_instance() -> anyhow::Result<SingleInstance> {
     SingleInstance::new()
   }
+  
+  // Gets the parent window of the specified window.
+  pub fn get_parent(
+    window: &NativeWindow,
+  ) -> anyhow::Result<NativeWindow> {
+    let handle = unsafe { GetParent(window.handle) };
+    // if zero pointer is returned, it means the window has no parent.
+    if handle == HWND(0) {
+        bail!("Window has no parent.");
+    }
+    Ok(NativeWindow::new(handle))
+  }
+
+  /// Sets the cursor position to the specified coordinates.
+  pub fn set_cursor_pos(x: i32, y: i32) -> anyhow::Result<()> {
+    unsafe {
+      SetCursorPos(x, y)?;
+    };
+
+    Ok(())
+  }
 
   /// Sets the DPI awareness for the current process to per-monitor
   /// awareness (v2).
@@ -126,6 +148,7 @@ impl Platform {
     Ok(())
   }
 
+  // Find the window at the specified point in screen space.
   pub fn window_from_point(point: &Point) -> anyhow::Result<NativeWindow> {
     let point = POINT {
       x: point.x,
@@ -133,15 +156,6 @@ impl Platform {
     };
     let handle = unsafe { WindowFromPoint(point) };
     Ok(NativeWindow::new(handle))
-  }
-
-  /// Sets the cursor position to the specified coordinates.
-  pub fn set_cursor_pos(x: i32, y: i32) -> anyhow::Result<()> {
-    unsafe {
-      SetCursorPos(x, y)?;
-    };
-
-    Ok(())
   }
 
   /// Spawns a hidden message window and starts a message loop.

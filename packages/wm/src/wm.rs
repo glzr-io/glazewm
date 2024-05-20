@@ -7,7 +7,7 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use crate::containers::commands::set_focused_descendant;
+use crate::common::events::handle_mouse_move;
 use crate::{
   app_command::InvokeCommand,
   common::{
@@ -19,7 +19,7 @@ use crate::{
       handle_window_minimized, handle_window_moved_or_resized,
       handle_window_shown,
     },
-    platform::{Platform, PlatformEvent},
+    platform::{PlatformEvent},
   },
   containers::{commands::redraw, traits::CommonGetters},
   user_config::UserConfig,
@@ -68,25 +68,9 @@ impl WindowManager {
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(&mut state, config)
       }
-      PlatformEvent::MouseMove(event) => Ok({
-        if config.value.general.focus_follows_cursor {
-          let native_window =
-            Platform::window_from_point(&event.point).unwrap();
-
-          if let Some(window) = state.window_from_native(&native_window) {
-            let currently_focused_container =
-              state.focused_container().unwrap();
-            let tiling_window =
-              currently_focused_container.as_tiling_window().unwrap();
-            if (tiling_window.id() != window.id()) {
-              set_focused_descendant(window.as_container(), None);
-              state.has_pending_focus_sync = true;
-              redraw(&mut state)?;
-              sync_native_focus(&mut state)?;
-            }
-          }
-        }
-      }),
+      PlatformEvent::MouseMove(event) => {
+        handle_mouse_move(event, &mut state, config)
+      }
       PlatformEvent::WindowDestroyed(window) => {
         handle_window_destroyed(window, &mut state)
       }
