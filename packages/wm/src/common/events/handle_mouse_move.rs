@@ -13,6 +13,7 @@ pub fn handle_mouse_move(
   if !config.value.general.focus_follows_cursor {
     return Ok(());
   }
+  
   let mut window_under_cursor =
     Platform::window_from_point(&mouse_move_event.point).unwrap();
 
@@ -21,6 +22,7 @@ pub fn handle_mouse_move(
     window_under_cursor = parent;
   }
 
+  // prevent spam focusing the same window by checking the target window against the currently focused window
   if let Some(window) = state.window_from_native(&window_under_cursor) {
     let currently_focused_container = state.focused_container().unwrap();
     let tiling_window =
