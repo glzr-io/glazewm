@@ -245,13 +245,10 @@ fn change_workspace_tiling_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // 1. Change the tiling direction of the workspace.
-  // 2. All other containers are wrapped in a split container.
-  // 3. Split container is resized to be 50% (and window is also 50%).
-  // 4. Depending on direction, place window before/after split container.
-
   let workspace = window_to_move.workspace().context("No workspace.")?;
   let parent = window_to_move.parent().context("No parent.")?;
+  let tiling_siblings =
+    window_to_move.tiling_siblings().collect::<Vec<_>>();
 
   if let Some(split_parent) = parent.as_split().cloned() {
     if split_parent.child_count() == 1 {
@@ -260,16 +257,18 @@ fn change_workspace_tiling_direction(
   }
 
   // Create a new split container to wrap the window's siblings.
-  let split_container = SplitContainer::new(
-    workspace.tiling_direction(),
-    config.value.gaps.inner_gap.clone(),
-  );
+  if tiling_siblings.len() > 0 {
+    let split_container = SplitContainer::new(
+      workspace.tiling_direction(),
+      config.value.gaps.inner_gap.clone(),
+    );
 
-  wrap_in_split_container(
-    split_container,
-    parent.clone(),
-    window_to_move.clone().tiling_siblings().collect(),
-  )?;
+    wrap_in_split_container(
+      split_container,
+      parent.clone(),
+      tiling_siblings,
+    )?;
+  }
 
   // Invert the tiling direction of the workspace.
   workspace.set_tiling_direction(workspace.tiling_direction().inverse());
@@ -279,6 +278,8 @@ fn change_workspace_tiling_direction(
     _ => workspace.child_count(),
   };
 
+  // Depending on the direction, place the window either before or after
+  // the split container.
   move_container_within_tree(
     window_to_move.clone().into(),
     parent,
@@ -286,6 +287,7 @@ fn change_workspace_tiling_direction(
     state,
   )?;
 
+  // Resize the window such that the split container and window are each 0.5.
   resize_tiling_container(&window_to_move.into(), 0.5);
 
   state

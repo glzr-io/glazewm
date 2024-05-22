@@ -21,7 +21,10 @@ where
   fn shift_to_index(&mut self, target_index: usize, value: T) {
     if let Some(index) = self.iter().position(|e| e == &value) {
       self.remove(index);
-      self.insert(target_index, value);
+
+      // Adjust for when the target index becomes out of bounds because of
+      // the removal above.
+      self.insert(target_index.clamp(0, self.len()), value);
     }
   }
 

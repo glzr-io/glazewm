@@ -159,16 +159,10 @@ fn move_to_lowest_common_ancestor(
 
   detach_container(container_to_move.clone())?;
 
-  // Adjust for when target index changes on detach of container. For
-  // example, when shifting a top-level container to the right in a
-  // workspace.
-  let adjusted_target_index =
-    target_index.clamp(0, lowest_common_ancestor.child_count());
-
   attach_container(
     &container_to_move.clone(),
     &lowest_common_ancestor.clone(),
-    Some(adjusted_target_index),
+    Some(target_index),
   )?;
 
   lowest_common_ancestor
