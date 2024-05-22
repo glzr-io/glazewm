@@ -1,6 +1,9 @@
 use std::{
   cell::OnceCell,
-  sync::{Arc, Mutex},
+  sync::{
+    atomic::{AtomicBool, AtomicU32, Ordering},
+    Arc,
+  },
 };
 
 use crate::common::Point;
@@ -22,7 +25,7 @@ thread_local! {
   /// Thread-local for instance of `MouseHook`.
   ///
   /// For use with hook procedure.
-  static MOUSE_HOOK: OnceCell<Arc<Mutex<MouseHook>>> = OnceCell::new();
+  static MOUSE_HOOK: OnceCell<Arc<MouseHook>> = OnceCell::new();
 }
 
 pub struct MouseHook {
@@ -33,13 +36,13 @@ pub struct MouseHook {
   hook: Option<HHOOK>,
 
   /// Whether left-click is currently pressed.
-  is_l_mouse_down: bool,
+  is_l_mouse_down: AtomicBool,
 
   /// Whether right-click is currently pressed.
-  is_r_mouse_down: bool,
+  is_r_mouse_down: AtomicBool,
 
   /// Timestamp of the last event emission.
-  last_event_time: u32,
+  last_event_time: AtomicU32,
 }
 
 impl MouseHook {
@@ -49,7 +52,7 @@ impl MouseHook {
   pub fn start(
     enabled: bool,
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> Result<Arc<Mutex<MouseHook>>> {
+  ) -> Result<Arc<MouseHook>> {
     let hook = match enabled {
       false => None,
       true => {
@@ -61,13 +64,13 @@ impl MouseHook {
       }
     };
 
-    let mouse_hook = Arc::new(Mutex::new(Self {
+    let mouse_hook = Arc::new(Self {
       event_tx,
       hook,
-      is_l_mouse_down: false,
-      is_r_mouse_down: false,
-      last_event_time: 0,
-    }));
+      is_l_mouse_down: AtomicBool::new(false),
+      is_r_mouse_down: AtomicBool::new(false),
+      last_event_time: AtomicU32::new(0),
+    });
 
     MOUSE_HOOK
       .with(|cell| cell.set(mouse_hook.clone()))
@@ -78,46 +81,44 @@ impl MouseHook {
     Ok(mouse_hook)
   }
 
-  fn handle_event(
-    &mut self,
-    event_type: u32,
-    mouse_event: MSLLHOOKSTRUCT,
-  ) {
+  fn handle_event(&self, event_type: u32, mouse_event: MSLLHOOKSTRUCT) {
     // Throttle events so that there's a minimum of 50ms between each
     // emission.
-    if mouse_event.time - self.last_event_time < 50 {
+    let last_event_time = self.last_event_time.load(Ordering::Relaxed);
+    if mouse_event.time - last_event_time < 50 {
       return;
     }
 
     match event_type {
       WM_LBUTTONDOWN => {
-        self.is_l_mouse_down = true;
+        self.is_l_mouse_down.store(true, Ordering::Relaxed)
       }
-      WM_LBUTTONUP => {
-        self.is_l_mouse_down = false;
-      }
+      WM_LBUTTONUP => self.is_l_mouse_down.store(false, Ordering::Relaxed),
       WM_RBUTTONDOWN => {
-        self.is_r_mouse_down = true;
+        self.is_r_mouse_down.store(true, Ordering::Relaxed)
       }
-      WM_RBUTTONUP => {
-        self.is_r_mouse_down = false;
-      }
+      WM_RBUTTONUP => self.is_r_mouse_down.store(false, Ordering::Relaxed),
       WM_MOUSEMOVE => {
+        let is_mouse_down = self.is_l_mouse_down.load(Ordering::Relaxed)
+          || self.is_r_mouse_down.load(Ordering::Relaxed);
+
         let event = MouseMoveEvent {
           point: Point {
             x: mouse_event.pt.x,
             y: mouse_event.pt.y,
           },
-          is_mouse_down: self.is_l_mouse_down || self.is_r_mouse_down,
+          is_mouse_down,
         };
 
         if let Err(err) =
           self.event_tx.send(PlatformEvent::MouseMove(event))
         {
           warn!("Failed to send platform event '{}'.", err);
-        };
+        }
 
-        self.last_event_time = mouse_event.time;
+        self
+          .last_event_time
+          .store(mouse_event.time, Ordering::Relaxed);
       }
       _ => {}
     }
@@ -153,7 +154,6 @@ extern "system" fn mouse_hook_proc(
 
     MOUSE_HOOK.with(|hook| {
       if let Some(hook) = hook.get() {
-        let mut hook = hook.lock().unwrap();
         hook.handle_event(wparam.0 as u32, mouse_event);
       }
     });
