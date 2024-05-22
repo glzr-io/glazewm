@@ -13,21 +13,16 @@ pub fn handle_mouse_move(
   if !config.value.general.focus_follows_cursor {
     return Ok(());
   }
-  
+
   let mut window_under_cursor =
     Platform::window_from_point(&mouse_move_event.point).unwrap();
 
-  // walk the window tree to find the top-level window
-  while let Ok(parent) = Platform::get_parent(&window_under_cursor) {
-    window_under_cursor = parent;
-  }
+  let root_window = Platform::get_root_ancestor(&window_under_cursor)?;
 
-  // prevent spam focusing the same window by checking the target window against the currently focused window
-  if let Some(window) = state.window_from_native(&window_under_cursor) {
-    let currently_focused_container = state.focused_container().unwrap();
-    let tiling_window =
-      currently_focused_container.as_tiling_window().unwrap();
-    if (tiling_window.id() != window.id()) {
+  // prevent spam focusing the same window 
+  // by checking the window under cursor against the WM's currently focused window
+  if let Some(window) = state.window_from_native(&root_window) {
+    if (state.focused_container() != Some(window.as_container())) {
       set_focused_descendant(window.as_container(), None);
       state.has_pending_focus_sync = true;
       redraw(state)?;

@@ -13,17 +13,18 @@ use windows::Win32::UI::Shell::{
   SHELLEXECUTEINFOW,
 };
 
+use windows::Win32::UI::WindowsAndMessaging::GA_ROOT;
 use windows::Win32::UI::{
   HiDpi::{
     SetProcessDpiAwarenessContext,
     DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
   },
   WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, DispatchMessageW, GetDesktopWindow,
-    GetForegroundWindow, GetMessageW, GetParent, RegisterClassW,
-    SetCursorPos, TranslateMessage, WindowFromPoint, CS_HREDRAW,
-    CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
-    WS_OVERLAPPEDWINDOW,
+    CreateWindowExW, DestroyWindow, DispatchMessageW, GetAncestor,
+    GetDesktopWindow, GetForegroundWindow, GetMessageW, GetParent,
+    RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
+    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW,
+    WNDPROC, WS_OVERLAPPEDWINDOW,
   },
 };
 
@@ -114,17 +115,24 @@ impl Platform {
   pub fn new_single_instance() -> anyhow::Result<SingleInstance> {
     SingleInstance::new()
   }
-  
-  // Gets the parent window of the specified window.
-  pub fn get_parent(
+
+  // Gets the root window of the specified window.
+  pub fn get_root_ancestor(
     window: &NativeWindow,
   ) -> anyhow::Result<NativeWindow> {
-    let handle = unsafe { GetParent(window.handle) };
-    // if zero pointer is returned, it means the window has no parent.
-    if handle == HWND(0) {
-        bail!("Window has no parent.");
-    }
+    let handle = unsafe { GetAncestor(window.handle, GA_ROOT) };
     Ok(NativeWindow::new(handle))
+  }
+
+  // Gets the parent window of the specified window.
+  pub fn get_parent(window: &NativeWindow) -> Option<NativeWindow> {
+    let handle = unsafe { GetParent(window.handle) };
+    if handle == HWND(0) {
+      // if a zero pointer is returned, it means the window has no parent.
+      None
+    } else {
+      Some(NativeWindow::new(handle))
+    }
   }
 
   /// Sets the cursor position to the specified coordinates.
