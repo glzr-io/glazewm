@@ -3,9 +3,16 @@ use anyhow::Context;
 use crate::{
   common::{Direction, TilingDirection},
   containers::{
-    commands::move_container_within_tree,
-    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    DirectionContainer, TilingContainer, WindowContainer,
+    commands::{
+      flatten_split_container, move_container_within_tree,
+      resize_tiling_container,
+    },
+    traits::{
+      CommonGetters, PositionGetters, TilingDirectionGetters,
+      TilingSizeGetters,
+    },
+    Container, DirectionContainer, SplitContainer, TilingContainer,
+    WindowContainer,
   },
   user_config::UserConfig,
   windows::{
@@ -244,20 +251,118 @@ fn change_workspace_tiling_direction(
   // 4. Depending on direction, place window before/after split container.
 
   let workspace = window_to_move.workspace().context("No workspace.")?;
+  let parent = window_to_move.parent().context("No parent.")?;
+
+  if let Some(split_parent) = parent.as_split().cloned() {
+    if split_parent.child_count() == 1 {
+      flatten_split_container(split_parent)?;
+    }
+  }
+
+  // Create a new split container to wrap the window's siblings.
+  let split_container = SplitContainer::new(
+    workspace.tiling_direction(),
+    config.value.gaps.inner_gap.clone(),
+  );
+
+  wrap_in_split_container(
+    split_container,
+    parent.clone(),
+    window_to_move.clone().tiling_siblings().collect(),
+  )?;
 
   // Invert the tiling direction of the workspace.
   workspace.set_tiling_direction(workspace.tiling_direction().inverse());
+
+  let target_index = match direction {
+    Direction::Left | Direction::Up => 0,
+    _ => workspace.child_count(),
+  };
+
+  move_container_within_tree(
+    window_to_move.clone().into(),
+    parent,
+    target_index,
+    state,
+  )?;
+
+  resize_tiling_container(&window_to_move.into(), 0.5);
 
   state
     .containers_to_redraw
     .extend(workspace.tiling_children().map(Into::into));
 
-  // Re-attempt to swap siblings after changing workspace layout.
-  if let Some(sibling) =
-    tiling_sibling_in_direction(window_to_move.clone(), direction)
-  {
-    move_to_sibling_container(window_to_move, sibling, direction, state)?;
+  Ok(())
+}
+
+fn wrap_in_split_container(
+  split_container: SplitContainer,
+  target_parent: Container,
+  target_children: Vec<TilingContainer>,
+) -> anyhow::Result<()> {
+  let mut focus_indices = target_children
+    .iter()
+    .map(|child| child.focus_index())
+    .collect::<Vec<_>>();
+
+  // Sort the focus indices in ascending order.
+  focus_indices.sort();
+
+  let starting_index = target_children
+    .iter()
+    .min_by_key(|&child| child.index())
+    .map(|child| child.index())
+    .context("Failed to get starting index.")?;
+
+  target_parent
+    .borrow_children_mut()
+    .insert(starting_index, split_container.clone().into());
+
+  let starting_focus_index = *focus_indices
+    .iter()
+    .min()
+    .context("Failed to get starting focus index.")?;
+
+  target_parent
+    .borrow_child_focus_order_mut()
+    .insert(starting_focus_index, split_container.id());
+
+  // Get the total tiling size amongst all children.
+  let total_tiling_size = target_children
+    .iter()
+    .map(|child| child.tiling_size())
+    .sum::<f32>();
+
+  *split_container.borrow_parent_mut() = Some(target_parent.clone());
+  split_container.set_tiling_size(total_tiling_size);
+
+  // Move the children from their original parent to the split container.
+  for target_child in target_children.iter() {
+    *target_child.borrow_parent_mut() =
+      Some(split_container.clone().into());
+
+    split_container
+      .borrow_children_mut()
+      .push_front(target_child.clone().into());
+
+    split_container
+      .borrow_child_focus_order_mut()
+      .push_front(target_child.id());
+
+    target_parent
+      .borrow_children_mut()
+      .retain(|child| child != &target_child.clone().into());
+
+    target_parent
+      .borrow_child_focus_order_mut()
+      .retain(|id| id != &target_child.id());
+
+    // Scale the tiling size to the new split container.
+    target_child
+      .set_tiling_size(target_child.tiling_size() / total_tiling_size);
   }
+
+  // TODO: Need to adjust focus order of split container.
 
   Ok(())
 }

@@ -1,4 +1,7 @@
-use crate::containers::{traits::CommonGetters, Container};
+use crate::containers::{
+  traits::{CommonGetters, TilingDirectionGetters},
+  Container,
+};
 
 use super::flatten_split_container;
 
@@ -13,34 +16,35 @@ use super::flatten_split_container;
 pub fn flatten_child_split_containers(
   parent: Container,
 ) -> anyhow::Result<()> {
-  // Get children that are either tiling windows or split containers.
-  let tiling_children = parent
-    .children()
-    .into_iter()
-    .filter(|child| child.is_tiling_window() || child.is_split())
-    .collect::<Vec<_>>();
+  if let Ok(parent) = parent.as_direction_container() {
+    // Get children that are either tiling windows or split containers.
+    let tiling_children = parent
+      .children()
+      .into_iter()
+      .filter(|child| child.is_tiling_window() || child.is_split())
+      .collect::<Vec<_>>();
 
-  match tiling_children.len() {
-    1 => {
-      // Handle case where the parent is a split container and has a single
-      // split container child.
-      if tiling_children.len() == 1 {
+    match tiling_children.len() {
+      1 => {
+        // Handle case where the parent is a split container and has a single
+        // split container child.
         if let Some(split_child) = tiling_children[0].as_split() {
           flatten_split_container(split_child.clone())?;
+          parent.set_tiling_direction(parent.tiling_direction().inverse());
         }
       }
-    }
-    _ => {
-      for split_child in tiling_children
-        .into_iter()
-        .filter_map(|child| child.as_split().cloned())
-        .filter(|split_child| split_child.child_count() == 1)
-      {
-        if let Some(split_grandchild) =
-          split_child.children()[0].as_split()
+      _ => {
+        for split_child in tiling_children
+          .into_iter()
+          .filter_map(|child| child.as_split().cloned())
+          .filter(|split_child| split_child.child_count() == 1)
         {
-          flatten_split_container(split_grandchild.clone())?;
-          flatten_split_container(split_child.clone())?;
+          if let Some(split_grandchild) =
+            split_child.children()[0].as_split()
+          {
+            flatten_split_container(split_grandchild.clone())?;
+            flatten_split_container(split_child.clone())?;
+          }
         }
       }
     }
