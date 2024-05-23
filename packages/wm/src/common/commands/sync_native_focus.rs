@@ -27,7 +27,8 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
   }
 
   // TODO: Change z-index of workspace windows that match the focused
-  // container's state.
+  // container's state. Make sure not to decrease z-index for floating
+  // windows that are always on top.
 
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container,

@@ -53,11 +53,11 @@ impl Rect {
     self.bottom - self.top
   }
 
-  pub fn translate_to_coordinates(&mut self, x: i32, y: i32) -> Self {
+  pub fn translate_to_coordinates(&self, x: i32, y: i32) -> Self {
     Self::from_xy(x, y, self.width(), self.height())
   }
 
-  pub fn translate_to_center(&mut self, outer_rect: &Rect) -> Self {
+  pub fn translate_to_center(&self, outer_rect: &Rect) -> Self {
     Self::translate_to_coordinates(
       self,
       outer_rect.left + (outer_rect.width() / 2) - (self.width() / 2),

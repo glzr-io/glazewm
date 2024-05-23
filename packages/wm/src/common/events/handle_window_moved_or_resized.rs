@@ -57,7 +57,7 @@ fn update_tiling_window(
 
   // Remove invisible borders from current placement to be able to compare
   // window width/height.
-  let new_placement = window.native().placement();
+  let new_placement = window.native().placement()?;
   let adjusted_placement = Rect::from_ltrb(
     new_placement.left
       + window.border_delta().left.to_pixels(monitor.width()?),
@@ -92,7 +92,7 @@ fn update_floating_window(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   // Update state with new location of the floating window.
-  let new_placement = window.native().placement();
+  let new_placement = window.native().placement()?;
   window.set_floating_placement(new_placement);
 
   // Change floating window's parent workspace if moved out of its bounds.

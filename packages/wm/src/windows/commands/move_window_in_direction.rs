@@ -412,5 +412,58 @@ fn move_floating_window(
   direction: &Direction,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  todo!()
+  // 1. Move the window X% if within the bounds of the monitor's working
+  // area.
+  // 2. If the window is within 2% of the monitor's edge, then snap it to
+  // the edge.
+  // 3. If the window is on the monitor's edge, then move it to the next
+  // monitor in the given direction.
+  let monitor = window_to_move.monitor().context("No monitor.")?;
+
+  let placement = window_to_move.native().placement()?;
+
+  let new_placement = match direction {
+    Direction::Up => {
+      let length = monitor.height()? - placement.height();
+      let multiplier = (length) as f32 / placement.height() as f32;
+      let dist = length as f32 / multiplier;
+
+      placement.translate_to_coordinates(
+        placement.x(),
+        placement.y() + dist as i32,
+      )
+    }
+    Direction::Down => {
+      let length = monitor.height()? - placement.height();
+      let multiplier = (length) as f32 / placement.height() as f32;
+      let dist = length as f32 / multiplier;
+
+      placement.translate_to_coordinates(
+        placement.x(),
+        placement.y() - dist as i32,
+      )
+    }
+    Direction::Left => {
+      let multiplier =
+        (monitor.width()? - placement.width()) / placement.width();
+      let dist = (monitor.width()? - placement.width()) / multiplier;
+
+      placement
+        .translate_to_coordinates(placement.x() - dist, placement.y())
+    }
+    Direction::Right => {
+      let multiplier =
+        (monitor.width()? - placement.width()) / placement.width();
+      let dist = (monitor.width()? - placement.width()) / multiplier;
+
+      placement
+        .translate_to_coordinates(placement.x() + dist, placement.y())
+    }
+  };
+
+  window_to_move.set_floating_placement(new_placement);
+
+  state.containers_to_redraw.push(window_to_move.into());
+
+  Ok(())
 }

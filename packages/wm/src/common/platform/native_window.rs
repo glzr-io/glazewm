@@ -244,11 +244,17 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn placement(&self) -> Rect {
+  pub fn placement(&self) -> anyhow::Result<Rect> {
     let mut placement = WINDOWPLACEMENT::default();
-    let _ = unsafe { GetWindowPlacement(self.handle, &mut placement) };
-    let rect = placement.rcNormalPosition;
-    Rect::from_ltrb(rect.left, rect.top, rect.right, rect.bottom)
+    unsafe { GetWindowPlacement(self.handle, &mut placement) }?;
+
+    let normal_pos = placement.rcNormalPosition;
+    Ok(Rect::from_ltrb(
+      normal_pos.left,
+      normal_pos.top,
+      normal_pos.right,
+      normal_pos.bottom,
+    ))
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
