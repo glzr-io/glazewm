@@ -448,10 +448,66 @@ fn move_floating_window(
     _ => 0,
   };
 
-  let new_placement =
-    placement.translate_in_direction(direction, move_distance);
-  window_to_move.set_floating_placement(new_placement);
+  let new_position = match direction {
+    Direction::Up => {
+      if position.top <= monitor.y()? + 15 {
+        position.translate_to_coordinates(position.x(), monitor.y()?)
+      } else if position.top == monitor.y()? {
+        let next_monitor =
+          state.monitor_in_direction(&monitor, direction)?.unwrap();
+        position.translate_to_coordinates(
+          position.x(),
+          next_monitor.y()? + next_monitor.height()? - position.height(),
+        )
+      } else {
+        position.translate_in_direction(direction, move_distance)
+      }
+    }
+    Direction::Down => {
+      if position.bottom >= monitor.y()? + monitor.height()? - 15 {
+        position.translate_to_coordinates(
+          position.x(),
+          monitor.y()? + monitor.height()? - position.height(),
+        )
+      } else if position.bottom == monitor.y()? + monitor.height()? {
+        let next_monitor =
+          state.monitor_in_direction(&monitor, direction)?.unwrap();
+        position.translate_to_coordinates(position.x(), next_monitor.y()?)
+      } else {
+        position.translate_in_direction(direction, move_distance)
+      }
+    }
+    Direction::Left => {
+      if position.left <= monitor.x()? + 15 {
+        position.translate_to_coordinates(monitor.x()?, position.y())
+      } else if position.left == monitor.x()? {
+        let next_monitor =
+          state.monitor_in_direction(&monitor, direction)?.unwrap();
+        position.translate_to_coordinates(
+          next_monitor.x()? + monitor.width()? - position.width(),
+          position.y(),
+        )
+      } else {
+        position.translate_in_direction(direction, move_distance)
+      }
+    }
+    Direction::Right => {
+      if position.right >= monitor.x()? + monitor.width()? - 15 {
+        position.translate_to_coordinates(
+          monitor.x()? + monitor.width()? - position.width(),
+          position.y(),
+        )
+      } else if position.right == monitor.x()? + monitor.width()? {
+        let next_monitor =
+          state.monitor_in_direction(&monitor, direction)?.unwrap();
+        position.translate_to_coordinates(next_monitor.x()?, position.y())
+      } else {
+        position.translate_in_direction(direction, move_distance)
+      }
+    }
+  };
 
+  window_to_move.set_floating_placement(new_position);
   state.containers_to_redraw.push(window_to_move.into());
 
   Ok(())
