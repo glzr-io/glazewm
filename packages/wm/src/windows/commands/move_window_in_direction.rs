@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::{
-  common::{Direction, Rect, TilingDirection},
+  common::{Direction, TilingDirection},
   containers::{
     commands::{
       flatten_split_container, move_container_within_tree,
@@ -419,16 +419,14 @@ fn move_floating_window(
   // 3. If the window is on the monitor's edge, then move it to the next
   // monitor in the given direction.
   let monitor = window_to_move.monitor().context("No monitor.")?;
-  let monitor_length = match direction {
-    Direction::Up | Direction::Down => monitor.height()?,
-    _ => monitor.width()?,
-  };
+  let monitor_rect = monitor.native().working_rect()?.clone();
+  let window_pos = window_to_move.native().outer_position()?;
 
-  let position = window_to_move.native().outer_position()?;
-
-  let window_length = match direction {
-    Direction::Up | Direction::Down => position.height(),
-    _ => position.width(),
+  let (monitor_length, window_length) = match direction {
+    Direction::Up | Direction::Down => {
+      (monitor.height()?, window_pos.height())
+    }
+    _ => (monitor.width()?, window_pos.width()),
   };
 
   let length_delta = monitor_length - window_length;
@@ -444,70 +442,84 @@ fn move_floating_window(
     x if x >= 0.0 && x < 0.2 => length_delta / 5,
     x if x >= 0.2 && x < 0.4 => length_delta / 4,
     x if x >= 0.4 && x < 0.6 => length_delta / 3,
-    x if x >= 0.6 => length_delta / 2,
-    _ => 0,
+    _ => length_delta / 2,
   };
 
-  let new_position = match direction {
+  let is_on_monitor_edge = match direction {
+    Direction::Up => window_pos.top == monitor_rect.top,
+    Direction::Down => window_pos.bottom == monitor_rect.bottom,
+    Direction::Left => window_pos.left == monitor_rect.left,
+    Direction::Right => window_pos.right == monitor_rect.right,
+  };
+
+  let should_snap_to_edge = match direction {
     Direction::Up => {
-      if position.top <= monitor.y()? + 15 {
-        position.translate_to_coordinates(position.x(), monitor.y()?)
-      } else if position.top == monitor.y()? {
-        let next_monitor =
-          state.monitor_in_direction(&monitor, direction)?.unwrap();
-        position.translate_to_coordinates(
-          position.x(),
-          next_monitor.y()? + next_monitor.height()? - position.height(),
-        )
-      } else {
-        position.translate_in_direction(direction, move_distance)
-      }
+      window_pos.top <= monitor_rect.top + 15
+        || window_pos.top - move_distance < monitor_rect.top
     }
     Direction::Down => {
-      if position.bottom >= monitor.y()? + monitor.height()? - 15 {
-        position.translate_to_coordinates(
-          position.x(),
-          monitor.y()? + monitor.height()? - position.height(),
-        )
-      } else if position.bottom == monitor.y()? + monitor.height()? {
-        let next_monitor =
-          state.monitor_in_direction(&monitor, direction)?.unwrap();
-        position.translate_to_coordinates(position.x(), next_monitor.y()?)
-      } else {
-        position.translate_in_direction(direction, move_distance)
-      }
+      window_pos.bottom >= monitor_rect.bottom - 15
+        || window_pos.bottom + move_distance > monitor_rect.bottom
     }
     Direction::Left => {
-      if position.left <= monitor.x()? + 15 {
-        position.translate_to_coordinates(monitor.x()?, position.y())
-      } else if position.left == monitor.x()? {
-        let next_monitor =
-          state.monitor_in_direction(&monitor, direction)?.unwrap();
-        position.translate_to_coordinates(
-          next_monitor.x()? + monitor.width()? - position.width(),
-          position.y(),
-        )
-      } else {
-        position.translate_in_direction(direction, move_distance)
-      }
+      window_pos.left <= monitor_rect.left + 15
+        || window_pos.left - move_distance < monitor_rect.left
     }
     Direction::Right => {
-      if position.right >= monitor.x()? + monitor.width()? - 15 {
-        position.translate_to_coordinates(
-          monitor.x()? + monitor.width()? - position.width(),
-          position.y(),
-        )
-      } else if position.right == monitor.x()? + monitor.width()? {
-        let next_monitor =
-          state.monitor_in_direction(&monitor, direction)?.unwrap();
-        position.translate_to_coordinates(next_monitor.x()?, position.y())
-      } else {
-        position.translate_in_direction(direction, move_distance)
-      }
+      window_pos.right >= monitor_rect.right - 15
+        || window_pos.right + move_distance > monitor_rect.right
     }
   };
 
-  window_to_move.set_floating_placement(new_position);
+  let new_placement = if is_on_monitor_edge {
+    // Window is on the edge of the monitor and should be moved to a
+    // different monitor in the given direction.
+    let next_monitor_rect = state
+      .monitor_in_direction(&monitor, direction)?
+      .and_then(|monitor| monitor.native().working_rect().cloned().ok());
+
+    if let Some(next_monitor_rect) = next_monitor_rect {
+      match direction {
+        Direction::Up => window_pos.translate_to_coordinates(
+          window_pos.x(),
+          next_monitor_rect.bottom - window_pos.height(),
+        ),
+        Direction::Down => window_pos
+          .translate_to_coordinates(window_pos.x(), next_monitor_rect.top),
+        Direction::Left => window_pos.translate_to_coordinates(
+          next_monitor_rect.right - window_pos.width(),
+          window_pos.y(),
+        ),
+        Direction::Right => window_pos.translate_to_coordinates(
+          next_monitor_rect.left,
+          window_pos.y(),
+        ),
+      }
+    } else {
+      return Ok(());
+    }
+  } else if should_snap_to_edge {
+    // Window should be snapped to the edge of the current monitor.
+    match direction {
+      Direction::Up => window_pos
+        .translate_to_coordinates(window_pos.x(), monitor_rect.top),
+      Direction::Down => window_pos.translate_to_coordinates(
+        window_pos.x(),
+        monitor_rect.bottom - window_pos.height(),
+      ),
+      Direction::Left => window_pos
+        .translate_to_coordinates(monitor_rect.left, window_pos.y()),
+      Direction::Right => window_pos.translate_to_coordinates(
+        monitor_rect.right - window_pos.width(),
+        window_pos.y(),
+      ),
+    }
+  } else {
+    // Move the window normally
+    window_pos.translate_in_direction(direction, move_distance)
+  };
+
+  window_to_move.set_floating_placement(new_placement);
   state.containers_to_redraw.push(window_to_move.into());
 
   Ok(())
