@@ -1,7 +1,11 @@
+use anyhow::Context;
 use tracing::info;
 
 use crate::{
   common::platform::NativeWindow,
+  containers::{
+    commands::move_container_within_tree, traits::CommonGetters,
+  },
   user_config::{FullscreenStateConfig, UserConfig},
   windows::{
     commands::{toggle_window_state, update_window_state},
@@ -50,6 +54,31 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
+        } else if matches!(window.state(), WindowState::Floating(_)) {
+          // Update state with the new location of the floating window.
+          let new_position = window.native().outer_position()?;
+          window.set_floating_placement(new_position);
+
+          let workspace = window.workspace().context("No workspace.")?;
+
+          // Get workspace that encompasses most of the window after moving.
+          let updated_workspace = state
+            .nearest_monitor(&window.native())
+            .and_then(|monitor| monitor.displayed_workspace())
+            .context("Failed to get workspace of nearest monitor.")?;
+
+          // Update the window's workspace if it goes out of bounds of its
+          // current workspace.
+          if workspace.id() != updated_workspace.id() {
+            info!("Window moved to new workspace.");
+
+            move_container_within_tree(
+              window.into(),
+              updated_workspace.clone().into(),
+              updated_workspace.child_count(),
+              state,
+            )?;
+          }
         }
       }
     }
