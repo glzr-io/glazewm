@@ -85,6 +85,18 @@ impl Rect {
     )
   }
 
+  /// Returns a new `Rect` that is clamped within the bounds of the given
+  /// outer rectangle. Attempts to preserve the width and height of the
+  /// original rectangle.
+  pub fn clamp(&self, outer_rect: &Rect) -> Self {
+    let x = self.left.max(outer_rect.left);
+    let y = self.top.max(outer_rect.top);
+    let width = self.width().min(outer_rect.width());
+    let height = self.height().min(outer_rect.height());
+
+    Self::from_xy(x, y, width, height)
+  }
+
   pub fn center_point(&self) -> (i32, i32) {
     (
       self.left + (self.width() / 2),

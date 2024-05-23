@@ -450,36 +450,21 @@ fn new_floating_position(
       Some(next_monitor_rect) => {
         let (x, y) = match direction {
           Direction::Up => (
-            window_pos.x().clamp(
-              next_monitor_rect.left,
-              next_monitor_rect.right - window_pos.width(),
-            ),
+            window_pos.x(),
             next_monitor_rect.bottom - window_pos.height(),
           ),
-          Direction::Down => (
-            window_pos.x().clamp(
-              next_monitor_rect.left,
-              next_monitor_rect.right - window_pos.width(),
-            ),
-            next_monitor_rect.top,
-          ),
-          Direction::Left => (
-            next_monitor_rect.right - window_pos.width(),
-            window_pos.y().clamp(
-              next_monitor_rect.top,
-              next_monitor_rect.bottom - window_pos.height(),
-            ),
-          ),
-          Direction::Right => (
-            next_monitor_rect.left,
-            window_pos.y().clamp(
-              next_monitor_rect.top,
-              next_monitor_rect.bottom - window_pos.height(),
-            ),
-          ),
+          Direction::Down => (window_pos.x(), next_monitor_rect.top),
+          Direction::Left => {
+            (next_monitor_rect.right - window_pos.width(), window_pos.y())
+          }
+          Direction::Right => (next_monitor_rect.left, window_pos.y()),
         };
 
-        Some(window_pos.translate_to_coordinates(x, y))
+        Some(
+          window_pos
+            .translate_to_coordinates(x, y)
+            .clamp(&next_monitor_rect),
+        )
       }
       None => None,
     };
@@ -505,24 +490,23 @@ fn new_floating_position(
     _ => length_delta / 2,
   };
 
-  // If the window is within 15px of the monitor's edge, then snap it to
-  // the edge.
+  const SNAP_DISTANCE: i32 = 15;
+
+  // Snap the window to the nearest monitor's edge if it's within 15px of it
+  // after the move.
   let should_snap_to_edge = match direction {
     Direction::Up => {
-      window_pos.top <= monitor_rect.top + 15
-        || window_pos.top - move_distance < monitor_rect.top
+      window_pos.top - move_distance - SNAP_DISTANCE < monitor_rect.top
     }
     Direction::Down => {
-      window_pos.bottom >= monitor_rect.bottom - 15
-        || window_pos.bottom + move_distance > monitor_rect.bottom
+      window_pos.bottom + move_distance + SNAP_DISTANCE
+        > monitor_rect.bottom
     }
     Direction::Left => {
-      window_pos.left <= monitor_rect.left + 15
-        || window_pos.left - move_distance < monitor_rect.left
+      window_pos.left - move_distance - SNAP_DISTANCE < monitor_rect.left
     }
     Direction::Right => {
-      window_pos.right >= monitor_rect.right - 15
-        || window_pos.right + move_distance > monitor_rect.right
+      window_pos.right + move_distance + SNAP_DISTANCE > monitor_rect.right
     }
   };
 
