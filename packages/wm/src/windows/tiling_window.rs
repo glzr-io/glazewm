@@ -64,11 +64,12 @@ impl TilingWindow {
       state: WindowState::Tiling,
       prev_state,
       display_state: DisplayState::Shown,
+      // TODO: Pass border delta via the constructor.
       border_delta: RectDelta::new(
+        LengthValue::new_px(7.),
         LengthValue::new_px(0.),
-        LengthValue::new_px(0.),
-        LengthValue::new_px(0.),
-        LengthValue::new_px(0.),
+        LengthValue::new_px(7.),
+        LengthValue::new_px(7.),
       ),
       has_pending_dpi_adjustment: false,
       floating_placement,

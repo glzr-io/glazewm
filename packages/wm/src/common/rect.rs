@@ -1,4 +1,4 @@
-use super::RectDelta;
+use super::{Direction, RectDelta};
 
 #[derive(Debug, Clone)]
 pub struct Rect {
@@ -62,6 +62,26 @@ impl Rect {
       self,
       outer_rect.left + (outer_rect.width() / 2) - (self.width() / 2),
       outer_rect.top + (outer_rect.height() / 2) - (self.height() / 2),
+    )
+  }
+
+  pub fn translate_in_direction(
+    &self,
+    direction: &Direction,
+    distance: i32,
+  ) -> Rect {
+    let (delta_x, delta_y) = match direction {
+      Direction::Up => (0, -distance),
+      Direction::Down => (0, distance),
+      Direction::Left => (-distance, 0),
+      Direction::Right => (distance, 0),
+    };
+
+    Self::from_xy(
+      self.x() + delta_x,
+      self.y() + delta_y,
+      self.width(),
+      self.height(),
     )
   }
 

@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::{
-  common::{Direction, TilingDirection},
+  common::{Direction, Rect, TilingDirection},
   containers::{
     commands::{
       flatten_split_container, move_container_within_tree,
@@ -419,48 +419,39 @@ fn move_floating_window(
   // 3. If the window is on the monitor's edge, then move it to the next
   // monitor in the given direction.
   let monitor = window_to_move.monitor().context("No monitor.")?;
-
-  let placement = window_to_move.native().placement()?;
-
-  let new_placement = match direction {
-    Direction::Up => {
-      let length = monitor.height()? - placement.height();
-      let multiplier = (length) as f32 / placement.height() as f32;
-      let dist = length as f32 / multiplier;
-
-      placement.translate_to_coordinates(
-        placement.x(),
-        placement.y() + dist as i32,
-      )
-    }
-    Direction::Down => {
-      let length = monitor.height()? - placement.height();
-      let multiplier = (length) as f32 / placement.height() as f32;
-      let dist = length as f32 / multiplier;
-
-      placement.translate_to_coordinates(
-        placement.x(),
-        placement.y() - dist as i32,
-      )
-    }
-    Direction::Left => {
-      let multiplier =
-        (monitor.width()? - placement.width()) / placement.width();
-      let dist = (monitor.width()? - placement.width()) / multiplier;
-
-      placement
-        .translate_to_coordinates(placement.x() - dist, placement.y())
-    }
-    Direction::Right => {
-      let multiplier =
-        (monitor.width()? - placement.width()) / placement.width();
-      let dist = (monitor.width()? - placement.width()) / multiplier;
-
-      placement
-        .translate_to_coordinates(placement.x() + dist, placement.y())
-    }
+  let monitor_length = match direction {
+    Direction::Up | Direction::Down => monitor.height()?,
+    Direction::Left | Direction::Right => monitor.width()?,
   };
 
+  let placement = window_to_move
+    .floating_placement()
+    .apply_delta(&window_to_move.border_delta());
+
+  let window_length = match direction {
+    Direction::Up | Direction::Down => placement.height(),
+    Direction::Left | Direction::Right => placement.width(),
+  };
+
+  let length_delta = monitor_length - window_length;
+  let length_percentage = window_length as f32 / monitor_length as f32;
+  let window_multiplier = length_delta as f32 / window_length as f32;
+
+  println!("Monitor: {}", monitor_length);
+  println!("Length delta: {}", length_delta);
+  println!("Length percentage: {}", length_percentage);
+  println!("Window multiplier: {}", window_multiplier);
+
+  let move_distance = match length_percentage {
+    x if x >= 0.0 && x < 0.2 => length_delta / 5,
+    x if x >= 0.2 && x < 0.4 => length_delta / 4,
+    x if x >= 0.4 && x < 0.6 => length_delta / 3,
+    x if x >= 0.6 => length_delta / 2,
+    _ => 0,
+  };
+
+  let new_placement =
+    placement.translate_in_direction(direction, move_distance);
   window_to_move.set_floating_placement(new_placement);
 
   state.containers_to_redraw.push(window_to_move.into());

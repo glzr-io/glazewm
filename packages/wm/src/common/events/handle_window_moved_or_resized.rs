@@ -53,24 +53,15 @@ fn update_tiling_window(
     return Ok(());
   }
 
-  let monitor = window.monitor().context("No monitor.")?;
-
   // Remove invisible borders from current placement to be able to compare
   // window width/height.
-  let new_placement = window.native().placement()?;
-  let adjusted_placement = Rect::from_ltrb(
-    new_placement.left
-      + window.border_delta().left.to_pixels(monitor.width()?),
-    new_placement.top
-      + window.border_delta().top.to_pixels(monitor.width()?),
-    new_placement.right
-      - window.border_delta().right.to_pixels(monitor.width()?),
-    new_placement.bottom
-      - window.border_delta().bottom.to_pixels(monitor.width()?),
-  );
+  let new_placement = window
+    .native()
+    .placement()?
+    .apply_delta(&window.border_delta());
 
-  let delta_width = adjusted_placement.width() - window.width()?;
-  let delta_height = adjusted_placement.height() - window.height()?;
+  let delta_width = new_placement.width() - window.width()?;
+  let delta_height = new_placement.height() - window.height()?;
 
   resize_window(
     window.clone().into(),
