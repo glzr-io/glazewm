@@ -45,6 +45,7 @@ impl NonTilingWindow {
     native: NativeWindow,
     state: WindowState,
     prev_state: Option<WindowState>,
+    border_delta: RectDelta,
     insertion_target: Option<(Container, usize)>,
     floating_placement: Rect,
   ) -> Self {
@@ -58,13 +59,7 @@ impl NonTilingWindow {
       prev_state,
       insertion_target,
       display_state: DisplayState::Shown,
-      // TODO: Pass border delta via the constructor.
-      border_delta: RectDelta::new(
-        LengthValue::new_px(7.),
-        LengthValue::new_px(0.),
-        LengthValue::new_px(7.),
-        LengthValue::new_px(7.),
-      ),
+      border_delta,
       has_pending_dpi_adjustment: false,
       floating_placement,
     };
@@ -85,6 +80,7 @@ impl NonTilingWindow {
       Some(self.id()),
       self.native(),
       Some(self.state()),
+      self.border_delta(),
       self.floating_placement(),
       inner_gap,
     )

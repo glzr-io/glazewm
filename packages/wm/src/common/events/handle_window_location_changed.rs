@@ -56,7 +56,7 @@ pub fn handle_window_location_changed(
           )?;
         } else if matches!(window.state(), WindowState::Floating(_)) {
           // Update state with the new location of the floating window.
-          let new_position = window.native().outer_position()?;
+          let new_position = window.native().frame_position()?;
           window.set_floating_placement(new_position);
 
           let workspace = window.workspace().context("No workspace.")?;

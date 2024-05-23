@@ -38,7 +38,10 @@ use windows::{
   },
 };
 
-use crate::{common::Rect, windows::WindowState};
+use crate::{
+  common::{LengthValue, Rect, RectDelta},
+  windows::WindowState,
+};
 
 pub type WindowHandle = HWND;
 
@@ -247,8 +250,9 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Gets the window's position, including the window's frame.
-  pub fn outer_position(&self) -> anyhow::Result<Rect> {
+  /// Gets the window's position, including the window's frame. Excludes
+  /// the window's shadow borders.
+  pub fn frame_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
@@ -260,16 +264,46 @@ impl NativeWindow {
       )
     };
 
-    if dwm_res.is_err() {
-      warn!("Failed to get window's frame bounds. Falling back to `GetWindowRect`.");
-      unsafe { GetWindowRect(self.handle, &mut rect as *mut _ as _) }?;
+    match dwm_res {
+      Ok(_) => Ok(Rect::from_ltrb(
+        rect.left,
+        rect.top,
+        rect.right,
+        rect.bottom,
+      )),
+      _ => {
+        warn!("Failed to get window's frame position. Falling back to border position.");
+        self.border_position()
+      }
     }
+  }
+
+  /// Gets the window's position, including the window's frame and
+  /// shadow borders.
+  fn border_position(&self) -> anyhow::Result<Rect> {
+    let mut rect = RECT::default();
+
+    unsafe { GetWindowRect(self.handle, &mut rect as *mut _ as _) }?;
 
     Ok(Rect::from_ltrb(
       rect.left,
       rect.top,
       rect.right,
       rect.bottom,
+    ))
+  }
+
+  /// Gets the delta between the window's frame and the window's border.
+  /// This represents the size of a window's shadow borders.
+  pub fn border_delta(&self) -> anyhow::Result<RectDelta> {
+    let border_pos = self.border_position()?;
+    let frame_pos = self.frame_position()?;
+
+    Ok(RectDelta::new(
+      LengthValue::new_px((frame_pos.left - border_pos.left) as f32),
+      LengthValue::new_px((frame_pos.top - border_pos.top) as f32),
+      LengthValue::new_px((border_pos.right - frame_pos.right) as f32),
+      LengthValue::new_px((border_pos.bottom - frame_pos.bottom) as f32),
     ))
   }
 

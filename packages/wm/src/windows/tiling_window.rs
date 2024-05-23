@@ -51,6 +51,7 @@ impl TilingWindow {
     id: Option<Uuid>,
     native: NativeWindow,
     prev_state: Option<WindowState>,
+    border_delta: RectDelta,
     floating_placement: Rect,
     inner_gap: LengthValue,
   ) -> Self {
@@ -64,13 +65,7 @@ impl TilingWindow {
       state: WindowState::Tiling,
       prev_state,
       display_state: DisplayState::Shown,
-      // TODO: Pass border delta via the constructor.
-      border_delta: RectDelta::new(
-        LengthValue::new_px(7.),
-        LengthValue::new_px(0.),
-        LengthValue::new_px(7.),
-        LengthValue::new_px(7.),
-      ),
+      border_delta,
       has_pending_dpi_adjustment: false,
       floating_placement,
       inner_gap,
@@ -89,6 +84,7 @@ impl TilingWindow {
       self.native(),
       state,
       Some(WindowState::Tiling),
+      self.border_delta(),
       None,
       self.floating_placement(),
     )

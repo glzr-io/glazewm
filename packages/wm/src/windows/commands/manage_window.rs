@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow,
+  common::{platform::NativeWindow, LengthValue, RectDelta},
   containers::{
     commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
@@ -91,26 +91,28 @@ fn create_window(
   // Calculate where window should be placed when floating is enabled. Use
   // the original width/height of the window and optionally position it in
   // the center of the workspace.
-  let floating_placement = if nearest_workspace.id()
-    == target_workspace.id()
-    && !config.value.window_state_defaults.floating.centered
-  {
-    native_window.outer_position()?
-  } else {
-    native_window
-      .outer_position()?
-      .translate_to_center(&target_workspace.to_rect()?)
-  };
+  let prefer_center = config.value.window_state_defaults.floating.centered;
+  let floating_placement =
+    if nearest_workspace.id() != target_workspace.id() || prefer_center {
+      native_window
+        .frame_position()?
+        .translate_to_center(&target_workspace.to_rect()?)
+    } else {
+      native_window.frame_position()?
+    };
 
   let window_state = window_state_to_create(&native_window, config);
+  let border_delta = native_window.border_delta()?;
+  let inner_gap = config.value.gaps.inner_gap.clone();
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
       None,
       native_window,
       None,
+      border_delta,
       floating_placement,
-      config.value.gaps.inner_gap.clone(),
+      inner_gap,
     )
     .into(),
     _ => NonTilingWindow::new(
@@ -118,6 +120,7 @@ fn create_window(
       native_window,
       window_state,
       None,
+      border_delta,
       None,
       floating_placement,
     )

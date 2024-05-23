@@ -420,7 +420,7 @@ fn move_floating_window(
   // monitor in the given direction.
   let monitor = window_to_move.monitor().context("No monitor.")?;
   let monitor_rect = monitor.native().working_rect()?.clone();
-  let window_pos = window_to_move.native().outer_position()?;
+  let window_pos = window_to_move.native().frame_position()?;
 
   let (monitor_length, window_length) = match direction {
     Direction::Up | Direction::Down => {

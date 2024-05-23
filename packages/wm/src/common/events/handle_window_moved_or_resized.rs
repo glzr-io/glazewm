@@ -34,7 +34,7 @@ pub fn handle_window_moved_or_resized(
       return Ok(());
     }
 
-    let new_position = window.native().outer_position()?;
+    let new_position = window.native().frame_position()?;
     let delta_width = new_position.width() - window.width()?;
     let delta_height = new_position.height() - window.height()?;
 
