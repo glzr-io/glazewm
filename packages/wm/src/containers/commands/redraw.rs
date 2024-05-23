@@ -47,14 +47,7 @@ pub fn redraw(state: &mut WmState) -> anyhow::Result<()> {
       }
     }
 
-    // Avoid adjusting the borders of non-tiling windows. Otherwise the
-    // window will increase in size from its original placement.
-    let rect = match window.state() {
-      WindowState::Tiling => {
-        window.to_rect()?.apply_delta(&window.border_delta())
-      }
-      _ => window.to_rect()?,
-    };
+    let rect = window.to_rect()?.apply_delta(&window.border_delta());
 
     let is_visible = match window.display_state() {
       DisplayState::Showing | DisplayState::Shown => true,

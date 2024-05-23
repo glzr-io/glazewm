@@ -68,9 +68,13 @@ impl Monitor {
     &self,
     other: &Container,
   ) -> anyhow::Result<bool> {
-    let other_monitor = other.monitor().context("No parent monitor.")?;
+    let dpi = self.native().dpi()?;
+    let other_dpi = other
+      .monitor()
+      .and_then(|monitor| monitor.native().dpi().ok())
+      .context("Failed to get DPI of other monitor.")?;
 
-    Ok(self.native().dpi()? != other_monitor.native().dpi()?)
+    Ok((dpi - other_dpi).abs() < f32::EPSILON)
   }
 
   pub fn to_dto(&self) -> anyhow::Result<MonitorDto> {

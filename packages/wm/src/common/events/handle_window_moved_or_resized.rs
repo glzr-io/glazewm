@@ -44,24 +44,18 @@ fn update_tiling_window(
   window: TilingWindow,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  let parent = window.parent().context("No parent.")?;
+
   // Snap window to its original position if it's the only window in the
   // workspace.
-  if window.parent().context("No parent.")?.is_workspace()
-    && window.tiling_siblings().count() == 0
-  {
+  if parent.is_workspace() && window.tiling_siblings().count() == 0 {
     state.containers_to_redraw.push(window.into());
     return Ok(());
   }
 
-  // Remove invisible borders from current placement to be able to compare
-  // window width/height.
-  let new_placement = window
-    .native()
-    .placement()?
-    .apply_delta(&window.border_delta());
-
-  let delta_width = new_placement.width() - window.width()?;
-  let delta_height = new_placement.height() - window.height()?;
+  let new_position = window.native().outer_position()?;
+  let delta_width = new_position.width() - window.width()?;
+  let delta_height = new_position.height() - window.height()?;
 
   resize_window(
     window.clone().into(),
@@ -83,8 +77,8 @@ fn update_floating_window(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   // Update state with new location of the floating window.
-  let new_placement = window.native().placement()?;
-  window.set_floating_placement(new_placement);
+  let new_position = window.native().outer_position()?;
+  window.set_floating_placement(new_position);
 
   // Change floating window's parent workspace if moved out of its bounds.
   update_parent_workspace(window.clone().into(), state)

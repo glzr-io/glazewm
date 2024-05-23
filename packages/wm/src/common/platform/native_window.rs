@@ -1,15 +1,16 @@
-use std::os::raw::c_void;
-use std::sync::{Arc, RwLock};
+use std::{
+  ffi::c_void,
+  sync::{Arc, RwLock},
+};
 
-use crate::common::Rect;
-use crate::windows::WindowState;
-use windows::Win32::Graphics::Dwm::DWMWA_BORDER_COLOR;
+use tracing::warn;
 use windows::{
   core::PWSTR,
   Win32::{
-    Foundation::{CloseHandle, BOOL, HWND, LPARAM},
+    Foundation::{CloseHandle, BOOL, HWND, LPARAM, RECT},
     Graphics::Dwm::{
-      DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_CLOAKED,
+      DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
+      DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS,
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -22,20 +23,22 @@ use windows::{
       },
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
-        GetWindowPlacement, GetWindowTextW, GetWindowThreadProcessId,
-        IsIconic, IsWindowVisible, SendNotifyMessageW,
-        SetForegroundWindow, SetWindowPos, ShowWindowAsync, GWL_EXSTYLE,
-        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOPMOST,
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_HIDEWINDOW,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
-        SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-        WS_THICKFRAME,
+        GetWindowPlacement, GetWindowRect, GetWindowTextW,
+        GetWindowThreadProcessId, IsIconic, IsWindowVisible,
+        SendNotifyMessageW, SetForegroundWindow, SetWindowPos,
+        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
+        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+        SWP_NOSENDCHANGING, SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE,
+        SW_RESTORE, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
+        WM_CLOSE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW, WS_THICKFRAME,
       },
     },
   },
 };
+
+use crate::{common::Rect, windows::WindowState};
 
 pub type WindowHandle = HWND;
 
@@ -244,16 +247,29 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn placement(&self) -> anyhow::Result<Rect> {
-    let mut placement = WINDOWPLACEMENT::default();
-    unsafe { GetWindowPlacement(self.handle, &mut placement) }?;
+  /// Gets the window's position, including the window's frame.
+  pub fn outer_position(&self) -> anyhow::Result<Rect> {
+    let mut rect = RECT::default();
 
-    let normal_pos = placement.rcNormalPosition;
+    let dwm_res = unsafe {
+      DwmGetWindowAttribute(
+        self.handle,
+        DWMWA_EXTENDED_FRAME_BOUNDS,
+        &mut rect as *mut _ as _,
+        std::mem::size_of::<RECT>() as u32,
+      )
+    };
+
+    if dwm_res.is_err() {
+      warn!("Failed to get window's frame bounds. Falling back to `GetWindowRect`.");
+      unsafe { GetWindowRect(self.handle, &mut rect as *mut _ as _) }?;
+    }
+
     Ok(Rect::from_ltrb(
-      normal_pos.left,
-      normal_pos.top,
-      normal_pos.right,
-      normal_pos.bottom,
+      rect.left,
+      rect.top,
+      rect.right,
+      rect.bottom,
     ))
   }
 

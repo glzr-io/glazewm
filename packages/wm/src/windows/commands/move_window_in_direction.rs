@@ -421,16 +421,14 @@ fn move_floating_window(
   let monitor = window_to_move.monitor().context("No monitor.")?;
   let monitor_length = match direction {
     Direction::Up | Direction::Down => monitor.height()?,
-    Direction::Left | Direction::Right => monitor.width()?,
+    _ => monitor.width()?,
   };
 
-  let placement = window_to_move
-    .floating_placement()
-    .apply_delta(&window_to_move.border_delta());
+  let position = window_to_move.native().outer_position()?;
 
   let window_length = match direction {
-    Direction::Up | Direction::Down => placement.height(),
-    Direction::Left | Direction::Right => placement.width(),
+    Direction::Up | Direction::Down => position.height(),
+    _ => position.width(),
   };
 
   let length_delta = monitor_length - window_length;

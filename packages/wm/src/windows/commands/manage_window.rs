@@ -95,10 +95,10 @@ fn create_window(
     == target_workspace.id()
     && !config.value.window_state_defaults.floating.centered
   {
-    native_window.placement()?
+    native_window.outer_position()?
   } else {
     native_window
-      .placement()?
+      .outer_position()?
       .translate_to_center(&target_workspace.to_rect()?)
   };
 
