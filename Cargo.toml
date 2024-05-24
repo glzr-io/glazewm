@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["packages/*"]
-default-members = ["packages/wm"]
+default-members = ["packages/wm", "packages/watcher"]
 
 [workspace.dependencies]
 anyhow = "1"

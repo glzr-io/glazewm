@@ -3,6 +3,10 @@ name = "watcher"
 version = "0.0.0"
 edition = "2021"
 
+[[bin]]
+name = "watcher"
+path = "src/main.rs"
+
 [dependencies]
 wm = { path = "../wm" }
 
