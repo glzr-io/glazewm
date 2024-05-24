@@ -78,14 +78,18 @@ impl TilingWindow {
     self.0.borrow().inner_gap.clone()
   }
 
-  pub fn to_non_tiling(&self, state: WindowState) -> NonTilingWindow {
+  pub fn to_non_tiling(
+    &self,
+    state: WindowState,
+    insertion_target: Option<(Container, usize)>,
+  ) -> NonTilingWindow {
     NonTilingWindow::new(
       Some(self.id()),
       self.native(),
       state,
       Some(WindowState::Tiling),
       self.border_delta(),
-      None,
+      insertion_target,
       self.floating_placement(),
     )
   }

@@ -48,19 +48,26 @@ fn set_tiling(
     // Get the position in the tree to insert the new tiling window. This
     // will be the window's previous tiling position if it has one, or
     // instead beside the last focused tiling window in the workspace.
-    // TODO: Something is going wrong here.
     let (target_parent, target_index) = window
       .insertion_target()
+      // Check whether insertion target is still valid.
+      .filter(|(insertion_target, _)| {
+        insertion_target
+          .workspace()
+          .map(|workspace| workspace.is_displayed())
+          .unwrap_or(false)
+      })
+      // Fallback to the last focused tiling window within the workspace.
       .or_else(|| {
-        // Get the last focused tiling window within the workspace.
-        let focused_window = window
+        let focused_window = workspace
           .descendant_focus_order()
           .filter(|c| c.is_tiling_window())
           .next()?;
 
         Some((focused_window.parent()?, focused_window.index() + 1))
       })
-      .unwrap_or((workspace.into(), 0));
+      // Default to inserting at the end of the workspace.
+      .unwrap_or((workspace.clone().into(), workspace.child_count()));
 
     let tiling_window =
       window.to_tiling(config.value.gaps.inner_gap.clone());
@@ -102,6 +109,10 @@ fn set_non_tiling(
       let parent = window.parent().context("No parent")?;
       let workspace = window.workspace().context("No workspace.")?;
 
+      let insertion_target = (parent.clone(), window.index());
+      let non_tiling_window =
+        window.to_non_tiling(window_state.clone(), Some(insertion_target));
+
       // Non-tiling windows should always be direct children of the
       // workspace.
       if parent != workspace.clone().into() {
@@ -112,8 +123,6 @@ fn set_non_tiling(
           state,
         )?;
       }
-
-      let non_tiling_window = window.to_non_tiling(window_state.clone());
 
       replace_container(
         non_tiling_window.clone().into(),
