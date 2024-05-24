@@ -123,8 +123,8 @@ fn set_non_tiling(
 
       // Focus should be reassigned after a window has been minimized.
       if window_state == WindowState::Minimized {
-        if let Some(focus_target) =
-          state.focus_target_after_removal(&non_tiling_window.into())
+        if let Some(focus_target) = state
+          .focus_target_after_removal(&non_tiling_window.clone().into())
         {
           set_focused_descendant(focus_target, None);
           state.has_pending_focus_sync = true;
@@ -133,6 +133,7 @@ fn set_non_tiling(
         }
       }
 
+      state.containers_to_redraw.push(non_tiling_window.into());
       state
         .containers_to_redraw
         .extend(workspace.tiling_children().map(Into::into))
