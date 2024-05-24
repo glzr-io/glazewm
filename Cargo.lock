@@ -184,16 +184,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
-name = "cli"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "ipc-client",
- "tokio",
- "wm",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -412,13 +402,6 @@ checksum = "233cf39063f058ea2caae4091bf4a3ef70a653afbc026f5c4a4135d114e3c177"
 dependencies = [
  "equivalent",
  "hashbrown",
-]
-
-[[package]]
-name = "ipc-client"
-version = "0.0.0"
-dependencies = [
- "anyhow",
 ]
 
 [[package]]
