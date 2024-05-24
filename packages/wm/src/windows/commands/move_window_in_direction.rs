@@ -14,6 +14,7 @@ use crate::{
     Container, DirectionContainer, SplitContainer, TilingContainer,
     WindowContainer,
   },
+  monitors::Monitor,
   user_config::UserConfig,
   windows::{
     traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
@@ -415,19 +416,41 @@ fn move_floating_window(
   let new_position =
     new_floating_position(window_to_move.clone(), direction, state)?;
 
-  if let Some(new_position) = new_position {
-    window_to_move.set_floating_placement(new_position);
+  if let Some((position_rect, target_monitor)) = new_position {
+    let monitor = window_to_move.monitor().context("No monitor.")?;
+
+    // Update the window's workspace if it goes out of bounds of its
+    // current workspace.
+    if monitor.id() != target_monitor.id() {
+      let target_workspace = target_monitor
+        .displayed_workspace()
+        .context("Failed to get workspace of target monitor.")?;
+
+      move_container_within_tree(
+        window_to_move.clone().into(),
+        target_workspace.clone().into(),
+        target_workspace.child_count(),
+        state,
+      )?;
+
+      if monitor.has_dpi_difference(&target_monitor.into())? {
+        window_to_move.set_has_pending_dpi_adjustment(true);
+      }
+    }
+
+    window_to_move.set_floating_placement(position_rect);
     state.containers_to_redraw.push(window_to_move.into());
   }
 
   Ok(())
 }
 
+/// Returns a tuple of the new floating position and the target monitor.
 fn new_floating_position(
   window_to_move: NonTilingWindow,
   direction: &Direction,
   state: &mut WmState,
-) -> anyhow::Result<Option<Rect>> {
+) -> anyhow::Result<Option<(Rect, Monitor)>> {
   let monitor = window_to_move.monitor().context("No monitor.")?;
   let monitor_rect = monitor.native().working_rect()?.clone();
   let window_pos = window_to_move.native().frame_position()?;
@@ -442,34 +465,22 @@ fn new_floating_position(
   // Window is on the edge of the monitor and should be moved to a
   // different monitor in the given direction.
   if is_on_monitor_edge {
-    let next_monitor_rect = state
-      .monitor_in_direction(&monitor, direction)?
-      .and_then(|monitor| monitor.native().working_rect().cloned().ok());
+    let next_monitor = state.monitor_in_direction(&monitor, direction)?;
 
-    let position = match next_monitor_rect {
-      Some(next_monitor_rect) => {
-        let (x, y) = match direction {
-          Direction::Up => (
-            window_pos.x(),
-            next_monitor_rect.bottom - window_pos.height(),
-          ),
-          Direction::Down => (window_pos.x(), next_monitor_rect.top),
-          Direction::Left => {
-            (next_monitor_rect.right - window_pos.width(), window_pos.y())
-          }
-          Direction::Right => (next_monitor_rect.left, window_pos.y()),
-        };
+    if let Some(next_monitor) = next_monitor {
+      let monitor_rect = next_monitor.native().working_rect()?.clone();
 
-        Some(
-          window_pos
-            .translate_to_coordinates(x, y)
-            .clamp(&next_monitor_rect),
-        )
-      }
-      None => None,
-    };
+      let position = snap_to_monitor_edge(
+        &window_pos,
+        &monitor_rect,
+        &direction.inverse(),
+      )
+      .clamp(&monitor_rect);
 
-    return Ok(position);
+      return Ok(Some((position, next_monitor)));
+    }
+
+    return Ok(None);
   }
 
   let (monitor_length, window_length) = match direction {
@@ -510,25 +521,31 @@ fn new_floating_position(
     }
   };
 
+  // Window should either be snapped to the edge of the current monitor or
+  // moved normally.
   let position = match should_snap_to_edge {
-    true => {
-      // Window should be snapped to the edge of the current monitor.
-      let (x, y) = match direction {
-        Direction::Up => (window_pos.x(), monitor_rect.top),
-        Direction::Down => {
-          (window_pos.x(), monitor_rect.bottom - window_pos.height())
-        }
-        Direction::Left => (monitor_rect.left, window_pos.y()),
-        Direction::Right => {
-          (monitor_rect.right - window_pos.width(), window_pos.y())
-        }
-      };
-
-      window_pos.translate_to_coordinates(x, y)
-    }
-    // Move the window normally.
+    true => snap_to_monitor_edge(&window_pos, &monitor_rect, direction),
     false => window_pos.translate_in_direction(direction, move_distance),
   };
 
-  Ok(Some(position))
+  Ok(Some((position, monitor)))
+}
+
+fn snap_to_monitor_edge(
+  window_pos: &Rect,
+  monitor_rect: &Rect,
+  edge: &Direction,
+) -> Rect {
+  let (x, y) = match edge {
+    Direction::Up => (window_pos.x(), monitor_rect.top),
+    Direction::Down => {
+      (window_pos.x(), monitor_rect.bottom - window_pos.height())
+    }
+    Direction::Left => (monitor_rect.left, window_pos.y()),
+    Direction::Right => {
+      (monitor_rect.right - window_pos.width(), window_pos.y())
+    }
+  };
+
+  window_pos.translate_to_coordinates(x, y)
 }
