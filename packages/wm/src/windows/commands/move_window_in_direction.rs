@@ -503,8 +503,8 @@ fn new_floating_position(
 
   const SNAP_DISTANCE: i32 = 15;
 
-  // Snap the window to the nearest monitor's edge if it's within 15px of it
-  // after the move.
+  // Snap the window to the current monitor's edge if it's within 15px of
+  // it after the move.
   let should_snap_to_edge = match direction {
     Direction::Up => {
       window_pos.top - move_distance - SNAP_DISTANCE < monitor_rect.top
@@ -521,10 +521,28 @@ fn new_floating_position(
     }
   };
 
-  // Window should either be snapped to the edge of the current monitor or
-  // moved normally.
-  let position = match should_snap_to_edge {
-    true => snap_to_monitor_edge(&window_pos, &monitor_rect, direction),
+  if should_snap_to_edge {
+    let position =
+      snap_to_monitor_edge(&window_pos, &monitor_rect, direction);
+
+    return Ok(Some((position, monitor)));
+  }
+
+  // Snap the window to the current monitor's inverse edge if it's in
+  // between two monitors or outside the bounds of the current monitor.
+  let should_snap_to_inverse_edge = match direction {
+    Direction::Up => window_pos.bottom > monitor_rect.bottom,
+    Direction::Down => window_pos.top < monitor_rect.top,
+    Direction::Left => window_pos.right > monitor_rect.right,
+    Direction::Right => window_pos.left < monitor_rect.left,
+  };
+
+  let position = match should_snap_to_inverse_edge {
+    true => snap_to_monitor_edge(
+      &window_pos,
+      &monitor_rect,
+      &direction.inverse(),
+    ),
     false => window_pos.translate_in_direction(direction, move_distance),
   };
 
