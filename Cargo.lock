@@ -1067,8 +1067,8 @@ name = "watcher"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "ipc-client",
  "tokio",
+ "wm",
 ]
 
 [[package]]
@@ -1278,7 +1278,6 @@ dependencies = [
  "enum_dispatch",
  "futures-util",
  "home",
- "ipc-client",
  "regex",
  "serde",
  "serde_json",
@@ -1288,6 +1287,5 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "watcher",
  "windows",
 ]

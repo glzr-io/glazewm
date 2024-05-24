@@ -6,10 +6,14 @@ repository = "https://github.com/glzr-io/glazewm"
 license = "GPL-3"
 edition = "2021"
 
-[dependencies]
-ipc-client = { path = "../ipc-client" }
-watcher = { path = "../watcher" }
+[lib]
+path = "src/lib.rs"
 
+[[bin]]
+name = "wm"
+path = "src/main.rs"
+
+[dependencies]
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 enum_dispatch = "0.3"

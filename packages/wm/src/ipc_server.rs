@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
-use ipc_client::DEFAULT_IPC_ADDR;
 use serde::Serialize;
 use tokio::{
   net::{TcpListener, TcpStream},
@@ -21,6 +20,8 @@ use crate::{
   wm_event::WmEvent,
   wm_state::WmState,
 };
+
+pub const DEFAULT_IPC_ADDR: &'static str = "127.0.0.1:6123";
 
 #[derive(Debug, Serialize)]
 struct ServerMessage<T> {
