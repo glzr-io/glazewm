@@ -264,6 +264,9 @@ fn change_workspace_tiling_direction(
       config.value.gaps.inner_gap.clone(),
     );
 
+    // TODO: In the layout H[1 V[2 3]] where container 3 is moved down,
+    // this creates a split container around 2 and 3 because the split
+    // container is the parent. Instead it should be wrapped around 1 and 2.
     wrap_in_split_container(
       split_container,
       parent.clone(),

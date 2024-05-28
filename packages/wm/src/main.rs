@@ -61,12 +61,13 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   // Parse and validate user config.
   let config = UserConfig::read(config_path).await?;
 
-  let mut ipc_server = IpcServer::start().await?;
-
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::start(&config).await?;
+  let mut wm = WindowManager::new(&config).await?;
+
+  // Start IPC server after populating initial WM state.
+  let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events.
   let mut event_listener = Platform::new_event_listener(&config).await?;
@@ -83,9 +84,9 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
           error!("Failed to process event: {:?}", err);
         }
       },
-      Some(ipc_message) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {:?}", ipc_message);
-        ipc_server.process_message(ipc_message, wm.state.clone()).await;
+      Some((app_command, response_tx)) = ipc_server.message_rx.recv() => {
+        info!("Received IPC message: {:?}", app_command);
+        ipc_server.process_message(app_command, response_tx, wm.state.clone()).await;
       },
       Some(wm_command) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", wm_command);
@@ -109,7 +110,7 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
           event_listener.update(&config, active_binding_modes);
         }
 
-        ipc_server.process_event(wm_event).await;
+        ipc_server.process_event(wm_event, wm.state.clone()).await;
       },
     }
   }

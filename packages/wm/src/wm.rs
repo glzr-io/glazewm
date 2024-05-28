@@ -19,7 +19,7 @@ use crate::{
       handle_window_minimized, handle_window_moved_or_resized,
       handle_window_shown,
     },
-    platform::{PlatformEvent},
+    platform::PlatformEvent,
   },
   containers::{commands::redraw, traits::CommonGetters},
   user_config::UserConfig,
@@ -33,7 +33,7 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub async fn start(config: &Arc<Mutex<UserConfig>>) -> Result<Self> {
+  pub async fn new(config: &Arc<Mutex<UserConfig>>) -> Result<Self> {
     let config = config.lock().await;
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 

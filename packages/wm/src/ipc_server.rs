@@ -1,8 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
-use anyhow::Result;
+use anyhow::Context;
 use clap::Parser;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{future, pin_mut, SinkExt, StreamExt, TryStreamExt};
 use serde::Serialize;
 use tokio::{
   net::{TcpListener, TcpStream},
@@ -12,7 +12,7 @@ use tokio::{
 use tokio_tungstenite::{
   accept_async, tungstenite::Message, WebSocketStream,
 };
-use tracing::info;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
   wm_state::WmState,
 };
 
-pub const DEFAULT_IPC_ADDR: &'static str = "127.0.0.1:6123";
+const DEFAULT_IPC_PORT: u32 = 6123;
 
 #[derive(Debug, Serialize)]
 struct ServerMessage<T> {
@@ -44,29 +44,33 @@ struct EventSubscription {
 }
 
 pub struct IpcServer {
-  pub message_rx: mpsc::UnboundedReceiver<AppCommand>,
+  pub message_rx:
+    mpsc::UnboundedReceiver<(AppCommand, mpsc::UnboundedSender<String>)>,
   pub wm_command_rx:
     mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
   abort_handle: task::AbortHandle,
-  // event_subscriptions: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
+  // /// Hashmap of event names and connections subscribed to that event.
+  // event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
 }
 
 impl IpcServer {
-  pub async fn start() -> Result<Self> {
+  pub async fn start() -> anyhow::Result<Self> {
     let (message_tx, message_rx) = mpsc::unbounded_channel();
     let (wm_command_tx, wm_command_rx) = mpsc::unbounded_channel();
 
-    let server = TcpListener::bind(DEFAULT_IPC_ADDR).await?;
-    info!("IPC server started on port {}.", DEFAULT_IPC_ADDR);
+    let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
+    let server = TcpListener::bind(server_addr.clone()).await?;
+    info!("IPC server started on: '{}'.", server_addr);
 
-    // Hashmap of event names and connections subscribed to that event.
-    let event_subscriptions = Arc::new(Mutex::new(HashMap::new()));
+    let event_subs = Arc::new(Mutex::new(HashMap::new()));
 
     let task = task::spawn(async move {
-      while let Ok((stream, _)) = server.accept().await {
+      while let Ok((stream, addr)) = server.accept().await {
         task::spawn(Self::handle_connection(
           stream,
-          event_subscriptions.clone(),
+          addr,
+          event_subs.clone(),
+          message_tx.clone(),
         ));
       }
     });
@@ -75,64 +79,124 @@ impl IpcServer {
       message_rx,
       wm_command_rx,
       abort_handle: task.abort_handle(),
+      // event_subs: event_subs.clone(),
     })
   }
 
   async fn handle_connection(
     stream: TcpStream,
-    event_subscriptions: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
+    addr: SocketAddr,
+    event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
+    message_tx: mpsc::UnboundedSender<(
+      AppCommand,
+      mpsc::UnboundedSender<String>,
+    )>,
   ) -> anyhow::Result<()> {
-    // let client_id = Uuid::new_v4().to_string();
-    // info!("Received new IPC connection with client id: {}", client_id);
-    info!("Received new IPC connection.");
+    info!("Incoming IPC connection from: {}.", addr);
 
-    let mut subscriptions = event_subscriptions.lock().await;
-    let mut ws_stream = accept_async(stream).await?;
+    let ws_stream = accept_async(stream)
+      .await
+      .context("Error during websocket handshake.")?;
 
-    while let Some(Ok(msg)) = ws_stream.next().await {
-      if msg.is_text() || msg.is_binary() {
-        let app_command =
-          AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    let (mut outgoing, mut incoming) = ws_stream.split();
 
-        let res = match app_command {
-          AppCommand::Start {
-            config_path,
-            verbosity,
-          } => todo!(),
-          AppCommand::Query { command } => todo!(),
-          AppCommand::Cmd {
-            context_container_id,
-            command,
-          } => todo!(),
-        };
+    loop {
+      tokio::select! {
+          Some(response) = response_rx.recv() => {
+              if let Err(e) = outgoing.send(Message::Text(response)).await {
+                  error!("Error sending response: {}", e);
+                  break;
+              }
+          }
+          Some(msg) = incoming.next() => {
+            let msg = msg.context("Error reading next websocket message.")?;
 
-        // Respond to the client with the result of the command.
-        let response_msg = Message::Text(serde_json::to_string(&res)?);
-        ws_stream.send(response_msg).await?;
+            if msg.is_text() || msg.is_binary() {
+              let app_command =
+                AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
+
+              message_tx.send((app_command, response_tx.clone()))?;
+            }
+          }
       }
     }
 
+    // let receive_from_others = response_rx.map(Ok).forward(outgoing);
+
+    // let get_incoming = incoming
+    //   .try_filter(|msg| future::ready(msg.is_text()))
+    //   .try_for_each(|msg| {
+    //     let tx = response_tx.clone();
+
+    //     // tx.
+    //     async move { self.handle_message(tx, msg).await }
+    //   });
+
+    // pin_mut!(get_incoming, receive_from_others);
+
+    // while let Some(msg) = ws_stream.next().await {
+    //   let msg = msg.context("Error reading next websocket message.")?;
+
+    //   if msg.is_text() || msg.is_binary() {
+    //     let app_command =
+    //       AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
+
+    //     // message_tx.send((app_command, ws_stream))?;
+    //     message_tx.send((app_command))?;
+    //   }
+    // }
+
+    // TODO: Clean-up event subscriptions on errors.
+    let mut subscriptions = event_subs.lock().await;
+
     // Remove event subscription on websocket disconnect.
-    for (_, event_subscriptions) in subscriptions.iter_mut() {
-      // event_subscriptions.retain(|subscription| {
+    for (_, event_subs) in subscriptions.iter_mut() {
+      // event_subs.retain(|subscription| {
       //   // Remove the subscription associated with the disconnected websocket
       //   // You'll need to modify this based on how you track the websocket connection
       //   true
       // });
     }
 
+    info!("IPC disconnection from: {}.", addr);
+
     Ok(())
   }
 
   pub async fn process_message(
     &self,
-    _message: AppCommand,
-    wm_state: Arc<Mutex<WmState>>,
-  ) {
+    app_command: AppCommand,
+    response_tx: mpsc::UnboundedSender<String>,
+    // ws_stream: WebSocketStream<TcpStream>,
+    state: Arc<Mutex<WmState>>,
+  ) -> anyhow::Result<()> {
     // TODO: Spawn a task so that it doesn't block main thread execution.
+
+    let response = match app_command {
+      AppCommand::Start {
+        config_path,
+        verbosity,
+      } => todo!(),
+      AppCommand::Query { command } => todo!(),
+      AppCommand::Cmd {
+        context_container_id,
+        command,
+      } => todo!(),
+    };
+
+    // Respond to the client with the result of the command.
+    let response_msg = Message::Text(serde_json::to_string(&response)?);
+    // response_tx.send(response_msg)?;
+    response_tx.send("aaaa".to_string())?;
+    // ws_stream.send(response_msg).await?;
   }
 
-  pub async fn process_event(&mut self, event: WmEvent) {
+  pub async fn process_event(
+    &mut self,
+    event: WmEvent,
+    state: Arc<Mutex<WmState>>,
+  ) -> anyhow::Result<()> {
     // // TODO: Spawn a task so that it doesn't block main thread execution.
     // let subscriptions = self.event_subscriptions.lock().await;
 
@@ -153,6 +217,7 @@ impl IpcServer {
     //     });
     //   }
     // }
+    Ok(())
   }
 
   pub fn stop(&self) {
