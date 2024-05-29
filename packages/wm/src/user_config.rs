@@ -1,11 +1,8 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use tokio::{
-  fs,
-  sync::{mpsc, Mutex},
-};
+use tokio::{fs, sync::mpsc};
 
 use crate::{
   app_command::InvokeCommand,

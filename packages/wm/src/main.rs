@@ -64,19 +64,19 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  let mut wm = WindowManager::new(&config).await?;
+  let mut wm = WindowManager::new(&config)?;
 
   // Start IPC server after populating initial WM state.
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events.
-  let mut event_listener = Platform::start_event_listener(&config).await?;
+  let mut event_listener = Platform::start_event_listener(&config)?;
 
   loop {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
-        let res = wm.process_event(event, &mut config).await;
+        let res = wm.process_event(event, &mut config);
 
         if let Err(err) = res {
           error!("Failed to process event: {:?}", err);
@@ -84,14 +84,12 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
       },
       Some((app_command, response_tx)) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", app_command);
-        ipc_server.process_message(app_command, response_tx, wm.state.clone()).await;
+        ipc_server.process_message(app_command, response_tx, &mut wm.state).await;
       },
-      Some(wm_command) = ipc_server.wm_command_rx.recv() => {
-        info!("Received WM command via IPC: {:?}", wm_command);
-        let (command, subject_container_id) = wm_command;
+      Some((command, subject_container_id)) = ipc_server.wm_command_rx.recv() => {
+        info!("Received WM command via IPC: {:?}", command);
         let res = wm
-          .process_commands(vec![command], subject_container_id, &mut config)
-          .await;
+          .process_commands(vec![command], subject_container_id, &mut config);
 
         if let Err(err) = res {
           error!("Failed to process command: {:?}", err);
@@ -108,7 +106,7 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
           event_listener.update(&config, active_binding_modes);
         }
 
-        ipc_server.process_event(wm_event, wm.state.clone()).await;
+        ipc_server.process_event(wm_event, &mut wm.state).await;
       },
     }
   }

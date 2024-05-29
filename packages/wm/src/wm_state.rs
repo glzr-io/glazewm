@@ -9,11 +9,11 @@ use crate::{
   common::{
     commands::sync_native_focus,
     platform::{NativeMonitor, NativeWindow, Platform},
-    Direction, Rect,
+    Direction,
   },
   containers::{
     commands::{redraw, set_focused_descendant},
-    traits::{CommonGetters, PositionGetters},
+    traits::CommonGetters,
     Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},

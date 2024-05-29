@@ -1,10 +1,5 @@
-use std::sync::Arc;
-
 use anyhow::Context;
-use tokio::sync::{
-  mpsc::{self},
-  Mutex,
-};
+use tokio::sync::mpsc::{self};
 use uuid::Uuid;
 
 use crate::common::events::handle_mouse_move;
@@ -29,90 +24,80 @@ use crate::{
 
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
-  pub state: Arc<Mutex<WmState>>,
+  pub state: WmState,
 }
 
 impl WindowManager {
-  pub async fn new(config: &UserConfig) -> anyhow::Result<Self> {
+  pub fn new(config: &UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let mut state = WmState::new(event_tx);
     state.populate(&config)?;
 
-    Ok(Self {
-      event_rx,
-      state: Arc::new(Mutex::new(state)),
-    })
+    Ok(Self { event_rx, state })
   }
 
-  pub async fn process_event(
+  pub fn process_event(
     &mut self,
     event: PlatformEvent,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
-    // Handle keybinding events separately since they would cause a double
-    // borrow of the `state` mutex.
-    if let PlatformEvent::KeybindingTriggered(kb_config) = event {
-      self
-        .process_commands(kb_config.commands, None, config)
-        .await?;
-
-      return Ok(());
-    }
-
-    let mut state = self.state.lock().await;
+    let state = &mut self.state;
 
     match event {
       PlatformEvent::PowerModeChanged => Ok(()),
       PlatformEvent::DisplaySettingsChanged => {
-        handle_display_settings_changed(&mut state, config)
+        handle_display_settings_changed(state, config)
+      }
+      PlatformEvent::KeybindingTriggered(kb_config) => {
+        // Return early since we don't want to redraw twice.
+        return self.process_commands(kb_config.commands, None, config);
       }
       PlatformEvent::MouseMove(event) => {
-        handle_mouse_move(event, &mut state, config)
+        handle_mouse_move(event, state, config)
       }
       PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(window, &mut state)
+        handle_window_destroyed(window, state)
       }
       PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(window, &mut state, config)
+        handle_window_focused(window, state, config)
       }
       PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(window, &mut state)
+        handle_window_hidden(window, state)
       }
       PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(window, &mut state, config)
+        handle_window_location_changed(window, state, config)
       }
       PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(window, &mut state, config)
+        handle_window_minimized(window, state, config)
       }
       PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(window, &mut state, config)
+        handle_window_minimize_ended(window, state, config)
       }
       PlatformEvent::WindowMovedOrResized(window) => {
-        handle_window_moved_or_resized(window, &mut state)
+        handle_window_moved_or_resized(window, state)
       }
       PlatformEvent::WindowShown(window) => {
-        handle_window_shown(window, &mut state, config)
+        handle_window_shown(window, state, config)
       }
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
-      _ => Ok(()),
     }?;
 
-    redraw(&mut state)?;
-    sync_native_focus(&mut state)?;
+    redraw(state)?;
+    sync_native_focus(state)?;
 
     Ok(())
   }
 
-  pub async fn process_commands(
+  pub fn process_commands(
     &mut self,
     commands: Vec<InvokeCommand>,
     subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
-    let mut state = self.state.lock().await;
+    let state = &mut self.state;
 
-    // Get container to run WM commands with.
+    // Get the container to run WM commands with.
     let mut subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
         format!("No container found with the given ID '{}'.", id)
@@ -123,19 +108,21 @@ impl WindowManager {
     };
 
     for command in commands {
-      command.run(subject_container.clone(), &mut state, config)?;
+      command.run(subject_container.clone(), state, config)?;
 
       // Update the subject container in case the container type changes.
       // For example, when going from a tiling to a floating window.
-      subject_container =
-        match state.container_by_id(subject_container.id()) {
+      subject_container = match subject_container.is_detached() {
+        false => subject_container,
+        true => match state.container_by_id(subject_container.id()) {
           Some(container) => container,
           None => break,
-        }
+        },
+      }
     }
 
-    redraw(&mut state)?;
-    sync_native_focus(&mut state)?;
+    redraw(state)?;
+    sync_native_focus(state)?;
 
     Ok(())
   }

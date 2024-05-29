@@ -105,10 +105,10 @@ impl Platform {
   }
 
   /// Creates a new `EventListener` for the specified user config.
-  pub async fn start_event_listener(
+  pub fn start_event_listener(
     config: &UserConfig,
   ) -> anyhow::Result<EventListener> {
-    EventListener::start(config).await
+    EventListener::start(config)
   }
 
   /// Creates a new `SingleInstance`.

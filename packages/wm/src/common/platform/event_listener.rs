@@ -49,7 +49,7 @@ impl EventListener {
   /// Initializes listener for platform events.
   ///
   /// Returns an instance of `EventListener`.
-  pub async fn start(config: &UserConfig) -> Result<Self> {
+  pub fn start(config: &UserConfig) -> Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let event_window = EventWindow::new(

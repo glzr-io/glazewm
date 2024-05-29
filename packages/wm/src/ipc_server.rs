@@ -2,7 +2,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
 use clap::Parser;
-use futures_util::{future, pin_mut, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{SinkExt, StreamExt};
 use serde::Serialize;
 use tokio::{
   net::{TcpListener, TcpStream},
@@ -16,7 +16,7 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{
-  app_command::{AppCommand, InvokeCommand},
+  app_command::{AppCommand, InvokeCommand, QueryCommand},
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -45,7 +45,7 @@ struct EventSubscription {
 
 pub struct IpcServer {
   pub message_rx:
-    mpsc::UnboundedReceiver<(AppCommand, mpsc::UnboundedSender<String>)>,
+    mpsc::UnboundedReceiver<(AppCommand, mpsc::UnboundedSender<Message>)>,
   pub wm_command_rx:
     mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
   abort_handle: task::AbortHandle,
@@ -89,7 +89,7 @@ impl IpcServer {
     event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
     message_tx: mpsc::UnboundedSender<(
       AppCommand,
-      mpsc::UnboundedSender<String>,
+      mpsc::UnboundedSender<Message>,
     )>,
   ) -> anyhow::Result<()> {
     info!("Incoming IPC connection from: {}.", addr);
@@ -103,49 +103,24 @@ impl IpcServer {
 
     loop {
       tokio::select! {
-          Some(response) = response_rx.recv() => {
-              if let Err(e) = outgoing.send(Message::Text(response)).await {
-                  error!("Error sending response: {}", e);
-                  break;
-              }
+        Some(response) = response_rx.recv() => {
+          if let Err(err) = outgoing.send(response).await {
+            error!("Error sending response: {}", err);
+            break;
           }
-          Some(msg) = incoming.next() => {
-            let msg = msg.context("Error reading next websocket message.")?;
+        }
+        Some(msg) = incoming.next() => {
+          let msg = msg.context("Error reading next websocket message.")?;
 
-            if msg.is_text() || msg.is_binary() {
-              let app_command =
-                AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
+          if msg.is_text() || msg.is_binary() {
+            let app_command =
+              AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
 
-              message_tx.send((app_command, response_tx.clone()))?;
-            }
+            message_tx.send((app_command, response_tx.clone()))?;
           }
+        }
       }
     }
-
-    // let receive_from_others = response_rx.map(Ok).forward(outgoing);
-
-    // let get_incoming = incoming
-    //   .try_filter(|msg| future::ready(msg.is_text()))
-    //   .try_for_each(|msg| {
-    //     let tx = response_tx.clone();
-
-    //     // tx.
-    //     async move { self.handle_message(tx, msg).await }
-    //   });
-
-    // pin_mut!(get_incoming, receive_from_others);
-
-    // while let Some(msg) = ws_stream.next().await {
-    //   let msg = msg.context("Error reading next websocket message.")?;
-
-    //   if msg.is_text() || msg.is_binary() {
-    //     let app_command =
-    //       AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
-
-    //     // message_tx.send((app_command, ws_stream))?;
-    //     message_tx.send((app_command))?;
-    //   }
-    // }
 
     // TODO: Clean-up event subscriptions on errors.
     let mut subscriptions = event_subs.lock().await;
@@ -167,9 +142,8 @@ impl IpcServer {
   pub async fn process_message(
     &self,
     app_command: AppCommand,
-    response_tx: mpsc::UnboundedSender<String>,
-    // ws_stream: WebSocketStream<TcpStream>,
-    state: Arc<Mutex<WmState>>,
+    response_tx: mpsc::UnboundedSender<Message>,
+    state: &mut WmState,
   ) -> anyhow::Result<()> {
     // TODO: Spawn a task so that it doesn't block main thread execution.
 
@@ -178,7 +152,12 @@ impl IpcServer {
         config_path,
         verbosity,
       } => todo!(),
-      AppCommand::Query { command } => todo!(),
+      AppCommand::Query { command } => match command {
+        QueryCommand::Windows => todo!(),
+        QueryCommand::Monitors => todo!(),
+        QueryCommand::BindingMode => todo!(),
+        QueryCommand::Focused => todo!(),
+      },
       AppCommand::Cmd {
         context_container_id,
         command,
@@ -187,15 +166,13 @@ impl IpcServer {
 
     // Respond to the client with the result of the command.
     let response_msg = Message::Text(serde_json::to_string(&response)?);
-    // response_tx.send(response_msg)?;
-    response_tx.send("aaaa".to_string())?;
-    // ws_stream.send(response_msg).await?;
+    response_tx.send(response_msg)?;
   }
 
   pub async fn process_event(
     &mut self,
     event: WmEvent,
-    state: Arc<Mutex<WmState>>,
+    state: &mut WmState,
   ) -> anyhow::Result<()> {
     // // TODO: Spawn a task so that it doesn't block main thread execution.
     // let subscriptions = self.event_subscriptions.lock().await;
