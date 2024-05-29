@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use tokio::sync::{
   mpsc::{self},
   Mutex,
@@ -33,8 +33,7 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub async fn new(config: &Arc<Mutex<UserConfig>>) -> Result<Self> {
-    let config = config.lock().await;
+  pub async fn new(config: &UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let mut state = WmState::new(event_tx);

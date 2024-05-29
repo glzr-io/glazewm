@@ -105,8 +105,8 @@ impl Platform {
   }
 
   /// Creates a new `EventListener` for the specified user config.
-  pub async fn new_event_listener(
-    config: &Arc<Mutex<UserConfig>>,
+  pub async fn start_event_listener(
+    config: &UserConfig,
   ) -> anyhow::Result<EventListener> {
     EventListener::start(config).await
   }

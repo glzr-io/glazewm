@@ -59,7 +59,7 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   Platform::set_dpi_awareness()?;
 
   // Parse and validate user config.
-  let config = UserConfig::read(config_path).await?;
+  let mut config = UserConfig::read(config_path).await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
@@ -70,11 +70,9 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events.
-  let mut event_listener = Platform::new_event_listener(&config).await?;
+  let mut event_listener = Platform::start_event_listener(&config).await?;
 
   loop {
-    let mut config = config.lock().await;
-
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);

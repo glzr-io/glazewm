@@ -9,7 +9,7 @@ use tokio::{
 
 use crate::{
   app_command::InvokeCommand,
-  common::{LengthValue, RectDelta, ColorRGBA},
+  common::{ColorRGBA, LengthValue, RectDelta},
   monitors::Monitor,
   workspaces::Workspace,
 };
@@ -26,9 +26,7 @@ pub struct UserConfig {
 
 impl UserConfig {
   /// Read and validate the user config from the given path.
-  pub async fn read(
-    config_path: Option<PathBuf>,
-  ) -> Result<Arc<Mutex<Self>>> {
+  pub async fn read(config_path: Option<PathBuf>) -> Result<Self> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
@@ -50,11 +48,11 @@ impl UserConfig {
 
     let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
 
-    Ok(Arc::new(Mutex::new(Self {
+    Ok(Self {
       value: parsed_config,
       changes_rx,
       changes_tx,
-    })))
+    })
   }
 
   /// Initialize a new config file from the sample config resource.
