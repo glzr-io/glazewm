@@ -1,17 +1,18 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
-  fmt,
   rc::Rc,
 };
 
 use anyhow::{bail, Context};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
   common::{LengthValue, TilingDirection},
-  impl_common_getters, impl_position_getters_as_resizable,
-  impl_tiling_direction_getters, impl_tiling_size_getters,
+  impl_common_getters, impl_container_debug, impl_container_serialize,
+  impl_position_getters_as_resizable, impl_tiling_direction_getters,
+  impl_tiling_size_getters,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
@@ -35,6 +36,30 @@ struct SplitContainerInner {
   tiling_size: f32,
   tiling_direction: TilingDirection,
   inner_gap: LengthValue,
+}
+
+/// User-friendly representation of a split container.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug, Serialize)]
+pub struct SplitContainerDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<SplitContainerChildDto>,
+  child_focus_order: Vec<Uuid>,
+  tiling_size: f32,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  tiling_direction: TilingDirection,
+}
+
+#[derive(Debug, Serialize)]
+pub enum SplitContainerChildDto {
+  NonTilingWindow(NonTilingWindowDto),
+  TilingWindow(TilingWindowDto),
+  Split(SplitContainerDto),
 }
 
 impl SplitContainer {
@@ -92,37 +117,9 @@ impl SplitContainer {
   }
 }
 
+impl_container_debug!(SplitContainer);
+impl_container_serialize!(SplitContainer);
 impl_common_getters!(SplitContainer, ContainerType::Split);
 impl_tiling_size_getters!(SplitContainer);
 impl_tiling_direction_getters!(SplitContainer);
 impl_position_getters_as_resizable!(SplitContainer);
-
-impl fmt::Debug for SplitContainer {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
-  }
-}
-
-/// User-friendly representation of a split container.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug)]
-pub struct SplitContainerDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  children: Vec<SplitContainerChildDto>,
-  child_focus_order: Vec<Uuid>,
-  tiling_size: f32,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  tiling_direction: TilingDirection,
-}
-
-#[derive(Debug)]
-pub enum SplitContainerChildDto {
-  NonTilingWindow(NonTilingWindowDto),
-  TilingWindow(TilingWindowDto),
-  Split(SplitContainerDto),
-}

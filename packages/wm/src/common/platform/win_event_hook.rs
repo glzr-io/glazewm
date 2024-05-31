@@ -57,7 +57,7 @@ impl WinEventHook {
     Ok(window_event_hook)
   }
 
-  fn handle_event(&self, event_type: u32, handle: HWND) {
+  fn handle_event(&self, event_type: u32, handle: isize) {
     let window = NativeWindow::new(handle);
 
     let platform_event = match event_type {
@@ -176,7 +176,7 @@ extern "system" fn window_event_hook_proc(
 
   WINDOW_EVENT_HOOK.with(|hook| {
     if let Some(hook) = hook.get() {
-      hook.handle_event(event_type, handle);
+      hook.handle_event(event_type, handle.0);
     }
   });
 }

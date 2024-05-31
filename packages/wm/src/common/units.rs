@@ -2,15 +2,15 @@ use std::str::FromStr;
 
 use anyhow::{bail, Context};
 use regex::Regex;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LengthValue {
   pub amount: f32,
   pub unit: LengthUnit,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum LengthUnit {
   Pixel,
   Percentage,

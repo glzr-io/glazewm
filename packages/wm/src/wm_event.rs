@@ -1,14 +1,15 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
-  common::{platform::WindowHandle, TilingDirection},
+  common::TilingDirection,
   containers::{Container, WindowContainer},
   monitors::Monitor,
-  user_config::BindingModeConfig,
+  user_config::{BindingModeConfig, ParsedConfig},
   workspaces::Workspace,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum WmEvent {
   BindingModesChanged {
     active_binding_modes: Vec<BindingModeConfig>,
@@ -33,13 +34,17 @@ pub enum WmEvent {
     modified_id: Uuid,
     new_tiling_direction: TilingDirection,
   },
-  UserConfigReloaded,
+  UserConfigChanged {
+    config_path: String,
+    config_string: String,
+    parsed_config: ParsedConfig,
+  },
   WindowManaged {
     managed_window: WindowContainer,
   },
   WindowUnmanaged {
     unmanaged_id: Uuid,
-    unmanaged_handle: WindowHandle,
+    unmanaged_handle: isize,
   },
   WorkspaceActivated {
     activated_workspace: Workspace,

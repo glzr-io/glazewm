@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::{fs, sync::mpsc};
 
 use crate::{
@@ -122,7 +122,7 @@ impl UserConfig {
   }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
   pub focus_borders: FocusBordersConfig,
@@ -134,7 +134,7 @@ pub struct ParsedConfig {
   pub workspaces: Vec<WorkspaceConfig>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BindingModeConfig {
   /// Name of the binding mode.
   pub name: String,
@@ -146,7 +146,7 @@ pub struct BindingModeConfig {
   pub keybindings: Vec<KeybindingConfig>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FocusBordersConfig {
   /// Border of the focused window.
   pub active: FocusBorder,
@@ -155,7 +155,7 @@ pub struct FocusBordersConfig {
   pub inactive: FocusBorder,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FocusBorder {
   /// Whether to use a custom border color.
   pub enabled: bool,
@@ -164,7 +164,7 @@ pub struct FocusBorder {
   pub color: ColorRGBA,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
   pub inner_gap: LengthValue,
@@ -173,7 +173,7 @@ pub struct GapsConfig {
   pub outer_gap: RectDelta,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GeneralConfig {
   /// Center the cursor in the middle of a newly focused window.
   #[serde(default = "default_bool::<false>")]
@@ -189,7 +189,7 @@ pub struct GeneralConfig {
   pub toggle_workspace_on_refocus: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
   pub bindings: Vec<String>,
@@ -198,7 +198,7 @@ pub struct KeybindingConfig {
   pub commands: Vec<InvokeCommand>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WindowRuleConfig {
   pub match_process_name: Option<String>,
   pub match_class_name: Option<String>,
@@ -206,13 +206,13 @@ pub struct WindowRuleConfig {
   pub commands: Vec<InvokeCommand>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WindowStateDefaultsConfig {
   pub floating: FloatingStateConfig,
   pub fullscreen: FullscreenStateConfig,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FloatingStateConfig {
   /// Whether to center new floating windows.
   #[serde(default = "default_bool::<true>")]
@@ -223,7 +223,7 @@ pub struct FloatingStateConfig {
   pub show_on_top: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FullscreenStateConfig {
   /// Whether to prefer fullscreen windows to be maximized.
   #[serde(default = "default_bool::<true>")]
@@ -238,7 +238,7 @@ pub struct FullscreenStateConfig {
   pub remove_title_bar: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,

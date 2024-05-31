@@ -1,8 +1,9 @@
-use anyhow::bail;
-use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
+use anyhow::bail;
+use serde::{Deserialize, Deserializer, Serialize};
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ColorRGBA {
   pub r: u8,
   pub g: u8,
@@ -30,7 +31,7 @@ impl FromStr for ColorRGBA {
     if chars.next() != Some('#') {
       bail!("Color must start with a `#`.");
     }
-    
+
     println!("r: {}", &unparsed[1..3]);
     println!("g: {}", &unparsed[3..5]);
     println!("b: {}", &unparsed[5..7]);
@@ -54,7 +55,7 @@ impl<'de> Deserialize<'de> for ColorRGBA {
   where
     D: Deserializer<'de>,
   {
-    let s = String::deserialize(deserializer)?;
-    ColorRGBA::from_str(&s).map_err(serde::de::Error::custom)
+    let str = String::deserialize(deserializer)?;
+    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

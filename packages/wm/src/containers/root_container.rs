@@ -1,14 +1,17 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
-  fmt,
   rc::Rc,
 };
 
 use anyhow::Context;
+use serde::Serialize;
 use uuid::Uuid;
 
-use crate::{impl_common_getters, monitors::MonitorDto};
+use crate::{
+  impl_common_getters, impl_container_debug, impl_container_serialize,
+  monitors::MonitorDto,
+};
 
 use super::{
   traits::{CommonGetters, PositionGetters},
@@ -27,6 +30,17 @@ struct RootContainerInner {
   child_focus_order: VecDeque<Uuid>,
 }
 
+/// User-friendly representation of a root container.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug, Serialize)]
+pub struct RootContainerDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<MonitorDto>,
+  child_focus_order: Vec<Uuid>,
+}
+
 impl RootContainer {
   pub fn new() -> Self {
     let root = RootContainerInner {
@@ -43,10 +57,11 @@ impl RootContainer {
     let children = self
       .children()
       .iter()
-      .map(|c| {
-        c.as_monitor()
+      .map(|child| {
+        child
+          .as_monitor()
           .context("Root container has an invalid child type.")
-          .and_then(|c| c.to_dto())
+          .and_then(|monitor| monitor.to_dto())
       })
       .try_collect()?;
 
@@ -59,6 +74,8 @@ impl RootContainer {
   }
 }
 
+impl_container_debug!(RootContainer);
+impl_container_serialize!(RootContainer);
 impl_common_getters!(RootContainer, ContainerType::Root);
 
 impl PositionGetters for RootContainer {
@@ -77,21 +94,4 @@ impl PositionGetters for RootContainer {
   fn y(&self) -> anyhow::Result<i32> {
     Ok(0)
   }
-}
-
-impl fmt::Debug for RootContainer {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
-  }
-}
-
-/// User-friendly representation of a root container.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug)]
-pub struct RootContainerDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  children: Vec<MonitorDto>,
-  child_focus_order: Vec<Uuid>,
 }

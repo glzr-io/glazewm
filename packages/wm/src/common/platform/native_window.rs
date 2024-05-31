@@ -43,18 +43,16 @@ use crate::{
   windows::WindowState,
 };
 
-pub type WindowHandle = HWND;
-
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  pub handle: WindowHandle,
+  pub handle: isize,
   title: Arc<RwLock<Option<String>>>,
   process_name: Arc<RwLock<Option<String>>>,
   class_name: Arc<RwLock<Option<String>>>,
 }
 
 impl NativeWindow {
-  pub fn new(handle: WindowHandle) -> Self {
+  pub fn new(handle: isize) -> Self {
     Self {
       handle,
       title: Arc::new(RwLock::new(None)),
@@ -73,7 +71,8 @@ impl NativeWindow {
       Some(ref title) => title.clone(),
       None => {
         let mut text: [u16; 512] = [0; 512];
-        let length = unsafe { GetWindowTextW(self.handle, &mut text) };
+        let length =
+          unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
 
         let title = String::from_utf16_lossy(&text[..length as usize]);
         *self.title.write().unwrap() = Some(title.clone());
@@ -92,7 +91,10 @@ impl NativeWindow {
       None => {
         let mut process_id = 0u32;
         unsafe {
-          GetWindowThreadProcessId(self.handle, Some(&mut process_id));
+          GetWindowThreadProcessId(
+            HWND(self.handle),
+            Some(&mut process_id),
+          );
         }
 
         let process_handle = unsafe {
@@ -128,7 +130,8 @@ impl NativeWindow {
       Some(ref class_name) => Ok(class_name.clone()),
       None => {
         let mut buffer = [0u16; 256];
-        let result = unsafe { GetClassNameW(self.handle, &mut buffer) };
+        let result =
+          unsafe { GetClassNameW(HWND(self.handle), &mut buffer) };
 
         if result == 0 {
           return Err(windows::core::Error::from_win32().into());
@@ -144,7 +147,8 @@ impl NativeWindow {
 
   /// Whether the window is actually visible.
   pub fn is_visible(&self) -> bool {
-    let is_visible = unsafe { IsWindowVisible(self.handle) }.as_bool();
+    let is_visible =
+      unsafe { IsWindowVisible(HWND(self.handle)) }.as_bool();
     is_visible && !self.is_cloaked()
   }
 
@@ -157,7 +161,7 @@ impl NativeWindow {
 
     let _ = unsafe {
       DwmGetWindowAttribute(
-        self.handle,
+        HWND(self.handle),
         DWMWA_CLOAKED,
         &mut cloaked as *mut u32 as _,
         std::mem::size_of::<u32>() as u32,
@@ -187,20 +191,22 @@ impl NativeWindow {
     // ignored. This includes the autocomplete popup in Notepad++ and title
     // bar menu in Keepass. Although not foolproof, these can typically be
     // identified by having an owner window and no title bar.
-    let is_menu_window = unsafe { GetWindow(self.handle, GW_OWNER) }.0
-      != 0
-      && !self.has_window_style(WS_CAPTION);
+    let is_menu_window =
+      unsafe { GetWindow(HWND(self.handle), GW_OWNER) }.0 != 0
+        && !self.has_window_style(WS_CAPTION);
 
     !is_menu_window
   }
 
   pub fn is_minimized(&self) -> bool {
-    unsafe { IsIconic(self.handle) }.as_bool()
+    unsafe { IsIconic(HWND(self.handle)) }.as_bool()
   }
 
   pub fn is_maximized(&self) -> bool {
     let mut placement = WINDOWPLACEMENT::default();
-    let _ = unsafe { GetWindowPlacement(self.handle, &mut placement) };
+    let _ =
+      unsafe { GetWindowPlacement(HWND(self.handle), &mut placement) };
+
     placement.showCmd == SW_MAXIMIZE.0 as u32
   }
 
@@ -233,7 +239,7 @@ impl NativeWindow {
     }
 
     // Set as the foreground window.
-    unsafe { SetForegroundWindow(self.handle) }.ok()?;
+    unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
 
     Ok(())
   }
@@ -241,7 +247,7 @@ impl NativeWindow {
   pub fn set_border_color(&self, color_rgba: u32) -> anyhow::Result<()> {
     unsafe {
       DwmSetWindowAttribute(
-        self.handle,
+        HWND(self.handle),
         DWMWA_BORDER_COLOR,
         &color_rgba as *const _ as *const c_void,
         std::mem::size_of::<u32>() as u32,
@@ -257,7 +263,7 @@ impl NativeWindow {
 
     let dwm_res = unsafe {
       DwmGetWindowAttribute(
-        self.handle,
+        HWND(self.handle),
         DWMWA_EXTENDED_FRAME_BOUNDS,
         &mut rect as *mut _ as _,
         std::mem::size_of::<RECT>() as u32,
@@ -283,7 +289,7 @@ impl NativeWindow {
   fn border_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
-    unsafe { GetWindowRect(self.handle, &mut rect as *mut _ as _) }?;
+    unsafe { GetWindowRect(HWND(self.handle), &mut rect as *mut _ as _) }?;
 
     Ok(Rect::from_ltrb(
       rect.left,
@@ -308,36 +314,39 @@ impl NativeWindow {
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
-    unsafe {
-      let current_style = GetWindowLongPtrW(self.handle, GWL_STYLE);
-      (current_style & style.0 as isize) != 0
-    }
+    let current_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
+
+    (current_style & style.0 as isize) != 0
   }
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
-    unsafe {
-      let current_style = GetWindowLongPtrW(self.handle, GWL_EXSTYLE);
-      (current_style & style.0 as isize) != 0
-    }
+    let current_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+
+    (current_style & style.0 as isize) != 0
   }
 
   pub fn restore(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(self.handle, SW_RESTORE).ok() }?;
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_RESTORE).ok() }?;
     Ok(())
   }
 
   pub fn maximize(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(self.handle, SW_MAXIMIZE).ok() }?;
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_MAXIMIZE).ok() }?;
     Ok(())
   }
 
   pub fn minimize(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(self.handle, SW_MINIMIZE).ok() }?;
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_MINIMIZE).ok() }?;
     Ok(())
   }
 
   pub fn close(&self) -> anyhow::Result<()> {
-    unsafe { SendNotifyMessageW(self.handle, WM_CLOSE, None, None) }?;
+    unsafe {
+      SendNotifyMessageW(HWND(self.handle), WM_CLOSE, None, None)
+    }?;
+
     Ok(())
   }
 
@@ -375,7 +384,7 @@ impl NativeWindow {
       _ => {
         unsafe {
           SetWindowPos(
-            self.handle,
+            HWND(self.handle),
             z_order,
             rect.x(),
             rect.y(),
@@ -406,8 +415,8 @@ pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
     .collect()
 }
 
-pub fn available_window_handles() -> anyhow::Result<Vec<WindowHandle>> {
-  let mut handles: Vec<WindowHandle> = Vec::new();
+pub fn available_window_handles() -> anyhow::Result<Vec<isize>> {
+  let mut handles: Vec<isize> = Vec::new();
 
   unsafe {
     EnumWindows(
@@ -423,7 +432,7 @@ extern "system" fn available_window_handles_proc(
   handle: HWND,
   data: LPARAM,
 ) -> BOOL {
-  let handles = data.0 as *mut Vec<HWND>;
-  unsafe { (*handles).push(handle) };
+  let handles = data.0 as *mut Vec<isize>;
+  unsafe { (*handles).push(handle.0) };
   true.into()
 }

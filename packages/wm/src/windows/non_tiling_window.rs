@@ -1,10 +1,10 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
-  fmt,
   rc::Rc,
 };
 
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -16,7 +16,8 @@ use crate::{
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters, impl_window_getters,
+  impl_common_getters, impl_container_debug, impl_container_serialize,
+  impl_window_getters,
 };
 
 use super::{traits::WindowGetters, TilingWindow, WindowState};
@@ -33,6 +34,25 @@ struct NonTilingWindowInner {
   state: WindowState,
   prev_state: Option<WindowState>,
   insertion_target: Option<(Container, usize)>,
+  display_state: DisplayState,
+  border_delta: RectDelta,
+  has_pending_dpi_adjustment: bool,
+  floating_placement: Rect,
+}
+
+/// User-friendly representation of a non-tiling window.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug, Serialize)]
+pub struct NonTilingWindowDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  state: WindowState,
+  prev_state: Option<WindowState>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -104,6 +124,8 @@ impl NonTilingWindow {
   }
 }
 
+impl_container_debug!(NonTilingWindow);
+impl_container_serialize!(NonTilingWindow);
 impl_common_getters!(NonTilingWindow, ContainerType::Window);
 impl_window_getters!(NonTilingWindow);
 
@@ -123,29 +145,4 @@ impl PositionGetters for NonTilingWindow {
   fn y(&self) -> anyhow::Result<i32> {
     Ok(self.0.borrow().floating_placement.y())
   }
-}
-
-impl fmt::Debug for NonTilingWindow {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
-  }
-}
-
-/// User-friendly representation of a non-tiling window.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug)]
-pub struct NonTilingWindowDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  state: WindowState,
-  prev_state: Option<WindowState>,
-  display_state: DisplayState,
-  border_delta: RectDelta,
-  has_pending_dpi_adjustment: bool,
-  floating_placement: Rect,
 }

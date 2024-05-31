@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 use crate::{
   app_command::{AppCommand, InvokeCommand, QueryCommand},
+  containers::Container,
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -24,17 +25,37 @@ use crate::{
 const DEFAULT_IPC_PORT: u32 = 6123;
 
 #[derive(Debug, Serialize)]
-struct ServerMessage<T> {
-  success: bool,
-  message_type: ServerMessageType,
-  data: Option<T>,
-  error: Option<String>,
+#[serde(tag = "message_type", rename_all = "snake_case")]
+enum ServerMessage {
+  ClientResponse(ClientResponseMessage),
+  EventSubscription(EventSubscriptionMessage),
 }
 
 #[derive(Debug, Serialize)]
-enum ServerMessageType {
-  ClientResponse,
-  EventSubscription,
+#[serde(rename_all = "camelCase")]
+struct ClientResponseMessage {
+  client_message: String,
+  data: Option<ClientResponseData>,
+  error: Option<String>,
+  success: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum ClientResponseData {
+  Windows(Vec<Container>),
+  Monitors(Vec<Container>),
+  BindingModes(Vec<String>),
+  Focused(Option<Container>),
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EventSubscriptionMessage {
+  data: Option<WmEvent>,
+  error: Option<String>,
+  subscription_id: String,
+  success: bool,
 }
 
 #[derive(Debug)]
@@ -151,22 +172,42 @@ impl IpcServer {
       AppCommand::Start {
         config_path,
         verbosity,
-      } => todo!(),
+      } => Err(anyhow::anyhow!("Start command not implemented.")),
       AppCommand::Query { command } => match command {
-        QueryCommand::Windows => todo!(),
-        QueryCommand::Monitors => todo!(),
-        QueryCommand::BindingMode => todo!(),
-        QueryCommand::Focused => todo!(),
+        QueryCommand::Windows => Ok(ClientResponseData::BindingModes(
+          state.binding_modes.clone(),
+        )),
+        QueryCommand::Monitors => Ok(ClientResponseData::BindingModes(
+          state.binding_modes.clone(),
+        )),
+        QueryCommand::BindingModes => Ok(
+          ClientResponseData::BindingModes(state.binding_modes.clone()),
+        ),
+        QueryCommand::Focused => Ok(ClientResponseData::BindingModes(
+          state.binding_modes.clone(),
+        )),
       },
       AppCommand::Cmd {
         context_container_id,
         command,
-      } => todo!(),
+      } => Err(anyhow::anyhow!("Cmd command not implemented.")),
+    };
+
+    let error = response.as_ref().err().map(|err| err.to_string());
+    let success = response.as_ref().is_ok();
+
+    let response = ClientResponseMessage {
+      client_message: "TODO".to_string(),
+      data: response.ok(),
+      error,
+      success,
     };
 
     // Respond to the client with the result of the command.
     let response_msg = Message::Text(serde_json::to_string(&response)?);
     response_tx.send(response_msg)?;
+
+    Ok(())
   }
 
   pub async fn process_event(

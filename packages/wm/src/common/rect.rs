@@ -1,6 +1,8 @@
+use serde::Serialize;
+
 use super::{Direction, RectDelta};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
   pub left: i32,

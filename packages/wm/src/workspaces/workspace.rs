@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -14,12 +15,13 @@ use crate::{
     Container, ContainerType, DirectionContainer, SplitContainerDto,
     TilingContainer, WindowContainer,
   },
-  impl_common_getters, impl_tiling_direction_getters,
+  impl_common_getters, impl_container_debug, impl_container_serialize,
+  impl_tiling_direction_getters,
   user_config::WorkspaceConfig,
   windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 
 #[derive(Debug)]
@@ -31,6 +33,29 @@ struct WorkspaceInner {
   tiling_direction: TilingDirection,
   config: WorkspaceConfig,
   outer_gaps: RectDelta,
+}
+
+/// User-friendly representation of a workspace.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug, Serialize)]
+pub struct WorkspaceDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<WorkspaceChildDto>,
+  child_focus_order: Vec<Uuid>,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  tiling_direction: TilingDirection,
+}
+
+#[derive(Debug, Serialize)]
+pub enum WorkspaceChildDto {
+  NonTilingWindow(NonTilingWindowDto),
+  TilingWindow(TilingWindowDto),
+  Split(SplitContainerDto),
 }
 
 impl Workspace {
@@ -100,6 +125,8 @@ impl Workspace {
   }
 }
 
+impl_container_debug!(Workspace);
+impl_container_serialize!(Workspace);
 impl_common_getters!(Workspace, ContainerType::Workspace);
 impl_tiling_direction_getters!(Workspace);
 
@@ -135,27 +162,4 @@ impl PositionGetters for Workspace {
 
     Ok(parent.y()? + self.outer_gaps().top.to_pixels(parent.height()?))
   }
-}
-
-/// User-friendly representation of a workspace.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug)]
-pub struct WorkspaceDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  children: Vec<WorkspaceChildDto>,
-  child_focus_order: Vec<Uuid>,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  tiling_direction: TilingDirection,
-}
-
-#[derive(Debug)]
-pub enum WorkspaceChildDto {
-  NonTilingWindow(NonTilingWindowDto),
-  TilingWindow(TilingWindowDto),
-  Split(SplitContainerDto),
 }

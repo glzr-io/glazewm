@@ -32,7 +32,7 @@ use crate::user_config::UserConfig;
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
-  NativeWindow, SingleInstance, WindowHandle,
+  NativeWindow, SingleInstance,
 };
 
 pub type WindowProcedure = WNDPROC;
@@ -43,13 +43,13 @@ impl Platform {
   /// Gets the `NativeWindow` instance of the currently focused window.
   pub fn foreground_window() -> NativeWindow {
     let handle = unsafe { GetForegroundWindow() };
-    NativeWindow::new(handle)
+    NativeWindow::new(handle.0)
   }
 
   /// Gets the `NativeWindow` instance of the desktop window.
   pub fn desktop_window() -> NativeWindow {
     let handle = unsafe { GetDesktopWindow() };
-    NativeWindow::new(handle)
+    NativeWindow::new(handle.0)
   }
 
   /// Gets a vector of available monitors as `NativeMonitor` instances
@@ -120,19 +120,8 @@ impl Platform {
   pub fn get_root_ancestor(
     window: &NativeWindow,
   ) -> anyhow::Result<NativeWindow> {
-    let handle = unsafe { GetAncestor(window.handle, GA_ROOT) };
-    Ok(NativeWindow::new(handle))
-  }
-
-  // Gets the parent window of the specified window.
-  pub fn get_parent(window: &NativeWindow) -> Option<NativeWindow> {
-    let handle = unsafe { GetParent(window.handle) };
-    if handle == HWND(0) {
-      // if a zero pointer is returned, it means the window has no parent.
-      None
-    } else {
-      Some(NativeWindow::new(handle))
-    }
+    let handle = unsafe { GetAncestor(HWND(window.handle), GA_ROOT) };
+    Ok(NativeWindow::new(handle.0))
   }
 
   /// Sets the cursor position to the specified coordinates.
@@ -162,8 +151,9 @@ impl Platform {
       x: point.x,
       y: point.y,
     };
+
     let handle = unsafe { WindowFromPoint(point) };
-    Ok(NativeWindow::new(handle))
+    Ok(NativeWindow::new(handle.0))
   }
 
   /// Spawns a hidden message window and starts a message loop.
@@ -173,7 +163,7 @@ impl Platform {
   pub unsafe fn create_message_loop(
     mut abort_rx: oneshot::Receiver<()>,
     window_procedure: WindowProcedure,
-  ) -> anyhow::Result<WindowHandle> {
+  ) -> anyhow::Result<isize> {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("MessageWindow"),
       style: CS_HREDRAW | CS_VREDRAW,
@@ -221,7 +211,7 @@ impl Platform {
       }
     }
 
-    Ok(handle)
+    Ok(handle.0)
   }
 
   /// Parses a command string into a program name/path and arguments. This

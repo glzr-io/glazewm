@@ -2,7 +2,7 @@ use std::{iter, path::PathBuf};
 
 use anyhow::bail;
 use clap::{error::KindFormatter, Args, Parser};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
 
@@ -114,12 +114,12 @@ pub enum QueryCommand {
   /// Prints all monitors.
   Monitors,
   /// Prints the active binding modes.
-  BindingMode,
+  BindingModes,
   /// Prints the focused container (either a window or an empty workspace).
   Focused,
 }
 
-#[derive(Clone, Debug, Parser)]
+#[derive(Clone, Debug, Parser, Serialize)]
 pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
@@ -463,7 +463,7 @@ impl<'de> Deserialize<'de> for InvokeCommand {
   }
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeAdjustBordersCommand {
   #[clap(long, allow_hyphen_values = true)]
@@ -479,7 +479,7 @@ pub struct InvokeAdjustBordersCommand {
   left: Option<LengthValue>,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeFocusCommand {
   #[clap(long = "dir")]
@@ -498,7 +498,7 @@ pub struct InvokeFocusCommand {
   recent_workspace: bool,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
@@ -510,7 +510,7 @@ pub struct InvokeMoveCommand {
   workspace: Option<String>,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
   #[clap(long, allow_hyphen_values = true)]

@@ -3,7 +3,7 @@ use std::cell::OnceCell;
 use windows::{
   core::PCWSTR,
   Win32::{
-    Foundation::{BOOL, LPARAM, RECT},
+    Foundation::{BOOL, HWND, LPARAM, RECT},
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
       MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
@@ -17,8 +17,6 @@ use windows::{
 };
 
 use crate::common::Rect;
-
-use super::WindowHandle;
 
 pub type MonitorHandle = HMONITOR;
 
@@ -202,9 +200,10 @@ extern "system" fn available_monitor_handles_proc(
   true.into()
 }
 
-pub fn nearest_monitor(window_handle: WindowHandle) -> NativeMonitor {
-  let handle =
-    unsafe { MonitorFromWindow(window_handle, MONITOR_DEFAULTTONEAREST) };
+pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
+  let handle = unsafe {
+    MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)
+  };
 
   NativeMonitor::new(handle)
 }

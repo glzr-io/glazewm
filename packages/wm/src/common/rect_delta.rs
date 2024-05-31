@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::bail;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use super::LengthValue;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RectDelta {
   /// The delta in x-coordinates on the left of the rectangle.
   pub left: LengthValue,

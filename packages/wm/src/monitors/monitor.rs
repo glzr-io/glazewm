@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
     Container, ContainerType, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters,
+  impl_common_getters, impl_container_debug, impl_container_serialize,
   workspaces::{Workspace, WorkspaceDto},
 };
 
@@ -28,6 +29,22 @@ struct MonitorInner {
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
   native: NativeMonitor,
+}
+
+/// User-friendly representation of a monitor.
+///
+/// Used for IPC and debug logging.
+#[derive(Debug, Serialize)]
+pub struct MonitorDto {
+  id: Uuid,
+  parent: Option<Uuid>,
+  children: Vec<WorkspaceDto>,
+  child_focus_order: Vec<Uuid>,
+  width: i32,
+  height: i32,
+  x: i32,
+  y: i32,
+  dpi: f32,
 }
 
 impl Monitor {
@@ -102,6 +119,8 @@ impl Monitor {
   }
 }
 
+impl_container_debug!(Monitor);
+impl_container_serialize!(Monitor);
 impl_common_getters!(Monitor, ContainerType::Monitor);
 
 impl PositionGetters for Monitor {
@@ -120,26 +139,4 @@ impl PositionGetters for Monitor {
   fn y(&self) -> anyhow::Result<i32> {
     Ok(self.0.borrow().native.working_rect()?.y())
   }
-}
-
-impl fmt::Debug for Monitor {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    fmt::Debug::fmt(&self.to_dto().map_err(|_| std::fmt::Error), f)
-  }
-}
-
-/// User-friendly representation of a monitor.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug)]
-pub struct MonitorDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  children: Vec<WorkspaceDto>,
-  child_focus_order: Vec<Uuid>,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  dpi: f32,
 }
