@@ -1,10 +1,5 @@
-use std::sync::Arc;
-
 use anyhow::Result;
-use tokio::sync::{
-  mpsc::{self, UnboundedReceiver},
-  Mutex,
-};
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::{
   common::Point,

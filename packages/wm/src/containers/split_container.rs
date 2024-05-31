@@ -42,6 +42,7 @@ struct SplitContainerInner {
 ///
 /// Used for IPC and debug logging.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SplitContainerDto {
   id: Uuid,
   parent: Option<Uuid>,
@@ -56,6 +57,7 @@ pub struct SplitContainerDto {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(untagged)]
 pub enum SplitContainerChildDto {
   NonTilingWindow(NonTilingWindowDto),
   TilingWindow(TilingWindowDto),

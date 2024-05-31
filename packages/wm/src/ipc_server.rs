@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, iter, net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
 use clap::Parser;
@@ -17,23 +17,25 @@ use uuid::Uuid;
 
 use crate::{
   app_command::{AppCommand, InvokeCommand, QueryCommand},
-  containers::Container,
+  containers::{Container, WindowContainer},
+  monitors::Monitor,
   wm_event::WmEvent,
   wm_state::WmState,
+  workspaces::Workspace,
 };
 
-const DEFAULT_IPC_PORT: u32 = 6123;
+pub const DEFAULT_IPC_PORT: u32 = 6123;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "message_type", rename_all = "snake_case")]
-enum ServerMessage {
+pub enum ServerMessage {
   ClientResponse(ClientResponseMessage),
   EventSubscription(EventSubscriptionMessage),
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ClientResponseMessage {
+pub struct ClientResponseMessage {
   client_message: String,
   data: Option<ClientResponseData>,
   error: Option<String>,
@@ -42,16 +44,17 @@ struct ClientResponseMessage {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-enum ClientResponseData {
-  Windows(Vec<Container>),
-  Monitors(Vec<Container>),
+pub enum ClientResponseData {
+  Windows(Vec<WindowContainer>),
+  Monitors(Vec<Monitor>),
+  Workspaces(Vec<Workspace>),
   BindingModes(Vec<String>),
   Focused(Option<Container>),
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct EventSubscriptionMessage {
+pub struct EventSubscriptionMessage {
   data: Option<WmEvent>,
   error: Option<String>,
   subscription_id: String,
@@ -69,6 +72,7 @@ pub struct IpcServer {
     mpsc::UnboundedReceiver<(AppCommand, mpsc::UnboundedSender<Message>)>,
   pub wm_command_rx:
     mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
+  pub wm_command_tx: mpsc::UnboundedSender<(InvokeCommand, Option<Uuid>)>,
   abort_handle: task::AbortHandle,
   // /// Hashmap of event names and connections subscribed to that event.
   // event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
@@ -87,18 +91,28 @@ impl IpcServer {
 
     let task = task::spawn(async move {
       while let Ok((stream, addr)) = server.accept().await {
-        task::spawn(Self::handle_connection(
-          stream,
-          addr,
-          event_subs.clone(),
-          message_tx.clone(),
-        ));
+        let event_subs = event_subs.clone();
+        let message_tx = message_tx.clone();
+
+        task::spawn(async move {
+          if let Err(err) = Self::handle_connection(
+            stream,
+            addr,
+            event_subs.clone(),
+            message_tx.clone(),
+          )
+          .await
+          {
+            error!("Error handling connection: {}", err);
+          }
+        });
       }
     });
 
     Ok(Self {
       message_rx,
       wm_command_rx,
+      wm_command_tx,
       abort_handle: task.abort_handle(),
       // event_subs: event_subs.clone(),
     })
@@ -130,13 +144,14 @@ impl IpcServer {
             break;
           }
         }
-        Some(msg) = incoming.next() => {
-          let msg = msg.context("Error reading next websocket message.")?;
+        msg = incoming.next() => {
+          let msg = msg.unwrap().context("Error reading next websocket message.")?;
 
           if msg.is_text() || msg.is_binary() {
-            let app_command =
-              AppCommand::try_parse_from(msg.to_text()?.split(" "))?;
+            let split_msg =
+              iter::once("").chain(msg.to_text()?.split_whitespace());
 
+            let app_command = AppCommand::try_parse_from(split_msg)?;
             message_tx.send((app_command, response_tx.clone()))?;
           }
         }
@@ -144,6 +159,7 @@ impl IpcServer {
     }
 
     // TODO: Clean-up event subscriptions on errors.
+    info!("IPC disconnection from: {}.", addr);
     let mut subscriptions = event_subs.lock().await;
 
     // Remove event subscription on websocket disconnect.
@@ -155,8 +171,6 @@ impl IpcServer {
       // });
     }
 
-    info!("IPC disconnection from: {}.", addr);
-
     Ok(())
   }
 
@@ -166,31 +180,37 @@ impl IpcServer {
     response_tx: mpsc::UnboundedSender<Message>,
     state: &mut WmState,
   ) -> anyhow::Result<()> {
-    // TODO: Spawn a task so that it doesn't block main thread execution.
-
+    // TODO: Handle subscribe messages.
     let response = match app_command {
-      AppCommand::Start {
-        config_path,
-        verbosity,
-      } => Err(anyhow::anyhow!("Start command not implemented.")),
       AppCommand::Query { command } => match command {
-        QueryCommand::Windows => Ok(ClientResponseData::BindingModes(
-          state.binding_modes.clone(),
-        )),
-        QueryCommand::Monitors => Ok(ClientResponseData::BindingModes(
-          state.binding_modes.clone(),
-        )),
+        QueryCommand::Windows => {
+          Ok(ClientResponseData::Windows(state.windows()))
+        }
+        QueryCommand::Workspaces => {
+          Ok(ClientResponseData::Workspaces(state.workspaces()))
+        }
+        QueryCommand::Monitors => {
+          Ok(ClientResponseData::Monitors(state.monitors()))
+        }
         QueryCommand::BindingModes => Ok(
           ClientResponseData::BindingModes(state.binding_modes.clone()),
         ),
-        QueryCommand::Focused => Ok(ClientResponseData::BindingModes(
-          state.binding_modes.clone(),
-        )),
+        QueryCommand::Focused => {
+          Ok(ClientResponseData::Focused(state.focused_container()))
+        }
       },
       AppCommand::Cmd {
         context_container_id,
         command,
-      } => Err(anyhow::anyhow!("Cmd command not implemented.")),
+      } => self
+        .wm_command_tx
+        .send((command, context_container_id))
+        .map_err(|_| anyhow::anyhow!("Failed to send WM command."))
+        .and_then(|_| {
+          // TODO: Add a proper response type for command execution.
+          Ok(ClientResponseData::Focused(state.focused_container()))
+        }),
+      _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
     };
 
     let error = response.as_ref().err().map(|err| err.to_string());

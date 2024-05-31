@@ -1,9 +1,8 @@
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::common::Point;
 use anyhow::{bail, Context};
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::oneshot;
 use tracing::warn;
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{HWND, POINT};
@@ -21,10 +20,10 @@ use windows::Win32::UI::{
   },
   WindowsAndMessaging::{
     CreateWindowExW, DestroyWindow, DispatchMessageW, GetAncestor,
-    GetDesktopWindow, GetForegroundWindow, GetMessageW, GetParent,
-    RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
-    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW,
-    WNDPROC, WS_OVERLAPPEDWINDOW,
+    GetDesktopWindow, GetForegroundWindow, GetMessageW, RegisterClassW,
+    SetCursorPos, TranslateMessage, WindowFromPoint, CS_HREDRAW,
+    CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
+    WS_OVERLAPPEDWINDOW,
   },
 };
 

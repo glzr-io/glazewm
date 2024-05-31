@@ -51,6 +51,7 @@ struct TilingWindowInner {
 ///
 /// Used for IPC and debug logging.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TilingWindowDto {
   id: Uuid,
   parent: Option<Uuid>,

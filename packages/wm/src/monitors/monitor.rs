@@ -1,7 +1,6 @@
 use std::{
   cell::{Ref, RefCell, RefMut},
   collections::VecDeque,
-  fmt,
   rc::Rc,
 };
 
@@ -35,6 +34,7 @@ struct MonitorInner {
 ///
 /// Used for IPC and debug logging.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MonitorDto {
   id: Uuid,
   parent: Option<Uuid>,

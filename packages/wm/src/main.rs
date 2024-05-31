@@ -4,6 +4,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
+use ipc_client::IpcClient;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
@@ -17,6 +18,7 @@ use crate::{app_command::AppCommand, wm_event::WmEvent};
 mod app_command;
 mod common;
 mod containers;
+mod ipc_client;
 mod ipc_server;
 mod monitors;
 mod user_config;
@@ -47,7 +49,11 @@ async fn main() {
         error!("Failed to start GlazeWM: {}", err);
       }
     }
-    _ => todo!(),
+    _ => {
+      if let Err(err) = start_cli().await {
+        error!("{}", err);
+      }
+    }
   }
 }
 
@@ -110,6 +116,21 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
       },
     }
   }
+}
+
+async fn start_cli() -> Result<()> {
+  let mut client = IpcClient::connect().await?;
+
+  let command_str = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+
+  let response = client
+    .send_and_wait_reply(command_str)
+    .await
+    .context("Failed to send command")?;
+
+  println!("{}", response);
+
+  Ok(())
 }
 
 /// Launches watcher binary. This is a separate process that is responsible

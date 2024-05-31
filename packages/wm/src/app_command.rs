@@ -111,6 +111,8 @@ impl Verbosity {
 pub enum QueryCommand {
   /// Prints all windows.
   Windows,
+  /// Prints all active workspaces.
+  Workspaces,
   /// Prints all monitors.
   Monitors,
   /// Prints the active binding modes.

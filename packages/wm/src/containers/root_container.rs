@@ -34,6 +34,7 @@ struct RootContainerInner {
 ///
 /// Used for IPC and debug logging.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RootContainerDto {
   id: Uuid,
   parent: Option<Uuid>,

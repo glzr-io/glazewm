@@ -11,6 +11,7 @@ pub struct LengthValue {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LengthUnit {
   Pixel,
   Percentage,

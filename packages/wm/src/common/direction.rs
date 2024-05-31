@@ -4,7 +4,7 @@ use anyhow::bail;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
-#[serde(untagged, rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum Direction {
   Left,
   Right,

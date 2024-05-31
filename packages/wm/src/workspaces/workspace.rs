@@ -39,6 +39,7 @@ struct WorkspaceInner {
 ///
 /// Used for IPC and debug logging.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkspaceDto {
   id: Uuid,
   parent: Option<Uuid>,
@@ -52,6 +53,7 @@ pub struct WorkspaceDto {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(untagged)]
 pub enum WorkspaceChildDto {
   NonTilingWindow(NonTilingWindowDto),
   TilingWindow(TilingWindowDto),
