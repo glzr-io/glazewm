@@ -14,6 +14,9 @@ path = "src/lib.rs"
 name = "wm"
 path = "src/main.rs"
 
+[features]
+windows_subsystem = []
+
 [dependencies]
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
