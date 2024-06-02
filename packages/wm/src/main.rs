@@ -98,12 +98,20 @@ async fn start_wm(
           error!("Failed to process event: {:?}", err);
         }
       },
-      Some((message, response_tx)) = ipc_server.message_rx.recv() => {
+      Some((
+        message,
+        response_tx,
+        disconnection_tx
+      )) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", message);
 
-        if let Err(err) = ipc_server
-          .process_message(message, response_tx, &mut wm, &mut config)
-        {
+        if let Err(err) = ipc_server.process_message(
+          message,
+          response_tx,
+          disconnection_tx,
+          &mut wm,
+          &mut config,
+        ) {
           error!("Failed to process IPC message: {:?}", err);
         }
       },
@@ -119,7 +127,7 @@ async fn start_wm(
           event_listener.update(&config, active_binding_modes);
         }
 
-        if let Err(err) = ipc_server.process_event(wm_event, &mut wm) {
+        if let Err(err) = ipc_server.process_event(wm_event) {
           error!("Failed to emit event over IPC: {:?}", err);
         }
       },
@@ -145,9 +153,21 @@ async fn start_cli(
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  println!("{}", response);
+  // Exit on first response received when not subscribing to an event.
+  if !is_subscribe_message {
+    println!("{}", response);
+    std::process::exit(0);
+  }
 
-  Ok(())
+  // Otherwise, continuously listen for server responses.
+  loop {
+    let response = client
+      .next_reply()
+      .await
+      .context("Failed to receive response from IPC server.")?;
+
+    println!("{}", response);
+  }
 }
 
 /// Launches watcher binary. This is a separate process that is responsible

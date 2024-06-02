@@ -62,14 +62,23 @@ pub enum AppCommand {
     command: InvokeCommand,
   },
 
-  /// Subscribe to a WM event (e.g. `window_close`) and continuously print
-  /// the incoming events.
+  /// Subscribe to one or more WM events (e.g. `window_close`), and
+  /// continuously print the incoming events.
   ///
   /// Requires an already running instance of the window manager.
   Subscribe {
     /// WM event(s) to subscribe to.
     #[clap(short = 'e', long, value_enum, num_args = 1..)]
     events: Vec<SubscribableEvent>,
+  },
+
+  /// Unsubscribe from a WM event subscription.
+  ///
+  /// Requires an already running instance of the window manager.
+  Unsubscribe {
+    /// Subscription ID to unsubscribe from.
+    #[clap(long = "id")]
+    subscription_id: String,
   },
 }
 

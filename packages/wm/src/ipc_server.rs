@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter, net::SocketAddr, sync::Arc};
+use std::{iter, net::SocketAddr};
 
 use anyhow::Context;
 use clap::Parser;
@@ -6,15 +6,15 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Serialize;
 use tokio::{
   net::{TcpListener, TcpStream},
-  sync::{mpsc, Mutex},
+  sync::{broadcast, mpsc},
   task,
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::{
-  app_command::{AppCommand, QueryCommand},
+  app_command::{AppCommand, QueryCommand, SubscribableEvent},
   containers::{Container, WindowContainer},
   monitors::Monitor,
   user_config::UserConfig,
@@ -44,66 +44,63 @@ pub struct ClientResponseMessage {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
-  Windows(Vec<WindowContainer>),
-  Monitors(Vec<Monitor>),
-  Workspaces(Vec<Workspace>),
   BindingModes(Vec<String>),
+  Command(CommandData),
+  EventSubscription(EventSubscriptionData),
   Focused(Option<Container>),
-  Command(CommandResponseData),
+  Monitors(Vec<Monitor>),
+  Windows(Vec<WindowContainer>),
+  Workspaces(Vec<Workspace>),
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CommandResponseData {
+pub struct CommandData {
   subject_container_id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EventSubscriptionData {
+  subscription_id: Uuid,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EventSubscriptionMessage {
-  data: Option<WmEvent>,
+  data: Option<serde_json::Value>,
   error: Option<String>,
-  subscription_id: String,
+  subscription_id: Uuid,
   success: bool,
 }
 
-#[derive(Debug)]
-struct EventSubscription {
-  subscription_id: String,
-  // stream: mpsc::UnboundedSender<EventSubscriptionMessage>,
-}
-
 pub struct IpcServer {
-  pub message_rx:
-    mpsc::UnboundedReceiver<(String, mpsc::UnboundedSender<Message>)>,
   abort_handle: task::AbortHandle,
-  // /// Hashmap of event names and connections subscribed to that event.
-  // event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
+  pub message_rx: mpsc::UnboundedReceiver<(
+    String,
+    mpsc::UnboundedSender<Message>,
+    broadcast::Sender<()>,
+  )>,
+  event_rx: broadcast::Receiver<(SubscribableEvent, serde_json::Value)>,
+  event_tx: broadcast::Sender<(SubscribableEvent, serde_json::Value)>,
 }
 
 impl IpcServer {
   pub async fn start() -> anyhow::Result<Self> {
     let (message_tx, message_rx) = mpsc::unbounded_channel();
+    let (event_tx, event_rx) = broadcast::channel(16);
 
     let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
     let server = TcpListener::bind(server_addr.clone()).await?;
     info!("IPC server started on: '{}'.", server_addr);
 
-    let event_subs = Arc::new(Mutex::new(HashMap::new()));
-
     let task = task::spawn(async move {
       while let Ok((stream, addr)) = server.accept().await {
-        let event_subs = event_subs.clone();
         let message_tx = message_tx.clone();
 
         task::spawn(async move {
-          if let Err(err) = Self::handle_connection(
-            stream,
-            addr,
-            event_subs.clone(),
-            message_tx.clone(),
-          )
-          .await
+          if let Err(err) =
+            Self::handle_connection(stream, addr, message_tx).await
           {
             error!("Error handling connection: {}", err);
           }
@@ -113,18 +110,19 @@ impl IpcServer {
 
     Ok(Self {
       message_rx,
+      event_rx,
+      event_tx,
       abort_handle: task.abort_handle(),
-      // event_subs: event_subs.clone(),
     })
   }
 
   async fn handle_connection(
     stream: TcpStream,
     addr: SocketAddr,
-    event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
     message_tx: mpsc::UnboundedSender<(
       String,
       mpsc::UnboundedSender<Message>,
+      broadcast::Sender<()>,
     )>,
   ) -> anyhow::Result<()> {
     info!("Incoming IPC connection from: {}.", addr);
@@ -133,9 +131,9 @@ impl IpcServer {
       .await
       .context("Error during websocket handshake.")?;
 
-    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
-    // let (disconnection_tx, mut disconnection_rx) = mpsc::unbounded_channel();
     let (mut outgoing, mut incoming) = ws_stream.split();
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    let (disconnection_tx, _) = broadcast::channel(16);
 
     loop {
       tokio::select! {
@@ -146,27 +144,24 @@ impl IpcServer {
           }
         }
         message = incoming.next() => {
-          let message = message.unwrap().context("Could not read next websocket message.")?;
-
-          if message.is_text() || message.is_binary() {
-            message_tx.send((message.to_text()?.to_owned(), response_tx.clone()))?;
+          if let Some(Ok(message)) = message {
+            if message.is_text() || message.is_binary() {
+              message_tx.send((
+                message.to_text()?.to_owned(),
+                response_tx.clone(),
+                disconnection_tx.clone(),
+              ))?;
+            }
+          } else {
+            warn!("Could not read next websocket message.");
+            break;
           }
         }
       }
     }
 
-    // TODO: Clean-up event subscriptions on errors.
     info!("IPC disconnection from: {}.", addr);
-    let mut subscriptions = event_subs.lock().await;
-
-    // Remove event subscription on websocket disconnect.
-    for (_, event_subs) in subscriptions.iter_mut() {
-      // event_subs.retain(|subscription| {
-      //   // Remove the subscription associated with the disconnected websocket
-      //   // You'll need to modify this based on how you track the websocket connection
-      //   true
-      // });
-    }
+    disconnection_tx.send(())?;
 
     Ok(())
   }
@@ -175,6 +170,7 @@ impl IpcServer {
     &self,
     message: String,
     response_tx: mpsc::UnboundedSender<Message>,
+    disconnection_tx: broadcast::Sender<()>,
     wm: &mut WindowManager,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
@@ -182,7 +178,6 @@ impl IpcServer {
       iter::once("").chain(message.split_whitespace()),
     );
 
-    // TODO: Handle subscribe messages.
     let response = match app_command {
       Ok(AppCommand::Query { command }) => match command {
         QueryCommand::Windows => {
@@ -207,12 +202,41 @@ impl IpcServer {
       }) => wm
         .process_commands(vec![command], subject_container_id, config)
         .map(|subject_container_id| {
-          ClientResponseData::Command(CommandResponseData {
+          ClientResponseData::Command(CommandData {
             subject_container_id,
           })
         }),
       Ok(AppCommand::Subscribe { events }) => {
-        todo!()
+        let subscription_id = Uuid::new_v4();
+        let response_tx = response_tx.clone();
+        let mut event_rx = self.event_tx.subscribe();
+        let mut disconnection_rx = disconnection_tx.subscribe();
+
+        task::spawn(async move {
+          loop {
+            tokio::select! {
+              // TODO: Also listen to unsubscribe messages.
+              Ok(_) = disconnection_rx.recv() => {
+                break;
+              }
+              Ok((event, event_json)) = event_rx.recv() => {
+                let message = EventSubscriptionMessage {
+                  data: Some(event_json),
+                  error: None,
+                  subscription_id: subscription_id.clone(),
+                  success: true,
+                };
+
+                let response_msg = Message::Text(serde_json::to_string(&message).unwrap());
+                response_tx.send(response_msg).unwrap();
+              }
+            }
+          }
+        });
+
+        Ok(ClientResponseData::EventSubscription(
+          EventSubscriptionData { subscription_id },
+        ))
       }
       Err(err) => Err(anyhow::anyhow!(err)),
       _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
@@ -235,31 +259,40 @@ impl IpcServer {
     Ok(())
   }
 
-  pub fn process_event(
-    &mut self,
-    event: WmEvent,
-    wm: &mut WindowManager,
-  ) -> anyhow::Result<()> {
-    // // TODO: Spawn a task so that it doesn't block main thread execution.
-    // let subscriptions = self.event_subscriptions.lock().await;
+  pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
+    let subscribable_event = match event {
+      WmEvent::BindingModesChanged { .. } => {
+        SubscribableEvent::BindingModesChanged
+      }
+      WmEvent::FocusChanged { .. } => SubscribableEvent::FocusChanged,
+      WmEvent::FocusedContainerMoved { .. } => {
+        SubscribableEvent::FocusedContainerMoved
+      }
+      WmEvent::MonitorAdded { .. } => SubscribableEvent::MonitorAdded,
+      WmEvent::MonitorUpdated { .. } => SubscribableEvent::MonitorUpdated,
+      WmEvent::MonitorRemoved { .. } => SubscribableEvent::MonitorRemoved,
+      WmEvent::TilingDirectionChanged { .. } => {
+        SubscribableEvent::TilingDirectionChanged
+      }
+      WmEvent::UserConfigChanged { .. } => {
+        SubscribableEvent::UserConfigChanged
+      }
+      WmEvent::WindowManaged { .. } => SubscribableEvent::WindowManaged,
+      WmEvent::WindowUnmanaged { .. } => {
+        SubscribableEvent::WindowUnmanaged
+      }
+      WmEvent::WorkspaceActivated { .. } => {
+        SubscribableEvent::WorkspaceActivated
+      }
+      WmEvent::WorkspaceDeactivated { .. } => {
+        SubscribableEvent::WorkspaceDeactivated
+      }
+      WmEvent::WorkspaceMoved { .. } => SubscribableEvent::WorkspaceMoved,
+    };
 
-    // if let Some(event_subscriptions) = subscriptions.get(event_name) {
-    //   for subscription in event_subscriptions {
-    //     let socket = subscription.socket.clone();
-    //     let event_message = ServerMessage {
-    //       success: true,
-    //       message_type: "EventSubscription".to_string(),
-    //       data: Some(event_data.clone()),
-    //       error: None,
-    //     };
-    //     let message =
-    //       Message::Text(serde_json::to_string(&event_message).unwrap());
-    //     tokio::spawn(async move {
-    //       let mut socket = socket.lock().await;
-    //       socket.send(message).await.expect("Failed to send event");
-    //     });
-    //   }
-    // }
+    let event_json = serde_json::to_value(&event)?;
+    self.event_tx.send((subscribable_event, event_json))?;
+
     Ok(())
   }
 
