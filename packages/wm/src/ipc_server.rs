@@ -9,18 +9,17 @@ use tokio::{
   sync::{mpsc, Mutex},
   task,
 };
-use tokio_tungstenite::{
-  accept_async, tungstenite::Message, WebSocketStream,
-};
+use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{
-  app_command::{AppCommand, InvokeCommand, QueryCommand},
+  app_command::{AppCommand, QueryCommand},
   containers::{Container, WindowContainer},
   monitors::Monitor,
+  user_config::UserConfig,
+  wm::WindowManager,
   wm_event::WmEvent,
-  wm_state::WmState,
   workspaces::Workspace,
 };
 
@@ -50,7 +49,13 @@ pub enum ClientResponseData {
   Workspaces(Vec<Workspace>),
   BindingModes(Vec<String>),
   Focused(Option<Container>),
-  Command,
+  Command(CommandResponseData),
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommandResponseData {
+  subject_container_id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
@@ -65,15 +70,12 @@ pub struct EventSubscriptionMessage {
 #[derive(Debug)]
 struct EventSubscription {
   subscription_id: String,
-  stream: WebSocketStream<TcpStream>,
+  // stream: mpsc::UnboundedSender<EventSubscriptionMessage>,
 }
 
 pub struct IpcServer {
   pub message_rx:
     mpsc::UnboundedReceiver<(String, mpsc::UnboundedSender<Message>)>,
-  pub wm_command_rx:
-    mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
-  pub wm_command_tx: mpsc::UnboundedSender<(InvokeCommand, Option<Uuid>)>,
   abort_handle: task::AbortHandle,
   // /// Hashmap of event names and connections subscribed to that event.
   // event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
@@ -82,7 +84,6 @@ pub struct IpcServer {
 impl IpcServer {
   pub async fn start() -> anyhow::Result<Self> {
     let (message_tx, message_rx) = mpsc::unbounded_channel();
-    let (wm_command_tx, wm_command_rx) = mpsc::unbounded_channel();
 
     let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
     let server = TcpListener::bind(server_addr.clone()).await?;
@@ -112,8 +113,6 @@ impl IpcServer {
 
     Ok(Self {
       message_rx,
-      wm_command_rx,
-      wm_command_tx,
       abort_handle: task.abort_handle(),
       // event_subs: event_subs.clone(),
     })
@@ -135,6 +134,7 @@ impl IpcServer {
       .context("Error during websocket handshake.")?;
 
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    // let (disconnection_tx, mut disconnection_rx) = mpsc::unbounded_channel();
     let (mut outgoing, mut incoming) = ws_stream.split();
 
     loop {
@@ -171,43 +171,50 @@ impl IpcServer {
     Ok(())
   }
 
-  pub async fn process_message(
+  pub fn process_message(
     &self,
     message: String,
     response_tx: mpsc::UnboundedSender<Message>,
-    state: &mut WmState,
+    wm: &mut WindowManager,
+    config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     let app_command = AppCommand::try_parse_from(
       iter::once("").chain(message.split_whitespace()),
-    )?;
+    );
 
     // TODO: Handle subscribe messages.
     let response = match app_command {
-      AppCommand::Query { command } => match command {
+      Ok(AppCommand::Query { command }) => match command {
         QueryCommand::Windows => {
-          Ok(ClientResponseData::Windows(state.windows()))
+          Ok(ClientResponseData::Windows(wm.state.windows()))
         }
         QueryCommand::Workspaces => {
-          Ok(ClientResponseData::Workspaces(state.workspaces()))
+          Ok(ClientResponseData::Workspaces(wm.state.workspaces()))
         }
         QueryCommand::Monitors => {
-          Ok(ClientResponseData::Monitors(state.monitors()))
+          Ok(ClientResponseData::Monitors(wm.state.monitors()))
         }
         QueryCommand::BindingModes => Ok(
-          ClientResponseData::BindingModes(state.binding_modes.clone()),
+          ClientResponseData::BindingModes(wm.state.binding_modes.clone()),
         ),
         QueryCommand::Focused => {
-          Ok(ClientResponseData::Focused(state.focused_container()))
+          Ok(ClientResponseData::Focused(wm.state.focused_container()))
         }
       },
-      AppCommand::Cmd {
-        context_container_id,
+      Ok(AppCommand::Cmd {
+        subject_container_id,
         command,
-      } => self
-        .wm_command_tx
-        .send((command, context_container_id))
-        .map_err(|_| anyhow::anyhow!("Failed to send WM command."))
-        .and_then(|_| Ok(ClientResponseData::Command)),
+      }) => wm
+        .process_commands(vec![command], subject_container_id, config)
+        .map(|subject_container_id| {
+          ClientResponseData::Command(CommandResponseData {
+            subject_container_id,
+          })
+        }),
+      Ok(AppCommand::Subscribe { events }) => {
+        todo!()
+      }
+      Err(err) => Err(anyhow::anyhow!(err)),
       _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
     };
 
@@ -228,10 +235,10 @@ impl IpcServer {
     Ok(())
   }
 
-  pub async fn process_event(
+  pub fn process_event(
     &mut self,
     event: WmEvent,
-    state: &mut WmState,
+    wm: &mut WindowManager,
   ) -> anyhow::Result<()> {
     // // TODO: Spawn a task so that it doesn't block main thread execution.
     // let subscriptions = self.event_subscriptions.lock().await;

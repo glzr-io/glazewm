@@ -56,13 +56,14 @@ pub enum AppCommand {
   /// Requires an already running instance of the window manager.
   Cmd {
     #[clap(short = 'c')]
-    context_container_id: Option<Uuid>,
+    subject_container_id: Option<Uuid>,
 
     #[clap(subcommand)]
     command: InvokeCommand,
   },
 
-  /// Subscribe to a WM event (e.g. `window_close`) and print
+  /// Subscribe to a WM event (e.g. `window_close`) and continuously print
+  /// the incoming events.
   ///
   /// Requires an already running instance of the window manager.
   Subscribe {
@@ -131,6 +132,7 @@ pub enum QueryCommand {
 #[derive(Clone, Debug, ValueEnum)]
 #[clap(rename_all = "snake_case")]
 pub enum SubscribableEvent {
+  All,
   BindingModesChanged,
   FocusChanged,
   FocusedContainerMoved,

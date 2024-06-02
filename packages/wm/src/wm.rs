@@ -51,7 +51,8 @@ impl WindowManager {
       }
       PlatformEvent::KeybindingTriggered(kb_config) => {
         // Return early since we don't want to redraw twice.
-        return self.process_commands(kb_config.commands, None, config);
+        self.process_commands(kb_config.commands, None, config)?;
+        return Ok(());
       }
       PlatformEvent::MouseMove(event) => {
         handle_mouse_move(event, state, config)
@@ -94,7 +95,7 @@ impl WindowManager {
     commands: Vec<InvokeCommand>,
     subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
-  ) -> anyhow::Result<()> {
+  ) -> anyhow::Result<Uuid> {
     let state = &mut self.state;
 
     // Get the container to run WM commands with.
@@ -124,6 +125,6 @@ impl WindowManager {
     redraw(state)?;
     sync_native_focus(state)?;
 
-    Ok(())
+    Ok(subject_container.id())
   }
 }

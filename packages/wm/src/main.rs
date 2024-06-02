@@ -93,27 +93,23 @@ async fn start_wm(
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
-        let res = wm.process_event(event, &mut config);
 
-        if let Err(err) = res {
+        if let Err(err) = wm.process_event(event, &mut config) {
           error!("Failed to process event: {:?}", err);
         }
       },
       Some((message, response_tx)) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", message);
-        ipc_server.process_message(message, response_tx, &mut wm.state).await;
-      },
-      Some((command, subject_container_id)) = ipc_server.wm_command_rx.recv() => {
-        info!("Received WM command via IPC: {:?}", command);
-        let res = wm
-          .process_commands(vec![command], subject_container_id, &mut config);
 
-        if let Err(err) = res {
-          error!("Failed to process command: {:?}", err);
+        if let Err(err) = ipc_server
+          .process_message(message, response_tx, &mut wm, &mut config)
+        {
+          error!("Failed to process IPC message: {:?}", err);
         }
       },
       Some(_) = config.changes_rx.recv() => {
         info!("Received user config update: {:?}", config);
+
         event_listener.update(&config, &Vec::new());
       },
       Some(wm_event) = wm.event_rx.recv() => {
@@ -123,7 +119,9 @@ async fn start_wm(
           event_listener.update(&config, active_binding_modes);
         }
 
-        ipc_server.process_event(wm_event, &mut wm.state).await;
+        if let Err(err) = ipc_server.process_event(wm_event, &mut wm) {
+          error!("Failed to emit event over IPC: {:?}", err);
+        }
       },
     }
   }
