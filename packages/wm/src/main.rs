@@ -99,9 +99,9 @@ async fn start_wm(
           error!("Failed to process event: {:?}", err);
         }
       },
-      Some((app_command, response_tx)) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {:?}", app_command);
-        ipc_server.process_message(app_command, response_tx, &mut wm.state).await;
+      Some((message, response_tx)) = ipc_server.message_rx.recv() => {
+        info!("Received IPC message: {:?}", message);
+        ipc_server.process_message(message, response_tx, &mut wm.state).await;
       },
       Some((command, subject_container_id)) = ipc_server.wm_command_rx.recv() => {
         info!("Received WM command via IPC: {:?}", command);

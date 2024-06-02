@@ -50,6 +50,7 @@ pub enum ClientResponseData {
   Workspaces(Vec<Workspace>),
   BindingModes(Vec<String>),
   Focused(Option<Container>),
+  Command,
 }
 
 #[derive(Debug, Serialize)]
@@ -69,7 +70,7 @@ struct EventSubscription {
 
 pub struct IpcServer {
   pub message_rx:
-    mpsc::UnboundedReceiver<(AppCommand, mpsc::UnboundedSender<Message>)>,
+    mpsc::UnboundedReceiver<(String, mpsc::UnboundedSender<Message>)>,
   pub wm_command_rx:
     mpsc::UnboundedReceiver<(InvokeCommand, Option<Uuid>)>,
   pub wm_command_tx: mpsc::UnboundedSender<(InvokeCommand, Option<Uuid>)>,
@@ -123,7 +124,7 @@ impl IpcServer {
     addr: SocketAddr,
     event_subs: Arc<Mutex<HashMap<Uuid, EventSubscription>>>,
     message_tx: mpsc::UnboundedSender<(
-      AppCommand,
+      String,
       mpsc::UnboundedSender<Message>,
     )>,
   ) -> anyhow::Result<()> {
@@ -144,15 +145,11 @@ impl IpcServer {
             break;
           }
         }
-        msg = incoming.next() => {
-          let msg = msg.unwrap().context("Error reading next websocket message.")?;
+        message = incoming.next() => {
+          let message = message.unwrap().context("Could not read next websocket message.")?;
 
-          if msg.is_text() || msg.is_binary() {
-            let split_msg =
-              iter::once("").chain(msg.to_text()?.split_whitespace());
-
-            let app_command = AppCommand::try_parse_from(split_msg)?;
-            message_tx.send((app_command, response_tx.clone()))?;
+          if message.is_text() || message.is_binary() {
+            message_tx.send((message.to_text()?.to_owned(), response_tx.clone()))?;
           }
         }
       }
@@ -176,10 +173,14 @@ impl IpcServer {
 
   pub async fn process_message(
     &self,
-    app_command: AppCommand,
+    message: String,
     response_tx: mpsc::UnboundedSender<Message>,
     state: &mut WmState,
   ) -> anyhow::Result<()> {
+    let app_command = AppCommand::try_parse_from(
+      iter::once("").chain(message.split_whitespace()),
+    )?;
+
     // TODO: Handle subscribe messages.
     let response = match app_command {
       AppCommand::Query { command } => match command {
@@ -206,10 +207,7 @@ impl IpcServer {
         .wm_command_tx
         .send((command, context_container_id))
         .map_err(|_| anyhow::anyhow!("Failed to send WM command."))
-        .and_then(|_| {
-          // TODO: Add a proper response type for command execution.
-          Ok(ClientResponseData::Focused(state.focused_container()))
-        }),
+        .and_then(|_| Ok(ClientResponseData::Command)),
       _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
     };
 
@@ -217,7 +215,7 @@ impl IpcServer {
     let success = response.as_ref().is_ok();
 
     let response = ClientResponseMessage {
-      client_message: "TODO".to_string(),
+      client_message: message,
       data: response.ok(),
       error,
       success,
