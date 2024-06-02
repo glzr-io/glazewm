@@ -1,7 +1,7 @@
 use std::{iter, path::PathBuf};
 
 use anyhow::bail;
-use clap::{error::KindFormatter, Args, Parser};
+use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
@@ -61,16 +61,23 @@ pub enum AppCommand {
     #[clap(subcommand)]
     command: InvokeCommand,
   },
+
+  /// Subscribe to a WM event (e.g. `window_close`) and print
+  ///
+  /// Requires an already running instance of the window manager.
+  Subscribe {
+    /// WM event(s) to subscribe to.
+    #[clap(short = 'e', long, value_enum, num_args = 1..)]
+    events: Vec<SubscribableEvent>,
+  },
 }
 
 impl AppCommand {
   /// Parses `AppCommand` from command line arguments.
   ///
   /// Defaults to `AppCommand::Start` if no arguments are provided.
-  pub fn parse_with_default() -> Self {
-    let args = std::env::args().skip(1);
-
-    match args.len() == 0 {
+  pub fn parse_with_default(args: &Vec<String>) -> Self {
+    match args.len() == 1 {
       true => AppCommand::Start {
         config_path: None,
         verbosity: Verbosity {
@@ -78,7 +85,7 @@ impl AppCommand {
           quiet: false,
         },
       },
-      false => AppCommand::parse(),
+      false => AppCommand::parse_from(args),
     }
   }
 }
@@ -119,6 +126,24 @@ pub enum QueryCommand {
   BindingModes,
   /// Prints the focused container (either a window or an empty workspace).
   Focused,
+}
+
+#[derive(Clone, Debug, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+pub enum SubscribableEvent {
+  BindingModesChanged,
+  FocusChanged,
+  FocusedContainerMoved,
+  MonitorAdded,
+  MonitorUpdated,
+  MonitorRemoved,
+  TilingDirectionChanged,
+  UserConfigChanged,
+  WindowManaged,
+  WindowUnmanaged,
+  WorkspaceActivated,
+  WorkspaceDeactivated,
+  WorkspaceMoved,
 }
 
 #[derive(Clone, Debug, Parser, Serialize)]

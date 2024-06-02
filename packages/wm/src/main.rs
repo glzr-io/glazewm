@@ -8,6 +8,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
+use app_command::Verbosity;
 use ipc_client::IpcClient;
 use tokio::process::Command;
 use tracing::{debug, error, info};
@@ -32,36 +33,42 @@ mod wm_event;
 mod wm_state;
 mod workspaces;
 
+/// Main entry point for the application.
+///
+/// Conditionally runs the WM or CLI based on the given subcommand.
 #[tokio::main]
 async fn main() {
-  match AppCommand::parse_with_default() {
+  let args = std::env::args().collect::<Vec<_>>();
+  let app_command = AppCommand::parse_with_default(&args);
+
+  let res = match app_command {
     AppCommand::Start {
       config_path,
       verbosity,
-    } => {
-      // Set log level based on verbosity flag.
-      tracing_subscriber::fmt()
-        .with_max_level(verbosity.level())
-        .init();
+    } => start_wm(config_path, verbosity).await,
+    AppCommand::Subscribe { .. } => start_cli(args, true).await,
+    _ => start_cli(args, false).await,
+  };
 
-      info!(
-        "Starting WM with log level {:?}.",
-        verbosity.level().to_string()
-      );
-
-      if let Err(err) = start_wm(config_path).await {
-        error!("Failed to start GlazeWM: {}", err);
-      }
-    }
-    _ => {
-      if let Err(err) = start_cli().await {
-        error!("{}", err);
-      }
-    }
+  if let Err(err) = res {
+    error!("{}", err);
   }
 }
 
-async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
+async fn start_wm(
+  config_path: Option<PathBuf>,
+  verbosity: Verbosity,
+) -> Result<()> {
+  // Set log level based on verbosity flag.
+  tracing_subscriber::fmt()
+    .with_max_level(verbosity.level())
+    .init();
+
+  info!(
+    "Starting WM with log level {:?}.",
+    verbosity.level().to_string()
+  );
+
   // Ensure that only one instance of the WM is running.
   let _ = Platform::new_single_instance()?;
 
@@ -122,15 +129,23 @@ async fn start_wm(config_path: Option<PathBuf>) -> Result<()> {
   }
 }
 
-async fn start_cli() -> Result<()> {
+async fn start_cli(
+  args: Vec<String>,
+  is_subscribe_message: bool,
+) -> Result<()> {
+  tracing_subscriber::fmt().init();
+
   let mut client = IpcClient::connect().await?;
 
-  let command_str = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+  client
+    .send(args[1..].join(" "))
+    .await
+    .context("Failed to send command to IPC server.")?;
 
   let response = client
-    .send_and_wait_reply(command_str)
+    .next_reply()
     .await
-    .context("Failed to send command")?;
+    .context("Failed to receive response from IPC server.")?;
 
   println!("{}", response);
 

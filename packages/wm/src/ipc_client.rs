@@ -22,17 +22,19 @@ impl IpcClient {
     Ok(Self { stream })
   }
 
-  /// Sends an IPC message and waits for a reply.
-  pub async fn send_and_wait_reply(
-    &mut self,
-    message: String,
-  ) -> anyhow::Result<String> {
+  /// Sends a message to the IPC server.
+  pub async fn send(&mut self, message: String) -> anyhow::Result<()> {
     self
       .stream
       .send(Message::Text(message))
       .await
       .context("Failed to send command.")?;
 
+    Ok(())
+  }
+
+  /// Waits and returns the next reply from the IPC server.
+  pub async fn next_reply(&mut self) -> anyhow::Result<String> {
     let response = self
       .stream
       .next()
@@ -42,13 +44,5 @@ impl IpcClient {
 
     let response_str = response.to_text()?;
     Ok(response_str.to_owned())
-    // let response: ServerMessage = serde_json::from_str(response_str)?;
-
-    // match response {
-    //   ServerMessage::ClientResponse(client_response) => {
-    //     Ok(client_response)
-    //   }
-    //   _ => Err(anyhow::anyhow!("Unexpected response type")),
-    // }
   }
 }
