@@ -184,7 +184,7 @@ impl IpcServer {
       iter::once("").chain(message.split_whitespace()),
     );
 
-    let response = match app_command {
+    let response_data = match app_command {
       Ok(AppCommand::Query { command }) => match command {
         QueryCommand::Windows => {
           Ok(ClientResponseData::Windows(wm.state.windows()))
@@ -233,15 +233,21 @@ impl IpcServer {
                 }
               }
               Ok((event, event_json)) = event_rx.recv() => {
-                let message = EventSubscriptionMessage {
-                  data: Some(event_json),
-                  error: None,
-                  subscription_id: subscription_id.clone(),
-                  success: true,
-                };
+                // Check whether the event is one of the subscribed events.
+                if events.contains(&event)
+                  || events.contains(&SubscribableEvent::All)
+                {
+                  let res = Self::to_event_subscription_msg(
+                    subscription_id,
+                    event_json,
+                  )
+                  .map(|event_msg| response_tx.send(event_msg));
 
-                let response_msg = Message::Text(serde_json::to_string(&message).unwrap());
-                response_tx.send(response_msg).unwrap();
+                  if let Err(err) = res {
+                    error!("Error emitting WM event: {}", err);
+                    break;
+                  }
+                }
               }
             }
           }
@@ -255,26 +261,50 @@ impl IpcServer {
         .unsubscribe_tx
         .send(subscription_id)
         .map(|_| ClientResponseData::EventUnsubscribe)
-        .map_err(|err| anyhow::anyhow!(err)),
+        .map_err(|_| anyhow::anyhow!("Failed to unsubscribe from event.")),
       Err(err) => Err(anyhow::anyhow!(err)),
       _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
     };
 
-    let error = response.as_ref().err().map(|err| err.to_string());
-    let success = response.as_ref().is_ok();
-
-    let response = ClientResponseMessage {
-      client_message: message,
-      data: response.ok(),
-      error,
-      success,
-    };
-
     // Respond to the client with the result of the command.
-    let response_msg = Message::Text(serde_json::to_string(&response)?);
-    response_tx.send(response_msg)?;
+    response_tx
+      .send(Self::to_client_response_msg(message, response_data)?)?;
 
     Ok(())
+  }
+
+  fn to_client_response_msg(
+    client_message: String,
+    response_data: anyhow::Result<ClientResponseData>,
+  ) -> anyhow::Result<Message> {
+    let error = response_data.as_ref().err().map(|err| err.to_string());
+    let success = response_data.as_ref().is_ok();
+
+    let message = ServerMessage::ClientResponse(ClientResponseMessage {
+      client_message,
+      data: response_data.ok(),
+      error,
+      success,
+    });
+
+    let message_json = serde_json::to_string(&message)?;
+    Ok(Message::Text(message_json))
+  }
+
+  fn to_event_subscription_msg(
+    subscription_id: Uuid,
+    event_json: serde_json::Value,
+  ) -> anyhow::Result<Message> {
+    let message =
+      ServerMessage::EventSubscription(EventSubscriptionMessage {
+        data: Some(event_json),
+        error: None,
+        subscription_id,
+        success: true,
+      });
+
+    let message_json = serde_json::to_string(&message)?;
+    Ok(Message::Text(message_json))
   }
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
