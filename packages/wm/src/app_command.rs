@@ -78,7 +78,7 @@ pub enum AppCommand {
   Unsubscribe {
     /// Subscription ID to unsubscribe from.
     #[clap(long = "id")]
-    subscription_id: String,
+    subscription_id: Uuid,
   },
 }
 

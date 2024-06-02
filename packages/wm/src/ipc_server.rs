@@ -46,7 +46,8 @@ pub struct ClientResponseMessage {
 pub enum ClientResponseData {
   BindingModes(Vec<String>),
   Command(CommandData),
-  EventSubscription(EventSubscriptionData),
+  EventSubscribe(EventSubscribeData),
+  EventUnsubscribe,
   Focused(Option<Container>),
   Monitors(Vec<Monitor>),
   Windows(Vec<WindowContainer>),
@@ -61,7 +62,7 @@ pub struct CommandData {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EventSubscriptionData {
+pub struct EventSubscribeData {
   subscription_id: Uuid,
 }
 
@@ -81,14 +82,17 @@ pub struct IpcServer {
     mpsc::UnboundedSender<Message>,
     broadcast::Sender<()>,
   )>,
-  event_rx: broadcast::Receiver<(SubscribableEvent, serde_json::Value)>,
+  _event_rx: broadcast::Receiver<(SubscribableEvent, serde_json::Value)>,
   event_tx: broadcast::Sender<(SubscribableEvent, serde_json::Value)>,
+  _unsubscribe_rx: broadcast::Receiver<Uuid>,
+  unsubscribe_tx: broadcast::Sender<Uuid>,
 }
 
 impl IpcServer {
   pub async fn start() -> anyhow::Result<Self> {
     let (message_tx, message_rx) = mpsc::unbounded_channel();
-    let (event_tx, event_rx) = broadcast::channel(16);
+    let (event_tx, _event_rx) = broadcast::channel(16);
+    let (unsubscribe_tx, _unsubscribe_rx) = broadcast::channel(16);
 
     let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
     let server = TcpListener::bind(server_addr.clone()).await?;
@@ -109,10 +113,12 @@ impl IpcServer {
     });
 
     Ok(Self {
-      message_rx,
-      event_rx,
-      event_tx,
       abort_handle: task.abort_handle(),
+      _event_rx,
+      event_tx,
+      message_rx,
+      unsubscribe_tx,
+      _unsubscribe_rx,
     })
   }
 
@@ -208,16 +214,23 @@ impl IpcServer {
         }),
       Ok(AppCommand::Subscribe { events }) => {
         let subscription_id = Uuid::new_v4();
+        info!("New event subscription {}: {:?}", subscription_id, events);
+
         let response_tx = response_tx.clone();
         let mut event_rx = self.event_tx.subscribe();
+        let mut unsubscribe_rx = self.unsubscribe_tx.subscribe();
         let mut disconnection_rx = disconnection_tx.subscribe();
 
         task::spawn(async move {
           loop {
             tokio::select! {
-              // TODO: Also listen to unsubscribe messages.
               Ok(_) = disconnection_rx.recv() => {
                 break;
+              }
+              Ok(id) = unsubscribe_rx.recv() => {
+                if id == subscription_id {
+                  break;
+                }
               }
               Ok((event, event_json)) = event_rx.recv() => {
                 let message = EventSubscriptionMessage {
@@ -234,10 +247,15 @@ impl IpcServer {
           }
         });
 
-        Ok(ClientResponseData::EventSubscription(
-          EventSubscriptionData { subscription_id },
-        ))
+        Ok(ClientResponseData::EventSubscribe(EventSubscribeData {
+          subscription_id,
+        }))
       }
+      Ok(AppCommand::Unsubscribe { subscription_id }) => self
+        .unsubscribe_tx
+        .send(subscription_id)
+        .map(|_| ClientResponseData::EventUnsubscribe)
+        .map_err(|err| anyhow::anyhow!(err)),
       Err(err) => Err(anyhow::anyhow!(err)),
       _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
     };
