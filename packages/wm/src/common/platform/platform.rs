@@ -15,10 +15,11 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
-        GetForegroundWindow, GetMessageW, PostThreadMessageW,
-        RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
-        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MSG, SW_NORMAL,
-        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+        GetForegroundWindow, GetMessageW, PeekMessageW,
+        PostThreadMessageW, RegisterClassW, SetCursorPos,
+        TranslateMessage, WindowFromPoint, CS_HREDRAW, CS_VREDRAW,
+        CW_USEDEFAULT, GA_ROOT, MSG, PM_REMOVE, SW_NORMAL, WM_QUIT,
+        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -194,6 +195,18 @@ impl Platform {
         }
       } else {
         break;
+      }
+    }
+  }
+
+  /// Runs a single cycle of a message loop on the current thread.
+  pub fn run_message_cycle() {
+    let mut msg = MSG::default();
+
+    if unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE) }.as_bool() {
+      unsafe {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
       }
     }
   }
