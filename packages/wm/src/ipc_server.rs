@@ -26,7 +26,7 @@ use crate::{
 pub const DEFAULT_IPC_PORT: u32 = 6123;
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "message_type", rename_all = "snake_case")]
+#[serde(tag = "messageType", rename_all = "snake_case")]
 pub enum ServerMessage {
   ClientResponse(ClientResponseMessage),
   EventSubscription(EventSubscriptionMessage),

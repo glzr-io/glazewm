@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Serialize)]
-#[serde(tag = "event_type", rename_all = "snake_case")]
+#[serde(tag = "eventType", rename_all = "snake_case")]
 pub enum WmEvent {
   BindingModesChanged {
     active_binding_modes: Vec<BindingModeConfig>,

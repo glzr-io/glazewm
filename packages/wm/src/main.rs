@@ -35,7 +35,8 @@ mod workspaces;
 
 /// Main entry point for the application.
 ///
-/// Conditionally runs the WM or CLI based on the given subcommand.
+/// Conditionally starts the WM or runs a CLI command based on the given
+/// subcommand.
 #[tokio::main]
 async fn main() {
   let args = std::env::args().collect::<Vec<_>>();
@@ -46,8 +47,7 @@ async fn main() {
       config_path,
       verbosity,
     } => start_wm(config_path, verbosity).await,
-    AppCommand::Subscribe { .. } => start_cli(args, true).await,
-    _ => start_cli(args, false).await,
+    _ => start_cli(args).await,
   };
 
   if let Err(err) = res {
@@ -135,38 +135,37 @@ async fn start_wm(
   }
 }
 
-async fn start_cli(
-  args: Vec<String>,
-  is_subscribe_message: bool,
-) -> Result<()> {
+async fn start_cli(args: Vec<String>) -> Result<()> {
   tracing_subscriber::fmt().init();
 
   let mut client = IpcClient::connect().await?;
 
+  let message = args[1..].join(" ");
   client
-    .send(args[1..].join(" "))
+    .send(&message)
     .await
     .context("Failed to send command to IPC server.")?;
 
-  let response = client
-    .next_reply()
+  let client_response = client
+    .client_response(&message)
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  // Exit on first response received when not subscribing to an event.
-  if !is_subscribe_message {
-    println!("{}", response);
-    std::process::exit(0);
-  }
+  match client_response.subscription_id {
+    // Exit on first response received when not subscribing to an event.
+    None => {
+      println!("{}", serde_json::to_string(&client_response.data)?);
+      std::process::exit(0);
+    }
+    // Otherwise, continuously listen for server responses.
+    Some(subscription_id) => loop {
+      let response = client
+        .event_subscription(&subscription_id)
+        .await
+        .context("Failed to receive response from IPC server.")?;
 
-  // Otherwise, continuously listen for server responses.
-  loop {
-    let response = client
-      .next_reply()
-      .await
-      .context("Failed to receive response from IPC server.")?;
-
-    println!("{}", response);
+      println!("{}", serde_json::to_string(&response.data)?);
+    },
   }
 }
 
