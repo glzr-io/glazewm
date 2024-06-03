@@ -345,6 +345,7 @@ impl IpcServer {
   }
 
   pub fn stop(&self) {
+    info!("Shutting down IPC server.");
     self.abort_handle.abort();
   }
 }

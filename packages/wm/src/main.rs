@@ -9,7 +9,7 @@ use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
 use sys_tray::SystemTray;
-use tokio::process::Command;
+use tokio::{process::Command, signal};
 use tracing::{debug, error, info};
 
 use crate::{
@@ -73,7 +73,7 @@ async fn start_wm(
   );
 
   // Ensure that only one instance of the WM is running.
-  let _ = Platform::new_single_instance()?;
+  let _single_instance = Platform::new_single_instance()?;
 
   // Parse and validate user config.
   let mut config = UserConfig::read(config_path).await?;
@@ -81,8 +81,8 @@ async fn start_wm(
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  // Add application to system tray.
-  let _ = SystemTray::new()?;
+  // Add application icon to system tray.
+  let _tray = SystemTray::new()?;
 
   let mut wm = WindowManager::new(&config)?;
 
@@ -133,6 +133,10 @@ async fn start_wm(
         if let Err(err) = ipc_server.process_event(wm_event) {
           error!("Failed to emit event over IPC: {:?}", err);
         }
+      },
+      _ = signal::ctrl_c() => {
+        info!("Received SIGINT signal.");
+        break Ok(());
       },
     }
   }

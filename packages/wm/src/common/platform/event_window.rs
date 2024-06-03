@@ -4,8 +4,8 @@ use std::{
 };
 
 use anyhow::Result;
-use tokio::sync::{mpsc, oneshot};
-use tracing::{info, warn};
+use tokio::sync::mpsc;
+use tracing::{error, info, warn};
 use windows::Win32::{
   Foundation::{HWND, LPARAM, LRESULT, WPARAM},
   UI::WindowsAndMessaging::{
@@ -33,7 +33,6 @@ pub struct EventWindowOptions {
 
 #[derive(Debug)]
 pub struct EventWindow {
-  abort_tx: Option<oneshot::Sender<()>>,
   window_thread: Option<JoinHandle<Result<()>>>,
 }
 
@@ -42,8 +41,6 @@ impl EventWindow {
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
     options: EventWindowOptions,
   ) -> Self {
-    let (abort_tx, abort_rx) = oneshot::channel();
-
     let window_thread = thread::spawn(move || {
       // Initialize the thread-local sender for platform events.
       PLATFORM_EVENT_TX
@@ -61,14 +58,13 @@ impl EventWindow {
       let handle =
         Platform::create_message_window(Some(event_window_proc))?;
 
-      Platform::run_message_loop(abort_rx);
+      Platform::run_message_loop();
       unsafe { DestroyWindow(HWND(handle)) }?;
 
       Ok(())
     });
 
     Self {
-      abort_tx: Some(abort_tx),
       window_thread: Some(window_thread),
     }
   }
@@ -85,25 +81,27 @@ impl EventWindow {
   }
 
   /// Destroys the event window and stops the message loop.
-  pub fn destroy(&mut self) {
-    if let Some(abort_tx) = self.abort_tx.take() {
-      if abort_tx.send(()).is_err() {
-        warn!("Failed to send abort signal to the event window thread.");
-      }
-    }
+  pub fn destroy(&mut self) -> anyhow::Result<()> {
+    info!("Shutting down event window.");
 
     // Wait for the spawned thread to finish.
     if let Some(window_thread) = self.window_thread.take() {
-      if let Err(err) = window_thread.join() {
-        warn!("Failed to join event window thread '{:?}'.", err);
-      }
+      Platform::kill_message_loop(&window_thread)?;
+
+      window_thread
+        .join()
+        .map_err(|_| anyhow::anyhow!("Thread join failed."))??;
     }
+
+    Ok(())
   }
 }
 
 impl Drop for EventWindow {
   fn drop(&mut self) {
-    self.destroy();
+    if let Err(err) = self.destroy() {
+      error!("Failed to gracefully shut down event window: {}", err);
+    }
   }
 }
 
@@ -124,7 +122,6 @@ pub extern "system" fn event_window_proc(
           handle_display_change_msg(message, wparam, event_tx)
         }
         WM_POWERBROADCAST => {
-          info!("power mode changed------- {}", wparam.0 as u32);
           event_tx.send(PlatformEvent::PowerModeChanged).unwrap();
           LRESULT(0)
         }

@@ -1,7 +1,6 @@
 use std::thread::JoinHandle;
 
-use tokio::sync::oneshot;
-use tracing::warn;
+use tracing::{error, info};
 use tray_icon::{
   menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIconBuilder,
@@ -13,14 +12,11 @@ use crate::common::platform::Platform;
 const IDI_ICON: u16 = 0x101;
 
 pub struct SystemTray {
-  abort_tx: Option<oneshot::Sender<()>>,
   icon_thread: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl SystemTray {
   pub fn new() -> anyhow::Result<Self> {
-    let (abort_tx, abort_rx) = oneshot::channel();
-
     let icon_thread = std::thread::spawn(move || {
       let tray_menu = Menu::new();
 
@@ -48,36 +44,37 @@ impl SystemTray {
         .with_icon(icon)
         .build()?;
 
-      Platform::run_message_loop(abort_rx);
+      Platform::run_message_loop();
 
       Ok(())
     });
 
     Ok(Self {
-      abort_tx: Some(abort_tx),
       icon_thread: Some(icon_thread),
     })
   }
 
-  /// Destroys the event window and stops the message loop.
-  pub fn destroy(&mut self) {
-    if let Some(abort_tx) = self.abort_tx.take() {
-      if abort_tx.send(()).is_err() {
-        warn!("Failed to send abort signal to the event window thread.");
-      }
-    }
+  /// Destroys the system tray icon and stops its associated message loop.
+  pub fn destroy(&mut self) -> anyhow::Result<()> {
+    info!("Shutting down system tray.");
 
     // Wait for the spawned thread to finish.
-    if let Some(window_thread) = self.icon_thread.take() {
-      if let Err(err) = window_thread.join() {
-        warn!("Failed to join event window thread '{:?}'.", err);
-      }
+    if let Some(icon_thread) = self.icon_thread.take() {
+      Platform::kill_message_loop(&icon_thread)?;
+
+      icon_thread
+        .join()
+        .map_err(|_| anyhow::anyhow!("Thread join failed."))??;
     }
+
+    Ok(())
   }
 }
 
 impl Drop for SystemTray {
   fn drop(&mut self) {
-    self.destroy();
+    if let Err(err) = self.destroy() {
+      error!("Failed to gracefully shut down system tray: {}", err);
+    }
   }
 }

@@ -1,12 +1,13 @@
-use std::path::Path;
+use std::{os::windows::io::AsRawHandle, path::Path, thread::JoinHandle};
 
 use anyhow::{bail, Context};
-use tokio::sync::oneshot;
 use windows::{
   core::{w, PCWSTR},
   Win32::{
-    Foundation::{HWND, POINT},
-    System::Environment::ExpandEnvironmentStringsW,
+    Foundation::{HANDLE, HWND, LPARAM, POINT, WPARAM},
+    System::{
+      Environment::ExpandEnvironmentStringsW, Threading::GetThreadId,
+    },
     UI::{
       Shell::{
         ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
@@ -14,10 +15,10 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
-        GetForegroundWindow, GetMessageW, RegisterClassW, SetCursorPos,
-        TranslateMessage, WindowFromPoint, CS_HREDRAW, CS_VREDRAW,
-        CW_USEDEFAULT, GA_ROOT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
-        WS_OVERLAPPEDWINDOW,
+        GetForegroundWindow, GetMessageW, PostThreadMessageW,
+        RegisterClassW, SetCursorPos, TranslateMessage, WindowFromPoint,
+        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MSG, SW_NORMAL,
+        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -180,17 +181,12 @@ impl Platform {
 
   /// Starts a message loop on the current thread.
   ///
-  /// This function will block until the message loop is aborted via the
-  /// `abort_rx` channel.
-  pub fn run_message_loop(mut abort_rx: oneshot::Receiver<()>) {
+  /// This function will block until the message loop is killed. Use
+  /// `Platform::kill_message_loop` to terminate the message loop.
+  pub fn run_message_loop() {
     let mut msg = MSG::default();
 
     loop {
-      // Check whether the abort signal has been received.
-      if abort_rx.try_recv().is_ok() {
-        break;
-      }
-
       if unsafe { GetMessageW(&mut msg, None, 0, 0) }.as_bool() {
         unsafe {
           TranslateMessage(&msg);
@@ -200,6 +196,26 @@ impl Platform {
         break;
       }
     }
+  }
+
+  /// Gracefully terminates the message loop on the given thread.
+  pub fn kill_message_loop<T>(
+    thread: &JoinHandle<T>,
+  ) -> anyhow::Result<()> {
+    let handle = thread.as_raw_handle();
+    let handle = HANDLE(handle as isize);
+    let thread_id = unsafe { GetThreadId(handle) };
+
+    unsafe {
+      PostThreadMessageW(
+        thread_id,
+        WM_QUIT,
+        WPARAM::default(),
+        LPARAM::default(),
+      )
+    }?;
+
+    Ok(())
   }
 
   /// Parses a command string into a program name/path and arguments. This
