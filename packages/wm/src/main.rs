@@ -8,6 +8,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
+use sys_tray::SystemTray;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
@@ -16,7 +17,6 @@ use crate::{
   common::platform::Platform,
   ipc_client::IpcClient,
   ipc_server::{EventSubscribeData, IpcServer},
-  sys_tray::add_tray,
   user_config::UserConfig,
   wm::WindowManager,
   wm_event::WmEvent,
@@ -81,9 +81,8 @@ async fn start_wm(
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
 
-  std::thread::spawn(|| {
-    add_tray().unwrap();
-  });
+  // Add application to system tray.
+  let _ = SystemTray::new()?;
 
   let mut wm = WindowManager::new(&config)?;
 
