@@ -1,11 +1,13 @@
-use anyhow::Context;
 use tokio::sync::oneshot;
 use tray_icon::{
   menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
-  TrayIconBuilder,
+  Icon, TrayIconBuilder,
 };
 
 use crate::common::platform::Platform;
+
+/// Ordinal to IDI_ICON definition from `resources.rc`.
+const IDI_ICON: u16 = 0x101;
 
 pub fn add_tray() -> anyhow::Result<()> {
   let tray_menu = Menu::new();
@@ -25,41 +27,25 @@ pub fn add_tray() -> anyhow::Result<()> {
     &quit_item,
   ])?;
 
-  let menu_channel = MenuEvent::receiver();
+  let menu_event_rx = MenuEvent::receiver();
 
   std::thread::spawn(move || {
-    menu_channel.iter().for_each(|m| match m {
+    menu_event_rx.iter().for_each(|m| match m {
       event => {
         println!("{:?}", event);
       }
     })
   });
 
+  let icon = Icon::from_resource(IDI_ICON, None)?;
   let tray_icon = TrayIconBuilder::new()
     .with_menu(Box::new(tray_menu))
     .with_tooltip("test")
-    .with_icon(load_icon()?)
+    .with_icon(icon)
     .build()?;
 
   let (abort_tx, abort_rx) = oneshot::channel();
   Platform::run_message_loop(abort_rx);
 
   Ok(())
-}
-
-fn load_icon() -> anyhow::Result<tray_icon::Icon> {
-  let icon = include_bytes!("../../../resources/icon.ico");
-
-  let (icon_rgba, icon_width, icon_height) = {
-    let image = image::load_from_memory(icon)
-      .context("Failed to open icon path.")?
-      .into_rgba8();
-
-    let (width, height) = image.dimensions();
-    let rgba = image.into_raw();
-    (rgba, width, height)
-  };
-
-  tray_icon::Icon::from_rgba(icon_rgba, icon_width, icon_height)
-    .context("Failed to open icon.")
 }

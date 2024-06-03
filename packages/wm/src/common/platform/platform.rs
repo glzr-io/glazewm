@@ -8,10 +8,6 @@ use windows::{
     Foundation::{HWND, POINT},
     System::Environment::ExpandEnvironmentStringsW,
     UI::{
-      HiDpi::{
-        SetProcessDpiAwarenessContext,
-        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
-      },
       Shell::{
         ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
         SHELLEXECUTEINFOW,
@@ -128,18 +124,6 @@ impl Platform {
     unsafe {
       SetCursorPos(x, y)?;
     };
-
-    Ok(())
-  }
-
-  /// Sets the DPI awareness for the current process to per-monitor
-  /// awareness (v2).
-  pub fn set_dpi_awareness() -> anyhow::Result<()> {
-    unsafe {
-      SetProcessDpiAwarenessContext(
-        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
-      )
-    }?;
 
     Ok(())
   }

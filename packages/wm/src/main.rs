@@ -75,9 +75,6 @@ async fn start_wm(
   // Ensure that only one instance of the WM is running.
   let _ = Platform::new_single_instance()?;
 
-  // Set the process-default DPI awareness.
-  Platform::set_dpi_awareness()?;
-
   // Parse and validate user config.
   let mut config = UserConfig::read(config_path).await?;
 

@@ -17,6 +17,9 @@ path = "src/main.rs"
 [features]
 windows_subsystem = []
 
+[build-dependencies]
+embed-resource = "2"
+
 [dependencies]
 anyhow = { workspace = true }
 clap = { version = "4", features = ["derive"] }
@@ -24,7 +27,6 @@ enum_dispatch = "0.3"
 enum-as-inner = "0.6"
 futures-util = "0.3"
 home = "0.5"
-image = "0.25"
 uuid = { version = "1", features = ["v4", "serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
