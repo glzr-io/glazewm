@@ -14,7 +14,7 @@ use tokio::process::Command;
 use tracing::{debug, error, info};
 
 use common::platform::Platform;
-use ipc_server::IpcServer;
+use ipc_server::{EventSubscribeData, IpcServer};
 use user_config::UserConfig;
 use wm::WindowManager;
 
@@ -47,7 +47,7 @@ async fn main() {
       config_path,
       verbosity,
     } => start_wm(config_path, verbosity).await,
-    _ => start_cli(args).await,
+    _ => start_cli(args, app_command).await,
   };
 
   if let Err(err) = res {
@@ -135,7 +135,10 @@ async fn start_wm(
   }
 }
 
-async fn start_cli(args: Vec<String>) -> Result<()> {
+async fn start_cli(
+  args: Vec<String>,
+  app_command: AppCommand,
+) -> Result<()> {
   tracing_subscriber::fmt().init();
 
   let mut client = IpcClient::connect().await?;
@@ -151,21 +154,28 @@ async fn start_cli(args: Vec<String>) -> Result<()> {
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  match client_response.subscription_id {
-    // Exit on first response received when not subscribing to an event.
-    None => {
-      println!("{}", serde_json::to_string(&client_response.data)?);
-      std::process::exit(0);
-    }
-    // Otherwise, continuously listen for server responses.
-    Some(subscription_id) => loop {
-      let response = client
-        .event_subscription(&subscription_id)
-        .await
-        .context("Failed to receive response from IPC server.")?;
+  let is_subscribe_message =
+    matches!(app_command, AppCommand::Subscribe { .. });
 
-      println!("{}", serde_json::to_string(&response.data)?);
-    },
+  // Exit on first response received when not subscribing to an event.
+  if !is_subscribe_message {
+    println!("{}", serde_json::to_string(&client_response)?);
+    std::process::exit(0);
+  }
+
+  // Otherwise, expect a subscription ID in the client response.
+  let subscribe_data = serde_json::from_str::<EventSubscribeData>(
+    client_response.data.get(),
+  )?;
+
+  // Continuously listen for server responses.
+  loop {
+    let event_subscription = client
+      .event_subscription(&subscribe_data.subscription_id)
+      .await
+      .context("Failed to receive response from IPC server.")?;
+
+    println!("{}", serde_json::to_string(&event_subscription)?);
   }
 }
 

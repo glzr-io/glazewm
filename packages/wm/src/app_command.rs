@@ -43,7 +43,7 @@ pub enum AppCommand {
     verbosity: Verbosity,
   },
 
-  /// Prints the window manager's state.
+  /// Retrieves and outputs a specific part of the window manager's state.
   ///
   /// Requires an already running instance of the window manager.
   Query {
@@ -62,8 +62,8 @@ pub enum AppCommand {
     command: InvokeCommand,
   },
 
-  /// Subscribe to one or more WM events (e.g. `window_close`), and
-  /// continuously print the incoming events.
+  /// Subscribes to one or more WM events (e.g. `window_close`), and
+  /// continuously outputs the incoming events.
   ///
   /// Requires an already running instance of the window manager.
   Subscribe {
@@ -72,7 +72,7 @@ pub enum AppCommand {
     events: Vec<SubscribableEvent>,
   },
 
-  /// Unsubscribe from a WM event subscription.
+  /// Unsubscribes from a prior event subscription.
   ///
   /// Requires an already running instance of the window manager.
   Unsubscribe {
@@ -126,15 +126,15 @@ impl Verbosity {
 
 #[derive(Clone, Debug, Parser)]
 pub enum QueryCommand {
-  /// Prints all windows.
+  /// Outputs all windows.
   Windows,
-  /// Prints all active workspaces.
+  /// Outputs all active workspaces.
   Workspaces,
-  /// Prints all monitors.
+  /// Outputs all monitors.
   Monitors,
-  /// Prints the active binding modes.
+  /// Outputs the active binding modes.
   BindingModes,
-  /// Prints the focused container (either a window or an empty workspace).
+  /// Outputs the focused container (either a window or an empty workspace).
   Focused,
 }
 

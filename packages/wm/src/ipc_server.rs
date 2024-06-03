@@ -3,7 +3,7 @@ use std::{iter, net::SocketAddr};
 use anyhow::Context;
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::{
   net::{TcpListener, TcpStream},
   sync::{broadcast, mpsc},
@@ -35,10 +35,10 @@ pub enum ServerMessage {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientResponseMessage {
-  client_message: String,
-  data: Option<ClientResponseData>,
-  error: Option<String>,
-  success: bool,
+  pub client_message: String,
+  pub data: Option<ClientResponseData>,
+  pub error: Option<String>,
+  pub success: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,22 +57,22 @@ pub enum ClientResponseData {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandData {
-  subject_container_id: Uuid,
+  pub subject_container_id: Uuid,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscribeData {
-  subscription_id: Uuid,
+  pub subscription_id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscriptionMessage {
-  data: Option<serde_json::Value>,
-  error: Option<String>,
-  subscription_id: Uuid,
-  success: bool,
+  pub data: Option<serde_json::Value>,
+  pub error: Option<String>,
+  pub subscription_id: Uuid,
+  pub success: bool,
 }
 
 pub struct IpcServer {
