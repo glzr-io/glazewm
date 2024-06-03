@@ -7,6 +7,7 @@ pub mod containers;
 pub mod ipc_client;
 pub mod ipc_server;
 pub mod monitors;
+pub mod sys_tray;
 pub mod user_config;
 pub mod windows;
 pub mod wm;

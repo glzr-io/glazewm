@@ -9,7 +9,7 @@ use tracing::{info, warn};
 use windows::Win32::{
   Foundation::{HWND, LPARAM, LRESULT, WPARAM},
   UI::WindowsAndMessaging::{
-    DefWindowProcW, PostQuitMessage, DBT_DEVNODES_CHANGED,
+    DefWindowProcW, DestroyWindow, PostQuitMessage, DBT_DEVNODES_CHANGED,
     SPI_ICONVERTICALSPACING, SPI_SETWORKAREA, WM_DESTROY, WM_DEVICECHANGE,
     WM_DISPLAYCHANGE, WM_POWERBROADCAST, WM_SETTINGCHANGE,
   },
@@ -44,7 +44,7 @@ impl EventWindow {
   ) -> Self {
     let (abort_tx, abort_rx) = oneshot::channel();
 
-    let window_thread = thread::spawn(move || unsafe {
+    let window_thread = thread::spawn(move || {
       // Initialize the thread-local sender for platform events.
       PLATFORM_EVENT_TX
         .with(|cell| cell.set(event_tx.clone()))
@@ -58,7 +58,12 @@ impl EventWindow {
       MouseHook::start(options.enable_mouse_events, event_tx)?;
 
       // Create a hidden window with a message loop on the current thread.
-      Platform::create_message_loop(abort_rx, Some(event_window_proc))?;
+      let handle =
+        Platform::create_message_window(Some(event_window_proc))?;
+
+      Platform::run_message_loop(abort_rx);
+      unsafe { DestroyWindow(HWND(handle)) }?;
+
       Ok(())
     });
 

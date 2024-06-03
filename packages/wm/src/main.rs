@@ -8,17 +8,19 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
-use app_command::Verbosity;
-use ipc_client::IpcClient;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
-use common::platform::Platform;
-use ipc_server::{EventSubscribeData, IpcServer};
-use user_config::UserConfig;
-use wm::WindowManager;
-
-use crate::{app_command::AppCommand, wm_event::WmEvent};
+use crate::{
+  app_command::{AppCommand, Verbosity},
+  common::platform::Platform,
+  ipc_client::IpcClient,
+  ipc_server::{EventSubscribeData, IpcServer},
+  sys_tray::add_tray,
+  user_config::UserConfig,
+  wm::WindowManager,
+  wm_event::WmEvent,
+};
 
 mod app_command;
 mod common;
@@ -26,6 +28,7 @@ mod containers;
 mod ipc_client;
 mod ipc_server;
 mod monitors;
+mod sys_tray;
 mod user_config;
 mod windows;
 mod wm;
@@ -80,6 +83,10 @@ async fn start_wm(
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
+
+  std::thread::spawn(|| {
+    add_tray().unwrap();
+  });
 
   let mut wm = WindowManager::new(&config)?;
 

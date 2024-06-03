@@ -1,33 +1,33 @@
 use std::path::Path;
 
-use crate::common::Point;
 use anyhow::{bail, Context};
 use tokio::sync::oneshot;
-use tracing::warn;
-use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::{HWND, POINT};
-use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
-use windows::Win32::UI::Shell::{
-  ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
-  SHELLEXECUTEINFOW,
+use windows::{
+  core::{w, PCWSTR},
+  Win32::{
+    Foundation::{HWND, POINT},
+    System::Environment::ExpandEnvironmentStringsW,
+    UI::{
+      HiDpi::{
+        SetProcessDpiAwarenessContext,
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+      },
+      Shell::{
+        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
+        SHELLEXECUTEINFOW,
+      },
+      WindowsAndMessaging::{
+        CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
+        GetForegroundWindow, GetMessageW, RegisterClassW, SetCursorPos,
+        TranslateMessage, WindowFromPoint, CS_HREDRAW, CS_VREDRAW,
+        CW_USEDEFAULT, GA_ROOT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
+        WS_OVERLAPPEDWINDOW,
+      },
+    },
+  },
 };
 
-use windows::Win32::UI::WindowsAndMessaging::GA_ROOT;
-use windows::Win32::UI::{
-  HiDpi::{
-    SetProcessDpiAwarenessContext,
-    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
-  },
-  WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, DispatchMessageW, GetAncestor,
-    GetDesktopWindow, GetForegroundWindow, GetMessageW, RegisterClassW,
-    SetCursorPos, TranslateMessage, WindowFromPoint, CS_HREDRAW,
-    CS_VREDRAW, CW_USEDEFAULT, MSG, SW_NORMAL, WNDCLASSW, WNDPROC,
-    WS_OVERLAPPEDWINDOW,
-  },
-};
-
-use crate::user_config::UserConfig;
+use crate::{common::Point, user_config::UserConfig};
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
@@ -155,12 +155,10 @@ impl Platform {
     Ok(NativeWindow::new(handle.0))
   }
 
-  /// Spawns a hidden message window and starts a message loop.
+  /// Creates a hidden message window.
   ///
-  /// This function will block until the message loop is aborted via the
-  /// `abort_rx` channel.
-  pub unsafe fn create_message_loop(
-    mut abort_rx: oneshot::Receiver<()>,
+  /// Returns a handle to the created window.
+  pub fn create_message_window(
     window_procedure: WindowProcedure,
   ) -> anyhow::Result<isize> {
     let wnd_class = WNDCLASSW {
@@ -170,47 +168,54 @@ impl Platform {
       ..Default::default()
     };
 
-    RegisterClassW(&wnd_class);
+    unsafe { RegisterClassW(&wnd_class) };
 
-    let handle = CreateWindowExW(
-      Default::default(),
-      w!("MessageWindow"),
-      w!("MessageWindow"),
-      WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      CW_USEDEFAULT,
-      None,
-      None,
-      wnd_class.hInstance,
-      None,
-    );
+    let handle = unsafe {
+      CreateWindowExW(
+        Default::default(),
+        w!("MessageWindow"),
+        w!("MessageWindow"),
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        None,
+        None,
+        wnd_class.hInstance,
+        None,
+      )
+    };
 
     if handle.0 == 0 {
       bail!("Creation of message window failed.");
     }
 
+    Ok(handle.0)
+  }
+
+  /// Starts a message loop on the current thread.
+  ///
+  /// This function will block until the message loop is aborted via the
+  /// `abort_rx` channel.
+  pub fn run_message_loop(mut abort_rx: oneshot::Receiver<()>) {
     let mut msg = MSG::default();
 
     loop {
       // Check whether the abort signal has been received.
       if abort_rx.try_recv().is_ok() {
-        if let Err(err) = DestroyWindow(handle) {
-          warn!("Failed to destroy message window '{}'.", err);
-        }
         break;
       }
 
-      if GetMessageW(&mut msg, None, 0, 0).as_bool() {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
+      if unsafe { GetMessageW(&mut msg, None, 0, 0) }.as_bool() {
+        unsafe {
+          TranslateMessage(&msg);
+          DispatchMessageW(&msg);
+        }
       } else {
         break;
       }
     }
-
-    Ok(handle.0)
   }
 
   /// Parses a command string into a program name/path and arguments. This
