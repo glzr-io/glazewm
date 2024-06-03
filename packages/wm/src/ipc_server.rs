@@ -202,7 +202,7 @@ impl IpcServer {
           Ok(ClientResponseData::Focused(wm.state.focused_container()))
         }
       },
-      Ok(AppCommand::Cmd {
+      Ok(AppCommand::Command {
         subject_container_id,
         command,
       }) => wm

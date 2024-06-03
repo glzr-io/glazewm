@@ -46,6 +46,7 @@ pub enum AppCommand {
   /// Retrieves and outputs a specific part of the window manager's state.
   ///
   /// Requires an already running instance of the window manager.
+  #[clap(alias = "q")]
   Query {
     #[clap(subcommand)]
     command: QueryCommand,
@@ -54,7 +55,8 @@ pub enum AppCommand {
   /// Invokes a window manager command.
   ///
   /// Requires an already running instance of the window manager.
-  Cmd {
+  #[clap(alias = "c")]
+  Command {
     #[clap(short = 'c')]
     subject_container_id: Option<Uuid>,
 
@@ -66,6 +68,7 @@ pub enum AppCommand {
   /// continuously outputs the incoming events.
   ///
   /// Requires an already running instance of the window manager.
+  #[clap(alias = "su")]
   Subscribe {
     /// WM event(s) to subscribe to.
     #[clap(short = 'e', long, value_enum, num_args = 1..)]
@@ -75,6 +78,7 @@ pub enum AppCommand {
   /// Unsubscribes from a prior event subscription.
   ///
   /// Requires an already running instance of the window manager.
+  #[clap(alias = "us")]
   Unsubscribe {
     /// Subscription ID to unsubscribe from.
     #[clap(long = "id")]
