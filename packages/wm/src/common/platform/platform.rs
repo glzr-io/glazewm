@@ -17,9 +17,11 @@ use windows::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
         GetForegroundWindow, GetMessageW, PeekMessageW,
         PostThreadMessageW, RegisterClassW, SetCursorPos,
-        TranslateMessage, WindowFromPoint, CS_HREDRAW, CS_VREDRAW,
-        CW_USEDEFAULT, GA_ROOT, MSG, PM_REMOVE, SW_NORMAL, WM_QUIT,
-        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+        SystemParametersInfoW, TranslateMessage, WindowFromPoint,
+        ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
+        MSG, PM_REMOVE, SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
+        WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -236,6 +238,50 @@ impl Platform {
         WM_QUIT,
         WPARAM::default(),
         LPARAM::default(),
+      )
+    }?;
+
+    Ok(())
+  }
+
+  /// Gets whether window transition animations are currently enabled.
+  ///
+  /// Note that this is a global system setting.
+  pub fn window_animations_enabled() -> anyhow::Result<bool> {
+    let mut animation_info = ANIMATIONINFO {
+      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
+      iMinAnimate: 0,
+    };
+
+    unsafe {
+      SystemParametersInfoW(
+        SPI_GETANIMATION,
+        0,
+        Some(&mut animation_info as *mut _ as _),
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+      )
+    }?;
+
+    Ok(animation_info.iMinAnimate != 0)
+  }
+
+  /// Enables or disables window transition animations.
+  ///
+  /// Note that this is a global system setting.
+  pub fn set_window_animations_enabled(
+    enable: bool,
+  ) -> anyhow::Result<()> {
+    let mut animation_info = ANIMATIONINFO {
+      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
+      iMinAnimate: if enable { 1 } else { 0 },
+    };
+
+    unsafe {
+      SystemParametersInfoW(
+        SPI_SETANIMATION,
+        0,
+        Some(&mut animation_info as *mut _ as _),
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
     }?;
 

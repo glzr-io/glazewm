@@ -29,8 +29,15 @@ impl SystemTray {
       let config_dir_item =
         MenuItem::new("Show config folder", true, None);
 
-      let animations_item =
-        CheckMenuItem::new("Window animations", true, false, None);
+      let mut animations_enabled =
+        Platform::window_animations_enabled().unwrap_or(true);
+
+      let animations_item = CheckMenuItem::new(
+        "Window animations",
+        true,
+        animations_enabled,
+        None,
+      );
 
       let exit_item = MenuItem::new("Exit", true, None);
 
@@ -60,8 +67,11 @@ impl SystemTray {
             // TODO: Open config directory.
             todo!()
           } else if event.id == animations_item.id() {
-            // TODO: Enable/disable window animations.
-            animations_item.set_checked(animations_item.is_checked());
+            // Toggle window animations globally.
+            let _ =
+              Platform::set_window_animations_enabled(!animations_enabled);
+
+            animations_enabled = !animations_enabled;
           } else if event.id == exit_item.id() {
             exit_tx.send(())?;
           }
