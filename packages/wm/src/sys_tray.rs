@@ -1,11 +1,9 @@
 use std::{thread::JoinHandle, time::Duration};
 
+use tokio::sync::mpsc;
 use tracing::{error, info};
 use tray_icon::{
-  menu::{
-    AboutMetadata, CheckMenuItem, Menu, MenuEvent, MenuItem,
-    PredefinedMenuItem,
-  },
+  menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIconBuilder,
 };
 
@@ -15,34 +13,38 @@ use crate::common::platform::Platform;
 const IDI_ICON: u16 = 0x101;
 
 pub struct SystemTray {
+  pub config_reload_rx: mpsc::UnboundedReceiver<()>,
+  pub exit_rx: mpsc::UnboundedReceiver<()>,
   icon_thread: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl SystemTray {
   pub fn new() -> anyhow::Result<Self> {
-    let icon_thread = std::thread::spawn(move || {
-      let tray_menu = Menu::new();
+    let (exit_tx, exit_rx) = mpsc::unbounded_channel();
+    let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
 
-      let quit_item = MenuItem::new("Quit", true, None);
+    let icon_thread = std::thread::spawn(move || {
+      let reload_config_item = MenuItem::new("Reload config", true, None);
+
+      let config_dir_item =
+        MenuItem::new("Show config folder", true, None);
+
       let animations_item =
         CheckMenuItem::new("Window animations", true, false, None);
 
+      let exit_item = MenuItem::new("Exit", true, None);
+
+      let tray_menu = Menu::new();
       tray_menu.append_items(&[
+        &reload_config_item,
+        &config_dir_item,
         &animations_item,
-        &PredefinedMenuItem::about(
-          None,
-          Some(AboutMetadata {
-            name: Some("test".to_string()),
-            copyright: Some("Copyright test".to_string()),
-            ..Default::default()
-          }),
-        ),
         &PredefinedMenuItem::separator(),
-        &quit_item,
+        &exit_item,
       ])?;
 
       let icon = Icon::from_resource(IDI_ICON, None)?;
-      let tray_icon = TrayIconBuilder::new()
+      let _tray_icon = TrayIconBuilder::new()
         .with_menu(Box::new(tray_menu))
         .with_tooltip(format!("GlazeWM v{}", env!("CARGO_PKG_VERSION")))
         .with_icon(icon)
@@ -52,20 +54,33 @@ impl SystemTray {
 
       loop {
         if let Ok(event) = menu_event_rx.try_recv() {
-          if event.id == quit_item.id() {
-            quit_item.set_text("New title");
+          if event.id == reload_config_item.id() {
+            config_reload_tx.send(())?;
+          } else if event.id == config_dir_item.id() {
+            // TODO: Open config directory.
+            todo!()
           } else if event.id == animations_item.id() {
+            // TODO: Enable/disable window animations.
             animations_item.set_checked(animations_item.is_checked());
+          } else if event.id == exit_item.id() {
+            exit_tx.send(())?;
           }
         }
 
-        // Add delay of 16ms (60fps) to reduce cpu load.
-        Platform::run_message_cycle();
+        // Run message loop with a delay of 16ms (60fps).
+        if let Err(_) = Platform::run_message_cycle() {
+          break;
+        }
+
         std::thread::sleep(Duration::from_millis(16));
       }
+
+      Ok(())
     });
 
     Ok(Self {
+      config_reload_rx,
+      exit_rx,
       icon_thread: Some(icon_thread),
     })
   }

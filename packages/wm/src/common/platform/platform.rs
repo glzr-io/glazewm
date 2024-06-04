@@ -200,15 +200,26 @@ impl Platform {
   }
 
   /// Runs a single cycle of a message loop on the current thread.
-  pub fn run_message_cycle() {
+  ///
+  /// Is non-blocking and returns immediately if there are no messages.
+  pub fn run_message_cycle() -> anyhow::Result<()> {
     let mut msg = MSG::default();
 
-    if unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE) }.as_bool() {
+    let has_message =
+      unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE) }.as_bool();
+
+    if has_message {
+      if msg.message == WM_QUIT {
+        bail!("Received WM_QUIT message.")
+      }
+
       unsafe {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
       }
     }
+
+    Ok(())
   }
 
   /// Gracefully terminates the message loop on the given thread.

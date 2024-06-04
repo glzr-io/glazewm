@@ -82,7 +82,7 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Add application icon to system tray.
-  let _tray = SystemTray::new()?;
+  let mut tray = SystemTray::new()?;
 
   let mut wm = WindowManager::new(&config)?;
 
@@ -133,6 +133,10 @@ async fn start_wm(
         if let Err(err) = ipc_server.process_event(wm_event) {
           error!("Failed to emit event over IPC: {:?}", err);
         }
+      },
+      Some(_) = tray.exit_rx.recv() => {
+        info!("Exiting through system tray.");
+        break Ok(());
       },
       _ = signal::ctrl_c() => {
         info!("Received SIGINT signal.");
