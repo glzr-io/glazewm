@@ -1,4 +1,8 @@
-use std::{os::windows::io::AsRawHandle, path::Path, thread::JoinHandle};
+use std::{
+  os::windows::io::AsRawHandle,
+  path::{Path, PathBuf},
+  thread::JoinHandle,
+};
 
 use anyhow::{bail, Context};
 use windows::{
@@ -284,6 +288,17 @@ impl Platform {
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
     }?;
+
+    Ok(())
+  }
+
+  /// Opens File Explorer at the specified path.
+  pub fn open_file_explorer(path: &PathBuf) -> anyhow::Result<()> {
+    let normalized_path = std::fs::canonicalize(path)?;
+
+    std::process::Command::new("explorer")
+      .arg(normalized_path)
+      .spawn()?;
 
     Ok(())
   }

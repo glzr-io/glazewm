@@ -16,9 +16,10 @@ const SAMPLE_CONFIG: &str =
 
 #[derive(Debug)]
 pub struct UserConfig {
-  pub value: ParsedConfig,
   pub changes_rx: mpsc::UnboundedReceiver<()>,
   pub changes_tx: mpsc::UnboundedSender<()>,
+  pub config_path: PathBuf,
+  pub value: ParsedConfig,
 }
 
 impl UserConfig {
@@ -46,9 +47,10 @@ impl UserConfig {
     let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
 
     Ok(Self {
-      value: parsed_config,
       changes_rx,
       changes_tx,
+      config_path,
+      value: parsed_config,
     })
   }
 

@@ -1,5 +1,6 @@
-use std::{thread::JoinHandle, time::Duration};
+use std::{path::PathBuf, thread::JoinHandle, time::Duration};
 
+use anyhow::Context;
 use tokio::sync::mpsc;
 use tracing::{error, info};
 use tray_icon::{
@@ -19,9 +20,13 @@ pub struct SystemTray {
 }
 
 impl SystemTray {
-  pub fn new() -> anyhow::Result<Self> {
+  pub fn new(config_path: &PathBuf) -> anyhow::Result<Self> {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
+    let config_dir = config_path
+      .parent()
+      .context("Invalid config path.")?
+      .to_owned();
 
     let icon_thread = std::thread::spawn(move || {
       let reload_config_item = MenuItem::new("Reload config", true, None);
@@ -64,8 +69,8 @@ impl SystemTray {
           if event.id == reload_config_item.id() {
             config_reload_tx.send(())?;
           } else if event.id == config_dir_item.id() {
-            // TODO: Open config directory.
-            todo!()
+            // Open config directory in File Explorer.
+            let _ = Platform::open_file_explorer(&config_dir);
           } else if event.id == animations_item.id() {
             // Toggle window animations globally.
             let _ =
