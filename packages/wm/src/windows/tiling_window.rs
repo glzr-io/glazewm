@@ -96,10 +96,6 @@ impl TilingWindow {
     Self(Rc::new(RefCell::new(window)))
   }
 
-  pub fn inner_gap(&self) -> LengthValue {
-    self.0.borrow().inner_gap.clone()
-  }
-
   pub fn to_non_tiling(
     &self,
     state: WindowState,

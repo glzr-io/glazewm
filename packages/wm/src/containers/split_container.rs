@@ -82,10 +82,6 @@ impl SplitContainer {
     Self(Rc::new(RefCell::new(split)))
   }
 
-  pub fn inner_gap(&self) -> LengthValue {
-    self.0.borrow().inner_gap.clone()
-  }
-
   pub fn to_dto(&self) -> anyhow::Result<SplitContainerDto> {
     let children = self
       .children()

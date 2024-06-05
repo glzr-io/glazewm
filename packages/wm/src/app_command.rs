@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 use crate::{
   common::{
-    commands::shell_exec, Direction, LengthValue, ResizeDimension,
+    commands::{reload_config, shell_exec},
+    Direction, LengthValue, ResizeDimension,
   },
   containers::{
     commands::{focus_in_direction, toggle_tiling_direction},
@@ -480,7 +481,7 @@ impl InvokeCommand {
         state.add_container_to_redraw(root_container.into());
         Ok(())
       }
-      InvokeCommand::WmReloadConfig => todo!(),
+      InvokeCommand::WmReloadConfig => reload_config(state, config),
       InvokeCommand::WmToggleFocusState => todo!(),
     }
   }

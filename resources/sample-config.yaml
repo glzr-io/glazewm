@@ -164,6 +164,10 @@ keybindings:
   - commands: ['wm-reload-config']
     bindings: ['Alt+Shift+R']
 
+  # Redraw all windows.
+  - commands: ['wm-redraw']
+    bindings: ['Alt+Shift+W']
+
   # Launch CMD terminal. Alternatively `shell_exec --command wt` or
   # `shell_exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
   # Terminal and Git Bash respectively.

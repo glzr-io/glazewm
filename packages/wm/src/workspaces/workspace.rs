@@ -84,6 +84,11 @@ impl Workspace {
     self.0.borrow().config.clone()
   }
 
+  /// Update the underlying config for the workspace.
+  pub fn set_config(&self, config: WorkspaceConfig) -> () {
+    self.0.borrow_mut().config = config;
+  }
+
   /// Whether the workspace is currently displayed by the parent monitor.
   pub fn is_displayed(&self) -> bool {
     self

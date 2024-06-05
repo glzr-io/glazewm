@@ -18,20 +18,42 @@ const SAMPLE_CONFIG: &str =
 pub struct UserConfig {
   pub changes_rx: mpsc::UnboundedReceiver<()>,
   pub changes_tx: mpsc::UnboundedSender<()>,
-  pub config_path: PathBuf,
+  pub path: PathBuf,
   pub value: ParsedConfig,
+  pub value_str: String,
 }
 
 impl UserConfig {
-  /// Read and validate the user config from the given path.
-  pub async fn read(config_path: Option<PathBuf>) -> Result<Self> {
+  /// Creates an instance of `UserConfig`. Reads and validates the user
+  /// config from the given path.
+  ///
+  /// Creates a new config file from sample if it doesn't exist.
+  pub async fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
+    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
+
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
     let config_path = config_path.unwrap_or(default_config_path);
 
-    // Create new config file from sample if it doesn't exist.
+    let (value, value_str) = Self::read(&config_path).await?;
+
+    Ok(Self {
+      changes_rx,
+      changes_tx,
+      path: config_path,
+      value,
+      value_str,
+    })
+  }
+
+  /// Reads and validates the user config from the given path.
+  ///
+  /// Creates a new config file from sample if it doesn't exist.
+  async fn read(
+    config_path: &PathBuf,
+  ) -> anyhow::Result<(ParsedConfig, String)> {
     if !config_path.exists() {
       Self::create_sample(config_path.clone()).await?;
     }
@@ -42,19 +64,12 @@ impl UserConfig {
 
     // TODO: Improve error formatting of serde_yaml errors. Something
     // similar to https://github.com/AlexanderThaller/format_serde_error
-    let parsed_config = serde_yaml::from_str(&config_str)?;
+    let config_value = serde_yaml::from_str(&config_str)?;
 
-    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
-
-    Ok(Self {
-      changes_rx,
-      changes_tx,
-      config_path,
-      value: parsed_config,
-    })
+    Ok((config_value, config_str))
   }
 
-  /// Initialize a new config file from the sample config resource.
+  /// Initializes a new config file from the sample config resource.
   async fn create_sample(config_path: PathBuf) -> Result<()> {
     let parent_dir =
       config_path.parent().context("Invalid config path.")?;
@@ -72,8 +87,11 @@ impl UserConfig {
     Ok(())
   }
 
-  async fn refresh(&self) -> Result<()> {
-    // TODO
+  pub async fn reload(&mut self) -> anyhow::Result<()> {
+    let (value, value_str) = Self::read(&self.path).await?;
+    self.value = value;
+    self.value_str = value_str;
+
     Ok(())
   }
 

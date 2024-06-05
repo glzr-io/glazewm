@@ -76,7 +76,7 @@ async fn start_wm(
   let _single_instance = Platform::new_single_instance()?;
 
   // Parse and validate user config.
-  let mut config = UserConfig::read(config_path).await?;
+  let mut config = UserConfig::new(config_path).await?;
 
   // Start watcher process for restoring hidden windows on crash.
   start_watcher_process()?;
