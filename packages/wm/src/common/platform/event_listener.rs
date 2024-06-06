@@ -1,4 +1,3 @@
-use anyhow::Result;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::{
@@ -6,7 +5,7 @@ use crate::{
   user_config::{BindingModeConfig, KeybindingConfig, UserConfig},
 };
 
-use super::{EventWindow, EventWindowOptions, NativeWindow};
+use super::{EventWindow, NativeWindow};
 
 #[derive(Debug)]
 pub enum PlatformEvent {
@@ -44,16 +43,14 @@ impl EventListener {
   /// Initializes listener for platform events.
   ///
   /// Returns an instance of `EventListener`.
-  pub fn start(config: &UserConfig) -> Result<Self> {
+  pub fn start(config: &UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let event_window = EventWindow::new(
       event_tx,
-      EventWindowOptions {
-        keybindings: config.value.keybindings.clone(),
-        enable_mouse_events: config.value.general.focus_follows_cursor,
-      },
-    );
+      config.value.keybindings.clone(),
+      config.value.general.focus_follows_cursor,
+    )?;
 
     Ok(Self {
       event_rx,
