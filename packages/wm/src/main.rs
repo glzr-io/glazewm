@@ -122,21 +122,17 @@ async fn start_wm(
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);
 
-        // Update event listener when user config changes.
+        // Update event listener when keyboard or mouse listener needs to
+        // be changed.
         if matches!(
           wm_event,
           WmEvent::UserConfigChanged { .. }
             | WmEvent::BindingModesChanged { .. }
         ) {
-          let binding_modes = config
-            .value
-            .binding_modes
-            .iter()
-            .filter(|config| wm.state.binding_modes.contains(&config.name))
-            .cloned()
-            .collect::<Vec<_>>();
-
-          event_listener.update(&config, &binding_modes);
+          event_listener.update(
+            &config,
+            &config.binding_mode_configs(&wm.state.binding_modes),
+          );
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {

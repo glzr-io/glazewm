@@ -66,7 +66,7 @@ impl EventListener {
   pub fn update(
     &mut self,
     config: &UserConfig,
-    binding_modes: &Vec<BindingModeConfig>,
+    binding_modes: &Vec<&BindingModeConfig>,
   ) {
     // TODO: Modify keybindings based on active binding modes.
     self
