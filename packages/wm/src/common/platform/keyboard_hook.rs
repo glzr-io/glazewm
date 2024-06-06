@@ -1,4 +1,8 @@
-use std::{cell::OnceCell, collections::HashMap, sync::Arc};
+use std::{
+  cell::OnceCell,
+  collections::HashMap,
+  sync::{Arc, Mutex, OnceLock},
+};
 
 use tokio::sync::mpsc;
 use tracing::warn;
@@ -17,12 +21,10 @@ use crate::user_config::KeybindingConfig;
 
 use super::PlatformEvent;
 
-thread_local! {
-  /// Thread-local for instance of `KeyboardHook`.
-  ///
-  /// For use with hook procedure.
-  static KEYBOARD_HOOK: OnceCell<Arc<KeyboardHook>> = OnceCell::new();
-}
+/// Global instance of `KeyboardHook`.
+///
+/// For use with hook procedure.
+static KEYBOARD_HOOK: OnceLock<Arc<KeyboardHook>> = OnceLock::new();
 
 /// Available modifier keys.
 const MODIFIER_KEYS: [u16; 6] = [
@@ -52,33 +54,35 @@ pub struct KeyboardHook {
 }
 
 impl KeyboardHook {
-  /// Starts a keyboard hook on the current thread.
-  ///
-  /// Assumes that a message loop is currently running.
-  pub fn start(
+  pub fn new(
     keybindings: Vec<KeybindingConfig>,
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> anyhow::Result<Arc<Self>> {
-    // Register the low-level keyboard hook.
-    let hook = unsafe {
-      SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)?
-    };
-
-    let keyboard_hook = Arc::new(Self {
+  ) -> Arc<Self> {
+    Arc::new(Self {
       event_tx,
-      hook,
+      hook: HHOOK::default(),
       keybindings_by_trigger_key: Self::keybindings_by_trigger_key(
         keybindings,
       ),
-    });
+    })
+  }
 
-    KEYBOARD_HOOK
-      .with(|cell| cell.set(keyboard_hook.clone()))
-      .map_err(|_| {
-        anyhow::anyhow!("Keyboard hook already started on current thread.")
-      })?;
+  /// Starts a keyboard hook on the current thread.
+  ///
+  /// Assumes that a message loop is currently running.
+  pub fn start(self: &Arc<Self>) -> anyhow::Result<()> {
+    // Register the low-level keyboard hook.
+    let hook = unsafe {
+      SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)
+    }?;
 
-    Ok(keyboard_hook)
+    // self.hook = hook;
+
+    KEYBOARD_HOOK.set(self.clone()).map_err(|_| {
+      anyhow::anyhow!("Keyboard hook already started on current thread.")
+    })?;
+
+    Ok(())
   }
 
   pub fn update(&mut self, keybindings: Vec<KeybindingConfig>) {
@@ -355,7 +359,7 @@ impl KeyboardHook {
             !longest_keybinding.vk_codes.contains(&modifier_key)
               && !longest_keybinding
                 .vk_codes
-                .contains(&Self::get_generic_key(modifier_key))
+                .contains(&Self::generic_key(modifier_key))
           });
 
         // Check if any modifier keys to reject are currently down.
@@ -385,7 +389,7 @@ impl KeyboardHook {
   }
 
   /// Gets the generic key code for a given key code.
-  fn get_generic_key(key: u16) -> u16 {
+  fn generic_key(key: u16) -> u16 {
     match VIRTUAL_KEY(key) {
       VK_LMENU | VK_RMENU => VK_MENU.0,
       VK_LSHIFT | VK_RSHIFT => VK_SHIFT.0,
@@ -394,7 +398,7 @@ impl KeyboardHook {
     }
   }
 
-  /// Checks if the specified key is currently down.
+  /// Gets whether the specified key is currently down.
   fn is_key_down(key: u16) -> bool {
     match VIRTUAL_KEY(key) {
       VK_MENU => {
@@ -413,7 +417,8 @@ impl KeyboardHook {
     }
   }
 
-  /// Checks if the specified key is currently down using the raw key code.
+  /// Gets whether the specified key is currently down using the raw key
+  /// code.
   fn is_key_down_raw(key: u16) -> bool {
     unsafe { (GetKeyState(key.into()) & 0x80) == 0x80 }
   }
@@ -444,15 +449,13 @@ extern "system" fn keyboard_hook_proc(
   // Get struct with keyboard input event.
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
-  KEYBOARD_HOOK.with(|hook| {
-    if let Some(hook) = hook.get() {
-      let should_block = hook.handle_key_event(input.vkCode as u16);
+  if let Some(hook) = KEYBOARD_HOOK.get() {
+    let should_block = hook.handle_key_event(input.vkCode as u16);
 
-      if should_block {
-        return LRESULT(1);
-      }
+    if should_block {
+      return LRESULT(1);
     }
+  }
 
-    return unsafe { CallNextHookEx(None, code, wparam, lparam) };
-  })
+  unsafe { CallNextHookEx(None, code, wparam, lparam) }
 }

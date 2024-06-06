@@ -41,6 +41,9 @@ impl EventWindow {
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
     options: EventWindowOptions,
   ) -> Self {
+    let keyboard_hook =
+      KeyboardHook::new(options.keybindings, event_tx.clone());
+
     let window_thread = thread::spawn(move || {
       // Initialize the thread-local sender for platform events.
       PLATFORM_EVENT_TX
@@ -50,7 +53,7 @@ impl EventWindow {
         })?;
 
       // Start hooks for listening to platform events.
-      KeyboardHook::start(options.keybindings, event_tx.clone())?;
+      keyboard_hook.start()?;
       WinEventHook::start(event_tx.clone())?;
       MouseHook::start(options.enable_mouse_events, event_tx)?;
 

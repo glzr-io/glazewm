@@ -15,8 +15,10 @@ pub fn reload_config(
   info!("Config reloaded.");
 
   // Re-evaluate user config file and set its values in state.
-  let handle = tokio::runtime::Handle::current();
-  handle.block_on(config.reload())?;
+  tokio::task::block_in_place(|| {
+    let rt = tokio::runtime::Handle::current();
+    rt.block_on(config.reload())
+  })?;
 
   // TODO: Run window rules on all windows.
 
