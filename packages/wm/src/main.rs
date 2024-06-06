@@ -8,6 +8,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
+use app_command::InvokeCommand;
 use sys_tray::SystemTray;
 use tokio::{process::Command, signal};
 use tracing::{debug, error, info};
@@ -82,7 +83,7 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.config_path)?;
+  let mut tray = SystemTray::new(&config.path)?;
 
   let mut wm = WindowManager::new(&config)?;
 
@@ -118,20 +119,37 @@ async fn start_wm(
           error!("Failed to process IPC message: {:?}", err);
         }
       },
-      Some(_) = config.changes_rx.recv() => {
-        info!("Received user config update: {:?}", config);
-
-        event_listener.update(&config, &Vec::new());
-      },
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);
 
-        if let WmEvent::BindingModesChanged { active_binding_modes } = &wm_event {
-          event_listener.update(&config, active_binding_modes);
+        // Update event listener when user config changes.
+        if matches!(
+          wm_event,
+          WmEvent::UserConfigChanged { .. }
+            | WmEvent::BindingModesChanged { .. }
+        ) {
+          let binding_modes = config
+            .value
+            .binding_modes
+            .iter()
+            .filter(|config| wm.state.binding_modes.contains(&config.name))
+            .cloned()
+            .collect::<Vec<_>>();
+
+          event_listener.update(&config, &binding_modes);
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {
           error!("Failed to emit event over IPC: {:?}", err);
+        }
+      },
+      Some(_) = tray.config_reload_rx.recv() => {
+        if let Err(err) = wm.process_commands(
+          vec![InvokeCommand::WmReloadConfig],
+          None,
+          &mut config,
+        ) {
+          error!("Failed to reload config: {:?}", err);
         }
       },
       Some(_) = tray.exit_rx.recv() => {

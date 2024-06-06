@@ -16,8 +16,6 @@ const SAMPLE_CONFIG: &str =
 
 #[derive(Debug)]
 pub struct UserConfig {
-  pub changes_rx: mpsc::UnboundedReceiver<()>,
-  pub changes_tx: mpsc::UnboundedSender<()>,
   pub path: PathBuf,
   pub value: ParsedConfig,
   pub value_str: String,
@@ -29,22 +27,18 @@ impl UserConfig {
   ///
   /// Creates a new config file from sample if it doesn't exist.
   pub async fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
-    let (changes_tx, changes_rx) = mpsc::unbounded_channel::<()>();
-
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
     let config_path = config_path.unwrap_or(default_config_path);
 
-    let (value, value_str) = Self::read(&config_path).await?;
+    let (config_value, config_str) = Self::read(&config_path).await?;
 
     Ok(Self {
-      changes_rx,
-      changes_tx,
       path: config_path,
-      value,
-      value_str,
+      value: config_value,
+      value_str: config_str,
     })
   }
 
@@ -88,9 +82,9 @@ impl UserConfig {
   }
 
   pub async fn reload(&mut self) -> anyhow::Result<()> {
-    let (value, value_str) = Self::read(&self.path).await?;
-    self.value = value;
-    self.value_str = value_str;
+    let (config_value, config_str) = Self::read(&self.path).await?;
+    self.value = config_value;
+    self.value_str = config_str;
 
     Ok(())
   }

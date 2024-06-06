@@ -62,6 +62,9 @@ pub fn reload_config(
     container.set_inner_gap(config.value.gaps.inner_gap.clone());
   }
 
+  // Clear active binding modes.
+  state.binding_modes = Vec::new();
+
   // Redraw full container tree.
   let root_container = state.root_container.clone();
   state.add_container_to_redraw(root_container.into());
