@@ -1,4 +1,4 @@
-use std::{cell::OnceCell, sync::Arc};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use anyhow::Result;
 use tokio::sync::mpsc;
@@ -20,72 +20,40 @@ use windows::Win32::{
 
 use super::{NativeWindow, PlatformEvent};
 
-thread_local! {
-  /// Thread-local for instance of `WinEventHook`.
-  ///
-  /// For use with hook procedure.
-  static WINDOW_EVENT_HOOK: OnceCell<Arc<WinEventHook>> = OnceCell::new();
-}
+/// Global instance of `WinEventHook`.
+///
+/// For use with hook procedure.
+static WIN_EVENT_HOOK: OnceLock<Arc<WinEventHook>> = OnceLock::new();
 
+#[derive(Debug)]
 pub struct WinEventHook {
   event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  hook_handles: Vec<HWINEVENTHOOK>,
+  hook_handles: Arc<Mutex<Vec<HWINEVENTHOOK>>>,
 }
 
 impl WinEventHook {
+  /// Creates an instance of `WinEventHook`.
+  pub fn new(
+    event_tx: mpsc::UnboundedSender<PlatformEvent>,
+  ) -> anyhow::Result<Arc<Self>> {
+    let win_event_hook = Arc::new(Self {
+      event_tx,
+      hook_handles: Arc::new(Mutex::new(Vec::new())),
+    });
+
+    WIN_EVENT_HOOK.set(win_event_hook.clone()).map_err(|_| {
+      anyhow::anyhow!("Window event hook already running.")
+    })?;
+
+    Ok(win_event_hook)
+  }
+
   /// Starts a window event hook on the current thread.
   ///
   /// Assumes that a message loop is currently running.
-  pub fn start(
-    event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> Result<Arc<Self>> {
-    let hook_handles = Self::hook_win_events()?;
-
-    let window_event_hook = Arc::new(Self {
-      event_tx,
-      hook_handles,
-    });
-
-    WINDOW_EVENT_HOOK
-      .with(|cell| cell.set(window_event_hook.clone()))
-      .map_err(|_| {
-        anyhow::anyhow!(
-          "Window event hook already started on current thread."
-        )
-      })?;
-
-    Ok(window_event_hook)
-  }
-
-  fn handle_event(&self, event_type: u32, handle: isize) {
-    let window = NativeWindow::new(handle);
-
-    let platform_event = match event_type {
-      EVENT_OBJECT_DESTROY => PlatformEvent::WindowDestroyed(window),
-      EVENT_SYSTEM_FOREGROUND => PlatformEvent::WindowFocused(window),
-      EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => {
-        PlatformEvent::WindowHidden(window)
-      }
-      EVENT_OBJECT_LOCATIONCHANGE => {
-        PlatformEvent::WindowLocationChanged(window)
-      }
-      EVENT_SYSTEM_MINIMIZESTART => PlatformEvent::WindowMinimized(window),
-      EVENT_SYSTEM_MINIMIZEEND => {
-        PlatformEvent::WindowMinimizeEnded(window)
-      }
-      EVENT_SYSTEM_MOVESIZEEND => {
-        PlatformEvent::WindowMovedOrResized(window)
-      }
-      EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => {
-        PlatformEvent::WindowShown(window)
-      }
-      EVENT_OBJECT_NAMECHANGE => PlatformEvent::WindowTitleChanged(window),
-      _ => return,
-    };
-
-    if let Err(err) = self.event_tx.send(platform_event) {
-      warn!("Failed to send platform event '{}'.", err);
-    }
+  pub fn start(&self) -> anyhow::Result<()> {
+    *self.hook_handles.lock().unwrap() = Self::hook_win_events()?;
+    Ok(())
   }
 
   /// Creates several window event hooks via `SetWinEventHook`.
@@ -136,19 +104,45 @@ impl WinEventHook {
     }
   }
 
+  /// Invoked by the hook procedure when a window event is received.
+  fn handle_event(&self, event_type: u32, handle: isize) {
+    let window = NativeWindow::new(handle);
+
+    let platform_event = match event_type {
+      EVENT_OBJECT_DESTROY => PlatformEvent::WindowDestroyed(window),
+      EVENT_SYSTEM_FOREGROUND => PlatformEvent::WindowFocused(window),
+      EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => {
+        PlatformEvent::WindowHidden(window)
+      }
+      EVENT_OBJECT_LOCATIONCHANGE => {
+        PlatformEvent::WindowLocationChanged(window)
+      }
+      EVENT_SYSTEM_MINIMIZESTART => PlatformEvent::WindowMinimized(window),
+      EVENT_SYSTEM_MINIMIZEEND => {
+        PlatformEvent::WindowMinimizeEnded(window)
+      }
+      EVENT_SYSTEM_MOVESIZEEND => {
+        PlatformEvent::WindowMovedOrResized(window)
+      }
+      EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => {
+        PlatformEvent::WindowShown(window)
+      }
+      EVENT_OBJECT_NAMECHANGE => PlatformEvent::WindowTitleChanged(window),
+      _ => return,
+    };
+
+    if let Err(err) = self.event_tx.send(platform_event) {
+      warn!("Failed to send platform event '{}'.", err);
+    }
+  }
+
   /// Stops the window event hook and unhooks from all window events.
-  pub fn stop(&mut self) {
-    for hook_handle in self.hook_handles.drain(..) {
+  pub fn stop(&self) {
+    for hook_handle in self.hook_handles.lock().unwrap().drain(..) {
       if let false = unsafe { UnhookWinEvent(hook_handle) }.as_bool() {
         warn!("Failed to unhook window event.");
       }
     }
-  }
-}
-
-impl Drop for WinEventHook {
-  fn drop(&mut self) {
-    self.stop();
   }
 }
 
@@ -174,9 +168,7 @@ extern "system" fn window_event_hook_proc(
     return;
   }
 
-  WINDOW_EVENT_HOOK.with(|hook| {
-    if let Some(hook) = hook.get() {
-      hook.handle_event(event_type, handle.0);
-    }
-  });
+  if let Some(hook) = WIN_EVENT_HOOK.get() {
+    hook.handle_event(event_type, handle.0);
+  }
 }

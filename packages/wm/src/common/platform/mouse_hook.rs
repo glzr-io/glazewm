@@ -1,17 +1,10 @@
-use std::{
-  cell::OnceCell,
-  sync::{
-    atomic::{AtomicBool, AtomicU32, Ordering},
-    Arc,
-  },
+use std::sync::{
+  atomic::{AtomicBool, AtomicU32, Ordering},
+  Arc, Mutex, OnceLock,
 };
 
-use crate::common::Point;
-
-use super::{MouseMoveEvent, PlatformEvent};
-use anyhow::Result;
 use tokio::sync::mpsc;
-use tracing::warn;
+use tracing::{error, warn};
 use windows::Win32::{
   Foundation::{LPARAM, LRESULT, WPARAM},
   UI::WindowsAndMessaging::{
@@ -21,19 +14,22 @@ use windows::Win32::{
   },
 };
 
-thread_local! {
-  /// Thread-local for instance of `MouseHook`.
-  ///
-  /// For use with hook procedure.
-  static MOUSE_HOOK: OnceCell<Arc<MouseHook>> = OnceCell::new();
-}
+use crate::common::Point;
 
+use super::{MouseMoveEvent, PlatformEvent};
+
+/// Global instance of `MouseHook`.
+///
+/// For use with hook procedure.
+static MOUSE_HOOK: OnceLock<Arc<MouseHook>> = OnceLock::new();
+
+#[derive(Debug)]
 pub struct MouseHook {
   /// Sender to emit platform events.
   event_tx: mpsc::UnboundedSender<PlatformEvent>,
 
   /// Handle to the mouse hook.
-  hook: Option<HHOOK>,
+  hook: Arc<Mutex<HHOOK>>,
 
   /// Whether left-click is currently pressed.
   is_l_mouse_down: AtomicBool,
@@ -46,39 +42,34 @@ pub struct MouseHook {
 }
 
 impl MouseHook {
-  /// Starts a mouse hook on the current thread.
-  ///
-  /// Assumes that a message loop is currently running.
-  pub fn start(
-    enabled: bool,
+  /// Creates an instance of `MouseHook`.
+  pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> Result<Arc<MouseHook>> {
-    let hook = match enabled {
-      false => None,
-      true => {
-        let hook = unsafe {
-          SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0)
-        }?;
-
-        Some(hook)
-      }
-    };
-
+  ) -> anyhow::Result<Arc<Self>> {
     let mouse_hook = Arc::new(Self {
       event_tx,
-      hook,
+      hook: Arc::new(Mutex::new(HHOOK::default())),
       is_l_mouse_down: AtomicBool::new(false),
       is_r_mouse_down: AtomicBool::new(false),
       last_event_time: AtomicU32::new(0),
     });
 
     MOUSE_HOOK
-      .with(|cell| cell.set(mouse_hook.clone()))
-      .map_err(|_| {
-        anyhow::anyhow!("Mouse hook already started on current thread.")
-      })?;
+      .set(mouse_hook.clone())
+      .map_err(|_| anyhow::anyhow!("Mouse hook already running."))?;
 
     Ok(mouse_hook)
+  }
+
+  /// Starts a mouse hook on the current thread.
+  ///
+  /// Assumes that a message loop is currently running.
+  pub fn start(&self) -> anyhow::Result<()> {
+    *self.hook.lock().unwrap() = unsafe {
+      SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0)
+    }?;
+
+    Ok(())
   }
 
   fn handle_event(&self, event_type: u32, mouse_event: MSLLHOOKSTRUCT) {
@@ -125,18 +116,12 @@ impl MouseHook {
   }
 
   /// Stops the low-level mouse hook.
-  pub fn stop(&mut self) -> anyhow::Result<()> {
-    if let Some(hook) = self.hook.take() {
-      unsafe { UnhookWindowsHookEx(hook) }?;
+  pub fn stop(&self) {
+    if let Err(err) =
+      unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }
+    {
+      error!("Failed to unhook low-level mouse hook: {}", err);
     }
-
-    Ok(())
-  }
-}
-
-impl Drop for MouseHook {
-  fn drop(&mut self) {
-    let _ = self.stop();
   }
 }
 
@@ -152,11 +137,9 @@ extern "system" fn mouse_hook_proc(
   if code >= 0 {
     let mouse_event = unsafe { *(lparam.0 as *const MSLLHOOKSTRUCT) };
 
-    MOUSE_HOOK.with(|hook| {
-      if let Some(hook) = hook.get() {
-        hook.handle_event(wparam.0 as u32, mouse_event);
-      }
-    });
+    if let Some(hook) = MOUSE_HOOK.get() {
+      hook.handle_event(wparam.0 as u32, mouse_event);
+    }
   }
 
   unsafe { CallNextHookEx(None, code, wparam, lparam) }

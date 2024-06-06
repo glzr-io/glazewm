@@ -66,12 +66,9 @@ impl EventListener {
     binding_modes: &Vec<&BindingModeConfig>,
   ) {
     // TODO: Modify keybindings based on active binding modes.
-    self
-      .event_window
-      .update_keybindings(config.value.keybindings.clone());
-
-    self
-      .event_window
-      .enable_mouse_listener(config.value.general.focus_follows_cursor);
+    self.event_window.update(
+      config.value.keybindings.clone(),
+      config.value.general.focus_follows_cursor,
+    );
   }
 }

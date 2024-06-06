@@ -92,9 +92,13 @@ impl KeyboardHook {
       Self::keybindings_by_trigger_key(keybindings);
   }
 
-  pub fn stop(&self) -> anyhow::Result<()> {
-    unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }?;
-    Ok(())
+  /// Stops the low-level keyboard hook.
+  pub fn stop(&self) {
+    if let Err(err) =
+      unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }
+    {
+      error!("Failed to unhook low-level keyboard hook: {}", err);
+    }
   }
 
   fn keybindings_by_trigger_key(
@@ -428,14 +432,6 @@ impl KeyboardHook {
   /// code.
   fn is_key_down_raw(key: u16) -> bool {
     unsafe { (GetKeyState(key.into()) & 0x80) == 0x80 }
-  }
-}
-
-impl Drop for KeyboardHook {
-  fn drop(&mut self) {
-    if let Err(err) = self.stop() {
-      error!("Failed to gracefully shut down keyboard hook: {}", err);
-    }
   }
 }
 

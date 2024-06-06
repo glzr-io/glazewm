@@ -1,5 +1,5 @@
 use std::{
-  sync::{Arc, Mutex, OnceLock},
+  sync::{Arc, OnceLock},
   thread::{self, JoinHandle},
 };
 
@@ -28,8 +28,10 @@ static PLATFORM_EVENT_TX: OnceLock<mpsc::UnboundedSender<PlatformEvent>> =
 
 #[derive(Debug)]
 pub struct EventWindow {
-  window_thread: Option<JoinHandle<anyhow::Result<()>>>,
   keyboard_hook: Arc<KeyboardHook>,
+  mouse_hook: Arc<MouseHook>,
+  win_event_hook: Arc<WinEventHook>,
+  window_thread: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl EventWindow {
@@ -44,8 +46,12 @@ impl EventWindow {
     enable_mouse_events: bool,
   ) -> anyhow::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
+    let mouse_hook = MouseHook::new(event_tx.clone())?;
+    let win_event_hook = WinEventHook::new(event_tx.clone())?;
 
     let keyboard_hook_clone = keyboard_hook.clone();
+    let mouse_hook_clone = mouse_hook.clone();
+    let win_event_hook_clone = win_event_hook.clone();
 
     let window_thread = thread::spawn(move || {
       // Add the sender for platform events to global state.
@@ -55,8 +61,11 @@ impl EventWindow {
 
       // Start hooks for listening to platform events.
       keyboard_hook_clone.start()?;
-      WinEventHook::start(event_tx.clone())?;
-      MouseHook::start(enable_mouse_events, event_tx)?;
+      win_event_hook_clone.start()?;
+
+      if enable_mouse_events {
+        mouse_hook_clone.start()?;
+      }
 
       // Create a hidden window with a message loop on the current thread.
       let handle =
@@ -70,26 +79,31 @@ impl EventWindow {
 
     Ok(Self {
       keyboard_hook,
+      mouse_hook,
+      win_event_hook,
       window_thread: Some(window_thread),
     })
   }
 
-  pub fn update_keybindings(
+  pub fn update(
     &mut self,
     keybindings: Vec<KeybindingConfig>,
+    enable_mouse_events: bool,
   ) {
     self.keyboard_hook.update(keybindings);
-  }
-
-  pub fn enable_mouse_listener(&mut self, is_enabled: bool) {
-    // TODO
+    match enable_mouse_events {
+      true => _ = self.mouse_hook.start(),
+      false => self.mouse_hook.stop(),
+    }
   }
 
   /// Destroys the event window and stops the message loop.
   pub fn destroy(&mut self) -> anyhow::Result<()> {
     info!("Shutting down event window.");
 
-    let _ = self.keyboard_hook.stop();
+    self.keyboard_hook.stop();
+    self.mouse_hook.stop();
+    self.win_event_hook.stop();
 
     // Wait for the spawned thread to finish.
     if let Some(window_thread) = self.window_thread.take() {
