@@ -9,7 +9,6 @@ use super::{EventWindow, NativeWindow};
 
 #[derive(Debug)]
 pub enum PlatformEvent {
-  PowerModeChanged,
   DisplaySettingsChanged,
   KeybindingTriggered(KeybindingConfig),
   MouseMove(MouseMoveEvent),

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use tokio::{fs, sync::mpsc};
+use tokio::fs;
 
 use crate::{
   app_command::InvokeCommand,

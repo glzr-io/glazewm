@@ -25,13 +25,6 @@ impl LengthValue {
     }
   }
 
-  pub fn new_percent(amount: f32) -> Self {
-    Self {
-      amount,
-      unit: LengthUnit::Percentage,
-    }
-  }
-
   pub fn to_pixels(&self, total: i32) -> i32 {
     match self.unit {
       LengthUnit::Pixel => self.amount as i32,

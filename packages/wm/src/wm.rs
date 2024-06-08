@@ -45,7 +45,6 @@ impl WindowManager {
     let state = &mut self.state;
 
     match event {
-      PlatformEvent::PowerModeChanged => Ok(()),
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
       }

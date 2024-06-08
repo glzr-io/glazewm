@@ -1,12 +1,14 @@
+use anyhow::Context;
 use tracing::info;
 
 use crate::{
   common::{platform::NativeWindow, DisplayState},
-  containers::commands::set_focused_descendant,
+  containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::UserConfig,
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
+  workspaces::commands::{focus_workspace, FocusWorkspaceTarget},
 };
 
 pub fn handle_window_focused(
@@ -52,8 +54,13 @@ pub fn handle_window_focused(
     if window.clone().display_state() == DisplayState::Hidden {
       // TODO: Log window details.
       info!("Focusing off-screen window.");
-      // TODO: Focus the workspace of the hidden window.
-      return Ok(());
+
+      let workspace = window.workspace().context("No workspace")?;
+      focus_workspace(
+        FocusWorkspaceTarget::Name(workspace.config().name),
+        state,
+        config,
+      )?;
     }
 
     // Update the WM's focus state.

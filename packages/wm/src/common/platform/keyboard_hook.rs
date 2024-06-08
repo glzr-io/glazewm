@@ -4,7 +4,7 @@ use std::{
 };
 
 use tokio::sync::mpsc;
-use tracing::{error, warn};
+use tracing::warn;
 use windows::Win32::{
   Foundation::{LPARAM, LRESULT, WPARAM},
   UI::{
