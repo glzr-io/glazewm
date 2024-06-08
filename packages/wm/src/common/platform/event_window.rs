@@ -11,8 +11,7 @@ use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 use windows::Win32::{
   Devices::HumanInterfaceDevice::{
-    HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC, MOUSE_MOVE_ABSOLUTE,
-    MOUSE_MOVE_RELATIVE,
+    HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC,
   },
   Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM},
   UI::{
@@ -230,18 +229,6 @@ fn handle_input_msg(
   lparam: LPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
 ) -> anyhow::Result<()> {
-  let event_time = SystemTime::now()
-    .duration_since(SystemTime::UNIX_EPOCH)
-    .map(|dur| dur.as_millis() as u64)?;
-
-  let last_event_time = LAST_MOUSE_EVENT_TIME.load(Ordering::Relaxed);
-
-  // Throttle events so that there's a minimum of 50ms between each
-  // emission.
-  if event_time - last_event_time < 50 {
-    return Ok(());
-  }
-
   let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
   let mut raw_input_size = std::mem::size_of::<RAWINPUT>() as u32;
 
@@ -264,54 +251,62 @@ fn handle_input_msg(
   }
 
   let mouse_input = unsafe { raw_input.data.mouse };
-  let state_flags = mouse_input.usFlags;
   let button_flags =
     unsafe { mouse_input.Anonymous.Anonymous.usButtonFlags };
 
-  if has_flags(button_flags, RI_MOUSE_LEFT_BUTTON_DOWN) {
-    IS_L_MOUSE_DOWN.store(true, Ordering::Relaxed);
+  let has_state_change = match button_flags {
+    flags if has_mouse_flag(flags, RI_MOUSE_LEFT_BUTTON_DOWN) => {
+      IS_L_MOUSE_DOWN.store(true, Ordering::Relaxed);
+      true
+    }
+    flags if has_mouse_flag(flags, RI_MOUSE_LEFT_BUTTON_UP) => {
+      IS_L_MOUSE_DOWN.store(false, Ordering::Relaxed);
+      true
+    }
+    flags if has_mouse_flag(flags, RI_MOUSE_RIGHT_BUTTON_DOWN) => {
+      IS_R_MOUSE_DOWN.store(true, Ordering::Relaxed);
+      true
+    }
+    flags if has_mouse_flag(flags, RI_MOUSE_RIGHT_BUTTON_UP) => {
+      IS_R_MOUSE_DOWN.store(false, Ordering::Relaxed);
+      true
+    }
+    _ => false,
+  };
+
+  let event_time = SystemTime::now()
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .map(|dur| dur.as_millis() as u64)?;
+
+  let last_event_time = LAST_MOUSE_EVENT_TIME.load(Ordering::Relaxed);
+
+  // Throttle events so that there's a minimum of 50ms between each
+  // emission. Always emit if there's a state change.
+  if !has_state_change && event_time - last_event_time < 50 {
+    return Ok(());
   }
 
-  if has_flags(button_flags, RI_MOUSE_LEFT_BUTTON_UP) {
-    IS_L_MOUSE_DOWN.store(false, Ordering::Relaxed);
-  }
+  let is_mouse_down = IS_L_MOUSE_DOWN.load(Ordering::Relaxed)
+    || IS_R_MOUSE_DOWN.load(Ordering::Relaxed);
 
-  if has_flags(button_flags, RI_MOUSE_RIGHT_BUTTON_DOWN) {
-    IS_R_MOUSE_DOWN.store(true, Ordering::Relaxed);
-  }
+  let mut point = POINT { x: 0, y: 0 };
+  unsafe { GetCursorPos(&mut point) }?;
 
-  if has_flags(button_flags, RI_MOUSE_RIGHT_BUTTON_UP) {
-    IS_R_MOUSE_DOWN.store(false, Ordering::Relaxed);
-  }
+  event_tx.send(PlatformEvent::MouseMove(MouseMoveEvent {
+    point: Point {
+      x: point.x,
+      y: point.y,
+    },
+    is_mouse_down,
+  }))?;
 
-  // Emit even if a mouse move has occured.
-  if has_flags(state_flags, MOUSE_MOVE_RELATIVE)
-    || has_flags(state_flags, MOUSE_MOVE_ABSOLUTE)
-  {
-    let is_mouse_down = IS_L_MOUSE_DOWN.load(Ordering::Relaxed)
-      || IS_R_MOUSE_DOWN.load(Ordering::Relaxed);
-
-    let mut point = POINT { x: 0, y: 0 };
-    unsafe { GetCursorPos(&mut point) }?;
-
-    let event = MouseMoveEvent {
-      point: Point {
-        x: point.x,
-        y: point.y,
-      },
-      is_mouse_down,
-    };
-
-    event_tx.send(PlatformEvent::MouseMove(event))?;
-
-    LAST_MOUSE_EVENT_TIME.store(event_time, Ordering::Relaxed);
-  }
+  LAST_MOUSE_EVENT_TIME.store(event_time, Ordering::Relaxed);
 
   Ok(())
 }
 
-/// Checks whether `short` contains all the bits of `mask`.
+/// Checks whether `state` contains all the bits of `mask`.
 #[inline]
-fn has_flags(short: u16, mask: u32) -> bool {
-  short & mask as u16 == mask as u16
+fn has_mouse_flag(state: u16, mask: u32) -> bool {
+  state as u32 & mask == mask
 }

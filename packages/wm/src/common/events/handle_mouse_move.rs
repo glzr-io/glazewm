@@ -8,18 +8,19 @@ use crate::{
 };
 
 pub fn handle_mouse_move(
-  mouse_move_event: MouseMoveEvent,
+  event: MouseMoveEvent,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if !config.value.general.focus_follows_cursor {
+  // Ignore event if left/right-click is down. Otherwise, this causes focus
+  // to jitter when a window is being resized by its drag handles.
+  if event.is_mouse_down || !config.value.general.focus_follows_cursor {
     return Ok(());
   }
 
-  let window_under_cursor =
-    Platform::window_from_point(&mouse_move_event.point)
-      .and_then(|window| Platform::root_ancestor(&window))
-      .map(|root| state.window_from_native(&root))?;
+  let window_under_cursor = Platform::window_from_point(&event.point)
+    .and_then(|window| Platform::root_ancestor(&window))
+    .map(|root| state.window_from_native(&root))?;
 
   // Set focus to whichever window is currently under the cursor.
   if let Some(window) = window_under_cursor {
