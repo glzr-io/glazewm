@@ -8,7 +8,9 @@ use uuid::Uuid;
 
 use crate::{
   common::{
-    commands::{reload_config, shell_exec},
+    commands::{
+      disable_binding_mode, enable_binding_mode, reload_config, shell_exec,
+    },
     Direction, LengthValue, ResizeDimension,
   },
   containers::{
@@ -473,8 +475,13 @@ impl InvokeCommand {
       InvokeCommand::ToggleTilingDirection => {
         toggle_tiling_direction(subject_container, state, config)
       }
-      InvokeCommand::WmDisableBindingMode { name } => todo!(),
-      InvokeCommand::WmEnableBindingMode { name } => todo!(),
+      InvokeCommand::WmDisableBindingMode { name } => {
+        disable_binding_mode(name, state);
+        Ok(())
+      }
+      InvokeCommand::WmEnableBindingMode { name } => {
+        enable_binding_mode(name, state, config)
+      }
       InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();

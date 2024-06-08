@@ -17,7 +17,7 @@ use crate::{
     Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
-  user_config::UserConfig,
+  user_config::{BindingModeConfig, UserConfig},
   windows::{commands::manage_window, traits::WindowGetters, WindowState},
   wm_event::WmEvent,
   workspaces::Workspace,
@@ -48,8 +48,8 @@ pub struct WmState {
   /// Used to decide whether to override incoming focus events.
   pub unmanaged_or_minimized_timestamp: Option<Instant>,
 
-  /// Names of any currently enabled binding modes.
-  pub binding_modes: Vec<String>,
+  /// Configs of currently enabled binding modes.
+  pub binding_modes: Vec<BindingModeConfig>,
 
   /// Sender for emitting WM-related events.
   event_tx: mpsc::UnboundedSender<WmEvent>,

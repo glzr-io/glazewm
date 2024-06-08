@@ -47,7 +47,7 @@ impl EventListener {
 
     let event_window = EventWindow::new(
       event_tx,
-      config.value.keybindings.clone(),
+      &config.value.keybindings,
       config.value.general.focus_follows_cursor,
     )?;
 
@@ -62,12 +62,16 @@ impl EventListener {
   pub fn update(
     &mut self,
     config: &UserConfig,
-    binding_modes: &Vec<&BindingModeConfig>,
+    binding_modes: &Vec<BindingModeConfig>,
   ) {
-    // TODO: Modify keybindings based on active binding modes.
-    self.event_window.update(
-      config.value.keybindings.clone(),
-      config.value.general.focus_follows_cursor,
-    );
+    // Modify keybindings based on active binding modes.
+    let keybindings = match binding_modes.first() {
+      Some(binding_mode) => &binding_mode.keybindings,
+      None => &config.value.keybindings,
+    };
+
+    self
+      .event_window
+      .update(keybindings, config.value.general.focus_follows_cursor);
   }
 }

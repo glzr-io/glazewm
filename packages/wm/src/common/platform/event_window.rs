@@ -76,7 +76,7 @@ impl EventWindow {
   /// ever be instantiated once in the application's lifetime.
   pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-    keybindings: Vec<KeybindingConfig>,
+    keybindings: &Vec<KeybindingConfig>,
     enable_mouse_events: bool,
   ) -> anyhow::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
@@ -132,7 +132,7 @@ impl EventWindow {
 
   pub fn update(
     &mut self,
-    keybindings: Vec<KeybindingConfig>,
+    keybindings: &Vec<KeybindingConfig>,
     enable_mouse_events: bool,
   ) {
     self.keyboard_hook.update(keybindings);

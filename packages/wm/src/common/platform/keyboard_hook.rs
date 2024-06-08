@@ -58,7 +58,7 @@ pub struct KeyboardHook {
 impl KeyboardHook {
   /// Creates an instance of `KeyboardHook`.
   pub fn new(
-    keybindings: Vec<KeybindingConfig>,
+    keybindings: &Vec<KeybindingConfig>,
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
   ) -> anyhow::Result<Arc<Self>> {
     let keyboard_hook = Arc::new(Self {
@@ -87,7 +87,7 @@ impl KeyboardHook {
     Ok(())
   }
 
-  pub fn update(&self, keybindings: Vec<KeybindingConfig>) {
+  pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
     *self.keybindings_by_trigger_key.lock().unwrap() =
       Self::keybindings_by_trigger_key(keybindings);
   }
@@ -99,11 +99,11 @@ impl KeyboardHook {
   }
 
   fn keybindings_by_trigger_key(
-    keybindings: Vec<KeybindingConfig>,
+    keybindings: &Vec<KeybindingConfig>,
   ) -> HashMap<u16, Vec<ActiveKeybinding>> {
     let mut keybinding_map = HashMap::new();
 
-    for keybinding in &keybindings {
+    for keybinding in keybindings {
       for binding in &keybinding.bindings {
         let vk_codes = binding
           .split("+")

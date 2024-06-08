@@ -17,7 +17,7 @@ use crate::{
   app_command::{AppCommand, QueryCommand, SubscribableEvent},
   containers::{Container, WindowContainer},
   monitors::Monitor,
-  user_config::UserConfig,
+  user_config::{BindingModeConfig, UserConfig},
   wm::WindowManager,
   wm_event::WmEvent,
   workspaces::Workspace,
@@ -44,7 +44,7 @@ pub struct ClientResponseMessage {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
-  BindingModes(Vec<String>),
+  BindingModes(Vec<BindingModeConfig>),
   Command(CommandData),
   EventSubscribe(EventSubscribeData),
   EventUnsubscribe,

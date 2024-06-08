@@ -131,7 +131,7 @@ async fn start_wm(
         ) {
           event_listener.update(
             &config,
-            &config.binding_mode_configs(&wm.state.binding_modes),
+            &wm.state.binding_modes,
           );
         }
 

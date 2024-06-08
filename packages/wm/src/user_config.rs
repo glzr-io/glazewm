@@ -134,19 +134,6 @@ impl UserConfig {
       .or(inactive_configs.first())
       .cloned()
   }
-
-  /// Gets the binding mode configs with the given names.
-  pub fn binding_mode_configs(
-    &self,
-    names: &Vec<String>,
-  ) -> Vec<&BindingModeConfig> {
-    self
-      .value
-      .binding_modes
-      .iter()
-      .filter(|config| names.contains(&config.name))
-      .collect()
-  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
