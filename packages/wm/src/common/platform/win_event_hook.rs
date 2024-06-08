@@ -137,12 +137,12 @@ impl WinEventHook {
   }
 
   /// Stops the window event hook and unhooks from all window events.
-  pub fn stop(&self) {
+  pub fn stop(&self) -> anyhow::Result<()> {
     for hook_handle in self.hook_handles.lock().unwrap().drain(..) {
-      if let false = unsafe { UnhookWinEvent(hook_handle) }.as_bool() {
-        warn!("Failed to unhook window event.");
-      }
+      unsafe { UnhookWinEvent(hook_handle) }.ok()?;
     }
+
+    Ok(())
   }
 }
 

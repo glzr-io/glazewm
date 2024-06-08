@@ -120,7 +120,7 @@ impl Platform {
   }
 
   // Gets the root window of the specified window.
-  pub fn get_root_ancestor(
+  pub fn root_ancestor(
     window: &NativeWindow,
   ) -> anyhow::Result<NativeWindow> {
     let handle = unsafe { GetAncestor(HWND(window.handle), GA_ROOT) };

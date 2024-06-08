@@ -1,10 +1,10 @@
 use std::{
-  ops::BitAnd,
   sync::{
-    atomic::{AtomicBool, AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, OnceLock,
   },
   thread::{self, JoinHandle},
+  time::SystemTime,
 };
 
 use tokio::sync::mpsc;
@@ -18,16 +18,15 @@ use windows::Win32::{
   UI::{
     Input::{
       GetRawInputData, RegisterRawInputDevices, HRAWINPUT, RAWINPUT,
-      RAWINPUTDEVICE, RAWINPUTHEADER, RIDEV_INPUTSINK,
-      RID_DEVICE_INFO_TYPE, RID_INPUT, RIM_TYPEMOUSE,
+      RAWINPUTDEVICE, RAWINPUTHEADER, RIDEV_INPUTSINK, RID_INPUT,
+      RIM_TYPEMOUSE,
     },
     WindowsAndMessaging::{
-      DefWindowProcW, DestroyWindow, GetCursorPos, PostQuitMessage,
-      DBT_DEVNODES_CHANGED, RI_MOUSE_LEFT_BUTTON_DOWN,
-      RI_MOUSE_LEFT_BUTTON_UP, RI_MOUSE_RIGHT_BUTTON_DOWN,
-      RI_MOUSE_RIGHT_BUTTON_UP, SPI_ICONVERTICALSPACING, SPI_SETWORKAREA,
-      WM_DESTROY, WM_DEVICECHANGE, WM_DISPLAYCHANGE, WM_INPUT,
-      WM_POWERBROADCAST, WM_SETTINGCHANGE,
+      DefWindowProcW, DestroyWindow, GetCursorPos, DBT_DEVNODES_CHANGED,
+      RI_MOUSE_LEFT_BUTTON_DOWN, RI_MOUSE_LEFT_BUTTON_UP,
+      RI_MOUSE_RIGHT_BUTTON_DOWN, RI_MOUSE_RIGHT_BUTTON_UP,
+      SPI_ICONVERTICALSPACING, SPI_SETWORKAREA, WM_DEVICECHANGE,
+      WM_DISPLAYCHANGE, WM_INPUT, WM_SETTINGCHANGE,
     },
   },
 };
@@ -35,8 +34,7 @@ use windows::Win32::{
 use crate::{common::Point, user_config::KeybindingConfig};
 
 use super::{
-  KeyboardHook, MouseHook, MouseMoveEvent, Platform, PlatformEvent,
-  WinEventHook,
+  KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WinEventHook,
 };
 
 /// Global instance of sender for platform events.
@@ -48,7 +46,7 @@ static PLATFORM_EVENT_TX: OnceLock<mpsc::UnboundedSender<PlatformEvent>> =
 /// Whether mouse hook is currently enabled.
 ///
 /// For use with window procedure.
-static IS_MOUSE_HOOK_ENABLED: AtomicBool = AtomicBool::new(false);
+static ENABLE_MOUSE_EVENTS: AtomicBool = AtomicBool::new(false);
 
 /// Whether left-click is currently pressed.
 ///
@@ -60,16 +58,14 @@ static IS_L_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 /// For use with window procedure.
 static IS_R_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 
-/// Timestamp of the last event emission.
+/// Timestamp of the last mouse event emission.
 ///
 /// For use with window procedure.
-static LAST_MOUSE_EVENT_TIME: AtomicU32 = AtomicU32::new(0);
+static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
 pub struct EventWindow {
   keyboard_hook: Arc<KeyboardHook>,
-  mouse_hook: Arc<MouseHook>,
-  win_event_hook: Arc<WinEventHook>,
   window_thread: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
@@ -85,23 +81,20 @@ impl EventWindow {
     enable_mouse_events: bool,
   ) -> anyhow::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
-    let mouse_hook = MouseHook::new(event_tx.clone())?;
     let win_event_hook = WinEventHook::new(event_tx.clone())?;
-
     let keyboard_hook_clone = keyboard_hook.clone();
-    let win_event_hook_clone = win_event_hook.clone();
+
+    // Add the sender for platform events to global state.
+    PLATFORM_EVENT_TX.set(event_tx.clone()).map_err(|_| {
+      anyhow::anyhow!("Platform event sender already set.")
+    })?;
+
+    ENABLE_MOUSE_EVENTS.store(enable_mouse_events, Ordering::Relaxed);
 
     let window_thread = thread::spawn(move || {
-      // Add the sender for platform events to global state.
-      PLATFORM_EVENT_TX.set(event_tx.clone()).map_err(|_| {
-        anyhow::anyhow!("Platform event sender already set.")
-      })?;
-
-      IS_MOUSE_HOOK_ENABLED.store(enable_mouse_events, Ordering::Relaxed);
-
       // Start hooks for listening to platform events.
       keyboard_hook_clone.start()?;
-      win_event_hook_clone.start()?;
+      win_event_hook.start()?;
 
       // Create a hidden window with a message loop on the current thread.
       let handle =
@@ -123,15 +116,17 @@ impl EventWindow {
       }?;
 
       Platform::run_message_loop();
+
+      // Clean-up on message loop exit.
       unsafe { DestroyWindow(HWND(handle)) }?;
+      keyboard_hook_clone.stop()?;
+      win_event_hook.stop()?;
 
       Ok(())
     });
 
     Ok(Self {
       keyboard_hook,
-      mouse_hook,
-      win_event_hook,
       window_thread: Some(window_thread),
     })
   }
@@ -142,19 +137,12 @@ impl EventWindow {
     enable_mouse_events: bool,
   ) {
     self.keyboard_hook.update(keybindings);
-    match enable_mouse_events {
-      true => _ = self.mouse_hook.start(),
-      false => self.mouse_hook.stop(),
-    }
+    ENABLE_MOUSE_EVENTS.store(enable_mouse_events, Ordering::Relaxed);
   }
 
   /// Destroys the event window and stops the message loop.
   pub fn destroy(&mut self) -> anyhow::Result<()> {
     info!("Shutting down event window.");
-
-    self.keyboard_hook.stop();
-    self.mouse_hook.stop();
-    self.win_event_hook.stop();
 
     // Wait for the spawned thread to finish.
     if let Some(window_thread) = self.window_thread.take() {
@@ -190,10 +178,21 @@ pub extern "system" fn event_window_proc(
   if let Some(event_tx) = PLATFORM_EVENT_TX.get() {
     return match message {
       WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-        handle_display_change_msg(message, wparam, event_tx)
+        if let Err(err) =
+          handle_display_change_msg(message, wparam, event_tx)
+        {
+          warn!("Failed to handle display change message: {}", err);
+        }
+
+        LRESULT(0)
       }
-      // WM_INPUT if IS_MOUSE_HOOK_ENABLED.load(Ordering::Relaxed) => {
-      WM_INPUT => handle_input_msg(wparam, lparam, event_tx),
+      WM_INPUT if ENABLE_MOUSE_EVENTS.load(Ordering::Relaxed) => {
+        if let Err(err) = handle_input_msg(wparam, lparam, event_tx) {
+          warn!("Failed to handle input message: {}", err);
+        }
+
+        LRESULT(0)
+      }
       _ => unsafe { DefWindowProcW(handle, message, wparam, lparam) },
     };
   }
@@ -207,7 +206,7 @@ fn handle_display_change_msg(
   message: u32,
   wparam: WPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
-) -> LRESULT {
+) -> anyhow::Result<()> {
   let should_emit_event = match message {
     WM_SETTINGCHANGE => {
       wparam.0 as u32 == SPI_SETWORKAREA.0
@@ -218,13 +217,10 @@ fn handle_display_change_msg(
   };
 
   if should_emit_event {
-    let event = PlatformEvent::DisplaySettingsChanged;
-    if let Err(err) = event_tx.send(event) {
-      warn!("Failed to send platform event '{}'.", err);
-    }
+    event_tx.send(PlatformEvent::DisplaySettingsChanged)?;
   }
 
-  LRESULT(0)
+  Ok(())
 }
 
 /// Handles raw input messages for mouse events and emits the corresponding
@@ -233,9 +229,20 @@ fn handle_input_msg(
   _wparam: WPARAM,
   lparam: LPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
-) -> LRESULT {
-  // let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
-  let mut raw_input: RAWINPUT = RAWINPUT::default();
+) -> anyhow::Result<()> {
+  let event_time = SystemTime::now()
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .map(|dur| dur.as_millis() as u64)?;
+
+  let last_event_time = LAST_MOUSE_EVENT_TIME.load(Ordering::Relaxed);
+
+  // Throttle events so that there's a minimum of 50ms between each
+  // emission.
+  if event_time - last_event_time < 50 {
+    return Ok(());
+  }
+
+  let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
   let mut raw_input_size = std::mem::size_of::<RAWINPUT>() as u32;
 
   let res_size = unsafe {
@@ -253,7 +260,7 @@ fn handle_input_msg(
     || raw_input_size == u32::MAX
     || raw_input.header.dwType != RIM_TYPEMOUSE.0
   {
-    return LRESULT(0);
+    return Ok(());
   }
 
   let mouse_input = unsafe { raw_input.data.mouse };
@@ -277,6 +284,7 @@ fn handle_input_msg(
     IS_R_MOUSE_DOWN.store(false, Ordering::Relaxed);
   }
 
+  // Emit even if a mouse move has occured.
   if has_flags(state_flags, MOUSE_MOVE_RELATIVE)
     || has_flags(state_flags, MOUSE_MOVE_ABSOLUTE)
   {
@@ -284,7 +292,7 @@ fn handle_input_msg(
       || IS_R_MOUSE_DOWN.load(Ordering::Relaxed);
 
     let mut point = POINT { x: 0, y: 0 };
-    unsafe { GetCursorPos(&mut point) };
+    unsafe { GetCursorPos(&mut point) }?;
 
     let event = MouseMoveEvent {
       point: Point {
@@ -294,14 +302,12 @@ fn handle_input_msg(
       is_mouse_down,
     };
 
-    if let Err(err) = event_tx.send(PlatformEvent::MouseMove(event)) {
-      warn!("Failed to send platform event '{}'.", err);
-    }
+    event_tx.send(PlatformEvent::MouseMove(event))?;
 
-    // LAST_MOUSE_EVENT_TIME.store(mouse_event.time, Ordering::Relaxed);
+    LAST_MOUSE_EVENT_TIME.store(event_time, Ordering::Relaxed);
   }
 
-  LRESULT(0)
+  Ok(())
 }
 
 /// Checks whether `short` contains all the bits of `mask`.

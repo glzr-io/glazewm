@@ -93,12 +93,9 @@ impl KeyboardHook {
   }
 
   /// Stops the low-level keyboard hook.
-  pub fn stop(&self) {
-    if let Err(err) =
-      unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }
-    {
-      error!("Failed to unhook low-level keyboard hook: {}", err);
-    }
+  pub fn stop(&self) -> anyhow::Result<()> {
+    unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }?;
+    Ok(())
   }
 
   fn keybindings_by_trigger_key(

@@ -1,9 +1,11 @@
-use crate::common::commands::sync_native_focus;
-use crate::common::platform::{MouseMoveEvent, Platform};
-use crate::containers::commands::{redraw, set_focused_descendant};
-use crate::containers::traits::CommonGetters;
-use crate::user_config::UserConfig;
-use crate::wm_state::WmState;
+use anyhow::Context;
+
+use crate::{
+  common::platform::{MouseMoveEvent, Platform},
+  containers::{commands::set_focused_descendant, traits::CommonGetters},
+  user_config::UserConfig,
+  wm_state::WmState,
+};
 
 pub fn handle_mouse_move(
   mouse_move_event: MouseMoveEvent,
@@ -14,20 +16,21 @@ pub fn handle_mouse_move(
     return Ok(());
   }
 
-  let mut window_under_cursor =
-    Platform::window_from_point(&mouse_move_event.point).unwrap();
+  let window_under_cursor =
+    Platform::window_from_point(&mouse_move_event.point)
+      .and_then(|window| Platform::root_ancestor(&window))
+      .map(|root| state.window_from_native(&root))?;
 
-  let root_window = Platform::get_root_ancestor(&window_under_cursor)?;
+  // Set focus to whichever window is currently under the cursor.
+  if let Some(window) = window_under_cursor {
+    let focused_container =
+      state.focused_container().context("No focused container.")?;
 
-  // prevent spam focusing the same window 
-  // by checking the window under cursor against the WM's currently focused window
-  if let Some(window) = state.window_from_native(&root_window) {
-    if (state.focused_container() != Some(window.as_container())) {
+    if focused_container.id() != window.id() {
       set_focused_descendant(window.as_container(), None);
       state.has_pending_focus_sync = true;
-      redraw(state)?;
-      sync_native_focus(state)?;
     }
   }
+
   Ok(())
 }
