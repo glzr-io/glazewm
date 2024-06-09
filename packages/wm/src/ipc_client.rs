@@ -1,26 +1,12 @@
 use anyhow::Context;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
-use serde_json::value::RawValue;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
   connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
 };
 use uuid::Uuid;
 
-use crate::ipc_server::DEFAULT_IPC_PORT;
-
-/// Utility struct for partially deserializing server messages.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PartialServerMessage {
-  pub client_message: Option<String>,
-  pub data: Box<RawValue>,
-  pub error: Option<String>,
-  pub message_type: String,
-  pub subscription_id: Option<Uuid>,
-  pub success: bool,
-}
+use crate::ipc_server::{ServerMessage, DEFAULT_IPC_PORT};
 
 pub struct IpcClient {
   stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -49,9 +35,7 @@ impl IpcClient {
   }
 
   /// Waits and returns the next reply from the IPC server.
-  pub async fn next_response(
-    &mut self,
-  ) -> anyhow::Result<PartialServerMessage> {
+  pub async fn next_message(&mut self) -> anyhow::Result<ServerMessage> {
     let response = self
       .stream
       .next()
@@ -60,7 +44,7 @@ impl IpcClient {
       .context("Invalid response message.")?;
 
     let json_response =
-      serde_json::from_str::<PartialServerMessage>(response.to_text()?)?;
+      serde_json::from_str::<ServerMessage>(response.to_text()?)?;
 
     Ok(json_response)
   }
@@ -68,10 +52,12 @@ impl IpcClient {
   pub async fn client_response(
     &mut self,
     client_message: &str,
-  ) -> Option<PartialServerMessage> {
-    while let Ok(response) = self.next_response().await {
-      if response.client_message == Some(client_message.to_string()) {
-        return Some(response);
+  ) -> Option<ServerMessage> {
+    while let Ok(response) = self.next_message().await {
+      if let ServerMessage::ClientResponse(client_response) = &response {
+        if client_response.client_message == client_message {
+          return Some(response);
+        }
       }
     }
 
@@ -81,10 +67,12 @@ impl IpcClient {
   pub async fn event_subscription(
     &mut self,
     subscription_id: &Uuid,
-  ) -> Option<PartialServerMessage> {
-    while let Ok(response) = self.next_response().await {
-      if response.subscription_id == Some(*subscription_id) {
-        return Some(response);
+  ) -> Option<ServerMessage> {
+    while let Ok(response) = self.next_message().await {
+      if let ServerMessage::EventSubscription(event_sub) = &response {
+        if &event_sub.subscription_id == subscription_id {
+          return Some(response);
+        }
       }
     }
 

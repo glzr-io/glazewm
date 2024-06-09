@@ -8,16 +8,15 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result};
-use app_command::InvokeCommand;
-use sys_tray::SystemTray;
 use tokio::{process::Command, signal};
 use tracing::{debug, error, info};
 
 use crate::{
-  app_command::{AppCommand, Verbosity},
+  app_command::{AppCommand, InvokeCommand, Verbosity},
   common::platform::Platform,
   ipc_client::IpcClient,
-  ipc_server::{EventSubscribeData, IpcServer},
+  ipc_server::{ClientResponseData, IpcServer, ServerMessage},
+  sys_tray::SystemTray,
   user_config::UserConfig,
   wm::WindowManager,
   wm_event::WmEvent,
@@ -51,7 +50,7 @@ async fn main() {
       config_path,
       verbosity,
     } => start_wm(config_path, verbosity).await,
-    _ => start_cli(args, app_command).await,
+    _ => start_cli(args).await,
   };
 
   if let Err(err) = res {
@@ -160,10 +159,7 @@ async fn start_wm(
   }
 }
 
-async fn start_cli(
-  args: Vec<String>,
-  app_command: AppCommand,
-) -> Result<()> {
+async fn start_cli(args: Vec<String>) -> Result<()> {
   tracing_subscriber::fmt().init();
 
   let mut client = IpcClient::connect().await?;
@@ -179,29 +175,27 @@ async fn start_cli(
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  let is_subscribe_message =
-    matches!(app_command, AppCommand::Subscribe { .. });
+  if let ServerMessage::ClientResponse(client_response) = client_response {
+    match client_response.data {
+      // For event subscriptions, omit the initial response message and
+      // continuously output subsequent event messages.
+      Some(ClientResponseData::EventSubscribe(data)) => loop {
+        let event_subscription = client
+          .event_subscription(&data.subscription_id)
+          .await
+          .context("Failed to receive response from IPC server.")?;
 
-  // Exit on first response received when not subscribing to an event.
-  if !is_subscribe_message {
-    println!("{}", serde_json::to_string(&client_response)?);
-    std::process::exit(0);
+        println!("{}", serde_json::to_string(&event_subscription)?);
+      },
+      // For all other messages, output and exit when the first response
+      // message is received.
+      _ => {
+        println!("{}", serde_json::to_string(&client_response)?);
+      }
+    }
   }
 
-  // Otherwise, expect a subscription ID in the client response.
-  let subscribe_data = serde_json::from_str::<EventSubscribeData>(
-    client_response.data.get(),
-  )?;
-
-  // Continuously listen for server responses.
-  loop {
-    let event_subscription = client
-      .event_subscription(&subscribe_data.subscription_id)
-      .await
-      .context("Failed to receive response from IPC server.")?;
-
-    println!("{}", serde_json::to_string(&event_subscription)?);
-  }
+  Ok(())
 }
 
 /// Launches watcher binary. This is a separate process that is responsible

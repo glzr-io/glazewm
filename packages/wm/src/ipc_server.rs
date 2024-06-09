@@ -42,14 +42,20 @@ pub struct ClientResponseMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
-  BindingModes(Vec<BindingModeConfig>),
+  BindingModes(BindingModesData),
   Command(CommandData),
   EventSubscribe(EventSubscribeData),
   EventUnsubscribe,
-  Focused(ContainerDto),
-  Monitors(Vec<ContainerDto>),
-  Windows(Vec<ContainerDto>),
-  Workspaces(Vec<ContainerDto>),
+  Focused(FocusedData),
+  Monitors(MonitorsData),
+  Windows(WindowsData),
+  Workspaces(WorkspacesData),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BindingModesData {
+  pub binding_modes: Vec<BindingModeConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -62,6 +68,30 @@ pub struct CommandData {
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscribeData {
   pub subscription_id: Uuid,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusedData {
+  pub focused: ContainerDto,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorsData {
+  pub monitors: Vec<ContainerDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowsData {
+  pub windows: Vec<ContainerDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspacesData {
+  pub workspaces: Vec<ContainerDto>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -212,29 +242,40 @@ impl IpcServer {
   ) -> anyhow::Result<ClientResponseData> {
     let response_data = match app_command {
       AppCommand::Query { command } => match command {
-        QueryCommand::Windows => ClientResponseData::Windows(
-          wm.state
-            .windows()
-            .into_iter()
-            .map(|window| window.to_dto())
-            .try_collect()?,
-        ),
-        QueryCommand::Workspaces => ClientResponseData::Workspaces(
-          wm.state
-            .workspaces()
-            .into_iter()
-            .map(|workspace| workspace.to_dto())
-            .try_collect()?,
-        ),
-        QueryCommand::Monitors => ClientResponseData::Monitors(
-          wm.state
-            .monitors()
-            .into_iter()
-            .map(|monitor| monitor.to_dto())
-            .try_collect()?,
-        ),
+        QueryCommand::Windows => {
+          ClientResponseData::Windows(WindowsData {
+            windows: wm
+              .state
+              .windows()
+              .into_iter()
+              .map(|window| window.to_dto())
+              .try_collect()?,
+          })
+        }
+        QueryCommand::Workspaces => {
+          ClientResponseData::Workspaces(WorkspacesData {
+            workspaces: wm
+              .state
+              .workspaces()
+              .into_iter()
+              .map(|workspace| workspace.to_dto())
+              .try_collect()?,
+          })
+        }
+        QueryCommand::Monitors => {
+          ClientResponseData::Monitors(MonitorsData {
+            monitors: wm
+              .state
+              .monitors()
+              .into_iter()
+              .map(|monitor| monitor.to_dto())
+              .try_collect()?,
+          })
+        }
         QueryCommand::BindingModes => {
-          ClientResponseData::BindingModes(wm.state.binding_modes.clone())
+          ClientResponseData::BindingModes(BindingModesData {
+            binding_modes: wm.state.binding_modes.clone(),
+          })
         }
         QueryCommand::Focused => {
           let focused_container = wm
@@ -242,7 +283,9 @@ impl IpcServer {
             .focused_container()
             .context("No focused container.")?;
 
-          ClientResponseData::Focused(focused_container.to_dto()?)
+          ClientResponseData::Focused(FocusedData {
+            focused: focused_container.to_dto()?,
+          })
         }
       },
       AppCommand::Command {

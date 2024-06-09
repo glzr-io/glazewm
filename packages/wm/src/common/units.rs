@@ -2,15 +2,15 @@ use std::str::FromStr;
 
 use anyhow::{bail, Context};
 use regex::Regex;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct LengthValue {
   pub amount: f32,
   pub unit: LengthUnit,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LengthUnit {
   Pixel,
@@ -75,15 +75,5 @@ impl FromStr for LengthValue {
     };
 
     Ok(LengthValue { amount, unit })
-  }
-}
-
-impl<'de> Deserialize<'de> for LengthValue {
-  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    let str = String::deserialize(deserializer)?;
-    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

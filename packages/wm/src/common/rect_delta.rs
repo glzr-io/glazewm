@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::bail;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 use super::LengthValue;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct RectDelta {
   /// The delta in x-coordinates on the left of the rectangle.
   pub left: LengthValue,
@@ -83,15 +83,5 @@ impl FromStr for RectDelta {
       }
       _ => bail!("Invalid shorthand."),
     }
-  }
-}
-
-impl<'de> Deserialize<'de> for RectDelta {
-  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    let str = String::deserialize(deserializer)?;
-    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

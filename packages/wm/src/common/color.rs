@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use anyhow::bail;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ColorRGBA {
   pub r: u8,
   pub g: u8,
@@ -47,15 +47,5 @@ impl FromStr for ColorRGBA {
     };
 
     Ok(Self { r, g, b, a })
-  }
-}
-
-impl<'de> Deserialize<'de> for ColorRGBA {
-  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    let str = String::deserialize(deserializer)?;
-    Self::from_str(&str).map_err(serde::de::Error::custom)
   }
 }

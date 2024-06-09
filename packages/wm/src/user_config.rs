@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use tokio::fs;
 
 use crate::{
@@ -179,6 +179,7 @@ pub struct FocusBorder {
   pub enabled: bool,
 
   /// Border color of the window.
+  #[serde(deserialize_with = "deserialize_color")]
   pub color: ColorRGBA,
 }
 
@@ -186,9 +187,11 @@ pub struct FocusBorder {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
+  #[serde(deserialize_with = "deserialize_length_value")]
   pub inner_gap: LengthValue,
 
   /// Gap between windows and the screen edge.
+  #[serde(deserialize_with = "deserialize_rect_delta")]
   pub outer_gap: RectDelta,
 }
 
@@ -276,4 +279,37 @@ pub struct WorkspaceConfig {
 /// Helper function for setting a default value for a boolean field.
 const fn default_bool<const V: bool>() -> bool {
   V
+}
+
+/// Deserializes `Color` from a string.
+fn deserialize_color<'de, D>(
+  deserializer: D,
+) -> Result<ColorRGBA, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let str = String::deserialize(deserializer)?;
+  ColorRGBA::from_str(&str).map_err(serde::de::Error::custom)
+}
+
+/// Deserializes `RectDelta` from a string.
+fn deserialize_rect_delta<'de, D>(
+  deserializer: D,
+) -> Result<RectDelta, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let str = String::deserialize(deserializer)?;
+  RectDelta::from_str(&str).map_err(serde::de::Error::custom)
+}
+
+/// Deserializes `LengthValue` from a string.
+fn deserialize_length_value<'de, D>(
+  deserializer: D,
+) -> Result<LengthValue, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let str = String::deserialize(deserializer)?;
+  LengthValue::from_str(&str).map_err(serde::de::Error::custom)
 }
