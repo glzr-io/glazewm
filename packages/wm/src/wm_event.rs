@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
   user_config::{BindingModeConfig, ParsedConfig},
 };
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "eventType", rename_all = "snake_case")]
 pub enum WmEvent {
   BindingModesChanged {

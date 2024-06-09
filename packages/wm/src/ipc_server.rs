@@ -67,7 +67,7 @@ pub struct EventSubscribeData {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscriptionMessage {
-  pub data: Option<serde_json::Value>,
+  pub data: Option<WmEvent>,
   pub error: Option<String>,
   pub subscription_id: Uuid,
   pub success: bool,
@@ -80,8 +80,8 @@ pub struct IpcServer {
     mpsc::UnboundedSender<Message>,
     broadcast::Sender<()>,
   )>,
-  _event_rx: broadcast::Receiver<(SubscribableEvent, serde_json::Value)>,
-  event_tx: broadcast::Sender<(SubscribableEvent, serde_json::Value)>,
+  _event_rx: broadcast::Receiver<(SubscribableEvent, WmEvent)>,
+  event_tx: broadcast::Sender<(SubscribableEvent, WmEvent)>,
   _unsubscribe_rx: broadcast::Receiver<Uuid>,
   unsubscribe_tx: broadcast::Sender<Uuid>,
 }
@@ -279,14 +279,14 @@ impl IpcServer {
                   break;
                 }
               }
-              Ok((event, event_json)) = event_rx.recv() => {
+              Ok((event_type, event)) = event_rx.recv() => {
                 // Check whether the event is one of the subscribed events.
-                if events.contains(&event)
+                if events.contains(&event_type)
                   || events.contains(&SubscribableEvent::All)
                 {
                   let res = Self::to_event_subscription_msg(
                     subscription_id,
-                    event_json,
+                    event,
                   )
                   .map(|event_msg| response_tx.send(event_msg));
 
@@ -338,11 +338,11 @@ impl IpcServer {
 
   fn to_event_subscription_msg(
     subscription_id: Uuid,
-    event_json: serde_json::Value,
+    event: WmEvent,
   ) -> anyhow::Result<Message> {
     let message =
       ServerMessage::EventSubscription(EventSubscriptionMessage {
-        data: Some(event_json),
+        data: Some(event),
         error: None,
         subscription_id,
         success: true,
@@ -353,7 +353,7 @@ impl IpcServer {
   }
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
-    let subscribable_event = match event {
+    let event_type = match event {
       WmEvent::BindingModesChanged { .. } => {
         SubscribableEvent::BindingModesChanged
       }
@@ -383,8 +383,7 @@ impl IpcServer {
       WmEvent::WorkspaceMoved { .. } => SubscribableEvent::WorkspaceMoved,
     };
 
-    let event_json = serde_json::to_value(&event)?;
-    self.event_tx.send((subscribable_event, event_json))?;
+    self.event_tx.send((event_type, event))?;
 
     Ok(())
   }
