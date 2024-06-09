@@ -5,18 +5,18 @@ use std::{
 };
 
 use anyhow::Context;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
   common::platform::NativeMonitor,
   containers::{
     traits::{CommonGetters, PositionGetters},
-    Container, ContainerType, DirectionContainer, TilingContainer,
+    Container, ContainerDto, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters, impl_container_debug, impl_container_serialize,
-  workspaces::{Workspace, WorkspaceDto},
+  impl_common_getters, impl_container_debug,
+  workspaces::Workspace,
 };
 
 #[derive(Clone)]
@@ -33,12 +33,12 @@ struct MonitorInner {
 /// User-friendly representation of a monitor.
 ///
 /// Used for IPC and debug logging.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MonitorDto {
   id: Uuid,
   parent: Option<Uuid>,
-  children: Vec<WorkspaceDto>,
+  children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
   width: i32,
   height: i32,
@@ -76,7 +76,7 @@ impl Monitor {
     self
       .child_focus_order()
       .next()
-      .and_then(|c| c.as_workspace().cloned())
+      .and_then(|child| child.as_workspace().cloned())
   }
 
   /// Whether there is a difference in DPI between this monitor and the
@@ -94,20 +94,16 @@ impl Monitor {
     Ok((dpi - other_dpi).abs() < f32::EPSILON)
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<MonitorDto> {
+  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let children = self
       .children()
       .iter()
-      .map(|c| {
-        c.as_workspace()
-          .context("Monitor has an invalid child type.")
-          .and_then(|c| c.to_dto())
-      })
+      .map(|child| child.to_dto())
       .try_collect()?;
 
-    Ok(MonitorDto {
+    Ok(ContainerDto::Monitor(MonitorDto {
       id: self.id(),
-      parent: self.parent().map(|p| p.id()),
+      parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       width: self.width()?,
@@ -115,13 +111,12 @@ impl Monitor {
       x: self.x()?,
       y: self.y()?,
       dpi: self.native().dpi()?,
-    })
+    }))
   }
 }
 
 impl_container_debug!(Monitor);
-impl_container_serialize!(Monitor);
-impl_common_getters!(Monitor, ContainerType::Monitor);
+impl_common_getters!(Monitor);
 
 impl PositionGetters for Monitor {
   fn width(&self) -> anyhow::Result<i32> {

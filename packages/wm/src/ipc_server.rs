@@ -1,6 +1,6 @@
 use std::{iter, net::SocketAddr};
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -15,24 +15,22 @@ use uuid::Uuid;
 
 use crate::{
   app_command::{AppCommand, QueryCommand, SubscribableEvent},
-  containers::{Container, WindowContainer},
-  monitors::Monitor,
+  containers::{traits::CommonGetters, ContainerDto},
   user_config::{BindingModeConfig, UserConfig},
   wm::WindowManager,
   wm_event::WmEvent,
-  workspaces::Workspace,
 };
 
 pub const DEFAULT_IPC_PORT: u32 = 6123;
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "messageType", rename_all = "snake_case")]
 pub enum ServerMessage {
   ClientResponse(ClientResponseMessage),
   EventSubscription(EventSubscriptionMessage),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientResponseMessage {
   pub client_message: String,
@@ -41,32 +39,32 @@ pub struct ClientResponseMessage {
   pub success: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
   BindingModes(Vec<BindingModeConfig>),
   Command(CommandData),
   EventSubscribe(EventSubscribeData),
   EventUnsubscribe,
-  Focused(Option<Container>),
-  Monitors(Vec<Monitor>),
-  Windows(Vec<WindowContainer>),
-  Workspaces(Vec<Workspace>),
+  Focused(ContainerDto),
+  Monitors(Vec<ContainerDto>),
+  Windows(Vec<ContainerDto>),
+  Workspaces(Vec<ContainerDto>),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandData {
   pub subject_container_id: Uuid,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscribeData {
   pub subscription_id: Uuid,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscriptionMessage {
   pub data: Option<serde_json::Value>,
@@ -184,35 +182,84 @@ impl IpcServer {
       iter::once("").chain(message.split_whitespace()),
     );
 
+    let response_data =
+      app_command
+        .map_err(anyhow::Error::msg)
+        .and_then(|app_command| {
+          self.handle_app_command(
+            app_command,
+            response_tx.clone(),
+            disconnection_tx,
+            wm,
+            config,
+          )
+        });
+
+    // Respond to the client with the result of the command.
+    response_tx
+      .send(Self::to_client_response_msg(message, response_data)?)?;
+
+    Ok(())
+  }
+
+  fn handle_app_command(
+    &self,
+    app_command: AppCommand,
+    response_tx: mpsc::UnboundedSender<Message>,
+    disconnection_tx: broadcast::Sender<()>,
+    wm: &mut WindowManager,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<ClientResponseData> {
     let response_data = match app_command {
-      Ok(AppCommand::Query { command }) => match command {
-        QueryCommand::Windows => {
-          Ok(ClientResponseData::Windows(wm.state.windows()))
-        }
-        QueryCommand::Workspaces => {
-          Ok(ClientResponseData::Workspaces(wm.state.workspaces()))
-        }
-        QueryCommand::Monitors => {
-          Ok(ClientResponseData::Monitors(wm.state.monitors()))
-        }
-        QueryCommand::BindingModes => Ok(
-          ClientResponseData::BindingModes(wm.state.binding_modes.clone()),
+      AppCommand::Query { command } => match command {
+        QueryCommand::Windows => ClientResponseData::Windows(
+          wm.state
+            .windows()
+            .into_iter()
+            .map(|window| window.to_dto())
+            .try_collect()?,
         ),
+        QueryCommand::Workspaces => ClientResponseData::Workspaces(
+          wm.state
+            .workspaces()
+            .into_iter()
+            .map(|workspace| workspace.to_dto())
+            .try_collect()?,
+        ),
+        QueryCommand::Monitors => ClientResponseData::Monitors(
+          wm.state
+            .monitors()
+            .into_iter()
+            .map(|monitor| monitor.to_dto())
+            .try_collect()?,
+        ),
+        QueryCommand::BindingModes => {
+          ClientResponseData::BindingModes(wm.state.binding_modes.clone())
+        }
         QueryCommand::Focused => {
-          Ok(ClientResponseData::Focused(wm.state.focused_container()))
+          let focused_container = wm
+            .state
+            .focused_container()
+            .context("No focused container.")?;
+
+          ClientResponseData::Focused(focused_container.to_dto()?)
         }
       },
-      Ok(AppCommand::Command {
+      AppCommand::Command {
         subject_container_id,
         command,
-      }) => wm
-        .process_commands(vec![command], subject_container_id, config)
-        .map(|subject_container_id| {
-          ClientResponseData::Command(CommandData {
-            subject_container_id,
-          })
-        }),
-      Ok(AppCommand::Subscribe { events }) => {
+      } => {
+        let subject_container_id = wm.process_commands(
+          vec![command],
+          subject_container_id,
+          config,
+        )?;
+
+        ClientResponseData::Command(CommandData {
+          subject_container_id,
+        })
+      }
+      AppCommand::Subscribe { events } => {
         let subscription_id = Uuid::new_v4();
         info!("New event subscription {}: {:?}", subscription_id, events);
 
@@ -253,24 +300,22 @@ impl IpcServer {
           }
         });
 
-        Ok(ClientResponseData::EventSubscribe(EventSubscribeData {
+        ClientResponseData::EventSubscribe(EventSubscribeData {
           subscription_id,
-        }))
+        })
       }
-      Ok(AppCommand::Unsubscribe { subscription_id }) => self
-        .unsubscribe_tx
-        .send(subscription_id)
-        .map(|_| ClientResponseData::EventUnsubscribe)
-        .map_err(|_| anyhow::anyhow!("Failed to unsubscribe from event.")),
-      Err(err) => Err(anyhow::anyhow!(err)),
-      _ => Err(anyhow::anyhow!("Unsupported IPC command.")),
+      AppCommand::Unsubscribe { subscription_id } => {
+        self
+          .unsubscribe_tx
+          .send(subscription_id)
+          .context("Failed to unsubscribe from event.")?;
+
+        ClientResponseData::EventUnsubscribe
+      }
+      _ => bail!("Unsupported IPC command."),
     };
 
-    // Respond to the client with the result of the command.
-    response_tx
-      .send(Self::to_client_response_msg(message, response_data)?)?;
-
-    Ok(())
+    Ok(response_data)
   }
 
   fn to_client_response_msg(

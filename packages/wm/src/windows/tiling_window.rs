@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::Context;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -18,15 +17,17 @@ use crate::{
       CommonGetters, PositionGetters, TilingDirectionGetters,
       TilingSizeGetters,
     },
-    Container, ContainerType, DirectionContainer, TilingContainer,
+    Container, ContainerDto, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters, impl_container_debug, impl_container_serialize,
+  impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
 };
 
-use super::{traits::WindowGetters, NonTilingWindow, WindowState};
+use super::{
+  traits::WindowGetters, NonTilingWindow, WindowDto, WindowState,
+};
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -45,27 +46,6 @@ struct TilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   inner_gap: LengthValue,
-}
-
-/// User-friendly representation of a tiling window.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TilingWindowDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  tiling_size: f32,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  state: WindowState,
-  prev_state: Option<WindowState>,
-  display_state: DisplayState,
-  border_delta: RectDelta,
-  has_pending_dpi_adjustment: bool,
-  floating_placement: Rect,
 }
 
 impl TilingWindow {
@@ -112,11 +92,11 @@ impl TilingWindow {
     )
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<TilingWindowDto> {
-    Ok(TilingWindowDto {
+  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    Ok(ContainerDto::Window(WindowDto {
       id: self.id(),
-      parent: self.parent().map(|p| p.id()),
-      tiling_size: self.tiling_size(),
+      parent: self.parent().map(|parent| parent.id()),
+      tiling_size: Some(self.tiling_size()),
       width: self.width()?,
       height: self.height()?,
       x: self.x()?,
@@ -125,15 +105,13 @@ impl TilingWindow {
       prev_state: self.prev_state(),
       display_state: self.display_state(),
       border_delta: self.border_delta(),
-      has_pending_dpi_adjustment: self.has_pending_dpi_adjustment(),
       floating_placement: self.floating_placement(),
-    })
+    }))
   }
 }
 
 impl_container_debug!(TilingWindow);
-impl_container_serialize!(TilingWindow);
-impl_common_getters!(TilingWindow, ContainerType::Window);
+impl_common_getters!(TilingWindow);
 impl_tiling_size_getters!(TilingWindow);
 impl_position_getters_as_resizable!(TilingWindow);
 impl_window_getters!(TilingWindow);

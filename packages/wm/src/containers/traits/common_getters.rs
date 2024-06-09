@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
   containers::{
-    Container, ContainerType, DirectionContainer, RootContainer,
+    Container, ContainerDto, DirectionContainer, RootContainer,
     SplitContainer, TilingContainer, WindowContainer,
   },
   monitors::Monitor,
@@ -22,9 +22,6 @@ pub trait CommonGetters {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
 
-  /// Derived container type (e.g. `ContainerType::Monitor`).
-  fn r#type(&self) -> ContainerType;
-
   fn as_container(&self) -> Container;
 
   fn as_tiling_container(&self) -> anyhow::Result<TilingContainer>;
@@ -32,6 +29,8 @@ pub trait CommonGetters {
   fn as_window_container(&self) -> anyhow::Result<WindowContainer>;
 
   fn as_direction_container(&self) -> anyhow::Result<DirectionContainer>;
+
+  fn to_dto(&self) -> anyhow::Result<ContainerDto>;
 
   fn borrow_parent(&self) -> Ref<'_, Option<Container>>;
 
@@ -366,17 +365,13 @@ impl Iterator for Descendants {
 /// Implements the `CommonGetters` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
-/// with an `id` and a `parent` field.
+/// with an `id`, `parent`, `children`, and `child_focus_order` field.
 #[macro_export]
 macro_rules! impl_common_getters {
-  ($struct_name:ident, $container_type:expr) => {
+  ($struct_name:ident) => {
     impl CommonGetters for $struct_name {
       fn id(&self) -> Uuid {
         self.0.borrow().id
-      }
-
-      fn r#type(&self) -> ContainerType {
-        $container_type
       }
 
       fn as_container(&self) -> Container {
@@ -400,30 +395,36 @@ macro_rules! impl_common_getters {
           .map_err(anyhow::Error::msg)
       }
 
+      fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+        self.to_dto()
+      }
+
       fn borrow_parent(&self) -> Ref<'_, Option<Container>> {
-        Ref::map(self.0.borrow(), |c| &c.parent)
+        Ref::map(self.0.borrow(), |inner| &inner.parent)
       }
 
       fn borrow_parent_mut(&self) -> RefMut<'_, Option<Container>> {
-        RefMut::map(self.0.borrow_mut(), |c| &mut c.parent)
+        RefMut::map(self.0.borrow_mut(), |inner| &mut inner.parent)
       }
 
       fn borrow_children(&self) -> Ref<'_, VecDeque<Container>> {
-        Ref::map(self.0.borrow(), |c| &c.children)
+        Ref::map(self.0.borrow(), |inner| &inner.children)
       }
 
       fn borrow_children_mut(&self) -> RefMut<'_, VecDeque<Container>> {
-        RefMut::map(self.0.borrow_mut(), |c| &mut c.children)
+        RefMut::map(self.0.borrow_mut(), |inner| &mut inner.children)
       }
 
       fn borrow_child_focus_order(&self) -> Ref<'_, VecDeque<Uuid>> {
-        Ref::map(self.0.borrow(), |c| &c.child_focus_order)
+        Ref::map(self.0.borrow(), |inner| &inner.child_focus_order)
       }
 
       fn borrow_child_focus_order_mut(
         &self,
       ) -> RefMut<'_, VecDeque<Uuid>> {
-        RefMut::map(self.0.borrow_mut(), |c| &mut c.child_focus_order)
+        RefMut::map(self.0.borrow_mut(), |inner| {
+          &mut inner.child_focus_order
+        })
       }
     }
   };

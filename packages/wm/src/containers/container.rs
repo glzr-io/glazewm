@@ -1,6 +1,5 @@
 use enum_as_inner::EnumAsInner;
 use enum_dispatch::enum_dispatch;
-use serde::Serialize;
 
 use crate::{
   monitors::Monitor,
@@ -11,9 +10,8 @@ use crate::{
 use super::{traits::CommonGetters, RootContainer, SplitContainer};
 
 /// A container of any type.
-#[derive(Clone, Debug, EnumAsInner, Serialize)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters)]
-#[serde(untagged)]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),
@@ -62,9 +60,8 @@ impl Eq for Container {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `TilingSizeGetters`
-#[derive(Clone, Debug, EnumAsInner, Serialize)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, TilingSizeGetters)]
-#[serde(untagged)]
 pub enum TilingContainer {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
@@ -94,9 +91,8 @@ impl Eq for TilingContainer {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `WindowGetters`
-#[derive(Clone, Debug, EnumAsInner, Serialize)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, WindowGetters)]
-#[serde(untagged)]
 pub enum WindowContainer {
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
@@ -141,9 +137,8 @@ impl Eq for WindowContainer {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `TilingDirectionGetters`
-#[derive(Clone, Debug, EnumAsInner, Serialize)]
+#[derive(Clone, Debug, EnumAsInner)]
 #[enum_dispatch(CommonGetters, PositionGetters, TilingDirectionGetters)]
-#[serde(untagged)]
 pub enum DirectionContainer {
   Workspace(Workspace),
   Split(SplitContainer),
@@ -192,24 +187,6 @@ macro_rules! impl_container_debug {
           &self.to_dto().map_err(|_| std::fmt::Error),
           f,
         )
-      }
-    }
-  };
-}
-
-/// Implements the `Serialize` trait for a given container struct.
-///
-/// Expects that the struct has a `to_dto()` method.
-#[macro_export]
-macro_rules! impl_container_serialize {
-  ($type:ty) => {
-    impl serde::Serialize for $type {
-      fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-      where
-        S: serde::Serializer,
-      {
-        let dto = self.to_dto().map_err(serde::ser::Error::custom)?;
-        dto.serialize(serializer)
       }
     }
   };

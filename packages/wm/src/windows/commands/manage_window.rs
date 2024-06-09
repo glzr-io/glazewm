@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{platform::NativeWindow, LengthValue, RectDelta},
+  common::platform::NativeWindow,
   containers::{
     commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
@@ -45,7 +45,7 @@ pub fn manage_window(
   // TODO: Log window details.
   info!("New window managed");
   state.emit_event(WmEvent::WindowManaged {
-    managed_window: window.clone(),
+    managed_window: window.to_dto()?,
   });
 
   // OS focus should be set to the newly added window in case it's not

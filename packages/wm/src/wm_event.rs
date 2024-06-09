@@ -3,10 +3,8 @@ use uuid::Uuid;
 
 use crate::{
   common::TilingDirection,
-  containers::{Container, WindowContainer},
-  monitors::Monitor,
+  containers::ContainerDto,
   user_config::{BindingModeConfig, ParsedConfig},
-  workspaces::Workspace,
 };
 
 #[derive(Clone, Debug, Serialize)]
@@ -16,16 +14,16 @@ pub enum WmEvent {
     active_binding_modes: Vec<BindingModeConfig>,
   },
   FocusChanged {
-    focused_container: Container,
+    focused_container: ContainerDto,
   },
   FocusedContainerMoved {
-    focused_container: Container,
+    focused_container: ContainerDto,
   },
   MonitorAdded {
-    added_monitor: Monitor,
+    added_monitor: ContainerDto,
   },
   MonitorUpdated {
-    updated_monitor: Monitor,
+    updated_monitor: ContainerDto,
   },
   MonitorRemoved {
     removed_id: Uuid,
@@ -41,21 +39,21 @@ pub enum WmEvent {
     parsed_config: ParsedConfig,
   },
   WindowManaged {
-    managed_window: WindowContainer,
+    managed_window: ContainerDto,
   },
   WindowUnmanaged {
     unmanaged_id: Uuid,
     unmanaged_handle: isize,
   },
   WorkspaceActivated {
-    activated_workspace: Workspace,
+    activated_workspace: ContainerDto,
   },
   WorkspaceDeactivated {
     deactivated_id: Uuid,
     deactivated_name: String,
   },
   WorkspaceMoved {
-    workspace: Workspace,
-    new_monitor: Monitor,
+    workspace: ContainerDto,
+    new_monitor: ContainerDto,
   },
 }

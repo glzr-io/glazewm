@@ -1,8 +1,11 @@
 use anyhow::Context;
 
 use crate::{
-  common::platform::Platform, containers::Container,
-  windows::traits::WindowGetters, wm_event::WmEvent, wm_state::WmState,
+  common::platform::Platform,
+  containers::{traits::CommonGetters, Container},
+  windows::traits::WindowGetters,
+  wm_event::WmEvent,
+  wm_state::WmState,
 };
 
 pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
@@ -31,7 +34,7 @@ pub fn sync_native_focus(state: &mut WmState) -> anyhow::Result<()> {
   // windows that are always on top.
 
   state.emit_event(WmEvent::FocusChanged {
-    focused_container: focused_container,
+    focused_container: focused_container.to_dto()?,
   });
 
   state.has_pending_focus_sync = false;

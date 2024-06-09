@@ -49,8 +49,8 @@ pub fn remove_monitor(
     )?;
 
     state.emit_event(WmEvent::WorkspaceMoved {
-      workspace: workspace.clone(),
-      new_monitor: target_monitor.clone(),
+      workspace: workspace.to_dto()?,
+      new_monitor: target_monitor.to_dto()?,
     });
   }
 

@@ -1,8 +1,8 @@
 use tracing::info;
 
 use crate::{
-  common::platform::NativeMonitor, monitors::Monitor, wm_event::WmEvent,
-  wm_state::WmState,
+  common::platform::NativeMonitor, containers::traits::CommonGetters,
+  monitors::Monitor, wm_event::WmEvent, wm_state::WmState,
 };
 
 pub fn update_monitor(
@@ -23,7 +23,7 @@ pub fn update_monitor(
 
   // TODO: Check that a property on the monitor actually changed.
   state.emit_event(WmEvent::MonitorUpdated {
-    updated_monitor: monitor,
+    updated_monitor: monitor.to_dto()?,
   });
 
   Ok(())

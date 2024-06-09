@@ -137,6 +137,7 @@ impl UserConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
   pub focus_borders: FocusBordersConfig,
@@ -149,6 +150,7 @@ pub struct ParsedConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct BindingModeConfig {
   /// Name of the binding mode.
   pub name: String,
@@ -161,6 +163,7 @@ pub struct BindingModeConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct FocusBordersConfig {
   /// Border of the focused window.
   pub active: FocusBorder,
@@ -170,6 +173,7 @@ pub struct FocusBordersConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct FocusBorder {
   /// Whether to use a custom border color.
   pub enabled: bool,
@@ -179,6 +183,7 @@ pub struct FocusBorder {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
   pub inner_gap: LengthValue,
@@ -188,6 +193,7 @@ pub struct GapsConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct GeneralConfig {
   /// Center the cursor in the middle of a newly focused window.
   #[serde(default = "default_bool::<false>")]
@@ -204,6 +210,7 @@ pub struct GeneralConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
   pub bindings: Vec<String>,
@@ -213,6 +220,7 @@ pub struct KeybindingConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowRuleConfig {
   pub match_process_name: Option<String>,
   pub match_class_name: Option<String>,
@@ -221,12 +229,14 @@ pub struct WindowRuleConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowStateDefaultsConfig {
   pub floating: FloatingStateConfig,
   pub fullscreen: FullscreenStateConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct FloatingStateConfig {
   /// Whether to center new floating windows.
   #[serde(default = "default_bool::<true>")]
@@ -238,6 +248,7 @@ pub struct FloatingStateConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct FullscreenStateConfig {
   /// Whether to prefer fullscreen windows to be maximized.
   #[serde(default = "default_bool::<true>")]
@@ -253,6 +264,7 @@ pub struct FullscreenStateConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,

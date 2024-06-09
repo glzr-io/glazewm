@@ -4,18 +4,14 @@ use std::{
   rc::Rc,
 };
 
-use anyhow::Context;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-  impl_common_getters, impl_container_debug, impl_container_serialize,
-  monitors::MonitorDto,
-};
+use crate::{impl_common_getters, impl_container_debug};
 
 use super::{
   traits::{CommonGetters, PositionGetters},
-  Container, ContainerType, DirectionContainer, TilingContainer,
+  Container, ContainerDto, DirectionContainer, TilingContainer,
   WindowContainer,
 };
 
@@ -33,12 +29,12 @@ struct RootContainerInner {
 /// User-friendly representation of a root container.
 ///
 /// Used for IPC and debug logging.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RootContainerDto {
   id: Uuid,
   parent: Option<Uuid>,
-  children: Vec<MonitorDto>,
+  children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
 }
 
@@ -54,30 +50,24 @@ impl RootContainer {
     Self(Rc::new(RefCell::new(root)))
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<RootContainerDto> {
+  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let children = self
       .children()
       .iter()
-      .map(|child| {
-        child
-          .as_monitor()
-          .context("Root container has an invalid child type.")
-          .and_then(|monitor| monitor.to_dto())
-      })
+      .map(|child| child.to_dto())
       .try_collect()?;
 
-    Ok(RootContainerDto {
+    Ok(ContainerDto::Root(RootContainerDto {
       id: self.id(),
-      parent: self.parent().map(|p| p.id()),
+      parent: None,
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-    })
+    }))
   }
 }
 
 impl_container_debug!(RootContainer);
-impl_container_serialize!(RootContainer);
-impl_common_getters!(RootContainer, ContainerType::Root);
+impl_common_getters!(RootContainer);
 
 impl PositionGetters for RootContainer {
   fn width(&self) -> anyhow::Result<i32> {

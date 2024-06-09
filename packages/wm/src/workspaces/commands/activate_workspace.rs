@@ -2,7 +2,10 @@ use anyhow::Context;
 
 use crate::{
   common::TilingDirection,
-  containers::{commands::attach_container, traits::PositionGetters},
+  containers::{
+    commands::attach_container,
+    traits::{CommonGetters, PositionGetters},
+  },
   monitors::Monitor,
   user_config::{UserConfig, WorkspaceConfig},
   wm_event::WmEvent,
@@ -43,7 +46,7 @@ pub fn activate_workspace(
   )?;
 
   state.emit_event(WmEvent::WorkspaceActivated {
-    activated_workspace: workspace,
+    activated_workspace: workspace.to_dto()?,
   });
 
   Ok(())

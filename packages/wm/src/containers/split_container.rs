@@ -4,16 +4,15 @@ use std::{
   rc::Rc,
 };
 
-use anyhow::{bail, Context};
-use serde::Serialize;
+use anyhow::Context;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
   common::{LengthValue, TilingDirection},
-  impl_common_getters, impl_container_debug, impl_container_serialize,
+  impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_direction_getters,
   impl_tiling_size_getters,
-  windows::{NonTilingWindowDto, TilingWindowDto},
 };
 
 use super::{
@@ -21,7 +20,7 @@ use super::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
     TilingSizeGetters,
   },
-  Container, ContainerType, DirectionContainer, TilingContainer,
+  Container, ContainerDto, DirectionContainer, TilingContainer,
   WindowContainer,
 };
 
@@ -41,12 +40,12 @@ struct SplitContainerInner {
 /// User-friendly representation of a split container.
 ///
 /// Used for IPC and debug logging.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SplitContainerDto {
   id: Uuid,
   parent: Option<Uuid>,
-  children: Vec<SplitContainerChildDto>,
+  children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
   tiling_size: f32,
   width: i32,
@@ -54,14 +53,6 @@ pub struct SplitContainerDto {
   x: i32,
   y: i32,
   tiling_direction: TilingDirection,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
-pub enum SplitContainerChildDto {
-  NonTilingWindow(NonTilingWindowDto),
-  TilingWindow(TilingWindowDto),
-  Split(SplitContainerDto),
 }
 
 impl SplitContainer {
@@ -82,27 +73,16 @@ impl SplitContainer {
     Self(Rc::new(RefCell::new(split)))
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<SplitContainerDto> {
+  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let children = self
       .children()
       .iter()
-      .map(|child| match child {
-        Container::NonTilingWindow(c) => {
-          Ok(SplitContainerChildDto::NonTilingWindow(c.to_dto()?))
-        }
-        Container::TilingWindow(c) => {
-          Ok(SplitContainerChildDto::TilingWindow(c.to_dto()?))
-        }
-        Container::Split(c) => {
-          Ok(SplitContainerChildDto::Split(c.to_dto()?))
-        }
-        _ => bail!("Split container has an invalid child type."),
-      })
+      .map(|child| child.to_dto())
       .try_collect()?;
 
-    Ok(SplitContainerDto {
+    Ok(ContainerDto::Split(SplitContainerDto {
       id: self.id(),
-      parent: self.parent().map(|p| p.id()),
+      parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       tiling_size: self.tiling_size(),
@@ -111,13 +91,12 @@ impl SplitContainer {
       height: self.height()?,
       x: self.x()?,
       y: self.y()?,
-    })
+    }))
   }
 }
 
 impl_container_debug!(SplitContainer);
-impl_container_serialize!(SplitContainer);
-impl_common_getters!(SplitContainer, ContainerType::Split);
+impl_common_getters!(SplitContainer);
 impl_tiling_size_getters!(SplitContainer);
 impl_tiling_direction_getters!(SplitContainer);
 impl_position_getters_as_resizable!(SplitContainer);

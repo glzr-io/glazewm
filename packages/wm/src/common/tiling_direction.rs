@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::bail;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::Direction;
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TilingDirection {
   Vertical,

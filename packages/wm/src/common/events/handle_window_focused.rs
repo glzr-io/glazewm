@@ -67,7 +67,7 @@ pub fn handle_window_focused(
     set_focused_descendant(window.clone().into(), None);
 
     state.emit_event(WmEvent::FocusChanged {
-      focused_container: window.clone().into(),
+      focused_container: window.to_dto()?,
     })
   }
 

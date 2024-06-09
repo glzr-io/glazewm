@@ -50,7 +50,7 @@ pub fn move_container_within_tree(
 
     if container_to_move.has_focus(None) {
       state.emit_event(WmEvent::FocusedContainerMoved {
-        focused_container: container_to_move.into(),
+        focused_container: container_to_move.to_dto()?,
       });
     }
 
@@ -134,7 +134,7 @@ pub fn move_container_within_tree(
 
   if container_to_move.has_focus(None) {
     state.emit_event(WmEvent::FocusedContainerMoved {
-      focused_container: container_to_move.into(),
+      focused_container: container_to_move.to_dto()?,
     });
   }
 
@@ -171,7 +171,7 @@ fn move_to_lowest_common_ancestor(
 
   if container_to_move.has_focus(None) {
     state.emit_event(WmEvent::FocusedContainerMoved {
-      focused_container: container_to_move.into(),
+      focused_container: container_to_move.to_dto()?,
     });
   }
 

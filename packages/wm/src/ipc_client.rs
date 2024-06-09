@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::ipc_server::DEFAULT_IPC_PORT;
 
 /// Utility struct for partially deserializing server messages.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PartialServerMessage {
   pub client_message: Option<String>,

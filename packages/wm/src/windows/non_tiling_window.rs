@@ -4,7 +4,6 @@ use std::{
   rc::Rc,
 };
 
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -13,14 +12,13 @@ use crate::{
   },
   containers::{
     traits::{CommonGetters, PositionGetters},
-    Container, ContainerType, DirectionContainer, TilingContainer,
+    Container, ContainerDto, DirectionContainer, TilingContainer,
     WindowContainer,
   },
-  impl_common_getters, impl_container_debug, impl_container_serialize,
-  impl_window_getters,
+  impl_common_getters, impl_container_debug, impl_window_getters,
 };
 
-use super::{traits::WindowGetters, TilingWindow, WindowState};
+use super::{traits::WindowGetters, TilingWindow, WindowDto, WindowState};
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
@@ -34,26 +32,6 @@ struct NonTilingWindowInner {
   state: WindowState,
   prev_state: Option<WindowState>,
   insertion_target: Option<(Container, usize)>,
-  display_state: DisplayState,
-  border_delta: RectDelta,
-  has_pending_dpi_adjustment: bool,
-  floating_placement: Rect,
-}
-
-/// User-friendly representation of a non-tiling window.
-///
-/// Used for IPC and debug logging.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NonTilingWindowDto {
-  id: Uuid,
-  parent: Option<Uuid>,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  state: WindowState,
-  prev_state: Option<WindowState>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -107,10 +85,11 @@ impl NonTilingWindow {
     )
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<NonTilingWindowDto> {
-    Ok(NonTilingWindowDto {
+  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    Ok(ContainerDto::Window(WindowDto {
       id: self.id(),
-      parent: self.parent().map(|p| p.id()),
+      parent: self.parent().map(|parent| parent.id()),
+      tiling_size: None,
       width: self.width()?,
       height: self.height()?,
       x: self.x()?,
@@ -119,15 +98,13 @@ impl NonTilingWindow {
       prev_state: self.prev_state(),
       display_state: self.display_state(),
       border_delta: self.border_delta(),
-      has_pending_dpi_adjustment: self.has_pending_dpi_adjustment(),
       floating_placement: self.floating_placement(),
-    })
+    }))
   }
 }
 
 impl_container_debug!(NonTilingWindow);
-impl_container_serialize!(NonTilingWindow);
-impl_common_getters!(NonTilingWindow, ContainerType::Window);
+impl_common_getters!(NonTilingWindow);
 impl_window_getters!(NonTilingWindow);
 
 impl PositionGetters for NonTilingWindow {
