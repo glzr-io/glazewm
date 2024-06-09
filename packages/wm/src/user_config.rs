@@ -6,7 +6,7 @@ use tokio::fs;
 
 use crate::{
   app_command::InvokeCommand,
-  common::{ColorRGBA, LengthValue, RectDelta},
+  common::{Color, LengthValue, RectDelta},
   monitors::Monitor,
   workspaces::Workspace,
 };
@@ -140,7 +140,7 @@ impl UserConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
-  pub focus_borders: FocusBordersConfig,
+  pub window_effects: WindowEffectsConfig,
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
   pub keybindings: Vec<KeybindingConfig>,
@@ -164,23 +164,20 @@ pub struct BindingModeConfig {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct FocusBordersConfig {
-  /// Border of the focused window.
-  pub active: FocusBorder,
+pub struct WindowEffectsConfig {
+  /// Visual effects to apply to the focused window.
+  pub focused_window: WindowEffectConfig,
 
-  /// Border of non-focused windows.
-  pub inactive: FocusBorder,
+  /// Visual effects to apply to non-focused windows.
+  pub other_windows: WindowEffectConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct FocusBorder {
-  /// Whether to use a custom border color.
-  pub enabled: bool,
-
-  /// Border color of the window.
-  #[serde(deserialize_with = "deserialize_color")]
-  pub color: ColorRGBA,
+pub struct WindowEffectConfig {
+  /// Optional colored border to apply.
+  #[serde(deserialize_with = "deserialize_option_color")]
+  pub border_color: Option<Color>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -281,15 +278,19 @@ const fn default_bool<const V: bool>() -> bool {
   V
 }
 
-/// Deserializes `Color` from a string.
-fn deserialize_color<'de, D>(
+/// Deserializes `Option<Color>` from an optional string.
+fn deserialize_option_color<'de, D>(
   deserializer: D,
-) -> Result<ColorRGBA, D::Error>
+) -> Result<Option<Color>, D::Error>
 where
   D: Deserializer<'de>,
 {
-  let str = String::deserialize(deserializer)?;
-  ColorRGBA::from_str(&str).map_err(serde::de::Error::custom)
+  match Option::<String>::deserialize(deserializer)? {
+    Some(str) => Color::from_str(&str)
+      .map(Some)
+      .map_err(serde::de::Error::custom),
+    None => Ok(None),
+  }
 }
 
 /// Deserializes `RectDelta` from a string.

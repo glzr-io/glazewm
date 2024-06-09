@@ -1,7 +1,4 @@
-use std::{
-  ffi::c_void,
-  sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use tracing::warn;
 use windows::{
@@ -10,7 +7,7 @@ use windows::{
     Foundation::{CloseHandle, BOOL, HWND, LPARAM, RECT},
     Graphics::Dwm::{
       DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
-      DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS,
+      DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -39,7 +36,7 @@ use windows::{
 };
 
 use crate::{
-  common::{LengthValue, Rect, RectDelta},
+  common::{Color, LengthValue, Rect, RectDelta},
   windows::WindowState,
 };
 
@@ -244,15 +241,24 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_border_color(&self, color_rgba: u32) -> anyhow::Result<()> {
+  pub fn set_border_color(
+    &self,
+    color: Option<&Color>,
+  ) -> anyhow::Result<()> {
+    let bgr = match color {
+      Some(color) => color.to_bgr()?,
+      None => DWMWA_COLOR_NONE,
+    };
+
     unsafe {
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_BORDER_COLOR,
-        &color_rgba as *const _ as *const c_void,
+        &bgr as *const _ as _,
         std::mem::size_of::<u32>() as u32,
       )?;
     }
+
     Ok(())
   }
 

@@ -8,7 +8,6 @@ mod move_container_within_tree;
 mod redraw;
 mod replace_container;
 mod resize_tiling_container;
-mod set_active_window_border;
 mod set_focused_descendant;
 mod toggle_tiling_direction;
 
@@ -22,6 +21,5 @@ pub use move_container_within_tree::*;
 pub use redraw::*;
 pub use replace_container::*;
 pub use resize_tiling_container::*;
-pub use set_active_window_border::*;
 pub use set_focused_descendant::*;
 pub use toggle_tiling_direction::*;

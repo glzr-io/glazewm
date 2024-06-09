@@ -16,15 +16,16 @@ gaps:
   # Gap between windows and the screen edge.
   outer_gap: '20px'
 
-# Highlight active and inactive windows with a colored border.
-# ** Exclusive to Windows 11 due to API limitations.
-focus_borders:
-  active:
-    enabled: true
-    color: '#0000ff'
-  inactive:
-    enabled: false
-    color: '#ff0000'
+# Visual effects to apply to windows. Separate effects can be configured
+# for the focused window vs. other windows.
+window_effects:
+  focused_window:
+    # Highlight the window with a colored border. Exclusive to Windows 11.
+    # Set to `null` to disable the effect.
+    border_color: '#0000ff'
+
+  other_windows:
+    border_color: null
 
 window_state_defaults:
   floating:
@@ -83,154 +84,154 @@ binding_modes:
     keybindings:
       # Resize focused window by a percentage or pixel amount.
       - commands: ['resize --width -2%']
-        bindings: ['H', 'Left']
+        bindings: ['h', 'left']
       - commands: ['resize --width +2%']
-        bindings: ['L', 'Right']
+        bindings: ['l', 'right']
       - commands: ['resize --height +2%']
-        bindings: ['K', 'Up']
+        bindings: ['k', 'up']
       - commands: ['resize --height -2%']
-        bindings: ['J', 'Down']
+        bindings: ['j', 'down']
       # Press enter/escape to return to default keybindings.
       - commands: ['wm-disable-binding-mode --name resize']
-        bindings: ['Escape', 'Enter']
+        bindings: ['escape', 'enter']
 
 keybindings:
   # Shift focus in a given direction.
   - commands: ['focus --dir left']
-    bindings: ['Alt+H', 'Alt+Left']
+    bindings: ['alt+h', 'alt+left']
   - commands: ['focus --dir right']
-    bindings: ['Alt+L', 'Alt+Right']
+    bindings: ['alt+l', 'alt+right']
   - commands: ['focus --dir up']
-    bindings: ['Alt+K', 'Alt+Up']
+    bindings: ['alt+k', 'alt+up']
   - commands: ['focus --dir down']
-    bindings: ['Alt+J', 'Alt+Down']
+    bindings: ['alt+j', 'alt+down']
 
   # Move focused window in a given direction.
   - commands: ['move --dir left']
-    bindings: ['Alt+Shift+H', 'Alt+Shift+Left']
+    bindings: ['alt+shift+h', 'alt+shift+left']
   - commands: ['move --dir right']
-    bindings: ['Alt+Shift+L', 'Alt+Shift+Right']
+    bindings: ['alt+shift+l', 'alt+shift+right']
   - commands: ['move --dir up']
-    bindings: ['Alt+Shift+K', 'Alt+Shift+Up']
+    bindings: ['alt+shift+k', 'alt+shift+up']
   - commands: ['move --dir down']
-    bindings: ['Alt+Shift+J', 'Alt+Shift+Down']
+    bindings: ['alt+shift+j', 'alt+shift+down']
 
   # Resize focused window by a percentage or pixel amount.
   - commands: ['resize --width -2%']
-    bindings: ['Alt+U']
+    bindings: ['alt+u']
   - commands: ['resize --width +2%']
-    bindings: ['Alt+P']
+    bindings: ['alt+p']
   - commands: ['resize --height +2%']
-    bindings: ['Alt+O']
+    bindings: ['alt+o']
   - commands: ['resize --height -2%']
-    bindings: ['Alt+I']
+    bindings: ['alt+i']
 
   # As an alternative to the resize keybindings above, resize mode enables
   # resizing via HJKL or arrow keys. The binding mode is defined above with
   # the name 'resize'.
   - commands: ['wm-enable-binding-mode --name resize']
-    bindings: ['Alt+R']
+    bindings: ['alt+r']
 
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
   - commands: ['toggle-tiling-direction']
-    bindings: ['Alt+V']
+    bindings: ['alt+v']
 
   # Change focus between tiling windows and floating/fullscreen windows.
   - commands: ['wm-toggle-focus-state']
-    bindings: ['Alt+Space']
+    bindings: ['alt+space']
 
   # Change the focused window to be floating.
   - commands: ['toggle-floating --centered']
-    bindings: ['Alt+Shift+Space']
+    bindings: ['alt+shift+space']
 
   # Change the focused window to be fullscreen.
   - commands: ['toggle-fullscreen']
-    bindings: ['Alt+F']
+    bindings: ['alt+f']
 
   # Minimize focused window.
   - commands: ['toggle-minimized']
-    bindings: ['Alt+M']
+    bindings: ['alt+m']
 
   # Close focused window.
   - commands: ['close']
-    bindings: ['Alt+Shift+Q']
+    bindings: ['alt+shift+q']
 
   # Kill GlazeWM process safely.
   - commands: ['wm-exit']
-    bindings: ['Alt+Shift+E']
+    bindings: ['alt+shift+e']
 
   # Re-evaluate configuration file.
   - commands: ['wm-reload-config']
-    bindings: ['Alt+Shift+R']
+    bindings: ['alt+shift+r']
 
   # Redraw all windows.
   - commands: ['wm-redraw']
-    bindings: ['Alt+Shift+W']
+    bindings: ['alt+shift+w']
 
   # Launch CMD terminal. Alternatively `shell_exec --command wt` or
   # `shell_exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
   # Terminal and Git Bash respectively.
   - commands: ['shell-exec --command cmd']
-    bindings: ['Alt+Enter']
+    bindings: ['alt+enter']
 
   # Focus the workspace that last had focus.
   - commands: ['focus --recent-workspace']
-    bindings: ['Alt+Y']
+    bindings: ['alt+y']
 
   # Focus the next/previous workspace defined in `workspaces` config.
   - commands: ['focus --next-workspace']
-    bindings: ['Alt+T']
+    bindings: ['alt+t']
   - commands: ['focus --prev-workspace']
-    bindings: ['Alt+Shift+T']
+    bindings: ['alt+shift+t']
 
   # Change focus to a workspace defined in `workspaces` config.
   - commands: ['focus --workspace 1']
-    bindings: ['Alt+1']
+    bindings: ['alt+1']
   - commands: ['focus --workspace 2']
-    bindings: ['Alt+2']
+    bindings: ['alt+2']
   - commands: ['focus --workspace 3']
-    bindings: ['Alt+3']
+    bindings: ['alt+3']
   - commands: ['focus --workspace 4']
-    bindings: ['Alt+4']
+    bindings: ['alt+4']
   - commands: ['focus --workspace 5']
-    bindings: ['Alt+5']
+    bindings: ['alt+5']
   - commands: ['focus --workspace 6']
-    bindings: ['Alt+6']
+    bindings: ['alt+6']
   - commands: ['focus --workspace 7']
-    bindings: ['Alt+7']
+    bindings: ['alt+7']
   - commands: ['focus --workspace 8']
-    bindings: ['Alt+8']
+    bindings: ['alt+8']
   - commands: ['focus --workspace 9']
-    bindings: ['Alt+9']
+    bindings: ['alt+9']
 
   # Move the focused window's parent workspace to a monitor in a given
   # direction.
   - commands: ['move-workspace --dir left']
-    bindings: ['Alt+Shift+A']
+    bindings: ['alt+shift+a']
   - commands: ['move-workspace --dir right']
-    bindings: ['Alt+Shift+F']
+    bindings: ['alt+shift+f']
   - commands: ['move-workspace --dir up']
-    bindings: ['Alt+Shift+D']
+    bindings: ['alt+shift+d']
   - commands: ['move-workspace --dir down']
-    bindings: ['Alt+Shift+S']
+    bindings: ['alt+shift+s']
 
   # Move focused window to a workspace defined in `workspaces` config.
   - commands: ['move --workspace 1', 'focus --workspace 1']
-    bindings: ['Alt+Shift+1']
+    bindings: ['alt+shift+1']
   - commands: ['move --workspace 2', 'focus --workspace 2']
-    bindings: ['Alt+Shift+2']
+    bindings: ['alt+shift+2']
   - commands: ['move --workspace 3', 'focus --workspace 3']
-    bindings: ['Alt+Shift+3']
+    bindings: ['alt+shift+3']
   - commands: ['move --workspace 4', 'focus --workspace 4']
-    bindings: ['Alt+Shift+4']
+    bindings: ['alt+shift+4']
   - commands: ['move --workspace 5', 'focus --workspace 5']
-    bindings: ['Alt+Shift+5']
+    bindings: ['alt+shift+5']
   - commands: ['move --workspace 6', 'focus --workspace 6']
-    bindings: ['Alt+Shift+6']
+    bindings: ['alt+shift+6']
   - commands: ['move --workspace 7', 'focus --workspace 7']
-    bindings: ['Alt+Shift+7']
+    bindings: ['alt+shift+7']
   - commands: ['move --workspace 8', 'focus --workspace 8']
-    bindings: ['Alt+Shift+8']
+    bindings: ['alt+shift+8']
   - commands: ['move --workspace 9', 'focus --workspace 9']
-    bindings: ['Alt+Shift+9']
+    bindings: ['alt+shift+9']

@@ -35,7 +35,7 @@ pub struct WmState {
   /// container.
   pub has_pending_focus_sync: bool,
 
-  pub active_border_window: Option<NativeWindow>,
+  pub active_border_window: Option<WindowContainer>,
 
   /// Name of the most recently focused workspace.
   ///
