@@ -97,23 +97,23 @@ binding_modes:
 
 keybindings:
   # Shift focus in a given direction.
-  - commands: ['focus --dir left']
+  - commands: ['focus --direction left']
     bindings: ['alt+h', 'alt+left']
-  - commands: ['focus --dir right']
+  - commands: ['focus --direction right']
     bindings: ['alt+l', 'alt+right']
-  - commands: ['focus --dir up']
+  - commands: ['focus --direction up']
     bindings: ['alt+k', 'alt+up']
-  - commands: ['focus --dir down']
+  - commands: ['focus --direction down']
     bindings: ['alt+j', 'alt+down']
 
   # Move focused window in a given direction.
-  - commands: ['move --dir left']
+  - commands: ['move --direction left']
     bindings: ['alt+shift+h', 'alt+shift+left']
-  - commands: ['move --dir right']
+  - commands: ['move --direction right']
     bindings: ['alt+shift+l', 'alt+shift+right']
-  - commands: ['move --dir up']
+  - commands: ['move --direction up']
     bindings: ['alt+shift+k', 'alt+shift+up']
-  - commands: ['move --dir down']
+  - commands: ['move --direction down']
     bindings: ['alt+shift+j', 'alt+shift+down']
 
   # Resize focused window by a percentage or pixel amount.
@@ -207,13 +207,13 @@ keybindings:
 
   # Move the focused window's parent workspace to a monitor in a given
   # direction.
-  - commands: ['move-workspace --dir left']
+  - commands: ['move-workspace --direction left']
     bindings: ['alt+shift+a']
-  - commands: ['move-workspace --dir right']
+  - commands: ['move-workspace --direction right']
     bindings: ['alt+shift+f']
-  - commands: ['move-workspace --dir up']
+  - commands: ['move-workspace --direction up']
     bindings: ['alt+shift+d']
-  - commands: ['move-workspace --dir down']
+  - commands: ['move-workspace --direction down']
     bindings: ['alt+shift+s']
 
   # Move focused window to a workspace defined in `workspaces` config.

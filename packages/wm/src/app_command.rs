@@ -172,7 +172,7 @@ pub enum InvokeCommand {
   Ignore,
   Move(InvokeMoveCommand),
   MoveWorkspace {
-    #[clap(long = "dir")]
+    #[clap(long)]
     direction: Direction,
   },
   Resize(InvokeResizeCommand),
@@ -535,7 +535,7 @@ pub struct InvokeAdjustBordersCommand {
 #[derive(Args, Clone, Debug, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeFocusCommand {
-  #[clap(long = "dir")]
+  #[clap(long)]
   direction: Option<Direction>,
 
   #[clap(long)]
@@ -555,7 +555,7 @@ pub struct InvokeFocusCommand {
 #[group(required = true, multiple = false)]
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
-  #[clap(long = "dir")]
+  #[clap(long)]
   direction: Option<Direction>,
 
   /// Name of workspace to move the window.
