@@ -177,22 +177,42 @@ pub struct GapsConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct GeneralConfig {
-  /// Center the cursor in the middle of a newly focused window.
-  #[serde(default = "default_bool::<false>")]
-  pub cursor_follows_focus: bool,
+  /// Config for automatically moving the cursor.
+  pub cursor_jump: CursorJumpConfig,
 
-  /// Focus the window directly under the cursor at all times.
+  /// Whether to automatically focus windows underneath the cursor.
   #[serde(default = "default_bool::<false>")]
   pub focus_follows_cursor: bool,
 
-  /// If activated, by switching to the current workspace the previous
-  /// focused workspace is activated.
+  /// Whether to switch back and forth between the previously focused
+  /// workspace when focusing the current workspace.
   #[serde(default = "default_bool::<true>")]
   pub toggle_workspace_on_refocus: bool,
 
-  /// WM commands to run once on startup.
+  /// Commands to run when the WM has started (e.g. to run a script or
+  /// launch another application).
   #[serde(default)]
   pub startup_commands: Vec<InvokeCommand>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct CursorJumpConfig {
+  /// Whether to automatically move the cursor on the specified trigger.
+  #[serde(default = "default_bool::<true>")]
+  pub enabled: bool,
+
+  /// Trigger for cursor jump.
+  #[serde(default)]
+  pub trigger: CursorJumpTrigger,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CursorJumpTrigger {
+  #[default]
+  MonitorFocus,
+  WindowFocus,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -217,9 +237,10 @@ pub struct WindowBehaviorConfig {
   pub state_defaults: WindowStateDefaultsConfig,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InitialWindowState {
+  #[default]
   Tiling,
   Floating,
 }

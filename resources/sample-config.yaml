@@ -1,16 +1,23 @@
 general:
+  # Commands to run when the WM has started (e.g. to run a script or launch
+  # another application).
+  startup_commands: []
+
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
-
-  # Whether to jump the cursor between windows focused by the WM.
-  cursor_follows_focus: false
 
   # Whether to switch back and forth between the previously focused
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: true
 
-  # Commands to run once when the WM has started.
-  startup_commands: []
+  cursor_jump:
+    # Whether to automatically move the cursor on the specified trigger.
+    enabled: true
+
+    # Trigger for cursor jump:
+    # - 'monitor_focus': Jump when focus changes between monitors.
+    # - 'window_focus': Jump when focus changes between windows.
+    trigger: 'monitor_focus'
 
 gaps:
   # Gap between adjacent windows.
@@ -19,20 +26,20 @@ gaps:
   # Gap between windows and the screen edge.
   outer_gap: '20px'
 
-# Visual effects to apply to windows. Separate effects can be configured
-# for the focused window vs. other windows.
 window_effects:
+  # Visual effects to apply to the focused window.
   focused_window:
     # Highlight the window with a colored border. Exclusive to Windows 11.
     # Set to `null` to disable the effect.
     border_color: '#0000ff'
 
+  # Visual effects to apply to non-focused windows.
   other_windows:
     border_color: null
 
 window_behavior:
   # New windows are created in this state whenever possible.
-  # Possible values: 'tiling', 'floating'.
+  # Allowed values: 'tiling', 'floating'.
   initial_state: 'tiling'
 
   # Sets the default options for when a new window is created. This also

@@ -8,8 +8,7 @@ pub fn center_cursor_on_container(
   target: &Container,
   config: &UserConfig,
 ) -> Result<(), Error> {
-  if !config.value.general.cursor_follows_focus
-  {
+  if !config.value.general.cursor_jump.enabled {
     return Ok(());
   }
 
