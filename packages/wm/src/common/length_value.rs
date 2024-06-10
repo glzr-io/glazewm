@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use anyhow::{bail, Context};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LengthValue {
   pub amount: f32,
   pub unit: LengthUnit,
@@ -75,5 +75,27 @@ impl FromStr for LengthValue {
     };
 
     Ok(LengthValue { amount, unit })
+  }
+}
+
+/// Deserialize a `LengthValue` from either a string or a struct.
+impl<'de> Deserialize<'de> for LengthValue {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum LengthValueDe {
+      Struct { amount: f32, unit: LengthUnit },
+      String(String),
+    }
+
+    match LengthValueDe::deserialize(deserializer)? {
+      LengthValueDe::Struct { amount, unit } => Ok(Self { amount, unit }),
+      LengthValueDe::String(str) => {
+        Self::from_str(&str).map_err(serde::de::Error::custom)
+      }
+    }
   }
 }

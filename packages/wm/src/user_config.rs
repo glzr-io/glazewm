@@ -1,7 +1,7 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 use crate::{
@@ -166,11 +166,9 @@ pub struct BindingModeConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct GapsConfig {
   /// Gap between adjacent windows.
-  #[serde(deserialize_with = "deserialize_length_value")]
   pub inner_gap: LengthValue,
 
   /// Gap between windows and the screen edge.
-  #[serde(deserialize_with = "deserialize_rect_delta")]
   pub outer_gap: RectDelta,
 }
 
@@ -294,7 +292,6 @@ pub struct WindowEffectsConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowEffectConfig {
   /// Optional colored border to apply.
-  #[serde(deserialize_with = "deserialize_option_color")]
   pub border_color: Option<Color>,
 }
 
@@ -320,41 +317,4 @@ pub struct WorkspaceConfig {
 /// Helper function for setting a default value for a boolean field.
 const fn default_bool<const V: bool>() -> bool {
   V
-}
-
-/// Deserializes `Option<Color>` from an optional string.
-fn deserialize_option_color<'de, D>(
-  deserializer: D,
-) -> Result<Option<Color>, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  match Option::<String>::deserialize(deserializer)? {
-    Some(str) => Color::from_str(&str)
-      .map(Some)
-      .map_err(serde::de::Error::custom),
-    None => Ok(None),
-  }
-}
-
-/// Deserializes `RectDelta` from a string.
-fn deserialize_rect_delta<'de, D>(
-  deserializer: D,
-) -> Result<RectDelta, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let str = String::deserialize(deserializer)?;
-  RectDelta::from_str(&str).map_err(serde::de::Error::custom)
-}
-
-/// Deserializes `LengthValue` from a string.
-fn deserialize_length_value<'de, D>(
-  deserializer: D,
-) -> Result<LengthValue, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let str = String::deserialize(deserializer)?;
-  LengthValue::from_str(&str).map_err(serde::de::Error::custom)
 }

@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Color {
   pub r: u8,
   pub g: u8,
@@ -41,5 +41,27 @@ impl FromStr for Color {
     };
 
     Ok(Self { r, g, b, a })
+  }
+}
+
+/// Deserialize a `Color` from either a string or a struct.
+impl<'de> Deserialize<'de> for Color {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum ColorDe {
+      Struct { r: u8, g: u8, b: u8, a: u8 },
+      String(String),
+    }
+
+    match ColorDe::deserialize(deserializer)? {
+      ColorDe::Struct { r, g, b, a } => Ok(Self { r, g, b, a }),
+      ColorDe::String(str) => {
+        Self::from_str(&str).map_err(serde::de::Error::custom)
+      }
+    }
   }
 }
