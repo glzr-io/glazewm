@@ -47,7 +47,7 @@ pub fn focus_in_direction(
   // Set focus to the target container.
   if let Some(focus_target) = focus_target {
     set_focused_descendant(focus_target, None);
-    state.has_pending_focus_sync = true;
+    state.pending_sync.focus_change = true;
   }
 
   Ok(())

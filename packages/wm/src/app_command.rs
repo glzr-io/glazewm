@@ -347,7 +347,7 @@ impl InvokeCommand {
             config,
           )?;
 
-          state.containers_to_redraw.push(window.into());
+          state.pending_sync.containers_to_redraw.push(window.into());
           Ok(())
         }
         _ => Ok(()),
@@ -375,7 +375,7 @@ impl InvokeCommand {
             config,
           )?;
 
-          state.containers_to_redraw.push(window.into());
+          state.pending_sync.containers_to_redraw.push(window.into());
           Ok(())
         }
         _ => Ok(()),
@@ -390,7 +390,7 @@ impl InvokeCommand {
               config,
             )?;
 
-            state.containers_to_redraw.push(window.into());
+            state.pending_sync.containers_to_redraw.push(window.into());
             Ok(())
           }
           _ => Ok(()),
@@ -485,7 +485,10 @@ impl InvokeCommand {
       InvokeCommand::WmExit => todo!(),
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();
-        state.add_container_to_redraw(root_container.into());
+        state
+          .pending_sync
+          .containers_to_redraw
+          .push(root_container.into());
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),

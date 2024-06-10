@@ -59,11 +59,13 @@ pub fn focus_workspace(
       .unwrap_or_else(|| workspace_to_focus.clone().into());
 
     set_focused_descendant(container_to_focus, None);
-    state.has_pending_focus_sync = true;
+    state.pending_sync.focus_change = true;
 
     // Display the workspace to switch focus to.
-    state.containers_to_redraw.push(displayed_workspace.into());
-    state.containers_to_redraw.push(workspace_to_focus.into());
+    state
+      .pending_sync
+      .containers_to_redraw
+      .extend([displayed_workspace.into(), workspace_to_focus.into()]);
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
     // empty workspaces if they're the only workspace on the monitor.
@@ -81,6 +83,7 @@ pub fn focus_workspace(
     // Save the currently focused workspace as recent.
     state.recent_workspace_name = Some(focused_workspace.config().name);
   }
+
   Ok(())
 }
 

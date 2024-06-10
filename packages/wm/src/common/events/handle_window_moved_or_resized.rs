@@ -30,7 +30,7 @@ pub fn handle_window_moved_or_resized(
     // Snap window to its original position if it's the only window in the
     // workspace.
     if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-      state.containers_to_redraw.push(window.into());
+      state.pending_sync.containers_to_redraw.push(window.into());
       return Ok(());
     }
 

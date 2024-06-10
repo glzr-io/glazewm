@@ -149,6 +149,7 @@ fn move_to_sibling_container(
       )?;
 
       state
+        .pending_sync
         .containers_to_redraw
         .extend([sibling_window.into(), window_to_move.into()]);
     }
@@ -184,6 +185,7 @@ fn move_to_sibling_container(
 
         // TODO: Only redraw tiling containers.
         state
+          .pending_sync
           .containers_to_redraw
           .extend([target_parent.into(), parent.into()]);
       }
@@ -233,6 +235,7 @@ fn move_to_workspace_in_direction(
 
     // TODO: Only redraw tiling containers.
     state
+      .pending_sync
       .containers_to_redraw
       .extend([workspace.into(), parent.into()]);
   };
@@ -295,6 +298,7 @@ fn change_workspace_tiling_direction(
   resize_tiling_container(&window_to_move.into(), 0.5);
 
   state
+    .pending_sync
     .containers_to_redraw
     .extend(workspace.tiling_children().map(Into::into));
 
@@ -405,6 +409,7 @@ fn insert_into_ancestor(
   )?;
 
   state
+    .pending_sync
     .containers_to_redraw
     .extend(target_ancestor.tiling_children().map(Into::into));
 
@@ -442,7 +447,10 @@ fn move_floating_window(
     }
 
     window_to_move.set_floating_placement(position_rect);
-    state.containers_to_redraw.push(window_to_move.into());
+    state
+      .pending_sync
+      .containers_to_redraw
+      .push(window_to_move.into());
   }
 
   Ok(())

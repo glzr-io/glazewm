@@ -31,7 +31,7 @@ struct WorkspaceInner {
   child_focus_order: VecDeque<Uuid>,
   tiling_direction: TilingDirection,
   config: WorkspaceConfig,
-  outer_gaps: RectDelta,
+  outer_gap: RectDelta,
 }
 
 /// User-friendly representation of a workspace.
@@ -54,7 +54,7 @@ pub struct WorkspaceDto {
 impl Workspace {
   pub fn new(
     config: WorkspaceConfig,
-    outer_gaps: RectDelta,
+    outer_gap: RectDelta,
     tiling_direction: TilingDirection,
   ) -> Self {
     let workspace = WorkspaceInner {
@@ -64,7 +64,7 @@ impl Workspace {
       child_focus_order: VecDeque::new(),
       tiling_direction,
       config,
-      outer_gaps,
+      outer_gap,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -89,8 +89,12 @@ impl Workspace {
       .unwrap_or(false)
   }
 
-  fn outer_gaps(&self) -> Ref<'_, RectDelta> {
-    Ref::map(self.0.borrow(), |inner| &inner.outer_gaps)
+  fn outer_gap(&self) -> Ref<'_, RectDelta> {
+    Ref::map(self.0.borrow(), |inner| &inner.outer_gap)
+  }
+
+  pub fn set_outer_gap(&self, outer_gap: RectDelta) {
+    self.0.borrow_mut().outer_gap = outer_gap;
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
@@ -124,8 +128,8 @@ impl PositionGetters for Workspace {
 
     Ok(
       parent.width()?
-        - self.outer_gaps().left.to_pixels(parent.width()?)
-        - self.outer_gaps().right.to_pixels(parent.width()?),
+        - self.outer_gap().left.to_pixels(parent.width()?)
+        - self.outer_gap().right.to_pixels(parent.width()?),
     )
   }
 
@@ -134,20 +138,20 @@ impl PositionGetters for Workspace {
 
     Ok(
       parent.height()?
-        - self.outer_gaps().top.to_pixels(parent.height()?)
-        - self.outer_gaps().bottom.to_pixels(parent.height()?),
+        - self.outer_gap().top.to_pixels(parent.height()?)
+        - self.outer_gap().bottom.to_pixels(parent.height()?),
     )
   }
 
   fn x(&self) -> anyhow::Result<i32> {
     let parent = self.parent().context("Workspace has no parent.")?;
 
-    Ok(parent.x()? + self.outer_gaps().left.to_pixels(parent.width()?))
+    Ok(parent.x()? + self.outer_gap().left.to_pixels(parent.width()?))
   }
 
   fn y(&self) -> anyhow::Result<i32> {
     let parent = self.parent().context("Workspace has no parent.")?;
 
-    Ok(parent.y()? + self.outer_gaps().top.to_pixels(parent.height()?))
+    Ok(parent.y()? + self.outer_gap().top.to_pixels(parent.height()?))
   }
 }

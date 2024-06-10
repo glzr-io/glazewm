@@ -7,14 +7,13 @@ use uuid::Uuid;
 
 use crate::{
   common::{
-    commands::sync_native_focus,
+    commands::platform_sync,
     platform::{NativeMonitor, NativeWindow, Platform},
     Direction,
   },
   containers::{
-    commands::{redraw, set_focused_descendant},
-    traits::CommonGetters,
-    Container, RootContainer, WindowContainer,
+    commands::set_focused_descendant, traits::CommonGetters, Container,
+    RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
   user_config::{BindingModeConfig, UserConfig},
@@ -28,20 +27,18 @@ pub struct WmState {
   /// root node, followed by workspaces, then split containers/windows.
   pub root_container: RootContainer,
 
-  /// Containers (and their descendants) that have a pending redraw.
-  pub containers_to_redraw: Vec<Container>,
-
-  /// Whether native focus needs to be reassigned to the WM's focused
-  /// container.
-  pub has_pending_focus_sync: bool,
-
-  pub active_border_window: Option<WindowContainer>,
+  pub pending_sync: PendingSync,
 
   /// Name of the most recently focused workspace.
   ///
   /// Used for the `general.toggle_workspace_on_refocus` option on
   /// workspace focus.
   pub recent_workspace_name: Option<String>,
+
+  /// Container that most recently had focus synced.
+  ///
+  /// Used for updating window effects on focus change.
+  pub recent_focused_container: Option<Container>,
 
   /// Time since a previously focused window was unmanaged or minimized.
   ///
@@ -55,13 +52,28 @@ pub struct WmState {
   event_tx: mpsc::UnboundedSender<WmEvent>,
 }
 
+pub struct PendingSync {
+  /// Containers (and their descendants) that have a pending redraw.
+  pub containers_to_redraw: Vec<Container>,
+
+  /// Whether native focus should be reassigned to the WM's focused
+  /// container.
+  pub focus_change: bool,
+
+  /// Whether window effects should be reset.
+  pub reset_window_effects: bool,
+}
+
 impl WmState {
   pub fn new(event_tx: mpsc::UnboundedSender<WmEvent>) -> Self {
     Self {
       root_container: RootContainer::new(),
-      containers_to_redraw: Vec::new(),
-      has_pending_focus_sync: false,
-      active_border_window: None,
+      pending_sync: PendingSync {
+        containers_to_redraw: Vec::new(),
+        focus_change: false,
+        reset_window_effects: false,
+      },
+      recent_focused_container: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
@@ -104,10 +116,10 @@ impl WmState {
       .context("Failed to get container to focus.")?;
 
     set_focused_descendant(container_to_focus, None);
-    self.has_pending_focus_sync = true;
 
-    redraw(self)?;
-    sync_native_focus(self)?;
+    self.pending_sync.focus_change = true;
+    self.pending_sync.reset_window_effects = true;
+    platform_sync(self, config)?;
 
     Ok(())
   }
@@ -236,23 +248,15 @@ impl WmState {
   /// tiling -> floating), the original detached window might still be
   /// queued for a redraw and should be ignored.
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
+    // TODO: Get unique windows.
     self
+      .pending_sync
       .containers_to_redraw
       .iter()
       .flat_map(|container| container.self_and_descendants())
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
-      // .unique()
       .collect()
-  }
-
-  pub fn add_container_to_redraw(&mut self, container: Container) {
-    self.containers_to_redraw.push(container);
-  }
-
-  /// Removes all containers from the redraw queue.
-  pub fn clear_containers_to_redraw(&mut self) {
-    self.containers_to_redraw.clear();
   }
 
   /// Gets the currently focused container. This can either be a window or

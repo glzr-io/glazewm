@@ -71,6 +71,7 @@ fn resize_tiling_window(
       );
 
       state
+        .pending_sync
         .containers_to_redraw
         .extend(parent.tiling_children().map(Into::into));
     }
@@ -154,7 +155,10 @@ fn resize_floating_window(
     new_height,
   ));
 
-  state.add_container_to_redraw(window.clone().into());
+  state
+    .pending_sync
+    .containers_to_redraw
+    .push(window.clone().into());
 
   Ok(())
 }

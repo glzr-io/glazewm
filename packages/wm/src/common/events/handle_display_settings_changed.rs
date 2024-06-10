@@ -124,6 +124,7 @@ pub fn handle_display_settings_changed(
 
   // Redraw full container tree.
   state
+    .pending_sync
     .containers_to_redraw
     .push(state.root_container.clone().into());
 

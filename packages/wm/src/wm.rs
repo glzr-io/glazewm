@@ -2,11 +2,11 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use uuid::Uuid;
 
+use crate::common::commands::platform_sync;
 use crate::common::events::handle_mouse_move;
 use crate::{
   app_command::InvokeCommand,
   common::{
-    commands::sync_native_focus,
     events::{
       handle_display_settings_changed, handle_window_destroyed,
       handle_window_focused, handle_window_hidden,
@@ -16,7 +16,7 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::{commands::redraw, traits::CommonGetters},
+  containers::traits::CommonGetters,
   user_config::UserConfig,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -83,8 +83,7 @@ impl WindowManager {
       PlatformEvent::WindowTitleChanged(_) => Ok(()),
     }?;
 
-    redraw(state)?;
-    sync_native_focus(state)?;
+    platform_sync(state, config)?;
 
     Ok(())
   }
@@ -121,8 +120,7 @@ impl WindowManager {
       }
     }
 
-    redraw(state)?;
-    sync_native_focus(state)?;
+    platform_sync(state, config)?;
 
     Ok(subject_container.id())
   }

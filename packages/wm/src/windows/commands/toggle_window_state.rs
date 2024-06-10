@@ -42,7 +42,7 @@ pub fn toggle_window_state(
   // The `update_window_state` call will already add the window for redraw
   // on tiling <-> non-tiling state changes. However, on toggle, we always
   // want to add the window for redraw.
-  state.containers_to_redraw.push(window.into());
+  state.pending_sync.containers_to_redraw.push(window.into());
 
   Ok(())
 }

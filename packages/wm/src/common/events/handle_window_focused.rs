@@ -44,7 +44,7 @@ pub fn handle_window_focused(
       .unwrap_or(false)
     {
       info!("Overriding native focus.");
-      state.has_pending_focus_sync = true;
+      state.pending_sync.focus_change = true;
       return Ok(());
     }
 
