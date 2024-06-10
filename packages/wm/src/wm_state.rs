@@ -48,6 +48,9 @@ pub struct WmState {
   /// Configs of currently enabled binding modes.
   pub binding_modes: Vec<BindingModeConfig>,
 
+  /// Whether the initial state has been populated.
+  has_initialized: bool,
+
   /// Sender for emitting WM-related events.
   event_tx: mpsc::UnboundedSender<WmEvent>,
 }
@@ -77,6 +80,7 @@ impl WmState {
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
+      has_initialized: false,
       event_tx,
     }
   }
@@ -121,6 +125,7 @@ impl WmState {
     self.pending_sync.reset_window_effects = true;
     platform_sync(self, config)?;
 
+    self.has_initialized = true;
     Ok(())
   }
 
@@ -265,9 +270,16 @@ impl WmState {
     self.root_container.descendant_focus_order().next()
   }
 
+  /// Emits a WM event through an MSPC channel.
+  ///
+  /// Does not emit events while the WM is populating initial state. This
+  /// is to prevent events (e.g. workspace activation events) from being
+  /// emitted via IPC server before the initial state is prepared.
   pub fn emit_event(&self, event: WmEvent) {
-    if let Err(err) = self.event_tx.send(event) {
-      warn!("Failed to send event: {}", err);
+    if self.has_initialized {
+      if let Err(err) = self.event_tx.send(event) {
+        warn!("Failed to send event: {}", err);
+      }
     }
   }
 
