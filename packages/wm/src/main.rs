@@ -92,6 +92,10 @@ async fn start_wm(
   // Start listening for platform events.
   let mut event_listener = Platform::start_event_listener(&config)?;
 
+  // Run startup commands.
+  let startup_commands = config.value.general.startup_commands.clone();
+  wm.process_commands(startup_commands, None, &mut config)?;
+
   loop {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {

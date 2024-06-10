@@ -133,18 +133,18 @@ impl Verbosity {
 
 #[derive(Clone, Debug, Parser)]
 pub enum QueryCommand {
-  /// Outputs all windows.
-  Windows,
-  /// Outputs all active workspaces.
-  Workspaces,
-  /// Outputs all monitors.
-  Monitors,
+  /// Outputs metadata about the application (e.g. version number).
+  AppMetadata,
   /// Outputs the active binding modes.
   BindingModes,
   /// Outputs the focused container (either a window or an empty workspace).
   Focused,
-  /// Outputs metadata about the application (e.g. version number).
-  AppMetadata,
+  /// Outputs all monitors.
+  Monitors,
+  /// Outputs all windows.
+  Windows,
+  /// Outputs all active workspaces.
+  Workspaces,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
@@ -155,8 +155,8 @@ pub enum SubscribableEvent {
   FocusChanged,
   FocusedContainerMoved,
   MonitorAdded,
-  MonitorUpdated,
   MonitorRemoved,
+  MonitorUpdated,
   TilingDirectionChanged,
   UserConfigChanged,
   WindowManaged,

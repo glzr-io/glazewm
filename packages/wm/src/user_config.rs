@@ -140,10 +140,10 @@ impl UserConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
-  pub window_effects: WindowEffectsConfig,
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
   pub keybindings: Vec<KeybindingConfig>,
+  pub window_effects: WindowEffectsConfig,
   pub window_rules: Vec<WindowRuleConfig>,
   pub window_state_defaults: WindowStateDefaultsConfig,
   pub workspaces: Vec<WorkspaceConfig>,
@@ -160,24 +160,6 @@ pub struct BindingModeConfig {
 
   /// Keybindings that will be active when the binding mode is active.
   pub keybindings: Vec<KeybindingConfig>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all(serialize = "camelCase"))]
-pub struct WindowEffectsConfig {
-  /// Visual effects to apply to the focused window.
-  pub focused_window: WindowEffectConfig,
-
-  /// Visual effects to apply to non-focused windows.
-  pub other_windows: WindowEffectConfig,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all(serialize = "camelCase"))]
-pub struct WindowEffectConfig {
-  /// Optional colored border to apply.
-  #[serde(deserialize_with = "deserialize_option_color")]
-  pub border_color: Option<Color>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -207,6 +189,10 @@ pub struct GeneralConfig {
   /// focused workspace is activated.
   #[serde(default = "default_bool::<true>")]
   pub toggle_workspace_on_refocus: bool,
+
+  /// WM commands to run once on startup.
+  #[serde(default)]
+  pub startup_commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -217,6 +203,24 @@ pub struct KeybindingConfig {
 
   /// WM commands to run when the keybinding is triggered.
   pub commands: Vec<InvokeCommand>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowEffectsConfig {
+  /// Visual effects to apply to the focused window.
+  pub focused_window: WindowEffectConfig,
+
+  /// Visual effects to apply to non-focused windows.
+  pub other_windows: WindowEffectConfig,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowEffectConfig {
+  /// Optional colored border to apply.
+  #[serde(deserialize_with = "deserialize_option_color")]
+  pub border_color: Option<Color>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

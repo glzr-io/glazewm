@@ -9,6 +9,9 @@ general:
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: true
 
+  # Commands to run once when the WM has started.
+  startup_commands: []
+
 gaps:
   # Gap between adjacent windows.
   inner_gap: '20px'
