@@ -143,6 +143,8 @@ pub enum QueryCommand {
   BindingModes,
   /// Outputs the focused container (either a window or an empty workspace).
   Focused,
+  /// Outputs metadata about the application (e.g. version number).
+  AppMetadata,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]

@@ -42,6 +42,7 @@ pub struct ClientResponseMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
+  AppMetadata(AppMetadataData),
   BindingModes(BindingModesData),
   Command(CommandData),
   EventSubscribe(EventSubscribeData),
@@ -50,6 +51,12 @@ pub enum ClientResponseData {
   Monitors(MonitorsData),
   Windows(WindowsData),
   Workspaces(WorkspacesData),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppMetadataData {
+  pub version: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -285,6 +292,11 @@ impl IpcServer {
 
           ClientResponseData::Focused(FocusedData {
             focused: focused_container.to_dto()?,
+          })
+        }
+        QueryCommand::AppMetadata => {
+          ClientResponseData::AppMetadata(AppMetadataData {
+            version: env!("CARGO_PKG_VERSION").to_string(),
           })
         }
       },
