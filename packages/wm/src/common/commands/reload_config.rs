@@ -124,19 +124,19 @@ fn update_window_effects(
   let window_effects = &config.value.window_effects;
   let old_window_effects = &old_config.window_effects;
 
-  // Window border effects are left as is if set to `null` in the config.
-  // However, when transitioning from a non-null value to `null`, we have
-  // to reset to the system default.
-  if window_effects.focused_window.border_color.is_none()
-    && old_window_effects.focused_window.border_color.is_some()
+  // Window border effects are left at system defaults if disabled in the
+  // config. However, when transitioning from colored borders to having
+  // them disabled, it's best to reset to the system defaults.
+  if !window_effects.focused_window.border.enabled
+    && old_window_effects.focused_window.border.enabled
   {
     if let Ok(window) = focused_container.as_window_container() {
       _ = window.native().set_border_color(None);
     }
   }
 
-  if window_effects.other_windows.border_color.is_none()
-    && old_window_effects.other_windows.border_color.is_some()
+  if !window_effects.other_windows.border.enabled
+    && old_window_effects.other_windows.border.enabled
   {
     let unfocused_windows = state
       .windows()

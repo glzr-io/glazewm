@@ -33,13 +33,16 @@ gaps:
 window_effects:
   # Visual effects to apply to the focused window.
   focused_window:
-    # Highlight the window with a colored border. Exclusive to Windows 11.
-    # Set to `null` to disable the effect.
-    border_color: '#0000ff'
+    # Highlight the window with a colored border.
+    # ** Exclusive to Windows 11 due to API limitations.
+    border:
+      enabled: true
+      color: '#0000ff'
 
   # Visual effects to apply to non-focused windows.
   other_windows:
-    border_color: null
+    border:
+      enabled: false
 
 window_behavior:
   # New windows are created in this state whenever possible.

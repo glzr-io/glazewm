@@ -159,15 +159,20 @@ fn apply_window_effects(
   is_focused: bool,
   config: &UserConfig,
 ) {
-  let border_color = match is_focused {
-    true => &config.value.window_effects.focused_window.border_color,
-    false => &config.value.window_effects.other_windows.border_color,
-  }
-  .clone();
-
   // TODO: Be able to add transparency to windows.
 
-  if let Some(border_color) = border_color {
-    _ = window.native().set_border_color(Some(&border_color));
+  let enable_borders = match is_focused {
+    true => config.value.window_effects.focused_window.border.enabled,
+    false => config.value.window_effects.other_windows.border.enabled,
+  };
+
+  if enable_borders {
+    let border_config = match is_focused {
+      true => &config.value.window_effects.focused_window.border,
+      false => &config.value.window_effects.other_windows.border,
+    }
+    .clone();
+
+    _ = window.native().set_border_color(Some(&border_config.color));
   }
 }

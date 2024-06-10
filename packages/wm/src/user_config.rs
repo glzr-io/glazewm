@@ -291,8 +291,19 @@ pub struct WindowEffectsConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowEffectConfig {
-  /// Optional colored border to apply.
-  pub border_color: Option<Color>,
+  /// Config for optionally applying a colored border.
+  pub border: BorderEffectConfig,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct BorderEffectConfig {
+  /// Whether to enable the effect.
+  pub enabled: bool,
+
+  /// Color of the window border.
+  #[serde(default = "default_blue")]
+  pub color: Color,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -317,4 +328,14 @@ pub struct WorkspaceConfig {
 /// Helper function for setting a default value for a boolean field.
 const fn default_bool<const V: bool>() -> bool {
   V
+}
+
+/// Helper function for setting a default value for a color field.
+const fn default_blue() -> Color {
+  Color {
+    r: 0,
+    g: 0,
+    b: 255,
+    a: 255,
+  }
 }
