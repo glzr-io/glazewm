@@ -336,7 +336,7 @@ impl InvokeCommand {
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
-            &config.value.window_state_defaults.floating;
+            &config.value.window_behavior.state_defaults.floating;
 
           update_window_state(
             window.clone(),
@@ -361,7 +361,7 @@ impl InvokeCommand {
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let fullscreen_defaults =
-            &config.value.window_state_defaults.fullscreen;
+            &config.value.window_behavior.state_defaults.fullscreen;
 
           update_window_state(
             window.clone(),
@@ -415,7 +415,7 @@ impl InvokeCommand {
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
-            &config.value.window_state_defaults.floating;
+            &config.value.window_behavior.state_defaults.floating;
 
           toggle_window_state(
             window,
@@ -437,7 +437,7 @@ impl InvokeCommand {
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let fullscreen_defaults =
-            &config.value.window_state_defaults.fullscreen;
+            &config.value.window_behavior.state_defaults.fullscreen;
 
           toggle_window_state(
             window,

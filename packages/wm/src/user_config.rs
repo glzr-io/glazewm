@@ -143,9 +143,9 @@ pub struct ParsedConfig {
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
   pub keybindings: Vec<KeybindingConfig>,
+  pub window_behavior: WindowBehaviorConfig,
   pub window_effects: WindowEffectsConfig,
   pub window_rules: Vec<WindowRuleConfig>,
-  pub window_state_defaults: WindowStateDefaultsConfig,
   pub workspaces: Vec<WorkspaceConfig>,
 }
 
@@ -207,29 +207,21 @@ pub struct KeybindingConfig {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct WindowEffectsConfig {
-  /// Visual effects to apply to the focused window.
-  pub focused_window: WindowEffectConfig,
+pub struct WindowBehaviorConfig {
+  /// New windows are created in this state whenever possible.
+  pub initial_state: InitialWindowState,
 
-  /// Visual effects to apply to non-focused windows.
-  pub other_windows: WindowEffectConfig,
+  /// Sets the default options for when a new window is created. This also
+  /// changes the defaults for when the state change commands, like
+  /// `set_floating`, are used without any flags.
+  pub state_defaults: WindowStateDefaultsConfig,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all(serialize = "camelCase"))]
-pub struct WindowEffectConfig {
-  /// Optional colored border to apply.
-  #[serde(deserialize_with = "deserialize_option_color")]
-  pub border_color: Option<Color>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all(serialize = "camelCase"))]
-pub struct WindowRuleConfig {
-  pub match_process_name: Option<String>,
-  pub match_class_name: Option<String>,
-  pub match_title: Option<String>,
-  pub commands: Vec<InvokeCommand>,
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InitialWindowState {
+  Tiling,
+  Floating,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -265,6 +257,33 @@ pub struct FullscreenStateConfig {
   /// Whether to remove the window's title bar when fullscreen.
   #[serde(default = "default_bool::<false>")]
   pub remove_title_bar: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowEffectsConfig {
+  /// Visual effects to apply to the focused window.
+  pub focused_window: WindowEffectConfig,
+
+  /// Visual effects to apply to non-focused windows.
+  pub other_windows: WindowEffectConfig,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowEffectConfig {
+  /// Optional colored border to apply.
+  #[serde(deserialize_with = "deserialize_option_color")]
+  pub border_color: Option<Color>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowRuleConfig {
+  pub match_process_name: Option<String>,
+  pub match_class_name: Option<String>,
+  pub match_title: Option<String>,
+  pub commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

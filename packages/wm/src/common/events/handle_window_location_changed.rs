@@ -49,7 +49,7 @@ pub fn handle_window_location_changed(
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {
-              ..config.value.window_state_defaults.fullscreen
+              ..config.value.window_behavior.state_defaults.fullscreen
             }),
             state,
             config,

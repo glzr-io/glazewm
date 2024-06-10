@@ -30,23 +30,25 @@ window_effects:
   other_windows:
     border_color: null
 
-window_state_defaults:
-  floating:
-    # Whether to center floating windows by default.
-    centered: true
+window_behavior:
+  # New windows are created in this state whenever possible.
+  # Possible values: 'tiling', 'floating'.
+  initial_state: 'tiling'
 
-    # Whether to show floating windows as always on top.
-    show_on_top: false
+  # Sets the default options for when a new window is created. This also
+  # changes the defaults for when the state change commands, like
+  # `set-floating`, are used without any flags.
+  state_defaults:
+    floating:
+      # Whether to center floating windows by default.
+      centered: true
 
-  fullscreen:
-    # Whether to prefer fullscreen windows to be maximized.
-    maximized: true
+      # Whether to show floating windows as always on top.
+      show_on_top: false
 
-    # Whether to show fullscreen windows as always on top.
-    show_on_top: false
-
-    # Whether to remove the window's title bar when fullscreen.
-    remove_title_bar: false
+    fullscreen:
+      # Whether to prefer fullscreen windows to be maximized.
+      maximized: true
 
 workspaces:
   - name: '1'

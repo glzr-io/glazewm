@@ -88,12 +88,19 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
+  let prefers_centered = config
+    .value
+    .window_behavior
+    .state_defaults
+    .floating
+    .centered;
+
   // Calculate where window should be placed when floating is enabled. Use
   // the original width/height of the window and optionally position it in
   // the center of the workspace.
-  let prefer_center = config.value.window_state_defaults.floating.centered;
   let floating_placement =
-    if nearest_workspace.id() != target_workspace.id() || prefer_center {
+    if nearest_workspace.id() != target_workspace.id() || prefers_centered
+    {
       native_window
         .frame_position()?
         .translate_to_center(&target_workspace.to_rect()?)
@@ -157,14 +164,19 @@ fn window_state_to_create(
 
   if native_window.is_fullscreen() {
     return WindowState::Fullscreen(
-      config.value.window_state_defaults.fullscreen.clone(),
+      config
+        .value
+        .window_behavior
+        .state_defaults
+        .fullscreen
+        .clone(),
     );
   }
 
   // Initialize windows that can't be resized as floating.
   if !native_window.is_resizable() {
     return WindowState::Floating(
-      config.value.window_state_defaults.floating.clone(),
+      config.value.window_behavior.state_defaults.floating.clone(),
     );
   }
 
