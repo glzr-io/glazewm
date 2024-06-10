@@ -84,12 +84,11 @@ async fn start_wm(
   // Add application icon to system tray.
   let mut tray = SystemTray::new(&config.path)?;
 
-  let mut wm = WindowManager::new(&config)?;
-
-  // Start IPC server after populating initial WM state.
   let mut ipc_server = IpcServer::start().await?;
 
-  // Start listening for platform events.
+  let mut wm = WindowManager::new(&config)?;
+
+  // Start listening for platform events after populating initial state.
   let mut event_listener = Platform::start_event_listener(&config)?;
 
   // Run startup commands.
@@ -153,14 +152,17 @@ async fn start_wm(
       },
       Some(_) = tray.exit_rx.recv() => {
         info!("Exiting through system tray.");
-        break Ok(());
+        break;
       },
       _ = signal::ctrl_c() => {
         info!("Received SIGINT signal.");
-        break Ok(());
+        break;
       },
     }
   }
+
+  wm.state.emit_event(WmEvent::ApplicationExiting);
+  Ok(())
 }
 
 async fn start_cli(args: Vec<String>) -> Result<()> {

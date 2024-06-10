@@ -409,6 +409,7 @@ impl IpcServer {
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
     let event_type = match event {
+      WmEvent::ApplicationExiting => SubscribableEvent::ApplicationExiting,
       WmEvent::BindingModesChanged { .. } => {
         SubscribableEvent::BindingModesChanged
       }

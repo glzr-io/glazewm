@@ -151,6 +151,7 @@ pub enum QueryCommand {
 #[clap(rename_all = "snake_case")]
 pub enum SubscribableEvent {
   All,
+  ApplicationExiting,
   BindingModesChanged,
   FocusChanged,
   FocusedContainerMoved,
