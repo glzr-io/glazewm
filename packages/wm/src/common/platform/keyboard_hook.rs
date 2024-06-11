@@ -111,7 +111,10 @@ impl KeyboardHook {
             let vk_code = Self::key_to_vk_code(key);
 
             if vk_code.is_none() {
-              warn!("Unrecognized key on current keyboard '{}'.", key);
+              warn!(
+                "Unrecognized key on current keyboard '{}'. Ensure that alt or shift isn't required for the key.",
+                key
+              );
             }
 
             vk_code
@@ -135,6 +138,7 @@ impl KeyboardHook {
   }
 
   fn key_to_vk_code(key: &str) -> Option<u16> {
+    // TODO: Fix replace.
     match key.to_lowercase().replace("_", "").as_str() {
       "a" => Some(VK_A.0),
       "b" => Some(VK_B.0),
@@ -309,8 +313,15 @@ impl KeyboardHook {
           return None;
         }
 
-        // TODO: Check whether shift or alt is required for the key.
-        Some((vk_code & 0xFF) as u16)
+        // The low-order byte contains the virtual-key code and the high-
+        // order byte contains the shift state.
+        let [high_order, low_order] = vk_code.to_be_bytes();
+
+        // Key is valid if it doesn't require shift or alt to be pressed.
+        match high_order {
+          0 => Some(low_order as u16),
+          _ => None,
+        }
       }
     }
   }
