@@ -99,9 +99,9 @@ window_rules:
     match_process_name: 'steam'
 
 binding_modes:
+  # When enabled, the focused window can be resized via arrow keys or HJKL.
   - name: 'resize'
     keybindings:
-      # Resize focused window by a percentage or pixel amount.
       - commands: ['resize --width -2%']
         bindings: ['h', 'left']
       - commands: ['resize --width +2%']
@@ -113,6 +113,13 @@ binding_modes:
       # Press enter/escape to return to default keybindings.
       - commands: ['wm-disable-binding-mode --name resize']
         bindings: ['escape', 'enter']
+
+  # When enabled, all keybindings are disabled except for alt+shift+p which
+  # returns to default keybindings.
+  - name: 'pause'
+    keybindings:
+      - commands: ['wm-disable-binding-mode --name pause']
+        bindings: ['alt+shift+p']
 
 keybindings:
   # Shift focus in a given direction.
@@ -146,10 +153,14 @@ keybindings:
     bindings: ['alt+i']
 
   # As an alternative to the resize keybindings above, resize mode enables
-  # resizing via HJKL or arrow keys. The binding mode is defined above with
+  # resizing via arrow keys or HJKL. The binding mode is defined above with
   # the name 'resize'.
   - commands: ['wm-enable-binding-mode --name resize']
     bindings: ['alt+r']
+
+  # Disables all keybindings until alt+shift+p is pressed again.
+  - commands: ['wm-enable-binding-mode --name pause']
+    bindings: ['alt+shift+p']
 
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
@@ -188,8 +199,8 @@ keybindings:
   - commands: ['wm-redraw']
     bindings: ['alt+shift+w']
 
-  # Launch CMD terminal. Alternatively `shell_exec --command wt` or
-  # `shell_exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
+  # Launch CMD terminal. Alternatively, use `shell-exec --command wt` or
+  # `shell-exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
   # Terminal and Git Bash respectively.
   - commands: ['shell-exec --command cmd']
     bindings: ['alt+enter']
