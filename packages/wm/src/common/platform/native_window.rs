@@ -36,7 +36,7 @@ use windows::{
 };
 
 use crate::{
-  common::{Color, LengthValue, Rect, RectDelta},
+  common::{Color, DisplayState, LengthValue, Rect, RectDelta},
   windows::WindowState,
 };
 
@@ -359,9 +359,30 @@ impl NativeWindow {
   pub fn set_position(
     &self,
     state: &WindowState,
-    is_visible: bool,
+    display_state: &DisplayState,
     rect: &Rect,
+    has_pending_dpi_adjustment: bool,
   ) -> anyhow::Result<()> {
+    // Restore window if it's minimized/maximized and shouldn't be. This is
+    // needed to be able to move and resize it.
+    match state {
+      // Need to restore window if transitioning from maximized fullscreen
+      // to non-maximized fullscreen.
+      WindowState::Fullscreen(config) => {
+        if !config.maximized && self.is_maximized() {
+          self.restore()?;
+        }
+      }
+      // No need to restore window if it'll be minimized. Transitioning
+      // from maximized to minimized works without having to restore.
+      WindowState::Minimized => {}
+      _ => {
+        if self.is_minimized() || self.is_maximized() {
+          self.restore()?;
+        }
+      }
+    }
+
     let mut swp_flags = SWP_FRAMECHANGED
       | SWP_NOACTIVATE
       | SWP_NOCOPYBITS
@@ -369,23 +390,27 @@ impl NativeWindow {
       | SWP_ASYNCWINDOWPOS;
 
     // Whether to show or hide the window.
-    if is_visible {
-      swp_flags |= SWP_SHOWWINDOW;
-    } else {
-      swp_flags |= SWP_HIDEWINDOW;
+    match display_state {
+      DisplayState::Showing | DisplayState::Shown => {
+        swp_flags |= SWP_SHOWWINDOW
+      }
+      _ => swp_flags |= SWP_HIDEWINDOW,
     };
 
     // Whether the window should be shown above all other windows.
     let z_order = match state {
-      WindowState::Floating(s) if s.show_on_top => HWND_TOPMOST,
-      WindowState::Fullscreen(s) if s.show_on_top => HWND_TOPMOST,
+      WindowState::Floating(config) if config.show_on_top => HWND_TOPMOST,
+      WindowState::Fullscreen(config) if config.show_on_top => {
+        HWND_TOPMOST
+      }
       _ => HWND_NOTOPMOST,
     };
 
     match state {
       WindowState::Minimized => self.minimize(),
       // TODO: Handle non-maximized fullscreen.
-      // TODO: Handle fullscreen on different monitor than window's current position.
+      // TODO: Handle maximized fullscreen on different monitor than
+      // window's current position.
       WindowState::Fullscreen(_) => self.maximize(),
       _ => {
         unsafe {
@@ -399,6 +424,24 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
+
+        // When there's a mismatch between the DPI of the monitor and the
+        // window, the window might be sized incorrectly after the first
+        // move. If we set the position twice, inconsistencies after the
+        // first move are resolved.
+        if has_pending_dpi_adjustment {
+          unsafe {
+            SetWindowPos(
+              HWND(self.handle),
+              z_order,
+              rect.x(),
+              rect.y(),
+              rect.width(),
+              rect.height(),
+              swp_flags,
+            )
+          }?;
+        }
 
         Ok(())
       }
