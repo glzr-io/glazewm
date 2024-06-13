@@ -21,7 +21,7 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowPlacement, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible,
+        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
         SendNotifyMessageW, SetForegroundWindow, SetWindowPos,
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
@@ -200,11 +200,7 @@ impl NativeWindow {
   }
 
   pub fn is_maximized(&self) -> bool {
-    let mut placement = WINDOWPLACEMENT::default();
-    let _ =
-      unsafe { GetWindowPlacement(HWND(self.handle), &mut placement) };
-
-    placement.showCmd == SW_MAXIMIZE.0 as u32
+    unsafe { IsZoomed(HWND(self.handle)) }.as_bool()
   }
 
   pub fn is_resizable(&self) -> bool {

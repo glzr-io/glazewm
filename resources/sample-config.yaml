@@ -61,7 +61,8 @@ window_behavior:
       show_on_top: false
 
     fullscreen:
-      # Whether to prefer fullscreen windows to be maximized.
+      # Maximize the window if possible. If the window doesn't have a
+      # maximize button, then it'll be fullscreen'ed normally instead.
       maximized: true
 
 workspaces:
