@@ -404,10 +404,11 @@ impl NativeWindow {
 
     match state {
       WindowState::Minimized => self.minimize(),
-      // TODO: Handle non-maximized fullscreen.
       // TODO: Handle maximized fullscreen on different monitor than
       // window's current position.
-      WindowState::Fullscreen(_) => self.maximize(),
+      WindowState::Fullscreen(config) if config.maximized => {
+        self.maximize()
+      }
       _ => {
         unsafe {
           SetWindowPos(

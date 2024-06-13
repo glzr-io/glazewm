@@ -4,6 +4,7 @@ use std::{
   rc::Rc,
 };
 
+use anyhow::Context;
 use uuid::Uuid;
 
 use crate::{
@@ -109,18 +110,56 @@ impl_window_getters!(NonTilingWindow);
 
 impl PositionGetters for NonTilingWindow {
   fn width(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().floating_placement.width())
+    // TODO: Simplify with a `borrow_monitor_rect` fn.
+    let width = match self.state() {
+      WindowState::Fullscreen(_) => self
+        .monitor()
+        .context("No monitor.")?
+        .native()
+        .rect()?
+        .width(),
+      _ => self.floating_placement().width(),
+    };
+
+    Ok(width)
   }
 
   fn height(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().floating_placement.height())
+    // TODO: Simplify with a `borrow_monitor_rect` fn.
+    let height = match self.state() {
+      WindowState::Fullscreen(_) => self
+        .monitor()
+        .context("No monitor.")?
+        .native()
+        .rect()?
+        .height(),
+      _ => self.floating_placement().height(),
+    };
+
+    Ok(height)
   }
 
   fn x(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().floating_placement.x())
+    // TODO: Simplify with a `borrow_monitor_rect` fn.
+    let x = match self.state() {
+      WindowState::Fullscreen(_) => {
+        self.monitor().context("No monitor.")?.native().rect()?.x()
+      }
+      _ => self.floating_placement().x(),
+    };
+
+    Ok(x)
   }
 
   fn y(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().floating_placement.y())
+    // TODO: Simplify with a `borrow_monitor_rect` fn.
+    let y = match self.state() {
+      WindowState::Fullscreen(_) => {
+        self.monitor().context("No monitor.")?.native().rect()?.y()
+      }
+      _ => self.floating_placement().y(),
+    };
+
+    Ok(y)
   }
 }
