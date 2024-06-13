@@ -21,6 +21,7 @@ pub fn handle_window_minimize_ended(
     if window.state() == WindowState::Minimized {
       // TODO: Log window details.
       info!("Window minimize ended");
+      // TODO: Should use previous state here.
       toggle_window_state(window, WindowState::Minimized, state, config)?;
     }
   }
