@@ -5,10 +5,11 @@
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
-use std::{env, path::PathBuf};
+use std::{process::Child, env, io, path::PathBuf};
 
-use anyhow::{Context, Result};
-use tokio::{process::Command, signal};
+
+use anyhow::{Context, Error, Result};
+use tokio::{process, process::Command, signal};
 use tracing::{debug, error, info};
 
 use crate::{
@@ -209,11 +210,11 @@ async fn start_cli(args: Vec<String>) -> Result<()> {
 ///
 /// This assumes the watcher binary exists in the same directory as the WM
 /// binary.
-fn start_watcher_process() -> Result<Command> {
-  let watcher_path = env::current_exe()?
-    .parent()
-    .context("Failed to resolve path to the watcher process.")?
-    .join("watcher");
 
-  Ok(Command::new(watcher_path))
+fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error> {
+  let watcher_path = env::current_exe()?
+      .parent()
+      .context("Failed to resolve path to the watcher process.")?
+      .join("watcher");
+  Command::new(&watcher_path).spawn().context("Failed to start watcher process")
 }
