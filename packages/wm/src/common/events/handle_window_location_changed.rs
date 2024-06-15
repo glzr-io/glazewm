@@ -4,7 +4,8 @@ use tracing::info;
 use crate::{
   common::platform::NativeWindow,
   containers::{
-    commands::move_container_within_tree, traits::CommonGetters,
+    commands::move_container_within_tree,
+    traits::{CommonGetters, PositionGetters},
   },
   user_config::{FullscreenStateConfig, UserConfig},
   windows::{
@@ -24,12 +25,17 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
+    let nearest_monitor = state
+      .nearest_monitor(&window.native())
+      .context("Failed to get workspace of nearest monitor.")?;
+
     match window.state() {
       WindowState::Fullscreen(_) => {
-        // A window's location is changed when it gets minimized, so ignore
-        // the event if the window is currently minimized.
-        // TODO: Add fullscreen check.
-        if !window.native().is_maximized()
+        // A fullscreen window that gets minimized can hit this arm, so
+        // ignore such events and let it be handled by the handler for
+        // `PlatformEvent::WindowMinimized` instead.
+        if !window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
+          && !window.native().is_maximized()
           && !window.native().is_minimized()
         {
           info!("Window restored");
@@ -43,9 +49,9 @@ pub fn handle_window_location_changed(
       }
       _ => {
         if window.native().is_maximized()
-          || window.native().is_fullscreen()
+          || window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
         {
-          info!("Window maximized");
+          info!("Window fullscreened");
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {
@@ -62,9 +68,8 @@ pub fn handle_window_location_changed(
           let workspace = window.workspace().context("No workspace.")?;
 
           // Get workspace that encompasses most of the window after moving.
-          let updated_workspace = state
-            .nearest_monitor(&window.native())
-            .and_then(|monitor| monitor.displayed_workspace())
+          let updated_workspace = nearest_monitor
+            .displayed_workspace()
             .context("Failed to get workspace of nearest monitor.")?;
 
           // Update the window's workspace if it goes out of bounds of its

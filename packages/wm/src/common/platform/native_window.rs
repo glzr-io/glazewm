@@ -207,9 +207,19 @@ impl NativeWindow {
     self.has_window_style(WS_THICKFRAME)
   }
 
-  pub fn is_fullscreen(&self) -> bool {
-    // TODO
-    false
+  pub fn is_fullscreen(
+    &self,
+    monitor_rect: &Rect,
+  ) -> anyhow::Result<bool> {
+    let position = self.frame_position()?;
+
+    // Allow for 1px of leeway around edges of monitor.
+    Ok(
+      position.left <= monitor_rect.left + 1
+        && position.top <= monitor_rect.top + 1
+        && position.right >= monitor_rect.right - 1
+        && position.bottom >= monitor_rect.bottom - 1,
+    )
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {

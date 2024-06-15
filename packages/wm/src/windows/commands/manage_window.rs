@@ -8,6 +8,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
+  monitors::Monitor,
   user_config::UserConfig,
   windows::{
     traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
@@ -108,9 +109,10 @@ fn create_window(
       native_window.frame_position()?
     };
 
-  let window_state = window_state_to_create(&native_window, config);
   let border_delta = native_window.border_delta()?;
   let inner_gap = config.value.gaps.inner_gap.clone();
+  let window_state =
+    window_state_to_create(&native_window, &nearest_monitor, config)?;
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
@@ -156,31 +158,34 @@ fn create_window(
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
   native_window: &NativeWindow,
+  nearest_monitor: &Monitor,
   config: &UserConfig,
-) -> WindowState {
+) -> anyhow::Result<WindowState> {
   if native_window.is_minimized() {
-    return WindowState::Minimized;
+    return Ok(WindowState::Minimized);
   }
 
-  if native_window.is_fullscreen() {
-    return WindowState::Fullscreen(
+  if native_window.is_fullscreen(&nearest_monitor.to_rect()?)?
+    && !native_window.is_maximized()
+  {
+    return Ok(WindowState::Fullscreen(
       config
         .value
         .window_behavior
         .state_defaults
         .fullscreen
         .clone(),
-    );
+    ));
   }
 
   // Initialize windows that can't be resized as floating.
   if !native_window.is_resizable() {
-    return WindowState::Floating(
+    return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
-    );
+    ));
   }
 
-  WindowState::Tiling
+  Ok(WindowState::Tiling)
 }
 
 fn insertion_target(
