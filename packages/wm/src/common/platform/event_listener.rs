@@ -7,7 +7,6 @@ use crate::{
 
 use super::{EventWindow, NativeWindow};
 
-#[derive(Debug)]
 pub enum PlatformEvent {
   DisplaySettingsChanged,
   KeybindingTriggered(KeybindingConfig),

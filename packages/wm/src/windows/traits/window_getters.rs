@@ -1,3 +1,5 @@
+use std::cell::Ref;
+
 use enum_dispatch::enum_dispatch;
 
 use crate::{
@@ -12,7 +14,7 @@ pub trait WindowGetters {
 
   fn prev_state(&self) -> Option<WindowState>;
 
-  fn native(&self) -> NativeWindow;
+  fn native(&self) -> Ref<NativeWindow>;
 
   fn border_delta(&self) -> RectDelta;
 
@@ -48,8 +50,8 @@ macro_rules! impl_window_getters {
         self.0.borrow().prev_state.clone()
       }
 
-      fn native(&self) -> NativeWindow {
-        self.0.borrow().native.clone()
+      fn native(&self) -> Ref<NativeWindow> {
+        Ref::map(self.0.borrow(), |inner| &inner.native)
       }
 
       fn border_delta(&self) -> RectDelta {

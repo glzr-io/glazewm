@@ -83,7 +83,7 @@ impl TilingWindow {
   ) -> NonTilingWindow {
     NonTilingWindow::new(
       Some(self.id()),
-      self.native(),
+      std::mem::take(&mut self.0.borrow_mut().native),
       state,
       Some(WindowState::Tiling),
       self.border_delta(),

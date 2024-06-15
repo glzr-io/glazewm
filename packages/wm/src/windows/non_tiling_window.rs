@@ -78,7 +78,7 @@ impl NonTilingWindow {
   pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
     TilingWindow::new(
       Some(self.id()),
-      self.native(),
+      std::mem::take(&mut self.0.borrow_mut().native),
       Some(self.state()),
       self.border_delta(),
       self.floating_placement(),

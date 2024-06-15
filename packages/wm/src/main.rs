@@ -5,8 +5,7 @@
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
-use std::{process::Child, env, io, path::PathBuf};
-
+use std::{env, io, path::PathBuf, process::Child};
 
 use anyhow::{Context, Error, Result};
 use tokio::{process, process::Command, signal};
@@ -99,7 +98,7 @@ async fn start_wm(
   loop {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
+        // debug!("Received platform event: {:?}", event);
 
         if let Err(err) = wm.process_event(event, &mut config) {
           error!("Failed to process event: {:?}", err);
@@ -210,11 +209,14 @@ async fn start_cli(args: Vec<String>) -> Result<()> {
 ///
 /// This assumes the watcher binary exists in the same directory as the WM
 /// binary.
-
-fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error> {
+fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
+{
   let watcher_path = env::current_exe()?
-      .parent()
-      .context("Failed to resolve path to the watcher process.")?
-      .join("watcher");
-  Command::new(&watcher_path).spawn().context("Failed to start watcher process")
+    .parent()
+    .context("Failed to resolve path to the watcher process.")?
+    .join("watcher");
+
+  Command::new(&watcher_path)
+    .spawn()
+    .context("Failed to start watcher process.")
 }

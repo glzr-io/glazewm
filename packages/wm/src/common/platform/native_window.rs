@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 use tracing::warn;
 use windows::{
@@ -20,16 +20,15 @@ use windows::{
       },
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
-        GetWindowPlacement, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
-        SendNotifyMessageW, SetForegroundWindow, SetWindowPos,
-        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
-        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS,
-        SWP_NOSENDCHANGING, SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE,
-        SW_RESTORE, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
-        WM_CLOSE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_THICKFRAME,
+        GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
+        IsWindowVisible, IsZoomed, SendNotifyMessageW,
+        SetForegroundWindow, SetWindowPos, ShowWindowAsync, GWL_EXSTYLE,
+        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOPMOST,
+        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_HIDEWINDOW,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
+        SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_THICKFRAME,
       },
     },
   },
@@ -40,10 +39,47 @@ use crate::{
   windows::WindowState,
 };
 
-#[derive(Clone, Debug)]
+struct Memo<T>
+where
+  T: Clone,
+{
+  value: Arc<Mutex<Option<T>>>,
+  retriever: Arc<dyn Fn(&NativeWindow) -> T + Send + Sync>,
+}
+
+impl<T> Memo<T>
+where
+  T: Clone,
+{
+  fn new<F>(retriever: F) -> Self
+  where
+    F: Fn(&NativeWindow) -> T + Send + Sync + 'static,
+  {
+    Memo {
+      value: Arc::new(Mutex::new(None)),
+      retriever: Arc::new(retriever),
+    }
+  }
+
+  fn get(&self, native: &NativeWindow) -> MutexGuard<Option<T>> {
+    let mut value_ref = self.value.lock().unwrap();
+    if value_ref.is_none() {
+      let new_value = (self.retriever)(native);
+      *value_ref = Some(new_value);
+    }
+    value_ref
+  }
+
+  fn refresh(&self, native: &NativeWindow) {
+    let mut value_ref = self.value.lock().unwrap();
+    let new_value = (self.retriever)(native);
+    *value_ref = Some(new_value);
+  }
+}
+
 pub struct NativeWindow {
   pub handle: isize,
-  title: Arc<RwLock<Option<String>>>,
+  title: Memo<String>,
   process_name: Arc<RwLock<Option<String>>>,
   class_name: Arc<RwLock<Option<String>>>,
 }
@@ -52,7 +88,7 @@ impl NativeWindow {
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
-      title: Arc::new(RwLock::new(None)),
+      title: Memo::new(Self::updated_title),
       process_name: Arc::new(RwLock::new(None)),
       class_name: Arc::new(RwLock::new(None)),
     }
@@ -61,26 +97,20 @@ impl NativeWindow {
   /// Gets the window's title. If the window is invalid, returns an empty
   /// string.
   ///
-  /// This value is lazily retrieved and is cached after first retrieval.
+  /// This value is lazily retrieved and cached after first retrieval.
   pub fn title(&self) -> String {
-    let title_guard = self.title.read().unwrap();
-    match *title_guard {
-      Some(ref title) => title.clone(),
-      None => {
-        let mut text: [u16; 512] = [0; 512];
-        let length =
-          unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
+    self.title.get(self).as_ref().unwrap().to_string()
+  }
 
-        let title = String::from_utf16_lossy(&text[..length as usize]);
-        *self.title.write().unwrap() = Some(title.clone());
-        title
-      }
-    }
+  fn updated_title(&self) -> String {
+    let mut text: [u16; 512] = [0; 512];
+    let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
+    String::from_utf16_lossy(&text[..length as usize]).into()
   }
 
   /// Gets the process name associated with the window.
   ///
-  /// This value is lazily retrieved and is cached after first retrieval.
+  /// This value is lazily retrieved and cached after first retrieval.
   pub fn process_name(&self) -> anyhow::Result<String> {
     let process_name_guard = self.process_name.read().unwrap();
     match *process_name_guard {
@@ -120,7 +150,7 @@ impl NativeWindow {
 
   /// Gets the class name of the window.
   ///
-  /// This value is lazily retrieved and is cached after first retrieval.
+  /// This value is lazily retrieved and cached after first retrieval.
   pub fn class_name(&self) -> anyhow::Result<String> {
     let class_name_guard = self.class_name.read().unwrap();
     match *class_name_guard {
@@ -463,6 +493,12 @@ impl PartialEq for NativeWindow {
 }
 
 impl Eq for NativeWindow {}
+
+impl Default for NativeWindow {
+  fn default() -> Self {
+    Self::new(0)
+  }
+}
 
 pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
   available_window_handles()?

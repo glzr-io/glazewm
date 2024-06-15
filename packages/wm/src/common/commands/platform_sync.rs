@@ -61,16 +61,22 @@ pub fn sync_focus(
   focused_container: Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let native_window = match focused_container.as_window_container() {
-    Ok(window) => window.native(),
-    _ => Platform::desktop_window(),
-  };
-
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  if Platform::foreground_window() != native_window {
-    let _ = native_window.set_foreground();
-  }
+  match focused_container.as_window_container() {
+    Ok(window) => {
+      if Platform::foreground_window() != *window.native() {
+        let _ = window.native().set_foreground();
+      }
+    }
+    _ => {
+      let desktop_window = Platform::desktop_window();
+
+      if Platform::foreground_window() != desktop_window {
+        let _ = desktop_window.set_foreground();
+      }
+    }
+  };
 
   // TODO: Change z-index of workspace windows that match the focused
   // container's state. Make sure not to decrease z-index for floating

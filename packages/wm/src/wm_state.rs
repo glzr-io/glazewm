@@ -234,7 +234,7 @@ impl WmState {
     self
       .windows()
       .into_iter()
-      .find(|w| w.native() == *native_window)
+      .find(|window| &*window.native() == native_window)
   }
 
   pub fn workspace_by_name(
@@ -244,7 +244,7 @@ impl WmState {
     self
       .workspaces()
       .into_iter()
-      .find(|w| w.config().name == workspace_name)
+      .find(|workspace| workspace.config().name == workspace_name)
   }
 
   /// Gets windows that should be redrawn.
