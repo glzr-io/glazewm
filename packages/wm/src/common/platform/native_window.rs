@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex, MutexGuard, RwLock};
-
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -35,62 +33,25 @@ use windows::{
 };
 
 use crate::{
-  common::{Color, DisplayState, LengthValue, Rect, RectDelta},
+  common::{Color, DisplayState, LengthValue, Memo, Rect, RectDelta},
   windows::WindowState,
 };
-
-struct Memo<T>
-where
-  T: Clone,
-{
-  value: Arc<Mutex<Option<T>>>,
-  retriever: Arc<dyn Fn(&NativeWindow) -> T + Send + Sync>,
-}
-
-impl<T> Memo<T>
-where
-  T: Clone,
-{
-  fn new<F>(retriever: F) -> Self
-  where
-    F: Fn(&NativeWindow) -> T + Send + Sync + 'static,
-  {
-    Memo {
-      value: Arc::new(Mutex::new(None)),
-      retriever: Arc::new(retriever),
-    }
-  }
-
-  fn get(&self, native: &NativeWindow) -> MutexGuard<Option<T>> {
-    let mut value_ref = self.value.lock().unwrap();
-    if value_ref.is_none() {
-      let new_value = (self.retriever)(native);
-      *value_ref = Some(new_value);
-    }
-    value_ref
-  }
-
-  fn refresh(&self, native: &NativeWindow) {
-    let mut value_ref = self.value.lock().unwrap();
-    let new_value = (self.retriever)(native);
-    *value_ref = Some(new_value);
-  }
-}
 
 pub struct NativeWindow {
   pub handle: isize,
   title: Memo<String>,
-  process_name: Arc<RwLock<Option<String>>>,
-  class_name: Arc<RwLock<Option<String>>>,
+  process_name: Memo<String>,
+  class_name: Memo<String>,
 }
 
 impl NativeWindow {
+  /// Creates a new `NativeWindow` instance with the given window handle.
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
-      title: Memo::new(Self::updated_title),
-      process_name: Arc::new(RwLock::new(None)),
-      class_name: Arc::new(RwLock::new(None)),
+      title: Memo::new(),
+      process_name: Memo::new(),
+      class_name: Memo::new(),
     }
   }
 
@@ -98,84 +59,85 @@ impl NativeWindow {
   /// string.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn title(&self) -> String {
-    self.title.get(self).as_ref().unwrap().to_string()
+  pub fn title(&self) -> anyhow::Result<String> {
+    self.title.get_or_init(Self::updated_title, self)
   }
 
-  fn updated_title(&self) -> String {
+  /// Updates the cached window title.
+  pub fn refresh_title(&self) -> anyhow::Result<String> {
+    self.title.update(Self::updated_title, self)
+  }
+
+  /// Gets the window's title. If the window is invalid, returns an empty
+  /// string.
+  fn updated_title(&self) -> anyhow::Result<String> {
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
-    String::from_utf16_lossy(&text[..length as usize]).into()
+    Ok(String::from_utf16_lossy(&text[..length as usize]).into())
   }
 
   /// Gets the process name associated with the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   pub fn process_name(&self) -> anyhow::Result<String> {
-    let process_name_guard = self.process_name.read().unwrap();
-    match *process_name_guard {
-      Some(ref process_name) => Ok(process_name.clone()),
-      None => {
-        let mut process_id = 0u32;
-        unsafe {
-          GetWindowThreadProcessId(
-            HWND(self.handle),
-            Some(&mut process_id),
-          );
-        }
+    self
+      .process_name
+      .get_or_init(Self::updated_process_name, self)
+  }
 
-        let process_handle = unsafe {
-          OpenProcess(PROCESS_QUERY_INFORMATION, false, process_id)
-        }?;
-
-        let mut buffer = [0u16; 256];
-        let mut length = buffer.len() as u32;
-        unsafe {
-          QueryFullProcessImageNameW(
-            process_handle,
-            PROCESS_NAME_WIN32,
-            PWSTR(buffer.as_mut_ptr()),
-            &mut length,
-          )?;
-
-          CloseHandle(process_handle)?;
-        };
-
-        let process_name = String::from_utf16(&buffer[..length as usize])?;
-        *self.process_name.write().unwrap() = Some(process_name.clone());
-        Ok(process_name)
-      }
+  /// Gets the process name associated with the window.
+  fn updated_process_name(&self) -> anyhow::Result<String> {
+    let mut process_id = 0u32;
+    unsafe {
+      GetWindowThreadProcessId(HWND(self.handle), Some(&mut process_id));
     }
+
+    let process_handle = unsafe {
+      OpenProcess(PROCESS_QUERY_INFORMATION, false, process_id)
+    }?;
+
+    let mut buffer = [0u16; 256];
+    let mut length = buffer.len() as u32;
+    unsafe {
+      QueryFullProcessImageNameW(
+        process_handle,
+        PROCESS_NAME_WIN32,
+        PWSTR(buffer.as_mut_ptr()),
+        &mut length,
+      )?;
+
+      CloseHandle(process_handle)?;
+    };
+
+    let process_name = String::from_utf16(&buffer[..length as usize])?;
+    Ok(process_name)
   }
 
   /// Gets the class name of the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   pub fn class_name(&self) -> anyhow::Result<String> {
-    let class_name_guard = self.class_name.read().unwrap();
-    match *class_name_guard {
-      Some(ref class_name) => Ok(class_name.clone()),
-      None => {
-        let mut buffer = [0u16; 256];
-        let result =
-          unsafe { GetClassNameW(HWND(self.handle), &mut buffer) };
+    self.class_name.get_or_init(Self::updated_class_name, self)
+  }
 
-        if result == 0 {
-          return Err(windows::core::Error::from_win32().into());
-        }
+  /// Gets the class name of the window.
+  fn updated_class_name(&self) -> anyhow::Result<String> {
+    let mut buffer = [0u16; 256];
+    let result = unsafe { GetClassNameW(HWND(self.handle), &mut buffer) };
 
-        let class_name =
-          String::from_utf16_lossy(&buffer[..result as usize]);
-        *self.class_name.write().unwrap() = Some(class_name.clone());
-        Ok(class_name)
-      }
+    if result == 0 {
+      return Err(windows::core::Error::from_win32().into());
     }
+
+    let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
+    Ok(class_name)
   }
 
   /// Whether the window is actually visible.
   pub fn is_visible(&self) -> bool {
     let is_visible =
       unsafe { IsWindowVisible(HWND(self.handle)) }.as_bool();
+
     is_visible && !self.is_cloaked()
   }
 

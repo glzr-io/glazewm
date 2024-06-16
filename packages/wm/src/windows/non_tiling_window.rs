@@ -76,9 +76,11 @@ impl NonTilingWindow {
   }
 
   pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
+    let native = std::mem::take(&mut self.0.borrow_mut().native);
+
     TilingWindow::new(
       Some(self.id()),
-      std::mem::take(&mut self.0.borrow_mut().native),
+      native,
       Some(self.state()),
       self.border_delta(),
       self.floating_placement(),

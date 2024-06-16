@@ -81,9 +81,11 @@ impl TilingWindow {
     state: WindowState,
     insertion_target: Option<(Container, usize)>,
   ) -> NonTilingWindow {
+    let native = std::mem::take(&mut self.0.borrow_mut().native);
+
     NonTilingWindow::new(
       Some(self.id()),
-      std::mem::take(&mut self.0.borrow_mut().native),
+      native,
       state,
       Some(WindowState::Tiling),
       self.border_delta(),
