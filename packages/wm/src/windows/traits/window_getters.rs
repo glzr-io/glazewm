@@ -5,6 +5,7 @@ use enum_dispatch::enum_dispatch;
 use crate::{
   common::{platform::NativeWindow, DisplayState, Rect, RectDelta},
   containers::WindowContainer,
+  user_config::UserConfig,
   windows::WindowState,
 };
 
@@ -18,11 +19,43 @@ pub trait WindowGetters {
 
   fn set_prev_state(&self, state: WindowState);
 
-  fn toggled_state(&self, target_state: WindowState) -> WindowState {
-    match self.state() == target_state {
-      true => self.prev_state().unwrap_or(WindowState::Tiling),
-      false => target_state,
-    }
+  /// Gets the "toggled" window state based on the current state and a
+  /// given target state.
+  ///
+  /// This will return the first valid state in the following order:
+  /// 1. If the window is not currently in the target state, return the
+  ///    target state.
+  /// 2. The previous state exists if one exists.
+  /// 3. The state from `window_behavior.initial_state` in the user config.
+  /// 4. Default to either floating/tiling depending on the current state.
+  fn toggled_state(
+    &self,
+    target_state: WindowState,
+    config: &UserConfig,
+  ) -> WindowState {
+    let possible_states = [
+      Some(target_state),
+      self.prev_state(),
+      Some(WindowState::default_from_config(config)),
+    ];
+
+    // Return the first possible state with a different discriminant.
+    possible_states
+      .into_iter()
+      .find_map(|state| {
+        state.filter(|state| {
+          std::mem::discriminant(state)
+            != std::mem::discriminant(&self.state())
+        })
+      })
+      // Default to tiling from a non-tiling state, and floating from a
+      // tiling state.
+      .unwrap_or_else(|| match self.state() {
+        WindowState::Tiling => WindowState::Floating(
+          config.value.window_behavior.state_defaults.floating.clone(),
+        ),
+        _ => WindowState::Tiling,
+      })
   }
 
   fn native(&self) -> Ref<NativeWindow>;

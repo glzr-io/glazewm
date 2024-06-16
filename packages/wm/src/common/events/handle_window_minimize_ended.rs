@@ -24,8 +24,9 @@ pub fn handle_window_minimize_ended(
       // TODO: Log window details.
       info!("Window minimize ended");
 
-      let target_state =
-        window.prev_state().unwrap_or(WindowState::Tiling);
+      let target_state = window
+        .prev_state()
+        .unwrap_or(WindowState::default_from_config(config));
 
       update_window_state(window.clone(), target_state, state, config)?;
     }

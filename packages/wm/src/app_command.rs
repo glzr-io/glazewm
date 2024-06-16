@@ -415,7 +415,7 @@ impl InvokeCommand {
 
           update_window_state(
             window.clone(),
-            window.toggled_state(target_state),
+            window.toggled_state(target_state, config),
             state,
             config,
           )
@@ -443,7 +443,7 @@ impl InvokeCommand {
 
           update_window_state(
             window.clone(),
-            window.toggled_state(target_state),
+            window.toggled_state(target_state, config),
             state,
             config,
           )
@@ -454,7 +454,7 @@ impl InvokeCommand {
         match subject_container.as_window_container() {
           Ok(window) => update_window_state(
             window.clone(),
-            window.toggled_state(WindowState::Minimized),
+            window.toggled_state(WindowState::Minimized, config),
             state,
             config,
           ),
@@ -465,7 +465,7 @@ impl InvokeCommand {
         match subject_container.as_window_container() {
           Ok(window) => update_window_state(
             window.clone(),
-            window.toggled_state(WindowState::Tiling),
+            window.toggled_state(WindowState::Tiling, config),
             state,
             config,
           ),

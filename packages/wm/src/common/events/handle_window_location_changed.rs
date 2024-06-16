@@ -44,8 +44,9 @@ pub fn handle_window_location_changed(
         if !(is_fullscreen || is_maximized) && !is_minimized {
           info!("Window restored");
 
-          let target_state =
-            window.prev_state().unwrap_or(WindowState::Tiling);
+          let target_state = window
+            .prev_state()
+            .unwrap_or(WindowState::default_from_config(config));
 
           update_window_state(
             window.clone(),

@@ -183,7 +183,7 @@ fn window_state_to_create(
     ));
   }
 
-  Ok(WindowState::Tiling)
+  Ok(WindowState::default_from_config(config))
 }
 
 fn insertion_target(
