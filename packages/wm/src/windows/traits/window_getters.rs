@@ -14,6 +14,13 @@ pub trait WindowGetters {
 
   fn prev_state(&self) -> Option<WindowState>;
 
+  fn toggled_state(&self, target_state: WindowState) -> WindowState {
+    match self.state() == target_state {
+      true => self.prev_state().unwrap_or(WindowState::Tiling),
+      false => target_state,
+    }
+  }
+
   fn native(&self) -> Ref<NativeWindow>;
 
   fn border_delta(&self) -> RectDelta;

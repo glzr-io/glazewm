@@ -9,9 +9,7 @@ use crate::{
   },
   user_config::{FullscreenStateConfig, UserConfig},
   windows::{
-    commands::{toggle_window_state, update_window_state},
-    traits::WindowGetters,
-    WindowState,
+    commands::update_window_state, traits::WindowGetters, WindowState,
   },
   wm_state::WmState,
 };
@@ -25,11 +23,9 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    _ = window.native().refresh_border_position()?;
-    let frame_position = window.native().refresh_frame_position()?;
-
     let old_is_maximized = window.native().is_maximized()?;
     let is_maximized = window.native().refresh_is_maximized()?;
+    let frame_position = window.native().refresh_frame_position()?;
 
     let nearest_monitor = state
       .nearest_monitor(&window.native())
@@ -44,14 +40,20 @@ pub fn handle_window_location_changed(
         // A fullscreen window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
-        if !(is_fullscreen || is_maximized) && is_minimized {
+        if !(is_fullscreen || is_maximized) && !is_minimized {
           info!("Window restored");
-          toggle_window_state(
+
+          let target_state =
+            window.prev_state().unwrap_or(WindowState::Tiling);
+
+          update_window_state(
             window.clone(),
-            window.state(),
+            target_state,
             state,
             config,
           )?;
+
+          state.pending_sync.containers_to_redraw.push(window.into());
         }
       }
       _ => {
@@ -61,6 +63,7 @@ pub fn handle_window_location_changed(
           || window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
         {
           info!("Window fullscreened");
+
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {

@@ -318,6 +318,8 @@ impl NativeWindow {
 
   /// Updates the cached frame position.
   pub fn refresh_frame_position(&self) -> anyhow::Result<Rect> {
+    _ = self.refresh_border_position()?;
+
     self
       .frame_position
       .update(Self::updated_frame_position, self)

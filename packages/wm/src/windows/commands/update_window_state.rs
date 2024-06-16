@@ -104,7 +104,16 @@ fn set_non_tiling(
 ) -> anyhow::Result<()> {
   match window {
     WindowContainer::NonTilingWindow(window) => {
-      window.set_state(window_state);
+      // A window can only be updated to a minimized state if it is
+      // natively minimized.
+      match window_state {
+        WindowState::Minimized if !window.native().is_minimized()? => {
+          window.native().minimize()?
+        }
+        _ => {
+          window.set_state(window_state);
+        }
+      };
     }
     WindowContainer::TilingWindow(window) => {
       let parent = window.parent().context("No parent")?;

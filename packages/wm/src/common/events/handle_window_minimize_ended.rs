@@ -4,7 +4,7 @@ use crate::{
   common::platform::NativeWindow,
   user_config::UserConfig,
   windows::{
-    commands::toggle_window_state, traits::WindowGetters, WindowState,
+    commands::update_window_state, traits::WindowGetters, WindowState,
   },
   wm_state::WmState,
 };
@@ -21,8 +21,11 @@ pub fn handle_window_minimize_ended(
     if window.state() == WindowState::Minimized {
       // TODO: Log window details.
       info!("Window minimize ended");
-      // TODO: Should use previous state here.
-      toggle_window_state(window, WindowState::Minimized, state, config)?;
+
+      let target_state =
+        window.prev_state().unwrap_or(WindowState::Tiling);
+
+      update_window_state(window.clone(), target_state, state, config)?;
     }
   }
 
