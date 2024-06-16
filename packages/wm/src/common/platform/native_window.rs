@@ -238,10 +238,17 @@ impl NativeWindow {
     self.has_window_style(WS_THICKFRAME)
   }
 
+  /// Whether the window is fullscreen.
+  ///
+  /// Returns `false` if the window is maximized.
   pub fn is_fullscreen(
     &self,
     monitor_rect: &Rect,
   ) -> anyhow::Result<bool> {
+    if self.is_maximized()? {
+      return Ok(false);
+    }
+
     let position = self.frame_position()?;
 
     // Allow for 1px of leeway around edges of monitor.

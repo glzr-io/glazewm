@@ -161,13 +161,11 @@ fn window_state_to_create(
   nearest_monitor: &Monitor,
   config: &UserConfig,
 ) -> anyhow::Result<WindowState> {
-  if native_window.is_minimized() {
+  if native_window.is_minimized()? {
     return Ok(WindowState::Minimized);
   }
 
-  if native_window.is_fullscreen(&nearest_monitor.to_rect()?)?
-    && !native_window.is_maximized()
-  {
+  if native_window.is_fullscreen(&nearest_monitor.to_rect()?)? {
     return Ok(WindowState::Fullscreen(
       config
         .value

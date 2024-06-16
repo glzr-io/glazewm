@@ -25,9 +25,11 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    window.native().refresh_border_position()?;
-    window.native().refresh_frame_position()?;
-    window.native().refresh_is_maximized()?;
+    _ = window.native().refresh_border_position()?;
+    let frame_position = window.native().refresh_frame_position()?;
+
+    let old_is_maximized = window.native().is_maximized()?;
+    let is_maximized = window.native().refresh_is_maximized()?;
 
     let nearest_monitor = state
       .nearest_monitor(&window.native())
@@ -35,15 +37,14 @@ pub fn handle_window_location_changed(
 
     match window.state() {
       WindowState::Fullscreen(_) => {
-        window.native().refresh_is_minimized()?;
+        let is_minimized = window.native().refresh_is_minimized()?;
+        let is_fullscreen =
+          window.native().is_fullscreen(&nearest_monitor.to_rect()?)?;
 
         // A fullscreen window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
-        if !window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
-          && !window.native().is_maximized()?
-          && !window.native().is_minimized()?
-        {
+        if !(is_fullscreen || is_maximized) && is_minimized {
           info!("Window restored");
           toggle_window_state(
             window.clone(),
@@ -54,13 +55,16 @@ pub fn handle_window_location_changed(
         }
       }
       _ => {
-        if window.native().is_maximized()?
+        // Update the window to be fullscreen if there's been a change in
+        // maximized state or if the window is now fullscreen.
+        if (is_maximized && old_is_maximized != is_maximized)
           || window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
         {
           info!("Window fullscreened");
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: is_maximized,
               ..config.value.window_behavior.state_defaults.fullscreen
             }),
             state,
@@ -68,8 +72,7 @@ pub fn handle_window_location_changed(
           )?;
         } else if matches!(window.state(), WindowState::Floating(_)) {
           // Update state with the new location of the floating window.
-          let new_position = window.native().frame_position()?;
-          window.set_floating_placement(new_position);
+          window.set_floating_placement(frame_position);
 
           let workspace = window.workspace().context("No workspace.")?;
 
