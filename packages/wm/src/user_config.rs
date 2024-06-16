@@ -259,7 +259,7 @@ pub struct FloatingStateConfig {
 
   /// Whether to show floating windows as always on top.
   #[serde(default = "default_bool::<false>")]
-  pub show_on_top: bool,
+  pub shown_on_top: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -271,7 +271,7 @@ pub struct FullscreenStateConfig {
 
   /// Whether to show fullscreen windows as always on top.
   #[serde(default = "default_bool::<false>")]
-  pub show_on_top: bool,
+  pub shown_on_top: bool,
 
   /// Whether to remove the window's title bar when fullscreen.
   #[serde(default = "default_bool::<false>")]

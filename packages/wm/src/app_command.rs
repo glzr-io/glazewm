@@ -181,14 +181,14 @@ pub enum InvokeCommand {
   Resize(InvokeResizeCommand),
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    show_on_top: Option<bool>,
+    shown_on_top: Option<bool>,
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     centered: Option<bool>,
   },
   SetFullscreen {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    show_on_top: Option<bool>,
+    shown_on_top: Option<bool>,
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     maximized: Option<bool>,
@@ -204,14 +204,14 @@ pub enum InvokeCommand {
   },
   ToggleFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    show_on_top: Option<bool>,
+    shown_on_top: Option<bool>,
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     centered: Option<bool>,
   },
   ToggleFullscreen {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    show_on_top: Option<bool>,
+    shown_on_top: Option<bool>,
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     maximized: Option<bool>,
@@ -333,7 +333,7 @@ impl InvokeCommand {
       }
       InvokeCommand::SetFloating {
         centered,
-        show_on_top,
+        shown_on_top,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
@@ -343,8 +343,8 @@ impl InvokeCommand {
             window.clone(),
             WindowState::Floating(FloatingStateConfig {
               centered: centered.unwrap_or(floating_defaults.centered),
-              show_on_top: show_on_top
-                .unwrap_or(floating_defaults.show_on_top),
+              shown_on_top: shown_on_top
+                .unwrap_or(floating_defaults.shown_on_top),
             }),
             state,
             config,
@@ -354,7 +354,7 @@ impl InvokeCommand {
       },
       InvokeCommand::SetFullscreen {
         maximized,
-        show_on_top,
+        shown_on_top,
         remove_title_bar,
       } => match subject_container.as_window_container() {
         Ok(window) => {
@@ -366,8 +366,8 @@ impl InvokeCommand {
             WindowState::Fullscreen(FullscreenStateConfig {
               maximized: maximized
                 .unwrap_or(fullscreen_defaults.maximized),
-              show_on_top: show_on_top
-                .unwrap_or(fullscreen_defaults.show_on_top),
+              shown_on_top: shown_on_top
+                .unwrap_or(fullscreen_defaults.shown_on_top),
               remove_title_bar: remove_title_bar
                 .unwrap_or(fullscreen_defaults.remove_title_bar),
             }),
@@ -401,7 +401,7 @@ impl InvokeCommand {
       }
       InvokeCommand::ToggleFloating {
         centered,
-        show_on_top,
+        shown_on_top,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
@@ -409,8 +409,8 @@ impl InvokeCommand {
 
           let target_state = WindowState::Floating(FloatingStateConfig {
             centered: centered.unwrap_or(floating_defaults.centered),
-            show_on_top: show_on_top
-              .unwrap_or(floating_defaults.show_on_top),
+            shown_on_top: shown_on_top
+              .unwrap_or(floating_defaults.shown_on_top),
           });
 
           update_window_state(
@@ -424,7 +424,7 @@ impl InvokeCommand {
       },
       InvokeCommand::ToggleFullscreen {
         maximized,
-        show_on_top,
+        shown_on_top,
         remove_title_bar,
       } => match subject_container.as_window_container() {
         Ok(window) => {
@@ -435,8 +435,8 @@ impl InvokeCommand {
             WindowState::Fullscreen(FullscreenStateConfig {
               maximized: maximized
                 .unwrap_or(fullscreen_defaults.maximized),
-              show_on_top: show_on_top
-                .unwrap_or(fullscreen_defaults.show_on_top),
+              shown_on_top: shown_on_top
+                .unwrap_or(fullscreen_defaults.shown_on_top),
               remove_title_bar: remove_title_bar
                 .unwrap_or(fullscreen_defaults.remove_title_bar),
             });

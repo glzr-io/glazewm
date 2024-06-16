@@ -479,8 +479,8 @@ impl NativeWindow {
 
     // Whether the window should be shown above all other windows.
     let z_order = match state {
-      WindowState::Floating(config) if config.show_on_top => HWND_TOPMOST,
-      WindowState::Fullscreen(config) if config.show_on_top => {
+      WindowState::Floating(config) if config.shown_on_top => HWND_TOPMOST,
+      WindowState::Fullscreen(config) if config.shown_on_top => {
         HWND_TOPMOST
       }
       _ => HWND_NOTOPMOST,
