@@ -32,7 +32,7 @@ pub fn handle_window_location_changed(
       .context("Failed to get workspace of nearest monitor.")?;
 
     match window.state() {
-      WindowState::Fullscreen(_) => {
+      WindowState::Fullscreen(fullscreen_state) => {
         let is_minimized = window.native().refresh_is_minimized()?;
         let is_fullscreen =
           window.native().is_fullscreen(&nearest_monitor.to_rect()?)?;
@@ -52,8 +52,18 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
+        } else if is_maximized != old_is_maximized {
+          info!("Updating window's fullscreen state.");
 
-          state.pending_sync.containers_to_redraw.push(window.into());
+          update_window_state(
+            window.clone(),
+            WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: is_maximized,
+              ..fullscreen_state
+            }),
+            state,
+            config,
+          )?;
         }
       }
       _ => {

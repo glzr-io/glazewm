@@ -26,7 +26,7 @@ use windows::{
         SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
         SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
         WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_THICKFRAME,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -487,11 +487,19 @@ impl NativeWindow {
     };
 
     match state {
-      WindowState::Minimized => self.minimize(),
+      WindowState::Minimized => {
+        if !self.is_minimized()? {
+          self.minimize()?;
+        }
+      }
       // TODO: Handle maximized fullscreen on different monitor than
       // window's current position.
-      WindowState::Fullscreen(config) if config.maximized => {
-        self.maximize()
+      WindowState::Fullscreen(config)
+        if config.maximized && self.has_window_style(WS_MAXIMIZEBOX) =>
+      {
+        if !self.is_maximized()? {
+          self.maximize()?;
+        }
       }
       _ => {
         unsafe {
@@ -523,10 +531,10 @@ impl NativeWindow {
             )
           }?;
         }
-
-        Ok(())
       }
-    }
+    };
+
+    Ok(())
   }
 }
 

@@ -2,10 +2,7 @@ use anyhow::Context;
 
 use crate::{
   containers::{
-    commands::{
-      move_container_within_tree, replace_container,
-      set_focused_descendant,
-    },
+    commands::{move_container_within_tree, replace_container},
     traits::CommonGetters,
     WindowContainer,
   },
@@ -16,22 +13,20 @@ use crate::{
 
 /// Updates the state of a window.
 ///
-/// Adds the window for redraw if the window's state changes between
-/// tiling and non-tiling. Does not add the window for redraw if the
-/// window stays in a non-tiling state.
+/// Adds the window for redraw if there is a state change.
 pub fn update_window_state(
   window: WindowContainer,
-  window_state: WindowState,
+  target_state: WindowState,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if window.state() == window_state {
+  if window.state() == target_state {
     return Ok(());
   }
 
-  match window_state {
+  match target_state {
     WindowState::Tiling => set_tiling(window, state, config),
-    _ => set_non_tiling(window, window_state, state),
+    _ => set_non_tiling(window, target_state, state),
   }
 }
 
@@ -99,21 +94,21 @@ fn set_tiling(
 /// `WindowState::Fullscreen`, or `WindowState::Minimized`.
 fn set_non_tiling(
   window: WindowContainer,
-  window_state: WindowState,
+  target_state: WindowState,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  // A window can only be updated to a minimized state if it is
+  // natively minimized.
+  if target_state == WindowState::Minimized
+    && !window.native().is_minimized()?
+  {
+    return window.native().minimize();
+  }
+
   match window {
     WindowContainer::NonTilingWindow(window) => {
-      // A window can only be updated to a minimized state if it is
-      // natively minimized.
-      match window_state {
-        WindowState::Minimized if !window.native().is_minimized()? => {
-          window.native().minimize()?
-        }
-        _ => {
-          window.set_state(window_state);
-        }
-      };
+      window.set_state(target_state);
+      state.pending_sync.containers_to_redraw.push(window.into())
     }
     WindowContainer::TilingWindow(window) => {
       let parent = window.parent().context("No parent")?;
@@ -121,7 +116,7 @@ fn set_non_tiling(
 
       let insertion_target = (parent.clone(), window.index());
       let non_tiling_window =
-        window.to_non_tiling(window_state.clone(), Some(insertion_target));
+        window.to_non_tiling(target_state.clone(), Some(insertion_target));
 
       // Non-tiling windows should always be direct children of the
       // workspace.
@@ -139,18 +134,6 @@ fn set_non_tiling(
         workspace.clone().into(),
         window.index(),
       )?;
-
-      // Focus should be reassigned after a window has been minimized.
-      if window_state == WindowState::Minimized {
-        if let Some(focus_target) = state
-          .focus_target_after_removal(&non_tiling_window.clone().into())
-        {
-          set_focused_descendant(focus_target, None);
-          state.pending_sync.focus_change = true;
-          state.unmanaged_or_minimized_timestamp =
-            Some(std::time::Instant::now());
-        }
-      }
 
       let changed_containers = std::iter::once(non_tiling_window.into())
         .chain(workspace.tiling_children().map(Into::into));

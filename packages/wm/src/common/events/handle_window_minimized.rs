@@ -2,6 +2,7 @@ use tracing::info;
 
 use crate::{
   common::platform::NativeWindow,
+  containers::commands::set_focused_descendant,
   user_config::UserConfig,
   windows::{
     commands::update_window_state, traits::WindowGetters, WindowState,
@@ -18,10 +19,28 @@ pub fn handle_window_minimized(
 
   // Update the window's state to be minimized.
   if let Some(window) = found_window {
-    if window.state() != WindowState::Minimized {
+    let is_minimized = window.native().refresh_is_minimized()?;
+
+    if is_minimized && window.state() != WindowState::Minimized {
       // TODO: Log window details.
       info!("Window minimized");
-      update_window_state(window, WindowState::Minimized, state, config)?;
+
+      update_window_state(
+        window.clone(),
+        WindowState::Minimized,
+        state,
+        config,
+      )?;
+
+      // Focus should be reassigned after a window has been minimized.
+      if let Some(focus_target) =
+        state.focus_target_after_removal(&window.into())
+      {
+        set_focused_descendant(focus_target, None);
+        state.pending_sync.focus_change = true;
+        state.unmanaged_or_minimized_timestamp =
+          Some(std::time::Instant::now());
+      }
     }
   }
 
