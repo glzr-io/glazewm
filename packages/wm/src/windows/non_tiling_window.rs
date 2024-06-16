@@ -71,10 +71,6 @@ impl NonTilingWindow {
     self.0.borrow().insertion_target.clone()
   }
 
-  pub fn set_state(&self, state: WindowState) {
-    self.0.borrow_mut().state = state;
-  }
-
   pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
     let native = std::mem::take(&mut self.0.borrow_mut().native);
 

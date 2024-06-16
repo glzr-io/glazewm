@@ -1,4 +1,5 @@
 use anyhow::Context;
+use tracing::info;
 
 use crate::{
   containers::{
@@ -23,6 +24,8 @@ pub fn update_window_state(
   if window.state() == target_state {
     return Ok(());
   }
+
+  info!("Updating window state: {:?}.", target_state);
 
   match target_state {
     WindowState::Tiling => set_tiling(window, state, config),
@@ -102,11 +105,21 @@ fn set_non_tiling(
   if target_state == WindowState::Minimized
     && !window.native().is_minimized()?
   {
+    info!("No window state update. Minimizing window.");
     return window.native().minimize();
   }
 
   match window {
     WindowContainer::NonTilingWindow(window) => {
+      let current_state = window.state();
+
+      // Update the window's previous state if the discriminant changes.
+      if std::mem::discriminant(&current_state)
+        != std::mem::discriminant(&target_state)
+      {
+        window.set_prev_state(current_state);
+      }
+
       window.set_state(target_state);
       state.pending_sync.containers_to_redraw.push(window.into())
     }

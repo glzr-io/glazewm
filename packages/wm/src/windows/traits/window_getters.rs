@@ -12,7 +12,11 @@ use crate::{
 pub trait WindowGetters {
   fn state(&self) -> WindowState;
 
+  fn set_state(&self, state: WindowState);
+
   fn prev_state(&self) -> Option<WindowState>;
+
+  fn set_prev_state(&self, state: WindowState);
 
   fn toggled_state(&self, target_state: WindowState) -> WindowState {
     match self.state() == target_state {
@@ -27,18 +31,18 @@ pub trait WindowGetters {
 
   fn display_state(&self) -> DisplayState;
 
-  fn set_display_state(&self, display_state: DisplayState) -> ();
+  fn set_display_state(&self, display_state: DisplayState);
 
   fn has_pending_dpi_adjustment(&self) -> bool;
 
   fn set_has_pending_dpi_adjustment(
     &self,
     has_pending_dpi_adjustment: bool,
-  ) -> ();
+  );
 
   fn floating_placement(&self) -> Rect;
 
-  fn set_floating_placement(&self, floating_placement: Rect) -> ();
+  fn set_floating_placement(&self, floating_placement: Rect);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -53,8 +57,16 @@ macro_rules! impl_window_getters {
         self.0.borrow().state.clone()
       }
 
+      fn set_state(&self, state: WindowState) {
+        self.0.borrow_mut().state = state;
+      }
+
       fn prev_state(&self) -> Option<WindowState> {
         self.0.borrow().prev_state.clone()
+      }
+
+      fn set_prev_state(&self, state: WindowState) {
+        self.0.borrow_mut().prev_state = Some(state);
       }
 
       fn native(&self) -> Ref<NativeWindow> {
