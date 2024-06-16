@@ -11,7 +11,7 @@ use crate::{
     commands::{
       disable_binding_mode, enable_binding_mode, reload_config, shell_exec,
     },
-    Direction, LengthValue, ResizeDimension,
+    Direction, LengthValue, RectDelta, ResizeDimension,
   },
   containers::{
     commands::{focus_in_direction, toggle_tiling_direction},
@@ -248,7 +248,25 @@ impl InvokeCommand {
     }
 
     match self {
-      InvokeCommand::AdjustBorders(_) => todo!(),
+      InvokeCommand::AdjustBorders(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            let args = args.clone();
+            let border_delta = RectDelta::new(
+              args.left.unwrap_or(LengthValue::new_px(0.)),
+              args.top.unwrap_or(LengthValue::new_px(0.)),
+              args.right.unwrap_or(LengthValue::new_px(0.)),
+              args.bottom.unwrap_or(LengthValue::new_px(0.)),
+            );
+
+            window.set_border_delta(border_delta);
+            state.pending_sync.containers_to_redraw.push(window.into());
+
+            Ok(())
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
           Ok(window) => window.native().close(),

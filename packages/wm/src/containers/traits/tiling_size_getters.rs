@@ -8,7 +8,7 @@ use super::CommonGetters;
 pub trait TilingSizeGetters: CommonGetters {
   fn tiling_size(&self) -> f32;
 
-  fn set_tiling_size(&self, tiling_size: f32) -> ();
+  fn set_tiling_size(&self, tiling_size: f32);
 
   fn inner_gap(&self) -> LengthValue;
 
@@ -27,7 +27,7 @@ macro_rules! impl_tiling_size_getters {
         self.0.borrow().tiling_size
       }
 
-      fn set_tiling_size(&self, tiling_size: f32) -> () {
+      fn set_tiling_size(&self, tiling_size: f32) {
         self.0.borrow_mut().tiling_size = tiling_size;
       }
 
@@ -35,7 +35,7 @@ macro_rules! impl_tiling_size_getters {
         self.0.borrow().inner_gap.clone()
       }
 
-      fn set_inner_gap(&self, inner_gap: LengthValue) -> () {
+      fn set_inner_gap(&self, inner_gap: LengthValue) {
         self.0.borrow_mut().inner_gap = inner_gap;
       }
     }

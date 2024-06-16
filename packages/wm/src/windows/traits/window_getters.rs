@@ -62,6 +62,8 @@ pub trait WindowGetters {
 
   fn border_delta(&self) -> RectDelta;
 
+  fn set_border_delta(&self, border_delta: RectDelta);
+
   fn display_state(&self) -> DisplayState;
 
   fn set_display_state(&self, display_state: DisplayState);
@@ -108,6 +110,10 @@ macro_rules! impl_window_getters {
 
       fn border_delta(&self) -> RectDelta {
         self.0.borrow().border_delta.clone()
+      }
+
+      fn set_border_delta(&self, border_delta: RectDelta) {
+        self.0.borrow_mut().border_delta = border_delta;
       }
 
       fn display_state(&self) -> DisplayState {

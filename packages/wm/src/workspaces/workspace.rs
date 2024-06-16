@@ -76,7 +76,7 @@ impl Workspace {
   }
 
   /// Update the underlying config for the workspace.
-  pub fn set_config(&self, config: WorkspaceConfig) -> () {
+  pub fn set_config(&self, config: WorkspaceConfig) {
     self.0.borrow_mut().config = config;
   }
 
