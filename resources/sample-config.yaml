@@ -176,6 +176,10 @@ keybindings:
   - commands: ['toggle-floating --centered']
     bindings: ['alt+shift+space']
 
+  # Change the focused window to be tiling.
+  - commands: ['toggle-tiling']
+    bindings: ['alt+t']
+
   # Change the focused window to be fullscreen.
   - commands: ['toggle-fullscreen']
     bindings: ['alt+f']
@@ -206,15 +210,15 @@ keybindings:
   - commands: ['shell-exec --command cmd']
     bindings: ['alt+enter']
 
-  # Focus the workspace that last had focus.
-  - commands: ['focus --recent-workspace']
-    bindings: ['alt+y']
-
   # Focus the next/previous workspace defined in `workspaces` config.
   - commands: ['focus --next-workspace']
-    bindings: ['alt+t']
+    bindings: ['alt+s']
   - commands: ['focus --prev-workspace']
-    bindings: ['alt+shift+t']
+    bindings: ['alt+a']
+
+  # Focus the workspace that last had focus.
+  - commands: ['focus --recent-workspace']
+    bindings: ['alt+d']
 
   # Change focus to a workspace defined in `workspaces` config.
   - commands: ['focus --workspace 1']
