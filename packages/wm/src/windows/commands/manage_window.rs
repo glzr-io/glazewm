@@ -99,15 +99,18 @@ fn create_window(
   // Calculate where window should be placed when floating is enabled. Use
   // the original width/height of the window and optionally position it in
   // the center of the workspace.
-  let floating_placement =
-    if nearest_workspace.id() != target_workspace.id() || prefers_centered
-    {
-      native_window
-        .frame_position()?
-        .translate_to_center(&target_workspace.to_rect()?)
-    } else {
-      native_window.frame_position()?
-    };
+  let is_same_workspace = nearest_workspace.id() == target_workspace.id();
+  let floating_placement = match !is_same_workspace || prefers_centered {
+    true => native_window
+      .frame_position()?
+      .translate_to_center(&target_workspace.to_rect()?),
+    false => native_window.frame_position()?,
+  }
+  // Clamp the window size to 90% of the monitor size.
+  .clamp_size(
+    (nearest_monitor.to_rect()?.width() as f32 * 0.9) as i32,
+    (nearest_monitor.to_rect()?.height() as f32 * 0.9) as i32,
+  );
 
   let border_delta = native_window.border_delta()?;
   let inner_gap = config.value.gaps.inner_gap.clone();
