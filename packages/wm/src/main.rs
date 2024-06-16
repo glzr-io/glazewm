@@ -5,10 +5,10 @@
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
-use std::{env, io, path::PathBuf, process::Child};
+use std::{env, path::PathBuf};
 
 use anyhow::{Context, Error, Result};
-use tokio::{process, process::Command, signal};
+use tokio::{process::Command, signal};
 use tracing::{debug, error, info};
 
 use crate::{
@@ -98,7 +98,7 @@ async fn start_wm(
   loop {
     tokio::select! {
       Some(event) = event_listener.event_rx.recv() => {
-        // debug!("Received platform event: {:?}", event);
+        debug!("Received platform event: {:?}", event);
 
         if let Err(err) = wm.process_event(event, &mut config) {
           error!("Failed to process event: {:?}", err);

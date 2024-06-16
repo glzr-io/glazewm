@@ -25,18 +25,24 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
+    window.native().refresh_border_position()?;
+    window.native().refresh_frame_position()?;
+    window.native().refresh_is_maximized()?;
+
     let nearest_monitor = state
       .nearest_monitor(&window.native())
       .context("Failed to get workspace of nearest monitor.")?;
 
     match window.state() {
       WindowState::Fullscreen(_) => {
+        window.native().refresh_is_minimized()?;
+
         // A fullscreen window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
         if !window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
-          && !window.native().is_maximized()
-          && !window.native().is_minimized()
+          && !window.native().is_maximized()?
+          && !window.native().is_minimized()?
         {
           info!("Window restored");
           toggle_window_state(
@@ -48,7 +54,7 @@ pub fn handle_window_location_changed(
         }
       }
       _ => {
-        if window.native().is_maximized()
+        if window.native().is_maximized()?
           || window.native().is_fullscreen(&nearest_monitor.to_rect()?)?
         {
           info!("Window fullscreened");

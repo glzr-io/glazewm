@@ -37,11 +37,16 @@ use crate::{
   windows::WindowState,
 };
 
+#[derive(Debug)]
 pub struct NativeWindow {
   pub handle: isize,
   title: Memo<String>,
   process_name: Memo<String>,
   class_name: Memo<String>,
+  frame_position: Memo<Rect>,
+  border_position: Memo<Rect>,
+  is_minimized: Memo<bool>,
+  is_maximized: Memo<bool>,
 }
 
 impl NativeWindow {
@@ -52,6 +57,10 @@ impl NativeWindow {
       title: Memo::new(),
       process_name: Memo::new(),
       class_name: Memo::new(),
+      frame_position: Memo::new(),
+      border_position: Memo::new(),
+      is_minimized: Memo::new(),
+      is_maximized: Memo::new(),
     }
   }
 
@@ -73,7 +82,7 @@ impl NativeWindow {
   fn updated_title(&self) -> anyhow::Result<String> {
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
-    Ok(String::from_utf16_lossy(&text[..length as usize]).into())
+    Ok(String::from_utf16_lossy(&text[..length as usize]))
   }
 
   /// Gets the process name associated with the window.
@@ -109,8 +118,7 @@ impl NativeWindow {
       CloseHandle(process_handle)?;
     };
 
-    let process_name = String::from_utf16(&buffer[..length as usize])?;
-    Ok(process_name)
+    Ok(String::from_utf16_lossy(&buffer[..length as usize]))
   }
 
   /// Gets the class name of the window.
@@ -187,14 +195,45 @@ impl NativeWindow {
     !is_menu_window
   }
 
-  pub fn is_minimized(&self) -> bool {
-    unsafe { IsIconic(HWND(self.handle)) }.as_bool()
+  /// Whether the window is minimized.
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
+  pub fn is_minimized(&self) -> anyhow::Result<bool> {
+    self
+      .is_minimized
+      .get_or_init(Self::updated_is_minimized, self)
   }
 
-  pub fn is_maximized(&self) -> bool {
-    unsafe { IsZoomed(HWND(self.handle)) }.as_bool()
+  /// Updates the cached minimized status.
+  pub fn refresh_is_minimized(&self) -> anyhow::Result<bool> {
+    self.is_minimized.update(Self::updated_is_minimized, self)
   }
 
+  /// Whether the window is minimized.
+  fn updated_is_minimized(&self) -> anyhow::Result<bool> {
+    Ok(unsafe { IsIconic(HWND(self.handle)) }.as_bool())
+  }
+
+  /// Whether the window is maximized.
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
+  pub fn is_maximized(&self) -> anyhow::Result<bool> {
+    self
+      .is_maximized
+      .get_or_init(Self::updated_is_maximized, self)
+  }
+
+  /// Updates the cached maximized status.
+  pub fn refresh_is_maximized(&self) -> anyhow::Result<bool> {
+    self.is_maximized.update(Self::updated_is_maximized, self)
+  }
+
+  /// Whether the window is maximized.
+  fn updated_is_maximized(&self) -> anyhow::Result<bool> {
+    Ok(unsafe { IsZoomed(HWND(self.handle)) }.as_bool())
+  }
+
+  /// Whether the window has resize handles.
   pub fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
   }
@@ -262,7 +301,24 @@ impl NativeWindow {
 
   /// Gets the window's position, including the window's frame. Excludes
   /// the window's shadow borders.
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
   pub fn frame_position(&self) -> anyhow::Result<Rect> {
+    self
+      .frame_position
+      .get_or_init(Self::updated_frame_position, self)
+  }
+
+  /// Updates the cached frame position.
+  pub fn refresh_frame_position(&self) -> anyhow::Result<Rect> {
+    self
+      .frame_position
+      .update(Self::updated_frame_position, self)
+  }
+
+  /// Gets the window's position, including the window's frame. Excludes
+  /// the window's shadow borders.
+  fn updated_frame_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
@@ -290,7 +346,24 @@ impl NativeWindow {
 
   /// Gets the window's position, including the window's frame and
   /// shadow borders.
-  fn border_position(&self) -> anyhow::Result<Rect> {
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
+  pub fn border_position(&self) -> anyhow::Result<Rect> {
+    self
+      .border_position
+      .get_or_init(Self::updated_border_position, self)
+  }
+
+  /// Updates the cached border position.
+  pub fn refresh_border_position(&self) -> anyhow::Result<Rect> {
+    self
+      .border_position
+      .update(Self::updated_border_position, self)
+  }
+
+  /// Gets the window's position, including the window's frame and
+  /// shadow borders.
+  fn updated_border_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
     unsafe { GetWindowRect(HWND(self.handle), &mut rect as *mut _ as _) }?;
@@ -367,7 +440,7 @@ impl NativeWindow {
       // Need to restore window if transitioning from maximized fullscreen
       // to non-maximized fullscreen.
       WindowState::Fullscreen(config) => {
-        if !config.maximized && self.is_maximized() {
+        if !config.maximized && self.is_maximized()? {
           self.restore()?;
         }
       }
@@ -375,7 +448,7 @@ impl NativeWindow {
       // from maximized to minimized works without having to restore.
       WindowState::Minimized => {}
       _ => {
-        if self.is_minimized() || self.is_maximized() {
+        if self.is_minimized()? || self.is_maximized()? {
           self.restore()?;
         }
       }
