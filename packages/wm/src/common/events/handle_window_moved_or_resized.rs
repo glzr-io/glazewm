@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{platform::NativeWindow, LengthValue, ResizeDimension},
+  common::{platform::NativeWindow, LengthValue},
   containers::{
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
@@ -35,20 +35,13 @@ pub fn handle_window_moved_or_resized(
     }
 
     let frame_position = window.native().refresh_frame_position()?;
-    let delta_width = frame_position.width() - window.width()?;
-    let delta_height = frame_position.height() - window.height()?;
+    let width_delta = frame_position.width() - window.width()?;
+    let height_delta = frame_position.height() - window.height()?;
 
     resize_window(
       window.clone().into(),
-      ResizeDimension::Width,
-      LengthValue::new_px(delta_width as f32),
-      state,
-    )?;
-
-    resize_window(
-      window.into(),
-      ResizeDimension::Height,
-      LengthValue::new_px(delta_height as f32),
+      Some(LengthValue::new_px(width_delta as f32)),
+      Some(LengthValue::new_px(height_delta as f32)),
       state,
     )?;
   }

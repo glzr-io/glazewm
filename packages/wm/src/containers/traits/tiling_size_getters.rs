@@ -1,8 +1,12 @@
+use anyhow::Context;
 use enum_dispatch::enum_dispatch;
 
-use crate::{common::LengthValue, containers::TilingContainer};
+use crate::{
+  common::{LengthValue, TilingDirection},
+  containers::{Container, DirectionContainer, TilingContainer},
+};
 
-use super::CommonGetters;
+use super::{CommonGetters, TilingDirectionGetters};
 
 #[enum_dispatch]
 pub trait TilingSizeGetters: CommonGetters {
@@ -13,6 +17,46 @@ pub trait TilingSizeGetters: CommonGetters {
   fn inner_gap(&self) -> LengthValue;
 
   fn set_inner_gap(&self, inner_gap: LengthValue);
+
+  /// Gets the container to resize when resizing a tiling window.
+  fn container_to_resize(
+    &self,
+    is_width_resize: bool,
+  ) -> anyhow::Result<Option<TilingContainer>> {
+    let parent = self.direction_container().context("No parent.")?;
+
+    let tiling_direction = parent.tiling_direction();
+
+    // Whether the resize is in the inverse of its tiling direction.
+    let is_inverse_resize = match tiling_direction {
+      TilingDirection::Horizontal => !is_width_resize,
+      TilingDirection::Vertical => is_width_resize,
+    };
+
+    let container_to_resize = match is_inverse_resize {
+      true => match parent {
+        // Prevent workspaces from being resized.
+        DirectionContainer::Split(parent) => Some(parent.into()),
+        _ => None,
+      },
+      false => {
+        let grandparent = parent.parent().context("No grandparent.")?;
+
+        match self.tiling_siblings().count() > 0 {
+          // Window can only be resized if it has siblings.
+          true => Some(self.as_tiling_container()?),
+          // Resize grandparent in layouts like H[1 V[2 H[3]]], where
+          // container 3 is resized horizontally.
+          false => match grandparent {
+            Container::Split(grandparent) => Some(grandparent.into()),
+            _ => None,
+          },
+        }
+      }
+    };
+
+    Ok(container_to_resize)
+  }
 }
 
 /// Implements the `TilingSizeGetters` trait for a given struct.

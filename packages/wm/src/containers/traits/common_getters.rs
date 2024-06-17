@@ -288,45 +288,6 @@ pub trait CommonGetters {
       .chain(end_ancestor.clone())
       .all(|ancestor| ancestor.focus_index() == 0)
   }
-
-  fn containers_to_flatten_on_detach(
-    &self,
-  ) -> anyhow::Result<Vec<SplitContainer>> {
-    let parent = self.parent().context("No parent.")?;
-    let mut containers_to_flatten = Vec::new();
-
-    // Flatten the parent split container if it'll be empty after removing
-    // the child.
-    if let Some(split_parent) = parent.as_split() {
-      if split_parent.child_count() == 1 {
-        containers_to_flatten.push(split_parent.clone());
-      }
-    }
-
-    let tiling_siblings = self.tiling_siblings().collect::<Vec<_>>();
-
-    // If there is exactly *one* sibling to the detached container, then
-    // flatten that sibling if it's a split container. This is for layouts
-    // like V[1 H[2]] where container 1 gets detached, resulting in V[2].
-    if tiling_siblings.len() == 1 {
-      if let Some(split_sibling) = tiling_siblings[0].as_split() {
-        let split_sibling_parent =
-          split_sibling.parent().context("No parent.")?;
-
-        containers_to_flatten.push(split_sibling.clone());
-
-        // Additionally flatten parent in deeply nested layouts. This for
-        // layouts like H[1 V[2 H[3]]] where container 2 gets detached,
-        // resulting in H[1 3].
-        if let Some(split_sibling_parent) = split_sibling_parent.as_split()
-        {
-          containers_to_flatten.push(split_sibling_parent.clone());
-        }
-      }
-    }
-
-    Ok(containers_to_flatten)
-  }
 }
 
 /// An iterator over ancestors of a given container.

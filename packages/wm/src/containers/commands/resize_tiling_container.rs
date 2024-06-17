@@ -5,6 +5,7 @@ use crate::containers::{
 
 const MIN_TILING_SIZE: f32 = 0.01;
 
+// TODO: Rename to `set_tiling_container_size`.
 pub fn resize_tiling_container(
   container_to_resize: &TilingContainer,
   target_size: f32,

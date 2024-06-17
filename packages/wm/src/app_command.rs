@@ -12,7 +12,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec,
     },
-    Direction, LengthValue, RectDelta, ResizeDimension,
+    Direction, LengthValue, RectDelta,
   },
   containers::{
     commands::{focus_in_direction, toggle_tiling_direction},
@@ -23,7 +23,7 @@ use crate::{
   windows::{
     commands::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, update_window_state,
+      resize_window, set_window_size, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -203,6 +203,8 @@ pub enum InvokeCommand {
     #[clap(long, num_args = 1.., allow_hyphen_values = true)]
     command: Vec<String>,
   },
+  // Reuse `InvokeResizeCommand` struct.
+  Size(InvokeResizeCommand),
   ToggleFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,
@@ -337,27 +339,12 @@ impl InvokeCommand {
       InvokeCommand::MoveWorkspace { direction } => todo!(),
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
-          Ok(window) => {
-            if let Some(width) = &args.width {
-              resize_window(
-                window.clone(),
-                ResizeDimension::Width,
-                width.clone(),
-                state,
-              )?
-            }
-
-            if let Some(height) = &args.height {
-              resize_window(
-                window,
-                ResizeDimension::Height,
-                height.clone(),
-                state,
-              )?
-            }
-
-            Ok(())
-          }
+          Ok(window) => resize_window(
+            window,
+            args.width.clone(),
+            args.height.clone(),
+            state,
+          ),
           _ => Ok(()),
         }
       }
@@ -428,6 +415,17 @@ impl InvokeCommand {
       }
       InvokeCommand::ShellExec { command } => {
         shell_exec(&command.join(" "))
+      }
+      InvokeCommand::Size(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => set_window_size(
+            window,
+            args.width.clone(),
+            args.height.clone(),
+            state,
+          ),
+          _ => Ok(()),
+        }
       }
       InvokeCommand::ToggleFloating {
         centered,
