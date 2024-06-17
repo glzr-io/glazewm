@@ -22,8 +22,8 @@ use crate::{
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
-      move_window_in_direction, move_window_to_workspace, resize_window,
-      update_window_state,
+      ignore_window, move_window_in_direction, move_window_to_workspace,
+      resize_window, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -307,7 +307,12 @@ impl InvokeCommand {
 
         Ok(())
       }
-      InvokeCommand::Ignore => todo!(),
+      InvokeCommand::Ignore => {
+        match subject_container.as_window_container() {
+          Ok(window) => ignore_window(window, state),
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::Move(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {

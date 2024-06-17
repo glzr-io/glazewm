@@ -37,7 +37,7 @@ use crate::{
   windows::WindowState,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NativeWindow {
   pub handle: isize,
   title: Memo<String>,
@@ -545,12 +545,6 @@ impl PartialEq for NativeWindow {
 }
 
 impl Eq for NativeWindow {}
-
-impl Default for NativeWindow {
-  fn default() -> Self {
-    Self::new(0)
-  }
-}
 
 pub fn available_windows() -> anyhow::Result<Vec<NativeWindow>> {
   available_window_handles()?

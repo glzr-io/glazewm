@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 /// A thread-safe type that provides lazy initialization and caching of a
 /// value.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Memo<T>
 where
   T: Clone,

@@ -48,6 +48,10 @@ pub struct WmState {
   /// Configs of currently enabled binding modes.
   pub binding_modes: Vec<BindingModeConfig>,
 
+  /// Windows that the WM should ignore. Windows can be added via the
+  /// `ignore` command.
+  pub ignored_windows: Vec<NativeWindow>,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -80,6 +84,7 @@ impl WmState {
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
+      ignored_windows: Vec::new(),
       has_initialized: false,
       event_tx,
     }
