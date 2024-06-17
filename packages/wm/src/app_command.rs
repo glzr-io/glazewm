@@ -9,7 +9,8 @@ use uuid::Uuid;
 use crate::{
   common::{
     commands::{
-      disable_binding_mode, enable_binding_mode, reload_config, shell_exec,
+      cycle_focus, disable_binding_mode, enable_binding_mode,
+      reload_config, shell_exec,
     },
     Direction, LengthValue, RectDelta, ResizeDimension,
   },
@@ -222,6 +223,13 @@ pub enum InvokeCommand {
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
+  WmCycleFocus {
+    #[clap(long, default_value_t = false)]
+    omit_fullscreen: bool,
+
+    #[clap(long, default_value_t = true)]
+    omit_minimized: bool,
+  },
   WmDisableBindingMode {
     #[clap(long)]
     name: String,
@@ -233,7 +241,6 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
-  WmToggleFocusState,
 }
 
 impl InvokeCommand {
@@ -493,6 +500,10 @@ impl InvokeCommand {
       InvokeCommand::ToggleTilingDirection => {
         toggle_tiling_direction(subject_container, state, config)
       }
+      InvokeCommand::WmCycleFocus {
+        omit_fullscreen,
+        omit_minimized,
+      } => cycle_focus(*omit_fullscreen, *omit_minimized, state, config),
       InvokeCommand::WmDisableBindingMode { name } => {
         disable_binding_mode(name, state);
         Ok(())
@@ -510,7 +521,6 @@ impl InvokeCommand {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
-      InvokeCommand::WmToggleFocusState => todo!(),
     }
   }
 }
