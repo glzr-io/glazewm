@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow,
+  common::{platform::NativeWindow, LengthValue, RectDelta},
   containers::{
     commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
@@ -112,7 +112,15 @@ fn create_window(
     (nearest_monitor.to_rect()?.height() as f32 * 0.9) as i32,
   );
 
-  let border_delta = native_window.border_delta()?;
+  // Window has no border delta unless it's later changed via the
+  // `adjust_borders` command.
+  let border_delta = RectDelta::new(
+    LengthValue::new_px(0.),
+    LengthValue::new_px(0.),
+    LengthValue::new_px(0.),
+    LengthValue::new_px(0.),
+  );
+
   let inner_gap = config.value.gaps.inner_gap.clone();
   let window_state =
     window_state_to_create(&native_window, &nearest_monitor, config)?;

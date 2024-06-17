@@ -110,7 +110,8 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
       },
     );
 
-    let rect = window.to_rect()?.apply_delta(&window.border_delta());
+    let rect =
+      window.to_rect()?.apply_delta(&window.total_border_delta()?);
 
     let _ = window.native().set_position(
       &window.state(),

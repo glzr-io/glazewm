@@ -387,7 +387,7 @@ impl NativeWindow {
 
   /// Gets the delta between the window's frame and the window's border.
   /// This represents the size of a window's shadow borders.
-  pub fn border_delta(&self) -> anyhow::Result<RectDelta> {
+  pub fn shadow_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_pos = self.border_position()?;
     let frame_pos = self.frame_position()?;
 

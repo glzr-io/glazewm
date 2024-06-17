@@ -3,7 +3,9 @@ use std::cell::Ref;
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState, Rect, RectDelta},
+  common::{
+    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
+  },
   containers::WindowContainer,
   user_config::UserConfig,
   windows::WindowState,
@@ -63,6 +65,31 @@ pub trait WindowGetters {
   fn border_delta(&self) -> RectDelta;
 
   fn set_border_delta(&self, border_delta: RectDelta);
+
+  fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
+    let border_delta = self.border_delta();
+    let shadow_border_delta = self.native().shadow_border_delta()?;
+
+    // TODO: Allow percentage length values.
+    Ok(RectDelta {
+      left: LengthValue::new_px(
+        (border_delta.left.to_pixels(0)
+          + shadow_border_delta.left.to_pixels(0)) as f32,
+      ),
+      right: LengthValue::new_px(
+        (border_delta.right.to_pixels(0)
+          + shadow_border_delta.right.to_pixels(0)) as f32,
+      ),
+      top: LengthValue::new_px(
+        (border_delta.top.to_pixels(0)
+          + shadow_border_delta.top.to_pixels(0)) as f32,
+      ),
+      bottom: LengthValue::new_px(
+        (border_delta.bottom.to_pixels(0)
+          + shadow_border_delta.bottom.to_pixels(0)) as f32,
+      ),
+    })
+  }
 
   fn display_state(&self) -> DisplayState;
 
