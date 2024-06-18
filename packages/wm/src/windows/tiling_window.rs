@@ -93,14 +93,16 @@ impl TilingWindow {
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let rect = self.to_rect()?;
+
     Ok(ContainerDto::Window(WindowDto {
       id: self.id(),
       parent: self.parent().map(|parent| parent.id()),
       tiling_size: Some(self.tiling_size()),
-      width: self.width()?,
-      height: self.height()?,
-      x: self.x()?,
-      y: self.y()?,
+      width: rect.width(),
+      height: rect.height(),
+      x: rect.x(),
+      y: rect.y(),
       state: self.state(),
       prev_state: self.prev_state(),
       display_state: self.display_state(),

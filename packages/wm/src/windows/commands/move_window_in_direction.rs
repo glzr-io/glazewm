@@ -496,9 +496,9 @@ fn new_floating_position(
 
   let (monitor_length, window_length) = match direction {
     Direction::Up | Direction::Down => {
-      (monitor.height()?, window_pos.height())
+      (monitor_rect.height(), window_pos.height())
     }
-    _ => (monitor.width()?, window_pos.width()),
+    _ => (monitor_rect.width(), window_pos.width()),
   };
 
   let length_delta = monitor_length - window_length;

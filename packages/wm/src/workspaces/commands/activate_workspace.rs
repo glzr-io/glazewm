@@ -26,11 +26,12 @@ pub fn activate_workspace(
   let workspace_config =
     workspace_config(workspace_name, target_monitor, state, config)?;
 
-  let tiling_direction =
-    match target_monitor.height()? > target_monitor.width()? {
-      true => TilingDirection::Vertical,
-      false => TilingDirection::Horizontal,
-    };
+  let monitor_rect = target_monitor.to_rect()?;
+  let tiling_direction = match monitor_rect.height() > monitor_rect.width()
+  {
+    true => TilingDirection::Vertical,
+    false => TilingDirection::Horizontal,
+  };
 
   let workspace = Workspace::new(
     workspace_config.clone(),

@@ -34,9 +34,11 @@ pub fn handle_window_moved_or_resized(
       return Ok(());
     }
 
-    let frame_position = window.native().refresh_frame_position()?;
-    let width_delta = frame_position.width() - window.width()?;
-    let height_delta = frame_position.height() - window.height()?;
+    let new_position = window.native().refresh_frame_position()?;
+    let old_position = window.to_rect()?;
+
+    let width_delta = new_position.width() - old_position.width();
+    let height_delta = new_position.height() - old_position.height();
 
     resize_window(
       window.clone().into(),

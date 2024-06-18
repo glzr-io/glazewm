@@ -9,22 +9,7 @@ use crate::{
 
 #[enum_dispatch]
 pub trait PositionGetters {
-  fn width(&self) -> anyhow::Result<i32>;
-
-  fn height(&self) -> anyhow::Result<i32>;
-
-  fn x(&self) -> anyhow::Result<i32>;
-
-  fn y(&self) -> anyhow::Result<i32>;
-
-  fn to_rect(&self) -> anyhow::Result<Rect> {
-    Ok(Rect::from_xy(
-      self.x()?,
-      self.y()?,
-      self.width()?,
-      self.height()?,
-    ))
-  }
+  fn to_rect(&self) -> anyhow::Result<Rect>;
 }
 
 /// Implements the `PositionGetters` trait for tiling containers that can
@@ -36,98 +21,70 @@ pub trait PositionGetters {
 macro_rules! impl_position_getters_as_resizable {
   ($struct_name:ident) => {
     impl PositionGetters for $struct_name {
-      fn width(&self) -> anyhow::Result<i32> {
+      fn to_rect(&self) -> anyhow::Result<Rect> {
         let parent = self
           .parent()
-          .and_then(|p| p.as_direction_container().ok())
+          .and_then(|parent| parent.as_direction_container().ok())
           .context("Parent does not have a tiling direction.")?;
 
-        match parent.tiling_direction() {
-          TilingDirection::Vertical => parent.width(),
-          TilingDirection::Horizontal => {
-            let inner_gap = self.inner_gap().to_px(
-              self.monitor().context("No parent monitor.")?.width()?,
-            );
+        let parent_rect = parent.to_rect()?;
+        let monitor = self.monitor().context("No monitor.")?;
 
-            let available_width = parent.width()?
-              - inner_gap * self.tiling_siblings().count() as i32;
-
-            Ok((self.tiling_size() * available_width as f32) as i32)
-          }
-        }
-      }
-
-      fn height(&self) -> anyhow::Result<i32> {
-        let parent = self
-          .parent()
-          .and_then(|p| p.as_direction_container().ok())
-          .context("Parent does not have a tiling direction.")?;
-
-        match parent.tiling_direction() {
-          TilingDirection::Horizontal => parent.height(),
+        let inner_gap = match parent.tiling_direction() {
           TilingDirection::Vertical => {
-            let inner_gap = self.inner_gap().to_px(
-              self.monitor().context("No parent monitor.")?.width()?,
-            );
+            self.inner_gap().to_px(monitor.to_rect()?.height())
+          }
+          TilingDirection::Horizontal => {
+            self.inner_gap().to_px(monitor.to_rect()?.width())
+          }
+        };
 
-            let available_height = parent.height()?
+        let (width, height) = match parent.tiling_direction() {
+          TilingDirection::Vertical => {
+            let available_height = parent_rect.height()
               - inner_gap * self.tiling_siblings().count() as i32;
 
-            Ok((self.tiling_size() * available_height as f32) as i32)
+            let height =
+              (self.tiling_size() * available_height as f32) as i32;
+
+            (parent_rect.width(), height)
           }
-        }
-      }
+          TilingDirection::Horizontal => {
+            let available_width = parent_rect.width()
+              - inner_gap * self.tiling_siblings().count() as i32;
 
-      fn x(&self) -> anyhow::Result<i32> {
-        let parent = self
-          .parent()
-          .and_then(|p| p.as_direction_container().ok())
-          .context("Parent does not have a tiling direction.")?;
+            let width =
+              (self.tiling_size() * available_width as f32) as i32;
 
-        let mut prev_siblings = self
-          .prev_siblings()
-          .filter_map(|c| c.as_tiling_container().ok());
+            (width, parent_rect.height())
+          }
+        };
 
-        match prev_siblings.next() {
-          None => parent.x(),
-          Some(prev_sibling) => {
-            if parent.tiling_direction() == TilingDirection::Vertical {
-              return parent.x();
+        let (x, y) = {
+          let mut prev_siblings = self
+            .prev_siblings()
+            .filter_map(|sibling| sibling.as_tiling_container().ok());
+
+          match prev_siblings.next() {
+            None => (parent_rect.x(), parent_rect.y()),
+            Some(sibling) => {
+              let sibling_rect = sibling.to_rect()?;
+
+              match parent.tiling_direction() {
+                TilingDirection::Vertical => (
+                  parent_rect.x(),
+                  sibling_rect.y() + sibling_rect.height() + inner_gap,
+                ),
+                TilingDirection::Horizontal => (
+                  sibling_rect.x() + sibling_rect.width() + inner_gap,
+                  parent_rect.y(),
+                ),
+              }
             }
-
-            let inner_gap = self.inner_gap().to_px(
-              self.monitor().context("No parent monitor.")?.width()?,
-            );
-
-            Ok(prev_sibling.x()? + prev_sibling.width()? + inner_gap)
           }
-        }
-      }
+        };
 
-      fn y(&self) -> anyhow::Result<i32> {
-        let parent = self
-          .parent()
-          .and_then(|p| p.as_direction_container().ok())
-          .context("Parent does not have a tiling direction.")?;
-
-        let mut prev_siblings = self
-          .prev_siblings()
-          .filter_map(|c| c.as_tiling_container().ok());
-
-        match prev_siblings.next() {
-          None => parent.y(),
-          Some(prev_sibling) => {
-            if parent.tiling_direction() == TilingDirection::Horizontal {
-              return parent.y();
-            }
-
-            let inner_gap = self.inner_gap().to_px(
-              self.monitor().context("No parent monitor.")?.width()?,
-            );
-
-            Ok(prev_sibling.y()? + prev_sibling.height()? + inner_gap)
-          }
-        }
+        Ok(Rect::from_xy(x, y, width, height))
       }
     }
   };

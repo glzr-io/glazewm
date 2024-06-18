@@ -27,18 +27,21 @@ pub fn resize_window(
         Ok(tiling_window) => tiling_window
           .container_to_resize(true)?
           .and_then(|container| container.parent())
-          .and_then(|parent| parent.width().ok())
+          .and_then(|parent| {
+            parent.to_rect().ok().map(|rect| rect.width())
+          })
           .map(|parent_width| {
             parent_width
               - tiling_window.inner_gap().to_px(monitor_rect.width())
                 * tiling_window.tiling_siblings().count() as i32
           }),
-        _ => window.parent().and_then(|parent| parent.width().ok()),
+        _ => window.parent().and_then(|parent| {
+          parent.to_rect().ok().map(|rect| rect.width())
+        }),
       };
 
       parent_width.map(|parent_width| {
-        let delta_px = delta.to_px(parent_width);
-        window_rect.width() + delta_px
+        window_rect.width() + delta.to_px(parent_width)
       })
     }
     _ => None,
@@ -50,18 +53,21 @@ pub fn resize_window(
         Ok(tiling_window) => tiling_window
           .container_to_resize(false)?
           .and_then(|container| container.parent())
-          .and_then(|parent| parent.height().ok())
+          .and_then(|parent| {
+            parent.to_rect().ok().map(|rect| rect.width())
+          })
           .map(|parent_height| {
             parent_height
               - tiling_window.inner_gap().to_px(monitor_rect.height())
                 * tiling_window.tiling_siblings().count() as i32
           }),
-        _ => window.parent().and_then(|parent| parent.height().ok()),
+        _ => window.parent().and_then(|parent| {
+          parent.to_rect().ok().map(|rect| rect.width())
+        }),
       };
 
       parent_height.map(|parent_height| {
-        let delta_px = delta.to_px(parent_height);
-        window_rect.height() + delta_px
+        window_rect.height() + delta.to_px(parent_height)
       })
     }
     _ => None,

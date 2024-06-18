@@ -94,6 +94,7 @@ impl Workspace {
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let rect = self.to_rect()?;
     let children = self
       .children()
       .iter()
@@ -105,10 +106,10 @@ impl Workspace {
       parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      width: self.width()?,
-      height: self.height()?,
-      x: self.x()?,
-      y: self.y()?,
+      width: rect.width(),
+      height: rect.height(),
+      x: rect.x(),
+      y: rect.y(),
       tiling_direction: self.tiling_direction(),
     }))
   }
@@ -130,21 +131,5 @@ impl PositionGetters for Workspace {
 
     let outer_gap = &self.0.borrow().outer_gap;
     Ok(working_rect.apply_inverse_delta(outer_gap))
-  }
-
-  fn width(&self) -> anyhow::Result<i32> {
-    Ok(self.to_rect()?.width())
-  }
-
-  fn height(&self) -> anyhow::Result<i32> {
-    Ok(self.to_rect()?.height())
-  }
-
-  fn x(&self) -> anyhow::Result<i32> {
-    Ok(self.to_rect()?.x())
-  }
-
-  fn y(&self) -> anyhow::Result<i32> {
-    Ok(self.to_rect()?.y())
   }
 }

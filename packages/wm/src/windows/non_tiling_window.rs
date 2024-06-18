@@ -83,14 +83,16 @@ impl NonTilingWindow {
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let rect = self.to_rect()?;
+
     Ok(ContainerDto::Window(WindowDto {
       id: self.id(),
       parent: self.parent().map(|parent| parent.id()),
       tiling_size: None,
-      width: self.width()?,
-      height: self.height()?,
-      x: self.x()?,
-      y: self.y()?,
+      width: rect.width(),
+      height: rect.height(),
+      x: rect.x(),
+      y: rect.y(),
       state: self.state(),
       prev_state: self.prev_state(),
       display_state: self.display_state(),
@@ -105,57 +107,12 @@ impl_common_getters!(NonTilingWindow);
 impl_window_getters!(NonTilingWindow);
 
 impl PositionGetters for NonTilingWindow {
-  fn width(&self) -> anyhow::Result<i32> {
-    // TODO: Simplify with a `borrow_monitor_rect` fn.
-    let width = match self.state() {
-      WindowState::Fullscreen(_) => self
-        .monitor()
-        .context("No monitor.")?
-        .native()
-        .rect()?
-        .width(),
-      _ => self.floating_placement().width(),
-    };
-
-    Ok(width)
-  }
-
-  fn height(&self) -> anyhow::Result<i32> {
-    // TODO: Simplify with a `borrow_monitor_rect` fn.
-    let height = match self.state() {
-      WindowState::Fullscreen(_) => self
-        .monitor()
-        .context("No monitor.")?
-        .native()
-        .rect()?
-        .height(),
-      _ => self.floating_placement().height(),
-    };
-
-    Ok(height)
-  }
-
-  fn x(&self) -> anyhow::Result<i32> {
-    // TODO: Simplify with a `borrow_monitor_rect` fn.
-    let x = match self.state() {
+  fn to_rect(&self) -> anyhow::Result<Rect> {
+    match self.state() {
       WindowState::Fullscreen(_) => {
-        self.monitor().context("No monitor.")?.native().rect()?.x()
+        self.monitor().context("No monitor.")?.to_rect()
       }
-      _ => self.floating_placement().x(),
-    };
-
-    Ok(x)
-  }
-
-  fn y(&self) -> anyhow::Result<i32> {
-    // TODO: Simplify with a `borrow_monitor_rect` fn.
-    let y = match self.state() {
-      WindowState::Fullscreen(_) => {
-        self.monitor().context("No monitor.")?.native().rect()?.y()
-      }
-      _ => self.floating_placement().y(),
-    };
-
-    Ok(y)
+      _ => Ok(self.floating_placement()),
+    }
   }
 }

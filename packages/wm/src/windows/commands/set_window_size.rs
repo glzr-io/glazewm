@@ -77,12 +77,12 @@ fn set_tiling_window_length(
     let parent = container_to_resize.parent().context("No parent.")?;
     let parent_length = match is_width_resize {
       true => {
-        parent.width()?
+        parent.to_rect()?.width()
           - window.inner_gap().to_px(monitor_rect.width())
             * window.tiling_siblings().count() as i32
       }
       false => {
-        parent.height()?
+        parent.to_rect()?.height()
           - window.inner_gap().to_px(monitor_rect.height())
             * window.tiling_siblings().count() as i32
       }

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-  common::platform::NativeMonitor,
+  common::{platform::NativeMonitor, Rect},
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
@@ -95,6 +95,7 @@ impl Monitor {
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let rect = self.to_rect()?;
     let children = self
       .children()
       .iter()
@@ -106,10 +107,10 @@ impl Monitor {
       parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      width: self.width()?,
-      height: self.height()?,
-      x: self.x()?,
-      y: self.y()?,
+      width: rect.width(),
+      height: rect.height(),
+      x: rect.x(),
+      y: rect.y(),
       dpi: self.native().dpi()?,
     }))
   }
@@ -119,19 +120,7 @@ impl_container_debug!(Monitor);
 impl_common_getters!(Monitor);
 
 impl PositionGetters for Monitor {
-  fn width(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.rect()?.width())
-  }
-
-  fn height(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.rect()?.height())
-  }
-
-  fn x(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.rect()?.x())
-  }
-
-  fn y(&self) -> anyhow::Result<i32> {
-    Ok(self.0.borrow().native.rect()?.y())
+  fn to_rect(&self) -> anyhow::Result<Rect> {
+    self.0.borrow().native.rect().cloned()
   }
 }

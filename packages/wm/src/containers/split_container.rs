@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-  common::{LengthValue, TilingDirection},
+  common::{LengthValue, Rect, TilingDirection},
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_direction_getters,
   impl_tiling_size_getters,
@@ -74,6 +74,7 @@ impl SplitContainer {
   }
 
   fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let rect = self.to_rect()?;
     let children = self
       .children()
       .iter()
@@ -87,10 +88,10 @@ impl SplitContainer {
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       tiling_size: self.tiling_size(),
       tiling_direction: self.tiling_direction(),
-      width: self.width()?,
-      height: self.height()?,
-      x: self.x()?,
-      y: self.y()?,
+      width: rect.width(),
+      height: rect.height(),
+      x: rect.x(),
+      y: rect.y(),
     }))
   }
 }

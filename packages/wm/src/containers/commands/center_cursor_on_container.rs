@@ -1,21 +1,17 @@
-use crate::common::platform::Platform;
-use crate::containers::traits::PositionGetters;
-use crate::containers::Container;
-use crate::user_config::UserConfig;
-use anyhow::{Error, Result};
+use crate::{
+  common::platform::Platform, containers::traits::PositionGetters,
+  containers::Container, user_config::UserConfig,
+};
 
 pub fn center_cursor_on_container(
-  target: &Container,
+  target: Container,
   config: &UserConfig,
-) -> Result<(), Error> {
-  if !config.value.general.cursor_jump.enabled {
-    return Ok(());
+) -> anyhow::Result<()> {
+  match config.value.general.cursor_jump.enabled {
+    false => Ok(()),
+    true => {
+      let center = target.to_rect()?.center_point();
+      Platform::set_cursor_pos(center.x, center.y)
+    }
   }
-
-  let center_x = target.x()? + (target.width()? / 2);
-  let center_y = target.y()? + (target.height()? / 2);
-
-  Platform::set_cursor_pos(center_x, center_y)?;
-
-  Ok(())
 }

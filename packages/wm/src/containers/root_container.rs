@@ -4,10 +4,11 @@ use std::{
   rc::Rc,
 };
 
+use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{impl_common_getters, impl_container_debug};
+use crate::{common::Rect, impl_common_getters, impl_container_debug};
 
 use super::{
   traits::{CommonGetters, PositionGetters},
@@ -70,19 +71,7 @@ impl_container_debug!(RootContainer);
 impl_common_getters!(RootContainer);
 
 impl PositionGetters for RootContainer {
-  fn width(&self) -> anyhow::Result<i32> {
-    Ok(0)
-  }
-
-  fn height(&self) -> anyhow::Result<i32> {
-    Ok(0)
-  }
-
-  fn x(&self) -> anyhow::Result<i32> {
-    Ok(0)
-  }
-
-  fn y(&self) -> anyhow::Result<i32> {
-    Ok(0)
+  fn to_rect(&self) -> anyhow::Result<Rect> {
+    bail!("Root container does not have a position.")
   }
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Direction, RectDelta};
+use super::{Direction, Point, RectDelta};
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Rect {
@@ -108,11 +108,11 @@ impl Rect {
     )
   }
 
-  pub fn center_point(&self) -> (i32, i32) {
-    (
-      self.left + (self.width() / 2),
-      self.top + (self.height() / 2),
-    )
+  pub fn center_point(&self) -> Point {
+    Point {
+      x: self.left + (self.width() / 2),
+      y: self.top + (self.height() / 2),
+    }
   }
 
   // TODO: Pass in a `Rect` for unit conversion.
