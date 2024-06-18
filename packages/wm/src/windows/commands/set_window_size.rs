@@ -66,6 +66,9 @@ fn set_tiling_window_length(
   is_width_resize: bool,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  let monitor = window.monitor().context("No monitor")?;
+  let monitor_rect = monitor.to_rect()?;
+
   // When resizing a tiling window, the container to resize can actually be
   // an ancestor split container.
   let container_to_resize = window.container_to_resize(is_width_resize)?;
@@ -73,9 +76,17 @@ fn set_tiling_window_length(
   if let Some(container_to_resize) = container_to_resize {
     let parent = container_to_resize.parent().context("No parent.")?;
     let parent_length = match is_width_resize {
-      true => parent.width(),
-      false => parent.height(),
-    }?;
+      true => {
+        parent.width()?
+          - window.inner_gap().to_pixels(monitor_rect.width())
+            * window.tiling_siblings().count() as i32
+      }
+      false => {
+        parent.height()?
+          - window.inner_gap().to_pixels(monitor_rect.height())
+            * window.tiling_siblings().count() as i32
+      }
+    };
 
     // Convert the target length to a tiling size.
     let tiling_size = target_length.to_percent(parent_length);

@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::{
   common::LengthValue,
   containers::{
@@ -15,6 +17,8 @@ pub fn resize_window(
   height_delta: Option<LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  let monitor = window.monitor().context("No monitor")?;
+  let monitor_rect = monitor.to_rect()?;
   let window_rect = window.to_rect()?;
 
   let target_width = match width_delta {
@@ -22,14 +26,19 @@ pub fn resize_window(
       let parent_width = match window.as_tiling_container() {
         Ok(tiling_window) => tiling_window
           .container_to_resize(true)?
-          .map(|container| container.as_container()),
-        _ => Some(window.clone().into()),
-      }
-      .and_then(|container| container.parent())
-      .and_then(|parent| parent.width().ok());
+          .and_then(|container| container.parent())
+          .and_then(|parent| parent.width().ok())
+          .map(|parent_width| {
+            parent_width
+              - tiling_window.inner_gap().to_pixels(monitor_rect.width())
+                * tiling_window.tiling_siblings().count() as i32
+          }),
+        _ => window.parent().and_then(|parent| parent.width().ok()),
+      };
 
       parent_width.map(|parent_width| {
-        window_rect.width() + delta.to_pixels(parent_width)
+        let delta_px = delta.to_pixels(parent_width);
+        window_rect.width() + delta_px
       })
     }
     _ => None,
@@ -40,14 +49,19 @@ pub fn resize_window(
       let parent_height = match window.as_tiling_container() {
         Ok(tiling_window) => tiling_window
           .container_to_resize(false)?
-          .map(|container| container.as_container()),
-        _ => Some(window.clone().into()),
-      }
-      .and_then(|container| container.parent())
-      .and_then(|parent| parent.height().ok());
+          .and_then(|container| container.parent())
+          .and_then(|parent| parent.height().ok())
+          .map(|parent_height| {
+            parent_height
+              - tiling_window.inner_gap().to_pixels(monitor_rect.height())
+                * tiling_window.tiling_siblings().count() as i32
+          }),
+        _ => window.parent().and_then(|parent| parent.height().ok()),
+      };
 
       parent_height.map(|parent_height| {
-        window_rect.height() + delta.to_pixels(parent_height)
+        let delta_px = delta.to_pixels(parent_height);
+        window_rect.height() + delta_px
       })
     }
     _ => None,
