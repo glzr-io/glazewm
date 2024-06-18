@@ -106,10 +106,10 @@ fn create_window(
       .translate_to_center(&target_workspace.to_rect()?),
     false => native_window.frame_position()?,
   }
-  // Clamp the window size to 90% of the monitor size.
+  // Clamp the window size to 90% of the workspace size.
   .clamp_size(
-    (nearest_monitor.to_rect()?.width() as f32 * 0.9) as i32,
-    (nearest_monitor.to_rect()?.height() as f32 * 0.9) as i32,
+    (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
+    (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
   );
 
   // Window has no border delta unless it's later changed via the

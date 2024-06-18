@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-  common::{RectDelta, TilingDirection},
+  common::{Rect, RectDelta, TilingDirection},
   containers::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
@@ -89,10 +89,6 @@ impl Workspace {
       .unwrap_or(false)
   }
 
-  fn outer_gap(&self) -> Ref<'_, RectDelta> {
-    Ref::map(self.0.borrow(), |inner| &inner.outer_gap)
-  }
-
   pub fn set_outer_gap(&self, outer_gap: RectDelta) {
     self.0.borrow_mut().outer_gap = outer_gap;
   }
@@ -123,35 +119,32 @@ impl_common_getters!(Workspace);
 impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
-  fn width(&self) -> anyhow::Result<i32> {
-    let parent = self.parent().context("Workspace has no parent.")?;
+  fn to_rect(&self) -> anyhow::Result<Rect> {
+    let working_rect = self
+      .monitor()
+      .context("Workspace has no parent monitor.")?
+      .native()
+      .working_rect()
+      .cloned()
+      .context("Failed to get working area of parent monitor.")?;
 
-    Ok(
-      parent.width()?
-        - self.outer_gap().left.to_pixels(parent.width()?)
-        - self.outer_gap().right.to_pixels(parent.width()?),
-    )
+    let outer_gap = &self.0.borrow().outer_gap;
+    Ok(working_rect.apply_inverse_delta(outer_gap))
+  }
+
+  fn width(&self) -> anyhow::Result<i32> {
+    Ok(self.to_rect()?.width())
   }
 
   fn height(&self) -> anyhow::Result<i32> {
-    let parent = self.parent().context("Workspace has no parent.")?;
-
-    Ok(
-      parent.height()?
-        - self.outer_gap().top.to_pixels(parent.height()?)
-        - self.outer_gap().bottom.to_pixels(parent.height()?),
-    )
+    Ok(self.to_rect()?.height())
   }
 
   fn x(&self) -> anyhow::Result<i32> {
-    let parent = self.parent().context("Workspace has no parent.")?;
-
-    Ok(parent.x()? + self.outer_gap().left.to_pixels(parent.width()?))
+    Ok(self.to_rect()?.x())
   }
 
   fn y(&self) -> anyhow::Result<i32> {
-    let parent = self.parent().context("Workspace has no parent.")?;
-
-    Ok(parent.y()? + self.outer_gap().top.to_pixels(parent.height()?))
+    Ok(self.to_rect()?.y())
   }
 }
