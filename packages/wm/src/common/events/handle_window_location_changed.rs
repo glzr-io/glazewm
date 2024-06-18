@@ -4,8 +4,7 @@ use tracing::info;
 use crate::{
   common::platform::NativeWindow,
   containers::{
-    commands::move_container_within_tree,
-    traits::{CommonGetters, PositionGetters},
+    commands::move_container_within_tree, traits::CommonGetters,
   },
   user_config::{FullscreenStateConfig, UserConfig},
   windows::{

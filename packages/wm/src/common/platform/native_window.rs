@@ -392,10 +392,10 @@ impl NativeWindow {
     let frame_pos = self.frame_position()?;
 
     Ok(RectDelta::new(
-      LengthValue::new_px((frame_pos.left - border_pos.left) as f32),
-      LengthValue::new_px((frame_pos.top - border_pos.top) as f32),
-      LengthValue::new_px((border_pos.right - frame_pos.right) as f32),
-      LengthValue::new_px((border_pos.bottom - frame_pos.bottom) as f32),
+      LengthValue::from_px(frame_pos.left - border_pos.left),
+      LengthValue::from_px(frame_pos.top - border_pos.top),
+      LengthValue::from_px(border_pos.right - frame_pos.right),
+      LengthValue::from_px(border_pos.bottom - frame_pos.bottom),
     ))
   }
 

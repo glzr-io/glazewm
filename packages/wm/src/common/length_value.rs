@@ -13,32 +13,29 @@ pub struct LengthValue {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LengthUnit {
-  Pixel,
   Percentage,
+  Pixel,
 }
 
 impl LengthValue {
-  // TODO: Rename `from_px`.
-  pub fn new_px(amount: f32) -> Self {
+  pub fn from_px(px: i32) -> Self {
     Self {
-      amount,
+      amount: px as f32,
       unit: LengthUnit::Pixel,
     }
   }
 
-  pub fn to_pixels(&self, total: i32) -> i32 {
+  pub fn to_px(&self, total_px: i32) -> i32 {
     match self.unit {
+      LengthUnit::Percentage => (self.amount * total_px as f32) as i32,
       LengthUnit::Pixel => self.amount as i32,
-      LengthUnit::Percentage => {
-        (self.amount / 100.0 * total as f32) as i32
-      }
     }
   }
 
-  pub fn to_percent(&self, total: i32) -> f32 {
+  pub fn to_percentage(&self, total_px: i32) -> f32 {
     match self.unit {
-      LengthUnit::Pixel => self.amount / total as f32,
-      LengthUnit::Percentage => self.amount / 100.0,
+      LengthUnit::Percentage => self.amount,
+      LengthUnit::Pixel => self.amount / total_px as f32,
     }
   }
 }
@@ -54,7 +51,7 @@ impl FromStr for LengthValue {
   /// LengthValue::from_str("100px") // { amount: 100.0, unit: LengthUnit::Pixel }
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
-    let units_regex = Regex::new(r"(-?\d+)(%|ppt|px)?")?;
+    let units_regex = Regex::new(r"([+-]?\d+)(%|px)?")?;
 
     let err_msg = format!(
       "Not a valid length value '{}'. Must be of format '10px' or '10%'.",
@@ -65,15 +62,22 @@ impl FromStr for LengthValue {
       .captures(unparsed)
       .context(err_msg.to_string())?;
 
-    let amount =
-      f32::from_str(&captures[1]).context(err_msg.to_string())?;
-
     let unit_str = captures.get(2).map_or("", |m| m.as_str());
     let unit = match unit_str {
       "px" | "" => LengthUnit::Pixel,
       "%" => LengthUnit::Percentage,
       _ => bail!(err_msg),
     };
+
+    let amount = captures
+      .get(1)
+      .and_then(|amount_str| f32::from_str(amount_str.into()).ok())
+      // Store percentage units as a fraction of 1.
+      .map(|amount| match unit {
+        LengthUnit::Pixel => amount,
+        LengthUnit::Percentage => amount / 100.0,
+      })
+      .context(err_msg.to_string())?;
 
     Ok(LengthValue { amount, unit })
   }

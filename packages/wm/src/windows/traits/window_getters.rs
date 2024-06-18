@@ -72,21 +72,17 @@ pub trait WindowGetters {
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
-      left: LengthValue::new_px(
-        (border_delta.left.to_pixels(0)
-          + shadow_border_delta.left.to_pixels(0)) as f32,
+      left: LengthValue::from_px(
+        border_delta.left.to_px(0) + shadow_border_delta.left.to_px(0),
       ),
-      right: LengthValue::new_px(
-        (border_delta.right.to_pixels(0)
-          + shadow_border_delta.right.to_pixels(0)) as f32,
+      right: LengthValue::from_px(
+        border_delta.right.to_px(0) + shadow_border_delta.right.to_px(0),
       ),
-      top: LengthValue::new_px(
-        (border_delta.top.to_pixels(0)
-          + shadow_border_delta.top.to_pixels(0)) as f32,
+      top: LengthValue::from_px(
+        border_delta.top.to_px(0) + shadow_border_delta.top.to_px(0),
       ),
-      bottom: LengthValue::new_px(
-        (border_delta.bottom.to_pixels(0)
-          + shadow_border_delta.bottom.to_pixels(0)) as f32,
+      bottom: LengthValue::from_px(
+        border_delta.bottom.to_px(0) + shadow_border_delta.bottom.to_px(0),
       ),
     })
   }

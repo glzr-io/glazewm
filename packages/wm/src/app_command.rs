@@ -262,10 +262,10 @@ impl InvokeCommand {
           Ok(window) => {
             let args = args.clone();
             let border_delta = RectDelta::new(
-              args.left.unwrap_or(LengthValue::new_px(0.)),
-              args.top.unwrap_or(LengthValue::new_px(0.)),
-              args.right.unwrap_or(LengthValue::new_px(0.)),
-              args.bottom.unwrap_or(LengthValue::new_px(0.)),
+              args.left.unwrap_or(LengthValue::from_px(0)),
+              args.top.unwrap_or(LengthValue::from_px(0)),
+              args.right.unwrap_or(LengthValue::from_px(0)),
+              args.bottom.unwrap_or(LengthValue::from_px(0)),
             );
 
             window.set_border_delta(border_delta);

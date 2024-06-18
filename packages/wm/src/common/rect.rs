@@ -118,20 +118,20 @@ impl Rect {
   // TODO: Pass in a `Rect` for unit conversion.
   pub fn apply_delta(&self, delta: &RectDelta) -> Self {
     Self::from_ltrb(
-      self.left - delta.left.to_pixels(self.width()),
-      self.top - delta.top.to_pixels(self.height()),
-      self.right + delta.right.to_pixels(self.width()),
-      self.bottom + delta.bottom.to_pixels(self.height()),
+      self.left - delta.left.to_px(self.width()),
+      self.top - delta.top.to_px(self.height()),
+      self.right + delta.right.to_px(self.width()),
+      self.bottom + delta.bottom.to_px(self.height()),
     )
   }
 
   // TODO: Pass in a `Rect` for unit conversion.
   pub fn apply_inverse_delta(&self, delta: &RectDelta) -> Self {
     Self::from_ltrb(
-      self.left + delta.left.to_pixels(self.width()),
-      self.top + delta.top.to_pixels(self.height()),
-      self.right - delta.right.to_pixels(self.width()),
-      self.bottom - delta.bottom.to_pixels(self.height()),
+      self.left + delta.left.to_px(self.width()),
+      self.top + delta.top.to_px(self.height()),
+      self.right - delta.right.to_px(self.width()),
+      self.bottom - delta.bottom.to_px(self.height()),
     )
   }
 

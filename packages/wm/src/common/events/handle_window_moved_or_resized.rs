@@ -40,8 +40,8 @@ pub fn handle_window_moved_or_resized(
 
     resize_window(
       window.clone().into(),
-      Some(LengthValue::new_px(width_delta as f32)),
-      Some(LengthValue::new_px(height_delta as f32)),
+      Some(LengthValue::from_px(width_delta)),
+      Some(LengthValue::from_px(height_delta)),
       state,
     )?;
   }

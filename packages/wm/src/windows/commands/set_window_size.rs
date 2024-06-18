@@ -78,18 +78,18 @@ fn set_tiling_window_length(
     let parent_length = match is_width_resize {
       true => {
         parent.width()?
-          - window.inner_gap().to_pixels(monitor_rect.width())
+          - window.inner_gap().to_px(monitor_rect.width())
             * window.tiling_siblings().count() as i32
       }
       false => {
         parent.height()?
-          - window.inner_gap().to_pixels(monitor_rect.height())
+          - window.inner_gap().to_px(monitor_rect.height())
             * window.tiling_siblings().count() as i32
       }
     };
 
     // Convert the target length to a tiling size.
-    let tiling_size = target_length.to_percent(parent_length);
+    let tiling_size = target_length.to_percentage(parent_length);
 
     // Skip the resize if the window is already at the target size.
     if container_to_resize.tiling_size() - tiling_size != 0. {
@@ -132,7 +132,7 @@ fn set_floating_window_size(
     };
 
   let target_width_px = target_width
-    .map(|target_width| target_width.to_pixels(monitor_rect.width()));
+    .map(|target_width| target_width.to_px(monitor_rect.width()));
 
   let new_width = length_with_clamp(
     target_width_px,
@@ -141,7 +141,7 @@ fn set_floating_window_size(
   );
 
   let target_height_px = target_height
-    .map(|target_height| target_height.to_pixels(monitor_rect.height()));
+    .map(|target_height| target_height.to_px(monitor_rect.height()));
 
   let new_height = length_with_clamp(
     target_height_px,

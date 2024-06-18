@@ -115,10 +115,10 @@ fn create_window(
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
   let border_delta = RectDelta::new(
-    LengthValue::new_px(0.),
-    LengthValue::new_px(0.),
-    LengthValue::new_px(0.),
-    LengthValue::new_px(0.),
+    LengthValue::from_px(0),
+    LengthValue::from_px(0),
+    LengthValue::from_px(0),
+    LengthValue::from_px(0),
   );
 
   let inner_gap = config.value.gaps.inner_gap.clone();

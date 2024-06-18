@@ -30,14 +30,14 @@ pub fn resize_window(
           .and_then(|parent| parent.width().ok())
           .map(|parent_width| {
             parent_width
-              - tiling_window.inner_gap().to_pixels(monitor_rect.width())
+              - tiling_window.inner_gap().to_px(monitor_rect.width())
                 * tiling_window.tiling_siblings().count() as i32
           }),
         _ => window.parent().and_then(|parent| parent.width().ok()),
       };
 
       parent_width.map(|parent_width| {
-        let delta_px = delta.to_pixels(parent_width);
+        let delta_px = delta.to_px(parent_width);
         window_rect.width() + delta_px
       })
     }
@@ -53,14 +53,14 @@ pub fn resize_window(
           .and_then(|parent| parent.height().ok())
           .map(|parent_height| {
             parent_height
-              - tiling_window.inner_gap().to_pixels(monitor_rect.height())
+              - tiling_window.inner_gap().to_px(monitor_rect.height())
                 * tiling_window.tiling_siblings().count() as i32
           }),
         _ => window.parent().and_then(|parent| parent.height().ok()),
       };
 
       parent_height.map(|parent_height| {
-        let delta_px = delta.to_pixels(parent_height);
+        let delta_px = delta.to_px(parent_height);
         window_rect.height() + delta_px
       })
     }
@@ -69,10 +69,8 @@ pub fn resize_window(
 
   set_window_size(
     window.clone(),
-    target_width
-      .map(|target_width| LengthValue::new_px(target_width as f32)),
-    target_height
-      .map(|target_height| LengthValue::new_px(target_height as f32)),
+    target_width.map(|target_width| LengthValue::from_px(target_width)),
+    target_height.map(|target_height| LengthValue::from_px(target_height)),
     state,
   )?;
 
