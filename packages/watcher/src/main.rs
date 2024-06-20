@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use tracing::info;
 use wm::containers::ContainerDto;
 use wm::ipc_client::IpcClient;
 use wm::ipc_server::ClientResponseData;
@@ -7,6 +8,8 @@ use wm::wm_event::WmEvent;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+  tracing_subscriber::fmt().init();
+
   let mut client = IpcClient::connect().await?;
 
   let subscription_message =
@@ -37,19 +40,19 @@ async fn main() -> anyhow::Result<()> {
     match event_data {
       Some(WmEvent::WindowManaged { managed_window }) => {
         if let ContainerDto::Window(window) = managed_window {
-          println!("managed handle: {}", window.handle);
+          info!("Watcher added handle: {}.", window.handle);
           // TODO: Add handle to list of managed handles.
         }
       }
       Some(WmEvent::WindowUnmanaged {
         unmanaged_handle, ..
       }) => {
-        println!("unmanaged handle: {}", unmanaged_handle);
+        info!("Watcher removed handle: {}.", unmanaged_handle);
         // TODO: Pop handle from list of managed handles.
       }
       Some(_) => unreachable!(),
       None => {
-        println!("No event subscription data.");
+        info!("Watcher event subscription ended. Running cleanup.");
         break;
       }
     }
