@@ -23,4 +23,8 @@ pub struct WindowDto {
   pub display_state: DisplayState,
   pub border_delta: RectDelta,
   pub floating_placement: Rect,
+  pub handle: isize,
+  pub title: String,
+  pub class_name: String,
+  pub process_name: String,
 }
