@@ -5,27 +5,7 @@ default-members = ["packages/wm", "packages/watcher"]
 
 [workspace.dependencies]
 anyhow = "1"
-regex = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["full"] }
-windows = { version = "0.52", features = [
-  "implement",
-  "Win32_Devices_HumanInterfaceDevice",
-  "Win32_Foundation",
-  "Win32_Graphics_Dwm",
-  "Win32_Graphics_Gdi",
-  "Win32_Security",
-  "Win32_System_Com",
-  "Win32_System_Environment",
-  "Win32_System_LibraryLoader",
-  "Win32_System_Registry",
-  "Win32_System_RemoteDesktop",
-  "Win32_System_SystemServices",
-  "Win32_System_Threading",
-  "Win32_UI_Accessibility",
-  "Win32_UI_HiDpi",
-  "Win32_UI_Input_Ime",
-  "Win32_UI_Input_KeyboardAndMouse",
-  "Win32_UI_Shell_Common",
-  "Win32_UI_TextServices",
-  "Win32_UI_WindowsAndMessaging",
-] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

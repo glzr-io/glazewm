@@ -1930,6 +1930,8 @@ dependencies = [
  "anyhow",
  "serde_json",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "wm",
 ]
 
