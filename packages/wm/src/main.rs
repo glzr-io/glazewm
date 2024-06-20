@@ -15,7 +15,7 @@ use crate::{
   app_command::{AppCommand, InvokeCommand, Verbosity},
   common::platform::Platform,
   ipc_client::IpcClient,
-  ipc_server::{ClientResponseData, IpcServer, ServerMessage},
+  ipc_server::{ClientResponseData, IpcServer},
   sys_tray::SystemTray,
   user_config::UserConfig,
   wm::WindowManager,
@@ -181,23 +181,21 @@ async fn start_cli(args: Vec<String>) -> Result<()> {
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  if let ServerMessage::ClientResponse(client_response) = client_response {
-    match client_response.data {
-      // For event subscriptions, omit the initial response message and
-      // continuously output subsequent event messages.
-      Some(ClientResponseData::EventSubscribe(data)) => loop {
-        let event_subscription = client
-          .event_subscription(&data.subscription_id)
-          .await
-          .context("Failed to receive response from IPC server.")?;
+  match client_response.data {
+    // For event subscriptions, omit the initial response message and
+    // continuously output subsequent event messages.
+    Some(ClientResponseData::EventSubscribe(data)) => loop {
+      let event_subscription = client
+        .event_subscription(&data.subscription_id)
+        .await
+        .context("Failed to receive response from IPC server.")?;
 
-        println!("{}", serde_json::to_string(&event_subscription)?);
-      },
-      // For all other messages, output and exit when the first response
-      // message is received.
-      _ => {
-        println!("{}", serde_json::to_string(&client_response)?);
-      }
+      println!("{}", serde_json::to_string(&event_subscription)?);
+    },
+    // For all other messages, output and exit when the first response
+    // message is received.
+    _ => {
+      println!("{}", serde_json::to_string(&client_response)?);
     }
   }
 

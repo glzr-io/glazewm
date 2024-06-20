@@ -1,7 +1,9 @@
 use anyhow::Context;
 
+use wm::containers::ContainerDto;
 use wm::ipc_client::IpcClient;
-use wm::ipc_server::{ClientResponseData, ServerMessage};
+use wm::ipc_server::ClientResponseData;
+use wm::wm_event::WmEvent;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -15,41 +17,45 @@ async fn main() -> anyhow::Result<()> {
     .await
     .context("Failed to send command to IPC server.")?;
 
-  let client_response = client
+  let subscription_id = client
     .client_response(&subscription_message)
     .await
-    .context("Failed to receive response from IPC server.")?;
+    .and_then(|response| match response.data {
+      Some(ClientResponseData::EventSubscribe(data)) => {
+        Some(data.subscription_id)
+      }
+      _ => None,
+    })
+    .context("No subscription ID in watcher event subscription.")?;
 
-  match listen_events(&mut client, &client_response).await {
-    Ok(_) => {}
-    Err(err) => eprintln!("{}", err),
-  }
+  loop {
+    let event_data = client
+      .event_subscription(&subscription_id)
+      .await
+      .and_then(|event| event.data);
 
-  Ok(())
-}
-
-async fn listen_events(
-  ipc_client: &mut IpcClient,
-  client_response: &ServerMessage,
-) -> anyhow::Result<()> {
-  if let ServerMessage::ClientResponse(client_response) = client_response {
-    match &client_response.data {
-      // For event subscriptions, omit the initial response message and
-      // continuously output subsequent event messages.
-      Some(ClientResponseData::EventSubscribe(data)) => loop {
-        let event_subscription = ipc_client
-          .event_subscription(&data.subscription_id)
-          .await
-          .context("Failed to receive response from IPC server.")?;
-
-        println!("{}", serde_json::to_string(&event_subscription)?);
-      },
-      // For all other messages, output and exit when the first response
-      // message is received.
-      _ => {
-        println!("{}", serde_json::to_string(&client_response)?);
+    match event_data {
+      Some(WmEvent::WindowManaged { managed_window }) => {
+        if let ContainerDto::Window(window) = managed_window {
+          println!("managed handle: {}", window.handle);
+          // TODO: Add handle to list of managed handles.
+        }
+      }
+      Some(WmEvent::WindowUnmanaged {
+        unmanaged_handle, ..
+      }) => {
+        println!("unmanaged handle: {}", unmanaged_handle);
+        // TODO: Pop handle from list of managed handles.
+      }
+      Some(_) => unreachable!(),
+      None => {
+        println!("No event subscription data.");
+        break;
       }
     }
   }
+
+  // TODO: Run shared cleanup fn here.
+
   Ok(())
 }

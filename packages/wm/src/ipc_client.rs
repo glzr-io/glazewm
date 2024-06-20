@@ -6,7 +6,10 @@ use tokio_tungstenite::{
 };
 use uuid::Uuid;
 
-use crate::ipc_server::{ServerMessage, DEFAULT_IPC_PORT};
+use crate::ipc_server::{
+  ClientResponseMessage, EventSubscriptionMessage, ServerMessage,
+  DEFAULT_IPC_PORT,
+};
 
 pub struct IpcClient {
   stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -52,11 +55,11 @@ impl IpcClient {
   pub async fn client_response(
     &mut self,
     client_message: &str,
-  ) -> Option<ServerMessage> {
+  ) -> Option<ClientResponseMessage> {
     while let Ok(response) = self.next_message().await {
-      if let ServerMessage::ClientResponse(client_response) = &response {
+      if let ServerMessage::ClientResponse(client_response) = response {
         if client_response.client_message == client_message {
-          return Some(response);
+          return Some(client_response);
         }
       }
     }
@@ -67,11 +70,11 @@ impl IpcClient {
   pub async fn event_subscription(
     &mut self,
     subscription_id: &Uuid,
-  ) -> Option<ServerMessage> {
+  ) -> Option<EventSubscriptionMessage> {
     while let Ok(response) = self.next_message().await {
-      if let ServerMessage::EventSubscription(event_sub) = &response {
+      if let ServerMessage::EventSubscription(event_sub) = response {
         if &event_sub.subscription_id == subscription_id {
-          return Some(response);
+          return Some(event_sub);
         }
       }
     }
