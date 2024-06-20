@@ -93,7 +93,7 @@ impl Workspace {
     self.0.borrow_mut().outer_gap = outer_gap;
   }
 
-  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let children = self
       .children()

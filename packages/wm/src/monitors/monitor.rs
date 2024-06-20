@@ -94,7 +94,7 @@ impl Monitor {
     Ok((dpi - other_dpi).abs() < f32::EPSILON)
   }
 
-  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let children = self
       .children()

@@ -2,10 +2,7 @@ use anyhow::Context;
 
 use crate::{
   common::TilingDirection,
-  containers::{
-    commands::attach_container,
-    traits::{CommonGetters, PositionGetters},
-  },
+  containers::{commands::attach_container, traits::PositionGetters},
   monitors::Monitor,
   user_config::{UserConfig, WorkspaceConfig},
   wm_event::WmEvent,

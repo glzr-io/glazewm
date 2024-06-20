@@ -51,7 +51,7 @@ impl RootContainer {
     Self(Rc::new(RefCell::new(root)))
   }
 
-  fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let children = self
       .children()
       .iter()
