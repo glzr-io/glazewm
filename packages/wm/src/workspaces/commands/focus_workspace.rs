@@ -4,6 +4,7 @@ use tracing::info;
 use crate::{
   common::Direction,
   containers::{commands::set_focused_descendant, traits::CommonGetters},
+  monitors::Monitor,
   user_config::UserConfig,
   wm_state::WmState,
   workspaces::{
@@ -33,30 +34,28 @@ pub fn focus_workspace(
 ) -> anyhow::Result<()> {
   let focused_workspace = state
     .focused_container()
-    .and_then(|c| c.workspace())
+    .and_then(|focused| focused.workspace())
     .context("No workspace is currently focused.")?;
 
-  if let Some(workspace_to_focus) =
-    target_workspace(target, &focused_workspace, state, config)?
-  {
-    info!(
-      "Focusing workspace: '{}'.",
-      workspace_to_focus.config().name
-    );
+  let target_workspace =
+    target_workspace(target, &focused_workspace, state, config)?;
+
+  if let Some(target_workspace) = target_workspace {
+    info!("Focusing workspace: '{}'.", target_workspace.config().name);
 
     // Get the currently displayed workspace on the same monitor that the
     // workspace to focus is on.
-    let displayed_workspace = workspace_to_focus
+    let displayed_workspace = target_workspace
       .monitor()
       .and_then(|monitor| monitor.displayed_workspace())
       .context("No workspace is currently displayed.")?;
 
     // Set focus to whichever window last had focus in workspace. If the
     // workspace has no windows, then set focus to the workspace itself.
-    let container_to_focus = workspace_to_focus
+    let container_to_focus = target_workspace
       .descendant_focus_order()
       .next()
-      .unwrap_or_else(|| workspace_to_focus.clone().into());
+      .unwrap_or_else(|| target_workspace.clone().into());
 
     set_focused_descendant(container_to_focus, None);
     state.pending_sync.focus_change = true;
@@ -65,7 +64,7 @@ pub fn focus_workspace(
     state
       .pending_sync
       .containers_to_redraw
-      .extend([displayed_workspace.into(), workspace_to_focus.into()]);
+      .extend([displayed_workspace.into(), target_workspace.into()]);
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
     // empty workspaces if they're the only workspace on the monitor.
@@ -97,23 +96,23 @@ fn target_workspace(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<Option<Workspace>> {
+  let focused_monitor =
+    focused_workspace.monitor().context("No focused monitor.")?;
+
   let target_workspace = match target {
     FocusWorkspaceTarget::Name(name) => {
       match focused_workspace.config().name == name {
         false => {
-          let workspace =
-            name_to_workspace(&name, focused_workspace, state, config)?;
-
-          Some(workspace)
+          name_to_workspace(&name, &focused_monitor, state, config)?
         }
         true if config.value.general.toggle_workspace_on_refocus => {
-          recent_workspace(focused_workspace, state, config)?
+          recent_workspace(&focused_monitor, state, config)?
         }
         true => None,
       }
     }
     FocusWorkspaceTarget::Recent => {
-      recent_workspace(focused_workspace, state, config)?
+      recent_workspace(&focused_monitor, state, config)?
     }
     FocusWorkspaceTarget::Next => {
       let workspaces = sorted_workspaces(state, config);
@@ -133,9 +132,6 @@ fn target_workspace(
         .cloned()
     }
     FocusWorkspaceTarget::Direction(direction) => {
-      let focused_monitor =
-        focused_workspace.monitor().context("No focused monitor.")?;
-
       let monitor =
         state.monitor_in_direction(&focused_monitor, &direction)?;
 
@@ -149,41 +145,42 @@ fn target_workspace(
 /// Retrieves or activates a workspace by its name.
 fn name_to_workspace(
   workspace_name: &str,
-  focused_workspace: &Workspace,
+  target_monitor: &Monitor,
   state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<Workspace> {
-  state
-    .workspace_by_name(&workspace_name)
-    .map(Ok)
-    .unwrap_or_else(|| {
-      let focused_monitor =
-        focused_workspace.monitor().context("No focused monitor.")?;
-
+) -> anyhow::Result<Option<Workspace>> {
+  match state.workspace_by_name(&workspace_name) {
+    Some(workspace) => Ok(Some(workspace)),
+    None => {
       activate_workspace(
         Some(&workspace_name),
-        &focused_monitor,
+        &target_monitor,
         state,
         config,
       )?;
 
-      state
-        .workspace_by_name(&workspace_name)
-        .context("Failed to get workspace from name.")
-    })
+      Ok(state.workspace_by_name(&workspace_name))
+    }
+  }
 }
 
 /// Gets the recent workspace based on `recent_workspace_name` in state.
 fn recent_workspace(
-  focused_workspace: &Workspace,
+  target_monitor: &Monitor,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<Option<Workspace>> {
-  state
-    .recent_workspace_name
-    .clone()
-    .map(|name| name_to_workspace(&name, focused_workspace, state, config))
-    .transpose()
+  if let Some(recent_workspace_name) = state.recent_workspace_name.clone()
+  {
+    name_to_workspace(
+      &recent_workspace_name,
+      target_monitor,
+      state,
+      config,
+    )
+  } else {
+    Ok(None)
+  }
 }
 
 // Gets workspaces sorted by their position in the user config.

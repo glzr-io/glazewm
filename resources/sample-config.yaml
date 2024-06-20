@@ -63,7 +63,7 @@ window_behavior:
     fullscreen:
       # Maximize the window if possible. If the window doesn't have a
       # maximize button, then it'll be fullscreen'ed normally instead.
-      maximized: true
+      maximized: false
 
 workspaces:
   - name: '1'
