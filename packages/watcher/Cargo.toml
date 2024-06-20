@@ -12,3 +12,4 @@ wm = { path = "../wm" }
 
 anyhow = { workspace = true }
 tokio = { workspace = true }
+serde_json = "1.0.117"
