@@ -19,7 +19,7 @@ pub fn move_window_to_workspace(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Moving window to workspace: {:?}.", workspace_name);
+  info!("Moving window to workspace: '{}'.", workspace_name);
 
   let current_workspace = window.workspace().context("No workspace.")?;
   let current_monitor =
@@ -65,14 +65,9 @@ pub fn move_window_to_workspace(
       );
     }
 
-    let focus_target = state.focus_target_after_removal(&window);
-
-    // Since the workspace that gets displayed is the last focused child,
-    // focus needs to be reassigned to the displayed workspace.
-    let focus_reset_target = match target_workspace.is_displayed() {
-      true => None,
-      false => target_monitor.descendant_focus_order().next(),
-    };
+    let focus_target = state
+      .focus_target_after_removal(&window)
+      .context("No focus target after window move.")?;
 
     let insertion_sibling = target_workspace
       .descendant_focus_order()
@@ -101,15 +96,10 @@ pub fn move_window_to_workspace(
       }
     }
 
-    if let Some(focus_reset_target) = focus_reset_target {
-      set_focused_descendant(focus_reset_target, None);
-      state.pending_sync.focus_change = true;
-    }
-
-    if let Some(focus_target) = focus_target {
-      set_focused_descendant(focus_target, None);
-      state.pending_sync.focus_change = true;
-    }
+    // Since the workspace that gets displayed is the last focused child,
+    // focus needs to be reassigned to the displayed workspace.
+    set_focused_descendant(focus_target, None);
+    state.pending_sync.focus_change = true;
 
     match window {
       WindowContainer::NonTilingWindow(_) => {
