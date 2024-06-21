@@ -87,6 +87,10 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
+
+        // A floating window that gets minimized can hit this arm, so
+        // ignore such events and let it be handled by the handler for
+        // `PlatformEvent::WindowMinimized` instead.
         } else if !is_minimized
           && matches!(window.state(), WindowState::Floating(_))
         {
@@ -94,17 +98,19 @@ pub fn handle_window_location_changed(
           info!("Updating floating window position.");
           window.set_floating_placement(frame_position);
 
-          let workspace = window.workspace().context("No workspace.")?;
-
-          // Get workspace that encompasses most of the window after moving.
-          let updated_workspace = nearest_monitor
-            .displayed_workspace()
-            .context("Failed to get workspace of nearest monitor.")?;
+          let monitor = window.monitor().context("No monitor.")?;
 
           // Update the window's workspace if it goes out of bounds of its
           // current workspace.
-          if workspace.id() != updated_workspace.id() {
-            info!("Window moved to new workspace.");
+          if monitor.id() != nearest_monitor.id() {
+            let updated_workspace = nearest_monitor
+              .displayed_workspace()
+              .context("Failed to get workspace of nearest monitor.")?;
+
+            info!(
+              "Floating window moved to new workspace: '{}'.",
+              updated_workspace.config().name
+            );
 
             move_container_within_tree(
               window.into(),

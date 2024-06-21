@@ -427,23 +427,13 @@ fn move_floating_window(
   if let Some((position_rect, target_monitor)) = new_position {
     let monitor = window_to_move.monitor().context("No monitor.")?;
 
-    // Update the window's workspace if it goes out of bounds of its
-    // current workspace.
-    if monitor.id() != target_monitor.id() {
-      let target_workspace = target_monitor
-        .displayed_workspace()
-        .context("Failed to get workspace of target monitor.")?;
-
-      move_container_within_tree(
-        window_to_move.clone().into(),
-        target_workspace.clone().into(),
-        target_workspace.child_count(),
-        state,
-      )?;
-
-      if monitor.has_dpi_difference(&target_monitor.into())? {
-        window_to_move.set_has_pending_dpi_adjustment(true);
-      }
+    // Mark window as needing DPI adjustment if it crosses monitors. The
+    // handler for `PlatformEvent::LocationChanged` will update the
+    // window's workspace if it goes out of bounds of its current workspace.
+    if monitor.id() != target_monitor.id()
+      && monitor.has_dpi_difference(&target_monitor.into())?
+    {
+      window_to_move.set_has_pending_dpi_adjustment(true);
     }
 
     window_to_move.set_floating_placement(position_rect);
