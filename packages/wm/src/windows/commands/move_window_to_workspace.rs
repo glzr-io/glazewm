@@ -65,9 +65,13 @@ pub fn move_window_to_workspace(
       );
     }
 
-    let focus_target = state
-      .focus_target_after_removal(&window)
-      .context("No focus target after window move.")?;
+    // Focus target is `None` if the window is not focused.
+    let focus_target = state.focus_target_after_removal(&window);
+
+    let focus_reset_target = match target_workspace.is_displayed() {
+      true => None,
+      false => target_monitor.descendant_focus_order().next(),
+    };
 
     let insertion_sibling = target_workspace
       .descendant_focus_order()
@@ -96,10 +100,21 @@ pub fn move_window_to_workspace(
       }
     }
 
-    // Since the workspace that gets displayed is the last focused child,
-    // focus needs to be reassigned to the displayed workspace.
-    set_focused_descendant(focus_target, None);
-    state.pending_sync.focus_change = true;
+    // When moving a focused window within the tree to another workspace,
+    // the target workspace will get displayed. If moving the window e.g.
+    // from monitor 1 -> 2, and the target workspace is hidden on that
+    // monitor, we want to reset focus to the workspace that was displayed
+    // on that monitor.
+    if let Some(focus_reset_target) = focus_reset_target {
+      set_focused_descendant(focus_reset_target, None);
+      state.pending_sync.focus_change = true;
+    }
+
+    // Retain focus within the workspace from where the window was moved.
+    if let Some(focus_target) = focus_target {
+      set_focused_descendant(focus_target, None);
+      state.pending_sync.focus_change = true;
+    }
 
     match window {
       WindowContainer::NonTilingWindow(_) => {

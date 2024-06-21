@@ -320,7 +320,7 @@ impl WmState {
     // for windows that aren't in a minimized state.
     let focus_target_of_type = descendant_focus_order
       .iter()
-      .filter_map(|c| c.as_window_container().ok())
+      .filter_map(|descendant| descendant.as_window_container().ok())
       .find(|descendant| {
         match (descendant.state(), removed_window.state()) {
           (WindowState::Tiling, WindowState::Tiling) => true,
@@ -337,7 +337,7 @@ impl WmState {
 
     let non_minimized_focus_target = descendant_focus_order
       .iter()
-      .filter_map(|c| c.as_window_container().ok())
+      .filter_map(|descendant| descendant.as_window_container().ok())
       .find(|descendant| descendant.state() != WindowState::Minimized)
       .map(Into::into);
 
