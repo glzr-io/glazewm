@@ -3,7 +3,10 @@ use tracing::info;
 
 use crate::{
   common::platform::Platform,
-  containers::traits::{CommonGetters, PositionGetters},
+  containers::{
+    traits::{CommonGetters, PositionGetters},
+    WindowContainer,
+  },
   monitors::commands::{add_monitor, remove_monitor, update_monitor},
   user_config::UserConfig,
   windows::traits::WindowGetters,
@@ -120,6 +123,10 @@ pub fn handle_display_settings_changed(
         .floating_placement()
         .translate_to_center(&workspace.to_rect()?),
     );
+
+    if let WindowContainer::NonTilingWindow(window) = &window {
+      window.set_insertion_target(None);
+    }
   }
 
   // Redraw full container tree.

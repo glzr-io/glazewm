@@ -69,6 +69,10 @@ pub fn move_window_to_workspace(
       );
     }
 
+    if let WindowContainer::NonTilingWindow(window) = &window {
+      window.set_insertion_target(None);
+    }
+
     // Focus target is `None` if the window is not focused.
     let focus_target = state.focus_target_after_removal(&window);
 

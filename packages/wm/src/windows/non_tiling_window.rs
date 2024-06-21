@@ -71,6 +71,13 @@ impl NonTilingWindow {
     self.0.borrow().insertion_target.clone()
   }
 
+  pub fn set_insertion_target(
+    &self,
+    insertion_target: Option<(Container, usize)>,
+  ) {
+    self.0.borrow_mut().insertion_target = insertion_target;
+  }
+
   pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
     TilingWindow::new(
       Some(self.id()),

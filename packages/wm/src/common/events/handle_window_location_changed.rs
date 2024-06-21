@@ -5,6 +5,7 @@ use crate::{
   common::platform::NativeWindow,
   containers::{
     commands::move_container_within_tree, traits::CommonGetters,
+    WindowContainer,
   },
   user_config::{FullscreenStateConfig, UserConfig},
   windows::{
@@ -111,6 +112,10 @@ pub fn handle_window_location_changed(
               "Floating window moved to new workspace: '{}'.",
               updated_workspace.config().name
             );
+
+            if let WindowContainer::NonTilingWindow(window) = &window {
+              window.set_insertion_target(None);
+            }
 
             move_container_within_tree(
               window.into(),
