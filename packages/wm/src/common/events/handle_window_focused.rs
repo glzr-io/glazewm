@@ -8,7 +8,7 @@ use crate::{
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
-  workspaces::commands::{focus_workspace, FocusWorkspaceTarget},
+  workspaces::{commands::focus_workspace, WorkspaceTarget},
 };
 
 pub fn handle_window_focused(
@@ -57,7 +57,7 @@ pub fn handle_window_focused(
 
       let workspace = window.workspace().context("No workspace")?;
       focus_workspace(
-        FocusWorkspaceTarget::Name(workspace.config().name),
+        WorkspaceTarget::Name(workspace.config().name),
         state,
         config,
       )?;

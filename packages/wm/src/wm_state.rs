@@ -19,7 +19,7 @@ use crate::{
   user_config::{BindingModeConfig, UserConfig},
   windows::{commands::manage_window, traits::WindowGetters, WindowState},
   wm_event::WmEvent,
-  workspaces::Workspace,
+  workspaces::{Workspace, WorkspaceTarget},
 };
 
 pub struct WmState {
@@ -152,6 +152,20 @@ impl WmState {
       .collect()
   }
 
+  /// Gets workspaces sorted by their position in the user config.
+  pub fn sorted_workspaces(&self, config: &UserConfig) -> Vec<Workspace> {
+    let workspace_configs = &config.value.workspaces;
+    let mut workspaces = self.workspaces();
+
+    workspaces.sort_by_key(|workspace| {
+      workspace_configs
+        .iter()
+        .position(|config| config.name == workspace.config().name)
+    });
+
+    workspaces
+  }
+
   pub fn windows(&self) -> Vec<WindowContainer> {
     self
       .root_container
@@ -250,6 +264,90 @@ impl WmState {
       .workspaces()
       .into_iter()
       .find(|workspace| workspace.config().name == workspace_name)
+  }
+
+  /// Gets a workspace and its name by the given target.
+  ///
+  /// Returns a tuple of the workspace name and the `Workspace` instance
+  /// if active.
+  pub fn workspace_by_target(
+    &self,
+    origin_workspace: &Workspace,
+    target: WorkspaceTarget,
+    config: &UserConfig,
+  ) -> anyhow::Result<(Option<String>, Option<Workspace>)> {
+    let (name, workspace) = match target {
+      WorkspaceTarget::Name(name) => {
+        match origin_workspace.config().name == name {
+          false => (Some(name.clone()), self.workspace_by_name(&name)),
+          // Toggle the workspace if it's already focused.
+          true if config.value.general.toggle_workspace_on_refocus => (
+            self.recent_workspace_name.clone(),
+            self
+              .recent_workspace_name
+              .as_ref()
+              .and_then(|name| self.workspace_by_name(name)),
+          ),
+          true => (None, None),
+        }
+      }
+      WorkspaceTarget::Recent => (
+        self.recent_workspace_name.clone(),
+        self
+          .recent_workspace_name
+          .as_ref()
+          .and_then(|name| self.workspace_by_name(&name)),
+      ),
+      WorkspaceTarget::Next => {
+        let workspaces = self.sorted_workspaces(config);
+        let origin_index = workspaces
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id())
+          .context("Failed to get index of given workspace.")?;
+
+        let next_workspace = workspaces
+          .get(origin_index + 1)
+          .or_else(|| workspaces.first());
+
+        (
+          next_workspace.map(|workspace| workspace.config().name),
+          next_workspace.cloned(),
+        )
+      }
+      WorkspaceTarget::Previous => {
+        let workspaces = self.sorted_workspaces(config);
+        let origin_index = workspaces
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id())
+          .context("Failed to get index of given workspace.")?;
+
+        let prev_workspace = workspaces.get(
+          origin_index.checked_sub(1).unwrap_or(workspaces.len() - 1),
+        );
+
+        (
+          prev_workspace.map(|workspace| workspace.config().name),
+          prev_workspace.cloned(),
+        )
+      }
+      WorkspaceTarget::Direction(direction) => {
+        let origin_monitor =
+          origin_workspace.monitor().context("No focused monitor.")?;
+
+        let target_workspace = self
+          .monitor_in_direction(&origin_monitor, &direction)?
+          .and_then(|monitor| monitor.displayed_workspace());
+
+        (
+          target_workspace
+            .as_ref()
+            .map(|workspace| workspace.config().name),
+          target_workspace,
+        )
+      }
+    };
+
+    Ok((name, workspace))
   }
 
   /// Gets windows that should be redrawn.

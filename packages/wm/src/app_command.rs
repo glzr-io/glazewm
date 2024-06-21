@@ -29,7 +29,7 @@ use crate::{
     WindowState,
   },
   wm_state::WmState,
-  workspaces::commands::{focus_workspace, FocusWorkspaceTarget},
+  workspaces::{commands::focus_workspace, WorkspaceTarget},
 };
 
 #[derive(Clone, Debug, Parser)]
@@ -289,22 +289,22 @@ impl InvokeCommand {
 
         if let Some(name) = &args.workspace {
           focus_workspace(
-            FocusWorkspaceTarget::Name(name.to_string()),
+            WorkspaceTarget::Name(name.to_string()),
             state,
             config,
           )?;
         }
 
         if args.next_workspace {
-          focus_workspace(FocusWorkspaceTarget::Next, state, config)?;
+          focus_workspace(WorkspaceTarget::Next, state, config)?;
         }
 
         if args.prev_workspace {
-          focus_workspace(FocusWorkspaceTarget::Previous, state, config)?;
+          focus_workspace(WorkspaceTarget::Previous, state, config)?;
         }
 
         if args.recent_workspace {
-          focus_workspace(FocusWorkspaceTarget::Recent, state, config)?;
+          focus_workspace(WorkspaceTarget::Recent, state, config)?;
         }
 
         Ok(())
@@ -327,8 +327,40 @@ impl InvokeCommand {
               )?;
             };
 
-            if let Some(workspace) = &args.workspace {
-              move_window_to_workspace(window, workspace, state, config)?;
+            if let Some(name) = &args.workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::Name(name.to_string()),
+                state,
+                config,
+              )?;
+            }
+
+            if args.next_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::Next,
+                state,
+                config,
+              )?;
+            }
+
+            if args.prev_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::Previous,
+                state,
+                config,
+              )?;
+            }
+
+            if args.recent_workspace {
+              move_window_to_workspace(
+                window,
+                WorkspaceTarget::Recent,
+                state,
+                config,
+              )?;
             }
 
             Ok(())
@@ -592,6 +624,15 @@ pub struct InvokeMoveCommand {
   /// Name of workspace to move the window.
   #[clap(long)]
   workspace: Option<String>,
+
+  #[clap(long)]
+  next_workspace: bool,
+
+  #[clap(long)]
+  prev_workspace: bool,
+
+  #[clap(long)]
+  recent_workspace: bool,
 }
 
 #[derive(Args, Clone, Debug, Serialize)]

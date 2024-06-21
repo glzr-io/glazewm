@@ -10,40 +10,44 @@ use crate::{
   user_config::UserConfig,
   windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
-  workspaces::commands::activate_workspace,
+  workspaces::{commands::activate_workspace, WorkspaceTarget},
 };
 
 pub fn move_window_to_workspace(
   window: WindowContainer,
-  workspace_name: &str,
+  target: WorkspaceTarget,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Moving window to workspace: '{}'.", workspace_name);
-
   let current_workspace = window.workspace().context("No workspace.")?;
   let current_monitor =
     current_workspace.monitor().context("No monitor.")?;
 
-  // Retrieve or activate a workspace by its name.
-  let target_workspace = match state.workspace_by_name(&workspace_name) {
-    Some(workspace) => Some(workspace),
-    None => {
-      activate_workspace(
-        Some(&workspace_name),
-        &current_monitor,
-        state,
-        config,
-      )?;
+  let (target_workspace_name, target_workspace) =
+    state.workspace_by_target(&current_workspace, target, config)?;
 
-      state.workspace_by_name(&workspace_name)
-    }
-  };
+  // Retrieve or activate the target workspace by its name.
+  let target_workspace = match target_workspace {
+    Some(_) => anyhow::Ok(target_workspace),
+    _ => match target_workspace_name {
+      Some(name) => {
+        activate_workspace(Some(&name), &current_monitor, state, config)?;
+
+        Ok(state.workspace_by_name(&name))
+      }
+      _ => Ok(None),
+    },
+  }?;
 
   if let Some(target_workspace) = target_workspace {
     if target_workspace.id() == current_workspace.id() {
       return Ok(());
     }
+
+    info!(
+      "Moving window to workspace: '{}'.",
+      target_workspace.config().name
+    );
 
     let target_monitor =
       target_workspace.monitor().context("No monitor.")?;
