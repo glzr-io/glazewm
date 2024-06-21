@@ -1,6 +1,10 @@
 use anyhow::Context;
-
 use tracing::info;
+use windows::Win32::{
+  Foundation::HWND,
+  UI::WindowsAndMessaging::{ShowWindowAsync, SW_MINIMIZE},
+};
+
 use wm::containers::ContainerDto;
 use wm::ipc_client::IpcClient;
 use wm::ipc_server::ClientResponseData;
@@ -31,6 +35,8 @@ async fn main() -> anyhow::Result<()> {
     })
     .context("No subscription ID in watcher event subscription.")?;
 
+  let mut managed_handles = Vec::new();
+
   loop {
     let event_data = client
       .event_subscription(&subscription_id)
@@ -41,14 +47,14 @@ async fn main() -> anyhow::Result<()> {
       Some(WmEvent::WindowManaged { managed_window }) => {
         if let ContainerDto::Window(window) = managed_window {
           info!("Watcher added handle: {}.", window.handle);
-          // TODO: Add handle to list of managed handles.
+          managed_handles.push(window.handle);
         }
       }
       Some(WmEvent::WindowUnmanaged {
         unmanaged_handle, ..
       }) => {
         info!("Watcher removed handle: {}.", unmanaged_handle);
-        // TODO: Pop handle from list of managed handles.
+        managed_handles.retain(|&handle| handle != unmanaged_handle);
       }
       Some(_) => unreachable!(),
       None => {
@@ -58,7 +64,15 @@ async fn main() -> anyhow::Result<()> {
     }
   }
 
-  // TODO: Run shared cleanup fn here.
+  info!(
+    "Cleanup: Remaining managed window handles: {:?}",
+    managed_handles
+  );
+
+  // TODO: create a shared function that the wm can also use for cleanup
+  managed_handles.iter().for_each(|handle| unsafe {
+    ShowWindowAsync(HWND(*handle), SW_MINIMIZE);
+  });
 
   Ok(())
 }

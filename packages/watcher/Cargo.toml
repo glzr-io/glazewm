@@ -9,6 +9,9 @@ path = "src/main.rs"
 
 [dependencies]
 wm = { path = "../wm" }
+windows = { version = "0.52", features = [
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 anyhow = { workspace = true }
 tokio = { workspace = true }
