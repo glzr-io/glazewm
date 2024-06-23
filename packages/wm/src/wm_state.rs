@@ -174,6 +174,15 @@ impl WmState {
       .collect()
   }
 
+  pub fn native_windows(&self) -> Vec<NativeWindow> {
+    self
+      .root_container
+      .descendants()
+      .filter_map(|container| container.as_window_container().ok())
+      .map(|window| window.native().clone())
+      .collect()
+  }
+
   /// Gets the monitor that encompasses the largest portion of a given
   /// window.
   ///

@@ -5,6 +5,7 @@ use windows::Win32::{
   UI::WindowsAndMessaging::{ShowWindowAsync, SW_MINIMIZE},
 };
 
+use wm::cleanup::cleanup_windows;
 use wm::containers::ContainerDto;
 use wm::ipc_client::IpcClient;
 use wm::ipc_server::ClientResponseData;
@@ -69,10 +70,7 @@ async fn main() -> anyhow::Result<()> {
     managed_handles
   );
 
-  // TODO: create a shared function that the wm can also use for cleanup
-  managed_handles.iter().for_each(|handle| unsafe {
-    ShowWindowAsync(HWND(*handle), SW_MINIMIZE);
-  });
+  cleanup_windows(managed_handles);
 
   Ok(())
 }

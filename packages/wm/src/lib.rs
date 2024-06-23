@@ -2,6 +2,7 @@
 #![feature(once_cell_try)]
 
 pub mod app_command;
+pub mod cleanup;
 pub mod common;
 pub mod containers;
 pub mod ipc_client;

@@ -11,6 +11,8 @@ use anyhow::{Context, Error, Result};
 use tokio::{process::Command, signal};
 use tracing::{debug, error, info};
 
+use ::wm::cleanup::cleanup_windows;
+
 use crate::{
   app_command::{AppCommand, InvokeCommand, Verbosity},
   common::platform::Platform,
@@ -162,6 +164,14 @@ async fn start_wm(
   }
 
   wm.state.emit_event(WmEvent::ApplicationExiting);
+
+  // Unhide all hidden windows before exiting
+  let mut managed_window_handles: Vec<isize> = Vec::new();
+  wm.state.native_windows().iter().for_each(|window| {
+    managed_window_handles.push(window.handle);
+  });
+  cleanup_windows(managed_window_handles);
+
   Ok(())
 }
 
