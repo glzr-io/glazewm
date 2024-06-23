@@ -227,6 +227,7 @@ pub struct KeybindingConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowBehaviorConfig {
   /// New windows are created in this state whenever possible.
+  #[serde(default)]
   pub initial_state: InitialWindowState,
 
   /// Sets the default options for when a new window is created. This also
@@ -309,10 +310,51 @@ pub struct BorderEffectConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowRuleConfig {
-  pub match_process_name: Option<String>,
-  pub match_class_name: Option<String>,
-  pub match_title: Option<String>,
   pub commands: Vec<InvokeCommand>,
+
+  #[serde(default)]
+  pub match_type: MatchType,
+
+  #[serde(rename = "match")]
+  pub match_window: WindowMatchType,
+
+  #[serde(default = "default_window_rule_on")]
+  pub on: Vec<WindowMatchEvent>,
+
+  #[serde(default = "default_bool::<true>")]
+  pub run_once: bool,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchType {
+  All,
+  #[default]
+  Any,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "prop", content = "matchBy")]
+pub enum WindowMatchType {
+  WindowProcess(MatchBy),
+  WindowClass(MatchBy),
+  WindowTitle(MatchBy),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "type", content = "value")]
+pub enum MatchBy {
+  Equals(String),
+  Includes(String),
+  Regex(String),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowMatchEvent {
+  Focus,
+  Manage,
+  TitleChange,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -338,4 +380,9 @@ const fn default_blue() -> Color {
     b: 255,
     a: 255,
   }
+}
+
+/// Helper function for setting a default value for window rule events.
+fn default_window_rule_on() -> Vec<WindowMatchEvent> {
+  vec![WindowMatchEvent::Manage, WindowMatchEvent::TitleChange]
 }
