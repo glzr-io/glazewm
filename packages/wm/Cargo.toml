@@ -8,11 +8,11 @@ edition = "2021"
 default-run = "wm"
 
 [lib]
-path = "src/lib.rs"
+path = "src\\lib.rs"
 
 [[bin]]
 name = "wm"
-path = "src/main.rs"
+path = "src\\main.rs"
 
 [features]
 windows_subsystem = []

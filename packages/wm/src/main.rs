@@ -56,7 +56,11 @@ async fn main() {
   };
 
   if let Err(err) = res {
-    error!("{}", err);
+    error!(
+      error = err.to_string(),
+      error.backtrace = err.backtrace().to_string(),
+      "An error occurred"
+    );
   }
 }
 
@@ -67,6 +71,9 @@ async fn start_wm(
   // Set log level based on verbosity flag.
   tracing_subscriber::fmt()
     .with_max_level(verbosity.level())
+    .with_file(true)
+    .with_line_number(true)
+    .with_target(false)
     .init();
 
   info!(
