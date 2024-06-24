@@ -7,7 +7,9 @@ use tokio::fs;
 use crate::{
   app_command::InvokeCommand,
   common::{Color, LengthValue, RectDelta},
+  containers::WindowContainer,
   monitors::Monitor,
+  windows::traits::WindowGetters,
   workspaces::Workspace,
 };
 
@@ -211,6 +213,57 @@ impl UserConfig {
     }
 
     window_rules_by_event
+  }
+
+  /// Window rules that should be applied to the window when the given
+  /// event occurs.
+  pub fn pending_window_rules(
+    &self,
+    window: &WindowContainer,
+    event: &WindowRuleEvent,
+  ) -> anyhow::Result<Vec<WindowRuleConfig>> {
+    let window_title = window.native().title()?;
+    let window_class = window.native().class_name()?;
+    let window_process = window.native().process_name()?;
+
+    let pending_window_rules = self
+      .window_rules_by_event
+      .get(&event)
+      .unwrap_or(&Vec::new())
+      .iter()
+      .filter(|rule| {
+        // Skip if window has already ran the rule.
+        if window.done_window_rules().contains(&rule) {
+          return false;
+        }
+
+        // Check if the window matches the rule.
+        rule.match_window.iter().all(|match_config| {
+          let is_process_match = match_config
+            .window_process
+            .as_ref()
+            .map(|match_type| match_type.is_match(&window_process))
+            .unwrap_or(true);
+
+          let is_class_match = match_config
+            .window_class
+            .as_ref()
+            .map(|match_type| match_type.is_match(&window_class))
+            .unwrap_or(true);
+
+          let is_title_match = match_config
+            .window_title
+            .as_ref()
+            .map(|match_type| match_type.is_match(&window_title))
+            .unwrap_or(true);
+
+          is_process_match && is_class_match && is_title_match
+        })
+      })
+      .cloned()
+      .collect::<Vec<_>>();
+
+    Ok(pending_window_rules)
   }
 
   pub fn inactive_workspace_configs(
@@ -431,7 +484,7 @@ pub struct BorderEffectConfig {
   pub color: Color,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowRuleConfig {
   pub commands: Vec<InvokeCommand>,
@@ -446,7 +499,7 @@ pub struct WindowRuleConfig {
   pub run_once: bool,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WindowMatchConfig {
   #[serde(default)]
@@ -460,13 +513,27 @@ pub struct WindowMatchConfig {
 }
 
 /// Due to limitations in `serde_yaml`, we need to use an untagged enum
-/// instead of a regular enum.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+/// instead of a regular enum for serialization. Using a regular enum
+/// causes issues with flow-style objects in YAML.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum MatchType {
   Equals { equals: String },
   Includes { includes: String },
   Regex { regex: String },
+}
+
+impl MatchType {
+  /// Whether the given value is a match for the match type.
+  fn is_match(&self, value: &str) -> bool {
+    match self {
+      MatchType::Equals { equals } => value == equals,
+      MatchType::Includes { includes } => value.contains(includes),
+      MatchType::Regex { regex } => regex::Regex::new(regex)
+        .map(|re| re.is_match(value))
+        .unwrap_or(false),
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]

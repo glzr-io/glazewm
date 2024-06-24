@@ -7,7 +7,7 @@ use crate::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
   },
   containers::WindowContainer,
-  user_config::UserConfig,
+  user_config::{UserConfig, WindowRuleConfig},
   windows::WindowState,
 };
 
@@ -101,12 +101,20 @@ pub trait WindowGetters {
   fn floating_placement(&self) -> Rect;
 
   fn set_floating_placement(&self, floating_placement: Rect);
+
+  fn done_window_rules(&self) -> Vec<WindowRuleConfig>;
+
+  fn set_done_window_rules(
+    &self,
+    done_window_rules: Vec<WindowRuleConfig>,
+  );
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
-/// with a `state`, `native`, and a `display_state` field.
+/// with a `state`, `prev_state`, `native`, `border_delta`, `display_state`,
+/// `has_pending_dpi_adjustment`, and a `done_window_rules` field.
 #[macro_export]
 macro_rules! impl_window_getters {
   ($struct_name:ident) => {
@@ -165,6 +173,17 @@ macro_rules! impl_window_getters {
 
       fn set_floating_placement(&self, floating_placement: Rect) {
         self.0.borrow_mut().floating_placement = floating_placement;
+      }
+
+      fn done_window_rules(&self) -> Vec<WindowRuleConfig> {
+        self.0.borrow().done_window_rules.clone()
+      }
+
+      fn set_done_window_rules(
+        &self,
+        done_window_rules: Vec<WindowRuleConfig>,
+      ) {
+        self.0.borrow_mut().done_window_rules = done_window_rules;
       }
     }
   };

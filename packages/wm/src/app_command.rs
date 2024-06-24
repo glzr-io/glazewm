@@ -168,7 +168,7 @@ pub enum SubscribableEvent {
   WorkspaceMoved,
 }
 
-#[derive(Clone, Debug, Parser, Serialize)]
+#[derive(Clone, Debug, Parser, PartialEq, Serialize)]
 pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
@@ -579,7 +579,7 @@ impl<'de> Deserialize<'de> for InvokeCommand {
   }
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeAdjustBordersCommand {
   #[clap(long, allow_hyphen_values = true)]
@@ -595,7 +595,7 @@ pub struct InvokeAdjustBordersCommand {
   left: Option<LengthValue>,
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeFocusCommand {
   #[clap(long)]
@@ -614,7 +614,7 @@ pub struct InvokeFocusCommand {
   recent_workspace: bool,
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
@@ -635,7 +635,7 @@ pub struct InvokeMoveCommand {
   recent_workspace: bool,
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
   #[clap(long, allow_hyphen_values = true)]

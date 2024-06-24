@@ -133,6 +133,7 @@ fn create_window(
       border_delta,
       floating_placement,
       inner_gap,
+      Vec::new(),
     )
     .into(),
     _ => NonTilingWindow::new(
@@ -143,6 +144,7 @@ fn create_window(
       border_delta,
       None,
       floating_placement,
+      Vec::new(),
     )
     .into(),
   };

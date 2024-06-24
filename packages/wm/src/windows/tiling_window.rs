@@ -23,6 +23,7 @@ use crate::{
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
+  user_config::WindowRuleConfig,
 };
 
 use super::{
@@ -46,6 +47,7 @@ struct TilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   inner_gap: LengthValue,
+  done_window_rules: Vec<WindowRuleConfig>,
 }
 
 impl TilingWindow {
@@ -56,6 +58,7 @@ impl TilingWindow {
     border_delta: RectDelta,
     floating_placement: Rect,
     inner_gap: LengthValue,
+    done_window_rules: Vec<WindowRuleConfig>,
   ) -> Self {
     let window = TilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -71,6 +74,7 @@ impl TilingWindow {
       has_pending_dpi_adjustment: false,
       floating_placement,
       inner_gap,
+      done_window_rules,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -89,6 +93,7 @@ impl TilingWindow {
       self.border_delta(),
       insertion_target,
       self.floating_placement(),
+      self.done_window_rules(),
     )
   }
 
