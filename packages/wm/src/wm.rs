@@ -28,11 +28,11 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub fn new(config: &UserConfig) -> anyhow::Result<Self> {
+  pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let mut state = WmState::new(event_tx);
-    state.populate(&config)?;
+    state.populate(config)?;
 
     Ok(Self { event_rx, state })
   }

@@ -88,7 +88,7 @@ async fn start_wm(
 
   let mut ipc_server = IpcServer::start().await?;
 
-  let mut wm = WindowManager::new(&config)?;
+  let mut wm = WindowManager::new(&mut config)?;
 
   // Start listening for platform events after populating initial state.
   let mut event_listener = Platform::start_event_listener(&config)?;

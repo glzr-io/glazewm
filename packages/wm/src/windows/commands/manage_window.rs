@@ -9,9 +9,10 @@ use crate::{
     Container, WindowContainer,
   },
   monitors::Monitor,
-  user_config::UserConfig,
+  user_config::{UserConfig, WindowRuleEvent},
   windows::{
-    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
+    commands::run_window_rules, traits::WindowGetters, NonTilingWindow,
+    TilingWindow, WindowState,
   },
   wm_event::WmEvent,
   wm_state::WmState,
@@ -21,46 +22,47 @@ pub fn manage_window(
   native_window: NativeWindow,
   target_parent: Option<Container>,
   state: &mut WmState,
-  config: &UserConfig,
+  config: &mut UserConfig,
 ) -> anyhow::Result<()> {
   // Create the window instance.
   let window = create_window(native_window, target_parent, state, config)?;
 
-  // let window_rules = config.matching_window_rules(&window);
-  // let window_rule_commands =
-  //   window_rules.iter().flat_map(|rule| &rule.commands);
-
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
   set_focused_descendant(window.clone().into(), None);
-  // run_with_subject_container(window_rule_commands, window.clone());
 
-  // // Update window in case the reference changes.
-  // let window = window_service.get_window_by_handle(window.handle());
+  run_window_rules(
+    window.clone(),
+    WindowRuleEvent::Manage,
+    state,
+    config,
+  )?;
 
-  // // Window might be detached if 'ignore' command has been invoked.
-  // if window.is_none() || !window.unwrap().is_detached() {
-  //   return Ok(());
-  // }
+  // Update window in case the reference changes. Window might be detached
+  // if `ignore` command has been invoked.
+  let window = state.window_from_native(&window.native());
 
-  // TODO: Log window details.
-  info!("New window managed");
-  state.emit_event(WmEvent::WindowManaged {
-    managed_window: window.to_dto()?,
-  });
+  if let Some(window) = window {
+    // TODO: Log window details.
+    info!("New window managed");
 
-  // OS focus should be set to the newly added window in case it's not
-  // already focused.
-  state.pending_sync.focus_change = true;
+    state.emit_event(WmEvent::WindowManaged {
+      managed_window: window.to_dto()?,
+    });
 
-  // Sibling containers need to be redrawn if the window is tiling.
-  state.pending_sync.containers_to_redraw.push(
-    if window.state() == WindowState::Tiling {
-      window.parent().context("No parent.")?
-    } else {
-      window.into()
-    },
-  );
+    // OS focus should be set to the newly added window in case it's not
+    // already focused.
+    state.pending_sync.focus_change = true;
+
+    // Sibling containers need to be redrawn if the window is tiling.
+    state.pending_sync.containers_to_redraw.push(
+      if window.state() == WindowState::Tiling {
+        window.parent().context("No parent.")?
+      } else {
+        window.into()
+      },
+    );
+  }
 
   Ok(())
 }

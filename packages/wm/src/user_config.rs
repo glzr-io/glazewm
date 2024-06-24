@@ -238,7 +238,7 @@ impl UserConfig {
         }
 
         // Check if the window matches the rule.
-        rule.match_window.iter().all(|match_config| {
+        rule.match_window.iter().any(|match_config| {
           let is_process_match = match_config
             .window_process
             .as_ref()

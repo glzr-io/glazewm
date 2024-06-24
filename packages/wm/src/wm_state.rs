@@ -92,7 +92,10 @@ impl WmState {
 
   /// Populates the initial WM state by creating containers for all
   /// existing windows and monitors.
-  pub fn populate(&mut self, config: &UserConfig) -> anyhow::Result<()> {
+  pub fn populate(
+    &mut self,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
     // Get the originally focused window when the WM was started.
     let foreground_window = Platform::foreground_window();
 

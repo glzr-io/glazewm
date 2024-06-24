@@ -10,7 +10,7 @@ use crate::{
 pub fn handle_window_shown(
   native_window: NativeWindow,
   state: &mut WmState,
-  config: &UserConfig,
+  config: &mut UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
 

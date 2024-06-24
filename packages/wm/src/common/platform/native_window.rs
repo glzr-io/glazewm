@@ -1,3 +1,4 @@
+use anyhow::Context;
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -118,7 +119,15 @@ impl NativeWindow {
       CloseHandle(process_handle)?;
     };
 
-    Ok(String::from_utf16_lossy(&buffer[..length as usize]))
+    let exe_path = String::from_utf16_lossy(&buffer[..length as usize]);
+
+    exe_path
+      .split('\\')
+      .last()
+      .map(|file_name| {
+        file_name.split('.').next().unwrap_or(file_name).to_string()
+      })
+      .context("Failed to parse process name.")
   }
 
   /// Gets the class name of the window.
