@@ -14,20 +14,23 @@ pub fn handle_window_shown(
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
 
-  // Manage the window if it's manageable.
-  if found_window.is_none() && native_window.is_manageable() {
-    manage_window(native_window, None, state, config)?;
-    return Ok(());
-  }
+  match found_window {
+    Some(window) => {
+      // TODO: Log window details.
+      info!("Showing window");
 
-  if let Some(window) = found_window {
-    // TODO: Log window details.
-    info!("Showing window");
-
-    // Update display state if window is already managed.
-    if window.display_state() == DisplayState::Showing {
-      window.set_display_state(DisplayState::Shown);
+      // Update display state if window is already managed.
+      if window.display_state() == DisplayState::Showing {
+        window.set_display_state(DisplayState::Shown);
+      }
     }
-  }
+    None => {
+      // If the window is not managed, manage it.
+      if native_window.is_manageable().unwrap_or(false) {
+        manage_window(native_window, None, state, config)?;
+      }
+    }
+  };
+
   Ok(())
 }

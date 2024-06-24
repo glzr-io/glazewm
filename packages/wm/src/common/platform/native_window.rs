@@ -151,36 +151,45 @@ impl NativeWindow {
   }
 
   /// Whether the window is actually visible.
-  pub fn is_visible(&self) -> bool {
+  pub fn is_visible(&self) -> anyhow::Result<bool> {
     let is_visible =
       unsafe { IsWindowVisible(HWND(self.handle)) }.as_bool();
 
-    is_visible && !self.is_cloaked()
+    Ok(is_visible && !self.is_cloaked()?)
   }
 
   /// Whether the window is cloaked. For some UWP apps, `WS_VISIBLE` will
   /// be present even if the window isn't actually visible. The
   /// `DWMWA_CLOAKED` attribute is used to check whether these apps are
   /// visible.
-  fn is_cloaked(&self) -> bool {
+  fn is_cloaked(&self) -> anyhow::Result<bool> {
     let mut cloaked = 0u32;
 
-    let _ = unsafe {
+    unsafe {
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_CLOAKED,
         &mut cloaked as *mut u32 as _,
         std::mem::size_of::<u32>() as u32,
       )
-    };
+    }?;
 
-    cloaked != 0
+    Ok(cloaked != 0)
   }
 
-  pub fn is_manageable(&self) -> bool {
+  pub fn is_manageable(&self) -> anyhow::Result<bool> {
     // Ignore windows that are hidden.
-    if !self.is_visible() {
-      return false;
+    if !self.is_visible()? {
+      return Ok(false);
+    }
+
+    let process_name = self.process_name()?;
+    let title = self.process_name()?;
+
+    // TODO: Temporary fix for managing Flow Launcher until a force manage
+    // command is added.
+    if process_name == "Flow.Launcher" && title == "Flow.Launcher" {
+      return Ok(true);
     }
 
     // Ensure window is top-level (i.e. not a child window). Ignore windows
@@ -190,7 +199,7 @@ impl NativeWindow {
       && !self.has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
 
     if !is_application_window {
-      return false;
+      return Ok(false);
     }
 
     // Some applications spawn top-level windows for menus that should be
@@ -201,7 +210,7 @@ impl NativeWindow {
       unsafe { GetWindow(HWND(self.handle), GW_OWNER) }.0 != 0
         && !self.has_window_style(WS_CAPTION);
 
-    !is_menu_window
+    Ok(!is_menu_window)
   }
 
   /// Whether the window is minimized.

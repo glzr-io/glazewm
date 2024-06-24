@@ -102,7 +102,7 @@ impl Platform {
     Ok(
       native_window::available_windows()?
         .into_iter()
-        .filter(|w| w.is_manageable())
+        .filter(|window| window.is_manageable().unwrap_or(false))
         .collect(),
     )
   }

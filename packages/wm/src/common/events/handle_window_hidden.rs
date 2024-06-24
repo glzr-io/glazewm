@@ -26,7 +26,7 @@ pub fn handle_window_hidden(
     // since window events are not 100% guaranteed to be in correct order,
     // we need to ignore events where the window is not actually hidden.
     if window.display_state() == DisplayState::Shown
-      && !window.native().is_visible()
+      && !window.native().is_visible().unwrap_or(false)
     {
       unmanage_window(window, state)?;
     }
