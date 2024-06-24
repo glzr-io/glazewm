@@ -31,18 +31,15 @@ pub fn manage_window(
   // rules will be run as if the window is focused.
   set_focused_descendant(window.clone().into(), None);
 
-  run_window_rules(
+  // Window might be detached if `ignore` command has been invoked.
+  let updated_window = run_window_rules(
     window.clone(),
     WindowRuleEvent::Manage,
     state,
     config,
   )?;
 
-  // Update window in case the reference changes. Window might be detached
-  // if `ignore` command has been invoked.
-  let window = state.window_from_native(&window.native());
-
-  if let Some(window) = window {
+  if let Some(window) = updated_window {
     // TODO: Log window details.
     info!("New window managed");
 

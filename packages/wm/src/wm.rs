@@ -3,7 +3,9 @@ use tokio::sync::mpsc::{self};
 use uuid::Uuid;
 
 use crate::common::commands::platform_sync;
-use crate::common::events::handle_mouse_move;
+use crate::common::events::{
+  handle_mouse_move, handle_window_title_changed,
+};
 use crate::{
   app_command::InvokeCommand,
   common::{
@@ -80,7 +82,9 @@ impl WindowManager {
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)
       }
-      PlatformEvent::WindowTitleChanged(_) => Ok(()),
+      PlatformEvent::WindowTitleChanged(window) => {
+        handle_window_title_changed(window, state, config)
+      }
     }?;
 
     platform_sync(state, config)?;

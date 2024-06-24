@@ -3,8 +3,8 @@ use tracing::{info, warn};
 
 use crate::{
   containers::traits::{CommonGetters, TilingSizeGetters},
-  user_config::{ParsedConfig, UserConfig},
-  windows::traits::WindowGetters,
+  user_config::{ParsedConfig, UserConfig, WindowRuleEvent},
+  windows::{commands::run_window_rules, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
 };
@@ -24,7 +24,11 @@ pub fn reload_config(
     rt.block_on(config.reload())
   })?;
 
-  // TODO: Run window rules on all windows.
+  // Re-run window rules on all active windows.
+  for window in state.windows() {
+    window.set_done_window_rules(Vec::new());
+    run_window_rules(window, WindowRuleEvent::Manage, state, config)?;
+  }
 
   update_workspace_configs(state, config)?;
 

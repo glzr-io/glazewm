@@ -4,8 +4,8 @@ use tracing::info;
 use crate::{
   common::{platform::NativeWindow, DisplayState},
   containers::{commands::set_focused_descendant, traits::CommonGetters},
-  user_config::UserConfig,
-  windows::traits::WindowGetters,
+  user_config::{UserConfig, WindowRuleEvent},
+  windows::{commands::run_window_rules, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
   workspaces::{commands::focus_workspace, WorkspaceTarget},
@@ -14,7 +14,7 @@ use crate::{
 pub fn handle_window_focused(
   native_window: NativeWindow,
   state: &mut WmState,
-  config: &UserConfig,
+  config: &mut UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
 
@@ -65,6 +65,14 @@ pub fn handle_window_focused(
 
     // Update the WM's focus state.
     set_focused_descendant(window.clone().into(), None);
+
+    // Run window rules for focus events.
+    run_window_rules(
+      window.clone(),
+      WindowRuleEvent::Focus,
+      state,
+      config,
+    )?;
 
     state.emit_event(WmEvent::FocusChanged {
       focused_container: window.to_dto()?,
