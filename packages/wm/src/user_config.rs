@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -87,6 +87,93 @@ impl UserConfig {
     self.value_str = config_str;
 
     Ok(())
+  }
+
+  pub fn default_window_rules(&self) -> Vec<WindowRuleConfig> {
+    let mut window_rules = Vec::new();
+
+    let floating_defaults =
+      &self.value.window_behavior.state_defaults.floating;
+
+    // Default float rules.
+    window_rules.push(WindowRuleConfig {
+      commands: vec![InvokeCommand::SetFloating {
+        centered: Some(floating_defaults.centered),
+        shown_on_top: Some(floating_defaults.shown_on_top),
+      }],
+      match_window: vec![WindowMatchConfig {
+        window_class: Some(MatchType::Equals { equals:
+          // Windows 10 dialog shown when moving and deleting files.
+          "OperationStatusWindow".to_string(),
+        }),
+        ..WindowMatchConfig::default()
+      }],
+      on: vec![WindowRuleEvent::Manage],
+      run_once: true,
+    });
+
+    // Default ignore rules.
+    window_rules.push(WindowRuleConfig {
+      commands: vec![InvokeCommand::Ignore],
+      match_window: vec![
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            equals: "SearchApp".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            equals: "SearchHost".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            equals: "ShellExperienceHost".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            equals: "StartMenuExperienceHost".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
+        // TODO: Add snipping tool. Add lock app.
+      ],
+      on: vec![WindowRuleEvent::Manage],
+      run_once: true,
+    });
+
+    window_rules
+  }
+
+  fn window_rules_by_event(
+    &self,
+  ) -> HashMap<WindowRuleEvent, Vec<WindowRuleConfig>> {
+    let mut window_rules_by_event = HashMap::new();
+
+    let event_types = vec![
+      WindowRuleEvent::Focus,
+      WindowRuleEvent::Manage,
+      WindowRuleEvent::TitleChange,
+    ];
+
+    for event_type in event_types {
+      window_rules_by_event.insert(event_type, Vec::new());
+    }
+
+    for window_rule in &self.value.window_rules {
+      for event_type in &window_rule.on {
+        window_rules_by_event
+          .get_mut(event_type)
+          .unwrap()
+          .push(window_rule.clone());
+      }
+    }
+
+    window_rules_by_event
   }
 
   pub fn inactive_workspace_configs(
@@ -312,48 +399,47 @@ pub struct BorderEffectConfig {
 pub struct WindowRuleConfig {
   pub commands: Vec<InvokeCommand>,
 
-  #[serde(default)]
-  pub match_type: MatchType,
-
   #[serde(rename = "match")]
-  pub match_window: WindowMatchType,
+  pub match_window: Vec<WindowMatchConfig>,
 
   #[serde(default = "default_window_rule_on")]
-  pub on: Vec<WindowMatchEvent>,
+  pub on: Vec<WindowRuleEvent>,
 
   #[serde(default = "default_bool::<true>")]
   pub run_once: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct WindowMatchConfig {
+  #[serde(default)]
+  pub window_process: Option<MatchType>,
+
+  #[serde(default)]
+  pub window_class: Option<MatchType>,
+
+  #[serde(default)]
+  pub window_title: Option<MatchType>,
+}
+
+/// Due to limitations in `serde_yaml`, we need to use an untagged enum
+/// instead of a regular enum.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum MatchType {
-  All,
-  #[default]
-  Any,
+  Equals { equals: String },
+  Includes { includes: String },
+  Regex { regex: String },
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "prop", content = "matchBy")]
-pub enum WindowMatchType {
-  WindowProcess(MatchBy),
-  WindowClass(MatchBy),
-  WindowTitle(MatchBy),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "type", content = "value")]
-pub enum MatchBy {
-  Equals(String),
-  Includes(String),
-  Regex(String),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WindowMatchEvent {
+pub enum WindowRuleEvent {
+  /// When a window receives native focus.
   Focus,
+  /// When a window is initially managed.
   Manage,
+  /// When the title of a window changes.
   TitleChange,
 }
 
@@ -383,6 +469,6 @@ const fn default_blue() -> Color {
 }
 
 /// Helper function for setting a default value for window rule events.
-fn default_window_rule_on() -> Vec<WindowMatchEvent> {
-  vec![WindowMatchEvent::Manage, WindowMatchEvent::TitleChange]
+fn default_window_rule_on() -> Vec<WindowRuleEvent> {
+  vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
 }

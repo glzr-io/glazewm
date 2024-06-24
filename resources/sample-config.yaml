@@ -77,34 +77,28 @@ workspaces:
   - name: '9'
 
 window_rules:
-  # Task Manager requires admin privileges to manage and should be ignored
-  # unless running the WM as admin.
   - commands: ['ignore']
-    match_type: 'any'
     match:
+      # Task Manager requires admin privileges to manage and should be ignored
+      # unless running the WM as admin.
       - window_process: { equals: 'Taskmgr' }
+
+      # Ignores the Snipping Tool's window.
       - window_process: { equals: 'ScreenClippingHost' }
+
+      # Ignores picture-in-picture windows for browsers.
+      - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
+        window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
 
   # Launches system dialogs as floating by default (e.g. File Explorer save
   # and open dialog).
   - commands: ['set-floating']
-    match_type: 'any'
     match:
       - window_class: { equals: '#32770' }
-
-  # Do not manage picture-in-picture windows for browsers. Note that the
-  # default is for English; change `match_title` to the window's title if
-  # you use another language.
-  - commands: ['ignore']
-    match_type: 'all'
-    match:
-      - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
-      - window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
 
   # Some applications (e.g. Steam) have borders that extend past the normal
   # border size.
   - commands: ['adjust-borders --right -7px --bottom -7px --left -7px']
-    match_type: 'any'
     match:
       - window_process: { equals: 'steam' }
 
