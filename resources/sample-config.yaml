@@ -83,24 +83,9 @@ window_rules:
       # unless running the WM as admin.
       - window_process: { equals: 'Taskmgr' }
 
-      # Ignores the Snipping Tool's window.
-      - window_process: { equals: 'ScreenClippingHost' }
-
       # Ignores picture-in-picture windows for browsers.
       - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
         window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
-
-  # Launches system dialogs as floating by default (e.g. File Explorer save
-  # and open dialog).
-  - commands: ['set-floating']
-    match:
-      - window_class: { equals: '#32770' }
-
-  # Some applications (e.g. Steam) have borders that extend past the normal
-  # border size.
-  - commands: ['adjust-borders --right -7px --bottom -7px --left -7px']
-    match:
-      - window_process: { equals: 'steam' }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.

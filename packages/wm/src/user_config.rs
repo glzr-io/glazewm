@@ -11,14 +11,24 @@ use crate::{
   workspaces::Workspace,
 };
 
+/// Resource string for the sample config file.
 const SAMPLE_CONFIG: &str =
   include_str!("../../../resources/sample-config.yaml");
 
 #[derive(Debug)]
 pub struct UserConfig {
+  /// Path to the user config file.
   pub path: PathBuf,
+
+  /// Parsed user config value.
   pub value: ParsedConfig,
+
+  /// Unparsed user config string.
   pub value_str: String,
+
+  /// Hashmap of window rule event types (e.g. `WindowRuleEvent::Manage`)
+  /// and the corresponding window rules of that type.
+  window_rules_by_event: HashMap<WindowRuleEvent, Vec<WindowRuleConfig>>,
 }
 
 impl UserConfig {
@@ -32,13 +42,15 @@ impl UserConfig {
       .join(".glzr/glazewm/config.yaml");
 
     let config_path = config_path.unwrap_or(default_config_path);
-
     let (config_value, config_str) = Self::read(&config_path).await?;
+
+    let window_rules_by_event = Self::window_rules_by_event(&config_value);
 
     Ok(Self {
       path: config_path,
       value: config_value,
       value_str: config_str,
+      window_rules_by_event,
     })
   }
 
@@ -83,17 +95,22 @@ impl UserConfig {
 
   pub async fn reload(&mut self) -> anyhow::Result<()> {
     let (config_value, config_str) = Self::read(&self.path).await?;
+
+    self.window_rules_by_event =
+      Self::window_rules_by_event(&config_value);
     self.value = config_value;
     self.value_str = config_str;
 
     Ok(())
   }
 
-  pub fn default_window_rules(&self) -> Vec<WindowRuleConfig> {
+  fn default_window_rules(
+    config_value: &ParsedConfig,
+  ) -> Vec<WindowRuleConfig> {
     let mut window_rules = Vec::new();
 
     let floating_defaults =
-      &self.value.window_behavior.state_defaults.floating;
+      &config_value.window_behavior.state_defaults.floating;
 
     // Default float rules.
     window_rules.push(WindowRuleConfig {
@@ -101,13 +118,22 @@ impl UserConfig {
         centered: Some(floating_defaults.centered),
         shown_on_top: Some(floating_defaults.shown_on_top),
       }],
-      match_window: vec![WindowMatchConfig {
-        window_class: Some(MatchType::Equals { equals:
-          // Windows 10 dialog shown when moving and deleting files.
+      match_window: vec![
+        WindowMatchConfig {
+          window_class: Some(MatchType::Equals { equals:
+          // W10/W11 system dialog shown when moving and deleting files.
           "OperationStatusWindow".to_string(),
         }),
-        ..WindowMatchConfig::default()
-      }],
+          ..WindowMatchConfig::default()
+        },
+        WindowMatchConfig {
+          window_class: Some(MatchType::Equals { equals:
+          // W10/W11 system dialogs (e.g. File Explorer save/open dialog).
+          "#32770".to_string(),
+        }),
+          ..WindowMatchConfig::default()
+        },
+      ],
       on: vec![WindowRuleEvent::Manage],
       run_once: true,
     });
@@ -136,11 +162,25 @@ impl UserConfig {
         },
         WindowMatchConfig {
           window_process: Some(MatchType::Equals {
+            // W10/11 start menu.
             equals: "StartMenuExperienceHost".to_string(),
           }),
           ..WindowMatchConfig::default()
         },
-        // TODO: Add snipping tool. Add lock app.
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            // W10/11 screen snipping tool.
+            equals: "ScreenClippingHost".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
+        WindowMatchConfig {
+          window_process: Some(MatchType::Equals {
+            // W11 lock screen.
+            equals: "LockApp".to_string(),
+          }),
+          ..WindowMatchConfig::default()
+        },
       ],
       on: vec![WindowRuleEvent::Manage],
       run_once: true,
@@ -150,25 +190,22 @@ impl UserConfig {
   }
 
   fn window_rules_by_event(
-    &self,
+    config_value: &ParsedConfig,
   ) -> HashMap<WindowRuleEvent, Vec<WindowRuleConfig>> {
     let mut window_rules_by_event = HashMap::new();
 
-    let event_types = vec![
-      WindowRuleEvent::Focus,
-      WindowRuleEvent::Manage,
-      WindowRuleEvent::TitleChange,
-    ];
+    // Combine user-defined window rules with the default ones.
+    let default_window_rules = Self::default_window_rules(config_value);
+    let all_window_rules = config_value
+      .window_rules
+      .iter()
+      .chain(default_window_rules.iter());
 
-    for event_type in event_types {
-      window_rules_by_event.insert(event_type, Vec::new());
-    }
-
-    for window_rule in &self.value.window_rules {
+    for window_rule in all_window_rules {
       for event_type in &window_rule.on {
         window_rules_by_event
-          .get_mut(event_type)
-          .unwrap()
+          .entry(event_type.clone())
+          .or_insert_with(|| Vec::new())
           .push(window_rule.clone());
       }
     }
