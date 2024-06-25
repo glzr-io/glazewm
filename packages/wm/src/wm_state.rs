@@ -57,6 +57,9 @@ pub struct WmState {
 
   /// Sender for emitting WM-related events.
   event_tx: mpsc::UnboundedSender<WmEvent>,
+
+  /// Sender for gracefully shutting down the WM.
+  exit_tx: mpsc::UnboundedSender<()>,
 }
 
 pub struct PendingSync {
@@ -72,7 +75,10 @@ pub struct PendingSync {
 }
 
 impl WmState {
-  pub fn new(event_tx: mpsc::UnboundedSender<WmEvent>) -> Self {
+  pub fn new(
+    event_tx: mpsc::UnboundedSender<WmEvent>,
+    exit_tx: mpsc::UnboundedSender<()>,
+  ) -> Self {
     Self {
       root_container: RootContainer::new(),
       pending_sync: PendingSync {
@@ -87,6 +93,7 @@ impl WmState {
       ignored_windows: Vec::new(),
       has_initialized: false,
       event_tx,
+      exit_tx,
     }
   }
 
@@ -398,6 +405,11 @@ impl WmState {
         warn!("Failed to send event: {}", err);
       }
     }
+  }
+
+  /// Starts graceful shutdown via an MSPC channel.
+  pub fn emit_exit(&self) {
+    self.exit_tx.send(()).unwrap()
   }
 
   pub fn container_by_id(&self, id: Uuid) -> Option<Container> {

@@ -546,7 +546,10 @@ impl InvokeCommand {
       InvokeCommand::WmEnableBindingMode { name } => {
         enable_binding_mode(name, state, config)
       }
-      InvokeCommand::WmExit => todo!(),
+      InvokeCommand::WmExit => {
+        state.emit_exit();
+        Ok(())
+      }
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();
         state

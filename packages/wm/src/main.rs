@@ -163,6 +163,10 @@ async fn start_wm(
         info!("Exiting through system tray.");
         break;
       },
+      Some(_) = wm.exit_rx.recv() => {
+        info!("Exiting through WM command.");
+        break;
+      },
       _ = signal::ctrl_c() => {
         info!("Received SIGINT signal.");
         break;

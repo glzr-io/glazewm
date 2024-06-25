@@ -26,17 +26,23 @@ use crate::{
 
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
+  pub exit_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
 impl WindowManager {
   pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
+    let (exit_tx, exit_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(event_tx);
+    let mut state = WmState::new(event_tx, exit_tx);
     state.populate(config)?;
 
-    Ok(Self { event_rx, state })
+    Ok(Self {
+      event_rx,
+      exit_rx,
+      state,
+    })
   }
 
   pub fn process_event(
