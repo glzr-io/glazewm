@@ -2,21 +2,19 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use uuid::Uuid;
 
-use crate::common::commands::platform_sync;
-use crate::common::events::{
-  handle_mouse_move, handle_window_title_changed,
-};
 use crate::{
   app_command::InvokeCommand,
   common::{
+    commands::platform_sync,
     events::{
-      handle_display_settings_changed, handle_window_destroyed,
-      handle_window_focused, handle_window_hidden,
-      handle_window_location_changed, handle_window_minimize_ended,
-      handle_window_minimized, handle_window_moved_or_resized,
-      handle_window_shown,
+      handle_display_settings_changed, handle_mouse_move,
+      handle_window_destroyed, handle_window_focused,
+      handle_window_hidden, handle_window_location_changed,
+      handle_window_minimize_ended, handle_window_minimized,
+      handle_window_moved_or_resized, handle_window_shown,
+      handle_window_title_changed,
     },
-    platform::PlatformEvent,
+    platform::{Platform, PlatformEvent},
   },
   containers::traits::CommonGetters,
   user_config::UserConfig,
@@ -57,8 +55,15 @@ impl WindowManager {
         handle_display_settings_changed(state, config)
       }
       PlatformEvent::KeybindingTriggered(kb_config) => {
+        // Skip keybinding if an ignored window currently has focus.
+        if !state
+          .ignored_windows
+          .contains(&Platform::foreground_window())
+        {
+          self.process_commands(kb_config.commands, None, config)?;
+        }
+
         // Return early since we don't want to redraw twice.
-        self.process_commands(kb_config.commands, None, config)?;
         return Ok(());
       }
       PlatformEvent::MouseMove(event) => {
