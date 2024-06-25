@@ -68,10 +68,6 @@ impl Monitor {
     self.0.borrow_mut().native = native;
   }
 
-  pub fn name(&self) -> anyhow::Result<String> {
-    self.native().device_name().cloned()
-  }
-
   pub fn displayed_workspace(&self) -> Option<Workspace> {
     self
       .child_focus_order()

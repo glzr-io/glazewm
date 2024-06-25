@@ -7,7 +7,7 @@ use tokio::fs;
 use crate::{
   app_command::InvokeCommand,
   common::{Color, LengthValue, RectDelta},
-  containers::WindowContainer,
+  containers::{traits::CommonGetters, WindowContainer},
   monitors::Monitor,
   windows::traits::WindowGetters,
   workspaces::Workspace,
@@ -295,9 +295,7 @@ impl UserConfig {
       config
         .bind_to_monitor
         .as_ref()
-        .and_then(|monitor_name| {
-          monitor.name().map(|n| &n == monitor_name).ok()
-        })
+        .map(|monitor_index| monitor.index() == *monitor_index as usize)
         .unwrap_or(false)
     });
 
@@ -552,7 +550,7 @@ pub enum WindowRuleEvent {
 pub struct WorkspaceConfig {
   pub name: String,
   pub display_name: Option<String>,
-  pub bind_to_monitor: Option<String>,
+  pub bind_to_monitor: Option<u32>,
   #[serde(default = "default_bool::<false>")]
   pub keep_alive: bool,
 }
