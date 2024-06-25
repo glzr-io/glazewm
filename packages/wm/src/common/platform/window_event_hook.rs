@@ -20,19 +20,19 @@ use windows::Win32::{
 
 use super::{NativeWindow, PlatformEvent};
 
-/// Global instance of `WinEventHook`.
+/// Global instance of `WindowEventHook`.
 ///
 /// For use with hook procedure.
-static WIN_EVENT_HOOK: OnceLock<Arc<WinEventHook>> = OnceLock::new();
+static WIN_EVENT_HOOK: OnceLock<Arc<WindowEventHook>> = OnceLock::new();
 
 #[derive(Debug)]
-pub struct WinEventHook {
+pub struct WindowEventHook {
   event_tx: mpsc::UnboundedSender<PlatformEvent>,
   hook_handles: Arc<Mutex<Vec<HWINEVENTHOOK>>>,
 }
 
-impl WinEventHook {
-  /// Creates an instance of `WinEventHook`.
+impl WindowEventHook {
+  /// Creates an instance of `WindowEventHook`.
   pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
   ) -> anyhow::Result<Arc<Self>> {

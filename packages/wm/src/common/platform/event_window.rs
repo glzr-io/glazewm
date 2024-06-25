@@ -33,7 +33,7 @@ use windows::Win32::{
 use crate::{common::Point, user_config::KeybindingConfig};
 
 use super::{
-  KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WinEventHook,
+  KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
 };
 
 /// Global instance of sender for platform events.
@@ -80,7 +80,7 @@ impl EventWindow {
     enable_mouse_events: bool,
   ) -> anyhow::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
-    let win_event_hook = WinEventHook::new(event_tx.clone())?;
+    let window_event_hook = WindowEventHook::new(event_tx.clone())?;
     let keyboard_hook_clone = keyboard_hook.clone();
 
     // Add the sender for platform events to global state.
@@ -93,7 +93,7 @@ impl EventWindow {
     let window_thread = thread::spawn(move || {
       // Start hooks for listening to platform events.
       keyboard_hook_clone.start()?;
-      win_event_hook.start()?;
+      window_event_hook.start()?;
 
       // Create a hidden window with a message loop on the current thread.
       let handle =
@@ -119,7 +119,7 @@ impl EventWindow {
       // Clean-up on message loop exit.
       unsafe { DestroyWindow(HWND(handle)) }?;
       keyboard_hook_clone.stop()?;
-      win_event_hook.stop()?;
+      window_event_hook.stop()?;
 
       Ok(())
     });
