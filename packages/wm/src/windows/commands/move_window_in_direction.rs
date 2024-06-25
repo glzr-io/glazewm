@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use anyhow::Context;
 
 use crate::{
@@ -249,10 +251,8 @@ fn change_workspace_tiling_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let workspace = window_to_move.workspace().context("No workspace.")?;
   let parent = window_to_move.parent().context("No parent.")?;
-  let tiling_siblings =
-    window_to_move.tiling_siblings().collect::<Vec<_>>();
+  let workspace = window_to_move.workspace().context("No workspace.")?;
 
   if let Some(split_parent) = parent.as_split().cloned() {
     if split_parent.child_count() == 1 {
@@ -260,20 +260,26 @@ fn change_workspace_tiling_direction(
     }
   }
 
-  // Create a new split container to wrap the window's siblings.
-  if tiling_siblings.len() > 0 {
+  // Get top-level tiling children of the workspace.
+  let workspace_children = workspace
+    .tiling_children()
+    .filter(|container| container.id() != window_to_move.id())
+    .collect::<Vec<_>>();
+
+  // Create a new split container to wrap the window's siblings. For
+  // example, in the layout H[1 V[2 3]] where container 3 is moved down,
+  // we create a split container around 1 and 2. This results in
+  // H[H[1 V[2 3]]], and V[H[1 V[2]] 3] after the tiling direction change.
+  if workspace_children.len() > 1 {
     let split_container = SplitContainer::new(
       workspace.tiling_direction(),
       config.value.gaps.inner_gap.clone(),
     );
 
-    // TODO: In the layout H[1 V[2 3]] where container 3 is moved down,
-    // this creates a split container around 2 and 3 because the split
-    // container is the parent. Instead it should be wrapped around 1 and 2.
     wrap_in_split_container(
       split_container,
-      parent.clone(),
-      tiling_siblings,
+      workspace.clone().into(),
+      workspace_children,
     )?;
   }
 
@@ -289,7 +295,7 @@ fn change_workspace_tiling_direction(
   // the split container.
   move_container_within_tree(
     window_to_move.clone().into(),
-    parent,
+    workspace.clone().into(),
     target_index,
     state,
   )?;
@@ -310,26 +316,19 @@ fn wrap_in_split_container(
   target_parent: Container,
   target_children: Vec<TilingContainer>,
 ) -> anyhow::Result<()> {
-  let mut focus_indices = target_children
-    .iter()
-    .map(|child| child.focus_index())
-    .collect::<Vec<_>>();
-
-  // Sort the focus indices in ascending order.
-  focus_indices.sort();
-
   let starting_index = target_children
     .iter()
-    .min_by_key(|&child| child.index())
     .map(|child| child.index())
+    .min()
     .context("Failed to get starting index.")?;
 
   target_parent
     .borrow_children_mut()
     .insert(starting_index, split_container.clone().into());
 
-  let starting_focus_index = *focus_indices
+  let starting_focus_index = target_children
     .iter()
+    .map(|child| child.focus_index())
     .min()
     .context("Failed to get starting focus index.")?;
 
@@ -343,6 +342,19 @@ fn wrap_in_split_container(
     .map(|child| child.tiling_size())
     .sum::<f32>();
 
+  let target_children_ids = target_children
+    .iter()
+    .map(|child| child.id())
+    .collect::<Vec<_>>();
+
+  let sorted_focus_ids = target_parent
+    .borrow_child_focus_order()
+    .iter()
+    .filter(|id| target_children_ids.contains(id))
+    .cloned()
+    .collect::<VecDeque<_>>();
+
+  // Set the split container's parent and tiling size.
   *split_container.borrow_parent_mut() = Some(target_parent.clone());
   split_container.set_tiling_size(total_tiling_size);
 
@@ -353,11 +365,7 @@ fn wrap_in_split_container(
 
     split_container
       .borrow_children_mut()
-      .push_front(target_child.clone().into());
-
-    split_container
-      .borrow_child_focus_order_mut()
-      .push_front(target_child.id());
+      .push_back(target_child.clone().into());
 
     target_parent
       .borrow_children_mut()
@@ -372,7 +380,8 @@ fn wrap_in_split_container(
       .set_tiling_size(target_child.tiling_size() / total_tiling_size);
   }
 
-  // TODO: Need to adjust focus order of split container.
+  // Add original focus order to split container.
+  *split_container.borrow_child_focus_order_mut() = sorted_focus_ids;
 
   Ok(())
 }
