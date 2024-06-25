@@ -54,6 +54,16 @@ fn move_tiling_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Flatten the parent split container if it only contains the window.
+  if let Some(split_parent) = window_to_move
+    .parent()
+    .and_then(|parent| parent.as_split().cloned())
+  {
+    if split_parent.child_count() == 1 {
+      flatten_split_container(split_parent)?;
+    }
+  }
+
   let parent = window_to_move
     .direction_container()
     .context("No direction container.")?;
@@ -251,14 +261,7 @@ fn change_workspace_tiling_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let parent = window_to_move.parent().context("No parent.")?;
   let workspace = window_to_move.workspace().context("No workspace.")?;
-
-  if let Some(split_parent) = parent.as_split().cloned() {
-    if split_parent.child_count() == 1 {
-      flatten_split_container(split_parent)?;
-    }
-  }
 
   // Get top-level tiling children of the workspace.
   let workspace_children = workspace

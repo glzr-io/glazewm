@@ -10,17 +10,22 @@ use crate::containers::{
 use super::flatten_split_container;
 
 /// Removes a container from the tree.
+///
+/// If the container is a tiling container, the siblings will be resized to
+/// fill the freed up space. Will flatten empty parent split containers.
 pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
-  let mut parent = child_to_remove.parent().context("No parent.")?;
-
   // Flatten the parent split container if it'll be empty after removing
   // the child.
-  if let Some(split_parent) = parent.as_split().cloned() {
+  if let Some(split_parent) = child_to_remove
+    .parent()
+    .and_then(|parent| parent.as_split().cloned())
+  {
     if split_parent.child_count() == 1 {
-      parent = parent.parent().context("No parent.")?;
       flatten_split_container(split_parent)?;
     }
   }
+
+  let parent = child_to_remove.parent().context("No parent.")?;
 
   parent
     .borrow_children_mut()
