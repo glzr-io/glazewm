@@ -11,7 +11,8 @@ use super::flatten_split_container;
 /// For example:
 /// ```
 /// H[1 H[V[2, 3]]] -> H[1, 2, 3]
-/// H[V[1]] -> H[1]
+/// H[1 H[2, 3]] -> H[1, 2, 3]
+/// H[V[1]] -> V[1]
 /// ```
 pub fn flatten_child_split_containers(
   parent: Container,
@@ -34,17 +35,25 @@ pub fn flatten_child_split_containers(
         }
       }
       _ => {
-        for split_child in tiling_children
+        let split_children = tiling_children
           .into_iter()
           .filter_map(|child| child.as_split().cloned())
-          .filter(|split_child| split_child.child_count() == 1)
-        {
-          if let Some(split_grandchild) =
-            split_child.children()[0].as_split()
-          {
-            flatten_split_container(split_grandchild.clone())?;
-            flatten_split_container(split_child.clone())?;
+          .collect::<Vec<_>>();
+
+        for split_child in split_children.iter().filter(|split_child| {
+          split_child.tiling_direction() == parent.tiling_direction()
+        }) {
+          // Additionally flatten redundant top-level split containers in
+          // the child.
+          if split_child.child_count() == 1 {
+            if let Some(split_grandchild) =
+              split_child.children()[0].as_split()
+            {
+              flatten_split_container(split_grandchild.clone())?;
+            }
           }
+
+          flatten_split_container(split_child.clone())?;
         }
       }
     }

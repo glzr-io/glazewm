@@ -6,8 +6,8 @@ use crate::{
   common::{Direction, Rect, TilingDirection},
   containers::{
     commands::{
-      flatten_split_container, move_container_within_tree,
-      resize_tiling_container,
+      flatten_child_split_containers, flatten_split_container,
+      move_container_within_tree, resize_tiling_container,
     },
     traits::{
       CommonGetters, PositionGetters, TilingDirectionGetters,
@@ -109,7 +109,7 @@ fn move_tiling_window(
   match target_ancestor {
     // If there is no suitable ancestor, then change the tiling direction
     // of the workspace.
-    None => change_workspace_tiling_direction(
+    None => invert_workspace_tiling_direction(
       window_to_move,
       direction,
       state,
@@ -255,7 +255,7 @@ fn move_to_workspace_in_direction(
   Ok(())
 }
 
-fn change_workspace_tiling_direction(
+fn invert_workspace_tiling_direction(
   window_to_move: TilingWindow,
   direction: &Direction,
   state: &mut WmState,
@@ -302,6 +302,11 @@ fn change_workspace_tiling_direction(
     target_index,
     state,
   )?;
+
+  // Workspace might have redundant split containers after the tiling
+  // direction change. For example, V[H[1 2] 3] where container 3 is moved
+  // up results in H[3 H[1 2]], and needs to be flattened to H[3 1 2].
+  flatten_child_split_containers(workspace.clone().into())?;
 
   // Resize the window such that the split container and window are each 0.5.
   resize_tiling_container(&window_to_move.into(), 0.5);
