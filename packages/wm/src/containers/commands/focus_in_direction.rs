@@ -6,6 +6,7 @@ use crate::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, TilingContainer,
   },
+  user_config::{CursorJumpTrigger, UserConfig},
   windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
@@ -16,6 +17,7 @@ pub fn focus_in_direction(
   origin_container: Container,
   direction: &Direction,
   state: &mut WmState,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let focus_target = match origin_container {
     Container::TilingWindow(_) => {
@@ -46,8 +48,21 @@ pub fn focus_in_direction(
 
   // Set focus to the target container.
   if let Some(focus_target) = focus_target {
-    set_focused_descendant(focus_target, None);
+    set_focused_descendant(focus_target.clone(), None);
     state.pending_sync.focus_change = true;
+
+    // Jump cursor to the focus target if enabled.
+    if config.value.general.cursor_jump.enabled {
+      match config.value.general.cursor_jump.trigger {
+        CursorJumpTrigger::WindowFocus => {
+          state.pending_sync.cursor_container = Some(focus_target);
+        }
+        CursorJumpTrigger::MonitorFocus => {
+          let monitor = focus_target.monitor().context("No monitor.")?;
+          state.pending_sync.cursor_container = Some(monitor.into());
+        }
+      }
+    }
   }
 
   Ok(())
@@ -136,7 +151,7 @@ fn tiling_focus_target(
 ///
 /// This will descend into the workspace in the given direction, and will
 /// always return a tiling container. This makes it different from the
-/// `focus_worskspace` command with `FocusWorkspaceTarget::Direction`.
+/// `focus_workspace` command with `FocusWorkspaceTarget::Direction`.
 fn workspace_focus_target(
   origin_container: Container,
   direction: &Direction,

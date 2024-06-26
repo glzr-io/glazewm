@@ -3,7 +3,7 @@ use tracing::info;
 
 use crate::{
   containers::{commands::set_focused_descendant, traits::CommonGetters},
-  user_config::UserConfig,
+  user_config::{CursorJumpTrigger, UserConfig},
   wm_state::WmState,
   workspaces::{
     commands::{activate_workspace, deactivate_workspace},
@@ -63,7 +63,7 @@ pub fn focus_workspace(
       .next()
       .unwrap_or_else(|| target_workspace.clone().into());
 
-    set_focused_descendant(container_to_focus, None);
+    set_focused_descendant(container_to_focus.clone(), None);
     state.pending_sync.focus_change = true;
 
     // Display the workspace to switch focus to.
@@ -87,6 +87,21 @@ pub fn focus_workspace(
 
     // Save the currently focused workspace as recent.
     state.recent_workspace_name = Some(focused_workspace.config().name);
+
+    // Jump cursor to the focus target if enabled.
+    if config.value.general.cursor_jump.enabled {
+      match config.value.general.cursor_jump.trigger {
+        CursorJumpTrigger::WindowFocus => {
+          state.pending_sync.cursor_container = Some(container_to_focus);
+        }
+        CursorJumpTrigger::MonitorFocus => {
+          let monitor =
+            container_to_focus.monitor().context("No monitor.")?;
+
+          state.pending_sync.cursor_container = Some(monitor.into());
+        }
+      }
+    }
   }
 
   Ok(())

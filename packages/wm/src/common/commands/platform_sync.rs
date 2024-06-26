@@ -1,4 +1,5 @@
 use anyhow::Context;
+use tracing::warn;
 
 use crate::{
   common::{platform::Platform, DisplayState},
@@ -28,6 +29,18 @@ pub fn platform_sync(
   if state.pending_sync.focus_change {
     sync_focus(focused_container.clone(), state)?;
     state.pending_sync.focus_change = false;
+  }
+
+  if let Some(target) = &state.pending_sync.cursor_container {
+    if !target.is_detached() {
+      let center = target.to_rect()?.center_point();
+
+      if let Err(err) = Platform::set_cursor_pos(center.x, center.y) {
+        warn!("Failed to set cursor position: {}", err);
+      }
+    }
+
+    state.pending_sync.cursor_container = None;
   }
 
   if let Ok(window) = focused_container.as_window_container() {
@@ -61,22 +74,18 @@ pub fn sync_focus(
   focused_container: Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  let native_window = match focused_container.as_window_container() {
+    Ok(window) => window.native().clone(),
+    _ => Platform::desktop_window(),
+  };
+
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  match focused_container.as_window_container() {
-    Ok(window) => {
-      if Platform::foreground_window() != *window.native() {
-        let _ = window.native().set_foreground();
-      }
+  if Platform::foreground_window() != native_window {
+    if let Err(err) = native_window.set_foreground() {
+      warn!("Failed to set foreground window: {}", err);
     }
-    _ => {
-      let desktop_window = Platform::desktop_window();
-
-      if Platform::foreground_window() != desktop_window {
-        let _ = desktop_window.set_foreground();
-      }
-    }
-  };
+  }
 
   // TODO: Change z-index of workspace windows that match the focused
   // container's state. Make sure not to decrease z-index for floating
@@ -113,12 +122,14 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
     let rect =
       window.to_rect()?.apply_delta(&window.total_border_delta()?);
 
-    let _ = window.native().set_position(
+    if let Err(err) = window.native().set_position(
       &window.state(),
       &window.display_state(),
       &rect,
       window.has_pending_dpi_adjustment(),
-    );
+    ) {
+      warn!("Failed to set window position: {}", err);
+    }
   }
 
   Ok(())
