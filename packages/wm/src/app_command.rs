@@ -193,9 +193,6 @@ pub enum InvokeCommand {
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     maximized: Option<bool>,
-
-    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    remove_title_bar: Option<bool>,
   },
   SetMinimized,
   SetTiling,
@@ -218,9 +215,6 @@ pub enum InvokeCommand {
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     maximized: Option<bool>,
-
-    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
-    remove_title_bar: Option<bool>,
   },
   ToggleMinimized,
   ToggleTiling,
@@ -404,7 +398,6 @@ impl InvokeCommand {
       InvokeCommand::SetFullscreen {
         maximized,
         shown_on_top,
-        remove_title_bar,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let fullscreen_defaults =
@@ -417,8 +410,6 @@ impl InvokeCommand {
                 .unwrap_or(fullscreen_defaults.maximized),
               shown_on_top: shown_on_top
                 .unwrap_or(fullscreen_defaults.shown_on_top),
-              remove_title_bar: remove_title_bar
-                .unwrap_or(fullscreen_defaults.remove_title_bar),
             }),
             state,
             config,
@@ -485,7 +476,6 @@ impl InvokeCommand {
       InvokeCommand::ToggleFullscreen {
         maximized,
         shown_on_top,
-        remove_title_bar,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let fullscreen_defaults =
@@ -497,8 +487,6 @@ impl InvokeCommand {
                 .unwrap_or(fullscreen_defaults.maximized),
               shown_on_top: shown_on_top
                 .unwrap_or(fullscreen_defaults.shown_on_top),
-              remove_title_bar: remove_title_bar
-                .unwrap_or(fullscreen_defaults.remove_title_bar),
             });
 
           update_window_state(

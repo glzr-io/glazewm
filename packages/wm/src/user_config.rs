@@ -448,10 +448,6 @@ pub struct FullscreenStateConfig {
   /// Whether to show fullscreen windows as always on top.
   #[serde(default = "default_bool::<false>")]
   pub shown_on_top: bool,
-
-  /// Whether to remove the window's title bar when fullscreen.
-  #[serde(default = "default_bool::<false>")]
-  pub remove_title_bar: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
