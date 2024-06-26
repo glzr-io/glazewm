@@ -14,9 +14,7 @@ use crate::{
   workspaces::Workspace,
 };
 
-use super::{
-  attach_container, flatten_split_container, replace_container,
-};
+use super::{flatten_split_container, wrap_in_split_container};
 
 pub fn toggle_tiling_direction(
   container: Container,
@@ -75,19 +73,10 @@ fn toggle_window_direction(
     config.value.gaps.inner_gap.clone(),
   );
 
-  // Replace the window with the wrapping split container. The window
-  // has to be attached to the split container after the replacement.
-  replace_container(
-    split_container.clone().into(),
-    parent.clone().into(),
-    tiling_window.index(),
-  )?;
-
-  // Add the window as a child to the new split container.
-  attach_container(
-    &tiling_window.clone().into(),
-    &split_container.clone().into(),
-    None,
+  wrap_in_split_container(
+    split_container.clone(),
+    parent.into(),
+    vec![tiling_window.clone().into()],
   )?;
 
   Ok((split_container.id(), split_container.tiling_direction()))
