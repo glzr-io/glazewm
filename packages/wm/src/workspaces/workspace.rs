@@ -26,6 +26,7 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 #[derive(Debug)]
 struct WorkspaceInner {
   id: Uuid,
+  name: String,
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
@@ -41,9 +42,11 @@ struct WorkspaceInner {
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceDto {
   id: Uuid,
+  name: String,
   parent: Option<Uuid>,
   children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
+  is_displayed: bool,
   width: i32,
   height: i32,
   x: i32,
@@ -59,6 +62,7 @@ impl Workspace {
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
+      name: config.name.clone(),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
@@ -103,9 +107,11 @@ impl Workspace {
 
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
+      name: self.0.borrow().name.clone(),
       parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
+      is_displayed: self.is_displayed(),
       width: rect.width(),
       height: rect.height(),
       x: rect.x(),
