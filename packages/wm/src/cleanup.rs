@@ -1,11 +1,15 @@
-use windows::Win32::{
-  Foundation::HWND,
-  UI::WindowsAndMessaging::{ShowWindowAsync, SW_MINIMIZE},
-};
+use tracing::{info, warn};
 
-pub fn cleanup_windows(managed_handles: Vec<isize>) {
-  // TODO (holby) clear window borders
-  managed_handles.iter().for_each(|handle| unsafe {
-    ShowWindowAsync(HWND(*handle), SW_MINIMIZE);
-  });
+use crate::common::platform::NativeWindow;
+
+pub fn run_cleanup(managed_windows: Vec<NativeWindow>) {
+  info!("Running WM state cleanup.",);
+
+  for window in managed_windows {
+    if let Err(err) = window.show() {
+      warn!("Failed to show window: {:?}", err);
+    }
+
+    _ = window.set_border_color(None);
+  }
 }

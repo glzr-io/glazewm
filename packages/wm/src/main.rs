@@ -16,8 +16,6 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 
-use ::wm::cleanup::cleanup_windows;
-
 use crate::{
   app_command::{AppCommand, InvokeCommand, Verbosity},
   common::platform::Platform,
@@ -30,6 +28,7 @@ use crate::{
 };
 
 mod app_command;
+mod cleanup;
 mod common;
 mod containers;
 mod ipc_client;
@@ -195,14 +194,13 @@ async fn start_wm(
     }
   }
 
-  wm.state.emit_event(WmEvent::ApplicationExiting);
-
-  // Unhide all hidden windows before exiting
-  let mut managed_window_handles: Vec<isize> = Vec::new();
-  wm.state.native_windows().iter().for_each(|window| {
-    managed_window_handles.push(window.handle);
-  });
-  cleanup_windows(managed_window_handles);
+  // Broadcast `WmEvent::ApplicationExiting` on shutdown.
+  if let Err(err) = ipc_server.process_event(WmEvent::ApplicationExiting) {
+    error!(
+      "Failed to emit `WmEvent::ApplicationExiting` event over IPC: {:?}",
+      err
+    );
+  }
 
   Ok(())
 }

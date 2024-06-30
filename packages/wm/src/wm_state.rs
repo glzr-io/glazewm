@@ -6,6 +6,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
+  cleanup,
   common::{
     commands::platform_sync,
     platform::{NativeMonitor, NativeWindow, Platform},
@@ -185,15 +186,6 @@ impl WmState {
       .root_container
       .descendants()
       .filter_map(|container| container.try_into().ok())
-      .collect()
-  }
-
-  pub fn native_windows(&self) -> Vec<NativeWindow> {
-    self
-      .root_container
-      .descendants()
-      .filter_map(|container| container.as_window_container().ok())
-      .map(|window| window.native().clone())
       .collect()
   }
 
@@ -470,5 +462,17 @@ impl WmState {
     non_minimized_focus_target
       .or(descendant_focus_order.first().cloned())
       .or(Some(workspace.into()))
+  }
+}
+
+impl Drop for WmState {
+  fn drop(&mut self) {
+    let managed_windows = self
+      .windows()
+      .into_iter()
+      .map(|window| window.native().clone())
+      .collect::<Vec<_>>();
+
+    cleanup::run_cleanup(managed_windows);
   }
 }

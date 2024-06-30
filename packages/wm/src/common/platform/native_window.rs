@@ -455,6 +455,16 @@ impl NativeWindow {
     Ok(())
   }
 
+  pub fn show(&self) -> anyhow::Result<()> {
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+    Ok(())
+  }
+
+  pub fn hide(&self) -> anyhow::Result<()> {
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+    Ok(())
+  }
+
   pub fn set_position(
     &self,
     state: &WindowState,
@@ -505,9 +515,9 @@ impl NativeWindow {
     match state {
       WindowState::Minimized => {
         if !is_visible {
-          unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+          self.hide()?;
         } else {
-          unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+          self.show()?;
         }
 
         if !self.is_minimized()? {
@@ -520,9 +530,9 @@ impl NativeWindow {
         if config.maximized && self.has_window_style(WS_MAXIMIZEBOX) =>
       {
         if !is_visible {
-          unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+          self.hide()?;
         } else {
-          unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+          self.show()?;
         }
 
         if !self.is_maximized()? {
