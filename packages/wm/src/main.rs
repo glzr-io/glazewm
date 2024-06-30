@@ -9,7 +9,12 @@ use std::{env, path::PathBuf};
 
 use anyhow::{Context, Error, Result};
 use tokio::{process::Command, signal};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, Level};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{
+  fmt::{self, writer::MakeWriterExt},
+  layer::SubscriberExt,
+};
 
 use ::wm::cleanup::cleanup_windows;
 
@@ -68,13 +73,29 @@ async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
 ) -> Result<()> {
-  // Set log level based on verbosity flag.
-  tracing_subscriber::fmt()
-    .with_max_level(verbosity.level())
-    .with_file(true)
-    .with_line_number(true)
-    .with_target(false)
-    .init();
+  let default_errors_path = home::home_dir()
+    .context("Unable to get home directory.")?
+    .join(".glzr/glazewm/logs/");
+
+  let appender =
+    tracing_appender::rolling::daily(default_errors_path, "gwm-err");
+  let (non_blocking, _guard) = tracing_appender::non_blocking(appender);
+
+  let subscriber = tracing_subscriber::registry()
+    .with(
+      // std output layer for dev
+      fmt::Layer::new()
+        .with_writer(std::io::stdout.with_max_level(verbosity.level()))
+    )
+    .with(
+      // file output layer for errors
+      fmt::Layer::new()
+        .with_writer(non_blocking.with_max_level(Level::ERROR))
+        .with_ansi(false),
+    );
+
+  tracing::subscriber::set_global_default(subscriber)
+    .expect("setting default subscriber failed");
 
   info!(
     "Starting WM with log level {:?}.",

@@ -33,6 +33,7 @@ serde_json = { workspace = true }
 serde_yaml = "0.9"
 regex = "1"
 tokio = { workspace = true }
+tracing-appender = "0.2.3"
 tokio-tungstenite = "0.21"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
