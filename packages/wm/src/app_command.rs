@@ -1,6 +1,6 @@
 use std::{iter, path::PathBuf};
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
@@ -29,7 +29,10 @@ use crate::{
     WindowState,
   },
   wm_state::WmState,
-  workspaces::{commands::focus_workspace, WorkspaceTarget},
+  workspaces::{
+    commands::{focus_workspace, move_workspace_in_direction},
+    WorkspaceTarget,
+  },
 };
 
 #[derive(Clone, Debug, Parser)]
@@ -362,7 +365,17 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::MoveWorkspace { direction } => todo!(),
+      InvokeCommand::MoveWorkspace { direction } => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        move_workspace_in_direction(
+          workspace,
+          direction.clone(),
+          state,
+          config,
+        )
+      }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
           Ok(window) => resize_window(
