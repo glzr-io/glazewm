@@ -25,16 +25,17 @@ use windows::{
         GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOPMOST,
         SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_HIDEWINDOW,
         SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
-        SWP_SHOWWINDOW, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
+        SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
+        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX,
+        WS_THICKFRAME,
       },
     },
   },
 };
 
 use crate::{
-  common::{Color, DisplayState, LengthValue, Memo, Rect, RectDelta},
+  common::{Color, LengthValue, Memo, Rect, RectDelta},
   windows::WindowState,
 };
 
@@ -457,8 +458,8 @@ impl NativeWindow {
   pub fn set_position(
     &self,
     state: &WindowState,
-    display_state: &DisplayState,
     rect: &Rect,
+    is_visible: bool,
     has_pending_dpi_adjustment: bool,
   ) -> anyhow::Result<()> {
     // Restore window if it's minimized/maximized and shouldn't be. This is
@@ -481,18 +482,15 @@ impl NativeWindow {
       }
     }
 
-    let mut swp_flags = SWP_FRAMECHANGED
-      | SWP_NOACTIVATE
+    let mut swp_flags = SWP_NOACTIVATE
       | SWP_NOCOPYBITS
       | SWP_NOSENDCHANGING
       | SWP_ASYNCWINDOWPOS;
 
     // Whether to show or hide the window.
-    match display_state {
-      DisplayState::Showing | DisplayState::Shown => {
-        swp_flags |= SWP_SHOWWINDOW
-      }
-      _ => swp_flags |= SWP_HIDEWINDOW,
+    match is_visible {
+      true => swp_flags |= SWP_SHOWWINDOW,
+      false => swp_flags |= SWP_HIDEWINDOW,
     };
 
     // Whether the window should be shown above all other windows.
@@ -506,6 +504,12 @@ impl NativeWindow {
 
     match state {
       WindowState::Minimized => {
+        if !is_visible {
+          unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+        } else {
+          unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+        }
+
         if !self.is_minimized()? {
           self.minimize()?;
         }
@@ -515,11 +519,19 @@ impl NativeWindow {
       WindowState::Fullscreen(config)
         if config.maximized && self.has_window_style(WS_MAXIMIZEBOX) =>
       {
+        if !is_visible {
+          unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+        } else {
+          unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+        }
+
         if !self.is_maximized()? {
           self.maximize()?;
         }
       }
       _ => {
+        swp_flags |= SWP_FRAMECHANGED;
+
         unsafe {
           SetWindowPos(
             HWND(self.handle),

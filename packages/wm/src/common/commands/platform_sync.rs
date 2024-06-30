@@ -122,10 +122,15 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
     let rect =
       window.to_rect()?.apply_delta(&window.total_border_delta()?);
 
+    let is_visible = match window.display_state() {
+      DisplayState::Showing | DisplayState::Shown => true,
+      _ => false,
+    };
+
     if let Err(err) = window.native().set_position(
       &window.state(),
-      &window.display_state(),
       &rect,
+      is_visible,
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
