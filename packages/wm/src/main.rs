@@ -84,7 +84,7 @@ async fn start_wm(
     .with(
       // std output layer for dev
       fmt::Layer::new()
-        .with_writer(std::io::stdout.with_max_level(verbosity.level()))
+        .with_writer(std::io::stdout.with_max_level(verbosity.level())),
     )
     .with(
       // file output layer for errors
@@ -113,9 +113,9 @@ async fn start_wm(
   // Add application icon to system tray.
   let mut tray = SystemTray::new(&config.path)?;
 
-  let mut ipc_server = IpcServer::start().await?;
-
   let mut wm = WindowManager::new(&mut config)?;
+
+  let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events after populating initial state.
   let mut event_listener = Platform::start_event_listener(&config)?;

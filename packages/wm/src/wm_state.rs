@@ -6,7 +6,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
-  cleanup,
+  cleanup::run_cleanup,
   common::{
     commands::platform_sync,
     platform::{NativeMonitor, NativeWindow, Platform},
@@ -473,6 +473,6 @@ impl Drop for WmState {
       .map(|window| window.native().clone())
       .collect::<Vec<_>>();
 
-    cleanup::run_cleanup(managed_windows);
+    run_cleanup(managed_windows);
   }
 }
