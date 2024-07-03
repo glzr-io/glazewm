@@ -255,4 +255,4 @@ keybindings:
   - commands: ["move to workspace 8", "focus workspace 8"]
     binding: "Alt+Shift+8"
   - commands: ["move to workspace 9", "focus workspace 9"]
-    bindings: ["Alt+Shift+9"]
+    binding: "Alt+Shift+9"
