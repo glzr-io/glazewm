@@ -47,24 +47,28 @@ mod workspaces;
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
-  let res = match app_command {
+  match app_command {
     AppCommand::Start {
       config_path,
       verbosity,
-    } => start_wm(config_path, verbosity).await,
-    _ => start_cli(args).await,
-  };
+    } => {
+      let res = start_wm(config_path, verbosity).await;
 
-  if let Err(err) = res {
-    error!(
-      error = err.to_string(),
-      error.backtrace = err.backtrace().to_string(),
-      "An error occurred"
-    );
+      if let Err(err) = &res {
+        error!(
+          error = err.to_string(),
+          error.backtrace = err.backtrace().to_string(),
+          is_fatal = true
+        );
+      };
+
+      res
+    }
+    _ => start_cli(args).await,
   }
 }
 
@@ -72,29 +76,26 @@ async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
 ) -> Result<()> {
-  let default_errors_path = home::home_dir()
+  let error_log_dir = home::home_dir()
     .context("Unable to get home directory.")?
-    .join(".glzr/glazewm/logs/");
+    .join(".glzr/glazewm/");
 
-  let appender =
-    tracing_appender::rolling::daily(default_errors_path, "gwm-err");
-  let (non_blocking, _guard) = tracing_appender::non_blocking(appender);
+  let error_writer =
+    tracing_appender::rolling::never(error_log_dir, "errors.log");
 
   let subscriber = tracing_subscriber::registry()
     .with(
-      // std output layer for dev
+      // Output to stdout with specified verbosity level.
       fmt::Layer::new()
         .with_writer(std::io::stdout.with_max_level(verbosity.level())),
     )
     .with(
-      // file output layer for errors
+      // Output to error log file.
       fmt::Layer::new()
-        .with_writer(non_blocking.with_max_level(Level::ERROR))
-        .with_ansi(false),
+        .with_writer(error_writer.with_max_level(Level::ERROR)),
     );
 
-  tracing::subscriber::set_global_default(subscriber)
-    .expect("setting default subscriber failed");
+  tracing::subscriber::set_global_default(subscriber)?;
 
   info!(
     "Starting WM with log level {:?}.",
@@ -206,8 +207,6 @@ async fn start_wm(
 }
 
 async fn start_cli(args: Vec<String>) -> Result<()> {
-  tracing_subscriber::fmt().init();
-
   let mut client = IpcClient::connect().await?;
 
   let message = args[1..].join(" ");
