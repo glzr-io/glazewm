@@ -1,7 +1,7 @@
 general:
   # Commands to run when the WM has started (e.g. to run a script or launch
-  # another application).
-  startup_commands: []
+  # another application). Here we are running a batch script to start Zebar.
+  startup_commands: ['shell-exec --command %userprofile%/.glzr/zebar/start.bat']
 
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
@@ -25,7 +25,7 @@ gaps:
 
   # Gap between windows and the screen edge.
   outer_gap:
-    top: '20px'
+    top: '60px'
     right: '20px'
     bottom: '20px'
     left: '20px'
@@ -79,9 +79,8 @@ workspaces:
 window_rules:
   - commands: ['ignore']
     match:
-      # Task Manager requires admin privileges to manage and should be ignored
-      # unless running the WM as admin.
-      - window_process: { equals: 'Taskmgr' }
+      # Ignores any Zebar windows.
+      - window_process: { equals: 'Zebar' }
 
       # Ignores picture-in-picture windows for browsers.
       - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
