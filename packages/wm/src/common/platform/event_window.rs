@@ -159,7 +159,7 @@ impl EventWindow {
 impl Drop for EventWindow {
   fn drop(&mut self) {
     if let Err(err) = self.destroy() {
-      error!("Failed to gracefully shut down event window: {}", err);
+      warn!("Failed to gracefully shut down event window: {}", err);
     }
   }
 }

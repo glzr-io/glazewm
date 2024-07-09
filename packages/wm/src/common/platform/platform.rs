@@ -19,13 +19,13 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
-        GetForegroundWindow, GetMessageW, PeekMessageW,
+        GetForegroundWindow, GetMessageW, MessageBoxW, PeekMessageW,
         PostThreadMessageW, RegisterClassW, SetCursorPos,
         SystemParametersInfoW, TranslateMessage, WindowFromPoint,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
-        MSG, PM_REMOVE, SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
-        WS_OVERLAPPEDWINDOW,
+        MB_ICONERROR, MB_OK, MSG, PM_REMOVE, SPI_GETANIMATION,
+        SPI_SETANIMATION, SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -430,6 +430,20 @@ impl Platform {
 
     unsafe { ShellExecuteExW(&mut exec_info) }?;
     Ok(())
+  }
+
+  pub fn show_error_dialog(title: &str, message: &str) {
+    let title_wide = to_wide(title);
+    let message_wide = to_wide(message);
+
+    unsafe {
+      MessageBoxW(
+        None,
+        PCWSTR(message_wide.as_ptr()),
+        PCWSTR(title_wide.as_ptr()),
+        MB_ICONERROR | MB_OK,
+      );
+    }
   }
 }
 

@@ -2,7 +2,7 @@ use std::{path::PathBuf, thread::JoinHandle, time::Duration};
 
 use anyhow::Context;
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{info, warn};
 use tray_icon::{
   menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIconBuilder,
@@ -120,7 +120,7 @@ impl SystemTray {
 impl Drop for SystemTray {
   fn drop(&mut self) {
     if let Err(err) = self.destroy() {
-      error!("Failed to gracefully shut down system tray: {}", err);
+      warn!("Failed to gracefully shut down system tray: {}", err);
     }
   }
 }

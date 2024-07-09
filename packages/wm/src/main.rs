@@ -9,8 +9,7 @@ use std::{env, path::PathBuf};
 
 use anyhow::{Context, Error, Result};
 use tokio::{process::Command, signal};
-use tracing::{debug, error, info, Level};
-use tracing_appender::non_blocking::WorkerGuard;
+use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
@@ -58,12 +57,11 @@ async fn main() -> Result<()> {
     } => {
       let res = start_wm(config_path, verbosity).await;
 
+      // If unable to start the WM, the error is fatal and a message dialog
+      // is shown.
       if let Err(err) = &res {
-        error!(
-          error = err.to_string(),
-          error.backtrace = err.backtrace().to_string(),
-          is_fatal = true
-        );
+        error!("{:?}", err);
+        Platform::show_message_box("Fatal error", &err.to_string());
       };
 
       res
@@ -126,13 +124,22 @@ async fn start_wm(
   wm.process_commands(startup_commands, None, &mut config)?;
 
   loop {
-    tokio::select! {
+    let res = tokio::select! {
+      Some(_) = tray.exit_rx.recv() => {
+        info!("Exiting through system tray.");
+        break;
+      },
+      Some(_) = wm.exit_rx.recv() => {
+        info!("Exiting through WM command.");
+        break;
+      },
+      _ = signal::ctrl_c() => {
+        info!("Received SIGINT signal.");
+        break;
+      },
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
-
-        if let Err(err) = wm.process_event(event, &mut config) {
-          error!("Failed to process event: {:?}", err);
-        }
+        wm.process_event(event, &mut config)
       },
       Some((
         message,
@@ -141,15 +148,13 @@ async fn start_wm(
       )) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", message);
 
-        if let Err(err) = ipc_server.process_message(
+        ipc_server.process_message(
           message,
           response_tx,
           disconnection_tx,
           &mut wm,
           &mut config,
-        ) {
-          error!("Failed to process IPC message: {:?}", err);
-        }
+        )
       },
       Some(wm_event) = wm.event_rx.recv() => {
         info!("Received WM event: {:?}", wm_event);
@@ -167,37 +172,27 @@ async fn start_wm(
           );
         }
 
-        if let Err(err) = ipc_server.process_event(wm_event) {
-          error!("Failed to emit event over IPC: {:?}", err);
-        }
+        ipc_server.process_event(wm_event)
       },
       Some(_) = tray.config_reload_rx.recv() => {
-        if let Err(err) = wm.process_commands(
+        wm.process_commands(
           vec![InvokeCommand::WmReloadConfig],
           None,
           &mut config,
-        ) {
-          error!("Failed to reload config: {:?}", err);
-        }
+        )
+        .and_then(|_| Ok(()))
       },
-      Some(_) = tray.exit_rx.recv() => {
-        info!("Exiting through system tray.");
-        break;
-      },
-      Some(_) = wm.exit_rx.recv() => {
-        info!("Exiting through WM command.");
-        break;
-      },
-      _ = signal::ctrl_c() => {
-        info!("Received SIGINT signal.");
-        break;
-      },
+    };
+
+    if let Err(err) = res {
+      error!("{:?}", err);
+      Platform::show_message_box("Non-fatal error", &err.to_string());
     }
   }
 
   // Broadcast `WmEvent::ApplicationExiting` on shutdown.
   if let Err(err) = ipc_server.process_event(WmEvent::ApplicationExiting) {
-    error!(
+    warn!(
       "Failed to emit `WmEvent::ApplicationExiting` event over IPC: {:?}",
       err
     );

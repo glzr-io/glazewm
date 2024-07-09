@@ -1,13 +1,27 @@
-use tracing::info;
+use tracing::{error, info};
 
 use crate::common::platform::Platform;
 
 pub fn shell_exec(command: &str) -> anyhow::Result<()> {
-  let (program, args) = Platform::parse_command(command)?;
-  info!("Parsed command program: '{}', args: '{}'.", program, args);
+  let res =
+    Platform::parse_command(command).and_then(|(program, args)| {
+      info!("Parsed command program: '{}', args: '{}'.", program, args);
 
-  Platform::run_command(&program, &args)?;
-  info!("Command executed successfully: {}.", command);
+      Platform::run_command(&program, &args)
+    });
+
+  match res {
+    Ok(_) => {
+      info!("Command executed successfully: {}.", command);
+    }
+    Err(err) => {
+      let err_message =
+        format!("Failed to execute '{}'.\n\nError: {}", command, err);
+
+      error!(err_message);
+      Platform::show_error_dialog("Non-fatal error", &err_message);
+    }
+  }
 
   Ok(())
 }

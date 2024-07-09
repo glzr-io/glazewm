@@ -10,7 +10,7 @@ use tokio::{
   task,
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -141,7 +141,7 @@ impl IpcServer {
           if let Err(err) =
             Self::handle_connection(stream, addr, message_tx).await
           {
-            error!("Error handling connection: {}", err);
+            warn!("Error handling connection: {}", err);
           }
         });
       }
@@ -180,7 +180,7 @@ impl IpcServer {
       tokio::select! {
         Some(response) = response_rx.recv() => {
           if let Err(err) = outgoing.send(response).await {
-            error!("Error sending response: {}", err);
+            warn!("Error sending response: {}", err);
             break;
           }
         }
@@ -346,7 +346,7 @@ impl IpcServer {
                   .map(|event_msg| response_tx.send(event_msg));
 
                   if let Err(err) = res {
-                    error!("Error emitting WM event: {}", err);
+                    warn!("Error emitting WM event: {}", err);
                     break;
                   }
                 }
