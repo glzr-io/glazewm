@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
       // is shown.
       if let Err(err) = &res {
         error!("{:?}", err);
-        Platform::show_message_box("Fatal error", &err.to_string());
+        Platform::show_error_dialog("Fatal error", &err.to_string());
       };
 
       res
@@ -186,7 +186,7 @@ async fn start_wm(
 
     if let Err(err) = res {
       error!("{:?}", err);
-      Platform::show_message_box("Non-fatal error", &err.to_string());
+      Platform::show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 
