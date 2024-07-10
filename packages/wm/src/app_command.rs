@@ -35,8 +35,10 @@ use crate::{
   },
 };
 
+const VERSION: &'static str = env!("VERSION_NUMBER");
+
 #[derive(Clone, Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
+#[clap(author, version = VERSION, about, long_about = None)]
 pub enum AppCommand {
   /// Starts the window manager.
   Start {

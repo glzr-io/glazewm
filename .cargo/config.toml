@@ -1,0 +1,4 @@
+[env]
+# Version number shown in CLI and system tray. Override this by setting the
+# version number on build/run (i.e. `VERSION_NUMBER="1.0.0" cargo run`).
+VERSION_NUMBER = "0.0.0"

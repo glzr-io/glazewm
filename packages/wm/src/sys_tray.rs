@@ -58,7 +58,7 @@ impl SystemTray {
       let icon = Icon::from_resource(IDI_ICON, None)?;
       let _tray_icon = TrayIconBuilder::new()
         .with_menu(Box::new(tray_menu))
-        .with_tooltip(format!("GlazeWM v{}", env!("CARGO_PKG_VERSION")))
+        .with_tooltip(format!("GlazeWM v{}", env!("VERSION_NUMBER")))
         .with_icon(icon)
         .build()?;
 
