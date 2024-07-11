@@ -1,0 +1,94 @@
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+>
+  <Package
+    Name="GlazeWM"
+    UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e"
+    Language="1033"
+    Codepage="1252"
+    Version="0.0.0"
+    Manufacturer="Glzr"
+    InstallerVersion="200"
+  >
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+    />
+
+    <Icon Id="GlazeWMIco" SourceFile=".\resources\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="GlazeWMIco" />
+
+    <MediaTemplate EmbedCab="yes" />
+    <ui:WixUI Id="WixUI_Minimal" />
+
+    <Feature Id="ProductFeature" Title="ConsoleApp" Level="1">
+      <ComponentRef Id="GlazeWMExe" />
+      <ComponentRef Id="GlazeWMShortcut" />
+      <ComponentRef Id="ModifyPathEnv" />
+    </Feature>
+
+    <!-- Application binaries -->
+    <DirectoryRef Id="GlazeWMProgramFiles">
+      <Component Id="GlazeWMExe">
+        <File
+          Id="GlazeWMExeFile"
+          Source=".\target\release\wm.exe"
+          Name="GlazeWM.exe"
+          KeyPath="yes"
+        />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="GlazeWMProgramMenu">
+      <!-- Application shortcut -->
+      <Component
+        Id="GlazeWMShortcut"
+        Guid="66ab31a5-7e45-4306-9f17-fe8ad579b43f"
+      >
+        <Shortcut
+          Id="GlazeWMShortcutFile"
+          Name="GlazeWM"
+          Description="A tiling window manager for Windows inspired by i3 and Polybar."
+          Target="[GlazeWMProgramFiles]glazewm.exe"
+        />
+        <RemoveFolder Id="GlazeWMProgramMenu" On="uninstall" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\Microsoft\GlazeWM"
+          Name="installed"
+          Type="integer"
+          Value="1"
+          KeyPath="yes"
+        />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="GlazeWMProgramFiles">
+      <!-- Add to PATH. -->
+      <Component
+        Id="ModifyPathEnv"
+        Guid="66a4be46-19ae-4ed4-944f-b01673887f64"
+        KeyPath="yes"
+      >
+        <Environment
+          Id="PathEnv"
+          Value="[GlazeWMProgramFiles]"
+          Name="PATH"
+          Permanent="no"
+          Part="first"
+          Action="set"
+          System="yes"
+        />
+      </Component>
+    </DirectoryRef>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="GlazeWMProgramFiles" Name="GlazeWM" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="GlazeWMProgramMenu" Name="GlazeWM" />
+    </StandardDirectory>
+  </Package>
+</Wix>
