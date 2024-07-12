@@ -1,6 +1,5 @@
 use anyhow::{bail, Context};
 use tracing::info;
-
 use wm::{
   cleanup::run_cleanup, common::platform::NativeWindow,
   containers::ContainerDto, ipc_client::IpcClient,

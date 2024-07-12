@@ -30,11 +30,10 @@ use windows::Win32::{
   },
 };
 
-use crate::{common::Point, user_config::KeybindingConfig};
-
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
 };
+use crate::{common::Point, user_config::KeybindingConfig};
 
 /// Global instance of sender for platform events.
 ///

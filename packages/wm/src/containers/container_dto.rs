@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use super::{RootContainerDto, SplitContainerDto};
 use crate::{
   monitors::MonitorDto, windows::WindowDto, workspaces::WorkspaceDto,
 };
-
-use super::{RootContainerDto, SplitContainerDto};
 
 /// User-friendly representation of a container.
 ///

@@ -1,12 +1,11 @@
 use enum_dispatch::enum_dispatch;
 
+use super::CommonGetters;
 use crate::{
   common::{Direction, TilingDirection},
   containers::{DirectionContainer, TilingContainer},
   windows::TilingWindow,
 };
-
-use super::CommonGetters;
 
 #[enum_dispatch]
 pub trait TilingDirectionGetters: CommonGetters {

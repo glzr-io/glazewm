@@ -1,6 +1,7 @@
 use anyhow::Context;
 use uuid::Uuid;
 
+use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
   common::TilingDirection,
   containers::{
@@ -13,8 +14,6 @@ use crate::{
   wm_state::WmState,
   workspaces::Workspace,
 };
-
-use super::{flatten_split_container, wrap_in_split_container};
 
 pub fn toggle_tiling_direction(
   container: Container,

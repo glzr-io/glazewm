@@ -1,11 +1,10 @@
 use anyhow::bail;
 
+use super::resize_tiling_container;
 use crate::containers::{
   traits::{CommonGetters, TilingSizeGetters},
   Container,
 };
-
-use super::resize_tiling_container;
 
 /// Inserts a child container at the specified index.
 ///

@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::common::{DisplayState, Rect, RectDelta};
-
 use super::WindowState;
+use crate::common::{DisplayState, Rect, RectDelta};
 
 /// User-friendly representation of a tiling or non-tiling window.
 ///

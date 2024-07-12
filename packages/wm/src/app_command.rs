@@ -143,7 +143,8 @@ pub enum QueryCommand {
   AppMetadata,
   /// Outputs the active binding modes.
   BindingModes,
-  /// Outputs the focused container (either a window or an empty workspace).
+  /// Outputs the focused container (either a window or an empty
+  /// workspace).
   Focused,
   /// Outputs all monitors.
   Monitors,

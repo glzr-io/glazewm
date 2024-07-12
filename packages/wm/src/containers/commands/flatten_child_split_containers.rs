@@ -1,9 +1,8 @@
+use super::flatten_split_container;
 use crate::containers::{
   traits::{CommonGetters, TilingDirectionGetters},
   Container,
 };
-
-use super::flatten_split_container;
 
 /// Flattens any redundant split containers at the top-level of the given
 /// parent container.
@@ -27,8 +26,8 @@ pub fn flatten_child_split_containers(
 
     match tiling_children.len() {
       1 => {
-        // Handle case where the parent is a split container and has a single
-        // split container child.
+        // Handle case where the parent is a split container and has a
+        // single split container child.
         if let Some(split_child) = tiling_children[0].as_split() {
           flatten_split_container(split_child.clone())?;
           parent.set_tiling_direction(parent.tiling_direction().inverse());

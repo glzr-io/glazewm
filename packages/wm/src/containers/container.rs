@@ -1,13 +1,12 @@
 use enum_as_inner::EnumAsInner;
 use enum_dispatch::enum_dispatch;
 
+use super::{traits::CommonGetters, RootContainer, SplitContainer};
 use crate::{
   monitors::Monitor,
   windows::{NonTilingWindow, TilingWindow},
   workspaces::Workspace,
 };
-
-use super::{traits::CommonGetters, RootContainer, SplitContainer};
 
 /// A container of any type.
 #[derive(Clone, Debug, EnumAsInner)]

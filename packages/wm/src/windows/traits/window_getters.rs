@@ -113,8 +113,8 @@ pub trait WindowGetters {
 /// Implements the `WindowGetters` trait for a given struct.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
-/// with a `state`, `prev_state`, `native`, `border_delta`, `display_state`,
-/// `has_pending_dpi_adjustment`, and a `done_window_rules` field.
+/// with a `state`, `prev_state`, `native`, `has_pending_dpi_adjustment`,
+/// `border_delta`, `display_state`, and a `done_window_rules` field.
 #[macro_export]
 macro_rules! impl_window_getters {
   ($struct_name:ident) => {

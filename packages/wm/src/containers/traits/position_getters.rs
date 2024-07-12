@@ -13,7 +13,7 @@ pub trait PositionGetters {
 }
 
 /// Implements the `PositionGetters` trait for tiling containers that can
-/// be resized. Specifically, this is for `SplitContainer` and `TilingWindow`.
+/// be resized. This is used by `SplitContainer` and `TilingWindow`.
 ///
 /// Expects that the struct has a wrapping `RefCell` containing a struct
 /// with an `id` and a `parent` field.

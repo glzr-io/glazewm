@@ -2,12 +2,11 @@ use std::collections::VecDeque;
 
 use anyhow::Context;
 
+use super::flatten_split_container;
 use crate::containers::{
   traits::{CommonGetters, TilingSizeGetters},
   Container,
 };
-
-use super::flatten_split_container;
 
 /// Removes a container from the tree.
 ///

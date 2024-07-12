@@ -7,6 +7,7 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 
+use super::{traits::WindowGetters, TilingWindow, WindowDto, WindowState};
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
@@ -19,8 +20,6 @@ use crate::{
   impl_common_getters, impl_container_debug, impl_window_getters,
   user_config::WindowRuleConfig,
 };
-
-use super::{traits::WindowGetters, TilingWindow, WindowDto, WindowState};
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);

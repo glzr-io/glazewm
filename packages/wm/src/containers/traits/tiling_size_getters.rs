@@ -1,12 +1,11 @@
 use anyhow::Context;
 use enum_dispatch::enum_dispatch;
 
+use super::{CommonGetters, TilingDirectionGetters};
 use crate::{
   common::{LengthValue, TilingDirection},
   containers::{Container, DirectionContainer, TilingContainer},
 };
-
-use super::{CommonGetters, TilingDirectionGetters};
 
 #[enum_dispatch]
 pub trait TilingSizeGetters: CommonGetters {

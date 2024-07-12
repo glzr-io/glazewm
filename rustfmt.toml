@@ -1,2 +1,6 @@
 tab_spaces = 2
 max_width = 75
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+use_field_init_shorthand = true
+wrap_comments = true

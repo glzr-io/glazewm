@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 
+use super::{attach_container, detach_container, resize_tiling_container};
 use crate::{
   common::VecDequeExt,
   containers::{
@@ -7,8 +8,6 @@ use crate::{
     Container,
   },
 };
-
-use super::{attach_container, detach_container, resize_tiling_container};
 
 /// Replaces a container at the specified index.
 ///

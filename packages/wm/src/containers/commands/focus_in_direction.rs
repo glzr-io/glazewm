@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use super::set_focused_descendant;
 use crate::{
   common::{Direction, TilingDirection},
   containers::{
@@ -10,8 +11,6 @@ use crate::{
   windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
-
-use super::set_focused_descendant;
 
 pub fn focus_in_direction(
   origin_container: Container,

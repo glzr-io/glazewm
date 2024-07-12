@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use super::activate_workspace;
 use crate::{
   common::Direction,
   containers::{
@@ -13,8 +14,6 @@ use crate::{
   wm_state::WmState,
   workspaces::Workspace,
 };
-
-use super::activate_workspace;
 
 pub fn move_workspace_in_direction(
   workspace: Workspace,

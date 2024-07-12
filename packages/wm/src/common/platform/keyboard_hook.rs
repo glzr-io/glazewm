@@ -16,9 +16,8 @@ use windows::Win32::{
   },
 };
 
-use crate::user_config::KeybindingConfig;
-
 use super::PlatformEvent;
+use crate::user_config::KeybindingConfig;
 
 /// Global instance of `KeyboardHook`.
 ///
@@ -356,7 +355,8 @@ impl KeyboardHook {
           return false;
         }
 
-        // Invoke the callback function for the longest matching keybinding.
+        // Invoke the callback function for the longest matching
+        // keybinding.
         let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(
           longest_keybinding.config.clone(),
         ));

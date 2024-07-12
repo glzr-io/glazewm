@@ -31,12 +31,11 @@ use windows::{
   },
 };
 
-use crate::{common::Point, user_config::UserConfig};
-
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
   NativeWindow, SingleInstance,
 };
+use crate::{common::Point, user_config::UserConfig};
 
 pub type WindowProcedure = WNDPROC;
 
@@ -305,12 +304,13 @@ impl Platform {
 
   /// Parses a command string into a program name/path and arguments. This
   /// also expands any environment variables found in the command string if
-  /// they are wrapped in `%` characters. If the command string is a path, a
-  /// file extension is required.
+  /// they are wrapped in `%` characters. If the command string is a path,
+  /// a file extension is required.
   ///
   /// This is similar to the `SHEvaluateSystemCommandTemplate` function. It
   /// also parses program name/path and arguments, but can't handle `/` as
-  /// file path delimiters and it errors for certain programs (e.g. `code`).
+  /// file path delimiters and it errors for certain programs (e.g.
+  /// `code`).
   ///
   /// Returns a tuple containing the program name/path and arguments.
   ///
@@ -407,9 +407,9 @@ impl Platform {
       .to_owned();
 
     // Inlining the wide variables within the `SHELLEXECUTEINFOW` struct
-    // causes issues where the pointer is dropped while `ShellExecuteExW` is
-    // using it. This is likely a `windows-rs` bug, and we can avoid it by
-    // keeping separate variables for the wide strings.
+    // causes issues where the pointer is dropped while `ShellExecuteExW`
+    // is using it. This is likely a `windows-rs` bug, and we can avoid
+    // it by keeping separate variables for the wide strings.
     let program_wide = to_wide(&program);
     let args_wide = to_wide(&args);
     let home_dir_wide = to_wide(&home_dir);

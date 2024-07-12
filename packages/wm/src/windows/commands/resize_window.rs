@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use super::set_window_size;
 use crate::{
   common::LengthValue,
   containers::{
@@ -8,8 +9,6 @@ use crate::{
   },
   wm_state::WmState,
 };
-
-use super::set_window_size;
 
 pub fn resize_window(
   window: WindowContainer,

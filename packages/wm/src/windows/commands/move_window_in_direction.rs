@@ -321,7 +321,8 @@ fn invert_workspace_tiling_direction(
   // up results in H[3 H[1 2]], and needs to be flattened to H[3 1 2].
   flatten_child_split_containers(workspace.clone().into())?;
 
-  // Resize the window such that the split container and window are each 0.5.
+  // Resize the window such that the split container and window are each
+  // 0.5.
   resize_tiling_container(&window_to_move.into(), 0.5);
 
   state
@@ -384,7 +385,8 @@ fn move_floating_window(
 
     // Mark window as needing DPI adjustment if it crosses monitors. The
     // handler for `PlatformEvent::LocationChanged` will update the
-    // window's workspace if it goes out of bounds of its current workspace.
+    // window's workspace if it goes out of bounds of its current
+    // workspace.
     if monitor.id() != target_monitor.id()
       && monitor.has_dpi_difference(&target_monitor.into())?
     {

@@ -1,15 +1,14 @@
 use anyhow::Context;
 
+use super::{
+  attach_container, detach_container, flatten_child_split_containers,
+  set_focused_descendant,
+};
 use crate::{
   common::VecDequeExt,
   containers::{traits::CommonGetters, Container},
   wm_event::WmEvent,
   wm_state::WmState,
-};
-
-use super::{
-  attach_container, detach_container, flatten_child_split_containers,
-  set_focused_descendant,
 };
 
 /// Move a container to a new location in the tree. This detaches the

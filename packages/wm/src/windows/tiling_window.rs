@@ -7,6 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 
+use super::{
+  traits::WindowGetters, NonTilingWindow, WindowDto, WindowState,
+};
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
@@ -24,10 +27,6 @@ use crate::{
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
   user_config::WindowRuleConfig,
-};
-
-use super::{
-  traits::WindowGetters, NonTilingWindow, WindowDto, WindowState,
 };
 
 #[derive(Clone)]

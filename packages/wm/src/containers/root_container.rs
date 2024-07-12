@@ -8,13 +8,12 @@ use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{common::Rect, impl_common_getters, impl_container_debug};
-
 use super::{
   traits::{CommonGetters, PositionGetters},
   Container, ContainerDto, DirectionContainer, TilingContainer,
   WindowContainer,
 };
+use crate::{common::Rect, impl_common_getters, impl_container_debug};
 
 /// Root node of the container tree.
 #[derive(Clone)]
