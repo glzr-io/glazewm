@@ -15,7 +15,7 @@ name = "wm"
 path = "src\\main.rs"
 
 [features]
-windows_subsystem = []
+no_console = []
 
 [build-dependencies]
 embed-resource = "2"

@@ -34,13 +34,15 @@ jobs:
 
       - name: Build with windows subsystem
         run: |
-          cargo build --locked --release --target ${{ matrix.rust-target }} --features windows_subsystem
+          cargo build --locked --release --target ${{ matrix.rust-target }} --features no_console
           mv target/${{ matrix.rust-target }}/release/wm.exe tmp/wm-noconsole.exe
+          mv target/${{ matrix.rust-target }}/release/watcher.exe tmp/watcher-noconsole.exe
 
       - name: Build with console subsystem
         run: |
           cargo build --locked --release --target ${{ matrix.rust-target }}
           mv target/${{ matrix.rust-target }}/release/wm.exe tmp/wm-console.exe
+          mv target/${{ matrix.rust-target }}/release/watcher.exe tmp/watcher-console.exe
 
       - name: Install WiX
         run: dotnet tool install --global wix --version 5.0.0
@@ -49,10 +51,10 @@ jobs:
         run: |
           wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5
           wix build -arch ${{ matrix.wix-target }} -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./installer.msi" "./resources/main.wxs"
+            -out "./tmp/installer.msi" "./resources/main.wxs"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bundle-${{ matrix.rust-target }}
+          name: installer-${{ matrix.rust-target }}
           if-no-files-found: error
-          path: tmp
+          path: tmp/installer.msi
