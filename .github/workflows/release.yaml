@@ -28,17 +28,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download artifacts (x64)
+      - name: Download installers
         uses: actions/download-artifact@v4
         with:
-          name: installer-x86_64-pc-windows-msvc
-          path: tmp/installer-x64
-
-      - name: Download artifacts (arm64)
-        uses: actions/download-artifact@v4
-        with:
-          name: installer-aarch64-pc-windows-msvc
-          path: tmp/installer-arm64
+          name: installers
+          path: tmp/
 
       - uses: glzr-io/actions/semantic-release@main
         with:
@@ -48,11 +42,18 @@ jobs:
           gh-assets: |
             [
               {
+                "path": "tmp/installer-universal",
+                "name": "glazewm-${nextRelease.gitTag}",
+                "label": "${nextRelease.gitTag} Installer (recommended)"
+              },
+              {
                 "path": "tmp/installer-x64",
-                "name": "glazewm_x64_${nextRelease.gitTag}"
+                "name": "glazewm-x64-${nextRelease.gitTag}",
+                "label": "${nextRelease.gitTag} Installer (standalone x64)"
               },
               {
                 "path": "tmp/installer-arm64",
-                "name": "glazewm_arm64_${nextRelease.gitTag}"
+                "name": "glazewm-arm64-${nextRelease.gitTag}",
+                "label": "${nextRelease.gitTag} Installer (standalone arm64)"
               }
             ]

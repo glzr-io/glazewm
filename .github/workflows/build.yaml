@@ -13,11 +13,9 @@ jobs:
         include:
           # 64-bit Windows (Intel & AMD)
           - rust-target: x86_64-pc-windows-msvc
-            wix-target: x64
 
           # 64-bit Windows (ARM)
           - rust-target: aarch64-pc-windows-msvc
-            wix-target: arm64
 
     runs-on: windows-latest
     steps:
@@ -32,29 +30,20 @@ jobs:
         with:
           shared-key: ${{ matrix.rust-target }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Build with windows subsystem
+      - name: Build (windows subsystem)
         run: |
           cargo build --locked --release --target ${{ matrix.rust-target }} --features no_console
-          mv target/${{ matrix.rust-target }}/release/wm.exe tmp/wm-noconsole.exe
-          mv target/${{ matrix.rust-target }}/release/watcher.exe tmp/watcher-noconsole.exe
+          mkdir tmp/noconsole
+          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe tmp/noconsole
 
-      - name: Build with console subsystem
+      - name: Build (console subsystem)
         run: |
           cargo build --locked --release --target ${{ matrix.rust-target }}
-          mv target/${{ matrix.rust-target }}/release/wm.exe tmp/wm-console.exe
-          mv target/${{ matrix.rust-target }}/release/watcher.exe tmp/watcher-console.exe
-
-      - name: Install WiX
-        run: dotnet tool install --global wix --version 5.0.0
-
-      - name: Create MSI installer
-        run: |
-          wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5 WixToolset.BootstrapperApplications.wixext/5
-          wix build -arch ${{ matrix.wix-target }} -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer.exe" "./resources/main.wxs"
+          mkdir tmp/console
+          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe tmp/console
 
       - uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ matrix.rust-target }}
+          name: executables-${{ matrix.rust-target }}
           if-no-files-found: error
-          path: tmp/installer.exe
+          path: tmp/**
