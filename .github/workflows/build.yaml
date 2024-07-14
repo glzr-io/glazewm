@@ -13,11 +13,11 @@ jobs:
         include:
           # 64-bit Windows (Intel & AMD)
           - rust-target: x86_64-pc-windows-msvc
-            wix-target: win-x64
+            wix-target: x64
 
           # 64-bit Windows (ARM)
           - rust-target: aarch64-pc-windows-msvc
-            wix-target: win-arm64
+            wix-target: arm64
 
     runs-on: windows-latest
     steps:
@@ -49,12 +49,12 @@ jobs:
 
       - name: Create MSI installer
         run: |
-          wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5
+          wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5 WixToolset.BootstrapperApplications.wixext/5
           wix build -arch ${{ matrix.wix-target }} -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer.msi" "./resources/main.wxs"
+            -out "./tmp/installer.exe" "./resources/main.wxs"
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.rust-target }}
           if-no-files-found: error
-          path: tmp/installer.msi
+          path: tmp/installer.exe
