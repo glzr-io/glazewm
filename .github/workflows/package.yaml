@@ -18,6 +18,12 @@ jobs:
           name: executables-*
           path: tmp/
 
+      - name: Download Zebar installers
+        run: |
+          $latestRelease = 'https://api.github.com/repos/glzr-io/zebar/releases/latest'
+          $latestInstallers = Invoke-RestMethod $latestRelease | % assets | ? name -like "*.msi"
+          $latestInstallers | % { Invoke-WebRequest $_.browser_download_url -OutFile $_.name }
+
       - name: Install WiX and its extensions
         run: |
           dotnet tool install --global wix --version 5.0.0
