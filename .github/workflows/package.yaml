@@ -4,10 +4,17 @@ on:
   workflow_call:
 
 jobs:
+  next-version:
+    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@3c2d88ce0390012bac0b8383059a0b67d2594dc1
+
   build:
+    needs: [next-version]
     uses: ./.github/workflows/build.yaml
+    with:
+      version-number: ${{ needs.next-version.outputs.new-release-version }}
 
   package:
+    needs: [next-version, build]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +29,7 @@ jobs:
         run: |
           $latestRelease = 'https://api.github.com/repos/glzr-io/zebar/releases/latest'
           $latestInstallers = Invoke-RestMethod $latestRelease | % assets | ? name -like "*.msi"
-          $latestInstallers | % { Invoke-WebRequest $_.browser_download_url -OutFile $_.name }
+          $latestInstallers | % { Invoke-WebRequest $_.browser_download_url -OutFile (Join-Path "tmp" $_.name) }
 
       - name: Install WiX and its extensions
         run: |
@@ -30,16 +37,22 @@ jobs:
           wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5 WixToolset.BootstrapperApplications.wixext/5
 
       - name: Create MSI installer (x64)
+        env:
+          VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "x64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
             -out "./tmp/installer-x64.msi" "./resources/standalone.wxs"
 
       - name: Create MSI installer (arm64)
+        env:
+          VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "arm64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
             -out "./tmp/installer-arm64.msi" "./resources/standalone.wxs"
 
       - name: Create universal installer
+        env:
+          VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext \
             -out "./tmp/installer-universal.exe" "./resources/bundle.wxs"

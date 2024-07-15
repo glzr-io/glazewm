@@ -5,7 +5,7 @@ on:
     inputs:
       draft-release:
         type: boolean
-        default: false
+        default: true
         description: Whether to publish the release as a draft.
 
 permissions:
@@ -17,11 +17,11 @@ concurrency:
   group: release
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yaml
+  package:
+    uses: ./.github/workflows/package.yaml
 
-  pre-release:
-    needs: build
+  release:
+    needs: [package]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,8 @@ jobs:
           name: installers
           path: tmp/
 
-      - uses: glzr-io/actions/semantic-release@main
+      - name: Semantic release
+        uses: glzr-io/actions/semantic-release@main
         with:
           gh-publish: true
           gh-draft-release: ${{ inputs.draft-release }}
