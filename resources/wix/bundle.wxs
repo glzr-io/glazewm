@@ -1,0 +1,27 @@
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+  xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="GlazeWM" Version="1.0.0" Manufacturer="Glzr"
+    UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        LicenseUrl=""
+        Theme="hyperlinkLicense" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <MsiPackage
+        Id="GlazeWMPackage"
+        SourceFile="tmp/installer.msi"
+        bal:DisplayInternalUICondition="1"
+      />
+
+      <MsiPackage
+        Id="ZebarPackage"
+        SourceFile="tmp/Zebar_x64.msi"
+        bal:DisplayInternalUICondition="1"
+      />
+    </Chain>
+  </Bundle>
+</Wix>
