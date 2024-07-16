@@ -39,19 +39,19 @@ jobs:
       - name: Create MSI installer (x64)
         run: |
           wix build -arch "x64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer-x64.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs"
+            -out "./tmp/installer-x64.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs" \
             -d VERSION_NUMBER="${{ needs.next-version.outputs.new-release-version }}"
 
       - name: Create MSI installer (arm64)
         run: |
           wix build -arch "arm64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer-arm64.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs"
+            -out "./tmp/installer-arm64.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs" \
             -d VERSION_NUMBER="${{ needs.next-version.outputs.new-release-version }}"
 
       - name: Create universal installer
         run: |
           wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext \
-            -out "./tmp/installer-universal.exe" "./resources/wix/bundle.wxs"
+            -out "./tmp/installer-universal.exe" "./resources/wix/bundle.wxs" \
             -d VERSION_NUMBER="${{ needs.next-version.outputs.new-release-version }}"
 
       - uses: actions/upload-artifact@v4

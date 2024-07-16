@@ -54,15 +54,14 @@
         VisibleCondition="WixStdBAShowVersion"
       >#(loc.InstallVersion)</Label>
       <Checkbox
-        Name="WSLCheckbox"
+        Name="Custom_InstallZebar"
         X="185"
         Y="250"
         Width="-11"
         Height="17"
         TabStop="yes"
         FontId="6"
-        HideWhenDisabled="yes"
-      >Install WSL if not present</Checkbox>
+      >Install Zebar (recommended)</Checkbox>
       <Button
         Name="OptionsButton"
         X="-171"

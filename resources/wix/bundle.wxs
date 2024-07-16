@@ -12,16 +12,19 @@
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication
         LicenseUrl=""
-        Theme="HyperlinkSidebarLicense"
+        Theme="hyperlinkSidebarLicense"
         ThemeFile="resources/wix/bundle-theme.xml"
         SuppressOptionsUI="yes"
         ShowVersion="yes" />
     </BootstrapperApplication>
 
+    <!-- User input variable for whether to install Zebar. -->
+    <Variable Name="Custom_InstallZebar" Type="numeric" Value="1" bal:Overridable="yes" />
+
     <Chain>
       <!-- GlazeWM MSI for x64 architectures. -->
       <MsiPackage
-        Id="GlazeWMPackageX64"
+        Id="Custom_GlazeWMPackageX64"
         SourceFile="tmp/installer-x64.msi"
         InstallCondition="(VersionNT64 AND NOT NativeMachine) OR (NativeMachine = 34404)"
         bal:DisplayInternalUICondition="1"
@@ -30,7 +33,7 @@
 
       <!-- GlazeWM MSI for arm64 architectures. -->
       <MsiPackage
-        Id="GlazeWMPackageArm64"
+        Id="Custom_GlazeWMPackageArm64"
         SourceFile="tmp/installer-arm64.msi"
         InstallCondition="NativeMachine = 43620"
         bal:DisplayInternalUICondition="1"
@@ -39,18 +42,18 @@
 
       <!-- Zebar MSI for x64 architectures. -->
       <MsiPackage
-        Id="ZebarPackageX64"
-        SourceFile="tmp/zebar-*-x64.msi"
-        InstallCondition="(VersionNT64 AND NOT NativeMachine) OR (NativeMachine = 34404)"
+        Id="Custom_ZebarPackageX64"
+        SourceFile="tmp/zebar-aaa-x64.msi"
+        InstallCondition="(VersionNT64 AND NOT NativeMachine) OR (NativeMachine = 34404) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"
       />
 
       <!-- Zebar MSI for arm64 architectures. -->
       <MsiPackage
-        Id="ZebarPackageArm64"
-        SourceFile="tmp/zebar-*-arm64.msi"
-        InstallCondition="NativeMachine = 43620"
+        Id="Custom_ZebarPackageArm64"
+        SourceFile="tmp/zebar-aaa-arm64.msi"
+        InstallCondition="(NativeMachine = 43620) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"
       />
