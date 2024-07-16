@@ -34,24 +34,24 @@ jobs:
           shared-key: ${{ matrix.rust-target }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Create output directories
-        run: mkdir tmp/noconsole tmp/console
+        run: mkdir out/noconsole out/console
 
       - name: Build (windows subsystem)
         env:
           VERSION_NUMBER: ${{ inputs.version-number || '0.0.0' }}
         run: |
           cargo build --locked --release --target ${{ matrix.rust-target }} --features no_console
-          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe tmp/noconsole
+          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe out/noconsole
 
       - name: Build (console subsystem)
         env:
           VERSION_NUMBER: ${{ inputs.version-number || '0.0.0' }}
         run: |
           cargo build --locked --release --target ${{ matrix.rust-target }}
-          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe tmp/console
+          mv target/${{ matrix.rust-target }}/release/{wm,watcher}.exe out/console
 
       - uses: actions/upload-artifact@v4
         with:
           name: executables-${{ matrix.rust-target }}
           if-no-files-found: error
-          path: tmp/**
+          path: out/**
