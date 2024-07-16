@@ -1,0 +1,157 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Fragment>
+    <UI>
+      <Dialog Id="WelcomeInstallDlg" Width="370" Height="270" Title="!(loc.WelcomeDlg_Title)">
+        <Control
+          Id="Bitmap"
+          Type="Bitmap"
+          X="0"
+          Y="0"
+          Width="370"
+          Height="234"
+          TabSkip="no"
+          Text="!(loc.WelcomeDlgBitmap)"
+        />
+        <Control
+          Id="Title"
+          Type="Text"
+          X="135"
+          Y="20"
+          Width="220"
+          Height="60"
+          Transparent="yes"
+          NoPrefix="yes"
+          Text="!(loc.WelcomeDlgTitle)"
+        />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control
+          Id="Description"
+          Type="Text"
+          X="135"
+          Y="50"
+          Width="220"
+          Height="60"
+          Transparent="yes"
+          NoPrefix="yes"
+          Text="!(loc.WelcomeDlgDescription)"
+        />
+        <Control
+          Id="AddToStartMenuCheckbox"
+          Type="CheckBox"
+          X="135"
+          Y="190"
+          Width="226"
+          Height="18"
+          CheckBoxValue="1"
+          Property="ADD_START_MENU"
+          Default="no"
+          Text="Add shortcut to Start Menu"
+        />
+        <Control
+          Id="Back"
+          Type="PushButton"
+          X="156"
+          Y="243"
+          Width="56"
+          Height="17"
+          Disabled="yes"
+          Text="!(loc.WixUIBack)"
+        />
+        <Control
+          Id="Install"
+          Type="PushButton"
+          ElevationShield="yes"
+          X="212"
+          Y="243"
+          Width="80"
+          Height="17"
+          Default="yes"
+          Text="!(loc.WelcomeEulaDlgInstall)"
+        >
+          <Publish
+            Event="SpawnWaitDialog"
+            Value="WaitForCostingDlg"
+            Condition="!(wix.WixUICostingPopupOptOut) OR CostingComplete = 1"
+          />
+          <Publish Event="EndDialog" Value="Return" Condition="OutOfDiskSpace &lt;&gt; 1" />
+          <Publish
+            Event="SpawnDialog"
+            Value="OutOfRbDiskDlg"
+            Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+            Event="EndDialog"
+            Value="Return"
+            Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+            Event="EnableRollback"
+            Value="False"
+            Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+            Event="SpawnDialog"
+            Value="OutOfDiskDlg"
+            Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control>
+        <Control
+          Id="Cancel"
+          Type="PushButton"
+          X="304"
+          Y="243"
+          Width="56"
+          Height="17"
+          Cancel="yes"
+          Text="!(loc.WixUICancel)"
+        >
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+
+    <UI Id="GlazeWMUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WixUI_Mode" Value="Minimal" />
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="WelcomeInstallDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog"
+        Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog"
+        Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog"
+        Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog"
+        Value="MaintenanceWelcomeDlg" />
+      <Publish
+        Dialog="VerifyReadyDlg"
+        Control="Back"
+        Event="NewDialog"
+        Value="WelcomeInstallDlg"
+        Order="2"
+        Condition="Installed AND PATCH"
+      />
+
+      <InstallUISequence>
+        <Show Dialog="WelcomeInstallDlg" Before="ProgressDlg"
+          Condition="(NOT Installed) AND NOT AFTERREBOOT" />
+      </InstallUISequence>
+
+      <Property Id="ARPNOMODIFY" Value="1" />
+    </UI>
+
+    <UIRef Id="WixUI_Common" />
+  </Fragment>
+</Wix>

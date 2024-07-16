@@ -2,7 +2,7 @@
   xmlns="http://wixtoolset.org/schemas/v4/wxs"
   xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
   xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
-  <Bundle Name="GlazeWM" Version="$(env.VERSION_NUMBER)"
+  <Bundle Name="GlazeWM" Version="$(var.VERSION_NUMBER)"
     UpgradeCode="f57adff3-4521-4a6b-87b1-d34a7d9bae1e"
     Manufacturer="Glzr Software Pte. Ltd."
     DisableModify="yes"
