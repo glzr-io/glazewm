@@ -36,14 +36,14 @@
           Text="!(loc.WelcomeDlgDescription)"
         />
         <Control
-          Id="AddToStartMenuCheckbox"
+          Id="Custom_StartMenuCheckbox"
           Type="CheckBox"
           X="135"
           Y="190"
           Width="226"
           Height="18"
           CheckBoxValue="1"
-          Property="ADD_START_MENU"
+          Property="Custom_AddDesktopShortcut"
           Default="no"
           Text="Add shortcut to Start Menu"
         />
@@ -110,7 +110,7 @@
       </Dialog>
     </UI>
 
-    <UI Id="GlazeWMUI">
+    <UI Id="Custom_UI">
       <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
       <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
       <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />

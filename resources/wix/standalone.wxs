@@ -1,13 +1,22 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
-  <Package
+  <Product
+    Id="*"
     Name="GlazeWM"
-    Version="$(var.VERSION_NUMBER)"
     UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e"
+    Version="$(var.VERSION_NUMBER)"
     Manufacturer="Glzr Software Pte. Ltd."
-    Language="1033"
+    Languages="1033"
     Codepage="1252"
-    InstallerVersion="200"
   >
+    <Package
+      Id="*"
+      Keywords="Installer"
+      InstallerVersion="450"
+      Languages="0"
+      Compressed="yes"
+      InstallScope="perMachine"
+    />
+
     <!--
       Reinstall all files; rewrite all registry entries; reinstall all shortcuts.
       Ref: https://docs.microsoft.com/en-us/windows/win32/msi/reinstallmode
@@ -18,43 +27,44 @@
     <MajorUpgrade Schedule="afterInstallInitialize" AllowDowngrades="yes" />
 
     <!-- Set icon used by installer. -->
-    <Icon Id="GlazeWMIco" SourceFile="resources\icon.ico" />
-    <Property Id="ARPPRODUCTICON" Value="GlazeWMIco" />
+    <Icon Id="Custom_Ico" SourceFile="resources/icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="Custom_Ico" />
 
     <!-- Enable CAB embed, otherwise, a separate .cab file is created. -->
     <MediaTemplate EmbedCab="yes" />
 
-		<UIRef Id="GlazeWMUI" />
+		<UIRef Id="Custom_UI" />
 
-    <Feature Id="ProductFeature" Title="ConsoleApp" Level="1">
-      <ComponentRef Id="INSTALLDIR_Component" />
-      <ComponentRef Id="GlazeWMExe" />
+    <!-- User input variable for whether to install Start Menu shortcut. -->
+    <Property Id="Custom_AddDesktopShortcut" Value="1" />
+
+    <Feature Id="Custom_ProductFeature">
+      <ComponentRef Id="Custom_InstallDir" />
+      <ComponentRef Id="Custom_MainExe" />
       <!-- <ComponentRef Id="GlazeWMShortcut" /> -->
-      <ComponentRef Id="ModifyPathEnv" />
+      <ComponentRef Id="Custom_AddPathEnv" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="GlzrProgramFiles" Name="glzr.io">
+      <Directory Id="Custom_OrgProgramFiles" Name="glzr.io">
         <Directory Id="INSTALLDIR" Name="GlazeWM">
-          <Component Id="INSTALLDIR_Component" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82"
-            Bitness="always64">
+          <Component Id="Custom_InstallDir" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82" Bitness="always64">
             <CreateFolder />
-            <RegistryKey Root="HKLM" Key="SOFTWARE\glzr.io\GlazeWM">
+            <RegistryKey Root="HKLM" Key="SOFTWARE/glzr.io/GlazeWM">
               <RegistryValue Name="InstallDir" Value="[INSTALLDIR]" Type="string" />
             </RegistryKey>
           </Component>
 
-          <Component Id="GlazeWMExe" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Bitness="always64">
-            <File Id="GlazeWMExeFile" Name="GlazeWM.exe" Source="target\release\wm.exe"
-              KeyPath="yes" />
+          <Component Id="Custom_MainExe" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Bitness="always64">
+            <File Id="GlazeWMExeFile" Name="GlazeWM.exe" Source="target/release/wm.exe" KeyPath="yes" />
           </Component>
         </Directory>
 
-        <!-- Add to PATH. -->
-        <Component Id="ModifyPathEnv" Guid="66a4be46-19ae-4ed4-944f-b01673887f64" KeyPath="yes">
+        <!-- Add CLI to PATH. -->
+        <Component Id="Custom_AddPathEnv" Guid="66a4be46-19ae-4ed4-944f-b01673887f64" KeyPath="yes">
           <Environment
-            Id="PathEnv"
-            Value="[INSTALLDIR]"
+            Id="Custom_PathEnv"
+            Value="[INSTALLDIR]/cli"
             Name="PATH"
             Permanent="no"
             Part="first"
@@ -64,5 +74,5 @@
         </Component>
       </Directory>
     </StandardDirectory>
-  </Package>
+  </Product>
 </Wix>
