@@ -596,64 +596,48 @@ Most keyboard layouts treat the right-side <kbd>Alt</kbd> key the same as the le
 
 Example:
 
-Run the following autohotkey v1 script as administrator
+Run the following autohotkey v2 script as administrator
 
 ```
 ; https://superuser.com/a/1819950/881662
+#Requires AutoHotkey v2.0
+#SingleInstance Force
 
-
-#InstallKeybdHook
-
+InstallKeybdHook()
 
 ; Disable win + l key locking (This line must come before any hotkey assignments in the .ahk file)
+RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System", "DisableLockWorkstation")
 
-
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 1
-
+; Nice wrapper function to make it easy to call glazewm with multiword commands
+Glaze(command_in) {
+	command_start := "glazewm command \`"`"`""
+	command_end := "\`"`"`""
+	Run(command_start command_in command_end)
+}
 
 ; Optional: Remap winKey + <someKey> here:
 
+#h:: {
+	Glaze("move left")
+}
 
-#space::return
-#s::return
+#j:: {
+	Glaze("move right")
+}
 
-#h::
-Send, ^{F9}       ; It's important to chose some random intermediary hotkey, I choose ctrl + F9
-return
+#k:: {
+	Glaze("move up")
+}
 
-#j::
-Send, ^{F10}
-return
+#l:: {
+	Glaze("move down")
+}
 
-#k::
-Send, ^{F11}
-return
-
-#l::
-Send, ^{F12}
-return
-
-;CTRL+WIN+L
-^F12::
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Policies\System, DisableLockWorkstation, 0
-DllCall("LockWorkStation")
-;after locking workstation force a reload of this script which effectively disables Win + L locking the computer again
-Reload
-```
-
-Next, amend the keybindings section in config.yaml:
-
-```
-keybindings:
-  # Shift focus in a given direction.
-  - command: "focus left"
-    bindings: ["Ctrl+F9"]      ; Notice I am using the intermediary hotkeys here
-  - command: "focus right"
-    bindings: ["Ctrl+F12"]
-  - command: "focus up"
-    bindings: ["Ctrl+F11"]
-  - command: "focus down"
-    bindings: ["Ctrl+F10"]
+#^l:: {
+	RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System", "DisableLockWorkstation")
+	DllCall("LockWorkStation")
+	Reload()
+}
 ```
 
 That's it, now you can use `LWin + l` to focus right and `LWin + h` to focus left, etc.
