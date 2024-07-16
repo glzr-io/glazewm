@@ -8,8 +8,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v3
+      - uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
         with:
-          dotnet-version: 7.x
+          toolchain: nightly
+          targets: ${{ matrix.rust-target }}
 
-      - run: dotnet format --verify-no-changes
+      - uses: swatinem/rust-cache@988c164c3d0e93c4dbab36aaf5bbeb77425b2894
+        with:
+          shared-key: ${{ matrix.rust-target }}-${{ hashFiles('Cargo.lock') }}
+
+      - run: cargo fmt --check
+
+      - run: cargo build --locked
