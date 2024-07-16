@@ -41,21 +41,21 @@ jobs:
           VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "x64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer-x64.msi" "./resources/standalone.wxs"
+            -out "./tmp/installer-x64.msi" "./resources/wix/standalone.wxs"
 
       - name: Create MSI installer (arm64)
         env:
           VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "arm64" -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext \
-            -out "./tmp/installer-arm64.msi" "./resources/standalone.wxs"
+            -out "./tmp/installer-arm64.msi" "./resources/wix/standalone.wxs"
 
       - name: Create universal installer
         env:
           VERSION_NUMBER: ${{ needs.next-version.outputs.new-release-version }}
         run: |
           wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext \
-            -out "./tmp/installer-universal.exe" "./resources/bundle.wxs"
+            -out "./tmp/installer-universal.exe" "./resources/wix/bundle.wxs"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -2,20 +2,24 @@
   xmlns="http://wixtoolset.org/schemas/v4/wxs"
   xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
   xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
-  <Bundle Name="GlazeWM" Version="$(env.VERSION_NUMBER)" Manufacturer="glzr.io"
-    UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e"
+  <Bundle Name="GlazeWM" Version="$(env.VERSION_NUMBER)"
+    UpgradeCode="f57adff3-4521-4a6b-87b1-d34a7d9bae1e"
+    Manufacturer="Glzr Software Pte. Ltd."
     DisableModify="yes"
+    DisableRemove="yes"
     IconSourceFile="resources/icon.ico"
   >
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication
         LicenseUrl=""
-        Theme="hyperlinkLicense"
-        SuppressOptionsUI="yes" />
+        Theme="HyperlinkSidebarLicense"
+        ThemeFile="resources/wix/bundle-theme.xml"
+        SuppressOptionsUI="yes"
+        ShowVersion="yes" />
     </BootstrapperApplication>
 
     <Chain>
-      <!-- GlazeWM MSI for an x64 architecture. -->
+      <!-- GlazeWM MSI for x64 architectures. -->
       <MsiPackage
         Id="GlazeWMPackageX64"
         SourceFile="tmp/installer-x64.msi"
@@ -24,7 +28,7 @@
         Permanent="yes"
       />
 
-      <!-- GlazeWM MSI for an arm64 architecture. -->
+      <!-- GlazeWM MSI for arm64 architectures. -->
       <MsiPackage
         Id="GlazeWMPackageArm64"
         SourceFile="tmp/installer-arm64.msi"
@@ -33,7 +37,7 @@
         Permanent="yes"
       />
 
-      <!-- Zebar MSI for an x64 architecture. -->
+      <!-- Zebar MSI for x64 architectures. -->
       <MsiPackage
         Id="ZebarPackageX64"
         SourceFile="tmp/zebar-*-x64.msi"
@@ -42,7 +46,7 @@
         Permanent="yes"
       />
 
-      <!-- Zebar MSI for an arm64 architecture. -->
+      <!-- Zebar MSI for arm64 architectures. -->
       <MsiPackage
         Id="ZebarPackageArm64"
         SourceFile="tmp/zebar-*-arm64.msi"
