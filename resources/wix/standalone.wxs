@@ -1,22 +1,12 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
-  <Product
-    Id="*"
+  <Package
     Name="GlazeWM"
-    UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e"
     Version="$(var.VERSION_NUMBER)"
+    UpgradeCode="ef0f849b-d90d-4647-bb26-730c6fce5f9e"
     Manufacturer="Glzr Software Pte. Ltd."
-    Languages="1033"
-    Codepage="1252"
+    Language="1033"
+    Scope="perMachine"
   >
-    <Package
-      Id="*"
-      Keywords="Installer"
-      InstallerVersion="450"
-      Languages="0"
-      Compressed="yes"
-      InstallScope="perMachine"
-    />
-
     <!--
       Reinstall all files; rewrite all registry entries; reinstall all shortcuts.
       Ref: https://docs.microsoft.com/en-us/windows/win32/msi/reinstallmode
@@ -74,5 +64,5 @@
         </Component>
       </Directory>
     </StandardDirectory>
-  </Product>
+  </Package>
 </Wix>
