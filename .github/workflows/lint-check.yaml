@@ -11,12 +11,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
         with:
           toolchain: nightly
-          targets: ${{ matrix.rust-target }}
 
       - uses: swatinem/rust-cache@988c164c3d0e93c4dbab36aaf5bbeb77425b2894
         with:
-          shared-key: ${{ matrix.rust-target }}-${{ hashFiles('Cargo.lock') }}
+          shared-key: ${{ hashFiles('Cargo.lock') }}
 
-      - run: cargo fmt --check
+      - name: Check formatting
+        run: cargo fmt --check
 
-      - run: cargo build --locked
+      - name: Check build
+        run: cargo build --locked
