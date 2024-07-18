@@ -1,6 +1,5 @@
 fn main() {
   let mut res = tauri_winres::WindowsResource::new();
-  res.set_icon("../../resources/icon.ico");
 
   // When the `ui_access` feature is enabled, the `uiAccess` attribute is
   // set to `true`. UIAccess is disabled by default because it requires the
@@ -52,5 +51,16 @@ fn main() {
   );
 
   res.set_manifest(&manifest_str);
+  res.set_icon("../../resources/icon.ico");
+
+  // Set language to English (US).
+  res.set_language(0x0409);
+
+  res.set("OriginalFilename", "glazewm.exe");
+  res.set("ProductName", "GlazeWM");
+  res.set("FileDescription", "GlazeWM");
+  res.set("FileVersion", "0.0.0");
+  res.set("ProductVersion", "0.0.0");
+
   res.compile().unwrap();
 }
