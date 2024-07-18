@@ -4,7 +4,7 @@ fn main() {
   println!("cargo:rerun-if-env-changed=VERSION_NUMBER");
   let mut res = tauri_winres::WindowsResource::new();
 
-  res.set_icon("../../resources/icon.ico");
+  res.set_icon("../../resources/assets/icon.ico");
 
   // Set language to English (US).
   res.set_language(0x0409);

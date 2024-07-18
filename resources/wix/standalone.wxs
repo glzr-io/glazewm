@@ -17,7 +17,7 @@
     <MajorUpgrade Schedule="afterInstallInitialize" AllowDowngrades="yes" />
 
     <!-- Set icon used by installer. -->
-    <Icon Id="Custom_Ico" SourceFile="resources/icon.ico" />
+    <Icon Id="Custom_Ico" SourceFile="resources/assets/icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="Custom_Ico" />
 
     <!-- Enable CAB embed, otherwise, a separate .cab file is created. -->

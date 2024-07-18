@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./resources/logo.svg" width="230" alt="GlazeWM logo" />
+  <img src="./resources/assets/logo.svg" width="230" alt="GlazeWM logo" />
   <br>
   <br>
 
@@ -46,11 +46,11 @@ On the first launch of GlazeWM, a default configuration can optionally be genera
 
 Below is a cheatsheet of all available commands and their default keybindings.
 
-![Infographic](/resources/cheatsheet.png)
+![Infographic](/resources/assets/cheatsheet.png)
 
 ## Config documentation
 
-The [default config](https://github.com/glzr-io/glazewm/blob/main/resources/sample-config.yaml) file is generated at `%userprofile%\.glzr\glazewm\config.yaml`.
+The [default config](https://github.com/glzr-io/glazewm/blob/main/resources/assets/sample-config.yaml) file is generated at `%userprofile%\.glzr\glazewm\config.yaml`.
 
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 

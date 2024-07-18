@@ -54,7 +54,7 @@ fn main() {
   );
 
   res.set_manifest(&manifest_str);
-  res.set_icon("../../resources/icon.ico");
+  res.set_icon("../../resources/assets/icon.ico");
 
   // Set language to English (US).
   res.set_language(0x0409);

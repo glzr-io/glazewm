@@ -15,7 +15,7 @@ use crate::{
 
 /// Resource string for the sample config file.
 const SAMPLE_CONFIG: &str =
-  include_str!("../../../resources/sample-config.yaml");
+  include_str!("../../../resources/assets/sample-config.yaml");
 
 #[derive(Debug)]
 pub struct UserConfig {

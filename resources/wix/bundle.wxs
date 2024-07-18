@@ -7,7 +7,7 @@
     Manufacturer="Glzr Software Pte. Ltd."
     DisableModify="yes"
     DisableRemove="yes"
-    IconSourceFile="resources/icon.ico"
+    IconSourceFile="resources/assets/icon.ico"
   >
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication
