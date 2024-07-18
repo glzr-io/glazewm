@@ -43,7 +43,7 @@
           Width="226"
           Height="18"
           CheckBoxValue="1"
-          Property="Custom_AddDesktopShortcut"
+          Property="Custom_AddStartMenuShortcut"
           Default="no"
           Text="Add shortcut to Start Menu"
         />

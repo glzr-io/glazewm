@@ -26,43 +26,52 @@
 		<UIRef Id="Custom_UI" />
 
     <!-- User input variable for whether to install Start Menu shortcut. -->
-    <Property Id="Custom_AddDesktopShortcut" Value="1" />
+    <Property Id="Custom_AddStartMenuShortcut" Value="1" />
 
     <Feature Id="Custom_ProductFeature">
-      <ComponentRef Id="Custom_InstallDir" />
-      <ComponentRef Id="Custom_MainExe" />
+      <ComponentRef Id="Custom_CreateInstallDir" />
+      <ComponentRef Id="Custom_InstallRootFiles" />
+      <ComponentRef Id="Custom_InstallCliFiles" />
       <!-- <ComponentRef Id="GlazeWMShortcut" /> -->
       <ComponentRef Id="Custom_AddPathEnv" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="Custom_OrgProgramFiles" Name="glzr.io">
-        <Directory Id="INSTALLDIR" Name="GlazeWM">
-          <Component Id="Custom_InstallDir" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82" Bitness="always64">
+        <Directory Id="INSTALLFOLDER" Name="GlazeWM">
+          <Component Id="Custom_CreateInstallDir" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82" >
             <CreateFolder />
-            <RegistryKey Root="HKLM" Key="SOFTWARE/glzr.io/GlazeWM">
-              <RegistryValue Name="InstallDir" Value="[INSTALLDIR]" Type="string" />
+            <RegistryKey Root="HKLM" Key="SOFTWARE\glzr.io\GlazeWM">
+              <RegistryValue Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
             </RegistryKey>
           </Component>
 
-          <Component Id="Custom_MainExe" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Bitness="always64">
-            <File Id="GlazeWMExeFile" Name="GlazeWM.exe" Source="target/release/wm.exe" KeyPath="yes" />
+          <Component Id="Custom_InstallRootFiles" Guid="73752F94-6589-4C7B-ABED-39D655A19714" >
+            <File Id="Custom_RootExe" Source="$(var.EXE_DIR)/noconsole/glazewm.exe" KeyPath="yes" />
+            <File Id="Custom_RootWatcherExe" Source="$(var.EXE_DIR)/noconsole/glazewm-watcher.exe" />
           </Component>
-        </Directory>
 
-        <!-- Add CLI to PATH. -->
-        <Component Id="Custom_AddPathEnv" Guid="66a4be46-19ae-4ed4-944f-b01673887f64" KeyPath="yes">
-          <Environment
-            Id="Custom_PathEnv"
-            Value="[INSTALLDIR]/cli"
-            Name="PATH"
-            Permanent="no"
-            Part="first"
-            Action="set"
-            System="yes"
-          />
-        </Component>
+          <Directory Id="Custom_CliDir" Name="cli">
+            <Component Id="Custom_InstallCliFiles" Guid="916284d8-100c-4f37-8d8c-2722b01cb3dd" >
+              <File Id="Custom_CliExe" Source="$(var.EXE_DIR)/console/glazewm.exe" />
+              <File Id="Custom_CliWatcherExe" Source="$(var.EXE_DIR)/console/glazewm-watcher.exe" />
+            </Component>
+          </Directory>
+        </Directory>
       </Directory>
     </StandardDirectory>
+
+    <!-- Add CLI directory to PATH. -->
+    <Component Id="Custom_AddPathEnv" Guid="66a4be46-19ae-4ed4-944f-b01673887f64" KeyPath="yes">
+      <Environment
+        Id="Custom_PathEnv"
+        Value="[INSTALLFOLDER]/cli"
+        Name="PATH"
+        Permanent="no"
+        Part="first"
+        Action="set"
+        System="yes"
+      />
+    </Component>
   </Package>
 </Wix>

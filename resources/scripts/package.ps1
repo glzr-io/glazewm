@@ -17,6 +17,9 @@ $latestInstallers | % { Invoke-WebRequest $_.browser_download_url -OutFile (Join
 # Rust targets to build for (x64 and arm64).
 $rustTargets = @("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc")
 
+# Set the version number as an environment variable for `cargo build`.
+$env:VERSION_NUMBER = $VERSION_NUMBER
+
 foreach ($target in $rustTargets) {
   $outDir = if ($target -eq "x86_64-pc-windows-msvc") { "out/x64" } else { "out/arm64" }
   $sourceDir = "target/$target/release"
@@ -40,7 +43,8 @@ foreach ($arch in $wixArchs) {
   Write-Output "Creating MSI installer ($arch)"
   wix build -arch $arch -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
     -out "./out/installer-$arch.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs" `
-    -d VERSION_NUMBER="$VERSION_NUMBER"
+    -d VERSION_NUMBER="$VERSION_NUMBER" `
+    -d EXE_DIR="out/$arch"
 }
 
 Write-Output "Creating universal installer"
