@@ -18,7 +18,7 @@ path = "src\\main.rs"
 no_console = []
 
 [build-dependencies]
-embed-resource = { workspace = true }
+tauri-winres = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }

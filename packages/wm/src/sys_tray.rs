@@ -10,8 +10,8 @@ use tray_icon::{
 
 use crate::common::platform::Platform;
 
-/// Ordinal to IDI_ICON definition from `resources.rc` file.
-const IDI_ICON: u16 = 0x101;
+/// Ordinal to IDI_ICON definition in embedded resource file.
+const IDI_ICON: u16 = 32512;
 
 pub struct SystemTray {
   pub config_reload_rx: mpsc::UnboundedReceiver<()>,

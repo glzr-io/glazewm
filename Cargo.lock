@@ -437,7 +437,7 @@ dependencies = [
  "cc",
  "memchr",
  "rustc_version",
- "toml",
+ "toml 0.8.2",
  "vswhom",
  "winreg",
 ]
@@ -1594,7 +1594,7 @@ dependencies = [
  "cfg-expr",
  "heck 0.5.0",
  "pkg-config",
- "toml",
+ "toml 0.8.2",
  "version-compare",
 ]
 
@@ -1603,6 +1603,16 @@ name = "target-lexicon"
 version = "0.12.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
+
+[[package]]
+name = "tauri-winres"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5993dc129e544393574288923d1ec447c857f3f644187f4fbf7d9a875fbfc4fb"
+dependencies = [
+ "embed-resource",
+ "toml 0.7.8",
+]
 
 [[package]]
 name = "thiserror"
@@ -1724,6 +1734,18 @@ dependencies = [
 
 [[package]]
 name = "toml"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd79e69d3b627db300ff956027cc6c3798cef26d22526befdfcd12feeb6d2257"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit 0.19.15",
+]
+
+[[package]]
+name = "toml"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "185d8ab0dfbb35cf1399a6344d8484209c088f75f8f68230da55d48d95d43e3d"
@@ -1750,6 +1772,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
  "indexmap",
+ "serde",
+ "serde_spanned",
  "toml_datetime",
  "winnow",
 ]
@@ -1999,8 +2023,8 @@ name = "watcher"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "embed-resource",
  "serde_json",
+ "tauri-winres",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2236,7 +2260,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
- "embed-resource",
  "enum-as-inner",
  "enum_dispatch",
  "futures-util",
@@ -2245,6 +2268,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "tauri-winres",
  "tokio",
  "tokio-tungstenite",
  "tracing",

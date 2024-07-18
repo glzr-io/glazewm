@@ -1,8 +1,0 @@
-#define IDI_ICON 0x101
-
-IDI_ICON ICON "../../resources/icon.ico"
-
-#define RT_MANIFEST 24
-#define APP_MANIFEST 1
-
-APP_MANIFEST RT_MANIFEST wm.manifest

@@ -8,7 +8,7 @@ name = "watcher"
 path = "src/main.rs"
 
 [build-dependencies]
-embed-resource = { workspace = true }
+tauri-winres = { workspace = true }
 
 [dependencies]
 wm = { path = "../wm" }
