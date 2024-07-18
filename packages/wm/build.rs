@@ -2,13 +2,28 @@ fn main() {
   let mut res = tauri_winres::WindowsResource::new();
   res.set_icon("../../resources/icon.ico");
 
-  // Enable UIAccess, which grants privilege to set the foreground window
-  // and to set the position of elevated windows.
+  // When the `ui_access` feature is enabled, the `uiAccess` attribute is
+  // set to `true`. UIAccess is disabled by default because it requires the
+  // application to be signed and installed in a secure location.
+  let ui_access = {
+    #[cfg(feature = "ui_access")]
+    {
+      "true"
+    }
+    #[cfg(not(feature = "ui_access"))]
+    {
+      "false"
+    }
+  };
+
+  // Conditionally enable UIAccess, which grants privilege to set the
+  // foreground window and to set the position of elevated windows.
   //
   // Ref: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/user-account-control-only-elevate-uiaccess-applications-that-are-installed-in-secure-locations
   //
-  // Declare support for per-monitor DPI awareness.
-  let manifest_str = r#"
+  // Additionally, declare support for per-monitor DPI awareness.
+  let manifest_str = format!(
+    r#"
 <assembly
   xmlns="urn:schemas-microsoft-com:asm.v1"
   manifestVersion="1.0"
@@ -17,7 +32,7 @@ fn main() {
   <asmv3:trustInfo>
     <security>
       <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+        <requestedExecutionLevel level="asInvoker" uiAccess="{}" />
       </requestedPrivileges>
     </security>
   </asmv3:trustInfo>
@@ -32,8 +47,10 @@ fn main() {
     </windowsSettings>
   </asmv3:application>
 </assembly>
-"#;
+"#,
+    ui_access
+  );
 
-  res.set_manifest(manifest_str);
+  res.set_manifest(&manifest_str);
   res.compile().unwrap();
 }

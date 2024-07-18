@@ -16,6 +16,7 @@ path = "src\\main.rs"
 
 [features]
 no_console = []
+ui_access = []
 
 [build-dependencies]
 tauri-winres = { workspace = true }

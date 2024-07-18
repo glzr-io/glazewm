@@ -25,11 +25,11 @@ foreach ($target in $rustTargets) {
   New-Item -ItemType Directory -Force -Path "out/$outDir/noconsole", "out/$outDir/console"
 
   Write-Output "Building for $target (windows subsystem)"
-  cargo build --locked --release --target $target --features no_console
+  cargo build --locked --release --target $target --features no_console,ui_access
   Move-Item -Path "$sourceDir/wm.exe", "$sourceDir/watcher.exe" -Destination "out/$outDir/noconsole"
 
   Write-Output "Building for $target (console subsystem)"
-  cargo build --locked --release --target $target
+  cargo build --locked --release --target $target --features ui_access
   Move-Item -Path "$sourceDir/wm.exe", "$sourceDir/watcher.exe" -Destination "out/$outDir/console"
 }
 
