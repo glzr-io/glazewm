@@ -7,11 +7,11 @@ edition = "2021"
 name = "watcher"
 path = "src/main.rs"
 
+[build-dependencies]
+embed-resource = { workspace = true }
+
 [dependencies]
 wm = { path = "../wm" }
-windows = { version = "0.52", features = [
-    "Win32_UI_WindowsAndMessaging",
-] }
 
 anyhow = { workspace = true }
 tokio = { workspace = true }

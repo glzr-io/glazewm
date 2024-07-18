@@ -5,6 +5,7 @@ default-members = ["packages/wm", "packages/watcher"]
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
+embed-resource = "2"
 serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"

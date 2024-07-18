@@ -1999,11 +1999,11 @@ name = "watcher"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "embed-resource",
  "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "windows",
  "wm",
 ]
 
