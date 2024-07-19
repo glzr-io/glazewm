@@ -36,6 +36,17 @@
           Text="!(loc.WelcomeDlgDescription)"
         />
         <Control
+          Id="Custom_DesktopCheckbox"
+          Type="CheckBox"
+          X="135"
+          Y="160"
+          Width="226"
+          Height="18"
+          CheckBoxValue="1"
+          Property="ENABLE_DESKTOP_SHORTCUT"
+          Text="Add shortcut to desktop"
+        />
+        <Control
           Id="Custom_StartMenuCheckbox"
           Type="CheckBox"
           X="135"
@@ -43,8 +54,8 @@
           Width="226"
           Height="18"
           CheckBoxValue="1"
-          Property="Custom_AddStartMenuShortcut"
-          Default="no"
+          Property="ENABLE_START_MENU_SHORTCUT"
+          Default="yes"
           Text="Add shortcut to Start Menu"
         />
         <Control

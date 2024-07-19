@@ -29,11 +29,11 @@ foreach ($target in $rustTargets) {
 
   Write-Output "Building for $target (windows subsystem)"
   cargo build --locked --release --target $target --features no_console,ui_access
-  Move-Item -Path "$sourceDir/glazewm.exe", "$sourceDir/glazewm-watcher.exe" -Destination "$outDir/noconsole"
+  Move-Item -Path -Force "$sourceDir/glazewm.exe", "$sourceDir/glazewm-watcher.exe" -Destination "$outDir/noconsole"
 
   Write-Output "Building for $target (console subsystem)"
   cargo build --locked --release --target $target --features ui_access
-  Move-Item -Path "$sourceDir/glazewm.exe", "$sourceDir/glazewm-watcher.exe" -Destination "$outDir/console"
+  Move-Item -Path -Force "$sourceDir/glazewm.exe", "$sourceDir/glazewm-watcher.exe" -Destination "$outDir/console"
 }
 
 # WiX architectures to create installers for (x64 and arm64).
