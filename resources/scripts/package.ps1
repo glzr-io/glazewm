@@ -50,4 +50,5 @@ foreach ($arch in $wixArchs) {
 Write-Output "Creating universal installer"
 wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext `
   -out "./out/installer-universal.exe" "./resources/wix/bundle.wxs" `
+  -loc "./resources/wix/bundle-theme.wxl" `
   -d VERSION_NUMBER="$VERSION_NUMBER"
