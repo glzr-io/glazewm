@@ -12,6 +12,11 @@
   <String Id="InstallMessage" Value="Setup will install [WixBundleName] on your computer. Click Install to continue or Cancel to exit." />
   <String Id="InstallMessageOptions" Value="Setup will install [WixBundleName] on your computer. Click Install to continue, Options to set installation options, or Cancel to exit." />
   <String Id="InstallVersion" Value="Version [WixBundleVersion]" />
+  <String Id="CustomInstallGlazeWM" Value="Install GlazeWM" />
+  <String Id="CustomInstallGlazeWMHint" Value="&lt;a href=&quot;https://github.com/glzr-io/glazewm&quot;&gt;GlazeWM&lt;/a&gt; is a tiling window manager for Windows." />
+  <String Id="CustomInstallZebar" Value="Install Zebar (recommended)" />
+  <String Id="CustomInstallZebarHint1" Value="&lt;a href=&quot;https://github.com/glzr-io/zebar&quot;&gt;Zebar&lt;/a&gt; is a lightweight tool for custom widgets." />
+  <String Id="CustomInstallZebarHint2" Value="Adds a starter config for showing GlazeWM workspaces." />
   <String Id="ConfirmCancelMessage" Value="Are you sure you want to cancel?" />
   <String Id="ExecuteUpgradeRelatedBundleMessage" Value="Previous version" />
   <String Id="HelpHeader" Value="Setup Help" />

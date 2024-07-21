@@ -14,11 +14,13 @@
         LicenseUrl=""
         Theme="hyperlinkSidebarLicense"
         ThemeFile="resources/wix/bundle-theme.xml"
+        LocalizationFile="resources/wix/bundle-theme.wxl"
         SuppressOptionsUI="yes"
         ShowVersion="yes" />
     </BootstrapperApplication>
 
-    <!-- User input variable for whether to install Zebar. -->
+    <!-- User input variable for whether to install GlazeWM and Zebar. -->
+    <Variable Name="Custom_InstallGlazeWM" Type="numeric" Value="1" bal:Overridable="yes" />
     <Variable Name="Custom_InstallZebar" Type="numeric" Value="1" bal:Overridable="yes" />
 
     <Chain>

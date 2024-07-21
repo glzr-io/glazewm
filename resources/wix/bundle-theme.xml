@@ -54,6 +54,23 @@
         VisibleCondition="WixStdBAShowVersion"
       >#(loc.InstallVersion)</Label>
       <Checkbox
+        Name="Custom_InstallGlazeWM"
+        X="185"
+        Y="180"
+        Width="-11"
+        Height="17"
+        TabStop="yes"
+        FontId="6"
+        EnableCondition="0=1"
+      >#(loc.CustomInstallGlazeWM)</Checkbox>
+      <Hypertext
+        X="204"
+        Y="200"
+        Width="-11"
+        Height="20"
+        FontId="3"
+      >#(loc.CustomInstallGlazeWMHint)</Hypertext>
+      <Checkbox
         Name="Custom_InstallZebar"
         X="185"
         Y="250"
@@ -61,7 +78,21 @@
         Height="17"
         TabStop="yes"
         FontId="6"
-      >Install Zebar (recommended)</Checkbox>
+      >#(loc.CustomInstallZebar)</Checkbox>
+      <Hypertext
+        X="204"
+        Y="270"
+        Width="-11"
+        Height="20"
+        FontId="3"
+      >#(loc.CustomInstallZebarHint1)</Hypertext>
+      <Label
+        X="204"
+        Y="290"
+        Width="-11"
+        Height="20"
+        FontId="3"
+      >#(loc.CustomInstallZebarHint2)</Label>
       <Button
         Name="OptionsButton"
         X="-171"
