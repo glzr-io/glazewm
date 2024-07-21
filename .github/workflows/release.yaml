@@ -49,12 +49,12 @@ jobs:
               },
               {
                 "path": "out/installer-x64",
-                "name": "glazewm-x64-${nextRelease.gitTag}",
+                "name": "glazewm-${nextRelease.gitTag}-x64",
                 "label": "${nextRelease.gitTag} Installer (standalone x64)"
               },
               {
                 "path": "out/installer-arm64",
-                "name": "glazewm-arm64-${nextRelease.gitTag}",
+                "name": "glazewm-${nextRelease.gitTag}-arm64",
                 "label": "${nextRelease.gitTag} Installer (standalone arm64)"
               }
             ]
