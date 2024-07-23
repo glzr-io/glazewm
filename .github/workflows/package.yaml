@@ -22,7 +22,23 @@ jobs:
         with:
           shared-key: ${{ hashFiles('Cargo.lock') }}
 
+      - name: Install WiX and its extensions
+        run: |
+          dotnet tool install --global wix --version 5.0.0
+          wix extension add WixToolset.UI.wixext/5 WixToolset.Util.wixext/5 WixToolset.BootstrapperApplications.wixext/5
+
+      - name: Install AzureSignTool
+        run: |
+          dotnet tool install --global AzureSignTool --version 5.0.0
+
       - name: Run packaging script
+        env:
+          AZ_VAULT_URL: ${{ secrets.AZ_VAULT_URL }}
+          AZ_CERT_NAME: ${{ secrets.AZ_CERT_NAME }}
+          AZ_CLIENT_ID: ${{ secrets.AZ_CLIENT_ID }}
+          AZ_CLIENT_SECRET: ${{ secrets.AZ_CLIENT_SECRET }}
+          AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
+          RFC3161_TIMESTAMP_URL: ${{ vars.RFC3161_TIMESTAMP_URL }}
         run: |
           ./resources/scripts/package.ps1 -VERSION_NUMBER ${{ needs.next-version.outputs.new-release-version }}
 
