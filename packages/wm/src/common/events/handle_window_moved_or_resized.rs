@@ -23,7 +23,6 @@ pub fn handle_window_moved_or_resized(
 
   if let Some(WindowContainer::TilingWindow(window)) = found_window {
     // TODO: Log window details.
-    info!("Tiling window moved/resized");
 
     let parent = window.parent().context("No parent.")?;
 
@@ -34,11 +33,21 @@ pub fn handle_window_moved_or_resized(
       return Ok(());
     }
 
-    let new_position = window.native().refresh_frame_position()?;
-    let old_position = window.to_rect()?;
+    let new_rect = window.native().refresh_frame_position()?;
+    let old_rect = window.to_rect()?;
 
-    let width_delta = new_position.width() - old_position.width();
-    let height_delta = new_position.height() - old_position.height();
+    let width_delta = new_rect.width() - old_rect.width();
+    let height_delta = new_rect.height() - old_rect.height();
+
+    let window_moved = match (width_delta, height_delta) {
+      (0, 0) => true,
+      _ => false,
+    };
+
+    match window_moved {
+      true => info!("Tiling window moved"),
+      false => info!("Tiling window resized"),
+    }
 
     resize_window(
       window.clone().into(),
