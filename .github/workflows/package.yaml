@@ -7,14 +7,8 @@ jobs:
   next-version:
     uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@3c2d88ce0390012bac0b8383059a0b67d2594dc1
 
-  build:
-    needs: [next-version]
-    uses: ./.github/workflows/build.yaml
-    with:
-      version-number: ${{ needs.next-version.outputs.new-release-version }}
-
   package:
-    needs: [next-version, build]
+    needs: [next-version]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
