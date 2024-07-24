@@ -23,12 +23,12 @@ pub enum WmEvent {
   MonitorAdded {
     added_monitor: ContainerDto,
   },
-  MonitorUpdated {
-    updated_monitor: ContainerDto,
-  },
   MonitorRemoved {
     removed_id: Uuid,
     removed_device_name: String,
+  },
+  MonitorUpdated {
+    updated_monitor: ContainerDto,
   },
   TilingDirectionChanged {
     modified_id: Uuid,
