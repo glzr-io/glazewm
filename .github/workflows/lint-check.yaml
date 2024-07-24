@@ -11,10 +11,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
         with:
           toolchain: nightly
+          components: rustfmt
 
       - uses: swatinem/rust-cache@988c164c3d0e93c4dbab36aaf5bbeb77425b2894
-        with:
-          shared-key: ${{ hashFiles('Cargo.lock') }}
 
       - name: Check formatting
         run: cargo fmt --check

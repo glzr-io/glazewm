@@ -19,6 +19,7 @@ concurrency:
 jobs:
   package:
     uses: ./.github/workflows/package.yaml
+    secrets: inherit
 
   release:
     needs: [package]

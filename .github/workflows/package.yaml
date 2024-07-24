@@ -19,8 +19,6 @@ jobs:
           targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
 
       - uses: swatinem/rust-cache@988c164c3d0e93c4dbab36aaf5bbeb77425b2894
-        with:
-          shared-key: ${{ hashFiles('Cargo.lock') }}
 
       - name: Install WiX and its extensions
         run: |
