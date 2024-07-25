@@ -419,44 +419,58 @@ fn move_fullscreen_window(
 
     let current_monitor =
       window_to_move.monitor().context("No monitor.")?;
-    
+
     let target_monitor = state
       .monitor_in_direction(&current_monitor, direction)?
       .context("No target monitor found in the specified direction.")?;
-    
+
     if current_monitor
       .has_dpi_difference(&target_monitor.clone().into())?
     {
       window_to_move.set_has_pending_dpi_adjustment(true);
     }
-    
-    let target_workspace = target_monitor
-      .displayed_workspace()
-      .context("No workspace on target monitor.")?;
-    
-    println!("target_workspace: {:?}", target_workspace.to_rect());
-    println!("target_mon: {:?}", target_monitor.to_rect());
 
+    // log &target_monitor.to_rect().unwrap(),
+    println!("target_monitor: {:?}", target_monitor.to_rect().unwrap());
+    
+    // temp test to figure out how to move fullscreen window
+    window_to_move
+      .native()
+      .set_position(
+        &window_to_move.state(),
+        &target_monitor.to_rect().unwrap(),
+        true,
+        window_to_move.has_pending_dpi_adjustment(),
+      )
+      .expect("Failed to set window position.");
 
-    let test = target_monitor.to_rect()?;
-    test.clamp_size(500, 500);
-    window_to_move.set_floating_placement(test);
-    
-    
-    //set fullscreen
-    window_to_move.set_state(WindowState::Fullscreen(
-      config
-        .value
-        .window_behavior
-        .state_defaults
-        .fullscreen
-        .clone(),
-    ));
-    
-    state
-      .pending_sync
-      .containers_to_redraw
-      .extend([window_to_move.into(), target_workspace.into()]);
+    // let target_workspace = target_monitor
+    //   .displayed_workspace()
+    //   .context("No workspace on target monitor.")?;
+    //
+    // println!("target_workspace: {:?}", target_workspace.to_rect());
+    // println!("target_mon: {:?}", target_monitor.to_rect());
+    //
+    //
+    // let test = target_monitor.to_rect()?;
+    // test.clamp_size(500, 500);
+    // window_to_move.set_floating_placement(test);
+    //
+    //
+    // //set fullscreen
+    // window_to_move.set_state(WindowState::Fullscreen(
+    //   config
+    //     .value
+    //     .window_behavior
+    //     .state_defaults
+    //     .fullscreen
+    //     .clone(),
+    // ));
+    //
+    // state
+    //   .pending_sync
+    //   .containers_to_redraw
+    //   .extend([window_to_move.into(), target_workspace.into()]);
   } else {
     return Err(anyhow::anyhow!("Window is not in fullscreen state."));
   }
