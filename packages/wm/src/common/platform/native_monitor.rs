@@ -18,11 +18,9 @@ use windows::{
 
 use crate::common::Rect;
 
-pub type MonitorHandle = HMONITOR;
-
 #[derive(Clone, Debug)]
 pub struct NativeMonitor {
-  pub handle: MonitorHandle,
+  pub handle: isize,
   info: OnceCell<MonitorInfo>,
 }
 
@@ -37,7 +35,7 @@ struct MonitorInfo {
 }
 
 impl NativeMonitor {
-  pub fn new(handle: MonitorHandle) -> Self {
+  pub fn new(handle: isize) -> Self {
     Self {
       handle,
       info: OnceCell::new(),
@@ -75,7 +73,10 @@ impl NativeMonitor {
         std::mem::size_of::<MONITORINFOEXW>() as u32;
 
       unsafe {
-        GetMonitorInfoW(self.handle, &mut monitor_info as *mut _ as _)
+        GetMonitorInfoW(
+          HMONITOR(self.handle),
+          &mut monitor_info as *mut _ as _,
+        )
       }
       .ok()?;
 
@@ -171,8 +172,8 @@ pub fn available_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
 }
 
 /// Gets all available monitor handles.
-fn available_monitor_handles() -> anyhow::Result<Vec<MonitorHandle>> {
-  let mut monitors: Vec<MonitorHandle> = Vec::new();
+fn available_monitor_handles() -> anyhow::Result<Vec<isize>> {
+  let mut monitors: Vec<isize> = Vec::new();
 
   unsafe {
     EnumDisplayMonitors(
@@ -190,13 +191,13 @@ fn available_monitor_handles() -> anyhow::Result<Vec<MonitorHandle>> {
 /// Callback passed to `EnumDisplayMonitors` to get all available monitor
 /// handles.
 extern "system" fn available_monitor_handles_proc(
-  handle: MonitorHandle,
+  handle: HMONITOR,
   _hdc: HDC,
   _clip: *mut RECT,
   data: LPARAM,
 ) -> BOOL {
-  let handles = data.0 as *mut Vec<MonitorHandle>;
-  unsafe { (*handles).push(handle) };
+  let handles = data.0 as *mut Vec<isize>;
+  unsafe { (*handles).push(handle.0) };
   true.into()
 }
 
@@ -205,15 +206,20 @@ pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
     MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)
   };
 
-  NativeMonitor::new(handle)
+  NativeMonitor::new(handle.0)
 }
 
-fn monitor_dpi(handle: MonitorHandle) -> anyhow::Result<f32> {
+fn monitor_dpi(handle: isize) -> anyhow::Result<f32> {
   let mut dpi_x = u32::default();
   let mut dpi_y = u32::default();
 
   unsafe {
-    GetDpiForMonitor(handle, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)
+    GetDpiForMonitor(
+      HMONITOR(handle),
+      MDT_EFFECTIVE_DPI,
+      &mut dpi_x,
+      &mut dpi_y,
+    )
   }?;
 
   Ok(dpi_y as f32 / 96.0)

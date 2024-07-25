@@ -45,6 +45,11 @@ pub struct MonitorDto {
   x: i32,
   y: i32,
   dpi: f32,
+  handle: isize,
+  device_name: String,
+  device_path: Option<String>,
+  hardware_id: Option<String>,
+  working_rect: Rect,
 }
 
 impl Monitor {
@@ -108,6 +113,11 @@ impl Monitor {
       x: rect.x(),
       y: rect.y(),
       dpi: self.native().dpi()?,
+      handle: self.native().handle,
+      device_name: self.native().device_name()?.clone(),
+      device_path: self.native().device_path()?.cloned(),
+      hardware_id: self.native().hardware_id()?.cloned(),
+      working_rect: self.native().working_rect()?.clone(),
     }))
   }
 }
