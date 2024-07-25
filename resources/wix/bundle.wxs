@@ -45,7 +45,7 @@
       <!-- Zebar MSI for x64 architectures. -->
       <MsiPackage
         Id="Custom_ZebarPackageX64"
-        SourceFile="out/zebar-aaa-x64.msi"
+        SourceFile="out/zebar-x64.msi"
         InstallCondition="(VersionNT64 AND NOT NativeMachine) OR (NativeMachine = 34404) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"
@@ -54,7 +54,7 @@
       <!-- Zebar MSI for arm64 architectures. -->
       <MsiPackage
         Id="Custom_ZebarPackageArm64"
-        SourceFile="out/zebar-aaa-arm64.msi"
+        SourceFile="out/zebar-arm64.msi"
         InstallCondition="(NativeMachine = 43620) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"

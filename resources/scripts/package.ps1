@@ -1,7 +1,7 @@
-# Usage: ./resources/scripts/package.ps1 -VERSION_NUMBER 1.0.0
+# Usage: ./resources/scripts/package.ps1 -VersionNumber 1.0.0
 param(
   [Parameter(Mandatory=$true)]
-  [string]$VERSION_NUMBER
+  [string]$VersionNumber
 )
 
 function ExitOnError() {
@@ -17,17 +17,17 @@ function SignFiles() {
   )
 
   $secrets = @(
-    $ENV:AZ_VAULT_URL,
-    $ENV:AZ_CERT_NAME,
-    $ENV:AZ_CLIENT_ID,
-    $ENV:AZ_CLIENT_SECRET,
-    $ENV:AZ_TENANT_ID,
-    $ENV:RFC3161_TIMESTAMP_URL
+    "AZ_VAULT_URL",
+    "AZ_CERT_NAME",
+    "AZ_CLIENT_ID",
+    "AZ_CLIENT_SECRET",
+    "AZ_TENANT_ID",
+    "RFC3161_TIMESTAMP_URL"
   )
 
   foreach ($secret in $secrets) {
-    if (!$secret) {
-      Write-Output "Skipping signing due to missing secret."
+    if (-not (Test-Path "env:$secret")) {
+      Write-Output "Skipping signing due to missing secret '$secret'."
       Return
     }
   }
@@ -49,7 +49,20 @@ function DownloadZebarInstallers() {
 
   $latestRelease = 'https://api.github.com/repos/glzr-io/zebar/releases/latest'
   $latestInstallers = Invoke-RestMethod $latestRelease | % assets | ? name -like "*.msi"
-  $latestInstallers | % { Invoke-WebRequest $_.browser_download_url -OutFile (Join-Path "out" $_.name) }
+
+  $latestInstallers | ForEach-Object {
+    $outFile = Join-Path "out" $_.name
+
+    # Rename the MSI files (e.g. `zebar-1.5.0-opt1-x64.msi` -> `zebar-x64.msi`).
+    if ($_.name -like "*-x64.msi") {
+      $outFile = "out/zebar-x64.msi"
+    }
+    elseif ($_.name -like "*-arm64.msi") {
+      $outFile = "out/zebar-arm64.msi"
+    }
+
+    Invoke-WebRequest $_.browser_download_url -OutFile $outFile
+  }
 }
 
 function BuildExes() {
@@ -57,7 +70,7 @@ function BuildExes() {
   $rustTargets = @("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc")
 
   # Set the version number as an environment variable for `cargo build`.
-  $env:VERSION_NUMBER = $VERSION_NUMBER
+  $env:VERSION_NUMBER = $VersionNumber
 
   foreach ($target in $rustTargets) {
     $outDir = if ($target -eq "x86_64-pc-windows-msvc") { "out/x64" } else { "out/arm64" }
@@ -91,14 +104,14 @@ function BuildInstallers() {
     Write-Output "Creating MSI installer ($arch)"
     wix build -arch $arch -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
       -out "./out/installer-$arch.msi" "./resources/wix/standalone.wxs" "./resources/wix/standalone-ui.wxs" `
-      -d VERSION_NUMBER="$VERSION_NUMBER" `
+      -d VERSION_NUMBER="$VersionNumber" `
       -d EXE_DIR="out/$arch"
   }
 
   Write-Output "Creating universal installer"
   wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext `
     -out "./out/installer-universal.exe" "./resources/wix/bundle.wxs" `
-    -d VERSION_NUMBER="$VERSION_NUMBER"
+    -d VERSION_NUMBER="$VersionNumber"
 
   SignFiles @(
     "out/installer-x64.msi",
@@ -108,7 +121,7 @@ function BuildInstallers() {
 }
 
 function Package() {
-  Write-Output "Packaging with version number: $VERSION_NUMBER"
+  Write-Output "Packaging with version number: $VersionNumber"
 
   Write-Output "Creating output directory"
   New-Item -ItemType Directory -Force -Path "out"
