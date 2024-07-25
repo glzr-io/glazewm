@@ -296,7 +296,7 @@ impl IpcServer {
         }
         QueryCommand::AppMetadata => {
           ClientResponseData::AppMetadata(AppMetadataData {
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            version: env!("VERSION_NUMBER").to_string(),
           })
         }
       },
@@ -314,7 +314,7 @@ impl IpcServer {
           subject_container_id,
         })
       }
-      AppCommand::Subscribe { events } => {
+      AppCommand::Sub { events } => {
         let subscription_id = Uuid::new_v4();
         info!("New event subscription {}: {:?}", subscription_id, events);
 
@@ -359,7 +359,7 @@ impl IpcServer {
           subscription_id,
         })
       }
-      AppCommand::Unsubscribe { subscription_id } => {
+      AppCommand::Unsub { subscription_id } => {
         self
           .unsubscribe_tx
           .send(subscription_id)
