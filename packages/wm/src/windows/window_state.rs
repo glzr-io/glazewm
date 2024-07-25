@@ -5,9 +5,9 @@ use crate::user_config::{
   UserConfig,
 };
 
-/// Represents the different possible states a window can have.
+/// Represents the possible states a window can have.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(tag = "name", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum WindowState {
   Floating(FloatingStateConfig),
   Fullscreen(FullscreenStateConfig),
