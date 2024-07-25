@@ -16,6 +16,11 @@ function SignFiles() {
     [string[]]$filePaths
   )
 
+  if (!(Get-Command "azuresigntool" -ErrorAction SilentlyContinue)) {
+    Write-Output "Skipping signing because AzureSignTool is not installed."
+    Return
+  }
+
   $secrets = @(
     "AZ_VAULT_URL",
     "AZ_CERT_NAME",
@@ -26,7 +31,7 @@ function SignFiles() {
   )
 
   foreach ($secret in $secrets) {
-    if (-not (Test-Path "env:$secret")) {
+    if (!(Test-Path "env:$secret")) {
       Write-Output "Skipping signing due to missing secret '$secret'."
       Return
     }
