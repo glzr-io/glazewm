@@ -49,7 +49,7 @@ pub fn remove_monitor(
     )?;
 
     state.emit_event(WmEvent::WorkspaceMoved {
-      workspace: workspace.to_dto()?,
+      moved_workspace: workspace.to_dto()?,
       new_monitor: target_monitor.to_dto()?,
     });
   }
