@@ -12,6 +12,7 @@ use crate::common::{DisplayState, Rect, RectDelta};
 pub struct WindowDto {
   pub id: Uuid,
   pub parent: Option<Uuid>,
+  pub has_focus: bool,
   pub tiling_size: Option<f32>,
   pub width: i32,
   pub height: i32,
