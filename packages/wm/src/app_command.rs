@@ -66,7 +66,7 @@ pub enum AppCommand {
   /// Requires an already running instance of the window manager.
   #[clap(alias = "c")]
   Command {
-    #[clap(short = 'c')]
+    #[clap(long = "id")]
     subject_container_id: Option<Uuid>,
 
     #[clap(subcommand)]
@@ -77,8 +77,7 @@ pub enum AppCommand {
   /// continuously outputs the incoming events.
   ///
   /// Requires an already running instance of the window manager.
-  #[clap(alias = "su")]
-  Subscribe {
+  Sub {
     /// WM event(s) to subscribe to.
     #[clap(short = 'e', long, value_enum, num_args = 1..)]
     events: Vec<SubscribableEvent>,
@@ -87,8 +86,7 @@ pub enum AppCommand {
   /// Unsubscribes from a prior event subscription.
   ///
   /// Requires an already running instance of the window manager.
-  #[clap(alias = "us")]
-  Unsubscribe {
+  Unsub {
     /// Subscription ID to unsubscribe from.
     #[clap(long = "id")]
     subscription_id: Uuid,
