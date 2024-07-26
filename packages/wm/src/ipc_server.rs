@@ -15,7 +15,11 @@ use uuid::Uuid;
 
 use crate::{
   app_command::{AppCommand, QueryCommand, SubscribableEvent},
-  containers::{traits::CommonGetters, ContainerDto},
+  common::TilingDirection,
+  containers::{
+    traits::{CommonGetters, TilingDirectionGetters},
+    ContainerDto,
+  },
   user_config::{BindingModeConfig, UserConfig},
   wm::WindowManager,
   wm_event::WmEvent,
@@ -49,6 +53,7 @@ pub enum ClientResponseData {
   EventUnsubscribe,
   Focused(FocusedData),
   Monitors(MonitorsData),
+  TilingDirection(TilingDirectionData),
   Windows(WindowsData),
   Workspaces(WorkspacesData),
 }
@@ -87,6 +92,13 @@ pub struct FocusedData {
 #[serde(rename_all = "camelCase")]
 pub struct MonitorsData {
   pub monitors: Vec<ContainerDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TilingDirectionData {
+  pub tiling_direction: TilingDirection,
+  pub direction_container: ContainerDto,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -297,6 +309,18 @@ impl IpcServer {
         QueryCommand::AppMetadata => {
           ClientResponseData::AppMetadata(AppMetadataData {
             version: env!("VERSION_NUMBER").to_string(),
+          })
+        }
+        QueryCommand::TilingDirection => {
+          let direction_container = wm
+            .state
+            .focused_container()
+            .and_then(|focused| focused.direction_container())
+            .context("No direction container.")?;
+
+          ClientResponseData::TilingDirection(TilingDirectionData {
+            direction_container: direction_container.to_dto()?,
+            tiling_direction: direction_container.tiling_direction(),
           })
         }
       },

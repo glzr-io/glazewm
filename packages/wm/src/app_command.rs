@@ -144,6 +144,8 @@ pub enum QueryCommand {
   /// Outputs the focused container (either a window or an empty
   /// workspace).
   Focused,
+  /// Outputs the tiling direction of the focused container.
+  TilingDirection,
   /// Outputs all monitors.
   Monitors,
   /// Outputs all windows.
