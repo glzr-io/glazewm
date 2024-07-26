@@ -80,7 +80,7 @@ window_rules:
   - commands: ['ignore']
     match:
       # Ignores any Zebar windows.
-      - window_process: { equals: 'Zebar' }
+      - window_process: { equals: 'zebar' }
 
       # Ignores picture-in-picture windows for browsers.
       - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
