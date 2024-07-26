@@ -9,6 +9,6 @@ pub fn disable_binding_mode(name: &str, state: &mut WmState) {
     .collect::<Vec<_>>();
 
   state.emit_event(WmEvent::BindingModesChanged {
-    active_binding_modes: state.binding_modes.clone(),
+    new_binding_modes: state.binding_modes.clone(),
   });
 }

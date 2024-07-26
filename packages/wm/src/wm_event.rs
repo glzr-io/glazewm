@@ -12,7 +12,7 @@ use crate::{
 pub enum WmEvent {
   ApplicationExiting,
   BindingModesChanged {
-    active_binding_modes: Vec<BindingModeConfig>,
+    new_binding_modes: Vec<BindingModeConfig>,
   },
   FocusChanged {
     focused_container: ContainerDto,

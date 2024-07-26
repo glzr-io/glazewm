@@ -21,7 +21,7 @@ pub fn enable_binding_mode(
   state.binding_modes = vec![binding_mode.clone()];
 
   state.emit_event(WmEvent::BindingModesChanged {
-    active_binding_modes: state.binding_modes.clone(),
+    new_binding_modes: state.binding_modes.clone(),
   });
 
   Ok(())
