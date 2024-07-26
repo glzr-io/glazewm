@@ -1,9 +1,7 @@
 use anyhow::Context;
-use uuid::Uuid;
 
 use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
-  common::TilingDirection,
   containers::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, DirectionContainer, SplitContainer,
@@ -12,7 +10,6 @@ use crate::{
   windows::TilingWindow,
   wm_event::WmEvent,
   wm_state::WmState,
-  workspaces::Workspace,
 };
 
 pub fn toggle_tiling_direction(
@@ -20,20 +17,23 @@ pub fn toggle_tiling_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let (modified_id, new_tiling_direction) = match container {
+  let direction_container = match container {
     Container::TilingWindow(tiling_window) => {
       toggle_window_direction(tiling_window, config)
     }
     Container::Workspace(workspace) => {
-      toggle_workspace_direction(workspace)
+      workspace
+        .set_tiling_direction(workspace.tiling_direction().inverse());
+
+      Ok(workspace.into())
     }
     // Can only toggle tiling direction from a tiling window or workspace.
     _ => return Ok(()),
   }?;
 
   state.emit_event(WmEvent::TilingDirectionChanged {
-    modified_id,
-    new_tiling_direction,
+    direction_container: direction_container.to_dto()?,
+    new_tiling_direction: direction_container.tiling_direction(),
   });
 
   Ok(())
@@ -42,7 +42,7 @@ pub fn toggle_tiling_direction(
 fn toggle_window_direction(
   tiling_window: TilingWindow,
   config: &UserConfig,
-) -> anyhow::Result<(Uuid, TilingDirection)> {
+) -> anyhow::Result<DirectionContainer> {
   let parent = tiling_window
     .direction_container()
     .context("No direction container.")?;
@@ -51,17 +51,19 @@ fn toggle_window_direction(
   // direction of its parent workspace or flatten its parent split
   // container.
   if tiling_window.tiling_siblings().count() == 0 {
-    match parent {
+    return match parent {
       DirectionContainer::Workspace(workspace) => {
-        return toggle_workspace_direction(workspace);
+        workspace
+          .set_tiling_direction(workspace.tiling_direction().inverse());
+
+        Ok(workspace.into())
       }
       DirectionContainer::Split(split_container) => {
         flatten_split_container(split_container.clone())?;
 
-        return Ok((
-          split_container.id(),
-          split_container.tiling_direction().inverse(),
-        ));
+        tiling_window
+          .direction_container()
+          .context("No direction container.")
       }
     };
   }
@@ -78,13 +80,5 @@ fn toggle_window_direction(
     vec![tiling_window.clone().into()],
   )?;
 
-  Ok((split_container.id(), split_container.tiling_direction()))
-}
-
-fn toggle_workspace_direction(
-  workspace: Workspace,
-) -> anyhow::Result<(Uuid, TilingDirection)> {
-  workspace.set_tiling_direction(workspace.tiling_direction().inverse());
-
-  Ok((workspace.id(), workspace.tiling_direction()))
+  Ok(split_container.into())
 }

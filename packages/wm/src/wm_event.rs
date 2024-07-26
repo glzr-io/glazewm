@@ -31,7 +31,7 @@ pub enum WmEvent {
     updated_monitor: ContainerDto,
   },
   TilingDirectionChanged {
-    modified_id: Uuid,
+    direction_container: ContainerDto,
     new_tiling_direction: TilingDirection,
   },
   UserConfigChanged {
