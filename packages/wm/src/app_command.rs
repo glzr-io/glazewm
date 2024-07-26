@@ -169,7 +169,7 @@ pub enum SubscribableEvent {
   WindowUnmanaged,
   WorkspaceActivated,
   WorkspaceDeactivated,
-  WorkspaceMoved,
+  WorkspaceUpdated,
 }
 
 #[derive(Clone, Debug, Parser, PartialEq, Serialize)]

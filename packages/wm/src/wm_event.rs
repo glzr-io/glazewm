@@ -53,8 +53,7 @@ pub enum WmEvent {
     deactivated_id: Uuid,
     deactivated_name: String,
   },
-  WorkspaceMoved {
-    moved_workspace: ContainerDto,
-    new_monitor: ContainerDto,
+  WorkspaceUpdated {
+    updated_workspace: ContainerDto,
   },
 }

@@ -541,7 +541,7 @@ pub enum WindowRuleEvent {
   TitleChange,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct WorkspaceConfig {
   pub name: String,

@@ -55,9 +55,8 @@ pub fn move_workspace_in_direction(
       activate_workspace(None, &monitor, state, config)?;
     }
 
-    state.emit_event(WmEvent::WorkspaceMoved {
-      moved_workspace: workspace.to_dto()?,
-      new_monitor: target_monitor.to_dto()?,
+    state.emit_event(WmEvent::WorkspaceUpdated {
+      updated_workspace: workspace.to_dto()?,
     });
   }
 

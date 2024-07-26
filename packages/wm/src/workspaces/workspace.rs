@@ -26,7 +26,6 @@ pub struct Workspace(Rc<RefCell<WorkspaceInner>>);
 #[derive(Debug)]
 struct WorkspaceInner {
   id: Uuid,
-  name: String,
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
@@ -43,6 +42,7 @@ struct WorkspaceInner {
 pub struct WorkspaceDto {
   id: Uuid,
   name: String,
+  display_name: Option<String>,
   parent: Option<Uuid>,
   children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
@@ -63,7 +63,6 @@ impl Workspace {
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
-      name: config.name.clone(),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
@@ -100,6 +99,8 @@ impl Workspace {
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
+    let config = self.config();
+
     let children = self
       .children()
       .iter()
@@ -108,7 +109,8 @@ impl Workspace {
 
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
-      name: self.0.borrow().name.clone(),
+      name: config.name,
+      display_name: config.display_name,
       parent: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),

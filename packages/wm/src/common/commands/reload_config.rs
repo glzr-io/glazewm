@@ -68,30 +68,33 @@ fn update_workspace_configs(
   let workspaces = state.workspaces();
 
   for workspace in &workspaces {
+    let monitor = workspace.monitor().context("No monitor.")?;
+
     let workspace_config = config
       .value
       .workspaces
       .iter()
-      .find(|config| config.name == workspace.config().name);
+      .find(|config| config.name == workspace.config().name)
+      .or_else(|| {
+        // When the workspace config is not found, the current name of the
+        // workspace has been removed. So, we reassign the first suitable
+        // workspace config to the workspace.
+        config.workspace_config_for_monitor(&monitor, &workspaces)
+      });
 
     match workspace_config {
-      Some(workspace_config) => {
-        workspace.set_config(workspace_config.clone());
-      }
-      // When the workspace config is not found, the current name of the
-      // workspace has been removed. So, we reassign the first suitable
-      // workspace config to the workspace.
       None => {
-        let monitor = workspace.monitor().context("No monitor.")?;
-        let inactive_config =
-          config.workspace_config_for_monitor(&monitor, &workspaces);
+        warn!(
+          "Unable to update workspace config. No available workspace configs."
+        );
+      }
+      Some(workspace_config) => {
+        if *workspace_config != workspace.config() {
+          workspace.set_config(workspace_config.clone());
 
-        if let Some(inactive_config) = inactive_config {
-          workspace.set_config(inactive_config.clone());
-        } else {
-          warn!(
-            "Unable to update workspace config. No available workspace configs."
-          );
+          state.emit_event(WmEvent::WorkspaceUpdated {
+            updated_workspace: workspace.to_dto()?,
+          });
         }
       }
     }

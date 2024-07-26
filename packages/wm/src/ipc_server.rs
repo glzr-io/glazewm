@@ -436,7 +436,9 @@ impl IpcServer {
       WmEvent::WorkspaceDeactivated { .. } => {
         SubscribableEvent::WorkspaceDeactivated
       }
-      WmEvent::WorkspaceMoved { .. } => SubscribableEvent::WorkspaceMoved,
+      WmEvent::WorkspaceUpdated { .. } => {
+        SubscribableEvent::WorkspaceUpdated
+      }
     };
 
     self.event_tx.send((event_type, event))?;
