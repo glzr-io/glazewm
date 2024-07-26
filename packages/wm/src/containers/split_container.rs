@@ -43,7 +43,7 @@ struct SplitContainerInner {
 #[serde(rename_all = "camelCase")]
 pub struct SplitContainerDto {
   id: Uuid,
-  parent: Option<Uuid>,
+  parent_id: Option<Uuid>,
   children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
   has_focus: bool,
@@ -83,7 +83,7 @@ impl SplitContainer {
 
     Ok(ContainerDto::Split(SplitContainerDto {
       id: self.id(),
-      parent: self.parent().map(|parent| parent.id()),
+      parent_id: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       has_focus: self.has_focus(None),

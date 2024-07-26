@@ -11,7 +11,7 @@ use crate::common::{DisplayState, Rect, RectDelta};
 #[serde(rename_all = "camelCase")]
 pub struct WindowDto {
   pub id: Uuid,
-  pub parent: Option<Uuid>,
+  pub parent_id: Option<Uuid>,
   pub has_focus: bool,
   pub tiling_size: Option<f32>,
   pub width: i32,

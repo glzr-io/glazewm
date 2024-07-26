@@ -33,7 +33,7 @@ struct RootContainerInner {
 #[serde(rename_all = "camelCase")]
 pub struct RootContainerDto {
   id: Uuid,
-  parent: Option<Uuid>,
+  parent_id: Option<Uuid>,
   children: Vec<ContainerDto>,
   child_focus_order: Vec<Uuid>,
 }
@@ -59,7 +59,7 @@ impl RootContainer {
 
     Ok(ContainerDto::Root(RootContainerDto {
       id: self.id(),
-      parent: None,
+      parent_id: None,
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
     }))

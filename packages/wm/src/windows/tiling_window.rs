@@ -101,7 +101,7 @@ impl TilingWindow {
 
     Ok(ContainerDto::Window(WindowDto {
       id: self.id(),
-      parent: self.parent().map(|parent| parent.id()),
+      parent_id: self.parent().map(|parent| parent.id()),
       has_focus: self.has_focus(None),
       tiling_size: Some(self.tiling_size()),
       width: rect.width(),
