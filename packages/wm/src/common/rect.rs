@@ -148,4 +148,10 @@ impl Rect {
     !(self.y() + self.height() <= other.y()
       || other.y() + other.height() <= self.y())
   }
+
+  pub fn contains_point(&self, point: &Point) -> bool {
+    let is_in_x = point.x >= self.left && point.x <= self.right;
+    let is_in_y = point.y >= self.top && point.y <= self.bottom;
+    return is_in_x && is_in_y;
+  }
 }

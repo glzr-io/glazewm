@@ -82,7 +82,7 @@ impl WindowManager {
         handle_window_minimize_ended(window, state, config)
       }
       PlatformEvent::WindowMovedOrResized(window) => {
-        handle_window_moved_or_resized(window, state)
+        handle_window_moved_or_resized(window, state, config)
       }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)

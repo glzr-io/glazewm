@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
+use tracing::{field::debug, info};
 use windows::{
   core::{w, PCWSTR},
   Win32::{
@@ -18,9 +19,9 @@ use windows::{
         SHELLEXECUTEINFOW,
       },
       WindowsAndMessaging::{
-        CreateWindowExW, DispatchMessageW, GetAncestor, GetDesktopWindow,
-        GetForegroundWindow, GetMessageW, MessageBoxW, PeekMessageW,
-        PostThreadMessageW, RegisterClassW, SetCursorPos,
+        CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
+        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
+        PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
         SystemParametersInfoW, TranslateMessage, WindowFromPoint,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
         MB_ICONERROR, MB_OK, MSG, PM_REMOVE, SPI_GETANIMATION,
@@ -135,7 +136,7 @@ impl Platform {
     Ok(())
   }
 
-  // Find the window at the specified point in screen space.
+  /// Find the window at the specified point in screen space.
   pub fn window_from_point(point: &Point) -> anyhow::Result<NativeWindow> {
     let point = POINT {
       x: point.x,
@@ -143,7 +144,21 @@ impl Platform {
     };
 
     let handle = unsafe { WindowFromPoint(point) };
+    dbg!(handle);
     Ok(NativeWindow::new(handle.0))
+  }
+
+  /// gets the mouse position in screen space.
+  pub fn mouse_position() -> anyhow::Result<Point> {
+    let mut point = POINT { x: 0, y: 0 };
+    unsafe {
+      GetCursorPos(&mut point)?;
+    };
+
+    Ok(Point {
+      x: point.x,
+      y: point.y,
+    })
   }
 
   /// Creates a hidden message window.
