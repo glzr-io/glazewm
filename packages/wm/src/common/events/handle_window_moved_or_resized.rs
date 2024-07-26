@@ -10,6 +10,7 @@ use crate::{
     LengthValue, Point, Rect,
   },
   containers::{
+    commands::move_container_within_tree,
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
@@ -72,57 +73,52 @@ fn window_moved(
 ) -> anyhow::Result<()> {
   info!("Tiling window moved");
 
-  let workspace =
-    moved_window.workspace().context("Couldn't find a workspace")?;
+  let workspace = moved_window
+    .workspace()
+    .context("Couldn't find a workspace")?;
 
   let mouse_position = Platform::mouse_position()?;
 
   let children_at_mouse_position: Vec<_> = workspace
     .descendants()
     .filter_map(|container| match container {
-      Container::TilingWindow(tiling) => {
-        Some(tiling)
-      }
+      Container::TilingWindow(tiling) => Some(tiling),
       _ => None,
     })
     .filter(|c| {
-        let frame = c.to_rect();
-        info!("{:?}", frame);
-        info!("{:?}", mouse_position);
-        frame.unwrap().contains_point(&mouse_position)
+      let frame = c.to_rect();
+      info!("{:?}", frame);
+      info!("{:?}", mouse_position);
+      frame.unwrap().contains_point(&mouse_position)
     })
-      .filter(|window| window.id() != moved_window.id())
+    .filter(|window| window.id() != moved_window.id())
     .collect();
 
   if children_at_mouse_position.is_empty() {
-    return Ok(())
+    return Ok(());
   }
 
-  let window_under_cursor = children_at_mouse_position.into_iter().next().unwrap();
+  let window_under_cursor =
+    children_at_mouse_position.into_iter().next().unwrap();
 
-  // let should_split = match window_under_cursor {
-  //   Some(WindowContainer::TilingWindow(window)) => {
-  //     match window.parent().context("Couldn't find parent")? {
-  //       crate::containers::Container::Split(_) => ShouldSplit::No,
-  //       _ => {
-  //         todo!()
-  //       }
-  //     }
-  //   }
-  //   Some(WindowContainer::NonTilingWindow(window)) => {
-  //     let rect = window
-  //       .native()
-  //       .frame_position()
-  //       .context("couldn't get the window frame")?;
-  //
-  //     if rect.width() > rect.height() {
-  //       ShouldSplit::Vertically
-  //     } else {
-  //       ShouldSplit::Horizontally
-  //     }
-  //   }
-  //   None => return Ok(()),
-  // };
+  info!(
+    "Swapping {} with {}",
+    moved_window
+      .native()
+      .process_name()
+      .unwrap_or("".to_string()),
+    window_under_cursor
+      .native()
+      .process_name()
+      .unwrap_or("".to_string())
+  );
+
+  // move_container_within_tree(
+  //   Container::TilingWindow(moved_window),
+  //   Container::TilingWindow(window_under_cursor),
+  //   0,
+  //   state,
+  // );
 
   Ok(())
 }
