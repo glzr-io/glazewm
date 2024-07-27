@@ -8,7 +8,11 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "eventType", rename_all = "snake_case")]
+#[serde(
+  tag = "eventType",
+  rename_all = "snake_case",
+  rename_all_fields = "camelCase"
+)]
 pub enum WmEvent {
   ApplicationExiting,
   BindingModesChanged {
