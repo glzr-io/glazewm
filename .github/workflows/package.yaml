@@ -13,12 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
+      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
           toolchain: nightly
           targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
 
-      - uses: swatinem/rust-cache@988c164c3d0e93c4dbab36aaf5bbeb77425b2894
+      - uses: swatinem/rust-cache@9bdad043e88c75890e36ad3bbc8d27f0090dd609
 
       - name: Install WiX and its extensions
         run: |
