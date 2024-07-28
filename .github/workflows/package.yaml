@@ -3,6 +3,9 @@ name: Package
 on:
   workflow_call:
   workflow_dispatch:
+  push:
+    branches:
+      - quick-test
 
 jobs:
   next-version:
