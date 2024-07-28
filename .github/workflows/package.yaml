@@ -2,6 +2,7 @@ name: Package
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   next-version:
