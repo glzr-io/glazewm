@@ -37,9 +37,7 @@ pub fn handle_window_moved_or_resized_end(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
-  info!("{:#?}", found_window);
-
-  if let Some(WindowContainer::NonTilingWindow(window)) = found_window {
+  if let Some(window) = found_window{
     // TODO: Log window details.
 
     let parent = window.parent().context("No parent.")?;
@@ -57,33 +55,21 @@ pub fn handle_window_moved_or_resized_end(
     let width_delta = new_rect.width() - old_rect.width();
     let height_delta = new_rect.height() - old_rect.height();
 
-    let has_window_moved = match (width_delta, height_delta) {
-      (0, 0) => true,
-      _ => false,
-    };
+    if let WindowContainer::NonTilingWindow(window) = window {
+      let has_window_moved = match (width_delta, height_delta) {
+        (0, 0) => true,
+        _ => false,
+      };
 
-    if has_window_moved {
-      window_moved_end(window, state, config)?;
+      if has_window_moved {
+        window_moved_end(window, state, config)?;
+      }
+    } else if let WindowContainer::TilingWindow(window) = window
+    {
+      window_resized_end(window, state, width_delta, height_delta)?;
     }
-  } else if let Some(WindowContainer::TilingWindow(window)) = found_window
-  {
-    let parent = window.parent().context("No parent.")?;
-
-    // Snap window to its original position if it's the only window in the
-    // workspace.
-    if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-      state.pending_sync.containers_to_redraw.push(window.into());
-      return Ok(());
-    }
-
-    let new_rect = window.native().refresh_frame_position()?;
-    let old_rect = window.to_rect()?;
-
-    let width_delta = new_rect.width() - old_rect.width();
-    let height_delta = new_rect.height() - old_rect.height();
-
-    window_resized_end(window, state, width_delta, height_delta)?;
   }
+
 
   Ok(())
 }

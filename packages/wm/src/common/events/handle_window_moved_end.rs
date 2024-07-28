@@ -1,6 +1,5 @@
 use anyhow::Context;
 use tracing::info;
-
 use crate::{
   common::{platform::Platform, Point, TilingDirection},
   containers::{
@@ -15,6 +14,7 @@ use crate::{
   },
   wm_state::WmState,
 };
+use crate::containers::commands::detach_container;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -123,17 +123,17 @@ fn move_window_to_target(
   new_tiling_direction: TilingDirection,
   new_window_position: DropPosition,
 ) -> anyhow::Result<()> {
-  let target_window_index = target_window_parent
-    .children()
-    .iter()
-    .position(|c| {
-      if let Some(tiling_window) = c.as_tiling_window() {
-        tiling_window.id() == target_window.id()
-      } else {
-        false
-      }
-    })
-    .context("Window index not found")?;
+
+  // TODO: We can optimize that for sure by not detaching and attaching the window
+  // Little trick to get the right index
+  detach_container(Container::NonTilingWindow(moved_window.clone()))?;
+  let target_window_index = target_window.index();
+  attach_container(&Container::NonTilingWindow(moved_window.clone()), target_window_parent, None)?;
+
+  let target_index = match new_window_position {
+    DropPosition::Start => Some(target_window_index),
+    DropPosition::End => Some(target_window_index + 1),
+  };
 
   update_window_state(
     moved_window.as_window_container().unwrap(),
@@ -141,6 +141,7 @@ fn move_window_to_target(
     state,
     config,
   )?;
+
 
   let moved_window = state
     .windows()
@@ -151,13 +152,11 @@ fn move_window_to_target(
     .context("window is not a tiled window")?
     .clone();
 
+
   match (new_tiling_direction, current_tiling_direction) {
     (TilingDirection::Horizontal, TilingDirection::Horizontal)
     | (TilingDirection::Vertical, TilingDirection::Vertical) => {
-      let target_index = match new_window_position {
-        DropPosition::Start => Some(target_window_index),
-        DropPosition::End => None,
-      };
+      info!("Target window index {}", target_window_index);
 
       move_container_within_tree(
         Container::TilingWindow(moved_window.clone()),
@@ -175,6 +174,7 @@ fn move_window_to_target(
         target_window,
         new_window_position,
         &target_window_parent,
+        target_index,
       )?;
     }
     (TilingDirection::Vertical, TilingDirection::Horizontal) => {
@@ -186,6 +186,7 @@ fn move_window_to_target(
         target_window,
         new_window_position,
         &target_window_parent,
+        target_index,
       )?;
     }
   }
@@ -201,17 +202,18 @@ fn create_split_container(
   target_window: TilingWindow,
   dropped_position: DropPosition,
   parent: &Container,
+  split_container_index: Option<usize>,
 ) -> anyhow::Result<()> {
-  let target_index = match dropped_position {
+  let target_index_inside_split_container = match dropped_position {
     DropPosition::Start => Some(0),
-    DropPosition::End => None,
+    DropPosition::End => Some(1),
   };
 
   let split_container = Container::Split(SplitContainer::new(
     tiling_direction,
     config.value.gaps.inner_gap.clone(),
   ));
-  attach_container(&split_container, &parent, None)?;
+  attach_container(&split_container, &parent, split_container_index)?;
 
   move_container_within_tree(
     Container::TilingWindow(target_window),
@@ -222,7 +224,7 @@ fn create_split_container(
   move_container_within_tree(
     Container::TilingWindow(moved_window),
     split_container,
-    target_index,
+    target_index_inside_split_container,
     state,
   )?;
   Ok(())
