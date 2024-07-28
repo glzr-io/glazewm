@@ -27,7 +27,7 @@ use crate::{
 };
 
 /// Handles window move events
-pub fn window_moved(
+pub fn window_moved_end(
   moved_window: TilingWindow,
   state: &mut WmState,
   config: &UserConfig,

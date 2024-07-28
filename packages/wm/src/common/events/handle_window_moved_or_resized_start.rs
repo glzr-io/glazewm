@@ -7,7 +7,9 @@ use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
 use crate::{
   common::{
     commands::platform_sync,
-    events::handle_window_moved::window_moved,
+    events::{
+      handle_window_moved_start::window_moved_start,
+    },
     platform::{MouseMoveEvent, NativeWindow, Platform},
     LengthValue, Point, Rect,
   },
@@ -31,7 +33,7 @@ use crate::{
 /// by the user (e.g. via the window's drag handles).
 ///
 /// This resizes the window if it's a tiling window.
-pub fn handle_window_moved_or_resized(
+pub fn handle_window_moved_or_resized_start(
   native_window: NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
@@ -62,8 +64,10 @@ pub fn handle_window_moved_or_resized(
     };
 
     return match has_window_moved {
-      true => window_moved(window, state, config),
-      false => window_resized(window, state, width_delta, height_delta),
+      true => window_moved_start(window, state, config),
+      false => {
+        window_resized_start(window, state, width_delta, height_delta)
+      }
     };
   }
 
@@ -71,17 +75,12 @@ pub fn handle_window_moved_or_resized(
 }
 
 /// Handles window resize events
-fn window_resized(
+fn window_resized_start(
   window: TilingWindow,
   state: &mut WmState,
   width_delta: i32,
   height_delta: i32,
 ) -> anyhow::Result<()> {
-  info!("Tiling window resized");
-  resize_window(
-    window.clone().into(),
-    Some(LengthValue::from_px(width_delta)),
-    Some(LengthValue::from_px(height_delta)),
-    state,
-  )
+  info!("Tiling window resize start");
+  Ok(())
 }
