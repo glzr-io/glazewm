@@ -6,6 +6,7 @@ mod handle_window_hidden;
 mod handle_window_location_changed;
 mod handle_window_minimize_ended;
 mod handle_window_minimized;
+mod handle_window_moved;
 mod handle_window_moved_or_resized;
 mod handle_window_shown;
 mod handle_window_title_changed;

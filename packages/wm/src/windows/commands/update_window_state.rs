@@ -80,7 +80,7 @@ fn set_tiling(
     move_container_within_tree(
       tiling_window.clone().into(),
       target_parent.clone(),
-      target_index,
+      Some(target_index),
       state,
     )?;
 
@@ -137,7 +137,7 @@ fn set_non_tiling(
         move_container_within_tree(
           window.clone().into(),
           workspace.clone().into(),
-          workspace.child_count(),
+          Some(workspace.child_count()),
           state,
         )?;
       }

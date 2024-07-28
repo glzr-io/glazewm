@@ -6,11 +6,15 @@ use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
 
 use crate::{
   common::{
+    commands::platform_sync,
+    events::handle_window_moved::window_moved,
     platform::{MouseMoveEvent, NativeWindow, Platform},
     LengthValue, Point, Rect,
   },
   containers::{
-    commands::move_container_within_tree,
+    commands::{
+      attach_container, detach_container, move_container_within_tree,
+    },
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
@@ -19,6 +23,7 @@ use crate::{
     commands::resize_window, traits::WindowGetters, NonTilingWindow,
     TilingWindow,
   },
+  wm_event::WmEvent,
   wm_state::WmState,
 };
 
@@ -63,70 +68,6 @@ pub fn handle_window_moved_or_resized(
   }
 
   Ok(())
-}
-
-/// Handles window move events
-fn window_moved(
-  moved_window: TilingWindow,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  info!("Tiling window moved");
-
-  let workspace = moved_window
-    .workspace()
-    .context("Couldn't find a workspace")?;
-
-  let mouse_position = Platform::mouse_position()?;
-
-  let children_at_mouse_position: Vec<_> = workspace
-    .descendants()
-    .filter_map(|container| match container {
-      Container::TilingWindow(tiling) => Some(tiling),
-      _ => None,
-    })
-    .filter(|c| {
-      let frame = c.to_rect();
-      info!("{:?}", frame);
-      info!("{:?}", mouse_position);
-      frame.unwrap().contains_point(&mouse_position)
-    })
-    .filter(|window| window.id() != moved_window.id())
-    .collect();
-
-  if children_at_mouse_position.is_empty() {
-    return Ok(());
-  }
-
-  let window_under_cursor =
-    children_at_mouse_position.into_iter().next().unwrap();
-
-  info!(
-    "Swapping {} with {}",
-    moved_window
-      .native()
-      .process_name()
-      .unwrap_or("".to_string()),
-    window_under_cursor
-      .native()
-      .process_name()
-      .unwrap_or("".to_string())
-  );
-
-  // move_container_within_tree(
-  //   Container::TilingWindow(moved_window),
-  //   Container::TilingWindow(window_under_cursor),
-  //   0,
-  //   state,
-  // );
-
-  Ok(())
-}
-
-enum ShouldSplit {
-  Vertically,
-  Horizontally,
-  No,
 }
 
 /// Handles window resize events

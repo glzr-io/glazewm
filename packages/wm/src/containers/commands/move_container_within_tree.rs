@@ -27,7 +27,7 @@ use crate::{
 pub fn move_container_within_tree(
   container_to_move: Container,
   target_parent: Container,
-  target_index: usize,
+  target_index: Option<usize>,
   state: &WmState,
 ) -> anyhow::Result<()> {
   // Create iterator of parent, grandparent, and great-grandparent.
@@ -43,14 +43,16 @@ pub fn move_container_within_tree(
   // If the container is already a child of the target parent, then shift
   // it to the target index.
   if container_to_move.parent().context("No parent.")? == target_parent {
-    target_parent
-      .borrow_children_mut()
-      .shift_to_index(target_index, container_to_move.clone());
+    if let Some(target_index) = target_index {
+      target_parent
+          .borrow_children_mut()
+          .shift_to_index(target_index, container_to_move.clone());
 
-    if container_to_move.has_focus(None) {
-      state.emit_event(WmEvent::FocusedContainerMoved {
-        focused_container: container_to_move.to_dto()?,
-      });
+      if container_to_move.has_focus(None) {
+        state.emit_event(WmEvent::FocusedContainerMoved {
+          focused_container: container_to_move.to_dto()?,
+        });
+      }
     }
 
     return Ok(());
@@ -59,6 +61,12 @@ pub fn move_container_within_tree(
   // Handle case where target parent is the LCA. For example, when swapping
   // sibling containers or moving a container to a direct ancestor.
   if target_parent == lowest_common_ancestor {
+    let target_index = if let Some(index) = target_index{
+      index
+    }else {
+      return Ok(());
+    };
+    
     return move_to_lowest_common_ancestor(
       container_to_move,
       lowest_common_ancestor,
@@ -102,7 +110,7 @@ pub fn move_container_within_tree(
   attach_container(
     &container_to_move.clone(),
     &target_parent.clone(),
-    Some(target_index),
+    target_index,
   )?;
 
   // Set `container_to_move` as focused descendant within target subtree if

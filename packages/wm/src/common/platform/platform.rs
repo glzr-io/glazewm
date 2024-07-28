@@ -144,7 +144,6 @@ impl Platform {
     };
 
     let handle = unsafe { WindowFromPoint(point) };
-    dbg!(handle);
     Ok(NativeWindow::new(handle.0))
   }
 

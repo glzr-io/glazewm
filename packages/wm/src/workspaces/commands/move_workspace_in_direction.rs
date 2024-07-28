@@ -28,7 +28,7 @@ pub fn move_workspace_in_direction(
     move_container_within_tree(
       workspace.clone().into(),
       target_monitor.clone().into(),
-      target_monitor.child_count(),
+      Some(target_monitor.child_count()),
       state,
     )?;
 
