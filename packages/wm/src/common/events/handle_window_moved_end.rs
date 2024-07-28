@@ -1,38 +1,28 @@
-use std::{collections::VecDeque, io::Split};
-
 use anyhow::Context;
-use tracing::{debug, info};
-use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
+use tracing::info;
 
 use crate::{
-  common::{
-    commands::platform_sync,
-    platform::{MouseMoveEvent, NativeWindow, Platform},
-    LengthValue, Point, Rect, TilingDirection,
-  },
+  common::{platform::Platform, Point, TilingDirection},
   containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-    },
+    commands::{attach_container, move_container_within_tree},
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, SplitContainer, WindowContainer,
+    Container, SplitContainer,
   },
   user_config::UserConfig,
   windows::{
-    commands::resize_window, traits::WindowGetters, NonTilingWindow,
-    TilingWindow,
+    commands::update_window_state, traits::WindowGetters, NonTilingWindow,
+    TilingWindow, WindowState,
   },
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 
 /// Handles window move events
 pub fn window_moved_end(
-  moved_window: TilingWindow,
+  moved_window: NonTilingWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Tiling window moved");
+  info!("Tiling window moved end");
 
   let workspace = moved_window
     .workspace()
@@ -118,10 +108,7 @@ pub fn window_moved_end(
     }
     _ => {}
   }
-
   state.pending_sync.containers_to_redraw.push(parent);
-
-  // info!("{:#?}", workspace);
 
   Ok(())
 }
@@ -129,7 +116,7 @@ pub fn window_moved_end(
 fn move_window_to_target(
   state: &mut WmState,
   config: &UserConfig,
-  moved_window: TilingWindow,
+  moved_window: NonTilingWindow,
   target_window: TilingWindow,
   target_window_parent: &Container,
   current_tiling_direction: TilingDirection,
@@ -147,6 +134,22 @@ fn move_window_to_target(
       }
     })
     .context("Window index not found")?;
+
+  update_window_state(
+    moved_window.as_window_container().unwrap(),
+    WindowState::Tiling,
+    state,
+    config,
+  )?;
+
+  let moved_window = state
+    .windows()
+    .iter()
+    .find(|w| w.id() == moved_window.id())
+    .context("couldn't find the new tiled window")?
+    .as_tiling_window()
+    .context("window is not a tiled window")?
+    .clone();
 
   match (new_tiling_direction, current_tiling_direction) {
     (TilingDirection::Horizontal, TilingDirection::Horizontal)
