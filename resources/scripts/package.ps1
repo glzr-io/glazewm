@@ -113,16 +113,22 @@ function BuildInstallers() {
       -d EXE_DIR="out/$arch"
   }
 
+  SignFiles @("out/installer-x64.msi", "out/installer-arm64.msi")
+
   Write-Output "Creating universal installer"
   wix build -arch "x64" -ext WixToolset.BootstrapperApplications.wixext `
-    -out "./out/installer-universal.exe" "./resources/wix/bundle.wxs" `
+    -out "./out/unsigned-installer-universal.exe" "./resources/wix/bundle.wxs" `
     -d VERSION_NUMBER="$VersionNumber"
 
-  SignFiles @(
-    "out/installer-x64.msi",
-    "out/installer-arm64.msi",
-    "out/installer-universal.exe"
-  )
+  Write-Output "Detaching & reattaching Burn engine for signing"
+  wix burn detach "./out/unsigned-installer-universal.exe" -engine "./out/engine.exe"
+  SignFiles @("out/engine.exe")
+
+  wix burn reattach "./out/unsigned-installer-universal.exe" `
+    -engine "./out/engine.exe" `
+    -o "./out/installer-universal.exe"
+
+  SignFiles @("out/installer-universal.exe")
 }
 
 function Package() {
