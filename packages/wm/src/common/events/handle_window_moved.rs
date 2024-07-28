@@ -164,7 +164,8 @@ fn move_window_to_target(
       )?;
     }
     (TilingDirection::Horizontal, TilingDirection::Vertical) => {
-      create_split_horizontal_direction(
+      create_split_container(
+        TilingDirection::Horizontal,
         state,
         config,
         moved_window,
@@ -174,7 +175,8 @@ fn move_window_to_target(
       )?;
     }
     (TilingDirection::Vertical, TilingDirection::Horizontal) => {
-      create_split_vertical_direction(
+      create_split_container(
+        TilingDirection::Vertical,
         state,
         config,
         moved_window,
@@ -188,7 +190,8 @@ fn move_window_to_target(
   Ok(())
 }
 
-fn create_split_vertical_direction(
+fn create_split_container(
+  tiling_direction: TilingDirection,
   state: &mut WmState,
   config: &UserConfig,
   moved_window: TilingWindow,
@@ -202,43 +205,7 @@ fn create_split_vertical_direction(
   };
 
   let split_container = Container::Split(SplitContainer::new(
-    TilingDirection::Vertical,
-    config.value.gaps.inner_gap.clone(),
-  ));
-  attach_container(&split_container, &parent, None)?;
-
-  move_container_within_tree(
-    Container::TilingWindow(target_window),
-    split_container.clone(),
-    None,
-    state,
-  )?;
-  move_container_within_tree(
-    Container::TilingWindow(moved_window),
-    split_container,
-    target_index,
-    state,
-  )?;
-  Ok(())
-}
-
-fn create_split_horizontal_direction(
-  state: &mut WmState,
-  config: &UserConfig,
-  moved_window: TilingWindow,
-  target_window: TilingWindow,
-  dropped_position: DropPosition,
-  parent: &Container,
-) -> anyhow::Result<()> {
-  let target_index = match dropped_position {
-    // The split container is freshly created and will contain only 1
-    // container
-    DropPosition::Start => Some(0),
-    DropPosition::End => None,
-  };
-
-  let split_container = Container::Split(SplitContainer::new(
-    TilingDirection::Horizontal,
+    tiling_direction,
     config.value.gaps.inner_gap.clone(),
   ));
   attach_container(&split_container, &parent, None)?;
