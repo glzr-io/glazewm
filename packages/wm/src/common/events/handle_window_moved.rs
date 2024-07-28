@@ -136,17 +136,21 @@ fn move_window_to_target(
   new_tiling_direction: TilingDirection,
   new_window_position: DropPosition,
 ) -> anyhow::Result<()> {
-
   let target_window_index = target_window_parent
     .children()
     .iter()
     .position(|c| {
-      c.as_tiling_window().unwrap().id() == target_window.id()
+      if let Some(tiling_window) = c.as_tiling_window() {
+        tiling_window.id() == target_window.id()
+      } else {
+        false
+      }
     })
     .context("Window index not found")?;
 
-  if new_tiling_direction == TilingDirection::Horizontal {
-    if current_tiling_direction == TilingDirection::Horizontal {
+  match (new_tiling_direction, current_tiling_direction) {
+    (TilingDirection::Horizontal, TilingDirection::Horizontal)
+    | (TilingDirection::Vertical, TilingDirection::Vertical) => {
       let target_index = match new_window_position {
         DropPosition::Start => Some(target_window_index),
         DropPosition::End => None,
@@ -158,40 +162,29 @@ fn move_window_to_target(
         target_index,
         state,
       )?;
-    } else {
-      if current_tiling_direction == TilingDirection::Vertical {
-        let target_index = match new_window_position {
-          DropPosition::Start => Some(target_window_index),
-          DropPosition::End => None,
-        };
-
-        move_container_within_tree(
-          Container::TilingWindow(moved_window.clone()),
-          target_window_parent.clone(),
-          target_index,
-          state,
-        )?;
-      } else {
-        create_split_horizontal_direction(
-          state,
-          config,
-          moved_window,
-          target_window,
-          new_window_position,
-          &target_window_parent,
-        )?;
-      }
     }
-  } else {
-    create_split_vertical_direction(
-      state,
-      config,
-      moved_window,
-      target_window,
-      new_window_position,
-      &target_window_parent,
-    )?;
+    (TilingDirection::Horizontal, TilingDirection::Vertical) => {
+      create_split_horizontal_direction(
+        state,
+        config,
+        moved_window,
+        target_window,
+        new_window_position,
+        &target_window_parent,
+      )?;
+    }
+    (TilingDirection::Vertical, TilingDirection::Horizontal) => {
+      create_split_vertical_direction(
+        state,
+        config,
+        moved_window,
+        target_window,
+        new_window_position,
+        &target_window_parent,
+      )?;
+    }
   }
+
   Ok(())
 }
 
