@@ -49,7 +49,9 @@
         InstallCondition="(VersionNT64 AND NOT NativeMachine) OR (NativeMachine = 34404) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"
-      />
+      >
+        <MsiProperty Name="ADD_GLAZEWM_STARTER" Value="1" />
+      </MsiPackage>
 
       <!-- Zebar MSI for arm64 architectures. -->
       <MsiPackage
@@ -58,7 +60,9 @@
         InstallCondition="(NativeMachine = 43620) AND (Custom_InstallZebar = 1)"
         bal:DisplayInternalUICondition="1"
         Permanent="yes"
-      />
+      >
+        <MsiProperty Name="ADD_GLAZEWM_STARTER" Value="1" />
+      </MsiPackage>
     </Chain>
   </Bundle>
 </Wix>
