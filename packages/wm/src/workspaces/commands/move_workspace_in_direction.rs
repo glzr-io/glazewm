@@ -50,6 +50,11 @@ pub fn move_workspace_in_direction(
       }
     }
 
+    state
+      .pending_sync
+      .containers_to_redraw
+      .push(workspace.clone().into());
+
     // Prevent original monitor from having no workspaces.
     if monitor.child_count() == 0 {
       activate_workspace(None, &monitor, state, config)?;

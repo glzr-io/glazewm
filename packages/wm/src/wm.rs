@@ -14,7 +14,7 @@ use crate::{
       handle_window_moved_or_resized, handle_window_shown,
       handle_window_title_changed,
     },
-    platform::{Platform, PlatformEvent},
+    platform::PlatformEvent,
   },
   containers::traits::CommonGetters,
   user_config::UserConfig,
