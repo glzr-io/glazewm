@@ -471,6 +471,7 @@ pub struct WindowEffectConfig {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct BorderEffectConfig {
   /// Whether to enable the effect.
+  #[serde(default = "default_bool::<false>")]
   pub enabled: bool,
 
   /// Color of the window border.
@@ -559,8 +560,8 @@ const fn default_bool<const V: bool>() -> bool {
 /// Helper function for setting a default value for a color field.
 const fn default_blue() -> Color {
   Color {
-    r: 0,
-    g: 0,
+    r: 140,
+    g: 190,
     b: 255,
     a: 255,
   }
