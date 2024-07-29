@@ -524,20 +524,24 @@ impl NativeWindow {
           self.minimize()?;
         }
       }
-      // TODO: Handle maximized fullscreen on different monitor than
-      // window's current position.
       WindowState::Fullscreen(config)
         if config.maximized && self.has_window_style(WS_MAXIMIZEBOX) =>
       {
-        if !is_visible {
-          self.hide()?;
-        } else {
-          self.show()?;
-        }
-
         if !self.is_maximized()? {
           self.maximize()?;
         }
+
+        unsafe {
+          SetWindowPos(
+            HWND(self.handle),
+            z_order,
+            rect.x(),
+            rect.y(),
+            rect.width(),
+            rect.height(),
+            swp_flags,
+          )
+        }?;
       }
       _ => {
         swp_flags |= SWP_FRAMECHANGED;

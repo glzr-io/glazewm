@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use anyhow::Context;
 
 use super::flatten_split_container;

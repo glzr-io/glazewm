@@ -8,13 +8,13 @@ use crate::{
       move_container_within_tree, resize_tiling_container,
       wrap_in_split_container,
     },
-    DirectionContainer,
-    SplitContainer, TilingContainer, traits::{CommonGetters, PositionGetters, TilingDirectionGetters}, WindowContainer,
+    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
+    DirectionContainer, SplitContainer, TilingContainer, WindowContainer,
   },
   monitors::Monitor,
   user_config::{CursorJumpTrigger, UserConfig},
   windows::{
-    NonTilingWindow, TilingWindow, traits::WindowGetters, WindowState,
+    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -34,11 +34,11 @@ pub fn move_window_in_direction(
         WindowState::Floating(_) => {
           move_floating_window(non_tiling_window, direction, state)
         }
-        WindowState::Fullscreen(_) => move_fullscreen_window(
-          non_tiling_window,
+        WindowState::Fullscreen(_) => move_to_workspace_in_direction(
+          non_tiling_window.into(),
           direction,
-          config,
           state,
+          config,
         ),
         _ => Ok(()),
       }
@@ -89,7 +89,7 @@ fn move_tiling_window(
     && parent.is_workspace()
   {
     return move_to_workspace_in_direction(
-      window_to_move,
+      window_to_move.into(),
       direction,
       state,
       config,
@@ -207,7 +207,7 @@ fn move_to_sibling_container(
 }
 
 fn move_to_workspace_in_direction(
-  window_to_move: TilingWindow,
+  window_to_move: WindowContainer,
   direction: &Direction,
   state: &mut WmState,
   config: &UserConfig,
@@ -232,6 +232,12 @@ fn move_to_workspace_in_direction(
         .floating_placement()
         .translate_to_center(&workspace.to_rect()?),
     );
+
+    if let WindowContainer::NonTilingWindow(window_to_move) =
+      &window_to_move
+    {
+      window_to_move.set_insertion_target(None);
+    }
 
     let target_index = match direction {
       Direction::Down | Direction::Right => 0,
@@ -401,78 +407,6 @@ fn move_floating_window(
       .pending_sync
       .containers_to_redraw
       .push(window_to_move.into());
-  }
-
-  Ok(())
-}
-
-fn move_fullscreen_window(
-  window_to_move: NonTilingWindow,
-  direction: &Direction,
-  config: &UserConfig,
-  state: &mut WmState,
-) -> anyhow::Result<()> {
-  if let WindowState::Fullscreen(_) = window_to_move.state() {
-    window_to_move.set_state(WindowState::Floating(
-      config.value.window_behavior.state_defaults.floating.clone(),
-    ));
-
-    let current_monitor =
-      window_to_move.monitor().context("No monitor.")?;
-
-    let target_monitor = state
-      .monitor_in_direction(&current_monitor, direction)?
-      .context("No target monitor found in the specified direction.")?;
-
-    if current_monitor
-      .has_dpi_difference(&target_monitor.clone().into())?
-    {
-      window_to_move.set_has_pending_dpi_adjustment(true);
-    }
-
-    // log &target_monitor.to_rect().unwrap(),
-    println!("target_monitor: {:?}", target_monitor.to_rect().unwrap());
-    
-    // temp test to figure out how to move fullscreen window
-    window_to_move
-      .native()
-      .set_position(
-        &window_to_move.state(),
-        &target_monitor.to_rect().unwrap(),
-        true,
-        window_to_move.has_pending_dpi_adjustment(),
-      )
-      .expect("Failed to set window position.");
-
-    // let target_workspace = target_monitor
-    //   .displayed_workspace()
-    //   .context("No workspace on target monitor.")?;
-    //
-    // println!("target_workspace: {:?}", target_workspace.to_rect());
-    // println!("target_mon: {:?}", target_monitor.to_rect());
-    //
-    //
-    // let test = target_monitor.to_rect()?;
-    // test.clamp_size(500, 500);
-    // window_to_move.set_floating_placement(test);
-    //
-    //
-    // //set fullscreen
-    // window_to_move.set_state(WindowState::Fullscreen(
-    //   config
-    //     .value
-    //     .window_behavior
-    //     .state_defaults
-    //     .fullscreen
-    //     .clone(),
-    // ));
-    //
-    // state
-    //   .pending_sync
-    //   .containers_to_redraw
-    //   .extend([window_to_move.into(), target_workspace.into()]);
-  } else {
-    return Err(anyhow::anyhow!("Window is not in fullscreen state."));
   }
 
   Ok(())
