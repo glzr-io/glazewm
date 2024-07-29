@@ -55,13 +55,7 @@ impl WindowManager {
         handle_display_settings_changed(state, config)
       }
       PlatformEvent::KeybindingTriggered(kb_config) => {
-        // Skip keybinding if an ignored window currently has focus.
-        if !state
-          .ignored_windows
-          .contains(&Platform::foreground_window())
-        {
-          self.process_commands(kb_config.commands, None, config)?;
-        }
+        self.process_commands(kb_config.commands, None, config)?;
 
         // Return early since we don't want to redraw twice.
         return Ok(());
