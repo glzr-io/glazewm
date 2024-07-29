@@ -15,6 +15,7 @@ use crate::{
   wm_state::WmState,
 };
 use crate::containers::commands::detach_container;
+use crate::user_config::FloatingStateConfig;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -22,7 +23,11 @@ pub fn window_moved_end(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Tiling window moved end");
+  // We continue only if it's a temporary Floating window
+  if matches!(moved_window.state(), WindowState::Floating(FloatingStateConfig{is_tiling_drag: false,..})){
+    return Ok(());
+  }
+  info!("Tiling window drag end");
 
   let workspace = moved_window
     .workspace()
@@ -38,8 +43,6 @@ pub fn window_moved_end(
     })
     .filter(|c| {
       let frame = c.to_rect();
-      info!("{:?}", frame);
-      info!("{:?}", mouse_position);
       frame.unwrap().contains_point(&mouse_position)
     })
     .filter(|window| window.id() != moved_window.id())

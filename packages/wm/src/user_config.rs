@@ -436,6 +436,10 @@ pub struct FloatingStateConfig {
   /// Whether to show floating windows as always on top.
   #[serde(default = "default_bool::<false>")]
   pub shown_on_top: bool,
+
+  /// Whether the floating window was created with a drag.
+  #[serde(default = "default_bool::<false>")]
+  pub is_tiling_drag: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
