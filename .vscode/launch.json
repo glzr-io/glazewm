@@ -5,7 +5,7 @@
       "name": "Launch",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceRoot}/target/debug/wm.exe",
+      "program": "${workspaceRoot}/target/debug/glazewm.exe",
       "preLaunchTask": "rust: cargo build",
       "args": ["start"],
       "stopAtEntry": false,
