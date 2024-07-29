@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use tracing::{field::debug, info};
 use windows::{
   core::{w, PCWSTR},
   Win32::{

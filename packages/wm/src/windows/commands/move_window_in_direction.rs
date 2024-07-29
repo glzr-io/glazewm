@@ -155,7 +155,7 @@ fn move_to_sibling_container(
       move_container_within_tree(
         window_to_move.clone().into(),
         parent,
-        Some(sibling_window.index()),
+        sibling_window.index(),
         state,
       )?;
 
@@ -190,7 +190,7 @@ fn move_to_sibling_container(
         move_container_within_tree(
           window_to_move.into(),
           target_parent.clone().into(),
-          Some(target_index),
+          target_index,
           state,
         )?;
 
@@ -247,7 +247,7 @@ fn move_to_workspace_in_direction(
     move_container_within_tree(
       window_to_move.clone().into(),
       workspace.clone().into(),
-      Some(target_index),
+      target_index,
       state,
     )?;
 
@@ -321,7 +321,7 @@ fn invert_workspace_tiling_direction(
   move_container_within_tree(
     window_to_move.clone().into(),
     workspace.clone().into(),
-    Some(target_index),
+    target_index,
     state,
   )?;
 
@@ -369,7 +369,7 @@ fn insert_into_ancestor(
   move_container_within_tree(
     window_to_move.clone().into(),
     target_ancestor.clone().into(),
-    Some(target_index),
+    target_index,
     state,
   )?;
 

@@ -1,31 +1,17 @@
-use std::collections::VecDeque;
-
 use anyhow::Context;
-use tracing::{debug, info};
-use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
+use tracing::info;
 
 use crate::{
   common::{
-    commands::platform_sync,
-    events::{
-      handle_window_moved_start::window_moved_start,
-    },
-    platform::{MouseMoveEvent, NativeWindow, Platform},
-    LengthValue, Point, Rect,
+    events::handle_window_moved_start::window_moved_start,
+    platform::NativeWindow,
   },
   containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-    },
     traits::{CommonGetters, PositionGetters},
-    Container, WindowContainer,
+    WindowContainer,
   },
   user_config::UserConfig,
-  windows::{
-    commands::resize_window, traits::WindowGetters, NonTilingWindow,
-    TilingWindow,
-  },
-  wm_event::WmEvent,
+  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 
@@ -65,9 +51,7 @@ pub fn handle_window_moved_or_resized_start(
 
     return match has_window_moved {
       true => window_moved_start(window, state, config),
-      false => {
-        window_resized_start(window, state, width_delta, height_delta)
-      }
+      false => window_resized_start(),
     };
   }
 
@@ -75,12 +59,7 @@ pub fn handle_window_moved_or_resized_start(
 }
 
 /// Handles window resize events
-fn window_resized_start(
-  window: TilingWindow,
-  state: &mut WmState,
-  width_delta: i32,
-  height_delta: i32,
-) -> anyhow::Result<()> {
+fn window_resized_start() -> anyhow::Result<()> {
   info!("Tiling window resize start");
   Ok(())
 }

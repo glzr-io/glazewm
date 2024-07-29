@@ -93,7 +93,7 @@ pub fn move_window_to_workspace(
           move_container_within_tree(
             window.clone().into(),
             insertion_sibling.clone().parent().context("No parent.")?,
-            Some(insertion_sibling.index() + 1),
+            insertion_sibling.index() + 1,
             state,
           )?;
         }
@@ -102,7 +102,7 @@ pub fn move_window_to_workspace(
         move_container_within_tree(
           window.clone().into(),
           target_workspace.clone().into(),
-          Some(target_workspace.child_count()),
+          target_workspace.child_count(),
           state,
         )?;
       }

@@ -1,29 +1,19 @@
-use std::collections::VecDeque;
-
 use anyhow::Context;
-use tracing::{debug, info};
-use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
+use tracing::info;
 
 use crate::{
   common::{
-    commands::platform_sync,
     events::handle_window_moved_end::window_moved_end,
-    platform::{MouseMoveEvent, NativeWindow, Platform},
-    LengthValue, Point, Rect,
+    platform::NativeWindow, LengthValue,
   },
   containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-    },
     traits::{CommonGetters, PositionGetters},
-    Container, WindowContainer,
+    WindowContainer,
   },
   user_config::UserConfig,
   windows::{
-    commands::resize_window, traits::WindowGetters, NonTilingWindow,
-    TilingWindow,
+    commands::resize_window, traits::WindowGetters, TilingWindow,
   },
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 
@@ -37,7 +27,7 @@ pub fn handle_window_moved_or_resized_end(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
-  if let Some(window) = found_window{
+  if let Some(window) = found_window {
     // TODO: Log window details.
 
     let parent = window.parent().context("No parent.")?;
@@ -64,12 +54,10 @@ pub fn handle_window_moved_or_resized_end(
       if has_window_moved {
         window_moved_end(window, state, config)?;
       }
-    } else if let WindowContainer::TilingWindow(window) = window
-    {
+    } else if let WindowContainer::TilingWindow(window) = window {
       window_resized_end(window, state, width_delta, height_delta)?;
     }
   }
-
 
   Ok(())
 }

@@ -134,8 +134,8 @@ fn move_window_to_target(
   attach_container(&Container::NonTilingWindow(moved_window.clone()), target_window_parent, None)?;
 
   let target_index = match new_window_position {
-    DropPosition::Start => Some(target_window_index),
-    DropPosition::End => Some(target_window_index + 1),
+    DropPosition::Start => target_window_index,
+    DropPosition::End => target_window_index + 1,
   };
 
   update_window_state(
@@ -205,23 +205,23 @@ fn create_split_container(
   target_window: TilingWindow,
   dropped_position: DropPosition,
   parent: &Container,
-  split_container_index: Option<usize>,
+  split_container_index: usize,
 ) -> anyhow::Result<()> {
   let target_index_inside_split_container = match dropped_position {
-    DropPosition::Start => Some(0),
-    DropPosition::End => Some(1),
+    DropPosition::Start => 0,
+    DropPosition::End => 1,
   };
 
   let split_container = Container::Split(SplitContainer::new(
     tiling_direction,
     config.value.gaps.inner_gap.clone(),
   ));
-  attach_container(&split_container, &parent, split_container_index)?;
+  attach_container(&split_container, &parent, Some(split_container_index))?;
 
   move_container_within_tree(
     Container::TilingWindow(target_window),
     split_container.clone(),
-    None,
+    0,
     state,
   )?;
   move_container_within_tree(

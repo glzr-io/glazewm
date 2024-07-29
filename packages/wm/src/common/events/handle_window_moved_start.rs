@@ -1,29 +1,10 @@
-use std::{collections::VecDeque, io::Split};
-
 use anyhow::Context;
-use tracing::{debug, info};
-use windows::Win32::{Foundation, UI::WindowsAndMessaging::GetCursorPos};
+use tracing::info;
 
 use crate::{
-  common::{
-    commands::platform_sync,
-    platform::{MouseMoveEvent, NativeWindow, Platform},
-    LengthValue, Point, Rect, TilingDirection,
-  },
-  containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-    },
-    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, SplitContainer, WindowContainer,
-  },
+  containers::traits::CommonGetters,
   user_config::{FloatingStateConfig, UserConfig},
-  windows::{
-    commands::{resize_window, update_window_state},
-    traits::WindowGetters,
-    NonTilingWindow, TilingWindow, WindowState,
-  },
-  wm_event::WmEvent,
+  windows::{commands::update_window_state, TilingWindow, WindowState},
   wm_state::WmState,
 };
 

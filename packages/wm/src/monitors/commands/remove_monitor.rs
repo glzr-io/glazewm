@@ -44,7 +44,7 @@ pub fn remove_monitor(
     move_container_within_tree(
       workspace.clone().into(),
       target_monitor.clone().into(),
-      Some(target_monitor.child_count()),
+      target_monitor.child_count(),
       state,
     )?;
 
