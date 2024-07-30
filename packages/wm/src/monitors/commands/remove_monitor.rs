@@ -31,11 +31,8 @@ pub fn remove_monitor(
     .context("No target monitor to move workspaces.")?;
 
   // Avoid moving empty workspaces.
-  let workspaces_to_move = monitor
-    .children()
-    .into_iter()
-    .filter_map(|container| container.as_workspace().cloned())
-    .filter(|workspace| {
+  let workspaces_to_move =
+    monitor.workspaces().into_iter().filter(|workspace| {
       workspace.has_children() || workspace.config().keep_alive
     });
 

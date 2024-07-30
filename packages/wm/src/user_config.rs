@@ -309,6 +309,23 @@ impl UserConfig {
       .or(inactive_configs.first())
       .cloned()
   }
+
+  pub fn workspace_config_index(
+    &self,
+    workspace_name: &str,
+  ) -> Option<usize> {
+    self
+      .value
+      .workspaces
+      .iter()
+      .position(|config| config.name == workspace_name)
+  }
+
+  pub fn sort_workspaces(&self, workspaces: &mut Vec<Workspace>) {
+    workspaces.sort_by_key(|workspace| {
+      self.workspace_config_index(&workspace.config().name)
+    });
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
