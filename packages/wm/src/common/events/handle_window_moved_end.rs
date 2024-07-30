@@ -15,6 +15,7 @@ use crate::{
   wm_state::WmState,
 };
 use crate::containers::commands::detach_container;
+use crate::containers::RootContainer;
 use crate::user_config::FloatingStateConfig;
 use crate::workspaces::Workspace;
 
@@ -36,13 +37,11 @@ pub fn window_moved_end(
   }
   info!("Tiling window drag end event");
 
-  let workspace = moved_window
-    .workspace()
-    .context("Couldn't find a workspace")?;
+  let root_container = state.root_container.clone();
 
   let mouse_position = Platform::mouse_position()?;
 
-  let window_under_cursor = match get_window_at_mouse_pos(&moved_window, workspace, &mouse_position) {
+  let window_under_cursor = match get_tiling_window_at_mouse_pos(&moved_window, root_container, &mouse_position) {
     Some(value) => value,
     None => return Ok(()),
   };
@@ -107,8 +106,8 @@ pub fn window_moved_end(
 }
 
 /// Return the window under the mouse position excluding the dragged window
-fn get_window_at_mouse_pos(exclude_window: &NonTilingWindow, workspace: Workspace, mouse_position: &Point) -> Option<TilingWindow> {
-  let children_at_mouse_position: Vec<_> = workspace
+fn get_tiling_window_at_mouse_pos(exclude_window: &NonTilingWindow, root_container: RootContainer, mouse_position: &Point) -> Option<TilingWindow> {
+  let children_at_mouse_position: Vec<_> = root_container
       .descendants()
       .filter_map(|container| match container {
         Container::TilingWindow(tiling) => Some(tiling),
@@ -141,9 +140,13 @@ fn move_window_to_target(
 
   // TODO: We can optimize that for sure by not detaching and attaching the window
   // Little trick to get the right index
+  let test_parent = moved_window.parent().unwrap();
+  dbg!(&test_parent);
   detach_container(Container::NonTilingWindow(moved_window.clone()))?;
+  dbg!(&test_parent);
   let target_window_index = target_window.index();
   attach_container(&Container::NonTilingWindow(moved_window.clone()), target_window_parent, None)?;
+  dbg!(&test_parent);
 
   let target_index = match new_window_position {
     DropPosition::Start => target_window_index,
@@ -252,7 +255,7 @@ enum DropPosition {
 }
 
 /// Returns the closest position of the mouse over the window
-/// 
+///
 /// Example: Mouse x pos: 3, Window width: 5, Result: [DropPosition::End]
 fn get_new_window_position(
   mouse_position: &Point,

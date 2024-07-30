@@ -2,7 +2,11 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  containers::traits::CommonGetters,
+  containers::{
+    commands::{attach_container, detach_container},
+    traits::CommonGetters,
+    Container,
+  },
   user_config::{FloatingStateConfig, UserConfig},
   windows::{commands::update_window_state, TilingWindow, WindowState},
   wm_state::WmState,
@@ -18,6 +22,19 @@ pub fn window_moved_start(
   let moved_window_parent = moved_window
     .parent()
     .context("Tiling window has no parent")?;
+
+  if let Some(Container::Split(split)) = moved_window.parent() {
+    if split.child_count() == 1 {
+      let split_parent = split.parent().unwrap();
+      let split_index = split.index();
+      detach_container(Container::TilingWindow(moved_window.clone()))?;
+      attach_container(
+        &Container::TilingWindow(moved_window.clone()),
+        &split_parent,
+        Some(split_index),
+      )?;
+    }
+  }
 
   update_window_state(
     moved_window.as_window_container().unwrap(),
