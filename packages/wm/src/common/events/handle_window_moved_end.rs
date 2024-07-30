@@ -16,6 +16,7 @@ use crate::{
 };
 use crate::containers::commands::detach_container;
 use crate::user_config::FloatingStateConfig;
+use crate::workspaces::Workspace;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -33,7 +34,7 @@ pub fn window_moved_end(
   ) {
     return Ok(());
   }
-  info!("Tiling window drag end");
+  info!("Tiling window drag end event");
 
   let workspace = moved_window
     .workspace()
@@ -41,36 +42,19 @@ pub fn window_moved_end(
 
   let mouse_position = Platform::mouse_position()?;
 
-  let children_at_mouse_position: Vec<_> = workspace
-    .descendants()
-    .filter_map(|container| match container {
-      Container::TilingWindow(tiling) => Some(tiling),
-      _ => None,
-    })
-    .filter(|c| {
-      let frame = c.to_rect();
-      frame.unwrap().contains_point(&mouse_position)
-    })
-    .filter(|window| window.id() != moved_window.id())
-    .collect();
-
-  if children_at_mouse_position.is_empty() {
-    return Ok(());
-  }
-
-  let window_under_cursor =
-    children_at_mouse_position.into_iter().next().unwrap();
+  let window_under_cursor = match get_window_at_mouse_pos(&moved_window, workspace, &mouse_position) {
+    Some(value) => value,
+    None => return Ok(()),
+  };
 
   info!(
-    "Swapping {} with {}",
+    "Moved window: {:?} \n Target window: {:?}",
     moved_window
       .native()
-      .process_name()
-      .unwrap_or("".to_string()),
+      .process_name(),
     window_under_cursor
       .native()
-      .process_name()
-      .unwrap_or("".to_string())
+      .process_name(),
   );
 
   let tiling_direction = get_split_direction(&window_under_cursor)?;
@@ -86,7 +70,7 @@ pub fn window_moved_end(
 
   match &parent {
     // If the parent is a workspace we only need to add the window to it or
-    // to create a VerticalSplitDirection
+    // to create a Vertical split container
     Container::Workspace(_) => {
       let current_tiling_direction = TilingDirection::Horizontal;
       move_window_to_target(
@@ -101,7 +85,7 @@ pub fn window_moved_end(
       )?;
     }
     // If the parent is a split we need to check the current split
-    // direction add the window to it or create a VerticalSplitDirection
+    // direction add the window to it or create a [Vertical/Horizontal] split container
     Container::Split(split) => {
       let current_tiling_direction = split.tiling_direction();
       move_window_to_target(
@@ -120,6 +104,28 @@ pub fn window_moved_end(
   state.pending_sync.containers_to_redraw.push(parent);
 
   Ok(())
+}
+
+/// Return the window under the mouse position excluding the dragged window
+fn get_window_at_mouse_pos(exclude_window: &NonTilingWindow, workspace: Workspace, mouse_position: &Point) -> Option<TilingWindow> {
+  let children_at_mouse_position: Vec<_> = workspace
+      .descendants()
+      .filter_map(|container| match container {
+        Container::TilingWindow(tiling) => Some(tiling),
+        _ => None,
+      })
+      .filter(|c| {
+        let frame = c.to_rect();
+        frame.unwrap().contains_point(&mouse_position)
+      })
+      .filter(|window| window.id() != exclude_window.id())
+      .collect();
+
+  if children_at_mouse_position.is_empty() {
+    return None;
+  }
+
+  children_at_mouse_position.into_iter().next()
 }
 
 fn move_window_to_target(
@@ -245,6 +251,9 @@ enum DropPosition {
   End,
 }
 
+/// Returns the closest position of the mouse over the window
+/// 
+/// Example: Mouse x pos: 3, Window width: 5, Result: [DropPosition::End]
 fn get_new_window_position(
   mouse_position: &Point,
   window: &TilingWindow,
@@ -271,6 +280,8 @@ fn get_new_window_position(
     }
   }
 }
+
+/// Returns the TilingDirection based on the window size
 fn get_split_direction(
   window: &TilingWindow,
 ) -> anyhow::Result<TilingDirection> {
