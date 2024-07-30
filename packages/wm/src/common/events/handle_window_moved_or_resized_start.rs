@@ -41,6 +41,8 @@ pub fn handle_window_moved_or_resized_start(
     let new_rect = window.native().refresh_frame_position()?;
     let old_rect = window.to_rect()?;
 
+    
+    // TODO: This method to check if the window was resized or moved doesn't work. We need to find an alternative
     let width_delta = new_rect.width() - old_rect.width();
     let height_delta = new_rect.height() - old_rect.height();
 
