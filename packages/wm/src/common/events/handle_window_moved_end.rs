@@ -43,7 +43,10 @@ pub fn window_moved_end(
 
   let window_under_cursor = match get_tiling_window_at_mouse_pos(&moved_window, root_container, &mouse_position) {
     Some(value) => value,
-    None => return Ok(()),
+    None => {
+      update_window_state(moved_window.as_window_container().unwrap(), WindowState::Tiling, state, config)?;
+      return Ok(());
+    },
   };
 
   info!(
@@ -76,7 +79,7 @@ pub fn window_moved_end(
         state,
         config,
         moved_window,
-        window_under_cursor,
+        window_under_cursor.clone(),
         &parent,
         current_tiling_direction,
         tiling_direction,
@@ -91,7 +94,7 @@ pub fn window_moved_end(
         state,
         config,
         moved_window,
-        window_under_cursor,
+        window_under_cursor.clone(),
         &parent,
         current_tiling_direction,
         tiling_direction,
@@ -100,7 +103,7 @@ pub fn window_moved_end(
     }
     _ => {}
   }
-  state.pending_sync.containers_to_redraw.push(parent);
+  state.pending_sync.containers_to_redraw.push(Container::Workspace(window_under_cursor.workspace().unwrap()));
 
   Ok(())
 }
@@ -169,6 +172,7 @@ fn move_window_to_target(
     | (TilingDirection::Vertical, TilingDirection::Vertical) => {
       info!("Target window index {}", target_window_index);
 
+      dbg!(&target_window_parent);
       move_container_within_tree(
         Container::TilingWindow(moved_window.clone()),
         target_window_parent.clone(),
