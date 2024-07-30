@@ -137,22 +137,6 @@ fn move_window_to_target(
   new_tiling_direction: TilingDirection,
   new_window_position: DropPosition,
 ) -> anyhow::Result<()> {
-
-  // TODO: We can optimize that for sure by not detaching and attaching the window
-  // Little trick to get the right index
-  let test_parent = moved_window.parent().unwrap();
-  dbg!(&test_parent);
-  detach_container(Container::NonTilingWindow(moved_window.clone()))?;
-  dbg!(&test_parent);
-  let target_window_index = target_window.index();
-  attach_container(&Container::NonTilingWindow(moved_window.clone()), target_window_parent, None)?;
-  dbg!(&test_parent);
-
-  let target_index = match new_window_position {
-    DropPosition::Start => target_window_index,
-    DropPosition::End => target_window_index + 1,
-  };
-
   update_window_state(
     moved_window.as_window_container().unwrap(),
     WindowState::Tiling,
@@ -160,16 +144,25 @@ fn move_window_to_target(
     config,
   )?;
 
-
   let moved_window = state
-    .windows()
-    .iter()
-    .find(|w| w.id() == moved_window.id())
-    .context("couldn't find the new tiled window")?
-    .as_tiling_window()
-    .context("window is not a tiled window")?
-    .clone();
+      .windows()
+      .iter()
+      .find(|w| w.id() == moved_window.id())
+      .context("couldn't find the new tiled window")?
+      .as_tiling_window()
+      .context("window is not a tiled window")?
+      .clone();
 
+  // TODO: We can optimize that for sure by not detaching and attaching the window
+  // Little trick to get the right index
+  detach_container(Container::TilingWindow(moved_window.clone()))?;
+  let target_window_index = target_window.index();
+  attach_container(&Container::TilingWindow(moved_window.clone()), target_window_parent, None)?;
+
+  let target_index = match new_window_position {
+    DropPosition::Start => target_window_index,
+    DropPosition::End => target_window_index + 1,
+  };
 
   match (new_tiling_direction, current_tiling_direction) {
     (TilingDirection::Horizontal, TilingDirection::Horizontal)
