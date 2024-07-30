@@ -24,7 +24,13 @@ pub fn window_moved_end(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   // We continue only if it's a temporary Floating window
-  if matches!(moved_window.state(), WindowState::Floating(FloatingStateConfig{is_tiling_drag: false,..})){
+  if matches!(
+    moved_window.state(),
+    WindowState::Floating(FloatingStateConfig {
+      is_tiling_drag: false,
+      ..
+    })
+  ) {
     return Ok(());
   }
   info!("Tiling window drag end");
