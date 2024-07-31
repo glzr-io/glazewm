@@ -10,8 +10,8 @@ mod handle_window_moved_end;
 mod handle_window_moved_or_resized_end;
 mod handle_window_shown;
 mod handle_window_title_changed;
-mod handle_window_moved_start;
 mod handle_window_moved_or_resized_start;
+mod handle_window_resized_end;
 
 pub use handle_display_settings_changed::*;
 pub use handle_mouse_move::*;

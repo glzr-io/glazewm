@@ -86,7 +86,7 @@ impl WindowManager {
         handle_window_moved_or_resized_end(window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(window, state, config)
+        handle_window_moved_or_resized_start(window, state)
       }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)

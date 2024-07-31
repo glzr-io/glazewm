@@ -1,26 +1,26 @@
 use anyhow::Context;
-use tracing::info;
 
 use crate::{
   common::{
-    events::handle_window_moved_end::window_moved_end,
-    platform::NativeWindow, LengthValue,
+    events::{
+      handle_window_moved_end::window_moved_end,
+      handle_window_resized_end::window_resized_end,
+    },
+    platform::NativeWindow,
   },
   containers::{
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
   user_config::UserConfig,
-  windows::{
-    commands::resize_window, traits::WindowGetters, TilingWindow,
-  },
+  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 
 /// Handles the event for when a window is finished being moved or resized
 /// by the user (e.g. via the window's drag handles).
 ///
-/// This resizes the window if it's a tiling window.
+/// This resizes the window if it's a tiling window and attach a dragged floating window.
 pub fn handle_window_moved_or_resized_end(
   native_window: NativeWindow,
   state: &mut WmState,
@@ -60,20 +60,4 @@ pub fn handle_window_moved_or_resized_end(
   }
 
   Ok(())
-}
-
-/// Handles window resize events
-fn window_resized_end(
-  window: TilingWindow,
-  state: &mut WmState,
-  width_delta: i32,
-  height_delta: i32,
-) -> anyhow::Result<()> {
-  info!("Tiling window resized");
-  resize_window(
-    window.clone().into(),
-    Some(LengthValue::from_px(width_delta)),
-    Some(LengthValue::from_px(height_delta)),
-    state,
-  )
 }
