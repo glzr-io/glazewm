@@ -1,11 +1,5 @@
-#[derive(Debug, Clone, Default)]
-pub struct WindowOperation{
-    pub operation: Operation,
-
-}
-
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
-pub enum Operation{
+pub enum WindowOperation{
     #[default]
     None,
     Waiting,

@@ -46,10 +46,7 @@ pub fn handle_window_moved_or_resized_end(
     let height_delta = new_rect.height() - old_rect.height();
 
     if let WindowContainer::NonTilingWindow(window) = window {
-      let has_window_moved = match (width_delta, height_delta) {
-        (0, 0) => true,
-        _ => false,
-      };
+      let has_window_moved = matches!((width_delta, height_delta), (0,0));
 
       if has_window_moved {
         window_moved_end(window, state, config)?;

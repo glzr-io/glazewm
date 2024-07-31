@@ -12,10 +12,8 @@ use crate::{
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state,
-    traits::WindowGetters,
-    window_operation::{Operation, WindowOperation},
-    TilingWindow, WindowState,
+    commands::update_window_state, traits::WindowGetters,
+    window_operation::WindowOperation, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -150,8 +148,9 @@ pub fn handle_window_location_changed(
 
 /// Updates the window operation based on changes in frame position.
 ///
-/// This function determines whether a window is being moved or resized and updates its
-/// operation state accordingly. If the window is being moved, it's set to floating mode.
+/// This function determines whether a window is being moved or resized and
+/// updates its operation state accordingly. If the window is being moved,
+/// it's set to floating mode.
 fn update_window_operation(
   state: &mut WmState,
   config: &UserConfig,
@@ -161,35 +160,26 @@ fn update_window_operation(
 ) -> anyhow::Result<()> {
   if let Some(tiling_window) = window.as_tiling_window() {
     let window_operation = window.window_operation();
-    if matches!(
-      window_operation,
-      WindowOperation {
-        operation: Operation::Waiting,
-      }
-    ) {
+    if window_operation == WindowOperation::Waiting {
       if frame_position.height() == old_frame_position.height()
         && frame_position.width() == old_frame_position.width()
       {
-        window.set_window_operation(WindowOperation {
-          operation: Operation::Moving,
-          ..window_operation
-        });
+        window.set_window_operation(WindowOperation::Moving);
         set_into_floating(tiling_window.clone(), state, config)?;
       } else {
-        window.set_window_operation(WindowOperation {
-          operation: Operation::Resizing,
-          ..window_operation
-        });
+        window.set_window_operation(WindowOperation::Resizing);
       }
     }
   }
   Ok(())
 }
 
-/// Converts a tiling window to a floating window and updates the window hierarchy.
+/// Converts a tiling window to a floating window and updates the window
+/// hierarchy.
 ///
-/// This function handles the process of transitioning a tiling window to a floating state,
-/// including necessary adjustments to the window hierarchy and updating the window's state.
+/// This function handles the process of transitioning a tiling window to a
+/// floating state, including necessary adjustments to the window hierarchy
+/// and updating the window's state.
 fn set_into_floating(
   moved_window: TilingWindow,
   state: &mut WmState,

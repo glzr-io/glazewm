@@ -3,7 +3,7 @@ use crate::{
   containers::WindowContainer,
   windows::{
     traits::WindowGetters,
-    window_operation::{Operation, WindowOperation},
+    window_operation::{WindowOperation},
   },
   wm_state::WmState,
 };
@@ -17,9 +17,7 @@ pub fn handle_window_moved_or_resized_start(
   let found_window = state.window_from_native(&native_window);
 
   if let Some(WindowContainer::TilingWindow(moved_window)) = found_window {
-    moved_window.set_window_operation(WindowOperation {
-      operation: Operation::Waiting,
-    });
+    moved_window.set_window_operation(WindowOperation::Waiting);
   }
 
   Ok(())

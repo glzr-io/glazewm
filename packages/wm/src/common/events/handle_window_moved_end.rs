@@ -15,7 +15,7 @@ use crate::{
   windows::{
     commands::update_window_state,
     traits::WindowGetters,
-    window_operation::{Operation, WindowOperation},
+    window_operation::{WindowOperation},
     NonTilingWindow, TilingWindow, WindowState,
   },
   wm_state::WmState,
@@ -35,7 +35,7 @@ pub fn window_moved_end(
       is_tiling_drag: false,
       ..
     })
-  ) || moved_window.window_operation().operation != Operation::Moving
+  ) || moved_window.window_operation() != WindowOperation::Moving
   {
     moved_window.set_window_operation(WindowOperation::default());
     return Ok(());
