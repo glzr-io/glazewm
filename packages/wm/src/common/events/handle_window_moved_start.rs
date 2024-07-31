@@ -24,15 +24,20 @@ pub fn window_moved_start(
     .context("Tiling window has no parent")?;
 
   if let Some(Container::Split(split)) = moved_window.parent() {
-    if split.child_count() == 1 {
+    if split.child_count() == 2 {
       let split_parent = split.parent().unwrap();
       let split_index = split.index();
-      detach_container(Container::TilingWindow(moved_window.clone()))?;
-      attach_container(
-        &Container::TilingWindow(moved_window.clone()),
-        &split_parent,
-        Some(split_index),
-      )?;
+      let children = split.children();
+      
+      // Looping in reversed order to reattach them in the right order
+      for child in children.into_iter().rev(){
+        detach_container(child.clone())?;
+        attach_container(
+          &child,
+          &split_parent,
+          Some(split_index),
+        )?;
+      }
     }
   }
 
