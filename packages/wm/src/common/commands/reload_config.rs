@@ -20,10 +20,7 @@ pub fn reload_config(
   let old_config = config.value.clone();
 
   // Re-evaluate user config file and set its values in state.
-  tokio::task::block_in_place(|| {
-    let rt = tokio::runtime::Handle::current();
-    rt.block_on(config.reload())
-  })?;
+  config.reload()?;
 
   // Re-run window rules on all active windows.
   for window in state.windows() {
