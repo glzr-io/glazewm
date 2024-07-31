@@ -15,14 +15,16 @@ use crate::{
 /// Updates the state of a window.
 ///
 /// Adds the window for redraw if there is a state change.
+///
+/// Returns the window after the state change.
 pub fn update_window_state(
   window: WindowContainer,
   target_state: WindowState,
   state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<WindowContainer> {
   if window.state() == target_state {
-    return Ok(());
+    return Ok(window);
   }
 
   info!("Updating window state: {:?}.", target_state);
@@ -38,59 +40,62 @@ fn set_tiling(
   window: WindowContainer,
   state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<()> {
-  if let WindowContainer::NonTilingWindow(window) = window {
-    let workspace =
-      window.workspace().context("Window has no workspace.")?;
+) -> anyhow::Result<WindowContainer> {
+  let window = window
+    .as_non_tiling_window()
+    .context("Invalid window state.")?
+    .clone();
 
-    // Get the position in the tree to insert the new tiling window. This
-    // will be the window's previous tiling position if it has one, or
-    // instead beside the last focused tiling window in the workspace.
-    let (target_parent, target_index) = window
-      .insertion_target()
-      // Check whether insertion target is still valid.
-      .filter(|(insertion_target, _)| {
-        insertion_target
-          .workspace()
-          .map(|workspace| workspace.is_displayed())
-          .unwrap_or(false)
-      })
-      // Fallback to the last focused tiling window within the workspace.
-      .or_else(|| {
-        let focused_window = workspace
-          .descendant_focus_order()
-          .filter(|c| c.is_tiling_window())
-          .next()?;
+  let workspace =
+    window.workspace().context("Window has no workspace.")?;
 
-        Some((focused_window.parent()?, focused_window.index() + 1))
-      })
-      // Default to inserting at the end of the workspace.
-      .unwrap_or((workspace.clone().into(), workspace.child_count()));
+  // Get the position in the tree to insert the new tiling window. This
+  // will be the window's previous tiling position if it has one, or
+  // instead beside the last focused tiling window in the workspace.
+  let (target_parent, target_index) = window
+    .insertion_target()
+    // Check whether insertion target is still valid.
+    .filter(|(insertion_target, _)| {
+      insertion_target
+        .workspace()
+        .map(|workspace| workspace.is_displayed())
+        .unwrap_or(false)
+    })
+    // Fallback to the last focused tiling window within the workspace.
+    .or_else(|| {
+      let focused_window = workspace
+        .descendant_focus_order()
+        .filter(|descendant| descendant.is_tiling_window())
+        .next()?;
 
-    let tiling_window =
-      window.to_tiling(config.value.gaps.inner_gap.clone());
+      Some((focused_window.parent()?, focused_window.index() + 1))
+    })
+    // Default to inserting at the end of the workspace.
+    .unwrap_or((workspace.clone().into(), workspace.child_count()));
 
-    // Replace the original window with the created tiling window.
-    replace_container(
-      tiling_window.clone().into(),
-      window.parent().context("No parent")?,
-      window.index(),
-    )?;
+  let tiling_window =
+    window.to_tiling(config.value.gaps.inner_gap.clone());
 
-    move_container_within_tree(
-      tiling_window.clone().into(),
-      target_parent.clone(),
-      target_index,
-      state,
-    )?;
+  // Replace the original window with the created tiling window.
+  replace_container(
+    tiling_window.clone().into(),
+    window.parent().context("No parent")?,
+    window.index(),
+  )?;
 
-    state
-      .pending_sync
-      .containers_to_redraw
-      .extend(target_parent.tiling_children().map(Into::into))
-  }
+  move_container_within_tree(
+    tiling_window.clone().into(),
+    target_parent.clone(),
+    target_index,
+    state,
+  )?;
 
-  Ok(())
+  state
+    .pending_sync
+    .containers_to_redraw
+    .extend(target_parent.tiling_children().map(Into::into));
+
+  Ok(tiling_window.into())
 }
 
 /// Updates the state of a window to be either `WindowState::Floating`,
@@ -99,14 +104,15 @@ fn set_non_tiling(
   window: WindowContainer,
   target_state: WindowState,
   state: &mut WmState,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<WindowContainer> {
   // A window can only be updated to a minimized state if it is
   // natively minimized.
   if target_state == WindowState::Minimized
     && !window.native().is_minimized()?
   {
     info!("No window state update. Minimizing window.");
-    return window.native().minimize();
+    window.native().minimize()?;
+    return Ok(window);
   }
 
   match window {
@@ -121,7 +127,13 @@ fn set_non_tiling(
       }
 
       window.set_state(target_state);
-      state.pending_sync.containers_to_redraw.push(window.into())
+
+      state
+        .pending_sync
+        .containers_to_redraw
+        .push(window.clone().into());
+
+      Ok(window.into())
     }
     WindowContainer::TilingWindow(window) => {
       let parent = window.parent().context("No parent")?;
@@ -148,15 +160,16 @@ fn set_non_tiling(
         window.index(),
       )?;
 
-      let changed_containers = std::iter::once(non_tiling_window.into())
-        .chain(workspace.tiling_children().map(Into::into));
+      let changed_containers =
+        std::iter::once(non_tiling_window.clone().into())
+          .chain(workspace.tiling_children().map(Into::into));
 
       state
         .pending_sync
         .containers_to_redraw
-        .extend(changed_containers)
+        .extend(changed_containers);
+
+      Ok(non_tiling_window.into())
     }
   }
-
-  Ok(())
 }

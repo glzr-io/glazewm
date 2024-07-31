@@ -407,7 +407,9 @@ impl InvokeCommand {
             }),
             state,
             config,
-          )
+          )?;
+
+          Ok(())
         }
         _ => Ok(()),
       },
@@ -429,25 +431,38 @@ impl InvokeCommand {
             }),
             state,
             config,
-          )
+          )?;
+
+          Ok(())
         }
         _ => Ok(()),
       },
       InvokeCommand::SetMinimized => {
         match subject_container.as_window_container() {
-          Ok(window) => update_window_state(
-            window.clone(),
-            WindowState::Minimized,
-            state,
-            config,
-          ),
+          Ok(window) => {
+            update_window_state(
+              window.clone(),
+              WindowState::Minimized,
+              state,
+              config,
+            )?;
+
+            Ok(())
+          }
           _ => Ok(()),
         }
       }
       InvokeCommand::SetTiling => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            update_window_state(window, WindowState::Tiling, state, config)
+            update_window_state(
+              window,
+              WindowState::Tiling,
+              state,
+              config,
+            )?;
+
+            Ok(())
           }
           _ => Ok(()),
         }
@@ -485,7 +500,9 @@ impl InvokeCommand {
             window.toggled_state(target_state, config),
             state,
             config,
-          )
+          )?;
+
+          Ok(())
         }
         _ => Ok(()),
       },
@@ -510,29 +527,39 @@ impl InvokeCommand {
             window.toggled_state(target_state, config),
             state,
             config,
-          )
+          )?;
+
+          Ok(())
         }
         _ => Ok(()),
       },
       InvokeCommand::ToggleMinimized => {
         match subject_container.as_window_container() {
-          Ok(window) => update_window_state(
-            window.clone(),
-            window.toggled_state(WindowState::Minimized, config),
-            state,
-            config,
-          ),
+          Ok(window) => {
+            update_window_state(
+              window.clone(),
+              window.toggled_state(WindowState::Minimized, config),
+              state,
+              config,
+            )?;
+
+            Ok(())
+          }
           _ => Ok(()),
         }
       }
       InvokeCommand::ToggleTiling => {
         match subject_container.as_window_container() {
-          Ok(window) => update_window_state(
-            window.clone(),
-            window.toggled_state(WindowState::Tiling, config),
-            state,
-            config,
-          ),
+          Ok(window) => {
+            update_window_state(
+              window.clone(),
+              window.toggled_state(WindowState::Tiling, config),
+              state,
+              config,
+            )?;
+
+            Ok(())
+          }
           _ => Ok(()),
         }
       }
@@ -560,6 +587,7 @@ impl InvokeCommand {
           .pending_sync
           .containers_to_redraw
           .push(root_container.into());
+
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
