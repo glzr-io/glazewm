@@ -1,11 +1,9 @@
 use anyhow::Context;
 
+use super::sort_workspaces;
 use crate::{
   common::TilingDirection,
-  containers::{
-    commands::attach_container,
-    traits::{CommonGetters, PositionGetters},
-  },
+  containers::{commands::attach_container, traits::PositionGetters},
   monitors::Monitor,
   user_config::{UserConfig, WorkspaceConfig},
   wm_event::WmEvent,
@@ -39,22 +37,14 @@ pub fn activate_workspace(
     tiling_direction,
   );
 
-  // Get the existing workspaces + the new workspace, and sort them.
-  let mut workspaces = target_monitor.workspaces();
-  workspaces.extend([workspace.clone()]);
-  config.sort_workspaces(&mut workspaces);
-
-  let target_index = workspaces
-    .iter()
-    .position(|sorted_workspace| sorted_workspace.id() == workspace.id())
-    .context("Failed to get workspace target index.")?;
-
   // Attach the created workspace to the specified monitor.
   attach_container(
     &workspace.clone().into(),
     &target_monitor.clone().into(),
-    Some(target_index),
+    None,
   )?;
+
+  sort_workspaces(target_monitor.clone(), config)?;
 
   state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace.to_dto()?,

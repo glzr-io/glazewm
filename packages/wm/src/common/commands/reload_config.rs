@@ -2,12 +2,12 @@ use anyhow::Context;
 use tracing::{info, warn};
 
 use crate::{
-  common::vec_deque_ext::VecDequeExt,
   containers::traits::{CommonGetters, TilingSizeGetters},
   user_config::{ParsedConfig, UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
+  workspaces::commands::sort_workspaces,
 };
 
 pub fn reload_config(
@@ -93,19 +93,7 @@ fn update_workspace_configs(
         if *workspace_config != workspace.config() {
           workspace.set_config(workspace_config.clone());
 
-          let mut workspaces = monitor.workspaces();
-          config.sort_workspaces(&mut workspaces);
-
-          let target_index = workspaces
-            .iter()
-            .position(|sorted_workspace| {
-              sorted_workspace.id() == workspace.id()
-            })
-            .context("Failed to get workspace target index.")?;
-
-          monitor
-            .borrow_children_mut()
-            .shift_to_index(target_index, workspace.clone().into());
+          sort_workspaces(monitor, config)?;
 
           state.emit_event(WmEvent::WorkspaceUpdated {
             updated_workspace: workspace.to_dto()?,
