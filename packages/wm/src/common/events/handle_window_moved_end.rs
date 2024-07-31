@@ -9,7 +9,7 @@ use crate::{
       move_container_within_tree,
     },
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, RootContainer, SplitContainer,
+    Container, SplitContainer, WindowContainer,
   },
   user_config::{FloatingStateConfig, UserConfig},
   windows::{
@@ -20,7 +20,6 @@ use crate::{
   },
   wm_state::WmState,
 };
-use crate::containers::WindowContainer;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -69,7 +68,7 @@ pub fn window_moved_end(
   );
 
   let tiling_direction = get_split_direction(&window_under_cursor)?;
-  let new_window_position = get_new_window_position(
+  let new_window_position = get_drop_position(
     &mouse_position,
     &window_under_cursor,
     &tiling_direction,
@@ -149,7 +148,7 @@ fn move_window_to_target(
   target_window_parent: &Container,
   current_tiling_direction: TilingDirection,
   new_tiling_direction: TilingDirection,
-  new_window_position: DropPosition,
+  drop_position: DropPosition,
 ) -> anyhow::Result<()> {
   update_window_state(
     moved_window.as_window_container().unwrap(),
@@ -167,8 +166,8 @@ fn move_window_to_target(
     .context("window is not a tiled window")?
     .clone();
 
-  // TODO: We can optimize that for sure by not detaching and attaching the
-  // window Little trick to get the right index
+  // TODO: We can optimize that by not detaching and attaching the window
+  // Little trick to get the right index
   detach_container(Container::TilingWindow(moved_window.clone()))?;
   let target_window_index = target_window.index();
   attach_container(
@@ -177,7 +176,7 @@ fn move_window_to_target(
     None,
   )?;
 
-  let target_index = match new_window_position {
+  let target_index = match drop_position {
     DropPosition::Start => target_window_index,
     DropPosition::End => target_window_index + 1,
   };
@@ -199,7 +198,7 @@ fn move_window_to_target(
         config,
         moved_window,
         target_window,
-        new_window_position,
+        drop_position,
         &target_window_parent,
         target_index,
       )?;
@@ -211,7 +210,7 @@ fn move_window_to_target(
         config,
         moved_window,
         target_window,
-        new_window_position,
+        drop_position,
         &target_window_parent,
         target_index,
       )?;
@@ -221,6 +220,8 @@ fn move_window_to_target(
   Ok(())
 }
 
+/// Creates a split container and moves the target window and the moved
+/// window inside at the dropped position
 fn create_split_container(
   tiling_direction: TilingDirection,
   state: &mut WmState,
@@ -261,16 +262,24 @@ fn create_split_container(
   Ok(())
 }
 
+/// Represents where the window was dropped over another one.
+/// It depends on the tiling direction.
+///
+/// [DropPosition::Start] can either be the top or left side.
+/// [DropPosition::Stop] can either be bottom or right side.
 #[derive(Debug)]
 enum DropPosition {
   Start,
   End,
 }
 
-/// Returns the closest position of the mouse over the window
+/// Determines the drop position for a window based on the mouse position
+/// and tiling direction.
 ///
-/// Example: Mouse x pos: 3, Window width: 5, Result: [DropPosition::End]
-fn get_new_window_position(
+/// This function calculates whether a window should be dropped at the
+/// start or end of a tiling layout, depending on the mouse position
+/// relative to the middle of the target window.
+fn get_drop_position(
   mouse_position: &Point,
   window: &TilingWindow,
   tiling_direction: &TilingDirection,
@@ -297,7 +306,10 @@ fn get_new_window_position(
   }
 }
 
-/// Returns the TilingDirection based on the window size
+/// Determines the optimal split direction for a given window.
+///
+/// This function decides whether a window should be split vertically or
+/// horizontally based on its current dimensions.
 fn get_split_direction(
   window: &TilingWindow,
 ) -> anyhow::Result<TilingDirection> {
