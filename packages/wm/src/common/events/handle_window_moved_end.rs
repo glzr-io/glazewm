@@ -5,7 +5,8 @@ use crate::{
   common::{platform::Platform, Point, TilingDirection},
   containers::{
     commands::{
-      attach_container, detach_container, move_container_within_tree,
+      attach_container, detach_container, get_containers_at_position,
+      move_container_within_tree,
     },
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, RootContainer, SplitContainer,
@@ -19,6 +20,7 @@ use crate::{
   },
   wm_state::WmState,
 };
+use crate::containers::WindowContainer;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -41,14 +43,12 @@ pub fn window_moved_end(
   }
   info!("Tiling window drag end event");
 
-  let root_container = state.root_container.clone();
-
   let mouse_position = Platform::mouse_position()?;
 
   let window_under_cursor = match get_tiling_window_at_mouse_pos(
     &moved_window,
-    root_container,
     &mouse_position,
+    state,
   ) {
     Some(value) => value,
     None => {
@@ -125,25 +125,18 @@ pub fn window_moved_end(
 /// Return the window under the mouse position excluding the dragged window
 fn get_tiling_window_at_mouse_pos(
   exclude_window: &NonTilingWindow,
-  root_container: RootContainer,
   mouse_position: &Point,
+  state: &WmState,
 ) -> Option<TilingWindow> {
-  let children_at_mouse_position: Vec<_> = root_container
-    .descendants()
-    .filter_map(|container| match container {
-      Container::TilingWindow(tiling) => Some(tiling),
-      _ => None,
-    })
-    .filter(|c| {
-      let frame = c.to_rect();
-      frame.unwrap().contains_point(&mouse_position)
-    })
-    .filter(|window| window.id() != exclude_window.id())
-    .collect();
-
-  if children_at_mouse_position.is_empty() {
-    return None;
-  }
+  let children_at_mouse_position: Vec<TilingWindow> =
+    get_containers_at_position(state, mouse_position)
+      .into_iter()
+      .filter_map(|container| match container {
+        WindowContainer::TilingWindow(tiling) => Some(tiling),
+        _ => None,
+      })
+      .filter(|window: &TilingWindow| window.id() != exclude_window.id())
+      .collect();
 
   children_at_mouse_position.into_iter().next()
 }
