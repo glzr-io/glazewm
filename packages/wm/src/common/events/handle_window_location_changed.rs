@@ -148,6 +148,10 @@ pub fn handle_window_location_changed(
   Ok(())
 }
 
+/// Updates the window operation based on changes in frame position.
+///
+/// This function determines whether a window is being moved or resized and updates its
+/// operation state accordingly. If the window is being moved, it's set to floating mode.
 fn update_window_operation(
   state: &mut WmState,
   config: &UserConfig,
@@ -182,6 +186,10 @@ fn update_window_operation(
   Ok(())
 }
 
+/// Converts a tiling window to a floating window and updates the window hierarchy.
+///
+/// This function handles the process of transitioning a tiling window to a floating state,
+/// including necessary adjustments to the window hierarchy and updating the window's state.
 fn set_into_floating(
   moved_window: TilingWindow,
   state: &mut WmState,
