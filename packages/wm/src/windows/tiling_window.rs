@@ -28,6 +28,7 @@ use crate::{
   impl_window_getters,
   user_config::WindowRuleConfig,
 };
+use crate::windows::window_operation::WindowOperation;
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -47,6 +48,7 @@ struct TilingWindowInner {
   floating_placement: Rect,
   inner_gap: LengthValue,
   done_window_rules: Vec<WindowRuleConfig>,
+  window_operation: WindowOperation,
 }
 
 impl TilingWindow {
@@ -58,6 +60,7 @@ impl TilingWindow {
     floating_placement: Rect,
     inner_gap: LengthValue,
     done_window_rules: Vec<WindowRuleConfig>,
+    window_operation: WindowOperation,
   ) -> Self {
     let window = TilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -74,6 +77,7 @@ impl TilingWindow {
       floating_placement,
       inner_gap,
       done_window_rules,
+      window_operation,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -93,6 +97,7 @@ impl TilingWindow {
       insertion_target,
       self.floating_placement(),
       self.done_window_rules(),
+      self.window_operation(),
     )
   }
 

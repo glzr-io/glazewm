@@ -8,7 +8,14 @@ use crate::{
     Container,
   },
   user_config::{FloatingStateConfig, UserConfig},
-  windows::{commands::update_window_state, TilingWindow, WindowState},
+  windows::{
+    commands::update_window_state,
+    traits::WindowGetters,
+    window_operation::{
+      Operation, WindowOperation,
+    },
+    TilingWindow, WindowState,
+  },
   wm_state::WmState,
 };
 
@@ -19,41 +26,9 @@ pub fn window_moved_start(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   info!("Tiling window drag start");
-  let moved_window_parent = moved_window
-    .parent()
-    .context("Tiling window has no parent")?;
 
-  if let Some(Container::Split(split)) = moved_window.parent() {
-    if split.child_count() == 2 {
-      let split_parent = split.parent().unwrap();
-      let split_index = split.index();
-      let children = split.children();
-      
-      // Looping in reversed order to reattach them in the right order
-      for child in children.into_iter().rev(){
-        detach_container(child.clone())?;
-        attach_container(
-          &child,
-          &split_parent,
-          Some(split_index),
-        )?;
-      }
-    }
-  }
-
-  update_window_state(
-    moved_window.as_window_container().unwrap(),
-    WindowState::Floating(FloatingStateConfig {
-      centered: true,
-      shown_on_top: true,
-      is_tiling_drag: true,
-    }),
-    state,
-    config,
-  )?;
-  state
-    .pending_sync
-    .containers_to_redraw
-    .push(moved_window_parent);
+  moved_window.set_window_operation(WindowOperation {
+    operation: Operation::Waiting
+  });
   Ok(())
 }

@@ -10,6 +10,7 @@ use crate::{
   user_config::{UserConfig, WindowRuleConfig},
   windows::WindowState,
 };
+use crate::windows::window_operation::WindowOperation;
 
 #[enum_dispatch]
 pub trait WindowGetters {
@@ -108,6 +109,10 @@ pub trait WindowGetters {
     &self,
     done_window_rules: Vec<WindowRuleConfig>,
   );
+
+  fn window_operation(&self) -> WindowOperation;
+  
+  fn set_window_operation(&self, window_operation: WindowOperation);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -184,6 +189,14 @@ macro_rules! impl_window_getters {
         done_window_rules: Vec<WindowRuleConfig>,
       ) {
         self.0.borrow_mut().done_window_rules = done_window_rules;
+      }
+
+      fn window_operation(&self) -> WindowOperation{
+        self.0.borrow().window_operation.clone()
+      }
+      
+      fn set_window_operation(&self, window_operation: WindowOperation) {
+        self.0.borrow_mut().window_operation = window_operation;
       }
     }
   };

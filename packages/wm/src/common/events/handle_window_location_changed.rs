@@ -2,14 +2,20 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow,
+  common::{platform::NativeWindow, Rect},
   containers::{
-    commands::move_container_within_tree, traits::CommonGetters,
-    WindowContainer,
+    commands::{
+      attach_container, detach_container, move_container_within_tree,
+    },
+    traits::{CommonGetters, PositionGetters},
+    Container, WindowContainer,
   },
-  user_config::{FullscreenStateConfig, UserConfig},
+  user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state, traits::WindowGetters, WindowState,
+    commands::update_window_state,
+    traits::WindowGetters,
+    window_operation::{Operation, WindowOperation},
+    TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -23,7 +29,17 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let frame_position = window.native().refresh_frame_position()?;
+    let frame_position: Rect = window.native().refresh_frame_position()?;
+    let old_frame_position: Rect = window.to_rect()?;
+
+    update_window_operation(
+      state,
+      config,
+      &window,
+      &frame_position,
+      &old_frame_position,
+    )?;
+
     let is_minimized = window.native().refresh_is_minimized()?;
 
     let old_is_maximized = window.native().is_maximized()?;
@@ -129,5 +145,79 @@ pub fn handle_window_location_changed(
     }
   }
 
+  Ok(())
+}
+
+fn update_window_operation(
+  state: &mut WmState,
+  config: &UserConfig,
+  window: &WindowContainer,
+  frame_position: &Rect,
+  old_frame_position: &Rect,
+) -> anyhow::Result<()> {
+  if let Some(tiling_window) = window.as_tiling_window() {
+    let window_operation = window.window_operation();
+    if matches!(
+      window_operation,
+      WindowOperation {
+        operation: Operation::Waiting,
+      }
+    ) {
+      if frame_position.height() == old_frame_position.height()
+        && frame_position.width() == old_frame_position.width()
+      {
+        window.set_window_operation(WindowOperation {
+          operation: Operation::Moving,
+          ..window_operation
+        });
+        set_into_floating(tiling_window.clone(), state, config)?;
+      } else {
+        window.set_window_operation(WindowOperation {
+          operation: Operation::Resizing,
+          ..window_operation
+        });
+      }
+    }
+  }
+  Ok(())
+}
+
+fn set_into_floating(
+  moved_window: TilingWindow,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let moved_window_parent = moved_window
+    .parent()
+    .context("Tiling window has no parent")?;
+
+  if let Some(Container::Split(split)) = moved_window.parent() {
+    if split.child_count() == 2 {
+      let split_parent = split.parent().unwrap();
+      let split_index = split.index();
+      let children = split.children();
+
+      // Looping in reversed order to reattach them in the right order
+      for child in children.into_iter().rev() {
+        detach_container(child.clone())?;
+        attach_container(&child, &split_parent, Some(split_index))?;
+      }
+    }
+  }
+
+  update_window_state(
+    moved_window.as_window_container().unwrap(),
+    WindowState::Floating(FloatingStateConfig {
+      centered: true,
+      shown_on_top: true,
+      is_tiling_drag: true,
+    }),
+    state,
+    config,
+  )?;
+  state
+    .pending_sync
+    .containers_to_redraw
+    .push(moved_window_parent);
   Ok(())
 }

@@ -19,6 +19,7 @@ use crate::{
   },
   impl_common_getters, impl_container_debug, impl_window_getters,
   user_config::WindowRuleConfig,
+  windows::window_operation::WindowOperation,
 };
 
 #[derive(Clone)]
@@ -38,6 +39,7 @@ struct NonTilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   done_window_rules: Vec<WindowRuleConfig>,
+  window_operation: WindowOperation,
 }
 
 impl NonTilingWindow {
@@ -50,6 +52,7 @@ impl NonTilingWindow {
     insertion_target: Option<(Container, usize)>,
     floating_placement: Rect,
     done_window_rules: Vec<WindowRuleConfig>,
+    window_operation: WindowOperation,
   ) -> Self {
     let window = NonTilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -65,6 +68,7 @@ impl NonTilingWindow {
       has_pending_dpi_adjustment: false,
       floating_placement,
       done_window_rules,
+      window_operation,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -90,6 +94,7 @@ impl NonTilingWindow {
       self.floating_placement(),
       inner_gap,
       self.done_window_rules(),
+      self.window_operation()
     )
   }
 

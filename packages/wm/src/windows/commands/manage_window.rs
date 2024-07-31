@@ -17,6 +17,7 @@ use crate::{
   wm_event::WmEvent,
   wm_state::WmState,
 };
+use crate::windows::window_operation::WindowOperation;
 
 pub fn manage_window(
   native_window: NativeWindow,
@@ -133,6 +134,7 @@ fn create_window(
       floating_placement,
       inner_gap,
       Vec::new(),
+      WindowOperation::default(),
     )
     .into(),
     _ => NonTilingWindow::new(
@@ -144,6 +146,7 @@ fn create_window(
       None,
       floating_placement,
       Vec::new(),
+      WindowOperation::default(),
     )
     .into(),
   };
