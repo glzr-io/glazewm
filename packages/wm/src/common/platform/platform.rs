@@ -23,9 +23,10 @@ use windows::{
         PostThreadMessageW, RegisterClassW, SetCursorPos,
         SystemParametersInfoW, TranslateMessage, WindowFromPoint,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
-        MB_ICONERROR, MB_OK, MSG, PM_REMOVE, SPI_GETANIMATION,
-        SPI_SETANIMATION, SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
-        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+        MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
+        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
+        WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -441,7 +442,7 @@ impl Platform {
         None,
         PCWSTR(message_wide.as_ptr()),
         PCWSTR(title_wide.as_ptr()),
-        MB_ICONERROR | MB_OK,
+        MB_ICONERROR | MB_OK | MB_SYSTEMMODAL,
       );
     }
   }
