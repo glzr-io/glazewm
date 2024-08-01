@@ -6,7 +6,6 @@ pub struct ActiveDrag{
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ActiveDragOperation {
-    Waiting,
     Moving,
     Resizing,
 }

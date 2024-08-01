@@ -48,7 +48,7 @@ struct TilingWindowInner {
   floating_placement: Rect,
   inner_gap: LengthValue,
   done_window_rules: Vec<WindowRuleConfig>,
-  active_drag: ActiveDrag,
+  active_drag: Option<ActiveDrag>,
 }
 
 impl TilingWindow {
@@ -60,7 +60,7 @@ impl TilingWindow {
       floating_placement: Rect,
       inner_gap: LengthValue,
       done_window_rules: Vec<WindowRuleConfig>,
-      active_drag: ActiveDrag,
+      active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = TilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),

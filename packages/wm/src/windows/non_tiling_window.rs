@@ -39,7 +39,7 @@ struct NonTilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   done_window_rules: Vec<WindowRuleConfig>,
-  active_drag: ActiveDrag,
+  active_drag: Option<ActiveDrag>,
 }
 
 impl NonTilingWindow {
@@ -52,7 +52,7 @@ impl NonTilingWindow {
       insertion_target: Option<(Container, usize)>,
       floating_placement: Rect,
       done_window_rules: Vec<WindowRuleConfig>,
-      active_drag: ActiveDrag,
+      active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = NonTilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),

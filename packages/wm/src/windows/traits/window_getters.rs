@@ -109,9 +109,9 @@ pub trait WindowGetters {
     done_window_rules: Vec<WindowRuleConfig>,
   );
 
-  fn active_drag(&self) -> ActiveDrag;
+  fn active_drag(&self) -> Option<ActiveDrag>;
 
-  fn set_active_drag(&self, active_drag: ActiveDrag);
+  fn set_active_drag(&self, active_drag: Option<ActiveDrag>);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -190,11 +190,11 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().done_window_rules = done_window_rules;
       }
 
-      fn active_drag(&self) -> ActiveDrag {
+      fn active_drag(&self) -> Option<ActiveDrag> {
         self.0.borrow().active_drag.clone()
       }
 
-      fn set_active_drag(&self, active_drag: ActiveDrag) {
+      fn set_active_drag(&self, active_drag: Option<ActiveDrag>) {
         self.0.borrow_mut().active_drag = active_drag;
       }
     }

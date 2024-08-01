@@ -134,7 +134,7 @@ fn create_window(
         floating_placement,
         inner_gap,
         Vec::new(),
-        ActiveDrag::default(),
+        None,
     )
     .into(),
     _ => NonTilingWindow::new(
@@ -146,7 +146,7 @@ fn create_window(
         None,
         floating_placement,
         Vec::new(),
-        ActiveDrag::default(),
+        None,
     )
     .into(),
   };

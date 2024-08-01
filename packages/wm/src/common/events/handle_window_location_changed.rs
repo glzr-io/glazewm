@@ -161,19 +161,19 @@ fn update_window_operation(
   old_frame_position: &Rect,
 ) -> anyhow::Result<()> {
   if let Some(tiling_window) = window.as_tiling_window() {
-    let mut active_drag: ActiveDrag = tiling_window.active_drag();
-    if matches!(active_drag.operation, Some(ActiveDragOperation::Waiting))
-        && frame_position != old_frame_position
-    {
-      if frame_position.height() == old_frame_position.height()
-        && frame_position.width() == old_frame_position.width()
+    if let Some(mut active_drag) = tiling_window.active_drag() {
+      if active_drag.operation.is_none() && frame_position != old_frame_position
       {
-        active_drag.operation = Some(ActiveDragOperation::Moving);
-        tiling_window.set_active_drag(active_drag);
-        set_into_floating(tiling_window.clone(), state, config)?;
-      } else {
-        active_drag.operation = Some(ActiveDragOperation::Resizing);
-        tiling_window.set_active_drag(active_drag);
+        if frame_position.height() == old_frame_position.height()
+            && frame_position.width() == old_frame_position.width()
+        {
+          active_drag.operation = Some(ActiveDragOperation::Moving);
+          tiling_window.set_active_drag(Some(active_drag));
+          set_into_floating(tiling_window.clone(), state, config)?;
+        } else {
+          active_drag.operation = Some(ActiveDragOperation::Resizing);
+          tiling_window.set_active_drag(Some(active_drag));
+        }
       }
     }
   }
@@ -209,9 +209,10 @@ fn set_into_floating(
     }
   }
 
-  let mut active_drag = moved_window.active_drag();
-  active_drag.is_from_tiling = true;
-  moved_window.set_active_drag(active_drag);
+  if let Some(mut active_drag) = moved_window.active_drag() {
+    active_drag.is_from_tiling = true;
+    moved_window.set_active_drag(Some(active_drag));
+  }
 
   update_window_state(
     moved_window.as_window_container().unwrap(),

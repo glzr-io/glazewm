@@ -91,13 +91,13 @@ fn window_moved_end(
 ) -> anyhow::Result<()> {
   // We continue only if it's a temporary Floating window and if the window
   // got moved and not resized
-  let mut active_drag = moved_window.active_drag();
-  if active_drag.is_from_tiling == false
-    || !matches!(active_drag.operation, Some(ActiveDragOperation::Moving))
-  {
-    active_drag.operation = None;
-    moved_window.set_active_drag(active_drag);
-    return Ok(());
+  if let Some(active_drag) = moved_window.active_drag() {
+    if active_drag.is_from_tiling == false
+        || !matches!(active_drag.operation, Some(ActiveDragOperation::Moving))
+    {
+      moved_window.set_active_drag(None);
+      return Ok(());
+    }
   }
   info!("Tiling window drag end event");
 
@@ -142,7 +142,7 @@ fn window_moved_end(
     tiling_direction,
     new_window_position,
   )?;
-  moved_window.set_active_drag(ActiveDrag::default());
+  moved_window.set_active_drag(None);
 
   state.pending_sync.containers_to_redraw.push(
     window_under_cursor
