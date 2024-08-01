@@ -12,10 +12,8 @@ use crate::{
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state,
-    traits::WindowGetters,
-    active_drag::{ActiveDrag, ActiveDragOperation},
-    TilingWindow, WindowState,
+    commands::update_window_state, traits::WindowGetters,
+    ActiveDragOperation, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -162,10 +160,11 @@ fn update_window_operation(
 ) -> anyhow::Result<()> {
   if let Some(tiling_window) = window.as_tiling_window() {
     if let Some(mut active_drag) = tiling_window.active_drag() {
-      if active_drag.operation.is_none() && frame_position != old_frame_position
+      if active_drag.operation.is_none()
+        && frame_position != old_frame_position
       {
         if frame_position.height() == old_frame_position.height()
-            && frame_position.width() == old_frame_position.width()
+          && frame_position.width() == old_frame_position.width()
         {
           active_drag.operation = Some(ActiveDragOperation::Moving);
           tiling_window.set_active_drag(Some(active_drag));

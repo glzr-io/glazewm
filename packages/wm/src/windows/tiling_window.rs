@@ -27,8 +27,8 @@ use crate::{
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
   user_config::WindowRuleConfig,
+  windows::active_drag::ActiveDrag,
 };
-use crate::windows::active_drag::{ActiveDrag};
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -53,14 +53,14 @@ struct TilingWindowInner {
 
 impl TilingWindow {
   pub fn new(
-      id: Option<Uuid>,
-      native: NativeWindow,
-      prev_state: Option<WindowState>,
-      border_delta: RectDelta,
-      floating_placement: Rect,
-      inner_gap: LengthValue,
-      done_window_rules: Vec<WindowRuleConfig>,
-      active_drag: Option<ActiveDrag>,
+    id: Option<Uuid>,
+    native: NativeWindow,
+    prev_state: Option<WindowState>,
+    border_delta: RectDelta,
+    floating_placement: Rect,
+    inner_gap: LengthValue,
+    done_window_rules: Vec<WindowRuleConfig>,
+    active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = TilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),

@@ -480,24 +480,21 @@ impl WmState {
       })
       .collect()
   }
-  
+
   /// Returns all window under the mouse position
-  pub fn monitor_at_position(
-    &self,
-    position: &Point,
-  ) -> Option<Monitor> {
+  pub fn monitor_at_position(&self, position: &Point) -> Option<Monitor> {
     self
-        .root_container
-        .descendants()
-        .filter_map(|container| match container {
-          Container::Monitor(monitor) => Some(monitor),
-          _ => None,
-        })
-        .filter(|c| {
-          let frame = c.to_rect();
-          frame.unwrap().contains_point(&position)
-        })
-        .next()
+      .root_container
+      .descendants()
+      .filter_map(|container| match container {
+        Container::Monitor(monitor) => Some(monitor),
+        _ => None,
+      })
+      .filter(|c| {
+        let frame = c.to_rect();
+        frame.unwrap().contains_point(&position)
+      })
+      .next()
   }
 }
 

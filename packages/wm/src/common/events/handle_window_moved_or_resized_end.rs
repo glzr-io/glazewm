@@ -16,10 +16,9 @@ use crate::{
   },
   user_config::UserConfig,
   windows::{
-    active_drag::ActiveDragOperation,
     commands::{resize_window, update_window_state},
     traits::WindowGetters,
-    ActiveDrag, NonTilingWindow, TilingWindow, WindowState,
+    ActiveDragOperation, NonTilingWindow, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -37,15 +36,6 @@ pub fn handle_window_moved_or_resized_end(
   let found_window = state.window_from_native(&native_window);
   if let Some(window) = found_window {
     // TODO: Log window details.
-
-    let parent = window.parent().context("No parent.")?;
-
-    // Snap window to its original position if it's the only window in the
-    // workspace.
-    // if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-    //   state.pending_sync.containers_to_redraw.push(window.into());
-    //   return Ok(());
-    // }
 
     let new_rect = window.native().refresh_frame_position()?;
     let old_rect = window.to_rect()?;
@@ -93,7 +83,10 @@ fn window_moved_end(
   // got moved and not resized
   if let Some(active_drag) = moved_window.active_drag() {
     if active_drag.is_from_tiling == false
-        || !matches!(active_drag.operation, Some(ActiveDragOperation::Moving))
+      || !matches!(
+        active_drag.operation,
+        Some(ActiveDragOperation::Moving)
+      )
     {
       moved_window.set_active_drag(None);
       return Ok(());
@@ -110,7 +103,12 @@ fn window_moved_end(
   ) {
     Some(value) => value,
     None => {
-      return on_no_target_window(&moved_window, state, config, &mouse_position);
+      return on_no_target_window(
+        &moved_window,
+        state,
+        config,
+        &mouse_position,
+      );
     }
   };
 

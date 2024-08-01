@@ -7,7 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 
-use super::{traits::WindowGetters, TilingWindow, WindowDto, WindowState};
+use super::{
+  traits::WindowGetters, ActiveDrag, TilingWindow, WindowDto, WindowState,
+};
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
@@ -20,7 +22,6 @@ use crate::{
   impl_common_getters, impl_container_debug, impl_window_getters,
   user_config::WindowRuleConfig,
 };
-use crate::windows::active_drag::ActiveDrag;
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
@@ -44,15 +45,15 @@ struct NonTilingWindowInner {
 
 impl NonTilingWindow {
   pub fn new(
-      id: Option<Uuid>,
-      native: NativeWindow,
-      state: WindowState,
-      prev_state: Option<WindowState>,
-      border_delta: RectDelta,
-      insertion_target: Option<(Container, usize)>,
-      floating_placement: Rect,
-      done_window_rules: Vec<WindowRuleConfig>,
-      active_drag: Option<ActiveDrag>,
+    id: Option<Uuid>,
+    native: NativeWindow,
+    state: WindowState,
+    prev_state: Option<WindowState>,
+    border_delta: RectDelta,
+    insertion_target: Option<(Container, usize)>,
+    floating_placement: Rect,
+    done_window_rules: Vec<WindowRuleConfig>,
+    active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = NonTilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -94,7 +95,7 @@ impl NonTilingWindow {
       self.floating_placement(),
       inner_gap,
       self.done_window_rules(),
-      self.active_drag()
+      self.active_drag(),
     )
   }
 

@@ -1,12 +1,9 @@
 use crate::{
   common::platform::NativeWindow,
   containers::WindowContainer,
-  windows::{
-    traits::WindowGetters,
-  },
+  windows::{traits::WindowGetters, ActiveDrag},
   wm_state::WmState,
 };
-use crate::windows::ActiveDrag;
 
 /// Handles the event for when a window is started being moved or resized
 /// by the user (e.g. via the window's drag handles).
