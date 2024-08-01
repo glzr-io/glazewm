@@ -18,7 +18,6 @@ use crate::{
   wm_state::WmState,
 };
 use crate::windows::ActiveDrag;
-use crate::windows::active_drag::ActiveDragOperation;
 
 pub fn manage_window(
   native_window: NativeWindow,

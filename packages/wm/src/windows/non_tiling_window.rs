@@ -19,7 +19,6 @@ use crate::{
   },
   impl_common_getters, impl_container_debug, impl_window_getters,
   user_config::WindowRuleConfig,
-  windows::active_drag::ActiveDragOperation,
 };
 use crate::windows::active_drag::ActiveDrag;
 

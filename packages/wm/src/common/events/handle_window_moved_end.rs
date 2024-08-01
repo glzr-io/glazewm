@@ -11,7 +11,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, SplitContainer, TilingContainer, WindowContainer,
   },
-  user_config::{FloatingStateConfig, UserConfig},
+  user_config::UserConfig,
   windows::{
     active_drag::ActiveDragOperation, commands::update_window_state,
     traits::WindowGetters, ActiveDrag, NonTilingWindow, TilingWindow,
@@ -87,12 +87,12 @@ pub fn window_moved_end(
   )?;
   moved_window.set_active_drag(ActiveDrag::default());
 
-  state
-    .pending_sync
-    .containers_to_redraw
-    .push(Container::Workspace(
-      window_under_cursor.workspace().unwrap(),
-    ));
+  state.pending_sync.containers_to_redraw.push(
+    window_under_cursor
+      .workspace()
+      .context("No workspace")?
+      .into(),
+  );
 
   Ok(())
 }
@@ -170,25 +170,21 @@ fn move_window_to_target(
     (TilingDirection::Horizontal, TilingDirection::Vertical) => {
       create_split_container(
         TilingDirection::Horizontal,
-        state,
         config,
         moved_window,
         target_window,
         drop_position,
         &target_window_parent,
-        target_index,
       )?;
     }
     (TilingDirection::Vertical, TilingDirection::Horizontal) => {
       create_split_container(
         TilingDirection::Vertical,
-        state,
         config,
         moved_window,
         target_window,
         drop_position,
         &target_window_parent,
-        target_index,
       )?;
     }
   }
@@ -200,13 +196,11 @@ fn move_window_to_target(
 /// window inside at the dropped position
 fn create_split_container(
   tiling_direction: TilingDirection,
-  state: &mut WmState,
   config: &UserConfig,
   moved_window: TilingWindow,
   target_window: TilingWindow,
   dropped_position: DropPosition,
   parent: &Container,
-  split_container_index: usize,
 ) -> anyhow::Result<()> {
   let target_index_inside_split_container = match dropped_position {
     DropPosition::Start => 0,
