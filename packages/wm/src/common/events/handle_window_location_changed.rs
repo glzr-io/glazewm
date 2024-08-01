@@ -12,8 +12,10 @@ use crate::{
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state, traits::WindowGetters,
-    window_operation::WindowOperation, TilingWindow, WindowState,
+    commands::update_window_state,
+    traits::WindowGetters,
+    active_drag::{ActiveDrag, ActiveDragOperation},
+    TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -159,15 +161,18 @@ fn update_window_operation(
   old_frame_position: &Rect,
 ) -> anyhow::Result<()> {
   if let Some(tiling_window) = window.as_tiling_window() {
-    let window_operation = window.window_operation();
-    if window_operation == WindowOperation::Waiting {
+    let mut active_drag: ActiveDrag = tiling_window.active_drag();
+    if matches!(active_drag.operation, Some(ActiveDragOperation::Waiting))
+    {
       if frame_position.height() == old_frame_position.height()
         && frame_position.width() == old_frame_position.width()
       {
-        window.set_window_operation(WindowOperation::Moving);
+        active_drag.operation = Some(ActiveDragOperation::Moving);
+        tiling_window.set_active_drag(active_drag);
         set_into_floating(tiling_window.clone(), state, config)?;
       } else {
-        window.set_window_operation(WindowOperation::Resizing);
+        active_drag.operation = Some(ActiveDragOperation::Resizing);
+        tiling_window.set_active_drag(active_drag);
       }
     }
   }
@@ -203,12 +208,15 @@ fn set_into_floating(
     }
   }
 
+  let mut active_drag = moved_window.active_drag();
+  active_drag.is_from_tiling = true;
+  moved_window.set_active_drag(active_drag);
+
   update_window_state(
     moved_window.as_window_container().unwrap(),
     WindowState::Floating(FloatingStateConfig {
       centered: true,
       shown_on_top: true,
-      is_tiling_drag: true,
     }),
     state,
     config,

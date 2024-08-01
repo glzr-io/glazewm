@@ -8,9 +8,8 @@ use crate::{
   },
   containers::WindowContainer,
   user_config::{UserConfig, WindowRuleConfig},
-  windows::WindowState,
+  windows::{active_drag::ActiveDrag, WindowState},
 };
-use crate::windows::window_operation::WindowOperation;
 
 #[enum_dispatch]
 pub trait WindowGetters {
@@ -110,9 +109,9 @@ pub trait WindowGetters {
     done_window_rules: Vec<WindowRuleConfig>,
   );
 
-  fn window_operation(&self) -> WindowOperation;
-  
-  fn set_window_operation(&self, window_operation: WindowOperation);
+  fn active_drag(&self) -> ActiveDrag;
+
+  fn set_active_drag(&self, active_drag: ActiveDrag);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -191,12 +190,12 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().done_window_rules = done_window_rules;
       }
 
-      fn window_operation(&self) -> WindowOperation{
-        self.0.borrow().window_operation.clone()
+      fn active_drag(&self) -> ActiveDrag {
+        self.0.borrow().active_drag.clone()
       }
-      
-      fn set_window_operation(&self, window_operation: WindowOperation) {
-        self.0.borrow_mut().window_operation = window_operation;
+
+      fn set_active_drag(&self, active_drag: ActiveDrag) {
+        self.0.borrow_mut().active_drag = active_drag;
       }
     }
   };

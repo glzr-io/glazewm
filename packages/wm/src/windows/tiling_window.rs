@@ -28,7 +28,7 @@ use crate::{
   impl_window_getters,
   user_config::WindowRuleConfig,
 };
-use crate::windows::window_operation::WindowOperation;
+use crate::windows::active_drag::{ActiveDrag};
 
 #[derive(Clone)]
 pub struct TilingWindow(Rc<RefCell<TilingWindowInner>>);
@@ -48,19 +48,19 @@ struct TilingWindowInner {
   floating_placement: Rect,
   inner_gap: LengthValue,
   done_window_rules: Vec<WindowRuleConfig>,
-  window_operation: WindowOperation,
+  active_drag: ActiveDrag,
 }
 
 impl TilingWindow {
   pub fn new(
-    id: Option<Uuid>,
-    native: NativeWindow,
-    prev_state: Option<WindowState>,
-    border_delta: RectDelta,
-    floating_placement: Rect,
-    inner_gap: LengthValue,
-    done_window_rules: Vec<WindowRuleConfig>,
-    window_operation: WindowOperation,
+      id: Option<Uuid>,
+      native: NativeWindow,
+      prev_state: Option<WindowState>,
+      border_delta: RectDelta,
+      floating_placement: Rect,
+      inner_gap: LengthValue,
+      done_window_rules: Vec<WindowRuleConfig>,
+      active_drag: ActiveDrag,
   ) -> Self {
     let window = TilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -77,7 +77,7 @@ impl TilingWindow {
       floating_placement,
       inner_gap,
       done_window_rules,
-      window_operation,
+      active_drag,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -97,7 +97,7 @@ impl TilingWindow {
       insertion_target,
       self.floating_placement(),
       self.done_window_rules(),
-      self.window_operation(),
+      self.active_drag(),
     )
   }
 

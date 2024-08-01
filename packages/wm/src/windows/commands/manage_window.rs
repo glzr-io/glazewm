@@ -17,7 +17,8 @@ use crate::{
   wm_event::WmEvent,
   wm_state::WmState,
 };
-use crate::windows::window_operation::WindowOperation;
+use crate::windows::ActiveDrag;
+use crate::windows::active_drag::ActiveDragOperation;
 
 pub fn manage_window(
   native_window: NativeWindow,
@@ -127,26 +128,26 @@ fn create_window(
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
-      None,
-      native_window,
-      None,
-      border_delta,
-      floating_placement,
-      inner_gap,
-      Vec::new(),
-      WindowOperation::default(),
+        None,
+        native_window,
+        None,
+        border_delta,
+        floating_placement,
+        inner_gap,
+        Vec::new(),
+        ActiveDrag::default(),
     )
     .into(),
     _ => NonTilingWindow::new(
-      None,
-      native_window,
-      window_state,
-      None,
-      border_delta,
-      None,
-      floating_placement,
-      Vec::new(),
-      WindowOperation::default(),
+        None,
+        native_window,
+        window_state,
+        None,
+        border_delta,
+        None,
+        floating_placement,
+        Vec::new(),
+        ActiveDrag::default(),
     )
     .into(),
   };

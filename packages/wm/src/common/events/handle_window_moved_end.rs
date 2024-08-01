@@ -13,13 +13,12 @@ use crate::{
   },
   user_config::{FloatingStateConfig, UserConfig},
   windows::{
-    commands::update_window_state,
-    traits::WindowGetters,
-    window_operation::{WindowOperation},
-    NonTilingWindow, TilingWindow, WindowState,
+    active_drag::ActiveDragOperation, commands::update_window_state,
+    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
+use crate::windows::ActiveDrag;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -29,15 +28,12 @@ pub fn window_moved_end(
 ) -> anyhow::Result<()> {
   // We continue only if it's a temporary Floating window and if the window
   // got moved and not resized
-  if matches!(
-    moved_window.state(),
-    WindowState::Floating(FloatingStateConfig {
-      is_tiling_drag: false,
-      ..
-    })
-  ) || moved_window.window_operation() != WindowOperation::Moving
+  let mut active_drag = moved_window.active_drag();
+  if active_drag.is_from_tiling == false
+    || !matches!(active_drag.operation, Some(ActiveDragOperation::Moving))
   {
-    moved_window.set_window_operation(WindowOperation::default());
+    active_drag.operation = None;
+    moved_window.set_active_drag(active_drag);
     return Ok(());
   }
   info!("Tiling window drag end event");
@@ -110,7 +106,9 @@ pub fn window_moved_end(
     }
     _ => {}
   }
-  moved_window.set_window_operation(WindowOperation::default());
+
+  moved_window.set_active_drag(ActiveDrag::default());
+
   state
     .pending_sync
     .containers_to_redraw

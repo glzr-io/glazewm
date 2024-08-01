@@ -19,8 +19,9 @@ use crate::{
   },
   impl_common_getters, impl_container_debug, impl_window_getters,
   user_config::WindowRuleConfig,
-  windows::window_operation::WindowOperation,
+  windows::active_drag::ActiveDragOperation,
 };
+use crate::windows::active_drag::ActiveDrag;
 
 #[derive(Clone)]
 pub struct NonTilingWindow(Rc<RefCell<NonTilingWindowInner>>);
@@ -39,20 +40,20 @@ struct NonTilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   done_window_rules: Vec<WindowRuleConfig>,
-  window_operation: WindowOperation,
+  active_drag: ActiveDrag,
 }
 
 impl NonTilingWindow {
   pub fn new(
-    id: Option<Uuid>,
-    native: NativeWindow,
-    state: WindowState,
-    prev_state: Option<WindowState>,
-    border_delta: RectDelta,
-    insertion_target: Option<(Container, usize)>,
-    floating_placement: Rect,
-    done_window_rules: Vec<WindowRuleConfig>,
-    window_operation: WindowOperation,
+      id: Option<Uuid>,
+      native: NativeWindow,
+      state: WindowState,
+      prev_state: Option<WindowState>,
+      border_delta: RectDelta,
+      insertion_target: Option<(Container, usize)>,
+      floating_placement: Rect,
+      done_window_rules: Vec<WindowRuleConfig>,
+      active_drag: ActiveDrag,
   ) -> Self {
     let window = NonTilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -68,7 +69,7 @@ impl NonTilingWindow {
       has_pending_dpi_adjustment: false,
       floating_placement,
       done_window_rules,
-      window_operation,
+      active_drag,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -94,7 +95,7 @@ impl NonTilingWindow {
       self.floating_placement(),
       inner_gap,
       self.done_window_rules(),
-      self.window_operation()
+      self.active_drag()
     )
   }
 

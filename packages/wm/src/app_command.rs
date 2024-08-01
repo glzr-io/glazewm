@@ -404,7 +404,6 @@ impl InvokeCommand {
               centered: centered.unwrap_or(floating_defaults.centered),
               shown_on_top: shown_on_top
                 .unwrap_or(floating_defaults.shown_on_top),
-              is_tiling_drag: false,
             }),
             state,
             config,
@@ -494,7 +493,6 @@ impl InvokeCommand {
             centered: centered.unwrap_or(floating_defaults.centered),
             shown_on_top: shown_on_top
               .unwrap_or(floating_defaults.shown_on_top),
-            is_tiling_drag: false,
           });
 
           update_window_state(
