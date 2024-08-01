@@ -154,7 +154,7 @@ impl WmState {
       .root_container
       .children()
       .iter()
-      .filter_map(|c| c.as_monitor().cloned())
+      .filter_map(|container| container.as_monitor().cloned())
       .collect()
   }
 
@@ -162,22 +162,14 @@ impl WmState {
     self
       .monitors()
       .iter()
-      .flat_map(|c| c.children())
-      .filter_map(|c| c.as_workspace().cloned())
+      .flat_map(|monitor| monitor.workspaces())
       .collect()
   }
 
   /// Gets workspaces sorted by their position in the user config.
   pub fn sorted_workspaces(&self, config: &UserConfig) -> Vec<Workspace> {
-    let workspace_configs = &config.value.workspaces;
     let mut workspaces = self.workspaces();
-
-    workspaces.sort_by_key(|workspace| {
-      workspace_configs
-        .iter()
-        .position(|config| config.name == workspace.config().name)
-    });
-
+    config.sort_workspaces(&mut workspaces);
     workspaces
   }
 
@@ -210,7 +202,7 @@ impl WmState {
     self
       .monitors()
       .into_iter()
-      .find(|m| m.native() == *native_monitor)
+      .find(|monitor| monitor.native() == *native_monitor)
   }
 
   /// Gets the closest monitor in a given direction.

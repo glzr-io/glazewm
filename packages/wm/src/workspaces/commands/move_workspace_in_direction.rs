@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use super::activate_workspace;
+use super::{activate_workspace, sort_workspaces};
 use crate::{
   common::Direction,
   containers::{
@@ -59,6 +59,8 @@ pub fn move_workspace_in_direction(
     if monitor.child_count() == 0 {
       activate_workspace(None, &monitor, state, config)?;
     }
+
+    sort_workspaces(target_monitor, config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
       updated_workspace: workspace.to_dto()?,

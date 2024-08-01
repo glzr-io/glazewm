@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use super::sort_workspaces;
 use crate::{
   common::TilingDirection,
   containers::{commands::attach_container, traits::PositionGetters},
@@ -42,6 +43,8 @@ pub fn activate_workspace(
     &target_monitor.clone().into(),
     None,
   )?;
+
+  sort_workspaces(target_monitor.clone(), config)?;
 
   state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace.to_dto()?,

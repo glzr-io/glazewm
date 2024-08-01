@@ -158,12 +158,18 @@ fn workspace_focus_target(
 ) -> anyhow::Result<Option<Container>> {
   let monitor = origin_container.monitor().context("No monitor.")?;
 
-  let focus_target = state
+  let target_workspace = state
     .monitor_in_direction(&monitor, direction)?
-    .and_then(|monitor| monitor.displayed_workspace())
-    .and_then(|workspace| {
-      workspace.descendant_in_direction(&direction.inverse())
-    });
+    .and_then(|monitor| monitor.displayed_workspace());
 
-  Ok(focus_target.map(Into::into))
+  let focus_target = target_workspace
+    .as_ref()
+    .and_then(|workspace| {
+      workspace
+        .descendant_in_direction(&direction.inverse())
+        .map(Into::into)
+    })
+    .or(target_workspace.map(Into::into));
+
+  Ok(focus_target)
 }

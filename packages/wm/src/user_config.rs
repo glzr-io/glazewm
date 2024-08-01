@@ -1,8 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use tokio::fs;
 
 use crate::{
   app_command::InvokeCommand,
@@ -38,13 +37,13 @@ impl UserConfig {
   /// config from the given path.
   ///
   /// Creates a new config file from sample if it doesn't exist.
-  pub async fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
+  pub fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
     let default_config_path = home::home_dir()
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
     let config_path = config_path.unwrap_or(default_config_path);
-    let (config_value, config_str) = Self::read(&config_path).await?;
+    let (config_value, config_str) = Self::read(&config_path)?;
 
     let window_rules_by_event = Self::window_rules_by_event(&config_value);
 
@@ -59,15 +58,14 @@ impl UserConfig {
   /// Reads and validates the user config from the given path.
   ///
   /// Creates a new config file from sample if it doesn't exist.
-  async fn read(
+  fn read(
     config_path: &PathBuf,
   ) -> anyhow::Result<(ParsedConfig, String)> {
     if !config_path.exists() {
-      Self::create_sample(config_path.clone()).await?;
+      Self::create_sample(config_path.clone())?;
     }
 
     let config_str = fs::read_to_string(&config_path)
-      .await
       .context("Unable to read config file.")?;
 
     // TODO: Improve error formatting of serde_yaml errors. Something
@@ -78,25 +76,23 @@ impl UserConfig {
   }
 
   /// Initializes a new config file from the sample config resource.
-  async fn create_sample(config_path: PathBuf) -> Result<()> {
+  fn create_sample(config_path: PathBuf) -> Result<()> {
     let parent_dir =
       config_path.parent().context("Invalid config path.")?;
 
-    fs::create_dir_all(parent_dir).await.with_context(|| {
+    fs::create_dir_all(parent_dir).with_context(|| {
       format!("Unable to create directory {}.", &config_path.display())
     })?;
 
-    fs::write(&config_path, SAMPLE_CONFIG)
-      .await
-      .with_context(|| {
-        format!("Unable to write to {}.", config_path.display())
-      })?;
+    fs::write(&config_path, SAMPLE_CONFIG).with_context(|| {
+      format!("Unable to write to {}.", config_path.display())
+    })?;
 
     Ok(())
   }
 
-  pub async fn reload(&mut self) -> anyhow::Result<()> {
-    let (config_value, config_str) = Self::read(&self.path).await?;
+  pub fn reload(&mut self) -> anyhow::Result<()> {
+    let (config_value, config_str) = Self::read(&self.path)?;
 
     self.window_rules_by_event =
       Self::window_rules_by_event(&config_value);
@@ -308,6 +304,23 @@ impl UserConfig {
       )
       .or(inactive_configs.first())
       .cloned()
+  }
+
+  pub fn workspace_config_index(
+    &self,
+    workspace_name: &str,
+  ) -> Option<usize> {
+    self
+      .value
+      .workspaces
+      .iter()
+      .position(|config| config.name == workspace_name)
+  }
+
+  pub fn sort_workspaces(&self, workspaces: &mut Vec<Workspace>) {
+    workspaces.sort_by_key(|workspace| {
+      self.workspace_config_index(&workspace.config().name)
+    });
   }
 }
 

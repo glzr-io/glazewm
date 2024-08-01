@@ -18,8 +18,11 @@ pub fn attach_container(
     bail!("Cannot attach an already attached container.");
   }
 
-  // Insert the child at the specified index.
   if let Some(target_index) = target_index {
+    // Ensure target index is within the bounds of the parent's children.
+    let target_index = target_index.clamp(0, target_parent.child_count());
+
+    // Insert the child at the specified index.
     target_parent
       .borrow_children_mut()
       .insert(target_index, child.clone());

@@ -7,13 +7,16 @@ use crate::{
     traits::CommonGetters,
   },
   monitors::Monitor,
+  user_config::UserConfig,
   wm_event::WmEvent,
   wm_state::WmState,
+  workspaces::commands::sort_workspaces,
 };
 
 pub fn remove_monitor(
   monitor: Monitor,
   state: &mut WmState,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   // TODO: Add monitor display trait.
   info!(
@@ -31,11 +34,8 @@ pub fn remove_monitor(
     .context("No target monitor to move workspaces.")?;
 
   // Avoid moving empty workspaces.
-  let workspaces_to_move = monitor
-    .children()
-    .into_iter()
-    .filter_map(|container| container.as_workspace().cloned())
-    .filter(|workspace| {
+  let workspaces_to_move =
+    monitor.workspaces().into_iter().filter(|workspace| {
       workspace.has_children() || workspace.config().keep_alive
     });
 
@@ -47,6 +47,8 @@ pub fn remove_monitor(
       target_monitor.child_count(),
       state,
     )?;
+
+    sort_workspaces(target_monitor.clone(), config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
       updated_workspace: workspace.to_dto()?,

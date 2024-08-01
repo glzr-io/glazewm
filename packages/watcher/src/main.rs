@@ -25,8 +25,8 @@ async fn main() -> anyhow::Result<()> {
 
   match subscribe_res {
     Ok(_) => info!("WM exited successfully. Skipping watcher cleanup."),
-    Err(_) => {
-      info!("WM exitted unexpectedly. Running watcher cleanup.");
+    Err(err) => {
+      info!("Running watcher cleanup. WM exitted unexpectedly: {}", err);
 
       let managed_windows = managed_handles
         .into_iter()
@@ -75,7 +75,7 @@ async fn watch_managed_handles(
   handles: &mut Vec<isize>,
 ) -> anyhow::Result<()> {
   let subscription_message =
-    "subscribe -e window_managed window_unmanaged application_exiting";
+    "sub -e window_managed window_unmanaged application_exiting";
 
   client
     .send(&subscription_message)

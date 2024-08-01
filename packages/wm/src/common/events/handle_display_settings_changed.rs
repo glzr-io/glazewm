@@ -105,7 +105,7 @@ pub fn handle_display_settings_changed(
   // is connected again.
   for pending_monitor in pending_monitors {
     if state.monitors().len() != 1 {
-      remove_monitor(pending_monitor, state)?;
+      remove_monitor(pending_monitor, state, config)?;
     }
   }
 

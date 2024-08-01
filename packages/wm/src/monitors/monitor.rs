@@ -81,6 +81,14 @@ impl Monitor {
       .and_then(|child| child.as_workspace().cloned())
   }
 
+  pub fn workspaces(&self) -> Vec<Workspace> {
+    self
+      .children()
+      .into_iter()
+      .filter_map(|container| container.as_workspace().cloned())
+      .collect::<Vec<_>>()
+  }
+
   /// Whether there is a difference in DPI between this monitor and the
   /// parent monitor of another container.
   pub fn has_dpi_difference(

@@ -7,6 +7,7 @@ use crate::{
   windows::{commands::run_window_rules, traits::WindowGetters},
   wm_event::WmEvent,
   wm_state::WmState,
+  workspaces::commands::sort_workspaces,
 };
 
 pub fn reload_config(
@@ -19,10 +20,7 @@ pub fn reload_config(
   let old_config = config.value.clone();
 
   // Re-evaluate user config file and set its values in state.
-  tokio::task::block_in_place(|| {
-    let rt = tokio::runtime::Handle::current();
-    rt.block_on(config.reload())
-  })?;
+  config.reload()?;
 
   // Re-run window rules on all active windows.
   for window in state.windows() {
@@ -91,6 +89,8 @@ fn update_workspace_configs(
       Some(workspace_config) => {
         if *workspace_config != workspace.config() {
           workspace.set_config(workspace_config.clone());
+
+          sort_workspaces(monitor, config)?;
 
           state.emit_event(WmEvent::WorkspaceUpdated {
             updated_workspace: workspace.to_dto()?,

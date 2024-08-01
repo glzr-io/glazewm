@@ -25,7 +25,7 @@ pub fn handle_window_minimized(
       // TODO: Log window details.
       info!("Window minimized");
 
-      update_window_state(
+      let window = update_window_state(
         window.clone(),
         WindowState::Minimized,
         state,
