@@ -2,14 +2,18 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow,
+  common::{platform::NativeWindow, Rect},
   containers::{
-    commands::move_container_within_tree, traits::CommonGetters,
-    WindowContainer,
+    commands::{
+      attach_container, detach_container, move_container_within_tree,
+    },
+    traits::{CommonGetters, PositionGetters},
+    Container, WindowContainer,
   },
-  user_config::{FullscreenStateConfig, UserConfig},
+  user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state, traits::WindowGetters, WindowState,
+    commands::update_window_state, traits::WindowGetters,
+    ActiveDragOperation, TilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -23,7 +27,17 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let frame_position = window.native().refresh_frame_position()?;
+    let frame_position: Rect = window.native().refresh_frame_position()?;
+    let old_frame_position: Rect = window.to_rect()?;
+
+    update_window_operation(
+      state,
+      config,
+      &window,
+      &frame_position,
+      &old_frame_position,
+    )?;
+
     let is_minimized = window.native().refresh_is_minimized()?;
 
     let old_is_maximized = window.native().is_maximized()?;
@@ -129,5 +143,88 @@ pub fn handle_window_location_changed(
     }
   }
 
+  Ok(())
+}
+
+/// Updates the window operation based on changes in frame position.
+///
+/// This function determines whether a window is being moved or resized and
+/// updates its operation state accordingly. If the window is being moved,
+/// it's set to floating mode.
+fn update_window_operation(
+  state: &mut WmState,
+  config: &UserConfig,
+  window: &WindowContainer,
+  frame_position: &Rect,
+  old_frame_position: &Rect,
+) -> anyhow::Result<()> {
+  if let Some(tiling_window) = window.as_tiling_window() {
+    if let Some(mut active_drag) = tiling_window.active_drag() {
+      if active_drag.operation.is_none()
+        && frame_position != old_frame_position
+      {
+        if frame_position.height() == old_frame_position.height()
+          && frame_position.width() == old_frame_position.width()
+        {
+          active_drag.operation = Some(ActiveDragOperation::Moving);
+          tiling_window.set_active_drag(Some(active_drag));
+          set_into_floating(tiling_window.clone(), state, config)?;
+        } else {
+          active_drag.operation = Some(ActiveDragOperation::Resizing);
+          tiling_window.set_active_drag(Some(active_drag));
+        }
+      }
+    }
+  }
+  Ok(())
+}
+
+/// Converts a tiling window to a floating window and updates the window
+/// hierarchy.
+///
+/// This function handles the process of transitioning a tiling window to a
+/// floating state, including necessary adjustments to the window hierarchy
+/// and updating the window's state.
+fn set_into_floating(
+  moved_window: TilingWindow,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let moved_window_parent = moved_window
+    .parent()
+    .context("Tiling window has no parent")?;
+
+  if let Some(Container::Split(split)) = moved_window.parent() {
+    if split.child_count() == 2 {
+      let split_parent = split.parent().unwrap();
+      let split_index = split.index();
+      let children = split.children();
+
+      // Looping in reversed order to reattach them in the right order
+      for child in children.into_iter().rev() {
+        detach_container(child.clone())?;
+        attach_container(&child, &split_parent, Some(split_index))?;
+      }
+    }
+  }
+
+  if let Some(mut active_drag) = moved_window.active_drag() {
+    active_drag.is_from_tiling = true;
+    moved_window.set_active_drag(Some(active_drag));
+  }
+
+  update_window_state(
+    moved_window.as_window_container().unwrap(),
+    WindowState::Floating(FloatingStateConfig {
+      centered: true,
+      shown_on_top: true,
+    }),
+    state,
+    config,
+  )?;
+  state
+    .pending_sync
+    .containers_to_redraw
+    .push(moved_window_parent);
   Ok(())
 }

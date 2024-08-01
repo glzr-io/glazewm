@@ -17,7 +17,8 @@ pub enum PlatformEvent {
   WindowLocationChanged(NativeWindow),
   WindowMinimized(NativeWindow),
   WindowMinimizeEnded(NativeWindow),
-  WindowMovedOrResized(NativeWindow),
+  WindowMovedOrResizedEnd(NativeWindow),
+  WindowMovedOrResizedStart(NativeWindow),
   WindowShown(NativeWindow),
   WindowTitleChanged(NativeWindow),
 }

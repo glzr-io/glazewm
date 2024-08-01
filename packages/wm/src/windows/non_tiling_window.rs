@@ -7,7 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 
-use super::{traits::WindowGetters, TilingWindow, WindowDto, WindowState};
+use super::{
+  traits::WindowGetters, ActiveDrag, TilingWindow, WindowDto, WindowState,
+};
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
@@ -38,6 +40,7 @@ struct NonTilingWindowInner {
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
   done_window_rules: Vec<WindowRuleConfig>,
+  active_drag: Option<ActiveDrag>,
 }
 
 impl NonTilingWindow {
@@ -50,6 +53,7 @@ impl NonTilingWindow {
     insertion_target: Option<(Container, usize)>,
     floating_placement: Rect,
     done_window_rules: Vec<WindowRuleConfig>,
+    active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = NonTilingWindowInner {
       id: id.unwrap_or_else(|| Uuid::new_v4()),
@@ -65,6 +69,7 @@ impl NonTilingWindow {
       has_pending_dpi_adjustment: false,
       floating_placement,
       done_window_rules,
+      active_drag,
     };
 
     Self(Rc::new(RefCell::new(window)))
@@ -90,6 +95,7 @@ impl NonTilingWindow {
       self.floating_placement(),
       inner_gap,
       self.done_window_rules(),
+      self.active_drag(),
     )
   }
 

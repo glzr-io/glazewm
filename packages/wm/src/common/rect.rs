@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Direction, Point, RectDelta};
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
   pub left: i32,
@@ -147,5 +147,11 @@ impl Rect {
   pub fn has_overlap_y(&self, other: &Rect) -> bool {
     !(self.y() + self.height() <= other.y()
       || other.y() + other.height() <= self.y())
+  }
+
+  pub fn contains_point(&self, point: &Point) -> bool {
+    let is_in_x = point.x >= self.left && point.x <= self.right;
+    let is_in_y = point.y >= self.top && point.y <= self.bottom;
+    return is_in_x && is_in_y;
   }
 }
