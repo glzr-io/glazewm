@@ -5,20 +5,20 @@ use crate::{
   common::{platform::Platform, Point, TilingDirection},
   containers::{
     commands::{
-      attach_container, detach_container,
-      move_container_within_tree,
+      attach_container, detach_container, move_container_within_tree,
+      wrap_in_split_container,
     },
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, SplitContainer, WindowContainer,
+    Container, SplitContainer, TilingContainer, WindowContainer,
   },
   user_config::{FloatingStateConfig, UserConfig},
   windows::{
     active_drag::ActiveDragOperation, commands::update_window_state,
-    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
+    traits::WindowGetters, ActiveDrag, NonTilingWindow, TilingWindow,
+    WindowState,
   },
   wm_state::WmState,
 };
-use crate::windows::ActiveDrag;
 
 /// Handles window move events
 pub fn window_moved_end(
@@ -125,15 +125,15 @@ fn get_tiling_window_at_mouse_pos(
   mouse_position: &Point,
   state: &WmState,
 ) -> Option<TilingWindow> {
-  let children_at_mouse_position: Vec<TilingWindow> =
-    state.window_containers_at_position(mouse_position)
-      .into_iter()
-      .filter_map(|container| match container {
-        WindowContainer::TilingWindow(tiling) => Some(tiling),
-        _ => None,
-      })
-      .filter(|window: &TilingWindow| window.id() != exclude_window.id())
-      .collect();
+  let children_at_mouse_position: Vec<TilingWindow> = state
+    .window_containers_at_position(mouse_position)
+    .into_iter()
+    .filter_map(|container| match container {
+      WindowContainer::TilingWindow(tiling) => Some(tiling),
+      _ => None,
+    })
+    .filter(|window: &TilingWindow| window.id() != exclude_window.id())
+    .collect();
 
   children_at_mouse_position.into_iter().next()
 }
@@ -235,27 +235,23 @@ fn create_split_container(
     DropPosition::End => 1,
   };
 
-  let split_container = Container::Split(SplitContainer::new(
+  let split_container = SplitContainer::new(
     tiling_direction,
     config.value.gaps.inner_gap.clone(),
-  ));
-  attach_container(
-    &split_container,
-    &parent,
-    Some(split_container_index),
-  )?;
+  );
 
-  move_container_within_tree(
-    Container::TilingWindow(target_window),
-    split_container.clone(),
-    0,
-    state,
-  )?;
-  move_container_within_tree(
-    Container::TilingWindow(moved_window),
-    split_container,
+  let mut split_container_children =
+    vec![TilingContainer::TilingWindow(target_window)];
+  
+  split_container_children.insert(
     target_index_inside_split_container,
-    state,
+    TilingContainer::TilingWindow(moved_window),
+  );
+
+  wrap_in_split_container(
+    split_container,
+    parent.clone(),
+    split_container_children,
   )?;
   Ok(())
 }
