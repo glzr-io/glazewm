@@ -110,41 +110,7 @@ fn window_moved_end(
   ) {
     Some(value) => value,
     None => {
-      let target_monitor = state
-        .monitor_at_position(&mouse_position)
-        .context("couldn't get the monitor")?;
-
-      let target_workspace = target_monitor
-        .displayed_workspace()
-        .context("couldn't get the workspace")?;
-
-      let visible_tiling_window_count = target_workspace
-        .descendants()
-        .fold(0, |acc, container| match container {
-          Container::TilingWindow(tiling_window) => {
-            match tiling_window.display_state() {
-              DisplayState::Shown | DisplayState::Showing => acc + 1,
-              _ => acc,
-            }
-          }
-          _ => acc,
-        });
-
-      if visible_tiling_window_count == 0 {
-        move_container_within_tree(
-          moved_window.clone().into(),
-          target_workspace.into(),
-          0,
-          state,
-        )?;
-      }
-      update_window_state(
-        moved_window.as_window_container().unwrap(),
-        WindowState::Tiling,
-        state,
-        config,
-      )?;
-      return Ok(());
+      return on_no_target_window(&moved_window, state, config, &mouse_position);
     }
   };
 
@@ -186,6 +152,50 @@ fn window_moved_end(
   );
 
   Ok(())
+}
+
+fn on_no_target_window(
+  moved_window: &NonTilingWindow,
+  state: &mut WmState,
+  config: &UserConfig,
+  mouse_position: &Point,
+) -> anyhow::Result<()> {
+  let target_monitor = state
+    .monitor_at_position(&mouse_position)
+    .context("couldn't get the monitor")?;
+
+  let target_workspace = target_monitor
+    .displayed_workspace()
+    .context("couldn't get the workspace")?;
+
+  let visible_tiling_window_count = target_workspace.descendants().fold(
+    0,
+    |acc, container| match container {
+      Container::TilingWindow(tiling_window) => {
+        match tiling_window.display_state() {
+          DisplayState::Shown | DisplayState::Showing => acc + 1,
+          _ => acc,
+        }
+      }
+      _ => acc,
+    },
+  );
+
+  if visible_tiling_window_count == 0 {
+    move_container_within_tree(
+      moved_window.clone().into(),
+      target_workspace.into(),
+      0,
+      state,
+    )?;
+  }
+  update_window_state(
+    moved_window.as_window_container().unwrap(),
+    WindowState::Tiling,
+    state,
+    config,
+  )?;
+  return Ok(());
 }
 
 /// Return the window under the mouse position excluding the dragged window
