@@ -70,43 +70,21 @@ pub fn window_moved_end(
     &tiling_direction,
   )?;
 
-  let parent = window_under_cursor.parent().unwrap();
+  let parent = window_under_cursor
+    .direction_container()
+    .context("The window has no direction container")?;
+  let parent_tiling_direction: TilingDirection = parent.tiling_direction();
 
-  match &parent {
-    // If the parent is a workspace we only need to add the window to it or
-    // to create a Vertical split container
-    Container::Workspace(_) => {
-      let current_tiling_direction = TilingDirection::Horizontal;
-      move_window_to_target(
-        state,
-        config,
-        moved_window.clone(),
-        window_under_cursor.clone(),
-        &parent,
-        current_tiling_direction,
-        tiling_direction,
-        new_window_position,
-      )?;
-    }
-    // If the parent is a split we need to check the current split
-    // direction add the window to it or create a [Vertical/Horizontal]
-    // split container
-    Container::Split(split) => {
-      let current_tiling_direction = split.tiling_direction();
-      move_window_to_target(
-        state,
-        config,
-        moved_window.clone(),
-        window_under_cursor.clone(),
-        &parent,
-        current_tiling_direction,
-        tiling_direction,
-        new_window_position,
-      )?;
-    }
-    _ => {}
-  }
-
+  move_window_to_target(
+    state,
+    config,
+    moved_window.clone(),
+    window_under_cursor.clone(),
+    &parent.into(),
+    parent_tiling_direction,
+    tiling_direction,
+    new_window_position,
+  )?;
   moved_window.set_active_drag(ActiveDrag::default());
 
   state
@@ -242,7 +220,7 @@ fn create_split_container(
 
   let mut split_container_children =
     vec![TilingContainer::TilingWindow(target_window)];
-  
+
   split_container_children.insert(
     target_index_inside_split_container,
     TilingContainer::TilingWindow(moved_window),
