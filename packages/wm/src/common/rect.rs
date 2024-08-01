@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Direction, Point, RectDelta};
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
   pub left: i32,

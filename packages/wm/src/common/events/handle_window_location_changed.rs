@@ -163,6 +163,7 @@ fn update_window_operation(
   if let Some(tiling_window) = window.as_tiling_window() {
     let mut active_drag: ActiveDrag = tiling_window.active_drag();
     if matches!(active_drag.operation, Some(ActiveDragOperation::Waiting))
+        && frame_position != old_frame_position
     {
       if frame_position.height() == old_frame_position.height()
         && frame_position.width() == old_frame_position.width()
