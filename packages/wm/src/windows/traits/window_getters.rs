@@ -1,7 +1,5 @@
 use std::cell::Ref;
-
-use enum_dispatch::enum_dispatch;
-
+use ambassador::delegatable_trait;
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
@@ -11,7 +9,7 @@ use crate::{
   windows::{active_drag::ActiveDrag, WindowState},
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait WindowGetters {
   fn state(&self) -> WindowState;
 

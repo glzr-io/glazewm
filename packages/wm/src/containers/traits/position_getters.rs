@@ -1,4 +1,4 @@
-use enum_dispatch::enum_dispatch;
+use ambassador::delegatable_trait;
 
 use crate::{
   common::Rect,
@@ -7,7 +7,7 @@ use crate::{
   },
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait PositionGetters {
   fn to_rect(&self) -> anyhow::Result<Rect>;
 }

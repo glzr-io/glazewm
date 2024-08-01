@@ -2,8 +2,7 @@ use std::{
   cell::{Ref, RefMut},
   collections::VecDeque,
 };
-
-use enum_dispatch::enum_dispatch;
+use ambassador::delegatable_trait;
 use uuid::Uuid;
 
 use crate::{
@@ -16,7 +15,7 @@ use crate::{
   workspaces::Workspace,
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait CommonGetters {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;

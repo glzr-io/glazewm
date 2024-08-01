@@ -1,5 +1,4 @@
-use enum_dispatch::enum_dispatch;
-
+use ambassador::delegatable_trait;
 use super::CommonGetters;
 use crate::{
   common::{Direction, TilingDirection},
@@ -7,7 +6,7 @@ use crate::{
   windows::TilingWindow,
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait TilingDirectionGetters: CommonGetters {
   fn tiling_direction(&self) -> TilingDirection;
 
