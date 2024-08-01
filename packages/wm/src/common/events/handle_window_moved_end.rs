@@ -5,7 +5,7 @@ use crate::{
   common::{platform::Platform, Point, TilingDirection},
   containers::{
     commands::{
-      attach_container, detach_container, get_containers_at_position,
+      attach_container, detach_container,
       move_container_within_tree,
     },
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
@@ -126,7 +126,7 @@ fn get_tiling_window_at_mouse_pos(
   state: &WmState,
 ) -> Option<TilingWindow> {
   let children_at_mouse_position: Vec<TilingWindow> =
-    get_containers_at_position(state, mouse_position)
+    state.window_containers_at_position(mouse_position)
       .into_iter()
       .filter_map(|container| match container {
         WindowContainer::TilingWindow(tiling) => Some(tiling),

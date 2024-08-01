@@ -10,11 +10,12 @@ use crate::{
   common::{
     commands::platform_sync,
     platform::{NativeMonitor, NativeWindow, Platform},
-    Direction,
+    Direction, Point,
   },
   containers::{
-    commands::set_focused_descendant, traits::CommonGetters, Container,
-    RootContainer, WindowContainer,
+    commands::set_focused_descendant,
+    traits::{CommonGetters, PositionGetters},
+    Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
   user_config::{BindingModeConfig, UserConfig},
@@ -454,6 +455,30 @@ impl WmState {
     non_minimized_focus_target
       .or(descendant_focus_order.first().cloned())
       .or(Some(workspace.into()))
+  }
+
+  /// Returns all window under the mouse position
+  pub fn window_containers_at_position(
+    &self,
+    position: &Point,
+  ) -> Vec<WindowContainer> {
+    self
+      .root_container
+      .descendants()
+      .filter_map(|container| match container {
+        Container::TilingWindow(tiling) => {
+          Some(WindowContainer::TilingWindow(tiling))
+        }
+        Container::NonTilingWindow(non_tiling) => {
+          Some(WindowContainer::NonTilingWindow(non_tiling))
+        }
+        _ => None,
+      })
+      .filter(|c| {
+        let frame = c.to_rect();
+        frame.unwrap().contains_point(&position)
+      })
+      .collect()
   }
 }
 
