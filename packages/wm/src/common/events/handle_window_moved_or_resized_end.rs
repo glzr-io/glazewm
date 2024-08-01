@@ -4,7 +4,7 @@ use tracing::{debug, info};
 use crate::{
   common::{
     platform::{NativeWindow, Platform},
-    LengthValue, Point, TilingDirection,
+    DisplayState, LengthValue, Point, TilingDirection,
   },
   containers::{
     commands::{
@@ -42,10 +42,10 @@ pub fn handle_window_moved_or_resized_end(
 
     // Snap window to its original position if it's the only window in the
     // workspace.
-    if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-      state.pending_sync.containers_to_redraw.push(window.into());
-      return Ok(());
-    }
+    // if parent.is_workspace() && window.tiling_siblings().count() == 0 {
+    //   state.pending_sync.containers_to_redraw.push(window.into());
+    //   return Ok(());
+    // }
 
     let new_rect = window.native().refresh_frame_position()?;
     let old_rect = window.to_rect()?;
@@ -110,6 +110,34 @@ fn window_moved_end(
   ) {
     Some(value) => value,
     None => {
+      let target_monitor = state
+        .monitor_at_position(&mouse_position)
+        .context("couldn't get the monitor")?;
+
+      let target_workspace = target_monitor
+        .displayed_workspace()
+        .context("couldn't get the workspace")?;
+
+      let visible_tiling_window_count = target_workspace
+        .descendants()
+        .fold(0, |acc, container| match container {
+          Container::TilingWindow(tiling_window) => {
+            match tiling_window.display_state() {
+              DisplayState::Shown | DisplayState::Showing => acc + 1,
+              _ => acc,
+            }
+          }
+          _ => acc,
+        });
+
+      if visible_tiling_window_count == 0 {
+        move_container_within_tree(
+          moved_window.clone().into(),
+          target_workspace.into(),
+          0,
+          state,
+        )?;
+      }
       update_window_state(
         moved_window.as_window_container().unwrap(),
         WindowState::Tiling,
@@ -166,7 +194,7 @@ fn get_tiling_window_at_mouse_pos(
   mouse_position: &Point,
   state: &WmState,
 ) -> Option<TilingWindow> {
-  let children_at_mouse_position: Vec<TilingWindow> = state
+  state
     .window_containers_at_position(mouse_position)
     .into_iter()
     .filter_map(|container| match container {
@@ -174,9 +202,7 @@ fn get_tiling_window_at_mouse_pos(
       _ => None,
     })
     .filter(|window: &TilingWindow| window.id() != exclude_window.id())
-    .collect();
-
-  children_at_mouse_position.into_iter().next()
+    .next()
 }
 
 fn move_window_to_target(
