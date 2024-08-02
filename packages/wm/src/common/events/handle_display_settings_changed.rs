@@ -7,7 +7,9 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
-  monitors::commands::{add_monitor, remove_monitor, update_monitor},
+  monitors::commands::{
+    add_monitor, remove_monitor, sort_monitors, update_monitor,
+  },
   user_config::UserConfig,
   windows::traits::WindowGetters,
   wm_state::WmState,
@@ -108,6 +110,9 @@ pub fn handle_display_settings_changed(
       remove_monitor(pending_monitor, state, config)?;
     }
   }
+
+  // Sort monitors by position.
+  sort_monitors(state.root_container.clone())?;
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark

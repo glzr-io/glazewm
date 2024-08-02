@@ -63,7 +63,7 @@ impl Platform {
   pub fn sorted_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
     let monitors = native_monitor::available_monitors()?;
 
-    // Create a tuple of monitor and its rect.
+    // Create a tuple of monitors and their rects.
     let mut monitors_with_rect = monitors
       .into_iter()
       .map(|monitor| {
