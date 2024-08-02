@@ -115,12 +115,12 @@ pub trait CommonGetters {
     }
   }
 
-  fn descendants_of_type<T>(&self) -> DescendantsOfType<T>
+  fn descendants_of_type<T>(&self) -> ContainerIterOfType<T, Descendants>
   where
     T: TryFrom<Container>,
   {
-    DescendantsOfType{
-      descendants: self.descendants(),
+    ContainerIterOfType {
+      iterator: self.descendants(),
       phantom_data: PhantomData,
     }
   }
@@ -232,12 +232,12 @@ pub trait CommonGetters {
     }
   }
 
-  fn ancestors_of_type<T>(&self) -> AncestorsOfType<T>
+  fn ancestors_of_type<T>(&self) -> ContainerIterOfType<T, Ancestors>
   where
     T: TryFrom<Container>,
   {
-    AncestorsOfType{
-     ancestors:self.ancestors(),
+    ContainerIterOfType {
+     iterator:self.ancestors(),
       phantom_data: PhantomData,
     }
   }
@@ -325,22 +325,24 @@ impl Iterator for Ancestors {
 }
 
 /// An iterator over descendants of type T.
-pub struct AncestorsOfType<T>
-where
-    T: TryFrom<T>,
-{
-  phantom_data: PhantomData<T>,
-  ancestors: Ancestors,
-}
-
-impl<T> Iterator for AncestorsOfType<T>
+pub struct ContainerIterOfType<T, I>
 where
     T: TryFrom<Container>,
+    I: Iterator<Item = Container>,
+{
+  phantom_data: PhantomData<T>,
+  iterator: I,
+}
+
+impl<T, I> Iterator for ContainerIterOfType<T, I>
+where
+    T: TryFrom<Container>,
+    I: Iterator<Item = Container>,
 {
   type Item = T;
 
   fn next(&mut self) -> Option<Self::Item> {
-    while let Some(container) = self.ancestors.next() {
+    while let Some(container) = self.iterator.next() {
       if let Ok(item) = T::try_from(container) {
         return Some(item);
       }
@@ -361,31 +363,6 @@ impl Iterator for Descendants {
     while let Some(container) = self.stack.pop_front() {
       self.stack.extend(container.children());
       return Some(container);
-    }
-    None
-  }
-}
-
-/// An iterator over descendants of type T.
-pub struct DescendantsOfType<T>
-where
-  T: TryFrom<T>,
-{
-  phantom_data: PhantomData<T>,
-  descendants: Descendants,
-}
-
-impl<T> Iterator for DescendantsOfType<T>
-where
-  T: TryFrom<Container>,
-{
-  type Item = T;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    while let Some(container) = self.descendants.next() {
-      if let Ok(item) = T::try_from(container) {
-        return Some(item);
-      }
     }
     None
   }
