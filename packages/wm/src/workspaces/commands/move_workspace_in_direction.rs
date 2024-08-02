@@ -33,8 +33,7 @@ pub fn move_workspace_in_direction(
     )?;
 
     let windows = workspace
-      .descendants()
-      .filter_map(|descendant| descendant.as_window_container().ok());
+      .descendants_of_type::<WindowContainer>();
 
     for window in windows {
       window.set_has_pending_dpi_adjustment(true);

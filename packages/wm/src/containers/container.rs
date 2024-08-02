@@ -143,6 +143,17 @@ impl TryFrom<Container> for TilingContainer {
   }
 }
 
+impl TryFrom<Container> for TilingWindow {
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::TilingWindow(tiling_window) => Ok(tiling_window),
+      _ => Err("Cannot convert type to `TilingContainer`."),
+    }
+  }
+}
+
 impl PartialEq for TilingContainer {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()

@@ -169,18 +169,14 @@ fn on_no_target_window(
     .displayed_workspace()
     .context("couldn't get the workspace")?;
 
-  let visible_tiling_window_count = target_workspace.descendants().fold(
-    0,
-    |acc, container| match container {
-      Container::TilingWindow(tiling_window) => {
-        match tiling_window.display_state() {
-          DisplayState::Shown | DisplayState::Showing => acc + 1,
-          _ => acc,
-        }
+  let visible_tiling_window_count = target_workspace
+    .descendants_of_type::<TilingWindow>()
+    .fold(0, |acc, tiling_window| {
+      match tiling_window.display_state() {
+        DisplayState::Shown | DisplayState::Showing => acc + 1,
+        _ => acc,
       }
-      _ => acc,
-    },
-  );
+    });
 
   if visible_tiling_window_count == 0 {
     move_container_within_tree(
