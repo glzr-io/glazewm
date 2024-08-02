@@ -96,12 +96,15 @@ fn move_tiling_window(
 
   // The window cannot be moved within the parent container, so traverse
   // upwards to find an ancestor that has the correct tiling direction.
-  let target_ancestor = parent.ancestors().find_map(|ancestor| {
-    ancestor.as_direction_container().ok().filter(|ancestor| {
-      ancestor.tiling_direction()
-        == TilingDirection::from_direction(direction)
-    })
-  });
+  let target_ancestor =
+    parent
+      .ancestors_of_type()
+      .find_map(|ancestor: DirectionContainer| {
+        ancestor
+            .tiling_direction()
+            .eq(&TilingDirection::from_direction(direction))
+            .then_some(ancestor)
+      });
 
   match target_ancestor {
     // If there is no suitable ancestor, then change the tiling direction
