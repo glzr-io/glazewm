@@ -2,7 +2,7 @@ use std::{
   cell::{Ref, RefMut},
   collections::VecDeque,
 };
-
+use std::marker::PhantomData;
 use ambassador::delegatable_trait;
 use uuid::Uuid;
 
@@ -115,6 +115,16 @@ pub trait CommonGetters {
     }
   }
 
+  fn descendants_of_type<T>(&self) -> DescendantsOfType<T>
+  where
+    T: TryFrom<Container>,
+  {
+    DescendantsOfType{
+      descendants: self.descendants(),
+      phantom_data: PhantomData,
+    }
+  }
+
   fn self_and_descendants(&self) -> Descendants {
     let mut stack = self.children();
     stack.push_front(self.as_container());
@@ -222,6 +232,16 @@ pub trait CommonGetters {
     }
   }
 
+  fn ancestors_of_type<T>(&self) -> AncestorsOfType<T>
+  where
+    T: TryFrom<Container>,
+  {
+    AncestorsOfType{
+     ancestors:self.ancestors(),
+      phantom_data: PhantomData,
+    }
+  }
+
   fn self_and_ancestors(&self) -> Ancestors {
     Ancestors {
       start: Some(self.as_container()),
@@ -304,6 +324,31 @@ impl Iterator for Ancestors {
   }
 }
 
+/// An iterator over descendants of type T.
+pub struct AncestorsOfType<T>
+where
+    T: TryFrom<T>,
+{
+  phantom_data: PhantomData<T>,
+  ancestors: Ancestors,
+}
+
+impl<T> Iterator for AncestorsOfType<T>
+where
+    T: TryFrom<Container>,
+{
+  type Item = T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    while let Some(container) = self.ancestors.next() {
+      if let Ok(item) = T::try_from(container) {
+        return Some(item);
+      }
+    }
+    None
+  }
+}
+
 /// An iterator over descendants of a given container.
 pub struct Descendants {
   stack: VecDeque<Container>,
@@ -316,6 +361,31 @@ impl Iterator for Descendants {
     while let Some(container) = self.stack.pop_front() {
       self.stack.extend(container.children());
       return Some(container);
+    }
+    None
+  }
+}
+
+/// An iterator over descendants of type T.
+pub struct DescendantsOfType<T>
+where
+  T: TryFrom<T>,
+{
+  phantom_data: PhantomData<T>,
+  descendants: Descendants,
+}
+
+impl<T> Iterator for DescendantsOfType<T>
+where
+  T: TryFrom<Container>,
+{
+  type Item = T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    while let Some(container) = self.descendants.next() {
+      if let Ok(item) = T::try_from(container) {
+        return Some(item);
+      }
     }
     None
   }

@@ -460,8 +460,7 @@ impl WmState {
   {
     self
         .root_container
-        .descendants()
-        .filter_map(|container| TryFrom::try_from(container).ok())
+        .descendants_of_type()
         .filter(|c: &T| {
           let frame = c.to_rect();
           frame.unwrap().contains_point(&position)
