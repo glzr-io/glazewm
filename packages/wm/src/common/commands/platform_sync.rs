@@ -7,12 +7,12 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
+  monitors::Monitor,
   user_config::{CursorJumpTrigger, UserConfig},
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
 };
-use crate::monitors::Monitor;
 
 pub fn platform_sync(
   state: &mut WmState,
@@ -46,7 +46,10 @@ pub fn platform_sync(
   // previously focused window. If the `reset_window_effects` flag is
   // passed, the unfocused border is applied to all unfocused windows.
   let unfocused_windows = match state.pending_sync.reset_window_effects {
-    true => state.windows(),
+    true => state
+      .root_container
+      .descendants_of_type()
+      .collect::<Vec<WindowContainer>>(),
     false => recent_focused_container
       .and_then(|container| container.as_window_container().ok())
       .into_iter()
@@ -148,9 +151,9 @@ fn jump_cursor(
         focused_container.monitor().context("No monitor.")?;
 
       let cursor_monitor: Option<Monitor> = state
-          .containers_at_position(&Platform::mouse_position()?)
-          .into_iter()
-          .next();
+        .containers_at_position(&Platform::mouse_position()?)
+        .into_iter()
+        .next();
 
       cursor_monitor
         .filter(|monitor| monitor.id() != target_monitor.id())

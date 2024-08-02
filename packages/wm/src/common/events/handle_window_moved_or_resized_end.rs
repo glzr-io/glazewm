@@ -234,9 +234,9 @@ fn move_window_to_target(
   )?;
 
   let moved_window = state
-    .windows()
-    .iter()
-    .find(|w| w.id() == moved_window.id())
+    .root_container
+    .descendants_of_type()
+    .find(|w: &WindowContainer| w.id() == moved_window.id())
     .context("couldn't find the new tiled window")?
     .as_tiling_window()
     .context("window is not a tiled window")?

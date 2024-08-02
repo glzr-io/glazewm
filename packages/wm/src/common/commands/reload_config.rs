@@ -9,6 +9,7 @@ use crate::{
   wm_state::WmState,
   workspaces::commands::sort_workspaces,
 };
+use crate::containers::WindowContainer;
 
 pub fn reload_config(
   state: &mut WmState,
@@ -23,7 +24,10 @@ pub fn reload_config(
   config.reload()?;
 
   // Re-run window rules on all active windows.
-  for window in state.windows() {
+  for window in state
+    .root_container
+    .descendants_of_type::<WindowContainer>()
+  {
     window.set_done_window_rules(Vec::new());
     run_window_rules(window, WindowRuleEvent::Manage, state, config)?;
   }
@@ -146,8 +150,8 @@ fn update_window_effects(
     && old_window_effects.other_windows.border.enabled
   {
     let unfocused_windows = state
-      .windows()
-      .into_iter()
+      .root_container
+      .descendants_of_type::<WindowContainer>()
       .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {

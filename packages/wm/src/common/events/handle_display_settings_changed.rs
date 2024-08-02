@@ -114,7 +114,10 @@ pub fn handle_display_settings_changed(
   // Sort monitors by position.
   sort_monitors(state.root_container.clone())?;
 
-  for window in state.windows() {
+  for window in state
+    .root_container
+    .descendants_of_type::<WindowContainer>()
+  {
     // Display setting changes can spread windows out sporadically, so mark
     // all windows as needing a DPI adjustment (just in case).
     window.set_has_pending_dpi_adjustment(true);

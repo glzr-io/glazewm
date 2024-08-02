@@ -137,7 +137,14 @@ impl WmState {
     let container_to_focus = self
       .window_from_native(&foreground_window)
       .map(|c| c.as_container())
-      .or(self.windows().pop().map(Into::into))
+      .or(
+        self
+          .root_container
+          .descendants_of_type()
+          .collect::<Vec<WindowContainer>>()
+          .pop()
+          .map(Into::into),
+      )
       .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
@@ -168,14 +175,6 @@ impl WmState {
     let mut workspaces = self.workspaces();
     config.sort_workspaces(&mut workspaces);
     workspaces
-  }
-
-  pub fn windows(&self) -> Vec<WindowContainer> {
-    self
-      .root_container
-      .descendants()
-      .filter_map(|container| container.try_into().ok())
-      .collect()
   }
 
   /// Gets the monitor that encompasses the largest portion of a given
@@ -255,9 +254,9 @@ impl WmState {
     native_window: &NativeWindow,
   ) -> Option<WindowContainer> {
     self
-      .windows()
-      .into_iter()
-      .find(|window| &*window.native() == native_window)
+      .root_container
+      .descendants_of_type()
+      .find(|window: &WindowContainer| &*window.native() == native_window)
   }
 
   pub fn workspace_by_name(
@@ -456,25 +455,25 @@ impl WmState {
   /// Returns all containers of type T under the mouse position
   pub fn containers_at_position<T>(&self, position: &Point) -> Vec<T>
   where
-      T: TryFrom<Container> + PositionGetters,
+    T: TryFrom<Container> + PositionGetters,
   {
     self
-        .root_container
-        .descendants_of_type()
-        .filter(|c: &T| {
-          let frame = c.to_rect();
-          frame.unwrap().contains_point(&position)
-        })
-        .collect()
+      .root_container
+      .descendants_of_type()
+      .filter(|c: &T| {
+        let frame = c.to_rect();
+        frame.unwrap().contains_point(&position)
+      })
+      .collect()
   }
 }
 
 impl Drop for WmState {
   fn drop(&mut self) {
     let managed_windows = self
-      .windows()
-      .into_iter()
-      .map(|window| window.native().clone())
+      .root_container
+      .descendants_of_type()
+      .map(|window: WindowContainer| window.native().clone())
       .collect::<Vec<_>>();
 
     run_cleanup(managed_windows);
