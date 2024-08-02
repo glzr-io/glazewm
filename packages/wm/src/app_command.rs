@@ -203,7 +203,7 @@ pub enum InvokeCommand {
   SetMinimized,
   SetTiling,
   ShellExec {
-    #[clap(long, num_args = 1.., allow_hyphen_values = true)]
+    #[clap(required = true, trailing_var_arg = true)]
     command: Vec<String>,
   },
   // Reuse `InvokeResizeCommand` struct.

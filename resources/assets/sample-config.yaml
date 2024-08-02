@@ -1,7 +1,7 @@
 general:
   # Commands to run when the WM has started (e.g. to run a script or launch
   # another application). Here we are running a batch script to start Zebar.
-  startup_commands: ['shell-exec --command %userprofile%/.glzr/zebar/start.bat']
+  startup_commands: ['shell-exec %userprofile%/.glzr/zebar/start.bat']
 
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
@@ -65,6 +65,9 @@ window_behavior:
       # Maximize the window if possible. If the window doesn't have a
       # maximize button, then it'll be fullscreen'ed normally instead.
       maximized: false
+
+      # Whether to show fullscreen windows as always on top.
+      shown_on_top: false
 
 workspaces:
   - name: '1'
@@ -197,10 +200,10 @@ keybindings:
   - commands: ['wm-redraw']
     bindings: ['alt+shift+w']
 
-  # Launch CMD terminal. Alternatively, use `shell-exec --command wt` or
-  # `shell-exec --command %ProgramFiles%/Git/git-bash.exe` to start Windows
+  # Launch CMD terminal. Alternatively, use `shell-exec wt` or
+  # `shell-exec %ProgramFiles%/Git/git-bash.exe` to start Windows
   # Terminal and Git Bash respectively.
-  - commands: ['shell-exec --command cmd']
+  - commands: ['shell-exec cmd']
     bindings: ['alt+enter']
 
   # Focus the next/previous workspace defined in `workspaces` config.
