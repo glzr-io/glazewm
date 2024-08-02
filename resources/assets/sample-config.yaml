@@ -87,6 +87,11 @@ window_rules:
       - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
         window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
 
+      # Ignore rules for various 3rd-party apps.
+      - window_process: { equals: 'PowerToys.PowerAccent' }
+      - window_process: { equals: 'Lively' }
+        window_class: { regex: 'HwndWrapper*' }
+
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
   - name: 'resize'
