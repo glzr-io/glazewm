@@ -23,7 +23,7 @@ use crate::{
 };
 
 /// A container of any type.
-#[derive(Clone, Debug, EnumAsInner, Delegate)] // <-------
+#[derive(Clone, Debug, EnumAsInner, Delegate)]
 #[delegate(CommonGetters)]
 #[delegate(PositionGetters)]
 pub enum Container {
@@ -35,21 +35,42 @@ pub enum Container {
   NonTilingWindow(NonTilingWindow),
 }
 
-impl From<SplitContainer> for Container{
-  fn from(value: SplitContainer) -> Self {
-    Container::Split(value)
+impl From<RootContainer> for Container {
+  fn from(value: RootContainer) -> Self {
+    Container::Root(value)
   }
 }
+
+impl From<Monitor> for Container {
+  fn from(value: Monitor) -> Self {
+    Container::Monitor(value)
+  }
+}
+
 impl From<Workspace> for Container {
   fn from(value: Workspace) -> Self {
     Container::Workspace(value)
   }
 }
-impl From<RootContainer> for Container{
-  fn from(value: RootContainer) -> Self {
-    Container::Root(value)
+
+impl From<SplitContainer> for Container {
+  fn from(value: SplitContainer) -> Self {
+    Container::Split(value)
   }
 }
+
+impl From<NonTilingWindow> for Container {
+  fn from(value: NonTilingWindow) -> Self {
+    Container::NonTilingWindow(value)
+  }
+}
+
+impl From<TilingWindow> for Container {
+  fn from(value: TilingWindow) -> Self {
+    Container::TilingWindow(value)
+  }
+}
+
 impl From<TilingContainer> for Container {
   fn from(tiling_container: TilingContainer) -> Self {
     match tiling_container {
@@ -98,13 +119,13 @@ pub enum TilingContainer {
   TilingWindow(TilingWindow),
 }
 
-impl From<SplitContainer> for TilingContainer{
+impl From<SplitContainer> for TilingContainer {
   fn from(value: SplitContainer) -> Self {
     TilingContainer::Split(value)
   }
 }
 
-impl From<TilingWindow> for TilingContainer{
+impl From<TilingWindow> for TilingContainer {
   fn from(value: TilingWindow) -> Self {
     TilingContainer::TilingWindow(value)
   }
@@ -143,32 +164,15 @@ pub enum WindowContainer {
   NonTilingWindow(NonTilingWindow),
 }
 
-impl From<TilingWindow> for WindowContainer{
+impl From<TilingWindow> for WindowContainer {
   fn from(value: TilingWindow) -> Self {
     WindowContainer::TilingWindow(value)
   }
 }
 
-impl From<NonTilingWindow> for WindowContainer{
+impl From<NonTilingWindow> for WindowContainer {
   fn from(value: NonTilingWindow) -> Self {
     WindowContainer::NonTilingWindow(value)
-  }
-}
-impl From<NonTilingWindow> for Container {
-  fn from(value: NonTilingWindow) -> Self {
-    Container::NonTilingWindow(value)
-  }
-}
-
-impl From<Monitor> for Container {
-  fn from(value: Monitor) -> Self {
-    Container::Monitor(value)
-  }
-}
-
-impl From<TilingWindow> for Container{
-  fn from(value: TilingWindow) -> Self {
-    Container::TilingWindow(value)
   }
 }
 
@@ -220,15 +224,15 @@ pub enum DirectionContainer {
   Split(SplitContainer),
 }
 
-impl From<SplitContainer> for DirectionContainer{
-  fn from(value: SplitContainer) -> Self {
-    DirectionContainer::Split(value)
-  }
-}
-
 impl From<Workspace> for DirectionContainer {
   fn from(value: Workspace) -> Self {
     DirectionContainer::Workspace(value)
+  }
+}
+
+impl From<SplitContainer> for DirectionContainer {
+  fn from(value: SplitContainer) -> Self {
+    DirectionContainer::Split(value)
   }
 }
 

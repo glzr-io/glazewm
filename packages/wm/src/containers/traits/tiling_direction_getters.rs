@@ -1,8 +1,9 @@
 use ambassador::delegatable_trait;
+
 use super::CommonGetters;
 use crate::{
   common::{Direction, TilingDirection},
-  containers::{DirectionContainer, TilingContainer},
+  containers::TilingContainer,
   windows::TilingWindow,
 };
 

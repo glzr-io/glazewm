@@ -1,10 +1,11 @@
 use std::cell::Ref;
+
 use ambassador::delegatable_trait;
+
 use crate::{
   common::{
     platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
   },
-  containers::WindowContainer,
   user_config::{UserConfig, WindowRuleConfig},
   windows::{active_drag::ActiveDrag, WindowState},
 };

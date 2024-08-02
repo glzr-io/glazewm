@@ -1,11 +1,6 @@
 use ambassador::delegatable_trait;
 
-use crate::{
-  common::Rect,
-  containers::{
-    Container, DirectionContainer, TilingContainer, WindowContainer,
-  },
-};
+use crate::common::Rect;
 
 #[delegatable_trait]
 pub trait PositionGetters {

@@ -2,16 +2,16 @@ use std::{
   cell::{Ref, RefMut},
   collections::VecDeque,
 };
+
 use ambassador::delegatable_trait;
 use uuid::Uuid;
 
 use crate::{
   containers::{
-    Container, ContainerDto, DirectionContainer, RootContainer,
-    SplitContainer, TilingContainer, WindowContainer,
+    Container, ContainerDto, DirectionContainer, TilingContainer,
+    WindowContainer,
   },
   monitors::Monitor,
-  windows::{NonTilingWindow, TilingWindow},
   workspaces::Workspace,
 };
 
