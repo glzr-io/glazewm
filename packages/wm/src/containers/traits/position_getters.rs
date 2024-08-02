@@ -1,13 +1,8 @@
-use enum_dispatch::enum_dispatch;
+use ambassador::delegatable_trait;
 
-use crate::{
-  common::Rect,
-  containers::{
-    Container, DirectionContainer, TilingContainer, WindowContainer,
-  },
-};
+use crate::common::Rect;
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait PositionGetters {
   fn to_rect(&self) -> anyhow::Result<Rect>;
 }

@@ -1,16 +1,31 @@
-use enum_as_inner::EnumAsInner;
-use enum_dispatch::enum_dispatch;
+use std::{
+  cell::{Ref, RefMut},
+  collections::VecDeque,
+};
 
-use super::{traits::CommonGetters, RootContainer, SplitContainer};
+use ambassador::Delegate;
+use enum_as_inner::EnumAsInner;
+use uuid::Uuid;
+
+use super::{RootContainer, SplitContainer};
 use crate::{
+  common::{
+    platform::NativeWindow, Direction, DisplayState, LengthValue, Rect,
+    RectDelta, TilingDirection,
+  },
+  containers::{traits::*, ContainerDto},
   monitors::Monitor,
-  windows::{NonTilingWindow, TilingWindow},
+  user_config::{UserConfig, WindowRuleConfig},
+  windows::{
+    traits::*, ActiveDrag, NonTilingWindow, TilingWindow, WindowState,
+  },
   workspaces::Workspace,
 };
 
 /// A container of any type.
-#[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters)]
+#[derive(Clone, Debug, EnumAsInner, Delegate)]
+#[delegate(CommonGetters)]
+#[delegate(PositionGetters)]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),
@@ -18,6 +33,42 @@ pub enum Container {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
+}
+
+impl From<RootContainer> for Container {
+  fn from(value: RootContainer) -> Self {
+    Container::Root(value)
+  }
+}
+
+impl From<Monitor> for Container {
+  fn from(value: Monitor) -> Self {
+    Container::Monitor(value)
+  }
+}
+
+impl From<Workspace> for Container {
+  fn from(value: Workspace) -> Self {
+    Container::Workspace(value)
+  }
+}
+
+impl From<SplitContainer> for Container {
+  fn from(value: SplitContainer) -> Self {
+    Container::Split(value)
+  }
+}
+
+impl From<NonTilingWindow> for Container {
+  fn from(value: NonTilingWindow) -> Self {
+    Container::NonTilingWindow(value)
+  }
+}
+
+impl From<TilingWindow> for Container {
+  fn from(value: TilingWindow) -> Self {
+    Container::TilingWindow(value)
+  }
 }
 
 impl From<TilingContainer> for Container {
@@ -59,11 +110,25 @@ impl Eq for Container {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `TilingSizeGetters`
-#[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters, TilingSizeGetters)]
+#[derive(Clone, Debug, EnumAsInner, Delegate)]
+#[delegate(CommonGetters)]
+#[delegate(PositionGetters)]
+#[delegate(TilingSizeGetters)]
 pub enum TilingContainer {
   Split(SplitContainer),
   TilingWindow(TilingWindow),
+}
+
+impl From<SplitContainer> for TilingContainer {
+  fn from(value: SplitContainer) -> Self {
+    TilingContainer::Split(value)
+  }
+}
+
+impl From<TilingWindow> for TilingContainer {
+  fn from(value: TilingWindow) -> Self {
+    TilingContainer::TilingWindow(value)
+  }
 }
 
 impl TryFrom<Container> for TilingContainer {
@@ -90,11 +155,25 @@ impl Eq for TilingContainer {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `WindowGetters`
-#[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters, WindowGetters)]
+#[derive(Clone, Debug, EnumAsInner, Delegate)]
+#[delegate(CommonGetters)]
+#[delegate(PositionGetters)]
+#[delegate(WindowGetters)]
 pub enum WindowContainer {
   TilingWindow(TilingWindow),
   NonTilingWindow(NonTilingWindow),
+}
+
+impl From<TilingWindow> for WindowContainer {
+  fn from(value: TilingWindow) -> Self {
+    WindowContainer::TilingWindow(value)
+  }
+}
+
+impl From<NonTilingWindow> for WindowContainer {
+  fn from(value: NonTilingWindow) -> Self {
+    WindowContainer::NonTilingWindow(value)
+  }
 }
 
 impl TryFrom<Container> for WindowContainer {
@@ -136,11 +215,25 @@ impl Eq for WindowContainer {}
 ///  * `CommonGetters`
 ///  * `PositionGetters`
 ///  * `TilingDirectionGetters`
-#[derive(Clone, Debug, EnumAsInner)]
-#[enum_dispatch(CommonGetters, PositionGetters, TilingDirectionGetters)]
+#[derive(Clone, Debug, EnumAsInner, Delegate)]
+#[delegate(CommonGetters)]
+#[delegate(PositionGetters)]
+#[delegate(TilingDirectionGetters)]
 pub enum DirectionContainer {
   Workspace(Workspace),
   Split(SplitContainer),
+}
+
+impl From<Workspace> for DirectionContainer {
+  fn from(value: Workspace) -> Self {
+    DirectionContainer::Workspace(value)
+  }
+}
+
+impl From<SplitContainer> for DirectionContainer {
+  fn from(value: SplitContainer) -> Self {
+    DirectionContainer::Split(value)
+  }
 }
 
 impl TryFrom<Container> for DirectionContainer {

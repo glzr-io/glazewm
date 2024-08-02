@@ -1,5 +1,5 @@
+use ambassador::delegatable_trait;
 use anyhow::Context;
-use enum_dispatch::enum_dispatch;
 
 use super::{CommonGetters, TilingDirectionGetters};
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
   containers::{Container, DirectionContainer, TilingContainer},
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait TilingSizeGetters: CommonGetters {
   fn tiling_size(&self) -> f32;
 

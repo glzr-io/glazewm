@@ -3,20 +3,19 @@ use std::{
   collections::VecDeque,
 };
 
-use enum_dispatch::enum_dispatch;
+use ambassador::delegatable_trait;
 use uuid::Uuid;
 
 use crate::{
   containers::{
-    Container, ContainerDto, DirectionContainer, RootContainer,
-    SplitContainer, TilingContainer, WindowContainer,
+    Container, ContainerDto, DirectionContainer, TilingContainer,
+    WindowContainer,
   },
   monitors::Monitor,
-  windows::{NonTilingWindow, TilingWindow},
   workspaces::Workspace,
 };
 
-#[enum_dispatch]
+#[delegatable_trait]
 pub trait CommonGetters {
   /// A unique identifier for the container.
   fn id(&self) -> Uuid;
