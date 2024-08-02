@@ -86,7 +86,7 @@ impl Monitor {
       .children()
       .into_iter()
       .filter_map(|container| container.as_workspace().cloned())
-      .collect::<Vec<_>>()
+      .collect()
   }
 
   /// Whether there is a difference in DPI between this monitor and the

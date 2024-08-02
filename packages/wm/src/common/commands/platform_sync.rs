@@ -7,7 +7,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
-  user_config::UserConfig,
+  user_config::{CursorJumpTrigger, UserConfig},
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -26,21 +26,14 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+  if state.pending_sync.cursor_jump {
+    jump_cursor(focused_container.clone(), state, config)?;
+    state.pending_sync.cursor_jump = false;
+  }
+
   if state.pending_sync.focus_change {
     sync_focus(focused_container.clone(), state)?;
     state.pending_sync.focus_change = false;
-  }
-
-  if let Some(target) = &state.pending_sync.cursor_container {
-    if !target.is_detached() {
-      let center = target.to_rect()?.center_point();
-
-      if let Err(err) = Platform::set_cursor_pos(center.x, center.y) {
-        warn!("Failed to set cursor position: {}", err);
-      }
-    }
-
-    state.pending_sync.cursor_container = None;
   }
 
   if let Ok(window) = focused_container.as_window_container() {
@@ -70,7 +63,7 @@ pub fn platform_sync(
   Ok(())
 }
 
-pub fn sync_focus(
+fn sync_focus(
   focused_container: Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
@@ -134,6 +127,39 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
+    }
+  }
+
+  Ok(())
+}
+
+fn jump_cursor(
+  focused_container: Container,
+  state: &WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let cursor_jump = &config.value.general.cursor_jump;
+
+  let jump_target = match cursor_jump.trigger {
+    CursorJumpTrigger::WindowFocus => Some(focused_container),
+    CursorJumpTrigger::MonitorFocus => {
+      let target_monitor =
+        focused_container.monitor().context("No monitor.")?;
+
+      let cursor_monitor =
+        state.monitor_at_position(&Platform::mouse_position()?);
+
+      cursor_monitor
+        .filter(|monitor| monitor.id() != target_monitor.id())
+        .map(Into::into)
+    }
+  };
+
+  if let Some(jump_target) = jump_target {
+    let center = jump_target.to_rect()?.center_point();
+
+    if let Err(err) = Platform::set_cursor_pos(center.x, center.y) {
+      warn!("Failed to set cursor position: {}", err);
     }
   }
 

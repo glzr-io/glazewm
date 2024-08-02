@@ -284,7 +284,7 @@ impl InvokeCommand {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
-          focus_in_direction(subject_container, direction, state, config)?;
+          focus_in_direction(subject_container, direction, state)?;
         }
 
         if let Some(name) = &args.workspace {

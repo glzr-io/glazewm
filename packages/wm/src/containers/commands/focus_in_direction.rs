@@ -7,7 +7,6 @@ use crate::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, TilingContainer,
   },
-  user_config::{CursorJumpTrigger, UserConfig},
   windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
@@ -16,7 +15,6 @@ pub fn focus_in_direction(
   origin_container: Container,
   direction: &Direction,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let focus_target = match origin_container {
     Container::TilingWindow(_) => {
@@ -49,19 +47,7 @@ pub fn focus_in_direction(
   if let Some(focus_target) = focus_target {
     set_focused_descendant(focus_target.clone(), None);
     state.pending_sync.focus_change = true;
-
-    // Jump cursor to the focus target if enabled.
-    if config.value.general.cursor_jump.enabled {
-      match config.value.general.cursor_jump.trigger {
-        CursorJumpTrigger::WindowFocus => {
-          state.pending_sync.cursor_container = Some(focus_target);
-        }
-        CursorJumpTrigger::MonitorFocus => {
-          let monitor = focus_target.monitor().context("No monitor.")?;
-          state.pending_sync.cursor_container = Some(monitor.into());
-        }
-      }
-    }
+    state.pending_sync.cursor_jump = true;
   }
 
   Ok(())

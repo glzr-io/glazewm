@@ -13,7 +13,10 @@ use super::{
   Container, ContainerDto, DirectionContainer, TilingContainer,
   WindowContainer,
 };
-use crate::{common::Rect, impl_common_getters, impl_container_debug};
+use crate::{
+  common::Rect, impl_common_getters, impl_container_debug,
+  monitors::Monitor,
+};
 
 /// Root node of the container tree.
 #[derive(Clone)]
@@ -48,6 +51,14 @@ impl RootContainer {
     };
 
     Self(Rc::new(RefCell::new(root)))
+  }
+
+  pub fn monitors(&self) -> Vec<Monitor> {
+    self
+      .children()
+      .into_iter()
+      .filter_map(|container| container.as_monitor().cloned())
+      .collect()
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {

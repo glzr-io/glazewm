@@ -75,8 +75,9 @@ pub struct PendingSync {
   /// Whether window effects should be reset.
   pub reset_window_effects: bool,
 
-  /// Container to center the cursor on.
-  pub cursor_container: Option<Container>,
+  /// Whether to jump the cursor to the focused container (if enabled in
+  /// user config).
+  pub cursor_jump: bool,
 }
 
 impl WmState {
@@ -90,7 +91,7 @@ impl WmState {
         containers_to_redraw: Vec::new(),
         focus_change: false,
         reset_window_effects: false,
-        cursor_container: None,
+        cursor_jump: false,
       },
       recent_focused_container: None,
       recent_workspace_name: None,
@@ -151,12 +152,7 @@ impl WmState {
   }
 
   pub fn monitors(&self) -> Vec<Monitor> {
-    self
-      .root_container
-      .children()
-      .iter()
-      .filter_map(|container| container.as_monitor().cloned())
-      .collect()
+    self.root_container.monitors()
   }
 
   pub fn workspaces(&self) -> Vec<Workspace> {

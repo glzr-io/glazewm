@@ -136,7 +136,7 @@ impl Platform {
     Ok(())
   }
 
-  /// Find the window at the specified point in screen space.
+  /// Finds the window at the specified point in screen space.
   pub fn window_from_point(point: &Point) -> anyhow::Result<NativeWindow> {
     let point = POINT {
       x: point.x,
@@ -147,12 +147,10 @@ impl Platform {
     Ok(NativeWindow::new(handle.0))
   }
 
-  /// gets the mouse position in screen space.
+  /// Gets the mouse position in screen space.
   pub fn mouse_position() -> anyhow::Result<Point> {
     let mut point = POINT { x: 0, y: 0 };
-    unsafe {
-      GetCursorPos(&mut point)?;
-    };
+    unsafe { GetCursorPos(&mut point) }?;
 
     Ok(Point {
       x: point.x,

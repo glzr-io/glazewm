@@ -12,7 +12,7 @@ use crate::{
     DirectionContainer, SplitContainer, TilingContainer, WindowContainer,
   },
   monitors::Monitor,
-  user_config::{CursorJumpTrigger, UserConfig},
+  user_config::UserConfig,
   windows::{
     traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
   },
@@ -38,7 +38,6 @@ pub fn move_window_in_direction(
           non_tiling_window.into(),
           direction,
           state,
-          config,
         ),
         _ => Ok(()),
       }
@@ -92,7 +91,6 @@ fn move_tiling_window(
       window_to_move.into(),
       direction,
       state,
-      config,
     );
   }
 
@@ -210,7 +208,6 @@ fn move_to_workspace_in_direction(
   window_to_move: WindowContainer,
   direction: &Direction,
   state: &mut WmState,
-  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let parent = window_to_move.parent().context("No parent.")?;
   let monitor = parent.monitor().context("No monitor.")?;
@@ -257,21 +254,7 @@ fn move_to_workspace_in_direction(
       .containers_to_redraw
       .extend([workspace.into(), parent.into()]);
 
-    // Jump cursor to the focus target if enabled.
-    if config.value.general.cursor_jump.enabled
-      && window_to_move.has_focus(None)
-    {
-      match config.value.general.cursor_jump.trigger {
-        CursorJumpTrigger::WindowFocus => {
-          state.pending_sync.cursor_container =
-            Some(window_to_move.into());
-        }
-        CursorJumpTrigger::MonitorFocus => {
-          let monitor = window_to_move.monitor().context("No monitor.")?;
-          state.pending_sync.cursor_container = Some(monitor.into());
-        }
-      }
-    }
+    state.pending_sync.cursor_jump = true;
   };
 
   Ok(())
