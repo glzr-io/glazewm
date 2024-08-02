@@ -14,6 +14,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, SplitContainer, TilingContainer, WindowContainer,
   },
+  monitors::Monitor,
   user_config::UserConfig,
   windows::{
     commands::{resize_window, update_window_state},
@@ -158,8 +159,10 @@ fn on_no_target_window(
   config: &UserConfig,
   mouse_position: &Point,
 ) -> anyhow::Result<()> {
-  let target_monitor = state
-    .monitor_at_position(&mouse_position)
+  let target_monitor: Monitor = state
+    .containers_at_position(&mouse_position)
+    .into_iter()
+    .next()
     .context("couldn't get the monitor")?;
 
   let target_workspace = target_monitor
@@ -203,7 +206,7 @@ fn get_tiling_window_at_mouse_pos(
   state: &WmState,
 ) -> Option<TilingWindow> {
   state
-    .window_containers_at_position(mouse_position)
+    .containers_at_position(mouse_position)
     .into_iter()
     .filter_map(|container| match container {
       WindowContainer::TilingWindow(tiling) => Some(tiling),

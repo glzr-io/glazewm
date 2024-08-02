@@ -12,6 +12,7 @@ use crate::{
   wm_event::WmEvent,
   wm_state::WmState,
 };
+use crate::monitors::Monitor;
 
 pub fn platform_sync(
   state: &mut WmState,
@@ -146,8 +147,10 @@ fn jump_cursor(
       let target_monitor =
         focused_container.monitor().context("No monitor.")?;
 
-      let cursor_monitor =
-        state.monitor_at_position(&Platform::mouse_position()?);
+      let cursor_monitor: Option<Monitor> = state
+          .containers_at_position(&Platform::mouse_position()?)
+          .into_iter()
+          .next();
 
       cursor_monitor
         .filter(|monitor| monitor.id() != target_monitor.id())

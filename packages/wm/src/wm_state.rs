@@ -453,44 +453,20 @@ impl WmState {
       .or(Some(workspace.into()))
   }
 
-  /// Returns all window under the mouse position
-  pub fn window_containers_at_position(
-    &self,
-    position: &Point,
-  ) -> Vec<WindowContainer> {
+  /// Returns all containers of type T under the mouse position
+  pub fn containers_at_position<T>(&self, position: &Point) -> Vec<T>
+  where
+      T: TryFrom<Container> + PositionGetters,
+  {
     self
-      .root_container
-      .descendants()
-      .filter_map(|container| match container {
-        Container::TilingWindow(tiling) => {
-          Some(WindowContainer::TilingWindow(tiling))
-        }
-        Container::NonTilingWindow(non_tiling) => {
-          Some(WindowContainer::NonTilingWindow(non_tiling))
-        }
-        _ => None,
-      })
-      .filter(|c| {
-        let frame = c.to_rect();
-        frame.unwrap().contains_point(&position)
-      })
-      .collect()
-  }
-
-  /// Returns all window under the mouse position
-  pub fn monitor_at_position(&self, position: &Point) -> Option<Monitor> {
-    self
-      .root_container
-      .descendants()
-      .filter_map(|container| match container {
-        Container::Monitor(monitor) => Some(monitor),
-        _ => None,
-      })
-      .filter(|c| {
-        let frame = c.to_rect();
-        frame.unwrap().contains_point(&position)
-      })
-      .next()
+        .root_container
+        .descendants()
+        .filter_map(|container| TryFrom::try_from(container).ok())
+        .filter(|c: &T| {
+          let frame = c.to_rect();
+          frame.unwrap().contains_point(&position)
+        })
+        .collect()
   }
 }
 

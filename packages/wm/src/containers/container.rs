@@ -190,6 +190,17 @@ impl TryFrom<Container> for WindowContainer {
   }
 }
 
+impl TryFrom<Container> for Monitor{
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::Monitor(monitor) => Ok(monitor),
+      _ => Err("Cannot convert type to a `Monitor`."),
+    }
+  }
+}
+
 impl TryFrom<TilingContainer> for WindowContainer {
   type Error = &'static str;
 
