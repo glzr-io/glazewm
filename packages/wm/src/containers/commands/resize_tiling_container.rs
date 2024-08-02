@@ -1,11 +1,8 @@
 use crate::containers::{
-  traits::{CommonGetters, TilingSizeGetters},
+  traits::{CommonGetters, TilingSizeGetters, MIN_TILING_SIZE},
   TilingContainer,
 };
 
-const MIN_TILING_SIZE: f32 = 0.01;
-
-// TODO: Rename to `set_tiling_container_size`.
 pub fn resize_tiling_container(
   container_to_resize: &TilingContainer,
   target_size: f32,
@@ -29,50 +26,22 @@ pub fn resize_tiling_container(
   let size_delta = clamped_target_size - container_to_resize.tiling_size();
   container_to_resize.set_tiling_size(clamped_target_size);
 
-  let available_size = available_size(&tiling_siblings);
+  // Get available tiling size amongst siblings.
+  let available_size =
+    tiling_siblings.iter().fold(0.0, |sum, container| {
+      sum + container.tiling_size() - MIN_TILING_SIZE
+    });
 
   // Distribute the available tiling size amongst its siblings.
   for sibling in &tiling_siblings {
-    let sibling_size_delta = sibling_size_delta(
-      &sibling,
-      tiling_siblings.len(),
-      size_delta,
-      available_size,
-    );
+    // Get percentage of resize that affects this container. Siblings are
+    // resized in proportion to their current size (i.e. larger containers
+    // are shrunk more).
+    let resize_factor =
+      (sibling.tiling_size() - MIN_TILING_SIZE) / available_size;
 
-    sibling.set_tiling_size(sibling.tiling_size() - sibling_size_delta);
+    let size_delta = resize_factor * size_delta;
+
+    sibling.set_tiling_size(sibling.tiling_size() - size_delta);
   }
-}
-
-/// Gets available tiling size amongst siblings.
-fn available_size(containers: &Vec<TilingContainer>) -> f32 {
-  containers.iter().fold(0.0, |sum, container| {
-    sum + container.tiling_size() - MIN_TILING_SIZE
-  })
-}
-
-/// Gets the size delta for a sibling of the resized container.
-fn sibling_size_delta(
-  sibling_to_resize: &TilingContainer,
-  sibling_count: usize,
-  size_delta: f32,
-  available_size: f32,
-) -> f32 {
-  let con_available_size =
-    sibling_to_resize.tiling_size() - MIN_TILING_SIZE;
-
-  // Get percentage of resize that affects this container. When shrinking
-  // sibling containers, they are decreased in proportion to their size
-  // (i.e. larger containers are shrunk more). When sizing up sibling
-  // containers, they are scaled up equally.
-  //
-  // The available tiling size can be 0 here when the main container to
-  // resize is shrunk from the max tiling size.
-  let resize_factor = if available_size == 0.0 || size_delta < 0.0 {
-    1.0 / sibling_count as f32
-  } else {
-    con_available_size / available_size
-  };
-
-  resize_factor * size_delta
 }

@@ -2,7 +2,7 @@ use anyhow::Context;
 
 use super::flatten_split_container;
 use crate::containers::{
-  traits::{CommonGetters, TilingSizeGetters},
+  traits::{CommonGetters, TilingSizeGetters, MIN_TILING_SIZE},
   Container,
 };
 
@@ -38,13 +38,19 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
   if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
     let tiling_siblings = parent.tiling_children().collect::<Vec<_>>();
 
-    let tiling_size_increment =
-      child_to_remove.tiling_size() / tiling_siblings.len() as f32;
+    // TODO: Share logic with `resize_tiling_container`.
+    let available_size =
+      tiling_siblings.iter().fold(0.0, |sum, container| {
+        sum + container.tiling_size() - MIN_TILING_SIZE
+      });
 
     // Adjust size of the siblings based on the freed up space.
     for sibling in &tiling_siblings {
-      sibling
-        .set_tiling_size(sibling.tiling_size() + tiling_size_increment);
+      let resize_factor =
+        (sibling.tiling_size() - MIN_TILING_SIZE) / available_size;
+
+      let size_delta = resize_factor * child_to_remove.tiling_size();
+      sibling.set_tiling_size(sibling.tiling_size() + size_delta);
     }
   }
 

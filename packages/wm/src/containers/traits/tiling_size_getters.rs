@@ -7,6 +7,8 @@ use crate::{
   containers::{Container, DirectionContainer, TilingContainer},
 };
 
+pub const MIN_TILING_SIZE: f32 = 0.01;
+
 #[delegatable_trait]
 pub trait TilingSizeGetters: CommonGetters {
   fn tiling_size(&self) -> f32;
