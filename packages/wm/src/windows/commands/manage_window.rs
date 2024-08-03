@@ -179,7 +179,13 @@ fn window_state_to_create(
     return Ok(WindowState::Minimized);
   }
 
-  if native_window.is_fullscreen(&nearest_monitor.to_rect()?)? {
+  let monitor_rect = if config.has_outer_gaps() {
+    nearest_monitor.native().working_rect()?.clone()
+  } else {
+    nearest_monitor.to_rect()?
+  };
+
+  if native_window.is_fullscreen(&monitor_rect)? {
     return Ok(WindowState::Fullscreen(
       config
         .value
