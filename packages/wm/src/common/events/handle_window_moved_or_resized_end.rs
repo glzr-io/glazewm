@@ -34,8 +34,18 @@ pub fn handle_window_moved_or_resized_end(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
+
   if let Some(window) = found_window {
     // TODO: Log window details.
+
+    let parent = window.parent().context("No parent.")?;
+
+    // Snap window to its original position if it's the only window in the
+    // workspace.
+    if parent.is_workspace() && window.tiling_siblings().count() == 0 {
+      state.pending_sync.containers_to_redraw.push(window.into());
+      return Ok(());
+    }
 
     let new_rect = window.native().refresh_frame_position()?;
     let old_rect = window.to_rect()?;
