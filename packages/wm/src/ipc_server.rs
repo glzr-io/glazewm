@@ -24,6 +24,7 @@ use crate::{
   wm::WindowManager,
   wm_event::WmEvent,
 };
+use crate::containers::WindowContainer;
 
 pub const DEFAULT_IPC_PORT: u32 = 6123;
 
@@ -265,9 +266,9 @@ impl IpcServer {
           ClientResponseData::Windows(WindowsData {
             windows: wm
               .state
-              .windows()
-              .into_iter()
-              .map(|window| window.to_dto())
+              .root_container
+              .descendants_of_type()
+              .map(|window: WindowContainer| window.to_dto())
               .try_collect()?,
           })
         }

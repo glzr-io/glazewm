@@ -14,6 +14,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, SplitContainer, TilingContainer, WindowContainer,
   },
+  monitors::Monitor,
   user_config::UserConfig,
   windows::{
     commands::{resize_window, update_window_state},
@@ -153,26 +154,24 @@ fn on_no_target_window(
   config: &UserConfig,
   mouse_position: &Point,
 ) -> anyhow::Result<()> {
-  let target_monitor = state
-    .monitor_at_position(&mouse_position)
+  let target_monitor: Monitor = state
+    .containers_at_position(&mouse_position)
+    .into_iter()
+    .next()
     .context("couldn't get the monitor")?;
 
   let target_workspace = target_monitor
     .displayed_workspace()
     .context("couldn't get the workspace")?;
 
-  let visible_tiling_window_count = target_workspace.descendants().fold(
-    0,
-    |acc, container| match container {
-      Container::TilingWindow(tiling_window) => {
-        match tiling_window.display_state() {
-          DisplayState::Shown | DisplayState::Showing => acc + 1,
-          _ => acc,
-        }
+  let visible_tiling_window_count = target_workspace
+    .descendants_of_type::<TilingWindow>()
+    .fold(0, |acc, tiling_window| {
+      match tiling_window.display_state() {
+        DisplayState::Shown | DisplayState::Showing => acc + 1,
+        _ => acc,
       }
-      _ => acc,
-    },
-  );
+    });
 
   if visible_tiling_window_count == 0 {
     move_container_within_tree(
@@ -200,7 +199,7 @@ fn get_tiling_window_at_mouse_pos(
   state: &WmState,
 ) -> Option<TilingWindow> {
   state
-    .window_containers_at_position(mouse_position)
+    .containers_at_position(mouse_position)
     .into_iter()
     .filter_map(|container| match container {
       WindowContainer::TilingWindow(tiling) => Some(tiling),
@@ -228,9 +227,9 @@ fn move_window_to_target(
   )?;
 
   let moved_window = state
-    .windows()
-    .iter()
-    .find(|w| w.id() == moved_window.id())
+    .root_container
+    .descendants_of_type()
+    .find(|w: &WindowContainer| w.id() == moved_window.id())
     .context("couldn't find the new tiled window")?
     .as_tiling_window()
     .context("window is not a tiled window")?

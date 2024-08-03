@@ -143,6 +143,17 @@ impl TryFrom<Container> for TilingContainer {
   }
 }
 
+impl TryFrom<Container> for TilingWindow {
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::TilingWindow(tiling_window) => Ok(tiling_window),
+      _ => Err("Cannot convert type to `TilingContainer`."),
+    }
+  }
+}
+
 impl PartialEq for TilingContainer {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()
@@ -186,6 +197,17 @@ impl TryFrom<Container> for WindowContainer {
         Ok(WindowContainer::NonTilingWindow(c))
       }
       _ => Err("Cannot convert type to a `WindowContainer`."),
+    }
+  }
+}
+
+impl TryFrom<Container> for Monitor{
+  type Error = &'static str;
+
+  fn try_from(container: Container) -> Result<Self, Self::Error> {
+    match container {
+      Container::Monitor(monitor) => Ok(monitor),
+      _ => Err("Cannot convert type to a `Monitor`."),
     }
   }
 }

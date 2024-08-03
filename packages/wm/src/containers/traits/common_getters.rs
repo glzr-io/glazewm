@@ -2,7 +2,7 @@ use std::{
   cell::{Ref, RefMut},
   collections::VecDeque,
 };
-
+use std::marker::PhantomData;
 use ambassador::delegatable_trait;
 use uuid::Uuid;
 
@@ -115,6 +115,16 @@ pub trait CommonGetters {
     }
   }
 
+  fn descendants_of_type<T>(&self) -> ContainerIterOfType<T, Descendants>
+  where
+    T: TryFrom<Container>,
+  {
+    ContainerIterOfType {
+      iterator: self.descendants(),
+      phantom_data: PhantomData,
+    }
+  }
+
   fn self_and_descendants(&self) -> Descendants {
     let mut stack = self.children();
     stack.push_front(self.as_container());
@@ -222,6 +232,16 @@ pub trait CommonGetters {
     }
   }
 
+  fn ancestors_of_type<T>(&self) -> ContainerIterOfType<T, Ancestors>
+  where
+    T: TryFrom<Container>,
+  {
+    ContainerIterOfType {
+     iterator:self.ancestors(),
+      phantom_data: PhantomData,
+    }
+  }
+
   fn self_and_ancestors(&self) -> Ancestors {
     Ancestors {
       start: Some(self.as_container()),
@@ -301,6 +321,33 @@ impl Iterator for Ancestors {
       self.start = container.parent().map(Into::into);
       container
     })
+  }
+}
+
+/// An iterator over descendants of type T.
+pub struct ContainerIterOfType<T, I>
+where
+    T: TryFrom<Container>,
+    I: Iterator<Item = Container>,
+{
+  phantom_data: PhantomData<T>,
+  iterator: I,
+}
+
+impl<T, I> Iterator for ContainerIterOfType<T, I>
+where
+    T: TryFrom<Container>,
+    I: Iterator<Item = Container>,
+{
+  type Item = T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    while let Some(container) = self.iterator.next() {
+      if let Ok(item) = T::try_from(container) {
+        return Some(item);
+      }
+    }
+    None
   }
 }
 
