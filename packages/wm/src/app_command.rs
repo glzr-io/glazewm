@@ -3,7 +3,7 @@ use std::{iter, path::PathBuf};
 use anyhow::{bail, Context};
 use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
-use tracing::Level;
+use tracing::{warn, Level};
 use uuid::Uuid;
 
 use crate::{
@@ -278,7 +278,14 @@ impl InvokeCommand {
       }
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
-          Ok(window) => window.native().close(),
+          Ok(window) => {
+            // Window handle might no longer be valid here.
+            if let Err(err) = window.native().close() {
+              warn!("Failed to close window: {:?}", err);
+            }
+
+            Ok(())
+          }
           _ => Ok(()),
         }
       }
