@@ -53,34 +53,34 @@ pub fn handle_window_moved_or_resized_end(
     let width_delta = new_rect.width() - old_rect.width();
     let height_delta = new_rect.height() - old_rect.height();
 
-    if let WindowContainer::NonTilingWindow(window) = window {
-      let has_window_moved = matches!((width_delta, height_delta), (0, 0));
-
-      if has_window_moved {
-        window_moved_end(window, state, config)?;
+    match &window {
+      WindowContainer::NonTilingWindow(window) => {
+        if let Some(active_drag) = window.active_drag() {
+          if active_drag.is_from_tiling
+            && active_drag.operation == Some(ActiveDragOperation::Moving)
+          {
+            // We continue only if it's a temporary floating window and if
+            // the window got moved and not resized.
+            window_moved_end(window.clone(), state, config)?;
+          }
+        }
       }
-    } else if let WindowContainer::TilingWindow(window) = window {
-      window_resized_end(window, state, width_delta, height_delta)?;
+      WindowContainer::TilingWindow(window) => {
+        info!("Tiling window resized");
+
+        resize_window(
+          window.clone().into(),
+          Some(LengthValue::from_px(width_delta)),
+          Some(LengthValue::from_px(height_delta)),
+          state,
+        )?;
+      }
     }
+
+    window.set_active_drag(None);
   }
 
   Ok(())
-}
-
-/// Handles window resize events
-fn window_resized_end(
-  window: TilingWindow,
-  state: &mut WmState,
-  width_delta: i32,
-  height_delta: i32,
-) -> anyhow::Result<()> {
-  info!("Tiling window resized");
-  resize_window(
-    window.clone().into(),
-    Some(LengthValue::from_px(width_delta)),
-    Some(LengthValue::from_px(height_delta)),
-    state,
-  )
 }
 
 /// Handles window move events
@@ -89,21 +89,7 @@ fn window_moved_end(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // We continue only if it's a temporary Floating window and if the window
-  // got moved and not resized
-  if let Some(active_drag) = moved_window.active_drag() {
-    if active_drag.is_from_tiling == false
-      || !matches!(
-        active_drag.operation,
-        Some(ActiveDragOperation::Moving)
-      )
-    {
-      moved_window.set_active_drag(None);
-      return Ok(());
-    }
-  }
-  info!("Tiling window drag end event");
-
+  info!("Tiling window drag end event.");
   let mouse_position = Platform::mouse_position()?;
 
   let window_under_cursor = match get_tiling_window_at_mouse_pos(
@@ -150,7 +136,6 @@ fn window_moved_end(
     tiling_direction,
     new_window_position,
   )?;
-  moved_window.set_active_drag(None);
 
   state.pending_sync.containers_to_redraw.push(
     window_under_cursor
@@ -197,12 +182,14 @@ fn on_no_target_window(
       state,
     )?;
   }
+
   update_window_state(
     moved_window.as_window_container().unwrap(),
     WindowState::Tiling,
     state,
     config,
   )?;
+
   return Ok(());
 }
 

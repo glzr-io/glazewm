@@ -4,15 +4,13 @@ use tracing::info;
 use crate::{
   common::{platform::NativeWindow, Rect},
   containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-    },
+    commands::{flatten_split_container, move_container_within_tree},
     traits::{CommonGetters, PositionGetters},
-    Container, WindowContainer,
+    WindowContainer,
   },
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
-    commands::update_window_state, traits::WindowGetters,
+    commands::update_window_state, traits::WindowGetters, ActiveDrag,
     ActiveDragOperation, TilingWindow, WindowState,
   },
   wm_state::WmState,
@@ -30,14 +28,6 @@ pub fn handle_window_location_changed(
     let frame_position: Rect = window.native().refresh_frame_position()?;
     let old_frame_position: Rect = window.to_rect()?;
 
-    update_window_operation(
-      state,
-      config,
-      &window,
-      &frame_position,
-      &old_frame_position,
-    )?;
-
     let is_minimized = window.native().refresh_is_minimized()?;
 
     let old_is_maximized = window.native().is_maximized()?;
@@ -46,6 +36,17 @@ pub fn handle_window_location_changed(
     let nearest_monitor = state
       .nearest_monitor(&window.native())
       .context("Failed to get workspace of nearest monitor.")?;
+
+    // TODO: Include this as part of the `match` statement below.
+    if let Some(tiling_window) = window.as_tiling_window() {
+      update_drag_state(
+        tiling_window.clone(),
+        &frame_position,
+        &old_frame_position,
+        state,
+        config,
+      )?;
+    }
 
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
@@ -156,80 +157,56 @@ pub fn handle_window_location_changed(
 /// This function determines whether a window is being moved or resized and
 /// updates its operation state accordingly. If the window is being moved,
 /// it's set to floating mode.
-fn update_window_operation(
-  state: &mut WmState,
-  config: &UserConfig,
-  window: &WindowContainer,
+fn update_drag_state(
+  window: TilingWindow,
   frame_position: &Rect,
   old_frame_position: &Rect,
+  state: &mut WmState,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if let Some(tiling_window) = window.as_tiling_window() {
-    if let Some(mut active_drag) = tiling_window.active_drag() {
-      if active_drag.operation.is_none()
-        && frame_position != old_frame_position
-      {
-        if frame_position.height() == old_frame_position.height()
-          && frame_position.width() == old_frame_position.width()
-        {
-          active_drag.operation = Some(ActiveDragOperation::Moving);
-          tiling_window.set_active_drag(Some(active_drag));
-          set_into_floating(tiling_window.clone(), state, config)?;
-        } else {
-          active_drag.operation = Some(ActiveDragOperation::Resizing);
-          tiling_window.set_active_drag(Some(active_drag));
+  if let Some(active_drag) = window.active_drag() {
+    let should_ignore = active_drag.operation.is_some()
+      || frame_position == old_frame_position;
+
+    if should_ignore {
+      return Ok(());
+    }
+
+    let is_move = frame_position.height() == old_frame_position.height()
+      && frame_position.width() == old_frame_position.width();
+
+    let operation = match is_move {
+      true => ActiveDragOperation::Moving,
+      false => ActiveDragOperation::Resizing,
+    };
+
+    window.set_active_drag(Some(ActiveDrag {
+      operation: Some(operation),
+      ..active_drag
+    }));
+
+    // Transition window to be floating while it's being dragged.
+    if is_move {
+      let parent = window.parent().context("No parent")?;
+
+      update_window_state(
+        window.into(),
+        WindowState::Floating(FloatingStateConfig {
+          centered: false,
+          shown_on_top: true,
+        }),
+        state,
+        config,
+      )?;
+
+      // Flatten the parent split container if it only contains the window.
+      if let Some(split_parent) = parent.as_split() {
+        if split_parent.child_count() == 1 {
+          flatten_split_container(split_parent.clone())?;
         }
       }
     }
   }
-  Ok(())
-}
 
-/// Converts a tiling window to a floating window and updates the window
-/// hierarchy.
-///
-/// This function handles the process of transitioning a tiling window to a
-/// floating state, including necessary adjustments to the window hierarchy
-/// and updating the window's state.
-fn set_into_floating(
-  moved_window: TilingWindow,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  let moved_window_parent = moved_window
-    .parent()
-    .context("Tiling window has no parent")?;
-
-  if let Some(Container::Split(split)) = moved_window.parent() {
-    if split.child_count() == 2 {
-      let split_parent = split.parent().unwrap();
-      let split_index = split.index();
-      let children = split.children();
-
-      // Looping in reversed order to reattach them in the right order
-      for child in children.into_iter().rev() {
-        detach_container(child.clone())?;
-        attach_container(&child, &split_parent, Some(split_index))?;
-      }
-    }
-  }
-
-  if let Some(mut active_drag) = moved_window.active_drag() {
-    active_drag.is_from_tiling = true;
-    moved_window.set_active_drag(Some(active_drag));
-  }
-
-  update_window_state(
-    moved_window.as_window_container().unwrap(),
-    WindowState::Floating(FloatingStateConfig {
-      centered: true,
-      shown_on_top: true,
-    }),
-    state,
-    config,
-  )?;
-  state
-    .pending_sync
-    .containers_to_redraw
-    .push(moved_window_parent);
   Ok(())
 }

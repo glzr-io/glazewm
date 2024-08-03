@@ -1,6 +1,5 @@
 use crate::{
   common::platform::NativeWindow,
-  containers::WindowContainer,
   windows::{traits::WindowGetters, ActiveDrag},
   wm_state::WmState,
 };
@@ -13,8 +12,11 @@ pub fn handle_window_moved_or_resized_start(
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(&native_window);
 
-  if let Some(WindowContainer::TilingWindow(moved_window)) = found_window {
-    moved_window.set_active_drag(Some(ActiveDrag::default()));
+  if let Some(found_window) = found_window {
+    found_window.set_active_drag(Some(ActiveDrag {
+      operation: None,
+      is_from_tiling: found_window.is_tiling_window(),
+    }));
   }
 
   Ok(())
