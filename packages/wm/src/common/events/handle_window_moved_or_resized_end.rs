@@ -1,24 +1,21 @@
 use anyhow::Context;
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::{
   common::{
     platform::{NativeWindow, Platform},
-    LengthValue, Point, TilingDirection,
+    LengthValue, TilingDirection,
   },
   containers::{
-    commands::{
-      attach_container, detach_container, move_container_within_tree,
-      wrap_in_split_container,
-    },
+    commands::move_container_within_tree,
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    Container, SplitContainer, TilingContainer, WindowContainer,
+    DirectionContainer, TilingContainer, WindowContainer,
   },
   user_config::UserConfig,
   windows::{
     commands::{resize_window, update_window_state},
     traits::WindowGetters,
-    ActiveDragOperation, NonTilingWindow, TilingWindow, WindowState,
+    ActiveDragOperation, NonTilingWindow, WindowState,
   },
   wm_state::WmState,
 };
@@ -52,7 +49,7 @@ pub fn handle_window_moved_or_resized_end(
           {
             // Window is a temporary floating window that should be
             // reverted back to tiling.
-            window_moved_end(window.clone(), state, config)?;
+            drop_as_tiling_window(window.clone(), state, config)?;
           }
         }
       }
@@ -89,254 +86,108 @@ pub fn handle_window_moved_or_resized_end(
   Ok(())
 }
 
-/// Handles window move events
-fn window_moved_end(
+/// Handles transition from temporary floating window to tiling window on
+/// drag end.
+fn drop_as_tiling_window(
   moved_window: NonTilingWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   info!("Tiling window drag end event.");
-  let mouse_position = Platform::mouse_position()?;
 
-  let window_under_cursor = match tiling_window_at_mouse_pos(
-    &moved_window,
-    &mouse_position,
-    state,
-  ) {
-    Some(value) => value,
-    None => {
-      update_window_state(
-        moved_window.clone().into(),
-        WindowState::Tiling,
-        state,
-        config,
-      )?;
+  let mouse_pos = Platform::mouse_position()?;
 
-      return Ok(());
+  // Get the workspace, split containers, and other windows under the
+  // dragged window.
+  let containers_at_pos = state
+    .containers_at_point(&mouse_pos)
+    .into_iter()
+    .filter(|container| container.id() != moved_window.id());
+
+  let workspace = moved_window.workspace().context("No workspace.")?;
+
+  let deepest_direction_container: DirectionContainer = containers_at_pos
+    .filter_map(|container| container.as_direction_container().ok())
+    .fold(workspace.into(), |acc, container| {
+      if container.ancestors().count() > acc.ancestors().count() {
+        container
+      } else {
+        acc
+      }
+    });
+
+  // If the direction container has no children (i.e. an empty workspace),
+  // then add the window directly.
+  if deepest_direction_container.tiling_children().count() == 0 {
+    update_window_state(
+      moved_window.clone().into(),
+      WindowState::Tiling,
+      state,
+      config,
+    )?;
+
+    return Ok(());
+  }
+
+  let tiling_direction = deepest_direction_container.tiling_direction();
+
+  let nearest_container = deepest_direction_container
+    .children()
+    .into_iter()
+    .filter_map(|container| container.as_tiling_container().ok())
+    .try_fold(None, |acc: Option<TilingContainer>, container| {
+      if let Some(acc) = acc {
+        let is_nearer = match tiling_direction {
+          TilingDirection::Horizontal => {
+            (acc.to_rect()?.x() - mouse_pos.x).abs()
+              < (container.to_rect()?.x() - mouse_pos.x).abs()
+          }
+          TilingDirection::Vertical => {
+            (acc.to_rect()?.y() - mouse_pos.y).abs()
+              < (container.to_rect()?.y() - mouse_pos.y).abs()
+          }
+        };
+
+        anyhow::Ok(Some(if is_nearer { acc } else { container }))
+      } else {
+        anyhow::Ok(Some(container))
+      }
+    })?
+    .context("No nearest container.")?;
+
+  let target_index = match tiling_direction {
+    TilingDirection::Horizontal => {
+      match mouse_pos.x < nearest_container.to_rect()?.center_point().x {
+        true => nearest_container.index(),
+        false => nearest_container.index() + 1,
+      }
+    }
+    TilingDirection::Vertical => {
+      match mouse_pos.y < nearest_container.to_rect()?.center_point().y {
+        true => nearest_container.index(),
+        false => nearest_container.index() + 1,
+      }
     }
   };
 
-  debug!(
-    "Moved window: {:?} \n Target window: {:?}",
-    moved_window.native().process_name(),
-    window_under_cursor.native().process_name(),
-  );
-
-  let tiling_direction = get_split_direction(&window_under_cursor)?;
-  let new_window_position = get_drop_position(
-    &mouse_position,
-    &window_under_cursor,
-    &tiling_direction,
-  )?;
-
-  let parent = window_under_cursor
-    .direction_container()
-    .context("The window has no direction container")?;
-  let parent_tiling_direction: TilingDirection = parent.tiling_direction();
-
-  move_window_to_target(
-    state,
-    config,
-    moved_window.clone(),
-    window_under_cursor.clone(),
-    &parent.into(),
-    parent_tiling_direction,
-    tiling_direction,
-    new_window_position,
-  )?;
-
-  state.pending_sync.containers_to_redraw.push(
-    window_under_cursor
-      .workspace()
-      .context("No workspace")?
-      .into(),
-  );
-
-  Ok(())
-}
-
-/// Gets the window under the mouse position excluding the dragged window.
-fn tiling_window_at_mouse_pos(
-  exclude_window: &NonTilingWindow,
-  mouse_position: &Point,
-  state: &WmState,
-) -> Option<TilingWindow> {
-  state
-    .window_containers_at_position(mouse_position)
-    .into_iter()
-    .filter_map(|window| window.as_tiling_window().cloned())
-    .filter(|window| window.id() != exclude_window.id())
-    .next()
-}
-
-fn move_window_to_target(
-  state: &mut WmState,
-  config: &UserConfig,
-  moved_window: NonTilingWindow,
-  target_window: TilingWindow,
-  target_window_parent: &Container,
-  current_tiling_direction: TilingDirection,
-  new_tiling_direction: TilingDirection,
-  drop_position: DropPosition,
-) -> anyhow::Result<()> {
-  update_window_state(
-    moved_window.as_window_container().unwrap(),
+  let moved_window = update_window_state(
+    moved_window.clone().into(),
     WindowState::Tiling,
     state,
     config,
   )?;
 
-  let moved_window = state
-    .windows()
-    .iter()
-    .find(|w| w.id() == moved_window.id())
-    .context("couldn't find the new tiled window")?
-    .as_tiling_window()
-    .context("window is not a tiled window")?
-    .clone();
-
-  // TODO: We can optimize that by not detaching and attaching the window
-  // Little trick to get the right index
-  detach_container(Container::TilingWindow(moved_window.clone()))?;
-  let target_window_index = target_window.index();
-  attach_container(
-    &Container::TilingWindow(moved_window.clone()),
-    target_window_parent,
-    None,
+  move_container_within_tree(
+    moved_window.into(),
+    deepest_direction_container.clone().into(),
+    target_index,
+    state,
   )?;
 
-  let target_index = match drop_position {
-    DropPosition::Start => target_window_index,
-    DropPosition::End => target_window_index + 1,
-  };
-
-  match (new_tiling_direction, current_tiling_direction) {
-    (TilingDirection::Horizontal, TilingDirection::Horizontal)
-    | (TilingDirection::Vertical, TilingDirection::Vertical) => {
-      move_container_within_tree(
-        Container::TilingWindow(moved_window.clone()),
-        target_window_parent.clone(),
-        target_index,
-        state,
-      )?;
-    }
-    (TilingDirection::Horizontal, TilingDirection::Vertical) => {
-      create_split_container(
-        TilingDirection::Horizontal,
-        config,
-        moved_window,
-        target_window,
-        drop_position,
-        &target_window_parent,
-      )?;
-    }
-    (TilingDirection::Vertical, TilingDirection::Horizontal) => {
-      create_split_container(
-        TilingDirection::Vertical,
-        config,
-        moved_window,
-        target_window,
-        drop_position,
-        &target_window_parent,
-      )?;
-    }
-  }
+  state
+    .pending_sync
+    .containers_to_redraw
+    .push(deepest_direction_container.into());
 
   Ok(())
-}
-
-/// Creates a split container and moves the target window and the moved
-/// window inside at the dropped position
-fn create_split_container(
-  tiling_direction: TilingDirection,
-  config: &UserConfig,
-  moved_window: TilingWindow,
-  target_window: TilingWindow,
-  dropped_position: DropPosition,
-  parent: &Container,
-) -> anyhow::Result<()> {
-  let target_index_inside_split_container = match dropped_position {
-    DropPosition::Start => 0,
-    DropPosition::End => 1,
-  };
-
-  let split_container = SplitContainer::new(
-    tiling_direction,
-    config.value.gaps.inner_gap.clone(),
-  );
-
-  let mut split_container_children =
-    vec![TilingContainer::TilingWindow(target_window)];
-
-  split_container_children.insert(
-    target_index_inside_split_container,
-    TilingContainer::TilingWindow(moved_window),
-  );
-
-  wrap_in_split_container(
-    split_container,
-    parent.clone(),
-    split_container_children,
-  )?;
-  Ok(())
-}
-
-/// Represents where the window was dropped over another one.
-/// It depends on the tiling direction.
-///
-/// [DropPosition::Start] can either be the top or left side.
-/// [DropPosition::Stop] can either be bottom or right side.
-#[derive(Debug)]
-enum DropPosition {
-  Start,
-  End,
-}
-
-/// Determines the drop position for a window based on the mouse position
-/// and tiling direction.
-///
-/// This function calculates whether a window should be dropped at the
-/// start or end of a tiling layout, depending on the mouse position
-/// relative to the middle of the target window.
-fn get_drop_position(
-  mouse_position: &Point,
-  window: &TilingWindow,
-  tiling_direction: &TilingDirection,
-) -> anyhow::Result<DropPosition> {
-  let rect = window.to_rect()?;
-
-  match tiling_direction {
-    TilingDirection::Vertical => {
-      let middle = rect.top + (rect.height() / 2);
-      if mouse_position.y < middle {
-        Ok(DropPosition::Start)
-      } else {
-        Ok(DropPosition::End)
-      }
-    }
-    TilingDirection::Horizontal => {
-      let middle = rect.left + (rect.width() / 2);
-      if mouse_position.x < middle {
-        Ok(DropPosition::Start)
-      } else {
-        Ok(DropPosition::End)
-      }
-    }
-  }
-}
-
-/// Determines the optimal split direction for a given window.
-///
-/// This function decides whether a window should be split vertically or
-/// horizontally based on its current dimensions.
-fn get_split_direction(
-  window: &TilingWindow,
-) -> anyhow::Result<TilingDirection> {
-  let rect = window.to_rect()?;
-
-  if rect.height() > rect.width() {
-    Ok(TilingDirection::Vertical)
-  } else {
-    Ok(TilingDirection::Horizontal)
-  }
 }
