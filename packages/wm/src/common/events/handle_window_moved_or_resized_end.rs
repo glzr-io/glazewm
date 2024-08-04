@@ -4,7 +4,7 @@ use tracing::{debug, info};
 use crate::{
   common::{
     platform::{NativeWindow, Platform},
-    DisplayState, LengthValue, Point, TilingDirection,
+    LengthValue, Point, TilingDirection,
   },
   containers::{
     commands::{
@@ -38,15 +38,6 @@ pub fn handle_window_moved_or_resized_end(
   if let Some(window) = found_window {
     // TODO: Log window details.
 
-    let parent = window.parent().context("No parent.")?;
-
-    // Snap window to its original position if it's the only window in the
-    // workspace.
-    if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-      state.pending_sync.containers_to_redraw.push(window.into());
-      return Ok(());
-    }
-
     let new_rect = window.native().refresh_frame_position()?;
     let old_rect = window.to_rect()?;
 
@@ -59,8 +50,8 @@ pub fn handle_window_moved_or_resized_end(
           if active_drag.is_from_tiling
             && active_drag.operation == Some(ActiveDragOperation::Moving)
           {
-            // We continue only if it's a temporary floating window and if
-            // the window got moved and not resized.
+            // Window is a temporary floating window that should be
+            // reverted back to tiling.
             window_moved_end(window.clone(), state, config)?;
           }
         }
@@ -68,12 +59,27 @@ pub fn handle_window_moved_or_resized_end(
       WindowContainer::TilingWindow(window) => {
         info!("Tiling window resized");
 
+        let parent = window.parent().context("No parent.")?;
+
+        // Snap window to its original position if it's the only window in
+        // the workspace.
+        if parent.is_workspace() && window.tiling_siblings().count() == 0 {
+          state
+            .pending_sync
+            .containers_to_redraw
+            .push(window.clone().into());
+
+          return Ok(());
+        }
+
         resize_window(
           window.clone().into(),
           Some(LengthValue::from_px(width_delta)),
           Some(LengthValue::from_px(height_delta)),
           state,
         )?;
+
+        state.pending_sync.containers_to_redraw.push(parent);
       }
     }
 
@@ -92,19 +98,21 @@ fn window_moved_end(
   info!("Tiling window drag end event.");
   let mouse_position = Platform::mouse_position()?;
 
-  let window_under_cursor = match get_tiling_window_at_mouse_pos(
+  let window_under_cursor = match tiling_window_at_mouse_pos(
     &moved_window,
     &mouse_position,
     state,
   ) {
     Some(value) => value,
     None => {
-      return on_no_target_window(
-        &moved_window,
+      update_window_state(
+        moved_window.clone().into(),
+        WindowState::Tiling,
         state,
         config,
-        &mouse_position,
-      );
+      )?;
+
+      return Ok(());
     }
   };
 
@@ -147,54 +155,8 @@ fn window_moved_end(
   Ok(())
 }
 
-fn on_no_target_window(
-  moved_window: &NonTilingWindow,
-  state: &mut WmState,
-  config: &UserConfig,
-  mouse_position: &Point,
-) -> anyhow::Result<()> {
-  let target_monitor = state
-    .monitor_at_position(&mouse_position)
-    .context("couldn't get the monitor")?;
-
-  let target_workspace = target_monitor
-    .displayed_workspace()
-    .context("couldn't get the workspace")?;
-
-  let visible_tiling_window_count = target_workspace.descendants().fold(
-    0,
-    |acc, container| match container {
-      Container::TilingWindow(tiling_window) => {
-        match tiling_window.display_state() {
-          DisplayState::Shown | DisplayState::Showing => acc + 1,
-          _ => acc,
-        }
-      }
-      _ => acc,
-    },
-  );
-
-  if visible_tiling_window_count == 0 {
-    move_container_within_tree(
-      moved_window.clone().into(),
-      target_workspace.into(),
-      0,
-      state,
-    )?;
-  }
-
-  update_window_state(
-    moved_window.as_window_container().unwrap(),
-    WindowState::Tiling,
-    state,
-    config,
-  )?;
-
-  return Ok(());
-}
-
-/// Return the window under the mouse position excluding the dragged window
-fn get_tiling_window_at_mouse_pos(
+/// Gets the window under the mouse position excluding the dragged window.
+fn tiling_window_at_mouse_pos(
   exclude_window: &NonTilingWindow,
   mouse_position: &Point,
   state: &WmState,
@@ -202,11 +164,8 @@ fn get_tiling_window_at_mouse_pos(
   state
     .window_containers_at_position(mouse_position)
     .into_iter()
-    .filter_map(|container| match container {
-      WindowContainer::TilingWindow(tiling) => Some(tiling),
-      _ => None,
-    })
-    .filter(|window: &TilingWindow| window.id() != exclude_window.id())
+    .filter_map(|window| window.as_tiling_window().cloned())
+    .filter(|window| window.id() != exclude_window.id())
     .next()
 }
 
