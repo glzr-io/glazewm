@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::WindowState;
+use super::{ActiveDrag, WindowState};
 use crate::common::{DisplayState, Rect, RectDelta};
 
 /// User-friendly representation of a tiling or non-tiling window.
@@ -27,4 +27,5 @@ pub struct WindowDto {
   pub title: String,
   pub class_name: String,
   pub process_name: String,
+  pub active_drag: Option<ActiveDrag>,
 }

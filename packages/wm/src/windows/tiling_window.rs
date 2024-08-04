@@ -122,6 +122,7 @@ impl TilingWindow {
       title: self.native().title()?,
       class_name: self.native().class_name()?,
       process_name: self.native().process_name()?,
+      active_drag: self.active_drag(),
     }))
   }
 }
