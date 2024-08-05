@@ -48,17 +48,16 @@ pub fn handle_window_location_changed(
       )?;
     }
 
+    let monitor_rect = if config.has_outer_gaps() {
+      nearest_monitor.native().working_rect()?.clone()
+    } else {
+      nearest_monitor.to_rect()?
+    };
+
+    let is_fullscreen = window.native().is_fullscreen(&monitor_rect)?;
+
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
-        let monitor_rect = if config.has_outer_gaps() {
-          nearest_monitor.native().working_rect()?.clone()
-        } else {
-          nearest_monitor.to_rect()?
-        };
-
-        let is_fullscreen =
-          window.native().is_fullscreen(&monitor_rect)?;
-
         // A fullscreen window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
@@ -93,9 +92,7 @@ pub fn handle_window_location_changed(
         // Update the window to be fullscreen if there's been a change in
         // maximized state or if the window is now fullscreen.
         if (is_maximized && old_is_maximized != is_maximized)
-          || window
-            .native()
-            .is_fullscreen(nearest_monitor.native().working_rect()?)?
+          || is_fullscreen
         {
           info!("Window fullscreened");
 
