@@ -1,9 +1,10 @@
 <div align="center">
-  <img src="./resources/assets/logo.svg" width="230" alt="GlazeWM logo" />
-  <br>
-  <br>
 
 > V3 is finally out - check out the changelog [here](https://github.com/glzr-io/GlazeWM/releases) 🔥
+
+  <br>
+  <img src="./resources/assets/logo.svg" width="230" alt="GlazeWM logo" />
+  <br>
 
 # GlazeWM
 
@@ -291,7 +292,7 @@ binding_modes:
 
 **Q: How do I run GlazeWM on startup?**
 
-Create a shortcut for the executable by right-clicking on it -> `Create shortcut`. Put the shortcut in your startup folder, which you can get to by entering `shell:startup` in the top bar in File Explorer.
+Create a shortcut for the executable by right-clicking on the GlazeWM executable -> `Create shortcut`. Put the shortcut in your startup folder, which you can get to by entering `shell:startup` in the top bar in File Explorer.
 
 **Q: How can I create `<insert layout>`?**
 
@@ -315,9 +316,7 @@ Programs like Winlister or AutoHotkey's Window Spy can be useful for getting inf
 
 **Q: How can I ignore GlazeWM's keybindings when `<insert application>` is focused?**
 
-The `ignore` window rule can be used to prevent GlazeWM from interacting with a specific window. When an ignored window is in focus, all keybindings are disabled.
-
-In the default config, there's also the keybinding `alt+shift+p` that disables all other keybindings until `alt+shift+p` is pressed again.
+This isn't currently supported, however, the keybinding `alt+shift+p` in the default config is used to disable all other keybindings until `alt+shift+p` is pressed again.
 
 [discord-badge]: https://img.shields.io/discord/1041662798196908052.svg?logo=discord&colorB=7289DA
 [discord-link]: https://discord.gg/ud6z3qjRvM
