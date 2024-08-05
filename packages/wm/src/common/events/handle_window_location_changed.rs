@@ -193,7 +193,7 @@ fn update_drag_state(
         window.into(),
         WindowState::Floating(FloatingStateConfig {
           centered: false,
-          shown_on_top: true,
+          ..config.value.window_behavior.state_defaults.floating
         }),
         state,
         config,
