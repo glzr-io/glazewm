@@ -1,3 +1,8 @@
+// Conditionally build the application with either a `windows` or `console`
+// subsystem (default is `console`). This determines whether a console
+// window is spawned on launch, if not already ran through a console.
+#![cfg_attr(feature = "no_console", windows_subsystem = "windows")]
+
 use anyhow::{bail, Context};
 use tracing::info;
 use wm::{

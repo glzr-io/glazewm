@@ -7,6 +7,9 @@ edition = "2021"
 name = "glazewm-watcher"
 path = "src/main.rs"
 
+[features]
+no_console = []
+
 [build-dependencies]
 tauri-winres = { workspace = true }
 

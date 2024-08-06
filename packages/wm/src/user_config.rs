@@ -325,10 +325,12 @@ impl UserConfig {
 
   pub fn has_outer_gaps(&self) -> bool {
     let outer_gap = &self.value.gaps.outer_gap;
-    outer_gap.bottom.amount > 0.0
-      || outer_gap.left.amount > 0.0
-      || outer_gap.right.amount > 0.0
-      || outer_gap.top.amount > 0.0
+
+    // Allow for 1px/1% of leeway.
+    outer_gap.bottom.amount > 1.0
+      || outer_gap.left.amount > 1.0
+      || outer_gap.right.amount > 1.0
+      || outer_gap.top.amount > 1.0
   }
 }
 
