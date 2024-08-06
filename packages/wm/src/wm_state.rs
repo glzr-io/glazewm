@@ -477,19 +477,6 @@ impl WmState {
       .collect()
   }
 
-  pub fn containers_at_point(&self, point: &Point) -> Vec<Container> {
-    self
-      .root_container
-      .descendants()
-      .filter(|descendant| {
-        descendant
-          .to_rect()
-          .map(|frame| frame.contains_point(&point))
-          .unwrap_or(false)
-      })
-      .collect()
-  }
-
   /// Returns all window under the mouse position
   pub fn monitor_at_position(&self, position: &Point) -> Option<Monitor> {
     self
