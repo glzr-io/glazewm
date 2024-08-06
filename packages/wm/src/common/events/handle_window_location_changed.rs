@@ -1,6 +1,5 @@
 use anyhow::Context;
 use tracing::info;
-
 use crate::{
   common::{platform::NativeWindow, Rect},
   containers::{
@@ -15,6 +14,7 @@ use crate::{
   },
   wm_state::WmState,
 };
+use crate::containers::{DirectionContainer, SplitContainer};
 
 pub fn handle_window_location_changed(
   native_window: NativeWindow,
@@ -188,7 +188,15 @@ fn update_drag_state(
     // Transition window to be floating while it's being dragged.
     if is_move {
       let parent = window.parent().context("No parent")?;
-
+      let workspace = window.workspace().context("No workspace")?;
+      
+      move_container_within_tree(
+        window.clone().into(),
+        workspace.into(),
+        0,
+        state,
+      )?;
+      
       update_window_state(
         window.into(),
         WindowState::Floating(FloatingStateConfig {
@@ -198,13 +206,16 @@ fn update_drag_state(
         state,
         config,
       )?;
+      
 
       // Flatten the parent split container if it only contains the window.
-      if let Some(split_parent) = parent.as_split() {
+      if let Some(DirectionContainer::Split(split_parent)) = parent.as_split().map(|s|s.clone().into()) {
         if split_parent.child_count() == 1 {
           flatten_split_container(split_parent.clone())?;
         }
       }
+
+      state.pending_sync.containers_to_redraw.push(state.root_container.clone().into());
     }
   }
 
