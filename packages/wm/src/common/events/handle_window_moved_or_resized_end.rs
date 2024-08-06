@@ -106,7 +106,8 @@ fn drop_as_tiling_window(
 
   let workspace = moved_window.workspace().context("No workspace.")?;
 
-  let deepest_direction_container: DirectionContainer = containers_at_pos
+  // Get the deepest direction container under the dragged window.
+  let target_parent: DirectionContainer = containers_at_pos
     .filter_map(|container| container.as_direction_container().ok())
     .fold(workspace.into(), |acc, container| {
       if container.ancestors().count() > acc.ancestors().count() {
@@ -116,9 +117,9 @@ fn drop_as_tiling_window(
       }
     });
 
-  // If the direction container has no children (i.e. an empty workspace),
-  // then add the window directly.
-  if deepest_direction_container.tiling_children().count() == 0 {
+  // If the target parent has no children (i.e. an empty workspace), then
+  // add the window directly.
+  if target_parent.tiling_children().count() == 0 {
     update_window_state(
       moved_window.clone().into(),
       WindowState::Tiling,
@@ -129,28 +130,32 @@ fn drop_as_tiling_window(
     return Ok(());
   }
 
-  let tiling_direction = deepest_direction_container.tiling_direction();
+  let tiling_direction = target_parent.tiling_direction();
 
-  let nearest_container = deepest_direction_container
+  let nearest_container = target_parent
     .children()
     .into_iter()
     .filter_map(|container| container.as_tiling_container().ok())
     .try_fold(None, |acc: Option<TilingContainer>, container| {
-      if let Some(acc) = acc {
-        let is_nearer = match tiling_direction {
-          TilingDirection::Horizontal => {
-            (acc.to_rect()?.x() - mouse_pos.x).abs()
-              < (container.to_rect()?.x() - mouse_pos.x).abs()
-          }
-          TilingDirection::Vertical => {
-            (acc.to_rect()?.y() - mouse_pos.y).abs()
-              < (container.to_rect()?.y() - mouse_pos.y).abs()
-          }
-        };
+      let distance = |container: &TilingContainer| -> anyhow::Result<i32> {
+        let rect = container.to_rect()?;
 
-        anyhow::Ok(Some(if is_nearer { acc } else { container }))
-      } else {
-        anyhow::Ok(Some(container))
+        Ok(match tiling_direction {
+          TilingDirection::Horizontal => (rect.x() - mouse_pos.x)
+            .abs()
+            .min((rect.x() + rect.width() - mouse_pos.x).abs()),
+          TilingDirection::Vertical => (rect.y() - mouse_pos.y)
+            .abs()
+            .min((rect.y() + rect.height() - mouse_pos.y).abs()),
+        })
+      };
+
+      match acc {
+        Some(acc) => {
+          let is_nearer = distance(&acc)? < distance(&container)?;
+          anyhow::Ok(Some(if is_nearer { acc } else { container }))
+        }
+        None => Ok(Some(container)),
       }
     })?
     .context("No nearest container.")?;
@@ -179,7 +184,7 @@ fn drop_as_tiling_window(
 
   move_container_within_tree(
     moved_window.into(),
-    deepest_direction_container.clone().into(),
+    target_parent.clone().into(),
     target_index,
     state,
   )?;
@@ -187,7 +192,7 @@ fn drop_as_tiling_window(
   state
     .pending_sync
     .containers_to_redraw
-    .push(deepest_direction_container.into());
+    .push(target_parent.into());
 
   Ok(())
 }
