@@ -148,12 +148,23 @@ fn workspace_focus_target(
     .monitor_in_direction(&monitor, direction)?
     .and_then(|monitor| monitor.displayed_workspace());
 
-  let focus_target = target_workspace
+  let focused_fullscreen = target_workspace
     .as_ref()
-    .and_then(|workspace| {
-      workspace
-        .descendant_in_direction(&direction.inverse())
-        .map(Into::into)
+    .and_then(|workspace| workspace.descendant_focus_order().next())
+    .filter(|focused| match focused {
+      Container::NonTilingWindow(window) => {
+        matches!(window.state(), WindowState::Fullscreen(_))
+      }
+      _ => false,
+    });
+
+  let focus_target = focused_fullscreen
+    .or_else(|| {
+      target_workspace.as_ref().and_then(|workspace| {
+        workspace
+          .descendant_in_direction(&direction.inverse())
+          .map(Into::into)
+      })
     })
     .or(target_workspace.map(Into::into));
 
