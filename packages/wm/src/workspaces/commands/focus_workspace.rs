@@ -35,10 +35,7 @@ pub fn focus_workspace(
     Some(_) => anyhow::Ok(target_workspace),
     _ => match target_workspace_name {
       Some(name) => {
-        let focused_monitor =
-          focused_workspace.monitor().context("No focused monitor.")?;
-
-        activate_workspace(Some(&name), &focused_monitor, state, config)?;
+        activate_workspace(Some(&name), None, state, config)?;
 
         Ok(state.workspace_by_name(&name))
       }

@@ -57,7 +57,7 @@ pub fn move_workspace_in_direction(
 
     // Prevent original monitor from having no workspaces.
     if monitor.child_count() == 0 {
-      activate_workspace(None, &monitor, state, config)?;
+      activate_workspace(None, Some(monitor), state, config)?;
     }
 
     sort_workspaces(target_monitor, config)?;
