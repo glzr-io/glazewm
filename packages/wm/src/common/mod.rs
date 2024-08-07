@@ -10,6 +10,7 @@ mod point;
 mod rect;
 mod rect_delta;
 mod tiling_direction;
+mod try_warn;
 mod vec_deque_ext;
 
 pub use color::*;

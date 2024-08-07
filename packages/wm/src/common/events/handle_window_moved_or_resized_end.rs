@@ -11,6 +11,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     DirectionContainer, TilingContainer, WindowContainer,
   },
+  try_warn,
   user_config::UserConfig,
   windows::{
     commands::{resize_window, update_window_state},
@@ -35,7 +36,7 @@ pub fn handle_window_moved_or_resized_end(
   if let Some(window) = found_window {
     // TODO: Log window details.
 
-    let new_rect = window.native().refresh_frame_position()?;
+    let new_rect = try_warn!(window.native().refresh_frame_position());
     let old_rect = window.to_rect()?;
 
     let width_delta = new_rect.width() - old_rect.width();

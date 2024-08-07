@@ -453,30 +453,6 @@ impl WmState {
       .or(Some(workspace.into()))
   }
 
-  /// Returns all window under the mouse position
-  pub fn window_containers_at_position(
-    &self,
-    position: &Point,
-  ) -> Vec<WindowContainer> {
-    self
-      .root_container
-      .descendants()
-      .filter_map(|container| match container {
-        Container::TilingWindow(tiling) => {
-          Some(WindowContainer::TilingWindow(tiling))
-        }
-        Container::NonTilingWindow(non_tiling) => {
-          Some(WindowContainer::NonTilingWindow(non_tiling))
-        }
-        _ => None,
-      })
-      .filter(|c| {
-        let frame = c.to_rect();
-        frame.unwrap().contains_point(&position)
-      })
-      .collect()
-  }
-
   pub fn containers_at_point(&self, point: &Point) -> Vec<Container> {
     self
       .root_container

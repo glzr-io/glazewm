@@ -2,6 +2,7 @@ use tracing::info;
 
 use crate::{
   common::platform::NativeWindow,
+  try_warn,
   user_config::UserConfig,
   windows::{
     commands::update_window_state, traits::WindowGetters, WindowState,
@@ -18,7 +19,7 @@ pub fn handle_window_minimize_ended(
 
   // Update the window's state to not be minimized.
   if let Some(window) = found_window {
-    let is_minimized = window.native().refresh_is_minimized()?;
+    let is_minimized = try_warn!(window.native().refresh_is_minimized());
 
     if !is_minimized && window.state() == WindowState::Minimized {
       // TODO: Log window details.

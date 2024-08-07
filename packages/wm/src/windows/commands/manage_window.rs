@@ -9,6 +9,7 @@ use crate::{
     Container, WindowContainer,
   },
   monitors::Monitor,
+  try_warn,
   user_config::{UserConfig, WindowRuleEvent},
   windows::{
     commands::run_window_rules, traits::WindowGetters, NonTilingWindow,
@@ -24,8 +25,10 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  // Create the window instance.
-  let window = create_window(native_window, target_parent, state, config)?;
+  // Create the window instance. This may fail if the window handle has
+  // already been destroyed.
+  let window =
+    try_warn!(create_window(native_window, target_parent, state, config));
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
