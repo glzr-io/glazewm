@@ -90,7 +90,8 @@ pub fn handle_window_moved_or_resized_end(
   Ok(())
 }
 
-/// Handles window move events
+/// Handles transition from temporary floating window to tiling window on
+/// drag end.
 fn drop_as_tiling_window(
   moved_window: NonTilingWindow,
   state: &mut WmState,
@@ -114,12 +115,8 @@ fn drop_as_tiling_window(
   }
 
   let window_under_cursor = window_under_cursor.unwrap();
-  let tiling_direction = get_split_direction(&window_under_cursor)?;
-  let new_window_position = get_drop_position(
-    &mouse_pos,
-    &window_under_cursor,
-    &tiling_direction,
-  )?;
+  let new_window_position =
+    get_drop_position(&mouse_pos, &window_under_cursor)?;
 
   let parent = window_under_cursor
     .direction_container()
@@ -133,7 +130,6 @@ fn drop_as_tiling_window(
     window_under_cursor.clone(),
     &parent.into(),
     parent_tiling_direction,
-    tiling_direction,
     new_window_position,
   )?;
 
@@ -175,7 +171,6 @@ fn move_window_to_target(
   target_window: TilingWindow,
   target_window_parent: &Container,
   current_tiling_direction: TilingDirection,
-  new_tiling_direction: TilingDirection,
   drop_position: DropPosition,
 ) -> anyhow::Result<()> {
   update_window_state(
@@ -205,13 +200,15 @@ fn move_window_to_target(
   )?;
 
   let target_index = match drop_position {
-    DropPosition::Start => target_window_index,
-    DropPosition::End => target_window_index + 1,
+    DropPosition::Top | DropPosition::Left => target_window_index,
+    DropPosition::Bottom | DropPosition::Right => target_window_index + 1,
   };
 
-  match (new_tiling_direction, current_tiling_direction) {
-    (TilingDirection::Horizontal, TilingDirection::Horizontal)
-    | (TilingDirection::Vertical, TilingDirection::Vertical) => {
+  match (drop_position.clone(), current_tiling_direction) {
+    (DropPosition::Right, TilingDirection::Horizontal)
+    | (DropPosition::Left, TilingDirection::Horizontal)
+    | (DropPosition::Top, TilingDirection::Vertical)
+    | (DropPosition::Bottom, TilingDirection::Vertical) => {
       move_container_within_tree(
         Container::TilingWindow(moved_window.clone()),
         target_window_parent.clone(),
@@ -219,7 +216,8 @@ fn move_window_to_target(
         state,
       )?;
     }
-    (TilingDirection::Horizontal, TilingDirection::Vertical) => {
+    (DropPosition::Left, TilingDirection::Vertical)
+    | (DropPosition::Right, TilingDirection::Vertical) => {
       create_split_container(
         TilingDirection::Horizontal,
         config,
@@ -229,7 +227,8 @@ fn move_window_to_target(
         &target_window_parent,
       )?;
     }
-    (TilingDirection::Vertical, TilingDirection::Horizontal) => {
+    (DropPosition::Top, TilingDirection::Horizontal)
+    | (DropPosition::Bottom, TilingDirection::Horizontal) => {
       create_split_container(
         TilingDirection::Vertical,
         config,
@@ -255,8 +254,8 @@ fn create_split_container(
   parent: &Container,
 ) -> anyhow::Result<()> {
   let target_index_inside_split_container = match dropped_position {
-    DropPosition::Start => 0,
-    DropPosition::End => 1,
+    DropPosition::Top | DropPosition::Left => 0,
+    DropPosition::Bottom | DropPosition::Right => 1,
   };
 
   let split_container = SplitContainer::new(
@@ -283,59 +282,81 @@ fn create_split_container(
 /// Represents where the window was dropped over another one.
 /// It depends on the tiling direction.
 ///
-/// [DropPosition::Start] can either be the top or left side.
+/// [DropPosition::Top] can either be the top or left side.
 /// [DropPosition::Stop] can either be bottom or right side.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum DropPosition {
-  Start,
-  End,
+  Top,
+  Bottom,
+  Left,
+  Right,
 }
 
 /// Determines the drop position for a window based on the mouse position
-/// and tiling direction.
+/// in a four-triangle pattern (X pattern).
 ///
-/// This function calculates whether a window should be dropped at the
-/// start or end of a tiling layout, depending on the mouse position
-/// relative to the middle of the target window.
+/// This function calculates whether the mouse is in the top, bottom,
+/// left, or right triangular region of the window.
 fn get_drop_position(
   mouse_position: &Point,
   window: &TilingWindow,
-  tiling_direction: &TilingDirection,
 ) -> anyhow::Result<DropPosition> {
   let rect = window.to_rect()?;
 
-  match tiling_direction {
-    TilingDirection::Vertical => {
-      let middle = rect.top + (rect.height() / 2);
-      if mouse_position.y < middle {
-        Ok(DropPosition::Start)
+  // Calculate the middle points of the window
+  let middle_y = rect.top + (rect.height() / 2);
+  let middle_x = rect.left + (rect.width() / 2);
+
+  // Determine which triangle the mouse is in
+  if mouse_position.y < middle_y {
+    // Mouse is in the top half
+    if mouse_position.x < middle_x {
+      // Top-left triangle
+      if mouse_position.y
+        < rect.top
+          + ((mouse_position.x - rect.left)
+            * (rect.height() / rect.width()))
+      {
+        Ok(DropPosition::Top)
       } else {
-        Ok(DropPosition::End)
+        Ok(DropPosition::Left)
+      }
+    } else {
+      // Top-right triangle
+      if mouse_position.y
+        < rect.top
+          + ((rect.right - mouse_position.x)
+            * (rect.height() / rect.width()))
+      {
+        Ok(DropPosition::Top)
+      } else {
+        Ok(DropPosition::Right)
       }
     }
-    TilingDirection::Horizontal => {
-      let middle = rect.left + (rect.width() / 2);
-      if mouse_position.x < middle {
-        Ok(DropPosition::Start)
-      } else {
-        Ok(DropPosition::End)
-      }
-    }
-  }
-}
-
-/// Determines the optimal split direction for a given window.
-///
-/// This function decides whether a window should be split vertically or
-/// horizontally based on its current dimensions.
-fn get_split_direction(
-  window: &TilingWindow,
-) -> anyhow::Result<TilingDirection> {
-  let rect = window.to_rect()?;
-
-  if rect.height() > rect.width() {
-    Ok(TilingDirection::Vertical)
   } else {
-    Ok(TilingDirection::Horizontal)
+    // Mouse is in the bottom half
+    if mouse_position.x < middle_x {
+      // Bottom-left triangle
+      if mouse_position.y
+        > rect.bottom
+          - ((mouse_position.x - rect.left)
+            * (rect.height() / rect.width()))
+      {
+        Ok(DropPosition::Bottom)
+      } else {
+        Ok(DropPosition::Left)
+      }
+    } else {
+      // Bottom-right triangle
+      if mouse_position.y
+        > rect.bottom
+          - ((rect.right - mouse_position.x)
+            * (rect.height() / rect.width()))
+      {
+        Ok(DropPosition::Bottom)
+      } else {
+        Ok(DropPosition::Right)
+      }
+    }
   }
 }
