@@ -8,6 +8,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     DirectionContainer, SplitContainer, WindowContainer,
   },
+  try_warn,
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::update_window_state, traits::WindowGetters, ActiveDrag,
@@ -25,13 +26,14 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let frame_position: Rect = window.native().refresh_frame_position()?;
-    let old_frame_position: Rect = window.to_rect()?;
+    let old_frame_position = window.native().frame_position()?;
+    let frame_position =
+      try_warn!(window.native().refresh_frame_position());
 
-    let is_minimized = window.native().refresh_is_minimized()?;
+    let is_minimized = try_warn!(window.native().refresh_is_minimized());
 
     let old_is_maximized = window.native().is_maximized()?;
-    let is_maximized = window.native().refresh_is_maximized()?;
+    let is_maximized = try_warn!(window.native().refresh_is_maximized());
 
     let nearest_monitor = state
       .nearest_monitor(&window.native())

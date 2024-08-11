@@ -31,7 +31,7 @@ pub fn move_window_to_workspace(
     Some(_) => anyhow::Ok(target_workspace),
     _ => match target_workspace_name {
       Some(name) => {
-        activate_workspace(Some(&name), &current_monitor, state, config)?;
+        activate_workspace(Some(&name), None, state, config)?;
 
         Ok(state.workspace_by_name(&name))
       }
@@ -124,17 +124,18 @@ pub fn move_window_to_workspace(
       state.pending_sync.focus_change = true;
     }
 
-    match window {
-      WindowContainer::NonTilingWindow(_) => {
-        state.pending_sync.containers_to_redraw.push(window.into());
-      }
-      WindowContainer::TilingWindow(_) => {
-        state
-          .pending_sync
-          .containers_to_redraw
-          .extend(current_workspace.tiling_children().map(Into::into));
-      }
-    }
+    let containers_to_redraw = match window {
+      WindowContainer::NonTilingWindow(_) => vec![window.into()],
+      WindowContainer::TilingWindow(_) => current_workspace
+        .tiling_children()
+        .map(Into::into)
+        .collect(),
+    };
+
+    state
+      .pending_sync
+      .containers_to_redraw
+      .extend(containers_to_redraw);
   }
 
   Ok(())

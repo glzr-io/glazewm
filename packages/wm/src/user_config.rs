@@ -287,21 +287,27 @@ impl UserConfig {
     let inactive_configs =
       self.inactive_workspace_configs(active_workspaces);
 
-    let bound_config = inactive_configs.iter().find(|&config| {
+    inactive_configs.into_iter().find(|&config| {
       config
         .bind_to_monitor
         .as_ref()
         .map(|monitor_index| monitor.index() == *monitor_index as usize)
         .unwrap_or(false)
-    });
+    })
+  }
 
-    // Get the first workspace config that isn't bound to a monitor.
-    bound_config
-      .or(
-        inactive_configs
-          .iter()
-          .find(|config| config.bind_to_monitor.is_none()),
-      )
+  /// Gets the first inactive workspace config, prioritizing configs that
+  /// don't have a monitor binding.
+  pub fn next_inactive_workspace_config(
+    &self,
+    active_workspaces: &Vec<Workspace>,
+  ) -> Option<&WorkspaceConfig> {
+    let inactive_configs =
+      self.inactive_workspace_configs(active_workspaces);
+
+    inactive_configs
+      .iter()
+      .find(|config| config.bind_to_monitor.is_none())
       .or(inactive_configs.first())
       .cloned()
   }

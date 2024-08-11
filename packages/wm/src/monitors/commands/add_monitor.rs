@@ -37,7 +37,7 @@ pub fn add_monitor(
   });
 
   // Activate a workspace on the newly added monitor.
-  activate_workspace(None, &monitor, state, config)
+  activate_workspace(None, Some(monitor), state, config)
     .context("At least 1 workspace is required per monitor.")?;
 
   Ok(())

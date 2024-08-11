@@ -22,9 +22,9 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 [FAQ](#faq) •
 [Contributing ↗](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md)
 
-</div>
+![Demo video][demo-video]
 
-![Demo video](https://github.com/glzr-io/glazewm/assets/34844898/58167ca8-3064-4c5f-a82e-51bd3cd8830b)
+</div>
 
 ### 🌟 Key features
 
@@ -324,3 +324,4 @@ This isn't currently supported, however, the keybinding `alt+shift+p` in the def
 [downloads-link]: https://github.com/glzr-io/glazewm/releases
 [issues-badge]: https://img.shields.io/badge/good_first_issues-7057ff
 [issues-link]: https://github.com/users/lars-berger/projects/2/views/1?sliceBy%5Bvalue%5D=good+first+issue
+[demo-video]: resources/assets/demo.webp

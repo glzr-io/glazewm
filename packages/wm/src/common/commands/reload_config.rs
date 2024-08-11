@@ -77,7 +77,9 @@ fn update_workspace_configs(
         // When the workspace config is not found, the current name of the
         // workspace has been removed. So, we reassign the first suitable
         // workspace config to the workspace.
-        config.workspace_config_for_monitor(&monitor, &workspaces)
+        config
+          .workspace_config_for_monitor(&monitor, &workspaces)
+          .or_else(|| config.next_inactive_workspace_config(&workspaces))
       });
 
     match workspace_config {
