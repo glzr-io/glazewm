@@ -52,7 +52,7 @@ pub fn handle_window_moved_or_resized_end(
           {
             // Window is a temporary floating window that should be
             // reverted back to tiling.
-            window_moved_end(window.clone(), state, config)?;
+            drop_as_tiling_window(window.clone(), state, config)?;
           }
         }
       }
@@ -90,41 +90,32 @@ pub fn handle_window_moved_or_resized_end(
 }
 
 /// Handles window move events
-fn window_moved_end(
+fn drop_as_tiling_window(
   moved_window: NonTilingWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   info!("Tiling window drag end event.");
-  let mouse_position = Platform::mouse_position()?;
+  let mouse_pos = Platform::mouse_position()?;
 
-  let window_under_cursor = match tiling_window_at_mouse_pos(
-    &moved_window,
-    &mouse_position,
-    state,
-  ) {
-    Some(value) => value,
-    None => {
-      update_window_state(
-        moved_window.clone().into(),
-        WindowState::Tiling,
-        state,
-        config,
-      )?;
+  let window_under_cursor =
+    tiling_window_at_mouse_pos(&moved_window, &mouse_pos, state);
 
-      return Ok(());
-    }
-  };
+  if let None = window_under_cursor {
+    update_window_state(
+      moved_window.clone().into(),
+      WindowState::Tiling,
+      state,
+      config,
+    )?;
 
-  debug!(
-    "Moved window: {:?} \n Target window: {:?}",
-    moved_window.native().process_name(),
-    window_under_cursor.native().process_name(),
-  );
+    return Ok(());
+  }
 
+  let window_under_cursor = window_under_cursor.unwrap();
   let tiling_direction = get_split_direction(&window_under_cursor)?;
   let new_window_position = get_drop_position(
-    &mouse_position,
+    &mouse_pos,
     &window_under_cursor,
     &tiling_direction,
   )?;
