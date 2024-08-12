@@ -215,6 +215,30 @@ workspaces:
     keep_alive: false
 ```
 
+### Config: Window rules
+
+Commands can be run when a window is first launched. This is useful for adding window-specific behaviors like always starting a window as fullscreen, or assigning to a specific workspace.
+
+Windows can be targeted by their process, class, and title. Multiple matching criteria can be used together to target a window more precisely.
+
+```yaml
+window_rules:
+  - commands: ["move --workspace 1"]
+    match:
+      # Move browsers to workspace 1.
+      - window_process: { regex: "msedge|brave|chrome" }
+
+  - commands: ["ignore"]
+    match:
+      # Ignores any Zebar windows.
+      - window_process: { equals: "zebar" }
+
+      # Ignores picture-in-picture windows for browsers.
+      # Note that *both* the title and class must match for the rule to run.
+      - window_title: { regex: "[Pp]icture.in.[Pp]icture" }
+        window_class: { regex: "Chrome_WidgetWin_1|MozillaDialogClass" }
+```
+
 ### Config: Window effects
 
 Visual effects can be applied to windows via the `window_effects` option. Currently, colored borders are the only effect available with more to come in the future.
