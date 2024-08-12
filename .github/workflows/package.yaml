@@ -3,9 +3,6 @@ name: Package
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/set-foreground-directly
 
 jobs:
   next-version:
