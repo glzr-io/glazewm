@@ -214,24 +214,29 @@ workspaces:
     # Optionally prevent workspace from being deactivated when empty.
     keep_alive: false
 ```
-### Config : Window rules
-Commands can be run when a window is initially launched. This can be used to assign an app to a specific workspace or to always start an app in floating mode.
 
-Multiple matching criteria can be used together to target a window more precisely. Regex syntax can also be used by wrapping the pattern with / (eg. /notepad|chrome/)
+### Config: Window rules
+
+Commands can be run when a window is first launched. This is useful for adding window-specific behaviors like always starting a window as fullscreen, or assigning to a specific workspace.
+
+Windows can be targeted by their process, class, and title. Multiple matching criteria can be used together to target a window more precisely.
 
 ```yaml
 window_rules:
+  - commands: ["move --workspace 1"]
+    match:
+      # Move browsers to workspace 1.
+      - window_process: { regex: "msedge|brave|chrome" }
 
-# Move to workspace 1
-- commands: ['move --workspace 1']
-  match:
-    - window_process: { regex: 'msedge|brave|chrome' }
-
-# Ignores any Zebar windows.
-- commands: ['ignore']
+  - commands: ["ignore"]
     match:
       # Ignores any Zebar windows.
-      - window_process: { equals: 'zebar' }
+      - window_process: { equals: "zebar" }
+
+      # Ignores picture-in-picture windows for browsers.
+      # Note that *both* the title and class must match for the rule to run.
+      - window_title: { regex: "[Pp]icture.in.[Pp]icture" }
+        window_class: { regex: "Chrome_WidgetWin_1|MozillaDialogClass" }
 ```
 
 ### Config: Window effects
