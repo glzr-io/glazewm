@@ -4,7 +4,7 @@ use tracing::{debug, info};
 use crate::{
   common::{
     platform::{NativeWindow, Platform},
-    LengthValue, Point, TilingDirection,
+    LengthValue, Point, Rect, TilingDirection,
   },
   containers::{
     commands::{
@@ -116,7 +116,9 @@ fn drop_as_tiling_window(
 
   let window_under_cursor = window_under_cursor.unwrap();
   let new_window_position =
-    get_drop_position(&mouse_pos, &window_under_cursor)?;
+    determine_drop_position(&mouse_pos, &window_under_cursor.to_rect()?);
+
+  info!("{:?}", new_window_position);
 
   let parent = window_under_cursor
     .direction_container()
@@ -297,66 +299,33 @@ enum DropPosition {
 ///
 /// This function calculates whether the mouse is in the top, bottom,
 /// left, or right triangular region of the window.
-fn get_drop_position(
+fn determine_drop_position(
   mouse_position: &Point,
-  window: &TilingWindow,
-) -> anyhow::Result<DropPosition> {
-  let rect = window.to_rect()?;
+  frame: &Rect,
+) -> DropPosition {
+  let x = mouse_position.x;
+  let y = mouse_position.y;
+  
+  // Calculate the center of the frame
+  let center_x = (frame.left + frame.right) / 2;
+  let center_y = (frame.top + frame.bottom) / 2;
 
-  // Calculate the middle points of the window
-  let middle_y = rect.top + (rect.height() / 2);
-  let middle_x = rect.left + (rect.width() / 2);
+  // Calculate the slopes of the diagonals
+  let diag1_slope = (frame.bottom - frame.top) as f32 / (frame.right - frame.left) as f32; // positive slope
+  let diag2_slope = -diag1_slope; // negative slope
 
-  // Determine which triangle the mouse is in
-  if mouse_position.y < middle_y {
-    // Mouse is in the top half
-    if mouse_position.x < middle_x {
-      // Top-left triangle
-      if mouse_position.y
-        < rect.top
-          + ((mouse_position.x - rect.left)
-            * (rect.height() / rect.width()))
-      {
-        Ok(DropPosition::Top)
-      } else {
-        Ok(DropPosition::Left)
-      }
-    } else {
-      // Top-right triangle
-      if mouse_position.y
-        < rect.top
-          + ((rect.right - mouse_position.x)
-            * (rect.height() / rect.width()))
-      {
-        Ok(DropPosition::Top)
-      } else {
-        Ok(DropPosition::Right)
-      }
-    }
+  // Calculate the y values on the diagonals for the given x position
+  let diag1_y_at_x = center_y as f32 + diag1_slope * (x - center_x) as f32;
+  let diag2_y_at_x = center_y as f32 + diag2_slope * (x - center_x) as f32;
+
+  // Determine the position based on the region
+  if (y as f32) < diag1_y_at_x && (y as f32) < diag2_y_at_x {
+    DropPosition::Top
+  } else if (y as f32) > diag1_y_at_x && (y as f32) > diag2_y_at_x {
+    DropPosition::Bottom
+  } else if (y as f32) > diag1_y_at_x && (y as f32) < diag2_y_at_x {
+    DropPosition::Left
   } else {
-    // Mouse is in the bottom half
-    if mouse_position.x < middle_x {
-      // Bottom-left triangle
-      if mouse_position.y
-        > rect.bottom
-          - ((mouse_position.x - rect.left)
-            * (rect.height() / rect.width()))
-      {
-        Ok(DropPosition::Bottom)
-      } else {
-        Ok(DropPosition::Left)
-      }
-    } else {
-      // Bottom-right triangle
-      if mouse_position.y
-        > rect.bottom
-          - ((rect.right - mouse_position.x)
-            * (rect.height() / rect.width()))
-      {
-        Ok(DropPosition::Bottom)
-      } else {
-        Ok(DropPosition::Right)
-      }
-    }
+    DropPosition::Right
   }
 }
