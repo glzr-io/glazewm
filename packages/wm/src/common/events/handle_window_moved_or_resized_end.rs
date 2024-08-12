@@ -115,24 +115,15 @@ fn drop_as_tiling_window(
   }
 
   let window_under_cursor = window_under_cursor.unwrap();
-  let new_window_position =
+  let drop_position =
     determine_drop_position(&mouse_pos, &window_under_cursor.to_rect()?);
-
-  info!("{:?}", new_window_position);
-
-  let parent = window_under_cursor
-    .direction_container()
-    .context("The window has no direction container")?;
-  let parent_tiling_direction: TilingDirection = parent.tiling_direction();
-
+  
   move_window_to_target(
     state,
     config,
     moved_window.clone(),
     window_under_cursor.clone(),
-    &parent.into(),
-    parent_tiling_direction,
-    new_window_position,
+    drop_position,
   )?;
 
   state.pending_sync.containers_to_redraw.push(
@@ -171,8 +162,6 @@ fn move_window_to_target(
   config: &UserConfig,
   moved_window: NonTilingWindow,
   target_window: TilingWindow,
-  target_window_parent: &Container,
-  current_tiling_direction: TilingDirection,
   drop_position: DropPosition,
 ) -> anyhow::Result<()> {
   update_window_state(
@@ -182,6 +171,13 @@ fn move_window_to_target(
     config,
   )?;
 
+  let target_window_parent = target_window
+    .direction_container()
+    .context("The window has no direction container")?;
+  let target_window_parent_tiling_direction: TilingDirection =
+    target_window_parent.tiling_direction();
+
+  // Getting the new window handler after changing it state
   let moved_window = state
     .windows()
     .iter()
@@ -192,12 +188,13 @@ fn move_window_to_target(
     .clone();
 
   // TODO: We can optimize that by not detaching and attaching the window
-  // Little trick to get the right index
+  // Detaching and reattaching helps to get the right index in certain
+  // condition
   detach_container(Container::TilingWindow(moved_window.clone()))?;
   let target_window_index = target_window.index();
   attach_container(
     &Container::TilingWindow(moved_window.clone()),
-    target_window_parent,
+    &target_window_parent.as_container(),
     None,
   )?;
 
@@ -206,14 +203,14 @@ fn move_window_to_target(
     DropPosition::Bottom | DropPosition::Right => target_window_index + 1,
   };
 
-  match (drop_position.clone(), current_tiling_direction) {
+  match (drop_position.clone(), target_window_parent_tiling_direction) {
     (DropPosition::Right, TilingDirection::Horizontal)
     | (DropPosition::Left, TilingDirection::Horizontal)
     | (DropPosition::Top, TilingDirection::Vertical)
     | (DropPosition::Bottom, TilingDirection::Vertical) => {
       move_container_within_tree(
         Container::TilingWindow(moved_window.clone()),
-        target_window_parent.clone(),
+        target_window_parent.as_container(),
         target_index,
         state,
       )?;
@@ -226,7 +223,7 @@ fn move_window_to_target(
         moved_window,
         target_window,
         drop_position,
-        &target_window_parent,
+        &target_window_parent.as_container(),
       )?;
     }
     (DropPosition::Top, TilingDirection::Horizontal)
@@ -237,7 +234,7 @@ fn move_window_to_target(
         moved_window,
         target_window,
         drop_position,
-        &target_window_parent,
+        &target_window_parent.as_container(),
       )?;
     }
   }
@@ -305,13 +302,14 @@ fn determine_drop_position(
 ) -> DropPosition {
   let x = mouse_position.x;
   let y = mouse_position.y;
-  
+
   // Calculate the center of the frame
   let center_x = (frame.left + frame.right) / 2;
   let center_y = (frame.top + frame.bottom) / 2;
 
   // Calculate the slopes of the diagonals
-  let diag1_slope = (frame.bottom - frame.top) as f32 / (frame.right - frame.left) as f32; // positive slope
+  let diag1_slope =
+    (frame.bottom - frame.top) as f32 / (frame.right - frame.left) as f32; // positive slope
   let diag2_slope = -diag1_slope; // negative slope
 
   // Calculate the y values on the diagonals for the given x position
