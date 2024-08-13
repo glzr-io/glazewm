@@ -152,6 +152,18 @@ impl Rect {
   pub fn contains_point(&self, point: &Point) -> bool {
     let is_in_x = point.x >= self.left && point.x <= self.right;
     let is_in_y = point.y >= self.top && point.y <= self.bottom;
-    return is_in_x && is_in_y;
+    is_in_x && is_in_y
+  }
+
+  pub fn distance_to_point(&self, point: &Point) -> f32 {
+    let dx = (self.x() - point.x)
+      .abs()
+      .max((self.x() + self.width() - point.x).abs());
+
+    let dy = (self.y() - point.y)
+      .abs()
+      .max((self.y() + self.height() - point.y).abs());
+
+    ((dx * dx + dy * dy) as f32).sqrt()
   }
 }

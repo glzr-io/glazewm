@@ -6,7 +6,7 @@ use crate::{
   containers::{
     commands::{flatten_split_container, move_container_within_tree},
     traits::{CommonGetters, PositionGetters},
-    DirectionContainer, SplitContainer, WindowContainer,
+    WindowContainer,
   },
   try_warn,
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
@@ -187,17 +187,9 @@ fn update_drag_state(
     // Transition window to be floating while it's being dragged.
     if is_move {
       let parent = window.parent().context("No parent")?;
-      let workspace = window.workspace().context("No workspace")?;
-
-      move_container_within_tree(
-        window.clone().into(),
-        workspace.into(),
-        0,
-        state,
-      )?;
 
       update_window_state(
-        window.into(),
+        window.clone().into(),
         WindowState::Floating(FloatingStateConfig {
           centered: false,
           ..config.value.window_behavior.state_defaults.floating
@@ -206,19 +198,19 @@ fn update_drag_state(
         config,
       )?;
 
+      // Windows are added for redraw on state changes, so here we need to
+      // remove the window from the pending redraw.
+      state
+        .pending_sync
+        .containers_to_redraw
+        .retain(|container| container.id() != window.id());
+
       // Flatten the parent split container if it only contains the window.
-      if let Some(DirectionContainer::Split(split_parent)) =
-        parent.as_split().map(|s| s.clone().into())
-      {
+      if let Some(split_parent) = parent.as_split() {
         if split_parent.child_count() == 1 {
           flatten_split_container(split_parent.clone())?;
         }
       }
-
-      state
-        .pending_sync
-        .containers_to_redraw
-        .push(state.root_container.clone().into());
     }
   }
 
