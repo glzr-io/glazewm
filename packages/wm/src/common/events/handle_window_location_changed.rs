@@ -188,7 +188,7 @@ fn update_drag_state(
     if is_move {
       let parent = window.parent().context("No parent")?;
 
-      update_window_state(
+      let window = update_window_state(
         window.clone().into(),
         WindowState::Floating(FloatingStateConfig {
           centered: false,
@@ -209,6 +209,14 @@ fn update_drag_state(
       if let Some(split_parent) = parent.as_split() {
         if split_parent.child_count() == 1 {
           flatten_split_container(split_parent.clone())?;
+
+          // Hacky fix to redraw siblings after flattening. The parent is
+          // queued for redraw from the state change, which gets detached
+          // on flatten.
+          state
+            .pending_sync
+            .containers_to_redraw
+            .extend(window.tiling_siblings().map(Into::into));
         }
       }
     }
