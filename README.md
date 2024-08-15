@@ -36,7 +36,7 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 ## Installation
 
-**The latest version of GlazeWM is downloadable via [releases](https://github.com/glzr-io/GlazeWM/releases).** Zebar can optionally be installed as well via a checkbox in the install.
+**The latest version of GlazeWM is downloadable via [releases](https://github.com/glzr-io/GlazeWM/releases).** Zebar can optionally be installed as well via a checkbox during installation.
 
 Scoop and Winget are currently not supported. If you instead want to build from source, refer to the
 [contributing guide](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md).
@@ -45,7 +45,7 @@ Scoop and Winget are currently not supported. If you instead want to build from 
 
 On the first launch of GlazeWM, a default configuration can optionally be generated.
 
-Below is a cheatsheet of all available commands and their default keybindings.
+Below is a cheat sheet of all available commands and their default keybindings.
 
 ![Infographic](/resources/assets/cheatsheet.png)
 
@@ -71,7 +71,7 @@ general:
   focus_follows_cursor: false
 
   # Whether to switch back and forth between the previously focused
-  # workspace when focusing the current workspace.
+  # workspace when focusing on the current workspace.
   toggle_workspace_on_refocus: false
 
   cursor_jump:
@@ -88,7 +88,7 @@ general:
 
 The available keyboard shortcuts can be customized via the `keybindings` option. A keybinding consists of one or more key combinations and one or more commands to run when pressed.
 
-It's recommended to use the alt key for keybindings. The Windows key is unfortunately a pain to remap, since certain keybindings (e.g. `lwin+l`) are reserved by the OS.
+It's recommended to use the alt key for keybindings. The Windows key is unfortunately a pain to remap, since the OS reserves certain keybindings (e.g. `lwin+l`).
 
 ```yaml
 keybindings:
@@ -171,9 +171,9 @@ keybindings:
 
 </details>
 
-If a key is not in the list above, it is likely still supported if you use it's character in a keybinding (e.g. `alt+å` for the Norwegian Å character).
+If a key is not in the list above, it is likely still supported if you use its character in a keybinding (e.g. `alt+å` for the Norwegian Å character).
 
-> German and US international keyboards treat the right-side alt key differently than normal. For these keyboard layouts, use `ralt+ctrl` instead of `ralt` to bind the right-side alt key.
+> German and US international keyboards treat the right-side alt key differently. For these keyboard layouts, use `ralt+ctrl` instead of `ralt` to bind the right-side alt key.
 
 ### Config: Gaps
 
@@ -217,7 +217,7 @@ workspaces:
 
 ### Config: Window rules
 
-Commands can be run when a window is first launched. This is useful for adding window-specific behaviors like always starting a window as fullscreen, or assigning to a specific workspace.
+Commands can be run when a window is first launched. This is useful for adding window-specific behaviors like always starting a window as fullscreen or assigning to a specific workspace.
 
 Windows can be targeted by their process, class, and title. Multiple matching criteria can be used together to target a window more precisely.
 
@@ -272,8 +272,8 @@ window_behavior:
   initial_state: "tiling"
 
   # Sets the default options for when a new window is created. This also
-  # changes the defaults for when the state change commands, like
-  # `set-floating`, are used without any flags.
+  # changes the defaults for when the state changes commands, like
+  # `set-floating`, is used without any flags.
   state_defaults:
     floating:
       # Whether to center floating windows by default.
@@ -284,7 +284,7 @@ window_behavior:
 
     fullscreen:
       # Maximize the window if possible. If the window doesn't have a
-      # maximize button, then it'll be fullscreen'ed normally instead.
+      # maximize button, then it'll be fullscreen normally instead.
       maximized: false
 ```
 
@@ -326,7 +326,7 @@ Community-made scripts like [ParasiteDelta/GlaAlt](https://github.com/ParasiteDe
 
 **Q: How do I create a rule for `<insert application>`?**
 
-To match a specific application, you need a command to execute and either the window's process name, title or class name. For example, if you use Flow-Launcher and want to make the settings window float, you can do the following:
+To match a specific application, you need a command to execute and either the window's process name, title, or class name. For example, if you use Flow-Launcher and want to make the settings window float, you can do the following:
 
 ```yaml
 window_rules:
