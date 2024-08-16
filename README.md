@@ -272,7 +272,7 @@ window_behavior:
   initial_state: "tiling"
 
   # Sets the default options for when a new window is created. This also
-  # changes the defaults for when the state changes commands, like
+  # changes the defaults for when the state change commands, like
   # `set-floating`, is used without any flags.
   state_defaults:
     floating:
