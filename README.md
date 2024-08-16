@@ -284,7 +284,7 @@ window_behavior:
 
     fullscreen:
       # Maximize the window if possible. If the window doesn't have a
-      # maximize button, then it'll be fullscreen normally instead.
+      # maximize button, then it'll be made fullscreen normally instead.
       maximized: false
 ```
 
