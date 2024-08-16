@@ -71,7 +71,7 @@ general:
   focus_follows_cursor: false
 
   # Whether to switch back and forth between the previously focused
-  # workspace when focusing on the current workspace.
+  # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: false
 
   cursor_jump:
@@ -273,7 +273,7 @@ window_behavior:
 
   # Sets the default options for when a new window is created. This also
   # changes the defaults for when the state change commands, like
-  # `set-floating`, is used without any flags.
+  # `set-floating`, are used without any flags.
   state_defaults:
     floating:
       # Whether to center floating windows by default.
