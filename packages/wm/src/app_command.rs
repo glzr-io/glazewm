@@ -19,6 +19,7 @@ use crate::{
     traits::CommonGetters,
     Container,
   },
+  monitors::commands::focus_monitor,
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
@@ -300,6 +301,10 @@ impl InvokeCommand {
             state,
             config,
           )?;
+        }
+
+        if let Some(monitor) = &args.monitor {
+          focus_monitor(monitor, state, config)?;
         }
 
         if args.next_workspace {
@@ -645,6 +650,9 @@ pub struct InvokeFocusCommand {
 
   #[clap(long)]
   workspace: Option<String>,
+
+  #[clap(long)]
+  monitor: Option<usize>,
 
   #[clap(long)]
   next_workspace: bool,
