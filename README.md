@@ -56,7 +56,7 @@ The [default config](https://github.com/glzr-io/glazewm/blob/main/resources/asse
 To use a different config file location, you can launch the GlazeWM executable with the CLI argument `--config="..."`, like so:
 
 ```sh
-./glazewm.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
+./glazewm.exe start --config="C:\<PATH_TO_CONFIG>\config.yaml"
 ```
 
 ### Config: General
