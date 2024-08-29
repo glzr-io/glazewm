@@ -12,10 +12,12 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec,
     },
-    Direction, LengthValue, RectDelta,
+    Direction, LengthValue, RectDelta, TilingDirection,
   },
   containers::{
-    commands::{focus_in_direction, toggle_tiling_direction},
+    commands::{
+      focus_in_direction, set_tiling_direction, toggle_tiling_direction,
+    },
     traits::CommonGetters,
     Container,
   },
@@ -225,6 +227,8 @@ pub enum InvokeCommand {
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
+  SetTilingDirectionVertical,
+  SetTilingDirectionHorizontal,
   WmCycleFocus {
     #[clap(long, default_value_t = false)]
     omit_fullscreen: bool,
@@ -573,6 +577,18 @@ impl InvokeCommand {
       InvokeCommand::ToggleTilingDirection => {
         toggle_tiling_direction(subject_container, state, config)
       }
+      InvokeCommand::SetTilingDirectionVertical => set_tiling_direction(
+        subject_container,
+        state,
+        config,
+        TilingDirection::Vertical,
+      ),
+      InvokeCommand::SetTilingDirectionHorizontal => set_tiling_direction(
+        subject_container,
+        state,
+        config,
+        TilingDirection::Horizontal,
+      ),
       InvokeCommand::WmCycleFocus {
         omit_fullscreen,
         omit_minimized,

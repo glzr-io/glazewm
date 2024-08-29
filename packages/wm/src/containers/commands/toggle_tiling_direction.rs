@@ -2,6 +2,7 @@ use anyhow::Context;
 
 use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
+  common::TilingDirection,
   containers::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, DirectionContainer, SplitContainer,
@@ -81,4 +82,40 @@ fn toggle_window_direction(
   )?;
 
   Ok(split_container.into())
+}
+
+pub fn set_tiling_direction(
+  container: Container,
+  state: &mut WmState,
+  config: &UserConfig,
+  direction: TilingDirection,
+) -> anyhow::Result<()> {
+  let current_direction = tiling_direction(&container)?;
+  if current_direction != direction {
+    toggle_tiling_direction(container, state, config)
+  }
+  else {
+    Ok(())
+  }
+}
+
+fn tiling_direction(
+  container: &Container,
+) -> anyhow::Result<TilingDirection> {
+  return match container {
+    Container::TilingWindow(tiling_window) =>
+      window_direction(&tiling_window),
+    Container::Workspace(workspace) =>
+      Ok(workspace.tiling_direction()),
+    _ => panic!("No direction container")
+  }
+}
+
+fn window_direction(
+  tiling_window: &TilingWindow,
+) -> anyhow::Result<TilingDirection> {
+  let parent = tiling_window
+    .direction_container()
+    .context("No direction container.")?;
+  Ok(parent.tiling_direction())
 }
