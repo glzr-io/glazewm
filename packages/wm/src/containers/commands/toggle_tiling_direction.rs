@@ -88,34 +88,14 @@ pub fn set_tiling_direction(
   container: Container,
   state: &mut WmState,
   config: &UserConfig,
-  direction: TilingDirection,
+  tiling_direction: TilingDirection,
 ) -> anyhow::Result<()> {
-  let current_direction = tiling_direction(&container)?;
-  if current_direction != direction {
-    toggle_tiling_direction(container, state, config)
-  }
-  else {
-    Ok(())
-  }
-}
-
-fn tiling_direction(
-  container: &Container,
-) -> anyhow::Result<TilingDirection> {
-  return match container {
-    Container::TilingWindow(tiling_window) =>
-      window_direction(&tiling_window),
-    Container::Workspace(workspace) =>
-      Ok(workspace.tiling_direction()),
-    _ => panic!("No direction container")
-  }
-}
-
-fn window_direction(
-  tiling_window: &TilingWindow,
-) -> anyhow::Result<TilingDirection> {
-  let parent = tiling_window
+  let direction_container = container
     .direction_container()
     .context("No direction container.")?;
-  Ok(parent.tiling_direction())
+
+  match direction_container.tiling_direction() == tiling_direction {
+    true => Ok(()),
+    false => toggle_tiling_direction(container, state, config)
+  }
 }

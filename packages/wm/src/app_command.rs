@@ -227,8 +227,10 @@ pub enum InvokeCommand {
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
-  SetTilingDirectionVertical,
-  SetTilingDirectionHorizontal,
+  SetTilingDirection {
+    #[clap(required = true)]
+    tiling_direction: TilingDirection,
+  },
   WmCycleFocus {
     #[clap(long, default_value_t = false)]
     omit_fullscreen: bool,
@@ -577,18 +579,14 @@ impl InvokeCommand {
       InvokeCommand::ToggleTilingDirection => {
         toggle_tiling_direction(subject_container, state, config)
       }
-      InvokeCommand::SetTilingDirectionVertical => set_tiling_direction(
-        subject_container,
-        state,
-        config,
-        TilingDirection::Vertical,
-      ),
-      InvokeCommand::SetTilingDirectionHorizontal => set_tiling_direction(
-        subject_container,
-        state,
-        config,
-        TilingDirection::Horizontal,
-      ),
+      InvokeCommand::SetTilingDirection { tiling_direction } => {
+        set_tiling_direction(
+          subject_container,
+          state,
+          config,
+          tiling_direction.clone(),
+        )
+      }
       InvokeCommand::WmCycleFocus {
         omit_fullscreen,
         omit_minimized,
