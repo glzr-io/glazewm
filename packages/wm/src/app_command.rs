@@ -303,8 +303,8 @@ impl InvokeCommand {
           )?;
         }
 
-        if let Some(monitor) = &args.monitor {
-          focus_monitor(monitor, state, config)?;
+        if let Some(monitor_index) = &args.monitor {
+          focus_monitor(*monitor_index, state, config)?;
         }
 
         if args.next_workspace {

@@ -1,5 +1,6 @@
+use anyhow::Context;
+
 use crate::{
-  containers::traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
   workspaces::{commands::focus_workspace, WorkspaceTarget},
@@ -7,33 +8,20 @@ use crate::{
 
 /// Focuses a monitor by a given monitor index.
 pub fn focus_monitor(
-  target: &usize,
+  monitor_index: usize,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let monitors = state.monitors();
 
-  let target_monitor = monitors.get(target.clone());
+  let target_monitor = monitors.get(monitor_index).with_context(|| {
+    format!("Monitor at index {} was not found.", monitor_index)
+  })?;
 
-  // if there are fewer monitors than the index provided error out and bail
-  // early from function
-  if target_monitor.is_none() {
-    anyhow::bail!("target index greater than number of monitors");
-  }
+  let workspace_name = target_monitor
+    .displayed_workspace()
+    .map(|workspace| workspace.config().name)
+    .context("Failed to get target workspace name.")?;
 
-  let target_monitor = target_monitor.unwrap();
-
-  if target_monitor.has_focus(None) {
-    return Ok(());
-  }
-
-  let displayed_workspace = target_monitor.displayed_workspace().unwrap();
-
-  focus_workspace(
-    WorkspaceTarget::Name(displayed_workspace.config().name),
-    state,
-    config,
-  )?;
-
-  Ok(())
+  focus_workspace(WorkspaceTarget::Name(workspace_name), state, config)
 }
