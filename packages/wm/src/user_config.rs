@@ -42,11 +42,9 @@ impl UserConfig {
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
-    let env_config_path = env::var("GLAZEWM_CONFIG_FILE").ok().map(PathBuf::from);
-
     let config_path = config_path
-        .or(env_config_path)
-        .unwrap_or(default_config_path);
+      .or_else(|| env::var("GLAZEWM_CONFIG_PATH").ok().map(PathBuf::from))
+      .unwrap_or(default_config_path);
 
     let (config_value, config_str) = Self::read(&config_path)?;
 
