@@ -59,6 +59,14 @@ To use a different config file location, you can launch the GlazeWM executable w
 ./glazewm.exe --config="C:\<PATH_TO_CONFIG>\config.yaml"
 ```
 
+Or pass a value for the `GLAZEWM_CONFIG_PATH` environment variable:
+
+```sh
+setx GLAZEWM_CONFIG_PATH "C:\<PATH_TO_CONFIG>\config.yaml"
+```
+
+With the benefit of using a custom path being that you can choose a different name for the config file, such as `glazewm.yaml`.
+
 ### Config: General
 
 ```yaml
