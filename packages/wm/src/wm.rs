@@ -129,21 +129,21 @@ pub fn perform_commands(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<Uuid> {
-    for command in commands {
-      command.run(subject_container.clone(), state, config)?;
+  for command in commands {
+    command.run(subject_container.clone(), state, config)?;
 
-      // Update the subject container in case the container type changes.
-      // For example, when going from a tiling to a floating window.
-      subject_container = match subject_container.is_detached() {
-        false => subject_container,
-        true => match state.container_by_id(subject_container.id()) {
-          Some(container) => container,
-          None => break,
-        },
-      }
+    // Update the subject container in case the container type changes.
+    // For example, when going from a tiling to a floating window.
+    subject_container = match subject_container.is_detached() {
+      false => subject_container,
+      true => match state.container_by_id(subject_container.id()) {
+        Some(container) => container,
+        None => break,
+      },
     }
+  }
 
-    platform_sync(state, config)?;
+  platform_sync(state, config)?;
 
-    Ok(subject_container.id())
+  Ok(subject_container.id())
 }
