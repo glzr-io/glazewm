@@ -66,6 +66,10 @@ general:
   # Commands to run when the WM has started (e.g. to run a script or launch
   # another application).
   startup_commands: []
+  # Commands to run just before the WM is shutdown.
+  shutdown_commands : []
+  # Commands to run after the WM config has reloaded.
+  reload_commands: []
 
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false

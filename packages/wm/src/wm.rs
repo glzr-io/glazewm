@@ -17,7 +17,7 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::traits::CommonGetters,
+  containers::{traits::CommonGetters, Container},
   user_config::UserConfig,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -110,7 +110,7 @@ impl WindowManager {
     let state = &mut self.state;
 
     // Get the container to run WM commands with.
-    let mut subject_container = match subject_container_id {
+    let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
         format!("No container found with the given ID '{}'.", id)
       })?,
@@ -119,6 +119,16 @@ impl WindowManager {
         .context("No subject container for command.")?,
     };
 
+    perform_commands(commands, subject_container, state, config)
+  }
+}
+
+pub fn perform_commands(
+  commands: Vec<InvokeCommand>,
+  mut subject_container: Container,
+  state: &mut WmState,
+  config: &mut UserConfig,
+) -> anyhow::Result<Uuid> {
     for command in commands {
       command.run(subject_container.clone(), state, config)?;
 
@@ -136,5 +146,4 @@ impl WindowManager {
     platform_sync(state, config)?;
 
     Ok(subject_container.id())
-  }
 }

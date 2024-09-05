@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
   match subscribe_res {
     Ok(_) => info!("WM exited successfully. Skipping watcher cleanup."),
     Err(err) => {
-      info!("Running watcher cleanup. WM exitted unexpectedly: {}", err);
+      info!("Running watcher cleanup. WM exited unexpectedly: {}", err);
 
       let managed_windows = managed_handles
         .into_iter()

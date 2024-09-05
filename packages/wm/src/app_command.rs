@@ -31,6 +31,7 @@ use crate::{
     traits::WindowGetters,
     WindowState,
   },
+  wm::perform_commands,
   wm_state::WmState,
   workspaces::{
     commands::{focus_workspace, move_workspace_in_direction},
@@ -604,6 +605,13 @@ impl InvokeCommand {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => {
+        perform_commands(
+          config.value.general.shutdown_commands.clone(),
+          subject_container,
+          state,
+          config,
+        )?;
+
         state.emit_exit();
         Ok(())
       }
@@ -616,7 +624,17 @@ impl InvokeCommand {
 
         Ok(())
       }
-      InvokeCommand::WmReloadConfig => reload_config(state, config),
+      InvokeCommand::WmReloadConfig => {
+        reload_config(state, config)?;
+
+        perform_commands(
+          config.value.general.reload_commands.clone(),
+          subject_container,
+          state,
+          config,
+        )?;
+        Ok(())
+      }
     }
   }
 }

@@ -2,6 +2,16 @@ general:
   # Commands to run when the WM has started (e.g. to run a script or launch
   # another application). Here we are running a batch script to start Zebar.
   startup_commands: ['shell-exec %userprofile%/.glzr/zebar/start.bat']
+  # Similarly commands can be executed just before the WM is shutdown
+  # and after the config has reloaded.
+  # Here we shutdown Zebar when the WM is shutdown.
+  shutdown_commands: ['shell-exec taskkill /IM zebar.exe /F']
+  # Here we restart Zebar to reload the Zebar config when reloading the
+  # WM config.
+  reload_commands: [
+    'shell-exec taskkill /IM zebar.exe /F',
+    'shell-exec %userprofile%/.glzr/zebar/start.bat'
+  ]
 
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
