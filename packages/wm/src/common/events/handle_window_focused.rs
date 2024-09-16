@@ -34,7 +34,7 @@ pub fn handle_window_focused(
     }
 
     // TODO: Log window details.
-    info!("Window focused {}", window.native().title()?);
+    info!("Window focused");
 
     // Handle overriding focus on close/minimize. After a window is closed
     // or minimized, the OS or the closed application might automatically
