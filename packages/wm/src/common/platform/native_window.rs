@@ -10,7 +10,7 @@ use windows::{
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-      PROCESS_QUERY_INFORMATION,
+      PROCESS_QUERY_LIMITED_INFORMATION,
     },
     UI::{
       Input::KeyboardAndMouse::{
@@ -104,7 +104,7 @@ impl NativeWindow {
     }
 
     let process_handle = unsafe {
-      OpenProcess(PROCESS_QUERY_INFORMATION, false, process_id)
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id)
     }?;
 
     let mut buffer = [0u16; 256];
