@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, env, path::PathBuf};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,10 @@ impl UserConfig {
       .context("Unable to get home directory.")?
       .join(".glzr/glazewm/config.yaml");
 
-    let config_path = config_path.unwrap_or(default_config_path);
+    let config_path = config_path
+      .or_else(|| env::var("GLAZEWM_CONFIG_PATH").ok().map(PathBuf::from))
+      .unwrap_or(default_config_path);
+
     let (config_value, config_str) = Self::read(&config_path)?;
 
     let window_rules_by_event = Self::window_rules_by_event(&config_value);
