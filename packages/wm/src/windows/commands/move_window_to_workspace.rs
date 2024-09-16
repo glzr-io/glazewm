@@ -128,6 +128,7 @@ pub fn move_window_to_workspace(
       WindowContainer::NonTilingWindow(_) => vec![window.into()],
       WindowContainer::TilingWindow(_) => current_workspace
         .tiling_children()
+        .chain(target_workspace.tiling_children())
         .map(Into::into)
         .collect(),
     };
