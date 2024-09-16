@@ -17,11 +17,13 @@ pub fn handle_window_shown(
   match found_window {
     Some(window) => {
       // TODO: Log window details.
-      info!("Showing window");
+      info!("Window shown");
 
       // Update display state if window is already managed.
       if window.display_state() == DisplayState::Showing {
         window.set_display_state(DisplayState::Shown);
+      } else {
+        state.pending_sync.containers_to_redraw.push(window.into());
       }
     }
     None => {
