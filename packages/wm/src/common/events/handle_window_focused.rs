@@ -2,7 +2,10 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState},
+  common::{
+    platform::{NativeWindow, Platform},
+    DisplayState,
+  },
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::{UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},
@@ -19,18 +22,19 @@ pub fn handle_window_focused(
   let found_window = state.window_from_native(&native_window);
 
   if let Some(window) = found_window {
-    // Ignore event if window is being hidden by the WM.
-    if window.display_state() == DisplayState::Hiding {
+    // Ignore the focus event if:
+    // 1. Window is being hidden by the WM.
+    // 2. Focus is already set to the WM's focused container.
+    // 3. Window is not actually the foreground window.
+    if window.display_state() == DisplayState::Hiding
+      || state.focused_container() == Some(window.clone().into())
+      || Platform::foreground_window() != native_window
+    {
       return Ok(());
     }
 
     // TODO: Log window details.
     info!("Window focused");
-
-    // Focus is already set to the WM's focused container.
-    if state.focused_container() == Some(window.clone().into()) {
-      return Ok(());
-    }
 
     // Handle overriding focus on close/minimize. After a window is closed
     // or minimized, the OS or the closed application might automatically
