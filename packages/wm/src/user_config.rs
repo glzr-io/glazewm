@@ -398,6 +398,14 @@ pub struct GeneralConfig {
   /// launch another application).
   #[serde(default)]
   pub startup_commands: Vec<InvokeCommand>,
+
+  /// Commands to run just before the WM is shutdown.
+  #[serde(default)]
+  pub shutdown_commands: Vec<InvokeCommand>,
+
+  /// Commands to run after the WM config has reloaded.
+  #[serde(default)]
+  pub config_reload_commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

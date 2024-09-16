@@ -10,7 +10,7 @@ use crate::{
   common::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      reload_config, shell_exec,
+      platform_sync, reload_config, shell_exec,
     },
     Direction, LengthValue, RectDelta, TilingDirection,
   },
@@ -604,6 +604,14 @@ impl InvokeCommand {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => {
+        Self::run_multiple(
+          config.value.general.shutdown_commands.clone(),
+          subject_container,
+          state,
+          config,
+        )?;
+        platform_sync(state, config)?;
+
         state.emit_exit();
         Ok(())
       }
@@ -616,8 +624,47 @@ impl InvokeCommand {
 
         Ok(())
       }
-      InvokeCommand::WmReloadConfig => reload_config(state, config),
+      InvokeCommand::WmReloadConfig => {
+        reload_config(state, config)?;
+
+        Self::run_multiple(
+          config.value.general.config_reload_commands.clone(),
+          subject_container,
+          state,
+          config,
+        )?;
+        platform_sync(state, config)?;
+        Ok(())
+      }
     }
+  }
+
+  pub fn run_multiple(
+    commands: Vec<InvokeCommand>,
+    subject_container: Container,
+    state: &mut WmState,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<Uuid> {
+    let mut current_subject_container = subject_container;
+
+    for command in commands {
+      command.run(current_subject_container.clone(), state, config)?;
+
+      // Update the subject container in case the container type changes.
+      // For example, when going from a tiling to a floating window.
+      current_subject_container =
+        match current_subject_container.is_detached() {
+          false => current_subject_container,
+          true => {
+            match state.container_by_id(current_subject_container.id()) {
+              Some(container) => container,
+              None => break,
+            }
+          }
+        }
+    }
+
+    Ok(current_subject_container.id())
   }
 }
 

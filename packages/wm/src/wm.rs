@@ -17,7 +17,6 @@ use crate::{
     },
     platform::PlatformEvent,
   },
-  containers::traits::CommonGetters,
   user_config::UserConfig,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -110,7 +109,7 @@ impl WindowManager {
     let state = &mut self.state;
 
     // Get the container to run WM commands with.
-    let mut subject_container = match subject_container_id {
+    let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
         format!("No container found with the given ID '{}'.", id)
       })?,
@@ -119,22 +118,14 @@ impl WindowManager {
         .context("No subject container for command.")?,
     };
 
-    for command in commands {
-      command.run(subject_container.clone(), state, config)?;
-
-      // Update the subject container in case the container type changes.
-      // For example, when going from a tiling to a floating window.
-      subject_container = match subject_container.is_detached() {
-        false => subject_container,
-        true => match state.container_by_id(subject_container.id()) {
-          Some(container) => container,
-          None => break,
-        },
-      }
-    }
-
+    let new_subject_container_id = InvokeCommand::run_multiple(
+      commands,
+      subject_container,
+      state,
+      config,
+    )?;
     platform_sync(state, config)?;
 
-    Ok(subject_container.id())
+    Ok(new_subject_container_id)
   }
 }
