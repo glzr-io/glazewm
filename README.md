@@ -38,7 +38,14 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 **The latest version of GlazeWM is downloadable via [releases](https://github.com/glzr-io/GlazeWM/releases).** Zebar can optionally be installed as well via a checkbox during installation.
 
-Scoop and Winget are currently not supported. If you instead want to build from source, refer to the
+### Winget
+
+GlazeWM can be downloaded via Winget package manager:
+
+```sh
+winget install GlazeWM
+```
+
 [contributing guide](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md).
 
 ## Default keybindings
