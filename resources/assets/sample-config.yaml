@@ -8,7 +8,7 @@ general:
   shutdown_commands: ['shell-exec taskkill /IM zebar.exe /F']
   # Here we restart Zebar to reload the Zebar config when reloading the
   # WM config.
-  reload_commands: [
+  config_reload_commands: [
     'shell-exec taskkill /IM zebar.exe /F',
     'shell-exec %userprofile%/.glzr/zebar/start.bat'
   ]

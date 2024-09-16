@@ -402,7 +402,7 @@ pub struct GeneralConfig {
 
   /// Commands to run after the WM config has reloaded.
   #[serde(default)]
-  pub reload_commands: Vec<InvokeCommand>,
+  pub config_reload_commands: Vec<InvokeCommand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

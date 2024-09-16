@@ -10,7 +10,7 @@ use crate::{
   common::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      reload_config, shell_exec,
+      platform_sync, reload_config, shell_exec,
     },
     Direction, LengthValue, RectDelta, TilingDirection,
   },
@@ -31,7 +31,6 @@ use crate::{
     traits::WindowGetters,
     WindowState,
   },
-  wm::perform_commands,
   wm_state::WmState,
   workspaces::{
     commands::{focus_workspace, move_workspace_in_direction},
@@ -605,12 +604,13 @@ impl InvokeCommand {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => {
-        perform_commands(
+        Self::run_multiple(
           config.value.general.shutdown_commands.clone(),
           subject_container,
           state,
           config,
         )?;
+        platform_sync(state, config)?;
 
         state.emit_exit();
         Ok(())
@@ -627,15 +627,41 @@ impl InvokeCommand {
       InvokeCommand::WmReloadConfig => {
         reload_config(state, config)?;
 
-        perform_commands(
-          config.value.general.reload_commands.clone(),
+        Self::run_multiple(
+          config.value.general.config_reload_commands.clone(),
           subject_container,
           state,
           config,
         )?;
+        platform_sync(state, config)?;
         Ok(())
       }
     }
+  }
+
+  pub fn run_multiple(
+    commands: Vec<InvokeCommand>,
+    container: Container,
+    state: &mut WmState,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<Uuid> {
+    let mut subject_container = container;
+
+    for command in commands {
+      command.run(subject_container.clone(), state, config)?;
+
+      // Update the subject container in case the container type changes.
+      // For example, when going from a tiling to a floating window.
+      subject_container = match subject_container.is_detached() {
+        false => subject_container,
+        true => match state.container_by_id(subject_container.id()) {
+          Some(container) => container,
+          None => break,
+        },
+      }
+    }
+
+    Ok(subject_container.id())
   }
 }
 
