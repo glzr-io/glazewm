@@ -118,7 +118,7 @@ impl WindowManager {
         .context("No subject container for command.")?,
     };
 
-    let subject_container_id = InvokeCommand::run_multiple(
+    let new_subject_container_id = InvokeCommand::run_multiple(
       commands,
       subject_container,
       state,
@@ -126,6 +126,6 @@ impl WindowManager {
     )?;
     platform_sync(state, config)?;
 
-    Ok(subject_container_id)
+    Ok(new_subject_container_id)
   }
 }
