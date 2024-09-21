@@ -21,14 +21,14 @@ use windows::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
         IsWindowVisible, IsZoomed, SendNotifyMessageW,
-        SetForegroundWindow, SetWindowPos, ShowWindowAsync, GWL_EXSTYLE,
-        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOPMOST,
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_HIDEWINDOW,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
-        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
-        WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX,
-        WS_THICKFRAME,
+        SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
+        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
+        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+        SWP_NOSENDCHANGING, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
+        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE,
+        WM_CLOSE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -323,6 +323,22 @@ impl NativeWindow {
         &bgr as *const _ as _,
         std::mem::size_of::<u32>() as u32,
       )?;
+    }
+
+    Ok(())
+  }
+
+  pub fn set_title_bar_visibility(
+    &self,
+    visible: bool,
+  ) -> anyhow::Result<()> {
+    unsafe {
+      let style = GetWindowLongPtrW(HWND(self.handle), GWL_STYLE);
+      let new_style = match visible {
+        true => style | (WS_CAPTION.0 as isize),
+        false => style & !(WS_CAPTION.0 as isize),
+      };
+      SetWindowLongPtrW(HWND(self.handle), GWL_STYLE, new_style);
     }
 
     Ok(())
