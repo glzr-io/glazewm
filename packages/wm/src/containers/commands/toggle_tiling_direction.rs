@@ -96,6 +96,6 @@ pub fn set_tiling_direction(
 
   match direction_container.tiling_direction() == tiling_direction {
     true => Ok(()),
-    false => toggle_tiling_direction(container, state, config)
+    false => toggle_tiling_direction(container, state, config),
   }
 }
