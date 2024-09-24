@@ -491,12 +491,7 @@ impl InvokeCommand {
         }
       }
       InvokeCommand::SetTitleBarVisibility { visible } => {
-        set_title_bar_visibility(
-          *visible,
-          subject_container,
-          state,
-          config,
-        )
+        set_title_bar_visibility(*visible, subject_container)
       }
       InvokeCommand::ShellExec { command } => {
         shell_exec(&command.join(" "))

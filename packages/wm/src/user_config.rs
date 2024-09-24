@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, env, path::PathBuf};
+use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -505,6 +505,14 @@ pub struct WindowEffectsConfig {
 pub struct WindowEffectConfig {
   /// Config for optionally applying a colored border.
   pub border: BorderEffectConfig,
+
+  /// Config for optionally hiding the title bar.
+  #[serde(default)]
+  pub hide_title_bar: HideTitleBarEffectConfig,
+
+  /// Config for optionally changing the corner style.
+  #[serde(default)]
+  pub corner: CornerEffectConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -517,6 +525,35 @@ pub struct BorderEffectConfig {
   /// Color of the window border.
   #[serde(default = "default_blue")]
   pub color: Color,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct HideTitleBarEffectConfig {
+  /// Whether to enable the effect.
+  #[serde(default = "default_bool::<false>")]
+  pub enabled: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct CornerEffectConfig {
+  /// Whether to enable the effect.
+  #[serde(default = "default_bool::<false>")]
+  pub enabled: bool,
+
+  /// Style of the window corners.
+  #[serde(default)]
+  pub style: CornerStyle,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CornerStyle {
+  WindowsDefault,
+  Square,
+  Round,
+  SmallRound,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -610,4 +647,25 @@ const fn default_blue() -> Color {
 /// Helper function for setting a default value for window rule events.
 fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+impl Default for CornerStyle {
+  fn default() -> Self {
+    CornerStyle::WindowsDefault
+  }
+}
+
+impl Default for HideTitleBarEffectConfig {
+  fn default() -> Self {
+    HideTitleBarEffectConfig { enabled: false }
+  }
+}
+
+impl Default for CornerEffectConfig {
+  fn default() -> Self {
+    CornerEffectConfig {
+      enabled: false,
+      style: CornerStyle::WindowsDefault,
+    }
+  }
 }

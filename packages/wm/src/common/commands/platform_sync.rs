@@ -7,7 +7,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
-  user_config::{CursorJumpTrigger, UserConfig},
+  user_config::{CursorJumpTrigger, UserConfig, WindowEffectConfig},
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -175,22 +175,57 @@ fn apply_window_effects(
 
   let window_effects = &config.value.window_effects;
 
+  let effect_config = match is_focused {
+    true => &window_effects.focused_window,
+    false => &window_effects.other_windows,
+  };
+
   // Skip if both focused + non-focused window effects are disabled.
-  if !window_effects.focused_window.border.enabled
-    && !window_effects.other_windows.border.enabled
+  if window_effects.focused_window.border.enabled
+    || window_effects.other_windows.border.enabled
   {
-    return;
+    apply_border_effect(&window, effect_config);
   };
 
-  let border_config = match is_focused {
-    true => &config.value.window_effects.focused_window.border,
-    false => &config.value.window_effects.other_windows.border,
-  };
+  if window_effects.focused_window.hide_title_bar.enabled
+    || window_effects.other_windows.hide_title_bar.enabled
+  {
+    apply_hide_title_bar_effect(&window, effect_config);
+  }
 
-  let border_color = match border_config.enabled {
-    true => Some(&border_config.color),
+  if window_effects.focused_window.corner.enabled
+    || window_effects.other_windows.corner.enabled
+  {
+    apply_corner_effect(&window, effect_config);
+  }
+}
+
+fn apply_border_effect(
+  window: &WindowContainer,
+  effect_config: &WindowEffectConfig,
+) {
+  let border_color = match effect_config.border.enabled {
+    true => Some(&effect_config.border.color),
     false => None,
   };
 
   _ = window.native().set_border_color(border_color);
+}
+
+fn apply_hide_title_bar_effect(
+  window: &WindowContainer,
+  effect_config: &WindowEffectConfig,
+) {
+  _ = window
+    .native()
+    .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
+}
+
+fn apply_corner_effect(
+  window: &WindowContainer,
+  effect_config: &WindowEffectConfig,
+) {
+  _ = window
+    .native()
+    .set_corner_style(effect_config.corner.style.clone());
 }

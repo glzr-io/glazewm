@@ -7,6 +7,8 @@ use windows::{
     Graphics::Dwm::{
       DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
       DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
+      DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
+      DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -24,11 +26,12 @@ use windows::{
         SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS,
-        SWP_NOSENDCHANGING, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
-        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE,
-        WM_CLOSE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
+        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
+        SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
+        WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -36,6 +39,7 @@ use windows::{
 
 use crate::{
   common::{Color, LengthValue, Memo, Rect, RectDelta},
+  user_config::CornerStyle,
   windows::WindowState,
 };
 
@@ -328,17 +332,61 @@ impl NativeWindow {
     Ok(())
   }
 
+  pub fn set_corner_style(
+    &self,
+    corner_type: CornerStyle,
+  ) -> anyhow::Result<()> {
+    let corner_preference = match corner_type {
+      CornerStyle::WindowsDefault => DWMWCP_DEFAULT,
+      CornerStyle::Square => DWMWCP_DONOTROUND,
+      CornerStyle::Round => DWMWCP_ROUND,
+      CornerStyle::SmallRound => DWMWCP_ROUNDSMALL,
+    };
+
+    unsafe {
+      DwmSetWindowAttribute(
+        HWND(self.handle),
+        DWMWA_WINDOW_CORNER_PREFERENCE,
+        &(corner_preference.0) as *const _ as _,
+        std::mem::size_of::<i32>() as u32,
+      )?;
+    }
+
+    Ok(())
+  }
+
   pub fn set_title_bar_visibility(
     &self,
     visible: bool,
   ) -> anyhow::Result<()> {
     unsafe {
       let style = GetWindowLongPtrW(HWND(self.handle), GWL_STYLE);
+
       let new_style = match visible {
-        true => style | (WS_CAPTION.0 as isize),
-        false => style & !(WS_CAPTION.0 as isize),
+        true => style | (WS_DLGFRAME.0 as isize),
+        false => style & !(WS_DLGFRAME.0 as isize),
       };
-      SetWindowLongPtrW(HWND(self.handle), GWL_STYLE, new_style);
+
+      if new_style != style {
+        SetWindowLongPtrW(HWND(self.handle), GWL_STYLE, new_style);
+        SetWindowPos(
+          HWND(self.handle),
+          HWND_NOTOPMOST,
+          0,
+          0,
+          0,
+          0,
+          SWP_FRAMECHANGED
+            | SWP_NOMOVE
+            | SWP_NOSIZE
+            | SWP_NOZORDER
+            | SWP_NOOWNERZORDER
+            | SWP_NOACTIVATE
+            | SWP_NOCOPYBITS
+            | SWP_NOSENDCHANGING
+            | SWP_ASYNCWINDOWPOS,
+        )?;
+      }
     }
 
     Ok(())
