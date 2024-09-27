@@ -351,10 +351,10 @@ To match a specific application, you need a command to execute and either the wi
 
 ```yaml
 window_rules:
-  - command: "set-floating"
+  - commands: ["set-floating"]
     match:
       - window_process: { equals: "Flow.Launcher" }
-        title: { equals: "Settings" }
+        window_title: { equals: "Settings" }
 ```
 
 Programs like Winlister or AutoHotkey's Window Spy can be useful for getting info about a window.
