@@ -2,6 +2,7 @@ use anyhow::Context;
 use tracing::{info, warn};
 
 use crate::{
+  app_command::InvokeCommand,
   containers::traits::{CommonGetters, TilingSizeGetters},
   user_config::{ParsedConfig, UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},
@@ -54,6 +55,14 @@ pub fn reload_config(
     config_string: config.value_str.clone(),
     parsed_config: config.value.clone(),
   });
+
+  // Run config reload commands.
+  InvokeCommand::run_multiple(
+    config.value.general.config_reload_commands.clone(),
+    state.focused_container().context("No focused container.")?,
+    state,
+    config,
+  )?;
 
   Ok(())
 }

@@ -190,12 +190,19 @@ async fn start_wm(
     }
   }
 
-  // Broadcast `WmEvent::ApplicationExiting` on shutdown.
-  if let Err(err) = ipc_server.process_event(WmEvent::ApplicationExiting) {
-    warn!(
-      "Failed to emit `WmEvent::ApplicationExiting` event over IPC: {:?}",
-      err
-    );
+  // Run shutdown commands.
+  let shutdown_commands = config.value.general.shutdown_commands.clone();
+  wm.process_commands(shutdown_commands, None, &mut config)?;
+
+  wm.state.emit_event(WmEvent::ApplicationExiting);
+
+  // Emit remaining WM events before exiting.
+  while let Ok(wm_event) = wm.event_rx.try_recv() {
+    info!("Emitting WM event before shutting down: {:?}", wm_event);
+
+    if let Err(err) = ipc_server.process_event(wm_event) {
+      warn!("{:?}", err);
+    }
   }
 
   Ok(())

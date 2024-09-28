@@ -10,7 +10,7 @@ use crate::{
   common::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec,
+      reload_config, shell_exec,
     },
     Direction, LengthValue, RectDelta, TilingDirection,
   },
@@ -604,14 +604,6 @@ impl InvokeCommand {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => {
-        Self::run_multiple(
-          config.value.general.shutdown_commands.clone(),
-          subject_container,
-          state,
-          config,
-        )?;
-        platform_sync(state, config)?;
-
         state.emit_exit();
         Ok(())
       }
@@ -624,18 +616,7 @@ impl InvokeCommand {
 
         Ok(())
       }
-      InvokeCommand::WmReloadConfig => {
-        reload_config(state, config)?;
-
-        Self::run_multiple(
-          config.value.general.config_reload_commands.clone(),
-          subject_container,
-          state,
-          config,
-        )?;
-        platform_sync(state, config)?;
-        Ok(())
-      }
+      InvokeCommand::WmReloadConfig => reload_config(state, config),
     }
   }
 
