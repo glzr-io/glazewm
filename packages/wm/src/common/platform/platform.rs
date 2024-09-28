@@ -1,20 +1,37 @@
 use std::{
-  os::windows::io::AsRawHandle,
+  ffi::OsString,
+  os::windows::{ffi::OsStringExt, io::AsRawHandle},
   path::{Path, PathBuf},
   thread::JoinHandle,
 };
 
 use anyhow::{bail, Context};
+use tracing::info;
 use windows::{
-  core::{w, PCWSTR},
+  core::{w, Error, PCWSTR, PWSTR},
   Win32::{
-    Foundation::{HANDLE, HWND, LPARAM, POINT, WPARAM},
+    Foundation::{
+      CloseHandle, HANDLE, HWND, INVALID_HANDLE_VALUE, LPARAM, POINT,
+      WPARAM,
+    },
+    Storage::FileSystem::{
+      CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_WRITE,
+      FILE_SHARE_WRITE, OPEN_EXISTING,
+    },
     System::{
-      Environment::ExpandEnvironmentStringsW, Threading::GetThreadId,
+      Com::CoTaskMemFree,
+      Environment::ExpandEnvironmentStringsW,
+      Threading::{
+        CreateProcessW, GetThreadId, CREATE_NEW_CONSOLE, CREATE_NO_WINDOW,
+        DETACHED_PROCESS, PROCESS_CREATION_FLAGS, PROCESS_INFORMATION,
+        STARTF_USESHOWWINDOW, STARTF_USESTDHANDLES, STARTUPINFOW,
+      },
     },
     UI::{
       Shell::{
-        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
+        AssocQueryStringW, SHEvaluateSystemCommandTemplate,
+        ShellExecuteExW, ASSOCF_NONE, ASSOCSTR_EXECUTABLE,
+        SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SEE_MASK_NO_CONSOLE,
         SHELLEXECUTEINFOW,
       },
       WindowsAndMessaging::{
@@ -410,6 +427,98 @@ impl Platform {
     anyhow::bail!("Program path is not valid for command '{}'.", command)
   }
 
+  fn resolve_program_path(program: &str) -> anyhow::Result<PathBuf> {
+    let program_wide = to_wide(program);
+    let mut buf_size: u32 = 1024; // Start with a reasonable size
+    let mut buf: Vec<u16> = vec![0; buf_size as usize];
+
+    loop {
+      let result = unsafe {
+        AssocQueryStringW(
+          ASSOCF_NONE,
+          ASSOCSTR_EXECUTABLE,
+          PCWSTR(program_wide.as_ptr()),
+          PCWSTR::null(),
+          PWSTR(buf.as_mut_ptr()),
+          &mut buf_size,
+        )
+      }
+      .ok();
+
+      match result {
+        Ok(_) => {
+          // Trim the buffer to the actual size
+          buf.truncate(buf_size as usize);
+          // Remove null terminator if present
+          if buf.last() == Some(&0) {
+            buf.pop();
+          }
+          let os_string: OsString = OsStringExt::from_wide(&buf);
+          return Ok(PathBuf::from(os_string));
+        }
+        // Err(e) if e.code() == Error::INSUFFICIENT_BUFFER.into() => {
+        //   // Buffer was too small, resize and try again
+        //   buf.resize(buf_size as usize, 0);
+        // }
+        Err(e) => {
+          return Err(anyhow::anyhow!(
+            "Failed to resolve program path: {}",
+            e
+          ))
+        }
+      }
+    }
+  }
+
+  fn create_null_handle() -> anyhow::Result<HANDLE> {
+    let handle = unsafe {
+      CreateFileW(
+        PCWSTR(to_wide("NUL").as_ptr()),
+        FILE_GENERIC_WRITE.0,
+        FILE_SHARE_WRITE,
+        None,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        HANDLE(0),
+      )
+    }?;
+
+    // if handle == INVALID_HANDLE_VALUE {
+    //   return Err(anyhow::anyhow!("Failed to create null handle"));
+    // }
+
+    Ok(handle)
+  }
+
+  fn resolve_path(command: &str) -> anyhow::Result<(Vec<u16>, Vec<u16>)> {
+    let mut application: PWSTR = PWSTR::null();
+    let mut parameters: PWSTR = PWSTR::null();
+    unsafe {
+      SHEvaluateSystemCommandTemplate(
+        PCWSTR(to_wide(&command).as_ptr()),
+        &mut application,
+        None,
+        Some(&mut parameters),
+      )
+    }
+    .with_context(|| {
+      format!("Program path is not valid for command '{}'.", command)
+    })?;
+
+    let application_str = unsafe { application.to_string()? };
+    let parameters_str = unsafe { parameters.to_string()? };
+    info!(
+      "Parsed command program: '{}', args: '{}'.",
+      application_str, parameters_str
+    );
+    // Free the memory allocated by `SHEvaluateSystemCommandTemplate`.
+    unsafe { CoTaskMemFree(Some(application.0 as _)) };
+    unsafe { CoTaskMemFree(Some(parameters.0 as _)) }
+    // let application_str = unsafe { application.to_string()? };
+    // let parameters_str = unsafe { parameters.to_string()? };
+    Ok((to_wide(&application_str), to_wide(&parameters_str)))
+  }
+
   /// Runs the specified program with the given arguments.
   pub fn run_command(program: &str, args: &str) -> anyhow::Result<()> {
     let home_dir = home::home_dir()
@@ -430,17 +539,79 @@ impl Platform {
     // program as a subprocess. This prevents Windows from cleaning up
     // handles held by our process (e.g. the IPC server port) until the
     // subprocess exits.
-    let mut exec_info = SHELLEXECUTEINFOW {
-      cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-      lpFile: PCWSTR(program_wide.as_ptr()),
-      lpParameters: PCWSTR(args_wide.as_ptr()),
-      lpDirectory: PCWSTR(home_dir_wide.as_ptr()),
-      nShow: SW_NORMAL.0 as _,
-      fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
+    // let mut exec_info = SHELLEXECUTEINFOW {
+    //   cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+    //   lpFile: PCWSTR(program_wide.as_ptr()),
+    //   lpParameters: PCWSTR(args_wide.as_ptr()),
+    //   lpDirectory: PCWSTR(home_dir_wide.as_ptr()),
+    //   nShow: SW_NORMAL.0 as _,
+    //   fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
+    //   ..Default::default()
+    // };
+
+    // unsafe { ShellExecuteExW(&mut exec_info) }?;
+    let current_dir_wide = to_wide(&home_dir);
+    // let mut command_line = format!("\"{}\" {}", program, args);
+    // let mut command_line_wide: Vec<u16> = to_wide(&command_line);
+
+    let program_path = Self::resolve_program_path(program)
+      .unwrap_or_else(|_| PathBuf::from(program));
+    let program_path = Self::resolve_program_path(program)
+      .unwrap_or_else(|_| PathBuf::from(program));
+    println!("program_path: {:?}", program_path);
+    // let mut command_line =
+    //   format!("\"{}\" {}", program_path.to_str().unwrap(), args);
+    // let mut command_line_wide: Vec<u16> = to_wide(&command_line);
+
+    // let mut command_line =
+    //   format!("\"{}\" {}", program_path.to_str().unwrap(), args);
+    let mut command_line_wide: Vec<u16> =
+      to_wide(&program_path.to_str().unwrap());
+
+    let null_handle = Self::create_null_handle()?;
+
+    let mut startup_info = STARTUPINFOW {
+      cb: std::mem::size_of::<STARTUPINFOW>() as u32,
+      dwFlags: STARTF_USESHOWWINDOW,
+      wShowWindow: SW_NORMAL.0 as u16,
+      // dwFlags: STARTF_USESTDHANDLES,
+      // hStdInput: INVALID_HANDLE_VALUE,
+      // hStdOutput: null_handle,
+      // hStdError: null_handle,
       ..Default::default()
     };
 
-    unsafe { ShellExecuteExW(&mut exec_info) }?;
+    let mut process_info = PROCESS_INFORMATION::default();
+
+    let creation_flags = PROCESS_CREATION_FLAGS(DETACHED_PROCESS.0);
+    // let creation_flags = PROCESS_CREATION_FLAGS(CREATE_NO_WINDOW.0);
+
+    let result = unsafe {
+      CreateProcessW(
+        PCWSTR::null(),
+        PWSTR(command_line_wide.as_mut_ptr()),
+        None,
+        None,
+        // false,
+        true,
+        creation_flags,
+        None,
+        PCWSTR(current_dir_wide.as_ptr()),
+        &startup_info,
+        &mut process_info,
+      )
+    };
+
+    if let Err(error) = result {
+      return Err(anyhow::anyhow!("Failed to create process: {}", error));
+    }
+
+    // Close process and thread handles
+    unsafe {
+      CloseHandle(process_info.hProcess);
+      CloseHandle(process_info.hThread);
+    }
+
     Ok(())
   }
 
