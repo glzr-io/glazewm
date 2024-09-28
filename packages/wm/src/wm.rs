@@ -124,6 +124,7 @@ impl WindowManager {
       state,
       config,
     )?;
+
     platform_sync(state, config)?;
 
     Ok(new_subject_container_id)
