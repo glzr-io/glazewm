@@ -22,10 +22,11 @@ use windows::Win32::{
     },
     WindowsAndMessaging::{
       DefWindowProcW, DestroyWindow, GetCursorPos, DBT_DEVNODES_CHANGED,
+      PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND, PBT_APMSUSPEND,
       RI_MOUSE_LEFT_BUTTON_DOWN, RI_MOUSE_LEFT_BUTTON_UP,
       RI_MOUSE_RIGHT_BUTTON_DOWN, RI_MOUSE_RIGHT_BUTTON_UP,
       SPI_ICONVERTICALSPACING, SPI_SETWORKAREA, WM_DEVICECHANGE,
-      WM_DISPLAYCHANGE, WM_INPUT, WM_SETTINGCHANGE,
+      WM_DISPLAYCHANGE, WM_INPUT, WM_POWERBROADCAST, WM_SETTINGCHANGE,
     },
   },
 };
@@ -45,6 +46,11 @@ static PLATFORM_EVENT_TX: OnceLock<mpsc::UnboundedSender<PlatformEvent>> =
 ///
 /// For use with window procedure.
 static ENABLE_MOUSE_EVENTS: AtomicBool = AtomicBool::new(false);
+
+/// Whether the system is currently sleeping/hibernating.
+///
+/// For use with window procedure.
+static IS_SYSTEM_SUSPENDED: AtomicBool = AtomicBool::new(false);
 
 /// Whether left-click is currently pressed.
 ///
@@ -175,11 +181,30 @@ pub extern "system" fn event_window_proc(
 ) -> LRESULT {
   if let Some(event_tx) = PLATFORM_EVENT_TX.get() {
     return match message {
+      WM_POWERBROADCAST => {
+        match wparam.0 as u32 {
+          // System is resuming from sleep/hibernation.
+          PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
+            IS_SYSTEM_SUSPENDED.store(false, Ordering::Relaxed)
+          }
+          // System is entering sleep/hibernation.
+          PBT_APMSUSPEND => {
+            IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed)
+          }
+          _ => {}
+        };
+
+        LRESULT(0)
+      }
       WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-        if let Err(err) =
-          handle_display_change_msg(message, wparam, event_tx)
-        {
-          warn!("Failed to handle display change message: {}", err);
+        // Ignore display change messages if the system hasn't fully
+        // resumed from sleep.
+        if !IS_SYSTEM_SUSPENDED.load(Ordering::Relaxed) {
+          if let Err(err) =
+            handle_display_change_msg(message, wparam, event_tx)
+          {
+            warn!("Failed to handle display change message: {}", err);
+          }
         }
 
         LRESULT(0)
