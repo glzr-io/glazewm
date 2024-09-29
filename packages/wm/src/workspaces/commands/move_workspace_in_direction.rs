@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use super::{activate_workspace, sort_workspaces};
+use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{
   common::Direction,
   containers::{
@@ -58,6 +58,19 @@ pub fn move_workspace_in_direction(
     // Prevent original monitor from having no workspaces.
     if monitor.child_count() == 0 {
       activate_workspace(None, Some(monitor), state, config)?;
+    }
+
+    // Get empty workspace to destroy (if one is found). Cannot destroy
+    // empty workspaces if they're the only workspace on the monitor.
+    let workspace_to_destroy =
+      state.workspaces().into_iter().find(|workspace| {
+        !workspace.config().keep_alive
+          && !workspace.has_children()
+          && !workspace.is_displayed()
+      });
+
+    if let Some(workspace) = workspace_to_destroy {
+      deactivate_workspace(workspace, state)?;
     }
 
     sort_workspaces(target_monitor, config)?;
