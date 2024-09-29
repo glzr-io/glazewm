@@ -8,10 +8,6 @@ where
   ///
   /// Inserts at index if value doesn't already exist in the `VecDeque`.
   fn shift_to_index(&mut self, target_index: usize, item: T);
-
-  /// Replaces the first occurrence of a value with a new value in a
-  /// `VecDeque`.
-  fn replace(&mut self, old_value: &T, new_value: T);
 }
 
 impl<T> VecDequeExt<T> for VecDeque<T>
@@ -25,12 +21,6 @@ where
       // Adjust for when the target index becomes out of bounds because of
       // the removal above.
       self.insert(target_index.clamp(0, self.len()), value);
-    }
-  }
-
-  fn replace(&mut self, old_value: &T, new_value: T) {
-    if let Some(index) = self.iter().position(|e| e == old_value) {
-      self[index] = new_value;
     }
   }
 }
