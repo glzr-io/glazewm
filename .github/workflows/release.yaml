@@ -44,23 +44,23 @@ jobs:
           gh-assets: |
             [
               {
-                "path": "out/installer-universal",
-                "name": "glazewm-${nextRelease.gitTag}-opt0",
-                "label": "${nextRelease.gitTag} Installer (recommended)"
+                "path": "out/installer-universal.exe",
+                "name": "glazewm-${nextRelease.gitTag}.exe",
+                "label": "${nextRelease.gitTag} Installer (standard)"
               },
               {
-                "path": "out/installer-x64",
-                "name": "glazewm-${nextRelease.gitTag}-opt1-x64",
-                "label": "${nextRelease.gitTag} Installer (standalone x64)"
+                "path": "out/installer-x64.msi",
+                "name": "standalone-glazewm-${nextRelease.gitTag}-x64.msi",
+                "label": "${nextRelease.gitTag} Standalone Installer (x64)"
               },
               {
-                "path": "out/installer-arm64",
-                "name": "glazewm-${nextRelease.gitTag}-opt1-arm64",
-                "label": "${nextRelease.gitTag} Installer (standalone arm64)"
+                "path": "out/installer-arm64.msi",
+                "name": "standalone-glazewm-${nextRelease.gitTag}-arm64.msi",
+                "label": "${nextRelease.gitTag} Standalone Installer (arm64)"
               }
             ]
-            
-      - name: Winget Release
+
+      - name: Winget release
         uses: vedantmgoyal9/winget-releaser@main
         with:
           identifier: glzr-io.glazewm
