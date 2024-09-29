@@ -65,4 +65,5 @@ jobs:
         with:
           identifier: glzr-io.glazewm
           installers-regex: '\.exe$' # Only .exe files
+          version: ${{ github.event.release.tag_name }}
           token: ${{ secrets.WINGET_TOKEN }}
