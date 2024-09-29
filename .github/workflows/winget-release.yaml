@@ -1,0 +1,15 @@
+name: Winget release
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: vedantmgoyal2009/winget-releaser@b87a066d9e624db1394edcd947f8c4e5a7e30cd7
+        with:
+          identifier: glzr-io.glazewm
+          installers-regex: 'glazewm-[0-9.]+\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
