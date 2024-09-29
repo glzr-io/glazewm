@@ -64,5 +64,5 @@ jobs:
         uses: vedantmgoyal9/winget-releaser@main
         with:
           identifier: glzr-io.glazewm
-          installers-regex: 'glazewm-[0-9.]+\.exe$'
+          installers-regex: '\.exe$' # Only .exe files
           token: ${{ secrets.WINGET_TOKEN }}
