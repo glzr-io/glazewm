@@ -149,9 +149,10 @@ fn jump_cursor(
       let cursor_monitor =
         state.monitor_at_position(&Platform::mouse_position()?);
 
+      // Jump to the target monitor if the cursor is not already on it.
       cursor_monitor
         .filter(|monitor| monitor.id() != target_monitor.id())
-        .map(Into::into)
+        .map(|_| target_monitor.into())
     }
   };
 
