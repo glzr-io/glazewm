@@ -59,11 +59,3 @@ jobs:
                 "label": "${nextRelease.gitTag} Standalone Installer (arm64)"
               }
             ]
-
-      - name: Winget release
-        uses: vedantmgoyal9/winget-releaser@main
-        with:
-          identifier: glzr-io.glazewm
-          installers-regex: '\.exe$' # Only .exe files
-          version: ${{ github.event.release.tag_name }}
-          token: ${{ secrets.WINGET_TOKEN }}
