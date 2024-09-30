@@ -36,10 +36,9 @@ pub fn platform_sync(
     state.pending_sync.cursor_jump = false;
   }
 
-  if state.pending_sync.focus_change {
-    sync_focus(focused_container.clone(), state)?;
-    state.pending_sync.focus_change = false;
-
+  if state.pending_sync.focus_change
+    || state.pending_sync.reset_window_effects
+  {
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(window, true, config);
     }
@@ -64,6 +63,11 @@ pub fn platform_sync(
     }
 
     state.pending_sync.reset_window_effects = false;
+  }
+
+  if state.pending_sync.focus_change {
+    sync_focus(focused_container.clone(), state)?;
+    state.pending_sync.focus_change = false;
   }
 
   Ok(())
@@ -224,7 +228,7 @@ fn apply_border_effect(
   // Re-apply border color after a short delay to better handle
   // windows that change it themselves.
   task::spawn(async move {
-    tokio::time::sleep(Duration::from_millis(20)).await;
+    tokio::time::sleep(Duration::from_millis(50)).await;
     _ = native.set_border_color(border_color.as_ref());
   });
 }
