@@ -1,7 +1,7 @@
 use std::{iter, path::PathBuf};
 
 use anyhow::{bail, Context};
-use clap::{error::KindFormatter, Args, Parser, ValueEnum};
+use clap::{error::KindFormatter, ArgAction, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::{warn, Level};
 use uuid::Uuid;
@@ -26,7 +26,8 @@ use crate::{
   windows::{
     commands::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_size, update_window_state,
+      resize_window, set_title_bar_visibility, set_window_size,
+      update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -205,6 +206,10 @@ pub enum InvokeCommand {
   },
   SetMinimized,
   SetTiling,
+  SetTitleBarVisibility {
+    #[clap(required = true, action = ArgAction::Set)]
+    visible: bool,
+  },
   ShellExec {
     #[clap(required = true, trailing_var_arg = true)]
     command: Vec<String>,
@@ -484,6 +489,9 @@ impl InvokeCommand {
           }
           _ => Ok(()),
         }
+      }
+      InvokeCommand::SetTitleBarVisibility { visible } => {
+        set_title_bar_visibility(*visible, subject_container)
       }
       InvokeCommand::ShellExec { command } => {
         shell_exec(&command.join(" "))
