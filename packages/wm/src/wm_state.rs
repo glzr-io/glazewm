@@ -72,8 +72,11 @@ pub struct PendingSync {
   /// container.
   pub focus_change: bool,
 
-  /// Whether window effects should be reset.
-  pub reset_window_effects: bool,
+  /// Whether to update window effects for the focused window.
+  pub update_window_effects: bool,
+
+  /// Whether window effects for *all* windows should be updated.
+  pub update_all_window_effects: bool,
 
   /// Whether to jump the cursor to the focused container (if enabled in
   /// user config).
@@ -90,7 +93,8 @@ impl WmState {
       pending_sync: PendingSync {
         containers_to_redraw: Vec::new(),
         focus_change: false,
-        reset_window_effects: false,
+        update_window_effects: false,
+        update_all_window_effects: false,
         cursor_jump: false,
       },
       recent_focused_container: None,
@@ -144,7 +148,7 @@ impl WmState {
     set_focused_descendant(container_to_focus, None);
 
     self.pending_sync.focus_change = true;
-    self.pending_sync.reset_window_effects = true;
+    self.pending_sync.update_all_window_effects = true;
     platform_sync(self, config)?;
 
     self.has_initialized = true;

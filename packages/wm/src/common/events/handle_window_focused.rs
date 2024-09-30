@@ -80,7 +80,9 @@ pub fn handle_window_focused(
 
     state.emit_event(WmEvent::FocusChanged {
       focused_container: window.to_dto()?,
-    })
+    });
+
+    state.pending_sync.update_window_effects = true;
   }
 
   Ok(())
