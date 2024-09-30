@@ -166,7 +166,7 @@ fn update_window_effects(
     }
   }
 
-  state.pending_sync.update_all_window_effects = true;
+  state.pending_sync.reset_window_effects = true;
 
   Ok(())
 }

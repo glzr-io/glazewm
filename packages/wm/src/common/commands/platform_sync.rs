@@ -36,16 +36,10 @@ pub fn platform_sync(
     state.pending_sync.cursor_jump = false;
   }
 
-  let has_focus_change = state.pending_sync.focus_change;
-  if has_focus_change {
+  if state.pending_sync.focus_change {
     sync_focus(focused_container.clone(), state)?;
     state.pending_sync.focus_change = false;
-  }
 
-  if has_focus_change
-    || state.pending_sync.update_window_effects
-    || state.pending_sync.update_all_window_effects
-  {
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(window, true, config);
     }
@@ -55,7 +49,7 @@ pub fn platform_sync(
     // previously focused window. If the `reset_window_effects` flag is
     // passed, the unfocused border is applied to all unfocused windows.
     let unfocused_windows =
-      match state.pending_sync.update_all_window_effects {
+      match state.pending_sync.reset_window_effects {
         true => state.windows(),
         false => recent_focused_container
           .and_then(|container| container.as_window_container().ok())
@@ -69,8 +63,7 @@ pub fn platform_sync(
       apply_window_effects(window, false, config);
     }
 
-    state.pending_sync.update_window_effects = false;
-    state.pending_sync.update_all_window_effects = false;
+    state.pending_sync.reset_window_effects = false;
   }
 
   Ok(())
