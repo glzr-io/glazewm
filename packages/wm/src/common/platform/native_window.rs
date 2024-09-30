@@ -280,26 +280,23 @@ impl NativeWindow {
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {
-    // UIAccess allows for setting the foreground window without needing to
-    // send a key press event.
-    #[cfg(not(feature = "ui_access"))]
-    unsafe {
-      let input = INPUT {
-        r#type: INPUT_KEYBOARD,
-        Anonymous: INPUT_0 {
-          ki: KEYBDINPUT {
-            wVk: VIRTUAL_KEY(1),
-            wScan: 0,
-            dwFlags: KEYBD_EVENT_FLAGS(0),
-            time: 0,
-            dwExtraInfo: 0,
-          },
+    let input = INPUT {
+      r#type: INPUT_KEYBOARD,
+      Anonymous: INPUT_0 {
+        ki: KEYBDINPUT {
+          wVk: VIRTUAL_KEY(1),
+          wScan: 0,
+          dwFlags: KEYBD_EVENT_FLAGS(0),
+          time: 0,
+          dwExtraInfo: 0,
         },
-      };
+      },
+    };
 
-      // Simulate a key press event to activate the window.
-      SendInput(&[input], std::mem::size_of::<INPUT>() as i32);
-    }
+    // Simulate a key press event to activate the window. VK code 1 is a
+    // left mouse button press and caused the least side effects versus
+    // other key codes.
+    unsafe { SendInput(&[input], std::mem::size_of::<INPUT>() as i32) };
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
