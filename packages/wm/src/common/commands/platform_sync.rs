@@ -39,31 +39,32 @@ pub fn platform_sync(
   if state.pending_sync.focus_change {
     sync_focus(focused_container.clone(), state)?;
     state.pending_sync.focus_change = false;
-  }
 
-  if let Ok(window) = focused_container.as_window_container() {
-    apply_window_effects(window, true, config);
-  }
+    if let Ok(window) = focused_container.as_window_container() {
+      apply_window_effects(window, true, config);
+    }
 
-  // Get windows that should have the unfocused border applied to them.
-  // For the sake of performance, we only update the border of the
-  // previously focused window. If the `reset_window_effects` flag is
-  // passed, the unfocused border is applied to all unfocused windows.
-  let unfocused_windows = match state.pending_sync.reset_window_effects {
-    true => state.windows(),
-    false => recent_focused_container
-      .and_then(|container| container.as_window_container().ok())
+    // Get windows that should have the unfocused border applied to them.
+    // For the sake of performance, we only update the border of the
+    // previously focused window. If the `reset_window_effects` flag is
+    // passed, the unfocused border is applied to all unfocused windows.
+    let unfocused_windows =
+      match state.pending_sync.reset_window_effects {
+        true => state.windows(),
+        false => recent_focused_container
+          .and_then(|container| container.as_window_container().ok())
+          .into_iter()
+          .collect(),
+      }
       .into_iter()
-      .collect(),
-  }
-  .into_iter()
-  .filter(|window| window.id() != focused_container.id());
+      .filter(|window| window.id() != focused_container.id());
 
-  for window in unfocused_windows {
-    apply_window_effects(window, false, config);
-  }
+    for window in unfocused_windows {
+      apply_window_effects(window, false, config);
+    }
 
-  state.pending_sync.reset_window_effects = false;
+    state.pending_sync.reset_window_effects = false;
+  }
 
   Ok(())
 }
@@ -215,6 +216,7 @@ fn apply_border_effect(
     false => None,
   };
 
+  println!("setting border {:?}", border_color);
   _ = window.native().set_border_color(border_color);
 
   let native = window.native().clone();
@@ -224,6 +226,7 @@ fn apply_border_effect(
   // windows that change it themselves.
   task::spawn(async move {
     tokio::time::sleep(Duration::from_millis(50)).await;
+    println!("setting border {:?}", border_color);
     _ = native.set_border_color(border_color.as_ref());
   });
 }
