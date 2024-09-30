@@ -331,7 +331,7 @@ impl NativeWindow {
 
   pub fn set_corner_style(
     &self,
-    corner_style: CornerStyle,
+    corner_style: &CornerStyle,
   ) -> anyhow::Result<()> {
     let corner_preference = match corner_style {
       CornerStyle::Default => DWMWCP_DEFAULT,

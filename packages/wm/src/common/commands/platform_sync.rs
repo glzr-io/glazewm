@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use anyhow::Context;
+use tokio::task;
 use tracing::warn;
 
 use crate::{
@@ -7,7 +10,9 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
-  user_config::{CursorJumpTrigger, UserConfig, WindowEffectConfig},
+  user_config::{
+    CornerStyle, CursorJumpTrigger, UserConfig, WindowEffectConfig,
+  },
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -211,6 +216,16 @@ fn apply_border_effect(
   };
 
   _ = window.native().set_border_color(border_color);
+
+  let native = window.native().clone();
+  let border_color = border_color.cloned();
+
+  // Re-apply border color after a short delay to better handle
+  // windows that change it themselves.
+  task::spawn(async move {
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    _ = native.set_border_color(border_color.as_ref());
+  });
 }
 
 fn apply_hide_title_bar_effect(
@@ -226,7 +241,10 @@ fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_corner_style(effect_config.corner_style.style.clone());
+  let corner_style = match effect_config.corner_style.enabled {
+    true => &effect_config.corner_style.style,
+    false => &CornerStyle::Default,
+  };
+
+  _ = window.native().set_corner_style(corner_style);
 }
