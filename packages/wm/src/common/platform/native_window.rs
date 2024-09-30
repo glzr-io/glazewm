@@ -331,9 +331,9 @@ impl NativeWindow {
 
   pub fn set_corner_style(
     &self,
-    corner_type: CornerStyle,
+    corner_style: CornerStyle,
   ) -> anyhow::Result<()> {
-    let corner_preference = match corner_type {
+    let corner_preference = match corner_style {
       CornerStyle::WindowsDefault => DWMWCP_DEFAULT,
       CornerStyle::Square => DWMWCP_DONOTROUND,
       CornerStyle::Round => DWMWCP_ROUND,
@@ -356,15 +356,15 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> anyhow::Result<()> {
-    unsafe {
-      let style = GetWindowLongPtrW(HWND(self.handle), GWL_STYLE);
+    let style = unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-      let new_style = match visible {
-        true => style | (WS_DLGFRAME.0 as isize),
-        false => style & !(WS_DLGFRAME.0 as isize),
-      };
+    let new_style = match visible {
+      true => style | (WS_DLGFRAME.0 as isize),
+      false => style & !(WS_DLGFRAME.0 as isize),
+    };
 
-      if new_style != style {
+    if new_style != style {
+      unsafe {
         SetWindowLongPtrW(HWND(self.handle), GWL_STYLE, new_style);
         SetWindowPos(
           HWND(self.handle),

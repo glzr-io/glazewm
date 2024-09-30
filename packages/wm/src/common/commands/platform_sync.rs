@@ -194,8 +194,8 @@ fn apply_window_effects(
     apply_hide_title_bar_effect(&window, effect_config);
   }
 
-  if window_effects.focused_window.corner.enabled
-    || window_effects.other_windows.corner.enabled
+  if window_effects.focused_window.corner_style.enabled
+    || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(&window, effect_config);
   }
@@ -228,5 +228,5 @@ fn apply_corner_effect(
 ) {
   _ = window
     .native()
-    .set_corner_style(effect_config.corner.style.clone());
+    .set_corner_style(effect_config.corner_style.style.clone());
 }

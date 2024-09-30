@@ -512,7 +512,7 @@ pub struct WindowEffectConfig {
 
   /// Config for optionally changing the corner style.
   #[serde(default)]
-  pub corner: CornerEffectConfig,
+  pub corner_style: CornerEffectConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
