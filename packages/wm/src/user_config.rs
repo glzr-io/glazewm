@@ -550,10 +550,10 @@ pub struct CornerEffectConfig {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CornerStyle {
-  WindowsDefault,
+  Default,
   Square,
-  Round,
-  SmallRound,
+  Rounded,
+  SmallRounded,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -651,7 +651,7 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
 
 impl Default for CornerStyle {
   fn default() -> Self {
-    CornerStyle::WindowsDefault
+    CornerStyle::Default
   }
 }
 
@@ -665,7 +665,7 @@ impl Default for CornerEffectConfig {
   fn default() -> Self {
     CornerEffectConfig {
       enabled: false,
-      style: CornerStyle::WindowsDefault,
+      style: CornerStyle::Default,
     }
   }
 }

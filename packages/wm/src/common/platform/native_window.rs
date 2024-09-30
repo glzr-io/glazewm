@@ -334,10 +334,10 @@ impl NativeWindow {
     corner_style: CornerStyle,
   ) -> anyhow::Result<()> {
     let corner_preference = match corner_style {
-      CornerStyle::WindowsDefault => DWMWCP_DEFAULT,
+      CornerStyle::Default => DWMWCP_DEFAULT,
       CornerStyle::Square => DWMWCP_DONOTROUND,
-      CornerStyle::Round => DWMWCP_ROUND,
-      CornerStyle::SmallRound => DWMWCP_ROUNDSMALL,
+      CornerStyle::Rounded => DWMWCP_ROUND,
+      CornerStyle::SmallRounded => DWMWCP_ROUNDSMALL,
     };
 
     unsafe {
