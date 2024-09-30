@@ -216,7 +216,6 @@ fn apply_border_effect(
     false => None,
   };
 
-  println!("setting border {:?}", border_color);
   _ = window.native().set_border_color(border_color);
 
   let native = window.native().clone();
@@ -225,8 +224,7 @@ fn apply_border_effect(
   // Re-apply border color after a short delay to better handle
   // windows that change it themselves.
   task::spawn(async move {
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    println!("setting border {:?}", border_color);
+    tokio::time::sleep(Duration::from_millis(20)).await;
     _ = native.set_border_color(border_color.as_ref());
   });
 }
