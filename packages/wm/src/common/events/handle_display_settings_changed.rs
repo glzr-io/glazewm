@@ -128,10 +128,6 @@ pub fn handle_display_settings_changed(
         .floating_placement()
         .translate_to_center(&workspace.to_rect()?),
     );
-
-    if let WindowContainer::NonTilingWindow(window) = &window {
-      window.set_insertion_target(None);
-    }
   }
 
   // Redraw full container tree.

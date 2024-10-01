@@ -21,10 +21,16 @@ pub fn move_workspace_in_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let monitor = workspace.monitor().context("No monitor.")?;
-  let target_monitor = state.monitor_in_direction(&monitor, &direction)?;
+  let origin_monitor = workspace.monitor().context("No monitor.")?;
+  let target_monitor =
+    state.monitor_in_direction(&origin_monitor, &direction)?;
 
   if let Some(target_monitor) = target_monitor {
+    // Get currently displayed workspace on the target monitor.
+    let displayed_workspace = target_monitor
+      .displayed_workspace()
+      .context("No displayed workspace.")?;
+
     move_container_within_tree(
       workspace.clone().into(),
       target_monitor.clone().into(),
@@ -44,26 +50,33 @@ pub fn move_workspace_in_direction(
           .floating_placement()
           .translate_to_center(&workspace.to_rect()?),
       );
-
-      if let WindowContainer::NonTilingWindow(window) = &window {
-        window.set_insertion_target(None);
-      }
     }
 
     state
       .pending_sync
       .containers_to_redraw
-      .push(workspace.clone().into());
+      .extend([workspace.clone().into(), displayed_workspace.into()]);
 
-    // Prevent original monitor from having no workspaces.
-    if monitor.child_count() == 0 {
-      activate_workspace(None, Some(monitor), state, config)?;
+    match origin_monitor.child_count() {
+      0 => {
+        // Prevent original monitor from having no workspaces.
+        activate_workspace(None, Some(origin_monitor), state, config)?;
+      }
+      _ => {
+        // Redraw the workspace on the origin monitor.
+        state.pending_sync.containers_to_redraw.push(
+          origin_monitor
+            .displayed_workspace()
+            .context("No displayed workspace.")?
+            .into(),
+        );
+      }
     }
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
     // empty workspaces if they're the only workspace on the monitor.
     let workspace_to_destroy =
-      state.workspaces().into_iter().find(|workspace| {
+      target_monitor.workspaces().into_iter().find(|workspace| {
         !workspace.config().keep_alive
           && !workspace.has_children()
           && !workspace.is_displayed()
