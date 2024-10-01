@@ -1,7 +1,7 @@
 use std::{iter, path::PathBuf};
 
 use anyhow::{bail, Context};
-use clap::{error::KindFormatter, ArgAction, Args, Parser, ValueEnum};
+use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::{warn, Level};
 use uuid::Uuid;
@@ -26,8 +26,7 @@ use crate::{
   windows::{
     commands::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_title_bar_visibility, set_window_size,
-      update_window_state,
+      resize_window, set_window_size, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -207,8 +206,8 @@ pub enum InvokeCommand {
   SetMinimized,
   SetTiling,
   SetTitleBarVisibility {
-    #[clap(required = true, action = ArgAction::Set)]
-    visible: bool,
+    #[clap(required = true, value_enum)]
+    visibility: TitleBarVisibility,
   },
   ShellExec {
     #[clap(required = true, trailing_var_arg = true)]
@@ -490,8 +489,20 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTitleBarVisibility { visible } => {
-        set_title_bar_visibility(*visible, subject_container)
+      InvokeCommand::SetTitleBarVisibility { visibility } => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            _ = window.native().set_title_bar_visibility(
+              if *visibility == TitleBarVisibility::Shown {
+                true
+              } else {
+                false
+              },
+            );
+            Ok(())
+          }
+          _ => Ok(()),
+        }
       }
       InvokeCommand::ShellExec { command } => {
         shell_exec(&command.join(" "))
@@ -674,6 +685,14 @@ impl<'de> Deserialize<'de> for InvokeCommand {
       serde::de::Error::custom(err_msg.trim_start_matches("error: "))
     })
   }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TitleBarVisibility {
+  Shown,
+  Hidden,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]

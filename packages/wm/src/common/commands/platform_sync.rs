@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use anyhow::Context;
+use tokio::task;
 use tracing::warn;
 
 use crate::{
@@ -7,7 +10,9 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
-  user_config::{CursorJumpTrigger, UserConfig, WindowEffectConfig},
+  user_config::{
+    CornerStyle, CursorJumpTrigger, UserConfig, WindowEffectConfig,
+  },
   windows::traits::WindowGetters,
   wm_event::WmEvent,
   wm_state::WmState,
@@ -31,34 +36,39 @@ pub fn platform_sync(
     state.pending_sync.cursor_jump = false;
   }
 
+  if state.pending_sync.focus_change
+    || state.pending_sync.reset_window_effects
+  {
+    if let Ok(window) = focused_container.as_window_container() {
+      apply_window_effects(window, true, config);
+    }
+
+    // Get windows that should have the unfocused border applied to them.
+    // For the sake of performance, we only update the border of the
+    // previously focused window. If the `reset_window_effects` flag is
+    // passed, the unfocused border is applied to all unfocused windows.
+    let unfocused_windows =
+      match state.pending_sync.reset_window_effects {
+        true => state.windows(),
+        false => recent_focused_container
+          .and_then(|container| container.as_window_container().ok())
+          .into_iter()
+          .collect(),
+      }
+      .into_iter()
+      .filter(|window| window.id() != focused_container.id());
+
+    for window in unfocused_windows {
+      apply_window_effects(window, false, config);
+    }
+
+    state.pending_sync.reset_window_effects = false;
+  }
+
   if state.pending_sync.focus_change {
     sync_focus(focused_container.clone(), state)?;
     state.pending_sync.focus_change = false;
   }
-
-  if let Ok(window) = focused_container.as_window_container() {
-    apply_window_effects(window, true, config);
-  }
-
-  // Get windows that should have the unfocused border applied to them.
-  // For the sake of performance, we only update the border of the
-  // previously focused window. If the `reset_window_effects` flag is
-  // passed, the unfocused border is applied to all unfocused windows.
-  let unfocused_windows = match state.pending_sync.reset_window_effects {
-    true => state.windows(),
-    false => recent_focused_container
-      .and_then(|container| container.as_window_container().ok())
-      .into_iter()
-      .collect(),
-  }
-  .into_iter()
-  .filter(|window| window.id() != focused_container.id());
-
-  for window in unfocused_windows {
-    apply_window_effects(window, false, config);
-  }
-
-  state.pending_sync.reset_window_effects = false;
 
   Ok(())
 }
@@ -194,8 +204,8 @@ fn apply_window_effects(
     apply_hide_title_bar_effect(&window, effect_config);
   }
 
-  if window_effects.focused_window.corner.enabled
-    || window_effects.other_windows.corner.enabled
+  if window_effects.focused_window.corner_style.enabled
+    || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(&window, effect_config);
   }
@@ -211,6 +221,16 @@ fn apply_border_effect(
   };
 
   _ = window.native().set_border_color(border_color);
+
+  let native = window.native().clone();
+  let border_color = border_color.cloned();
+
+  // Re-apply border color after a short delay to better handle
+  // windows that change it themselves.
+  task::spawn(async move {
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    _ = native.set_border_color(border_color.as_ref());
+  });
 }
 
 fn apply_hide_title_bar_effect(
@@ -226,7 +246,10 @@ fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_corner_style(effect_config.corner.style.clone());
+  let corner_style = match effect_config.corner_style.enabled {
+    true => &effect_config.corner_style.style,
+    false => &CornerStyle::Default,
+  };
+
+  _ = window.native().set_corner_style(corner_style);
 }

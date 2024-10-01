@@ -78,9 +78,7 @@ pub fn handle_window_focused(
       config,
     )?;
 
-    state.emit_event(WmEvent::FocusChanged {
-      focused_container: window.to_dto()?,
-    })
+    state.pending_sync.focus_change = true;
   }
 
   Ok(())

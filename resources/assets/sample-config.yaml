@@ -47,11 +47,28 @@ window_effects:
       enabled: true
       color: '#8dbcff'
 
+    # Remove the title bar from the window's frame.
+    # ** Exclusive to Windows 11 due to API limitations.
+    hide_title_bar:
+      enabled: false
+
+    # Change the corner style of the window's frame.
+    # ** Exclusive to Windows 11 due to API limitations.
+    corner_style:
+      enabled: false
+      # Allowed values: 'square', 'rounded', 'small_rounded'.
+      style: 'square'
+
   # Visual effects to apply to non-focused windows.
   other_windows:
     border:
       enabled: true
       color: '#a1a1a1'
+    hide_title_bar:
+      enabled: false
+    corner_style:
+      enabled: false
+      style: 'square'
 
 window_behavior:
   # New windows are created in this state whenever possible.
