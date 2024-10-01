@@ -11,5 +11,5 @@ jobs:
       - uses: vedantmgoyal2009/winget-releaser@b87a066d9e624db1394edcd947f8c4e5a7e30cd7
         with:
           identifier: glzr-io.glazewm
-          installers-regex: 'glazewm-[0-9.]+\.exe$'
+          installers-regex: 'glazewm-v[0-9.]+\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
