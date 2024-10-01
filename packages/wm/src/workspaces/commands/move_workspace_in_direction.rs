@@ -59,7 +59,7 @@ pub fn move_workspace_in_direction(
 
     match origin_monitor.child_count() {
       0 => {
-        // Prevent original monitor from having no workspaces.
+        // Prevent origin monitor from having no workspaces.
         activate_workspace(None, Some(origin_monitor), state, config)?;
       }
       _ => {
