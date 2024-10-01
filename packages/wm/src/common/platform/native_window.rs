@@ -288,7 +288,7 @@ impl NativeWindow {
 
     // Bypass restriction for setting the foreground window by sending an
     // input to our own process first.
-    unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
+    unsafe { SendInput(&input, std::mem::size_of::<INPUT>() as i32) };
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
