@@ -9,7 +9,6 @@ use crate::{
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::{UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},
-  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::{commands::focus_workspace, WorkspaceTarget},
 };

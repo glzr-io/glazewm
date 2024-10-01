@@ -15,10 +15,7 @@ use windows::{
       PROCESS_QUERY_LIMITED_INFORMATION,
     },
     UI::{
-      Input::KeyboardAndMouse::{
-        SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
-        KEYBD_EVENT_FLAGS, VIRTUAL_KEY,
-      },
+      Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_MOUSE},
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
@@ -284,23 +281,14 @@ impl NativeWindow {
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {
-    let input = INPUT {
-      r#type: INPUT_KEYBOARD,
-      Anonymous: INPUT_0 {
-        ki: KEYBDINPUT {
-          wVk: VIRTUAL_KEY(1),
-          wScan: 0,
-          dwFlags: KEYBD_EVENT_FLAGS(0),
-          time: 0,
-          dwExtraInfo: 0,
-        },
-      },
-    };
+    let input = [INPUT {
+      r#type: INPUT_MOUSE,
+      ..Default::default()
+    }];
 
-    // Simulate a key press event to activate the window. VK code 1 is a
-    // left mouse button press and caused the least side effects versus
-    // other key codes.
-    unsafe { SendInput(&[input], std::mem::size_of::<INPUT>() as i32) };
+    // Bypass restriction for setting the foreground window by sending an
+    // input to our own process first.
+    unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
