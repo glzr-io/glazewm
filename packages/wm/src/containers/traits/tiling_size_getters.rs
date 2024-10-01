@@ -77,7 +77,14 @@ macro_rules! impl_tiling_size_getters {
       }
 
       fn inner_gap(&self) -> LengthValue {
-        self.0.borrow().inner_gap.clone()
+        let scale = match self.monitor() {
+          None => 1_f32,
+          Some(monitor) => match monitor.native().dpi() {
+            Ok(dpi) => dpi,
+            Err(_) => 1_f32,
+          },
+        };
+        self.0.borrow().inner_gap.clone() * scale
       }
 
       fn set_inner_gap(&self, inner_gap: LengthValue) {
