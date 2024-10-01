@@ -48,7 +48,6 @@ window_effects:
       color: '#8dbcff'
 
     # Remove the title bar from the window's frame.
-    # ** Exclusive to Windows 11 due to API limitations.
     hide_title_bar:
       enabled: false
 
@@ -118,8 +117,10 @@ window_rules:
       # Ignore rules for various 3rd-party apps.
       - window_process: { equals: 'PowerToys' }
         window_class: { regex: 'HwndWrapper\[PowerToys\.PowerAccent.*?\]' }
+      - window_process: { equals: 'PowerToys' }
+        window_title: { regex: '.*? - Peek' }
       - window_process: { equals: 'Lively' }
-        window_class: { regex: 'HwndWrapper*' }
+        window_class: { regex: 'HwndWrapper' }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
