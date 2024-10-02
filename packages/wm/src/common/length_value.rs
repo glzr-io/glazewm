@@ -32,6 +32,13 @@ impl LengthValue {
     }
   }
 
+  pub fn to_px_scaled(&self, total_px: i32, scale_factor: f32) -> i32 {
+    match self.unit {
+      LengthUnit::Percentage => self.to_px(total_px),
+      LengthUnit::Pixel => (scale_factor * self.amount) as i32,
+    }
+  }
+
   pub fn to_percentage(&self, total_px: i32) -> f32 {
     match self.unit {
       LengthUnit::Percentage => self.amount,
