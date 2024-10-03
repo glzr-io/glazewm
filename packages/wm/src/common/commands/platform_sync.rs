@@ -32,7 +32,10 @@ pub fn platform_sync(
     state.focused_container().context("No focused container.")?;
 
   if state.pending_sync.cursor_jump {
-    jump_cursor(focused_container.clone(), state, config)?;
+    if config.value.general.cursor_jump.enabled {
+      jump_cursor(focused_container.clone(), state, config)?;
+    }
+
     state.pending_sync.cursor_jump = false;
   }
 
