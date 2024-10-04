@@ -17,7 +17,7 @@ use super::{
   WindowContainer,
 };
 use crate::{
-  common::{LengthValue, Rect, TilingDirection},
+  common::{Rect, TilingDirection},
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_direction_getters,
   impl_tiling_size_getters,

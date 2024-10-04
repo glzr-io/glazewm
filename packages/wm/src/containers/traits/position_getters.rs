@@ -23,15 +23,11 @@ macro_rules! impl_position_getters_as_resizable {
           .context("Parent does not have a tiling direction.")?;
 
         let parent_rect = parent.to_rect()?;
-        let monitor = self.monitor().context("No monitor.")?;
 
+        let (horizontal_gap, vertical_gap) = self.inner_gaps()?;
         let inner_gap = match parent.tiling_direction() {
-          TilingDirection::Vertical => {
-            self.inner_gap().to_px(monitor.to_rect()?.height(), None)
-          }
-          TilingDirection::Horizontal => {
-            self.inner_gap().to_px(monitor.to_rect()?.width(), None)
-          }
+          TilingDirection::Vertical => vertical_gap,
+          TilingDirection::Horizontal => horizontal_gap,
         };
 
         let (width, height) = match parent.tiling_direction() {

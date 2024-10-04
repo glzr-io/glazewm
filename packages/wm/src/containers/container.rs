@@ -10,8 +10,8 @@ use uuid::Uuid;
 use super::{RootContainer, SplitContainer};
 use crate::{
   common::{
-    platform::NativeWindow, Direction, DisplayState, LengthValue, Rect,
-    RectDelta, TilingDirection,
+    platform::NativeWindow, Direction, DisplayState, Rect, RectDelta,
+    TilingDirection,
   },
   containers::{traits::*, ContainerDto},
   monitors::Monitor,

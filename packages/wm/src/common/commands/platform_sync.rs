@@ -125,8 +125,9 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
       },
     );
 
-    let rect =
-      window.to_rect()?.apply_delta(&window.total_border_delta()?);
+    let rect = window
+      .to_rect()?
+      .apply_delta(&window.total_border_delta()?, None);
 
     let is_visible = match window.display_state() {
       DisplayState::Showing | DisplayState::Shown => true,

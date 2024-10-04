@@ -12,8 +12,7 @@ use super::{
 };
 use crate::{
   common::{
-    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
-    TilingDirection,
+    platform::NativeWindow, DisplayState, Rect, RectDelta, TilingDirection,
   },
   containers::{
     traits::{

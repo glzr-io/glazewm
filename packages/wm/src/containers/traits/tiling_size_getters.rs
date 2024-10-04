@@ -1,9 +1,11 @@
+use std::cell::Ref;
+
 use ambassador::delegatable_trait;
 use anyhow::Context;
 
-use super::{CommonGetters, TilingDirectionGetters};
+use super::{CommonGetters, PositionGetters, TilingDirectionGetters};
 use crate::{
-  common::{LengthValue, TilingDirection},
+  common::TilingDirection,
   containers::{Container, DirectionContainer, TilingContainer},
   user_config::GapsConfig,
 };
@@ -16,9 +18,30 @@ pub trait TilingSizeGetters: CommonGetters {
 
   fn set_tiling_size(&self, tiling_size: f32);
 
-  fn inner_gap(&self) -> LengthValue;
+  fn gaps_config(&self) -> Ref<'_, GapsConfig>;
 
   fn set_gaps_config(&self, gaps_config: GapsConfig);
+
+  /// Gets the horizontal and vertical gaps between windows in pixels.
+  fn inner_gaps(&self) -> anyhow::Result<(i32, i32)> {
+    let monitor = self.monitor().context("No monitor.")?;
+    let monitor_rect = monitor.to_rect()?;
+    let gaps_config = self.gaps_config();
+
+    let scale_factor = match gaps_config.scale_with_dpi {
+      true => monitor.native().dpi()?,
+      false => 1.,
+    };
+
+    Ok((
+      gaps_config
+        .inner_gap
+        .to_px(monitor_rect.height(), Some(scale_factor)),
+      gaps_config
+        .inner_gap
+        .to_px(monitor_rect.width(), Some(scale_factor)),
+    ))
+  }
 
   /// Gets the container to resize when resizing a tiling window.
   fn container_to_resize(
@@ -77,15 +100,8 @@ macro_rules! impl_tiling_size_getters {
         self.0.borrow_mut().tiling_size = tiling_size;
       }
 
-      fn inner_gap(&self) -> LengthValue {
-        let scale = match self.monitor() {
-          None => 1_f32,
-          Some(monitor) => match monitor.native().dpi() {
-            Ok(dpi) => dpi,
-            Err(_) => 1_f32,
-          },
-        };
-        self.0.borrow().inner_gap.scale_by(scale)
+      fn gaps_config(&self) -> Ref<'_, GapsConfig> {
+        Ref::map(self.0.borrow(), |inner| &inner.gaps_config)
       }
 
       fn set_gaps_config(&self, gaps_config: GapsConfig) {
