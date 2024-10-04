@@ -123,7 +123,7 @@ fn create_window(
     LengthValue::from_px(0),
   );
 
-  let inner_gap = config.value.gaps.inner_gap.clone();
+  let gaps_config = config.value.gaps.clone();
   let window_state =
     window_state_to_create(&native_window, &nearest_monitor, config)?;
 
@@ -134,7 +134,7 @@ fn create_window(
       None,
       border_delta,
       floating_placement,
-      inner_gap,
+      gaps_config,
       Vec::new(),
       None,
     )

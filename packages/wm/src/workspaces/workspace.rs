@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-  common::{Rect, RectDelta, TilingDirection},
+  common::{Rect, TilingDirection},
   containers::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
@@ -134,12 +134,6 @@ impl PositionGetters for Workspace {
     let monitor =
       self.monitor().context("Workspace has no parent monitor.")?;
 
-    let working_rect = monitor
-      .native()
-      .working_rect()
-      .context("Failed to get working area of parent monitor.")?
-      .clone();
-
     let gaps_config = &self.0.borrow().gaps_config;
 
     let scale_factor = match &gaps_config.scale_with_dpi {
@@ -148,6 +142,20 @@ impl PositionGetters for Workspace {
     };
 
     let outer_gap = gaps_config.outer_gap.scale_by(scale_factor);
-    Ok(working_rect.apply_inverse_delta(&outer_gap))
+    let monitor_rect = monitor.to_rect()?;
+
+    let working_delta = monitor_rect.delta(
+      monitor
+        .native()
+        .working_rect()
+        .context("Failed to get working area of parent monitor.")?,
+    );
+
+    Ok(
+      monitor
+        .to_rect()?
+        .apply_inverse_delta(&outer_gap)
+        .apply_delta(&working_delta),
+    )
   }
 }

@@ -3,10 +3,7 @@ use tracing::info;
 
 use crate::{
   common::platform::Platform,
-  containers::{
-    traits::{CommonGetters, PositionGetters},
-    WindowContainer,
-  },
+  containers::traits::{CommonGetters, PositionGetters},
   monitors::commands::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,
   },

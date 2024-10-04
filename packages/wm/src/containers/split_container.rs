@@ -21,6 +21,7 @@ use crate::{
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_direction_getters,
   impl_tiling_size_getters,
+  user_config::GapsConfig,
 };
 
 #[derive(Clone)]
@@ -33,7 +34,7 @@ struct SplitContainerInner {
   child_focus_order: VecDeque<Uuid>,
   tiling_size: f32,
   tiling_direction: TilingDirection,
-  inner_gap: LengthValue,
+  gaps_config: GapsConfig,
 }
 
 /// User-friendly representation of a split container.
@@ -58,7 +59,7 @@ pub struct SplitContainerDto {
 impl SplitContainer {
   pub fn new(
     tiling_direction: TilingDirection,
-    inner_gap: LengthValue,
+    gaps_config: GapsConfig,
   ) -> Self {
     let split = SplitContainerInner {
       id: Uuid::new_v4(),
@@ -67,7 +68,7 @@ impl SplitContainer {
       child_focus_order: VecDeque::new(),
       tiling_size: 1.0,
       tiling_direction,
-      inner_gap,
+      gaps_config,
     };
 
     Self(Rc::new(RefCell::new(split)))

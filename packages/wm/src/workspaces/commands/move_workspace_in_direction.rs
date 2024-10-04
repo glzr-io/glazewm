@@ -6,7 +6,6 @@ use crate::{
   containers::{
     commands::move_container_within_tree,
     traits::{CommonGetters, PositionGetters},
-    WindowContainer,
   },
   user_config::UserConfig,
   windows::traits::WindowGetters,

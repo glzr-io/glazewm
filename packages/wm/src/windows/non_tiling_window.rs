@@ -11,16 +11,14 @@ use super::{
   traits::WindowGetters, ActiveDrag, TilingWindow, WindowDto, WindowState,
 };
 use crate::{
-  common::{
-    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
-  },
+  common::{platform::NativeWindow, DisplayState, Rect, RectDelta},
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
     WindowContainer,
   },
   impl_common_getters, impl_container_debug, impl_window_getters,
-  user_config::WindowRuleConfig,
+  user_config::{GapsConfig, WindowRuleConfig},
 };
 
 #[derive(Clone)]
@@ -86,14 +84,14 @@ impl NonTilingWindow {
     self.0.borrow_mut().insertion_target = insertion_target;
   }
 
-  pub fn to_tiling(&self, inner_gap: LengthValue) -> TilingWindow {
+  pub fn to_tiling(&self, gaps_config: GapsConfig) -> TilingWindow {
     TilingWindow::new(
       Some(self.id()),
       self.native().clone(),
       Some(self.state()),
       self.border_delta(),
       self.floating_placement(),
-      inner_gap,
+      gaps_config,
       self.done_window_rules(),
       self.active_drag(),
     )

@@ -5,6 +5,7 @@ use super::{CommonGetters, TilingDirectionGetters};
 use crate::{
   common::{LengthValue, TilingDirection},
   containers::{Container, DirectionContainer, TilingContainer},
+  user_config::GapsConfig,
 };
 
 pub const MIN_TILING_SIZE: f32 = 0.01;
@@ -84,7 +85,7 @@ macro_rules! impl_tiling_size_getters {
             Err(_) => 1_f32,
           },
         };
-        self.0.borrow().inner_gap.clone() * scale
+        self.0.borrow().inner_gap.scale_by(scale)
       }
 
       fn set_gaps_config(&self, gaps_config: GapsConfig) {

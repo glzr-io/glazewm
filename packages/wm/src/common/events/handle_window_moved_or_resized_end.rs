@@ -171,7 +171,7 @@ fn drop_as_tiling_window(
   if should_split {
     let split_container = SplitContainer::new(
       tiling_direction.inverse(),
-      config.value.gaps.inner_gap.clone(),
+      config.value.gaps.clone(),
     );
 
     wrap_in_split_container(

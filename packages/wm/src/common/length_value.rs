@@ -1,4 +1,4 @@
-use std::{ops::Mul, str::FromStr};
+use std::str::FromStr;
 
 use anyhow::{bail, Context};
 use regex::Regex;
@@ -115,16 +115,6 @@ impl<'de> Deserialize<'de> for LengthValue {
       LengthValueDe::String(str) => {
         Self::from_str(&str).map_err(serde::de::Error::custom)
       }
-    }
-  }
-}
-
-impl Mul<f32> for LengthValue {
-  type Output = Self;
-  fn mul(self, rhs: f32) -> Self {
-    Self {
-      amount: self.amount * rhs,
-      unit: self.unit,
     }
   }
 }

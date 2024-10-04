@@ -15,7 +15,7 @@ use crate::{
   },
   containers::{traits::*, ContainerDto},
   monitors::Monitor,
-  user_config::{UserConfig, WindowRuleConfig},
+  user_config::{GapsConfig, UserConfig, WindowRuleConfig},
   windows::{
     traits::*, ActiveDrag, NonTilingWindow, TilingWindow, WindowState,
   },

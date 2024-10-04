@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Direction, Point, RectDelta};
+use super::{Direction, LengthValue, Point, RectDelta};
 
 #[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {
@@ -112,6 +112,16 @@ impl Rect {
     Point {
       x: self.left + (self.width() / 2),
       y: self.top + (self.height() / 2),
+    }
+  }
+
+  /// Gets the delta between this rect and another rect.
+  pub fn delta(&self, other: &Rect) -> RectDelta {
+    RectDelta {
+      left: LengthValue::from_px(self.left - other.left),
+      top: LengthValue::from_px(self.top - other.top),
+      right: LengthValue::from_px(self.right - other.right),
+      bottom: LengthValue::from_px(self.bottom - other.bottom),
     }
   }
 
