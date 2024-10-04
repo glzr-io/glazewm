@@ -31,7 +31,8 @@ struct MonitorInfo {
   hardware_id: Option<String>,
   rect: Rect,
   working_rect: Rect,
-  dpi: f32,
+  dpi: u32,
+  scale_factor: f32,
 }
 
 impl NativeMonitor {
@@ -62,8 +63,12 @@ impl NativeMonitor {
     self.monitor_info().map(|info| &info.working_rect)
   }
 
-  pub fn dpi(&self) -> anyhow::Result<f32> {
+  pub fn dpi(&self) -> anyhow::Result<u32> {
     self.monitor_info().map(|info| info.dpi)
+  }
+
+  pub fn scale_factor(&self) -> anyhow::Result<f32> {
+    self.monitor_info().map(|info| info.scale_factor)
   }
 
   fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
@@ -124,6 +129,7 @@ impl NativeMonitor {
 
       let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
       let dpi = monitor_dpi(self.handle)?;
+      let scale_factor = dpi as f32 / 96.0;
 
       let rc_monitor = monitor_info.monitorInfo.rcMonitor;
       let rect = Rect::from_ltrb(
@@ -148,6 +154,7 @@ impl NativeMonitor {
         rect,
         working_rect,
         dpi,
+        scale_factor,
       })
     })
   }
@@ -209,7 +216,7 @@ pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
   NativeMonitor::new(handle.0)
 }
 
-fn monitor_dpi(handle: isize) -> anyhow::Result<f32> {
+fn monitor_dpi(handle: isize) -> anyhow::Result<u32> {
   let mut dpi_x = u32::default();
   let mut dpi_y = u32::default();
 
@@ -222,5 +229,6 @@ fn monitor_dpi(handle: isize) -> anyhow::Result<f32> {
     )
   }?;
 
-  Ok(dpi_y as f32 / 96.0)
+  // Arbitrarily choose the Y DPI.
+  Ok(dpi_y)
 }

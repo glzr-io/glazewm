@@ -29,7 +29,7 @@ pub trait TilingSizeGetters: CommonGetters {
     let gaps_config = self.gaps_config();
 
     let scale_factor = match gaps_config.scale_with_dpi {
-      true => monitor.native().dpi()?,
+      true => monitor.native().scale_factor()?,
       false => 1.,
     };
 

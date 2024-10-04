@@ -45,7 +45,8 @@ pub struct MonitorDto {
   height: i32,
   x: i32,
   y: i32,
-  dpi: f32,
+  dpi: u32,
+  scale_factor: f32,
   handle: isize,
   device_name: String,
   device_path: Option<String>,
@@ -96,12 +97,13 @@ impl Monitor {
     other: &Container,
   ) -> anyhow::Result<bool> {
     let dpi = self.native().dpi()?;
+
     let other_dpi = other
       .monitor()
       .and_then(|monitor| monitor.native().dpi().ok())
       .context("Failed to get DPI of other monitor.")?;
 
-    Ok((dpi - other_dpi).abs() < f32::EPSILON)
+    Ok(dpi != other_dpi)
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
@@ -123,6 +125,7 @@ impl Monitor {
       x: rect.x(),
       y: rect.y(),
       dpi: self.native().dpi()?,
+      scale_factor: self.native().scale_factor()?,
       handle: self.native().handle,
       device_name: self.native().device_name()?.clone(),
       device_path: self.native().device_path()?.cloned(),
