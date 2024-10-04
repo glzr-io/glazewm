@@ -140,17 +140,17 @@ impl PositionGetters for Workspace {
       false => 1.,
     };
 
-    let monitor_rect = monitor.to_rect()?;
-    let working_delta = monitor_rect.delta(
-      monitor
-        .native()
-        .working_rect()
-        .context("Failed to get working area of parent monitor.")?,
-    );
+    // Get delta between monitor bounds and its working area.
+    let working_delta = monitor
+      .native()
+      .working_rect()
+      .context("Failed to get working area of parent monitor.")?
+      .delta(&monitor.to_rect()?);
 
     Ok(
       monitor
         .to_rect()?
+        // Scale the gaps if `scale_with_dpi` is enabled.
         .apply_inverse_delta(&gaps_config.outer_gap, Some(scale_factor))
         .apply_delta(&working_delta, None),
     )
