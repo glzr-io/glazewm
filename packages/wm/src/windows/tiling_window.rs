@@ -12,8 +12,7 @@ use super::{
 };
 use crate::{
   common::{
-    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
-    TilingDirection,
+    platform::NativeWindow, DisplayState, Rect, RectDelta, TilingDirection,
   },
   containers::{
     traits::{
@@ -26,7 +25,7 @@ use crate::{
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
-  user_config::WindowRuleConfig,
+  user_config::{GapsConfig, WindowRuleConfig},
   windows::active_drag::ActiveDrag,
 };
 
@@ -46,7 +45,7 @@ struct TilingWindowInner {
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
-  inner_gap: LengthValue,
+  gaps_config: GapsConfig,
   done_window_rules: Vec<WindowRuleConfig>,
   active_drag: Option<ActiveDrag>,
 }
@@ -58,7 +57,7 @@ impl TilingWindow {
     prev_state: Option<WindowState>,
     border_delta: RectDelta,
     floating_placement: Rect,
-    inner_gap: LengthValue,
+    gaps_config: GapsConfig,
     done_window_rules: Vec<WindowRuleConfig>,
     active_drag: Option<ActiveDrag>,
   ) -> Self {
@@ -75,7 +74,7 @@ impl TilingWindow {
       border_delta,
       has_pending_dpi_adjustment: false,
       floating_placement,
-      inner_gap,
+      gaps_config,
       done_window_rules,
       active_drag,
     };

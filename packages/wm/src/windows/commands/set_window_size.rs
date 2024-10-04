@@ -66,25 +66,23 @@ fn set_tiling_window_length(
   is_width_resize: bool,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let monitor = window.monitor().context("No monitor")?;
-  let monitor_rect = monitor.to_rect()?;
-
   // When resizing a tiling window, the container to resize can actually be
   // an ancestor split container.
   let container_to_resize = window.container_to_resize(is_width_resize)?;
 
   if let Some(container_to_resize) = container_to_resize {
     let parent = container_to_resize.parent().context("No parent.")?;
+    let (horizontal_gap, vertical_gap) =
+      container_to_resize.inner_gaps()?;
+
     let parent_length = match is_width_resize {
       true => {
         parent.to_rect()?.width()
-          - window.inner_gap().to_px(monitor_rect.width())
-            * window.tiling_siblings().count() as i32
+          - horizontal_gap * window.tiling_siblings().count() as i32
       }
       false => {
         parent.to_rect()?.height()
-          - window.inner_gap().to_px(monitor_rect.height())
-            * window.tiling_siblings().count() as i32
+          - vertical_gap * window.tiling_siblings().count() as i32
       }
     };
 
@@ -132,7 +130,7 @@ fn set_floating_window_size(
     };
 
   let target_width_px = target_width
-    .map(|target_width| target_width.to_px(monitor_rect.width()));
+    .map(|target_width| target_width.to_px(monitor_rect.width(), None));
 
   let new_width = length_with_clamp(
     target_width_px,
@@ -141,7 +139,7 @@ fn set_floating_window_size(
   );
 
   let target_height_px = target_height
-    .map(|target_height| target_height.to_px(monitor_rect.height()));
+    .map(|target_height| target_height.to_px(monitor_rect.height(), None));
 
   let new_height = length_with_clamp(
     target_height_px,

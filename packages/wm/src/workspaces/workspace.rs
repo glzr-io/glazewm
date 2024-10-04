@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-  common::{Rect, RectDelta, TilingDirection},
+  common::{Rect, TilingDirection},
   containers::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
@@ -17,7 +17,7 @@ use crate::{
   },
   impl_common_getters, impl_container_debug,
   impl_tiling_direction_getters,
-  user_config::WorkspaceConfig,
+  user_config::{GapsConfig, WorkspaceConfig},
 };
 
 #[derive(Clone)]
@@ -29,9 +29,9 @@ struct WorkspaceInner {
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  tiling_direction: TilingDirection,
   config: WorkspaceConfig,
-  outer_gap: RectDelta,
+  gaps_config: GapsConfig,
+  tiling_direction: TilingDirection,
 }
 
 /// User-friendly representation of a workspace.
@@ -58,7 +58,7 @@ pub struct WorkspaceDto {
 impl Workspace {
   pub fn new(
     config: WorkspaceConfig,
-    outer_gap: RectDelta,
+    gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
   ) -> Self {
     let workspace = WorkspaceInner {
@@ -66,9 +66,9 @@ impl Workspace {
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      tiling_direction,
       config,
-      outer_gap,
+      gaps_config,
+      tiling_direction,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -93,8 +93,8 @@ impl Workspace {
       .unwrap_or(false)
   }
 
-  pub fn set_outer_gap(&self, outer_gap: RectDelta) {
-    self.0.borrow_mut().outer_gap = outer_gap;
+  pub fn set_gaps_config(&self, gaps_config: GapsConfig) {
+    self.0.borrow_mut().gaps_config = gaps_config;
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
@@ -131,19 +131,28 @@ impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
   fn to_rect(&self) -> anyhow::Result<Rect> {
-    let working_rect = self
-      .monitor()
-      .context("Workspace has no parent monitor.")?
+    let monitor =
+      self.monitor().context("Workspace has no parent monitor.")?;
+
+    let gaps_config = &self.0.borrow().gaps_config;
+    let scale_factor = match &gaps_config.scale_with_dpi {
+      true => monitor.native().dpi()?,
+      false => 1.,
+    };
+
+    // Get delta between monitor bounds and its working area.
+    let working_delta = monitor
       .native()
       .working_rect()
-      .cloned()
-      .context("Failed to get working area of parent monitor.")?;
+      .context("Failed to get working area of parent monitor.")?
+      .delta(&monitor.to_rect()?);
 
-    let scale = match self.monitor() {
-      None => 1_f32,
-      Some(monitor) => monitor.native().dpi()?,
-    };
-    let outer_gap = self.0.borrow().outer_gap.clone() * scale;
-    Ok(working_rect.apply_inverse_delta(&outer_gap))
+    Ok(
+      monitor
+        .to_rect()?
+        // Scale the gaps if `scale_with_dpi` is enabled.
+        .apply_inverse_delta(&gaps_config.outer_gap, Some(scale_factor))
+        .apply_delta(&working_delta, None),
+    )
   }
 }

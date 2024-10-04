@@ -72,7 +72,7 @@ fn toggle_window_direction(
   // Create a new split container to wrap the window.
   let split_container = SplitContainer::new(
     parent.tiling_direction().inverse(),
-    config.value.gaps.inner_gap.clone(),
+    config.value.gaps.clone(),
   );
 
   wrap_in_split_container(

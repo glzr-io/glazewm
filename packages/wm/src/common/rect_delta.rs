@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use serde::{Deserialize, Serialize};
 
 use super::LengthValue;
@@ -32,17 +30,5 @@ impl RectDelta {
       right,
       bottom,
     }
-  }
-}
-
-impl Mul<f32> for RectDelta {
-  type Output = Self;
-  fn mul(self, rhs: f32) -> Self {
-    Self::new(
-      self.left * rhs,
-      self.top * rhs,
-      self.right * rhs,
-      self.bottom * rhs,
-    )
   }
 }

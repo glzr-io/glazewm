@@ -281,7 +281,7 @@ fn invert_workspace_tiling_direction(
   if workspace_children.len() > 1 {
     let split_container = SplitContainer::new(
       workspace.tiling_direction(),
-      config.value.gaps.inner_gap.clone(),
+      config.value.gaps.clone(),
     );
 
     wrap_in_split_container(

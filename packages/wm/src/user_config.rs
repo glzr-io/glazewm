@@ -372,6 +372,10 @@ pub struct BindingModeConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct GapsConfig {
+  /// Whether to scale the gaps with the DPI of the monitor.
+  #[serde(default = "default_bool::<true>")]
+  pub scale_with_dpi: bool,
+
   /// Gap between adjacent windows.
   pub inner_gap: LengthValue,
 

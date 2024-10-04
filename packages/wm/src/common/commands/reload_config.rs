@@ -123,11 +123,11 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
     .filter_map(|container| container.as_tiling_container().ok());
 
   for container in tiling_containers {
-    container.set_inner_gap(config.value.gaps.inner_gap.clone());
+    container.set_gaps_config(config.value.gaps.clone());
   }
 
   for workspace in state.workspaces() {
-    workspace.set_outer_gap(config.value.gaps.outer_gap.clone());
+    workspace.set_gaps_config(config.value.gaps.clone());
   }
 }
 

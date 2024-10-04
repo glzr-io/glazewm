@@ -61,7 +61,7 @@ pub fn activate_workspace(
 
   let workspace = Workspace::new(
     workspace_config.clone(),
-    config.value.gaps.outer_gap.clone(),
+    config.value.gaps.clone(),
     tiling_direction,
   );
 

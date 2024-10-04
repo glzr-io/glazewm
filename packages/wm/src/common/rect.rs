@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Direction, Point, RectDelta};
+use super::{Direction, LengthValue, Point, RectDelta};
 
 #[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {
@@ -115,23 +115,39 @@ impl Rect {
     }
   }
 
-  // TODO: Pass in a `Rect` for unit conversion.
-  pub fn apply_delta(&self, delta: &RectDelta) -> Self {
+  /// Gets the delta between this rect and another rect.
+  pub fn delta(&self, other: &Rect) -> RectDelta {
+    RectDelta {
+      left: LengthValue::from_px(self.left - other.left),
+      top: LengthValue::from_px(self.top - other.top),
+      right: LengthValue::from_px(self.right - other.right),
+      bottom: LengthValue::from_px(self.bottom - other.bottom),
+    }
+  }
+
+  pub fn apply_delta(
+    &self,
+    delta: &RectDelta,
+    scale_factor: Option<f32>,
+  ) -> Self {
     Self::from_ltrb(
-      self.left - delta.left.to_px(self.width()),
-      self.top - delta.top.to_px(self.height()),
-      self.right + delta.right.to_px(self.width()),
-      self.bottom + delta.bottom.to_px(self.height()),
+      self.left - delta.left.to_px(self.width(), scale_factor),
+      self.top - delta.top.to_px(self.height(), scale_factor),
+      self.right + delta.right.to_px(self.width(), scale_factor),
+      self.bottom + delta.bottom.to_px(self.height(), scale_factor),
     )
   }
 
-  // TODO: Pass in a `Rect` for unit conversion.
-  pub fn apply_inverse_delta(&self, delta: &RectDelta) -> Self {
+  pub fn apply_inverse_delta(
+    &self,
+    delta: &RectDelta,
+    scale_factor: Option<f32>,
+  ) -> Self {
     Self::from_ltrb(
-      self.left + delta.left.to_px(self.width()),
-      self.top + delta.top.to_px(self.height()),
-      self.right - delta.right.to_px(self.width()),
-      self.bottom - delta.bottom.to_px(self.height()),
+      self.left + delta.left.to_px(self.width(), scale_factor),
+      self.top + delta.top.to_px(self.height(), scale_factor),
+      self.right - delta.right.to_px(self.width(), scale_factor),
+      self.bottom - delta.bottom.to_px(self.height(), scale_factor),
     )
   }
 

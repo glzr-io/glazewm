@@ -73,8 +73,7 @@ fn set_tiling(
     // Default to inserting at the end of the workspace.
     .unwrap_or((workspace.clone().into(), workspace.child_count()));
 
-  let tiling_window =
-    window.to_tiling(config.value.gaps.inner_gap.clone());
+  let tiling_window = window.to_tiling(config.value.gaps.clone());
 
   // Replace the original window with the created tiling window.
   replace_container(
