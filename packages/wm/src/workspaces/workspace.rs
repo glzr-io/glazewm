@@ -136,7 +136,7 @@ impl PositionGetters for Workspace {
 
     let gaps_config = &self.0.borrow().gaps_config;
     let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native().dpi()?,
+      true => monitor.native().scale_factor()?,
       false => 1.,
     };
 
