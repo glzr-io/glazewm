@@ -45,6 +45,13 @@ impl LengthValue {
       LengthUnit::Pixel => self.amount / total_px as f32,
     }
   }
+
+  pub fn scale_by(&self, scale_factor: f32) -> Self {
+    Self {
+      amount: self.amount * scale_factor,
+      unit: self.unit.clone(),
+    }
+  }
 }
 
 impl FromStr for LengthValue {

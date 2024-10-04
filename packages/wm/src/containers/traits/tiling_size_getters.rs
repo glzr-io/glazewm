@@ -17,7 +17,7 @@ pub trait TilingSizeGetters: CommonGetters {
 
   fn inner_gap(&self) -> LengthValue;
 
-  fn set_inner_gap(&self, inner_gap: LengthValue);
+  fn set_gaps_config(&self, gaps_config: GapsConfig);
 
   /// Gets the container to resize when resizing a tiling window.
   fn container_to_resize(
@@ -87,8 +87,8 @@ macro_rules! impl_tiling_size_getters {
         self.0.borrow().inner_gap.clone() * scale
       }
 
-      fn set_inner_gap(&self, inner_gap: LengthValue) {
-        self.0.borrow_mut().inner_gap = inner_gap;
+      fn set_gaps_config(&self, gaps_config: GapsConfig) {
+        self.0.borrow_mut().gaps_config = gaps_config;
       }
     }
   };

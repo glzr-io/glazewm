@@ -28,6 +28,9 @@ general:
     trigger: 'monitor_focus'
 
 gaps:
+  # Whether to scale the gaps with the DPI of the monitor.
+  scale_with_dpi: true
+
   # Gap between adjacent windows.
   inner_gap: '20px'
 
@@ -47,7 +50,8 @@ window_effects:
       enabled: true
       color: '#8dbcff'
 
-    # Remove the title bar from the window's frame.
+    # Remove the title bar from the window's frame. Note that this can
+    # cause rendering issues for some applications.
     hide_title_bar:
       enabled: false
 
