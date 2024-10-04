@@ -25,17 +25,12 @@ impl LengthValue {
     }
   }
 
-  pub fn to_px(&self, total_px: i32) -> i32 {
+  pub fn to_px(&self, total_px: i32, scale_factor: Option<f32>) -> i32 {
+    let scale_factor = scale_factor.unwrap_or(1.0);
+
     match self.unit {
       LengthUnit::Percentage => (self.amount * total_px as f32) as i32,
-      LengthUnit::Pixel => self.amount as i32,
-    }
-  }
-
-  pub fn to_px_scaled(&self, total_px: i32, scale_factor: f32) -> i32 {
-    match self.unit {
-      LengthUnit::Percentage => self.to_px(total_px),
-      LengthUnit::Pixel => (scale_factor * self.amount) as i32,
+      LengthUnit::Pixel => (self.amount * scale_factor) as i32,
     }
   }
 
@@ -43,13 +38,6 @@ impl LengthValue {
     match self.unit {
       LengthUnit::Percentage => self.amount,
       LengthUnit::Pixel => self.amount / total_px as f32,
-    }
-  }
-
-  pub fn scale_by(&self, scale_factor: f32) -> Self {
-    Self {
-      amount: self.amount * scale_factor,
-      unit: self.unit.clone(),
     }
   }
 }

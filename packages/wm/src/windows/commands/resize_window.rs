@@ -31,7 +31,7 @@ pub fn resize_window(
           })
           .map(|parent_width| {
             parent_width
-              - tiling_window.inner_gap().to_px(monitor_rect.width())
+              - tiling_window.inner_gap().to_px(monitor_rect.width(), None)
                 * tiling_window.tiling_siblings().count() as i32
           }),
         _ => window.parent().and_then(|parent| {
@@ -40,7 +40,7 @@ pub fn resize_window(
       };
 
       parent_width.map(|parent_width| {
-        window_rect.width() + delta.to_px(parent_width)
+        window_rect.width() + delta.to_px(parent_width, None)
       })
     }
     _ => None,
@@ -57,7 +57,9 @@ pub fn resize_window(
           })
           .map(|parent_height| {
             parent_height
-              - tiling_window.inner_gap().to_px(monitor_rect.height())
+              - tiling_window
+                .inner_gap()
+                .to_px(monitor_rect.height(), None)
                 * tiling_window.tiling_siblings().count() as i32
           }),
         _ => window.parent().and_then(|parent| {
@@ -66,7 +68,7 @@ pub fn resize_window(
       };
 
       parent_height.map(|parent_height| {
-        window_rect.height() + delta.to_px(parent_height)
+        window_rect.height() + delta.to_px(parent_height, None)
       })
     }
     _ => None,

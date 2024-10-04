@@ -31,13 +31,4 @@ impl RectDelta {
       bottom,
     }
   }
-
-  pub fn scale_by(&self, scale_factor: f32) -> Self {
-    Self::new(
-      self.left.scale_by(scale_factor),
-      self.top.scale_by(scale_factor),
-      self.right.scale_by(scale_factor),
-      self.bottom.scale_by(scale_factor),
-    )
-  }
 }

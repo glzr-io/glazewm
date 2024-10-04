@@ -78,12 +78,12 @@ fn set_tiling_window_length(
     let parent_length = match is_width_resize {
       true => {
         parent.to_rect()?.width()
-          - window.inner_gap().to_px(monitor_rect.width())
+          - window.inner_gap().to_px(monitor_rect.width(), None)
             * window.tiling_siblings().count() as i32
       }
       false => {
         parent.to_rect()?.height()
-          - window.inner_gap().to_px(monitor_rect.height())
+          - window.inner_gap().to_px(monitor_rect.height(), None)
             * window.tiling_siblings().count() as i32
       }
     };
@@ -132,7 +132,7 @@ fn set_floating_window_size(
     };
 
   let target_width_px = target_width
-    .map(|target_width| target_width.to_px(monitor_rect.width()));
+    .map(|target_width| target_width.to_px(monitor_rect.width(), None));
 
   let new_width = length_with_clamp(
     target_width_px,
@@ -141,7 +141,7 @@ fn set_floating_window_size(
   );
 
   let target_height_px = target_height
-    .map(|target_height| target_height.to_px(monitor_rect.height()));
+    .map(|target_height| target_height.to_px(monitor_rect.height(), None));
 
   let new_height = length_with_clamp(
     target_height_px,

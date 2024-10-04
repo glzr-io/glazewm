@@ -27,10 +27,10 @@ macro_rules! impl_position_getters_as_resizable {
 
         let inner_gap = match parent.tiling_direction() {
           TilingDirection::Vertical => {
-            self.inner_gap().to_px(monitor.to_rect()?.height())
+            self.inner_gap().to_px(monitor.to_rect()?.height(), None)
           }
           TilingDirection::Horizontal => {
-            self.inner_gap().to_px(monitor.to_rect()?.width())
+            self.inner_gap().to_px(monitor.to_rect()?.width(), None)
           }
         };
 

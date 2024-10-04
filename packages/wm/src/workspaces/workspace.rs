@@ -135,15 +135,12 @@ impl PositionGetters for Workspace {
       self.monitor().context("Workspace has no parent monitor.")?;
 
     let gaps_config = &self.0.borrow().gaps_config;
-
     let scale_factor = match &gaps_config.scale_with_dpi {
       true => monitor.native().dpi()?,
       false => 1_f32,
     };
 
-    let outer_gap = gaps_config.outer_gap.scale_by(scale_factor);
     let monitor_rect = monitor.to_rect()?;
-
     let working_delta = monitor_rect.delta(
       monitor
         .native()
@@ -154,8 +151,8 @@ impl PositionGetters for Workspace {
     Ok(
       monitor
         .to_rect()?
-        .apply_inverse_delta(&outer_gap)
-        .apply_delta(&working_delta),
+        .apply_inverse_delta(&gaps_config.outer_gap, Some(scale_factor))
+        .apply_delta(&working_delta, None),
     )
   }
 }
