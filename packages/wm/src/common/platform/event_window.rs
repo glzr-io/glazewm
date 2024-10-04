@@ -266,10 +266,13 @@ fn handle_input_msg(
     )
   };
 
-  // Ignore if data is invalid or not a mouse event.
+  // Ignore if data is invalid or not a mouse event. The `hDevice` check
+  // ignores programmatic mouse inputs via `SendInput` (this caused issues
+  // since `NativeWindow::set_foreground` simulates a mouse input).
   if res_size == 0
     || raw_input_size == u32::MAX
     || raw_input.header.dwType != RIM_TYPEMOUSE.0
+    || raw_input.header.hDevice.is_invalid()
   {
     return Ok(());
   }
