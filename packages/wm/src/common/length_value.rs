@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{ops::Mul, str::FromStr};
 
 use anyhow::{bail, Context};
 use regex::Regex;
@@ -29,6 +29,13 @@ impl LengthValue {
     match self.unit {
       LengthUnit::Percentage => (self.amount * total_px as f32) as i32,
       LengthUnit::Pixel => self.amount as i32,
+    }
+  }
+
+  pub fn to_px_scaled(&self, total_px: i32, scale_factor: f32) -> i32 {
+    match self.unit {
+      LengthUnit::Percentage => self.to_px(total_px),
+      LengthUnit::Pixel => (scale_factor * self.amount) as i32,
     }
   }
 
@@ -101,6 +108,16 @@ impl<'de> Deserialize<'de> for LengthValue {
       LengthValueDe::String(str) => {
         Self::from_str(&str).map_err(serde::de::Error::custom)
       }
+    }
+  }
+}
+
+impl Mul<f32> for LengthValue {
+  type Output = Self;
+  fn mul(self, rhs: f32) -> Self {
+    Self {
+      amount: self.amount * rhs,
+      unit: self.unit,
     }
   }
 }

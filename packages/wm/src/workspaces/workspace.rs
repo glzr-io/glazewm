@@ -139,7 +139,11 @@ impl PositionGetters for Workspace {
       .cloned()
       .context("Failed to get working area of parent monitor.")?;
 
-    let outer_gap = &self.0.borrow().outer_gap;
-    Ok(working_rect.apply_inverse_delta(outer_gap))
+    let scale = match self.monitor() {
+      None => 1_f32,
+      Some(monitor) => monitor.native().dpi()?,
+    };
+    let outer_gap = self.0.borrow().outer_gap.clone() * scale;
+    Ok(working_rect.apply_inverse_delta(&outer_gap))
   }
 }
