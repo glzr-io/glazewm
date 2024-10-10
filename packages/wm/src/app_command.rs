@@ -325,6 +325,14 @@ impl InvokeCommand {
           focus_workspace(WorkspaceTarget::Previous, state, config)?;
         }
 
+        if args.next_order_workspace {
+          focus_workspace(WorkspaceTarget::NextOrder, state, config)?;
+        }
+
+        if args.prev_order_workspace {
+          focus_workspace(WorkspaceTarget::PreviousOrder, state, config)?;
+        }
+
         if args.recent_workspace {
           focus_workspace(WorkspaceTarget::Recent, state, config)?;
         }
@@ -371,6 +379,24 @@ impl InvokeCommand {
               move_window_to_workspace(
                 window.clone(),
                 WorkspaceTarget::Previous,
+                state,
+                config,
+              )?;
+            }
+
+            if args.next_order_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::NextOrder,
+                state,
+                config,
+              )?;
+            }
+
+            if args.prev_order_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::PreviousOrder,
                 state,
                 config,
               )?;
@@ -730,6 +756,12 @@ pub struct InvokeFocusCommand {
   prev_workspace: bool,
 
   #[clap(long)]
+  next_order_workspace: bool,
+
+  #[clap(long)]
+  prev_order_workspace: bool,
+
+  #[clap(long)]
   recent_workspace: bool,
 }
 
@@ -749,6 +781,12 @@ pub struct InvokeMoveCommand {
 
   #[clap(long)]
   prev_workspace: bool,
+
+  #[clap(long)]
+  next_order_workspace: bool,
+
+  #[clap(long)]
+  prev_order_workspace: bool,
 
   #[clap(long)]
   recent_workspace: bool,

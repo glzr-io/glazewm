@@ -5,5 +5,7 @@ pub enum WorkspaceTarget {
   Recent,
   Next,
   Previous,
+  NextOrder,
+  PreviousOrder,
   Direction(Direction),
 }
