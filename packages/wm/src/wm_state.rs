@@ -334,6 +334,47 @@ impl WmState {
           prev_workspace.cloned(),
         )
       }
+      WorkspaceTarget::PreviousOrder => {
+        let workspaces = &config.value.workspaces; 
+        let origin_name = origin_workspace.config().name.clone();
+        let origin_index = workspaces.iter()
+            .position(|workspace| workspace.name == origin_name)
+            .unwrap_or_else(|| workspaces.len()); 
+    
+        let previous_workspace_config = if origin_index > 0 {
+            workspaces.get(origin_index - 1)
+        } else {
+            workspaces.last()
+        };
+    
+        let previous_workspace_name = previous_workspace_config.map(|config| config.name.clone());
+        let previous_workspace = previous_workspace_name
+            .as_ref()
+            .and_then(|name| self.workspace_by_name(name));
+    
+        (previous_workspace_name, previous_workspace)
+      }
+    
+      WorkspaceTarget::NextOrder => {
+          let workspaces = &config.value.workspaces; 
+          let origin_name = origin_workspace.config().name.clone();
+          let origin_index = workspaces.iter()
+              .position(|workspace| workspace.name == origin_name)
+              .unwrap_or_else(|| workspaces.len()); 
+      
+          let next_workspace_config = if origin_index < workspaces.len() - 1 {
+              workspaces.get(origin_index + 1)
+          } else {
+              workspaces.first()
+          };
+        
+          let next_workspace_name = next_workspace_config.map(|config| config.name.clone());
+          let next_workspace = next_workspace_name
+              .as_ref()
+              .and_then(|name| self.workspace_by_name(name));
+        
+          (next_workspace_name, next_workspace)
+      }
       WorkspaceTarget::Direction(direction) => {
         let origin_monitor =
           origin_workspace.monitor().context("No focused monitor.")?;
