@@ -339,7 +339,7 @@ impl WmState {
         let origin_name = origin_workspace.config().name.clone();
         let origin_index = workspaces.iter()
             .position(|workspace| workspace.name == origin_name)
-            .unwrap_or_else(|| workspaces.len()); 
+            .context("Failed to get index of given workspace.")?;
     
         let next_workspace_config = if origin_index < workspaces.len() - 1 {
             workspaces.get(origin_index + 1)
@@ -359,7 +359,7 @@ impl WmState {
         let origin_name = origin_workspace.config().name.clone();
         let origin_index = workspaces.iter()
             .position(|workspace| workspace.name == origin_name)
-            .unwrap_or_else(|| workspaces.len()); 
+            .context("Failed to get index of given workspace.")?;
     
         let previous_workspace_config = if origin_index > 0 {
             workspaces.get(origin_index - 1)
