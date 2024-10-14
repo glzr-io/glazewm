@@ -302,38 +302,75 @@ impl WmState {
           .as_ref()
           .and_then(|name| self.workspace_by_name(&name)),
       ),
-      WorkspaceTarget::Next => {
-        let workspaces = self.sorted_workspaces(config);
-        let origin_index = workspaces
+      WorkspaceTarget::NextActive => {
+        let active_workspaces = self.sorted_workspaces(config);
+        let origin_index = active_workspaces
           .iter()
           .position(|workspace| workspace.id() == origin_workspace.id())
           .context("Failed to get index of given workspace.")?;
 
-        let next_workspace = workspaces
+        let next_active_workspace = active_workspaces
           .get(origin_index + 1)
-          .or_else(|| workspaces.first());
+          .or_else(|| active_workspaces.first());
 
         (
-          next_workspace.map(|workspace| workspace.config().name),
-          next_workspace.cloned(),
+          next_active_workspace.map(|workspace| workspace.config().name),
+          next_active_workspace.cloned(),
         )
       }
-      WorkspaceTarget::Previous => {
-        let workspaces = self.sorted_workspaces(config);
-        let origin_index = workspaces
+      WorkspaceTarget::PreviousActive => {
+        let active_workspaces = self.sorted_workspaces(config);
+        let origin_index = active_workspaces
           .iter()
           .position(|workspace| workspace.id() == origin_workspace.id())
           .context("Failed to get index of given workspace.")?;
 
-        let prev_workspace = workspaces.get(
-          origin_index.checked_sub(1).unwrap_or(workspaces.len() - 1),
+        let prev_active_workspace = active_workspaces.get(
+          origin_index.checked_sub(1).unwrap_or(active_workspaces.len() - 1),
         );
 
         (
-          prev_workspace.map(|workspace| workspace.config().name),
-          prev_workspace.cloned(),
+          prev_active_workspace.map(|workspace| workspace.config().name),
+          prev_active_workspace.cloned(),
         )
       }
+      WorkspaceTarget::Next => {
+        let workspaces = &config.value.workspaces; 
+        let origin_name = origin_workspace.config().name.clone();
+        let origin_index = workspaces.iter()
+            .position(|workspace| workspace.name == origin_name)
+            .context("Failed to get index of given workspace.")?;
+    
+        let next_workspace_config = workspaces
+            .get(origin_index + 1)
+            .or_else(|| workspaces.first());
+      
+        let next_workspace_name = next_workspace_config.map(|config| config.name.clone());
+        let next_workspace = next_workspace_name
+            .as_ref()
+            .and_then(|name| self.workspace_by_name(name));
+      
+        (next_workspace_name, next_workspace)
+      }
+      WorkspaceTarget::Previous => {
+        let workspaces = &config.value.workspaces; 
+        let origin_name = origin_workspace.config().name.clone();
+        let origin_index = workspaces.iter()
+            .position(|workspace| workspace.name == origin_name)
+            .context("Failed to get index of given workspace.")?;
+    
+        let previous_workspace_config = workspaces.get(
+              origin_index.checked_sub(1).unwrap_or(workspaces.len() - 1),
+            );
+    
+        let previous_workspace_name = previous_workspace_config.map(|config| config.name.clone());
+        let previous_workspace = previous_workspace_name
+            .as_ref()
+            .and_then(|name| self.workspace_by_name(name));
+    
+        (previous_workspace_name, previous_workspace)
+      }
+    
       WorkspaceTarget::Direction(direction) => {
         let origin_monitor =
           origin_workspace.monitor().context("No focused monitor.")?;

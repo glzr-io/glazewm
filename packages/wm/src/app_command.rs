@@ -317,6 +317,14 @@ impl InvokeCommand {
           focus_monitor(*monitor_index, state, config)?;
         }
 
+        if args.next_active_workspace {
+          focus_workspace(WorkspaceTarget::NextActive, state, config)?;
+        }
+
+        if args.prev_active_workspace {
+          focus_workspace(WorkspaceTarget::PreviousActive, state, config)?;
+        }
+
         if args.next_workspace {
           focus_workspace(WorkspaceTarget::Next, state, config)?;
         }
@@ -353,6 +361,24 @@ impl InvokeCommand {
               move_window_to_workspace(
                 window.clone(),
                 WorkspaceTarget::Name(name.to_string()),
+                state,
+                config,
+              )?;
+            }
+
+            if args.next_active_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::NextActive,
+                state,
+                config,
+              )?;
+            }
+
+            if args.prev_active_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::PreviousActive,
                 state,
                 config,
               )?;
@@ -724,6 +750,12 @@ pub struct InvokeFocusCommand {
   monitor: Option<usize>,
 
   #[clap(long)]
+  next_active_workspace: bool,
+
+  #[clap(long)]
+  prev_active_workspace: bool,
+
+  #[clap(long)]
   next_workspace: bool,
 
   #[clap(long)]
@@ -743,6 +775,12 @@ pub struct InvokeMoveCommand {
   /// Name of workspace to move the window.
   #[clap(long)]
   workspace: Option<String>,
+
+  #[clap(long)]
+  next_active_workspace: bool,
+
+  #[clap(long)]
+  prev_active_workspace: bool,
 
   #[clap(long)]
   next_workspace: bool,
