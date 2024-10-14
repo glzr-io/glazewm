@@ -3,9 +3,9 @@ use crate::common::Direction;
 pub enum WorkspaceTarget {
   Name(String),
   Recent,
+  NextActive,
+  PreviousActive,
   Next,
   Previous,
-  NextOrder,
-  PreviousOrder,
   Direction(Direction),
 }

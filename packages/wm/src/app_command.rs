@@ -317,20 +317,20 @@ impl InvokeCommand {
           focus_monitor(*monitor_index, state, config)?;
         }
 
+        if args.next_active_workspace {
+          focus_workspace(WorkspaceTarget::NextActive, state, config)?;
+        }
+
+        if args.prev_active_workspace {
+          focus_workspace(WorkspaceTarget::PreviousActive, state, config)?;
+        }
+
         if args.next_workspace {
           focus_workspace(WorkspaceTarget::Next, state, config)?;
         }
 
         if args.prev_workspace {
           focus_workspace(WorkspaceTarget::Previous, state, config)?;
-        }
-
-        if args.next_order_workspace {
-          focus_workspace(WorkspaceTarget::NextOrder, state, config)?;
-        }
-
-        if args.prev_order_workspace {
-          focus_workspace(WorkspaceTarget::PreviousOrder, state, config)?;
         }
 
         if args.recent_workspace {
@@ -366,6 +366,24 @@ impl InvokeCommand {
               )?;
             }
 
+            if args.next_active_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::NextActive,
+                state,
+                config,
+              )?;
+            }
+
+            if args.prev_active_workspace {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::PreviousActive,
+                state,
+                config,
+              )?;
+            }
+
             if args.next_workspace {
               move_window_to_workspace(
                 window.clone(),
@@ -379,24 +397,6 @@ impl InvokeCommand {
               move_window_to_workspace(
                 window.clone(),
                 WorkspaceTarget::Previous,
-                state,
-                config,
-              )?;
-            }
-
-            if args.next_order_workspace {
-              move_window_to_workspace(
-                window.clone(),
-                WorkspaceTarget::NextOrder,
-                state,
-                config,
-              )?;
-            }
-
-            if args.prev_order_workspace {
-              move_window_to_workspace(
-                window.clone(),
-                WorkspaceTarget::PreviousOrder,
                 state,
                 config,
               )?;
@@ -750,16 +750,16 @@ pub struct InvokeFocusCommand {
   monitor: Option<usize>,
 
   #[clap(long)]
+  next_active_workspace: bool,
+
+  #[clap(long)]
+  prev_active_workspace: bool,
+
+  #[clap(long)]
   next_workspace: bool,
 
   #[clap(long)]
   prev_workspace: bool,
-
-  #[clap(long)]
-  next_order_workspace: bool,
-
-  #[clap(long)]
-  prev_order_workspace: bool,
 
   #[clap(long)]
   recent_workspace: bool,
@@ -777,16 +777,16 @@ pub struct InvokeMoveCommand {
   workspace: Option<String>,
 
   #[clap(long)]
+  next_active_workspace: bool,
+
+  #[clap(long)]
+  prev_active_workspace: bool,
+
+  #[clap(long)]
   next_workspace: bool,
 
   #[clap(long)]
   prev_workspace: bool,
-
-  #[clap(long)]
-  next_order_workspace: bool,
-
-  #[clap(long)]
-  prev_order_workspace: bool,
 
   #[clap(long)]
   recent_workspace: bool,
