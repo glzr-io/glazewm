@@ -23,10 +23,9 @@ use windows::{
         SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
         SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
         WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
         WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
@@ -39,6 +38,7 @@ use crate::{
   user_config::CornerStyle,
   windows::WindowState,
 };
+use crate::common::com::{set_cloak, CloakVisibility};
 
 #[derive(Debug, Clone)]
 pub struct NativeWindow {
@@ -508,12 +508,19 @@ impl NativeWindow {
   }
 
   pub fn show(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
-    Ok(())
+    self.set_visibility(true)
   }
 
   pub fn hide(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+    self.set_visibility(false)
+  }
+
+  pub fn set_visibility(&self, visible: bool) -> anyhow::Result<()> {
+    let visibility_status = match visible {
+      true => CloakVisibility::VISIBLE,
+      false => CloakVisibility::HIDDEN,
+    };
+    set_cloak(HWND(self.handle), &visibility_status);
     Ok(())
   }
 
@@ -550,10 +557,10 @@ impl NativeWindow {
       | SWP_ASYNCWINDOWPOS;
 
     // Whether to show or hide the window.
-    match is_visible {
-      true => swp_flags |= SWP_SHOWWINDOW,
-      false => swp_flags |= SWP_HIDEWINDOW,
-    };
+    // match is_visible {
+    //   true => swp_flags |= SWP_SHOWWINDOW,
+    //   false => swp_flags |= SWP_HIDEWINDOW,
+    // };
 
     // Whether the window should be shown above all other windows.
     let z_order = match state {
@@ -594,6 +601,7 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
+        self.set_visibility(is_visible)?;
       }
       _ => {
         swp_flags |= SWP_FRAMECHANGED;
@@ -609,6 +617,7 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
+        self.set_visibility(is_visible)?;
 
         // When there's a mismatch between the DPI of the monitor and the
         // window, the window might be sized incorrectly after the first
@@ -626,6 +635,7 @@ impl NativeWindow {
               swp_flags,
             )
           }?;
+          self.set_visibility(is_visible)?;
         }
       }
     };
