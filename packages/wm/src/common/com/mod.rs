@@ -1,5 +1,6 @@
 // Cloaking functionality taken from https://github.com/Ciantic/AltTabAccessor/blob/main/src/lib.rs
 use std::ffi::c_void;
+use anyhow::Context;
 use windows::core::{ComInterface, Interface};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_APARTMENTTHREADED};
@@ -19,8 +20,7 @@ impl ComInit {
         unsafe {
             // Apparently only COINIT_APARTMENTTHREADED works correctly.
             // Initialize the COM Library
-            // Handle the error differently maybe?
-            CoInitializeEx(None, COINIT_APARTMENTTHREADED).unwrap();
+            CoInitializeEx(None, COINIT_APARTMENTTHREADED).context("Unable to initialize COM library").unwrap();
         }
         Self()
     }
@@ -37,7 +37,7 @@ impl Drop for ComInit {
 
 fn get_iservice_provider() -> IServiceProvider {
     COM_INIT.with(|_| unsafe {
-        CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL).unwrap()
+        CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL).context("Unable to create IServiceProvider instance").unwrap()
     })
 }
 
@@ -66,15 +66,15 @@ thread_local! {
     static COM_INIT: ComInit = ComInit::new();
 }
 
-pub fn set_cloak(hwnd: HWND, cloak_visibility: &CloakVisibility) {
-    COM_INIT.with(|_| {
+pub fn set_cloak(hwnd: HWND, cloak_visibility: &CloakVisibility) -> anyhow::Result<()> {
+    COM_INIT.with(|_| -> anyhow::Result<()> {
         let provider = get_iservice_provider();
         let view_collection = get_iapplication_view_collection(&provider);
         let mut view = None;
         unsafe {
-            view_collection.get_view_for_hwnd(hwnd, &mut view).unwrap()
+            view_collection.get_view_for_hwnd(hwnd, &mut view).ok().context("Unable to get view by HWND.")?;
         };
-        let view = view.unwrap();
+        let view = view.context("Unable to get view by HWND.")?;
 
 
         unsafe {
@@ -83,8 +83,12 @@ pub fn set_cloak(hwnd: HWND, cloak_visibility: &CloakVisibility) {
                 CloakVisibility::VISIBLE => 0,
                 CloakVisibility::HIDDEN => 2
             };
-            view.set_cloak(1, flag).unwrap()
+            view.set_cloak(1, flag).ok().context("Unable to cloak view")?;
         }
-    });
+
+        Ok(())
+    })?;
+
+    Ok(())
 
 }

@@ -520,8 +520,7 @@ impl NativeWindow {
       true => CloakVisibility::VISIBLE,
       false => CloakVisibility::HIDDEN,
     };
-    set_cloak(HWND(self.handle), &visibility_status);
-    Ok(())
+    set_cloak(HWND(self.handle), &visibility_status)
   }
 
   pub fn set_position(
