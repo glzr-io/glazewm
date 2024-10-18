@@ -596,7 +596,8 @@ pub struct WindowMatchConfig {
 pub enum MatchType {
   Equals { equals: String },
   Includes { includes: String },
-  Regex { regex: String },
+  Regex { regex: String, not: Option<bool> },
+  NotEquals { not_equals: String },
 }
 
 impl MatchType {
@@ -605,9 +606,17 @@ impl MatchType {
     match self {
       MatchType::Equals { equals } => value == equals,
       MatchType::Includes { includes } => value.contains(includes),
-      MatchType::Regex { regex } => regex::Regex::new(regex)
-        .map(|re| re.is_match(value))
-        .unwrap_or(false),
+      MatchType::Regex { regex,not } => regex::Regex::new(regex)
+          .map(|re| {
+            let is_match = re.is_match(value);
+            match not {
+              Some(true) => !is_match,  // Negate the result if `not` is `Some(true)`
+              Some(false) => is_match,  // Use the result if `not` is `Some(false)`
+              None => is_match,         // Default to regular matching if `not` is `None`
+            }
+          })
+          .unwrap_or(false),
+      MatchType::NotEquals { not_equals } => value != not_equals,
     }
   }
 }
