@@ -1,7 +1,7 @@
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow, windows::commands::unmanage_window, 
+  common::platform::NativeWindow, windows::commands::unmanage_window,
   wm_state::WmState,
   containers::traits::CommonGetters,
   workspaces::commands::deactivate_workspace
