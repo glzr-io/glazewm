@@ -1,8 +1,10 @@
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow, windows::commands::unmanage_window,
+  common::platform::NativeWindow, windows::commands::unmanage_window, 
   wm_state::WmState,
+  containers::traits::CommonGetters,
+  workspaces::commands::deactivate_workspace
 };
 
 pub fn handle_window_destroyed(
@@ -14,8 +16,16 @@ pub fn handle_window_destroyed(
   // Unmanage the window if it's currently managed.
   if let Some(window) = found_window {
     // TODO: Log window details.
+    let bind_workspace = window.workspace();
+
     info!("Window closed");
     unmanage_window(window, state)?;
+
+    if let Some(workspace) = bind_workspace {
+      if !workspace.config().keep_alive && !workspace.has_children() && !workspace.is_displayed() {
+        deactivate_workspace(workspace, state)?;
+      }
+    }
   }
 
   Ok(())
