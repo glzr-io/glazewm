@@ -1,3 +1,4 @@
+use anyhow::Context;
 use tracing::info;
 
 use crate::{
@@ -16,15 +17,14 @@ pub fn handle_window_destroyed(
   // Unmanage the window if it's currently managed.
   if let Some(window) = found_window {
     // TODO: Log window details.
-    let bind_workspace = window.workspace();
+    let workspace = window.workspace().context("No workspace.")?;
 
     info!("Window closed");
     unmanage_window(window, state)?;
 
-    if let Some(workspace) = bind_workspace {
-      if !workspace.config().keep_alive && !workspace.has_children() && !workspace.is_displayed() {
-        deactivate_workspace(workspace, state)?;
-      }
+    // Destroy parent workspace if window was killed while its workspace was not displayed (e.g. via task manager).
+    if !workspace.config().keep_alive && !workspace.has_children() && !workspace.is_displayed() {
+      deactivate_workspace(workspace, state)?;
     }
   }
 
