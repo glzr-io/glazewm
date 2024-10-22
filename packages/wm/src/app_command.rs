@@ -5,6 +5,7 @@ use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::{warn, Level};
 use uuid::Uuid;
+use crate::containers::traits::PositionGetters;
 
 use crate::{
   common::{
@@ -446,10 +447,21 @@ impl InvokeCommand {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
 
+          let is_centered = centered.unwrap_or(floating_defaults.centered);
+
+          if is_centered {
+            let workspace = window.workspace().context("no workspace find.")?;
+            window.set_floating_placement(
+              window
+                .floating_placement()
+                .translate_to_center(&workspace.to_rect()?),
+            );
+          }
+
           update_window_state(
             window.clone(),
             WindowState::Floating(FloatingStateConfig {
-              centered: centered.unwrap_or(floating_defaults.centered),
+              centered: is_centered,
               shown_on_top: shown_on_top
                 .unwrap_or(floating_defaults.shown_on_top),
             }),
@@ -552,8 +564,19 @@ impl InvokeCommand {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
 
+          let is_centered = centered.unwrap_or(floating_defaults.centered);
+
+          if is_centered {
+            let workspace = window.workspace().context("no workspace find.")?;
+            window.set_floating_placement(
+              window
+                .floating_placement()
+                .translate_to_center(&workspace.to_rect()?),
+            );
+          }
+
           let target_state = WindowState::Floating(FloatingStateConfig {
-            centered: centered.unwrap_or(floating_defaults.centered),
+            centered: is_centered,
             shown_on_top: shown_on_top
               .unwrap_or(floating_defaults.shown_on_top),
           });
