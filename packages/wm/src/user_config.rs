@@ -597,6 +597,8 @@ pub enum MatchType {
   Equals { equals: String },
   Includes { includes: String },
   Regex { regex: String },
+  NotEquals { not_equals: String },
+  NotRegex { not_regex: String },
 }
 
 impl MatchType {
@@ -607,6 +609,10 @@ impl MatchType {
       MatchType::Includes { includes } => value.contains(includes),
       MatchType::Regex { regex } => regex::Regex::new(regex)
         .map(|re| re.is_match(value))
+        .unwrap_or(false),
+      MatchType::NotEquals { not_equals } => value != not_equals,
+      MatchType::NotRegex { not_regex } => regex::Regex::new(not_regex)
+        .map(|re| !re.is_match(value))
         .unwrap_or(false),
     }
   }
