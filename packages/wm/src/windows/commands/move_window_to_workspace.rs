@@ -13,6 +13,28 @@ use crate::{
   workspaces::{commands::activate_workspace, WorkspaceTarget},
 };
 
+pub fn move_all_window_to_workspace(
+  window: WindowContainer,
+  target: WorkspaceTarget,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let current_workspace = window.workspace().context("No workspace.")?;
+  let _ = current_workspace
+    .children()
+    .into_iter()
+    .try_for_each(|child| {
+      let child_container = child.as_window_container()?;
+      move_window_to_workspace(
+        child_container,
+        target.clone(),
+        state,
+        config,
+      )
+    });
+  Ok(())
+}
+
 pub fn move_window_to_workspace(
   window: WindowContainer,
   target: WorkspaceTarget,
