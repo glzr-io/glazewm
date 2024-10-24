@@ -18,7 +18,7 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 [Installation](#installation) •
 [Default keybindings](#default-keybindings) •
-[Config documentation](#config-docs) •
+[Config documentation](#config-documentation) •
 [FAQ](#faq) •
 [Contributing ↗](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md)
 
