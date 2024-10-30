@@ -110,7 +110,7 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.path)?;
+  let mut tray = SystemTray::new(&mut config)?;
 
   let mut wm = WindowManager::new(&mut config)?;
 

@@ -410,6 +410,9 @@ pub struct GeneralConfig {
   /// Commands to run after the WM config has reloaded.
   #[serde(default)]
   pub config_reload_commands: Vec<InvokeCommand>,
+
+  #[serde(default = "default_bool::<true>")]
+  pub window_animations: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -8,7 +8,7 @@ use tray_icon::{
   Icon, TrayIconBuilder,
 };
 
-use crate::common::platform::Platform;
+use crate::{common::platform::Platform, user_config::UserConfig};
 
 /// Ordinal to IDI_ICON definition in embedded resource file.
 const IDI_ICON: u16 = 32512;
@@ -20,7 +20,10 @@ pub struct SystemTray {
 }
 
 impl SystemTray {
-  pub fn new(config_path: &PathBuf) -> anyhow::Result<Self> {
+  pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
+    let config_path = config.path.clone();
+    let mut window_animations_enabled = config.value.clone().general.window_animations;
+    let _ = Platform::set_window_animations_enabled(window_animations_enabled);
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
     let config_dir = config_path
@@ -34,13 +37,10 @@ impl SystemTray {
       let config_dir_item =
         MenuItem::new("Show config folder", true, None);
 
-      let mut animations_enabled =
-        Platform::window_animations_enabled().unwrap_or(true);
-
       let animations_item = CheckMenuItem::new(
         "Window animations",
         true,
-        animations_enabled,
+        window_animations_enabled,
         None,
       );
 
@@ -74,9 +74,9 @@ impl SystemTray {
           } else if event.id == animations_item.id() {
             // Toggle window animations globally.
             let _ =
-              Platform::set_window_animations_enabled(!animations_enabled);
+              Platform::set_window_animations_enabled(!window_animations_enabled);
 
-            animations_enabled = !animations_enabled;
+            window_animations_enabled = !window_animations_enabled;
           } else if event.id == exit_item.id() {
             exit_tx.send(())?;
           }

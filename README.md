@@ -95,6 +95,9 @@ general:
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: false
 
+  # Whether to animate windows when switching between focused workspaces
+  window_animations: true
+
   cursor_jump:
     # Whether to automatically move the cursor on the specified trigger.
     enabled: true

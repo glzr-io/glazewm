@@ -2,13 +2,7 @@ use anyhow::Context;
 use tracing::{info, warn};
 
 use crate::{
-  app_command::InvokeCommand,
-  containers::traits::{CommonGetters, TilingSizeGetters},
-  user_config::{ParsedConfig, UserConfig, WindowRuleEvent},
-  windows::{commands::run_window_rules, traits::WindowGetters},
-  wm_event::WmEvent,
-  wm_state::WmState,
-  workspaces::commands::sort_workspaces,
+  app_command::InvokeCommand, common::platform::Platform, containers::traits::{CommonGetters, TilingSizeGetters}, user_config::{ParsedConfig, UserConfig, WindowRuleEvent}, windows::{commands::run_window_rules, traits::WindowGetters}, wm_event::WmEvent, wm_state::WmState, workspaces::commands::sort_workspaces
 };
 
 pub fn reload_config(
@@ -139,8 +133,16 @@ fn update_window_effects(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+
+  let general_config = &config.value.general;
+  let old_general_config = &old_config.general;
+
   let window_effects = &config.value.window_effects;
   let old_window_effects = &old_config.window_effects;
+
+  if general_config.window_animations != old_general_config.window_animations {
+    Platform::set_window_animations_enabled(general_config.window_animations)?;
+  }
 
   // Window border effects are left at system defaults if disabled in the
   // config. However, when transitioning from colored borders to having
