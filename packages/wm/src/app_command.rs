@@ -18,7 +18,7 @@ use crate::{
     commands::{
       focus_in_direction, set_tiling_direction, toggle_tiling_direction,
     },
-    traits::CommonGetters,
+    traits::{CommonGetters, PositionGetters},
     Container,
   },
   monitors::commands::focus_monitor,
@@ -195,6 +195,12 @@ pub enum InvokeCommand {
 
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     centered: Option<bool>,
+
+    #[clap(long, require_equals = true)]
+    width: Option<i32>,
+
+    #[clap(long, require_equals = true)]
+    height: Option<i32>,
   },
   SetFullscreen {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
@@ -441,10 +447,31 @@ impl InvokeCommand {
       InvokeCommand::SetFloating {
         centered,
         shown_on_top,
+        width,
+        height,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
+
+          let is_centered = centered.unwrap_or(floating_defaults.centered);
+          let mut floating_placement = window.floating_placement().clone();
+
+          if let (Some(width), Some(height)) = (width, height) {
+            floating_placement.right = floating_placement.left + width;
+            floating_placement.bottom = floating_placement.top + height;
+          }
+
+          if is_centered {
+            let workspace =
+              window.workspace().context("no workspace find.")?;
+            window.set_floating_placement(
+              floating_placement
+                .translate_to_center(&workspace.to_rect()?),
+            )
+          } else if width.is_some() && height.is_some() {
+            window.set_floating_placement(floating_placement);
+          }
 
           update_window_state(
             window.clone(),

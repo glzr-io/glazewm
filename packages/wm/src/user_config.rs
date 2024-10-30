@@ -118,6 +118,8 @@ impl UserConfig {
       commands: vec![InvokeCommand::SetFloating {
         centered: Some(floating_defaults.centered),
         shown_on_top: Some(floating_defaults.shown_on_top),
+        width: None,
+        height: None,
       }],
       match_window: vec![
         WindowMatchConfig {
