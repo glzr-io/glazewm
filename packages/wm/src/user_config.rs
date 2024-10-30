@@ -118,6 +118,8 @@ impl UserConfig {
       commands: vec![InvokeCommand::SetFloating {
         centered: Some(floating_defaults.centered),
         shown_on_top: Some(floating_defaults.shown_on_top),
+        xpos: None,
+        ypos: None,
         width: None,
         height: None,
       }],

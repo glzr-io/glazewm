@@ -197,6 +197,12 @@ pub enum InvokeCommand {
     centered: Option<bool>,
 
     #[clap(long, require_equals = true)]
+    xpos: Option<i32>,
+
+    #[clap(long, require_equals = true)]
+    ypos: Option<i32>,
+
+    #[clap(long, require_equals = true)]
     width: Option<i32>,
 
     #[clap(long, require_equals = true)]
@@ -447,6 +453,8 @@ impl InvokeCommand {
       InvokeCommand::SetFloating {
         centered,
         shown_on_top,
+        xpos,
+        ypos,
         width,
         height,
       } => match subject_container.as_window_container() {
@@ -457,9 +465,20 @@ impl InvokeCommand {
           let is_centered = centered.unwrap_or(floating_defaults.centered);
           let mut floating_placement = window.floating_placement().clone();
 
-          if let (Some(width), Some(height)) = (width, height) {
+          if let Some(xpos) = xpos {
+            floating_placement.left = xpos.clone();
+          }
+
+          if let Some(ypos) = ypos {
+            floating_placement.top = ypos.clone();
+          }
+
+          if let Some(width) = width {
             floating_placement.right = floating_placement.left + width;
-            floating_placement.bottom = floating_placement.top + height;
+          }
+        
+          if let Some(height) = height {
+              floating_placement.bottom = floating_placement.top + height;
           }
 
           if is_centered {
@@ -469,7 +488,7 @@ impl InvokeCommand {
               floating_placement
                 .translate_to_center(&workspace.to_rect()?),
             )
-          } else if width.is_some() && height.is_some() {
+          } else if xpos.is_some() || ypos.is_some() || width.is_some() || height.is_some() {
             window.set_floating_placement(floating_placement);
           }
 
