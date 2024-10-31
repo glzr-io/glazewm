@@ -24,7 +24,7 @@ use windows::{
         SystemParametersInfoW, TranslateMessage, WindowFromPoint,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
         MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
-        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
+        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL, SW_HIDE,
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
         WS_OVERLAPPEDWINDOW,
       },
@@ -411,7 +411,7 @@ impl Platform {
   }
 
   /// Runs the specified program with the given arguments.
-  pub fn run_command(program: &str, args: &str) -> anyhow::Result<()> {
+  pub fn run_command(program: &str, args: &str, hide_window: bool) -> anyhow::Result<()> {
     let home_dir = home::home_dir()
       .context("Unable to get home directory.")?
       .to_str()
@@ -435,7 +435,7 @@ impl Platform {
       lpFile: PCWSTR(program_wide.as_ptr()),
       lpParameters: PCWSTR(args_wide.as_ptr()),
       lpDirectory: PCWSTR(home_dir_wide.as_ptr()),
-      nShow: SW_NORMAL.0 as _,
+      nShow: if hide_window { SW_HIDE } else { SW_NORMAL }.0 as _,
       fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
       ..Default::default()
     };

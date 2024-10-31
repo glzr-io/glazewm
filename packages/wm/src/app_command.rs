@@ -210,6 +210,9 @@ pub enum InvokeCommand {
     visibility: TitleBarVisibility,
   },
   ShellExec {
+    #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
+    hide_window: Option<bool>,
+
     #[clap(required = true, trailing_var_arg = true)]
     command: Vec<String>,
   },
@@ -530,8 +533,15 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::ShellExec { command } => {
-        shell_exec(&command.join(" "))
+      InvokeCommand::ShellExec { 
+        hide_window,
+        command 
+      } => {
+        if let Some(true) = hide_window {
+          shell_exec(&command.join(" "),true)
+        } else {
+          shell_exec(&command.join(" "),false)
+        }
       }
       InvokeCommand::Size(args) => {
         match subject_container.as_window_container() {
