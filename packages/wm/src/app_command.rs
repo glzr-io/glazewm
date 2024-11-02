@@ -537,11 +537,7 @@ impl InvokeCommand {
         hide_window,
         command 
       } => {
-        if let Some(true) = hide_window {
-          shell_exec(&command.join(" "),true)
-        } else {
-          shell_exec(&command.join(" "),false)
-        }
+        shell_exec(&command.join(" "), hide_window.unwrap_or(false))
       }
       InvokeCommand::Size(args) => {
         match subject_container.as_window_container() {
