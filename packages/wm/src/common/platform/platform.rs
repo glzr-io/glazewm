@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{bail, Context};
 use windows::{
-  core::{w, PCWSTR},
+  core::{w, PCWSTR, PCSTR},
   Win32::{
     Foundation::{HANDLE, HWND, LPARAM, POINT, WPARAM},
     System::{
@@ -19,7 +19,7 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
+        FindWindowA, GetForegroundWindow, GetMessageW, MessageBoxW,
         PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
         SystemParametersInfoW, TranslateMessage, WindowFromPoint,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
@@ -51,7 +51,9 @@ impl Platform {
 
   /// Gets the `NativeWindow` instance of the desktop window.
   pub fn desktop_window() -> NativeWindow {
-    let handle = unsafe { GetDesktopWindow() };
+    let  handle = unsafe {
+      FindWindowA(PCSTR("Progman\0".as_ptr() as *const u8), PCSTR::null())
+    };
     NativeWindow::new(handle.0)
   }
 
