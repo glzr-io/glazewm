@@ -463,6 +463,7 @@ impl IpcServer {
       WmEvent::WorkspaceUpdated { .. } => {
         SubscribableEvent::WorkspaceUpdated
       }
+      WmEvent::PauseChanged { .. } => SubscribableEvent::PauseChanged,
     };
 
     self.event_tx.send((event_type, event))?;

@@ -14,6 +14,10 @@ pub fn resize_window(
   height_delta: Option<LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   let window_rect = window.to_rect()?;
 
   let target_width = match width_delta {

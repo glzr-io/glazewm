@@ -19,6 +19,10 @@ pub fn move_window_to_workspace(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   let current_workspace = window.workspace().context("No workspace.")?;
   let current_monitor =
     current_workspace.monitor().context("No monitor.")?;

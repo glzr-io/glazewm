@@ -20,6 +20,10 @@ pub fn move_workspace_in_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   let origin_monitor = workspace.monitor().context("No monitor.")?;
   let target_monitor =
     state.monitor_in_direction(&origin_monitor, &direction)?;

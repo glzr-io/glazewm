@@ -25,6 +25,10 @@ pub fn move_window_in_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   match window {
     WindowContainer::TilingWindow(window) => {
       move_tiling_window(window, direction, state, config)

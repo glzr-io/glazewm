@@ -54,6 +54,9 @@ pub struct WmState {
   /// `ignore` command.
   pub ignored_windows: Vec<NativeWindow>,
 
+  /// Whether the WM is paused.
+  pub paused: bool,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -98,6 +101,7 @@ impl WmState {
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
+      paused: false,
       has_initialized: false,
       event_tx,
       exit_tx,
