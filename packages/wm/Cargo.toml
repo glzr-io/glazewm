@@ -8,11 +8,11 @@ edition = "2021"
 default-run = "glazewm"
 
 [lib]
-path = "src\\lib.rs"
+path = "src/lib.rs"
 
 [[bin]]
 name = "glazewm"
-path = "src\\main.rs"
+path = "src/main.rs"
 
 [features]
 no_console = []
