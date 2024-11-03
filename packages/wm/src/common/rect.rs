@@ -125,32 +125,6 @@ impl Rect {
     }
   }
 
-  pub fn apply_delta(
-    &self,
-    delta: &RectDelta,
-    scale_factor: Option<f32>,
-  ) -> Self {
-    Self::from_ltrb(
-      self.left - delta.left.to_px(self.width(), scale_factor),
-      self.top - delta.top.to_px(self.height(), scale_factor),
-      self.right + delta.right.to_px(self.width(), scale_factor),
-      self.bottom + delta.bottom.to_px(self.height(), scale_factor),
-    )
-  }
-
-  pub fn apply_inverse_delta(
-    &self,
-    delta: &RectDelta,
-    scale_factor: Option<f32>,
-  ) -> Self {
-    Self::from_ltrb(
-      self.left + delta.left.to_px(self.width(), scale_factor),
-      self.top + delta.top.to_px(self.height(), scale_factor),
-      self.right - delta.right.to_px(self.width(), scale_factor),
-      self.bottom - delta.bottom.to_px(self.height(), scale_factor),
-    )
-  }
-
   // Gets whether the x-coordinate overlaps with the x-coordinate of the
   // other rect.
   pub fn has_overlap_x(&self, other: &Rect) -> bool {

@@ -131,28 +131,42 @@ impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
   fn to_rect(&self) -> anyhow::Result<Rect> {
-    let monitor =
-      self.monitor().context("Workspace has no parent monitor.")?;
+    let monitor = self.monitor()
+      .context("Workspace has no parent monitor.")?;
 
-    let gaps_config = &self.0.borrow().gaps_config;
-    let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native().scale_factor()?,
-      false => 1.,
-    };
+    let monitor_rect = monitor.to_rect()?;
+    let native_monitor = monitor.native();
 
     // Get delta between monitor bounds and its working area.
-    let working_delta = monitor
-      .native()
+    let working_area_delta = native_monitor
       .working_rect()
       .context("Failed to get working area of parent monitor.")?
-      .delta(&monitor.to_rect()?);
+      .delta(&monitor_rect);
 
+    let gaps_config = &self.0.borrow().gaps_config;
+    let outer_gap_delta = &gaps_config.outer_gap;
+    let scale_factor = Some(match &gaps_config.scale_with_dpi {
+      true => native_monitor.scale_factor()?,
+      false => 1.,
+    });
+    
+    let monitor_width = monitor_rect.width();
+    let monitor_height = monitor_rect.height();
     Ok(
-      monitor
-        .to_rect()?
-        // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(&gaps_config.outer_gap, Some(scale_factor))
-        .apply_delta(&working_delta, None),
+      Rect::from_ltrb(
+      monitor_rect.left
+          + working_area_delta.left.to_px(monitor_width, scale_factor)
+          + outer_gap_delta.left.to_px(monitor_width, scale_factor),
+      monitor_rect.top
+          + working_area_delta.top.to_px(monitor_height, scale_factor)
+          + outer_gap_delta.top.to_px(monitor_height, scale_factor),
+      monitor_rect.right
+          + working_area_delta.right.to_px(monitor_width, scale_factor)
+          - outer_gap_delta.right.to_px(monitor_width, scale_factor),
+      monitor_rect.bottom
+          + working_area_delta.bottom.to_px(monitor_height, scale_factor)
+          - outer_gap_delta.bottom.to_px(monitor_height, scale_factor),
+      )
     )
   }
 }

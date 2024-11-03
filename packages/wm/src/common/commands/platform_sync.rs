@@ -5,7 +5,7 @@ use tokio::task;
 use tracing::warn;
 
 use crate::{
-  common::{platform::Platform, DisplayState},
+  common::{platform::Platform, DisplayState, Rect},
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
@@ -125,9 +125,17 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
       },
     );
 
-    let rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
+    let current_rect = window.to_rect()?;
+    let current_rect_width = current_rect.width();
+    let current_rect_height = current_rect.height();
+
+    let total_border_delta = &window.total_border_delta()?;
+    let new_rect = Rect::from_ltrb(
+      current_rect.left - total_border_delta.left.to_px(current_rect_width, None),
+      current_rect.top - total_border_delta.top.to_px(current_rect_height, None),
+      current_rect.right + total_border_delta.right.to_px(current_rect_width, None),
+      current_rect.bottom + total_border_delta.bottom.to_px(current_rect_height, None),
+    );
 
     let is_visible = matches!(
       window.display_state(),
@@ -136,7 +144,7 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
 
     if let Err(err) = window.native().set_position(
       &window.state(),
-      &rect,
+      &new_rect,
       is_visible,
       window.has_pending_dpi_adjustment(),
     ) {
