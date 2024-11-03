@@ -31,6 +31,10 @@ pub fn handle_window_moved_or_resized_end(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   let found_window = state.window_from_native(&native_window);
 
   if let Some(window) = found_window {

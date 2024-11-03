@@ -12,6 +12,10 @@ pub fn handle_mouse_move(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   // Ignore event if left/right-click is down. Otherwise, this causes focus
   // to jitter when a window is being resized by its drag handles.
   if event.is_mouse_down || !config.value.general.focus_follows_cursor {

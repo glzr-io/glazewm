@@ -16,6 +16,10 @@ pub fn handle_display_settings_changed(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   info!("Display settings changed.");
 
   let native_monitors = Platform::sorted_monitors()?;

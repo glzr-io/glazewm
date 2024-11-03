@@ -22,6 +22,10 @@ pub fn handle_window_location_changed(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if state.paused {
+    return Ok(());
+  }
+
   let found_window = state.window_from_native(&native_window);
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
