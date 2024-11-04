@@ -5,7 +5,7 @@ use crate::{
   common::{platform::NativeWindow, Rect},
   containers::{
     commands::{flatten_split_container, move_container_within_tree},
-    traits::{CommonGetters, PositionGetters},
+    traits::CommonGetters,
     WindowContainer,
   },
   try_warn,
@@ -50,14 +50,9 @@ pub fn handle_window_location_changed(
       )?;
     }
 
-    let monitor_rect = if config.has_outer_gaps() {
-      nearest_monitor.native().working_rect()?.clone()
-    } else {
-      nearest_monitor.to_rect()?
-    };
-
-    let is_fullscreen = window.native().is_fullscreen(&monitor_rect)?;
-
+    let is_fullscreen = window.native().is_fullscreen(
+      nearest_monitor.native().working_rect()?
+    )?;
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
         // A fullscreen window that gets minimized can hit this arm, so
@@ -92,9 +87,8 @@ pub fn handle_window_location_changed(
       }
       _ => {
         // Update the window to be fullscreen if there's been a change in
-        // maximized state or if the window is now fullscreen.
-        if (is_maximized && old_is_maximized != is_maximized)
-          || is_fullscreen
+        // maximized state
+        if is_maximized && old_is_maximized != is_maximized
         {
           info!("Window fullscreened");
 

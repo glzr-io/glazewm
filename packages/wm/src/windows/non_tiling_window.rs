@@ -131,7 +131,7 @@ impl PositionGetters for NonTilingWindow {
   fn to_rect(&self) -> anyhow::Result<Rect> {
     match self.state() {
       WindowState::Fullscreen(_) => {
-        self.monitor().context("No monitor.")?.to_rect()
+        Ok(self.monitor().context("No monitor.")?.native().working_rect()?.clone())
       }
       _ => Ok(self.floating_placement()),
     }
