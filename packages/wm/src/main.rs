@@ -46,28 +46,30 @@ mod workspaces;
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
 #[tokio::main]
+// Clippy picks up on a return that is likely added by `#[tokio::main]`.
+#[allow(clippy::needless_return)]
 async fn main() -> Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
-  match app_command {
-    AppCommand::Start {
-      config_path,
-      verbosity,
-    } => {
-      let res = start_wm(config_path, verbosity).await;
+  if let AppCommand::Start {
+    config_path,
+    verbosity,
+  } = app_command
+  {
+    let res = start_wm(config_path, verbosity).await;
 
-      // If unable to start the WM, the error is fatal and a message dialog
-      // is shown.
-      if let Err(err) = &res {
-        error!("{:?}", err);
-        Platform::show_error_dialog("Fatal error", &err.to_string());
-      };
+    // If unable to start the WM, the error is fatal and a message dialog
+    // is shown.
+    if let Err(err) = &res {
+      error!("{:?}", err);
+      Platform::show_error_dialog("Fatal error", &err.to_string());
+    };
 
-      res
-    }
-    _ => start_cli(args).await,
+    return res;
   }
+
+  start_cli(args).await
 }
 
 async fn start_wm(
@@ -179,8 +181,7 @@ async fn start_wm(
           vec![InvokeCommand::WmReloadConfig],
           None,
           &mut config,
-        )
-        .and_then(|_| Ok(()))
+        ).map(|_| ())
       },
     };
 

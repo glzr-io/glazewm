@@ -68,7 +68,7 @@ impl UserConfig {
       Self::create_sample(config_path.clone())?;
     }
 
-    let config_str = fs::read_to_string(&config_path)
+    let config_str = fs::read_to_string(config_path)
       .context("Unable to read config file.")?;
 
     // TODO: Improve error formatting of serde_yaml errors. Something
@@ -206,7 +206,7 @@ impl UserConfig {
       for event_type in &window_rule.on {
         window_rules_by_event
           .entry(event_type.clone())
-          .or_insert_with(|| Vec::new())
+          .or_insert_with(Vec::new)
           .push(window_rule.clone());
       }
     }
@@ -227,12 +227,12 @@ impl UserConfig {
 
     let pending_window_rules = self
       .window_rules_by_event
-      .get(&event)
+      .get(event)
       .unwrap_or(&Vec::new())
       .iter()
       .filter(|rule| {
         // Skip if window has already ran the rule.
-        if window.done_window_rules().contains(&rule) {
+        if window.done_window_rules().contains(rule) {
           return false;
         }
 
@@ -267,17 +267,16 @@ impl UserConfig {
 
   pub fn inactive_workspace_configs(
     &self,
-    active_workspaces: &Vec<Workspace>,
+    active_workspaces: &[Workspace],
   ) -> Vec<&WorkspaceConfig> {
     self
       .value
       .workspaces
       .iter()
       .filter(|config| {
-        active_workspaces
+        !active_workspaces
           .iter()
-          .find(|workspace| workspace.config().name == config.name)
-          .is_none()
+          .any(|workspace| workspace.config().name == config.name)
       })
       .collect()
   }
@@ -285,7 +284,7 @@ impl UserConfig {
   pub fn workspace_config_for_monitor(
     &self,
     monitor: &Monitor,
-    active_workspaces: &Vec<Workspace>,
+    active_workspaces: &[Workspace],
   ) -> Option<&WorkspaceConfig> {
     let inactive_configs =
       self.inactive_workspace_configs(active_workspaces);
@@ -303,7 +302,7 @@ impl UserConfig {
   /// don't have a monitor binding.
   pub fn next_inactive_workspace_config(
     &self,
-    active_workspaces: &Vec<Workspace>,
+    active_workspaces: &[Workspace],
   ) -> Option<&WorkspaceConfig> {
     let inactive_configs =
       self.inactive_workspace_configs(active_workspaces);
@@ -326,7 +325,7 @@ impl UserConfig {
       .position(|config| config.name == workspace_name)
   }
 
-  pub fn sort_workspaces(&self, workspaces: &mut Vec<Workspace>) {
+  pub fn sort_workspaces(&self, workspaces: &mut [Workspace]) {
     workspaces.sort_by_key(|workspace| {
       self.workspace_config_index(&workspace.config().name)
     });
@@ -531,7 +530,7 @@ pub struct BorderEffectConfig {
   pub color: Color,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
@@ -551,9 +550,12 @@ pub struct CornerEffectConfig {
   pub style: CornerStyle,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(
+  Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum CornerStyle {
+  #[default]
   Default,
   Square,
   Rounded,
@@ -659,17 +661,19 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
 }
 
-impl Default for CornerStyle {
-  fn default() -> Self {
-    CornerStyle::Default
-  }
-}
+// Both are now derrived, left in case it is needed in the future
 
-impl Default for HideTitleBarEffectConfig {
-  fn default() -> Self {
-    HideTitleBarEffectConfig { enabled: false }
-  }
-}
+// impl Default for CornerStyle {
+//   fn default() -> Self {
+//     CornerStyle::Default
+//   }
+// }
+
+// impl Default for HideTitleBarEffectConfig {
+//   fn default() -> Self {
+//     HideTitleBarEffectConfig { enabled: false }
+//   }
+// }
 
 impl Default for CornerEffectConfig {
   fn default() -> Self {

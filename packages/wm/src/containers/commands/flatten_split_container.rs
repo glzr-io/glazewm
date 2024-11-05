@@ -17,7 +17,7 @@ pub fn flatten_split_container(
   let parent = split_container.parent().context("No parent.")?;
 
   let updated_children =
-    split_container.children().into_iter().map(|child| {
+    split_container.children().into_iter().inspect(|child| {
       *child.borrow_parent_mut() = Some(parent.clone());
 
       // Resize tiling children to fit the size of the split container.
@@ -26,8 +26,6 @@ pub fn flatten_split_container(
           split_container.tiling_size() * tiling_child.tiling_size(),
         );
       }
-
-      child
     });
 
   let index = split_container.index();

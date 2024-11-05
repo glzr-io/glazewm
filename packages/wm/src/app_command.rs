@@ -38,7 +38,7 @@ use crate::{
   },
 };
 
-const VERSION: &'static str = env!("VERSION_NUMBER");
+const VERSION: &str = env!("VERSION_NUMBER");
 
 #[derive(Clone, Debug, Parser)]
 #[clap(author, version = VERSION, about, long_about = None)]
@@ -522,11 +522,7 @@ impl InvokeCommand {
         match subject_container.as_window_container() {
           Ok(window) => {
             _ = window.native().set_title_bar_visibility(
-              if *visibility == TitleBarVisibility::Shown {
-                true
-              } else {
-                false
-              },
+              *visibility == TitleBarVisibility::Shown,
             );
             Ok(())
           }
@@ -536,7 +532,7 @@ impl InvokeCommand {
       InvokeCommand::ShellExec {
         hide_window,
         command,
-      } => shell_exec(&command.join(" "), hide_window.clone()),
+      } => shell_exec(&command.join(" "), *hide_window),
       InvokeCommand::Size(args) => {
         match subject_container.as_window_container() {
           Ok(window) => set_window_size(

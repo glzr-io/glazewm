@@ -119,7 +119,6 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
   let tiling_containers = state
     .root_container
     .self_and_descendants()
-    .into_iter()
     .filter_map(|container| container.as_tiling_container().ok());
 
   for container in tiling_containers {

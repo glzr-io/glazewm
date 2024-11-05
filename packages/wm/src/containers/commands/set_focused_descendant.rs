@@ -27,6 +27,6 @@ pub fn set_focused_descendant(
       break;
     }
 
-    target = parent.into();
+    target = parent;
   }
 }

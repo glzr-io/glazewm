@@ -65,8 +65,7 @@ fn set_tiling(
     .or_else(|| {
       let focused_window = workspace
         .descendant_focus_order()
-        .filter(|descendant| descendant.is_tiling_window())
-        .next()?;
+        .find(|descendant| descendant.is_tiling_window())?;
 
       Some((focused_window.parent()?, focused_window.index() + 1))
     })

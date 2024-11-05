@@ -78,8 +78,8 @@ pub fn resize_window(
 
   set_window_size(
     window.clone(),
-    target_width.map(|target_width| LengthValue::from_px(target_width)),
-    target_height.map(|target_height| LengthValue::from_px(target_height)),
+    target_width.map(LengthValue::from_px),
+    target_height.map(LengthValue::from_px),
     state,
   )?;
 

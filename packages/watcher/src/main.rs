@@ -12,6 +12,8 @@ use wm::{
 };
 
 #[tokio::main]
+// Clippy picks up on a return that is likely added by `#[tokio::main]`.
+#[allow(clippy::needless_return)]
 async fn main() -> anyhow::Result<()> {
   tracing_subscriber::fmt().init();
 
@@ -35,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
 
       let managed_windows = managed_handles
         .into_iter()
-        .map(|handle| NativeWindow::new(handle))
+        .map(NativeWindow::new)
         .collect::<Vec<_>>();
 
       run_cleanup(managed_windows);
@@ -56,7 +58,7 @@ async fn query_initial_windows(
     .context("Failed to send window query command.")?;
 
   client
-    .client_response(&query_message)
+    .client_response(query_message)
     .await
     .and_then(|response| match response.data {
       Some(ClientResponseData::Windows(data)) => Some(data),
@@ -83,12 +85,12 @@ async fn watch_managed_handles(
     "sub -e window_managed window_unmanaged application_exiting";
 
   client
-    .send(&subscription_message)
+    .send(subscription_message)
     .await
     .context("Failed to send subscribe command to IPC server.")?;
 
   let subscription_id = client
-    .client_response(&subscription_message)
+    .client_response(subscription_message)
     .await
     .and_then(|response| match response.data {
       Some(ClientResponseData::EventSubscribe(data)) => {
