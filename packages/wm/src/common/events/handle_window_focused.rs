@@ -2,10 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{
-    platform::{NativeWindow, Platform},
-    DisplayState,
-  },
+  common::{platform::NativeWindow, DisplayState},
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::{UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},

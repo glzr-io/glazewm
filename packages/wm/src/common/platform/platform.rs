@@ -19,12 +19,13 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
-        PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
-        SystemParametersInfoW, TranslateMessage, WindowFromPoint, GetShellWindow,
-        ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
-        MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
-        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL, SW_HIDE,
+        GetDesktopWindow, GetForegroundWindow, GetMessageW,
+        GetShellWindow, MessageBoxW, PeekMessageW, PostThreadMessageW,
+        RegisterClassW, SetCursorPos, SystemParametersInfoW,
+        TranslateMessage, WindowFromPoint, ANIMATIONINFO, CS_HREDRAW,
+        CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
+        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPI_GETANIMATION,
+        SPI_SETANIMATION, SW_HIDE, SW_NORMAL,
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
         WS_OVERLAPPEDWINDOW,
       },
@@ -49,14 +50,17 @@ impl Platform {
     NativeWindow::new(handle.0)
   }
 
-  // Get Explorer wallpaper window (i.e. "Progman"). Default to the
-  // desktop window on which the wallpaper window sits above for edge
-  // case where Explorer isn't running.
+  /// Gets the `NativeWindow` instance of the desktop window.
+  ///
+  /// This is the explorer.exe wallpaper window (i.e. "Progman"). If
+  /// explorer.exe isn't running, then default to the desktop window below
+  /// the wallpaper window.
   pub fn desktop_window() -> NativeWindow {
-    let mut handle = unsafe { GetShellWindow() };
-    if handle == HWND(0) {
-      handle = unsafe { GetDesktopWindow() };
-    }
+    let handle = match unsafe { GetShellWindow() } {
+      HWND(0) => unsafe { GetDesktopWindow() },
+      handle => handle,
+    };
+
     NativeWindow::new(handle.0)
   }
 
@@ -416,7 +420,11 @@ impl Platform {
   }
 
   /// Runs the specified program with the given arguments.
-  pub fn run_command(program: &str, args: &str, hide_window: bool) -> anyhow::Result<()> {
+  pub fn run_command(
+    program: &str,
+    args: &str,
+    hide_window: bool,
+  ) -> anyhow::Result<()> {
     let home_dir = home::home_dir()
       .context("Unable to get home directory.")?
       .to_str()

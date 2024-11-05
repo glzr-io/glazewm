@@ -533,12 +533,10 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::ShellExec { 
+      InvokeCommand::ShellExec {
         hide_window,
-        command 
-      } => {
-        shell_exec(&command.join(" "), hide_window.clone())
-      }
+        command,
+      } => shell_exec(&command.join(" "), hide_window.clone()),
       InvokeCommand::Size(args) => {
         match subject_container.as_window_container() {
           Ok(window) => set_window_size(

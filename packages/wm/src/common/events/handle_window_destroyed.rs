@@ -2,10 +2,9 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow, windows::commands::unmanage_window,
-  wm_state::WmState,
-  containers::traits::CommonGetters,
-  workspaces::commands::deactivate_workspace
+  common::platform::NativeWindow, containers::traits::CommonGetters,
+  windows::commands::unmanage_window, wm_state::WmState,
+  workspaces::commands::deactivate_workspace,
 };
 
 pub fn handle_window_destroyed(
@@ -22,8 +21,12 @@ pub fn handle_window_destroyed(
     info!("Window closed");
     unmanage_window(window, state)?;
 
-    // Destroy parent workspace if window was killed while its workspace was not displayed (e.g. via task manager).
-    if !workspace.config().keep_alive && !workspace.has_children() && !workspace.is_displayed() {
+    // Destroy parent workspace if window was killed while its workspace
+    // was not displayed (e.g. via task manager).
+    if !workspace.config().keep_alive
+      && !workspace.has_children()
+      && !workspace.is_displayed()
+    {
       deactivate_workspace(workspace, state)?;
     }
   }
