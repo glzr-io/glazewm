@@ -17,7 +17,9 @@ impl TilingDirection {
   ///
   /// Example:
   /// ```
-  /// TilingDirection::Horizontal.inverse() // TilingDirection::Vertical
+  /// # use wm::common::TilingDirection;
+  /// let dir = TilingDirection::Horizontal.inverse();
+  /// assert_eq!(dir, TilingDirection::Vertical);
   /// ```
   pub fn inverse(&self) -> TilingDirection {
     match self {
@@ -31,7 +33,9 @@ impl TilingDirection {
   ///
   /// Example:
   /// ```
-  /// TilingDirection::from_direction(Direction::Left) // TilingDirection::Horizontal
+  /// # use wm::common::{Direction, TilingDirection};
+  /// let dir = TilingDirection::from_direction(&Direction::Left);
+  /// assert_eq!(dir, TilingDirection::Horizontal);
   /// ```
   pub fn from_direction(direction: &Direction) -> TilingDirection {
     match direction {
@@ -48,7 +52,13 @@ impl FromStr for TilingDirection {
   ///
   /// Example:
   /// ```
-  /// TilingDirection::from_str("horizontal") // TilingDirection::Horizontal
+  /// # use wm::common::TilingDirection;
+  /// # use std::str::FromStr;
+  /// let dir = TilingDirection::from_str("horizontal");
+  /// assert_eq!(dir.unwrap(), TilingDirection::Horizontal);
+  ///
+  /// let dir = TilingDirection::from_str("vertical");
+  /// assert_eq!(dir.unwrap(), TilingDirection::Vertical);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
