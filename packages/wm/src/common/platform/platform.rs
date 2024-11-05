@@ -19,9 +19,9 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        FindWindowA, GetForegroundWindow, GetMessageW, MessageBoxW,
+        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
         PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
-        SystemParametersInfoW, TranslateMessage, WindowFromPoint,
+        SystemParametersInfoW, TranslateMessage, WindowFromPoint, GetShellWindow,
         ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
         MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
         SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
@@ -49,11 +49,14 @@ impl Platform {
     NativeWindow::new(handle.0)
   }
 
-  /// Gets the `NativeWindow` instance of the desktop window.
+  // Get Explorer wallpaper window (i.e. "Progman"). Default to the
+  // desktop window on which the wallpaper window sits above for edge
+  // case where Explorer isn't running.
   pub fn desktop_window() -> NativeWindow {
-    let  handle = unsafe {
-      FindWindowA(PCSTR("Progman\0".as_ptr() as *const u8), PCSTR::null())
-    };
+    let mut handle = unsafe { GetShellWindow() };
+    if handle == HWND(0) {
+      handle = unsafe { GetDesktopWindow() };
+    }
     NativeWindow::new(handle.0)
   }
 
