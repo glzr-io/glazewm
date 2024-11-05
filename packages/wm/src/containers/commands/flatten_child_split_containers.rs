@@ -8,7 +8,7 @@ use crate::containers::{
 /// parent container.
 ///
 /// For example:
-/// ```no_run,compile_fail,ignore
+/// ```ignore,compile_fail
 /// H[1 H[V[2, 3]]] -> H[1, 2, 3]
 /// H[1 H[2, 3]] -> H[1, 2, 3]
 /// H[V[1]] -> V[1]
