@@ -661,20 +661,6 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
 }
 
-// Both are now derrived, left in case it is needed in the future
-
-// impl Default for CornerStyle {
-//   fn default() -> Self {
-//     CornerStyle::Default
-//   }
-// }
-
-// impl Default for HideTitleBarEffectConfig {
-//   fn default() -> Self {
-//     HideTitleBarEffectConfig { enabled: false }
-//   }
-// }
-
 impl Default for CornerEffectConfig {
   fn default() -> Self {
     CornerEffectConfig {
