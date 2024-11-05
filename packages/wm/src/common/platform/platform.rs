@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{bail, Context};
 use windows::{
-  core::{w, PCWSTR, PCSTR},
+  core::{w, PCWSTR},
   Win32::{
     Foundation::{HANDLE, HWND, LPARAM, POINT, WPARAM},
     System::{
