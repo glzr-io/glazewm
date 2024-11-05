@@ -12,8 +12,6 @@ use wm::{
 };
 
 #[tokio::main]
-// Clippy picks up on a return that is likely added by `#[tokio::main]`.
-#[allow(clippy::needless_return)]
 async fn main() -> anyhow::Result<()> {
   tracing_subscriber::fmt().init();
 
