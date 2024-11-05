@@ -50,14 +50,17 @@ impl Platform {
     NativeWindow::new(handle.0)
   }
 
-  // Get Explorer wallpaper window (i.e. "Progman"). Default to the
-  // desktop window on which the wallpaper window sits above for edge
-  // case where Explorer isn't running.
+  /// Gets the `NativeWindow` instance of the desktop window.
+  ///
+  /// This is the explorer.exe wallpaper window (i.e. "Progman"). If
+  /// explorer.exe isn't running, then default to the desktop window below
+  /// the wallpaper window.
   pub fn desktop_window() -> NativeWindow {
-    let mut handle = unsafe { GetShellWindow() };
-    if handle == HWND(0) {
-      handle = unsafe { GetDesktopWindow() };
-    }
+    let handle = match unsafe { GetShellWindow() } {
+      HWND(0) => unsafe { GetDesktopWindow() },
+      handle => handle,
+    };
+
     NativeWindow::new(handle.0)
   }
 
@@ -302,9 +305,7 @@ impl Platform {
         SPI_SETANIMATION,
         animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(
-          SPIF_UPDATEINIFILE.0 | SPIF_SENDCHANGE.0,
-        ),
+        SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
 
