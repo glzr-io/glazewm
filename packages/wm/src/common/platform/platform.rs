@@ -24,10 +24,10 @@ use windows::{
         RegisterClassW, SetCursorPos, SystemParametersInfoW,
         TranslateMessage, WindowFromPoint, ANIMATIONINFO, CS_HREDRAW,
         CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
-        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPI_GETANIMATION,
-        SPI_SETANIMATION, SW_HIDE, SW_NORMAL,
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
-        WS_OVERLAPPEDWINDOW,
+        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
+        SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
+        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT,
+        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -280,7 +280,7 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_GETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
@@ -303,9 +303,9 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_SETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
 
