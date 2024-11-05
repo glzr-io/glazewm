@@ -338,10 +338,7 @@ impl Platform {
   /// # Examples
   ///
   /// ```no_run
-  /// # // Since this checks if the path exists, not sure how to test this.
-  /// # // Don't think you can `use` a struct method.
   /// # use wm::common::platform::Platform;
-  /// fn main() -> anyhow::Result<()> {
   ///   let (prog, args) = Platform::parse_command("code .")?;
   ///   assert_eq!(prog, "code");
   ///   assert_eq!(args, ".");
@@ -351,9 +348,7 @@ impl Platform {
   ///   )?;
   ///   assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
   ///   assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
-  ///
-  ///   Ok(())
-  /// }
+  /// # Ok::<(), anyhow::Error>(())
   /// ```
   pub fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
     // Expand environment variables in the command string.
