@@ -52,24 +52,24 @@ async fn main() -> Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
-  if let AppCommand::Start {
-    config_path,
-    verbosity,
-  } = app_command
-  {
-    let res = start_wm(config_path, verbosity).await;
+  match app_command {
+    AppCommand::Start {
+      config_path,
+      verbosity,
+    } => {
+      let res = start_wm(config_path, verbosity).await;
 
-    // If unable to start the WM, the error is fatal and a message dialog
-    // is shown.
-    if let Err(err) = &res {
-      error!("{:?}", err);
-      Platform::show_error_dialog("Fatal error", &err.to_string());
-    };
+      // If unable to start the WM, the error is fatal and a message dialog
+      // is shown.
+      if let Err(err) = &res {
+        error!("{:?}", err);
+        Platform::show_error_dialog("Fatal error", &err.to_string());
+      };
 
-    return res;
+      res
+    }
+    _ => start_cli(args).await,
   }
-
-  start_cli(args).await
 }
 
 async fn start_wm(
