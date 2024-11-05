@@ -19,14 +19,15 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
-        PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
-        SystemParametersInfoW, TranslateMessage, WindowFromPoint, GetShellWindow,
-        ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
-        MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
-        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL, SW_HIDE,
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
-        WS_OVERLAPPEDWINDOW,
+        GetDesktopWindow, GetForegroundWindow, GetMessageW,
+        GetShellWindow, MessageBoxW, PeekMessageW, PostThreadMessageW,
+        RegisterClassW, SetCursorPos, SystemParametersInfoW,
+        TranslateMessage, WindowFromPoint, ANIMATIONINFO, CS_HREDRAW,
+        CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
+        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
+        SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
+        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT,
+        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -276,7 +277,7 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_GETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
@@ -299,9 +300,11 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_SETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(
+          SPIF_UPDATEINIFILE.0 | SPIF_SENDCHANGE.0,
+        ),
       )
     }?;
 
@@ -416,7 +419,11 @@ impl Platform {
   }
 
   /// Runs the specified program with the given arguments.
-  pub fn run_command(program: &str, args: &str, hide_window: bool) -> anyhow::Result<()> {
+  pub fn run_command(
+    program: &str,
+    args: &str,
+    hide_window: bool,
+  ) -> anyhow::Result<()> {
     let home_dir = home::home_dir()
       .context("Unable to get home directory.")?
       .to_str()
