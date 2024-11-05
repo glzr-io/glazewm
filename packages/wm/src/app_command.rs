@@ -212,7 +212,7 @@ pub enum InvokeCommand {
   ShellExec {
     #[clap(long, action)]
     hide_window: bool,
-    
+
     #[clap(required = true, trailing_var_arg = true)]
     command: Vec<String>,
   },
