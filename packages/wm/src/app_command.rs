@@ -12,7 +12,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec,
     },
-    Direction, LengthValue, RectDelta, TilingDirection,
+    Direction, LengthValue, RectDelta, TilingDirection, Rect,
   },
   containers::{
     commands::{
@@ -196,17 +196,17 @@ pub enum InvokeCommand {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     centered: Option<bool>,
 
-    #[clap(long, require_equals = true)]
-    xpos: Option<i32>,
+    #[clap(long, allow_hyphen_values = true)]
+    x_pos: Option<LengthValue>,
 
-    #[clap(long, require_equals = true)]
-    ypos: Option<i32>,
+    #[clap(long, allow_hyphen_values = true)]
+    y_pos: Option<LengthValue>,
 
-    #[clap(long, require_equals = true)]
-    width: Option<i32>,
+    #[clap(long, allow_hyphen_values = true)]
+    width: Option<LengthValue>,
 
-    #[clap(long, require_equals = true)]
-    height: Option<i32>,
+    #[clap(long, allow_hyphen_values = true)]
+    height: Option<LengthValue>,
   },
   SetFullscreen {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
@@ -453,43 +453,36 @@ impl InvokeCommand {
       InvokeCommand::SetFloating {
         centered,
         shown_on_top,
-        xpos,
-        ypos,
+        x_pos,
+        y_pos,
         width,
         height,
       } => match subject_container.as_window_container() {
         Ok(window) => {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
-
           let is_centered = centered.unwrap_or(floating_defaults.centered);
-          let mut floating_placement = window.floating_placement().clone();
+          let monitor = window.monitor().context("No monitor")?;
+          let monitor_rect = monitor.to_rect()?;
+          let floating_placement = window.floating_placement().clone();
 
-          if let Some(xpos) = xpos {
-            floating_placement.left = xpos.clone();
-          }
-
-          if let Some(ypos) = ypos {
-            floating_placement.top = ypos.clone();
-          }
-
-          if let Some(width) = width {
-            floating_placement.right = floating_placement.left + width;
-          }
-        
-          if let Some(height) = height {
-              floating_placement.bottom = floating_placement.top + height;
-          }
-
-          if is_centered {
-            let workspace =
+          let window_rect = Rect::from_ltrb(
+            x_pos.clone().and_then(|rect_x| Some(rect_x.to_px(monitor_rect.x(), None))).unwrap_or_else(|| floating_placement.x()),
+            y_pos.clone().and_then(|rect_y| Some(rect_y.to_px(monitor_rect.y(), None))).unwrap_or_else(|| floating_placement.y()),
+            width.clone().and_then(|rect_width| Some(rect_width.to_px(monitor_rect.width(), None)+floating_placement.x())).unwrap_or_else(|| floating_placement.width()),
+            height.clone().and_then(|rect_height| Some(rect_height.to_px(monitor_rect.height(), None)+floating_placement.y())).unwrap_or_else(|| floating_placement.height()),
+          );
+          
+          match is_centered {
+            false => window.set_floating_placement(window_rect),
+            true => {
+              let workspace =
               window.workspace().context("no workspace find.")?;
-            window.set_floating_placement(
-              floating_placement
+              window.set_floating_placement(
+                window_rect
                 .translate_to_center(&workspace.to_rect()?),
-            )
-          } else if xpos.is_some() || ypos.is_some() || width.is_some() || height.is_some() {
-            window.set_floating_placement(floating_placement);
+              )              
+            }
           }
 
           update_window_state(
