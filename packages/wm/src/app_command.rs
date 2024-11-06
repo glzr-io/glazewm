@@ -467,10 +467,22 @@ impl InvokeCommand {
           let floating_placement = window.floating_placement().clone();
 
           let window_rect = Rect::from_ltrb(
-            x_pos.clone().and_then(|rect_x| Some(rect_x.to_px(monitor_rect.x(), None))).unwrap_or_else(|| floating_placement.x()),
-            y_pos.clone().and_then(|rect_y| Some(rect_y.to_px(monitor_rect.y(), None))).unwrap_or_else(|| floating_placement.y()),
-            width.clone().and_then(|rect_width| Some(rect_width.to_px(monitor_rect.width(), None)+floating_placement.x())).unwrap_or_else(|| floating_placement.width()),
-            height.clone().and_then(|rect_height| Some(rect_height.to_px(monitor_rect.height(), None)+floating_placement.y())).unwrap_or_else(|| floating_placement.height()),
+            match x_pos {
+                Some(rect_x) => rect_x.to_px(monitor_rect.x(), None),
+                None => floating_placement.x(),
+            },
+            match y_pos {
+                Some(rect_y) => rect_y.to_px(monitor_rect.y(), None),
+                None => floating_placement.y(),
+            },
+            match width {
+                Some(rect_width) => rect_width.to_px(monitor_rect.width(), None) + floating_placement.x(),
+                None => floating_placement.width(),
+            },
+            match height {
+                Some(rect_height) => rect_height.to_px(monitor_rect.height(), None) + floating_placement.y(),
+                None => floating_placement.height(),
+            },
           );
           
           match is_centered {
