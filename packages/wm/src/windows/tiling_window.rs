@@ -62,7 +62,7 @@ impl TilingWindow {
     active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = TilingWindowInner {
-      id: id.unwrap_or_else(|| Uuid::new_v4()),
+      id: id.unwrap_or_else(Uuid::new_v4),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),

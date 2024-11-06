@@ -22,8 +22,7 @@ pub fn unmanage_window(
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
   // Get container to switch focus to after the window has been removed.
-  let focus_target =
-    state.focus_target_after_removal(&window.clone().into());
+  let focus_target = state.focus_target_after_removal(&window.clone());
 
   detach_container(window.clone().into())?;
 

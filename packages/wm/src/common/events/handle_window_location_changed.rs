@@ -63,7 +63,7 @@ pub fn handle_window_location_changed(
         // A fullscreen window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
-        if !(is_fullscreen || is_maximized) && !is_minimized {
+        if !(is_fullscreen || is_maximized || !is_minimized) {
           info!("Window restored");
 
           let target_state = window

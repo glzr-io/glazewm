@@ -121,11 +121,11 @@ impl KeyboardHook {
           .collect::<Vec<_>>();
 
         // Safety: A split string always has at least one element.
-        let trigger_key = vk_codes.last().unwrap().clone();
+        let trigger_key = *vk_codes.last().unwrap();
 
         keybinding_map
           .entry(trigger_key)
-          .or_insert_with(|| Vec::new())
+          .or_insert_with(Vec::new)
           .push(ActiveKeybinding {
             vk_codes,
             config: keybinding.clone(),

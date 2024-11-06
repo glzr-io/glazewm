@@ -10,15 +10,24 @@ where
   value: Arc<Mutex<Option<T>>>,
 }
 
+impl<T> Default for Memo<T>
+where
+  T: Clone,
+{
+  fn default() -> Self {
+    Memo {
+      value: Arc::new(Mutex::new(None)),
+    }
+  }
+}
+
 impl<T> Memo<T>
 where
   T: Clone,
 {
   /// Creates a new `Memo` instance with `None` as the initial value.
   pub fn new() -> Self {
-    Memo {
-      value: Arc::new(Mutex::new(None)),
-    }
+    Self::default()
   }
 
   /// Retrieves the cached value if it exists, otherwise initializes it
@@ -38,7 +47,7 @@ where
       .as_ref()
       .map(|value| Ok(value.clone()))
       .unwrap_or_else(|| {
-        let value = retriever_fn(&arg)?;
+        let value = retriever_fn(arg)?;
         *value_ref = Some(value.clone());
         Ok(value)
       })
@@ -53,7 +62,7 @@ where
   {
     let mut value_ref = self.value.lock().unwrap();
 
-    let value = retriever_fn(&arg)?;
+    let value = retriever_fn(arg)?;
     *value_ref = Some(value.clone());
     Ok(value)
   }

@@ -50,7 +50,14 @@ impl FromStr for LengthValue {
   ///
   /// Example:
   /// ```
-  /// LengthValue::from_str("100px") // { amount: 100.0, unit: LengthUnit::Pixel }
+  /// # use wm::common::{LengthValue, LengthUnit};
+  /// # use std::str::FromStr;
+  /// let check = LengthValue {
+  ///   amount: 100.0,
+  ///   unit: LengthUnit::Pixel,
+  /// };
+  /// let parsed = LengthValue::from_str("100px");
+  /// assert_eq!(parsed.unwrap(), check);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     let units_regex = Regex::new(r"([+-]?\d+)(%|px)?")?;

@@ -337,16 +337,18 @@ impl Platform {
   ///
   /// # Examples
   ///
-  /// ```
-  /// let (prog, args) = parse_command("code .")?;
-  /// assert_eq!(prog, "code");
-  /// assert_eq!(args, ".");
+  /// ```no_run
+  /// # use wm::common::platform::Platform;
+  ///   let (prog, args) = Platform::parse_command("code .")?;
+  ///   assert_eq!(prog, "code");
+  ///   assert_eq!(args, ".");
   ///
-  /// let (prog, args) = parse_command(
-  ///   r#"C:\Program Files\Git\git-bash --cd=C:\Users\larsb\.glaze-wm"#,
-  /// )?;
-  /// assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
-  /// assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
+  ///   let (prog, args) = Platform::parse_command(
+  ///     r#"C:\Program Files\Git\git-bash --cd=C:\Users\larsb\.glaze-wm"#,
+  ///   )?;
+  ///   assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
+  ///   assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
+  /// # Ok::<(), anyhow::Error>(())
   /// ```
   pub fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
     // Expand environment variables in the command string.
@@ -376,7 +378,7 @@ impl Platform {
     };
 
     let command_parts: Vec<&str> =
-      expanded_command.trim().split_whitespace().collect();
+      expanded_command.split_whitespace().collect();
 
     // If the command starts with double quotes, then the program name/path
     // is wrapped in double quotes (e.g. `"C:\path\to\app.exe" --flag`).
@@ -435,8 +437,8 @@ impl Platform {
     // causes issues where the pointer is dropped while `ShellExecuteExW`
     // is using it. This is likely a `windows-rs` bug, and we can avoid
     // it by keeping separate variables for the wide strings.
-    let program_wide = to_wide(&program);
-    let args_wide = to_wide(&args);
+    let program_wide = to_wide(program);
+    let args_wide = to_wide(args);
     let home_dir_wide = to_wide(&home_dir);
 
     // Using the built-in `Command::new` function in Rust launches the
