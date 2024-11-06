@@ -13,11 +13,11 @@ use crate::{
   containers::{
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     Container, ContainerDto, DirectionContainer, TilingContainer,
-    WindowContainer,
+    WindowContainer
   },
   impl_common_getters, impl_container_debug,
   impl_tiling_direction_getters,
-  user_config::{GapsConfig, WorkspaceConfig},
+  user_config::{GapsConfig, WorkspaceConfig}, windows::{traits::WindowGetters, WindowState}
 };
 
 #[derive(Clone)]
@@ -72,6 +72,19 @@ impl Workspace {
     };
 
     Self(Rc::new(RefCell::new(workspace)))
+  }
+
+  pub fn get_fullscreen_window(&self) -> Option<WindowContainer> {
+    match self.borrow_children().iter().find(|container| {
+      if let Ok(window_container) = container.as_window_container() {
+        matches!(window_container.state(), WindowState::Fullscreen(_))
+      } else {
+        false 
+      } 
+    }) {
+      Some(container) => Some(container.as_window_container().ok()?),
+      _ => None
+    }
   }
 
   /// Underlying config for the workspace.

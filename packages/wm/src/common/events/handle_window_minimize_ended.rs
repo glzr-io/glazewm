@@ -1,13 +1,9 @@
 use tracing::info;
 
 use crate::{
-  common::platform::NativeWindow,
-  try_warn,
-  user_config::UserConfig,
-  windows::{
+  common::platform::NativeWindow, containers::traits::CommonGetters, try_warn, user_config::UserConfig, windows::{
     commands::update_window_state, traits::WindowGetters, WindowState,
-  },
-  wm_state::WmState,
+  }, wm_state::WmState
 };
 
 pub fn handle_window_minimize_ended(
@@ -24,6 +20,13 @@ pub fn handle_window_minimize_ended(
     if !is_minimized && window.state() == WindowState::Minimized {
       // TODO: Log window details.
       info!("Window minimize ended");
+      
+      // Handle minimizing fullscreen window if another non-floating window container is ending being minimized
+      if let Some(fullscreen_window) = window.workspace().unwrap().get_fullscreen_window() {
+        if !matches!(window.state(), WindowState::Floating(_)) {
+          update_window_state(fullscreen_window, WindowState::Minimized, state, config)?;
+        }
+      }
 
       let target_state = window
         .prev_state()

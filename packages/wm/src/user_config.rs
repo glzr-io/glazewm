@@ -330,16 +330,6 @@ impl UserConfig {
       self.workspace_config_index(&workspace.config().name)
     });
   }
-
-  pub fn has_outer_gaps(&self) -> bool {
-    let outer_gap = &self.value.gaps.outer_gap;
-
-    // Allow for 1px/1% of leeway.
-    outer_gap.bottom.amount > 1.0
-      || outer_gap.left.amount > 1.0
-      || outer_gap.right.amount > 1.0
-      || outer_gap.top.amount > 1.0
-  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

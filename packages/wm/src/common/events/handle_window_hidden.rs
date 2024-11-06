@@ -22,7 +22,7 @@ pub fn handle_window_hidden(
       return Ok(());
     }
 
-    // Unmanage the window if it's not in a display state transition. Also,
+    // Unmanage thed window if it's not in a display state transition. Also,
     // since window events are not 100% guaranteed to be in correct order,
     // we need to ignore events where the window is not actually hidden.
     if window.display_state() == DisplayState::Shown

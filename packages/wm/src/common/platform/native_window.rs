@@ -40,6 +40,8 @@ use crate::{
   windows::WindowState,
 };
 
+use super::NativeMonitor;
+
 #[derive(Debug, Clone)]
 pub struct NativeWindow {
   pub handle: isize,
@@ -258,26 +260,26 @@ impl NativeWindow {
     self.has_window_style(WS_THICKFRAME)
   }
 
-  /// Whether the window is fullscreen.
-  ///
-  /// Returns `false` if the window is maximized.
-  pub fn is_fullscreen(
-    &self,
-    monitor_rect: &Rect,
-  ) -> anyhow::Result<bool> {
-    if self.is_maximized()? {
-      return Ok(false);
-    }
 
-    let position = self.frame_position()?;
+  fn is_fullscreen_rect(&self, rect: &Rect) -> anyhow::Result<bool> {
+    let window_position = self.frame_position()?;
 
-    // Allow for 1px of leeway around edges of monitor.
     Ok(
-      position.left <= monitor_rect.left + 1
-        && position.top <= monitor_rect.top + 1
-        && position.right >= monitor_rect.right - 1
-        && position.bottom >= monitor_rect.bottom - 1,
+      window_position.left <= rect.left &&
+      window_position.top <= rect.top &&
+      window_position.right >= rect.right &&
+      window_position.bottom >= rect.bottom
     )
+  }
+
+  // Whether the window fully fills work area of specified monitor.
+  pub fn is_full_work_area(&self, monitor: &NativeMonitor) -> anyhow::Result<bool> {
+    return Ok(self.is_fullscreen_rect(monitor.working_rect()?)?);
+  }
+
+  /// Whether the window is fullscreen on specified monitor.
+  pub fn is_fullscreen(&self, monitor: &NativeMonitor) -> anyhow::Result<bool> {
+    return Ok(self.is_fullscreen_rect(monitor.rect()?)?);
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {
@@ -474,7 +476,7 @@ impl NativeWindow {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-    (current_style & style.0 as isize) != 0
+    (current_style & (style.0 as isize)) != 0
   }
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {

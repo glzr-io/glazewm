@@ -29,6 +29,13 @@ pub fn update_window_state(
 
   info!("Updating window state: {:?}.", target_state);
 
+  // Handle minimizing fullscreen window if floating window container is changing its state to non-floating state
+  if let Some(fullscreen_window) = window.workspace().unwrap().get_fullscreen_window() {
+    if window != fullscreen_window && !matches!(target_state, WindowState::Floating(_)) && matches!(window.state(), WindowState::Floating(_)) {
+      update_window_state(fullscreen_window, WindowState::Minimized, state, config)?;
+    }
+  }
+
   match target_state {
     WindowState::Tiling => set_tiling(window, state, config),
     _ => set_non_tiling(window, target_state, state),

@@ -12,7 +12,7 @@ use crate::{
   try_warn,
   user_config::{UserConfig, WindowRuleEvent},
   windows::{
-    commands::run_window_rules, traits::WindowGetters, NonTilingWindow,
+    commands::{run_window_rules, update_window_state}, traits::WindowGetters, NonTilingWindow,
     TilingWindow, WindowState,
   },
   wm_event::WmEvent,
@@ -45,6 +45,13 @@ pub fn manage_window(
   if let Some(window) = updated_window {
     // TODO: Log window details.
     info!("New window managed");
+
+    // Handle minimizing fullscreen window if another non-floating window container is being managed
+    if let Some(fullscreen_window) = window.workspace().unwrap().get_fullscreen_window() {
+      if !matches!(window.state(), WindowState::Floating(_)) {
+        update_window_state(fullscreen_window, WindowState::Minimized, state, config)?;
+      }
+    }
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,
@@ -182,13 +189,7 @@ fn window_state_to_create(
     return Ok(WindowState::Minimized);
   }
 
-  let monitor_rect = if config.has_outer_gaps() {
-    nearest_monitor.native().working_rect()?.clone()
-  } else {
-    nearest_monitor.to_rect()?
-  };
-
-  if native_window.is_fullscreen(&monitor_rect)? {
+  if native_window.is_fullscreen(&nearest_monitor.native())? {
     return Ok(WindowState::Fullscreen(
       config
         .value

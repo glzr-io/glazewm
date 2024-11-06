@@ -2,12 +2,15 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState},
+  common::{
+    platform::NativeWindow,
+    DisplayState
+  },
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::{UserConfig, WindowRuleEvent},
-  windows::{commands::run_window_rules, traits::WindowGetters},
+  windows::{commands::{run_window_rules, update_window_state}, traits::WindowGetters, WindowState},
   wm_state::WmState,
-  workspaces::{commands::focus_workspace, WorkspaceTarget},
+  workspaces::{commands::focus_workspace, WorkspaceTarget}
 };
 
 pub fn handle_window_focused(
@@ -27,9 +30,16 @@ pub fn handle_window_focused(
       return Ok(());
     }
 
+    // Handle minimizing fullscreen window if another non-floating window container is being focused
+    if let Some(fullscreen_window) = window.workspace().unwrap().get_fullscreen_window() {
+      if !matches!(window.state(), WindowState::Floating(_)) {
+        update_window_state(fullscreen_window, WindowState::Minimized, state, config)?;
+      }
+    }
+    
     // TODO: Log window details.
     info!("Window focused");
-
+    
     // Handle overriding focus on close/minimize. After a window is closed
     // or minimized, the OS or the closed application might automatically
     // switch focus to a different window. To force focus to go to the WM's
