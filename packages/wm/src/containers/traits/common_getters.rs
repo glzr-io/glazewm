@@ -286,10 +286,6 @@ pub trait CommonGetters {
       .chain(end_ancestor.clone())
       .all(|ancestor| ancestor.focus_index() == 0)
   }
-
-  fn focused_container(&self) -> Option<Container> {
-    self.child_by_id(self.borrow_child_focus_order().iter().next().unwrap())
-  }
 }
 
 /// An iterator over ancestors of a given container.
