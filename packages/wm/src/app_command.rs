@@ -25,8 +25,9 @@ use crate::{
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_size, update_window_state,
+      ignore_window, move_all_window_to_workspace,
+      move_window_in_direction, move_window_to_workspace, resize_window,
+      set_window_size, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -188,6 +189,7 @@ pub enum InvokeCommand {
     #[clap(long)]
     direction: Direction,
   },
+  MoveAll(InvokeMoveCommand),
   Resize(InvokeResizeCommand),
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
@@ -345,6 +347,22 @@ impl InvokeCommand {
       InvokeCommand::Ignore => {
         match subject_container.as_window_container() {
           Ok(window) => ignore_window(window, state),
+          _ => Ok(()),
+        }
+      }
+      InvokeCommand::MoveAll(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            if let Some(name) = &args.workspace {
+              move_all_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::Name(name.to_string()),
+                state,
+                config,
+              )?;
+            };
+            Ok(())
+          }
           _ => Ok(()),
         }
       }

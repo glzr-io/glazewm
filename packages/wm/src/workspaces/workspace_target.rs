@@ -1,5 +1,6 @@
 use crate::common::Direction;
 
+#[derive(Clone)]
 pub enum WorkspaceTarget {
   Name(String),
   Recent,
