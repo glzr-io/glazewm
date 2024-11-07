@@ -3,7 +3,6 @@ use std::{iter, path::PathBuf};
 use anyhow::{bail, Context};
 use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
-use tokio::net::windows;
 use tracing::{warn, Level};
 use uuid::Uuid;
 
@@ -12,13 +11,14 @@ use crate::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec,
-    }, Direction, LengthValue, Rect, RectDelta, TilingDirection
+    },
+    Direction, LengthValue, RectDelta, TilingDirection,
   },
   containers::{
     commands::{
       focus_in_direction, set_tiling_direction, toggle_tiling_direction,
     },
-    traits::{CommonGetters, PositionGetters},
+    traits::CommonGetters,
     Container,
   },
   monitors::commands::focus_monitor,
@@ -476,6 +476,17 @@ impl InvokeCommand {
           let is_centered = 
             centered.unwrap_or(floating_defaults.centered);
 
+          let window = update_window_state(
+            window.clone(),
+            WindowState::Floating(FloatingStateConfig {
+              centered: is_centered,
+              shown_on_top: shown_on_top
+                .unwrap_or(floating_defaults.shown_on_top),
+            }),
+            state,
+            config,
+          )?;
+
           if width.is_some() || height.is_some() {
             set_window_size(window.clone(),
             width.clone(),
@@ -490,17 +501,6 @@ impl InvokeCommand {
             x_pos.clone(),
             y_pos.clone(), state)?;  
           }
-              
-          update_window_state(
-            window.clone(),
-            WindowState::Floating(FloatingStateConfig {
-              centered: is_centered,
-              shown_on_top: shown_on_top
-                .unwrap_or(floating_defaults.shown_on_top),
-            }),
-            state,
-            config,
-          )?;
 
           Ok(())
         }

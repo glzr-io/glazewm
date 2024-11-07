@@ -46,7 +46,7 @@ fn set_floating_window_position(
   target_y_pos: Option<LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let window_rect = window.to_rect()?;
+  let window_rect = window.floating_placement();
 
   match centered {
     true => {
