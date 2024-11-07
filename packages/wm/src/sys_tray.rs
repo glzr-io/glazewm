@@ -1,4 +1,4 @@
-use std::{path::PathBuf, thread::JoinHandle, time::Duration};
+use std::{path::Path, thread::JoinHandle, time::Duration};
 
 use anyhow::Context;
 use tokio::sync::mpsc;
@@ -20,7 +20,7 @@ pub struct SystemTray {
 }
 
 impl SystemTray {
-  pub fn new(config_path: &PathBuf) -> anyhow::Result<Self> {
+  pub fn new(config_path: &Path) -> anyhow::Result<Self> {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
     let config_dir = config_path
@@ -83,7 +83,7 @@ impl SystemTray {
         }
 
         // Run message loop with a delay of 16ms (60fps).
-        if let Err(_) = Platform::run_message_cycle() {
+        if Platform::run_message_cycle().is_err() {
           break;
         }
 

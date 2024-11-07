@@ -2,10 +2,7 @@ use anyhow::Context;
 use tracing::info;
 
 use crate::{
-  common::{
-    platform::{NativeWindow, Platform},
-    DisplayState,
-  },
+  common::{platform::NativeWindow, DisplayState},
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::{UserConfig, WindowRuleEvent},
   windows::{commands::run_window_rules, traits::WindowGetters},
@@ -24,10 +21,8 @@ pub fn handle_window_focused(
     // Ignore the focus event if:
     // 1. Window is being hidden by the WM.
     // 2. Focus is already set to the WM's focused container.
-    // 3. Window is not actually the foreground window.
     if window.display_state() == DisplayState::Hiding
       || state.focused_container() == Some(window.clone().into())
-      || Platform::foreground_window() != native_window
     {
       return Ok(());
     }

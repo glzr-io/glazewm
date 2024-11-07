@@ -22,7 +22,7 @@ pub trait TilingDirectionGetters: CommonGetters {
     &self,
     direction: &Direction,
   ) -> Option<TilingWindow> {
-    let child = self.child_in_direction(&direction)?;
+    let child = self.child_in_direction(direction)?;
 
     // Traverse further down if the child is a split container.
     match child {

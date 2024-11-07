@@ -62,7 +62,7 @@ impl EventListener {
   pub fn update(
     &mut self,
     config: &UserConfig,
-    binding_modes: &Vec<BindingModeConfig>,
+    binding_modes: &[BindingModeConfig],
   ) {
     // Modify keybindings based on active binding modes.
     let keybindings = match binding_modes.first() {

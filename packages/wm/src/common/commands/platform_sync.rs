@@ -22,7 +22,7 @@ pub fn platform_sync(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if state.pending_sync.containers_to_redraw.len() > 0 {
+  if !state.pending_sync.containers_to_redraw.is_empty() {
     redraw_containers(state, config)?;
     state.pending_sync.containers_to_redraw.clear();
   }
@@ -132,10 +132,10 @@ fn redraw_containers(
       .to_rect()?
       .apply_delta(&window.total_border_delta()?, None);
 
-    let is_visible = match window.display_state() {
-      DisplayState::Showing | DisplayState::Shown => true,
-      _ => false,
-    };
+    let is_visible = matches!(
+      window.display_state(),
+      DisplayState::Showing | DisplayState::Shown
+    );
 
     if let Err(err) = window.native().set_position(
       &window.state(),

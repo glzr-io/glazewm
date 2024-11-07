@@ -46,12 +46,14 @@ pub fn cycle_focus(
       let window_of_type = workspace
         .descendant_focus_order()
         .filter_map(|descendant| descendant.as_window_container().ok())
-        .find(|descendant| match (descendant.state(), &next) {
-          (WindowState::Floating(_), WindowState::Floating(_)) => true,
-          (WindowState::Fullscreen(_), WindowState::Fullscreen(_)) => true,
-          (WindowState::Minimized, WindowState::Minimized) => true,
-          (WindowState::Tiling, WindowState::Tiling) => true,
-          _ => false,
+        .find(|descendant| {
+          matches!(
+            (descendant.state(), &next),
+            (WindowState::Floating(_), WindowState::Floating(_))
+              | (WindowState::Fullscreen(_), WindowState::Fullscreen(_))
+              | (WindowState::Minimized, WindowState::Minimized)
+              | (WindowState::Tiling, WindowState::Tiling)
+          )
         });
 
       if let Some(window) = window_of_type {

@@ -41,8 +41,8 @@ pub struct RootContainerDto {
   child_focus_order: Vec<Uuid>,
 }
 
-impl RootContainer {
-  pub fn new() -> Self {
+impl Default for RootContainer {
+  fn default() -> Self {
     let root = RootContainerInner {
       id: Uuid::new_v4(),
       parent: None,
@@ -51,6 +51,12 @@ impl RootContainer {
     };
 
     Self(Rc::new(RefCell::new(root)))
+  }
+}
+
+impl RootContainer {
+  pub fn new() -> Self {
+    Self::default()
   }
 
   pub fn monitors(&self) -> Vec<Monitor> {

@@ -17,7 +17,9 @@ impl Direction {
   ///
   /// Example:
   /// ```
-  /// Direction::Left.inverse() // Direction::Right
+  /// # use wm::common::Direction;
+  /// let dir = Direction::Left.inverse();
+  /// assert_eq!(dir, Direction::Right);
   /// ```
   pub fn inverse(&self) -> Direction {
     match self {
@@ -36,7 +38,10 @@ impl FromStr for Direction {
   ///
   /// Example:
   /// ```
-  /// Direction::from_str("left") // Direction::Left
+  /// # use wm::common::Direction;
+  /// # use std::str::FromStr;
+  /// let dir = Direction::from_str("left");
+  /// assert_eq!(dir.unwrap(), Direction::Left);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
