@@ -3,6 +3,7 @@ use std::{iter, path::PathBuf};
 use anyhow::{bail, Context};
 use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
+use tokio::net::windows;
 use tracing::{warn, Level};
 use uuid::Uuid;
 
@@ -11,8 +12,7 @@ use crate::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec,
-    },
-    Direction, LengthValue, RectDelta, TilingDirection, Rect,
+    }, Direction, LengthValue, Rect, RectDelta, TilingDirection
   },
   containers::{
     commands::{
@@ -25,8 +25,7 @@ use crate::{
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_size, update_window_state,
+      ignore_window, move_window_in_direction, move_window_to_workspace, resize_window, set_window_position, set_window_size, update_window_state
     },
     traits::WindowGetters,
     WindowState,
@@ -189,6 +188,7 @@ pub enum InvokeCommand {
     direction: Direction,
   },
   Resize(InvokeResizeCommand),
+  Position(InvokePositionCommand),
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,
@@ -450,6 +450,18 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
+      InvokeCommand::Position(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => set_window_position(
+            window,
+            args.centered,
+            args.x_pos.clone(),
+            args.y_pos.clone(),
+            state,
+          ),
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::SetFloating {
         centered,
         shown_on_top,
@@ -461,46 +473,28 @@ impl InvokeCommand {
         Ok(window) => {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
-          let is_centered = centered.unwrap_or(floating_defaults.centered);
-          let monitor = window.monitor().context("No monitor")?;
-          let monitor_rect = monitor.to_rect()?;
-          let floating_placement = window.floating_placement().clone();
+          let is_centered = 
+            centered.unwrap_or(floating_defaults.centered);
 
-          let window_rect = Rect::from_ltrb(
-            match x_pos {
-                Some(rect_x) => rect_x.to_px(monitor_rect.x(), None),
-                None => floating_placement.x(),
-            },
-            match y_pos {
-                Some(rect_y) => rect_y.to_px(monitor_rect.y(), None),
-                None => floating_placement.y(),
-            },
-            match width {
-                Some(rect_width) => rect_width.to_px(monitor_rect.width(), None) + floating_placement.x(),
-                None => floating_placement.width(),
-            },
-            match height {
-                Some(rect_height) => rect_height.to_px(monitor_rect.height(), None) + floating_placement.y(),
-                None => floating_placement.height(),
-            },
-          );
-          
-          match is_centered {
-            false => window.set_floating_placement(window_rect),
-            true => {
-              let workspace =
-              window.workspace().context("no workspace find.")?;
-              window.set_floating_placement(
-                window_rect
-                .translate_to_center(&workspace.to_rect()?),
-              )              
-            }
+          if width.is_some() || height.is_some() {
+            set_window_size(window.clone(),
+            width.clone(),
+            height.clone(),
+            state)?;
           }
 
+          if is_centered || x_pos.is_some() || y_pos.is_some() {
+            set_window_position(
+              window.clone(), 
+              is_centered,
+            x_pos.clone(),
+            y_pos.clone(), state)?;  
+          }
+              
           update_window_state(
             window.clone(),
             WindowState::Floating(FloatingStateConfig {
-              centered: centered.unwrap_or(floating_defaults.centered),
+              centered: is_centered,
               shown_on_top: shown_on_top
                 .unwrap_or(floating_defaults.shown_on_top),
             }),
@@ -851,4 +845,17 @@ pub struct InvokeResizeCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   height: Option<LengthValue>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true)]
+pub struct InvokePositionCommand {
+  #[clap(long, action)]
+  centered: bool,
+
+  #[clap(long, allow_hyphen_values = true)]
+  x_pos: Option<LengthValue>,
+
+  #[clap(long, allow_hyphen_values = true)]
+  y_pos: Option<LengthValue>,
 }
