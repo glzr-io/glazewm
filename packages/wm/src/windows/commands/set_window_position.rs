@@ -6,9 +6,7 @@ use crate::{
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
-  windows::{
-    traits::WindowGetters, WindowState,
-  },
+  windows::{traits::WindowGetters, WindowState},
   wm_state::WmState,
 };
 
@@ -28,7 +26,7 @@ pub fn set_window_position(
       window.floating_placement().width(),
       window.floating_placement().height(),
     ));
-  
+
     state
       .pending_sync
       .containers_to_redraw
@@ -44,17 +42,15 @@ pub fn set_window_position_to_center(
 ) -> anyhow::Result<()> {
   if matches!(window.state(), WindowState::Floating(_)) {
     let window_rect = window.floating_placement();
-      let workspace =
-      window.workspace().context("no workspace find.")?;
-      window.set_floating_placement(
-        window_rect
-        .translate_to_center(&workspace.to_rect()?),
-      );
+    let workspace = window.workspace().context("no workspace find.")?;
+    window.set_floating_placement(
+      window_rect.translate_to_center(&workspace.to_rect()?),
+    );
 
     state
-    .pending_sync
-    .containers_to_redraw
-    .push(window.clone().into());    
+      .pending_sync
+      .containers_to_redraw
+      .push(window.clone().into());
   }
 
   Ok(())

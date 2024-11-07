@@ -443,19 +443,14 @@ impl InvokeCommand {
       }
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
-          Ok(window) => {
-            match args.centered {
-              true => set_window_position_to_center(window, state),
-              false => {
-                set_window_position(
-                  window,
-                  args.x_pos.clone(),
-                  args.y_pos.clone(),
-                  state,
-                )
-              }
-            }
-
+          Ok(window) => match args.centered {
+            true => set_window_position_to_center(window, state),
+            false => set_window_position(
+              window,
+              args.x_pos.clone(),
+              args.y_pos.clone(),
+              state,
+            ),
           },
           _ => Ok(()),
         }
@@ -482,8 +477,7 @@ impl InvokeCommand {
         Ok(window) => {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
-          let is_centered = 
-            centered.unwrap_or(floating_defaults.centered);
+          let is_centered = centered.unwrap_or(floating_defaults.centered);
 
           let window = update_window_state(
             window.clone(),
@@ -509,11 +503,11 @@ impl InvokeCommand {
             set_window_position_to_center(window, state)?;
           } else if x_pos.is_some() || y_pos.is_some() {
             set_window_position(
-              window.clone(), 
+              window.clone(),
               x_pos.clone(),
-              y_pos.clone(), 
+              y_pos.clone(),
               state,
-            )?;                
+            )?;
           }
 
           Ok(())
