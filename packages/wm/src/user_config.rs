@@ -416,7 +416,7 @@ pub struct GeneralConfig {
   pub hide_method: HideMethod,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HideMethod {
   Hide,
