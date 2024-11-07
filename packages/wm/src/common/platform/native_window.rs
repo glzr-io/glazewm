@@ -23,20 +23,20 @@ use windows::{
         SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        SW_SHOWNA, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
-        WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-        WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOW_EX_STYLE,
+        WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
 };
 
+use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
   common::{Color, LengthValue, Memo, Rect, RectDelta},
-  user_config::CornerStyle,
+  user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
 
@@ -507,6 +507,23 @@ impl NativeWindow {
     Ok(())
   }
 
+  pub fn set_visible(
+    &self,
+    visible: bool,
+    hide_method: &HideMethod,
+  ) -> anyhow::Result<()> {
+    match hide_method {
+      HideMethod::Hide => {
+        if visible {
+          self.show()
+        } else {
+          self.hide()
+        }
+      }
+      HideMethod::Cloak => self.set_cloaked(!visible),
+    }
+  }
+
   pub fn show(&self) -> anyhow::Result<()> {
     unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
     Ok(())
@@ -517,11 +534,31 @@ impl NativeWindow {
     Ok(())
   }
 
+  pub fn set_cloaked(&self, cloaked: bool) -> anyhow::Result<()> {
+    COM_INIT.with(|_| -> anyhow::Result<()> {
+      let view_collection =
+        iapplication_view_collection(&iservice_provider()?)?;
+
+      let mut view = None;
+      unsafe { view_collection.get_view_for_hwnd(self.handle, &mut view) }
+        .ok()?;
+
+      let view = view
+        .context("Unable to get application view by window handle.")?;
+
+      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
+      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
+        .ok()
+        .context("Failed to cloak window.")
+    })
+  }
+
   pub fn set_position(
     &self,
     state: &WindowState,
     rect: &Rect,
     is_visible: bool,
+    hide_method: &HideMethod,
     has_pending_dpi_adjustment: bool,
   ) -> anyhow::Result<()> {
     // Restore window if it's minimized/maximized and shouldn't be. This is
@@ -549,12 +586,6 @@ impl NativeWindow {
       | SWP_NOSENDCHANGING
       | SWP_ASYNCWINDOWPOS;
 
-    // Whether to show or hide the window.
-    match is_visible {
-      true => swp_flags |= SWP_SHOWWINDOW,
-      false => swp_flags |= SWP_HIDEWINDOW,
-    };
-
     // Whether the window should be shown above all other windows.
     let z_order = match state {
       WindowState::Floating(config) if config.shown_on_top => HWND_TOPMOST,
@@ -564,14 +595,11 @@ impl NativeWindow {
       _ => HWND_NOTOPMOST,
     };
 
+    // Whether to show or hide the window.
+    self.set_visible(is_visible, hide_method)?;
+
     match state {
       WindowState::Minimized => {
-        if !is_visible {
-          self.hide()?;
-        } else {
-          self.show()?;
-        }
-
         if !self.is_minimized()? {
           self.minimize()?;
         }

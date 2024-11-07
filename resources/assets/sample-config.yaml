@@ -27,6 +27,13 @@ general:
     # - 'window_focus': Jump when focus changes between windows.
     trigger: 'monitor_focus'
 
+  # How windows should be hidden when switching workspaces.
+  # - 'cloak': Recommended. Hides windows with no animation and keeps them
+  # visible in the taskbar.
+  # - 'hide': Legacy method (v3.5 and earlier) that has a brief animation,
+  # but has stability issues with some apps.
+  hide_method: 'cloak'
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true

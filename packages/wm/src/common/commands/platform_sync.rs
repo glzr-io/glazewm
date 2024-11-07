@@ -23,7 +23,7 @@ pub fn platform_sync(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   if !state.pending_sync.containers_to_redraw.is_empty() {
-    redraw_containers(state)?;
+    redraw_containers(state, config)?;
     state.pending_sync.containers_to_redraw.clear();
   }
 
@@ -106,7 +106,10 @@ fn sync_focus(
   Ok(())
 }
 
-fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
+fn redraw_containers(
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
   for window in &state.windows_to_redraw() {
     let workspace =
       window.workspace().context("Window has no workspace.")?;
@@ -138,6 +141,7 @@ fn redraw_containers(state: &mut WmState) -> anyhow::Result<()> {
       &window.state(),
       &rect,
       is_visible,
+      &config.value.general.hide_method,
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
