@@ -5,7 +5,7 @@ use crate::{
   common::{platform::NativeWindow, Rect},
   containers::{
     commands::{flatten_split_container, move_container_within_tree},
-    traits::{CommonGetters, PositionGetters},
+    traits::CommonGetters,
     WindowContainer,
   },
   try_warn,
@@ -26,6 +26,7 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
+
     let old_frame_position = window.native().frame_position()?;
     let frame_position =
       try_warn!(window.native().refresh_frame_position());
@@ -49,21 +50,13 @@ pub fn handle_window_location_changed(
         config,
       )?;
     }
-
-    let monitor_rect = if config.has_outer_gaps() {
-      nearest_monitor.native().working_rect()?.clone()
-    } else {
-      nearest_monitor.to_rect()?
-    };
-
-    let is_fullscreen = window.native().is_fullscreen(&monitor_rect)?;
-
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
-        // A fullscreen window that gets minimized can hit this arm, so
+        // A full working area window that gets minimized can hit this arm, so
         // ignore such events and let it be handled by the handler for
         // `PlatformEvent::WindowMinimized` instead.
-        if !(is_fullscreen || is_maximized || !is_minimized) {
+        let is_full_work_area = window.native().is_full_work_area(&nearest_monitor.native())?;
+        if !(is_full_work_area || is_maximized) && !is_minimized {
           info!("Window restored");
 
           let target_state = window
@@ -92,9 +85,10 @@ pub fn handle_window_location_changed(
       }
       _ => {
         // Update the window to be fullscreen if there's been a change in
-        // maximized state or if the window is now fullscreen.
-        if (is_maximized && old_is_maximized != is_maximized)
-          || is_fullscreen
+        // maximized state
+        let is_fullscreen = window.native()
+          .is_fullscreen(&nearest_monitor.native())?;
+        if (is_maximized && old_is_maximized != is_maximized) || is_fullscreen
         {
           info!("Window fullscreened");
 
