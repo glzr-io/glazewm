@@ -25,7 +25,9 @@ use crate::{
   user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
   windows::{
     commands::{
-      ignore_window, move_window_in_direction, move_window_to_workspace, resize_window, set_window_position, set_window_size, update_window_state
+      ignore_window, move_window_in_direction, move_window_to_workspace,
+      resize_window, set_window_position, set_window_position_to_center,
+      set_window_size, update_window_state,
     },
     traits::WindowGetters,
     WindowState,
@@ -187,8 +189,8 @@ pub enum InvokeCommand {
     #[clap(long)]
     direction: Direction,
   },
-  Resize(InvokeResizeCommand),
   Position(InvokePositionCommand),
+  Resize(InvokeResizeCommand),
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,
@@ -197,10 +199,10 @@ pub enum InvokeCommand {
     centered: Option<bool>,
 
     #[clap(long, allow_hyphen_values = true)]
-    x_pos: Option<LengthValue>,
+    x_pos: Option<i32>,
 
     #[clap(long, allow_hyphen_values = true)]
-    y_pos: Option<LengthValue>,
+    y_pos: Option<i32>,
 
     #[clap(long, allow_hyphen_values = true)]
     width: Option<LengthValue>,
@@ -439,24 +441,31 @@ impl InvokeCommand {
           config,
         )
       }
+      InvokeCommand::Position(args) => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            match args.centered {
+              true => set_window_position_to_center(window, state),
+              false => {
+                set_window_position(
+                  window,
+                  args.x_pos.clone(),
+                  args.y_pos.clone(),
+                  state,
+                )
+              }
+            }
+
+          },
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
           Ok(window) => resize_window(
             window,
             args.width.clone(),
             args.height.clone(),
-            state,
-          ),
-          _ => Ok(()),
-        }
-      }
-      InvokeCommand::Position(args) => {
-        match subject_container.as_window_container() {
-          Ok(window) => set_window_position(
-            window,
-            args.centered,
-            args.x_pos.clone(),
-            args.y_pos.clone(),
             state,
           ),
           _ => Ok(()),
@@ -488,18 +497,23 @@ impl InvokeCommand {
           )?;
 
           if width.is_some() || height.is_some() {
-            set_window_size(window.clone(),
-            width.clone(),
-            height.clone(),
-            state)?;
+            set_window_size(
+              window.clone(),
+              width.clone(),
+              height.clone(),
+              state,
+            )?;
           }
 
-          if is_centered || x_pos.is_some() || y_pos.is_some() {
+          if is_centered {
+            set_window_position_to_center(window, state)?;
+          } else if x_pos.is_some() || y_pos.is_some() {
             set_window_position(
               window.clone(), 
-              is_centered,
-            x_pos.clone(),
-            y_pos.clone(), state)?;  
+              x_pos.clone(),
+              y_pos.clone(), 
+              state,
+            )?;                
           }
 
           Ok(())
@@ -854,8 +868,8 @@ pub struct InvokePositionCommand {
   centered: bool,
 
   #[clap(long, allow_hyphen_values = true)]
-  x_pos: Option<LengthValue>,
+  x_pos: Option<i32>,
 
   #[clap(long, allow_hyphen_values = true)]
-  y_pos: Option<LengthValue>,
+  y_pos: Option<i32>,
 }
