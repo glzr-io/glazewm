@@ -24,10 +24,10 @@ use windows::{
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
         SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_MAXIMIZE,
-        SW_MINIMIZE, SW_RESTORE, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOW_EX_STYLE,
+        WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -36,7 +36,7 @@ use windows::{
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
   common::{Color, LengthValue, Memo, Rect, RectDelta},
-  user_config::CornerStyle,
+  user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
 
@@ -507,12 +507,31 @@ impl NativeWindow {
     Ok(())
   }
 
+  pub fn set_visible(
+    &self,
+    visible: bool,
+    hide_method: &HideMethod,
+  ) -> anyhow::Result<()> {
+    match hide_method {
+      HideMethod::Hide => {
+        if visible {
+          self.show()
+        } else {
+          self.hide()
+        }
+      }
+      HideMethod::Cloak => self.set_cloaked(!visible),
+    }
+  }
+
   pub fn show(&self) -> anyhow::Result<()> {
-    self.set_cloaked(false)
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+    Ok(())
   }
 
   pub fn hide(&self) -> anyhow::Result<()> {
-    self.set_cloaked(true)
+    unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+    Ok(())
   }
 
   pub fn set_cloaked(&self, cloaked: bool) -> anyhow::Result<()> {
@@ -539,6 +558,7 @@ impl NativeWindow {
     state: &WindowState,
     rect: &Rect,
     is_visible: bool,
+    hide_method: &HideMethod,
     has_pending_dpi_adjustment: bool,
   ) -> anyhow::Result<()> {
     // Restore window if it's minimized/maximized and shouldn't be. This is
@@ -566,12 +586,6 @@ impl NativeWindow {
       | SWP_NOSENDCHANGING
       | SWP_ASYNCWINDOWPOS;
 
-    // Whether to show or hide the window.
-    // match is_visible {
-    //   true => swp_flags |= SWP_SHOWWINDOW,
-    //   false => swp_flags |= SWP_HIDEWINDOW,
-    // };
-
     // Whether the window should be shown above all other windows.
     let z_order = match state {
       WindowState::Floating(config) if config.shown_on_top => HWND_TOPMOST,
@@ -581,14 +595,11 @@ impl NativeWindow {
       _ => HWND_NOTOPMOST,
     };
 
+    // Whether to show or hide the window.
+    self.set_visible(is_visible, hide_method)?;
+
     match state {
       WindowState::Minimized => {
-        if !is_visible {
-          self.hide()?;
-        } else {
-          self.show()?;
-        }
-
         if !self.is_minimized()? {
           self.minimize()?;
         }
@@ -611,7 +622,6 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
-        self.set_cloaked(!is_visible)?;
       }
       _ => {
         swp_flags |= SWP_FRAMECHANGED;
@@ -627,7 +637,6 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
-        self.set_cloaked(!is_visible)?;
 
         // When there's a mismatch between the DPI of the monitor and the
         // window, the window might be sized incorrectly after the first
@@ -645,7 +654,6 @@ impl NativeWindow {
               swp_flags,
             )
           }?;
-          self.set_cloaked(!is_visible)?;
         }
       }
     };

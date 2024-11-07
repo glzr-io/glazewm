@@ -410,6 +410,18 @@ pub struct GeneralConfig {
   /// Commands to run after the WM config has reloaded.
   #[serde(default)]
   pub config_reload_commands: Vec<InvokeCommand>,
+
+  /// How windows should be hidden when switching workspaces.
+  #[serde(default)]
+  pub hide_method: HideMethod,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HideMethod {
+  Hide,
+  #[default]
+  Cloak,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
