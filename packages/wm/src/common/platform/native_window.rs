@@ -23,22 +23,22 @@ use windows::{
         SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
         ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
         HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WS_CAPTION,
-        WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-        WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_MAXIMIZE,
+        SW_MINIMIZE, SW_RESTORE, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
+        WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
 };
 
+use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
   common::{Color, LengthValue, Memo, Rect, RectDelta},
   user_config::CornerStyle,
   windows::WindowState,
 };
-use crate::common::com::{set_cloak, CloakVisibility};
 
 #[derive(Debug, Clone)]
 pub struct NativeWindow {
@@ -508,19 +508,30 @@ impl NativeWindow {
   }
 
   pub fn show(&self) -> anyhow::Result<()> {
-    self.set_visibility(true)
+    self.set_cloaked(false)
   }
 
   pub fn hide(&self) -> anyhow::Result<()> {
-    self.set_visibility(false)
+    self.set_cloaked(true)
   }
 
-  pub fn set_visibility(&self, visible: bool) -> anyhow::Result<()> {
-    let visibility_status = match visible {
-      true => CloakVisibility::VISIBLE,
-      false => CloakVisibility::HIDDEN,
-    };
-    set_cloak(HWND(self.handle), &visibility_status)
+  pub fn set_cloaked(&self, cloaked: bool) -> anyhow::Result<()> {
+    COM_INIT.with(|_| -> anyhow::Result<()> {
+      let view_collection =
+        iapplication_view_collection(&iservice_provider()?)?;
+
+      let mut view = None;
+      unsafe { view_collection.get_view_for_hwnd(self.handle, &mut view) }
+        .ok()?;
+
+      let view = view
+        .context("Unable to get application view by window handle.")?;
+
+      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
+      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
+        .ok()
+        .context("Failed to cloak window.")
+    })
   }
 
   pub fn set_position(
@@ -600,7 +611,7 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
-        self.set_visibility(is_visible)?;
+        self.set_cloaked(!is_visible)?;
       }
       _ => {
         swp_flags |= SWP_FRAMECHANGED;
@@ -616,7 +627,7 @@ impl NativeWindow {
             swp_flags,
           )
         }?;
-        self.set_visibility(is_visible)?;
+        self.set_cloaked(!is_visible)?;
 
         // When there's a mismatch between the DPI of the monitor and the
         // window, the window might be sized incorrectly after the first
@@ -634,7 +645,7 @@ impl NativeWindow {
               swp_flags,
             )
           }?;
-          self.set_visibility(is_visible)?;
+          self.set_cloaked(!is_visible)?;
         }
       }
     };
