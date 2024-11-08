@@ -595,9 +595,6 @@ impl NativeWindow {
       _ => HWND_NOTOPMOST,
     };
 
-    // Whether to show or hide the window.
-    self.set_visible(is_visible, hide_method)?;
-
     match state {
       WindowState::Minimized => {
         if !self.is_minimized()? {
@@ -657,6 +654,9 @@ impl NativeWindow {
         }
       }
     };
+
+    // Whether to show or hide the window.
+    self.set_visible(is_visible, hide_method)?;
 
     Ok(())
   }
