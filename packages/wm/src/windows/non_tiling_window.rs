@@ -37,6 +37,7 @@ struct NonTilingWindowInner {
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
   floating_placement: Rect,
+  has_custom_floating_placement: bool,
   done_window_rules: Vec<WindowRuleConfig>,
   active_drag: Option<ActiveDrag>,
 }
@@ -50,6 +51,7 @@ impl NonTilingWindow {
     border_delta: RectDelta,
     insertion_target: Option<(Container, usize)>,
     floating_placement: Rect,
+    has_custom_floating_placement: bool,
     done_window_rules: Vec<WindowRuleConfig>,
     active_drag: Option<ActiveDrag>,
   ) -> Self {
@@ -66,6 +68,7 @@ impl NonTilingWindow {
       border_delta,
       has_pending_dpi_adjustment: false,
       floating_placement,
+      has_custom_floating_placement,
       done_window_rules,
       active_drag,
     };
@@ -91,6 +94,7 @@ impl NonTilingWindow {
       Some(self.state()),
       self.border_delta(),
       self.floating_placement(),
+      self.has_custom_floating_placement(),
       gaps_config,
       self.done_window_rules(),
       self.active_drag(),
@@ -114,6 +118,7 @@ impl NonTilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
+      has_custom_floating_placement: self.has_custom_floating_placement(),
       handle: self.native().handle,
       title: self.native().title()?,
       class_name: self.native().class_name()?,

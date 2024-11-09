@@ -605,18 +605,26 @@ impl InvokeCommand {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
 
+          let is_centered = centered.unwrap_or(floating_defaults.centered);
           let target_state = WindowState::Floating(FloatingStateConfig {
-            centered: centered.unwrap_or(floating_defaults.centered),
+            centered: is_centered,
             shown_on_top: shown_on_top
               .unwrap_or(floating_defaults.shown_on_top),
           });
 
-          update_window_state(
+          let has_custom_floating_placement =
+            window.has_custom_floating_placement();
+
+          let window = update_window_state(
             window.clone(),
             window.toggled_state(target_state, config),
             state,
             config,
           )?;
+
+          if !has_custom_floating_placement && is_centered {
+            set_window_position_to_center(window, state)?;
+          }
 
           Ok(())
         }

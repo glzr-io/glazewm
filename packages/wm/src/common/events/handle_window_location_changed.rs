@@ -117,6 +117,7 @@ pub fn handle_window_location_changed(
           // Update state with the new location of the floating window.
           info!("Updating floating window position.");
           window.set_floating_placement(frame_position);
+          window.set_has_custom_floating_placement(true);
 
           let monitor = window.monitor().context("No monitor.")?;
 

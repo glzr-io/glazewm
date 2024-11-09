@@ -134,6 +134,7 @@ fn create_window(
       None,
       border_delta,
       floating_placement,
+      false,
       gaps_config,
       Vec::new(),
       None,
@@ -147,6 +148,7 @@ fn create_window(
       border_delta,
       None,
       floating_placement,
+      false,
       Vec::new(),
       None,
     )
