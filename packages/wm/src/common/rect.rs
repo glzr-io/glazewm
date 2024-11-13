@@ -118,8 +118,8 @@ impl Rect {
   /// Gets the delta between this rect and another rect.
   pub fn delta(&self, other: &Rect) -> RectDelta {
     RectDelta {
-      left: LengthValue::from_px(self.left - other.left),
-      top: LengthValue::from_px(self.top - other.top),
+      left: LengthValue::from_px(other.left - self.left),
+      top: LengthValue::from_px(other.top - self.top),
       right: LengthValue::from_px(self.right - other.right),
       bottom: LengthValue::from_px(self.bottom - other.bottom),
     }
