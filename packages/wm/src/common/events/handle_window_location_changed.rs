@@ -44,6 +44,12 @@ pub fn handle_window_location_changed(
 
     let is_minimized = try_warn!(window.native().refresh_is_minimized());
 
+    // Ignore events for minimized windows. Let them be handled by the
+    // handler for `PlatformEvent::WindowMinimized` instead.
+    if is_minimized {
+      return Ok(());
+    }
+
     let nearest_monitor = state
       .nearest_monitor(&window.native())
       .context("Failed to get workspace of nearest monitor.")?;
@@ -69,10 +75,9 @@ pub fn handle_window_location_changed(
 
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
-        // A fullscreen window that gets minimized can hit this arm, so
-        // ignore such events and let it be handled by the handler for
-        // `PlatformEvent::WindowMinimized` instead.
-        if !is_minimized && !(is_fullscreen || is_maximized)
+        // Restore the window if it's no longer fullscreen *or* for the
+        // edge case of fullscreen -> maximized -> restore from maximized.
+        if !(is_fullscreen || is_maximized)
           || (is_fullscreen && !is_maximized && fullscreen_state.maximized)
         {
           info!("Window restored from fullscreen.");
@@ -88,7 +93,7 @@ pub fn handle_window_location_changed(
             config,
           )?;
         } else if is_maximized && !fullscreen_state.maximized {
-          info!("Updating state from ordinary fullscreen -> maximized fullscreen.");
+          info!("Updating state from fullscreen -> maximized.");
 
           update_window_state(
             window.clone(),
@@ -118,13 +123,7 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
-
-        // A floating window that gets minimized can hit this arm, so
-        // ignore such events and let it be handled by the handler for
-        // `PlatformEvent::WindowMinimized` instead.
-        } else if !is_minimized
-          && matches!(window.state(), WindowState::Floating(_))
-        {
+        } else if matches!(window.state(), WindowState::Floating(_)) {
           // Update state with the new location of the floating window.
           info!("Updating floating window position.");
           window.set_floating_placement(frame_position);
