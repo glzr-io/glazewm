@@ -107,13 +107,10 @@ pub fn handle_window_location_changed(
         }
       }
       _ => {
-        // Update the window to be fullscreen if there's been a change in
-        // maximized state or if the window is now fullscreen.
-        if (is_maximized && old_is_maximized != is_maximized)
-          || is_fullscreen
-        {
-          info!("Window fullscreened");
+        if is_maximized || is_fullscreen {
+          info!("Window fullscreened.");
 
+          // Update the window to be fullscreen.
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {
