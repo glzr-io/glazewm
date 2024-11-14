@@ -20,13 +20,14 @@ use windows::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
         IsWindowVisible, IsZoomed, SendNotifyMessageW,
-        SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
-        ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST,
-        HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
-        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOW_EX_STYLE,
-        WINDOW_STYLE, WM_CLOSE, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        SetForegroundWindow, SetWindowLongPtrW, SetWindowPlacement,
+        SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
+        HWND_NOTOPMOST, HWND_TOPMOST, SWP_ASYNCWINDOWPOS,
+        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
+        SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
+        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
+        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
         WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
@@ -484,8 +485,21 @@ impl NativeWindow {
     (current_style & style.0 as isize) != 0
   }
 
-  pub fn restore(&self) -> anyhow::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_RESTORE).ok() }?;
+  pub fn restore_to_position(&self, rect: &Rect) -> anyhow::Result<()> {
+    let placement = WINDOWPLACEMENT {
+      length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
+      flags: WPF_ASYNCWINDOWPLACEMENT,
+      showCmd: SW_RESTORE.0 as u32,
+      rcNormalPosition: RECT {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      },
+      ..Default::default()
+    };
+
+    unsafe { SetWindowPlacement(HWND(self.handle), &placement) }?;
     Ok(())
   }
 
@@ -568,7 +582,9 @@ impl NativeWindow {
       // to non-maximized fullscreen.
       WindowState::Fullscreen(config) => {
         if !config.maximized && self.is_maximized()? {
-          self.restore()?;
+          // Restoring to position has the same effect as `ShowWindow` with
+          // `SW_RESTORE`, but doesn't cause a flicker.
+          self.restore_to_position(rect)?;
         }
       }
       // No need to restore window if it'll be minimized. Transitioning
@@ -576,7 +592,7 @@ impl NativeWindow {
       WindowState::Minimized => {}
       _ => {
         if self.is_minimized()? || self.is_maximized()? {
-          self.restore()?;
+          self.restore_to_position(rect)?;
         }
       }
     }
