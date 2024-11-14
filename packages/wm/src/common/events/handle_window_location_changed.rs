@@ -35,6 +35,15 @@ pub fn handle_window_location_changed(
     let old_is_maximized = window.native().is_maximized()?;
     let is_maximized = try_warn!(window.native().refresh_is_maximized());
 
+    // Ignore duplicate location change events. Window position changes
+    // can trigger multiple events (e.g. restore from maximized can trigger
+    // as many as 4 identical events).
+    if old_frame_position == frame_position
+      && old_is_maximized == is_maximized
+    {
+      return Ok(());
+    }
+
     let nearest_monitor = state
       .nearest_monitor(&window.native())
       .context("Failed to get workspace of nearest monitor.")?;
@@ -60,11 +69,12 @@ pub fn handle_window_location_changed(
 
     match window.state() {
       WindowState::Fullscreen(fullscreen_state) => {
-        // A fullscreen window that gets minimized can hit this arm, so
-        // ignore such events and let it be handled by the handler for
-        // `PlatformEvent::WindowMinimized` instead.
-        if !(is_fullscreen || is_maximized) && !is_minimized {
-          info!("Window restored");
+        // Restore the window if it's no longer fullscreen *or* for the
+        // edge case of fullscreen -> maximized -> restore from maximized.
+        if !is_minimized && !(is_fullscreen || is_maximized)
+          || (is_fullscreen && !is_maximized && fullscreen_state.maximized)
+        {
+          info!("Window restored from fullscreen.");
 
           let target_state = window
             .prev_state()
@@ -76,8 +86,8 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
-        } else if is_maximized != old_is_maximized {
-          info!("Updating window's fullscreen state.");
+        } else if is_maximized && !fullscreen_state.maximized {
+          info!("Updating state from fullscreen -> maximized.");
 
           update_window_state(
             window.clone(),
