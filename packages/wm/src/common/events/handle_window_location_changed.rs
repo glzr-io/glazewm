@@ -30,6 +30,8 @@ pub fn handle_window_location_changed(
     let frame_position =
       try_warn!(window.native().refresh_frame_position());
 
+    let is_minimized = try_warn!(window.native().refresh_is_minimized());
+
     let old_is_maximized = window.native().is_maximized()?;
     let is_maximized = try_warn!(window.native().refresh_is_maximized());
 
@@ -39,14 +41,6 @@ pub fn handle_window_location_changed(
     if old_frame_position == frame_position
       && old_is_maximized == is_maximized
     {
-      return Ok(());
-    }
-
-    let is_minimized = try_warn!(window.native().refresh_is_minimized());
-
-    // Ignore events for minimized windows. Let them be handled by the
-    // handler for `PlatformEvent::WindowMinimized` instead.
-    if is_minimized {
       return Ok(());
     }
 
@@ -77,7 +71,7 @@ pub fn handle_window_location_changed(
       WindowState::Fullscreen(fullscreen_state) => {
         // Restore the window if it's no longer fullscreen *or* for the
         // edge case of fullscreen -> maximized -> restore from maximized.
-        if !(is_fullscreen || is_maximized)
+        if !is_minimized && !(is_fullscreen || is_maximized)
           || (is_fullscreen && !is_maximized && fullscreen_state.maximized)
         {
           info!("Window restored from fullscreen.");
@@ -107,10 +101,13 @@ pub fn handle_window_location_changed(
         }
       }
       _ => {
-        if is_maximized || is_fullscreen {
-          info!("Window fullscreened.");
+        // Update the window to be fullscreen if there's been a change in
+        // maximized state or if the window is now fullscreen.
+        if (is_maximized && old_is_maximized != is_maximized)
+          || is_fullscreen
+        {
+          info!("Window fullscreened");
 
-          // Update the window to be fullscreen.
           update_window_state(
             window,
             WindowState::Fullscreen(FullscreenStateConfig {
@@ -120,7 +117,13 @@ pub fn handle_window_location_changed(
             state,
             config,
           )?;
-        } else if matches!(window.state(), WindowState::Floating(_)) {
+
+        // A floating window that gets minimized can hit this arm, so
+        // ignore such events and let it be handled by the handler for
+        // `PlatformEvent::WindowMinimized` instead.
+        } else if !is_minimized
+          && matches!(window.state(), WindowState::Floating(_))
+        {
           // Update state with the new location of the floating window.
           info!("Updating floating window position.");
           window.set_floating_placement(frame_position);
