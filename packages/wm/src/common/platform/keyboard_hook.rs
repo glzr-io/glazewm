@@ -1,6 +1,6 @@
 use std::{
   collections::HashMap,
-  sync::{Arc, Mutex, OnceLock},
+  sync::{atomic::AtomicBool, Arc, Mutex, OnceLock},
 };
 
 use tokio::sync::mpsc;
@@ -52,6 +52,8 @@ pub struct KeyboardHook {
   /// final key in a key combination.
   keybindings_by_trigger_key:
     Arc<Mutex<HashMap<u16, Vec<ActiveKeybinding>>>>,
+
+  paused: Arc<AtomicBool>,
 }
 
 impl KeyboardHook {
@@ -66,6 +68,7 @@ impl KeyboardHook {
       keybindings_by_trigger_key: Arc::new(Mutex::new(
         Self::keybindings_by_trigger_key(keybindings),
       )),
+      paused: Arc::new(AtomicBool::new(false)),
     });
 
     KEYBOARD_HOOK
@@ -86,9 +89,13 @@ impl KeyboardHook {
     Ok(())
   }
 
-  pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
+  pub fn update(&self, keybindings: &Vec<KeybindingConfig>, paused: bool) {
     *self.keybindings_by_trigger_key.lock().unwrap() =
       Self::keybindings_by_trigger_key(keybindings);
+
+    self
+      .paused
+      .store(paused, std::sync::atomic::Ordering::SeqCst);
   }
 
   /// Stops the low-level keyboard hook.
@@ -355,6 +362,11 @@ impl KeyboardHook {
           return false;
         }
 
+        // TODO: Look through ActiveKeybinding to figure out if the
+        // keybinding is for unpausing?
+        if self.paused.load(std::sync::atomic::Ordering::SeqCst) {
+          return false;
+        }
         // Invoke the callback function for the longest matching
         // keybinding.
         let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(

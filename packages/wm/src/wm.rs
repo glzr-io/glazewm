@@ -95,7 +95,10 @@ impl WindowManager {
       }
     }?;
 
-    platform_sync(state, config)?;
+    // Skip platform sync when paused.
+    if !state.paused {
+      platform_sync(state, config)?;
+    }
 
     Ok(())
   }

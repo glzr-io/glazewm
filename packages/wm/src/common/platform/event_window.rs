@@ -71,6 +71,7 @@ static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 pub struct EventWindow {
   keyboard_hook: Arc<KeyboardHook>,
   window_thread: Option<JoinHandle<anyhow::Result<()>>>,
+  paused: bool,
 }
 
 impl EventWindow {
@@ -132,6 +133,7 @@ impl EventWindow {
     Ok(Self {
       keyboard_hook,
       window_thread: Some(window_thread),
+      paused: false,
     })
   }
 
@@ -139,9 +141,12 @@ impl EventWindow {
     &mut self,
     keybindings: &Vec<KeybindingConfig>,
     enable_mouse_events: bool,
+    paused: bool,
   ) {
-    self.keyboard_hook.update(keybindings);
-    ENABLE_MOUSE_EVENTS.store(enable_mouse_events, Ordering::Relaxed);
+    self.keyboard_hook.update(keybindings, paused);
+    ENABLE_MOUSE_EVENTS
+      .store(enable_mouse_events && !paused, Ordering::Relaxed);
+    self.paused = paused;
   }
 
   /// Destroys the event window and stops the message loop.
