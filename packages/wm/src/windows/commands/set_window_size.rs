@@ -23,10 +23,6 @@ pub fn set_window_size(
   target_height: Option<LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   match window {
     WindowContainer::TilingWindow(window) => {
       set_tiling_window_size(window, target_width, target_height, state)?;

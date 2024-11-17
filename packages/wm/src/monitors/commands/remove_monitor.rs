@@ -18,10 +18,6 @@ pub fn remove_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   // TODO: Add monitor display trait.
   info!(
     "Removing monitor: {:?} {} {:?} {:?}",

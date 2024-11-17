@@ -12,10 +12,6 @@ pub fn handle_window_shown(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   let found_window = state.window_from_native(&native_window);
 
   match found_window {

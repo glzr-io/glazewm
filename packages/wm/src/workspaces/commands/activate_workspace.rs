@@ -27,10 +27,6 @@ pub fn activate_workspace(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   let workspace_config = workspace_config(
     workspace_name,
     target_monitor.clone(),

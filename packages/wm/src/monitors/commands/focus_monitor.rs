@@ -12,10 +12,6 @@ pub fn focus_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   let monitors = state.monitors();
 
   let target_monitor = monitors.get(monitor_index).with_context(|| {

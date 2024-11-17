@@ -10,10 +10,6 @@ pub fn update_monitor(
   native_monitor: NativeMonitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  if state.paused {
-    return Ok(());
-  }
-
   // TODO: Add monitor display trait.
   info!(
     "Updating monitor: {:?} {} {:?} {:?}",
