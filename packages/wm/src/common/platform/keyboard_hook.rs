@@ -53,7 +53,7 @@ pub struct KeyboardHook {
   keybindings_by_trigger_key:
     Arc<Mutex<HashMap<u16, Vec<ActiveKeybinding>>>>,
 
-  paused: Arc<AtomicBool>,
+  paused: AtomicBool,
 }
 
 impl KeyboardHook {
@@ -68,7 +68,7 @@ impl KeyboardHook {
       keybindings_by_trigger_key: Arc::new(Mutex::new(
         Self::keybindings_by_trigger_key(keybindings),
       )),
-      paused: Arc::new(AtomicBool::new(false)),
+      paused: AtomicBool::new(false),
     });
 
     KEYBOARD_HOOK
