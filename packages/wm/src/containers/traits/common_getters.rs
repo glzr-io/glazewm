@@ -127,7 +127,7 @@ pub trait CommonGetters {
 
     Box::new(std::iter::from_fn(move || {
       for child_id in child_focus_order.iter() {
-        if let Some(child) = self.child_by_id(&child_id) {
+        if let Some(child) = self.child_by_id(child_id) {
           return Some(child);
         }
       }
@@ -156,7 +156,7 @@ pub trait CommonGetters {
         for focus_child_id in
           current.borrow_child_focus_order().iter().rev()
         {
-          if let Some(focus_child) = current.child_by_id(&focus_child_id) {
+          if let Some(focus_child) = current.child_by_id(focus_child_id) {
             stack.push(focus_child);
           }
         }
@@ -297,9 +297,8 @@ impl Iterator for Ancestors {
   type Item = Container;
 
   fn next(&mut self) -> Option<Container> {
-    self.start.take().map(|container| {
+    self.start.take().inspect(|container| {
       self.start = container.parent().map(Into::into);
-      container
     })
   }
 }
@@ -313,7 +312,7 @@ impl Iterator for Descendants {
   type Item = Container;
 
   fn next(&mut self) -> Option<Container> {
-    while let Some(container) = self.stack.pop_front() {
+    if let Some(container) = self.stack.pop_front() {
       self.stack.extend(container.children());
       return Some(container);
     }

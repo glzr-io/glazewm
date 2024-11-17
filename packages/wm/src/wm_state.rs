@@ -191,7 +191,7 @@ impl WmState {
     native_window: &NativeWindow,
   ) -> Option<Monitor> {
     self
-      .monitor_from_native(&Platform::nearest_monitor(&native_window))
+      .monitor_from_native(&Platform::nearest_monitor(native_window))
       .or(self.monitors().first().cloned())
   }
 
@@ -304,7 +304,7 @@ impl WmState {
         self
           .recent_workspace_name
           .as_ref()
-          .and_then(|name| self.workspace_by_name(&name)),
+          .and_then(|name| self.workspace_by_name(name)),
       ),
       WorkspaceTarget::NextActive => {
         let active_workspaces = self.sorted_workspaces(config);
@@ -450,7 +450,6 @@ impl WmState {
     self
       .root_container
       .self_and_descendants()
-      .into_iter()
       .find(|container| container.id() == id)
   }
 
@@ -478,12 +477,12 @@ impl WmState {
       .iter()
       .filter_map(|descendant| descendant.as_window_container().ok())
       .find(|descendant| {
-        match (descendant.state(), removed_window.state()) {
-          (WindowState::Tiling, WindowState::Tiling) => true,
-          (WindowState::Floating(_), WindowState::Floating(_)) => true,
-          (WindowState::Fullscreen(_), WindowState::Fullscreen(_)) => true,
-          _ => false,
-        }
+        matches!(
+          (descendant.state(), removed_window.state()),
+          (WindowState::Tiling, WindowState::Tiling)
+            | (WindowState::Floating(_), WindowState::Floating(_))
+            | (WindowState::Fullscreen(_), WindowState::Fullscreen(_))
+        )
       })
       .map(Into::into);
 
@@ -509,7 +508,7 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|frame| frame.contains_point(&point))
+          .map(|frame| frame.contains_point(point))
           .unwrap_or(false)
       })
       .collect()
@@ -524,11 +523,13 @@ impl WmState {
         Container::Monitor(monitor) => Some(monitor),
         _ => None,
       })
-      .filter(|c| {
+      .find(|c| {
         let frame = c.to_rect();
-        frame.unwrap().contains_point(&position)
+        frame
+          .ok()
+          .map(|frame| frame.contains_point(position))
+          .unwrap_or(false)
       })
-      .next()
   }
 }
 

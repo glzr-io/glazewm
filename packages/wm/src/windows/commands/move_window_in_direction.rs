@@ -200,7 +200,7 @@ fn move_to_sibling_container(
         state
           .pending_sync
           .containers_to_redraw
-          .extend([target_parent.into(), parent.into()]);
+          .extend([target_parent.into(), parent]);
       }
     }
   };
@@ -256,7 +256,7 @@ fn move_to_workspace_in_direction(
     state
       .pending_sync
       .containers_to_redraw
-      .extend([workspace.into(), parent.into()]);
+      .extend([workspace.into(), parent]);
 
     state.pending_sync.cursor_jump = true;
   };
@@ -449,9 +449,9 @@ fn new_floating_position(
   // Calculate the distance the window should move based on the ratio of
   // the window's length to the monitor's length.
   let move_distance = match window_length as f32 / monitor_length as f32 {
-    x if x >= 0.0 && x < 0.2 => length_delta / 5,
-    x if x >= 0.2 && x < 0.4 => length_delta / 4,
-    x if x >= 0.4 && x < 0.6 => length_delta / 3,
+    x if (0.0..0.2).contains(&x) => length_delta / 5,
+    x if (0.2..0.4).contains(&x) => length_delta / 4,
+    x if (0.4..0.6).contains(&x) => length_delta / 3,
     _ => length_delta / 2,
   };
 

@@ -38,8 +38,7 @@ pub fn handle_window_minimized(
       )?;
 
       // Focus should be reassigned after a window has been minimized.
-      if let Some(focus_target) =
-        state.focus_target_after_removal(&window.into())
+      if let Some(focus_target) = state.focus_target_after_removal(&window)
       {
         set_focused_descendant(focus_target, None);
         state.pending_sync.focus_change = true;

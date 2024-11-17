@@ -1,3 +1,4 @@
+mod com;
 mod event_listener;
 mod event_window;
 mod keyboard_hook;
@@ -7,6 +8,7 @@ mod platform;
 mod single_instance;
 mod window_event_hook;
 
+pub use com::*;
 pub use event_listener::*;
 pub use event_window::*;
 pub use keyboard_hook::*;

@@ -20,25 +20,25 @@ pub fn focus_in_direction(
     Container::TilingWindow(_) => {
       // If a suitable focus target isn't found in the current workspace,
       // attempt to find a workspace in the given direction.
-      tiling_focus_target(origin_container.clone(), &direction)?
+      tiling_focus_target(origin_container.clone(), direction)?
         .map_or_else(
-          || workspace_focus_target(origin_container, &direction, state),
+          || workspace_focus_target(origin_container, direction, state),
           |container| Ok(Some(container)),
         )?
     }
     Container::NonTilingWindow(ref non_tiling_window) => {
       match non_tiling_window.state() {
         WindowState::Floating(_) => {
-          floating_focus_target(origin_container, &direction)
+          floating_focus_target(origin_container, direction)
         }
         WindowState::Fullscreen(_) => {
-          workspace_focus_target(origin_container, &direction, state)?
+          workspace_focus_target(origin_container, direction, state)?
         }
         _ => None,
       }
     }
     Container::Workspace(_) => {
-      workspace_focus_target(origin_container, &direction, state)?
+      workspace_focus_target(origin_container, direction, state)?
     }
     _ => None,
   };

@@ -179,8 +179,7 @@ async fn start_wm(
           vec![InvokeCommand::WmReloadConfig],
           None,
           &mut config,
-        )
-        .and_then(|_| Ok(()))
+        ).map(|_| ())
       },
     };
 

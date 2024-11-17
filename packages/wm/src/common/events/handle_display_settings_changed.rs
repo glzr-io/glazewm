@@ -89,7 +89,7 @@ pub fn handle_display_settings_changed(
   }
 
   for native_monitor in new_native_monitors {
-    match pending_monitors.get(0) {
+    match pending_monitors.first() {
       Some(_) => {
         let monitor = pending_monitors.remove(0);
         update_monitor(monitor, native_monitor, state)

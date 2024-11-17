@@ -11,10 +11,11 @@ use crate::{
   },
 };
 
-/// Focuses a workspace by a given target. This target can be a workspace
-/// name, the most recently focused workspace, the next workspace, the
-/// previous workspace, or the workspace in a given direction from the
-/// currently focused workspace.
+/// Focuses a workspace by a given target.
+///
+/// This target can be a workspace name, the most recently focused
+/// workspace, the next workspace, the previous workspace, or the workspace
+/// in a given direction from the currently focused workspace.
 ///
 /// The workspace will be activated if it isn't already active.
 pub fn focus_workspace(

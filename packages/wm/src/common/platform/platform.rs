@@ -19,14 +19,15 @@ use windows::{
       },
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        GetDesktopWindow, GetForegroundWindow, GetMessageW, MessageBoxW,
-        PeekMessageW, PostThreadMessageW, RegisterClassW, SetCursorPos,
-        SystemParametersInfoW, TranslateMessage, WindowFromPoint,
-        ANIMATIONINFO, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT,
-        MB_ICONERROR, MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE,
-        SPI_GETANIMATION, SPI_SETANIMATION, SW_NORMAL,
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT, WNDCLASSW, WNDPROC,
-        WS_OVERLAPPEDWINDOW,
+        GetDesktopWindow, GetForegroundWindow, GetMessageW,
+        GetShellWindow, MessageBoxW, PeekMessageW, PostThreadMessageW,
+        RegisterClassW, SetCursorPos, SystemParametersInfoW,
+        TranslateMessage, WindowFromPoint, ANIMATIONINFO, CS_HREDRAW,
+        CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
+        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
+        SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
+        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT,
+        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -50,8 +51,16 @@ impl Platform {
   }
 
   /// Gets the `NativeWindow` instance of the desktop window.
+  ///
+  /// This is the explorer.exe wallpaper window (i.e. "Progman"). If
+  /// explorer.exe isn't running, then default to the desktop window below
+  /// the wallpaper window.
   pub fn desktop_window() -> NativeWindow {
-    let handle = unsafe { GetDesktopWindow() };
+    let handle = match unsafe { GetShellWindow() } {
+      HWND(0) => unsafe { GetDesktopWindow() },
+      handle => handle,
+    };
+
     NativeWindow::new(handle.0)
   }
 
@@ -271,7 +280,7 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_GETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
@@ -294,9 +303,9 @@ impl Platform {
     unsafe {
       SystemParametersInfoW(
         SPI_SETANIMATION,
-        0,
+        animation_info.cbSize,
         Some(&mut animation_info as *mut _ as _),
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
 
@@ -328,16 +337,18 @@ impl Platform {
   ///
   /// # Examples
   ///
-  /// ```
-  /// let (prog, args) = parse_command("code .")?;
-  /// assert_eq!(prog, "code");
-  /// assert_eq!(args, ".");
+  /// ```no_run
+  /// # use wm::common::platform::Platform;
+  ///   let (prog, args) = Platform::parse_command("code .")?;
+  ///   assert_eq!(prog, "code");
+  ///   assert_eq!(args, ".");
   ///
-  /// let (prog, args) = parse_command(
-  ///   r#"C:\Program Files\Git\git-bash --cd=C:\Users\larsb\.glaze-wm"#,
-  /// )?;
-  /// assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
-  /// assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
+  ///   let (prog, args) = Platform::parse_command(
+  ///     r#"C:\Program Files\Git\git-bash --cd=C:\Users\larsb\.glaze-wm"#,
+  ///   )?;
+  ///   assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
+  ///   assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
+  /// # Ok::<(), anyhow::Error>(())
   /// ```
   pub fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
     // Expand environment variables in the command string.
@@ -367,7 +378,7 @@ impl Platform {
     };
 
     let command_parts: Vec<&str> =
-      expanded_command.trim().split_whitespace().collect();
+      expanded_command.split_whitespace().collect();
 
     // If the command starts with double quotes, then the program name/path
     // is wrapped in double quotes (e.g. `"C:\path\to\app.exe" --flag`).
@@ -411,7 +422,11 @@ impl Platform {
   }
 
   /// Runs the specified program with the given arguments.
-  pub fn run_command(program: &str, args: &str) -> anyhow::Result<()> {
+  pub fn run_command(
+    program: &str,
+    args: &str,
+    hide_window: bool,
+  ) -> anyhow::Result<()> {
     let home_dir = home::home_dir()
       .context("Unable to get home directory.")?
       .to_str()
@@ -422,8 +437,8 @@ impl Platform {
     // causes issues where the pointer is dropped while `ShellExecuteExW`
     // is using it. This is likely a `windows-rs` bug, and we can avoid
     // it by keeping separate variables for the wide strings.
-    let program_wide = to_wide(&program);
-    let args_wide = to_wide(&args);
+    let program_wide = to_wide(program);
+    let args_wide = to_wide(args);
     let home_dir_wide = to_wide(&home_dir);
 
     // Using the built-in `Command::new` function in Rust launches the
@@ -435,7 +450,7 @@ impl Platform {
       lpFile: PCWSTR(program_wide.as_ptr()),
       lpParameters: PCWSTR(args_wide.as_ptr()),
       lpDirectory: PCWSTR(home_dir_wide.as_ptr()),
-      nShow: SW_NORMAL.0 as _,
+      nShow: if hide_window { SW_HIDE } else { SW_NORMAL }.0 as _,
       fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
       ..Default::default()
     };

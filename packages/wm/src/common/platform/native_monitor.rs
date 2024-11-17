@@ -88,9 +88,10 @@ impl NativeMonitor {
       // Get the display devices associated with the monitor.
       let mut display_devices = (0..)
         .map_while(|index| {
-          let mut display_device = DISPLAY_DEVICEW::default();
-          display_device.cb =
-            std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
+          let mut display_device = DISPLAY_DEVICEW {
+            cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
+            ..Default::default()
+          };
 
           // Due to the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the device
           // struct will contain the DOS device path under the `DeviceId`
@@ -104,7 +105,7 @@ impl NativeMonitor {
             )
           }
           .as_bool()
-          .then(|| display_device)
+          .then_some(display_device)
         })
         // Filter out any devices that are not active.
         .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0);
@@ -173,7 +174,7 @@ pub fn available_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
   Ok(
     available_monitor_handles()?
       .into_iter()
-      .map(|handle| NativeMonitor::new(handle))
+      .map(NativeMonitor::new)
       .collect(),
   )
 }
