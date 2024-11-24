@@ -569,6 +569,7 @@ pub struct TransparencyEffectConfig {
   #[serde(default = "default_bool::<false>")]
   pub enabled: bool,
 
+  /// Amount of transparency to apply.
   #[serde(default)]
   pub transparency: TransparencyValue,
 }
