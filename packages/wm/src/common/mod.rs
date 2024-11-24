@@ -10,6 +10,7 @@ mod point;
 mod rect;
 mod rect_delta;
 mod tiling_direction;
+mod transparency_value;
 mod try_warn;
 mod vec_deque_ext;
 
@@ -22,4 +23,5 @@ pub use point::*;
 pub use rect::*;
 pub use rect_delta::*;
 pub use tiling_direction::*;
+pub use transparency_value::*;
 pub use vec_deque_ext::*;

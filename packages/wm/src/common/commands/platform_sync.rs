@@ -238,6 +238,12 @@ fn apply_window_effects(
   {
     apply_corner_effect(&window, effect_config);
   }
+
+  if window_effects.focused_window.transparency.enabled
+    || window_effects.other_windows.transparency.enabled
+  {
+    apply_transparency_effect(&window, effect_config);
+  }
 }
 
 fn apply_border_effect(
@@ -281,4 +287,15 @@ fn apply_corner_effect(
   };
 
   _ = window.native().set_corner_style(corner_style);
+}
+
+fn apply_transparency_effect(
+  window: &WindowContainer,
+  effect_config: &WindowEffectConfig,
+) {
+  if effect_config.transparency.enabled {
+    _ = window
+      .native()
+      .set_transparency(effect_config.transparency.transparency.clone());
+  }
 }

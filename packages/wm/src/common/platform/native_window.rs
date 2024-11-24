@@ -1,4 +1,6 @@
-use anyhow::Context;
+use std::mem::MaybeUninit;
+
+use anyhow::{bail, Context};
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -23,18 +25,20 @@ use windows::{
       },
       Shell::{ITaskbarList, TaskbarList},
       WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
-        GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
-        IsWindowVisible, IsZoomed, SendNotifyMessageW,
-        SetForegroundWindow, SetWindowLongPtrW, SetWindowPlacement,
+        EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
+        GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
+        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
+        SendNotifyMessageW, SetForegroundWindow,
+        SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOPMOST, SWP_ASYNCWINDOWPOS,
-        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
-        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        HWND_NOTOPMOST, HWND_TOPMOST, LWA_ALPHA, LWA_COLORKEY,
+        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
+        SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE,
+        SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE,
+        WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION,
+        WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -42,7 +46,7 @@ use windows::{
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
-  common::{Color, LengthValue, Memo, Rect, RectDelta},
+  common::{Color, LengthValue, Memo, Rect, RectDelta, TransparencyValue},
   user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
@@ -391,6 +395,76 @@ impl NativeWindow {
       }
     }
 
+    Ok(())
+  }
+
+  pub fn set_transparency(
+    &self,
+    transparency: TransparencyValue,
+  ) -> anyhow::Result<()> {
+    // make the window layered if it isn't already
+    let ex_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+
+    if ex_style & WS_EX_LAYERED.0 as isize == 0 {
+      // window doesn't have the layered style, add it
+      unsafe {
+        SetWindowLongPtrW(
+          HWND(self.handle),
+          GWL_EXSTYLE,
+          ex_style | WS_EX_LAYERED.0 as isize,
+        );
+      }
+    }
+
+    // get the window's transparency information
+    let mut previous_opacity = MaybeUninit::uninit();
+    let mut flag = MaybeUninit::uninit();
+    unsafe {
+      GetLayeredWindowAttributes(
+        HWND(self.handle),
+        None,
+        Some(previous_opacity.as_mut_ptr()),
+        Some(flag.as_mut_ptr()),
+      )?;
+    }
+    let previous_opacity = unsafe { previous_opacity.assume_init() };
+    let flag = unsafe { flag.assume_init() };
+
+    // fail if window uses color key
+    if flag.contains(LWA_COLORKEY) {
+      bail!(
+    		"Window uses color key for its transparency. The transparency window effect cannot be applied."
+      );
+    }
+
+    // calculate the new opacity value
+    let transparency_value = transparency.to_exact();
+    let new_opacity = if transparency.is_delta {
+      // flip the sign of the delta to get the *opacity* delta
+      // TODO use saturating_sub_signed when it's stable
+      if !transparency.delta_sign {
+        // -(-x) is x
+        previous_opacity.saturating_add(transparency_value)
+      } else {
+        // -(x) is -x
+        previous_opacity.saturating_sub(transparency_value)
+      }
+    } else {
+      255u8.saturating_sub(transparency_value)
+    };
+
+    // set new transparency if needed
+    if new_opacity != previous_opacity {
+      unsafe {
+        SetLayeredWindowAttributes(
+          HWND(self.handle),
+          None,
+          new_opacity,
+          LWA_ALPHA,
+        )?;
+      }
+    }
     Ok(())
   }
 

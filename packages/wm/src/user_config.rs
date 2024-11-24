@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   app_command::InvokeCommand,
-  common::{Color, LengthValue, RectDelta},
+  common::{Color, LengthValue, RectDelta, TransparencyValue},
   containers::{traits::CommonGetters, WindowContainer},
   monitors::Monitor,
   windows::traits::WindowGetters,
@@ -536,6 +536,10 @@ pub struct WindowEffectConfig {
   /// Config for optionally changing the corner style.
   #[serde(default)]
   pub corner_style: CornerEffectConfig,
+
+  /// Config for optionally applying transparency.
+  #[serde(default)]
+  pub transparency: TransparencyEffectConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -556,6 +560,17 @@ pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
   #[serde(default = "default_bool::<false>")]
   pub enabled: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct TransparencyEffectConfig {
+  /// Whether to enable the effect.
+  #[serde(default = "default_bool::<false>")]
+  pub enabled: bool,
+
+  #[serde(default)]
+  pub transparency: TransparencyValue,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
