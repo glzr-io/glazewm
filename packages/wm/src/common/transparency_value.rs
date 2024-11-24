@@ -53,14 +53,14 @@ impl FromStr for TransparencyValue {
   ///   amount: 0.75,
   ///   unit: TransparencyUnit::Percentage,
   /// };
-  /// let parsed = LengthValue::from_str("75%");
+  /// let parsed = TransparencyValue::from_str("75%");
   /// assert_eq!(parsed.unwrap(), check);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     let units_regex = Regex::new(r"([+-]?)(\d+)(%?)")?;
 
     let err_msg = format!(
-      "Not a valid length value '{}'. Must be of format '255', '100%', '+10%' or '-128'.",
+      "Not a valid transparency value '{}'. Must be of format '255', '100%', '+10%' or '-128'.",
       unparsed
     );
 
