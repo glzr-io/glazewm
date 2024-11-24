@@ -402,12 +402,12 @@ impl NativeWindow {
     &self,
     transparency: TransparencyValue,
   ) -> anyhow::Result<()> {
-    // make the window layered if it isn't already
+    // Make the window layered if it isn't already.
     let ex_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
     if ex_style & WS_EX_LAYERED.0 as isize == 0 {
-      // window doesn't have the layered style, add it
+      // Window doesn't have the layered style, so add it.
       unsafe {
         SetWindowLongPtrW(
           HWND(self.handle),
@@ -417,7 +417,7 @@ impl NativeWindow {
       }
     }
 
-    // get the window's transparency information
+    // Get the window's transparency information.
     let mut previous_opacity = MaybeUninit::uninit();
     let mut flag = MaybeUninit::uninit();
     unsafe {
@@ -431,17 +431,17 @@ impl NativeWindow {
     let previous_opacity = unsafe { previous_opacity.assume_init() };
     let flag = unsafe { flag.assume_init() };
 
-    // fail if window uses color key
+    // Fail if window uses color key.
     if flag.contains(LWA_COLORKEY) {
       bail!(
         "Window uses color key for its transparency. The transparency window effect cannot be applied."
       );
     }
 
-    // calculate the new opacity value
+    // Calculate the new opacity value.
     let transparency_value = transparency.to_exact();
     let new_opacity = if transparency.is_delta {
-      // flip the sign of the delta to get the *opacity* delta
+      // Flip the sign of the delta to get the *opacity* delta.
       // TODO: Use saturating_sub_signed when it's stable
       if !transparency.delta_sign {
         // -(-x) is x
@@ -454,7 +454,7 @@ impl NativeWindow {
       255u8.saturating_sub(transparency_value)
     };
 
-    // set new transparency if needed
+    // Set new transparency if needed.
     if new_opacity != previous_opacity {
       unsafe {
         SetLayeredWindowAttributes(

@@ -42,8 +42,9 @@ impl Default for TransparencyValue {
 impl FromStr for TransparencyValue {
   type Err = anyhow::Error;
 
-  /// Parses a string containing a number possibly followed by a percentage
-  /// sign. Allows for negative numbers.
+  /// Parses a string for a transparency value. The string can be a number
+  /// or a percentage. If the string starts with a sign, the value is
+  /// interpreted as a delta.
   ///
   /// Example:
   /// ```
@@ -52,6 +53,8 @@ impl FromStr for TransparencyValue {
   /// let check = TransparencyValue {
   ///   amount: 0.75,
   ///   unit: TransparencyUnit::Percentage,
+  ///   is_delta: false,
+  ///   delta_sign: false,
   /// };
   /// let parsed = TransparencyValue::from_str("75%");
   /// assert_eq!(parsed.unwrap(), check);
