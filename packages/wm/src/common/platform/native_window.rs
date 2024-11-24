@@ -442,7 +442,7 @@ impl NativeWindow {
     let transparency_value = transparency.to_exact();
     let new_opacity = if transparency.is_delta {
       // flip the sign of the delta to get the *opacity* delta
-      // TODO use saturating_sub_signed when it's stable
+      // TODO: Use saturating_sub_signed when it's stable
       if !transparency.delta_sign {
         // -(-x) is x
         previous_opacity.saturating_add(transparency_value)

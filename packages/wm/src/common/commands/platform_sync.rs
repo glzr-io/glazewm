@@ -211,8 +211,6 @@ fn apply_window_effects(
   is_focused: bool,
   config: &UserConfig,
 ) {
-  // TODO: Be able to add transparency to windows.
-
   let window_effects = &config.value.window_effects;
 
   let effect_config = match is_focused {
