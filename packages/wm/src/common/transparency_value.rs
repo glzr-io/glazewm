@@ -83,9 +83,7 @@ impl FromStr for TransparencyValue {
 
     let amount = captures
       .get(2)
-      .and_then(|amount_str| {
-        f32::from_str(&format!("{sign_str}{}", amount_str.as_str())).ok()
-      })
+      .and_then(|amount_str| f32::from_str(amount_str.into()).ok())
       // Store percentage units as a fraction of 1.
       .map(|amount| match unit {
         TransparencyUnit::Exact => amount,

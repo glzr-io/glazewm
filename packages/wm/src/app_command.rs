@@ -227,7 +227,7 @@ pub enum InvokeCommand {
     visibility: TitleBarVisibility,
   },
   SetTransparency {
-    #[clap(required = true)]
+    #[clap(required = true, allow_hyphen_values = true)]
     transparency: TransparencyValue,
   },
   ShellExec {
