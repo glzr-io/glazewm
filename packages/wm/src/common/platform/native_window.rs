@@ -434,7 +434,7 @@ impl NativeWindow {
     // fail if window uses color key
     if flag.contains(LWA_COLORKEY) {
       bail!(
-    		"Window uses color key for its transparency. The transparency window effect cannot be applied."
+        "Window uses color key for its transparency. The transparency window effect cannot be applied."
       );
     }
 
