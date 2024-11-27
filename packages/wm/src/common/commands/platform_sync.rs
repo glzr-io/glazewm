@@ -5,7 +5,9 @@ use tokio::task;
 use tracing::warn;
 
 use crate::{
-  common::{platform::Platform, DisplayState},
+  common::{
+    platform::Platform, DisplayState, TransparencyUnit, TransparencyValue,
+  },
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
@@ -291,9 +293,19 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  if effect_config.transparency.enabled {
-    _ = window
-      .native()
-      .set_transparency(effect_config.transparency.transparency.clone());
-  }
+  _ = window.native().set_transparency(
+    if effect_config.transparency.enabled {
+      effect_config.transparency.transparency.clone()
+    } else {
+      // This code is only reached if the transparency effect is only
+      // enabled in one of the two window effect configurations. In
+      // this case, reset the transparency to default.
+      TransparencyValue {
+        amount: 0.0,
+        unit: TransparencyUnit::Exact,
+        delta_sign: false,
+        is_delta: false,
+      }
+    },
+  )
 }
