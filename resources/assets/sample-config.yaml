@@ -149,13 +149,6 @@ binding_modes:
       - commands: ['wm-disable-binding-mode --name resize']
         bindings: ['escape', 'enter']
 
-  # When enabled, all keybindings are disabled except for alt+shift+p which
-  # returns to default keybindings.
-  - name: 'pause'
-    keybindings:
-      - commands: ['wm-disable-binding-mode --name pause']
-        bindings: ['alt+shift+p']
-
 keybindings:
   # Shift focus in a given direction.
   - commands: ['focus --direction left']
@@ -194,7 +187,7 @@ keybindings:
     bindings: ['alt+r']
 
   # Disables all keybindings until alt+shift+p is pressed again.
-  - commands: ['wm-enable-binding-mode --name pause']
+  - commands: ['wm-toggle-pause']
     bindings: ['alt+shift+p']
 
   # Change tiling direction. This determines where new tiling windows will
