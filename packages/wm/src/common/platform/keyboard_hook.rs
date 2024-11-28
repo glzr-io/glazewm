@@ -17,7 +17,10 @@ use windows::Win32::{
 };
 
 use super::PlatformEvent;
-use crate::user_config::KeybindingConfig;
+use crate::{
+  app_command::InvokeCommand, common::platform::com,
+  user_config::KeybindingConfig,
+};
 
 /// Global instance of `KeyboardHook`.
 ///
@@ -362,11 +365,21 @@ impl KeyboardHook {
           return false;
         }
 
-        // TODO: Look through ActiveKeybinding to figure out if the
-        // keybinding is for unpausing?
-        if self.paused.load(std::sync::atomic::Ordering::SeqCst) {
+        // Is the WM paused and the keybinding does not a contain toggle
+        // pause command
+        if self.paused.load(std::sync::atomic::Ordering::SeqCst)
+          && longest_keybinding
+            .config
+            .commands
+            .iter()
+            .find(|command| {
+              matches!(command, InvokeCommand::WmTogglePause)
+            })
+            .is_none()
+        {
           return false;
         }
+
         // Invoke the callback function for the longest matching
         // keybinding.
         let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(
