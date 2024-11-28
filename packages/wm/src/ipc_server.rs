@@ -56,6 +56,7 @@ pub enum ClientResponseData {
   TilingDirection(TilingDirectionData),
   Windows(WindowsData),
   Workspaces(WorkspacesData),
+  Paused(bool),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -322,6 +323,9 @@ impl IpcServer {
             direction_container: direction_container.to_dto()?,
             tiling_direction: direction_container.tiling_direction(),
           })
+        }
+        QueryCommand::Paused => {
+          ClientResponseData::Paused(wm.state.paused)
         }
       },
       AppCommand::Command {

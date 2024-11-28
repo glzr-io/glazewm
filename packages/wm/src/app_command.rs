@@ -156,6 +156,8 @@ pub enum QueryCommand {
   Windows,
   /// Outputs all active workspaces.
   Workspaces,
+  /// Outputs whether the compositor is paused.
+  Paused,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
