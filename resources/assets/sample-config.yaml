@@ -186,7 +186,8 @@ keybindings:
   - commands: ['wm-enable-binding-mode --name resize']
     bindings: ['alt+r']
 
-  # Disables all keybindings until alt+shift+p is pressed again.
+  # Disables window management and all other keybindings until alt+shift+p
+  # is pressed again.
   - commands: ['wm-toggle-pause']
     bindings: ['alt+shift+p']
 
