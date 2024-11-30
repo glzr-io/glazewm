@@ -55,6 +55,11 @@ pub fn handle_window_moved_or_resized_end(
         }
       }
       WindowContainer::TilingWindow(window) => {
+        // Don't update state on resize events if the WM is paused.
+        if state.is_paused {
+          return Ok(());
+        }
+
         info!("Tiling window resized");
 
         let parent = window.parent().context("No parent.")?;

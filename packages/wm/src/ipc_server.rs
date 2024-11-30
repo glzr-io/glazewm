@@ -325,7 +325,7 @@ impl IpcServer {
           })
         }
         QueryCommand::Paused => {
-          ClientResponseData::Paused(wm.state.paused)
+          ClientResponseData::Paused(wm.state.is_paused)
         }
       },
       AppCommand::Command {
