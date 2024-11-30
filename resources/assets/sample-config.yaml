@@ -238,10 +238,10 @@ keybindings:
   - commands: ['shell-exec cmd']
     bindings: ['alt+enter']
 
-  # Focus the next/previous workspace defined in `workspaces` config.
-  - commands: ['focus --next-workspace']
+  # Focus the next/previous active workspace defined in `workspaces` config.
+  - commands: ['focus --next-active-workspace']
     bindings: ['alt+s']
-  - commands: ['focus --prev-workspace']
+  - commands: ['focus --prev-active-workspace']
     bindings: ['alt+a']
 
   # Focus the workspace that last had focus.
