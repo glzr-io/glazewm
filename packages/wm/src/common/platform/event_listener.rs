@@ -63,6 +63,7 @@ impl EventListener {
     &mut self,
     config: &UserConfig,
     binding_modes: &[BindingModeConfig],
+    paused: bool,
   ) {
     // Modify keybindings based on active binding modes.
     let keybindings = match binding_modes.first() {
@@ -70,8 +71,10 @@ impl EventListener {
       None => &config.value.keybindings,
     };
 
-    self
-      .event_window
-      .update(keybindings, config.value.general.focus_follows_cursor);
+    self.event_window.update(
+      keybindings,
+      config.value.general.focus_follows_cursor,
+      paused,
+    );
   }
 }

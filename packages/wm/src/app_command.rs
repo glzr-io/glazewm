@@ -10,7 +10,7 @@ use crate::{
   common::{
     commands::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      reload_config, shell_exec,
+      reload_config, shell_exec, toggle_pause,
     },
     Direction, LengthValue, RectDelta, TilingDirection,
   },
@@ -156,6 +156,8 @@ pub enum QueryCommand {
   Windows,
   /// Outputs all active workspaces.
   Workspaces,
+  /// Outputs whether the window manager is paused.
+  Paused,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
@@ -176,6 +178,7 @@ pub enum SubscribableEvent {
   WorkspaceActivated,
   WorkspaceDeactivated,
   WorkspaceUpdated,
+  PauseChanged,
 }
 
 #[derive(Clone, Debug, Parser, PartialEq, Serialize)]
@@ -271,6 +274,7 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
+  WmTogglePause,
 }
 
 impl InvokeCommand {
@@ -715,6 +719,7 @@ impl InvokeCommand {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
+      InvokeCommand::WmTogglePause => toggle_pause(state),
     }
   }
 

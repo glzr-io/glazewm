@@ -165,10 +165,12 @@ async fn start_wm(
           wm_event,
           WmEvent::UserConfigChanged { .. }
             | WmEvent::BindingModesChanged { .. }
+            | WmEvent::PauseChanged { .. }
         ) {
           event_listener.update(
             &config,
             &wm.state.binding_modes,
+            wm.state.paused,
           );
         }
 

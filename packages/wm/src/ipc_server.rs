@@ -56,6 +56,7 @@ pub enum ClientResponseData {
   TilingDirection(TilingDirectionData),
   Windows(WindowsData),
   Workspaces(WorkspacesData),
+  Paused(bool),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -323,6 +324,9 @@ impl IpcServer {
             tiling_direction: direction_container.tiling_direction(),
           })
         }
+        QueryCommand::Paused => {
+          ClientResponseData::Paused(wm.state.paused)
+        }
       },
       AppCommand::Command {
         subject_container_id,
@@ -463,6 +467,7 @@ impl IpcServer {
       WmEvent::WorkspaceUpdated { .. } => {
         SubscribableEvent::WorkspaceUpdated
       }
+      WmEvent::PauseChanged { .. } => SubscribableEvent::PauseChanged,
     };
 
     self.event_tx.send((event_type, event))?;

@@ -1,6 +1,6 @@
 use std::{
   collections::HashMap,
-  sync::{Arc, Mutex, OnceLock},
+  sync::{atomic::AtomicBool, Arc, Mutex, OnceLock},
 };
 
 use tokio::sync::mpsc;
@@ -17,7 +17,10 @@ use windows::Win32::{
 };
 
 use super::PlatformEvent;
-use crate::user_config::KeybindingConfig;
+use crate::{
+  app_command::InvokeCommand, common::platform::com,
+  user_config::KeybindingConfig,
+};
 
 /// Global instance of `KeyboardHook`.
 ///
@@ -52,6 +55,8 @@ pub struct KeyboardHook {
   /// final key in a key combination.
   keybindings_by_trigger_key:
     Arc<Mutex<HashMap<u16, Vec<ActiveKeybinding>>>>,
+
+  paused: AtomicBool,
 }
 
 impl KeyboardHook {
@@ -66,6 +71,7 @@ impl KeyboardHook {
       keybindings_by_trigger_key: Arc::new(Mutex::new(
         Self::keybindings_by_trigger_key(keybindings),
       )),
+      paused: AtomicBool::new(false),
     });
 
     KEYBOARD_HOOK
@@ -86,9 +92,13 @@ impl KeyboardHook {
     Ok(())
   }
 
-  pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
+  pub fn update(&self, keybindings: &Vec<KeybindingConfig>, paused: bool) {
     *self.keybindings_by_trigger_key.lock().unwrap() =
       Self::keybindings_by_trigger_key(keybindings);
+
+    self
+      .paused
+      .store(paused, std::sync::atomic::Ordering::SeqCst);
   }
 
   /// Stops the low-level keyboard hook.
@@ -352,6 +362,21 @@ impl KeyboardHook {
           });
 
         if has_modifier_keys_to_reject {
+          return false;
+        }
+
+        // Is the WM paused and the keybinding does not a contain toggle
+        // pause command
+        if self.paused.load(std::sync::atomic::Ordering::SeqCst)
+          && longest_keybinding
+            .config
+            .commands
+            .iter()
+            .find(|command| {
+              matches!(command, InvokeCommand::WmTogglePause)
+            })
+            .is_none()
+        {
           return false;
         }
 
