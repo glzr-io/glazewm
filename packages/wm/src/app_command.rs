@@ -156,7 +156,7 @@ pub enum QueryCommand {
   Windows,
   /// Outputs all active workspaces.
   Workspaces,
-  /// Outputs whether the compositor is paused.
+  /// Outputs whether the window manager is paused.
   Paused,
 }
 
