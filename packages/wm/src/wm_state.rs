@@ -55,7 +55,7 @@ pub struct WmState {
   pub ignored_windows: Vec<NativeWindow>,
 
   /// Whether the WM is paused.
-  pub paused: bool,
+  pub is_paused: bool,
 
   /// Whether the initial state has been populated.
   has_initialized: bool,
@@ -101,7 +101,7 @@ impl WmState {
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
-      paused: false,
+      is_paused: false,
       has_initialized: false,
       event_tx,
       exit_tx,
@@ -430,11 +430,12 @@ impl WmState {
 
   /// Emits a WM event through an MSPC channel.
   ///
-  /// Does not emit events while the WM is populating initial state. This
-  /// is to prevent events (e.g. workspace activation events) from being
-  /// emitted via IPC server before the initial state is prepared.
+  /// Does not emit events while the WM is paused or populating initial
+  /// state. This is to prevent events (e.g. workspace activation events)
+  /// from being emitted via IPC server before the initial state is
+  /// prepared.
   pub fn emit_event(&self, event: WmEvent) {
-    if self.has_initialized {
+    if self.has_initialized && !self.is_paused {
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
       }

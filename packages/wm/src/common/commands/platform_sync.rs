@@ -22,6 +22,13 @@ pub fn platform_sync(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Skip platform sync when the WM is paused.
+  if state.is_paused {
+    // Clear containers to redraw to avoid leaking memory.
+    state.pending_sync.containers_to_redraw.clear();
+    return Ok(());
+  }
+
   if !state.pending_sync.containers_to_redraw.is_empty() {
     redraw_containers(state, config)?;
     state.pending_sync.containers_to_redraw.clear();

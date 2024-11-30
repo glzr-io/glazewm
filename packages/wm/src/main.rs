@@ -170,7 +170,7 @@ async fn start_wm(
           event_listener.update(
             &config,
             &wm.state.binding_modes,
-            wm.state.paused,
+            wm.state.is_paused,
           );
         }
 
