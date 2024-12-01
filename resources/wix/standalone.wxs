@@ -115,7 +115,7 @@
     <Component Id="Custom_AddPathEnv" Guid="66a4be46-19ae-4ed4-944f-b01673887f64" KeyPath="yes">
       <Environment
         Id="Custom_PathEnv"
-        Value="[INSTALLFOLDER]/cli"
+        Value="[INSTALLFOLDER]\cli"
         Name="PATH"
         Permanent="no"
         Part="first"
