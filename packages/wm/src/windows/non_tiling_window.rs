@@ -118,7 +118,6 @@ impl NonTilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
-      has_custom_floating_placement: self.has_custom_floating_placement(),
       handle: self.native().handle,
       title: self.native().title()?,
       class_name: self.native().class_name()?,
