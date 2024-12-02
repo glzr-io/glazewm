@@ -417,6 +417,10 @@ pub struct GeneralConfig {
   /// How windows should be hidden when switching workspaces.
   #[serde(default)]
   pub hide_method: HideMethod,
+
+  /// Affects which windows get shown in the native Windows taskbar.
+  #[serde(default = "default_bool::<false>")]
+  pub show_all_in_taskbar: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]

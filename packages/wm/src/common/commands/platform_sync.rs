@@ -153,6 +153,18 @@ fn redraw_containers(
     ) {
       warn!("Failed to set window position: {}", err);
     }
+
+    let taskbar_visibility = if config.value.general.show_all_in_taskbar {
+      true
+    } else {
+      is_visible
+    };
+
+    if let Err(err) =
+      window.native().set_taskbar_visibility(taskbar_visibility)
+    {
+      warn!("Failed to set taskbar visibility: {}", err);
+    }
   }
 
   Ok(())

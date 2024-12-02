@@ -28,11 +28,15 @@ general:
     trigger: 'monitor_focus'
 
   # How windows should be hidden when switching workspaces.
-  # - 'cloak': Recommended. Hides windows with no animation and keeps them
-  # visible in the taskbar.
+  # - 'cloak': Recommended. Hides windows with no animation.
   # - 'hide': Legacy method (v3.5 and earlier) that has a brief animation,
   # but has stability issues with some apps.
   hide_method: 'cloak'
+
+  # Affects which windows get shown in the native Windows taskbar.
+  # - 'true': Show all windows (regardless of workspace).
+  # - 'false': Only show windows from the currently shown workspaces.
+  show_all_in_taskbar: false
 
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
