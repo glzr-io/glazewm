@@ -101,8 +101,12 @@ fn set_tiling(
   )?;
 
   if let Some(insertion_target) = &insertion_target {
-    let size_scale = insertion_target.prev_sibling_count as f32
-      / tiling_window.tiling_siblings().count() as f32;
+    let size_scale = (insertion_target.prev_sibling_count + 1) as f32
+      / (tiling_window.tiling_siblings().count() + 1) as f32;
+
+    // Scale the window's previous size based on the current number of
+    // siblings. E.g. if the window was 0.5 with 1 sibling, and now has 2
+    // siblings, scale to 0.5 * (2/3) to maintain proportional sizing.
     let target_size = insertion_target.prev_tiling_size * size_scale;
     resize_tiling_container(&tiling_window.clone().into(), target_size);
   }
