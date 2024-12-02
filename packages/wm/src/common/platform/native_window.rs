@@ -18,7 +18,9 @@ use windows::{
       },
     },
     UI::{
-      Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_MOUSE},
+      Input::KeyboardAndMouse::{
+        SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
+      },
       Shell::{ITaskbarList, TaskbarList},
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
@@ -44,6 +46,10 @@ use crate::{
   user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
+
+/// Magic number used to identify programmatic mouse inputs from our own
+/// process.
+pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
 #[derive(Debug, Clone)]
 pub struct NativeWindow {
@@ -288,6 +294,12 @@ impl NativeWindow {
   pub fn set_foreground(&self) -> anyhow::Result<()> {
     let input = [INPUT {
       r#type: INPUT_MOUSE,
+      Anonymous: INPUT_0 {
+        mi: MOUSEINPUT {
+          dwExtraInfo: FOREGROUND_INPUT_IDENTIFIER as usize,
+          ..Default::default()
+        },
+      },
       ..Default::default()
     }];
 

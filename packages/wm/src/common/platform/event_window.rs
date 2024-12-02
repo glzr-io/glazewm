@@ -34,7 +34,10 @@ use windows::Win32::{
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
 };
-use crate::{common::Point, user_config::KeybindingConfig};
+use crate::{
+  common::{platform::FOREGROUND_INPUT_IDENTIFIER, Point},
+  user_config::KeybindingConfig,
+};
 
 /// Global instance of sender for platform events.
 ///
@@ -266,13 +269,14 @@ fn handle_input_msg(
     )
   };
 
-  // Ignore if data is invalid or not a mouse event. The `hDevice` check
-  // ignores programmatic mouse inputs via `SendInput` (this caused issues
-  // since `NativeWindow::set_foreground` simulates a mouse input).
+  // Ignore if data is invalid or not a mouse event. Inputs from our own
+  // process are ignored, which would cause issues since
+  // `NativeWindow::set_foreground` simulates a mouse input.
   if res_size == 0
     || raw_input_size == u32::MAX
     || raw_input.header.dwType != RIM_TYPEMOUSE.0
-    || raw_input.header.hDevice.is_invalid()
+    || unsafe { raw_input.data.mouse.ulExtraInformation }
+      == FOREGROUND_INPUT_IDENTIFIER
   {
     return Ok(());
   }
