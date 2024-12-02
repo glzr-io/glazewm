@@ -502,9 +502,12 @@ impl WmState {
       .or(Some(workspace.into()))
   }
 
-  pub fn containers_at_point(&self, point: &Point) -> Vec<Container> {
-    self
-      .root_container
+  pub fn containers_at_point(
+    &self,
+    origin_container: Container,
+    point: &Point,
+  ) -> Vec<Container> {
+    origin_container
       .descendants()
       .filter(|descendant| {
         descendant
