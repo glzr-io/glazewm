@@ -10,6 +10,7 @@ pub fn run_cleanup(managed_windows: Vec<NativeWindow>) {
       warn!("Failed to show window: {:?}", err);
     }
 
+    _ = window.set_taskbar_visibility(true);
     _ = window.set_border_color(None);
   }
 }

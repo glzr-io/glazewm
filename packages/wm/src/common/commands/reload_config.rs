@@ -37,10 +37,21 @@ pub fn reload_config(
 
   // Ensure all windows are shown when hide method is changed.
   if old_config.general.hide_method != config.value.general.hide_method
-    && old_config.general.hide_method == HideMethod::Hide
+    && config.value.general.hide_method == HideMethod::Cloak
   {
     for window in state.windows() {
       let _ = window.native().show();
+    }
+  }
+
+  // Ensure all windows are shown in taskbar when `show_all_in_taskbar` is
+  // changed.
+  if old_config.general.show_all_in_taskbar
+    != config.value.general.show_all_in_taskbar
+    && config.value.general.show_all_in_taskbar
+  {
+    for window in state.windows() {
+      let _ = window.native().set_taskbar_visibility(true);
     }
   }
 

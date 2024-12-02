@@ -33,7 +33,8 @@ general:
   # but has stability issues with some apps.
   hide_method: 'cloak'
 
-  # Affects which windows get shown in the native Windows taskbar.
+  # Affects which windows get shown in the native Windows taskbar. Has no
+  # effect if `hide_method: 'hide'`.
   # - 'true': Show all windows (regardless of workspace).
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
