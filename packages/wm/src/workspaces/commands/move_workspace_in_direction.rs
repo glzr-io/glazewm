@@ -51,6 +51,7 @@ pub fn move_workspace_in_direction(
       );
     }
 
+    state.pending_sync.cursor_jump = true;
     state
       .pending_sync
       .containers_to_redraw
