@@ -3,12 +3,15 @@ use tracing::info;
 
 use crate::{
   containers::{
-    commands::{move_container_within_tree, replace_container},
-    traits::CommonGetters,
+    commands::{
+      move_container_within_tree, replace_container,
+      resize_tiling_container,
+    },
+    traits::{CommonGetters, TilingSizeGetters},
     WindowContainer,
   },
   user_config::UserConfig,
-  windows::{traits::WindowGetters, WindowState},
+  windows::{traits::WindowGetters, InsertionTarget, WindowState},
   wm_state::WmState,
 };
 
@@ -49,17 +52,26 @@ fn set_tiling(
   let workspace =
     window.workspace().context("Window has no workspace.")?;
 
-  // Get the position in the tree to insert the new tiling window. This
-  // will be the window's previous tiling position if it has one, or
-  // instead beside the last focused tiling window in the workspace.
-  let (target_parent, target_index) = window
-    .insertion_target()
-    // Check whether insertion target is still valid.
-    .filter(|(insertion_target, _)| {
+  // Check whether insertion target is still valid.
+  let insertion_target =
+    window.insertion_target().filter(|insertion_target| {
       insertion_target
+        .target_parent
         .workspace()
         .map(|workspace| workspace.is_displayed())
         .unwrap_or(false)
+    });
+
+  // Get the position in the tree to insert the new tiling window. This
+  // will be the window's previous tiling position if it has one, or
+  // instead beside the last focused tiling window in the workspace.
+  let (target_parent, target_index) = insertion_target
+    .as_ref()
+    .map(|insertion_target| {
+      (
+        insertion_target.target_parent.clone(),
+        insertion_target.target_index,
+      )
     })
     // Fallback to the last focused tiling window within the workspace.
     .or_else(|| {
@@ -77,7 +89,7 @@ fn set_tiling(
   // Replace the original window with the created tiling window.
   replace_container(
     tiling_window.clone().into(),
-    window.parent().context("No parent")?,
+    window.parent().context("No parent.")?,
     window.index(),
   )?;
 
@@ -87,6 +99,13 @@ fn set_tiling(
     target_index,
     state,
   )?;
+
+  if let Some(insertion_target) = &insertion_target {
+    let size_scale = insertion_target.prev_sibling_count as f32
+      / tiling_window.tiling_siblings().count() as f32;
+    let target_size = insertion_target.prev_tiling_size * size_scale;
+    resize_tiling_container(&tiling_window.clone().into(), target_size);
+  }
 
   state
     .pending_sync
@@ -137,9 +156,15 @@ fn set_non_tiling(
       let parent = window.parent().context("No parent")?;
       let workspace = window.workspace().context("No workspace.")?;
 
-      let insertion_target = (parent.clone(), window.index());
-      let non_tiling_window =
-        window.to_non_tiling(target_state.clone(), Some(insertion_target));
+      let non_tiling_window = window.to_non_tiling(
+        target_state.clone(),
+        Some(InsertionTarget {
+          target_parent: parent.clone(),
+          target_index: window.index(),
+          prev_tiling_size: window.tiling_size(),
+          prev_sibling_count: window.tiling_siblings().count(),
+        }),
+      );
 
       // Non-tiling windows should always be direct children of the
       // workspace.

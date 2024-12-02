@@ -8,7 +8,8 @@ use anyhow::Context;
 use uuid::Uuid;
 
 use super::{
-  traits::WindowGetters, NonTilingWindow, WindowDto, WindowState,
+  traits::WindowGetters, InsertionTarget, NonTilingWindow, WindowDto,
+  WindowState,
 };
 use crate::{
   common::{
@@ -88,7 +89,7 @@ impl TilingWindow {
   pub fn to_non_tiling(
     &self,
     state: WindowState,
-    insertion_target: Option<(Container, usize)>,
+    insertion_target: Option<InsertionTarget>,
   ) -> NonTilingWindow {
     NonTilingWindow::new(
       Some(self.id()),
