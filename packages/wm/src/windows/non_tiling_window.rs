@@ -8,7 +8,8 @@ use anyhow::Context;
 use uuid::Uuid;
 
 use super::{
-  traits::WindowGetters, ActiveDrag, TilingWindow, WindowDto, WindowState,
+  traits::WindowGetters, ActiveDrag, InsertionTarget, TilingWindow,
+  WindowDto, WindowState,
 };
 use crate::{
   common::{platform::NativeWindow, DisplayState, Rect, RectDelta},
@@ -32,7 +33,7 @@ struct NonTilingWindowInner {
   native: NativeWindow,
   state: WindowState,
   prev_state: Option<WindowState>,
-  insertion_target: Option<(Container, usize)>,
+  insertion_target: Option<InsertionTarget>,
   display_state: DisplayState,
   border_delta: RectDelta,
   has_pending_dpi_adjustment: bool,
@@ -49,7 +50,7 @@ impl NonTilingWindow {
     state: WindowState,
     prev_state: Option<WindowState>,
     border_delta: RectDelta,
-    insertion_target: Option<(Container, usize)>,
+    insertion_target: Option<InsertionTarget>,
     floating_placement: Rect,
     has_custom_floating_placement: bool,
     done_window_rules: Vec<WindowRuleConfig>,
@@ -76,13 +77,13 @@ impl NonTilingWindow {
     Self(Rc::new(RefCell::new(window)))
   }
 
-  pub fn insertion_target(&self) -> Option<(Container, usize)> {
+  pub fn insertion_target(&self) -> Option<InsertionTarget> {
     self.0.borrow().insertion_target.clone()
   }
 
   pub fn set_insertion_target(
     &self,
-    insertion_target: Option<(Container, usize)>,
+    insertion_target: Option<InsertionTarget>,
   ) {
     self.0.borrow_mut().insertion_target = insertion_target;
   }
