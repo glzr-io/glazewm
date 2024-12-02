@@ -105,6 +105,13 @@ pub trait WindowGetters {
 
   fn set_floating_placement(&self, floating_placement: Rect);
 
+  fn has_custom_floating_placement(&self) -> bool;
+
+  fn set_has_custom_floating_placement(
+    &self,
+    has_custom_floating_placement: bool,
+  );
+
   fn done_window_rules(&self) -> Vec<WindowRuleConfig>;
 
   fn set_done_window_rules(
@@ -180,6 +187,18 @@ macro_rules! impl_window_getters {
 
       fn set_floating_placement(&self, floating_placement: Rect) {
         self.0.borrow_mut().floating_placement = floating_placement;
+      }
+
+      fn has_custom_floating_placement(&self) -> bool {
+        self.0.borrow().has_custom_floating_placement.clone()
+      }
+
+      fn set_has_custom_floating_placement(
+        &self,
+        has_custom_floating_placement: bool,
+      ) {
+        self.0.borrow_mut().has_custom_floating_placement =
+          has_custom_floating_placement;
       }
 
       fn done_window_rules(&self) -> Vec<WindowRuleConfig> {

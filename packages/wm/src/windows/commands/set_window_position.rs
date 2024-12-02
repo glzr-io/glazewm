@@ -10,47 +10,35 @@ use crate::{
   wm_state::WmState,
 };
 
-pub fn set_window_position(
-  window: WindowContainer,
-  target_x_pos: Option<i32>,
-  target_y_pos: Option<i32>,
-  state: &mut WmState,
-) -> anyhow::Result<()> {
-  if matches!(window.state(), WindowState::Floating(_)) {
-    let window_rect = window.floating_placement();
-    let new_x_pos = target_x_pos.unwrap_or(window_rect.x());
-    let new_y_pos = target_y_pos.unwrap_or(window_rect.y());
-    window.set_floating_placement(Rect::from_xy(
-      new_x_pos,
-      new_y_pos,
-      window.floating_placement().width(),
-      window.floating_placement().height(),
-    ));
-
-    state
-      .pending_sync
-      .containers_to_redraw
-      .push(window.clone().into());
-  }
-
-  Ok(())
+pub enum WindowPositionTarget {
+  Centered,
+  Coordinates(Option<i32>, Option<i32>),
 }
 
-pub fn set_window_position_to_center(
+pub fn set_window_position(
   window: WindowContainer,
+  target: WindowPositionTarget,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   if matches!(window.state(), WindowState::Floating(_)) {
-    let window_rect = window.floating_placement();
-    let workspace = window.workspace().context("no workspace find.")?;
-    window.set_floating_placement(
-      window_rect.translate_to_center(&workspace.to_rect()?),
-    );
+    let placement = window.floating_placement();
 
-    state
-      .pending_sync
-      .containers_to_redraw
-      .push(window.clone().into());
+    let new_placement = match target {
+      WindowPositionTarget::Centered => placement.translate_to_center(
+        &window.workspace().context("No workspace.")?.to_rect()?,
+      ),
+      WindowPositionTarget::Coordinates(target_x, target_y) => {
+        Rect::from_xy(
+          target_x.unwrap_or(placement.x()),
+          target_y.unwrap_or(placement.y()),
+          placement.width(),
+          placement.height(),
+        )
+      }
+    };
+
+    window.set_floating_placement(new_placement);
+    state.pending_sync.containers_to_redraw.push(window.into());
   }
 
   Ok(())
