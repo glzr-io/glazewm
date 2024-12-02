@@ -26,8 +26,8 @@ use crate::{
   windows::{
     commands::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_position_to_center,
-      set_window_size, update_window_state,
+      resize_window, set_window_position, set_window_size,
+      update_window_state, WindowPositionTarget,
     },
     traits::WindowGetters,
     WindowState,
@@ -447,11 +447,17 @@ impl InvokeCommand {
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
           Ok(window) => match args.centered {
-            true => set_window_position_to_center(window, state),
+            true => set_window_position(
+              window,
+              WindowPositionTarget::Centered,
+              state,
+            ),
             false => set_window_position(
               window,
-              args.x_pos.clone(),
-              args.y_pos.clone(),
+              WindowPositionTarget::Coordinates(
+                args.x_pos.clone(),
+                args.y_pos.clone(),
+              ),
               state,
             ),
           },
@@ -480,12 +486,12 @@ impl InvokeCommand {
         Ok(window) => {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
-          let is_centered = centered.unwrap_or(floating_defaults.centered);
+          let centered = centered.unwrap_or(floating_defaults.centered);
 
           let window = update_window_state(
             window.clone(),
             WindowState::Floating(FloatingStateConfig {
-              centered: is_centered,
+              centered,
               shown_on_top: shown_on_top
                 .unwrap_or(floating_defaults.shown_on_top),
             }),
@@ -493,24 +499,34 @@ impl InvokeCommand {
             config,
           )?;
 
-          if width.is_some() || height.is_some() {
-            set_window_size(
-              window.clone(),
-              width.clone(),
-              height.clone(),
-              state,
-            )?;
-          }
+          // Allow size and position to be set if window has not previously
+          // been manually placed.
+          if !window.has_custom_floating_placement() {
+            if width.is_some() || height.is_some() {
+              set_window_size(
+                window.clone(),
+                width.clone(),
+                height.clone(),
+                state,
+              )?;
+            }
 
-          if is_centered {
-            set_window_position_to_center(window, state)?;
-          } else if x_pos.is_some() || y_pos.is_some() {
-            set_window_position(
-              window.clone(),
-              x_pos.clone(),
-              y_pos.clone(),
-              state,
-            )?;
+            if centered {
+              set_window_position(
+                window,
+                WindowPositionTarget::Centered,
+                state,
+              )?;
+            } else if x_pos.is_some() || y_pos.is_some() {
+              set_window_position(
+                window,
+                WindowPositionTarget::Coordinates(
+                  x_pos.clone(),
+                  y_pos.clone(),
+                ),
+                state,
+              )?;
+            }
           }
 
           Ok(())
@@ -605,15 +621,12 @@ impl InvokeCommand {
           let floating_defaults =
             &config.value.window_behavior.state_defaults.floating;
 
-          let is_centered = centered.unwrap_or(floating_defaults.centered);
+          let centered = centered.unwrap_or(floating_defaults.centered);
           let target_state = WindowState::Floating(FloatingStateConfig {
-            centered: is_centered,
+            centered,
             shown_on_top: shown_on_top
               .unwrap_or(floating_defaults.shown_on_top),
           });
-
-          let has_custom_floating_placement =
-            window.has_custom_floating_placement();
 
           let window = update_window_state(
             window.clone(),
@@ -622,8 +635,12 @@ impl InvokeCommand {
             config,
           )?;
 
-          if !has_custom_floating_placement && is_centered {
-            set_window_position_to_center(window, state)?;
+          if !window.has_custom_floating_placement() && centered {
+            set_window_position(
+              window,
+              WindowPositionTarget::Centered,
+              state,
+            )?;
           }
 
           Ok(())
