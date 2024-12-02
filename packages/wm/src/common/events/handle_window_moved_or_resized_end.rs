@@ -107,7 +107,7 @@ fn drop_as_tiling_window(
   // Get the workspace, split containers, and other windows under the
   // dragged window.
   let containers_at_pos = state
-    .containers_at_point(&mouse_pos)
+    .containers_at_point(workspace.clone().into(), &mouse_pos)
     .into_iter()
     .filter(|container| container.id() != moved_window.id());
 
