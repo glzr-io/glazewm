@@ -10,12 +10,16 @@ use windows::{
       DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
       DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
     },
-    System::Threading::{
-      OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-      PROCESS_QUERY_LIMITED_INFORMATION,
+    System::{
+      Com::{CoCreateInstance, CLSCTX_SERVER},
+      Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+      },
     },
     UI::{
       Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_MOUSE},
+      Shell::{ITaskbarList, TaskbarList},
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
         GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
@@ -567,6 +571,29 @@ impl NativeWindow {
     })
   }
 
+  /// Adds or removes the window from the native taskbar.
+  ///
+  /// Hidden windows (SW_HIDE) cannot be forced to be shown in the taskbar.
+  /// Cloaked windows are normally always shown in the taskbar, but can be
+  /// manually toggled.
+  pub fn set_taskbar_visibility(
+    &self,
+    visible: bool,
+  ) -> anyhow::Result<()> {
+    COM_INIT.with(|_| -> anyhow::Result<()> {
+      let taskbar_list: ITaskbarList =
+        unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_SERVER)? };
+
+      if visible {
+        unsafe { taskbar_list.AddTab(HWND(self.handle))? };
+      } else {
+        unsafe { taskbar_list.DeleteTab(HWND(self.handle))? };
+      }
+
+      Ok(())
+    })
+  }
+
   pub fn set_position(
     &self,
     state: &WindowState,
@@ -671,10 +698,8 @@ impl NativeWindow {
       }
     };
 
-    // Whether to show or hide the window.
-    self.set_visible(is_visible, hide_method)?;
-
-    Ok(())
+    // Whether to hide or show the window.
+    self.set_visible(is_visible, hide_method)
   }
 }
 

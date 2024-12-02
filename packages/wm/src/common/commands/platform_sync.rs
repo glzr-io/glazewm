@@ -11,7 +11,8 @@ use crate::{
     Container, WindowContainer,
   },
   user_config::{
-    CornerStyle, CursorJumpTrigger, UserConfig, WindowEffectConfig,
+    CornerStyle, CursorJumpTrigger, HideMethod, UserConfig,
+    WindowEffectConfig,
   },
   windows::traits::WindowGetters,
   wm_event::WmEvent,
@@ -152,6 +153,19 @@ fn redraw_containers(
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
+    }
+
+    // Skip setting taskbar visibility if the window is hidden (has no
+    // effect). Since cloaked windows are normally always visible in the
+    // taskbar, we only need to set visibility if `show_all_in_taskbar` is
+    // `false`.
+    if config.value.general.hide_method == HideMethod::Cloak
+      && !config.value.general.show_all_in_taskbar
+    {
+      if let Err(err) = window.native().set_taskbar_visibility(is_visible)
+      {
+        warn!("Failed to set taskbar visibility: {}", err);
+      }
     }
   }
 
