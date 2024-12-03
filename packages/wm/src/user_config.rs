@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   app_command::InvokeCommand,
-  common::{Color, LengthValue, RectDelta, TransparencyValue},
+  common::{Color, LengthValue, OpacityValue, RectDelta},
   containers::{traits::CommonGetters, WindowContainer},
   monitors::Monitor,
   windows::traits::WindowGetters,
@@ -569,9 +569,9 @@ pub struct TransparencyEffectConfig {
   #[serde(default = "default_bool::<false>")]
   pub enabled: bool,
 
-  /// Amount of transparency to apply.
+  /// The opacity to apply.
   #[serde(default)]
-  pub transparency: TransparencyValue,
+  pub opacity: OpacityValue,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

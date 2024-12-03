@@ -46,7 +46,7 @@ use windows::{
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
-  common::{Color, LengthValue, Memo, Rect, RectDelta, TransparencyValue},
+  common::{Color, LengthValue, Memo, OpacityValue, Rect, RectDelta},
   user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
@@ -398,9 +398,9 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_transparency(
+  pub fn set_opacity(
     &self,
-    transparency: TransparencyValue,
+    opacity_value: OpacityValue,
   ) -> anyhow::Result<()> {
     // Make the window layered if it isn't already.
     let ex_style =
@@ -417,7 +417,7 @@ impl NativeWindow {
       }
     }
 
-    // Get the window's transparency information.
+    // Get the window's opacity information.
     let mut previous_opacity = MaybeUninit::uninit();
     let mut flag = MaybeUninit::uninit();
     unsafe {
@@ -439,22 +439,20 @@ impl NativeWindow {
     }
 
     // Calculate the new opacity value.
-    let transparency_value = transparency.to_exact();
-    let new_opacity = if transparency.is_delta {
-      // Flip the sign of the delta to get the *opacity* delta.
-      // TODO: Use saturating_sub_signed when it's stable
-      if !transparency.delta_sign {
-        // -(-x) is x
-        previous_opacity.saturating_add(transparency_value)
+    let exact_opacity_value = opacity_value.to_exact();
+    let new_opacity = if opacity_value.is_delta {
+      // TODO: Enable feature for saturing_sub_signed
+      // TODO: Use a signed value for delta
+      if !opacity_value.delta_sign {
+        previous_opacity.saturating_sub(exact_opacity_value)
       } else {
-        // -(x) is -x
-        previous_opacity.saturating_sub(transparency_value)
+        previous_opacity.saturating_add(exact_opacity_value)
       }
     } else {
-      255u8.saturating_sub(transparency_value)
+      exact_opacity_value
     };
 
-    // Set new transparency if needed.
+    // Set the new opacity if needed.
     if new_opacity != previous_opacity {
       unsafe {
         SetLayeredWindowAttributes(

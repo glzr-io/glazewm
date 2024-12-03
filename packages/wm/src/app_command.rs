@@ -12,7 +12,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec, toggle_pause,
     },
-    Direction, LengthValue, RectDelta, TilingDirection, TransparencyValue,
+    Direction, LengthValue, OpacityValue, RectDelta, TilingDirection,
   },
   containers::{
     commands::{
@@ -228,7 +228,7 @@ pub enum InvokeCommand {
   },
   SetTransparency {
     #[clap(required = true, allow_hyphen_values = true)]
-    transparency: TransparencyValue,
+    opacity: OpacityValue,
   },
   ShellExec {
     #[clap(long, action)]
@@ -606,10 +606,10 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTransparency { transparency } => {
+      InvokeCommand::SetTransparency { opacity } => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            _ = window.native().set_transparency(transparency.clone());
+            _ = window.native().set_opacity(opacity.clone());
             Ok(())
           }
           _ => Ok(()),
