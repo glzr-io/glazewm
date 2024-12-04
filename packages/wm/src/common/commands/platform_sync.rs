@@ -5,7 +5,7 @@ use tokio::task;
 use tracing::warn;
 
 use crate::{
-  common::{platform::Platform, DisplayState, OpacityUnit, OpacityValue},
+  common::{platform::Platform, DisplayState, OpacityValue},
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
@@ -300,9 +300,7 @@ fn apply_transparency_effect(
       // enabled in one of the two window effect configurations. In
       // this case, reset the opacity to default.
       OpacityValue {
-        amount: 255.0,
-        unit: OpacityUnit::Alpha,
-        delta_sign: false,
+        amount: 255,
         is_delta: false,
       }
     })

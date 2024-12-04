@@ -1,5 +1,3 @@
-use std::mem::MaybeUninit;
-
 use anyhow::{bail, Context};
 use tracing::warn;
 use windows::{
@@ -31,14 +29,14 @@ use windows::{
         SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOPMOST, LWA_ALPHA, LWA_COLORKEY,
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
-        SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE,
-        SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE,
-        WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION,
-        WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        HWND_NOTOPMOST, HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS,
+        LWA_ALPHA, LWA_COLORKEY, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
+        WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -407,7 +405,6 @@ impl NativeWindow {
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
     if ex_style & WS_EX_LAYERED.0 as isize == 0 {
-      // Window doesn't have the layered style, so add it.
       unsafe {
         SetWindowLongPtrW(
           HWND(self.handle),
@@ -418,18 +415,16 @@ impl NativeWindow {
     }
 
     // Get the window's opacity information.
-    let mut previous_opacity = MaybeUninit::uninit();
-    let mut flag = MaybeUninit::uninit();
+    let mut previous_opacity = u8::MAX; // Use maximum opacity as a default.
+    let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
     unsafe {
       GetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        Some(previous_opacity.as_mut_ptr()),
-        Some(flag.as_mut_ptr()),
+        Some(&mut previous_opacity),
+        Some(&mut flag),
       )?;
     }
-    let previous_opacity = unsafe { previous_opacity.assume_init() };
-    let flag = unsafe { flag.assume_init() };
 
     // Fail if window uses color key.
     if flag.contains(LWA_COLORKEY) {
@@ -439,18 +434,15 @@ impl NativeWindow {
     }
 
     // Calculate the new opacity value.
-    let exact_opacity_value = opacity_value.to_exact();
     let new_opacity = if opacity_value.is_delta {
-      // TODO: Enable feature for saturing_sub_signed
-      // TODO: Use a signed value for delta
-      if !opacity_value.delta_sign {
-        previous_opacity.saturating_sub(exact_opacity_value)
-      } else {
-        previous_opacity.saturating_add(exact_opacity_value)
-      }
+      previous_opacity as i16 + opacity_value.amount
     } else {
-      exact_opacity_value
+      opacity_value.amount
     };
+
+    // Clamp new_opacity to a u8.
+    let new_opacity =
+      new_opacity.clamp(u8::MIN as i16, u8::MAX as i16) as u8;
 
     // Set the new opacity if needed.
     if new_opacity != previous_opacity {

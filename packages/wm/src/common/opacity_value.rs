@@ -1,40 +1,20 @@
 use std::str::FromStr;
 
-use anyhow::{bail, Context};
+use anyhow::Context;
 use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OpacityValue {
-  pub amount: f32,
-  pub unit: OpacityUnit,
+  pub amount: i16,
   pub is_delta: bool,
-  pub delta_sign: bool,
-}
-
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OpacityUnit {
-  Alpha,
-  Percentage,
-}
-
-impl OpacityValue {
-  pub fn to_exact(&self) -> u8 {
-    match self.unit {
-      OpacityUnit::Alpha => self.amount as u8,
-      OpacityUnit::Percentage => (self.amount * 255.0) as u8,
-    }
-  }
 }
 
 impl Default for OpacityValue {
   fn default() -> Self {
     Self {
-      amount: 255.0,
-      unit: OpacityUnit::Alpha,
+      amount: 255,
       is_delta: false,
-      delta_sign: false,
     }
   }
 }
@@ -48,13 +28,11 @@ impl FromStr for OpacityValue {
   ///
   /// Example:
   /// ```
-  /// # use wm::common::{OpacityValue, OpacityUnit};
+  /// # use wm::common::{OpacityValue};
   /// # use std::str::FromStr;
   /// let check = OpacityValue {
-  ///   amount: 0.75,
-  ///   unit: OpacityUnit::Percentage,
+  ///   amount: 191,
   ///   is_delta: false,
-  ///   delta_sign: false,
   /// };
   /// let parsed = OpacityValue::from_str("75%");
   /// assert_eq!(parsed.unwrap(), check);
@@ -72,34 +50,27 @@ impl FromStr for OpacityValue {
       .context(err_msg.to_string())?;
 
     let sign_str = captures.get(1).map_or("", |m| m.as_str());
-    let delta_sign = sign_str == "+";
 
-    // interpret value as a delta if it explicitly starts with a sign
+    // Interpret value as a delta if it explicitly starts with a sign.
     let is_delta = !sign_str.is_empty();
 
     let unit_str = captures.get(3).map_or("", |m| m.as_str());
-    let unit = match unit_str {
-      "" => OpacityUnit::Alpha,
-      "%" => OpacityUnit::Percentage,
-      _ => bail!(err_msg),
-    };
 
     let amount = captures
       .get(2)
       .and_then(|amount_str| f32::from_str(amount_str.into()).ok())
-      // Store percentage units as a fraction of 1.
-      .map(|amount| match unit {
-        OpacityUnit::Alpha => amount,
-        OpacityUnit::Percentage => amount / 100.0,
+      // Convert percentages to 0-255 range.
+      .map(|amount| match unit_str {
+        "%" => (amount / 100.0 * 255.0).round() as i16,
+        _ => amount.round() as i16,
       })
+      // Negate the value if it's a negative delta.
+      // Since an explicit sign tells us it's a delta,
+      // a negative Alpha value is impossible.
+      .map(|amount| if sign_str == "-" { -amount } else { amount })
       .context(err_msg.to_string())?;
 
-    Ok(OpacityValue {
-      amount,
-      unit,
-      is_delta,
-      delta_sign,
-    })
+    Ok(OpacityValue { amount, is_delta })
   }
 }
 
@@ -112,26 +83,14 @@ impl<'de> Deserialize<'de> for OpacityValue {
     #[derive(Deserialize)]
     #[serde(untagged, rename_all = "camelCase")]
     enum OpacityValueDe {
-      Struct {
-        amount: f32,
-        unit: OpacityUnit,
-        is_delta: bool,
-        delta_sign: bool,
-      },
+      Struct { amount: f32, is_delta: bool },
       String(String),
     }
 
     match OpacityValueDe::deserialize(deserializer)? {
-      OpacityValueDe::Struct {
-        amount,
-        unit,
+      OpacityValueDe::Struct { amount, is_delta } => Ok(Self {
+        amount: amount as i16,
         is_delta,
-        delta_sign,
-      } => Ok(Self {
-        amount,
-        unit,
-        is_delta,
-        delta_sign,
       }),
       OpacityValueDe::String(str) => {
         Self::from_str(&str).map_err(serde::de::Error::custom)
