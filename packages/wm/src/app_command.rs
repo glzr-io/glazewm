@@ -226,7 +226,7 @@ pub enum InvokeCommand {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
   },
-  SetTransparency {
+  SetOpacity {
     #[clap(required = true, allow_hyphen_values = true)]
     opacity: OpacityValue,
   },
@@ -606,7 +606,7 @@ impl InvokeCommand {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTransparency { opacity } => {
+      InvokeCommand::SetOpacity { opacity } => {
         match subject_container.as_window_container() {
           Ok(window) => {
             _ = window.native().set_opacity(opacity.clone());
