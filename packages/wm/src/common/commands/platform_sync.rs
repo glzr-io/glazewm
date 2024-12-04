@@ -5,7 +5,7 @@ use tokio::task;
 use tracing::warn;
 
 use crate::{
-  common::{platform::Platform, DisplayState},
+  common::{platform::Platform, DisplayState, OpacityValue},
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
@@ -211,8 +211,6 @@ fn apply_window_effects(
   is_focused: bool,
   config: &UserConfig,
 ) {
-  // TODO: Be able to add transparency to windows.
-
   let window_effects = &config.value.window_effects;
 
   let effect_config = match is_focused {
@@ -237,6 +235,12 @@ fn apply_window_effects(
     || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(&window, effect_config);
+  }
+
+  if window_effects.focused_window.transparency.enabled
+    || window_effects.other_windows.transparency.enabled
+  {
+    apply_transparency_effect(&window, effect_config);
   }
 }
 
@@ -281,4 +285,23 @@ fn apply_corner_effect(
   };
 
   _ = window.native().set_corner_style(corner_style);
+}
+
+fn apply_transparency_effect(
+  window: &WindowContainer,
+  effect_config: &WindowEffectConfig,
+) {
+  _ = window
+    .native()
+    .set_opacity(if effect_config.transparency.enabled {
+      effect_config.transparency.opacity.clone()
+    } else {
+      // This code is only reached if the transparency effect is only
+      // enabled in one of the two window effect configurations. In
+      // this case, reset the opacity to default.
+      OpacityValue {
+        amount: 255,
+        is_delta: false,
+      }
+    })
 }
