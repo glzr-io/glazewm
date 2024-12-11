@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "keybinding": {
+      "type": "object",
+      "description": "Keyboard shortcut configuration",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Commands to execute when the keybinding is triggered. Multiple commands can be run in sequence"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Key combinations that trigger the commands. For German/US international keyboards, use 'ralt+ctrl' instead of 'ralt' for right-side alt key"
+        }
+      },
+      "required": ["commands", "bindings"]
+    },
+    "windowEffect": {
+      "type": "object",
+      "description": "Visual effects that can be applied to windows. Currently only available on Windows 11",
+      "properties": {
+        "border": {
+          "type": "object",
+          "description": "Window border settings (Windows 11 only)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "color": {
+              "type": "string",
+              "description": "Color of the window border in hex format (e.g. '#8dbcff')",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            }
+          }
+        },
+        "hide_title_bar": {
+          "type": "object",
+          "description": "Remove the title bar from the window's frame. Note that this can cause rendering issues for some applications",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "corner_style": {
+          "type": "object",
+          "description": "Window corner style settings (Windows 11 only)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "style": {
+              "type": "string",
+              "enum": ["square", "rounded", "small_rounded"],
+              "description": "Corner style of the window frame",
+              "default": "square"
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "general": {
+      "type": "object",
+      "description": "General window manager settings",
+      "properties": {
+        "startup_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Commands to run when the WM has started (e.g. 'shell-exec zebar' to launch Zebar)"
+        },
+        "shutdown_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Commands to run just before the WM is shutdown (e.g. 'shell-exec taskkill /IM zebar.exe /F')"
+        },
+        "config_reload_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Commands to run after the WM config is reloaded"
+        },
+        "focus_follows_cursor": {
+          "type": "boolean",
+          "description": "Whether to automatically focus windows underneath the cursor",
+          "default": false
+        },
+        "toggle_workspace_on_refocus": {
+          "type": "boolean",
+          "description": "Whether to switch back and forth between previously focused workspace when focusing current workspace",
+          "default": false
+        },
+        "cursor_jump": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether to automatically move the cursor on the specified trigger",
+              "default": true
+            },
+            "trigger": {
+              "type": "string",
+              "enum": ["monitor_focus", "window_focus"],
+              "description": "Trigger for cursor jump: 'monitor_focus' (jump when focus changes between monitors) or 'window_focus' (jump when focus changes between windows)",
+              "default": "monitor_focus"
+            }
+          },
+          "required": ["enabled", "trigger"]
+        },
+        "hide_method": {
+          "type": "string",
+          "enum": ["cloak", "hide"],
+          "description": "How windows should be hidden when switching workspaces. 'cloak' is recommended and hides windows with no animation. 'hide' is a legacy method that has a brief animation but has stability issues with some apps",
+          "default": "cloak"
+        },
+        "show_all_in_taskbar": {
+          "type": "boolean",
+          "description": "Affects which windows get shown in the native Windows taskbar. Has no effect if hide_method is 'hide'. When true, shows all windows regardless of workspace. When false, only shows windows from currently shown workspaces",
+          "default": false
+        }
+      }
+    },
+    "keybindings": {
+      "type": "array",
+      "description": "Global keyboard shortcuts configuration. It's recommended to use alt key for keybindings since Windows key is problematic due to OS-reserved shortcuts",
+      "items": {
+        "$ref": "#/definitions/keybinding"
+      },
+      "examples": [
+        {
+          "commands": ["focus --workspace 1"],
+          "bindings": ["alt+1"]
+        },
+        {
+          "commands": ["move --workspace 1", "focus --workspace 1"],
+          "bindings": ["alt+shift+1"]
+        }
+      ]
+    },
+    "window_behavior": {
+      "type": "object",
+      "description": "Settings that control how windows behave",
+      "properties": {
+        "initial_state": {
+          "type": "string",
+          "enum": ["tiling", "floating"],
+          "description": "New windows are created in this state whenever possible",
+          "default": "tiling"
+        },
+        "state_defaults": {
+          "type": "object",
+          "description": "Default options for when a new window is created or when state change commands are used without flags",
+          "properties": {
+            "floating": {
+              "type": "object",
+              "properties": {
+                "centered": {
+                  "type": "boolean",
+                  "description": "Whether to center floating windows by default",
+                  "default": true
+                },
+                "shown_on_top": {
+                  "type": "boolean",
+                  "description": "Whether to show floating windows as always on top",
+                  "default": false
+                }
+              }
+            },
+            "fullscreen": {
+              "type": "object",
+              "properties": {
+                "maximized": {
+                  "type": "boolean",
+                  "description": "Maximize the window if possible. If the window doesn't have a maximize button, then it'll be fullscreen'ed normally instead",
+                  "default": false
+                },
+                "shown_on_top": {
+                  "type": "boolean",
+                  "description": "Whether to show fullscreen windows as always on top",
+                  "default": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "window_effects": {
+      "type": "object",
+      "description": "Visual effects settings for windows. Currently only available on Windows 11",
+      "properties": {
+        "focused_window": {
+          "$ref": "#/definitions/windowEffect",
+          "description": "Visual effects to apply to the focused window"
+        },
+        "other_windows": {
+          "$ref": "#/definitions/windowEffect",
+          "description": "Visual effects to apply to non-focused windows"
+        }
+      }
+    }
+  },
+  "required": [
+    "gaps",
+    "general",
+    "keybindings",
+    "window_behavior",
+    "window_effects",
+    "window_rules",
+    "workspaces"
+  ],
+  "type": "object"
+}
