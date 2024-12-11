@@ -24,7 +24,7 @@
     },
     "windowEffect": {
       "type": "object",
-      "description": "Visual effects that can be applied to windows. Currently only available on Windows 11",
+      "description": "Visual effects that can be applied to windows (Windows 11 only)",
       "properties": {
         "border": {
           "type": "object",
@@ -71,6 +71,52 @@
     }
   },
   "properties": {
+    "gaps": {
+      "type": "object",
+      "description": "Settings for gaps between windows",
+      "properties": {
+        "scale_with_dpi": {
+          "type": "boolean",
+          "description": "Whether to scale the gaps with the DPI of the monitor",
+          "default": true
+        },
+        "inner_gap": {
+          "type": "string",
+          "description": "Gap between adjacent windows",
+          "pattern": "^\\d+px$",
+          "examples": ["20px"],
+          "default": "20px"
+        },
+        "outer_gap": {
+          "type": "object",
+          "description": "Gap between windows and the screen edge",
+          "properties": {
+            "top": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "default": "60px"
+            },
+            "right": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "default": "20px"
+            },
+            "bottom": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "default": "20px"
+            },
+            "left": {
+              "type": "string",
+              "pattern": "^\\d+px$",
+              "default": "20px"
+            }
+          },
+          "required": ["top", "right", "bottom", "left"]
+        }
+      },
+      "required": ["scale_with_dpi", "inner_gap", "outer_gap"]
+    },
     "general": {
       "type": "object",
       "description": "General window manager settings",
@@ -203,7 +249,7 @@
     },
     "window_effects": {
       "type": "object",
-      "description": "Visual effects settings for windows. Currently only available on Windows 11",
+      "description": "Visual effects settings for windows (Windows 11 only)",
       "properties": {
         "focused_window": {
           "$ref": "#/definitions/windowEffect",
@@ -214,6 +260,87 @@
           "description": "Visual effects to apply to non-focused windows"
         }
       }
+    },
+    "workspaces": {
+      "type": "array",
+      "description": "List of workspace configurations. Workspaces need to be predefined and are automatically assigned to each monitor on startup. Used for organizing windows and can be targeted by keybindings",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique ID for the workspace. Used in keybinding commands (e.g. 'focus --workspace 1') and shown in 3rd-party apps if display_name is not provided",
+            "examples": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Optional override for the workspace label used in 3rd-party apps (e.g. Zebar). Does not need to be unique"
+          },
+          "bind_to_monitor": {
+            "type": "integer",
+            "description": "Optionally force the workspace on a specific monitor if it exists. 0 is leftmost screen, 1 is next one to right, etc",
+            "minimum": 0
+          },
+          "keep_alive": {
+            "type": "boolean",
+            "description": "Optionally prevent workspace from being deactivated when empty",
+            "default": false
+          }
+        },
+        "required": ["name"]
+      },
+      "examples": [[{ "name": "1" }, { "name": "2" }, { "name": "3" }]]
+    },
+    "binding_modes": {
+      "type": "array",
+      "description": "Alternative keybinding modes that can be enabled/disabled while GlazeWM is running. Enable with 'wm-enable-binding-mode --name <name>' and disable with 'wm-disable-binding-mode --name <name>'",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique identifier for the binding mode, used in enable/disable commands",
+            "examples": ["resize"]
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Optional display name for the binding mode shown in 3rd-party apps"
+          },
+          "keybindings": {
+            "type": "array",
+            "description": "Keybindings that will be active when this binding mode is enabled",
+            "items": { "$ref": "#/definitions/keybinding" }
+          }
+        },
+        "required": ["name", "keybindings"],
+        "examples": [
+          {
+            "name": "resize",
+            "keybindings": [
+              {
+                "commands": ["resize --width -2%"],
+                "bindings": ["h", "left"]
+              },
+              {
+                "commands": ["resize --width +2%"],
+                "bindings": ["l", "right"]
+              },
+              {
+                "commands": ["resize --height +2%"],
+                "bindings": ["k", "up"]
+              },
+              {
+                "commands": ["resize --height -2%"],
+                "bindings": ["j", "down"]
+              },
+              {
+                "commands": ["wm-disable-binding-mode --name resize"],
+                "bindings": ["escape", "enter"]
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "required": [
@@ -223,7 +350,8 @@
     "window_behavior",
     "window_effects",
     "window_rules",
-    "workspaces"
+    "workspaces",
+    "binding_modes"
   ],
   "type": "object"
 }
