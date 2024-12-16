@@ -435,7 +435,10 @@ impl WmState {
   /// from being emitted via IPC server before the initial state is
   /// prepared.
   pub fn emit_event(&self, event: WmEvent) {
-    if self.has_initialized && !self.is_paused {
+    if self.has_initialized
+      && (!self.is_paused
+        || matches!(event, WmEvent::PauseChanged { is_paused: _ }))
+    {
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
       }
