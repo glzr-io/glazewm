@@ -1,5 +1,5 @@
 [package]
-name = "watcher"
+name = "wm-watcher"
 version = "0.0.0"
 edition = "2021"
 

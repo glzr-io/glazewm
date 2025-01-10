@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["packages/*"]
-default-members = ["packages/wm", "packages/watcher"]
+default-members = ["packages/wm", "packages/wm-watcher"]
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
