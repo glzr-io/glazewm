@@ -4,13 +4,15 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
+use wm_common::{
+  BindingModeConfig, Direction, Point, WindowState, WmEvent,
+};
 
 use crate::{
   cleanup::run_cleanup,
   common::{
     commands::platform_sync,
     platform::{NativeMonitor, NativeWindow, Platform},
-    Direction, Point,
   },
   containers::{
     commands::set_focused_descendant,
@@ -18,9 +20,8 @@ use crate::{
     Container, RootContainer, WindowContainer,
   },
   monitors::{commands::add_monitor, Monitor},
-  user_config::{BindingModeConfig, UserConfig},
-  windows::{commands::manage_window, traits::WindowGetters, WindowState},
-  wm_event::WmEvent,
+  user_config::UserConfig,
+  windows::{commands::manage_window, traits::WindowGetters},
   workspaces::{Workspace, WorkspaceTarget},
 };
 

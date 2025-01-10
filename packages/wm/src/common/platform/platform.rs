@@ -32,12 +32,13 @@ use windows::{
     },
   },
 };
+use wm_common::Point;
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
   NativeWindow, SingleInstance,
 };
-use crate::{common::Point, user_config::UserConfig};
+use crate::user_config::UserConfig;
 
 pub type WindowProcedure = WNDPROC;
 

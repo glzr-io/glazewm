@@ -1,9 +1,7 @@
 use std::{iter, net::SocketAddr};
 
 use anyhow::{bail, Context};
-use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
 use tokio::{
   net::{TcpListener, TcpStream},
   sync::{broadcast, mpsc},
@@ -12,12 +10,17 @@ use tokio::{
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{info, warn};
 use uuid::Uuid;
+use wm_common::{
+  AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
+  ClientResponseMessage, CommandData, EventSubscribeData,
+  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
+  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
+  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
+};
 
 use crate::{
-  app_command::{AppCommand, QueryCommand, SubscribableEvent},
-  common::TilingDirection,
   containers::traits::{CommonGetters, TilingDirectionGetters},
-  user_config::{BindingModeConfig, UserConfig},
+  user_config::UserConfig,
   wm::WindowManager,
 };
 

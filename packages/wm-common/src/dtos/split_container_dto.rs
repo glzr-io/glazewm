@@ -10,15 +10,15 @@ use crate::TilingDirection;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SplitContainerDto {
-  id: Uuid,
-  parent_id: Option<Uuid>,
-  children: Vec<ContainerDto>,
-  child_focus_order: Vec<Uuid>,
-  has_focus: bool,
-  tiling_size: f32,
-  width: i32,
-  height: i32,
-  x: i32,
-  y: i32,
-  tiling_direction: TilingDirection,
+  pub id: Uuid,
+  pub parent_id: Option<Uuid>,
+  pub children: Vec<ContainerDto>,
+  pub child_focus_order: Vec<Uuid>,
+  pub has_focus: bool,
+  pub tiling_size: f32,
+  pub width: i32,
+  pub height: i32,
+  pub x: i32,
+  pub y: i32,
+  pub tiling_direction: TilingDirection,
 }

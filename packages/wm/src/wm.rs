@@ -1,9 +1,9 @@
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use uuid::Uuid;
+use wm_common::{InvokeCommand, WmEvent};
 
 use crate::{
-  app_command::InvokeCommand,
   common::{
     commands::platform_sync,
     events::{
@@ -18,7 +18,6 @@ use crate::{
     platform::PlatformEvent,
   },
   user_config::UserConfig,
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 

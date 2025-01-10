@@ -5,15 +5,14 @@ use std::{
 };
 
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use wm_common::{ContainerDto, MonitorDto, Rect};
 
 use crate::{
-  common::{platform::NativeMonitor, Rect},
+  common::platform::NativeMonitor,
   containers::{
     traits::{CommonGetters, PositionGetters},
-    Container, ContainerDto, DirectionContainer, TilingContainer,
-    WindowContainer,
+    Container, DirectionContainer, TilingContainer, WindowContainer,
   },
   impl_common_getters, impl_container_debug,
   workspaces::Workspace,

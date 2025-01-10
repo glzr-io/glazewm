@@ -1,10 +1,11 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::WmEvent;
 
 use crate::{
   common::platform::NativeMonitor, containers::commands::attach_container,
-  monitors::Monitor, user_config::UserConfig, wm_event::WmEvent,
-  wm_state::WmState, workspaces::commands::activate_workspace,
+  monitors::Monitor, user_config::UserConfig, wm_state::WmState,
+  workspaces::commands::activate_workspace,
 };
 
 pub fn add_monitor(

@@ -1,13 +1,13 @@
 use anyhow::Context;
+use wm_common::{Direction, TilingDirection, WindowState};
 
 use super::set_focused_descendant;
 use crate::{
-  common::{Direction, TilingDirection},
   containers::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, TilingContainer,
   },
-  windows::{traits::WindowGetters, WindowState},
+  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 

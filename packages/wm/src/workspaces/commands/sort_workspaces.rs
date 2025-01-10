@@ -1,8 +1,9 @@
 use anyhow::Context;
+use wm_common::VecDequeExt;
 
 use crate::{
-  common::VecDequeExt, containers::traits::CommonGetters,
-  monitors::Monitor, user_config::UserConfig,
+  containers::traits::CommonGetters, monitors::Monitor,
+  user_config::UserConfig,
 };
 
 /// Sorts a monitor's workspaces by config order.

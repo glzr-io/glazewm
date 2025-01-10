@@ -15,9 +15,9 @@ use windows::Win32::{
     },
   },
 };
+use wm_common::KeybindingConfig;
 
 use super::PlatformEvent;
-use crate::user_config::KeybindingConfig;
 
 /// Global instance of `KeyboardHook`.
 ///

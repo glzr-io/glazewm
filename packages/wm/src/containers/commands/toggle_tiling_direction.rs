@@ -1,15 +1,14 @@
 use anyhow::Context;
+use wm_common::{TilingDirection, WmEvent};
 
 use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
-  common::TilingDirection,
   containers::{
     traits::{CommonGetters, TilingDirectionGetters},
     Container, DirectionContainer, SplitContainer,
   },
   user_config::UserConfig,
   windows::TilingWindow,
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 

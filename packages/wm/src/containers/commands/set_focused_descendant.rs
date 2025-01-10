@@ -1,7 +1,6 @@
-use crate::{
-  common::VecDequeExt,
-  containers::{traits::CommonGetters, Container},
-};
+use wm_common::VecDequeExt;
+
+use crate::containers::{traits::CommonGetters, Container};
 
 /// Set a given container as the focused container up to and including the
 /// end ancestor.

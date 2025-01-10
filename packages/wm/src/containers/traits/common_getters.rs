@@ -5,11 +5,11 @@ use std::{
 
 use ambassador::delegatable_trait;
 use uuid::Uuid;
+use wm_common::ContainerDto;
 
 use crate::{
   containers::{
-    Container, ContainerDto, DirectionContainer, TilingContainer,
-    WindowContainer,
+    Container, DirectionContainer, TilingContainer, WindowContainer,
   },
   monitors::Monitor,
   workspaces::Workspace,

@@ -1,13 +1,12 @@
 use anyhow::Context;
+use wm_common::{VecDequeExt, WmEvent};
 
 use super::{
   attach_container, detach_container, flatten_child_split_containers,
   set_focused_descendant,
 };
 use crate::{
-  common::VecDequeExt,
   containers::{traits::CommonGetters, Container},
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 

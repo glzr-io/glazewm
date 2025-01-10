@@ -41,13 +41,12 @@ use windows::{
     },
   },
 };
+use wm_common::{
+  Color, CornerStyle, HideMethod, LengthValue, Memo, Rect, RectDelta,
+  WindowState,
+};
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
-use crate::{
-  common::{Color, LengthValue, Memo, OpacityValue, Rect, RectDelta},
-  user_config::{CornerStyle, HideMethod},
-  windows::WindowState,
-};
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.

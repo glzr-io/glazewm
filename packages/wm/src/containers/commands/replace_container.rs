@@ -1,12 +1,10 @@
 use anyhow::{bail, Context};
+use wm_common::VecDequeExt;
 
 use super::{attach_container, detach_container, resize_tiling_container};
-use crate::{
-  common::VecDequeExt,
-  containers::{
-    traits::{CommonGetters, TilingSizeGetters},
-    Container,
-  },
+use crate::containers::{
+  traits::{CommonGetters, TilingSizeGetters},
+  Container,
 };
 
 /// Replaces a container at the specified index.

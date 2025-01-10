@@ -30,14 +30,12 @@ use windows::Win32::{
     },
   },
 };
+use wm_common::{KeybindingConfig, Point};
 
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
 };
-use crate::{
-  common::{platform::FOREGROUND_INPUT_IDENTIFIER, Point},
-  user_config::KeybindingConfig,
-};
+use crate::common::platform::FOREGROUND_INPUT_IDENTIFIER;
 
 /// Global instance of sender for platform events.
 ///

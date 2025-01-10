@@ -1,4 +1,4 @@
-use crate::common::Direction;
+use wm_common::Direction;
 
 pub enum WorkspaceTarget {
   Name(String),

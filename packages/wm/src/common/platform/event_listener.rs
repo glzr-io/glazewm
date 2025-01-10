@@ -1,11 +1,10 @@
 use tokio::sync::mpsc::{self, UnboundedReceiver};
+use wm_common::{
+  BindingModeConfig, InvokeCommand, KeybindingConfig, Point,
+};
 
 use super::{EventWindow, NativeWindow};
-use crate::{
-  app_command::InvokeCommand,
-  common::Point,
-  user_config::{BindingModeConfig, KeybindingConfig, UserConfig},
-};
+use crate::user_config::UserConfig;
 
 #[derive(Debug)]
 pub enum PlatformEvent {

@@ -15,8 +15,7 @@ use windows::{
     },
   },
 };
-
-use crate::common::Rect;
+use wm_common::Rect;
 
 #[derive(Clone, Debug)]
 pub struct NativeMonitor {

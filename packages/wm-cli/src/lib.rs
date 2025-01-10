@@ -1,16 +1,8 @@
 use anyhow::Context;
-use futures_util::{SinkExt, StreamExt};
-use tokio::net::TcpStream;
-use tokio_tungstenite::{
-  connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
-};
-use uuid::Uuid;
-use wm_common::{
-  ClientResponseMessage, EventSubscriptionMessage, ServerMessage,
-  DEFAULT_IPC_PORT,
-};
+use wm_common::ClientResponseData;
+use wm_ipc_client::IpcClient;
 
-pub async fn start_cli(args: Vec<String>) -> Result<()> {
+pub async fn start_cli(args: Vec<String>) -> anyhow::Result<()> {
   let mut client = IpcClient::connect().await?;
 
   let message = args[1..].join(" ");

@@ -512,7 +512,7 @@ pub enum MatchType {
 
 impl MatchType {
   /// Whether the given value is a match for the match type.
-  fn is_match(&self, value: &str) -> bool {
+  pub fn is_match(&self, value: &str) -> bool {
     match self {
       MatchType::Equals { equals } => value == equals,
       MatchType::Includes { includes } => value.contains(includes),

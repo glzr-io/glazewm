@@ -1,15 +1,14 @@
 use anyhow::Context;
+use wm_common::{Direction, WmEvent};
 
 use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{
-  common::Direction,
   containers::{
     commands::move_container_within_tree,
     traits::{CommonGetters, PositionGetters},
   },
   user_config::UserConfig,
   windows::traits::WindowGetters,
-  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::Workspace,
 };

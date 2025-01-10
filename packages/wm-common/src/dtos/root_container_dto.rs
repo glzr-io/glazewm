@@ -9,8 +9,8 @@ use super::ContainerDto;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RootContainerDto {
-  id: Uuid,
-  parent_id: Option<Uuid>,
-  children: Vec<ContainerDto>,
-  child_focus_order: Vec<Uuid>,
+  pub id: Uuid,
+  pub parent_id: Option<Uuid>,
+  pub children: Vec<ContainerDto>,
+  pub child_focus_order: Vec<Uuid>,
 }
