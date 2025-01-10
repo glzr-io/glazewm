@@ -12,7 +12,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       reload_config, shell_exec, toggle_pause,
     },
-    Direction, LengthValue, RectDelta, TilingDirection,
+    Direction, LengthValue, OpacityValue, RectDelta, TilingDirection,
   },
   containers::{
     commands::{
@@ -225,6 +225,10 @@ pub enum InvokeCommand {
   SetTitleBarVisibility {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
+  },
+  SetOpacity {
+    #[clap(required = true, allow_hyphen_values = true)]
+    opacity: OpacityValue,
   },
   ShellExec {
     #[clap(long, action)]
@@ -597,6 +601,15 @@ impl InvokeCommand {
             _ = window.native().set_title_bar_visibility(
               *visibility == TitleBarVisibility::Shown,
             );
+            Ok(())
+          }
+          _ => Ok(()),
+        }
+      }
+      InvokeCommand::SetOpacity { opacity } => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            _ = window.native().set_opacity(opacity.clone());
             Ok(())
           }
           _ => Ok(()),

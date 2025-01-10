@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -23,17 +23,19 @@ use windows::{
       },
       Shell::{ITaskbarList, TaskbarList},
       WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetWindow, GetWindowLongPtrW,
-        GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, IsIconic,
-        IsWindowVisible, IsZoomed, SendNotifyMessageW,
-        SetForegroundWindow, SetWindowLongPtrW, SetWindowPlacement,
+        EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
+        GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
+        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
+        SendNotifyMessageW, SetForegroundWindow,
+        SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOPMOST, SWP_ASYNCWINDOWPOS,
-        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
-        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        HWND_NOTOPMOST, HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS,
+        LWA_ALPHA, LWA_COLORKEY, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
+        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
+        WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
         WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
@@ -42,7 +44,7 @@ use windows::{
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 use crate::{
-  common::{Color, LengthValue, Memo, Rect, RectDelta},
+  common::{Color, LengthValue, Memo, OpacityValue, Rect, RectDelta},
   user_config::{CornerStyle, HideMethod},
   windows::WindowState,
 };
@@ -391,6 +393,68 @@ impl NativeWindow {
       }
     }
 
+    Ok(())
+  }
+
+  pub fn set_opacity(
+    &self,
+    opacity_value: OpacityValue,
+  ) -> anyhow::Result<()> {
+    // Make the window layered if it isn't already.
+    let ex_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+
+    if ex_style & WS_EX_LAYERED.0 as isize == 0 {
+      unsafe {
+        SetWindowLongPtrW(
+          HWND(self.handle),
+          GWL_EXSTYLE,
+          ex_style | WS_EX_LAYERED.0 as isize,
+        );
+      }
+    }
+
+    // Get the window's opacity information.
+    let mut previous_opacity = u8::MAX; // Use maximum opacity as a default.
+    let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
+    unsafe {
+      GetLayeredWindowAttributes(
+        HWND(self.handle),
+        None,
+        Some(&mut previous_opacity),
+        Some(&mut flag),
+      )?;
+    }
+
+    // Fail if window uses color key.
+    if flag.contains(LWA_COLORKEY) {
+      bail!(
+        "Window uses color key for its transparency. The transparency window effect cannot be applied."
+      );
+    }
+
+    // Calculate the new opacity value.
+    let new_opacity = if opacity_value.is_delta {
+      previous_opacity as i16 + opacity_value.amount
+    } else {
+      opacity_value.amount
+    };
+
+    // Clamp new_opacity to a u8.
+    let new_opacity =
+      new_opacity.clamp(u8::MIN as i16, u8::MAX as i16) as u8;
+
+    // Set the new opacity if needed.
+    if new_opacity != previous_opacity {
+      unsafe {
+        SetLayeredWindowAttributes(
+          HWND(self.handle),
+          None,
+          new_opacity,
+          LWA_ALPHA,
+        )?;
+      }
+    }
     Ok(())
   }
 

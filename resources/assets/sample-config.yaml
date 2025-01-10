@@ -74,6 +74,13 @@ window_effects:
       # Allowed values: 'square', 'rounded', 'small_rounded'.
       style: 'square'
 
+    # Change the transparency of the window.
+    transparency:
+      enabled: false
+      # Can be something like '240' or '95%' for slightly transparent windows
+      # '0' or '0%' is fully transparent (and, by consequence, unfocusable)
+      opacity: '95%'
+
   # Visual effects to apply to non-focused windows.
   other_windows:
     border:
@@ -84,6 +91,9 @@ window_effects:
     corner_style:
       enabled: false
       style: 'square'
+    transparency:
+      enabled: false
+      opacity: '0%'
 
 window_behavior:
   # New windows are created in this state whenever possible.
