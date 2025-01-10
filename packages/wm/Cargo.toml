@@ -7,9 +7,6 @@ license = "GPL-3"
 edition = "2021"
 default-run = "glazewm"
 
-[lib]
-path = "src/lib.rs"
-
 [[bin]]
 name = "glazewm"
 path = "src/main.rs"
@@ -22,20 +19,22 @@ ui_access = []
 tauri-winres = { workspace = true }
 
 [dependencies]
+wm-common = { path = "../wm-common" }
+wm-ipc-client = { path = "../wm-ipc-client" }
 anyhow = { workspace = true }
-clap = { version = "4", features = ["derive"] }
+clap = { workspace = true }
 ambassador = "0.4"
 enum-as-inner = "0.6"
-futures-util = "0.3"
+futures-util = { workspace = true }
 home = "0.5"
-uuid = { version = "1", features = ["v4", "serde"] }
-serde = { version = "1", features = ["derive"] }
+uuid = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
 regex = "1"
 tokio = { workspace = true }
 tracing-appender = "0.2"
-tokio-tungstenite = "0.21"
+tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tray-icon = "0.14"

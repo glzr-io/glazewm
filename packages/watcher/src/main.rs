@@ -5,11 +5,8 @@
 
 use anyhow::{bail, Context};
 use tracing::info;
-use wm::{
-  cleanup::run_cleanup, common::platform::NativeWindow,
-  containers::ContainerDto, ipc_client::IpcClient,
-  ipc_server::ClientResponseData, windows::WindowDto, wm_event::WmEvent,
-};
+use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
+use wm_ipc_client::IpcClient;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

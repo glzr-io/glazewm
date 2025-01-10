@@ -5,13 +5,11 @@ use std::{
 };
 
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
   traits::{CommonGetters, PositionGetters},
-  Container, ContainerDto, DirectionContainer, TilingContainer,
-  WindowContainer,
+  Container, DirectionContainer, TilingContainer, WindowContainer,
 };
 use crate::{
   common::Rect, impl_common_getters, impl_container_debug,

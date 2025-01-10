@@ -1,23 +1,21 @@
 [package]
-name = "watcher"
+name = "wm-cli"
 version = "0.0.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
-name = "glazewm-watcher"
+name = "glazewm-cli"
 path = "src/main.rs"
-
-[features]
-no_console = []
-
-[build-dependencies]
-tauri-winres = { workspace = true }
 
 [dependencies]
 wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
 anyhow = { workspace = true }
 tokio = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
 serde_json = { workspace = true }
+uuid = { workspace = true }

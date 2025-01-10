@@ -2044,7 +2044,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "wm",
+ "wm-common",
+ "wm-ipc-client",
 ]
 
 [[package]]
@@ -2294,6 +2295,22 @@ dependencies = [
  "uuid",
  "windows",
  "windows-interface",
+ "wm-common",
+ "wm-ipc-client",
+]
+
+[[package]]
+name = "wm-cli"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "uuid",
+ "wm-common",
+ "wm-ipc-client",
 ]
 
 [[package]]
@@ -2308,6 +2325,19 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "uuid",
+]
+
+[[package]]
+name = "wm-ipc-client"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "uuid",
+ "wm-common",
 ]
 
 [[package]]

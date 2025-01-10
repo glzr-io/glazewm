@@ -4,7 +4,7 @@ use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use uuid::Uuid;
 
-use crate::{Direction, LengthValue, TilingDirection};
+use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -181,6 +181,10 @@ pub enum InvokeCommand {
   SetTitleBarVisibility {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
+  },
+  SetOpacity {
+    #[clap(required = true, allow_hyphen_values = true)]
+    opacity: OpacityValue,
   },
   ShellExec {
     #[clap(long, action)]

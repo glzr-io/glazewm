@@ -26,18 +26,15 @@ use crate::{
   wm_event::WmEvent,
 };
 
-mod app_command;
 mod cleanup;
 mod common;
 mod containers;
-mod ipc_client;
 mod ipc_server;
 mod monitors;
 mod sys_tray;
 mod user_config;
 mod windows;
 mod wm;
-mod wm_event;
 mod wm_state;
 mod workspaces;
 

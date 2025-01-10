@@ -5,8 +5,7 @@ use tokio_tungstenite::{
   connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
 };
 use uuid::Uuid;
-
-use crate::ipc_server::{
+use wm_common::{
   ClientResponseMessage, EventSubscriptionMessage, ServerMessage,
   DEFAULT_IPC_PORT,
 };
