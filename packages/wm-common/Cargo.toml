@@ -1,0 +1,17 @@
+[package]
+name = "wm-common"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+home = "0.5"
+uuid = { version = "1", features = ["v4", "serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+regex = "1"

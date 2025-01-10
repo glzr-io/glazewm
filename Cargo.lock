@@ -2297,6 +2297,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "wm-common"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "home",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "uuid",
+]
+
+[[package]]
 name = "x11"
 version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
