@@ -5,6 +5,7 @@ use crate::{
   containers::{traits::CommonGetters, WindowContainer},
   user_config::UserConfig,
   windows::traits::WindowGetters,
+  wm::WindowManager,
   wm_state::WmState,
 };
 
@@ -25,7 +26,12 @@ pub fn run_window_rules(
     info!("Running window rule with commands: {:?}.", rule.commands);
 
     for command in &rule.commands {
-      command.run(subject_window.clone().into(), state, config)?;
+      WindowManager::run_command(
+        command,
+        subject_window.clone().into(),
+        state,
+        config,
+      )?;
 
       // Update the subject container in case the container type changes.
       // For example, when going from a tiling to a floating window.

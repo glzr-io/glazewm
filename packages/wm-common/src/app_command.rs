@@ -280,44 +280,44 @@ pub enum TitleBarVisibility {
 #[group(required = true, multiple = true)]
 pub struct InvokeAdjustBordersCommand {
   #[clap(long, allow_hyphen_values = true)]
-  top: Option<LengthValue>,
+  pub top: Option<LengthValue>,
 
   #[clap(long, allow_hyphen_values = true)]
-  right: Option<LengthValue>,
+  pub right: Option<LengthValue>,
 
   #[clap(long, allow_hyphen_values = true)]
-  bottom: Option<LengthValue>,
+  pub bottom: Option<LengthValue>,
 
   #[clap(long, allow_hyphen_values = true)]
-  left: Option<LengthValue>,
+  pub left: Option<LengthValue>,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 pub struct InvokeFocusCommand {
   #[clap(long)]
-  direction: Option<Direction>,
+  pub direction: Option<Direction>,
 
   #[clap(long)]
-  workspace: Option<String>,
+  pub workspace: Option<String>,
 
   #[clap(long)]
-  monitor: Option<usize>,
+  pub monitor: Option<usize>,
 
   #[clap(long)]
-  next_active_workspace: bool,
+  pub next_active_workspace: bool,
 
   #[clap(long)]
-  prev_active_workspace: bool,
+  pub prev_active_workspace: bool,
 
   #[clap(long)]
-  next_workspace: bool,
+  pub next_workspace: bool,
 
   #[clap(long)]
-  prev_workspace: bool,
+  pub prev_workspace: bool,
 
   #[clap(long)]
-  recent_workspace: bool,
+  pub recent_workspace: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
@@ -325,47 +325,47 @@ pub struct InvokeFocusCommand {
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
   #[clap(long)]
-  direction: Option<Direction>,
+  pub direction: Option<Direction>,
 
   /// Name of workspace to move the window.
   #[clap(long)]
-  workspace: Option<String>,
+  pub workspace: Option<String>,
 
   #[clap(long)]
-  next_active_workspace: bool,
+  pub next_active_workspace: bool,
 
   #[clap(long)]
-  prev_active_workspace: bool,
+  pub prev_active_workspace: bool,
 
   #[clap(long)]
-  next_workspace: bool,
+  pub next_workspace: bool,
 
   #[clap(long)]
-  prev_workspace: bool,
+  pub prev_workspace: bool,
 
   #[clap(long)]
-  recent_workspace: bool,
+  pub recent_workspace: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeResizeCommand {
   #[clap(long, allow_hyphen_values = true)]
-  width: Option<LengthValue>,
+  pub width: Option<LengthValue>,
 
   #[clap(long, allow_hyphen_values = true)]
-  height: Option<LengthValue>,
+  pub height: Option<LengthValue>,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokePositionCommand {
   #[clap(long, action)]
-  centered: bool,
+  pub centered: bool,
 
   #[clap(long, allow_hyphen_values = true)]
-  x_pos: Option<i32>,
+  pub x_pos: Option<i32>,
 
   #[clap(long, allow_hyphen_values = true)]
-  y_pos: Option<i32>,
+  pub y_pos: Option<i32>,
 }

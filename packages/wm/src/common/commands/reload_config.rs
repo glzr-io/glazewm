@@ -1,13 +1,12 @@
 use anyhow::Context;
 use tracing::{info, warn};
-use wm_common::{
-  HideMethod, InvokeCommand, ParsedConfig, WindowRuleEvent, WmEvent,
-};
+use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
 
 use crate::{
   containers::traits::{CommonGetters, TilingSizeGetters},
   user_config::UserConfig,
   windows::{commands::run_window_rules, traits::WindowGetters},
+  wm::WindowManager,
   wm_state::WmState,
   workspaces::commands::sort_workspaces,
 };
@@ -78,8 +77,8 @@ pub fn reload_config(
   });
 
   // Run config reload commands.
-  InvokeCommand::run_multiple(
-    config.value.general.config_reload_commands.clone(),
+  WindowManager::run_commands(
+    &config.value.general.config_reload_commands.clone(),
     state.focused_container().context("No focused container.")?,
     state,
     config,

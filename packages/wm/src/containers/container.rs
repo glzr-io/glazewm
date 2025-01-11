@@ -10,6 +10,7 @@ use wm_common::{
   ActiveDrag, ContainerDto, Direction, DisplayState, GapsConfig, Rect,
   RectDelta, TilingDirection, WindowRuleConfig, WindowState,
 };
+use wm_platform::NativeWindow;
 
 use super::{RootContainer, SplitContainer};
 use crate::{
