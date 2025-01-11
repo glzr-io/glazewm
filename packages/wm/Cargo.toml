@@ -22,7 +22,6 @@ tauri-winres = { workspace = true }
 wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
 anyhow = { workspace = true }
-clap = { workspace = true }
 ambassador = "0.4"
 enum-as-inner = "0.6"
 futures-util = { workspace = true }
@@ -31,7 +30,6 @@ uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
-regex = "1"
 tokio = { workspace = true }
 tracing-appender = "0.2"
 tokio-tungstenite = { workspace = true }

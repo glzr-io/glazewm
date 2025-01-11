@@ -1,4 +1,6 @@
-use crate::{wm_event::WmEvent, wm_state::WmState};
+use wm_common::WmEvent;
+
+use crate::wm_state::WmState;
 
 pub fn disable_binding_mode(name: &str, state: &mut WmState) {
   state.binding_modes = state

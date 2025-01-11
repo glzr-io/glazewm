@@ -3,19 +3,18 @@ use std::time::Duration;
 use anyhow::Context;
 use tokio::task;
 use tracing::warn;
+use wm_common::{
+  CursorJumpTrigger, DisplayState, HideMethod, WindowEffectConfig, WmEvent,
+};
 
 use crate::{
-  common::{platform::Platform, DisplayState, OpacityValue},
+  common::platform::Platform,
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
-  user_config::{
-    CornerStyle, CursorJumpTrigger, HideMethod, UserConfig,
-    WindowEffectConfig,
-  },
+  user_config::UserConfig,
   windows::traits::WindowGetters,
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 

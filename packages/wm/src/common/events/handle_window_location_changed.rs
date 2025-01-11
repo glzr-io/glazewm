@@ -1,18 +1,20 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::{
+  try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
+  FullscreenStateConfig, Rect, WindowState,
+};
 
 use crate::{
-  common::{platform::NativeWindow, Rect},
+  common::platform::NativeWindow,
   containers::{
     commands::{flatten_split_container, move_container_within_tree},
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
-  try_warn,
-  user_config::{FloatingStateConfig, FullscreenStateConfig, UserConfig},
+  user_config::UserConfig,
   windows::{
-    commands::update_window_state, traits::WindowGetters, ActiveDrag,
-    ActiveDragOperation, TilingWindow, WindowState,
+    commands::update_window_state, traits::WindowGetters, TilingWindow,
   },
   wm_state::WmState,
 };

@@ -1,10 +1,11 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::{DisplayState, WindowRuleEvent};
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState},
+  common::platform::NativeWindow,
   containers::{commands::set_focused_descendant, traits::CommonGetters},
-  user_config::{UserConfig, WindowRuleEvent},
+  user_config::UserConfig,
   windows::{commands::run_window_rules, traits::WindowGetters},
   wm_state::WmState,
   workspaces::{commands::focus_workspace, WorkspaceTarget},

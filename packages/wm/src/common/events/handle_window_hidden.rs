@@ -1,7 +1,8 @@
 use tracing::info;
+use wm_common::DisplayState;
 
 use crate::{
-  common::{platform::NativeWindow, DisplayState},
+  common::platform::NativeWindow,
   windows::{commands::unmanage_window, traits::WindowGetters},
   wm_state::WmState,
 };

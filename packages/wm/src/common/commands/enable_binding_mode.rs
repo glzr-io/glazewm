@@ -1,8 +1,7 @@
 use anyhow::Context;
+use wm_common::WmEvent;
 
-use crate::{
-  user_config::UserConfig, wm_event::WmEvent, wm_state::WmState,
-};
+use crate::{user_config::UserConfig, wm_state::WmState};
 
 pub fn enable_binding_mode(
   name: &str,

@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::{
   dtos::ContainerDto,
-  user_config::{BindingModeConfig, ParsedConfig},
+  parsed_config::{BindingModeConfig, ParsedConfig},
   TilingDirection,
 };
 

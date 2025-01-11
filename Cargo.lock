@@ -2263,11 +2263,9 @@ version = "0.0.0"
 dependencies = [
  "ambassador",
  "anyhow",
- "clap",
  "enum-as-inner",
  "futures-util",
  "home",
- "regex",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2305,11 +2303,8 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
- "home",
  "regex",
  "serde",
- "serde_json",
- "serde_yaml",
  "uuid",
 ]
 

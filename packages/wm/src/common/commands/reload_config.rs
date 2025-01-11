@@ -1,12 +1,13 @@
 use anyhow::Context;
 use tracing::{info, warn};
+use wm_common::{
+  HideMethod, InvokeCommand, ParsedConfig, WindowRuleEvent, WmEvent,
+};
 
 use crate::{
-  app_command::InvokeCommand,
   containers::traits::{CommonGetters, TilingSizeGetters},
-  user_config::{HideMethod, ParsedConfig, UserConfig, WindowRuleEvent},
+  user_config::UserConfig,
   windows::{commands::run_window_rules, traits::WindowGetters},
-  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::commands::sort_workspaces,
 };

@@ -1,4 +1,6 @@
-use crate::{wm_event::WmEvent, wm_state::WmState};
+use wm_common::WmEvent;
+
+use crate::wm_state::WmState;
 
 /// Pauses or unpauses the WM.
 pub fn toggle_pause(state: &mut WmState) -> anyhow::Result<()> {
