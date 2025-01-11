@@ -2,7 +2,7 @@ use anyhow::Context;
 use wm_common::ClientResponseData;
 use wm_ipc_client::IpcClient;
 
-pub async fn start_cli(args: Vec<String>) -> anyhow::Result<()> {
+pub async fn start(args: Vec<String>) -> anyhow::Result<()> {
   let mut client = IpcClient::connect().await?;
 
   let message = args[1..].join(" ");

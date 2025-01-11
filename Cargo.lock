@@ -2278,6 +2278,7 @@ dependencies = [
  "tracing-subscriber",
  "tray-icon",
  "uuid",
+ "wm-cli",
  "wm-common",
  "wm-ipc-client",
  "wm-platform",

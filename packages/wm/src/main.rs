@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
 
       res
     }
-    _ => start_cli(args).await,
+    _ => wm_cli::start(args).await,
   }
 }
 
