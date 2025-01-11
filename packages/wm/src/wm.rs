@@ -9,20 +9,9 @@ use wm_common::{
 use wm_platform::PlatformEvent;
 
 use crate::{
-  common::{
-    commands::{
-      cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
-    },
-    events::{
-      handle_display_settings_changed, handle_mouse_move,
-      handle_window_destroyed, handle_window_focused,
-      handle_window_hidden, handle_window_location_changed,
-      handle_window_minimize_ended, handle_window_minimized,
-      handle_window_moved_or_resized_end,
-      handle_window_moved_or_resized_start, handle_window_shown,
-      handle_window_title_changed,
-    },
+  commands::general::{
+    cycle_focus, disable_binding_mode, enable_binding_mode, platform_sync,
+    reload_config, shell_exec, toggle_pause,
   },
   containers::{
     commands::{
@@ -30,6 +19,14 @@ use crate::{
     },
     traits::CommonGetters,
     Container,
+  },
+  events::{
+    handle_display_settings_changed, handle_mouse_move,
+    handle_window_destroyed, handle_window_focused, handle_window_hidden,
+    handle_window_location_changed, handle_window_minimize_ended,
+    handle_window_minimized, handle_window_moved_or_resized_end,
+    handle_window_moved_or_resized_start, handle_window_shown,
+    handle_window_title_changed,
   },
   monitors::commands::focus_monitor,
   user_config::UserConfig,

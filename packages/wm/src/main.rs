@@ -22,8 +22,9 @@ use crate::{
   wm::WindowManager,
 };
 
-mod common;
+mod commands;
 mod containers;
+mod events;
 mod ipc_server;
 mod monitors;
 mod sys_tray;

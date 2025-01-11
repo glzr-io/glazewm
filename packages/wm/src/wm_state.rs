@@ -10,7 +10,7 @@ use wm_common::{
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
-  common::commands::platform_sync,
+  commands::general::platform_sync,
   containers::{
     commands::set_focused_descendant,
     traits::{CommonGetters, PositionGetters},
