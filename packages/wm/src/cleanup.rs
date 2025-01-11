@@ -1,6 +1,5 @@
 use tracing::{info, warn};
-
-use crate::common::platform::NativeWindow;
+use wm_platform::NativeWindow;
 
 pub fn run_cleanup(managed_windows: Vec<NativeWindow>) {
   info!("Running WM state cleanup.",);

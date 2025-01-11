@@ -32,13 +32,12 @@ use windows::{
     },
   },
 };
-use wm_common::Point;
+use wm_common::{ParsedConfig, Point};
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
   NativeWindow, SingleInstance,
 };
-use crate::user_config::UserConfig;
 
 pub type WindowProcedure = WNDPROC;
 
@@ -119,7 +118,7 @@ impl Platform {
 
   /// Creates a new `EventListener` for the specified user config.
   pub fn start_event_listener(
-    config: &UserConfig,
+    config: &ParsedConfig,
   ) -> anyhow::Result<EventListener> {
     EventListener::start(config)
   }

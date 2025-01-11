@@ -7,10 +7,11 @@ default-members = ["packages/wm", "packages/wm-watcher"]
 anyhow = { version = "1", features = ["backtrace"] }
 clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"
+home = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
-tokio = { version = "1", features = ["full"] }
 tauri-winres = "0.1"
+tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.21"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

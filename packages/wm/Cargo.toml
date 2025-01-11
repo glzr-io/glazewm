@@ -20,12 +20,13 @@ tauri-winres = { workspace = true }
 
 [dependencies]
 wm-common = { path = "../wm-common" }
+wm-platform = { path = "../wm-platform" }
 wm-ipc-client = { path = "../wm-ipc-client" }
 anyhow = { workspace = true }
 ambassador = "0.4"
 enum-as-inner = "0.6"
 futures-util = { workspace = true }
-home = "0.5"
+home = { workspace = true }
 uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -36,26 +37,3 @@ tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tray-icon = "0.14"
-windows = { version = "0.52", features = [
-  "implement",
-  "Win32_Devices_HumanInterfaceDevice",
-  "Win32_Foundation",
-  "Win32_Graphics_Dwm",
-  "Win32_Graphics_Gdi",
-  "Win32_Security",
-  "Win32_System_Com",
-  "Win32_System_Environment",
-  "Win32_System_LibraryLoader",
-  "Win32_System_Registry",
-  "Win32_System_RemoteDesktop",
-  "Win32_System_SystemServices",
-  "Win32_System_Threading",
-  "Win32_UI_Accessibility",
-  "Win32_UI_HiDpi",
-  "Win32_UI_Input_Ime",
-  "Win32_UI_Input_KeyboardAndMouse",
-  "Win32_UI_Shell_Common",
-  "Win32_UI_TextServices",
-  "Win32_UI_WindowsAndMessaging",
-] }
-windows-interface = { version = "0.52" }

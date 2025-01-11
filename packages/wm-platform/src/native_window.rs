@@ -42,8 +42,8 @@ use windows::{
   },
 };
 use wm_common::{
-  Color, CornerStyle, HideMethod, LengthValue, Memo, Rect, RectDelta,
-  WindowState,
+  Color, CornerStyle, HideMethod, LengthValue, Memo, OpacityValue, Rect,
+  RectDelta, WindowState,
 };
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};

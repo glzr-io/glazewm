@@ -1,6 +1,6 @@
 use tracing::{error, info};
 
-use crate::common::platform::Platform;
+use wm_platform::Platform;
 
 pub fn shell_exec(command: &str, hide_window: bool) -> anyhow::Result<()> {
   let res =

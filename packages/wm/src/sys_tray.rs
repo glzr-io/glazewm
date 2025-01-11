@@ -7,8 +7,7 @@ use tray_icon::{
   menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIconBuilder,
 };
-
-use crate::common::platform::Platform;
+use wm_platform::Platform;
 
 /// Ordinal to IDI_ICON definition in embedded resource file.
 const IDI_ICON: u16 = 32512;

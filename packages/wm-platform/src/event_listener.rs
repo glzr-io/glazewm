@@ -1,10 +1,9 @@
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use wm_common::{
-  BindingModeConfig, InvokeCommand, KeybindingConfig, Point,
+  BindingModeConfig, InvokeCommand, KeybindingConfig, ParsedConfig, Point,
 };
 
 use super::{EventWindow, NativeWindow};
-use crate::user_config::UserConfig;
 
 #[derive(Debug)]
 pub enum PlatformEvent {
@@ -42,13 +41,13 @@ impl EventListener {
   /// Initializes listener for platform events.
   ///
   /// Returns an instance of `EventListener`.
-  pub fn start(config: &UserConfig) -> anyhow::Result<Self> {
+  pub fn start(config: &ParsedConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let event_window = EventWindow::new(
       event_tx,
-      &config.value.keybindings,
-      config.value.general.focus_follows_cursor,
+      &config.keybindings,
+      config.general.focus_follows_cursor,
     )?;
 
     Ok(Self {
@@ -61,14 +60,13 @@ impl EventListener {
   /// currently active binding modes.
   pub fn update(
     &mut self,
-    config: &UserConfig,
+    config: &ParsedConfig,
     binding_modes: &[BindingModeConfig],
     paused: bool,
   ) {
     // Modify keybindings based on active binding modes and paused state.
     let keybindings = if paused {
       &config
-        .value
         .keybindings
         .iter()
         .filter(|config| {
@@ -79,13 +77,12 @@ impl EventListener {
     } else {
       match binding_modes.first() {
         Some(binding_mode) => &binding_mode.keybindings,
-        None => &config.value.keybindings,
+        None => &config.keybindings,
       }
     };
 
-    self.event_window.update(
-      keybindings,
-      config.value.general.focus_follows_cursor && !paused,
-    );
+    self
+      .event_window
+      .update(keybindings, config.general.focus_follows_cursor && !paused);
   }
 }

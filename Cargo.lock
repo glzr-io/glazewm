@@ -2277,10 +2277,9 @@ dependencies = [
  "tracing-subscriber",
  "tray-icon",
  "uuid",
- "windows",
- "windows-interface",
  "wm-common",
  "wm-ipc-client",
+ "wm-platform",
 ]
 
 [[package]]
@@ -2318,6 +2317,19 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "uuid",
+ "wm-common",
+]
+
+[[package]]
+name = "wm-platform"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "home",
+ "tokio",
+ "tracing",
+ "windows",
+ "windows-interface",
  "wm-common",
 ]
 

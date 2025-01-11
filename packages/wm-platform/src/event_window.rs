@@ -34,8 +34,8 @@ use wm_common::{KeybindingConfig, Point};
 
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
+  FOREGROUND_INPUT_IDENTIFIER,
 };
-use crate::common::platform::FOREGROUND_INPUT_IDENTIFIER;
 
 /// Global instance of sender for platform events.
 ///

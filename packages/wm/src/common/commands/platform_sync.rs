@@ -4,11 +4,12 @@ use anyhow::Context;
 use tokio::task;
 use tracing::warn;
 use wm_common::{
-  CursorJumpTrigger, DisplayState, HideMethod, WindowEffectConfig, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
+  WindowEffectConfig, WmEvent,
 };
+use wm_platform::Platform;
 
 use crate::{
-  common::platform::Platform,
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
