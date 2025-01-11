@@ -3,12 +3,11 @@
 // window is spawned on launch, if not already ran through a console.
 #![cfg_attr(feature = "no_console", windows_subsystem = "windows")]
 
-use std::{env, process::Command};
-
 use anyhow::{bail, Context};
 use tracing::info;
 use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
 use wm_ipc_client::IpcClient;
+use wm_platform::NativeWindow;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,22 +31,14 @@ async fn main() -> anyhow::Result<()> {
     Err(err) => {
       info!("Running watcher cleanup. WM exited unexpectedly: {}", err);
 
-      let main_path = env::current_exe()?
-        .parent()
-        .context("Failed to resolve path to the main process.")?
-        .join("glazewm");
+      let managed_windows = managed_handles
+        .into_iter()
+        .map(NativeWindow::new)
+        .collect::<Vec<_>>();
 
-      let _ = Command::new(&main_path)
-        .arg(format!(
-          "--restore {}",
-          managed_handles
-            .iter()
-            .map(|handle| handle.to_string())
-            .collect::<Vec<_>>()
-            .join(",")
-        ))
-        .spawn()
-        .context("Failed to start main process.");
+      for window in managed_windows {
+        window.cleanup();
+      }
     }
   }
 

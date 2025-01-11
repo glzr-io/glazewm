@@ -1,15 +1,13 @@
 use anyhow::Context;
+use wm_common::{LengthValue, Rect, WindowState};
 
 use crate::{
-  common::{LengthValue, Rect},
   containers::{
     commands::resize_tiling_container,
     traits::{CommonGetters, PositionGetters, TilingSizeGetters},
     WindowContainer,
   },
-  windows::{
-    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
-  },
+  windows::{traits::WindowGetters, NonTilingWindow, TilingWindow},
   wm_state::WmState,
 };
 

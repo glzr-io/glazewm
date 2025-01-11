@@ -1,9 +1,8 @@
 use tracing::info;
+use wm_common::WmEvent;
+use wm_platform::NativeMonitor;
 
-use crate::{
-  common::platform::NativeMonitor, monitors::Monitor, wm_event::WmEvent,
-  wm_state::WmState,
-};
+use crate::{monitors::Monitor, wm_state::WmState};
 
 pub fn update_monitor(
   monitor: Monitor,

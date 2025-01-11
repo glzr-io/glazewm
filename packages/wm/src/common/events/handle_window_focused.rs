@@ -1,9 +1,9 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{DisplayState, WindowRuleEvent};
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow,
   containers::{commands::set_focused_descendant, traits::CommonGetters},
   user_config::UserConfig,
   windows::{commands::run_window_rules, traits::WindowGetters},

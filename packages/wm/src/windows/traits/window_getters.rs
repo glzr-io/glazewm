@@ -1,14 +1,13 @@
 use std::cell::Ref;
 
 use ambassador::delegatable_trait;
-
-use crate::{
-  common::{
-    platform::NativeWindow, DisplayState, LengthValue, Rect, RectDelta,
-  },
-  user_config::{UserConfig, WindowRuleConfig},
-  windows::{active_drag::ActiveDrag, WindowState},
+use wm_common::{
+  ActiveDrag, DisplayState, LengthValue, Rect, RectDelta,
+  WindowRuleConfig, WindowState,
 };
+use wm_platform::NativeWindow;
+
+use crate::user_config::UserConfig;
 
 #[delegatable_trait]
 pub trait WindowGetters {
@@ -37,7 +36,7 @@ pub trait WindowGetters {
     let possible_states = [
       Some(target_state),
       self.prev_state(),
-      Some(WindowState::default_from_config(config)),
+      Some(WindowState::default_from_config(&config.value)),
     ];
 
     // Return the first possible state with a different discriminant.

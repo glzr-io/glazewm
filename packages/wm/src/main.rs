@@ -14,19 +14,14 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
+use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+use wm_platform::Platform;
 
 use crate::{
-  app_command::{AppCommand, InvokeCommand, Verbosity},
-  common::platform::Platform,
-  ipc_client::IpcClient,
-  ipc_server::{ClientResponseData, IpcServer},
-  sys_tray::SystemTray,
-  user_config::UserConfig,
+  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
   wm::WindowManager,
-  wm_event::WmEvent,
 };
 
-mod cleanup;
 mod common;
 mod containers;
 mod ipc_server;
@@ -114,7 +109,7 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config)?;
+  let mut event_listener = Platform::start_event_listener(&config.value)?;
 
   // Run startup commands.
   let startup_commands = config.value.general.startup_commands.clone();
@@ -165,7 +160,7 @@ async fn start_wm(
             | WmEvent::PauseChanged { .. }
         ) {
           event_listener.update(
-            &config,
+            &config.value,
             &wm.state.binding_modes,
             wm.state.is_paused,
           );

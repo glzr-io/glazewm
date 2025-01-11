@@ -1,12 +1,12 @@
 use anyhow::Context;
+use wm_common::{Rect, WindowState};
 
 use crate::{
-  common::Rect,
   containers::{
     traits::{CommonGetters, PositionGetters},
     WindowContainer,
   },
-  windows::{traits::WindowGetters, WindowState},
+  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 

@@ -1,6 +1,7 @@
+use wm_common::WmEvent;
+
 use crate::{
   containers::{commands::detach_container, traits::CommonGetters},
-  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::Workspace,
 };

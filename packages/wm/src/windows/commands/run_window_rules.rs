@@ -1,8 +1,9 @@
 use tracing::info;
+use wm_common::WindowRuleEvent;
 
 use crate::{
   containers::{traits::CommonGetters, WindowContainer},
-  user_config::{UserConfig, WindowRuleEvent},
+  user_config::UserConfig,
   windows::traits::WindowGetters,
   wm_state::WmState,
 };

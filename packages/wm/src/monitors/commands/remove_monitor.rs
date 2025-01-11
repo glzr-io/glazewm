@@ -1,5 +1,6 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::WmEvent;
 
 use crate::{
   containers::{
@@ -8,7 +9,6 @@ use crate::{
   },
   monitors::Monitor,
   user_config::UserConfig,
-  wm_event::WmEvent,
   wm_state::WmState,
   workspaces::commands::sort_workspaces,
 };

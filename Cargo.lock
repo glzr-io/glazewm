@@ -2263,6 +2263,7 @@ version = "0.0.0"
 dependencies = [
  "ambassador",
  "anyhow",
+ "clap",
  "enum-as-inner",
  "futures-util",
  "home",
@@ -2304,6 +2305,7 @@ dependencies = [
  "clap",
  "regex",
  "serde",
+ "tracing",
  "uuid",
 ]
 
@@ -2345,6 +2347,7 @@ dependencies = [
  "tracing-subscriber",
  "wm-common",
  "wm-ipc-client",
+ "wm-platform",
 ]
 
 [[package]]

@@ -4,7 +4,7 @@ use anyhow::Context;
 use tokio::task;
 use tracing::warn;
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
   WindowEffectConfig, WmEvent,
 };
 use wm_platform::Platform;

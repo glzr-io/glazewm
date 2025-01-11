@@ -2,6 +2,7 @@ use std::{iter, path::PathBuf};
 
 use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
+use tracing::Level;
 use uuid::Uuid;
 
 use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
@@ -93,6 +94,17 @@ pub struct Verbosity {
   /// Disables logging.
   #[clap(short = 'q', long, action, conflicts_with = "verbose")]
   quiet: bool,
+}
+
+impl Verbosity {
+  /// Gets the log level based on the verbosity flags.
+  pub fn level(&self) -> Level {
+    match (self.verbose, self.quiet) {
+      (true, _) => Level::DEBUG,
+      (_, true) => Level::ERROR,
+      _ => Level::INFO,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Parser)]

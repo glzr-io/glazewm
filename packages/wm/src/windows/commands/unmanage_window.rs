@@ -1,4 +1,5 @@
 use anyhow::Context;
+use wm_common::{WindowState, WmEvent};
 
 use crate::{
   containers::{
@@ -9,8 +10,7 @@ use crate::{
     traits::CommonGetters,
     WindowContainer,
   },
-  windows::{traits::WindowGetters, WindowState},
-  wm_event::WmEvent,
+  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 

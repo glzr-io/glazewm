@@ -1,21 +1,22 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::{
+  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+};
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::{platform::NativeWindow, LengthValue, RectDelta},
   containers::{
     commands::{attach_container, set_focused_descendant},
     traits::{CommonGetters, PositionGetters},
     Container, WindowContainer,
   },
   monitors::Monitor,
-  try_warn,
-  user_config::{UserConfig, WindowRuleEvent},
+  user_config::UserConfig,
   windows::{
     commands::run_window_rules, traits::WindowGetters, NonTilingWindow,
-    TilingWindow, WindowState,
+    TilingWindow,
   },
-  wm_event::WmEvent,
   wm_state::WmState,
 };
 
@@ -208,7 +209,7 @@ fn window_state_to_create(
     ));
   }
 
-  Ok(WindowState::default_from_config(config))
+  Ok(WindowState::default_from_config(&config.value))
 }
 
 fn insertion_target(

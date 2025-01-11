@@ -1,5 +1,6 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::WindowState;
 
 use crate::{
   containers::{
@@ -11,7 +12,7 @@ use crate::{
     WindowContainer,
   },
   user_config::UserConfig,
-  windows::{traits::WindowGetters, InsertionTarget, WindowState},
+  windows::{traits::WindowGetters, InsertionTarget},
   wm_state::WmState,
 };
 

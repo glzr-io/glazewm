@@ -1,9 +1,9 @@
 use tracing::info;
+use wm_common::{try_warn, WindowRuleEvent};
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow,
-  try_warn,
-  user_config::{UserConfig, WindowRuleEvent},
+  user_config::UserConfig,
   windows::{commands::run_window_rules, traits::WindowGetters},
   wm_state::WmState,
 };

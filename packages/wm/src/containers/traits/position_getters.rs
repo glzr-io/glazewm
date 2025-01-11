@@ -1,6 +1,5 @@
 use ambassador::delegatable_trait;
-
-use crate::common::Rect;
+use wm_common::Rect;
 
 #[delegatable_trait]
 pub trait PositionGetters {

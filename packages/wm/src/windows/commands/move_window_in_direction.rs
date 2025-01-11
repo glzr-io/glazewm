@@ -1,7 +1,7 @@
 use anyhow::Context;
+use wm_common::{Direction, Rect, TilingDirection, WindowState};
 
 use crate::{
-  common::{Direction, Rect, TilingDirection},
   containers::{
     commands::{
       flatten_child_split_containers, flatten_split_container,
@@ -13,9 +13,7 @@ use crate::{
   },
   monitors::Monitor,
   user_config::UserConfig,
-  windows::{
-    traits::WindowGetters, NonTilingWindow, TilingWindow, WindowState,
-  },
+  windows::{traits::WindowGetters, NonTilingWindow, TilingWindow},
   wm_state::WmState,
 };
 

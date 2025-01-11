@@ -7,9 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{ContainerDto, MonitorDto, Rect};
+use wm_platform::NativeMonitor;
 
 use crate::{
-  common::platform::NativeMonitor,
   containers::{
     traits::{CommonGetters, PositionGetters},
     Container, DirectionContainer, TilingContainer, WindowContainer,

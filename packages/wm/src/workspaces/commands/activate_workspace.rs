@@ -1,15 +1,14 @@
 use anyhow::Context;
+use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
 use crate::{
-  common::TilingDirection,
   containers::{
     commands::attach_container,
     traits::{CommonGetters, PositionGetters},
   },
   monitors::Monitor,
-  user_config::{UserConfig, WorkspaceConfig},
-  wm_event::WmEvent,
+  user_config::UserConfig,
   wm_state::WmState,
   workspaces::Workspace,
 };

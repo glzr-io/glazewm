@@ -1,11 +1,8 @@
 use ambassador::delegatable_trait;
+use wm_common::{Direction, TilingDirection};
 
 use super::CommonGetters;
-use crate::{
-  common::{Direction, TilingDirection},
-  containers::TilingContainer,
-  windows::TilingWindow,
-};
+use crate::{containers::TilingContainer, windows::TilingWindow};
 
 #[delegatable_trait]
 pub trait TilingDirectionGetters: CommonGetters {

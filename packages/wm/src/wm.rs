@@ -2,6 +2,7 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use uuid::Uuid;
 use wm_common::{InvokeCommand, WmEvent};
+use wm_platform::PlatformEvent;
 
 use crate::{
   common::{
@@ -15,7 +16,6 @@ use crate::{
       handle_window_moved_or_resized_start, handle_window_shown,
       handle_window_title_changed,
     },
-    platform::PlatformEvent,
   },
   user_config::UserConfig,
   wm_state::WmState,

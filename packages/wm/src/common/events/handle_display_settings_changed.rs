@@ -1,8 +1,8 @@
 use anyhow::Context;
 use tracing::info;
+use wm_platform::Platform;
 
 use crate::{
-  common::platform::Platform,
   containers::traits::{CommonGetters, PositionGetters},
   monitors::commands::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,

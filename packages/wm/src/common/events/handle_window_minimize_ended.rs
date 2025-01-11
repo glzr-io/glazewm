@@ -1,12 +1,10 @@
 use tracing::info;
+use wm_common::{try_warn, WindowState};
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow,
-  try_warn,
   user_config::UserConfig,
-  windows::{
-    commands::update_window_state, traits::WindowGetters, WindowState,
-  },
+  windows::{commands::update_window_state, traits::WindowGetters},
   wm_state::WmState,
 };
 
@@ -27,7 +25,7 @@ pub fn handle_window_minimize_ended(
 
       let target_state = window
         .prev_state()
-        .unwrap_or(WindowState::default_from_config(config));
+        .unwrap_or(WindowState::default_from_config(&config.value));
 
       update_window_state(window.clone(), target_state, state, config)?;
     }

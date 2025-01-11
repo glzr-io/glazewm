@@ -1,13 +1,11 @@
 use tracing::info;
+use wm_common::{try_warn, WindowState};
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow,
   containers::commands::set_focused_descendant,
-  try_warn,
   user_config::UserConfig,
-  windows::{
-    commands::update_window_state, traits::WindowGetters, WindowState,
-  },
+  windows::{commands::update_window_state, traits::WindowGetters},
   wm_state::WmState,
 };
 

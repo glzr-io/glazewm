@@ -1,22 +1,22 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::{
+  try_warn, ActiveDragOperation, LengthValue, Point, Rect,
+  TilingDirection, WindowState,
+};
+use wm_platform::{NativeWindow, Platform};
 
 use crate::{
-  common::{
-    platform::{NativeWindow, Platform},
-    LengthValue, Point, Rect, TilingDirection,
-  },
   containers::{
     commands::{move_container_within_tree, wrap_in_split_container},
     traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
     DirectionContainer, SplitContainer, TilingContainer, WindowContainer,
   },
-  try_warn,
   user_config::UserConfig,
   windows::{
     commands::{resize_window, update_window_state},
     traits::WindowGetters,
-    ActiveDragOperation, NonTilingWindow, WindowState,
+    NonTilingWindow,
   },
   wm_state::WmState,
 };

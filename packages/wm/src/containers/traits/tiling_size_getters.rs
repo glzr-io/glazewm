@@ -2,13 +2,10 @@ use std::cell::Ref;
 
 use ambassador::delegatable_trait;
 use anyhow::Context;
+use wm_common::{GapsConfig, TilingDirection};
 
 use super::{CommonGetters, PositionGetters, TilingDirectionGetters};
-use crate::{
-  common::TilingDirection,
-  containers::{Container, DirectionContainer, TilingContainer},
-  user_config::GapsConfig,
-};
+use crate::containers::{Container, DirectionContainer, TilingContainer};
 
 pub const MIN_TILING_SIZE: f32 = 0.01;
 

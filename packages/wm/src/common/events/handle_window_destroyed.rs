@@ -1,10 +1,10 @@
 use anyhow::Context;
 use tracing::info;
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow, containers::traits::CommonGetters,
-  windows::commands::unmanage_window, wm_state::WmState,
-  workspaces::commands::deactivate_workspace,
+  containers::traits::CommonGetters, windows::commands::unmanage_window,
+  wm_state::WmState, workspaces::commands::deactivate_workspace,
 };
 
 pub fn handle_window_destroyed(

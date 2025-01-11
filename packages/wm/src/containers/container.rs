@@ -6,19 +6,17 @@ use std::{
 use ambassador::Delegate;
 use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
+use wm_common::{
+  ActiveDrag, ContainerDto, Direction, DisplayState, GapsConfig, Rect,
+  RectDelta, TilingDirection, WindowRuleConfig, WindowState,
+};
 
 use super::{RootContainer, SplitContainer};
 use crate::{
-  common::{
-    platform::NativeWindow, Direction, DisplayState, Rect, RectDelta,
-    TilingDirection,
-  },
-  containers::{traits::*, ContainerDto},
+  containers::traits::*,
   monitors::Monitor,
-  user_config::{GapsConfig, UserConfig, WindowRuleConfig},
-  windows::{
-    traits::*, ActiveDrag, NonTilingWindow, TilingWindow, WindowState,
-  },
+  user_config::UserConfig,
+  windows::{traits::*, NonTilingWindow, TilingWindow},
   workspaces::Workspace,
 };
 

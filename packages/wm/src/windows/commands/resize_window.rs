@@ -1,6 +1,7 @@
+use wm_common::LengthValue;
+
 use super::set_window_size;
 use crate::{
-  common::LengthValue,
   containers::{
     traits::{CommonGetters, PositionGetters, TilingSizeGetters},
     WindowContainer,

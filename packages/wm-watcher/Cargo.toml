@@ -16,6 +16,7 @@ tauri-winres = { workspace = true }
 [dependencies]
 wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
+wm-platform = { path = "../wm-platform" }
 anyhow = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

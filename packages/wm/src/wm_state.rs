@@ -7,13 +7,10 @@ use uuid::Uuid;
 use wm_common::{
   BindingModeConfig, Direction, Point, WindowState, WmEvent,
 };
+use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
-  cleanup::run_cleanup,
-  common::{
-    commands::platform_sync,
-    platform::{NativeMonitor, NativeWindow, Platform},
-  },
+  common::commands::platform_sync,
   containers::{
     commands::set_focused_descendant,
     traits::{CommonGetters, PositionGetters},
@@ -549,6 +546,8 @@ impl Drop for WmState {
       .map(|window| window.native().clone())
       .collect::<Vec<_>>();
 
-    run_cleanup(managed_windows);
+    for window in managed_windows {
+      window.cleanup();
+    }
   }
 }

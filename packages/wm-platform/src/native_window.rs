@@ -776,6 +776,15 @@ impl NativeWindow {
     // Whether to hide or show the window.
     self.set_visible(is_visible, hide_method)
   }
+
+  pub fn cleanup(&self) {
+    if let Err(err) = self.show() {
+      warn!("Failed to show window: {:?}", err);
+    }
+
+    _ = self.set_taskbar_visibility(true);
+    _ = self.set_border_color(None);
+  }
 }
 
 impl PartialEq for NativeWindow {

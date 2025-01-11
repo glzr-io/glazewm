@@ -4,9 +4,9 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
   FullscreenStateConfig, Rect, WindowState,
 };
+use wm_platform::NativeWindow;
 
 use crate::{
-  common::platform::NativeWindow,
   containers::{
     commands::{flatten_split_container, move_container_within_tree},
     traits::{CommonGetters, PositionGetters},
@@ -86,7 +86,7 @@ pub fn handle_window_location_changed(
 
           let target_state = window
             .prev_state()
-            .unwrap_or(WindowState::default_from_config(config));
+            .unwrap_or(WindowState::default_from_config(&config.value));
 
           update_window_state(
             window.clone(),

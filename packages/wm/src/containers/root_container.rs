@@ -6,14 +6,14 @@ use std::{
 
 use anyhow::bail;
 use uuid::Uuid;
+use wm_common::{ContainerDto, Rect, RootContainerDto};
 
 use super::{
   traits::{CommonGetters, PositionGetters},
   Container, DirectionContainer, TilingContainer, WindowContainer,
 };
 use crate::{
-  common::Rect, impl_common_getters, impl_container_debug,
-  monitors::Monitor,
+  impl_common_getters, impl_container_debug, monitors::Monitor,
 };
 
 /// Root node of the container tree.

@@ -6,28 +6,24 @@ use std::{
 
 use anyhow::Context;
 use uuid::Uuid;
-
-use super::{
-  traits::WindowGetters, InsertionTarget, NonTilingWindow, WindowDto,
-  WindowState,
+use wm_common::{
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
+  TilingDirection, WindowDto, WindowRuleConfig, WindowState,
 };
+use wm_platform::NativeWindow;
+
+use super::{traits::WindowGetters, InsertionTarget, NonTilingWindow};
 use crate::{
-  common::{
-    platform::NativeWindow, DisplayState, Rect, RectDelta, TilingDirection,
-  },
   containers::{
     traits::{
       CommonGetters, PositionGetters, TilingDirectionGetters,
       TilingSizeGetters,
     },
-    Container, ContainerDto, DirectionContainer, TilingContainer,
-    WindowContainer,
+    Container, DirectionContainer, TilingContainer, WindowContainer,
   },
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
-  user_config::{GapsConfig, WindowRuleConfig},
-  windows::active_drag::ActiveDrag,
 };
 
 #[derive(Clone)]
