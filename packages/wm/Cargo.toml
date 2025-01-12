@@ -7,15 +7,11 @@ license = "GPL-3"
 edition = "2021"
 default-run = "glazewm"
 
-[lib]
-path = "src/lib.rs"
-
 [[bin]]
 name = "glazewm"
 path = "src/main.rs"
 
 [features]
-no_console = []
 ui_access = []
 
 [build-dependencies]
@@ -23,42 +19,22 @@ tauri-winres = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
-clap = { version = "4", features = ["derive"] }
 ambassador = "0.4"
+clap = { workspace = true }
 enum-as-inner = "0.6"
-futures-util = "0.3"
-home = "0.5"
-uuid = { version = "1", features = ["v4", "serde"] }
-serde = { version = "1", features = ["derive"] }
+futures-util = { workspace = true }
+home = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
-regex = "1"
 tokio = { workspace = true }
-tracing-appender = "0.2"
-tokio-tungstenite = "0.21"
+tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
+tracing-appender = "0.2"
 tracing-subscriber = { workspace = true }
 tray-icon = "0.14"
-windows = { version = "0.52", features = [
-  "implement",
-  "Win32_Devices_HumanInterfaceDevice",
-  "Win32_Foundation",
-  "Win32_Graphics_Dwm",
-  "Win32_Graphics_Gdi",
-  "Win32_Security",
-  "Win32_System_Com",
-  "Win32_System_Environment",
-  "Win32_System_LibraryLoader",
-  "Win32_System_Registry",
-  "Win32_System_RemoteDesktop",
-  "Win32_System_SystemServices",
-  "Win32_System_Threading",
-  "Win32_UI_Accessibility",
-  "Win32_UI_HiDpi",
-  "Win32_UI_Input_Ime",
-  "Win32_UI_Input_KeyboardAndMouse",
-  "Win32_UI_Shell_Common",
-  "Win32_UI_TextServices",
-  "Win32_UI_WindowsAndMessaging",
-] }
-windows-interface = { version = "0.52" }
+uuid = { workspace = true }
+wm-common = { path = "../wm-common" }
+wm-cli = { path = "../wm-cli" }
+wm-platform = { path = "../wm-platform" }
+wm-ipc-client = { path = "../wm-ipc-client" }

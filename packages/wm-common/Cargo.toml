@@ -1,0 +1,15 @@
+[package]
+name = "wm-common"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+regex = "1"
+serde = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }

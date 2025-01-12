@@ -1,7 +1,11 @@
-// Conditionally build the application with either a `windows` or `console`
-// subsystem (default is `console`). This determines whether a console
-// window is spawned on launch, if not already ran through a console.
-#![cfg_attr(feature = "no_console", windows_subsystem = "windows")]
+// The `windows` or `console` subsystem (default is `console`) determines
+// whether a console window is spawned on launch, if not already ran
+// through a console. The following prevents this additional console window
+// in release mode.
+#![cfg_attr(
+  all(not(debug_assertions), target_os = "windows"),
+  windows_subsystem = "windows"
+)]
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
@@ -14,32 +18,23 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
+use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+use wm_platform::Platform;
 
 use crate::{
-  app_command::{AppCommand, InvokeCommand, Verbosity},
-  common::platform::Platform,
-  ipc_client::IpcClient,
-  ipc_server::{ClientResponseData, IpcServer},
-  sys_tray::SystemTray,
-  user_config::UserConfig,
+  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
   wm::WindowManager,
-  wm_event::WmEvent,
 };
 
-mod app_command;
-mod cleanup;
-mod common;
-mod containers;
-mod ipc_client;
+mod commands;
+mod events;
 mod ipc_server;
-mod monitors;
+mod models;
 mod sys_tray;
+mod traits;
 mod user_config;
-mod windows;
 mod wm;
-mod wm_event;
 mod wm_state;
-mod workspaces;
 
 /// Main entry point for the application.
 ///
@@ -66,7 +61,7 @@ async fn main() -> Result<()> {
 
       res
     }
-    _ => start_cli(args).await,
+    _ => wm_cli::start(args).await,
   }
 }
 
@@ -117,7 +112,7 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config)?;
+  let mut event_listener = Platform::start_event_listener(&config.value)?;
 
   // Run startup commands.
   let startup_commands = config.value.general.startup_commands.clone();
@@ -168,7 +163,7 @@ async fn start_wm(
             | WmEvent::PauseChanged { .. }
         ) {
           event_listener.update(
-            &config,
+            &config.value,
             &wm.state.binding_modes,
             wm.state.is_paused,
           );
@@ -203,41 +198,6 @@ async fn start_wm(
 
     if let Err(err) = ipc_server.process_event(wm_event) {
       warn!("{:?}", err);
-    }
-  }
-
-  Ok(())
-}
-
-async fn start_cli(args: Vec<String>) -> Result<()> {
-  let mut client = IpcClient::connect().await?;
-
-  let message = args[1..].join(" ");
-  client
-    .send(&message)
-    .await
-    .context("Failed to send command to IPC server.")?;
-
-  let client_response = client
-    .client_response(&message)
-    .await
-    .context("Failed to receive response from IPC server.")?;
-
-  match client_response.data {
-    // For event subscriptions, omit the initial response message and
-    // continuously output subsequent event messages.
-    Some(ClientResponseData::EventSubscribe(data)) => loop {
-      let event_subscription = client
-        .event_subscription(&data.subscription_id)
-        .await
-        .context("Failed to receive response from IPC server.")?;
-
-      println!("{}", serde_json::to_string(&event_subscription)?);
-    },
-    // For all other messages, output and exit when the first response
-    // message is received.
-    _ => {
-      println!("{}", serde_json::to_string(&client_response)?);
     }
   }
 

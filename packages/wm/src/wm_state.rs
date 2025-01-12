@@ -4,24 +4,22 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
+use wm_common::{
+  BindingModeConfig, Direction, Point, WindowState, WmEvent,
+};
+use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
-  cleanup::run_cleanup,
-  common::{
-    commands::platform_sync,
-    platform::{NativeMonitor, NativeWindow, Platform},
-    Direction, Point,
+  commands::{
+    container::set_focused_descendant, general::platform_sync,
+    monitor::add_monitor, window::manage_window,
   },
-  containers::{
-    commands::set_focused_descendant,
-    traits::{CommonGetters, PositionGetters},
-    Container, RootContainer, WindowContainer,
+  models::{
+    Container, Monitor, RootContainer, WindowContainer, Workspace,
+    WorkspaceTarget,
   },
-  monitors::{commands::add_monitor, Monitor},
-  user_config::{BindingModeConfig, UserConfig},
-  windows::{commands::manage_window, traits::WindowGetters, WindowState},
-  wm_event::WmEvent,
-  workspaces::{Workspace, WorkspaceTarget},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
+  user_config::UserConfig,
 };
 
 pub struct WmState {
@@ -548,6 +546,8 @@ impl Drop for WmState {
       .map(|window| window.native().clone())
       .collect::<Vec<_>>();
 
-    run_cleanup(managed_windows);
+    for window in managed_windows {
+      window.cleanup();
+    }
   }
 }

@@ -3,7 +3,6 @@ use std::{iter, net::SocketAddr};
 use anyhow::{bail, Context};
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
 use tokio::{
   net::{TcpListener, TcpStream},
   sync::{broadcast, mpsc},
@@ -12,116 +11,19 @@ use tokio::{
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{info, warn};
 use uuid::Uuid;
-
-use crate::{
-  app_command::{AppCommand, QueryCommand, SubscribableEvent},
-  common::TilingDirection,
-  containers::{
-    traits::{CommonGetters, TilingDirectionGetters},
-    ContainerDto,
-  },
-  user_config::{BindingModeConfig, UserConfig},
-  wm::WindowManager,
-  wm_event::WmEvent,
+use wm_common::{
+  AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
+  ClientResponseMessage, CommandData, EventSubscribeData,
+  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
+  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
+  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
 };
 
-pub const DEFAULT_IPC_PORT: u32 = 6123;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "messageType", rename_all = "snake_case")]
-pub enum ServerMessage {
-  ClientResponse(ClientResponseMessage),
-  EventSubscription(EventSubscriptionMessage),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ClientResponseMessage {
-  pub client_message: String,
-  pub data: Option<ClientResponseData>,
-  pub error: Option<String>,
-  pub success: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ClientResponseData {
-  AppMetadata(AppMetadataData),
-  BindingModes(BindingModesData),
-  Command(CommandData),
-  EventSubscribe(EventSubscribeData),
-  EventUnsubscribe,
-  Focused(FocusedData),
-  Monitors(MonitorsData),
-  TilingDirection(TilingDirectionData),
-  Windows(WindowsData),
-  Workspaces(WorkspacesData),
-  Paused(bool),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AppMetadataData {
-  pub version: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BindingModesData {
-  pub binding_modes: Vec<BindingModeConfig>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CommandData {
-  pub subject_container_id: Uuid,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EventSubscribeData {
-  pub subscription_id: Uuid,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FocusedData {
-  pub focused: ContainerDto,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MonitorsData {
-  pub monitors: Vec<ContainerDto>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TilingDirectionData {
-  pub tiling_direction: TilingDirection,
-  pub direction_container: ContainerDto,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WindowsData {
-  pub windows: Vec<ContainerDto>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorkspacesData {
-  pub workspaces: Vec<ContainerDto>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EventSubscriptionMessage {
-  pub data: Option<WmEvent>,
-  pub error: Option<String>,
-  pub subscription_id: Uuid,
-  pub success: bool,
-}
+use crate::{
+  traits::{CommonGetters, TilingDirectionGetters},
+  user_config::UserConfig,
+  wm::WindowManager,
+};
 
 pub struct IpcServer {
   abort_handle: task::AbortHandle,

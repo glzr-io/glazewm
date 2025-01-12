@@ -1,0 +1,21 @@
+[package]
+name = "wm-watcher"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "glazewm-watcher"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-winres = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+wm-common = { path = "../wm-common" }
+wm-ipc-client = { path = "../wm-ipc-client" }
+wm-platform = { path = "../wm-platform" }
