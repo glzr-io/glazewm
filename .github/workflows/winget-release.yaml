@@ -1,4 +1,5 @@
 name: Winget release
+
 on:
   workflow_dispatch:
   release:
