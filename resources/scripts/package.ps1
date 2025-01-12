@@ -83,6 +83,9 @@ function BuildExes() {
 
     Write-Output "Building for $target"
     cargo build --locked --release --target $target --features ui_access
+
+    Write-Output "Moving built executables to $outDir"
+    New-Item -ItemType Directory -Force -Path $outDir
     Move-Item -Force -Path "$sourceDir/glazewm.exe", "$sourceDir/glazewm-cli.exe", "$sourceDir/glazewm-watcher.exe" -Destination $outDir
 
     SignFiles @(
