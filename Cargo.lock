@@ -2291,6 +2291,7 @@ dependencies = [
  "anyhow",
  "futures-util",
  "serde_json",
+ "tauri-winres",
  "tokio",
  "tokio-tungstenite",
  "uuid",

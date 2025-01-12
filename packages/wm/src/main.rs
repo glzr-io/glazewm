@@ -1,7 +1,11 @@
-// Conditionally build the application with either a `windows` or `console`
-// subsystem (default is `console`). This determines whether a console
-// window is spawned on launch, if not already ran through a console.
-#![cfg_attr(feature = "no_console", windows_subsystem = "windows")]
+// The `windows` or `console` subsystem (default is `console`) determines
+// whether a console window is spawned on launch, if not already ran
+// through a console. The following prevents this additional console window
+// in release mode.
+#![cfg_attr(
+  all(not(debug_assertions), target_os = "windows"),
+  windows_subsystem = "windows"
+)]
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 

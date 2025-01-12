@@ -12,7 +12,6 @@ name = "glazewm"
 path = "src/main.rs"
 
 [features]
-no_console = []
 ui_access = []
 
 [build-dependencies]

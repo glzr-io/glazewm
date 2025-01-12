@@ -10,6 +10,9 @@ path = "src/lib.rs"
 name = "glazewm-cli"
 path = "src/main.rs"
 
+[build-dependencies]
+tauri-winres = { workspace = true }
+
 [dependencies]
 wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }

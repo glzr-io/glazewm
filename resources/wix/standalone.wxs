@@ -52,17 +52,16 @@
             />
           </Component>
 
-          <!-- Add main executable + watcher (windows subsystem). -->
+          <!-- Add main + watcher executable. -->
           <Component Id="Custom_InstallRootFiles" Guid="73752F94-6589-4C7B-ABED-39D655A19714">
-            <File Id="Custom_RootExe" Source="$(var.EXE_DIR)/noconsole/glazewm.exe" KeyPath="yes" />
-            <File Id="Custom_RootWatcherExe" Source="$(var.EXE_DIR)/noconsole/glazewm-watcher.exe" />
+            <File Id="Custom_RootExe" Source="$(var.EXE_DIR)/glazewm.exe" KeyPath="yes" />
+            <File Id="Custom_RootWatcherExe" Source="$(var.EXE_DIR)/glazewm-watcher.exe" />
           </Component>
 
-          <!-- Add main executable + watcher (console subsystem). -->
+          <!-- Add CLI executable. -->
           <Directory Id="Custom_CliDir" Name="cli">
             <Component Id="Custom_InstallCliFiles" Guid="916284d8-100c-4f37-8d8c-2722b01cb3dd">
-              <File Id="Custom_CliExe" Source="$(var.EXE_DIR)/console/glazewm.exe" KeyPath="yes" />
-              <File Id="Custom_CliWatcherExe" Source="$(var.EXE_DIR)/console/glazewm-watcher.exe" />
+              <File Id="Custom_CliExe" Source="$(var.EXE_DIR)/glazewm-cli.exe" Name="glazewm.exe" KeyPath="yes" />
             </Component>
           </Directory>
         </Directory>
