@@ -7,7 +7,6 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-wm-common = { path = "../wm-common" }
 anyhow = { workspace = true }
 home = { workspace = true }
 tokio = { workspace = true }
@@ -35,3 +34,4 @@ windows = { version = "0.52", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 windows-interface = { version = "0.52" }
+wm-common = { path = "../wm-common" }

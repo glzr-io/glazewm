@@ -14,11 +14,11 @@ path = "src/main.rs"
 tauri-winres = { workspace = true }
 
 [dependencies]
-wm-common = { path = "../wm-common" }
-wm-ipc-client = { path = "../wm-ipc-client" }
 anyhow = { workspace = true }
-tokio = { workspace = true }
-tokio-tungstenite = { workspace = true }
 futures-util = { workspace = true }
 serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
 uuid = { workspace = true }
+wm-common = { path = "../wm-common" }
+wm-ipc-client = { path = "../wm-ipc-client" }
