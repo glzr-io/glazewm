@@ -11,22 +11,29 @@ async fn main() -> anyhow::Result<()> {
 
   match app_command {
     AppCommand::Start { .. } => {
-      let main_path = env::current_exe()?
+      let exe_dir = env::current_exe()?
         .parent()
-        .and_then(|path| {
-          path
-            .join(if cfg!(debug_assertions) {
-              "glazewm.exe"
-            } else {
-              "../glazewm.exe"
-            })
-            .to_str()
-            .map(|path| path.to_string())
-        })
-        .context("Failed to resolve path to the main executable.")?;
+        .context("Failed to resolve path to the current executable.")?
+        .to_owned();
 
+      // Main executable is either in the current directory (when running
+      // debug/release builds) or in the parent directory when packaged.
+      let main_path =
+        [exe_dir.join("glazewm.exe"), exe_dir.join("../glazewm.exe")]
+          .into_iter()
+          .find(|path| path.exists())
+          .and_then(|path| path.to_str().map(|s| s.to_string()))
+          .context("Failed to resolve path to the main executable.")?;
+
+      // UIAccess applications can't be started directly, so we need to use
+      // CMD to start it. The start command is used to avoid a long-running
+      // CMD process in the background.
       Command::new("cmd")
-        .args(["/S", "/C", "start", "", &main_path])
+        .args(
+          ["/C", "start", "", &main_path]
+            .into_iter()
+            .chain(args.iter().skip(1).map(|s| s.as_str())),
+        )
         .spawn()
         .context("Failed to start main executable.")?;
 
