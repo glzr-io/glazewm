@@ -7,15 +7,13 @@ use wm_common::{
 use wm_platform::NativeWindow;
 
 use crate::{
-  containers::{
-    commands::{flatten_split_container, move_container_within_tree},
-    traits::{CommonGetters, PositionGetters},
-    WindowContainer,
+  commands::{
+    container::{flatten_split_container, move_container_within_tree},
+    window::update_window_state,
   },
+  models::{TilingWindow, WindowContainer},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
-  windows::{
-    commands::update_window_state, traits::WindowGetters, TilingWindow,
-  },
   wm_state::WmState,
 };
 

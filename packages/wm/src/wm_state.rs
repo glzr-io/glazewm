@@ -10,16 +10,16 @@ use wm_common::{
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
-  commands::general::platform_sync,
-  containers::{
-    commands::set_focused_descendant,
-    traits::{CommonGetters, PositionGetters},
-    Container, RootContainer, WindowContainer,
+  commands::{
+    container::set_focused_descendant, general::platform_sync,
+    monitor::add_monitor, window::manage_window,
   },
-  monitors::{commands::add_monitor, Monitor},
+  models::{
+    Container, Monitor, RootContainer, WindowContainer, Workspace,
+    WorkspaceTarget,
+  },
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
-  windows::{commands::manage_window, traits::WindowGetters},
-  workspaces::{Workspace, WorkspaceTarget},
 };
 
 pub struct WmState {

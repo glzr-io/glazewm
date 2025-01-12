@@ -4,11 +4,14 @@ use wm_common::{DisplayState, WindowRuleEvent};
 use wm_platform::NativeWindow;
 
 use crate::{
-  containers::{commands::set_focused_descendant, traits::CommonGetters},
+  commands::{
+    container::set_focused_descendant, window::run_window_rules,
+    workspace::focus_workspace,
+  },
+  models::WorkspaceTarget,
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
-  windows::{commands::run_window_rules, traits::WindowGetters},
   wm_state::WmState,
-  workspaces::{commands::focus_workspace, WorkspaceTarget},
 };
 
 pub fn handle_window_focused(

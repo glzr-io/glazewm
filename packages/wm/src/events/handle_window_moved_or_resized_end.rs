@@ -7,17 +7,18 @@ use wm_common::{
 use wm_platform::{NativeWindow, Platform};
 
 use crate::{
-  containers::{
-    commands::{move_container_within_tree, wrap_in_split_container},
-    traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
-    DirectionContainer, SplitContainer, TilingContainer, WindowContainer,
+  commands::{
+    container::{move_container_within_tree, wrap_in_split_container},
+    window::{resize_window, update_window_state},
+  },
+  models::{
+    DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
+    WindowContainer,
+  },
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
   },
   user_config::UserConfig,
-  windows::{
-    commands::{resize_window, update_window_state},
-    traits::WindowGetters,
-    NonTilingWindow,
-  },
   wm_state::WmState,
 };
 

@@ -3,9 +3,11 @@ use wm_common::{try_warn, WindowState};
 use wm_platform::NativeWindow;
 
 use crate::{
-  containers::commands::set_focused_descendant,
+  commands::{
+    container::set_focused_descendant, window::update_window_state,
+  },
+  traits::WindowGetters,
   user_config::UserConfig,
-  windows::{commands::update_window_state, traits::WindowGetters},
   wm_state::WmState,
 };
 

@@ -2,9 +2,9 @@ use anyhow::Context;
 use wm_common::WindowState;
 
 use crate::{
-  containers::{commands::set_focused_descendant, traits::CommonGetters},
+  commands::container::set_focused_descendant,
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
-  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 

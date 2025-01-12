@@ -3,9 +3,8 @@ use wm_common::{try_warn, WindowRuleEvent};
 use wm_platform::NativeWindow;
 
 use crate::{
-  user_config::UserConfig,
-  windows::{commands::run_window_rules, traits::WindowGetters},
-  wm_state::WmState,
+  commands::window::run_window_rules, traits::WindowGetters,
+  user_config::UserConfig, wm_state::WmState,
 };
 
 pub fn handle_window_title_changed(

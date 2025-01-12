@@ -2,9 +2,8 @@ use anyhow::Context;
 use wm_platform::{MouseMoveEvent, Platform};
 
 use crate::{
-  containers::{commands::set_focused_descendant, traits::CommonGetters},
-  user_config::UserConfig,
-  wm_state::WmState,
+  commands::container::set_focused_descendant, traits::CommonGetters,
+  user_config::UserConfig, wm_state::WmState,
 };
 
 pub fn handle_mouse_move(

@@ -20,7 +20,7 @@ use wm_common::{
 };
 
 use crate::{
-  containers::traits::{CommonGetters, TilingDirectionGetters},
+  traits::{CommonGetters, TilingDirectionGetters},
   user_config::UserConfig,
   wm::WindowManager,
 };

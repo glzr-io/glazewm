@@ -23,16 +23,14 @@ use crate::{
 };
 
 mod commands;
-mod containers;
 mod events;
 mod ipc_server;
-mod monitors;
+mod models;
 mod sys_tray;
+mod traits;
 mod user_config;
-mod windows;
 mod wm;
 mod wm_state;
-mod workspaces;
 
 /// Main entry point for the application.
 ///

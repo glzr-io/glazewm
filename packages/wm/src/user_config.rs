@@ -7,10 +7,8 @@ use wm_common::{
 };
 
 use crate::{
-  containers::{traits::CommonGetters, WindowContainer},
-  monitors::Monitor,
-  windows::traits::WindowGetters,
-  workspaces::Workspace,
+  models::{Monitor, WindowContainer, Workspace},
+  traits::{CommonGetters, WindowGetters},
 };
 
 /// Resource string for the sample config file.

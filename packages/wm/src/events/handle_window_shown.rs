@@ -3,9 +3,8 @@ use wm_common::DisplayState;
 use wm_platform::NativeWindow;
 
 use crate::{
-  user_config::UserConfig,
-  windows::{commands::manage_window, traits::WindowGetters},
-  wm_state::WmState,
+  commands::window::manage_window, traits::WindowGetters,
+  user_config::UserConfig, wm_state::WmState,
 };
 
 pub fn handle_window_shown(

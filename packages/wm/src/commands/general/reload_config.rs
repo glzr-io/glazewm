@@ -3,12 +3,11 @@ use tracing::{info, warn};
 use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
 
 use crate::{
-  containers::traits::{CommonGetters, TilingSizeGetters},
+  commands::{window::run_window_rules, workspace::sort_workspaces},
+  traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
-  windows::{commands::run_window_rules, traits::WindowGetters},
   wm::WindowManager,
   wm_state::WmState,
-  workspaces::commands::sort_workspaces,
 };
 
 pub fn reload_config(

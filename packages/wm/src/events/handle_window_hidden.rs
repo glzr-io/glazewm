@@ -3,7 +3,7 @@ use wm_common::DisplayState;
 use wm_platform::NativeWindow;
 
 use crate::{
-  windows::{commands::unmanage_window, traits::WindowGetters},
+  commands::window::unmanage_window, traits::WindowGetters,
   wm_state::WmState,
 };
 

@@ -9,16 +9,21 @@ use wm_common::{
 use wm_platform::PlatformEvent;
 
 use crate::{
-  commands::general::{
-    cycle_focus, disable_binding_mode, enable_binding_mode, platform_sync,
-    reload_config, shell_exec, toggle_pause,
-  },
-  containers::{
-    commands::{
+  commands::{
+    container::{
       focus_in_direction, set_tiling_direction, toggle_tiling_direction,
     },
-    traits::CommonGetters,
-    Container,
+    general::{
+      cycle_focus, disable_binding_mode, enable_binding_mode,
+      platform_sync, reload_config, shell_exec, toggle_pause,
+    },
+    monitor::focus_monitor,
+    window::{
+      ignore_window, move_window_in_direction, move_window_to_workspace,
+      resize_window, set_window_position, set_window_size,
+      update_window_state, WindowPositionTarget,
+    },
+    workspace::{focus_workspace, move_workspace_in_direction},
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
@@ -28,21 +33,10 @@ use crate::{
     handle_window_moved_or_resized_start, handle_window_shown,
     handle_window_title_changed,
   },
-  monitors::commands::focus_monitor,
+  models::{Container, WorkspaceTarget},
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
-  windows::{
-    commands::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
-      update_window_state, WindowPositionTarget,
-    },
-    traits::WindowGetters,
-  },
   wm_state::WmState,
-  workspaces::{
-    commands::{focus_workspace, move_workspace_in_direction},
-    WorkspaceTarget,
-  },
 };
 
 pub struct WindowManager {

@@ -3,12 +3,11 @@ use tracing::info;
 use wm_platform::Platform;
 
 use crate::{
-  containers::traits::{CommonGetters, PositionGetters},
-  monitors::commands::{
+  commands::monitor::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,
   },
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
-  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 

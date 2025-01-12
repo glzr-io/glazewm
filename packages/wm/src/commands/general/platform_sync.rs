@@ -10,12 +10,9 @@ use wm_common::{
 use wm_platform::Platform;
 
 use crate::{
-  containers::{
-    traits::{CommonGetters, PositionGetters},
-    Container, WindowContainer,
-  },
+  models::{Container, WindowContainer},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
-  windows::traits::WindowGetters,
   wm_state::WmState,
 };
 
