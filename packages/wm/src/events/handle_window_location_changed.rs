@@ -77,8 +77,7 @@ pub fn handle_window_location_changed(
       WindowState::Fullscreen(fullscreen_state) => {
         // Restore the window if it's no longer fullscreen *or* for the
         // edge case of fullscreen -> maximized -> restore from maximized.
-        if !(is_fullscreen || is_maximized)
-          || (is_fullscreen && !is_maximized && fullscreen_state.maximized)
+        if (fullscreen_state.maximized || !is_fullscreen) && !is_maximized
         {
           info!("Window restored from fullscreen.");
 

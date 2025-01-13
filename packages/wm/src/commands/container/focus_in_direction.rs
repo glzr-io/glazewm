@@ -55,7 +55,7 @@ fn floating_focus_target(
   direction: &Direction,
 ) -> Option<Container> {
   let is_floating = |sibling: &Container| {
-    sibling.as_non_tiling_window().map_or(false, |window| {
+    sibling.as_non_tiling_window().is_some_and(|window| {
       matches!(window.state(), WindowState::Floating(_))
     })
   };

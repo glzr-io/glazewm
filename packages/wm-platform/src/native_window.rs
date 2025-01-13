@@ -301,7 +301,6 @@ impl NativeWindow {
           ..Default::default()
         },
       },
-      ..Default::default()
     }];
 
     // Bypass restriction for setting the foreground window by sending an

@@ -338,7 +338,7 @@ fn insert_into_ancestor(
     .find(|container| {
       container
         .parent()
-        .map_or(false, |parent| parent == target_ancestor.clone().into())
+        .is_some_and(|parent| parent == target_ancestor.clone().into())
     })
     .context("Window ancestor not found.")?;
 

@@ -275,11 +275,7 @@ pub trait CommonGetters {
   fn has_focus(&self, end_ancestor: Option<Container>) -> bool {
     self
       .self_and_ancestors()
-      .take_while(|ancestor| {
-        end_ancestor
-          .as_ref()
-          .map_or(true, |end_ancestor| end_ancestor != ancestor)
-      })
+      .take_while(|ancestor| end_ancestor.as_ref() != Some(ancestor))
       .chain(end_ancestor.clone())
       .all(|ancestor| ancestor.focus_index() == 0)
   }

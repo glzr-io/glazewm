@@ -43,6 +43,7 @@ struct NonTilingWindowInner {
 }
 
 impl NonTilingWindow {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     id: Option<Uuid>,
     native: NativeWindow,

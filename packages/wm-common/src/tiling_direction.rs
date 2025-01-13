@@ -8,8 +8,8 @@ use super::Direction;
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TilingDirection {
-  Vertical,
   Horizontal,
+  Vertical,
 }
 
 impl TilingDirection {
@@ -21,10 +21,10 @@ impl TilingDirection {
   /// let dir = TilingDirection::Horizontal.inverse();
   /// assert_eq!(dir, TilingDirection::Vertical);
   /// ```
-  pub fn inverse(&self) -> TilingDirection {
+  pub fn inverse(&self) -> Self {
     match self {
-      TilingDirection::Horizontal => TilingDirection::Vertical,
-      TilingDirection::Vertical => TilingDirection::Horizontal,
+      Self::Horizontal => Self::Vertical,
+      Self::Vertical => Self::Horizontal,
     }
   }
 
@@ -37,10 +37,10 @@ impl TilingDirection {
   /// let dir = TilingDirection::from_direction(&Direction::Left);
   /// assert_eq!(dir, TilingDirection::Horizontal);
   /// ```
-  pub fn from_direction(direction: &Direction) -> TilingDirection {
+  pub fn from_direction(direction: &Direction) -> Self {
     match direction {
-      Direction::Left | Direction::Right => TilingDirection::Horizontal,
-      Direction::Up | Direction::Down => TilingDirection::Vertical,
+      Direction::Left | Direction::Right => Self::Horizontal,
+      Direction::Up | Direction::Down => Self::Vertical,
     }
   }
 }
@@ -62,8 +62,8 @@ impl FromStr for TilingDirection {
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
-      "horizontal" => Ok(TilingDirection::Horizontal),
-      "vertical" => Ok(TilingDirection::Vertical),
+      "horizontal" => Ok(Self::Horizontal),
+      "vertical" => Ok(Self::Vertical),
       _ => bail!("Not a valid tiling direction: {}", unparsed),
     }
   }

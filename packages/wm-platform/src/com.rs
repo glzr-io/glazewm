@@ -37,6 +37,12 @@ impl ComInit {
   }
 }
 
+impl Default for ComInit {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Drop for ComInit {
   fn drop(&mut self) {
     unsafe { CoUninitialize() };

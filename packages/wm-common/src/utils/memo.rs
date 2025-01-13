@@ -15,7 +15,7 @@ where
   T: Clone,
 {
   fn default() -> Self {
-    Memo {
+    Self {
       value: Arc::new(Mutex::new(None)),
     }
   }

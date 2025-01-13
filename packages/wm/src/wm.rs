@@ -155,7 +155,7 @@ impl WindowManager {
 
     for command in commands {
       WindowManager::run_command(
-        &command,
+        command,
         current_subject_container.clone(),
         state,
         config,
@@ -359,8 +359,8 @@ impl WindowManager {
             false => set_window_position(
               window,
               WindowPositionTarget::Coordinates(
-                args.x_pos.clone(),
-                args.y_pos.clone(),
+                args.x_pos,
+                args.y_pos,
               ),
               state,
             ),
@@ -425,8 +425,8 @@ impl WindowManager {
               set_window_position(
                 window,
                 WindowPositionTarget::Coordinates(
-                  x_pos.clone(),
-                  y_pos.clone(),
+                  *x_pos,
+                  *y_pos,
                 ),
                 state,
               )?;
