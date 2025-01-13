@@ -116,14 +116,13 @@ fn set_floating_window_size(
   let length_with_clamp =
     |target_length: Option<i32>, current_length, min_length| {
       target_length
-        .map(|target_length| {
+        .map_or(current_length, |target_length| {
           if target_length >= current_length {
             target_length
           } else {
             target_length.max(min_length)
           }
         })
-        .unwrap_or(current_length)
     };
 
   let target_width_px = target_width

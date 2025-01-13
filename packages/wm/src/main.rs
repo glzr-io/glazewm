@@ -120,11 +120,11 @@ async fn start_wm(
 
   loop {
     let res = tokio::select! {
-      Some(_) = tray.exit_rx.recv() => {
+      Some(()) = tray.exit_rx.recv() => {
         info!("Exiting through system tray.");
         break;
       },
-      Some(_) = wm.exit_rx.recv() => {
+      Some(()) = wm.exit_rx.recv() => {
         info!("Exiting through WM command.");
         break;
       },
@@ -171,7 +171,7 @@ async fn start_wm(
 
         ipc_server.process_event(wm_event)
       },
-      Some(_) = tray.config_reload_rx.recv() => {
+      Some(()) = tray.config_reload_rx.recv() => {
         wm.process_commands(
           vec![InvokeCommand::WmReloadConfig],
           None,

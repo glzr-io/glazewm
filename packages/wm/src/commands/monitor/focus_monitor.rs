@@ -14,7 +14,7 @@ pub fn focus_monitor(
   let monitors = state.monitors();
 
   let target_monitor = monitors.get(monitor_index).with_context(|| {
-    format!("Monitor at index {} was not found.", monitor_index)
+    format!("Monitor at index {monitor_index} was not found.")
   })?;
 
   let workspace_name = target_monitor

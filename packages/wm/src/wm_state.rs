@@ -161,7 +161,7 @@ impl WmState {
     self
       .monitors()
       .iter()
-      .flat_map(|monitor| monitor.workspaces())
+      .flat_map(Monitor::workspaces)
       .collect()
   }
 
@@ -413,7 +413,7 @@ impl WmState {
       .pending_sync
       .containers_to_redraw
       .iter()
-      .flat_map(|container| container.self_and_descendants())
+      .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
       .filter(|window: &WindowContainer| unique_ids.insert(window.id()))
@@ -445,7 +445,7 @@ impl WmState {
 
   /// Starts graceful shutdown via an MSPC channel.
   pub fn emit_exit(&self) {
-    self.exit_tx.send(()).unwrap()
+    self.exit_tx.send(()).unwrap();
   }
 
   pub fn container_by_id(&self, id: Uuid) -> Option<Container> {
@@ -532,8 +532,7 @@ impl WmState {
         let frame = c.to_rect();
         frame
           .ok()
-          .map(|frame| frame.contains_point(position))
-          .unwrap_or(false)
+          .is_some_and(|frame| frame.contains_point(position))
       })
   }
 }

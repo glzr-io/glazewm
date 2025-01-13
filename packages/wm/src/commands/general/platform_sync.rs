@@ -300,5 +300,5 @@ fn apply_transparency_effect(
         amount: 255,
         is_delta: false,
       }
-    })
+    });
 }

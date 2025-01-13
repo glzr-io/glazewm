@@ -6,7 +6,7 @@ use crate::{
   commands::container::{
     move_container_within_tree, replace_container, resize_tiling_container,
   },
-  models::{InsertionTarget, WindowContainer},
+  models::{Container, InsertionTarget, WindowContainer},
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -55,8 +55,7 @@ fn set_tiling(
       insertion_target
         .target_parent
         .workspace()
-        .map(|workspace| workspace.is_displayed())
-        .unwrap_or(false)
+        .is_some_and(|workspace| workspace.is_displayed())
     });
 
   // Get the position in the tree to insert the new tiling window. This
@@ -74,7 +73,7 @@ fn set_tiling(
     .or_else(|| {
       let focused_window = workspace
         .descendant_focus_order()
-        .find(|descendant| descendant.is_tiling_window())?;
+        .find(Container::is_tiling_window)?;
 
       Some((focused_window.parent()?, focused_window.index() + 1))
     })

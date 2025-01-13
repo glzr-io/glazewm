@@ -244,20 +244,17 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_process))
-            .unwrap_or(true);
+            .map_or(true, |match_type| match_type.is_match(&window_process));
 
           let is_class_match = match_config
             .window_class
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_class))
-            .unwrap_or(true);
+            .map_or(true, |match_type| match_type.is_match(&window_class));
 
           let is_title_match = match_config
             .window_title
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_title))
-            .unwrap_or(true);
+            .map_or(true, |match_type| match_type.is_match(&window_title));
 
           is_process_match && is_class_match && is_title_match
         })
@@ -296,8 +293,7 @@ impl UserConfig {
       config
         .bind_to_monitor
         .as_ref()
-        .map(|monitor_index| monitor.index() == *monitor_index as usize)
-        .unwrap_or(false)
+        .is_some_and(|monitor_index| monitor.index() == *monitor_index as usize)
     })
   }
 
@@ -314,7 +310,7 @@ impl UserConfig {
       .iter()
       .find(|config| config.bind_to_monitor.is_none())
       .or(inactive_configs.first())
-      .cloned()
+      .copied()
   }
 
   pub fn workspace_config_index(

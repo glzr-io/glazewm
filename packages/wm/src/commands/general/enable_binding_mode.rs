@@ -14,7 +14,7 @@ pub fn enable_binding_mode(
     .iter()
     .find(|config| name == config.name)
     .with_context(|| {
-      format!("No binding mode found with the name '{}'.", name)
+      format!("No binding mode found with the name '{name}'.")
     })?;
 
   state.binding_modes = vec![binding_mode.clone()];

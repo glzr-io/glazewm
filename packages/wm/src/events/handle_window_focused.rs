@@ -42,8 +42,7 @@ pub fn handle_window_focused(
     // focus target and then to the WM's focus target.
     if state
       .unmanaged_or_minimized_timestamp
-      .map(|time| time.elapsed().as_millis() < 100)
-      .unwrap_or(false)
+      .is_some_and(|time| time.elapsed().as_millis() < 100)
     {
       info!("Overriding native focus.");
       state.pending_sync.focus_change = true;

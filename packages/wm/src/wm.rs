@@ -102,7 +102,7 @@ impl WindowManager {
         handle_window_moved_or_resized_end(window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(window, state)
+        Ok(handle_window_moved_or_resized_start(&window, state))
       }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)
@@ -126,7 +126,7 @@ impl WindowManager {
     // Get the container to run WM commands with.
     let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
-        format!("No container found with the given ID '{}'.", id)
+        format!("No container found with the given ID '{id}'.")
       })?,
       None => state
         .focused_container()

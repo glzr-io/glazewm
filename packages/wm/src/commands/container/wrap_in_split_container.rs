@@ -14,7 +14,7 @@ pub fn wrap_in_split_container(
 ) -> anyhow::Result<()> {
   let starting_index = target_children
     .iter()
-    .map(|child| child.index())
+    .map(CommonGetters::index)
     .min()
     .context("Failed to get starting index.")?;
 
@@ -24,7 +24,7 @@ pub fn wrap_in_split_container(
 
   let starting_focus_index = target_children
     .iter()
-    .map(|child| child.focus_index())
+    .map(CommonGetters::focus_index)
     .min()
     .context("Failed to get starting focus index.")?;
 
@@ -35,19 +35,19 @@ pub fn wrap_in_split_container(
   // Get the total tiling size amongst all children.
   let total_tiling_size = target_children
     .iter()
-    .map(|child| child.tiling_size())
+    .map(TilingSizeGetters::tiling_size)
     .sum::<f32>();
 
   let target_children_ids = target_children
     .iter()
-    .map(|child| child.id())
+    .map(CommonGetters::id)
     .collect::<Vec<_>>();
 
   let sorted_focus_ids = target_parent
     .borrow_child_focus_order()
     .iter()
     .filter(|id| target_children_ids.contains(id))
-    .cloned()
+    .copied()
     .collect::<VecDeque<_>>();
 
   // Set the split container's parent and tiling size.
@@ -55,7 +55,7 @@ pub fn wrap_in_split_container(
   split_container.set_tiling_size(total_tiling_size);
 
   // Move the children from their original parent to the split container.
-  for target_child in target_children.iter() {
+  for target_child in &target_children {
     *target_child.borrow_parent_mut() =
       Some(split_container.clone().into());
 

@@ -20,8 +20,7 @@ pub fn set_focused_descendant(
     // Exit if we've reached the end ancestor.
     if end_ancestor
       .as_ref()
-      .map(|end_ancestor| target.id() == end_ancestor.id())
-      .unwrap_or(false)
+      .is_some_and(|end_ancestor| target.id() == end_ancestor.id())
     {
       break;
     }

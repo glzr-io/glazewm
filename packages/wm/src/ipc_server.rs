@@ -44,7 +44,7 @@ impl IpcServer {
     let (event_tx, _event_rx) = broadcast::channel(16);
     let (unsubscribe_tx, _unsubscribe_rx) = broadcast::channel(16);
 
-    let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
+    let server_addr = format!("127.0.0.1:{DEFAULT_IPC_PORT}");
     let server = TcpListener::bind(server_addr.clone()).await?;
     info!("IPC server started on: '{}'.", server_addr);
 
@@ -256,7 +256,7 @@ impl IpcServer {
         task::spawn(async move {
           loop {
             tokio::select! {
-              Ok(_) = disconnection_rx.recv() => {
+              Ok(()) = disconnection_rx.recv() => {
                 break;
               }
               Ok(id) = unsubscribe_rx.recv() => {
@@ -307,7 +307,7 @@ impl IpcServer {
     client_message: String,
     response_data: anyhow::Result<ClientResponseData>,
   ) -> anyhow::Result<Message> {
-    let error = response_data.as_ref().err().map(|err| err.to_string());
+    let error = response_data.as_ref().err().map(ToString::to_string);
     let success = response_data.as_ref().is_ok();
 
     let message = ServerMessage::ClientResponse(ClientResponseMessage {

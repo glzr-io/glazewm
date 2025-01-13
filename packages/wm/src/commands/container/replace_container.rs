@@ -25,7 +25,7 @@ pub fn replace_container(
     .children()
     .get(target_index)
     .cloned()
-    .with_context(|| format!("No container at index {}.", target_index))?;
+    .with_context(|| format!("No container at index {target_index}."))?;
 
   let focus_index = container_to_replace.focus_index();
   let tiling_size = container_to_replace

@@ -91,8 +91,7 @@ fn workspace_config(
       .find(|config| config.name == workspace_name)
       .with_context(|| {
         format!(
-          "Workspace with name '{}' doesn't exist or is already active.",
-          workspace_name
+          "Workspace with name '{workspace_name}' doesn't exist or is already active."
         )
       }),
     None => target_monitor

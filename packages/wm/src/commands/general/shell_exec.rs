@@ -10,12 +10,12 @@ pub fn shell_exec(command: &str, hide_window: bool) -> anyhow::Result<()> {
     });
 
   match res {
-    Ok(_) => {
+    Ok(()) => {
       info!("Command executed successfully: {}.", command);
     }
     Err(err) => {
       let err_message =
-        format!("Failed to execute '{}'.\n\nError: {}", command, err);
+        format!("Failed to execute '{command}'.\n\nError: {err}");
 
       error!(err_message);
       Platform::show_error_dialog("Non-fatal error", &err_message);
