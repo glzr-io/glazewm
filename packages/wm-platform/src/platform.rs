@@ -45,6 +45,7 @@ pub struct Platform;
 
 impl Platform {
   /// Gets the `NativeWindow` instance of the currently focused window.
+  #[must_use]
   pub fn foreground_window() -> NativeWindow {
     let handle = unsafe { GetForegroundWindow() };
     NativeWindow::new(handle.0)
@@ -55,6 +56,7 @@ impl Platform {
   /// This is the explorer.exe wallpaper window (i.e. "Progman"). If
   /// explorer.exe isn't running, then default to the desktop window below
   /// the wallpaper window.
+  #[must_use]
   pub fn desktop_window() -> NativeWindow {
     let handle = match unsafe { GetShellWindow() } {
       HWND(0) => unsafe { GetDesktopWindow() },
@@ -99,6 +101,7 @@ impl Platform {
     )
   }
 
+  #[must_use]
   pub fn nearest_monitor(window: &NativeWindow) -> NativeMonitor {
     native_monitor::nearest_monitor(window.handle)
   }
@@ -281,7 +284,7 @@ impl Platform {
       SystemParametersInfoW(
         SPI_GETANIMATION,
         animation_info.cbSize,
-        Some(&mut animation_info as *mut _ as _),
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
     }?;
@@ -304,7 +307,7 @@ impl Platform {
       SystemParametersInfoW(
         SPI_SETANIMATION,
         animation_info.cbSize,
-        Some(&mut animation_info as *mut _ as _),
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
         SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
@@ -382,11 +385,11 @@ impl Platform {
 
     // If the command starts with double quotes, then the program name/path
     // is wrapped in double quotes (e.g. `"C:\path\to\app.exe" --flag`).
-    if command.starts_with("\"") {
+    if command.starts_with('"') {
       // Find the closing double quote.
       let (closing_index, _) =
         command.match_indices('"').nth(2).with_context(|| {
-          format!("Command doesn't have an ending `\"`: '{}'.", command)
+          format!("Command doesn't have an ending `\"`: '{command}'.")
         })?;
 
       return Ok((
@@ -400,7 +403,7 @@ impl Platform {
     if let Some(first_part) = command_parts.first() {
       if !first_part.contains(&['/', '\\'][..]) {
         let args = command_parts[1..].join(" ");
-        return Ok((first_part.to_string(), args));
+        return Ok(((*first_part).to_string(), args));
       }
     }
 

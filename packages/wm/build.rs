@@ -34,7 +34,7 @@ fn main() {
   <asmv3:trustInfo>
     <security>
       <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="{}" />
+        <requestedExecutionLevel level="asInvoker" uiAccess="{ui_access}" />
       </requestedPrivileges>
     </security>
   </asmv3:trustInfo>
@@ -49,8 +49,7 @@ fn main() {
     </windowsSettings>
   </asmv3:application>
 </assembly>
-"#,
-    ui_access
+"#
   );
 
   res.set_manifest(&manifest_str);
@@ -72,13 +71,13 @@ fn main() {
   let [major, minor, patch] =
     <[u16; 3]>::try_from(version_parts).unwrap_or([0, 0, 0]);
 
-  let version_str = format!("{}.{}.{}.0", major, minor, patch);
+  let version_str = format!("{major}.{minor}.{patch}.0");
   res.set("FileVersion", &version_str);
   res.set("ProductVersion", &version_str);
 
-  let version_u64 = ((major as u64) << 48)
-    | ((minor as u64) << 32)
-    | ((patch as u64) << 16);
+  let version_u64 = (u64::from(major) << 48)
+    | (u64::from(minor) << 32)
+    | (u64::from(patch) << 16);
 
   res.set_version_info(VersionInfo::FILEVERSION, version_u64);
   res.set_version_info(VersionInfo::PRODUCTVERSION, version_u64);

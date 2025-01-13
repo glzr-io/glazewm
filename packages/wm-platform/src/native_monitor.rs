@@ -35,6 +35,7 @@ struct MonitorInfo {
 }
 
 impl NativeMonitor {
+  #[must_use]
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
@@ -79,7 +80,7 @@ impl NativeMonitor {
       unsafe {
         GetMonitorInfoW(
           HMONITOR(self.handle),
-          &mut monitor_info as *mut _ as _,
+          std::ptr::from_mut(&mut monitor_info).cast(),
         )
       }
       .ok()?;
@@ -110,22 +111,20 @@ impl NativeMonitor {
         .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0);
 
       // Get the device path and hardware ID from the first valid device.
-      let (device_path, hardware_id) = display_devices
-        .next()
-        .map(|device| {
+      let (device_path, hardware_id) =
+        display_devices.next().map_or((None, None), |device| {
           let device_path = String::from_utf16_lossy(&device.DeviceID)
             .trim_end_matches('\0')
             .to_string();
 
           let hardware_id = device_path
-            .split("#")
+            .split('#')
             .collect::<Vec<_>>()
             .get(1)
-            .map(|id| id.to_string());
+            .map(|id| (*id).to_string());
 
           (Some(device_path), hardware_id)
-        })
-        .unwrap_or((None, None));
+        });
 
       let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
       let dpi = monitor_dpi(self.handle)?;
@@ -187,7 +186,7 @@ fn available_monitor_handles() -> anyhow::Result<Vec<isize>> {
       HDC::default(),
       None,
       Some(available_monitor_handles_proc),
-      LPARAM(&mut monitors as *mut _ as _),
+      LPARAM(std::ptr::from_mut(&mut monitors) as _),
     )
   }
   .ok()?;
@@ -208,6 +207,7 @@ extern "system" fn available_monitor_handles_proc(
   true.into()
 }
 
+#[must_use]
 pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
   let handle = unsafe {
     MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)

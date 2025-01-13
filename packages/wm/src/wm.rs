@@ -358,10 +358,7 @@ impl WindowManager {
             ),
             false => set_window_position(
               window,
-              WindowPositionTarget::Coordinates(
-                args.x_pos,
-                args.y_pos,
-              ),
+              WindowPositionTarget::Coordinates(args.x_pos, args.y_pos),
               state,
             ),
           },
@@ -424,10 +421,7 @@ impl WindowManager {
             } else if x_pos.is_some() || y_pos.is_some() {
               set_window_position(
                 window,
-                WindowPositionTarget::Coordinates(
-                  *x_pos,
-                  *y_pos,
-                ),
+                WindowPositionTarget::Coordinates(*x_pos, *y_pos),
                 state,
               )?;
             }

@@ -22,7 +22,9 @@ async fn main() -> anyhow::Result<()> {
         [exe_dir.join("glazewm.exe"), exe_dir.join("../glazewm.exe")]
           .into_iter()
           .find(|path| path.exists())
-          .and_then(|path| path.to_str().map(|s| s.to_string()))
+          .and_then(|path| {
+            path.to_str().map(std::string::ToString::to_string)
+          })
           .context("Failed to resolve path to the main executable.")?;
 
       // UIAccess applications can't be started directly, so we need to use
@@ -32,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
         .args(
           ["/C", "start", "", &main_path]
             .into_iter()
-            .chain(args.iter().skip(1).map(|s| s.as_str())),
+            .chain(args.iter().skip(1).map(std::string::String::as_str)),
         )
         .spawn()
         .context("Failed to start main executable.")?;

@@ -186,11 +186,11 @@ pub extern "system" fn event_window_proc(
         match wparam.0 as u32 {
           // System is resuming from sleep/hibernation.
           PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
-            IS_SYSTEM_SUSPENDED.store(false, Ordering::Relaxed)
+            IS_SYSTEM_SUSPENDED.store(false, Ordering::Relaxed);
           }
           // System is entering sleep/hibernation.
           PBT_APMSUSPEND => {
-            IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed)
+            IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed);
           }
           _ => {}
         };
@@ -261,7 +261,7 @@ fn handle_input_msg(
     GetRawInputData(
       HRAWINPUT(lparam.0),
       RID_INPUT,
-      Some(&mut raw_input as *mut _ as _),
+      Some(std::ptr::from_mut(&mut raw_input).cast()),
       &mut raw_input_size,
       std::mem::size_of::<RAWINPUTHEADER>() as u32,
     )
@@ -337,5 +337,5 @@ fn handle_input_msg(
 /// Checks whether `state` contains all the bits of `mask`.
 #[inline]
 fn has_mouse_flag(state: u16, mask: u32) -> bool {
-  state as u32 & mask == mask
+  u32::from(state) & mask == mask
 }

@@ -21,6 +21,7 @@ impl Direction {
   /// let dir = Direction::Left.inverse();
   /// assert_eq!(dir, Direction::Right);
   /// ```
+  #[must_use]
   pub fn inverse(&self) -> Direction {
     match self {
       Direction::Left => Direction::Right,

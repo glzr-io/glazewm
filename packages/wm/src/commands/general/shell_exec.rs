@@ -1,5 +1,4 @@
 use tracing::{error, info};
-
 use wm_platform::Platform;
 
 pub fn shell_exec(command: &str, hide_window: bool) -> anyhow::Result<()> {

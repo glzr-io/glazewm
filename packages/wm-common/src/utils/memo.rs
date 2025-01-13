@@ -26,6 +26,7 @@ where
   T: Clone,
 {
   /// Creates a new `Memo` instance with `None` as the initial value.
+  #[must_use]
   pub fn new() -> Self {
     Self::default()
   }

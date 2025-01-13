@@ -20,6 +20,7 @@ pub struct Rect {
 impl Rect {
   /// Creates a new `Rect` instance from the coordinates of its left, top,
   /// right, and bottom edges.
+  #[must_use]
   pub fn from_ltrb(left: i32, top: i32, right: i32, bottom: i32) -> Self {
     Self {
       left,
@@ -30,6 +31,7 @@ impl Rect {
   }
 
   /// Creates a new `Rect` instance from its X/Y coordinates and size.
+  #[must_use]
   pub fn from_xy(x: i32, y: i32, width: i32, height: i32) -> Self {
     Self {
       left: x,
@@ -39,26 +41,32 @@ impl Rect {
     }
   }
 
+  #[must_use]
   pub fn x(&self) -> i32 {
     self.left
   }
 
+  #[must_use]
   pub fn y(&self) -> i32 {
     self.top
   }
 
+  #[must_use]
   pub fn width(&self) -> i32 {
     self.right - self.left
   }
 
+  #[must_use]
   pub fn height(&self) -> i32 {
     self.bottom - self.top
   }
 
+  #[must_use]
   pub fn translate_to_coordinates(&self, x: i32, y: i32) -> Self {
     Self::from_xy(x, y, self.width(), self.height())
   }
 
+  #[must_use]
   pub fn translate_to_center(&self, outer_rect: &Rect) -> Self {
     Self::translate_to_coordinates(
       self,
@@ -67,6 +75,7 @@ impl Rect {
     )
   }
 
+  #[must_use]
   pub fn translate_in_direction(
     &self,
     direction: &Direction,
@@ -90,6 +99,7 @@ impl Rect {
   /// Returns a new `Rect` that is clamped within the bounds of the given
   /// outer rectangle. Attempts to preserve the width and height of the
   /// original rectangle.
+  #[must_use]
   pub fn clamp(&self, outer_rect: &Rect) -> Self {
     Self::from_xy(
       self.left.max(outer_rect.left),
@@ -99,6 +109,7 @@ impl Rect {
     )
   }
 
+  #[must_use]
   pub fn clamp_size(&self, width: i32, height: i32) -> Self {
     Self::from_xy(
       self.x(),
@@ -108,6 +119,7 @@ impl Rect {
     )
   }
 
+  #[must_use]
   pub fn center_point(&self) -> Point {
     Point {
       x: self.left + (self.width() / 2),
@@ -116,6 +128,7 @@ impl Rect {
   }
 
   /// Gets the delta between this rect and another rect.
+  #[must_use]
   pub fn delta(&self, other: &Rect) -> RectDelta {
     RectDelta {
       left: LengthValue::from_px(other.left - self.left),
@@ -125,6 +138,7 @@ impl Rect {
     }
   }
 
+  #[must_use]
   pub fn apply_delta(
     &self,
     delta: &RectDelta,
@@ -138,6 +152,7 @@ impl Rect {
     )
   }
 
+  #[must_use]
   pub fn apply_inverse_delta(
     &self,
     delta: &RectDelta,
@@ -153,6 +168,7 @@ impl Rect {
 
   // Gets whether the x-coordinate overlaps with the x-coordinate of the
   // other rect.
+  #[must_use]
   pub fn has_overlap_x(&self, other: &Rect) -> bool {
     !(self.x() + self.width() <= other.x()
       || other.x() + other.width() <= self.x())
@@ -160,17 +176,20 @@ impl Rect {
 
   // Gets whether the y-coordinate overlaps with the y-coordinate of the
   // other rect.
+  #[must_use]
   pub fn has_overlap_y(&self, other: &Rect) -> bool {
     !(self.y() + self.height() <= other.y()
       || other.y() + other.height() <= self.y())
   }
 
+  #[must_use]
   pub fn contains_point(&self, point: &Point) -> bool {
     let is_in_x = point.x >= self.left && point.x <= self.right;
     let is_in_y = point.y >= self.top && point.y <= self.bottom;
     is_in_x && is_in_y
   }
 
+  #[must_use]
   pub fn distance_to_point(&self, point: &Point) -> f32 {
     let dx = (self.x() - point.x)
       .abs()

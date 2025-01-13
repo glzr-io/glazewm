@@ -21,6 +21,7 @@ impl TilingDirection {
   /// let dir = TilingDirection::Horizontal.inverse();
   /// assert_eq!(dir, TilingDirection::Vertical);
   /// ```
+  #[must_use]
   pub fn inverse(&self) -> Self {
     match self {
       Self::Horizontal => Self::Vertical,
@@ -37,6 +38,7 @@ impl TilingDirection {
   /// let dir = TilingDirection::from_direction(&Direction::Left);
   /// assert_eq!(dir, TilingDirection::Horizontal);
   /// ```
+  #[must_use]
   pub fn from_direction(direction: &Direction) -> Self {
     match direction {
       Direction::Left | Direction::Right => Self::Horizontal,

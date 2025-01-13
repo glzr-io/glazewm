@@ -66,6 +66,7 @@ pub struct NativeWindow {
 
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
+  #[must_use]
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
@@ -183,7 +184,7 @@ impl NativeWindow {
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_CLOAKED,
-        &mut cloaked as *mut u32 as _,
+        std::ptr::from_mut::<u32>(&mut cloaked).cast(),
         std::mem::size_of::<u32>() as u32,
       )
     }?;
@@ -266,6 +267,7 @@ impl NativeWindow {
   }
 
   /// Whether the window has resize handles.
+  #[must_use]
   pub fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
   }
@@ -326,7 +328,7 @@ impl NativeWindow {
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_BORDER_COLOR,
-        &bgr as *const _ as _,
+        std::ptr::from_ref(&bgr).cast(),
         std::mem::size_of::<u32>() as u32,
       )?;
     }
@@ -349,7 +351,7 @@ impl NativeWindow {
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_WINDOW_CORNER_PREFERENCE,
-        &(corner_preference.0) as *const _ as _,
+        std::ptr::from_ref(&(corner_preference.0)).cast(),
         std::mem::size_of::<i32>() as u32,
       )?;
     }
@@ -433,14 +435,14 @@ impl NativeWindow {
 
     // Calculate the new opacity value.
     let new_opacity = if opacity_value.is_delta {
-      previous_opacity as i16 + opacity_value.amount
+      i16::from(previous_opacity) + opacity_value.amount
     } else {
       opacity_value.amount
     };
 
     // Clamp new_opacity to a u8.
     let new_opacity =
-      new_opacity.clamp(u8::MIN as i16, u8::MAX as i16) as u8;
+      new_opacity.clamp(i16::from(u8::MIN), i16::from(u8::MAX)) as u8;
 
     // Set the new opacity if needed.
     if new_opacity != previous_opacity {
@@ -484,22 +486,21 @@ impl NativeWindow {
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_EXTENDED_FRAME_BOUNDS,
-        &mut rect as *mut _ as _,
+        std::ptr::from_mut(&mut rect).cast(),
         std::mem::size_of::<RECT>() as u32,
       )
     };
 
-    match dwm_res {
-      Ok(_) => Ok(Rect::from_ltrb(
+    if let Ok(()) = dwm_res {
+      Ok(Rect::from_ltrb(
         rect.left,
         rect.top,
         rect.right,
         rect.bottom,
-      )),
-      _ => {
-        warn!("Failed to get window's frame position. Falling back to border position.");
-        self.border_position()
-      }
+      ))
+    } else {
+      warn!("Failed to get window's frame position. Falling back to border position.");
+      self.border_position()
     }
   }
 
@@ -525,7 +526,12 @@ impl NativeWindow {
   fn updated_border_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
-    unsafe { GetWindowRect(HWND(self.handle), &mut rect as *mut _ as _) }?;
+    unsafe {
+      GetWindowRect(
+        HWND(self.handle),
+        std::ptr::from_mut(&mut rect).cast(),
+      )
+    }?;
 
     Ok(Rect::from_ltrb(
       rect.left,
@@ -647,9 +653,9 @@ impl NativeWindow {
 
   /// Adds or removes the window from the native taskbar.
   ///
-  /// Hidden windows (SW_HIDE) cannot be forced to be shown in the taskbar.
-  /// Cloaked windows are normally always shown in the taskbar, but can be
-  /// manually toggled.
+  /// Hidden windows (`SW_HIDE`) cannot be forced to be shown in the
+  /// taskbar. Cloaked windows are normally always shown in the taskbar,
+  /// but can be manually toggled.
   pub fn set_taskbar_visibility(
     &self,
     visible: bool,
@@ -807,7 +813,7 @@ pub fn available_window_handles() -> anyhow::Result<Vec<isize>> {
   unsafe {
     EnumWindows(
       Some(available_window_handles_proc),
-      LPARAM(&mut handles as *mut _ as _),
+      LPARAM(std::ptr::from_mut(&mut handles) as _),
     )
   }?;
 

@@ -69,6 +69,7 @@ impl AppCommand {
   /// Parses `AppCommand` from command line arguments.
   ///
   /// Defaults to `AppCommand::Start` if no arguments are provided.
+  #[must_use]
   pub fn parse_with_default(args: &Vec<String>) -> Self {
     match args.len() == 1 {
       true => AppCommand::Start {
@@ -98,6 +99,7 @@ pub struct Verbosity {
 
 impl Verbosity {
   /// Gets the log level based on the verbosity flags.
+  #[must_use]
   pub fn level(&self) -> Level {
     match (self.verbose, self.quiet) {
       (true, _) => Level::DEBUG,

@@ -29,6 +29,7 @@ impl ComInit {
   ///
   /// Panics if COM initialization fails. This is typically only possible
   /// if COM is already initialized with an incompatible threading model.
+  #[must_use]
   pub fn new() -> Self {
     unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }
       .expect("Unable to initialize COM.");

@@ -18,6 +18,7 @@ pub struct RectDelta {
 }
 
 impl RectDelta {
+  #[must_use]
   pub fn new(
     left: LengthValue,
     top: LengthValue,

@@ -41,8 +41,7 @@ impl FromStr for OpacityValue {
     let units_regex = Regex::new(r"([+-]?)(\d+)(%?)")?;
 
     let err_msg = format!(
-      "Not a valid opacity value '{}'. Must be of format '255', '100%', '+10%' or '-128'.",
-      unparsed
+      "Not a valid opacity value '{unparsed}'. Must be of format '255', '100%', '+10%' or '-128'."
     );
 
     let captures = units_regex
