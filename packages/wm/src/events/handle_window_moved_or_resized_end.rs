@@ -28,7 +28,7 @@ use crate::{
 /// This resizes the window if it's a tiling window and attach a dragged
 /// floating window.
 pub fn handle_window_moved_or_resized_end(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -51,7 +51,7 @@ pub fn handle_window_moved_or_resized_end(
           {
             // Window is a temporary floating window that should be
             // reverted back to tiling.
-            drop_as_tiling_window(window.clone(), state, config)?;
+            drop_as_tiling_window(&window, state, config)?;
           }
         }
       }
@@ -96,7 +96,7 @@ pub fn handle_window_moved_or_resized_end(
 /// Handles transition from temporary floating window to tiling window on
 /// drag end.
 fn drop_as_tiling_window(
-  moved_window: NonTilingWindow,
+  moved_window: &NonTilingWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -108,7 +108,7 @@ fn drop_as_tiling_window(
   // Get the workspace, split containers, and other windows under the
   // dragged window.
   let containers_at_pos = state
-    .containers_at_point(workspace.clone().into(), &mouse_pos)
+    .containers_at_point(&workspace.clone().into(), &mouse_pos)
     .into_iter()
     .filter(|container| container.id() != moved_window.id());
 
@@ -236,16 +236,19 @@ fn drop_position(mouse_pos: &Point, rect: &Rect) -> DropPosition {
   let delta_x = mouse_pos.x - rect.center_point().x;
   let delta_y = mouse_pos.y - rect.center_point().y;
 
-  match delta_x.abs() > delta_y.abs() {
+  if delta_x.abs() > delta_y.abs() {
     // Window is in the left or right triangle.
-    true => match delta_x > 0 {
-      true => DropPosition::Right,
-      false => DropPosition::Left,
-    },
+    if delta_x > 0 {
+      DropPosition::Right
+    } else {
+      DropPosition::Left
+    }
+  } else {
     // Window is in the top or bottom triangle.
-    false => match delta_y > 0 {
-      true => DropPosition::Bottom,
-      false => DropPosition::Top,
-    },
+    if delta_y > 0 {
+      DropPosition::Bottom
+    } else {
+      DropPosition::Top
+    }
   }
 }

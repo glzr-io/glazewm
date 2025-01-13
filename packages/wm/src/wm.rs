@@ -72,37 +72,38 @@ impl WindowManager {
         handle_display_settings_changed(state, config)
       }
       PlatformEvent::KeybindingTriggered(kb_config) => {
-        self.process_commands(kb_config.commands, None, config)?;
+        self.process_commands(&kb_config.commands, None, config)?;
 
         // Return early since we don't want to redraw twice.
         return Ok(());
       }
       PlatformEvent::MouseMove(event) => {
-        handle_mouse_move(event, state, config)
+        handle_mouse_move(&event, state, config)
       }
       PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(window, state)
+        handle_window_destroyed(&window, state)
       }
       PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(window, state, config)
+        handle_window_focused(&window, state, config)
       }
       PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(window, state)
+        handle_window_hidden(&window, state)
       }
       PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(window, state, config)
+        handle_window_location_changed(&window, state, config)
       }
       PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(window, state, config)
+        handle_window_minimized(&window, state, config)
       }
       PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(window, state, config)
+        handle_window_minimize_ended(&window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedEnd(window) => {
-        handle_window_moved_or_resized_end(window, state, config)
+        handle_window_moved_or_resized_end(&window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedStart(window) => {
-        Ok(handle_window_moved_or_resized_start(&window, state))
+        handle_window_moved_or_resized_start(&window, state);
+        Ok(())
       }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)
@@ -117,7 +118,7 @@ impl WindowManager {
 
   pub fn process_commands(
     &mut self,
-    commands: Vec<InvokeCommand>,
+    commands: &Vec<InvokeCommand>,
     subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
   ) -> anyhow::Result<Uuid> {
@@ -134,7 +135,7 @@ impl WindowManager {
     };
 
     let new_subject_container_id = WindowManager::run_commands(
-      &commands,
+      commands,
       subject_container,
       state,
       config,
@@ -164,20 +165,20 @@ impl WindowManager {
       // Update the subject container in case the container type changes.
       // For example, when going from a tiling to a floating window.
       current_subject_container =
-        match current_subject_container.is_detached() {
-          false => current_subject_container,
-          true => {
-            match state.container_by_id(current_subject_container.id()) {
-              Some(container) => container,
-              None => break,
-            }
+        if current_subject_container.is_detached() {
+          match state.container_by_id(current_subject_container.id()) {
+            Some(container) => container,
+            None => break,
           }
+        } else {
+          current_subject_container
         }
     }
 
     Ok(current_subject_container.id())
   }
 
+  #[allow(clippy::too_many_lines)]
   pub fn run_command(
     command: &InvokeCommand,
     subject_container: Container,
@@ -341,27 +342,25 @@ impl WindowManager {
         let workspace =
           subject_container.workspace().context("No workspace.")?;
 
-        move_workspace_in_direction(
-          workspace,
-          direction.clone(),
-          state,
-          config,
-        )
+        move_workspace_in_direction(&workspace, &direction, state, config)
       }
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
-          Ok(window) => match args.centered {
-            true => set_window_position(
-              window,
-              WindowPositionTarget::Centered,
-              state,
-            ),
-            false => set_window_position(
-              window,
-              WindowPositionTarget::Coordinates(args.x_pos, args.y_pos),
-              state,
-            ),
-          },
+          Ok(window) => {
+            if args.centered {
+              set_window_position(
+                window,
+                &WindowPositionTarget::Centered,
+                state,
+              )
+            } else {
+              set_window_position(
+                window,
+                &WindowPositionTarget::Coordinates(args.x_pos, args.y_pos),
+                state,
+              )
+            }
+          }
           _ => Ok(()),
         }
       }
@@ -415,13 +414,13 @@ impl WindowManager {
             if centered {
               set_window_position(
                 window,
-                WindowPositionTarget::Centered,
+                &WindowPositionTarget::Centered,
                 state,
               )?;
             } else if x_pos.is_some() || y_pos.is_some() {
               set_window_position(
                 window,
-                WindowPositionTarget::Coordinates(*x_pos, *y_pos),
+                &WindowPositionTarget::Coordinates(*x_pos, *y_pos),
                 state,
               )?;
             }
@@ -545,7 +544,7 @@ impl WindowManager {
           if !window.has_custom_floating_placement() && centered {
             set_window_position(
               window,
-              WindowPositionTarget::Centered,
+              &WindowPositionTarget::Centered,
               state,
             )?;
           }

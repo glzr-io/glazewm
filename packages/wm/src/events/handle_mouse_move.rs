@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub fn handle_mouse_move(
-  event: MouseMoveEvent,
+  event: &MouseMoveEvent,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {

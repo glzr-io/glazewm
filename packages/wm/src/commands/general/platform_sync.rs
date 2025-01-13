@@ -183,7 +183,7 @@ fn jump_cursor(
         focused_container.monitor().context("No monitor.")?;
 
       let cursor_monitor =
-        state.monitor_at_position(&Platform::mouse_position()?);
+        state.monitor_at_point(&Platform::mouse_position()?);
 
       // Jump to the target monitor if the cursor is not already on it.
       cursor_monitor

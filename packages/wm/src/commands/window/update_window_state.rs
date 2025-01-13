@@ -30,14 +30,14 @@ pub fn update_window_state(
   info!("Updating window state: {:?}.", target_state);
 
   match target_state {
-    WindowState::Tiling => set_tiling(window, state, config),
+    WindowState::Tiling => set_tiling(&window, state, config),
     _ => set_non_tiling(window, target_state, state),
   }
 }
 
 /// Updates the state of a window to be `WindowState::Tiling`.
 fn set_tiling(
-  window: WindowContainer,
+  window: &WindowContainer,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {

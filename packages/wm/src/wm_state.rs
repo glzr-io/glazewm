@@ -503,9 +503,10 @@ impl WmState {
       .or(Some(workspace.into()))
   }
 
+  /// Returns all containers that contain the given point.
   pub fn containers_at_point(
     &self,
-    origin_container: Container,
+    origin_container: &Container,
     point: &Point,
   ) -> Vec<Container> {
     origin_container
@@ -513,27 +514,24 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|frame| frame.contains_point(point))
+          .map(|rect| rect.contains_point(point))
           .unwrap_or(false)
       })
       .collect()
   }
 
-  /// Returns all window under the mouse position
-  pub fn monitor_at_position(&self, position: &Point) -> Option<Monitor> {
+  /// Returns the monitor that contains the given point.
+  pub fn monitor_at_point(&self, point: &Point) -> Option<Monitor> {
     self
-      .root_container
-      .descendants()
-      .filter_map(|container| match container {
-        Container::Monitor(monitor) => Some(monitor),
-        _ => None,
+      .monitors()
+      .iter()
+      .find(|monitor| {
+        monitor
+          .to_rect()
+          .map(|rect| rect.contains_point(point))
+          .unwrap_or(false)
       })
-      .find(|c| {
-        let frame = c.to_rect();
-        frame
-          .ok()
-          .is_some_and(|frame| frame.contains_point(position))
-      })
+      .cloned()
   }
 }
 

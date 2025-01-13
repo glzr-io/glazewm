@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub fn handle_window_focused(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
@@ -70,7 +70,7 @@ pub fn handle_window_focused(
     // Run window rules for focus events.
     run_window_rules(
       window.clone(),
-      WindowRuleEvent::Focus,
+      &WindowRuleEvent::Focus,
       state,
       config,
     )?;

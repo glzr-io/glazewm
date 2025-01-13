@@ -13,12 +13,12 @@ use crate::{
 /// rules.
 pub fn run_window_rules(
   window: WindowContainer,
-  event_type: WindowRuleEvent,
+  event_type: &WindowRuleEvent,
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<Option<WindowContainer>> {
   let pending_window_rules =
-    config.pending_window_rules(&window, &event_type)?;
+    config.pending_window_rules(&window, event_type)?;
 
   let mut subject_window = window;
 
@@ -35,12 +35,13 @@ pub fn run_window_rules(
 
       // Update the subject container in case the container type changes.
       // For example, when going from a tiling to a floating window.
-      subject_window = match subject_window.is_detached() {
-        false => subject_window,
-        true => match state.window_from_native(&subject_window.native()) {
+      subject_window = if subject_window.is_detached() {
+        match state.window_from_native(&subject_window.native()) {
           Some(window) => window,
           None => return Ok(None),
-        },
+        }
+      } else {
+        subject_window
       }
     }
 

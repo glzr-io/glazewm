@@ -34,7 +34,7 @@ pub fn move_window_in_direction(
           move_floating_window(non_tiling_window, direction, state)
         }
         WindowState::Fullscreen(_) => move_to_workspace_in_direction(
-          non_tiling_window.into(),
+          &non_tiling_window.into(),
           direction,
           state,
         ),
@@ -70,7 +70,7 @@ fn move_tiling_window(
   // Attempt to swap or move the window into a sibling container.
   if has_matching_tiling_direction {
     if let Some(sibling) =
-      tiling_sibling_in_direction(window_to_move.clone(), direction)
+      tiling_sibling_in_direction(&window_to_move, direction)
     {
       return move_to_sibling_container(
         window_to_move,
@@ -87,7 +87,7 @@ fn move_tiling_window(
     && parent.is_workspace()
   {
     return move_to_workspace_in_direction(
-      window_to_move.into(),
+      &window_to_move.into(),
       direction,
       state,
     );
@@ -114,8 +114,8 @@ fn move_tiling_window(
     // Otherwise, move the container into the given ancestor. This could
     // simply be the container's direct parent.
     Some(target_ancestor) => insert_into_ancestor(
-      window_to_move,
-      target_ancestor,
+      &window_to_move,
+      &target_ancestor,
       direction,
       state,
     ),
@@ -125,7 +125,7 @@ fn move_tiling_window(
 /// Gets the next sibling `TilingWindow` or `SplitContainer` in the given
 /// direction.
 fn tiling_sibling_in_direction(
-  window: TilingWindow,
+  window: &TilingWindow,
   direction: &Direction,
 ) -> Option<TilingContainer> {
   match direction {
@@ -204,7 +204,7 @@ fn move_to_sibling_container(
 }
 
 fn move_to_workspace_in_direction(
-  window_to_move: WindowContainer,
+  window_to_move: &WindowContainer,
   direction: &Direction,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
@@ -325,8 +325,8 @@ fn invert_workspace_tiling_direction(
 }
 
 fn insert_into_ancestor(
-  window_to_move: TilingWindow,
-  target_ancestor: DirectionContainer,
+  window_to_move: &TilingWindow,
+  target_ancestor: &DirectionContainer,
   direction: &Direction,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
@@ -369,7 +369,7 @@ fn move_floating_window(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let new_position =
-    new_floating_position(window_to_move.clone(), direction, state)?;
+    new_floating_position(&window_to_move, direction, state)?;
 
   if let Some((position_rect, target_monitor)) = new_position {
     let monitor = window_to_move.monitor().context("No monitor.")?;
@@ -396,7 +396,7 @@ fn move_floating_window(
 
 /// Returns a tuple of the new floating position and the target monitor.
 fn new_floating_position(
-  window_to_move: NonTilingWindow,
+  window_to_move: &NonTilingWindow,
   direction: &Direction,
   state: &mut WmState,
 ) -> anyhow::Result<Option<(Rect, Monitor)>> {
@@ -486,13 +486,10 @@ fn new_floating_position(
     Direction::Right => window_pos.left < monitor_rect.left,
   };
 
-  let position = match should_snap_to_inverse_edge {
-    true => snap_to_monitor_edge(
-      &window_pos,
-      &monitor_rect,
-      &direction.inverse(),
-    ),
-    false => window_pos.translate_in_direction(direction, move_distance),
+  let position = if should_snap_to_inverse_edge {
+    snap_to_monitor_edge(&window_pos, &monitor_rect, &direction.inverse())
+  } else {
+    window_pos.translate_in_direction(direction, move_distance)
   };
 
   Ok(Some((position, monitor)))

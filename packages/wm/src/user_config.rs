@@ -64,7 +64,7 @@ impl UserConfig {
     config_path: &PathBuf,
   ) -> anyhow::Result<(ParsedConfig, String)> {
     if !config_path.exists() {
-      Self::create_sample(config_path.clone())?;
+      Self::create_sample(config_path)?;
     }
 
     let config_str = fs::read_to_string(config_path)
@@ -78,7 +78,7 @@ impl UserConfig {
   }
 
   /// Initializes a new config file from the sample config resource.
-  fn create_sample(config_path: PathBuf) -> Result<()> {
+  fn create_sample(config_path: &PathBuf) -> Result<()> {
     let parent_dir =
       config_path.parent().context("Invalid config path.")?;
 
@@ -86,7 +86,7 @@ impl UserConfig {
       format!("Unable to create directory {}.", &config_path.display())
     })?;
 
-    fs::write(&config_path, SAMPLE_CONFIG).with_context(|| {
+    fs::write(config_path, SAMPLE_CONFIG).with_context(|| {
       format!("Unable to write to {}.", config_path.display())
     })?;
 
@@ -244,7 +244,9 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .map_or(true, |match_type| match_type.is_match(&window_process));
+            .map_or(true, |match_type| {
+              match_type.is_match(&window_process)
+            });
 
           let is_class_match = match_config
             .window_class
@@ -293,7 +295,9 @@ impl UserConfig {
       config
         .bind_to_monitor
         .as_ref()
-        .is_some_and(|monitor_index| monitor.index() == *monitor_index as usize)
+        .is_some_and(|monitor_index| {
+          monitor.index() == *monitor_index as usize
+        })
     })
   }
 

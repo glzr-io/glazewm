@@ -11,7 +11,7 @@
 
 use std::{env, path::PathBuf};
 
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{
@@ -41,7 +41,7 @@ mod wm_state;
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
@@ -68,32 +68,8 @@ async fn main() -> Result<()> {
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
-) -> Result<()> {
-  let error_log_dir = home::home_dir()
-    .context("Unable to get home directory.")?
-    .join(".glzr/glazewm/");
-
-  let error_writer =
-    tracing_appender::rolling::never(error_log_dir, "errors.log");
-
-  let subscriber = tracing_subscriber::registry()
-    .with(
-      // Output to stdout with specified verbosity level.
-      fmt::Layer::new()
-        .with_writer(std::io::stdout.with_max_level(verbosity.level())),
-    )
-    .with(
-      // Output to error log file.
-      fmt::Layer::new()
-        .with_writer(error_writer.with_max_level(Level::ERROR)),
-    );
-
-  tracing::subscriber::set_global_default(subscriber)?;
-
-  info!(
-    "Starting WM with log level {:?}.",
-    verbosity.level().to_string()
-  );
+) -> anyhow::Result<()> {
+  setup_logging(&verbosity)?;
 
   // Ensure that only one instance of the WM is running.
   let _single_instance = Platform::new_single_instance()?;
@@ -116,7 +92,7 @@ async fn start_wm(
 
   // Run startup commands.
   let startup_commands = config.value.general.startup_commands.clone();
-  wm.process_commands(startup_commands, None, &mut config)?;
+  wm.process_commands(&startup_commands, None, &mut config)?;
 
   loop {
     let res = tokio::select! {
@@ -145,8 +121,8 @@ async fn start_wm(
 
         ipc_server.process_message(
           message,
-          response_tx,
-          disconnection_tx,
+          &response_tx,
+          &disconnection_tx,
           &mut wm,
           &mut config,
         )
@@ -173,7 +149,7 @@ async fn start_wm(
       },
       Some(()) = tray.config_reload_rx.recv() => {
         wm.process_commands(
-          vec![InvokeCommand::WmReloadConfig],
+          &vec![InvokeCommand::WmReloadConfig],
           None,
           &mut config,
         ).map(|_| ())
@@ -188,7 +164,7 @@ async fn start_wm(
 
   // Run shutdown commands.
   let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(shutdown_commands, None, &mut config)?;
+  wm.process_commands(&shutdown_commands, None, &mut config)?;
 
   wm.state.emit_event(WmEvent::ApplicationExiting);
 
@@ -200,6 +176,39 @@ async fn start_wm(
       warn!("{:?}", err);
     }
   }
+
+  Ok(())
+}
+
+/// Initialize logging with the specified verbosity level.
+///
+/// Error logs are saved to `~/.glzr/glazewm/errors.log`.
+fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
+  let error_log_dir = home::home_dir()
+    .context("Unable to get home directory.")?
+    .join(".glzr/glazewm/");
+
+  let error_writer =
+    tracing_appender::rolling::never(error_log_dir, "errors.log");
+
+  let subscriber = tracing_subscriber::registry()
+    .with(
+      // Output to stdout with specified verbosity level.
+      fmt::Layer::new()
+        .with_writer(std::io::stdout.with_max_level(verbosity.level())),
+    )
+    .with(
+      // Output to error log file.
+      fmt::Layer::new()
+        .with_writer(error_writer.with_max_level(Level::ERROR)),
+    );
+
+  tracing::subscriber::set_global_default(subscriber)?;
+
+  info!(
+    "Starting WM with log level {:?}.",
+    verbosity.level().to_string()
+  );
 
   Ok(())
 }

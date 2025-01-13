@@ -125,8 +125,8 @@ impl IpcServer {
   pub fn process_message(
     &self,
     message: String,
-    response_tx: mpsc::UnboundedSender<Message>,
-    disconnection_tx: broadcast::Sender<()>,
+    response_tx: &mpsc::UnboundedSender<Message>,
+    disconnection_tx: &broadcast::Sender<()>,
     wm: &mut WindowManager,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
@@ -140,8 +140,8 @@ impl IpcServer {
         .and_then(|app_command| {
           self.handle_app_command(
             app_command,
-            response_tx.clone(),
-            disconnection_tx,
+            &response_tx,
+            &disconnection_tx,
             wm,
             config,
           )
@@ -154,11 +154,12 @@ impl IpcServer {
     Ok(())
   }
 
+  #[allow(clippy::too_many_lines)]
   fn handle_app_command(
     &self,
     app_command: AppCommand,
-    response_tx: mpsc::UnboundedSender<Message>,
-    disconnection_tx: broadcast::Sender<()>,
+    response_tx: &mpsc::UnboundedSender<Message>,
+    disconnection_tx: &broadcast::Sender<()>,
     wm: &mut WindowManager,
     config: &mut UserConfig,
   ) -> anyhow::Result<ClientResponseData> {
@@ -235,7 +236,7 @@ impl IpcServer {
         command,
       } => {
         let subject_container_id = wm.process_commands(
-          vec![command],
+          &vec![command],
           subject_container_id,
           config,
         )?;
@@ -297,7 +298,7 @@ impl IpcServer {
 
         ClientResponseData::EventUnsubscribe
       }
-      _ => bail!("Unsupported IPC command."),
+      AppCommand::Start { .. } => bail!("Unsupported IPC command."),
     };
 
     Ok(response_data)

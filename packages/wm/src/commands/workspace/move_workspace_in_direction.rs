@@ -11,8 +11,8 @@ use crate::{
 };
 
 pub fn move_workspace_in_direction(
-  workspace: Workspace,
-  direction: Direction,
+  workspace: &Workspace,
+  direction: &Direction,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -82,7 +82,7 @@ pub fn move_workspace_in_direction(
       deactivate_workspace(workspace, state)?;
     }
 
-    sort_workspaces(target_monitor, config)?;
+    sort_workspaces(&target_monitor, config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
       updated_workspace: workspace.to_dto()?,

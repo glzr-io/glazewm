@@ -25,7 +25,7 @@ pub fn reload_config(
   // Re-run window rules on all active windows.
   for window in state.windows() {
     window.set_done_window_rules(Vec::new());
-    run_window_rules(window, WindowRuleEvent::Manage, state, config)?;
+    run_window_rules(window, &WindowRuleEvent::Manage, state, config)?;
   }
 
   update_workspace_configs(state, config)?;
@@ -120,7 +120,7 @@ fn update_workspace_configs(
         if *workspace_config != workspace.config() {
           workspace.set_config(workspace_config.clone());
 
-          sort_workspaces(monitor, config)?;
+          sort_workspaces(&monitor, config)?;
 
           state.emit_event(WmEvent::WorkspaceUpdated {
             updated_workspace: workspace.to_dto()?,

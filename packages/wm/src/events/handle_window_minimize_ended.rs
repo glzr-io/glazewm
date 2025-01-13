@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn handle_window_minimize_ended(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {

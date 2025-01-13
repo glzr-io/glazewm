@@ -76,9 +76,10 @@ pub fn move_window_to_workspace(
     // Focus target is `None` if the window is not focused.
     let focus_target = state.focus_target_after_removal(&window);
 
-    let focus_reset_target = match target_workspace.is_displayed() {
-      true => None,
-      false => target_monitor.descendant_focus_order().next(),
+    let focus_reset_target = if target_workspace.is_displayed() {
+      None
+    } else {
+      target_monitor.descendant_focus_order().next()
     };
 
     let insertion_sibling = target_workspace

@@ -9,7 +9,7 @@ pub fn handle_window_moved_or_resized_start(
   native_window: &NativeWindow,
   state: &mut WmState,
 ) {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   if let Some(found_window) = found_window {
     found_window.set_active_drag(Some(ActiveDrag {

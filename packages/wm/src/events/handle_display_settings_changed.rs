@@ -55,11 +55,12 @@ pub fn handle_display_settings_changed(
           hardware_ids.iter().filter(|&id| *id == hardware_id).count()
             == 1;
 
-        match is_unique
+        if is_unique
           && hardware_id == *native_monitor.hardware_id().ok()??
         {
-          true => Some(monitor),
-          false => None,
+          Some(monitor)
+        } else {
+          None
         }
       })
       .cloned();

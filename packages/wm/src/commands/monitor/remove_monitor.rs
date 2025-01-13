@@ -48,7 +48,7 @@ pub fn remove_monitor(
       state,
     )?;
 
-    sort_workspaces(target_monitor.clone(), config)?;
+    sort_workspaces(&target_monitor, config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
       updated_workspace: workspace.to_dto()?,

@@ -14,7 +14,7 @@ pub enum WindowPositionTarget {
 
 pub fn set_window_position(
   window: WindowContainer,
-  target: WindowPositionTarget,
+  target: &WindowPositionTarget,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   if matches!(window.state(), WindowState::Floating(_)) {

@@ -36,7 +36,7 @@ pub fn manage_window(
   // Window might be detached if `ignore` command has been invoked.
   let updated_window = run_window_rules(
     window.clone(),
-    WindowRuleEvent::Manage,
+    &WindowRuleEvent::Manage,
     state,
     config,
   )?;
@@ -216,11 +216,12 @@ fn insertion_target(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  match focused_container.is_workspace() {
-    true => Ok((focused_container, 0)),
-    false => Ok((
+  if focused_container.is_workspace() {
+    Ok((focused_container, 0))
+  } else {
+    Ok((
       focused_container.parent().context("No insertion target.")?,
       focused_container.index() + 1,
-    )),
+    ))
   }
 }

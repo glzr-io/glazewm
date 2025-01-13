@@ -7,7 +7,7 @@ use crate::{
 
 /// Sorts a monitor's workspaces by config order.
 pub fn sort_workspaces(
-  monitor: Monitor,
+  monitor: &Monitor,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let mut workspaces = monitor.workspaces();

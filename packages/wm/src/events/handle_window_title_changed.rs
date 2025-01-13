@@ -18,9 +18,15 @@ pub fn handle_window_title_changed(
     // TODO: Log window details.
     info!("Window title changed");
 
-    // Run window rules for title change events.
     try_warn!(window.native().refresh_title());
-    run_window_rules(window, WindowRuleEvent::TitleChange, state, config)?;
+
+    // Run window rules for title change events.
+    run_window_rules(
+      window,
+      &WindowRuleEvent::TitleChange,
+      state,
+      config,
+    )?;
   }
 
   Ok(())

@@ -17,8 +17,9 @@ use crate::{
   wm_state::WmState,
 };
 
+#[allow(clippy::too_many_lines)]
 pub fn handle_window_location_changed(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -181,9 +182,10 @@ fn update_drag_state(
     let is_move = frame_position.height() == old_frame_position.height()
       && frame_position.width() == old_frame_position.width();
 
-    let operation = match is_move {
-      true => ActiveDragOperation::Moving,
-      false => ActiveDragOperation::Resizing,
+    let operation = if is_move {
+      ActiveDragOperation::Moving
+    } else {
+      ActiveDragOperation::Resizing
     };
 
     window.set_active_drag(Some(ActiveDrag {

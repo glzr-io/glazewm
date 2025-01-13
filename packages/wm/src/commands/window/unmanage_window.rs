@@ -11,6 +11,7 @@ use crate::{
   wm_state::WmState,
 };
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
