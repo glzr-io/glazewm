@@ -6,6 +6,7 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+#![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 

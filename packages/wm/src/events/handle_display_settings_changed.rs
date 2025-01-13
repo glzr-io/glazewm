@@ -76,7 +76,7 @@ pub fn handle_display_settings_changed(
           pending_monitors.remove(index);
         }
 
-        update_monitor(found_monitor, native_monitor, state)?;
+        update_monitor(&found_monitor, native_monitor, state)?;
       }
       None => {
         new_native_monitors.push(native_monitor);
@@ -88,7 +88,7 @@ pub fn handle_display_settings_changed(
     match pending_monitors.first() {
       Some(_) => {
         let monitor = pending_monitors.remove(0);
-        update_monitor(monitor, native_monitor, state)
+        update_monitor(&monitor, native_monitor, state)
       }
       // Add monitor if it doesn't exist in state.
       None => add_monitor(native_monitor, state, config),
@@ -109,7 +109,7 @@ pub fn handle_display_settings_changed(
   }
 
   // Sort monitors by position.
-  sort_monitors(state.root_container.clone())?;
+  sort_monitors(&state.root_container)?;
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark

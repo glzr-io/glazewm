@@ -23,7 +23,7 @@ pub fn handle_window_location_changed(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
@@ -58,7 +58,7 @@ pub fn handle_window_location_changed(
     // TODO: Include this as part of the `match` statement below.
     if let Some(tiling_window) = window.as_tiling_window() {
       update_drag_state(
-        tiling_window.clone(),
+        tiling_window,
         &frame_position,
         &old_frame_position,
         state,
@@ -146,7 +146,7 @@ pub fn handle_window_location_changed(
 
             move_container_within_tree(
               window.into(),
-              updated_workspace.clone().into(),
+              &updated_workspace.clone().into(),
               updated_workspace.child_count(),
               state,
             )?;
@@ -165,7 +165,7 @@ pub fn handle_window_location_changed(
 /// updates its operation state accordingly. If the window is being moved,
 /// it's set to floating mode.
 fn update_drag_state(
-  window: TilingWindow,
+  window: &TilingWindow,
   frame_position: &Rect,
   old_frame_position: &Rect,
   state: &mut WmState,

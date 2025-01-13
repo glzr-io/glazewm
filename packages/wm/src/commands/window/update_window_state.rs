@@ -84,14 +84,14 @@ fn set_tiling(
 
   // Replace the original window with the created tiling window.
   replace_container(
-    tiling_window.clone().into(),
-    window.parent().context("No parent.")?,
+    &tiling_window.clone().into(),
+    &window.parent().context("No parent.")?,
     window.index(),
   )?;
 
   move_container_within_tree(
     tiling_window.clone().into(),
-    target_parent.clone(),
+    &target_parent,
     target_index,
     state,
   )?;
@@ -171,15 +171,15 @@ fn set_non_tiling(
       if parent != workspace.clone().into() {
         move_container_within_tree(
           window.clone().into(),
-          workspace.clone().into(),
+          &workspace.clone().into(),
           workspace.child_count(),
           state,
         )?;
       }
 
       replace_container(
-        non_tiling_window.clone().into(),
-        workspace.clone().into(),
+        &non_tiling_window.clone().into(),
+        &workspace.clone().into(),
         window.index(),
       )?;
 

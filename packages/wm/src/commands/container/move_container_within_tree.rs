@@ -22,7 +22,7 @@ use crate::{models::Container, traits::CommonGetters, wm_state::WmState};
 /// parent gets removed resulting in V[1 2].
 pub fn move_container_within_tree(
   container_to_move: Container,
-  target_parent: Container,
+  target_parent: &Container,
   target_index: usize,
   state: &WmState,
 ) -> anyhow::Result<()> {
@@ -33,12 +33,12 @@ pub fn move_container_within_tree(
   // Get lowest common ancestor (LCA) between `container_to_move` and
   // `target_parent`. This could be the `target_parent` itself.
   let lowest_common_ancestor =
-    lowest_common_ancestor(&container_to_move, &target_parent)
+    lowest_common_ancestor(&container_to_move, target_parent)
       .context("No common ancestor between containers.")?;
 
   // If the container is already a child of the target parent, then shift
   // it to the target index.
-  if container_to_move.parent().context("No parent.")? == target_parent {
+  if container_to_move.parent().context("No parent.")? == *target_parent {
     target_parent
       .borrow_children_mut()
       .shift_to_index(target_index, container_to_move.clone());
@@ -54,10 +54,10 @@ pub fn move_container_within_tree(
 
   // Handle case where target parent is the LCA. For example, when swapping
   // sibling containers or moving a container to a direct ancestor.
-  if target_parent == lowest_common_ancestor {
+  if *target_parent == lowest_common_ancestor {
     return move_to_lowest_common_ancestor(
-      container_to_move,
-      lowest_common_ancestor,
+      &container_to_move,
+      &lowest_common_ancestor,
       target_index,
       state,
     );
@@ -137,8 +137,8 @@ pub fn move_container_within_tree(
 }
 
 fn move_to_lowest_common_ancestor(
-  container_to_move: Container,
-  lowest_common_ancestor: Container,
+  container_to_move: &Container,
+  lowest_common_ancestor: &Container,
   target_index: usize,
   state: &WmState,
 ) -> anyhow::Result<()> {

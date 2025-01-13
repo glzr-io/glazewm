@@ -64,10 +64,12 @@ impl IpcServer {
 
     Ok(Self {
       abort_handle: task.abort_handle(),
+      #[allow(clippy::used_underscore_binding)]
       _event_rx,
       event_tx,
       message_rx,
       unsubscribe_tx,
+      #[allow(clippy::used_underscore_binding)]
       _unsubscribe_rx,
     })
   }
@@ -140,8 +142,8 @@ impl IpcServer {
         .and_then(|app_command| {
           self.handle_app_command(
             app_command,
-            &response_tx,
-            &disconnection_tx,
+            response_tx,
+            disconnection_tx,
             wm,
             config,
           )

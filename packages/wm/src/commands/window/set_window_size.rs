@@ -27,7 +27,7 @@ pub fn set_window_size(
     WindowContainer::NonTilingWindow(window) => {
       if matches!(window.state(), WindowState::Floating(_)) {
         set_floating_window_size(
-          window,
+          &window,
           target_width,
           target_height,
           state,
@@ -46,11 +46,11 @@ fn set_tiling_window_size(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   if let Some(target_width) = target_width {
-    set_tiling_window_length(&window, &target_width, true, state)?;
+    set_tiling_window_length(window, &target_width, true, state)?;
   }
 
   if let Some(target_height) = target_height {
-    set_tiling_window_length(&window, &target_height, false, state)?;
+    set_tiling_window_length(window, &target_height, false, state)?;
   }
 
   Ok(())
@@ -72,15 +72,12 @@ fn set_tiling_window_length(
     let (horizontal_gap, vertical_gap) =
       container_to_resize.inner_gaps()?;
 
-    let parent_length = match is_width_resize {
-      true => {
-        parent.to_rect()?.width()
-          - horizontal_gap * window.tiling_siblings().count() as i32
-      }
-      false => {
-        parent.to_rect()?.height()
-          - vertical_gap * window.tiling_siblings().count() as i32
-      }
+    let parent_length = if is_width_resize {
+      parent.to_rect()?.width()
+        - horizontal_gap * window.tiling_siblings().count() as i32
+    } else {
+      parent.to_rect()?.height()
+        - vertical_gap * window.tiling_siblings().count() as i32
     };
 
     // Convert the target length to a tiling size.
@@ -101,7 +98,7 @@ fn set_tiling_window_length(
 }
 
 fn set_floating_window_size(
-  window: NonTilingWindow,
+  window: &NonTilingWindow,
   target_width: Option<LengthValue>,
   target_height: Option<LengthValue>,
   state: &mut WmState,

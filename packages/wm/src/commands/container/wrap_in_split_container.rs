@@ -10,7 +10,7 @@ use crate::{
 pub fn wrap_in_split_container(
   split_container: SplitContainer,
   target_parent: Container,
-  target_children: Vec<TilingContainer>,
+  target_children: &[TilingContainer],
 ) -> anyhow::Result<()> {
   let starting_index = target_children
     .iter()
@@ -55,7 +55,7 @@ pub fn wrap_in_split_container(
   split_container.set_tiling_size(total_tiling_size);
 
   // Move the children from their original parent to the split container.
-  for target_child in &target_children {
+  for target_child in target_children {
     *target_child.borrow_parent_mut() =
       Some(split_container.clone().into());
 

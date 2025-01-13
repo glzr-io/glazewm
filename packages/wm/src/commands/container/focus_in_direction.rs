@@ -19,7 +19,7 @@ pub fn focus_in_direction(
       // attempt to find a workspace in the given direction.
       tiling_focus_target(origin_container.clone(), direction)?
         .map_or_else(
-          || workspace_focus_target(origin_container, direction, state),
+          || workspace_focus_target(&origin_container, direction, state),
           |container| Ok(Some(container)),
         )?
     }
@@ -29,13 +29,13 @@ pub fn focus_in_direction(
           floating_focus_target(origin_container, direction)
         }
         WindowState::Fullscreen(_) => {
-          workspace_focus_target(origin_container, direction, state)?
+          workspace_focus_target(&origin_container, direction, state)?
         }
         _ => None,
       }
     }
     Container::Workspace(_) => {
-      workspace_focus_target(origin_container, direction, state)?
+      workspace_focus_target(&origin_container, direction, state)?
     }
     _ => None,
   };
@@ -135,7 +135,7 @@ fn tiling_focus_target(
 /// always return a tiling container. This makes it different from the
 /// `focus_workspace` command with `FocusWorkspaceTarget::Direction`.
 fn workspace_focus_target(
-  origin_container: Container,
+  origin_container: &Container,
   direction: &Direction,
   state: &WmState,
 ) -> anyhow::Result<Option<Container>> {

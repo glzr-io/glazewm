@@ -18,7 +18,7 @@ pub fn move_workspace_in_direction(
 ) -> anyhow::Result<()> {
   let origin_monitor = workspace.monitor().context("No monitor.")?;
   let target_monitor =
-    state.monitor_in_direction(&origin_monitor, &direction)?;
+    state.monitor_in_direction(&origin_monitor, direction)?;
 
   if let Some(target_monitor) = target_monitor {
     // Get currently displayed workspace on the target monitor.
@@ -28,7 +28,7 @@ pub fn move_workspace_in_direction(
 
     move_container_within_tree(
       workspace.clone().into(),
-      target_monitor.clone().into(),
+      &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,
     )?;

@@ -19,7 +19,7 @@ pub fn handle_window_focused(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
     // Ignore the focus event if:

@@ -300,7 +300,7 @@ impl Platform {
   ) -> anyhow::Result<()> {
     let mut animation_info = ANIMATIONINFO {
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
-      iMinAnimate: if enable { 1 } else { 0 },
+      iMinAnimate: i32::from(enable),
     };
 
     unsafe {

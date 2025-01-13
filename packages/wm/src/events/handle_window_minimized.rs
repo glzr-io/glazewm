@@ -16,7 +16,7 @@ pub fn handle_window_minimized(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   // Update the window's state to be minimized.
   if let Some(window) = found_window {

@@ -32,7 +32,7 @@ pub fn handle_window_moved_or_resized_end(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
     // TODO: Log window details.
@@ -51,7 +51,7 @@ pub fn handle_window_moved_or_resized_end(
           {
             // Window is a temporary floating window that should be
             // reverted back to tiling.
-            drop_as_tiling_window(&window, state, config)?;
+            drop_as_tiling_window(window, state, config)?;
           }
         }
       }
@@ -77,7 +77,7 @@ pub fn handle_window_moved_or_resized_end(
         }
 
         resize_window(
-          window.clone().into(),
+          &window.clone().into(),
           Some(LengthValue::from_px(width_delta)),
           Some(LengthValue::from_px(height_delta)),
           state,
@@ -183,7 +183,7 @@ fn drop_as_tiling_window(
     wrap_in_split_container(
       split_container.clone(),
       target_parent.clone().into(),
-      vec![nearest_container],
+      &[nearest_container],
     )?;
 
     let target_index = match drop_position {
@@ -193,7 +193,7 @@ fn drop_as_tiling_window(
 
     move_container_within_tree(
       moved_window.clone().into(),
-      split_container.into(),
+      &split_container.into(),
       target_index,
       state,
     )?;
@@ -205,7 +205,7 @@ fn drop_as_tiling_window(
 
     move_container_within_tree(
       moved_window.clone().into(),
-      target_parent.clone().into(),
+      &target_parent.clone().into(),
       target_index,
       state,
     )?;

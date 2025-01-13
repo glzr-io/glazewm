@@ -5,7 +5,7 @@ use crate::{
 
 /// Sorts the root container's monitors from left-to-right and
 /// top-to-bottom.
-pub fn sort_monitors(root: RootContainer) -> anyhow::Result<()> {
+pub fn sort_monitors(root: &RootContainer) -> anyhow::Result<()> {
   let monitors = root.monitors();
 
   // Create a tuple of monitors and their rects.

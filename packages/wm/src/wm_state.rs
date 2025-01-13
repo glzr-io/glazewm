@@ -276,6 +276,7 @@ impl WmState {
   ///
   /// Returns a tuple of the workspace name and the `Workspace` instance
   /// if active.
+  #[allow(clippy::too_many_lines)]
   pub fn workspace_by_target(
     &self,
     origin_workspace: &Workspace,
@@ -284,6 +285,7 @@ impl WmState {
   ) -> anyhow::Result<(Option<String>, Option<Workspace>)> {
     let (name, workspace) = match target {
       WorkspaceTarget::Name(name) => {
+        #[allow(clippy::match_bool)]
         match origin_workspace.config().name == name {
           false => (Some(name.clone()), self.workspace_by_name(&name)),
           // Toggle the workspace if it's already focused.
@@ -504,6 +506,7 @@ impl WmState {
   }
 
   /// Returns all containers that contain the given point.
+  #[allow(clippy::unused_self)]
   pub fn containers_at_point(
     &self,
     origin_container: &Container,

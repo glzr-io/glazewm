@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn resize_window(
-  window: WindowContainer,
+  window: &WindowContainer,
   width_delta: Option<LengthValue>,
   height_delta: Option<LengthValue>,
   state: &mut WmState,

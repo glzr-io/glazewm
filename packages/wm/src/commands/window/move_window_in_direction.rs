@@ -18,6 +18,9 @@ use crate::{
   wm_state::WmState,
 };
 
+/// The distance in pixels to snap the window to the monitor's edge.
+const SNAP_DISTANCE: i32 = 15;
+
 pub fn move_window_in_direction(
   window: WindowContainer,
   direction: &Direction,
@@ -151,7 +154,7 @@ fn move_to_sibling_container(
       // Swap the window with sibling in given direction.
       move_container_within_tree(
         window_to_move.clone().into(),
-        parent,
+        &parent,
         sibling_window.index(),
         state,
       )?;
@@ -186,7 +189,7 @@ fn move_to_sibling_container(
 
         move_container_within_tree(
           window_to_move.into(),
-          target_parent.clone().into(),
+          &target_parent.clone().into(),
           target_index,
           state,
         )?;
@@ -242,7 +245,7 @@ fn move_to_workspace_in_direction(
 
     move_container_within_tree(
       window_to_move.clone().into(),
-      workspace.clone().into(),
+      &workspace.clone().into(),
       target_index,
       state,
     )?;
@@ -286,7 +289,7 @@ fn invert_workspace_tiling_direction(
     wrap_in_split_container(
       split_container,
       workspace.clone().into(),
-      workspace_children,
+      &workspace_children,
     )?;
   }
 
@@ -302,7 +305,7 @@ fn invert_workspace_tiling_direction(
   // the split container.
   move_container_within_tree(
     window_to_move.clone().into(),
-    workspace.clone().into(),
+    &workspace.clone().into(),
     target_index,
     state,
   )?;
@@ -350,7 +353,7 @@ fn insert_into_ancestor(
   // Move the window into the container above.
   move_container_within_tree(
     window_to_move.clone().into(),
-    target_ancestor.clone().into(),
+    &target_ancestor.clone().into(),
     target_index,
     state,
   )?;
@@ -449,8 +452,6 @@ fn new_floating_position(
     x if (0.4..0.6).contains(&x) => length_delta / 3,
     _ => length_delta / 2,
   };
-
-  const SNAP_DISTANCE: i32 = 15;
 
   // Snap the window to the current monitor's edge if it's within 15px of
   // it after the move.

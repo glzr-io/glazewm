@@ -13,6 +13,7 @@ use crate::{
   wm_state::WmState,
 };
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn remove_monitor(
   monitor: Monitor,
   state: &mut WmState,
@@ -43,7 +44,7 @@ pub fn remove_monitor(
     // Move workspace to target monitor.
     move_container_within_tree(
       workspace.clone().into(),
-      target_monitor.clone().into(),
+      &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,
     )?;

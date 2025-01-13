@@ -101,17 +101,21 @@ fn create_window(
   // the original width/height of the window and optionally position it in
   // the center of the workspace.
   let is_same_workspace = nearest_workspace.id() == target_workspace.id();
-  let floating_placement = match !is_same_workspace || prefers_centered {
-    true => native_window
-      .frame_position()?
-      .translate_to_center(&target_workspace.to_rect()?),
-    false => native_window.frame_position()?,
-  }
-  // Clamp the window size to 90% of the workspace size.
-  .clamp_size(
-    (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
-    (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
-  );
+  let floating_placement = {
+    let placement = if !is_same_workspace || prefers_centered {
+      native_window
+        .frame_position()?
+        .translate_to_center(&target_workspace.to_rect()?)
+    } else {
+      native_window.frame_position()?
+    };
+
+    // Clamp the window size to 90% of the workspace size.
+    placement.clamp_size(
+      (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
+      (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
+    )
+  };
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.

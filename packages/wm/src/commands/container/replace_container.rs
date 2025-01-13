@@ -11,8 +11,8 @@ use crate::{
 ///
 /// The replaced container will be detached from the tree.
 pub fn replace_container(
-  replacement_container: Container,
-  target_parent: Container,
+  replacement_container: &Container,
+  target_parent: &Container,
   target_index: usize,
 ) -> anyhow::Result<()> {
   if !replacement_container.is_detached() {
@@ -39,8 +39,8 @@ pub fn replace_container(
   detach_container(container_to_replace)?;
 
   attach_container(
-    &replacement_container,
-    &target_parent,
+    replacement_container,
+    target_parent,
     Some(target_index),
   )?;
 

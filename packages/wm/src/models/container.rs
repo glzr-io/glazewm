@@ -12,6 +12,7 @@ use wm_common::{
 };
 use wm_platform::NativeWindow;
 
+#[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
     Monitor, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
@@ -197,7 +198,9 @@ impl TryFrom<TilingContainer> for WindowContainer {
       TilingContainer::TilingWindow(c) => {
         Ok(WindowContainer::TilingWindow(c))
       }
-      _ => Err("Cannot convert type to a `WindowContainer`."),
+      TilingContainer::Split(_) => {
+        Err("Cannot convert type to a `WindowContainer`.")
+      }
     }
   }
 }
@@ -253,7 +256,9 @@ impl TryFrom<TilingContainer> for DirectionContainer {
   fn try_from(container: TilingContainer) -> Result<Self, Self::Error> {
     match container {
       TilingContainer::Split(c) => Ok(DirectionContainer::Split(c)),
-      _ => Err("Cannot convert type to a `DirectionContainer`."),
+      TilingContainer::TilingWindow(_) => {
+        Err("Cannot convert type to a `DirectionContainer`.")
+      }
     }
   }
 }

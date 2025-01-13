@@ -109,7 +109,7 @@ impl WindowManager {
         handle_window_shown(window, state, config)
       }
       PlatformEvent::WindowTitleChanged(window) => {
-        handle_window_title_changed(window, state, config)
+        handle_window_title_changed(&window, state, config)
       }
     }?;
 
@@ -342,7 +342,7 @@ impl WindowManager {
         let workspace =
           subject_container.workspace().context("No workspace.")?;
 
-        move_workspace_in_direction(&workspace, &direction, state, config)
+        move_workspace_in_direction(&workspace, direction, state, config)
       }
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
@@ -367,7 +367,7 @@ impl WindowManager {
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
           Ok(window) => resize_window(
-            window,
+            &window,
             args.width.clone(),
             args.height.clone(),
             state,
@@ -618,7 +618,7 @@ impl WindowManager {
           subject_container,
           state,
           config,
-          tiling_direction.clone(),
+          tiling_direction,
         )
       }
       InvokeCommand::WmCycleFocus {
@@ -646,7 +646,10 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
-      InvokeCommand::WmTogglePause => toggle_pause(state),
+      InvokeCommand::WmTogglePause => {
+        toggle_pause(state);
+        Ok(())
+      }
     }
   }
 }
