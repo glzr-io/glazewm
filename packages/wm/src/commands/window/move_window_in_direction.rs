@@ -153,7 +153,7 @@ fn move_to_sibling_container(
     TilingContainer::TilingWindow(sibling_window) => {
       // Swap the window with sibling in given direction.
       move_container_within_tree(
-        window_to_move.clone().into(),
+        &window_to_move.clone().into(),
         &parent,
         sibling_window.index(),
         state,
@@ -188,7 +188,7 @@ fn move_to_sibling_container(
         };
 
         move_container_within_tree(
-          window_to_move.into(),
+          &window_to_move.into(),
           &target_parent.clone().into(),
           target_index,
           state,
@@ -244,7 +244,7 @@ fn move_to_workspace_in_direction(
     };
 
     move_container_within_tree(
-      window_to_move.clone().into(),
+      &window_to_move.clone().into(),
       &workspace.clone().into(),
       target_index,
       state,
@@ -287,8 +287,8 @@ fn invert_workspace_tiling_direction(
     );
 
     wrap_in_split_container(
-      split_container,
-      workspace.clone().into(),
+      &split_container,
+      &workspace.clone().into(),
       &workspace_children,
     )?;
   }
@@ -304,7 +304,7 @@ fn invert_workspace_tiling_direction(
   // Depending on the direction, place the window either before or after
   // the split container.
   move_container_within_tree(
-    window_to_move.clone().into(),
+    &window_to_move.clone().into(),
     &workspace.clone().into(),
     target_index,
     state,
@@ -313,7 +313,7 @@ fn invert_workspace_tiling_direction(
   // Workspace might have redundant split containers after the tiling
   // direction change. For example, V[H[1 2] 3] where container 3 is moved
   // up results in H[3 H[1 2]], and needs to be flattened to H[3 1 2].
-  flatten_child_split_containers(workspace.clone().into())?;
+  flatten_child_split_containers(&workspace.clone().into())?;
 
   // Resize the window such that the split container and window are each
   // 0.5.
@@ -352,7 +352,7 @@ fn insert_into_ancestor(
 
   // Move the window into the container above.
   move_container_within_tree(
-    window_to_move.clone().into(),
+    &window_to_move.clone().into(),
     &target_ancestor.clone().into(),
     target_index,
     state,
@@ -446,6 +446,7 @@ fn new_floating_position(
 
   // Calculate the distance the window should move based on the ratio of
   // the window's length to the monitor's length.
+  #[allow(clippy::cast_precision_loss)]
   let move_distance = match window_length as f32 / monitor_length as f32 {
     x if (0.0..0.2).contains(&x) => length_delta / 5,
     x if (0.2..0.4).contains(&x) => length_delta / 4,

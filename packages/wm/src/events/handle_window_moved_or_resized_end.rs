@@ -181,8 +181,8 @@ fn drop_as_tiling_window(
     );
 
     wrap_in_split_container(
-      split_container.clone(),
-      target_parent.clone().into(),
+      &split_container,
+      &target_parent.clone().into(),
       &[nearest_container],
     )?;
 
@@ -192,7 +192,7 @@ fn drop_as_tiling_window(
     };
 
     move_container_within_tree(
-      moved_window.clone().into(),
+      &moved_window.clone().into(),
       &split_container.into(),
       target_index,
       state,
@@ -204,7 +204,7 @@ fn drop_as_tiling_window(
     };
 
     move_container_within_tree(
-      moved_window.clone().into(),
+      &moved_window.clone().into(),
       &target_parent.clone().into(),
       target_index,
       state,

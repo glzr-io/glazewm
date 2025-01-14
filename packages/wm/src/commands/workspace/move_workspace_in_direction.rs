@@ -27,7 +27,7 @@ pub fn move_workspace_in_direction(
       .context("No displayed workspace.")?;
 
     move_container_within_tree(
-      workspace.clone().into(),
+      &workspace.clone().into(),
       &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,

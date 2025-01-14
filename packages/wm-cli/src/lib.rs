@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use anyhow::Context;
 use wm_common::ClientResponseData;
 use wm_ipc_client::IpcClient;

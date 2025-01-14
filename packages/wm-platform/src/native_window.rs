@@ -365,9 +365,11 @@ impl NativeWindow {
   ) -> anyhow::Result<()> {
     let style = unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-    let new_style = match visible {
-      true => style | (WS_DLGFRAME.0 as isize),
-      false => style & !(WS_DLGFRAME.0 as isize),
+    #[allow(clippy::cast_possible_wrap)]
+    let new_style = if visible {
+      style | (WS_DLGFRAME.0 as isize)
+    } else {
+      style & !(WS_DLGFRAME.0 as isize)
     };
 
     if new_style != style {

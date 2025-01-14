@@ -5,10 +5,10 @@ use crate::{models::Container, traits::CommonGetters};
 /// Set a given container as the focused container up to and including the
 /// end ancestor.
 pub fn set_focused_descendant(
-  focused_descendant: Container,
-  end_ancestor: Option<Container>,
+  focused_descendant: &Container,
+  end_ancestor: Option<&Container>,
 ) {
-  let mut target = focused_descendant;
+  let mut target = focused_descendant.clone();
 
   // Traverse upwards, shifting the container's ancestors to the front in
   // their focus order.

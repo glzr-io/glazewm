@@ -8,8 +8,8 @@ use crate::{
 };
 
 pub fn wrap_in_split_container(
-  split_container: SplitContainer,
-  target_parent: Container,
+  split_container: &SplitContainer,
+  target_parent: &Container,
   target_children: &[TilingContainer],
 ) -> anyhow::Result<()> {
   let starting_index = target_children

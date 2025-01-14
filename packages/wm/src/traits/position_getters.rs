@@ -29,6 +29,11 @@ macro_rules! impl_position_getters_as_resizable {
           TilingDirection::Horizontal => horizontal_gap,
         };
 
+        #[allow(
+          clippy::cast_precision_loss,
+          clippy::cast_possible_truncation,
+          clippy::cast_possible_wrap
+        )]
         let (width, height) = match parent.tiling_direction() {
           TilingDirection::Vertical => {
             let available_height = parent_rect.height()
@@ -44,7 +49,7 @@ macro_rules! impl_position_getters_as_resizable {
               - inner_gap * self.tiling_siblings().count() as i32;
 
             let width =
-              (self.tiling_size() * available_width as f32) as i32;
+              (available_width as f32 * self.tiling_size()).round() as i32;
 
             (width, parent_rect.height())
           }

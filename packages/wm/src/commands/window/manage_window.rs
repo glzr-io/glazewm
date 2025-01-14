@@ -31,7 +31,7 @@ pub fn manage_window(
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
-  set_focused_descendant(window.clone().into(), None);
+  set_focused_descendant(&window.clone().into(), None);
 
   // Window might be detached if `ignore` command has been invoked.
   let updated_window = run_window_rules(
@@ -111,6 +111,7 @@ fn create_window(
     };
 
     // Clamp the window size to 90% of the workspace size.
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
     placement.clamp_size(
       (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
       (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,

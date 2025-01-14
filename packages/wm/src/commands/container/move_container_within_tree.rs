@@ -21,7 +21,7 @@ use crate::{models::Container, traits::CommonGetters, wm_state::WmState};
 /// example, in the layout V[1 H[2]] where container 1 is moved down, the
 /// parent gets removed resulting in V[1 2].
 pub fn move_container_within_tree(
-  container_to_move: Container,
+  container_to_move: &Container,
   target_parent: &Container,
   target_index: usize,
   state: &WmState,
@@ -33,7 +33,7 @@ pub fn move_container_within_tree(
   // Get lowest common ancestor (LCA) between `container_to_move` and
   // `target_parent`. This could be the `target_parent` itself.
   let lowest_common_ancestor =
-    lowest_common_ancestor(&container_to_move, target_parent)
+    lowest_common_ancestor(container_to_move, target_parent)
       .context("No common ancestor between containers.")?;
 
   // If the container is already a child of the target parent, then shift
@@ -56,7 +56,7 @@ pub fn move_container_within_tree(
   // sibling containers or moving a container to a direct ancestor.
   if *target_parent == lowest_common_ancestor {
     return move_to_lowest_common_ancestor(
-      &container_to_move,
+      container_to_move,
       &lowest_common_ancestor,
       target_index,
       state,
@@ -83,7 +83,7 @@ pub fn move_container_within_tree(
 
   // Get whether the container is the focused descendant in its original
   // subtree from the LCA.
-  let is_focused_descendant = container_to_move
+  let is_focused_descendant = *container_to_move
     == container_to_move_ancestor
     || container_to_move
       .has_focus(Some(container_to_move_ancestor.clone()));
@@ -106,8 +106,8 @@ pub fn move_container_within_tree(
   // not the last focused within that subtree).
   if is_subtree_focused {
     set_focused_descendant(
-      container_to_move.clone(),
-      Some(target_parent_ancestor.clone()),
+      container_to_move,
+      Some(&target_parent_ancestor),
     );
   }
 
@@ -124,7 +124,7 @@ pub fn move_container_within_tree(
   // For example, in the layout V[1 H[2]] where container 1 is moved down
   // to become V[H[1 2]], this will then need to be flattened to V[1 2].
   for ancestor in ancestors.iter().rev() {
-    flatten_child_split_containers(ancestor.clone())?;
+    flatten_child_split_containers(ancestor)?;
   }
 
   if container_to_move.has_focus(None) {

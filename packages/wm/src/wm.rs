@@ -224,7 +224,7 @@ impl WindowManager {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
-          focus_in_direction(subject_container, direction, state)?;
+          focus_in_direction(&subject_container, direction, state)?;
         }
 
         if let Some(name) = &args.workspace {
@@ -632,10 +632,7 @@ impl WindowManager {
       InvokeCommand::WmEnableBindingMode { name } => {
         enable_binding_mode(name, state, config)
       }
-      InvokeCommand::WmExit => {
-        state.emit_exit();
-        Ok(())
-      }
+      InvokeCommand::WmExit => state.emit_exit(),
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();
         state

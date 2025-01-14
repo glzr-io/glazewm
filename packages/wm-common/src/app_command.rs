@@ -71,15 +71,16 @@ impl AppCommand {
   /// Defaults to `AppCommand::Start` if no arguments are provided.
   #[must_use]
   pub fn parse_with_default(args: &Vec<String>) -> Self {
-    match args.len() == 1 {
-      true => AppCommand::Start {
+    if args.len() == 1 {
+      AppCommand::Start {
         config_path: None,
         verbosity: Verbosity {
           verbose: false,
           quiet: false,
         },
-      },
-      false => AppCommand::parse_from(args),
+      }
+    } else {
+      AppCommand::parse_from(args)
     }
   }
 }
@@ -296,6 +297,7 @@ pub struct InvokeAdjustBordersCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct InvokeFocusCommand {
   #[clap(long)]
   pub direction: Option<Direction>,
@@ -324,6 +326,7 @@ pub struct InvokeFocusCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct InvokeMoveCommand {
   /// Direction to move the window.
   #[clap(long)]

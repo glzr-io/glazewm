@@ -58,7 +58,7 @@ pub fn cycle_focus(
         });
 
       if let Some(window) = window_of_type {
-        set_focused_descendant(window.into(), None);
+        set_focused_descendant(&window.into(), None);
         state.pending_sync.focus_change = true;
         break;
       }

@@ -145,7 +145,7 @@ pub fn handle_window_location_changed(
             }
 
             move_container_within_tree(
-              window.into(),
+              &window.into(),
               &updated_workspace.clone().into(),
               updated_workspace.child_count(),
               state,

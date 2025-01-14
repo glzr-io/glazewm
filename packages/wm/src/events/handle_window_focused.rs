@@ -65,7 +65,7 @@ pub fn handle_window_focused(
     }
 
     // Update the WM's focus state.
-    set_focused_descendant(window.clone().into(), None);
+    set_focused_descendant(&window.clone().into(), None);
 
     // Run window rules for focus events.
     run_window_rules(

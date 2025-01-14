@@ -90,12 +90,13 @@ fn set_tiling(
   )?;
 
   move_container_within_tree(
-    tiling_window.clone().into(),
+    &tiling_window.clone().into(),
     &target_parent,
     target_index,
     state,
   )?;
 
+  #[allow(clippy::cast_precision_loss)]
   if let Some(insertion_target) = &insertion_target {
     let size_scale = (insertion_target.prev_sibling_count + 1) as f32
       / (tiling_window.tiling_siblings().count() + 1) as f32;
@@ -170,7 +171,7 @@ fn set_non_tiling(
       // workspace.
       if parent != workspace.clone().into() {
         move_container_within_tree(
-          window.clone().into(),
+          &window.clone().into(),
           &workspace.clone().into(),
           workspace.child_count(),
           state,

@@ -10,6 +10,7 @@ use crate::{
 ///
 /// If the container is a tiling container, the siblings will be resized to
 /// fill the freed up space. Will flatten empty parent split containers.
+#[allow(clippy::needless_pass_by_value)]
 pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
   // Flatten the parent split container if it'll be empty after removing
   // the child.

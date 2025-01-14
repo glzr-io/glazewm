@@ -72,8 +72,8 @@ fn toggle_window_direction(
   );
 
   wrap_in_split_container(
-    split_container.clone(),
-    parent.into(),
+    &split_container,
+    &parent.into(),
     &[tiling_window.into()],
   )?;
 

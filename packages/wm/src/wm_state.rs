@@ -143,7 +143,7 @@ impl WmState {
       .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
-    set_focused_descendant(container_to_focus, None);
+    set_focused_descendant(&container_to_focus, None);
 
     self.pending_sync.focus_change = true;
     self.pending_sync.reset_window_effects = true;
@@ -446,8 +446,9 @@ impl WmState {
   }
 
   /// Starts graceful shutdown via an MSPC channel.
-  pub fn emit_exit(&self) {
-    self.exit_tx.send(()).unwrap();
+  pub fn emit_exit(&self) -> anyhow::Result<()> {
+    self.exit_tx.send(())?;
+    Ok(())
   }
 
   pub fn container_by_id(&self, id: Uuid) -> Option<Container> {

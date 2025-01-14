@@ -43,7 +43,7 @@ pub fn remove_monitor(
   for workspace in workspaces_to_move {
     // Move workspace to target monitor.
     move_container_within_tree(
-      workspace.clone().into(),
+      &workspace.clone().into(),
       &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,

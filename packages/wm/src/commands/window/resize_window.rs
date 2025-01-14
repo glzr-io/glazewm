@@ -27,6 +27,10 @@ pub fn resize_window(
           .and_then(|parent_width| {
             let (horizontal_gap, _) = tiling_window.inner_gaps().ok()?;
 
+            #[allow(
+              clippy::cast_possible_wrap,
+              clippy::cast_possible_truncation
+            )]
             Some(
               parent_width
                 - horizontal_gap
@@ -57,6 +61,10 @@ pub fn resize_window(
           .and_then(|parent_height| {
             let (_, vertical_gap) = tiling_window.inner_gaps().ok()?;
 
+            #[allow(
+              clippy::cast_possible_wrap,
+              clippy::cast_possible_truncation
+            )]
             Some(
               parent_height
                 - vertical_gap

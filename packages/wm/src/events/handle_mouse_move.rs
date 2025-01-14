@@ -27,7 +27,7 @@ pub fn handle_mouse_move(
       state.focused_container().context("No focused container.")?;
 
     if focused_container.id() != window.id() {
-      set_focused_descendant(window.as_container(), None);
+      set_focused_descendant(&window.as_container(), None);
       state.pending_sync.focus_change = true;
     }
   }

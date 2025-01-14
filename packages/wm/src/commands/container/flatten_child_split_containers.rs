@@ -14,7 +14,7 @@ use crate::{
 /// H[V[1]] -> V[1]
 /// ```
 pub fn flatten_child_split_containers(
-  parent: Container,
+  parent: &Container,
 ) -> anyhow::Result<()> {
   if let Ok(parent) = parent.as_direction_container() {
     // Get children that are either tiling windows or split containers.
