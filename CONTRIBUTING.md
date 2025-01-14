@@ -46,23 +46,27 @@ If using VSCode, it's recommended to use the [Rust Analyzer](https://marketplace
 
 ## Codebase overview
 
-Knowledge of the entire codebase is rarely required to make changes. Components are generally well isolated and don't have a lot of interdependencies.
+Knowledge of the entire codebase should never be required to make changes. The following should hopefully help with understanding a particular part of the codebase.
+
+### Crates
 
 GlazeWM is organized into several Rust crates:
 
 - `wm` (bin): Main application, which implements the core window management logic.
-  - Distributed as `glazewm.exe`.
+  - Gets installed to `C:\Program Files\glzr.io\glazewm.exe`.
 - `wm-cli` (bin/lib): CLI for interacting with the main application.
-  - Distributed as `cli/glazewm.exe`. This is added to `$PATH` by default.
+  - Gets installed to `C:\Program Files\glzr.io\cli\glazewm.exe`. This is added to `$PATH` by default.
 - `wm-common` (lib): Shared types, utilities, and constants used across other crates.
 - `wm-ipc-client` (lib): WebSocket client library for IPC with the main application.
-- `wm-platform` (lib): Abstractions over Windows APIs so that other crates don't interact directly with the Windows APIs.
+- `wm-platform` (lib): Wrappers over Windows APIs - other crates don't interact directly with the Windows APIs.
 - `wm-watcher` (bin): Watchdog process that ensures proper cleanup when the main application exits.
-  - Distributed as `glazewm-watcher.exe`.
+  - Gets installed to `C:\Program Files\glzr.io\glazewm-watcher.exe`.
 
-### Key concepts
+### Commands & events
 
-GlazeWM uses a command-event architecture.
+GlazeWM uses a command-event architecture. The state of the WM (stored in [`WmState`](https://github.com/glzr-io/glazewm/blob/main/packages/wm/src/wm_state.rs)) is modified via [commands](https://github.com/glzr-io/glazewm/tree/main/packages/wm/src/commands) and [events](https://github.com/glzr-io/glazewm/tree/main/packages/wm/src/events).
 
-- Commands can come from keybindings, IPC calls, or the CLI (which calls IPC internally). Commands are simply functions that modify the state of the WM.
-- Events are sent from the main application to the CLI via WebSockets.
+- Commands are run as a result of keybindings, IPC calls, the CLI (which calls IPC internally), or by being called from another command. Most commands are just for internal use and might not have a public-facing API.
+- Events arise from the Windows platform (e.g. a window being created, destroyed, focused, etc.). Each of these events have a handler that then modifies the WM state.
+
+Commands and events are processed in a loop in [`start_wm`](https://github.com/glzr-io/glazewm/blob/main/packages/wm/src/main.rs#L68).
