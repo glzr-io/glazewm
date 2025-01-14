@@ -6,7 +6,7 @@ use crate::{
   commands::container::{
     move_container_within_tree, replace_container, resize_tiling_container,
   },
-  models::{InsertionTarget, WindowContainer},
+  models::{Container, InsertionTarget, WindowContainer},
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -30,14 +30,14 @@ pub fn update_window_state(
   info!("Updating window state: {:?}.", target_state);
 
   match target_state {
-    WindowState::Tiling => set_tiling(window, state, config),
+    WindowState::Tiling => set_tiling(&window, state, config),
     _ => set_non_tiling(window, target_state, state),
   }
 }
 
 /// Updates the state of a window to be `WindowState::Tiling`.
 fn set_tiling(
-  window: WindowContainer,
+  window: &WindowContainer,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
@@ -55,8 +55,7 @@ fn set_tiling(
       insertion_target
         .target_parent
         .workspace()
-        .map(|workspace| workspace.is_displayed())
-        .unwrap_or(false)
+        .is_some_and(|workspace| workspace.is_displayed())
     });
 
   // Get the position in the tree to insert the new tiling window. This
@@ -74,7 +73,7 @@ fn set_tiling(
     .or_else(|| {
       let focused_window = workspace
         .descendant_focus_order()
-        .find(|descendant| descendant.is_tiling_window())?;
+        .find(Container::is_tiling_window)?;
 
       Some((focused_window.parent()?, focused_window.index() + 1))
     })
@@ -85,18 +84,19 @@ fn set_tiling(
 
   // Replace the original window with the created tiling window.
   replace_container(
-    tiling_window.clone().into(),
-    window.parent().context("No parent.")?,
+    &tiling_window.clone().into(),
+    &window.parent().context("No parent.")?,
     window.index(),
   )?;
 
   move_container_within_tree(
-    tiling_window.clone().into(),
-    target_parent.clone(),
+    &tiling_window.clone().into(),
+    &target_parent,
     target_index,
     state,
   )?;
 
+  #[allow(clippy::cast_precision_loss)]
   if let Some(insertion_target) = &insertion_target {
     let size_scale = (insertion_target.prev_sibling_count + 1) as f32
       / (tiling_window.tiling_siblings().count() + 1) as f32;
@@ -171,16 +171,16 @@ fn set_non_tiling(
       // workspace.
       if parent != workspace.clone().into() {
         move_container_within_tree(
-          window.clone().into(),
-          workspace.clone().into(),
+          &window.clone().into(),
+          &workspace.clone().into(),
           workspace.child_count(),
           state,
         )?;
       }
 
       replace_container(
-        non_tiling_window.clone().into(),
-        workspace.clone().into(),
+        &non_tiling_window.clone().into(),
+        &workspace.clone().into(),
         window.index(),
       )?;
 

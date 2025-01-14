@@ -86,7 +86,7 @@ impl Monitor {
     let children = self
       .children()
       .iter()
-      .map(|child| child.to_dto())
+      .map(CommonGetters::to_dto)
       .try_collect()?;
 
     Ok(ContainerDto::Monitor(MonitorDto {

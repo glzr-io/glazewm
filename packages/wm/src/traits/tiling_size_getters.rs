@@ -25,9 +25,10 @@ pub trait TilingSizeGetters: CommonGetters {
     let monitor_rect = monitor.to_rect()?;
     let gaps_config = self.gaps_config();
 
-    let scale_factor = match gaps_config.scale_with_dpi {
-      true => monitor.native().scale_factor()?,
-      false => 1.,
+    let scale_factor = if gaps_config.scale_with_dpi {
+      monitor.native().scale_factor()?
+    } else {
+      1.
     };
 
     Ok((
@@ -55,24 +56,24 @@ pub trait TilingSizeGetters: CommonGetters {
       TilingDirection::Vertical => is_width_resize,
     };
 
-    let container_to_resize = match is_inverse_resize {
-      true => match parent {
+    let container_to_resize = if is_inverse_resize {
+      match parent {
         // Prevent workspaces from being resized.
         DirectionContainer::Split(parent) => Some(parent.into()),
-        _ => None,
-      },
-      false => {
-        let grandparent = parent.parent().context("No grandparent.")?;
+        DirectionContainer::Workspace(_) => None,
+      }
+    } else {
+      let grandparent = parent.parent().context("No grandparent.")?;
 
-        match self.tiling_siblings().count() > 0 {
-          // Window can only be resized if it has siblings.
-          true => Some(self.as_tiling_container()?),
-          // Resize grandparent in layouts like H[1 V[2 H[3]]], where
-          // container 3 is resized horizontally.
-          false => match grandparent {
-            Container::Split(grandparent) => Some(grandparent.into()),
-            _ => None,
-          },
+      if self.tiling_siblings().count() > 0 {
+        // Window can only be resized if it has siblings.
+        Some(self.as_tiling_container()?)
+      } else {
+        // Resize grandparent in layouts like H[1 V[2 H[3]]], where
+        // container 3 is resized horizontally.
+        match grandparent {
+          Container::Split(grandparent) => Some(grandparent.into()),
+          _ => None,
         }
       }
     };

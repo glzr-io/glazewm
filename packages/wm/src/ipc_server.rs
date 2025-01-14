@@ -44,7 +44,7 @@ impl IpcServer {
     let (event_tx, _event_rx) = broadcast::channel(16);
     let (unsubscribe_tx, _unsubscribe_rx) = broadcast::channel(16);
 
-    let server_addr = format!("127.0.0.1:{}", DEFAULT_IPC_PORT);
+    let server_addr = format!("127.0.0.1:{DEFAULT_IPC_PORT}");
     let server = TcpListener::bind(server_addr.clone()).await?;
     info!("IPC server started on: '{}'.", server_addr);
 
@@ -64,10 +64,12 @@ impl IpcServer {
 
     Ok(Self {
       abort_handle: task.abort_handle(),
+      #[allow(clippy::used_underscore_binding)]
       _event_rx,
       event_tx,
       message_rx,
       unsubscribe_tx,
+      #[allow(clippy::used_underscore_binding)]
       _unsubscribe_rx,
     })
   }
@@ -125,8 +127,8 @@ impl IpcServer {
   pub fn process_message(
     &self,
     message: String,
-    response_tx: mpsc::UnboundedSender<Message>,
-    disconnection_tx: broadcast::Sender<()>,
+    response_tx: &mpsc::UnboundedSender<Message>,
+    disconnection_tx: &broadcast::Sender<()>,
     wm: &mut WindowManager,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
@@ -140,7 +142,7 @@ impl IpcServer {
         .and_then(|app_command| {
           self.handle_app_command(
             app_command,
-            response_tx.clone(),
+            response_tx,
             disconnection_tx,
             wm,
             config,
@@ -154,11 +156,12 @@ impl IpcServer {
     Ok(())
   }
 
+  #[allow(clippy::too_many_lines)]
   fn handle_app_command(
     &self,
     app_command: AppCommand,
-    response_tx: mpsc::UnboundedSender<Message>,
-    disconnection_tx: broadcast::Sender<()>,
+    response_tx: &mpsc::UnboundedSender<Message>,
+    disconnection_tx: &broadcast::Sender<()>,
     wm: &mut WindowManager,
     config: &mut UserConfig,
   ) -> anyhow::Result<ClientResponseData> {
@@ -235,7 +238,7 @@ impl IpcServer {
         command,
       } => {
         let subject_container_id = wm.process_commands(
-          vec![command],
+          &vec![command],
           subject_container_id,
           config,
         )?;
@@ -256,7 +259,7 @@ impl IpcServer {
         task::spawn(async move {
           loop {
             tokio::select! {
-              Ok(_) = disconnection_rx.recv() => {
+              Ok(()) = disconnection_rx.recv() => {
                 break;
               }
               Ok(id) = unsubscribe_rx.recv() => {
@@ -297,7 +300,7 @@ impl IpcServer {
 
         ClientResponseData::EventUnsubscribe
       }
-      _ => bail!("Unsupported IPC command."),
+      AppCommand::Start { .. } => bail!("Unsupported IPC command."),
     };
 
     Ok(response_data)
@@ -307,7 +310,7 @@ impl IpcServer {
     client_message: String,
     response_data: anyhow::Result<ClientResponseData>,
   ) -> anyhow::Result<Message> {
-    let error = response_data.as_ref().err().map(|err| err.to_string());
+    let error = response_data.as_ref().err().map(ToString::to_string);
     let success = response_data.as_ref().is_ok();
 
     let message = ServerMessage::ClientResponse(ClientResponseMessage {

@@ -6,12 +6,12 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+#![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
-#![feature(once_cell_try)]
 
 use std::{env, path::PathBuf};
 
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{
@@ -41,7 +41,7 @@ mod wm_state;
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
@@ -68,7 +68,122 @@ async fn main() -> Result<()> {
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
-) -> Result<()> {
+) -> anyhow::Result<()> {
+  setup_logging(&verbosity)?;
+
+  // Ensure that only one instance of the WM is running.
+  let _single_instance = Platform::new_single_instance()?;
+
+  // Parse and validate user config.
+  let mut config = UserConfig::new(config_path)?;
+
+  // Start watcher process for restoring hidden windows on crash.
+  start_watcher_process()?;
+
+  // Add application icon to system tray.
+  let mut tray = SystemTray::new(&config.path)?;
+
+  let mut wm = WindowManager::new(&mut config)?;
+
+  let mut ipc_server = IpcServer::start().await?;
+
+  // Start listening for platform events after populating initial state.
+  let mut event_listener = Platform::start_event_listener(&config.value)?;
+
+  // Run startup commands.
+  let startup_commands = config.value.general.startup_commands.clone();
+  wm.process_commands(&startup_commands, None, &mut config)?;
+
+  loop {
+    let res = tokio::select! {
+      Some(()) = tray.exit_rx.recv() => {
+        info!("Exiting through system tray.");
+        break;
+      },
+      Some(()) = wm.exit_rx.recv() => {
+        info!("Exiting through WM command.");
+        break;
+      },
+      _ = signal::ctrl_c() => {
+        info!("Received SIGINT signal.");
+        break;
+      },
+      Some(event) = event_listener.event_rx.recv() => {
+        debug!("Received platform event: {:?}", event);
+        wm.process_event(event, &mut config)
+      },
+      Some((
+        message,
+        response_tx,
+        disconnection_tx
+      )) = ipc_server.message_rx.recv() => {
+        info!("Received IPC message: {:?}", message);
+
+        ipc_server.process_message(
+          message,
+          &response_tx,
+          &disconnection_tx,
+          &mut wm,
+          &mut config,
+        )
+      },
+      Some(wm_event) = wm.event_rx.recv() => {
+        info!("Received WM event: {:?}", wm_event);
+
+        // Update event listener when keyboard or mouse listener needs to
+        // be changed.
+        if matches!(
+          wm_event,
+          WmEvent::UserConfigChanged { .. }
+            | WmEvent::BindingModesChanged { .. }
+            | WmEvent::PauseChanged { .. }
+        ) {
+          event_listener.update(
+            &config.value,
+            &wm.state.binding_modes,
+            wm.state.is_paused,
+          );
+        }
+
+        ipc_server.process_event(wm_event)
+      },
+      Some(()) = tray.config_reload_rx.recv() => {
+        wm.process_commands(
+          &vec![InvokeCommand::WmReloadConfig],
+          None,
+          &mut config,
+        ).map(|_| ())
+      },
+    };
+
+    if let Err(err) = res {
+      error!("{:?}", err);
+      Platform::show_error_dialog("Non-fatal error", &err.to_string());
+    }
+  }
+
+  // Run shutdown commands.
+  let shutdown_commands = config.value.general.shutdown_commands.clone();
+  wm.process_commands(&shutdown_commands, None, &mut config)?;
+
+  wm.state.emit_event(WmEvent::ApplicationExiting);
+
+  // Emit remaining WM events before exiting.
+  while let Ok(wm_event) = wm.event_rx.try_recv() {
+    info!("Emitting WM event before shutting down: {:?}", wm_event);
+
+    if let Err(err) = ipc_server.process_event(wm_event) {
+      warn!("{:?}", err);
+    }
+  }
+
+  Ok(())
+}
+
+/// Initialize logging with the specified verbosity level.
+///
+/// Error logs are saved to `~/.glzr/glazewm/errors.log`.
+fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   let error_log_dir = home::home_dir()
     .context("Unable to get home directory.")?
     .join(".glzr/glazewm/");
@@ -94,112 +209,6 @@ async fn start_wm(
     "Starting WM with log level {:?}.",
     verbosity.level().to_string()
   );
-
-  // Ensure that only one instance of the WM is running.
-  let _single_instance = Platform::new_single_instance()?;
-
-  // Parse and validate user config.
-  let mut config = UserConfig::new(config_path)?;
-
-  // Start watcher process for restoring hidden windows on crash.
-  start_watcher_process()?;
-
-  // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.path)?;
-
-  let mut wm = WindowManager::new(&mut config)?;
-
-  let mut ipc_server = IpcServer::start().await?;
-
-  // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config.value)?;
-
-  // Run startup commands.
-  let startup_commands = config.value.general.startup_commands.clone();
-  wm.process_commands(startup_commands, None, &mut config)?;
-
-  loop {
-    let res = tokio::select! {
-      Some(_) = tray.exit_rx.recv() => {
-        info!("Exiting through system tray.");
-        break;
-      },
-      Some(_) = wm.exit_rx.recv() => {
-        info!("Exiting through WM command.");
-        break;
-      },
-      _ = signal::ctrl_c() => {
-        info!("Received SIGINT signal.");
-        break;
-      },
-      Some(event) = event_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        wm.process_event(event, &mut config)
-      },
-      Some((
-        message,
-        response_tx,
-        disconnection_tx
-      )) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {:?}", message);
-
-        ipc_server.process_message(
-          message,
-          response_tx,
-          disconnection_tx,
-          &mut wm,
-          &mut config,
-        )
-      },
-      Some(wm_event) = wm.event_rx.recv() => {
-        info!("Received WM event: {:?}", wm_event);
-
-        // Update event listener when keyboard or mouse listener needs to
-        // be changed.
-        if matches!(
-          wm_event,
-          WmEvent::UserConfigChanged { .. }
-            | WmEvent::BindingModesChanged { .. }
-            | WmEvent::PauseChanged { .. }
-        ) {
-          event_listener.update(
-            &config.value,
-            &wm.state.binding_modes,
-            wm.state.is_paused,
-          );
-        }
-
-        ipc_server.process_event(wm_event)
-      },
-      Some(_) = tray.config_reload_rx.recv() => {
-        wm.process_commands(
-          vec![InvokeCommand::WmReloadConfig],
-          None,
-          &mut config,
-        ).map(|_| ())
-      },
-    };
-
-    if let Err(err) = res {
-      error!("{:?}", err);
-      Platform::show_error_dialog("Non-fatal error", &err.to_string());
-    }
-  }
-
-  // Run shutdown commands.
-  let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(shutdown_commands, None, &mut config)?;
-
-  wm.state.emit_event(WmEvent::ApplicationExiting);
-
-  // Emit remaining WM events before exiting.
-  while let Ok(wm_event) = wm.event_rx.try_recv() {
-    info!("Emitting WM event before shutting down: {:?}", wm_event);
-
-    if let Err(err) = ipc_server.process_event(wm_event) {
-      warn!("{:?}", err);
-    }
-  }
 
   Ok(())
 }

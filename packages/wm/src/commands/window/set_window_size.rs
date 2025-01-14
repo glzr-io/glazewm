@@ -22,12 +22,12 @@ pub fn set_window_size(
 ) -> anyhow::Result<()> {
   match window {
     WindowContainer::TilingWindow(window) => {
-      set_tiling_window_size(window, target_width, target_height, state)?;
+      set_tiling_window_size(&window, target_width, target_height, state)?;
     }
     WindowContainer::NonTilingWindow(window) => {
       if matches!(window.state(), WindowState::Floating(_)) {
         set_floating_window_size(
-          window,
+          &window,
           target_width,
           target_height,
           state,
@@ -40,17 +40,17 @@ pub fn set_window_size(
 }
 
 fn set_tiling_window_size(
-  window: TilingWindow,
+  window: &TilingWindow,
   target_width: Option<LengthValue>,
   target_height: Option<LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   if let Some(target_width) = target_width {
-    set_tiling_window_length(window.clone(), target_width, true, state)?;
+    set_tiling_window_length(window, &target_width, true, state)?;
   }
 
   if let Some(target_height) = target_height {
-    set_tiling_window_length(window.clone(), target_height, false, state)?;
+    set_tiling_window_length(window, &target_height, false, state)?;
   }
 
   Ok(())
@@ -58,8 +58,8 @@ fn set_tiling_window_size(
 
 /// Updates either the width or height of a tiling window.
 fn set_tiling_window_length(
-  window: TilingWindow,
-  target_length: LengthValue,
+  window: &TilingWindow,
+  target_length: &LengthValue,
   is_width_resize: bool,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
@@ -72,15 +72,13 @@ fn set_tiling_window_length(
     let (horizontal_gap, vertical_gap) =
       container_to_resize.inner_gaps()?;
 
-    let parent_length = match is_width_resize {
-      true => {
-        parent.to_rect()?.width()
-          - horizontal_gap * window.tiling_siblings().count() as i32
-      }
-      false => {
-        parent.to_rect()?.height()
-          - vertical_gap * window.tiling_siblings().count() as i32
-      }
+    #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+    let parent_length = if is_width_resize {
+      parent.to_rect()?.width()
+        - horizontal_gap * window.tiling_siblings().count() as i32
+    } else {
+      parent.to_rect()?.height()
+        - vertical_gap * window.tiling_siblings().count() as i32
     };
 
     // Convert the target length to a tiling size.
@@ -101,7 +99,7 @@ fn set_tiling_window_length(
 }
 
 fn set_floating_window_size(
-  window: NonTilingWindow,
+  window: &NonTilingWindow,
   target_width: Option<LengthValue>,
   target_height: Option<LengthValue>,
   state: &mut WmState,
@@ -115,15 +113,13 @@ fn set_floating_window_size(
   // be within minimum dimension values.
   let length_with_clamp =
     |target_length: Option<i32>, current_length, min_length| {
-      target_length
-        .map(|target_length| {
-          if target_length >= current_length {
-            target_length
-          } else {
-            target_length.max(min_length)
-          }
-        })
-        .unwrap_or(current_length)
+      target_length.map_or(current_length, |target_length| {
+        if target_length >= current_length {
+          target_length
+        } else {
+          target_length.max(min_length)
+        }
+      })
     };
 
   let target_width_px = target_width

@@ -11,6 +11,7 @@ use crate::{
   wm_state::WmState,
 };
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
@@ -27,7 +28,7 @@ pub fn unmanage_window(
   // For example, in the layout V[1 H[2]] where container 1 is detached to
   // become V[H[2]], this will then need to be flattened to V[2].
   for ancestor in ancestors.iter().rev() {
-    flatten_child_split_containers(ancestor.clone())?;
+    flatten_child_split_containers(ancestor)?;
   }
 
   state.emit_event(WmEvent::WindowUnmanaged {
@@ -37,7 +38,7 @@ pub fn unmanage_window(
 
   // Reassign focus to suitable target.
   if let Some(focus_target) = focus_target {
-    set_focused_descendant(focus_target, None);
+    set_focused_descendant(&focus_target, None);
     state.pending_sync.focus_change = true;
     state.unmanaged_or_minimized_timestamp =
       Some(std::time::Instant::now());

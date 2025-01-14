@@ -38,6 +38,7 @@ impl SingleInstance {
   }
 
   /// Gets whether there is an active instance of the application.
+  #[must_use]
   pub fn is_running() -> bool {
     let res = unsafe {
       OpenMutexW(SYNCHRONIZATION_ACCESS_RIGHTS::default(), false, APP_GUID)

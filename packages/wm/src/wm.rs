@@ -72,43 +72,44 @@ impl WindowManager {
         handle_display_settings_changed(state, config)
       }
       PlatformEvent::KeybindingTriggered(kb_config) => {
-        self.process_commands(kb_config.commands, None, config)?;
+        self.process_commands(&kb_config.commands, None, config)?;
 
         // Return early since we don't want to redraw twice.
         return Ok(());
       }
       PlatformEvent::MouseMove(event) => {
-        handle_mouse_move(event, state, config)
+        handle_mouse_move(&event, state, config)
       }
       PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(window, state)
+        handle_window_destroyed(&window, state)
       }
       PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(window, state, config)
+        handle_window_focused(&window, state, config)
       }
       PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(window, state)
+        handle_window_hidden(&window, state)
       }
       PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(window, state, config)
+        handle_window_location_changed(&window, state, config)
       }
       PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(window, state, config)
+        handle_window_minimized(&window, state, config)
       }
       PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(window, state, config)
+        handle_window_minimize_ended(&window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedEnd(window) => {
-        handle_window_moved_or_resized_end(window, state, config)
+        handle_window_moved_or_resized_end(&window, state, config)
       }
       PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(window, state)
+        handle_window_moved_or_resized_start(&window, state);
+        Ok(())
       }
       PlatformEvent::WindowShown(window) => {
         handle_window_shown(window, state, config)
       }
       PlatformEvent::WindowTitleChanged(window) => {
-        handle_window_title_changed(window, state, config)
+        handle_window_title_changed(&window, state, config)
       }
     }?;
 
@@ -117,7 +118,7 @@ impl WindowManager {
 
   pub fn process_commands(
     &mut self,
-    commands: Vec<InvokeCommand>,
+    commands: &Vec<InvokeCommand>,
     subject_container_id: Option<Uuid>,
     config: &mut UserConfig,
   ) -> anyhow::Result<Uuid> {
@@ -126,7 +127,7 @@ impl WindowManager {
     // Get the container to run WM commands with.
     let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
-        format!("No container found with the given ID '{}'.", id)
+        format!("No container found with the given ID '{id}'.")
       })?,
       None => state
         .focused_container()
@@ -134,7 +135,7 @@ impl WindowManager {
     };
 
     let new_subject_container_id = WindowManager::run_commands(
-      &commands,
+      commands,
       subject_container,
       state,
       config,
@@ -155,7 +156,7 @@ impl WindowManager {
 
     for command in commands {
       WindowManager::run_command(
-        &command,
+        command,
         current_subject_container.clone(),
         state,
         config,
@@ -164,20 +165,20 @@ impl WindowManager {
       // Update the subject container in case the container type changes.
       // For example, when going from a tiling to a floating window.
       current_subject_container =
-        match current_subject_container.is_detached() {
-          false => current_subject_container,
-          true => {
-            match state.container_by_id(current_subject_container.id()) {
-              Some(container) => container,
-              None => break,
-            }
+        if current_subject_container.is_detached() {
+          match state.container_by_id(current_subject_container.id()) {
+            Some(container) => container,
+            None => break,
           }
+        } else {
+          current_subject_container
         }
     }
 
     Ok(current_subject_container.id())
   }
 
+  #[allow(clippy::too_many_lines)]
   pub fn run_command(
     command: &InvokeCommand,
     subject_container: Container,
@@ -223,7 +224,7 @@ impl WindowManager {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
-          focus_in_direction(subject_container, direction, state)?;
+          focus_in_direction(&subject_container, direction, state)?;
         }
 
         if let Some(name) = &args.workspace {
@@ -341,37 +342,32 @@ impl WindowManager {
         let workspace =
           subject_container.workspace().context("No workspace.")?;
 
-        move_workspace_in_direction(
-          workspace,
-          direction.clone(),
-          state,
-          config,
-        )
+        move_workspace_in_direction(&workspace, direction, state, config)
       }
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
-          Ok(window) => match args.centered {
-            true => set_window_position(
-              window,
-              WindowPositionTarget::Centered,
-              state,
-            ),
-            false => set_window_position(
-              window,
-              WindowPositionTarget::Coordinates(
-                args.x_pos.clone(),
-                args.y_pos.clone(),
-              ),
-              state,
-            ),
-          },
+          Ok(window) => {
+            if args.centered {
+              set_window_position(
+                window,
+                &WindowPositionTarget::Centered,
+                state,
+              )
+            } else {
+              set_window_position(
+                window,
+                &WindowPositionTarget::Coordinates(args.x_pos, args.y_pos),
+                state,
+              )
+            }
+          }
           _ => Ok(()),
         }
       }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
           Ok(window) => resize_window(
-            window,
+            &window,
             args.width.clone(),
             args.height.clone(),
             state,
@@ -418,16 +414,13 @@ impl WindowManager {
             if centered {
               set_window_position(
                 window,
-                WindowPositionTarget::Centered,
+                &WindowPositionTarget::Centered,
                 state,
               )?;
             } else if x_pos.is_some() || y_pos.is_some() {
               set_window_position(
                 window,
-                WindowPositionTarget::Coordinates(
-                  x_pos.clone(),
-                  y_pos.clone(),
-                ),
+                &WindowPositionTarget::Coordinates(*x_pos, *y_pos),
                 state,
               )?;
             }
@@ -505,7 +498,7 @@ impl WindowManager {
       InvokeCommand::SetOpacity { opacity } => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            _ = window.native().set_opacity(opacity.clone());
+            _ = window.native().set_opacity(opacity);
             Ok(())
           }
           _ => Ok(()),
@@ -551,7 +544,7 @@ impl WindowManager {
           if !window.has_custom_floating_placement() && centered {
             set_window_position(
               window,
-              WindowPositionTarget::Centered,
+              &WindowPositionTarget::Centered,
               state,
             )?;
           }
@@ -625,7 +618,7 @@ impl WindowManager {
           subject_container,
           state,
           config,
-          tiling_direction.clone(),
+          tiling_direction,
         )
       }
       InvokeCommand::WmCycleFocus {
@@ -639,10 +632,7 @@ impl WindowManager {
       InvokeCommand::WmEnableBindingMode { name } => {
         enable_binding_mode(name, state, config)
       }
-      InvokeCommand::WmExit => {
-        state.emit_exit();
-        Ok(())
-      }
+      InvokeCommand::WmExit => state.emit_exit(),
       InvokeCommand::WmRedraw => {
         let root_container = state.root_container.clone();
         state
@@ -653,7 +643,10 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
-      InvokeCommand::WmTogglePause => toggle_pause(state),
+      InvokeCommand::WmTogglePause => {
+        toggle_pause(state);
+        Ok(())
+      }
     }
   }
 }

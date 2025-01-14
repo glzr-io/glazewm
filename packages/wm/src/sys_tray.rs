@@ -9,7 +9,7 @@ use tray_icon::{
 };
 use wm_platform::Platform;
 
-/// Ordinal to IDI_ICON definition in embedded resource file.
+/// Ordinal to `IDI_ICON` definition in embedded resource file.
 const IDI_ICON: u16 = 32512;
 
 pub struct SystemTray {

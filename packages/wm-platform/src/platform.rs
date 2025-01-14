@@ -26,8 +26,8 @@ use windows::{
         CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
         MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
         SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
-        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT,
-        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WINDOW_EX_STYLE,
+        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -45,6 +45,7 @@ pub struct Platform;
 
 impl Platform {
   /// Gets the `NativeWindow` instance of the currently focused window.
+  #[must_use]
   pub fn foreground_window() -> NativeWindow {
     let handle = unsafe { GetForegroundWindow() };
     NativeWindow::new(handle.0)
@@ -55,6 +56,7 @@ impl Platform {
   /// This is the explorer.exe wallpaper window (i.e. "Progman"). If
   /// explorer.exe isn't running, then default to the desktop window below
   /// the wallpaper window.
+  #[must_use]
   pub fn desktop_window() -> NativeWindow {
     let handle = match unsafe { GetShellWindow() } {
       HWND(0) => unsafe { GetDesktopWindow() },
@@ -99,6 +101,7 @@ impl Platform {
     )
   }
 
+  #[must_use]
   pub fn nearest_monitor(window: &NativeWindow) -> NativeMonitor {
     native_monitor::nearest_monitor(window.handle)
   }
@@ -184,7 +187,7 @@ impl Platform {
 
     let handle = unsafe {
       CreateWindowExW(
-        Default::default(),
+        WINDOW_EX_STYLE::default(),
         w!("MessageWindow"),
         w!("MessageWindow"),
         WS_OVERLAPPEDWINDOW,
@@ -273,6 +276,7 @@ impl Platform {
   /// Note that this is a global system setting.
   pub fn window_animations_enabled() -> anyhow::Result<bool> {
     let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
       iMinAnimate: 0,
     };
@@ -281,7 +285,7 @@ impl Platform {
       SystemParametersInfoW(
         SPI_GETANIMATION,
         animation_info.cbSize,
-        Some(&mut animation_info as *mut _ as _),
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
         SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
       )
     }?;
@@ -296,15 +300,16 @@ impl Platform {
     enable: bool,
   ) -> anyhow::Result<()> {
     let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
-      iMinAnimate: if enable { 1 } else { 0 },
+      iMinAnimate: i32::from(enable),
     };
 
     unsafe {
       SystemParametersInfoW(
         SPI_SETANIMATION,
         animation_info.cbSize,
-        Some(&mut animation_info as *mut _ as _),
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
         SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
@@ -382,11 +387,11 @@ impl Platform {
 
     // If the command starts with double quotes, then the program name/path
     // is wrapped in double quotes (e.g. `"C:\path\to\app.exe" --flag`).
-    if command.starts_with("\"") {
+    if command.starts_with('"') {
       // Find the closing double quote.
       let (closing_index, _) =
         command.match_indices('"').nth(2).with_context(|| {
-          format!("Command doesn't have an ending `\"`: '{}'.", command)
+          format!("Command doesn't have an ending `\"`: '{command}'.")
         })?;
 
       return Ok((
@@ -400,7 +405,7 @@ impl Platform {
     if let Some(first_part) = command_parts.first() {
       if !first_part.contains(&['/', '\\'][..]) {
         let args = command_parts[1..].join(" ");
-        return Ok((first_part.to_string(), args));
+        return Ok(((*first_part).to_string(), args));
       }
     }
 
@@ -446,6 +451,7 @@ impl Platform {
     // handles held by our process (e.g. the IPC server port) until the
     // subprocess exits.
     let mut exec_info = SHELLEXECUTEINFOW {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
       lpFile: PCWSTR(program_wide.as_ptr()),
       lpParameters: PCWSTR(args_wide.as_ptr()),

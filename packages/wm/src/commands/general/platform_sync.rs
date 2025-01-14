@@ -48,26 +48,26 @@ pub fn platform_sync(
     || state.pending_sync.reset_window_effects
   {
     if let Ok(window) = focused_container.as_window_container() {
-      apply_window_effects(window, true, config);
+      apply_window_effects(&window, true, config);
     }
 
     // Get windows that should have the unfocused border applied to them.
     // For the sake of performance, we only update the border of the
     // previously focused window. If the `reset_window_effects` flag is
     // passed, the unfocused border is applied to all unfocused windows.
-    let unfocused_windows =
-      match state.pending_sync.reset_window_effects {
-        true => state.windows(),
-        false => recent_focused_container
-          .and_then(|container| container.as_window_container().ok())
-          .into_iter()
-          .collect(),
-      }
-      .into_iter()
-      .filter(|window| window.id() != focused_container.id());
+    let unfocused_windows = if state.pending_sync.reset_window_effects {
+      state.windows()
+    } else {
+      recent_focused_container
+        .and_then(|container| container.as_window_container().ok())
+        .into_iter()
+        .collect()
+    }
+    .into_iter()
+    .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
-      apply_window_effects(window, false, config);
+      apply_window_effects(&window, false, config);
     }
 
     state.pending_sync.reset_window_effects = false;
@@ -183,7 +183,7 @@ fn jump_cursor(
         focused_container.monitor().context("No monitor.")?;
 
       let cursor_monitor =
-        state.monitor_at_position(&Platform::mouse_position()?);
+        state.monitor_at_point(&Platform::mouse_position()?);
 
       // Jump to the target monitor if the cursor is not already on it.
       cursor_monitor
@@ -204,40 +204,41 @@ fn jump_cursor(
 }
 
 fn apply_window_effects(
-  window: WindowContainer,
+  window: &WindowContainer,
   is_focused: bool,
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
 
-  let effect_config = match is_focused {
-    true => &window_effects.focused_window,
-    false => &window_effects.other_windows,
+  let effect_config = if is_focused {
+    &window_effects.focused_window
+  } else {
+    &window_effects.other_windows
   };
 
   // Skip if both focused + non-focused window effects are disabled.
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
-    apply_border_effect(&window, effect_config);
+    apply_border_effect(window, effect_config);
   };
 
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled
   {
-    apply_hide_title_bar_effect(&window, effect_config);
+    apply_hide_title_bar_effect(window, effect_config);
   }
 
   if window_effects.focused_window.corner_style.enabled
     || window_effects.other_windows.corner_style.enabled
   {
-    apply_corner_effect(&window, effect_config);
+    apply_corner_effect(window, effect_config);
   }
 
   if window_effects.focused_window.transparency.enabled
     || window_effects.other_windows.transparency.enabled
   {
-    apply_transparency_effect(&window, effect_config);
+    apply_transparency_effect(window, effect_config);
   }
 }
 
@@ -245,9 +246,10 @@ fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let border_color = match effect_config.border.enabled {
-    true => Some(&effect_config.border.color),
-    false => None,
+  let border_color = if effect_config.border.enabled {
+    Some(&effect_config.border.color)
+  } else {
+    None
   };
 
   _ = window.native().set_border_color(border_color);
@@ -276,9 +278,10 @@ fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let corner_style = match effect_config.corner_style.enabled {
-    true => &effect_config.corner_style.style,
-    false => &CornerStyle::Default,
+  let corner_style = if effect_config.corner_style.enabled {
+    &effect_config.corner_style.style
+  } else {
+    &CornerStyle::Default
   };
 
   _ = window.native().set_corner_style(corner_style);
@@ -291,14 +294,14 @@ fn apply_transparency_effect(
   _ = window
     .native()
     .set_opacity(if effect_config.transparency.enabled {
-      effect_config.transparency.opacity.clone()
+      &effect_config.transparency.opacity
     } else {
       // This code is only reached if the transparency effect is only
       // enabled in one of the two window effect configurations. In
       // this case, reset the opacity to default.
-      OpacityValue {
+      &OpacityValue {
         amount: 255,
         is_delta: false,
       }
-    })
+    });
 }

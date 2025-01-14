@@ -76,9 +76,10 @@ pub fn move_window_to_workspace(
     // Focus target is `None` if the window is not focused.
     let focus_target = state.focus_target_after_removal(&window);
 
-    let focus_reset_target = match target_workspace.is_displayed() {
-      true => None,
-      false => target_monitor.descendant_focus_order().next(),
+    let focus_reset_target = if target_workspace.is_displayed() {
+      None
+    } else {
+      target_monitor.descendant_focus_order().next()
     };
 
     let insertion_sibling = target_workspace
@@ -91,8 +92,8 @@ pub fn move_window_to_workspace(
       (true, true) => {
         if let Some(insertion_sibling) = insertion_sibling {
           move_container_within_tree(
-            window.clone().into(),
-            insertion_sibling.clone().parent().context("No parent.")?,
+            &window.clone().into(),
+            &insertion_sibling.clone().parent().context("No parent.")?,
             insertion_sibling.index() + 1,
             state,
           )?;
@@ -100,8 +101,8 @@ pub fn move_window_to_workspace(
       }
       _ => {
         move_container_within_tree(
-          window.clone().into(),
-          target_workspace.clone().into(),
+          &window.clone().into(),
+          &target_workspace.clone().into(),
           target_workspace.child_count(),
           state,
         )?;
@@ -114,13 +115,13 @@ pub fn move_window_to_workspace(
     // monitor, we want to reset focus to the workspace that was displayed
     // on that monitor.
     if let Some(focus_reset_target) = focus_reset_target {
-      set_focused_descendant(focus_reset_target, None);
+      set_focused_descendant(&focus_reset_target, None);
       state.pending_sync.focus_change = true;
     }
 
     // Retain focus within the workspace from where the window was moved.
     if let Some(focus_target) = focus_target {
-      set_focused_descendant(focus_target, None);
+      set_focused_descendant(&focus_target, None);
       state.pending_sync.focus_change = true;
     }
 

@@ -8,7 +8,27 @@ use tracing::warn;
 use windows::Win32::{
   Foundation::{LPARAM, LRESULT, WPARAM},
   UI::{
-    Input::KeyboardAndMouse::*,
+    Input::KeyboardAndMouse::{
+      GetKeyState, GetKeyboardLayout, VkKeyScanExW, VIRTUAL_KEY, VK_0,
+      VK_1, VK_2, VK_3, VK_4, VK_5, VK_6, VK_7, VK_8, VK_9, VK_A, VK_ADD,
+      VK_B, VK_BACK, VK_C, VK_CAPITAL, VK_CONTROL, VK_D, VK_DECIMAL,
+      VK_DELETE, VK_DIVIDE, VK_DOWN, VK_E, VK_END, VK_ESCAPE, VK_F, VK_F1,
+      VK_F10, VK_F11, VK_F12, VK_F13, VK_F14, VK_F15, VK_F16, VK_F17,
+      VK_F18, VK_F19, VK_F2, VK_F20, VK_F21, VK_F22, VK_F23, VK_F24,
+      VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F8, VK_F9, VK_G, VK_H,
+      VK_HOME, VK_I, VK_INSERT, VK_J, VK_K, VK_L, VK_LCONTROL, VK_LEFT,
+      VK_LMENU, VK_LSHIFT, VK_LWIN, VK_M, VK_MEDIA_NEXT_TRACK,
+      VK_MEDIA_PLAY_PAUSE, VK_MEDIA_PREV_TRACK, VK_MEDIA_STOP, VK_MENU,
+      VK_MULTIPLY, VK_N, VK_NEXT, VK_NUMLOCK, VK_NUMPAD0, VK_NUMPAD1,
+      VK_NUMPAD2, VK_NUMPAD3, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD6,
+      VK_NUMPAD7, VK_NUMPAD8, VK_NUMPAD9, VK_O, VK_OEM_1, VK_OEM_2,
+      VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA,
+      VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_P, VK_PRIOR, VK_Q,
+      VK_R, VK_RCONTROL, VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT,
+      VK_RWIN, VK_S, VK_SCROLL, VK_SHIFT, VK_SNAPSHOT, VK_SPACE,
+      VK_SUBTRACT, VK_T, VK_TAB, VK_U, VK_UP, VK_V, VK_VOLUME_DOWN,
+      VK_VOLUME_MUTE, VK_VOLUME_UP, VK_W, VK_X, VK_Y, VK_Z,
+    },
     WindowsAndMessaging::{
       CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
       KBDLLHOOKSTRUCT, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
@@ -78,6 +98,10 @@ impl KeyboardHook {
   /// Starts a keyboard hook on the current thread.
   ///
   /// Assumes that a message loop is currently running.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn start(&self) -> anyhow::Result<()> {
     *self.hook.lock().unwrap() = unsafe {
       SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)
@@ -86,12 +110,21 @@ impl KeyboardHook {
     Ok(())
   }
 
+  /// Updates the keybindings for the keyboard hook.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
     *self.keybindings_by_trigger_key.lock().unwrap() =
       Self::keybindings_by_trigger_key(keybindings);
   }
 
   /// Stops the low-level keyboard hook.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn stop(&self) -> anyhow::Result<()> {
     unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }?;
     Ok(())
@@ -105,7 +138,7 @@ impl KeyboardHook {
     for keybinding in keybindings {
       for binding in &keybinding.bindings {
         let vk_codes = binding
-          .split("+")
+          .split('+')
           .filter_map(|key| {
             let vk_code = Self::key_to_vk_code(key);
 
@@ -136,6 +169,7 @@ impl KeyboardHook {
     keybinding_map
   }
 
+  #[allow(clippy::too_many_lines)]
   fn key_to_vk_code(key: &str) -> Option<u16> {
     match key.to_lowercase().as_str() {
       "a" => Some(VK_A.0),
@@ -277,7 +311,7 @@ impl KeyboardHook {
 
         // Key is valid if it doesn't require shift or alt to be pressed.
         match high_order {
-          0 => Some(low_order as u16),
+          0 => Some(u16::from(low_order)),
           _ => None,
         }
       }
@@ -407,6 +441,7 @@ extern "system" fn keyboard_hook_proc(
   wparam: WPARAM,
   lparam: LPARAM,
 ) -> LRESULT {
+  #[allow(clippy::cast_possible_truncation)]
   let should_ignore = code != 0
     || !(wparam.0 as u32 == WM_KEYDOWN
       || wparam.0 as u32 == WM_SYSKEYDOWN);
@@ -422,6 +457,7 @@ extern "system" fn keyboard_hook_proc(
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
   if let Some(hook) = KEYBOARD_HOOK.get() {
+    #[allow(clippy::cast_possible_truncation)]
     let should_block = hook.handle_key_event(input.vkCode as u16);
 
     if should_block {

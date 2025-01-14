@@ -18,6 +18,7 @@ pub fn resize_tiling_container(
 
   // Prevent the container from being smaller than the minimum size, and
   // larger than the space available from sibling containers.
+  #[allow(clippy::cast_precision_loss)]
   let clamped_target_size = target_size.clamp(
     MIN_TILING_SIZE,
     1. - (tiling_siblings.len() as f32 * MIN_TILING_SIZE),

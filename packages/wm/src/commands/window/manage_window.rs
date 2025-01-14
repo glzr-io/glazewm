@@ -31,12 +31,12 @@ pub fn manage_window(
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
-  set_focused_descendant(window.clone().into(), None);
+  set_focused_descendant(&window.clone().into(), None);
 
   // Window might be detached if `ignore` command has been invoked.
   let updated_window = run_window_rules(
     window.clone(),
-    WindowRuleEvent::Manage,
+    &WindowRuleEvent::Manage,
     state,
     config,
   )?;
@@ -101,17 +101,22 @@ fn create_window(
   // the original width/height of the window and optionally position it in
   // the center of the workspace.
   let is_same_workspace = nearest_workspace.id() == target_workspace.id();
-  let floating_placement = match !is_same_workspace || prefers_centered {
-    true => native_window
-      .frame_position()?
-      .translate_to_center(&target_workspace.to_rect()?),
-    false => native_window.frame_position()?,
-  }
-  // Clamp the window size to 90% of the workspace size.
-  .clamp_size(
-    (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
-    (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
-  );
+  let floating_placement = {
+    let placement = if !is_same_workspace || prefers_centered {
+      native_window
+        .frame_position()?
+        .translate_to_center(&target_workspace.to_rect()?)
+    } else {
+      native_window.frame_position()?
+    };
+
+    // Clamp the window size to 90% of the workspace size.
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+    placement.clamp_size(
+      (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
+      (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
+    )
+  };
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
@@ -216,11 +221,12 @@ fn insertion_target(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  match focused_container.is_workspace() {
-    true => Ok((focused_container, 0)),
-    false => Ok((
+  if focused_container.is_workspace() {
+    Ok((focused_container, 0))
+  } else {
+    Ok((
       focused_container.parent().context("No insertion target.")?,
       focused_container.index() + 1,
-    )),
+    ))
   }
 }

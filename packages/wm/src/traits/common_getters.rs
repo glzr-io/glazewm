@@ -215,7 +215,7 @@ pub trait CommonGetters {
 
   fn ancestors(&self) -> Ancestors {
     Ancestors {
-      start: self.parent().map(Into::into),
+      start: self.parent(),
     }
   }
 
@@ -275,11 +275,7 @@ pub trait CommonGetters {
   fn has_focus(&self, end_ancestor: Option<Container>) -> bool {
     self
       .self_and_ancestors()
-      .take_while(|ancestor| {
-        end_ancestor
-          .as_ref()
-          .map_or(true, |end_ancestor| end_ancestor != ancestor)
-      })
+      .take_while(|ancestor| end_ancestor.as_ref() != Some(ancestor))
       .chain(end_ancestor.clone())
       .all(|ancestor| ancestor.focus_index() == 0)
   }
@@ -295,7 +291,7 @@ impl Iterator for Ancestors {
 
   fn next(&mut self) -> Option<Container> {
     self.start.take().inspect(|container| {
-      self.start = container.parent().map(Into::into);
+      self.start = container.parent();
     })
   }
 }

@@ -66,6 +66,7 @@ pub struct NativeWindow {
 
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
+  #[must_use]
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
@@ -94,9 +95,12 @@ impl NativeWindow {
 
   /// Gets the window's title. If the window is invalid, returns an empty
   /// string.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_title(&self) -> anyhow::Result<String> {
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
+
+    #[allow(clippy::cast_sign_loss)]
     Ok(String::from_utf16_lossy(&text[..length as usize]))
   }
 
@@ -121,7 +125,7 @@ impl NativeWindow {
     }?;
 
     let mut buffer = [0u16; 256];
-    let mut length = buffer.len() as u32;
+    let mut length = u32::try_from(buffer.len())?;
     unsafe {
       QueryFullProcessImageNameW(
         process_handle,
@@ -137,7 +141,7 @@ impl NativeWindow {
 
     exe_path
       .split('\\')
-      .last()
+      .next_back()
       .map(|file_name| {
         file_name.split('.').next().unwrap_or(file_name).to_string()
       })
@@ -160,6 +164,7 @@ impl NativeWindow {
       return Err(windows::core::Error::from_win32().into());
     }
 
+    #[allow(clippy::cast_sign_loss)]
     let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
     Ok(class_name)
   }
@@ -180,10 +185,11 @@ impl NativeWindow {
     let mut cloaked = 0u32;
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_CLOAKED,
-        &mut cloaked as *mut u32 as _,
+        std::ptr::from_mut::<u32>(&mut cloaked).cast(),
         std::mem::size_of::<u32>() as u32,
       )
     }?;
@@ -242,6 +248,7 @@ impl NativeWindow {
   }
 
   /// Whether the window is minimized.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_is_minimized(&self) -> anyhow::Result<bool> {
     Ok(unsafe { IsIconic(HWND(self.handle)) }.as_bool())
   }
@@ -261,11 +268,13 @@ impl NativeWindow {
   }
 
   /// Whether the window is maximized.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_is_maximized(&self) -> anyhow::Result<bool> {
     Ok(unsafe { IsZoomed(HWND(self.handle)) }.as_bool())
   }
 
   /// Whether the window has resize handles.
+  #[must_use]
   pub fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
   }
@@ -301,12 +310,14 @@ impl NativeWindow {
           ..Default::default()
         },
       },
-      ..Default::default()
     }];
 
     // Bypass restriction for setting the foreground window by sending an
     // input to our own process first.
-    unsafe { SendInput(&input, std::mem::size_of::<INPUT>() as i32) };
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    unsafe {
+      SendInput(&input, std::mem::size_of::<INPUT>() as i32)
+    };
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
@@ -324,10 +335,11 @@ impl NativeWindow {
     };
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_BORDER_COLOR,
-        &bgr as *const _ as _,
+        std::ptr::from_ref(&bgr).cast(),
         std::mem::size_of::<u32>() as u32,
       )?;
     }
@@ -347,10 +359,11 @@ impl NativeWindow {
     };
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_WINDOW_CORNER_PREFERENCE,
-        &(corner_preference.0) as *const _ as _,
+        std::ptr::from_ref(&(corner_preference.0)).cast(),
         std::mem::size_of::<i32>() as u32,
       )?;
     }
@@ -364,9 +377,11 @@ impl NativeWindow {
   ) -> anyhow::Result<()> {
     let style = unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-    let new_style = match visible {
-      true => style | (WS_DLGFRAME.0 as isize),
-      false => style & !(WS_DLGFRAME.0 as isize),
+    #[allow(clippy::cast_possible_wrap)]
+    let new_style = if visible {
+      style | (WS_DLGFRAME.0 as isize)
+    } else {
+      style & !(WS_DLGFRAME.0 as isize)
     };
 
     if new_style != style {
@@ -397,12 +412,13 @@ impl NativeWindow {
 
   pub fn set_opacity(
     &self,
-    opacity_value: OpacityValue,
+    opacity_value: &OpacityValue,
   ) -> anyhow::Result<()> {
     // Make the window layered if it isn't already.
     let ex_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
+    #[allow(clippy::cast_possible_wrap)]
     if ex_style & WS_EX_LAYERED.0 as isize == 0 {
       unsafe {
         SetWindowLongPtrW(
@@ -434,14 +450,15 @@ impl NativeWindow {
 
     // Calculate the new opacity value.
     let new_opacity = if opacity_value.is_delta {
-      previous_opacity as i16 + opacity_value.amount
+      i16::from(previous_opacity) + opacity_value.amount
     } else {
       opacity_value.amount
     };
 
     // Clamp new_opacity to a u8.
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let new_opacity =
-      new_opacity.clamp(u8::MIN as i16, u8::MAX as i16) as u8;
+      new_opacity.clamp(i16::from(u8::MIN), i16::from(u8::MAX)) as u8;
 
     // Set the new opacity if needed.
     if new_opacity != previous_opacity {
@@ -482,25 +499,25 @@ impl NativeWindow {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_EXTENDED_FRAME_BOUNDS,
-        &mut rect as *mut _ as _,
+        std::ptr::from_mut(&mut rect).cast(),
         std::mem::size_of::<RECT>() as u32,
       )
     };
 
-    match dwm_res {
-      Ok(_) => Ok(Rect::from_ltrb(
+    if let Ok(()) = dwm_res {
+      Ok(Rect::from_ltrb(
         rect.left,
         rect.top,
         rect.right,
         rect.bottom,
-      )),
-      _ => {
-        warn!("Failed to get window's frame position. Falling back to border position.");
-        self.border_position()
-      }
+      ))
+    } else {
+      warn!("Failed to get window's frame position. Falling back to border position.");
+      self.border_position()
     }
   }
 
@@ -526,7 +543,12 @@ impl NativeWindow {
   fn updated_border_position(&self) -> anyhow::Result<Rect> {
     let mut rect = RECT::default();
 
-    unsafe { GetWindowRect(HWND(self.handle), &mut rect as *mut _ as _) }?;
+    unsafe {
+      GetWindowRect(
+        HWND(self.handle),
+        std::ptr::from_mut(&mut rect).cast(),
+      )
+    }?;
 
     Ok(Rect::from_ltrb(
       rect.left,
@@ -554,18 +576,23 @@ impl NativeWindow {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-    (current_style & style.0 as isize) != 0
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
   }
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
-    (current_style & style.0 as isize) != 0
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
   }
 
   pub fn restore_to_position(&self, rect: &Rect) -> anyhow::Result<()> {
     let placement = WINDOWPLACEMENT {
+      #[allow(clippy::cast_possible_truncation)]
       length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
       flags: WPF_ASYNCWINDOWPLACEMENT,
       showCmd: SW_RESTORE.0 as u32,
@@ -648,9 +675,9 @@ impl NativeWindow {
 
   /// Adds or removes the window from the native taskbar.
   ///
-  /// Hidden windows (SW_HIDE) cannot be forced to be shown in the taskbar.
-  /// Cloaked windows are normally always shown in the taskbar, but can be
-  /// manually toggled.
+  /// Hidden windows (`SW_HIDE`) cannot be forced to be shown in the
+  /// taskbar. Cloaked windows are normally always shown in the taskbar,
+  /// but can be manually toggled.
   pub fn set_taskbar_visibility(
     &self,
     visible: bool,
@@ -808,7 +835,7 @@ pub fn available_window_handles() -> anyhow::Result<Vec<isize>> {
   unsafe {
     EnumWindows(
       Some(available_window_handles_proc),
-      LPARAM(&mut handles as *mut _ as _),
+      LPARAM(std::ptr::from_mut(&mut handles) as _),
     )
   }?;
 

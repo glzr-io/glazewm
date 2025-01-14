@@ -11,14 +11,14 @@ use crate::{
 };
 
 pub fn move_workspace_in_direction(
-  workspace: Workspace,
-  direction: Direction,
+  workspace: &Workspace,
+  direction: &Direction,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let origin_monitor = workspace.monitor().context("No monitor.")?;
   let target_monitor =
-    state.monitor_in_direction(&origin_monitor, &direction)?;
+    state.monitor_in_direction(&origin_monitor, direction)?;
 
   if let Some(target_monitor) = target_monitor {
     // Get currently displayed workspace on the target monitor.
@@ -27,8 +27,8 @@ pub fn move_workspace_in_direction(
       .context("No displayed workspace.")?;
 
     move_container_within_tree(
-      workspace.clone().into(),
-      target_monitor.clone().into(),
+      &workspace.clone().into(),
+      &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,
     )?;
@@ -82,7 +82,7 @@ pub fn move_workspace_in_direction(
       deactivate_workspace(workspace, state)?;
     }
 
-    sort_workspaces(target_monitor, config)?;
+    sort_workspaces(&target_monitor, config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
       updated_workspace: workspace.to_dto()?,

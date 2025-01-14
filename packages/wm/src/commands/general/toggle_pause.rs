@@ -3,7 +3,7 @@ use wm_common::WmEvent;
 use crate::wm_state::WmState;
 
 /// Pauses or unpauses the WM.
-pub fn toggle_pause(state: &mut WmState) -> anyhow::Result<()> {
+pub fn toggle_pause(state: &mut WmState) {
   let new_paused_state = !state.is_paused;
   state.is_paused = new_paused_state;
 
@@ -19,6 +19,4 @@ pub fn toggle_pause(state: &mut WmState) -> anyhow::Result<()> {
   state.emit_event(WmEvent::PauseChanged {
     is_paused: new_paused_state,
   });
-
-  Ok(())
 }

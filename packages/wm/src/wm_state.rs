@@ -143,7 +143,7 @@ impl WmState {
       .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
-    set_focused_descendant(container_to_focus, None);
+    set_focused_descendant(&container_to_focus, None);
 
     self.pending_sync.focus_change = true;
     self.pending_sync.reset_window_effects = true;
@@ -161,7 +161,7 @@ impl WmState {
     self
       .monitors()
       .iter()
-      .flat_map(|monitor| monitor.workspaces())
+      .flat_map(Monitor::workspaces)
       .collect()
   }
 
@@ -276,6 +276,7 @@ impl WmState {
   ///
   /// Returns a tuple of the workspace name and the `Workspace` instance
   /// if active.
+  #[allow(clippy::too_many_lines)]
   pub fn workspace_by_target(
     &self,
     origin_workspace: &Workspace,
@@ -284,6 +285,7 @@ impl WmState {
   ) -> anyhow::Result<(Option<String>, Option<Workspace>)> {
     let (name, workspace) = match target {
       WorkspaceTarget::Name(name) => {
+        #[allow(clippy::match_bool)]
         match origin_workspace.config().name == name {
           false => (Some(name.clone()), self.workspace_by_name(&name)),
           // Toggle the workspace if it's already focused.
@@ -413,7 +415,7 @@ impl WmState {
       .pending_sync
       .containers_to_redraw
       .iter()
-      .flat_map(|container| container.self_and_descendants())
+      .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
       .filter(|window: &WindowContainer| unique_ids.insert(window.id()))
@@ -444,8 +446,9 @@ impl WmState {
   }
 
   /// Starts graceful shutdown via an MSPC channel.
-  pub fn emit_exit(&self) {
-    self.exit_tx.send(()).unwrap()
+  pub fn emit_exit(&self) -> anyhow::Result<()> {
+    self.exit_tx.send(())?;
+    Ok(())
   }
 
   pub fn container_by_id(&self, id: Uuid) -> Option<Container> {
@@ -503,9 +506,11 @@ impl WmState {
       .or(Some(workspace.into()))
   }
 
+  /// Returns all containers that contain the given point.
+  #[allow(clippy::unused_self)]
   pub fn containers_at_point(
     &self,
-    origin_container: Container,
+    origin_container: &Container,
     point: &Point,
   ) -> Vec<Container> {
     origin_container
@@ -513,28 +518,24 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|frame| frame.contains_point(point))
+          .map(|rect| rect.contains_point(point))
           .unwrap_or(false)
       })
       .collect()
   }
 
-  /// Returns all window under the mouse position
-  pub fn monitor_at_position(&self, position: &Point) -> Option<Monitor> {
+  /// Returns the monitor that contains the given point.
+  pub fn monitor_at_point(&self, point: &Point) -> Option<Monitor> {
     self
-      .root_container
-      .descendants()
-      .filter_map(|container| match container {
-        Container::Monitor(monitor) => Some(monitor),
-        _ => None,
-      })
-      .find(|c| {
-        let frame = c.to_rect();
-        frame
-          .ok()
-          .map(|frame| frame.contains_point(position))
+      .monitors()
+      .iter()
+      .find(|monitor| {
+        monitor
+          .to_rect()
+          .map(|rect| rect.contains_point(point))
           .unwrap_or(false)
       })
+      .cloned()
   }
 }
 

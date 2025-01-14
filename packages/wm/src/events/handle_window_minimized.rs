@@ -12,11 +12,11 @@ use crate::{
 };
 
 pub fn handle_window_minimized(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   // Update the window's state to be minimized.
   if let Some(window) = found_window {
@@ -36,7 +36,7 @@ pub fn handle_window_minimized(
       // Focus should be reassigned after a window has been minimized.
       if let Some(focus_target) = state.focus_target_after_removal(&window)
       {
-        set_focused_descendant(focus_target, None);
+        set_focused_descendant(&focus_target, None);
         state.pending_sync.focus_change = true;
         state.unmanaged_or_minimized_timestamp =
           Some(std::time::Instant::now());

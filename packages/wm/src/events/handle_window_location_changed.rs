@@ -17,12 +17,13 @@ use crate::{
   wm_state::WmState,
 };
 
+#[allow(clippy::too_many_lines)]
 pub fn handle_window_location_changed(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
@@ -57,7 +58,7 @@ pub fn handle_window_location_changed(
     // TODO: Include this as part of the `match` statement below.
     if let Some(tiling_window) = window.as_tiling_window() {
       update_drag_state(
-        tiling_window.clone(),
+        tiling_window,
         &frame_position,
         &old_frame_position,
         state,
@@ -77,8 +78,7 @@ pub fn handle_window_location_changed(
       WindowState::Fullscreen(fullscreen_state) => {
         // Restore the window if it's no longer fullscreen *or* for the
         // edge case of fullscreen -> maximized -> restore from maximized.
-        if !(is_fullscreen || is_maximized)
-          || (is_fullscreen && !is_maximized && fullscreen_state.maximized)
+        if (fullscreen_state.maximized || !is_fullscreen) && !is_maximized
         {
           info!("Window restored from fullscreen.");
 
@@ -145,8 +145,8 @@ pub fn handle_window_location_changed(
             }
 
             move_container_within_tree(
-              window.into(),
-              updated_workspace.clone().into(),
+              &window.into(),
+              &updated_workspace.clone().into(),
               updated_workspace.child_count(),
               state,
             )?;
@@ -165,7 +165,7 @@ pub fn handle_window_location_changed(
 /// updates its operation state accordingly. If the window is being moved,
 /// it's set to floating mode.
 fn update_drag_state(
-  window: TilingWindow,
+  window: &TilingWindow,
   frame_position: &Rect,
   old_frame_position: &Rect,
   state: &mut WmState,
@@ -182,9 +182,10 @@ fn update_drag_state(
     let is_move = frame_position.height() == old_frame_position.height()
       && frame_position.width() == old_frame_position.width();
 
-    let operation = match is_move {
-      true => ActiveDragOperation::Moving,
-      false => ActiveDragOperation::Resizing,
+    let operation = if is_move {
+      ActiveDragOperation::Moving
+    } else {
+      ActiveDragOperation::Resizing
     };
 
     window.set_active_drag(Some(ActiveDrag {

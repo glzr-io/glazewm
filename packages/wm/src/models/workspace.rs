@@ -68,8 +68,7 @@ impl Workspace {
     self
       .monitor()
       .and_then(|monitor| monitor.displayed_workspace())
-      .map(|workspace| workspace.id() == self.id())
-      .unwrap_or(false)
+      .is_some_and(|workspace| workspace.id() == self.id())
   }
 
   pub fn set_gaps_config(&self, gaps_config: GapsConfig) {
@@ -83,7 +82,7 @@ impl Workspace {
     let children = self
       .children()
       .iter()
-      .map(|child| child.to_dto())
+      .map(CommonGetters::to_dto)
       .try_collect()?;
 
     Ok(ContainerDto::Workspace(WorkspaceDto {

@@ -5,7 +5,7 @@ use wm_platform::NativeMonitor;
 use crate::{models::Monitor, wm_state::WmState};
 
 pub fn update_monitor(
-  monitor: Monitor,
+  monitor: &Monitor,
   native_monitor: NativeMonitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {

@@ -15,11 +15,11 @@ use crate::{
 };
 
 pub fn handle_window_focused(
-  native_window: NativeWindow,
+  native_window: &NativeWindow,
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(&native_window);
+  let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
     // Ignore the focus event if:
@@ -42,8 +42,7 @@ pub fn handle_window_focused(
     // focus target and then to the WM's focus target.
     if state
       .unmanaged_or_minimized_timestamp
-      .map(|time| time.elapsed().as_millis() < 100)
-      .unwrap_or(false)
+      .is_some_and(|time| time.elapsed().as_millis() < 100)
     {
       info!("Overriding native focus.");
       state.pending_sync.focus_change = true;
@@ -66,12 +65,12 @@ pub fn handle_window_focused(
     }
 
     // Update the WM's focus state.
-    set_focused_descendant(window.clone().into(), None);
+    set_focused_descendant(&window.clone().into(), None);
 
     // Run window rules for focus events.
     run_window_rules(
       window.clone(),
-      WindowRuleEvent::Focus,
+      &WindowRuleEvent::Focus,
       state,
       config,
     )?;

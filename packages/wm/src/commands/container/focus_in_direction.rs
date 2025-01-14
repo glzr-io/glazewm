@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub fn focus_in_direction(
-  origin_container: Container,
+  origin_container: &Container,
   direction: &Direction,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
@@ -17,11 +17,10 @@ pub fn focus_in_direction(
     Container::TilingWindow(_) => {
       // If a suitable focus target isn't found in the current workspace,
       // attempt to find a workspace in the given direction.
-      tiling_focus_target(origin_container.clone(), direction)?
-        .map_or_else(
-          || workspace_focus_target(origin_container, direction, state),
-          |container| Ok(Some(container)),
-        )?
+      tiling_focus_target(origin_container, direction)?.map_or_else(
+        || workspace_focus_target(origin_container, direction, state),
+        |container| Ok(Some(container)),
+      )?
     }
     Container::NonTilingWindow(ref non_tiling_window) => {
       match non_tiling_window.state() {
@@ -42,7 +41,7 @@ pub fn focus_in_direction(
 
   // Set focus to the target container.
   if let Some(focus_target) = focus_target {
-    set_focused_descendant(focus_target.clone(), None);
+    set_focused_descendant(&focus_target, None);
     state.pending_sync.focus_change = true;
     state.pending_sync.cursor_jump = true;
   }
@@ -51,11 +50,11 @@ pub fn focus_in_direction(
 }
 
 fn floating_focus_target(
-  origin_container: Container,
+  origin_container: &Container,
   direction: &Direction,
 ) -> Option<Container> {
   let is_floating = |sibling: &Container| {
-    sibling.as_non_tiling_window().map_or(false, |window| {
+    sibling.as_non_tiling_window().is_some_and(|window| {
       matches!(window.state(), WindowState::Floating(_))
     })
   };
@@ -81,7 +80,7 @@ fn floating_focus_target(
 /// Gets a focus target within the current workspace. Traverse upwards from
 /// the origin container to find an adjacent container that can be focused.
 fn tiling_focus_target(
-  origin_container: Container,
+  origin_container: &Container,
   direction: &Direction,
 ) -> anyhow::Result<Option<Container>> {
   let tiling_direction = TilingDirection::from_direction(direction);
@@ -135,7 +134,7 @@ fn tiling_focus_target(
 /// always return a tiling container. This makes it different from the
 /// `focus_workspace` command with `FocusWorkspaceTarget::Direction`.
 fn workspace_focus_target(
-  origin_container: Container,
+  origin_container: &Container,
   direction: &Direction,
   state: &WmState,
 ) -> anyhow::Result<Option<Container>> {

@@ -49,10 +49,11 @@ pub fn activate_workspace(
     .context("Failed to get a target monitor for the workspace.")?;
 
   let monitor_rect = target_monitor.to_rect()?;
-  let tiling_direction = match monitor_rect.height() > monitor_rect.width()
-  {
-    true => TilingDirection::Vertical,
-    false => TilingDirection::Horizontal,
+
+  let tiling_direction = if monitor_rect.height() > monitor_rect.width() {
+    TilingDirection::Vertical
+  } else {
+    TilingDirection::Horizontal
   };
 
   let workspace = Workspace::new(
@@ -68,7 +69,7 @@ pub fn activate_workspace(
     None,
   )?;
 
-  sort_workspaces(target_monitor.clone(), config)?;
+  sort_workspaces(&target_monitor, config)?;
 
   state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace.to_dto()?,
@@ -91,8 +92,7 @@ fn workspace_config(
       .find(|config| config.name == workspace_name)
       .with_context(|| {
         format!(
-          "Workspace with name '{}' doesn't exist or is already active.",
-          workspace_name
+          "Workspace with name '{workspace_name}' doesn't exist or is already active."
         )
       }),
     None => target_monitor

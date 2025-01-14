@@ -62,7 +62,7 @@ pub fn focus_workspace(
       .next()
       .unwrap_or_else(|| target_workspace.clone().into());
 
-    set_focused_descendant(container_to_focus.clone(), None);
+    set_focused_descendant(&container_to_focus, None);
     state.pending_sync.focus_change = true;
 
     // Display the workspace to switch focus to.

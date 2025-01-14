@@ -6,6 +6,7 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+#![warn(clippy::all, clippy::pedantic)]
 
 use anyhow::{bail, Context};
 use tracing::info;
@@ -31,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
     watch_managed_handles(&mut client, &mut managed_handles).await;
 
   match subscribe_res {
-    Ok(_) => info!("WM exited successfully. Skipping watcher cleanup."),
+    Ok(()) => info!("WM exited successfully. Skipping watcher cleanup."),
     Err(err) => {
       info!("Running watcher cleanup. WM exited unexpectedly: {}", err);
 

@@ -64,7 +64,7 @@ impl UserConfig {
     config_path: &PathBuf,
   ) -> anyhow::Result<(ParsedConfig, String)> {
     if !config_path.exists() {
-      Self::create_sample(config_path.clone())?;
+      Self::create_sample(config_path)?;
     }
 
     let config_str = fs::read_to_string(config_path)
@@ -78,7 +78,7 @@ impl UserConfig {
   }
 
   /// Initializes a new config file from the sample config resource.
-  fn create_sample(config_path: PathBuf) -> Result<()> {
+  fn create_sample(config_path: &PathBuf) -> Result<()> {
     let parent_dir =
       config_path.parent().context("Invalid config path.")?;
 
@@ -86,7 +86,7 @@ impl UserConfig {
       format!("Unable to create directory {}.", &config_path.display())
     })?;
 
-    fs::write(&config_path, SAMPLE_CONFIG).with_context(|| {
+    fs::write(config_path, SAMPLE_CONFIG).with_context(|| {
       format!("Unable to write to {}.", config_path.display())
     })?;
 
@@ -244,20 +244,17 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_process))
-            .unwrap_or(true);
+            .is_none_or(|match_type| match_type.is_match(&window_process));
 
           let is_class_match = match_config
             .window_class
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_class))
-            .unwrap_or(true);
+            .is_none_or(|match_type| match_type.is_match(&window_class));
 
           let is_title_match = match_config
             .window_title
             .as_ref()
-            .map(|match_type| match_type.is_match(&window_title))
-            .unwrap_or(true);
+            .is_none_or(|match_type| match_type.is_match(&window_title));
 
           is_process_match && is_class_match && is_title_match
         })
@@ -296,8 +293,9 @@ impl UserConfig {
       config
         .bind_to_monitor
         .as_ref()
-        .map(|monitor_index| monitor.index() == *monitor_index as usize)
-        .unwrap_or(false)
+        .is_some_and(|monitor_index| {
+          monitor.index() == *monitor_index as usize
+        })
     })
   }
 
@@ -314,7 +312,7 @@ impl UserConfig {
       .iter()
       .find(|config| config.bind_to_monitor.is_none())
       .or(inactive_configs.first())
-      .cloned()
+      .copied()
   }
 
   pub fn workspace_config_index(

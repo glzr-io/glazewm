@@ -18,10 +18,11 @@ pub enum WindowState {
 }
 
 impl WindowState {
+  #[must_use]
   pub fn default_from_config(config: &ParsedConfig) -> Self {
     match config.window_behavior.initial_state {
-      InitialWindowState::Tiling => WindowState::Tiling,
-      InitialWindowState::Floating => WindowState::Floating(
+      InitialWindowState::Tiling => Self::Tiling,
+      InitialWindowState::Floating => Self::Floating(
         config.window_behavior.state_defaults.floating.clone(),
       ),
     }

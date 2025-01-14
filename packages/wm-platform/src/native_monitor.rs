@@ -7,7 +7,7 @@ use windows::{
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
       MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
-      HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
     },
     UI::{
       HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
@@ -35,6 +35,7 @@ struct MonitorInfo {
 }
 
 impl NativeMonitor {
+  #[must_use]
   pub fn new(handle: isize) -> Self {
     Self {
       handle,
@@ -72,14 +73,19 @@ impl NativeMonitor {
 
   fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
     self.info.get_or_try_init(|| {
-      let mut monitor_info = MONITORINFOEXW::default();
-      monitor_info.monitorInfo.cbSize =
-        std::mem::size_of::<MONITORINFOEXW>() as u32;
+      let mut monitor_info = MONITORINFOEXW {
+        monitorInfo: MONITORINFO {
+          #[allow(clippy::cast_possible_truncation)]
+          cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
+          ..Default::default()
+        },
+        ..Default::default()
+      };
 
       unsafe {
         GetMonitorInfoW(
           HMONITOR(self.handle),
-          &mut monitor_info as *mut _ as _,
+          std::ptr::from_mut(&mut monitor_info).cast(),
         )
       }
       .ok()?;
@@ -87,6 +93,7 @@ impl NativeMonitor {
       // Get the display devices associated with the monitor.
       let mut display_devices = (0..)
         .map_while(|index| {
+          #[allow(clippy::cast_possible_truncation)]
           let mut display_device = DISPLAY_DEVICEW {
             cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
             ..Default::default()
@@ -110,25 +117,24 @@ impl NativeMonitor {
         .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0);
 
       // Get the device path and hardware ID from the first valid device.
-      let (device_path, hardware_id) = display_devices
-        .next()
-        .map(|device| {
+      let (device_path, hardware_id) =
+        display_devices.next().map_or((None, None), |device| {
           let device_path = String::from_utf16_lossy(&device.DeviceID)
             .trim_end_matches('\0')
             .to_string();
 
           let hardware_id = device_path
-            .split("#")
+            .split('#')
             .collect::<Vec<_>>()
             .get(1)
-            .map(|id| id.to_string());
+            .map(|id| (*id).to_string());
 
           (Some(device_path), hardware_id)
-        })
-        .unwrap_or((None, None));
+        });
 
       let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
       let dpi = monitor_dpi(self.handle)?;
+      #[allow(clippy::cast_precision_loss)]
       let scale_factor = dpi as f32 / 96.0;
 
       let rc_monitor = monitor_info.monitorInfo.rcMonitor;
@@ -187,7 +193,7 @@ fn available_monitor_handles() -> anyhow::Result<Vec<isize>> {
       HDC::default(),
       None,
       Some(available_monitor_handles_proc),
-      LPARAM(&mut monitors as *mut _ as _),
+      LPARAM(std::ptr::from_mut(&mut monitors) as _),
     )
   }
   .ok()?;
@@ -208,6 +214,7 @@ extern "system" fn available_monitor_handles_proc(
   true.into()
 }
 
+#[must_use]
 pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
   let handle = unsafe {
     MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)

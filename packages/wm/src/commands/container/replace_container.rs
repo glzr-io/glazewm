@@ -11,8 +11,8 @@ use crate::{
 ///
 /// The replaced container will be detached from the tree.
 pub fn replace_container(
-  replacement_container: Container,
-  target_parent: Container,
+  replacement_container: &Container,
+  target_parent: &Container,
   target_index: usize,
 ) -> anyhow::Result<()> {
   if !replacement_container.is_detached() {
@@ -25,7 +25,7 @@ pub fn replace_container(
     .children()
     .get(target_index)
     .cloned()
-    .with_context(|| format!("No container at index {}.", target_index))?;
+    .with_context(|| format!("No container at index {target_index}."))?;
 
   let focus_index = container_to_replace.focus_index();
   let tiling_size = container_to_replace
@@ -39,8 +39,8 @@ pub fn replace_container(
   detach_container(container_to_replace)?;
 
   attach_container(
-    &replacement_container,
-    &target_parent,
+    replacement_container,
+    target_parent,
     Some(target_index),
   )?;
 

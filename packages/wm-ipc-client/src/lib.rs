@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use anyhow::Context;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
@@ -16,7 +18,7 @@ pub struct IpcClient {
 
 impl IpcClient {
   pub async fn connect() -> anyhow::Result<Self> {
-    let server_addr = format!("ws://127.0.0.1:{}", DEFAULT_IPC_PORT);
+    let server_addr = format!("ws://127.0.0.1:{DEFAULT_IPC_PORT}");
 
     let (stream, _) = connect_async(server_addr)
       .await

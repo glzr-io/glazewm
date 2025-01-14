@@ -11,6 +11,7 @@ use crate::{
 /// into the parent container.
 ///
 /// The children will be resized to fit the size of the split container.
+#[allow(clippy::needless_pass_by_value)]
 pub fn flatten_split_container(
   split_container: SplitContainer,
 ) -> anyhow::Result<()> {
