@@ -98,6 +98,10 @@ impl KeyboardHook {
   /// Starts a keyboard hook on the current thread.
   ///
   /// Assumes that a message loop is currently running.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn start(&self) -> anyhow::Result<()> {
     *self.hook.lock().unwrap() = unsafe {
       SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)
@@ -106,12 +110,21 @@ impl KeyboardHook {
     Ok(())
   }
 
+  /// Updates the keybindings for the keyboard hook.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
     *self.keybindings_by_trigger_key.lock().unwrap() =
       Self::keybindings_by_trigger_key(keybindings);
   }
 
   /// Stops the low-level keyboard hook.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn stop(&self) -> anyhow::Result<()> {
     unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }?;
     Ok(())
@@ -156,6 +169,7 @@ impl KeyboardHook {
     keybinding_map
   }
 
+  #[allow(clippy::too_many_lines)]
   fn key_to_vk_code(key: &str) -> Option<u16> {
     match key.to_lowercase().as_str() {
       "a" => Some(VK_A.0),
@@ -427,6 +441,7 @@ extern "system" fn keyboard_hook_proc(
   wparam: WPARAM,
   lparam: LPARAM,
 ) -> LRESULT {
+  #[allow(clippy::cast_possible_truncation)]
   let should_ignore = code != 0
     || !(wparam.0 as u32 == WM_KEYDOWN
       || wparam.0 as u32 == WM_SYSKEYDOWN);
@@ -442,6 +457,7 @@ extern "system" fn keyboard_hook_proc(
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
   if let Some(hook) = KEYBOARD_HOOK.get() {
+    #[allow(clippy::cast_possible_truncation)]
     let should_block = hook.handle_key_event(input.vkCode as u16);
 
     if should_block {

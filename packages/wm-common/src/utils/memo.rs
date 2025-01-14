@@ -33,6 +33,10 @@ where
 
   /// Retrieves the cached value if it exists, otherwise initializes it
   /// using the provided closure.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn get_or_init<F, R>(
     &self,
     retriever_fn: F,
@@ -44,18 +48,21 @@ where
   {
     let mut value_ref = self.value.lock().unwrap();
 
-    value_ref
-      .as_ref()
-      .map(|value| Ok(value.clone()))
-      .unwrap_or_else(|| {
-        let value = retriever_fn(arg)?;
-        *value_ref = Some(value.clone());
-        Ok(value)
-      })
+    if let Some(value) = value_ref.as_ref() {
+      Ok(value.clone())
+    } else {
+      let value = retriever_fn(arg)?;
+      *value_ref = Some(value.clone());
+      Ok(value)
+    }
   }
 
   /// Refreshes the cached value by generating a new value using the
   /// provided closure.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn update<F, R>(&self, retriever_fn: F, arg: &R) -> anyhow::Result<T>
   where
     F: FnOnce(&R) -> anyhow::Result<T>,

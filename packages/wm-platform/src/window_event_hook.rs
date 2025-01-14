@@ -48,9 +48,12 @@ impl WindowEventHook {
     Ok(win_event_hook)
   }
 
-  /// Starts a window event hook on the current thread.
+  /// Starts a window event hook on the current thread. This assumes that a
+  /// message loop is currently running.
   ///
-  /// Assumes that a message loop is currently running.
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn start(&self) -> anyhow::Result<()> {
     *self.hook_handles.lock().unwrap() = Self::hook_win_events()?;
     Ok(())
@@ -141,6 +144,10 @@ impl WindowEventHook {
   }
 
   /// Stops the window event hook and unhooks from all window events.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
   pub fn stop(&self) -> anyhow::Result<()> {
     for hook_handle in self.hook_handles.lock().unwrap().drain(..) {
       unsafe { UnhookWinEvent(hook_handle) }.ok()?;

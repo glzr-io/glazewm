@@ -26,8 +26,8 @@ use windows::{
         CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
         MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
         SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
-        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_QUIT,
-        WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
+        SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WINDOW_EX_STYLE,
+        WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
       },
     },
   },
@@ -187,7 +187,7 @@ impl Platform {
 
     let handle = unsafe {
       CreateWindowExW(
-        Default::default(),
+        WINDOW_EX_STYLE::default(),
         w!("MessageWindow"),
         w!("MessageWindow"),
         WS_OVERLAPPEDWINDOW,
@@ -276,6 +276,7 @@ impl Platform {
   /// Note that this is a global system setting.
   pub fn window_animations_enabled() -> anyhow::Result<bool> {
     let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
       iMinAnimate: 0,
     };
@@ -299,6 +300,7 @@ impl Platform {
     enable: bool,
   ) -> anyhow::Result<()> {
     let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
       iMinAnimate: i32::from(enable),
     };
@@ -449,6 +451,7 @@ impl Platform {
     // handles held by our process (e.g. the IPC server port) until the
     // subprocess exits.
     let mut exec_info = SHELLEXECUTEINFOW {
+      #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
       lpFile: PCWSTR(program_wide.as_ptr()),
       lpParameters: PCWSTR(args_wide.as_ptr()),

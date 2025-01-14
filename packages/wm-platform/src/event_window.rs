@@ -81,7 +81,7 @@ impl EventWindow {
   /// Uses global state (e.g. `PLATFORM_EVENT_TX`) and should thus only
   /// ever be instantiated once in the application's lifetime.
   pub fn new(
-    event_tx: mpsc::UnboundedSender<PlatformEvent>,
+    event_tx: &mpsc::UnboundedSender<PlatformEvent>,
     keybindings: &Vec<KeybindingConfig>,
     enable_mouse_events: bool,
   ) -> anyhow::Result<Self> {
@@ -114,6 +114,7 @@ impl EventWindow {
 
       // Register our window to receive mouse events.
       unsafe {
+        #[allow(clippy::cast_possible_truncation)]
         RegisterRawInputDevices(
           &[rid],
           std::mem::size_of::<RAWINPUTDEVICE>() as u32,
@@ -183,6 +184,7 @@ pub extern "system" fn event_window_proc(
   if let Some(event_tx) = PLATFORM_EVENT_TX.get() {
     return match message {
       WM_POWERBROADCAST => {
+        #[allow(clippy::cast_possible_truncation)]
         match wparam.0 as u32 {
           // System is resuming from sleep/hibernation.
           PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
@@ -231,6 +233,7 @@ fn handle_display_change_msg(
   wparam: WPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
 ) -> anyhow::Result<()> {
+  #[allow(clippy::cast_possible_truncation)]
   let should_emit_event = match message {
     WM_SETTINGCHANGE => {
       wparam.0 as u32 == SPI_SETWORKAREA.0
@@ -255,9 +258,11 @@ fn handle_input_msg(
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
 ) -> anyhow::Result<()> {
   let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
+  #[allow(clippy::cast_possible_truncation)]
   let mut raw_input_size = std::mem::size_of::<RAWINPUT>() as u32;
 
   let res_size = unsafe {
+    #[allow(clippy::cast_possible_truncation)]
     GetRawInputData(
       HRAWINPUT(lparam.0),
       RID_INPUT,
@@ -303,6 +308,7 @@ fn handle_input_msg(
     _ => false,
   };
 
+  #[allow(clippy::cast_possible_truncation)]
   let event_time = SystemTime::now()
     .duration_since(SystemTime::UNIX_EPOCH)
     .map(|dur| dur.as_millis() as u64)?;

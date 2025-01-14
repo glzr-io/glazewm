@@ -55,6 +55,7 @@ impl FromStr for OpacityValue {
 
     let unit_str = captures.get(3).map_or("", |m| m.as_str());
 
+    #[allow(clippy::cast_possible_truncation)]
     let amount = captures
       .get(2)
       .and_then(|amount_str| f32::from_str(amount_str.into()).ok())
@@ -88,9 +89,11 @@ impl<'de> Deserialize<'de> for OpacityValue {
 
     match OpacityValueDe::deserialize(deserializer)? {
       OpacityValueDe::Struct { amount, is_delta } => Ok(Self {
+        #[allow(clippy::cast_possible_truncation)]
         amount: amount as i16,
         is_delta,
       }),
+
       OpacityValueDe::String(str) => {
         Self::from_str(&str).map_err(serde::de::Error::custom)
       }

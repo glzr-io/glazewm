@@ -45,7 +45,7 @@ impl EventListener {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let event_window = EventWindow::new(
-      event_tx,
+      &event_tx,
       &config.keybindings,
       config.general.focus_follows_cursor,
     )?;

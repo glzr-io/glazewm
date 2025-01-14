@@ -95,9 +95,12 @@ impl NativeWindow {
 
   /// Gets the window's title. If the window is invalid, returns an empty
   /// string.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_title(&self) -> anyhow::Result<String> {
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
+
+    #[allow(clippy::cast_sign_loss)]
     Ok(String::from_utf16_lossy(&text[..length as usize]))
   }
 
@@ -122,7 +125,7 @@ impl NativeWindow {
     }?;
 
     let mut buffer = [0u16; 256];
-    let mut length = buffer.len() as u32;
+    let mut length = u32::try_from(buffer.len())?;
     unsafe {
       QueryFullProcessImageNameW(
         process_handle,
@@ -161,6 +164,7 @@ impl NativeWindow {
       return Err(windows::core::Error::from_win32().into());
     }
 
+    #[allow(clippy::cast_sign_loss)]
     let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
     Ok(class_name)
   }
@@ -181,6 +185,7 @@ impl NativeWindow {
     let mut cloaked = 0u32;
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_CLOAKED,
@@ -243,6 +248,7 @@ impl NativeWindow {
   }
 
   /// Whether the window is minimized.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_is_minimized(&self) -> anyhow::Result<bool> {
     Ok(unsafe { IsIconic(HWND(self.handle)) }.as_bool())
   }
@@ -262,6 +268,7 @@ impl NativeWindow {
   }
 
   /// Whether the window is maximized.
+  #[allow(clippy::unnecessary_wraps)]
   fn updated_is_maximized(&self) -> anyhow::Result<bool> {
     Ok(unsafe { IsZoomed(HWND(self.handle)) }.as_bool())
   }
@@ -307,7 +314,10 @@ impl NativeWindow {
 
     // Bypass restriction for setting the foreground window by sending an
     // input to our own process first.
-    unsafe { SendInput(&input, std::mem::size_of::<INPUT>() as i32) };
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    unsafe {
+      SendInput(&input, std::mem::size_of::<INPUT>() as i32)
+    };
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
@@ -325,6 +335,7 @@ impl NativeWindow {
     };
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_BORDER_COLOR,
@@ -348,6 +359,7 @@ impl NativeWindow {
     };
 
     unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
         HWND(self.handle),
         DWMWA_WINDOW_CORNER_PREFERENCE,
@@ -400,12 +412,13 @@ impl NativeWindow {
 
   pub fn set_opacity(
     &self,
-    opacity_value: OpacityValue,
+    opacity_value: &OpacityValue,
   ) -> anyhow::Result<()> {
     // Make the window layered if it isn't already.
     let ex_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
+    #[allow(clippy::cast_possible_wrap)]
     if ex_style & WS_EX_LAYERED.0 as isize == 0 {
       unsafe {
         SetWindowLongPtrW(
@@ -443,6 +456,7 @@ impl NativeWindow {
     };
 
     // Clamp new_opacity to a u8.
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let new_opacity =
       new_opacity.clamp(i16::from(u8::MIN), i16::from(u8::MAX)) as u8;
 
@@ -485,6 +499,7 @@ impl NativeWindow {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
+      #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
         HWND(self.handle),
         DWMWA_EXTENDED_FRAME_BOUNDS,
@@ -561,18 +576,23 @@ impl NativeWindow {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
 
-    (current_style & style.0 as isize) != 0
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
   }
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
-    (current_style & style.0 as isize) != 0
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
   }
 
   pub fn restore_to_position(&self, rect: &Rect) -> anyhow::Result<()> {
     let placement = WINDOWPLACEMENT {
+      #[allow(clippy::cast_possible_truncation)]
       length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
       flags: WPF_ASYNCWINDOWPLACEMENT,
       showCmd: SW_RESTORE.0 as u32,

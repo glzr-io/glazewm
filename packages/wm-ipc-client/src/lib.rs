@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use anyhow::Context;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;

@@ -7,7 +7,7 @@ use windows::{
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
       MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
-      HMONITOR, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
     },
     UI::{
       HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
@@ -73,9 +73,14 @@ impl NativeMonitor {
 
   fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
     self.info.get_or_try_init(|| {
-      let mut monitor_info = MONITORINFOEXW::default();
-      monitor_info.monitorInfo.cbSize =
-        std::mem::size_of::<MONITORINFOEXW>() as u32;
+      let mut monitor_info = MONITORINFOEXW {
+        monitorInfo: MONITORINFO {
+          #[allow(clippy::cast_possible_truncation)]
+          cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
+          ..Default::default()
+        },
+        ..Default::default()
+      };
 
       unsafe {
         GetMonitorInfoW(
@@ -88,6 +93,7 @@ impl NativeMonitor {
       // Get the display devices associated with the monitor.
       let mut display_devices = (0..)
         .map_while(|index| {
+          #[allow(clippy::cast_possible_truncation)]
           let mut display_device = DISPLAY_DEVICEW {
             cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
             ..Default::default()
@@ -128,6 +134,7 @@ impl NativeMonitor {
 
       let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
       let dpi = monitor_dpi(self.handle)?;
+      #[allow(clippy::cast_precision_loss)]
       let scale_factor = dpi as f32 / 96.0;
 
       let rc_monitor = monitor_info.monitorInfo.rcMonitor;

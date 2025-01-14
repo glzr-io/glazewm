@@ -294,12 +294,12 @@ fn apply_transparency_effect(
   _ = window
     .native()
     .set_opacity(if effect_config.transparency.enabled {
-      effect_config.transparency.opacity.clone()
+      &effect_config.transparency.opacity
     } else {
       // This code is only reached if the transparency effect is only
       // enabled in one of the two window effect configurations. In
       // this case, reset the opacity to default.
-      OpacityValue {
+      &OpacityValue {
         amount: 255,
         is_delta: false,
       }

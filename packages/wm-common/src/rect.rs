@@ -199,6 +199,7 @@ impl Rect {
       .abs()
       .max((self.y() + self.height() - point.y).abs());
 
+    #[allow(clippy::cast_precision_loss)]
     ((dx * dx + dy * dy) as f32).sqrt()
   }
 }
