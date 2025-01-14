@@ -84,30 +84,31 @@ Windows in GlazeWM are organized within a tree hierarchy with the following "con
 Here's an example container tree:
 
 ```
-                                Root
-                                  |
-                 +----------------+--------------+
-                 |                               |
-             Monitor 1                       Monitor 2
-                 |                               |
-        +--------+------+                        |
-        |               |                    Workspace 1
-    Workspace 1     Workspace 2                  |
-        |               |                  Split Container
-        |               |                 (vertical layout)
-   +----|----+      Window                       |
-   |         |     (Spotify)              +------+------+
-   |     Window                           |             |
-   |   (Terminal                      Window         Window
-   |   floating)                     (Discord)       (Slack)
-   |
-Split Container
-(horizontal layout)
-   |
-   +-------------+
-   |             |
-Window         Window
-(Chrome)     (VS Code)
+                                            Root
+                                             |
+                            +----------------+----------------+
+                            |                                 |
+                        Monitor 1                         Monitor 2
+                            |                                 |
+                   +--------+--------+                        |
+                   |                 |                        |
+               Workspace 1       Workspace 2             Workspace 3
+               [horizontal]      [vertical]              [horizontal]
+                   |                 |                        |
+                   |                 |                        |
+              +----+----+      Tiling Window            +-----+-----+
+              |         |        (Spotify)              |           |
+        Tiling Window   |                       Tiling Window  Floating Window
+         (Terminal)     |                         (Discord)       (Slack)
+                        |
+                        |
+                  Split Container
+                    [vertical]
+                        |
+                   +----+----+
+                   |         |
+           Tiling Window  Tiling Window
+             (Chrome)      (VS Code)
 ```
 
 Windows can be either tiling (nested within split containers) or non-tiling (floating, minimized, maximized, or fullscreen). Non-tiling windows are always direct children of a workspace. Split containers can only have windows as children, and must have at least one child window.
