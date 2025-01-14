@@ -22,7 +22,7 @@ jobs:
         run: cargo fmt --check
 
       - name: Check linting (clippy)
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic -D warnings
 
       - name: Check build
         run: cargo build --locked
