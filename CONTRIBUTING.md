@@ -70,3 +70,44 @@ GlazeWM uses a command-event architecture. The state of the WM (stored in [`WmSt
 - Events arise from the Windows platform (e.g. a window being created, destroyed, focused, etc.). Each of these events have a handler that then modifies the WM state.
 
 Commands and events are processed in a loop in [`start_wm`](https://github.com/glzr-io/glazewm/blob/main/packages/wm/src/main.rs#L68).
+
+## Container tree
+
+Windows in GlazeWM are organized within a tree hierarchy with the following "container" types:
+
+- Root
+- Monitors (physical displays)
+- Workspaces (virtual groups of windows)
+- Split containers (for tiling layouts)
+- Windows (application windows)
+
+Here's an example container tree:
+
+```
+                                Root
+                                  |
+                 +----------------+--------------+
+                 |                               |
+             Monitor 1                       Monitor 2
+                 |                               |
+        +--------+------+                        |
+        |               |                    Workspace 1
+    Workspace 1     Workspace 2                  |
+        |               |                  Split Container
+        |               |                 (vertical layout)
+   +----|----+      Window                       |
+   |         |     (Spotify)              +------+------+
+   |     Window                           |             |
+   |   (Terminal                      Window         Window
+   |   floating)                     (Discord)       (Slack)
+   |
+Split Container
+(horizontal layout)
+   |
+   +-------------+
+   |             |
+Window         Window
+(Chrome)     (VS Code)
+```
+
+Windows can be either tiling (nested within split containers) or non-tiling (floating, minimized, maximized, or fullscreen). Non-tiling windows are always direct children of a workspace. Split containers can only have windows as children, and must have at least one child window.
