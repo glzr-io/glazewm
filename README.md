@@ -46,7 +46,11 @@ GlazeWM can be downloaded via Winget package manager:
 winget install GlazeWM
 ```
 
-[contributing guide](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md).
+## Contributing
+
+Help fix something that annoys you, or add a feature you've been wanting for a long time! Contributions are very welcome.
+
+Local development and guidelines are available in the [contributing guide](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md).
 
 ## Default keybindings
 
@@ -83,7 +87,7 @@ general:
   startup_commands: []
 
   # Commands to run just before the WM is shutdown.
-  shutdown_commands : []
+  shutdown_commands: []
 
   # Commands to run after the WM config has reloaded.
   config_reload_commands: []
