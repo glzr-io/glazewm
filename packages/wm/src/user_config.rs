@@ -244,19 +244,17 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .map_or(true, |match_type| {
-              match_type.is_match(&window_process)
-            });
+            .is_none_or(|match_type| match_type.is_match(&window_process));
 
           let is_class_match = match_config
             .window_class
             .as_ref()
-            .map_or(true, |match_type| match_type.is_match(&window_class));
+            .is_none_or(|match_type| match_type.is_match(&window_class));
 
           let is_title_match = match_config
             .window_title
             .as_ref()
-            .map_or(true, |match_type| match_type.is_match(&window_title));
+            .is_none_or(|match_type| match_type.is_match(&window_title));
 
           is_process_match && is_class_match && is_title_match
         })

@@ -215,7 +215,7 @@ pub trait CommonGetters {
 
   fn ancestors(&self) -> Ancestors {
     Ancestors {
-      start: self.parent().map(Into::into),
+      start: self.parent(),
     }
   }
 
@@ -291,7 +291,7 @@ impl Iterator for Ancestors {
 
   fn next(&mut self) -> Option<Container> {
     self.start.take().inspect(|container| {
-      self.start = container.parent().map(Into::into);
+      self.start = container.parent();
     })
   }
 }

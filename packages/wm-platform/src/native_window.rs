@@ -141,7 +141,7 @@ impl NativeWindow {
 
     exe_path
       .split('\\')
-      .last()
+      .next_back()
       .map(|file_name| {
         file_name.split('.').next().unwrap_or(file_name).to_string()
       })
