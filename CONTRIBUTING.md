@@ -93,17 +93,17 @@ Here's an example container tree:
                    +--------+--------+                        |
                    |                 |                        |
                Workspace 1       Workspace 2             Workspace 3
-               (horizontal)      (vertical)             (horizontal)
+               [horizontal]      [vertical]              [horizontal]
                    |                 |                        |
                    |                 |                        |
               +----+----+      Tiling Window            +-----+-----+
-              |         |       (Spotify)               |           |
-        Tiling Window   |                        Tiling Window  Floating Window
-        (Terminal)      |                           (Discord)      (Slack)
+              |         |        (Spotify)              |           |
+        Tiling Window   |                       Tiling Window  Floating Window
+         (Terminal)     |                         (Discord)       (Slack)
                         |
                         |
                   Split Container
-                   (vertical)
+                    [vertical]
                         |
                    +----+----+
                    |         |
