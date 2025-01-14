@@ -1,3 +1,4 @@
+#![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::missing_errors_doc)]
 
 use anyhow::Context;

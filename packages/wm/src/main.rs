@@ -8,7 +8,6 @@
 )]
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
-#![feature(once_cell_try)]
 
 use std::{env, path::PathBuf};
 

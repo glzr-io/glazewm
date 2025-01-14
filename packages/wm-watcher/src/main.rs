@@ -6,6 +6,7 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+#![warn(clippy::all, clippy::pedantic)]
 
 use anyhow::{bail, Context};
 use tracing::info;
