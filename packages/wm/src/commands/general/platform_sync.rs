@@ -5,9 +5,9 @@ use tokio::task;
 use tracing::warn;
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  WindowEffectConfig, WmEvent,
+  WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::Platform;
+use wm_platform::{Platform, ZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -155,12 +155,30 @@ fn redraw_containers(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  for window in state
-    .windows_to_redraw()
-    .into_iter()
-    .chain(windows_to_reorder)
-  {
-    let should_reorder = windows_to_reorder.contains(&window);
+  let windows_to_redraw = state.windows_to_redraw();
+
+  for window in windows_to_redraw.iter().chain(&windows_to_reorder) {
+    let should_reorder = windows_to_reorder.contains(window);
+
+    // Whether the window should be shown above all other windows.
+    let z_order = match window.state() {
+      WindowState::Floating(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      WindowState::Fullscreen(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      _ if should_reorder => ZOrder::Top,
+      _ => ZOrder::Normal,
+    };
+
+    if should_reorder && !windows_to_redraw.contains(window) {
+      if let Err(err) = window.native().set_z_order(&z_order) {
+        warn!("Failed to set window z-order: {}", err);
+      }
+
+      continue;
+    }
 
     let workspace =
       window.workspace().context("Window has no workspace.")?;
@@ -188,15 +206,10 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    let redraw_type = if windows_to_reorder.contains(&window) {
-      RedrawType::Reorder
-    } else {
-      RedrawType::Redraw
-    };
-
     if let Err(err) = window.native().set_position(
       &window.state(),
       &rect,
+      &z_order,
       is_visible,
       &config.value.general.hide_method,
       window.has_pending_dpi_adjustment(),
