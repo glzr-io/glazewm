@@ -52,7 +52,14 @@ use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 /// process.
 pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ZOrder {
+  Normal,
+  Top,
+  TopMost,
+}
+
+#[derive(Clone, Debug)]
 pub struct NativeWindow {
   pub handle: isize,
   title: Memo<String>,

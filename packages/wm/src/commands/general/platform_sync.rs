@@ -29,32 +29,52 @@ pub fn platform_sync(
 
   let prev_focused = state
     .recent_focused_container
+    .as_ref()
     .and_then(|container| container.as_window_container().ok());
 
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+  let focused_state = focused_container
+    .as_window_container()
+    .map(|window| window.state());
+
   // If `recent_focused_container` is a window and it's a
   // different state OR if `recent_focused_container` is in a different
   // workspace, then we need to reorder.
-  let containers_to_reorder = if state.pending_sync.focus_change
+  let windows_to_reorder = if state.pending_sync.focus_change
     && prev_focused
+      .as_ref()
       .map(|prev_focused| {
-        prev_focused.state() != focused_container.state()
-          || prev_focused.workspace().unwrap()
-            != focused_container.workspace().unwrap()
+        focused_state
+          .as_ref()
+          .map(|state| {
+            prev_focused.state() != *state
+              || prev_focused.workspace().unwrap().id()
+                != focused_container.workspace().unwrap().id()
+          })
+          .unwrap_or(false)
       })
-      .unwrap_or(true)
+      .unwrap_or(false)
   {
-    // todo: all floating and tiling windows in the workspace
+    // Get windows that match the focused container's state.
+    state
+      .windows()
+      .into_iter()
+      .filter(|window| {
+        window
+          .state()
+          .is_same_state(&focused_state.as_ref().unwrap())
+      })
+      .collect()
   } else {
     vec![]
   };
 
   if !state.pending_sync.containers_to_redraw.is_empty()
-    && !containers_to_reorder.is_empty()
+    && !windows_to_reorder.is_empty()
   {
-    redraw_containers(state, config)?;
+    redraw_containers(windows_to_reorder, state, config)?;
     state.pending_sync.containers_to_redraw.clear();
   }
 
@@ -131,10 +151,17 @@ fn sync_focus(
 }
 
 fn redraw_containers(
+  windows_to_reorder: Vec<WindowContainer>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  for window in &state.windows_to_redraw() {
+  for window in state
+    .windows_to_redraw()
+    .into_iter()
+    .chain(windows_to_reorder)
+  {
+    let should_reorder = windows_to_reorder.contains(&window);
+
     let workspace =
       window.workspace().context("Window has no workspace.")?;
 
@@ -160,6 +187,12 @@ fn redraw_containers(
       window.display_state(),
       DisplayState::Showing | DisplayState::Shown
     );
+
+    let redraw_type = if windows_to_reorder.contains(&window) {
+      RedrawType::Reorder
+    } else {
+      RedrawType::Redraw
+    };
 
     if let Err(err) = window.native().set_position(
       &window.state(),
