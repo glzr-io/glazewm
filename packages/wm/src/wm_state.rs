@@ -37,7 +37,9 @@ pub struct WmState {
 
   /// Container that most recently had focus synced.
   ///
-  /// Used for updating window effects on focus change.
+  /// Used for updating window effects on focus change. Note that this
+  /// container may be detached if it's a window that's recently been
+  /// killed.
   pub recent_focused_container: Option<Container>,
 
   /// Time since a previously focused window was unmanaged or minimized.

@@ -39,6 +39,9 @@ pub fn platform_sync(
     .as_window_container()
     .map(|window| window.state());
 
+  let focused_workspace =
+    focused_container.workspace().context("No workspace.")?;
+
   // If `recent_focused_container` is a window and it's a
   // different state OR if `recent_focused_container` is in a different
   // workspace, then we need to reorder.
@@ -50,29 +53,33 @@ pub fn platform_sync(
           .as_ref()
           .map(|state| {
             prev_focused.state() != *state
-              || prev_focused.workspace().unwrap().id()
-                != focused_container.workspace().unwrap().id()
+              || prev_focused.workspace().map(|workspace| workspace.id())
+                != Some(focused_workspace.id())
           })
           .unwrap_or(false)
       })
       .unwrap_or(false)
   {
+    tracing::info!("Reordering windows");
     // Get windows that match the focused container's state.
-    state
-      .windows()
-      .into_iter()
+    focused_workspace
+      .descendants()
+      .filter_map(|descendant| descendant.as_window_container().ok())
       .filter(|window| {
         window
           .state()
           .is_same_state(&focused_state.as_ref().unwrap())
+        // TODO: Only if floating or tiling.
       })
       .collect()
   } else {
     vec![]
   };
 
+  tracing::info!("Windows to reorder: {:?}", windows_to_reorder);
+
   if !state.pending_sync.containers_to_redraw.is_empty()
-    && !windows_to_reorder.is_empty()
+    || !windows_to_reorder.is_empty()
   {
     redraw_containers(windows_to_reorder, state, config)?;
     state.pending_sync.containers_to_redraw.clear();
@@ -155,9 +162,33 @@ fn redraw_containers(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let windows_to_redraw = state.windows_to_redraw();
+  let descendant_focus_indices = state
+    .root_container
+    .descendant_focus_order()
+    .collect::<Vec<_>>();
 
-  for window in windows_to_redraw.iter().chain(&windows_to_reorder) {
+  let windows_to_redraw = state.windows_to_redraw();
+  let mut windows_to_update = windows_to_redraw
+    .iter()
+    .chain(&windows_to_reorder)
+    .collect::<Vec<_>>();
+
+  // Sort windows in reverse order of their focus index.
+  windows_to_update.sort_by(|a, b| {
+    let a_index = descendant_focus_indices
+      .iter()
+      .position(|container| container.id() == a.id())
+      .unwrap_or(usize::MAX);
+
+    let b_index = descendant_focus_indices
+      .iter()
+      .position(|container| container.id() == b.id())
+      .unwrap_or(usize::MAX);
+
+    b_index.cmp(&a_index)
+  });
+
+  for window in windows_to_update {
     let should_reorder = windows_to_reorder.contains(window);
 
     // Whether the window should be shown above all other windows.
@@ -172,6 +203,8 @@ fn redraw_containers(
       _ => ZOrder::Normal,
     };
 
+    // Set the z-order of the window and skip updating it's position if the
+    // window only requires a z-order change.
     if should_reorder && !windows_to_redraw.contains(window) {
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
