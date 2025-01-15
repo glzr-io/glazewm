@@ -27,14 +27,36 @@ pub fn platform_sync(
     return Ok(());
   }
 
-  if !state.pending_sync.containers_to_redraw.is_empty() {
+  let prev_focused = state
+    .recent_focused_container
+    .and_then(|container| container.as_window_container().ok());
+
+  let focused_container =
+    state.focused_container().context("No focused container.")?;
+
+  // If `recent_focused_container` is a window and it's a
+  // different state OR if `recent_focused_container` is in a different
+  // workspace, then we need to reorder.
+  let containers_to_reorder = if state.pending_sync.focus_change
+    && prev_focused
+      .map(|prev_focused| {
+        prev_focused.state() != focused_container.state()
+          || prev_focused.workspace().unwrap()
+            != focused_container.workspace().unwrap()
+      })
+      .unwrap_or(true)
+  {
+    // todo: all floating and tiling windows in the workspace
+  } else {
+    vec![]
+  };
+
+  if !state.pending_sync.containers_to_redraw.is_empty()
+    && !containers_to_reorder.is_empty()
+  {
     redraw_containers(state, config)?;
     state.pending_sync.containers_to_redraw.clear();
   }
-
-  let recent_focused_container = state.recent_focused_container.clone();
-  let focused_container =
-    state.focused_container().context("No focused container.")?;
 
   if state.pending_sync.cursor_jump {
     if config.value.general.cursor_jump.enabled {
@@ -58,10 +80,7 @@ pub fn platform_sync(
     let unfocused_windows = if state.pending_sync.reset_window_effects {
       state.windows()
     } else {
-      recent_focused_container
-        .and_then(|container| container.as_window_container().ok())
-        .into_iter()
-        .collect()
+      prev_focused.into_iter().collect()
     }
     .into_iter()
     .filter(|window| window.id() != focused_container.id());

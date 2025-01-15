@@ -27,4 +27,9 @@ impl WindowState {
       ),
     }
   }
+
+  #[must_use]
+  pub fn is_same_state(&self, other: &Self) -> bool {
+    std::mem::discriminant(self) == std::mem::discriminant(other)
+  }
 }

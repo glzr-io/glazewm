@@ -138,9 +138,7 @@ fn set_non_tiling(
       let current_state = window.state();
 
       // Update the window's previous state if the discriminant changes.
-      if std::mem::discriminant(&current_state)
-        != std::mem::discriminant(&target_state)
-      {
+      if !current_state.is_same_state(&target_state) {
         window.set_prev_state(current_state);
       }
 
