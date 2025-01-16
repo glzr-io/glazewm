@@ -229,11 +229,8 @@ impl std::fmt::Display for WindowContainer {
 
     write!(
       f,
-      "Window[{}] (process={}, class={}, title={})",
-      self.id().simple(),
-      process,
-      class,
-      title,
+      "Window(hwnd={}, process={}, class={}, title={})",
+      native.handle, process, class, title,
     )
   }
 }

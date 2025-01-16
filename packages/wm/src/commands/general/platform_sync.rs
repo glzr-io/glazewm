@@ -227,7 +227,6 @@ fn windows_to_bring_to_front(
   Ok(windows_to_bring_to_front)
 }
 
-#[allow(clippy::too_many_lines)]
 fn redraw_containers(
   focused_container: &Container,
   state: &mut WmState,
@@ -237,28 +236,24 @@ fn redraw_containers(
   let windows_to_bring_to_front =
     windows_to_bring_to_front(focused_container, state)?;
 
-  let windows_to_update = {
-    let mut windows_to_update = windows_to_redraw
+  let mut windows_to_update = windows_to_redraw
+    .iter()
+    .chain(&windows_to_bring_to_front)
+    .unique_by(|window| window.id())
+    .collect::<Vec<_>>();
+
+  let descendant_focus_order = state
+    .root_container
+    .descendant_focus_order()
+    .collect::<Vec<_>>();
+
+  // Sort the windows to update by their focus order. The most recently
+  // focused window will be updated first.
+  windows_to_update.sort_by_key(|window| {
+    descendant_focus_order
       .iter()
-      .chain(&windows_to_bring_to_front)
-      .unique_by(|window| window.id())
-      .collect::<Vec<_>>();
-
-    let descendant_focus_order = state
-      .root_container
-      .descendant_focus_order()
-      .collect::<Vec<_>>();
-
-    // Sort the windows to update by their focus order. The most recently
-    // focused window will be updated first.
-    windows_to_update.sort_by_key(|window| {
-      descendant_focus_order
-        .iter()
-        .position(|order| order.id() == window.id())
-    });
-
-    windows_to_update
-  };
+      .position(|order| order.id() == window.id())
+  });
 
   let z_orders =
     window_z_orders(&windows_to_bring_to_front, &windows_to_update);
