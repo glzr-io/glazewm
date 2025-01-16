@@ -69,16 +69,14 @@ pub fn platform_sync(
         let state = window.state();
 
         // Only if floating or tiling.
-        matches!(state, WindowState::Floating(_))
-          || matches!(state, WindowState::Tiling)
-          || state.is_same_state(focused_state.as_ref().unwrap())
+        (matches!(state, WindowState::Floating(_))
+          || matches!(state, WindowState::Tiling))
+          && state.is_same_state(focused_state.as_ref().unwrap())
       })
       .collect()
   } else {
     vec![]
   };
-
-  tracing::info!("Windows to reorder: {:?}", windows_to_reorder);
 
   if !state.pending_sync.containers_to_redraw.is_empty()
     || !windows_to_reorder.is_empty()
@@ -209,12 +207,17 @@ fn redraw_containers(
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
     if should_reorder && !windows_to_redraw.contains(window) {
+      tracing::info!("Setting window z-order: {window}");
+
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
 
+      std::thread::sleep(Duration::from_millis(20));
       continue;
     }
+
+    tracing::info!("Setting window position: {window}");
 
     let workspace =
       window.workspace().context("Window has no workspace.")?;
@@ -259,6 +262,10 @@ fn redraw_containers(
     // `false`.
     if config.value.general.hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
+      && matches!(
+        window.display_state(),
+        DisplayState::Showing | DisplayState::Hiding
+      )
     {
       if let Err(err) = window.native().set_taskbar_visibility(is_visible)
       {

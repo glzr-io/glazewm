@@ -213,6 +213,31 @@ impl PartialEq for WindowContainer {
 
 impl Eq for WindowContainer {}
 
+impl std::fmt::Display for WindowContainer {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let native = self.native();
+    let title = native.title().unwrap_or_default();
+    let class = native.class_name().unwrap_or_default();
+    let process = native.process_name().unwrap_or_default();
+
+    // Truncate title if longer than 20 chars.
+    let title = if title.len() > 20 {
+      format!("{}...", &title[..17])
+    } else {
+      title
+    };
+
+    write!(
+      f,
+      "Window[{}] (process={}, class={}, title={})",
+      self.id().simple(),
+      process,
+      class,
+      title,
+    )
+  }
+}
+
 /// Subset of containers that implement the following traits:
 ///  * `CommonGetters`
 ///  * `PositionGetters`

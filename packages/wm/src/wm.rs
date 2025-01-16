@@ -113,7 +113,11 @@ impl WindowManager {
       }
     }?;
 
-    platform_sync(state, config)
+    if state.pending_sync.has_changes() {
+      platform_sync(state, config)?;
+    }
+
+    Ok(())
   }
 
   pub fn process_commands(
@@ -141,7 +145,9 @@ impl WindowManager {
       config,
     )?;
 
-    platform_sync(state, config)?;
+    if state.pending_sync.has_changes() {
+      platform_sync(state, config)?;
+    }
 
     Ok(new_subject_container_id)
   }

@@ -83,6 +83,22 @@ pub struct PendingSync {
   pub cursor_jump: bool,
 }
 
+impl PendingSync {
+  pub fn has_changes(&self) -> bool {
+    self.focus_change
+      || self.reset_window_effects
+      || self.cursor_jump
+      || !self.containers_to_redraw.is_empty()
+  }
+
+  pub fn clear(&mut self) {
+    self.containers_to_redraw.clear();
+    self.focus_change = false;
+    self.reset_window_effects = false;
+    self.cursor_jump = false;
+  }
+}
+
 impl WmState {
   pub fn new(
     event_tx: mpsc::UnboundedSender<WmEvent>,
