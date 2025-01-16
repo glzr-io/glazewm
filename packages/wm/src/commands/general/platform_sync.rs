@@ -189,7 +189,9 @@ fn redraw_containers(
     b_index.cmp(&a_index)
   });
 
-  for window in windows_to_update {
+  let mut hwnd = 0;
+
+  for window in windows_to_update.iter().rev() {
     let should_reorder = windows_to_reorder.contains(window);
 
     // Whether the window should be shown above all other windows.
@@ -209,10 +211,12 @@ fn redraw_containers(
     if should_reorder && !windows_to_redraw.contains(window) {
       tracing::info!("Setting window z-order: {window}");
 
-      if let Err(err) = window.native().set_z_order(&z_order) {
+      // if let Err(err) = window.native().set_z_order(&z_order) {
+      if let Err(err) = window.native().set_z_order_hwnd(hwnd) {
         warn!("Failed to set window z-order: {}", err);
       }
 
+      hwnd = window.native().handle;
       std::thread::sleep(Duration::from_millis(20));
       continue;
     }

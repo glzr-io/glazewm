@@ -33,11 +33,12 @@ use windows::{
         LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
         SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
         SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
-        SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE,
-        SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE,
-        WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION,
-        WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
+        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, SW_SHOWNOACTIVATE,
+        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
+        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX,
+        WS_THICKFRAME,
       },
     },
   },
@@ -807,7 +808,8 @@ impl NativeWindow {
     };
 
     // Whether to hide or show the window.
-    self.set_visible(is_visible, hide_method)
+    // self.set_visible(is_visible, hide_method)
+    Ok(())
   }
 
   pub fn set_z_order(&self, z_order: &ZOrder) -> anyhow::Result<()> {
@@ -817,6 +819,12 @@ impl NativeWindow {
       ZOrder::Normal => HWND_NOTOPMOST,
     };
 
+    tracing::info!(
+      "Setting window z-order: {:?} {}",
+      z_order,
+      self.process_name().unwrap()
+    );
+
     unsafe {
       SetWindowPos(
         HWND(self.handle),
@@ -825,7 +833,48 @@ impl NativeWindow {
         0,
         0,
         0,
-        SWP_NOMOVE | SWP_NOSIZE,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_FRAMECHANGED
+          | SWP_ASYNCWINDOWPOS
+          | SWP_SHOWWINDOW
+          | SWP_NOMOVE
+          | SWP_NOSIZE,
+      )
+    }?;
+
+    // unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNOACTIVATE) }?;
+
+    // unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNOACTIVATE).ok()
+    // }?;
+
+    Ok(())
+  }
+
+  pub fn set_z_order_hwnd(&self, hwnd: isize) -> anyhow::Result<()> {
+    tracing::info!(
+      "Setting window z-order: {:?} {}",
+      hwnd,
+      self.process_name().unwrap()
+    );
+
+    unsafe {
+      SetWindowPos(
+        HWND(self.handle),
+        HWND(hwnd),
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_FRAMECHANGED
+          | SWP_ASYNCWINDOWPOS
+          | SWP_SHOWWINDOW
+          | SWP_NOMOVE
+          | SWP_NOSIZE,
       )
     }?;
 
