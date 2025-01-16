@@ -27,20 +27,108 @@ pub fn platform_sync(
     return Ok(());
   }
 
-  let prev_focused = state
-    .recent_focused_container
-    .as_ref()
-    .and_then(|container| container.as_window_container().ok());
-
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+  if !state.pending_sync.containers_to_redraw.is_empty()
+    || state.pending_sync.focus_change
+  {
+    redraw_containers(&focused_container, state, config)?;
+  }
+
+  if state.pending_sync.cursor_jump
+    && config.value.general.cursor_jump.enabled
+  {
+    jump_cursor(focused_container.clone(), state, config)?;
+  }
+
+  if state.pending_sync.focus_change
+    || state.pending_sync.reset_window_effects
+  {
+    if let Ok(window) = focused_container.as_window_container() {
+      apply_window_effects(&window, true, config);
+    }
+  }
+
+  if state.pending_sync.reset_window_effects {
+    // Get windows that should have the unfocused border applied to them.
+    // For the sake of performance, we only update the border of the
+    // previously focused window. If the `reset_window_effects` flag is
+    // passed, the unfocused border is applied to all unfocused windows.
+    let unfocused_windows = if state.pending_sync.reset_window_effects {
+      state.windows()
+    } else {
+      state
+        .recent_focused_container
+        .as_ref()
+        .and_then(|container| container.as_window_container().ok())
+        .into_iter()
+        .collect()
+    }
+    .into_iter()
+    .filter(|window| window.id() != focused_container.id());
+
+    for window in unfocused_windows {
+      apply_window_effects(&window, false, config);
+    }
+  }
+
+  if state.pending_sync.focus_change {
+    sync_focus(focused_container, state)?;
+  }
+
+  state.pending_sync.clear();
+
+  Ok(())
+}
+
+fn sync_focus(
+  focused_container: Container,
+  state: &mut WmState,
+) -> anyhow::Result<()> {
+  let native_window = match focused_container.as_window_container() {
+    Ok(window) => window.native().clone(),
+    _ => Platform::desktop_window(),
+  };
+
+  // Set focus to the given window handle. If the container is a normal
+  // window, then this will trigger a `PlatformEvent::WindowFocused` event.
+  if Platform::foreground_window() != native_window {
+    if let Err(err) = native_window.set_foreground() {
+      warn!("Failed to set foreground window: {}", err);
+    }
+  }
+
+  // TODO: Change z-index of workspace windows that match the focused
+  // container's state. Make sure not to decrease z-index for floating
+  // windows that are always on top.
+
+  state.emit_event(WmEvent::FocusChanged {
+    focused_container: focused_container.to_dto()?,
+  });
+
+  state.recent_focused_container = Some(focused_container);
+
+  Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn redraw_containers(
+  focused_container: &Container,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
   let focused_state = focused_container
     .as_window_container()
     .map(|window| window.state());
 
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
+
+  let prev_focused = state
+    .recent_focused_container
+    .as_ref()
+    .and_then(|container| container.as_window_container().ok());
 
   // If `recent_focused_container` is a window and it's a
   // different state OR if `recent_focused_container` is in a different
@@ -78,100 +166,10 @@ pub fn platform_sync(
     vec![]
   };
 
-  if !state.pending_sync.containers_to_redraw.is_empty()
-    || !windows_to_reorder.is_empty()
-  {
-    redraw_containers(windows_to_reorder, state, config)?;
-    state.pending_sync.containers_to_redraw.clear();
-  }
-
-  if state.pending_sync.cursor_jump {
-    if config.value.general.cursor_jump.enabled {
-      jump_cursor(focused_container.clone(), state, config)?;
-    }
-
-    state.pending_sync.cursor_jump = false;
-  }
-
-  if state.pending_sync.focus_change
-    || state.pending_sync.reset_window_effects
-  {
-    if let Ok(window) = focused_container.as_window_container() {
-      apply_window_effects(&window, true, config);
-    }
-
-    // Get windows that should have the unfocused border applied to them.
-    // For the sake of performance, we only update the border of the
-    // previously focused window. If the `reset_window_effects` flag is
-    // passed, the unfocused border is applied to all unfocused windows.
-    let unfocused_windows = if state.pending_sync.reset_window_effects {
-      state.windows()
-    } else {
-      prev_focused.into_iter().collect()
-    }
-    .into_iter()
-    .filter(|window| window.id() != focused_container.id());
-
-    for window in unfocused_windows {
-      apply_window_effects(&window, false, config);
-    }
-
-    state.pending_sync.reset_window_effects = false;
-  }
-
-  if state.pending_sync.focus_change {
-    sync_focus(focused_container.clone(), state)?;
-    state.pending_sync.focus_change = false;
-  }
-
-  Ok(())
-}
-
-fn sync_focus(
-  focused_container: Container,
-  state: &mut WmState,
-) -> anyhow::Result<()> {
-  let native_window = match focused_container.as_window_container() {
-    Ok(window) => window.native().clone(),
-    _ => Platform::desktop_window(),
-  };
-
-  // Set focus to the given window handle. If the container is a normal
-  // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  if Platform::foreground_window() != native_window {
-    if let Err(err) = native_window.set_foreground() {
-      warn!("Failed to set foreground window: {}", err);
-    }
-  }
-
-  // TODO: Change z-index of workspace windows that match the focused
-  // container's state. Make sure not to decrease z-index for floating
-  // windows that are always on top.
-
-  state.emit_event(WmEvent::FocusChanged {
-    focused_container: focused_container.to_dto()?,
-  });
-
-  state.recent_focused_container = Some(focused_container);
-
-  Ok(())
-}
-
-fn redraw_containers(
-  windows_to_reorder: Vec<WindowContainer>,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
   // All visible windows sorted by their focus order.
   let windows_by_focus_order = state
     .root_container
     .descendant_focus_order()
-    .filter_map(|container| container.as_window_container().ok())
-    .filter(|window| {
-      window
-        .workspace()
-        .is_some_and(|workspace| workspace.is_displayed())
-    })
     .collect::<Vec<_>>();
 
   let windows_to_redraw = state.windows_to_redraw();
@@ -189,6 +187,8 @@ fn redraw_containers(
       .position(|order| order.id() == window.id())
   });
 
+  let mut next_zorder_window = None;
+
   for window in windows_to_update {
     let should_reorder = windows_to_reorder.contains(window);
 
@@ -200,20 +200,17 @@ fn redraw_containers(
       WindowState::Fullscreen(config) if config.shown_on_top => {
         ZOrder::TopMost
       }
-      _ => {
+      _ if should_reorder => {
         // Find the next window above this one in the focus order.
-        if let Some(prev_window_index) = windows_by_focus_order
-          .iter()
-          .position(|w| w.id() == window.id())
-          .and_then(|index| index.checked_sub(1))
-        {
-          ZOrder::AfterWindow(
-            windows_by_focus_order[prev_window_index].native().handle,
-          )
+        if let Some(prev) = next_zorder_window {
+          next_zorder_window = Some(window.clone());
+          ZOrder::AfterWindow(prev.native().handle)
         } else {
+          next_zorder_window = Some(window.clone());
           ZOrder::Top
         }
       }
+      _ => ZOrder::Normal,
     };
 
     // Set the z-order of the window and skip updating it's position if the
@@ -225,7 +222,6 @@ fn redraw_containers(
         warn!("Failed to set window z-order: {}", err);
       }
 
-      std::thread::sleep(Duration::from_millis(20));
       continue;
     }
 
