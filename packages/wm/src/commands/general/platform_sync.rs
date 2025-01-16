@@ -5,7 +5,7 @@ use tokio::task;
 use tracing::warn;
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  WindowEffectConfig, WindowState, WmEvent,
+  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -66,10 +66,12 @@ pub fn platform_sync(
       .descendants()
       .filter_map(|descendant| descendant.as_window_container().ok())
       .filter(|window| {
-        window
-          .state()
-          .is_same_state(&focused_state.as_ref().unwrap())
-        // TODO: Only if floating or tiling.
+        let state = window.state();
+
+        // Only if floating or tiling.
+        matches!(state, WindowState::Floating(_))
+          || matches!(state, WindowState::Tiling)
+          || state.is_same_state(focused_state.as_ref().unwrap())
       })
       .collect()
   } else {
@@ -171,6 +173,7 @@ fn redraw_containers(
   let mut windows_to_update = windows_to_redraw
     .iter()
     .chain(&windows_to_reorder)
+    .unique_by(|window| window.id())
     .collect::<Vec<_>>();
 
   // Sort windows in reverse order of their focus index.

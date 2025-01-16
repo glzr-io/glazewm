@@ -411,8 +411,6 @@ impl WmState {
   /// tiling -> floating), the original detached window might still be
   /// queued for a redraw and should be filtered out.
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
-    let mut unique_ids = HashSet::new();
-
     self
       .pending_sync
       .containers_to_redraw
@@ -420,7 +418,6 @@ impl WmState {
       .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
-      .filter(|window: &WindowContainer| unique_ids.insert(window.id()))
       .collect()
   }
 
