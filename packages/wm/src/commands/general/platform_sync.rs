@@ -162,9 +162,16 @@ fn redraw_containers(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let descendant_focus_indices = state
+  // All visible windows sorted by their focus order.
+  let windows_by_focus_order = state
     .root_container
     .descendant_focus_order()
+    .filter_map(|container| container.as_window_container().ok())
+    .filter(|window| {
+      window
+        .workspace()
+        .is_some_and(|workspace| workspace.is_displayed())
+    })
     .collect::<Vec<_>>();
 
   let windows_to_redraw = state.windows_to_redraw();
@@ -174,24 +181,15 @@ fn redraw_containers(
     .unique_by(|window| window.id())
     .collect::<Vec<_>>();
 
-  // Sort windows in reverse order of their focus index.
-  windows_to_update.sort_by(|a, b| {
-    let a_index = descendant_focus_indices
+  // Sort the windows to update by their focus order. The most recently
+  // focused window will be updated first.
+  windows_to_update.sort_by_key(|window| {
+    windows_by_focus_order
       .iter()
-      .position(|container| container.id() == a.id())
-      .unwrap_or(usize::MAX);
-
-    let b_index = descendant_focus_indices
-      .iter()
-      .position(|container| container.id() == b.id())
-      .unwrap_or(usize::MAX);
-
-    b_index.cmp(&a_index)
+      .position(|order| order.id() == window.id())
   });
 
-  let mut hwnd = 0;
-
-  for window in windows_to_update.iter().rev() {
+  for window in windows_to_update {
     let should_reorder = windows_to_reorder.contains(window);
 
     // Whether the window should be shown above all other windows.
@@ -202,8 +200,20 @@ fn redraw_containers(
       WindowState::Fullscreen(config) if config.shown_on_top => {
         ZOrder::TopMost
       }
-      _ if should_reorder => ZOrder::Top,
-      _ => ZOrder::Normal,
+      _ => {
+        // Find the next window above this one in the focus order.
+        if let Some(prev_window_index) = windows_by_focus_order
+          .iter()
+          .position(|w| w.id() == window.id())
+          .and_then(|index| index.checked_sub(1))
+        {
+          ZOrder::AfterWindow(
+            windows_by_focus_order[prev_window_index].native().handle,
+          )
+        } else {
+          ZOrder::Top
+        }
+      }
     };
 
     // Set the z-order of the window and skip updating it's position if the
@@ -211,12 +221,10 @@ fn redraw_containers(
     if should_reorder && !windows_to_redraw.contains(window) {
       tracing::info!("Setting window z-order: {window}");
 
-      // if let Err(err) = window.native().set_z_order(&z_order) {
-      if let Err(err) = window.native().set_z_order_hwnd(hwnd) {
+      if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
 
-      hwnd = window.native().handle;
       std::thread::sleep(Duration::from_millis(20));
       continue;
     }

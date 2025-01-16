@@ -57,6 +57,7 @@ pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
   Normal,
+  AfterWindow(isize),
   Top,
   TopMost,
 }
@@ -745,6 +746,7 @@ impl NativeWindow {
       ZOrder::TopMost => HWND_TOPMOST,
       ZOrder::Top => HWND_TOP,
       ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
     };
 
     match state {
@@ -817,6 +819,7 @@ impl NativeWindow {
       ZOrder::TopMost => HWND_TOPMOST,
       ZOrder::Top => HWND_TOP,
       ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
     };
 
     tracing::info!(
@@ -835,9 +838,9 @@ impl NativeWindow {
         0,
         SWP_NOACTIVATE
           | SWP_NOCOPYBITS
-          | SWP_NOSENDCHANGING
-          | SWP_FRAMECHANGED
-          | SWP_ASYNCWINDOWPOS
+          // | SWP_NOSENDCHANGING
+          // | SWP_FRAMECHANGED
+          // | SWP_ASYNCWINDOWPOS
           | SWP_SHOWWINDOW
           | SWP_NOMOVE
           | SWP_NOSIZE,
@@ -869,9 +872,9 @@ impl NativeWindow {
         0,
         SWP_NOACTIVATE
           | SWP_NOCOPYBITS
-          | SWP_NOSENDCHANGING
-          | SWP_FRAMECHANGED
-          | SWP_ASYNCWINDOWPOS
+          // | SWP_NOSENDCHANGING
+          // | SWP_FRAMECHANGED
+          // | SWP_ASYNCWINDOWPOS
           | SWP_SHOWWINDOW
           | SWP_NOMOVE
           | SWP_NOSIZE,
