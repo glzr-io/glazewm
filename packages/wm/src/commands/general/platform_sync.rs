@@ -32,7 +32,7 @@ pub fn platform_sync(
     state.focused_container().context("No focused container.")?;
 
   // Keep reference to the original focused container.
-  let recent_focused_container = state.recent_focused_container.clone();
+  let recent_focused_window = state.recent_focused_window.clone();
 
   if state.pending_sync.focus_change {
     sync_focus(&focused_container, state)?;
@@ -43,7 +43,7 @@ pub fn platform_sync(
   {
     redraw_containers(
       &focused_container,
-      recent_focused_container.as_ref(),
+      recent_focused_window.as_ref(),
       state,
       config,
     )?;
@@ -71,11 +71,10 @@ pub fn platform_sync(
     let unfocused_windows = if state.pending_sync.reset_window_effects {
       state.windows()
     } else {
-      let prev_focused_window = recent_focused_container
-        .as_ref()
-        .and_then(|container| container.as_window_container().ok());
-
-      prev_focused_window.into_iter().collect()
+      recent_focused_window
+        .map(|(window, _)| window)
+        .into_iter()
+        .collect()
     }
     .into_iter()
     .filter(|window| window.id() != focused_container.id());
@@ -107,15 +106,15 @@ fn sync_focus(
     }
   }
 
-  // TODO: Change z-index of workspace windows that match the focused
-  // container's state. Make sure not to decrease z-index for floating
-  // windows that are always on top.
-
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
   });
 
-  state.recent_focused_container = Some(focused_container.clone());
+  if let Ok(window) = focused_container.as_window_container() {
+    state.recent_focused_window = Some((window.clone(), window.state()));
+  } else {
+    state.recent_focused_window = None;
+  }
 
   Ok(())
 }
@@ -157,15 +156,14 @@ fn window_z_orders(
   z_orders
 }
 
+/// Change z-index of workspace windows that match the focused
+/// container's state. Make sure not to decrease z-index for floating
+/// windows that are always on top.
 fn windows_to_bring_to_front(
   focused_container: &Container,
-  recent_focused_container: Option<&Container>,
+  recent_focused_window: Option<&(WindowContainer, WindowState)>,
   state: &WmState,
 ) -> anyhow::Result<Vec<WindowContainer>> {
-  if !state.pending_sync.focus_change {
-    return Ok(vec![]);
-  }
-
   let Some(focused_window) = focused_container.as_window_container().ok()
   else {
     return Ok(vec![]);
@@ -173,9 +171,6 @@ fn windows_to_bring_to_front(
 
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
-
-  let prev_focused_window = recent_focused_container
-    .and_then(|container| container.as_window_container().ok());
 
   // Check if we need to reorder based on previous focus.
   // let should_bring_front = prev_focused.is_none_or(|prev_window| {
@@ -194,22 +189,24 @@ fn windows_to_bring_to_front(
   //   Some(prev_window.state()) == focused_state
   // });
 
-  // Check if we need to reorder based on previous focus.
-  let should_bring_to_front = match prev_focused_window {
-    Some(prev_window) => {
-      // Bring to front if either:
-      // 1. Window state has changed.
-      // 2. Window moved to different workspace.
-      let prev_workspace_id =
-        prev_window.workspace().map(|workspace| workspace.id());
+  // Bring windows to front if either:
+  // 1. Focus has changed.
+  // 2. Focused window state has changed.
+  // 3. Focused window has moved to a different workspace.
+  let should_bring_to_front = state.pending_sync.focus_change
+    || match recent_focused_window {
+      Some((prev_window, prev_state)) => {
+        let prev_workspace_id =
+          prev_window.workspace().map(|workspace| workspace.id());
 
-      focused_window.state() != prev_window.state()
-        || prev_workspace_id != Some(focused_workspace.id())
-    }
-    None => true,
-  };
+        *prev_state != focused_window.state()
+          || prev_workspace_id != Some(focused_workspace.id())
+      }
+      None => true,
+    };
 
-  // Get windows that match the focused container's state.
+  // Bring forward windows that match the focused state. Only do this for
+  // tiling/floating windows.
   let windows_to_bring_to_front = if should_bring_to_front {
     focused_workspace
       .descendants()
@@ -220,8 +217,6 @@ fn windows_to_bring_to_front(
           WindowState::Floating(_) | WindowState::Tiling
         );
 
-        // Only if floating or tiling and the window state matches the
-        // focused state.
         is_floating_or_tiling
           && window.state().is_same_state(&focused_window.state())
       })
@@ -235,14 +230,14 @@ fn windows_to_bring_to_front(
 
 fn redraw_containers(
   focused_container: &Container,
-  recent_focused_container: Option<&Container>,
+  recent_focused_window: Option<&(WindowContainer, WindowState)>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let windows_to_redraw = state.windows_to_redraw();
   let windows_to_bring_to_front = windows_to_bring_to_front(
     focused_container,
-    recent_focused_container,
+    recent_focused_window,
     state,
   )?;
 

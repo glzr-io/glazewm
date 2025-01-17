@@ -29,12 +29,13 @@ where
   type Item = I::Item;
 
   fn next(&mut self) -> Option<Self::Item> {
-    while let Some(item) = self.iter.next() {
+    for item in self.iter.by_ref() {
       let key = (self.key_fn)(&item);
       if self.seen.insert(key) {
         return Some(item);
       }
     }
+
     None
   }
 }
