@@ -31,10 +31,22 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+  // Keep reference to the original focused container.
+  let recent_focused_container = state.recent_focused_container.clone();
+
+  if state.pending_sync.focus_change {
+    sync_focus(&focused_container, state)?;
+  }
+
   if !state.pending_sync.containers_to_redraw.is_empty()
     || state.pending_sync.focus_change
   {
-    redraw_containers(&focused_container, state, config)?;
+    redraw_containers(
+      &focused_container,
+      recent_focused_container.as_ref(),
+      state,
+      config,
+    )?;
   }
 
   if state.pending_sync.cursor_jump
@@ -59,8 +71,7 @@ pub fn platform_sync(
     let unfocused_windows = if state.pending_sync.reset_window_effects {
       state.windows()
     } else {
-      let prev_focused_window = state
-        .recent_focused_container
+      let prev_focused_window = recent_focused_container
         .as_ref()
         .and_then(|container| container.as_window_container().ok());
 
@@ -74,17 +85,13 @@ pub fn platform_sync(
     }
   }
 
-  if state.pending_sync.focus_change {
-    sync_focus(focused_container, state)?;
-  }
-
   state.pending_sync.clear();
 
   Ok(())
 }
 
 fn sync_focus(
-  focused_container: Container,
+  focused_container: &Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let native_window = match focused_container.as_window_container() {
@@ -108,7 +115,7 @@ fn sync_focus(
     focused_container: focused_container.to_dto()?,
   });
 
-  state.recent_focused_container = Some(focused_container);
+  state.recent_focused_container = Some(focused_container.clone());
 
   Ok(())
 }
@@ -152,6 +159,7 @@ fn window_z_orders(
 
 fn windows_to_bring_to_front(
   focused_container: &Container,
+  recent_focused_container: Option<&Container>,
   state: &WmState,
 ) -> anyhow::Result<Vec<WindowContainer>> {
   if !state.pending_sync.focus_change {
@@ -166,9 +174,7 @@ fn windows_to_bring_to_front(
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
 
-  let prev_focused_window = state
-    .recent_focused_container
-    .as_ref()
+  let prev_focused_window = recent_focused_container
     .and_then(|container| container.as_window_container().ok());
 
   // Check if we need to reorder based on previous focus.
@@ -229,12 +235,16 @@ fn windows_to_bring_to_front(
 
 fn redraw_containers(
   focused_container: &Container,
+  recent_focused_container: Option<&Container>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let windows_to_redraw = state.windows_to_redraw();
-  let windows_to_bring_to_front =
-    windows_to_bring_to_front(focused_container, state)?;
+  let windows_to_bring_to_front = windows_to_bring_to_front(
+    focused_container,
+    recent_focused_container,
+    state,
+  )?;
 
   let mut windows_to_update = windows_to_redraw
     .iter()
