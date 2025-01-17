@@ -172,38 +172,20 @@ fn windows_to_bring_to_front(
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
 
-  // Check if we need to reorder based on previous focus.
-  // let should_bring_front = prev_focused.is_none_or(|prev_window| {
-  //   // Bring to front if either:
-  //   // 1. Window state has changed
-  //   // 2. Window moved to different workspace
-  //   focused_state
-  //     .as_ref()
-  //     .map(|current_state| {
-  //       prev_window.state() != *current_state
-  //         || prev_window.workspace().map(|w| w.id())
-  //           != Some(focused_workspace.id())
-  //     })
-  //     .unwrap_or(false);
-
-  //   Some(prev_window.state()) == focused_state
-  // });
-
   // Bring windows to front if either:
   // 1. Focus has changed.
-  // 2. Focused window state has changed.
-  // 3. Focused window has moved to a different workspace.
+  // 2. A cross monitor move has occurred (check for pending cursor jump).
+  // 3. Focused window state has changed.
+  // 4. Focused window has moved to a different workspace.
   let should_bring_to_front = state.pending_sync.focus_change
-    || match recent_focused_window {
-      Some((prev_window, prev_state)) => {
-        let prev_workspace_id =
-          prev_window.workspace().map(|workspace| workspace.id());
+    || state.pending_sync.cursor_jump
+    || recent_focused_window.is_some_and(|(prev_window, prev_state)| {
+      let prev_workspace_id =
+        prev_window.workspace().map(|workspace| workspace.id());
 
-        *prev_state != focused_window.state()
-          || prev_workspace_id != Some(focused_workspace.id())
-      }
-      None => true,
-    };
+      *prev_state != focused_window.state()
+        || prev_workspace_id != Some(focused_workspace.id())
+    });
 
   // Bring forward windows that match the focused state. Only do this for
   // tiling/floating windows.

@@ -822,12 +822,6 @@ impl NativeWindow {
       ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
     };
 
-    tracing::info!(
-      "Setting window z-order: {:?} {}",
-      z_order,
-      self.process_name().unwrap()
-    );
-
     unsafe {
       SetWindowPos(
         HWND(self.handle),
@@ -838,43 +832,7 @@ impl NativeWindow {
         0,
         SWP_NOACTIVATE
           | SWP_NOCOPYBITS
-          // | SWP_NOSENDCHANGING
-          // | SWP_FRAMECHANGED
-          // | SWP_ASYNCWINDOWPOS
-          | SWP_SHOWWINDOW
-          | SWP_NOMOVE
-          | SWP_NOSIZE,
-      )
-    }?;
-
-    // unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNOACTIVATE) }?;
-
-    // unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNOACTIVATE).ok()
-    // }?;
-
-    Ok(())
-  }
-
-  pub fn set_z_order_hwnd(&self, hwnd: isize) -> anyhow::Result<()> {
-    tracing::info!(
-      "Setting window z-order: {:?} {}",
-      hwnd,
-      self.process_name().unwrap()
-    );
-
-    unsafe {
-      SetWindowPos(
-        HWND(self.handle),
-        HWND(hwnd),
-        0,
-        0,
-        0,
-        0,
-        SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
-          // | SWP_NOSENDCHANGING
-          // | SWP_FRAMECHANGED
-          // | SWP_ASYNCWINDOWPOS
+          | SWP_ASYNCWINDOWPOS
           | SWP_SHOWWINDOW
           | SWP_NOMOVE
           | SWP_NOSIZE,
