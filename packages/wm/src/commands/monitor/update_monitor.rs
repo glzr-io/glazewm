@@ -9,14 +9,7 @@ pub fn update_monitor(
   native_monitor: NativeMonitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  // TODO: Add monitor display trait.
-  info!(
-    "Updating monitor: {:?} {} {:?} {:?}",
-    native_monitor.handle,
-    native_monitor.device_name()?,
-    native_monitor.device_path()?,
-    native_monitor.hardware_id()?
-  );
+  info!("Updating monitor: {monitor}");
 
   monitor.set_native(native_monitor);
 

@@ -15,19 +15,12 @@ pub fn add_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // TODO: Add monitor display trait.
-  info!(
-    "Adding monitor: {:?} {} {:?} {:?}",
-    native_monitor.handle,
-    native_monitor.device_name()?,
-    native_monitor.device_path()?,
-    native_monitor.hardware_id()?
-  );
-
   // Create `Monitor` instance. This uses the working area of the monitor
   // instead of the bounds of the display. The working area excludes
   // taskbars and other reserved display space.
   let monitor = Monitor::new(native_monitor);
+
+  info!("Adding monitor: {monitor}");
 
   attach_container(
     &monitor.clone().into(),
