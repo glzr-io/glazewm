@@ -10,7 +10,7 @@ use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
 const VERSION: &str = env!("VERSION_NUMBER");
 
 #[derive(Clone, Debug, Parser)]
-#[clap(author, version = VERSION, about, long_about = None)]
+#[clap(name = "glazewm", author, version = VERSION, about, long_about = None)]
 pub enum AppCommand {
   /// Starts the window manager.
   Start {
