@@ -1,9 +1,8 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use anyhow::Context;
 use tokio::task;
 use tracing::warn;
-use uuid::Uuid;
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
@@ -119,43 +118,6 @@ fn sync_focus(
   Ok(())
 }
 
-fn window_z_orders(
-  windows_to_bring_to_front: &[WindowContainer],
-  windows_to_update: &[&WindowContainer],
-) -> HashMap<Uuid, ZOrder> {
-  let mut z_orders = HashMap::new();
-  let mut next_front_window = None;
-
-  for window in windows_to_update {
-    let should_bring_to_front = windows_to_bring_to_front.contains(window);
-
-    // Whether the window should be shown above all other windows.
-    let z_order = match window.state() {
-      WindowState::Floating(config) if config.shown_on_top => {
-        ZOrder::TopMost
-      }
-      WindowState::Fullscreen(config) if config.shown_on_top => {
-        ZOrder::TopMost
-      }
-      _ if should_bring_to_front => {
-        // Find the next window above this one in the focus order.
-        if let Some(prev) = next_front_window {
-          next_front_window = Some(window);
-          ZOrder::AfterWindow(prev.native().handle)
-        } else {
-          next_front_window = Some(window);
-          ZOrder::Top
-        }
-      }
-      _ => ZOrder::Normal,
-    };
-
-    z_orders.insert(window.id(), z_order);
-  }
-
-  z_orders
-}
-
 /// Change z-index of workspace windows that match the focused
 /// container's state. Make sure not to decrease z-index for floating
 /// windows that are always on top.
@@ -242,21 +204,39 @@ fn redraw_containers(
       .position(|order| order.id() == window.id())
   });
 
-  let z_orders =
-    window_z_orders(&windows_to_bring_to_front, &windows_to_update);
+  for window in &windows_to_update {
+    let should_bring_to_front = windows_to_bring_to_front.contains(window);
 
-  for window in windows_to_update {
     // Whether the window should be shown above all other windows.
-    let z_order = z_orders.get(&window.id()).unwrap_or(&ZOrder::Normal);
+    let z_order = match window.state() {
+      WindowState::Floating(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      WindowState::Fullscreen(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      _ if should_bring_to_front => {
+        let focused_window = focused_container.as_window_container().ok();
+
+        if let Some(focused) = focused_window {
+          if window.id() == focused_container.id() {
+            ZOrder::Top
+          } else {
+            ZOrder::AfterWindow(focused.native().handle)
+          }
+        } else {
+          ZOrder::Normal
+        }
+      }
+      _ => ZOrder::Normal,
+    };
 
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
-    if windows_to_bring_to_front.contains(window)
-      && !windows_to_redraw.contains(window)
-    {
+    if should_bring_to_front && !windows_to_redraw.contains(window) {
       tracing::info!("Setting window z-order: {window}");
 
-      if let Err(err) = window.native().set_z_order(z_order) {
+      if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
 
@@ -294,7 +274,7 @@ fn redraw_containers(
     if let Err(err) = window.native().set_position(
       &window.state(),
       &rect,
-      z_order,
+      &z_order,
       is_visible,
       &config.value.general.hide_method,
       window.has_pending_dpi_adjustment(),
