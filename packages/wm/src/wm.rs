@@ -128,6 +128,10 @@ impl WindowManager {
   ) -> anyhow::Result<Uuid> {
     let state = &mut self.state;
 
+    if state.is_paused {
+      bail!("Unable to process commands while WM is paused.");
+    }
+
     // Get the container to run WM commands with.
     let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
@@ -145,7 +149,7 @@ impl WindowManager {
       config,
     )?;
 
-    if state.pending_sync.has_changes() {
+    if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
 
