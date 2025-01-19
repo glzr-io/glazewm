@@ -54,29 +54,28 @@ pub fn platform_sync(
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
-  if state.pending_sync.focus_change
-    || state.pending_sync.reset_window_effects
+  if state.pending_sync.update_focused_window_effect
+    || state.pending_sync.update_all_window_effects
   {
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(&window, true, config);
     }
-  }
 
-  if state.pending_sync.reset_window_effects {
     // Get windows that should have the unfocused border applied to them.
     // For the sake of performance, we only update the border of the
     // previously focused window. If the `reset_window_effects` flag is
     // passed, the unfocused border is applied to all unfocused windows.
-    let unfocused_windows = if state.pending_sync.reset_window_effects {
-      state.windows()
-    } else {
-      recent_focused_window
-        .map(|(window, _)| window)
-        .into_iter()
-        .collect()
-    }
-    .into_iter()
-    .filter(|window| window.id() != focused_container.id());
+    let unfocused_windows =
+      if state.pending_sync.update_all_window_effects {
+        state.windows()
+      } else {
+        recent_focused_window
+          .map(|(window, _)| window)
+          .into_iter()
+          .collect()
+      }
+      .into_iter()
+      .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
       apply_window_effects(&window, false, config);
@@ -220,7 +219,7 @@ fn redraw_containers(
 
         if let Some(focused) = focused_window {
           if window.id() == focused_container.id() {
-            ZOrder::Top
+            ZOrder::Normal
           } else {
             ZOrder::AfterWindow(focused.native().handle)
           }
