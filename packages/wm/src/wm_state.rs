@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -18,6 +18,7 @@ use crate::{
     Container, Monitor, RootContainer, WindowContainer, Workspace,
     WorkspaceTarget,
   },
+  pending_sync::PendingSync,
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
 };
@@ -68,44 +69,6 @@ pub struct WmState {
   exit_tx: mpsc::UnboundedSender<()>,
 }
 
-#[allow(clippy::struct_excessive_bools)]
-pub struct PendingSync {
-  /// Containers (and their descendants) that have a pending redraw.
-  pub containers_to_redraw: Vec<Container>,
-
-  /// Whether native focus should be reassigned to the WM's focused
-  /// container.
-  pub focus_change: bool,
-
-  /// Whether window effect for the focused window should be updated.
-  pub update_focused_window_effect: bool,
-
-  /// Whether window effects for all windows should be updated.
-  pub update_all_window_effects: bool,
-
-  /// Whether to jump the cursor to the focused container (if enabled in
-  /// user config).
-  pub cursor_jump: bool,
-}
-
-impl PendingSync {
-  pub fn has_changes(&self) -> bool {
-    self.focus_change
-      || self.update_focused_window_effect
-      || self.update_all_window_effects
-      || self.cursor_jump
-      || !self.containers_to_redraw.is_empty()
-  }
-
-  pub fn clear(&mut self) {
-    self.containers_to_redraw.clear();
-    self.focus_change = false;
-    self.update_focused_window_effect = false;
-    self.update_all_window_effects = false;
-    self.cursor_jump = false;
-  }
-}
-
 impl WmState {
   pub fn new(
     event_tx: mpsc::UnboundedSender<WmEvent>,
@@ -113,13 +76,7 @@ impl WmState {
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
-      pending_sync: PendingSync {
-        containers_to_redraw: Vec::new(),
-        focus_change: false,
-        update_focused_window_effect: false,
-        update_all_window_effects: false,
-        cursor_jump: false,
-      },
+      pending_sync: PendingSync::default(),
       recent_focused_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,

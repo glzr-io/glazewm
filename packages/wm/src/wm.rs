@@ -213,7 +213,7 @@ impl WindowManager {
             );
 
             window.set_border_delta(border_delta);
-            state.pending_sync.containers_to_redraw.push(window.into());
+            state.pending_sync.add_container_to_redraw(window.into());
 
             Ok(())
           }
