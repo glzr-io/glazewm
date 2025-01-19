@@ -14,8 +14,7 @@ pub fn handle_window_hidden(
   let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
-    // TODO: Log window details.
-    info!("Window hidden");
+    info!("Window hidden: {window}");
 
     // Update the display state.
     if window.display_state() == DisplayState::Hiding {

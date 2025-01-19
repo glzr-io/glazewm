@@ -42,8 +42,7 @@ pub fn manage_window(
   )?;
 
   if let Some(window) = updated_window {
-    // TODO: Log window details.
-    info!("New window managed");
+    info!("New window managed: {window}");
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,

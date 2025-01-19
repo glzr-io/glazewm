@@ -23,8 +23,7 @@ pub fn handle_window_minimized(
     let is_minimized = try_warn!(window.native().refresh_is_minimized());
 
     if is_minimized && window.state() != WindowState::Minimized {
-      // TODO: Log window details.
-      info!("Window minimized");
+      info!("Window minimized: {window}");
 
       let window = update_window_state(
         window.clone(),

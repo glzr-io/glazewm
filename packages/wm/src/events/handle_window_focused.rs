@@ -31,8 +31,7 @@ pub fn handle_window_focused(
       return Ok(());
     }
 
-    // TODO: Log window details.
-    info!("Window focused");
+    info!("Window focused: {window}");
 
     // Handle overriding focus on close/minimize. After a window is closed
     // or minimized, the OS or the closed application might automatically
@@ -53,8 +52,7 @@ pub fn handle_window_focused(
     // if Discord is forcefully shown by the OS when it's on a hidden
     // workspace, switch focus to Discord's workspace.
     if window.clone().display_state() == DisplayState::Hidden {
-      // TODO: Log window details.
-      info!("Focusing off-screen window.");
+      info!("Focusing off-screen window: {window}");
 
       let workspace = window.workspace().context("No workspace")?;
       focus_workspace(
