@@ -113,7 +113,7 @@ impl WindowManager {
       }
     }?;
 
-    if state.pending_sync.has_changes() {
+    if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
 
@@ -127,10 +127,6 @@ impl WindowManager {
     config: &mut UserConfig,
   ) -> anyhow::Result<Uuid> {
     let state = &mut self.state;
-
-    if state.is_paused {
-      bail!("Unable to process commands while WM is paused.");
-    }
 
     // Get the container to run WM commands with.
     let subject_container = match subject_container_id {
@@ -149,7 +145,7 @@ impl WindowManager {
       config,
     )?;
 
-    if !state.is_paused && state.pending_sync.has_changes() {
+    if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
 
@@ -195,6 +191,11 @@ impl WindowManager {
     state: &mut WmState,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
+    // No-op if WM is currently paused.
+    if state.is_paused && *command != InvokeCommand::WmTogglePause {
+      return Ok(());
+    }
+
     if subject_container.is_detached() {
       bail!("Cannot run command because subject container is detached.");
     }
