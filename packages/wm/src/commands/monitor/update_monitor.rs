@@ -9,9 +9,9 @@ pub fn update_monitor(
   native_monitor: NativeMonitor,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  info!("Updating monitor: {monitor}");
-
   monitor.set_native(native_monitor);
+
+  info!("Monitor updated: {monitor}");
 
   // TODO: Check that a property on the monitor actually changed.
   state.emit_event(WmEvent::MonitorUpdated {

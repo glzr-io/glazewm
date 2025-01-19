@@ -134,3 +134,14 @@ impl PositionGetters for Workspace {
     )
   }
 }
+
+impl std::fmt::Display for Workspace {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(
+      f,
+      "Workspace(name={}, tiling_direction={:?})",
+      self.config().name,
+      self.tiling_direction(),
+    )
+  }
+}

@@ -20,13 +20,13 @@ pub fn add_monitor(
   // taskbars and other reserved display space.
   let monitor = Monitor::new(native_monitor);
 
-  info!("Adding monitor: {monitor}");
-
   attach_container(
     &monitor.clone().into(),
     &state.root_container.clone().into(),
     None,
   )?;
+
+  info!("Monitor added: {monitor}");
 
   state.emit_event(WmEvent::MonitorAdded {
     added_monitor: monitor.to_dto()?,

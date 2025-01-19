@@ -46,7 +46,7 @@ pub fn focus_workspace(
   }?;
 
   if let Some(target_workspace) = target_workspace {
-    info!("Focusing workspace: '{}'.", target_workspace.config().name);
+    info!("Focusing workspace: {target_workspace}");
 
     // Get the currently displayed workspace on the same monitor that the
     // workspace to focus is on.

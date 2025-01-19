@@ -96,7 +96,10 @@ fn drop_as_tiling_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Tiling window drag end event.");
+  info!(
+    "Tiling window drag ended: {}",
+    moved_window.as_window_container()?
+  );
 
   let mouse_pos = Platform::mouse_position()?;
   let workspace = moved_window.workspace().context("No workspace.")?;
