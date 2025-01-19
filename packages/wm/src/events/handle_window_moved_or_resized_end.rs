@@ -82,8 +82,6 @@ pub fn handle_window_moved_or_resized_end(
           Some(LengthValue::from_px(height_delta)),
           state,
         )?;
-
-        state.pending_sync.containers_to_redraw.push(parent);
       }
     }
 

@@ -29,11 +29,12 @@ use windows::{
         SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS,
-        LWA_ALPHA, LWA_COLORKEY, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
-        SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
+        HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
+        LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
+        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
+        SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
+        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
         WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
         WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
         WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
@@ -52,7 +53,15 @@ use super::{iapplication_view_collection, iservice_provider, COM_INIT};
 /// process.
 pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ZOrder {
+  Normal,
+  AfterWindow(isize),
+  Top,
+  TopMost,
+}
+
+#[derive(Clone, Debug)]
 pub struct NativeWindow {
   pub handle: isize,
   title: Memo<String>,
@@ -700,6 +709,7 @@ impl NativeWindow {
     &self,
     state: &WindowState,
     rect: &Rect,
+    z_order: &ZOrder,
     is_visible: bool,
     hide_method: &HideMethod,
     has_pending_dpi_adjustment: bool,
@@ -731,13 +741,11 @@ impl NativeWindow {
       | SWP_NOSENDCHANGING
       | SWP_ASYNCWINDOWPOS;
 
-    // Whether the window should be shown above all other windows.
-    let z_order = match state {
-      WindowState::Floating(config) if config.shown_on_top => HWND_TOPMOST,
-      WindowState::Fullscreen(config) if config.shown_on_top => {
-        HWND_TOPMOST
-      }
-      _ => HWND_NOTOPMOST,
+    let z_order = match z_order {
+      ZOrder::TopMost => HWND_TOPMOST,
+      ZOrder::Top => HWND_TOP,
+      ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
     };
 
     match state {
@@ -801,7 +809,37 @@ impl NativeWindow {
     };
 
     // Whether to hide or show the window.
-    self.set_visible(is_visible, hide_method)
+    self.set_visible(is_visible, hide_method)?;
+
+    Ok(())
+  }
+
+  pub fn set_z_order(&self, z_order: &ZOrder) -> anyhow::Result<()> {
+    let z_order = match z_order {
+      ZOrder::TopMost => HWND_TOPMOST,
+      ZOrder::Top => HWND_TOP,
+      ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
+    };
+
+    unsafe {
+      SetWindowPos(
+        HWND(self.handle),
+        z_order,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_ASYNCWINDOWPOS
+          | SWP_SHOWWINDOW
+          | SWP_NOMOVE
+          | SWP_NOSIZE,
+      )
+    }?;
+
+    Ok(())
   }
 
   pub fn cleanup(&self) {

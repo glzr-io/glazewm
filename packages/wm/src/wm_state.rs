@@ -1,4 +1,4 @@
-use std::{collections::HashSet, time::Instant};
+use std::time::Instant;
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -35,10 +35,13 @@ pub struct WmState {
   /// workspace focus.
   pub recent_workspace_name: Option<String>,
 
-  /// Container that most recently had focus synced.
+  /// Window that most recently had focus synced and a snapshot of its
+  /// window state.
   ///
-  /// Used for updating window effects on focus change.
-  pub recent_focused_container: Option<Container>,
+  /// Used for updating window effects on focus change. Note that this
+  /// container may be detached if it's a window that's recently been
+  /// killed.
+  pub recent_focused_window: Option<(WindowContainer, WindowState)>,
 
   /// Time since a previously focused window was unmanaged or minimized.
   ///
@@ -65,6 +68,7 @@ pub struct WmState {
   exit_tx: mpsc::UnboundedSender<()>,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 pub struct PendingSync {
   /// Containers (and their descendants) that have a pending redraw.
   pub containers_to_redraw: Vec<Container>,
@@ -73,12 +77,33 @@ pub struct PendingSync {
   /// container.
   pub focus_change: bool,
 
-  /// Whether window effects should be reset.
-  pub reset_window_effects: bool,
+  /// Whether window effect for the focused window should be updated.
+  pub update_focused_window_effect: bool,
+
+  /// Whether window effects for all windows should be updated.
+  pub update_all_window_effects: bool,
 
   /// Whether to jump the cursor to the focused container (if enabled in
   /// user config).
   pub cursor_jump: bool,
+}
+
+impl PendingSync {
+  pub fn has_changes(&self) -> bool {
+    self.focus_change
+      || self.update_focused_window_effect
+      || self.update_all_window_effects
+      || self.cursor_jump
+      || !self.containers_to_redraw.is_empty()
+  }
+
+  pub fn clear(&mut self) {
+    self.containers_to_redraw.clear();
+    self.focus_change = false;
+    self.update_focused_window_effect = false;
+    self.update_all_window_effects = false;
+    self.cursor_jump = false;
+  }
 }
 
 impl WmState {
@@ -91,10 +116,11 @@ impl WmState {
       pending_sync: PendingSync {
         containers_to_redraw: Vec::new(),
         focus_change: false,
-        reset_window_effects: false,
+        update_focused_window_effect: false,
+        update_all_window_effects: false,
         cursor_jump: false,
       },
-      recent_focused_container: None,
+      recent_focused_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
@@ -146,7 +172,7 @@ impl WmState {
     set_focused_descendant(&container_to_focus, None);
 
     self.pending_sync.focus_change = true;
-    self.pending_sync.reset_window_effects = true;
+    self.pending_sync.update_all_window_effects = true;
     platform_sync(self, config)?;
 
     self.has_initialized = true;
@@ -409,8 +435,6 @@ impl WmState {
   /// tiling -> floating), the original detached window might still be
   /// queued for a redraw and should be filtered out.
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
-    let mut unique_ids = HashSet::new();
-
     self
       .pending_sync
       .containers_to_redraw
@@ -418,7 +442,6 @@ impl WmState {
       .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
-      .filter(|window: &WindowContainer| unique_ids.insert(window.id()))
       .collect()
   }
 

@@ -5,9 +5,9 @@ use tokio::task;
 use tracing::warn;
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  WindowEffectConfig, WmEvent,
+  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::Platform;
+use wm_platform::{Platform, ZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -27,25 +27,35 @@ pub fn platform_sync(
     return Ok(());
   }
 
-  if !state.pending_sync.containers_to_redraw.is_empty() {
-    redraw_containers(state, config)?;
-    state.pending_sync.containers_to_redraw.clear();
-  }
-
-  let recent_focused_container = state.recent_focused_container.clone();
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  if state.pending_sync.cursor_jump {
-    if config.value.general.cursor_jump.enabled {
-      jump_cursor(focused_container.clone(), state, config)?;
-    }
+  // Keep reference to the original focused container.
+  let recent_focused_window = state.recent_focused_window.clone();
 
-    state.pending_sync.cursor_jump = false;
+  if state.pending_sync.focus_change {
+    sync_focus(&focused_container, state)?;
   }
 
-  if state.pending_sync.focus_change
-    || state.pending_sync.reset_window_effects
+  if !state.pending_sync.containers_to_redraw.is_empty()
+    || state.pending_sync.focus_change
+  {
+    redraw_containers(
+      &focused_container,
+      recent_focused_window.as_ref(),
+      state,
+      config,
+    )?;
+  }
+
+  if state.pending_sync.cursor_jump
+    && config.value.general.cursor_jump.enabled
+  {
+    jump_cursor(focused_container.clone(), state, config)?;
+  }
+
+  if state.pending_sync.update_focused_window_effect
+    || state.pending_sync.update_all_window_effects
   {
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(&window, true, config);
@@ -55,34 +65,30 @@ pub fn platform_sync(
     // For the sake of performance, we only update the border of the
     // previously focused window. If the `reset_window_effects` flag is
     // passed, the unfocused border is applied to all unfocused windows.
-    let unfocused_windows = if state.pending_sync.reset_window_effects {
-      state.windows()
-    } else {
-      recent_focused_container
-        .and_then(|container| container.as_window_container().ok())
-        .into_iter()
-        .collect()
-    }
-    .into_iter()
-    .filter(|window| window.id() != focused_container.id());
+    let unfocused_windows =
+      if state.pending_sync.update_all_window_effects {
+        state.windows()
+      } else {
+        recent_focused_window
+          .map(|(window, _)| window)
+          .into_iter()
+          .collect()
+      }
+      .into_iter()
+      .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
       apply_window_effects(&window, false, config);
     }
-
-    state.pending_sync.reset_window_effects = false;
   }
 
-  if state.pending_sync.focus_change {
-    sync_focus(focused_container.clone(), state)?;
-    state.pending_sync.focus_change = false;
-  }
+  state.pending_sync.clear();
 
   Ok(())
 }
 
 fn sync_focus(
-  focused_container: Container,
+  focused_container: &Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let native_window = match focused_container.as_window_container() {
@@ -98,24 +104,142 @@ fn sync_focus(
     }
   }
 
-  // TODO: Change z-index of workspace windows that match the focused
-  // container's state. Make sure not to decrease z-index for floating
-  // windows that are always on top.
-
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
   });
 
-  state.recent_focused_container = Some(focused_container);
+  if let Ok(window) = focused_container.as_window_container() {
+    state.recent_focused_window = Some((window.clone(), window.state()));
+  } else {
+    state.recent_focused_window = None;
+  }
 
   Ok(())
 }
 
+/// Change z-index of workspace windows that match the focused
+/// container's state. Make sure not to decrease z-index for floating
+/// windows that are always on top.
+fn windows_to_bring_to_front(
+  focused_container: &Container,
+  recent_focused_window: Option<&(WindowContainer, WindowState)>,
+  state: &WmState,
+) -> anyhow::Result<Vec<WindowContainer>> {
+  let Some(focused_window) = focused_container.as_window_container().ok()
+  else {
+    return Ok(vec![]);
+  };
+
+  let focused_workspace =
+    focused_container.workspace().context("No workspace.")?;
+
+  // Bring windows to front if either:
+  // 1. Focus has changed.
+  // 2. A cross monitor move has occurred (check for pending cursor jump).
+  // 3. Focused window state has changed.
+  // 4. Focused window has moved to a different workspace.
+  let should_bring_to_front = state.pending_sync.focus_change
+    || state.pending_sync.cursor_jump
+    || recent_focused_window.is_some_and(|(prev_window, prev_state)| {
+      let prev_workspace_id =
+        prev_window.workspace().map(|workspace| workspace.id());
+
+      *prev_state != focused_window.state()
+        || prev_workspace_id != Some(focused_workspace.id())
+    });
+
+  // Bring forward windows that match the focused state. Only do this for
+  // tiling/floating windows.
+  let windows_to_bring_to_front = if should_bring_to_front {
+    focused_workspace
+      .descendants()
+      .filter_map(|descendant| descendant.as_window_container().ok())
+      .filter(|window| {
+        let is_floating_or_tiling = matches!(
+          window.state(),
+          WindowState::Floating(_) | WindowState::Tiling
+        );
+
+        is_floating_or_tiling
+          && window.state().is_same_state(&focused_window.state())
+      })
+      .collect::<Vec<_>>()
+  } else {
+    vec![focused_window]
+  };
+
+  Ok(windows_to_bring_to_front)
+}
+
 fn redraw_containers(
+  focused_container: &Container,
+  recent_focused_window: Option<&(WindowContainer, WindowState)>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  for window in &state.windows_to_redraw() {
+  let windows_to_redraw = state.windows_to_redraw();
+  let windows_to_bring_to_front = windows_to_bring_to_front(
+    focused_container,
+    recent_focused_window,
+    state,
+  )?;
+
+  let mut windows_to_update = windows_to_redraw
+    .iter()
+    .chain(&windows_to_bring_to_front)
+    .unique_by(|window| window.id())
+    .collect::<Vec<_>>();
+
+  let descendant_focus_order = state
+    .root_container
+    .descendant_focus_order()
+    .collect::<Vec<_>>();
+
+  // Sort the windows to update by their focus order. The most recently
+  // focused window will be updated first.
+  windows_to_update.sort_by_key(|window| {
+    descendant_focus_order
+      .iter()
+      .position(|order| order.id() == window.id())
+  });
+
+  for window in &windows_to_update {
+    let should_bring_to_front = windows_to_bring_to_front.contains(window);
+
+    // Whether the window should be shown above all other windows.
+    let z_order = match window.state() {
+      WindowState::Floating(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      WindowState::Fullscreen(config) if config.shown_on_top => {
+        ZOrder::TopMost
+      }
+      _ if should_bring_to_front => {
+        let focused_window = focused_container.as_window_container().ok();
+
+        if let Some(focused) = focused_window {
+          if window.id() == focused_container.id() {
+            ZOrder::Normal
+          } else {
+            ZOrder::AfterWindow(focused.native().handle)
+          }
+        } else {
+          ZOrder::Normal
+        }
+      }
+      _ => ZOrder::Normal,
+    };
+
+    // Set the z-order of the window and skip updating it's position if the
+    // window only requires a z-order change.
+    if should_bring_to_front && !windows_to_redraw.contains(window) {
+      if let Err(err) = window.native().set_z_order(&z_order) {
+        warn!("Failed to set window z-order: {}", err);
+      }
+
+      continue;
+    }
+
     let workspace =
       window.workspace().context("Window has no workspace.")?;
 
@@ -145,6 +269,7 @@ fn redraw_containers(
     if let Err(err) = window.native().set_position(
       &window.state(),
       &rect,
+      &z_order,
       is_visible,
       &config.value.general.hide_method,
       window.has_pending_dpi_adjustment(),
@@ -158,6 +283,10 @@ fn redraw_containers(
     // `false`.
     if config.value.general.hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
+      && matches!(
+        window.display_state(),
+        DisplayState::Showing | DisplayState::Hiding
+      )
     {
       if let Err(err) = window.native().set_taskbar_visibility(is_visible)
       {

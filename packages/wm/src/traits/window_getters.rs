@@ -43,10 +43,7 @@ pub trait WindowGetters {
     possible_states
       .into_iter()
       .find_map(|state| {
-        state.filter(|state| {
-          std::mem::discriminant(state)
-            != std::mem::discriminant(&self.state())
-        })
+        state.filter(|state| !self.state().is_same_state(state))
       })
       // Default to tiling from a non-tiling state, and floating from a
       // tiling state.

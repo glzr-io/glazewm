@@ -75,7 +75,7 @@ pub fn handle_window_focused(
       config,
     )?;
 
-    state.pending_sync.focus_change = true;
+    state.pending_sync.update_focused_window_effect = true;
   }
 
   Ok(())

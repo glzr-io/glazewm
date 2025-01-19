@@ -30,8 +30,7 @@ pub fn cycle_focus(
 
     loop {
       // Break if we have cycled back to the current state.
-      if std::mem::discriminant(&current) == std::mem::discriminant(&next)
-      {
+      if current.is_same_state(&next) {
         break;
       }
 
