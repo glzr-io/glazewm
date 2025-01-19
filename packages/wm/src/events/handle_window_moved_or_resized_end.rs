@@ -32,6 +32,11 @@ pub fn handle_window_moved_or_resized_end(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Don't update state on resize events if the WM is paused.
+  if state.is_paused {
+    return Ok(());
+  }
+
   let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
@@ -56,11 +61,6 @@ pub fn handle_window_moved_or_resized_end(
         }
       }
       WindowContainer::TilingWindow(window) => {
-        // Don't update state on resize events if the WM is paused.
-        if state.is_paused {
-          return Ok(());
-        }
-
         let parent = window.parent().context("No parent.")?;
 
         // Snap window to its original position if it's the only window in

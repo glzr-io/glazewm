@@ -20,13 +20,6 @@ pub fn platform_sync(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // Skip platform sync when the WM is paused.
-  if state.is_paused {
-    // Clear containers to redraw to avoid leaking memory.
-    state.pending_sync.containers_to_redraw.clear();
-    return Ok(());
-  }
-
   let focused_container =
     state.focused_container().context("No focused container.")?;
 

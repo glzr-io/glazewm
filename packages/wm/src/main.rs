@@ -162,22 +162,7 @@ async fn start_wm(
     }
   }
 
-  // Run shutdown commands.
-  let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(&shutdown_commands, None, &mut config)?;
-
-  wm.state.emit_event(WmEvent::ApplicationExiting);
-
-  // Emit remaining WM events before exiting.
-  while let Ok(wm_event) = wm.event_rx.try_recv() {
-    info!("Emitting WM event before shutting down: {:?}", wm_event);
-
-    if let Err(err) = ipc_server.process_event(wm_event) {
-      warn!("{:?}", err);
-    }
-  }
-
-  Ok(())
+  run_cleanup(&mut wm, &mut config, &mut ipc_server)
 }
 
 /// Initialize logging with the specified verbosity level.
@@ -228,4 +213,32 @@ fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
   Command::new(&watcher_path)
     .spawn()
     .context("Failed to start watcher process.")
+}
+
+/// Runs cleanup tasks when the WM is exiting.
+fn run_cleanup(
+  wm: &mut WindowManager,
+  config: &mut UserConfig,
+  ipc_server: &mut IpcServer,
+) -> anyhow::Result<()> {
+  // Ensure that the WM is unpaused, otherwise, shutdown commands won't get
+  // executed.
+  wm.state.is_paused = false;
+
+  // Run shutdown commands.
+  let shutdown_commands = config.value.general.shutdown_commands.clone();
+  wm.process_commands(&shutdown_commands, None, config)?;
+
+  wm.state.emit_event(WmEvent::ApplicationExiting);
+
+  // Emit remaining WM events before exiting.
+  while let Ok(wm_event) = wm.event_rx.try_recv() {
+    info!("Emitting WM event before shutting down: {:?}", wm_event);
+
+    if let Err(err) = ipc_server.process_event(wm_event) {
+      warn!("{:?}", err);
+    }
+  }
+
+  Ok(())
 }

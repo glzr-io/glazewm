@@ -459,8 +459,7 @@ impl WmState {
   /// prepared.
   pub fn emit_event(&self, event: WmEvent) {
     if self.has_initialized
-      && (!self.is_paused
-        || matches!(event, WmEvent::PauseChanged { is_paused: _ }))
+      && (!self.is_paused || matches!(event, WmEvent::PauseChanged { .. }))
     {
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
