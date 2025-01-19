@@ -1,3 +1,4 @@
+use tracing::info;
 use wm_common::WmEvent;
 
 use crate::{
@@ -12,6 +13,8 @@ pub fn deactivate_workspace(
   workspace: Workspace,
   state: &WmState,
 ) -> anyhow::Result<()> {
+  info!("Deactivating workspace: {workspace}");
+
   detach_container(workspace.clone().into())?;
 
   state.emit_event(WmEvent::WorkspaceDeactivated {

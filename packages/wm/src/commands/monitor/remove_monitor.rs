@@ -19,14 +19,7 @@ pub fn remove_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // TODO: Add monitor display trait.
-  info!(
-    "Removing monitor: {:?} {} {:?} {:?}",
-    monitor.native().handle,
-    monitor.native().device_name()?,
-    monitor.native().device_path()?,
-    monitor.native().hardware_id()?
-  );
+  info!("Removing monitor: {monitor}");
 
   let target_monitor = state
     .monitors()

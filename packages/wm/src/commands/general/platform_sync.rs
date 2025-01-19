@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use tokio::task;
-use tracing::warn;
+use tracing::{info, warn};
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
@@ -99,6 +99,12 @@ fn sync_focus(
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
   if Platform::foreground_window() != native_window {
+    if let Ok(window) = focused_container.as_window_container() {
+      info!("Setting focus to window: {window}");
+    } else {
+      info!("Setting focus to the desktop window.");
+    };
+
     if let Err(err) = native_window.set_foreground() {
       warn!("Failed to set foreground window: {}", err);
     }
@@ -233,6 +239,8 @@ fn redraw_containers(
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
     if should_bring_to_front && !windows_to_redraw.contains(window) {
+      info!("Updating window z-order: {window}");
+
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
@@ -265,6 +273,8 @@ fn redraw_containers(
       window.display_state(),
       DisplayState::Showing | DisplayState::Shown
     );
+
+    info!("Updating window position: {window}");
 
     if let Err(err) = window.native().set_position(
       &window.state(),

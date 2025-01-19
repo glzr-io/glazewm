@@ -128,7 +128,7 @@ async fn start_wm(
         )
       },
       Some(wm_event) = wm.event_rx.recv() => {
-        info!("Received WM event: {:?}", wm_event);
+        debug!("Received WM event: {:?}", wm_event);
 
         // Update event listener when keyboard or mouse listener needs to
         // be changed.

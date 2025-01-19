@@ -16,10 +16,9 @@ pub fn handle_window_destroyed(
 
   // Unmanage the window if it's currently managed.
   if let Some(window) = found_window {
-    // TODO: Log window details.
     let workspace = window.workspace().context("No workspace.")?;
 
-    info!("Window closed");
+    info!("Window closed: {window}");
     unmanage_window(window, state)?;
 
     // Destroy parent workspace if window was killed while its workspace

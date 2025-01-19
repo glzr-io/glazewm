@@ -1,4 +1,5 @@
 use anyhow::Context;
+use tracing::info;
 use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
@@ -70,6 +71,8 @@ pub fn activate_workspace(
   )?;
 
   sort_workspaces(&target_monitor, config)?;
+
+  info!("Activating workspace: {workspace}");
 
   state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace.to_dto()?,

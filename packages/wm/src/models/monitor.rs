@@ -118,3 +118,20 @@ impl PositionGetters for Monitor {
     self.0.borrow().native.rect().cloned()
   }
 }
+
+impl std::fmt::Display for Monitor {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let native = self.native();
+    let device_name = native
+      .device_name()
+      .map_or_else(|_| "Unknown".to_string(), String::to_string);
+    let device_path = native.device_path().unwrap_or_default();
+    let hardware_id = native.hardware_id().unwrap_or_default();
+
+    write!(
+      f,
+      "Monitor(handle={}, device_name={}, device_path={:?}, hardware_id={:?})",
+      native.handle, device_name, device_path, hardware_id,
+    )
+  }
+}

@@ -16,8 +16,7 @@ pub fn handle_window_shown(
 
   match found_window {
     Some(window) => {
-      // TODO: Log window details.
-      info!("Window shown");
+      info!("Window shown: {window}");
 
       // Update display state if window is already managed.
       if window.display_state() == DisplayState::Showing {

@@ -35,7 +35,7 @@ pub fn handle_window_moved_or_resized_end(
   let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
-    // TODO: Log window details.
+    info!("Window move/resize ended: {window}");
 
     let new_rect = try_warn!(window.native().refresh_frame_position());
     let old_rect = window.to_rect()?;
@@ -60,8 +60,6 @@ pub fn handle_window_moved_or_resized_end(
         if state.is_paused {
           return Ok(());
         }
-
-        info!("Tiling window resized");
 
         let parent = window.parent().context("No parent.")?;
 
@@ -98,7 +96,10 @@ fn drop_as_tiling_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Tiling window drag end event.");
+  info!(
+    "Tiling window drag ended: {}",
+    moved_window.as_window_container()?
+  );
 
   let mouse_pos = Platform::mouse_position()?;
   let workspace = moved_window.workspace().context("No workspace.")?;

@@ -80,7 +80,7 @@ pub fn handle_window_location_changed(
         // edge case of fullscreen -> maximized -> restore from maximized.
         if (fullscreen_state.maximized || !is_fullscreen) && !is_maximized
         {
-          info!("Window restored from fullscreen.");
+          info!("Window restored from fullscreen: {window}");
 
           let target_state = window
             .prev_state()
@@ -93,7 +93,7 @@ pub fn handle_window_location_changed(
             config,
           )?;
         } else if is_maximized && !fullscreen_state.maximized {
-          info!("Updating state from fullscreen -> maximized.");
+          info!("Updating state from fullscreen -> maximized: {window}");
 
           update_window_state(
             window.clone(),
@@ -108,7 +108,7 @@ pub fn handle_window_location_changed(
       }
       _ => {
         if is_maximized || is_fullscreen {
-          info!("Window fullscreened.");
+          info!("Window fullscreened: {window}");
 
           // Update the window to be fullscreen.
           update_window_state(
@@ -122,7 +122,7 @@ pub fn handle_window_location_changed(
           )?;
         } else if matches!(window.state(), WindowState::Floating(_)) {
           // Update state with the new location of the floating window.
-          info!("Updating floating window position.");
+          info!("Updating floating window position: {window}");
           window.set_floating_placement(frame_position);
           window.set_has_custom_floating_placement(true);
 
@@ -136,8 +136,7 @@ pub fn handle_window_location_changed(
               .context("Failed to get workspace of nearest monitor.")?;
 
             info!(
-              "Floating window moved to new workspace: '{}'.",
-              updated_workspace.config().name
+              "Floating window moved to new workspace: {updated_workspace}",
             );
 
             if let WindowContainer::NonTilingWindow(window) = &window {
