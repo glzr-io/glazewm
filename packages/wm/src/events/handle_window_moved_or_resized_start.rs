@@ -11,7 +11,7 @@ pub fn handle_window_moved_or_resized_start(
 ) {
   // Don't update state on resize events if the WM is paused.
   if state.is_paused {
-    return ();
+    return;
   }
 
   let found_window = state.window_from_native(native_window);
