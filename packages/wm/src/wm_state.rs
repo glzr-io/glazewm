@@ -68,6 +68,7 @@ pub struct WmState {
   exit_tx: mpsc::UnboundedSender<()>,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 pub struct PendingSync {
   /// Containers (and their descendants) that have a pending redraw.
   pub containers_to_redraw: Vec<Container>,

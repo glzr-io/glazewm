@@ -1,11 +1,11 @@
 use std::{collections::HashSet, hash::Hash};
 
-// Extension trait that adds unique filtering capability to iterators
+/// Extension trait for iterators.
 pub trait UniqueExt: Iterator {
   /// Returns an iterator that yields unique elements based on the key
-  /// function
+  /// function.
   ///
-  /// The key function must return a value that implements Hash and Eq
+  /// The key function must return a value that implements `Hash` and `Eq`.
   fn unique_by<K, F>(self, key_fn: F) -> UniqueBy<Self, K, F>
   where
     Self: Sized,
@@ -13,13 +13,13 @@ pub trait UniqueExt: Iterator {
     F: FnMut(&Self::Item) -> K;
 }
 
-/// Implementation of unique filtering iterator using a key function
 pub struct UniqueBy<I: Iterator, K, F> {
   iter: I,
   key_fn: F,
   seen: HashSet<K>,
 }
 
+// Implement the `Iterator` trait for the `UniqueBy` struct.
 impl<I, K, F> Iterator for UniqueBy<I, K, F>
 where
   I: Iterator,
@@ -40,7 +40,7 @@ where
   }
 }
 
-// Implement the extension trait for all iterators
+// Implement the extension trait for all iterators.
 impl<I: Iterator> UniqueExt for I {
   fn unique_by<K, F>(self, key_fn: F) -> UniqueBy<Self, K, F>
   where

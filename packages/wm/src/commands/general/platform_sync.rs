@@ -233,16 +233,12 @@ fn redraw_containers(
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
     if should_bring_to_front && !windows_to_redraw.contains(window) {
-      tracing::info!("Setting window z-order: {window}");
-
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
 
       continue;
     }
-
-    tracing::info!("Setting window position: {window}");
 
     let workspace =
       window.workspace().context("Window has no workspace.")?;
