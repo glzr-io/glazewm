@@ -130,8 +130,8 @@ impl WmState {
 
     self
       .pending_sync
-      .mark_focus_change()
-      .mark_update_all_window_effects();
+      .queue_focus_change()
+      .queue_all_effects_update();
 
     platform_sync(self, config)?;
     self.has_initialized = true;

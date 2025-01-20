@@ -210,7 +210,7 @@ fn update_drag_state(
       // remove the window from the pending redraw.
       state
         .pending_sync
-        .remove_container_from_redraw(window.clone());
+        .dequeue_container_from_redraw(window.clone());
 
       // Flatten the parent split container if it only contains the window.
       if let Some(split_parent) = parent.as_split() {
@@ -222,7 +222,7 @@ fn update_drag_state(
           // on flatten.
           state
             .pending_sync
-            .add_containers_to_redraw(window.tiling_siblings());
+            .queue_containers_to_redraw(window.tiling_siblings());
         }
       }
     }

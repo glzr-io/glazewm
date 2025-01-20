@@ -66,7 +66,7 @@ pub fn handle_window_moved_or_resized_end(
         // Snap window to its original position if it's the only window in
         // the workspace.
         if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-          state.pending_sync.add_container_to_redraw(window.clone());
+          state.pending_sync.queue_container_to_redraw(window.clone());
           return Ok(());
         }
 
@@ -206,7 +206,7 @@ fn drop_as_tiling_window(
     )?;
   }
 
-  state.pending_sync.add_container_to_redraw(target_parent);
+  state.pending_sync.queue_container_to_redraw(target_parent);
 
   Ok(())
 }

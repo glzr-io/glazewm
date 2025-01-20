@@ -26,12 +26,12 @@ pub fn platform_sync(
   // Keep reference to the original focused container.
   let recent_focused_window = state.recent_focused_window.clone();
 
-  if state.pending_sync.focus_change() {
+  if state.pending_sync.needs_focus_update() {
     sync_focus(&focused_container, state)?;
   }
 
   if !state.pending_sync.containers_to_redraw().is_empty()
-    || state.pending_sync.focus_change()
+    || state.pending_sync.needs_focus_update()
   {
     redraw_containers(
       &focused_container,
@@ -41,14 +41,14 @@ pub fn platform_sync(
     )?;
   }
 
-  if state.pending_sync.cursor_jump()
+  if state.pending_sync.needs_cursor_jump()
     && config.value.general.cursor_jump.enabled
   {
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
-  if state.pending_sync.update_focused_window_effect()
-    || state.pending_sync.update_all_window_effects()
+  if state.pending_sync.needs_focused_effect_update()
+    || state.pending_sync.needs_all_effects_update()
   {
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(&window, true, config);
@@ -59,7 +59,7 @@ pub fn platform_sync(
     // previously focused window. If the `reset_window_effects` flag is
     // passed, the unfocused border is applied to all unfocused windows.
     let unfocused_windows =
-      if state.pending_sync.update_all_window_effects() {
+      if state.pending_sync.needs_all_effects_update() {
         state.windows()
       } else {
         recent_focused_window
@@ -137,8 +137,8 @@ fn windows_to_bring_to_front(
   // 2. A cross monitor move has occurred (check for pending cursor jump).
   // 3. Focused window state has changed.
   // 4. Focused window has moved to a different workspace.
-  let should_bring_to_front = state.pending_sync.focus_change()
-    || state.pending_sync.cursor_jump()
+  let should_bring_to_front = state.pending_sync.needs_focus_update()
+    || state.pending_sync.needs_cursor_jump()
     || recent_focused_window.is_some_and(|(prev_window, prev_state)| {
       let prev_workspace_id =
         prev_window.workspace().map(|workspace| workspace.id());

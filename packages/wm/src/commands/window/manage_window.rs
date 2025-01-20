@@ -50,10 +50,10 @@ pub fn manage_window(
 
     // OS focus should be set to the newly added window in case it's not
     // already focused.
-    state.pending_sync.mark_focus_change();
+    state.pending_sync.queue_focus_change();
 
     // Sibling containers need to be redrawn if the window is tiling.
-    state.pending_sync.add_container_to_redraw(
+    state.pending_sync.queue_container_to_redraw(
       if window.state() == WindowState::Tiling {
         window.parent().context("No parent.")?
       } else {

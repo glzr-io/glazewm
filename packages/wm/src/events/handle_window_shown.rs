@@ -22,7 +22,7 @@ pub fn handle_window_shown(
       if window.display_state() == DisplayState::Showing {
         window.set_display_state(DisplayState::Shown);
       } else {
-        state.pending_sync.add_container_to_redraw(window);
+        state.pending_sync.queue_container_to_redraw(window);
       }
     }
     None => {

@@ -12,38 +12,38 @@ pub struct PendingSync {
 
   /// Whether native focus should be reassigned to the WM's focused
   /// container.
-  focus_change: bool,
+  needs_focus_update: bool,
 
   /// Whether window effect for the focused window should be updated.
-  update_focused_window_effect: bool,
+  needs_focused_effect_update: bool,
 
   /// Whether window effects for all windows should be updated.
-  update_all_window_effects: bool,
+  needs_all_effects_update: bool,
 
   /// Whether to jump the cursor to the focused container (if enabled in
   /// user config).
-  cursor_jump: bool,
+  needs_cursor_jump: bool,
 }
 
 impl PendingSync {
   pub fn has_changes(&self) -> bool {
-    self.focus_change
-      || self.update_focused_window_effect
-      || self.update_all_window_effects
-      || self.cursor_jump
+    self.needs_focus_update
+      || self.needs_focused_effect_update
+      || self.needs_all_effects_update
+      || self.needs_cursor_jump
       || !self.containers_to_redraw.is_empty()
   }
 
   pub fn clear(&mut self) -> &mut Self {
     self.containers_to_redraw.clear();
-    self.focus_change = false;
-    self.update_focused_window_effect = false;
-    self.update_all_window_effects = false;
-    self.cursor_jump = false;
+    self.needs_focus_update = false;
+    self.needs_focused_effect_update = false;
+    self.needs_all_effects_update = false;
+    self.needs_cursor_jump = false;
     self
   }
 
-  pub fn add_container_to_redraw<T>(&mut self, container: T) -> &mut Self
+  pub fn queue_container_to_redraw<T>(&mut self, container: T) -> &mut Self
   where
     T: Into<Container>,
   {
@@ -52,7 +52,7 @@ impl PendingSync {
     self
   }
 
-  pub fn add_containers_to_redraw<I, T>(
+  pub fn queue_containers_to_redraw<I, T>(
     &mut self,
     containers: I,
   ) -> &mut Self
@@ -64,10 +64,11 @@ impl PendingSync {
       let container: Container = container.into();
       self.containers_to_redraw.insert(container.id(), container);
     }
+
     self
   }
 
-  pub fn remove_container_from_redraw<T>(
+  pub fn dequeue_container_from_redraw<T>(
     &mut self,
     container: T,
   ) -> &mut Self
@@ -78,40 +79,40 @@ impl PendingSync {
     self
   }
 
-  pub fn mark_focus_change(&mut self) -> &mut Self {
-    self.focus_change = true;
+  pub fn queue_focus_change(&mut self) -> &mut Self {
+    self.needs_focus_update = true;
     self
   }
 
-  pub fn mark_update_focused_window_effect(&mut self) -> &mut Self {
-    self.update_focused_window_effect = true;
+  pub fn queue_focused_effect_update(&mut self) -> &mut Self {
+    self.needs_focused_effect_update = true;
     self
   }
 
-  pub fn mark_update_all_window_effects(&mut self) -> &mut Self {
-    self.update_all_window_effects = true;
+  pub fn queue_all_effects_update(&mut self) -> &mut Self {
+    self.needs_all_effects_update = true;
     self
   }
 
-  pub fn mark_cursor_jump(&mut self) -> &mut Self {
-    self.cursor_jump = true;
+  pub fn queue_cursor_jump(&mut self) -> &mut Self {
+    self.needs_cursor_jump = true;
     self
   }
 
-  pub fn focus_change(&self) -> bool {
-    self.focus_change
+  pub fn needs_focus_update(&self) -> bool {
+    self.needs_focus_update
   }
 
-  pub fn update_focused_window_effect(&self) -> bool {
-    self.update_focused_window_effect
+  pub fn needs_focused_effect_update(&self) -> bool {
+    self.needs_focused_effect_update
   }
 
-  pub fn update_all_window_effects(&self) -> bool {
-    self.update_all_window_effects
+  pub fn needs_all_effects_update(&self) -> bool {
+    self.needs_all_effects_update
   }
 
-  pub fn cursor_jump(&self) -> bool {
-    self.cursor_jump
+  pub fn needs_cursor_jump(&self) -> bool {
+    self.needs_cursor_jump
   }
 
   pub fn containers_to_redraw(&self) -> &HashMap<Uuid, Container> {

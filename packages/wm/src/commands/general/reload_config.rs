@@ -60,7 +60,7 @@ pub fn reload_config(
   // Redraw full container tree.
   state
     .pending_sync
-    .add_container_to_redraw(state.root_container.clone());
+    .queue_container_to_redraw(state.root_container.clone());
 
   // Emit the updated config.
   state.emit_event(WmEvent::UserConfigChanged {
@@ -182,7 +182,7 @@ fn update_window_effects(
     }
   }
 
-  state.pending_sync.mark_update_all_window_effects();
+  state.pending_sync.queue_all_effects_update();
 
   Ok(())
 }

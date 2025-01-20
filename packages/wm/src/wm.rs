@@ -213,7 +213,7 @@ impl WindowManager {
             );
 
             window.set_border_delta(border_delta);
-            state.pending_sync.add_container_to_redraw(window);
+            state.pending_sync.queue_container_to_redraw(window);
 
             Ok(())
           }
@@ -647,7 +647,7 @@ impl WindowManager {
       InvokeCommand::WmRedraw => {
         state
           .pending_sync
-          .add_container_to_redraw(state.root_container.clone());
+          .queue_container_to_redraw(state.root_container.clone());
 
         Ok(())
       }

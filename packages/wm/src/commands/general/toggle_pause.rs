@@ -11,7 +11,7 @@ pub fn toggle_pause(state: &mut WmState) {
   if !is_paused {
     state
       .pending_sync
-      .add_container_to_redraw(state.root_container.clone());
+      .queue_container_to_redraw(state.root_container.clone());
   }
 
   state.emit_event(WmEvent::PauseChanged { is_paused });

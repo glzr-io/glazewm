@@ -35,7 +35,7 @@ pub fn set_window_position(
     };
 
     window.set_floating_placement(new_placement);
-    state.pending_sync.add_container_to_redraw(window);
+    state.pending_sync.queue_container_to_redraw(window);
   }
 
   Ok(())

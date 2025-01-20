@@ -116,13 +116,13 @@ pub fn move_window_to_workspace(
     // on that monitor.
     if let Some(focus_reset_target) = focus_reset_target {
       set_focused_descendant(&focus_reset_target, None);
-      state.pending_sync.mark_focus_change();
+      state.pending_sync.queue_focus_change();
     }
 
     // Retain focus within the workspace from where the window was moved.
     if let Some(focus_target) = focus_target {
       set_focused_descendant(&focus_target, None);
-      state.pending_sync.mark_focus_change();
+      state.pending_sync.queue_focus_change();
     }
 
     let containers_to_redraw: Vec<Container> = match window {
@@ -136,7 +136,7 @@ pub fn move_window_to_workspace(
 
     state
       .pending_sync
-      .add_containers_to_redraw(containers_to_redraw);
+      .queue_containers_to_redraw(containers_to_redraw);
   }
 
   Ok(())
