@@ -71,16 +71,6 @@ fn create_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
-  // Attach the new window as the first child of the target parent (if
-  // provided), otherwise, add as a sibling of the focused container.
-  let (target_parent, target_index) = match target_parent {
-    Some(parent) => (parent, 0),
-    None => insertion_target(state)?,
-  };
-
-  let target_workspace =
-    target_parent.workspace().context("No target workspace.")?;
-
   let nearest_monitor = state
     .nearest_monitor(&native_window)
     .context("No nearest monitor.")?;
@@ -88,6 +78,20 @@ fn create_window(
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
     .context("No nearest workspace.")?;
+
+  let gaps_config = config.value.gaps.clone();
+  let window_state =
+    window_state_to_create(&native_window, &nearest_monitor, config)?;
+
+  // Attach the new window as the first child of the target parent (if
+  // provided), otherwise, add as a sibling of the focused container.
+  let (target_parent, target_index) = match target_parent {
+    Some(parent) => (parent, 0),
+    None => insertion_target(&window_state, state)?,
+  };
+
+  let target_workspace =
+    target_parent.workspace().context("No target workspace.")?;
 
   let prefers_centered = config
     .value
@@ -125,10 +129,6 @@ fn create_window(
     LengthValue::from_px(0),
     LengthValue::from_px(0),
   );
-
-  let gaps_config = config.value.gaps.clone();
-  let window_state =
-    window_state_to_create(&native_window, &nearest_monitor, config)?;
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
@@ -215,17 +215,36 @@ fn window_state_to_create(
 }
 
 fn insertion_target(
+  window_state: &WindowState,
   state: &WmState,
 ) -> anyhow::Result<(Container, usize)> {
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  if focused_container.is_workspace() {
-    Ok((focused_container, 0))
-  } else {
+  let focused_workspace =
+    focused_container.workspace().context("No workspace.")?;
+
+  // Append to the workspace if the window is not tiling. Otherwise, insert
+  // next to the currently focused container.
+  if focused_container.is_workspace()
+    || *window_state != WindowState::Tiling
+  {
     Ok((
-      focused_container.parent().context("No insertion target.")?,
-      focused_container.index() + 1,
+      focused_workspace.clone().into(),
+      focused_workspace.child_count(),
+    ))
+  } else {
+    let insertion_sibling = match focused_container {
+      Container::TilingWindow(_) => focused_container,
+      _ => focused_workspace
+        .descendant_focus_order()
+        .find(Container::is_tiling_window)
+        .context("No insertion target.")?,
+    };
+
+    Ok((
+      insertion_sibling.parent().context("No parent.")?,
+      insertion_sibling.index() + 1,
     ))
   }
 }
