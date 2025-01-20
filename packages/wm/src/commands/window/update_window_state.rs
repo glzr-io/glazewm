@@ -110,7 +110,8 @@ fn set_tiling(
 
   state
     .pending_sync
-    .queue_containers_to_redraw(target_parent.tiling_children());
+    .queue_containers_to_redraw(target_parent.tiling_children())
+    .queue_workspace_to_reorder(workspace);
 
   Ok(tiling_window.into())
 }
@@ -132,6 +133,8 @@ fn set_non_tiling(
     return Ok(window);
   }
 
+  let workspace = window.workspace().context("No workspace.")?;
+
   match window {
     WindowContainer::NonTilingWindow(window) => {
       let current_state = window.state();
@@ -139,6 +142,7 @@ fn set_non_tiling(
       // Update the window's previous state if the discriminant changes.
       if !current_state.is_same_state(&target_state) {
         window.set_prev_state(current_state);
+        state.pending_sync.queue_workspace_to_reorder(workspace);
       }
 
       window.set_state(target_state);
@@ -148,7 +152,6 @@ fn set_non_tiling(
     }
     WindowContainer::TilingWindow(window) => {
       let parent = window.parent().context("No parent")?;
-      let workspace = window.workspace().context("No workspace.")?;
 
       let non_tiling_window = window.to_non_tiling(
         target_state.clone(),
@@ -180,7 +183,8 @@ fn set_non_tiling(
       state
         .pending_sync
         .queue_container_to_redraw(non_tiling_window.clone())
-        .queue_containers_to_redraw(workspace.tiling_children());
+        .queue_containers_to_redraw(workspace.tiling_children())
+        .queue_workspace_to_reorder(workspace);
 
       Ok(non_tiling_window.into())
     }
