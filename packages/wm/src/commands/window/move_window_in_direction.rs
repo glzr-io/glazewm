@@ -5,7 +5,7 @@ use crate::{
   commands::container::{
     flatten_child_split_containers, flatten_split_container,
     move_container_within_tree, resize_tiling_container,
-    wrap_in_split_container,
+    set_focused_descendant, wrap_in_split_container,
   },
   models::{
     DirectionContainer, Monitor, NonTilingWindow, SplitContainer,
@@ -211,16 +211,17 @@ fn move_to_workspace_in_direction(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let parent = window_to_move.parent().context("No parent.")?;
+  let workspace = window_to_move.workspace().context("No workspace.")?;
   let monitor = parent.monitor().context("No monitor.")?;
 
-  let workspace_in_direction = state
+  let target_workspace = state
     .monitor_in_direction(&monitor, direction)?
     .and_then(|monitor| monitor.displayed_workspace());
 
-  if let Some(workspace) = workspace_in_direction {
+  if let Some(target_workspace) = target_workspace {
     // Since the window is crossing monitors, adjustments might need to be
     // made because of DPI.
-    if monitor.has_dpi_difference(&workspace.clone().into())? {
+    if monitor.has_dpi_difference(&target_workspace.clone().into())? {
       window_to_move.set_has_pending_dpi_adjustment(true);
     }
 
@@ -228,7 +229,7 @@ fn move_to_workspace_in_direction(
     window_to_move.set_floating_placement(
       window_to_move
         .floating_placement()
-        .translate_to_center(&workspace.to_rect()?),
+        .translate_to_center(&target_workspace.to_rect()?),
     );
 
     if let WindowContainer::NonTilingWindow(window_to_move) =
@@ -239,19 +240,32 @@ fn move_to_workspace_in_direction(
 
     let target_index = match direction {
       Direction::Down | Direction::Right => 0,
-      _ => workspace.child_count(),
+      _ => target_workspace.child_count(),
     };
+
+    // Focus should be reassigned within the original workspace after the
+    // window is moved out. For example, if the focus order is 1. tiling
+    // window and 2. fullscreen window, then we'd want to retain focus on a
+    // tiling window on move.
+    let focus_target = state.focus_target_after_removal(window_to_move);
 
     move_container_within_tree(
       &window_to_move.clone().into(),
-      &workspace.clone().into(),
+      &target_workspace.clone().into(),
       target_index,
       state,
     )?;
 
+    if let Some(focus_target) = focus_target {
+      set_focused_descendant(
+        &focus_target,
+        Some(&workspace.clone().into()),
+      );
+    }
+
     state
       .pending_sync
-      .queue_containers_to_redraw(workspace.tiling_children())
+      .queue_containers_to_redraw(target_workspace.tiling_children())
       .queue_containers_to_redraw(parent.tiling_children())
       .queue_cursor_jump();
   };
