@@ -214,6 +214,17 @@ fn window_state_to_create(
   Ok(WindowState::default_from_config(&config.value))
 }
 
+/// Gets where to insert a new window in the container tree.
+///
+/// Rules:
+/// - For non-tiling windows: Always append to the workspace.
+/// - For tiling windows:
+///   1. Try to insert after the focused tiling window if one exists.
+///   2. If a non-tiling window is focused, try to insert after the first
+///      tiling window found.
+///   3. If no tiling windows exist, append to the workspace.
+///
+/// Returns tuple of (parent container, insertion index).
 fn insertion_target(
   window_state: &WindowState,
   state: &WmState,
@@ -224,27 +235,27 @@ fn insertion_target(
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
 
-  // Append to the workspace if the window is not tiling. Otherwise, insert
-  // next to the currently focused container.
-  if focused_container.is_workspace()
-    || *window_state != WindowState::Tiling
-  {
-    Ok((
-      focused_workspace.clone().into(),
-      focused_workspace.child_count(),
-    ))
-  } else {
-    let insertion_sibling = match focused_container {
-      Container::TilingWindow(_) => focused_container,
+  // For tiling windows, try to find a suitable tiling window to insert
+  // next to.
+  if *window_state == WindowState::Tiling {
+    let sibling = match focused_container {
+      Container::TilingWindow(_) => Some(focused_container),
       _ => focused_workspace
         .descendant_focus_order()
-        .find(Container::is_tiling_window)
-        .context("No insertion target.")?,
+        .find(Container::is_tiling_window),
     };
 
-    Ok((
-      insertion_sibling.parent().context("No parent.")?,
-      insertion_sibling.index() + 1,
-    ))
+    if let Some(sibling) = sibling {
+      return Ok((
+        sibling.parent().context("No parent.")?,
+        sibling.index() + 1,
+      ));
+    }
   }
+
+  // Default to appending to workspace.
+  Ok((
+    focused_workspace.clone().into(),
+    focused_workspace.child_count(),
+  ))
 }
