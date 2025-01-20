@@ -16,11 +16,6 @@ use crate::{
   wm_state::WmState,
 };
 
-enum RedrawType {
-  Reorder { z_order: ZOrder },
-  Reposition,
-}
-
 pub fn platform_sync(
   state: &mut WmState,
   config: &UserConfig,
