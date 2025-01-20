@@ -16,6 +16,11 @@ use crate::{
   wm_state::WmState,
 };
 
+enum RedrawType {
+  Reorder { z_order: ZOrder },
+  Reposition,
+}
+
 pub fn platform_sync(
   state: &mut WmState,
   config: &UserConfig,
@@ -31,14 +36,9 @@ pub fn platform_sync(
   }
 
   if !state.pending_sync.containers_to_redraw().is_empty()
-    || state.pending_sync.needs_focus_update()
+    || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
-    redraw_containers(
-      &focused_container,
-      recent_focused_window.as_ref(),
-      state,
-      config,
-    )?;
+    redraw_containers(&focused_container, state, config)?;
   }
 
   if state.pending_sync.needs_cursor_jump()
@@ -119,69 +119,52 @@ fn sync_focus(
 /// Change z-index of workspace windows that match the focused
 /// container's state. Make sure not to decrease z-index for floating
 /// windows that are always on top.
-fn windows_to_bring_to_front(
-  focused_container: &Container,
-  recent_focused_window: Option<&(WindowContainer, WindowState)>,
-  state: &WmState,
-) -> anyhow::Result<Vec<WindowContainer>> {
-  let Some(focused_window) = focused_container.as_window_container().ok()
-  else {
-    return Ok(vec![]);
-  };
+fn windows_to_bring_to_front(state: &WmState) -> Vec<WindowContainer> {
+  let workspaces_to_reorder = state.pending_sync.workspaces_to_reorder();
 
-  let focused_workspace =
-    focused_container.workspace().context("No workspace.")?;
+  workspaces_to_reorder
+    .iter()
+    .flat_map(|workspace| {
+      let focused_descendant = workspace
+        .descendant_focus_order()
+        .next()
+        .and_then(|container| container.as_window_container().ok());
 
-  // Bring windows to front if either:
-  // 1. Focus has changed.
-  // 2. A cross monitor move has occurred (check for pending cursor jump).
-  // 3. Focused window state has changed.
-  // 4. Focused window has moved to a different workspace.
-  let should_bring_to_front = state.pending_sync.needs_focus_update()
-    || state.pending_sync.needs_cursor_jump()
-    || recent_focused_window.is_some_and(|(prev_window, prev_state)| {
-      let prev_workspace_id =
-        prev_window.workspace().map(|workspace| workspace.id());
+      match focused_descendant {
+        Some(focused_descendant) => workspace
+          .descendants()
+          .filter_map(|descendant| descendant.as_window_container().ok())
+          .filter(|window| {
+            let is_floating_or_tiling = matches!(
+              window.state(),
+              WindowState::Floating(_) | WindowState::Tiling
+            );
 
-      *prev_state != focused_window.state()
-        || prev_workspace_id != Some(focused_workspace.id())
-    });
-
-  // Bring forward windows that match the focused state. Only do this for
-  // tiling/floating windows.
-  let windows_to_bring_to_front = if should_bring_to_front {
-    focused_workspace
-      .descendants()
-      .filter_map(|descendant| descendant.as_window_container().ok())
-      .filter(|window| {
-        let is_floating_or_tiling = matches!(
-          window.state(),
-          WindowState::Floating(_) | WindowState::Tiling
-        );
-
-        is_floating_or_tiling
-          && window.state().is_same_state(&focused_window.state())
-      })
-      .collect::<Vec<_>>()
-  } else {
-    vec![focused_window]
-  };
-
-  Ok(windows_to_bring_to_front)
+            is_floating_or_tiling
+              && window.state().is_same_state(&focused_descendant.state())
+          })
+          .collect(),
+        None => vec![],
+      }
+    })
+    .collect::<Vec<_>>()
 }
+
+// fn windows_to_redraw(
+//   state: &WmState,
+// ) -> Vec<(RedrawType, WindowContainer)> {
+//   let windows_to_redraw = state.windows_to_redraw();
+
+//   // TODO: Implement this.
+// }
 
 fn redraw_containers(
   focused_container: &Container,
-  recent_focused_window: Option<&(WindowContainer, WindowState)>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let windows_to_redraw = state.windows_to_redraw();
-  let windows_to_bring_to_front = windows_to_bring_to_front(
-    focused_container,
-    recent_focused_window,
-    state,
-  )?;
+  let windows_to_bring_to_front = windows_to_bring_to_front(state);
 
   let mut windows_to_update = windows_to_redraw
     .iter()

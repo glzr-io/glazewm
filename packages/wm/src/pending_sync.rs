@@ -34,15 +34,17 @@ pub struct PendingSync {
 
 impl PendingSync {
   pub fn has_changes(&self) -> bool {
-    self.needs_focus_update
+    !self.containers_to_redraw.is_empty()
+      || !self.workspaces_to_reorder.is_empty()
+      || self.needs_focus_update
       || self.needs_focused_effect_update
       || self.needs_all_effects_update
       || self.needs_cursor_jump
-      || !self.containers_to_redraw.is_empty()
   }
 
   pub fn clear(&mut self) -> &mut Self {
     self.containers_to_redraw.clear();
+    self.workspaces_to_reorder.clear();
     self.needs_focus_update = false;
     self.needs_focused_effect_update = false;
     self.needs_all_effects_update = false;
