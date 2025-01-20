@@ -37,6 +37,7 @@ pub fn platform_sync(
 
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
+    || state.pending_sync.needs_focus_update()
   {
     redraw_containers(&focused_container, state, config)?;
   }
@@ -119,11 +120,27 @@ fn sync_focus(
 /// Change z-index of workspace windows that match the focused
 /// container's state. Make sure not to decrease z-index for floating
 /// windows that are always on top.
-fn windows_to_bring_to_front(state: &WmState) -> Vec<WindowContainer> {
-  let workspaces_to_reorder = state.pending_sync.workspaces_to_reorder();
+fn windows_to_bring_to_front(
+  focused_container: &Container,
+  state: &WmState,
+) -> anyhow::Result<Vec<WindowContainer>> {
+  let focused_workspace =
+    focused_container.workspace().context("No workspace.")?;
 
-  workspaces_to_reorder
+  // Add focused workspace if there's been a focus change.
+  let workspaces_to_reorder = state
+    .pending_sync
+    .workspaces_to_reorder()
     .iter()
+    .chain(
+      state
+        .pending_sync
+        .needs_focus_update()
+        .then_some(&focused_workspace),
+    )
+    .unique_by(|workspace| workspace.id());
+
+  let windows_to_bring_to_front = workspaces_to_reorder
     .flat_map(|workspace| {
       let focused_descendant = workspace
         .descendant_focus_order()
@@ -147,7 +164,9 @@ fn windows_to_bring_to_front(state: &WmState) -> Vec<WindowContainer> {
         None => vec![],
       }
     })
-    .collect::<Vec<_>>()
+    .collect::<Vec<_>>();
+
+  Ok(windows_to_bring_to_front)
 }
 
 // fn windows_to_redraw(
@@ -164,7 +183,8 @@ fn redraw_containers(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let windows_to_redraw = state.windows_to_redraw();
-  let windows_to_bring_to_front = windows_to_bring_to_front(state);
+  let windows_to_bring_to_front =
+    windows_to_bring_to_front(focused_container, state)?;
 
   let mut windows_to_update = windows_to_redraw
     .iter()
