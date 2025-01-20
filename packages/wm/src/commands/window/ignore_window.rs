@@ -37,8 +37,7 @@ pub fn ignore_window(
 
     state
       .pending_sync
-      .containers_to_redraw
-      .extend(ancestor_to_redraw.tiling_children().map(Into::into));
+      .queue_containers_to_redraw(ancestor_to_redraw.tiling_children());
   }
 
   Ok(())

@@ -90,8 +90,7 @@ fn set_tiling_window_length(
 
       state
         .pending_sync
-        .containers_to_redraw
-        .extend(parent.tiling_children().map(Into::into));
+        .queue_containers_to_redraw(parent.tiling_children());
     }
   }
 
@@ -147,10 +146,7 @@ fn set_floating_window_size(
     new_height,
   ));
 
-  state
-    .pending_sync
-    .containers_to_redraw
-    .push(window.clone().into());
+  state.pending_sync.queue_container_to_redraw(window.clone());
 
   Ok(())
 }

@@ -30,6 +30,7 @@ mod commands;
 mod events;
 mod ipc_server;
 mod models;
+mod pending_sync;
 mod sys_tray;
 mod traits;
 mod user_config;

@@ -39,7 +39,7 @@ pub fn unmanage_window(
   // Reassign focus to suitable target.
   if let Some(focus_target) = focus_target {
     set_focused_descendant(&focus_target, None);
-    state.pending_sync.focus_change = true;
+    state.pending_sync.queue_focus_change();
     state.unmanaged_or_minimized_timestamp =
       Some(std::time::Instant::now());
   }
@@ -53,8 +53,7 @@ pub fn unmanage_window(
 
     state
       .pending_sync
-      .containers_to_redraw
-      .extend(ancestor_to_redraw.tiling_children().map(Into::into));
+      .queue_containers_to_redraw(ancestor_to_redraw.tiling_children());
   }
 
   Ok(())

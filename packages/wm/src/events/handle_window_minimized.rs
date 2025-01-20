@@ -36,7 +36,7 @@ pub fn handle_window_minimized(
       if let Some(focus_target) = state.focus_target_after_removal(&window)
       {
         set_focused_descendant(&focus_target, None);
-        state.pending_sync.focus_change = true;
+        state.pending_sync.queue_focus_change();
         state.unmanaged_or_minimized_timestamp =
           Some(std::time::Instant::now());
       }
