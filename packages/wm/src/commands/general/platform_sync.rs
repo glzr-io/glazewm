@@ -112,11 +112,14 @@ fn sync_focus(
   Ok(())
 }
 
-/// Gets windows that should be brought to the top of the z-order of their
-/// parent workspace.
+/// Finds windows that should be brought to the top of their workspace's
+/// z-order.
 ///
-/// Windows should be brought to the front if they match the focused
-/// window's state.
+/// Windows are brought to front if they match the focused window's state
+/// (floating/tiling) and any of these conditions are met:
+///  * Focus has changed to a different window.
+///  * Focused window's state has changed (e.g. tiling -> floating).
+///  * Focused window has moved to a different workspace.
 fn windows_to_bring_to_front(
   focused_container: &Container,
   state: &WmState,
