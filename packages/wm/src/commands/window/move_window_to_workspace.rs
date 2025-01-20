@@ -7,7 +7,7 @@ use crate::{
     container::{move_container_within_tree, set_focused_descendant},
     workspace::activate_workspace,
   },
-  models::{Container, WindowContainer, WorkspaceTarget},
+  models::{WindowContainer, WorkspaceTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -115,8 +115,10 @@ pub fn move_window_to_workspace(
     // monitor, we want to reset focus to the workspace that was displayed
     // on that monitor.
     if let Some(focus_reset_target) = focus_reset_target {
-      set_focused_descendant(&focus_reset_target, None);
-      state.pending_sync.queue_focus_change();
+      set_focused_descendant(
+        &focus_reset_target,
+        Some(&target_monitor.into()),
+      );
     }
 
     // Retain focus within the workspace from where the window was moved.
@@ -125,18 +127,21 @@ pub fn move_window_to_workspace(
       state.pending_sync.queue_focus_change();
     }
 
-    let containers_to_redraw: Vec<Container> = match window {
-      WindowContainer::NonTilingWindow(_) => vec![window.into()],
-      WindowContainer::TilingWindow(_) => current_workspace
-        .tiling_children()
-        .chain(target_workspace.tiling_children())
-        .map(Into::into)
-        .collect(),
+    match window {
+      WindowContainer::NonTilingWindow(_) => {
+        state.pending_sync.queue_container_to_redraw(window);
+      }
+      WindowContainer::TilingWindow(_) => {
+        state
+          .pending_sync
+          .queue_containers_to_redraw(current_workspace.tiling_children())
+          .queue_containers_to_redraw(target_workspace.tiling_children());
+      }
     };
 
     state
       .pending_sync
-      .queue_containers_to_redraw(containers_to_redraw);
+      .queue_workspace_to_reorder(target_workspace);
   }
 
   Ok(())

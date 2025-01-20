@@ -2,13 +2,20 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use crate::{models::Container, traits::CommonGetters};
+use crate::{
+  models::{Container, Workspace},
+  traits::CommonGetters,
+};
 
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PendingSync {
   /// Containers (and their descendants) that have a pending redraw.
   containers_to_redraw: HashMap<Uuid, Container>,
+
+  /// Workspaces where z-order should be updated. Windows that match the
+  /// focused window's state should be brought to the front.
+  workspaces_to_reorder: Vec<Workspace>,
 
   /// Whether native focus should be reassigned to the WM's focused
   /// container.
@@ -79,6 +86,14 @@ impl PendingSync {
     self
   }
 
+  pub fn queue_workspace_to_reorder(
+    &mut self,
+    workspace: Workspace,
+  ) -> &mut Self {
+    self.workspaces_to_reorder.push(workspace);
+    self
+  }
+
   pub fn queue_focus_change(&mut self) -> &mut Self {
     self.needs_focus_update = true;
     self
@@ -117,5 +132,9 @@ impl PendingSync {
 
   pub fn containers_to_redraw(&self) -> &HashMap<Uuid, Container> {
     &self.containers_to_redraw
+  }
+
+  pub fn workspaces_to_reorder(&self) -> &Vec<Workspace> {
+    &self.workspaces_to_reorder
   }
 }

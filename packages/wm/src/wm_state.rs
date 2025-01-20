@@ -133,6 +133,10 @@ impl WmState {
       .queue_focus_change()
       .queue_all_effects_update();
 
+    for workspace in self.workspaces() {
+      self.pending_sync.queue_workspace_to_reorder(workspace);
+    }
+
     platform_sync(self, config)?;
     self.has_initialized = true;
 

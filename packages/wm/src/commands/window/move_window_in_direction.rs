@@ -267,7 +267,8 @@ fn move_to_workspace_in_direction(
       .pending_sync
       .queue_containers_to_redraw(target_workspace.tiling_children())
       .queue_containers_to_redraw(parent.tiling_children())
-      .queue_cursor_jump();
+      .queue_cursor_jump()
+      .queue_workspace_to_reorder(target_workspace);
   };
 
   Ok(())

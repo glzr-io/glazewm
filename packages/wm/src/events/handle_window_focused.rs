@@ -48,13 +48,14 @@ pub fn handle_window_focused(
       return Ok(());
     }
 
+    let workspace = window.workspace().context("No workspace")?;
+
     // Handle focus events from windows on hidden workspaces. For example,
     // if Discord is forcefully shown by the OS when it's on a hidden
     // workspace, switch focus to Discord's workspace.
-    if window.clone().display_state() == DisplayState::Hidden {
+    if window.display_state() == DisplayState::Hidden {
       info!("Focusing off-screen window: {window}");
 
-      let workspace = window.workspace().context("No workspace")?;
       focus_workspace(
         WorkspaceTarget::Name(workspace.config().name),
         state,
@@ -73,7 +74,10 @@ pub fn handle_window_focused(
       config,
     )?;
 
-    state.pending_sync.queue_focused_effect_update();
+    state
+      .pending_sync
+      .queue_focused_effect_update()
+      .queue_workspace_to_reorder(workspace);
   }
 
   Ok(())
