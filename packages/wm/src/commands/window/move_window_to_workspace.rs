@@ -7,7 +7,7 @@ use crate::{
     container::{move_container_within_tree, set_focused_descendant},
     workspace::activate_workspace,
   },
-  models::{WindowContainer, WorkspaceTarget},
+  models::{Container, WindowContainer, WorkspaceTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -116,16 +116,16 @@ pub fn move_window_to_workspace(
     // on that monitor.
     if let Some(focus_reset_target) = focus_reset_target {
       set_focused_descendant(&focus_reset_target, None);
-      state.pending_sync.focus_change = true;
+      state.pending_sync.mark_focus_change();
     }
 
     // Retain focus within the workspace from where the window was moved.
     if let Some(focus_target) = focus_target {
       set_focused_descendant(&focus_target, None);
-      state.pending_sync.focus_change = true;
+      state.pending_sync.mark_focus_change();
     }
 
-    let containers_to_redraw = match window {
+    let containers_to_redraw: Vec<Container> = match window {
       WindowContainer::NonTilingWindow(_) => vec![window.into()],
       WindowContainer::TilingWindow(_) => current_workspace
         .tiling_children()
@@ -136,8 +136,7 @@ pub fn move_window_to_workspace(
 
     state
       .pending_sync
-      .containers_to_redraw
-      .extend(containers_to_redraw);
+      .add_containers_to_redraw(containers_to_redraw);
   }
 
   Ok(())

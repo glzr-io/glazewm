@@ -47,11 +47,11 @@ pub fn move_workspace_in_direction(
       );
     }
 
-    state.pending_sync.cursor_jump = true;
+    state.pending_sync.mark_cursor_jump();
     state
       .pending_sync
-      .containers_to_redraw
-      .extend([workspace.clone().into(), displayed_workspace.into()]);
+      .add_container_to_redraw(workspace.clone())
+      .add_container_to_redraw(displayed_workspace);
 
     match origin_monitor.child_count() {
       0 => {
@@ -60,11 +60,10 @@ pub fn move_workspace_in_direction(
       }
       _ => {
         // Redraw the workspace on the origin monitor.
-        state.pending_sync.containers_to_redraw.push(
+        state.pending_sync.add_container_to_redraw(
           origin_monitor
             .displayed_workspace()
-            .context("No displayed workspace.")?
-            .into(),
+            .context("No displayed workspace.")?,
         );
       }
     }

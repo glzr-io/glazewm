@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::{models::Container, traits::CommonGetters};
 
+#[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PendingSync {
   /// Containers (and their descendants) that have a pending redraw.
@@ -42,48 +43,59 @@ impl PendingSync {
     self
   }
 
-  pub fn add_container_to_redraw(
-    &mut self,
-    container: Container,
-  ) -> &mut Self {
+  pub fn add_container_to_redraw<T>(&mut self, container: T) -> &mut Self
+  where
+    T: Into<Container>,
+  {
+    let container: Container = container.into();
     self.containers_to_redraw.insert(container.id(), container);
     self
   }
 
-  pub fn add_containers_to_redraw(
+  pub fn add_containers_to_redraw<I, T>(
     &mut self,
-    containers: &[Container],
-  ) -> &mut Self {
+    containers: I,
+  ) -> &mut Self
+  where
+    I: IntoIterator<Item = T>,
+    T: Into<Container>,
+  {
     for container in containers {
-      self
-        .containers_to_redraw
-        .insert(container.id(), container.clone());
+      let container: Container = container.into();
+      self.containers_to_redraw.insert(container.id(), container);
     }
     self
   }
 
-  pub fn remove_container_from_redraw(
+  pub fn remove_container_from_redraw<T>(
     &mut self,
-    container: Container,
-  ) -> &mut Self {
-    self.containers_to_redraw.remove(&container.id());
+    container: T,
+  ) -> &mut Self
+  where
+    T: Into<Container>,
+  {
+    self.containers_to_redraw.remove(&container.into().id());
     self
   }
 
-  pub fn mark_focus_change(&mut self) {
+  pub fn mark_focus_change(&mut self) -> &mut Self {
     self.focus_change = true;
+    self
   }
 
-  pub fn mark_update_focused_window_effect(&mut self) {
+  pub fn mark_update_focused_window_effect(&mut self) -> &mut Self {
     self.update_focused_window_effect = true;
+    self
   }
 
-  pub fn mark_update_all_window_effects(&mut self) {
+  pub fn mark_update_all_window_effects(&mut self) -> &mut Self {
     self.update_all_window_effects = true;
+    self
   }
 
-  pub fn mark_cursor_jump(&mut self) {
+  pub fn mark_cursor_jump(&mut self) -> &mut Self {
     self.cursor_jump = true;
+    self
   }
 
   pub fn focus_change(&self) -> bool {
@@ -104,17 +116,5 @@ impl PendingSync {
 
   pub fn containers_to_redraw(&self) -> &HashMap<Uuid, Container> {
     &self.containers_to_redraw
-  }
-}
-
-impl Default for PendingSync {
-  fn default() -> Self {
-    Self {
-      containers_to_redraw: HashMap::new(),
-      focus_change: false,
-      update_focused_window_effect: false,
-      update_all_window_effects: false,
-      cursor_jump: false,
-    }
   }
 }

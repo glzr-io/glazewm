@@ -44,7 +44,7 @@ pub fn handle_window_focused(
       .is_some_and(|time| time.elapsed().as_millis() < 100)
     {
       info!("Overriding native focus.");
-      state.pending_sync.focus_change = true;
+      state.pending_sync.mark_focus_change();
       return Ok(());
     }
 
@@ -73,7 +73,7 @@ pub fn handle_window_focused(
       config,
     )?;
 
-    state.pending_sync.update_focused_window_effect = true;
+    state.pending_sync.mark_update_focused_window_effect();
   }
 
   Ok(())

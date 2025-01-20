@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Instant};
+use std::time::Instant;
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -128,11 +128,14 @@ impl WmState {
 
     set_focused_descendant(&container_to_focus, None);
 
-    self.pending_sync.focus_change = true;
-    self.pending_sync.update_all_window_effects = true;
-    platform_sync(self, config)?;
+    self
+      .pending_sync
+      .mark_focus_change()
+      .mark_update_all_window_effects();
 
+    platform_sync(self, config)?;
     self.has_initialized = true;
+
     Ok(())
   }
 
@@ -394,8 +397,8 @@ impl WmState {
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
     self
       .pending_sync
-      .containers_to_redraw
-      .iter()
+      .containers_to_redraw()
+      .values()
       .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())

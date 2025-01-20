@@ -58,11 +58,9 @@ pub fn reload_config(
   state.binding_modes = Vec::new();
 
   // Redraw full container tree.
-  let root_container = state.root_container.clone();
   state
     .pending_sync
-    .containers_to_redraw
-    .push(root_container.into());
+    .add_container_to_redraw(state.root_container.clone());
 
   // Emit the updated config.
   state.emit_event(WmEvent::UserConfigChanged {
@@ -184,7 +182,7 @@ fn update_window_effects(
     }
   }
 
-  state.pending_sync.update_all_window_effects = true;
+  state.pending_sync.mark_update_all_window_effects();
 
   Ok(())
 }

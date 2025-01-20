@@ -161,8 +161,8 @@ fn move_to_sibling_container(
 
       state
         .pending_sync
-        .containers_to_redraw
-        .extend([sibling_window.into(), window_to_move.into()]);
+        .add_container_to_redraw(sibling_window)
+        .add_container_to_redraw(window_to_move);
     }
     TilingContainer::Split(sibling_split) => {
       let sibling_descendant =
@@ -197,8 +197,8 @@ fn move_to_sibling_container(
         // TODO: Only redraw tiling containers.
         state
           .pending_sync
-          .containers_to_redraw
-          .extend([target_parent.into(), parent]);
+          .add_container_to_redraw(target_parent)
+          .add_container_to_redraw(parent);
       }
     }
   };
@@ -250,13 +250,11 @@ fn move_to_workspace_in_direction(
       state,
     )?;
 
-    // TODO: Only redraw tiling containers.
     state
       .pending_sync
-      .containers_to_redraw
-      .extend([workspace.into(), parent]);
-
-    state.pending_sync.cursor_jump = true;
+      .add_containers_to_redraw(workspace.tiling_children())
+      .add_containers_to_redraw(parent.tiling_children())
+      .mark_cursor_jump();
   };
 
   Ok(())
@@ -321,8 +319,7 @@ fn invert_workspace_tiling_direction(
 
   state
     .pending_sync
-    .containers_to_redraw
-    .extend(workspace.tiling_children().map(Into::into));
+    .add_containers_to_redraw(workspace.tiling_children());
 
   Ok(())
 }
@@ -360,8 +357,7 @@ fn insert_into_ancestor(
 
   state
     .pending_sync
-    .containers_to_redraw
-    .extend(target_ancestor.tiling_children().map(Into::into));
+    .add_containers_to_redraw(target_ancestor.tiling_children());
 
   Ok(())
 }
@@ -388,10 +384,7 @@ fn move_floating_window(
     }
 
     window_to_move.set_floating_placement(position_rect);
-    state
-      .pending_sync
-      .containers_to_redraw
-      .push(window_to_move.into());
+    state.pending_sync.add_container_to_redraw(window_to_move);
   }
 
   Ok(())

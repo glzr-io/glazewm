@@ -110,8 +110,7 @@ fn set_tiling(
 
   state
     .pending_sync
-    .containers_to_redraw
-    .extend(target_parent.tiling_children().map(Into::into));
+    .add_containers_to_redraw(target_parent.tiling_children());
 
   Ok(tiling_window.into())
 }
@@ -143,11 +142,7 @@ fn set_non_tiling(
       }
 
       window.set_state(target_state);
-
-      state
-        .pending_sync
-        .containers_to_redraw
-        .push(window.clone().into());
+      state.pending_sync.add_container_to_redraw(window.clone());
 
       Ok(window.into())
     }
@@ -182,14 +177,10 @@ fn set_non_tiling(
         window.index(),
       )?;
 
-      let changed_containers =
-        std::iter::once(non_tiling_window.clone().into())
-          .chain(workspace.tiling_children().map(Into::into));
-
       state
         .pending_sync
-        .containers_to_redraw
-        .extend(changed_containers);
+        .add_container_to_redraw(non_tiling_window.clone())
+        .add_containers_to_redraw(workspace.tiling_children());
 
       Ok(non_tiling_window.into())
     }

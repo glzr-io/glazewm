@@ -213,7 +213,7 @@ impl WindowManager {
             );
 
             window.set_border_delta(border_delta);
-            state.pending_sync.add_container_to_redraw(window.into());
+            state.pending_sync.add_container_to_redraw(window);
 
             Ok(())
           }
@@ -645,11 +645,9 @@ impl WindowManager {
       }
       InvokeCommand::WmExit => state.emit_exit(),
       InvokeCommand::WmRedraw => {
-        let root_container = state.root_container.clone();
         state
           .pending_sync
-          .containers_to_redraw
-          .push(root_container.into());
+          .add_container_to_redraw(state.root_container.clone());
 
         Ok(())
       }
