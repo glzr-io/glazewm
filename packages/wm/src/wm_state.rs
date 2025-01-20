@@ -104,7 +104,10 @@ impl WmState {
       add_monitor(native_monitor, self, config)?;
     }
 
-    for native_window in Platform::manageable_windows()? {
+    // Manage windows in reverse z-order (bottom to top). This helps to
+    // preserve the original stacking order.
+    for native_window in Platform::manageable_windows()?.into_iter().rev()
+    {
       let nearest_workspace = self
         .nearest_monitor(&native_window)
         .and_then(|m| m.displayed_workspace());

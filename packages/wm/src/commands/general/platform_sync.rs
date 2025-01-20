@@ -117,9 +117,11 @@ fn sync_focus(
   Ok(())
 }
 
-/// Change z-index of workspace windows that match the focused
-/// container's state. Make sure not to decrease z-index for floating
-/// windows that are always on top.
+/// Gets windows that should be brought to the top of the z-order of their
+/// parent workspace.
+///
+/// Windows should be brought to the front if they match the focused
+/// window's state.
 fn windows_to_bring_to_front(
   focused_container: &Container,
   state: &WmState,
@@ -140,6 +142,8 @@ fn windows_to_bring_to_front(
     )
     .unique_by(|workspace| workspace.id());
 
+  // Bring forward windows that match the focused state. Only do this for
+  // tiling/floating windows.
   let windows_to_bring_to_front = workspaces_to_reorder
     .flat_map(|workspace| {
       let focused_descendant = workspace
@@ -169,14 +173,6 @@ fn windows_to_bring_to_front(
   Ok(windows_to_bring_to_front)
 }
 
-// fn windows_to_redraw(
-//   state: &WmState,
-// ) -> Vec<(RedrawType, WindowContainer)> {
-//   let windows_to_redraw = state.windows_to_redraw();
-
-//   // TODO: Implement this.
-// }
-
 fn redraw_containers(
   focused_container: &Container,
   state: &mut WmState,
@@ -186,27 +182,34 @@ fn redraw_containers(
   let windows_to_bring_to_front =
     windows_to_bring_to_front(focused_container, state)?;
 
-  let mut windows_to_update = windows_to_redraw
-    .iter()
-    .chain(&windows_to_bring_to_front)
-    .unique_by(|window| window.id())
-    .collect::<Vec<_>>();
-
-  let descendant_focus_order = state
-    .root_container
-    .descendant_focus_order()
-    .collect::<Vec<_>>();
-
-  // Sort the windows to update by their focus order. The most recently
-  // focused window will be updated first.
-  windows_to_update.sort_by_key(|window| {
-    descendant_focus_order
+  let windows_to_update = {
+    let mut windows = windows_to_redraw
       .iter()
-      .position(|order| order.id() == window.id())
-  });
+      .chain(&windows_to_bring_to_front)
+      .unique_by(|window| window.id())
+      .collect::<Vec<_>>();
+
+    let descendant_focus_order = state
+      .root_container
+      .descendant_focus_order()
+      .collect::<Vec<_>>();
+
+    // Sort the windows to update by their focus order. The most recently
+    // focused window will be updated first.
+    windows.sort_by_key(|window| {
+      descendant_focus_order
+        .iter()
+        .position(|order| order.id() == window.id())
+    });
+
+    windows
+  };
 
   for window in &windows_to_update {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
+
+    let workspace =
+      window.workspace().context("Window has no workspace.")?;
 
     // Whether the window should be shown above all other windows.
     let z_order = match window.state() {
@@ -217,13 +220,16 @@ fn redraw_containers(
         ZOrder::TopMost
       }
       _ if should_bring_to_front => {
-        let focused_window = focused_container.as_window_container().ok();
+        let focused_descendant = workspace
+          .descendant_focus_order()
+          .next()
+          .and_then(|container| container.as_window_container().ok());
 
-        if let Some(focused) = focused_window {
-          if window.id() == focused_container.id() {
+        if let Some(focused_descendant) = focused_descendant {
+          if window.id() == focused_descendant.id() {
             ZOrder::Normal
           } else {
-            ZOrder::AfterWindow(focused.native().handle)
+            ZOrder::AfterWindow(focused_descendant.native().handle)
           }
         } else {
           ZOrder::Normal
@@ -243,9 +249,6 @@ fn redraw_containers(
 
       continue;
     }
-
-    let workspace =
-      window.workspace().context("Window has no workspace.")?;
 
     // Transition display state depending on whether window will be
     // shown or hidden.

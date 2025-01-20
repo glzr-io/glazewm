@@ -109,7 +109,8 @@ impl Platform {
   /// Gets a vector of "manageable" windows as `NativeWindow` instances.
   ///
   /// Manageable windows are visible windows that the WM is most likely
-  /// able to manage.
+  /// able to manage. Windows are returned in z-order (top to bottom),
+  /// although the order is not guaranteed by the underlying API.
   pub fn manageable_windows() -> anyhow::Result<Vec<NativeWindow>> {
     Ok(
       native_window::available_windows()?
