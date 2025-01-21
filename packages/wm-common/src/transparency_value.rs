@@ -10,13 +10,13 @@ impl TransparencyValue {
   #[must_use]
   pub fn to_alpha(&self) -> u8 {
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    let alpha = (self.0 / 100.0 * 255.0).round() as u8;
+    let alpha = (self.0 * 255.0).round() as u8;
     alpha
   }
 
   #[must_use]
   pub fn from_alpha(alpha: u8) -> Self {
-    Self(f32::from(alpha) / 255.0 * 100.0)
+    Self(f32::from(alpha) / 255.0)
   }
 }
 

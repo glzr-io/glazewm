@@ -39,7 +39,8 @@ pub fn platform_sync(
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
-  if state.pending_sync.needs_focused_effect_update()
+  if state.pending_sync.needs_focus_update()
+    || state.pending_sync.needs_focused_effect_update()
     || state.pending_sync.needs_all_effects_update()
   {
     // Keep reference to the previous window that had focus effects
