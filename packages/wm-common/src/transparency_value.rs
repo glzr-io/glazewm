@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -7,10 +8,15 @@ pub struct TransparencyValue(f32);
 
 impl TransparencyValue {
   #[must_use]
-  pub fn to_alpha(&self) -> i16 {
+  pub fn to_alpha(&self) -> u8 {
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    let alpha = (self.0 / 100.0 * 255.0).round() as i16;
+    let alpha = (self.0 / 100.0 * 255.0).round() as u8;
     alpha
+  }
+
+  #[must_use]
+  pub fn from_alpha(alpha: u8) -> Self {
+    Self(f32::from(alpha) / 255.0 * 100.0)
   }
 }
 
@@ -35,18 +41,20 @@ impl FromStr for TransparencyValue {
   /// assert_eq!(parsed.unwrap(), check);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
-    let s = unparsed.trim();
+    let unparsed = unparsed.trim();
 
-    if s.ends_with('%') {
-      let percentage = s
+    if unparsed.ends_with('%') {
+      let percentage = unparsed
         .trim_end_matches('%')
         .parse::<f32>()
-        .map_err(|_| anyhow::anyhow!("Invalid percentage format"))?;
+        .context("Invalid percentage format.")?;
+
       Ok(Self(percentage / 100.0))
     } else {
-      s.parse::<f32>()
+      unparsed
+        .parse::<f32>()
         .map(Self)
-        .map_err(|_| anyhow::anyhow!("Invalid decimal format"))
+        .context("Invalid decimal format.")
     }
   }
 }

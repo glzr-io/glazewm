@@ -421,14 +421,12 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window.native().set_transparency(
-    if effect_config.transparency.enabled {
-      &effect_config.transparency.value
-    } else {
-      // This code is only reached if the transparency effect is only
-      // enabled in one of the two window effect configurations. In
-      // this case, reset the opacity to default.
-      &TransparencyValue { percent: 255 }
-    },
-  );
+  let transparency = if effect_config.transparency.enabled {
+    &effect_config.transparency.value
+  } else {
+    // Reset the transparency to default.
+    &TransparencyValue::from_alpha(u8::MAX)
+  };
+
+  _ = window.native().set_transparency(transparency);
 }

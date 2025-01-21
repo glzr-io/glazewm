@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
 
-use crate::{Direction, LengthValue, TransparencyValue, TilingDirection};
+use crate::{Direction, LengthValue, TilingDirection, TransparencyValue};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -197,7 +197,7 @@ pub enum InvokeCommand {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
   },
-  SetOpacity {
+  SetTransparency {
     #[clap(required = true, allow_hyphen_values = true)]
     value: TransparencyValue,
   },

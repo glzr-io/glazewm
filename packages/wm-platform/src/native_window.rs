@@ -423,6 +423,7 @@ impl NativeWindow {
     let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
+    #[allow(clippy::cast_possible_wrap)]
     if current_style & style.0 as isize == 0 {
       let new_style = current_style | style.0 as isize;
 
@@ -436,35 +437,31 @@ impl NativeWindow {
     &self,
     transparency_delta: &Delta<TransparencyValue>,
   ) -> anyhow::Result<()> {
-    // Make the window layered if it isn't already.
-    self.add_window_style_ex(WS_EX_LAYERED);
-
-    let mut prev_alpha = u8::MAX;
+    let mut alpha = u8::MAX;
     let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
 
     unsafe {
       GetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        Some(&mut prev_alpha),
+        Some(&mut alpha),
         Some(&mut flag),
       )?;
     }
 
     if flag.contains(LWA_COLORKEY) {
       bail!(
-        "Window uses color key for its transparency. The transparency window effect cannot be applied."
+        "Window uses color key for its transparency and cannot be adjusted."
       );
     }
 
-    // Calculate the new opacity value.
-    let new_alpha = if transparency_delta.is_negative {
-      i16::from(prev_alpha) - transparency_delta.inner.to_alpha()
+    let target_alpha = if transparency_delta.is_negative {
+      alpha - transparency_delta.inner.to_alpha()
     } else {
-      i16::from(prev_alpha) + transparency_delta.inner.to_alpha()
+      alpha + transparency_delta.inner.to_alpha()
     };
 
-    self.set_transparency(new_alpha)
+    self.set_transparency(&TransparencyValue::from_alpha(target_alpha))
   }
 
   pub fn set_transparency(
@@ -474,47 +471,13 @@ impl NativeWindow {
     // Make the window layered if it isn't already.
     self.add_window_style_ex(WS_EX_LAYERED);
 
-    // Get the window's opacity information.
-    let mut previous_opacity = u8::MAX; // Use maximum opacity as a default.
-    let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
     unsafe {
-      GetLayeredWindowAttributes(
+      SetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        Some(&mut previous_opacity),
-        Some(&mut flag),
+        transparency_value.to_alpha(),
+        LWA_ALPHA,
       )?;
-    }
-
-    // Fail if window uses color key.
-    if flag.contains(LWA_COLORKEY) {
-      bail!(
-        "Window uses color key for its transparency. The transparency window effect cannot be applied."
-      );
-    }
-
-    // Calculate the new opacity value.
-    let new_opacity = if transparency_value.is_delta {
-      i16::from(previous_opacity) + transparency_value.percent
-    } else {
-      transparency_value.percent
-    };
-
-    // Clamp new_opacity to a u8.
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    let new_opacity =
-      new_opacity.clamp(i16::from(u8::MIN), i16::from(u8::MAX)) as u8;
-
-    // Set the new opacity if needed.
-    if new_opacity != previous_opacity {
-      unsafe {
-        SetLayeredWindowAttributes(
-          HWND(self.handle),
-          None,
-          new_opacity,
-          LWA_ALPHA,
-        )?;
-      }
     }
 
     Ok(())
