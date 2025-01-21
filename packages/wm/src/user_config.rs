@@ -38,7 +38,10 @@ impl UserConfig {
   /// Creates a new config file from sample if it doesn't exist.
   pub fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
     let default_config_path = home::home_dir()
-      .map(|default_config_path| default_config_path.join(".glzr/glazewm/config.yaml")).context("Unable to get home directory.");
+      .map(|default_config_path| {
+        default_config_path.join(".glzr/glazewm/config.yaml")
+      })
+      .context("Unable to get home directory.");
 
     let config_path = config_path
       .or_else(|| env::var("GLAZEWM_CONFIG_PATH").ok().map(PathBuf::from))
@@ -340,8 +343,12 @@ impl UserConfig {
     });
   }
 
-  pub fn has_outer_gaps(&self) -> bool {
-    let outer_gap = &self.value.gaps.outer_gap;
+  pub fn has_outer_gaps(&self, is_single_window: bool) -> bool {
+    let outer_gap = if is_single_window {
+      &self.value.gaps.single_screen_gap
+    } else {
+      &self.value.gaps.outer_gap
+    };
 
     // Allow for 1px/1% of leeway.
     outer_gap.bottom.amount > 1.0

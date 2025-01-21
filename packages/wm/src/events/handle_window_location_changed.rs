@@ -66,7 +66,16 @@ pub fn handle_window_location_changed(
       )?;
     }
 
-    let monitor_rect = if config.has_outer_gaps() {
+    let is_single_window = if let Some(nearest_workspace) =
+      nearest_monitor.displayed_workspace()
+    {
+      nearest_workspace.tiling_children().nth(1).is_none()
+    } else {
+      // Default to previous behaviour
+      false
+    };
+
+    let monitor_rect = if config.has_outer_gaps(is_single_window) {
       nearest_monitor.native().working_rect()?.clone()
     } else {
       nearest_monitor.to_rect()?

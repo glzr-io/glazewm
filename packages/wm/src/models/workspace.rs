@@ -125,11 +125,19 @@ impl PositionGetters for Workspace {
       .context("Failed to get working area of parent monitor.")?
       .delta(&monitor.to_rect()?);
 
+    let is_single_window = self.tiling_children().nth(1).is_none();
+
+    let gaps = if is_single_window {
+      &gaps_config.single_screen_gap
+    } else {
+      &gaps_config.outer_gap
+    };
+
     Ok(
       monitor
         .to_rect()?
         // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(&gaps_config.outer_gap, Some(scale_factor))
+        .apply_inverse_delta(gaps, Some(scale_factor))
         .apply_delta(&working_delta, None),
     )
   }
