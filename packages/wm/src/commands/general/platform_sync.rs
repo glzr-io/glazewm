@@ -4,8 +4,8 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
+  TransparencyValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -421,17 +421,14 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_opacity(if effect_config.transparency.enabled {
-      &effect_config.transparency.opacity
+  _ = window.native().set_transparency(
+    if effect_config.transparency.enabled {
+      &effect_config.transparency.value
     } else {
       // This code is only reached if the transparency effect is only
       // enabled in one of the two window effect configurations. In
       // this case, reset the opacity to default.
-      &OpacityValue {
-        amount: 255,
-        is_delta: false,
-      }
-    });
+      &TransparencyValue { percent: 255 }
+    },
+  );
 }

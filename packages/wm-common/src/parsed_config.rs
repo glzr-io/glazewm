@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  app_command::InvokeCommand, Color, LengthValue, OpacityValue, RectDelta,
+  app_command::InvokeCommand, Color, LengthValue, TransparencyValue, RectDelta,
 };
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -290,7 +290,7 @@ pub struct TransparencyEffectConfig {
   pub enabled: bool,
 
   /// The opacity to apply.
-  pub opacity: OpacityValue,
+  pub value: TransparencyValue,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

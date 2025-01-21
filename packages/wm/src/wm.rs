@@ -509,7 +509,7 @@ impl WindowManager {
       InvokeCommand::SetOpacity { opacity } => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            _ = window.native().set_opacity(opacity);
+            _ = window.native().set_transparency(opacity);
             Ok(())
           }
           _ => Ok(()),

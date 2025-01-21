@@ -79,7 +79,7 @@ window_effects:
       enabled: false
       # Can be something like '240' or '95%' for slightly transparent windows
       # '0' or '0%' is fully transparent (and, by consequence, unfocusable)
-      opacity: '95%'
+      value: '95%'
 
   # Visual effects to apply to non-focused windows.
   other_windows:
@@ -93,7 +93,7 @@ window_effects:
       style: 'square'
     transparency:
       enabled: false
-      opacity: '0%'
+      value: '0%'
 
 window_behavior:
   # New windows are created in this state whenever possible.

@@ -43,8 +43,8 @@ use windows::{
   },
 };
 use wm_common::{
-  Color, CornerStyle, HideMethod, LengthValue, Memo, OpacityValue, Rect,
-  RectDelta, WindowState,
+  Color, CornerStyle, HideMethod, LengthValue, Memo, Rect, RectDelta,
+  TransparencyValue, WindowState,
 };
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
@@ -419,14 +419,14 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_opacity(
+  pub fn set_transparency(
     &self,
-    opacity_value: &OpacityValue,
+    transparency_value: &TransparencyValue,
   ) -> anyhow::Result<()> {
-    // Make the window layered if it isn't already.
     let ex_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
+    // Make the window layered if it isn't already.
     #[allow(clippy::cast_possible_wrap)]
     if ex_style & WS_EX_LAYERED.0 as isize == 0 {
       unsafe {
@@ -458,10 +458,10 @@ impl NativeWindow {
     }
 
     // Calculate the new opacity value.
-    let new_opacity = if opacity_value.is_delta {
-      i16::from(previous_opacity) + opacity_value.amount
+    let new_opacity = if transparency_value.is_delta {
+      i16::from(previous_opacity) + transparency_value.percent
     } else {
-      opacity_value.amount
+      transparency_value.percent
     };
 
     // Clamp new_opacity to a u8.

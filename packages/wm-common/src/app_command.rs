@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
 
-use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
+use crate::{Direction, LengthValue, TransparencyValue, TilingDirection};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -199,7 +199,7 @@ pub enum InvokeCommand {
   },
   SetOpacity {
     #[clap(required = true, allow_hyphen_values = true)]
-    opacity: OpacityValue,
+    value: TransparencyValue,
   },
   ShellExec {
     #[clap(long, action)]
