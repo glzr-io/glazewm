@@ -43,8 +43,8 @@ use windows::{
   },
 };
 use wm_common::{
-  Color, CornerStyle, HideMethod, LengthValue, Memo, Rect, RectDelta,
-  TransparencyValue, WindowState,
+  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, Rect,
+  RectDelta, TransparencyValue, WindowState,
 };
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
@@ -419,24 +419,60 @@ impl NativeWindow {
     Ok(())
   }
 
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    let current_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+
+    if current_style & style.0 as isize == 0 {
+      let new_style = current_style | style.0 as isize;
+
+      unsafe {
+        SetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE, new_style)
+      };
+    }
+  }
+
+  pub fn adjust_transparency(
+    &self,
+    transparency_delta: &Delta<TransparencyValue>,
+  ) -> anyhow::Result<()> {
+    // Make the window layered if it isn't already.
+    self.add_window_style_ex(WS_EX_LAYERED);
+
+    let mut prev_alpha = u8::MAX;
+    let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
+
+    unsafe {
+      GetLayeredWindowAttributes(
+        HWND(self.handle),
+        None,
+        Some(&mut prev_alpha),
+        Some(&mut flag),
+      )?;
+    }
+
+    if flag.contains(LWA_COLORKEY) {
+      bail!(
+        "Window uses color key for its transparency. The transparency window effect cannot be applied."
+      );
+    }
+
+    // Calculate the new opacity value.
+    let new_alpha = if transparency_delta.is_negative {
+      i16::from(prev_alpha) - transparency_delta.inner.to_alpha()
+    } else {
+      i16::from(prev_alpha) + transparency_delta.inner.to_alpha()
+    };
+
+    self.set_transparency(new_alpha)
+  }
+
   pub fn set_transparency(
     &self,
     transparency_value: &TransparencyValue,
   ) -> anyhow::Result<()> {
-    let ex_style =
-      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
-
     // Make the window layered if it isn't already.
-    #[allow(clippy::cast_possible_wrap)]
-    if ex_style & WS_EX_LAYERED.0 as isize == 0 {
-      unsafe {
-        SetWindowLongPtrW(
-          HWND(self.handle),
-          GWL_EXSTYLE,
-          ex_style | WS_EX_LAYERED.0 as isize,
-        );
-      }
-    }
+    self.add_window_style_ex(WS_EX_LAYERED);
 
     // Get the window's opacity information.
     let mut previous_opacity = u8::MAX; // Use maximum opacity as a default.
@@ -480,6 +516,7 @@ impl NativeWindow {
         )?;
       }
     }
+
     Ok(())
   }
 
