@@ -23,16 +23,12 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  // Keep reference to the original focused container.
-  let recent_focused_window = state.recent_focused_window.clone();
-
   if state.pending_sync.needs_focus_update() {
     sync_focus(&focused_container, state)?;
   }
 
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
-    || state.pending_sync.needs_focus_update()
   {
     redraw_containers(&focused_container, state, config)?;
   }
@@ -46,8 +42,15 @@ pub fn platform_sync(
   if state.pending_sync.needs_focused_effect_update()
     || state.pending_sync.needs_all_effects_update()
   {
+    // Keep reference to the previous window that had focus effects
+    // applied.
+    let prev_effects_window = state.prev_effects_window.clone();
+
     if let Ok(window) = focused_container.as_window_container() {
       apply_window_effects(&window, true, config);
+      state.prev_effects_window = Some(window.clone());
+    } else {
+      state.prev_effects_window = None;
     }
 
     // Get windows that should have the unfocused border applied to them.
@@ -58,10 +61,7 @@ pub fn platform_sync(
       if state.pending_sync.needs_all_effects_update() {
         state.windows()
       } else {
-        recent_focused_window
-          .map(|(window, _)| window)
-          .into_iter()
-          .collect()
+        prev_effects_window.into_iter().collect()
       }
       .into_iter()
       .filter(|window| window.id() != focused_container.id());
@@ -102,12 +102,6 @@ fn sync_focus(
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
   });
-
-  if let Ok(window) = focused_container.as_window_container() {
-    state.recent_focused_window = Some((window.clone(), window.state()));
-  } else {
-    state.recent_focused_window = None;
-  }
 
   Ok(())
 }
@@ -203,7 +197,7 @@ fn redraw_containers(
     windows
   };
 
-  for window in &windows_to_update {
+  for window in windows_to_update.iter().rev() {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
 
     let workspace =
