@@ -265,6 +265,7 @@ fn move_to_workspace_in_direction(
 
     state
       .pending_sync
+      .queue_container_to_redraw(window_to_move.clone())
       .queue_containers_to_redraw(target_workspace.tiling_children())
       .queue_containers_to_redraw(parent.tiling_children())
       .queue_cursor_jump()
