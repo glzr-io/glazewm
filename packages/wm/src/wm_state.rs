@@ -36,13 +36,12 @@ pub struct WmState {
   /// workspace focus.
   pub recent_workspace_name: Option<String>,
 
-  /// Window that most recently had focus synced and a snapshot of its
-  /// window state.
+  /// The previously focused window that had focus effects applied.
   ///
-  /// Used for updating window effects on focus change. Note that this
-  /// container may be detached if it's a window that's recently been
-  /// killed.
-  pub recent_focused_window: Option<(WindowContainer, WindowState)>,
+  /// Used to efficiently update window effects by only removing focus
+  /// effects from the previous window rather than all windows when focus
+  /// changes.
+  pub prev_effects_window: Option<WindowContainer>,
 
   /// Time since a previously focused window was unmanaged or minimized.
   ///
@@ -77,7 +76,7 @@ impl WmState {
     Self {
       root_container: RootContainer::new(),
       pending_sync: PendingSync::default(),
-      recent_focused_window: None,
+      prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
