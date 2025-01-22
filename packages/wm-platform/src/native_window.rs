@@ -839,6 +839,24 @@ impl NativeWindow {
       )
     }?;
 
+    // Z-order can sometimes still be incorrect after the above call.
+    unsafe {
+      SetWindowPos(
+        HWND(self.handle),
+        z_order,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_ASYNCWINDOWPOS
+          | SWP_SHOWWINDOW
+          | SWP_NOMOVE
+          | SWP_NOSIZE,
+      )
+    }?;
+
     Ok(())
   }
 

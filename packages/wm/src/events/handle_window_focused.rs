@@ -1,14 +1,14 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{DisplayState, WindowRuleEvent};
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, Platform};
 
 use crate::{
   commands::{
     container::set_focused_descendant, window::run_window_rules,
     workspace::focus_workspace,
   },
-  models::WorkspaceTarget,
+  models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -29,12 +29,7 @@ pub fn handle_window_focused(
   // target focus container, we reassign any focus events 100ms after
   // close/minimize. This will cause focus to briefly flicker to the OS
   // focus target and then to the WM's focus target.
-  if !focused_container.is_workspace()
-    && state.focused_container() != found_window.clone().map(Into::into)
-    && state
-      .unmanaged_or_minimized_timestamp
-      .is_some_and(|time| time.elapsed().as_millis() < 100)
-  {
+  if should_override_focus(&focused_container, native_window, state) {
     state.pending_sync.queue_focus_change();
     return Ok(());
   }
@@ -48,9 +43,10 @@ pub fn handle_window_focused(
 
   // Focus effect should be updated for any change in focus that shouldn't
   // be overwritten. Focus here is either:
-  //  1. The WM's focused window.
-  //  2. A workspace (i.e. the desktop window).
+  //  1. WM's focus container (window).
+  //  2. WM's focus container (workspace - i.e. the desktop window).
   //  3. An ignored window.
+  //  4. A window that received manual focus.
   state.pending_sync.queue_focused_effect_update();
 
   if let Some(window) = found_window {
@@ -87,4 +83,22 @@ pub fn handle_window_focused(
   }
 
   Ok(())
+}
+
+/// Returns true if focus should be reassigned to the WM's focus container.
+fn should_override_focus(
+  focused_container: &Container,
+  native_window: &NativeWindow,
+  state: &WmState,
+) -> bool {
+  let has_recent_unmanage = state
+    .unmanaged_or_minimized_timestamp
+    .is_some_and(|time| time.elapsed().as_millis() < 100);
+
+  let has_correct_focus = match focused_container.as_window_container() {
+    Ok(window) => *window.native() == *native_window,
+    _ => Platform::desktop_window() == *native_window,
+  };
+
+  has_recent_unmanage && !has_correct_focus
 }
