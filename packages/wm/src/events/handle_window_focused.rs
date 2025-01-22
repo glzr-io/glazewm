@@ -20,9 +20,8 @@ pub fn handle_window_focused(
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(native_window);
-
-  // let focused_container =
-  //   state.focused_container().context("No focused container.")?;
+  let focused_container =
+    state.focused_container().context("No focused container.")?;
 
   // Handle overriding focus on close/minimize. After a window is closed
   // or minimized, the OS or the closed application might automatically
@@ -30,12 +29,12 @@ pub fn handle_window_focused(
   // target focus container, we reassign any focus events 100ms after
   // close/minimize. This will cause focus to briefly flicker to the OS
   // focus target and then to the WM's focus target.
-  if state.focused_container() != found_window.clone().map(Into::into)
+  if !focused_container.is_workspace()
+    && state.focused_container() != found_window.clone().map(Into::into)
     && state
       .unmanaged_or_minimized_timestamp
       .is_some_and(|time| time.elapsed().as_millis() < 100)
   {
-    // TODO: This is triggered for focus to the desktop window.
     state.pending_sync.queue_focus_change();
     return Ok(());
   }
@@ -47,18 +46,18 @@ pub fn handle_window_focused(
     }
   }
 
-  println!("queueing focused effect update");
+  // Focus effect should be updated for any change in focus that shouldn't
+  // be overwritten. Focus here is either:
+  //  1. The WM's focused window.
+  //  2. A workspace (i.e. the desktop window).
+  //  3. An ignored window.
   state.pending_sync.queue_focused_effect_update();
 
   if let Some(window) = found_window {
     let workspace = window.workspace().context("No workspace")?;
 
-    // 2. Focus is already set to the WM's focused container.
-    if state.focused_container() == Some(window.clone().into()) {
-      println!("here!!!");
-      // TODO: Apply workspace reordering + focus effect update if focus is
-      // assigned to the WM's focused container. Also need to handle if
-      // manual user focus.
+    // Native focus has been synced to the WM's focused container.
+    if focused_container == window.clone().into() {
       state.pending_sync.queue_workspace_to_reorder(workspace);
       return Ok(());
     }
