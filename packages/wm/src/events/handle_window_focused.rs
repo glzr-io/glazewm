@@ -26,7 +26,6 @@ pub fn handle_window_focused(
     // 1. Window is being hidden by the WM.
     // 2. Focus is already set to the WM's focused container.
     if window.display_state() == DisplayState::Hiding
-      || state.focused_container() == Some(window.clone().into())
     {
       return Ok(());
     }
@@ -76,7 +75,7 @@ pub fn handle_window_focused(
 
     state
       .pending_sync
-      .queue_focused_effect_update()
+      .queue_all_effects_update()
       .queue_workspace_to_reorder(workspace);
   }
 
