@@ -808,6 +808,22 @@ impl NativeWindow {
     Ok(())
   }
 
+  /// Marks the window as fullscreen.
+  ///
+  /// Causes the native Windows taskbar to be moved to the bottom of the
+  /// z-order when this window is active.
+  pub fn mark_fullscreen(&self, fullscreen: bool) -> anyhow::Result<()> {
+    COM_INIT.with(|com_init| -> anyhow::Result<()> {
+      let taskbar_list = com_init.taskbar_list()?;
+
+      unsafe {
+        taskbar_list.MarkFullscreenWindow(HWND(self.handle), fullscreen)
+      }?;
+
+      Ok(())
+    })
+  }
+
   pub fn set_z_order(&self, z_order: &ZOrder) -> anyhow::Result<()> {
     let z_order = match z_order {
       ZOrder::TopMost => HWND_TOPMOST,

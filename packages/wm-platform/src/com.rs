@@ -6,7 +6,7 @@ use windows::{
       CoCreateInstance, CoInitializeEx, CoUninitialize, IServiceProvider,
       CLSCTX_ALL, CLSCTX_SERVER, COINIT_APARTMENTTHREADED,
     },
-    UI::Shell::{ITaskbarList, TaskbarList},
+    UI::Shell::{ITaskbarList2, TaskbarList},
   },
 };
 
@@ -25,7 +25,7 @@ thread_local! {
 pub struct ComInit {
   service_provider: Option<IServiceProvider>,
   application_view_collection: Option<IApplicationViewCollection>,
-  taskbar_list: Option<ITaskbarList>,
+  taskbar_list: Option<ITaskbarList2>,
 }
 
 impl ComInit {
@@ -79,12 +79,12 @@ impl ComInit {
     )
   }
 
-  /// Returns an instance of `ITaskbarList`.
-  pub fn taskbar_list(&self) -> anyhow::Result<ITaskbarList> {
+  /// Returns an instance of `ITaskbarList2`.
+  pub fn taskbar_list(&self) -> anyhow::Result<ITaskbarList2> {
     self
       .taskbar_list
       .clone()
-      .context("Unable to create `ITaskbarList` instance.")
+      .context("Unable to create `ITaskbarList2` instance.")
   }
 }
 
