@@ -506,10 +506,17 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTransparency { opacity } => {
+      InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            _ = window.native().set_transparency(opacity);
+            if let Some(opacity) = &args.opacity {
+              _ = window.native().set_transparency(opacity);
+            }
+
+            if let Some(opacity_delta) = &args.opacity_delta {
+              _ = window.native().adjust_transparency(opacity_delta);
+            }
+
             Ok(())
           }
           _ => Ok(()),

@@ -456,9 +456,9 @@ impl NativeWindow {
     }
 
     let target_alpha = if opacity_delta.is_negative {
-      alpha - opacity_delta.inner.to_alpha()
+      alpha.saturating_sub(opacity_delta.inner.to_alpha())
     } else {
-      alpha + opacity_delta.inner.to_alpha()
+      alpha.saturating_add(opacity_delta.inner.to_alpha())
     };
 
     self.set_transparency(&OpacityValue::from_alpha(target_alpha))
@@ -867,6 +867,7 @@ impl NativeWindow {
 
     _ = self.set_taskbar_visibility(true);
     _ = self.set_border_color(None);
+    _ = self.set_transparency(&OpacityValue::from_alpha(u8::MAX));
   }
 }
 

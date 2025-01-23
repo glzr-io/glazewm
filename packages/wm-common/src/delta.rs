@@ -1,17 +1,20 @@
 use std::str::FromStr;
 
 use anyhow::bail;
+use serde::Serialize;
 
 /// A wrapper that indicates a value should be interpreted as a delta
 /// (relative change).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Delta<T> {
   pub inner: T,
   pub is_negative: bool,
 }
 
-impl<T: FromStr<Err = anyhow::Error>> Delta<T> {
-  pub fn parse(unparsed: &str) -> Result<Self, anyhow::Error> {
+impl<T: FromStr<Err = anyhow::Error>> FromStr for Delta<T> {
+  type Err = anyhow::Error;
+
+  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     let unparsed = unparsed.trim();
 
     let (raw, is_negative) = match unparsed.chars().next() {
