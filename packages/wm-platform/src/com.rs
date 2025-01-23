@@ -1,9 +1,12 @@
 use anyhow::Context;
 use windows::{
   core::{ComInterface, IUnknown, IUnknown_Vtbl, GUID, HRESULT},
-  Win32::System::Com::{
-    CoCreateInstance, CoInitializeEx, CoUninitialize, IServiceProvider,
-    CLSCTX_ALL, COINIT_APARTMENTTHREADED,
+  Win32::{
+    System::Com::{
+      CoCreateInstance, CoInitializeEx, CoUninitialize, IServiceProvider,
+      CLSCTX_ALL, CLSCTX_SERVER, COINIT_APARTMENTTHREADED,
+    },
+    UI::Shell::{ITaskbarList, TaskbarList},
   },
 };
 
@@ -19,7 +22,11 @@ thread_local! {
   pub static COM_INIT: ComInit = ComInit::new();
 }
 
-pub struct ComInit();
+pub struct ComInit {
+  service_provider: Option<IServiceProvider>,
+  application_view_collection: Option<IApplicationViewCollection>,
+  taskbar_list: Option<ITaskbarList>,
+}
 
 impl ComInit {
   /// Initializes COM on the current thread with apartment threading model.
@@ -34,7 +41,50 @@ impl ComInit {
     unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }
       .expect("Unable to initialize COM.");
 
-    Self()
+    let service_provider = unsafe {
+      CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL)
+    }
+    .ok();
+
+    let application_view_collection = service_provider.as_ref().and_then(
+      |provider: &IServiceProvider| unsafe {
+        provider.QueryService(&IApplicationViewCollection::IID).ok()
+      },
+    );
+
+    let taskbar_list =
+      unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_SERVER) }.ok();
+
+    Self {
+      service_provider,
+      application_view_collection,
+      taskbar_list,
+    }
+  }
+
+  /// Returns an instance of `IServiceProvider`.
+  pub fn service_provider(&self) -> anyhow::Result<IServiceProvider> {
+    self
+      .service_provider
+      .clone()
+      .context("Unable to create `IServiceProvider` instance.")
+  }
+
+  /// Returns an instance of `IApplicationViewCollection`.
+  pub fn application_view_collection(
+    &self,
+  ) -> anyhow::Result<IApplicationViewCollection> {
+    self.application_view_collection.clone().context(
+      "Failed to query for `IApplicationViewCollection` instance.",
+    )
+  }
+
+  /// Returns an instance of `ITaskbarList`.
+  pub fn taskbar_list(&self) -> anyhow::Result<ITaskbarList> {
+    self
+      .taskbar_list
+      .clone()
+      .context("Unable to create `ITaskbarList` instance.")
   }
 }
 
@@ -48,26 +98,6 @@ impl Drop for ComInit {
   fn drop(&mut self) {
     unsafe { CoUninitialize() };
   }
-}
-
-/// Returns an instance of `IServiceProvider`.
-pub fn iservice_provider() -> anyhow::Result<IServiceProvider> {
-  COM_INIT.with(|_| unsafe {
-    CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL)
-      .context("Unable to create `IServiceProvider` instance.")
-  })
-}
-
-/// Returns an instance of `IApplicationViewCollection`.
-pub fn iapplication_view_collection(
-  provider: &IServiceProvider,
-) -> anyhow::Result<IApplicationViewCollection> {
-  COM_INIT.with(|_| {
-    unsafe { provider.QueryService(&IApplicationViewCollection::IID) }
-      .context(
-        "Failed to query for `IApplicationViewCollection` instance.",
-      )
-  })
 }
 
 /// Undocumented COM interface for Windows shell functionality.

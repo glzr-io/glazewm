@@ -10,18 +10,14 @@ use windows::{
       DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
       DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
     },
-    System::{
-      Com::{CoCreateInstance, CLSCTX_SERVER},
-      Threading::{
-        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-      },
+    System::Threading::{
+      OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+      PROCESS_QUERY_LIMITED_INFORMATION,
     },
     UI::{
       Input::KeyboardAndMouse::{
         SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
       },
-      Shell::{ITaskbarList, TaskbarList},
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
         GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
@@ -47,7 +43,7 @@ use wm_common::{
   Rect, RectDelta, WindowState,
 };
 
-use super::{iapplication_view_collection, iservice_provider, COM_INIT};
+use super::COM_INIT;
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.
@@ -664,9 +660,8 @@ impl NativeWindow {
   }
 
   pub fn set_cloaked(&self, cloaked: bool) -> anyhow::Result<()> {
-    COM_INIT.with(|_| -> anyhow::Result<()> {
-      let view_collection =
-        iapplication_view_collection(&iservice_provider()?)?;
+    COM_INIT.with(|com_init| -> anyhow::Result<()> {
+      let view_collection = com_init.application_view_collection()?;
 
       let mut view = None;
       unsafe { view_collection.get_view_for_hwnd(self.handle, &mut view) }
@@ -691,9 +686,8 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> anyhow::Result<()> {
-    COM_INIT.with(|_| -> anyhow::Result<()> {
-      let taskbar_list: ITaskbarList =
-        unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_SERVER)? };
+    COM_INIT.with(|com_init| -> anyhow::Result<()> {
+      let taskbar_list = com_init.taskbar_list()?;
 
       if visible {
         unsafe { taskbar_list.AddTab(HWND(self.handle))? };
