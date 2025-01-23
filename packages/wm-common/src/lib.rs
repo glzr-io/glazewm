@@ -4,6 +4,7 @@
 mod active_drag;
 mod app_command;
 mod color;
+mod delta;
 mod direction;
 mod display_state;
 mod dtos;
@@ -22,6 +23,7 @@ mod wm_event;
 pub use active_drag::*;
 pub use app_command::*;
 pub use color::*;
+pub use delta::*;
 pub use direction::*;
 pub use display_state::*;
 pub use dtos::*;

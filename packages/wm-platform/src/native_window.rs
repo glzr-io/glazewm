@@ -43,8 +43,8 @@ use windows::{
   },
 };
 use wm_common::{
-  Color, CornerStyle, HideMethod, LengthValue, Memo, OpacityValue, Rect,
-  RectDelta, WindowState,
+  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
+  Rect, RectDelta, WindowState,
 };
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
@@ -419,67 +419,67 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_opacity(
-    &self,
-    opacity_value: &OpacityValue,
-  ) -> anyhow::Result<()> {
-    // Make the window layered if it isn't already.
-    let ex_style =
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    let current_style =
       unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
 
     #[allow(clippy::cast_possible_wrap)]
-    if ex_style & WS_EX_LAYERED.0 as isize == 0 {
-      unsafe {
-        SetWindowLongPtrW(
-          HWND(self.handle),
-          GWL_EXSTYLE,
-          ex_style | WS_EX_LAYERED.0 as isize,
-        );
-      }
-    }
+    if current_style & style.0 as isize == 0 {
+      let new_style = current_style | style.0 as isize;
 
-    // Get the window's opacity information.
-    let mut previous_opacity = u8::MAX; // Use maximum opacity as a default.
+      unsafe {
+        SetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE, new_style)
+      };
+    }
+  }
+
+  pub fn adjust_transparency(
+    &self,
+    opacity_delta: &Delta<OpacityValue>,
+  ) -> anyhow::Result<()> {
+    let mut alpha = u8::MAX;
     let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
+
     unsafe {
       GetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        Some(&mut previous_opacity),
+        Some(&mut alpha),
         Some(&mut flag),
       )?;
     }
 
-    // Fail if window uses color key.
     if flag.contains(LWA_COLORKEY) {
       bail!(
-        "Window uses color key for its transparency. The transparency window effect cannot be applied."
+        "Window uses color key for its transparency and cannot be adjusted."
       );
     }
 
-    // Calculate the new opacity value.
-    let new_opacity = if opacity_value.is_delta {
-      i16::from(previous_opacity) + opacity_value.amount
+    let target_alpha = if opacity_delta.is_negative {
+      alpha.saturating_sub(opacity_delta.inner.to_alpha())
     } else {
-      opacity_value.amount
+      alpha.saturating_add(opacity_delta.inner.to_alpha())
     };
 
-    // Clamp new_opacity to a u8.
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    let new_opacity =
-      new_opacity.clamp(i16::from(u8::MIN), i16::from(u8::MAX)) as u8;
+    self.set_transparency(&OpacityValue::from_alpha(target_alpha))
+  }
 
-    // Set the new opacity if needed.
-    if new_opacity != previous_opacity {
-      unsafe {
-        SetLayeredWindowAttributes(
-          HWND(self.handle),
-          None,
-          new_opacity,
-          LWA_ALPHA,
-        )?;
-      }
+  pub fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> anyhow::Result<()> {
+    // Make the window layered if it isn't already.
+    self.add_window_style_ex(WS_EX_LAYERED);
+
+    unsafe {
+      SetLayeredWindowAttributes(
+        HWND(self.handle),
+        None,
+        opacity_value.to_alpha(),
+        LWA_ALPHA,
+      )?;
     }
+
     Ok(())
   }
 
@@ -867,6 +867,7 @@ impl NativeWindow {
 
     _ = self.set_taskbar_visibility(true);
     _ = self.set_border_color(None);
+    _ = self.set_transparency(&OpacityValue::from_alpha(u8::MAX));
   }
 }
 

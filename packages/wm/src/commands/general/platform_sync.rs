@@ -421,17 +421,12 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_opacity(if effect_config.transparency.enabled {
-      &effect_config.transparency.opacity
-    } else {
-      // This code is only reached if the transparency effect is only
-      // enabled in one of the two window effect configurations. In
-      // this case, reset the opacity to default.
-      &OpacityValue {
-        amount: 255,
-        is_delta: false,
-      }
-    });
+  let transparency = if effect_config.transparency.enabled {
+    &effect_config.transparency.opacity
+  } else {
+    // Reset the transparency to default.
+    &OpacityValue::from_alpha(u8::MAX)
+  };
+
+  _ = window.native().set_transparency(transparency);
 }

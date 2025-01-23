@@ -5,7 +5,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
 
-use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
+use crate::{
+  Delta, Direction, LengthValue, OpacityValue, TilingDirection,
+};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -197,10 +199,7 @@ pub enum InvokeCommand {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
   },
-  SetOpacity {
-    #[clap(required = true, allow_hyphen_values = true)]
-    opacity: OpacityValue,
-  },
+  SetTransparency(SetTransparencyCommand),
   ShellExec {
     #[clap(long, action)]
     hide_window: bool,
@@ -360,6 +359,16 @@ pub struct InvokeResizeCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   pub height: Option<LengthValue>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true)]
+pub struct SetTransparencyCommand {
+  #[clap(long)]
+  pub opacity: Option<OpacityValue>,
+
+  #[clap(long, allow_hyphen_values = true)]
+  pub opacity_delta: Option<Delta<OpacityValue>>,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
