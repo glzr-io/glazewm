@@ -43,8 +43,8 @@ use windows::{
   },
 };
 use wm_common::{
-  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, Rect,
-  RectDelta, TransparencyValue, WindowState,
+  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
+  Rect, RectDelta, WindowState,
 };
 
 use super::{iapplication_view_collection, iservice_provider, COM_INIT};
@@ -435,7 +435,7 @@ impl NativeWindow {
 
   pub fn adjust_transparency(
     &self,
-    transparency_delta: &Delta<TransparencyValue>,
+    opacity_delta: &Delta<OpacityValue>,
   ) -> anyhow::Result<()> {
     let mut alpha = u8::MAX;
     let mut flag = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
@@ -455,18 +455,18 @@ impl NativeWindow {
       );
     }
 
-    let target_alpha = if transparency_delta.is_negative {
-      alpha - transparency_delta.inner.to_alpha()
+    let target_alpha = if opacity_delta.is_negative {
+      alpha - opacity_delta.inner.to_alpha()
     } else {
-      alpha + transparency_delta.inner.to_alpha()
+      alpha + opacity_delta.inner.to_alpha()
     };
 
-    self.set_transparency(&TransparencyValue::from_alpha(target_alpha))
+    self.set_transparency(&OpacityValue::from_alpha(target_alpha))
   }
 
   pub fn set_transparency(
     &self,
-    transparency_value: &TransparencyValue,
+    opacity_value: &OpacityValue,
   ) -> anyhow::Result<()> {
     // Make the window layered if it isn't already.
     self.add_window_style_ex(WS_EX_LAYERED);
@@ -475,7 +475,7 @@ impl NativeWindow {
       SetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        transparency_value.to_alpha(),
+        opacity_value.to_alpha(),
         LWA_ALPHA,
       )?;
     }

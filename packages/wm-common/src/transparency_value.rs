@@ -4,9 +4,9 @@ use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct TransparencyValue(f32);
+pub struct OpacityValue(f32);
 
-impl TransparencyValue {
+impl OpacityValue {
   #[must_use]
   pub fn to_alpha(&self) -> u8 {
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -20,24 +20,24 @@ impl TransparencyValue {
   }
 }
 
-impl Default for TransparencyValue {
+impl Default for OpacityValue {
   fn default() -> Self {
     Self(100.0)
   }
 }
 
-impl FromStr for TransparencyValue {
+impl FromStr for OpacityValue {
   type Err = anyhow::Error;
 
-  /// Parses a string for a transparency value. The string must be
-  /// a percentage or a decimal number.
+  /// Parses a string for an opacity value. The string must be a percentage
+  /// or a decimal number.
   ///
   /// Example:
   /// ```
-  /// # use wm::common::{TransparencyValue};
+  /// # use wm::common::{OpacityValue};
   /// # use std::str::FromStr;
-  /// let check = TransparencyValue(0.75);
-  /// let parsed = TransparencyValue::from_str("75%");
+  /// let check = OpacityValue(0.75);
+  /// let parsed = OpacityValue::from_str("75%");
   /// assert_eq!(parsed.unwrap(), check);
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
@@ -59,22 +59,22 @@ impl FromStr for TransparencyValue {
   }
 }
 
-/// Deserialize an `TransparencyValue` from either a number or a string.
-impl<'de> Deserialize<'de> for TransparencyValue {
+/// Deserialize an `OpacityValue` from either a number or a string.
+impl<'de> Deserialize<'de> for OpacityValue {
   fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
   where
     D: Deserializer<'de>,
   {
     #[derive(Deserialize)]
     #[serde(untagged, rename_all = "camelCase")]
-    enum TransparencyValueDe {
+    enum OpacityValueDe {
       Number(f32),
       String(String),
     }
 
-    match TransparencyValueDe::deserialize(deserializer)? {
-      TransparencyValueDe::Number(num) => Ok(Self(num)),
-      TransparencyValueDe::String(str) => {
+    match OpacityValueDe::deserialize(deserializer)? {
+      OpacityValueDe::Number(num) => Ok(Self(num)),
+      OpacityValueDe::String(str) => {
         Self::from_str(&str).map_err(serde::de::Error::custom)
       }
     }

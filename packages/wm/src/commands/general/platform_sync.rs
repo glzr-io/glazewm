@@ -4,8 +4,8 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
-  TransparencyValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
+  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -39,8 +39,7 @@ pub fn platform_sync(
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
-  if state.pending_sync.needs_focus_update()
-    || state.pending_sync.needs_focused_effect_update()
+  if state.pending_sync.needs_focused_effect_update()
     || state.pending_sync.needs_all_effects_update()
   {
     // Keep reference to the previous window that had focus effects
@@ -423,10 +422,10 @@ fn apply_transparency_effect(
   effect_config: &WindowEffectConfig,
 ) {
   let transparency = if effect_config.transparency.enabled {
-    &effect_config.transparency.value
+    &effect_config.transparency.opacity
   } else {
     // Reset the transparency to default.
-    &TransparencyValue::from_alpha(u8::MAX)
+    &OpacityValue::from_alpha(u8::MAX)
   };
 
   _ = window.native().set_transparency(transparency);
