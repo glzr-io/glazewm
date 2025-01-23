@@ -22,7 +22,7 @@ impl OpacityValue {
 
 impl Default for OpacityValue {
   fn default() -> Self {
-    Self(100.0)
+    Self(1.0)
   }
 }
 

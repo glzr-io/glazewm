@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
 
-use crate::{Direction, LengthValue, TilingDirection, OpacityValue};
+use crate::{Direction, LengthValue, OpacityValue, TilingDirection};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
