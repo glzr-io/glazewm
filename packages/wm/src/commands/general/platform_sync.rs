@@ -165,6 +165,7 @@ fn windows_to_bring_to_front(
   Ok(windows_to_bring_to_front)
 }
 
+#[allow(clippy::too_many_lines)]
 fn redraw_containers(
   focused_container: &Container,
   state: &mut WmState,
@@ -276,6 +277,25 @@ fn redraw_containers(
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
+    }
+
+    // Whether the window is either transitioning to or from fullscreen.
+    // TODO: This check can be improved since `prev_state` can be
+    // fullscreen without it needing to be marked as not fullscreen.
+    let is_transitioning_fullscreen =
+      match (window.prev_state(), window.state()) {
+        (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
+        (Some(WindowState::Fullscreen(_)), _) => true,
+        _ => false,
+      };
+
+    if is_transitioning_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(matches!(
+        window.state(),
+        WindowState::Fullscreen(_)
+      )) {
+        warn!("Failed to mark window as fullscreen: {}", err);
+      }
     }
 
     // Skip setting taskbar visibility if the window is hidden (has no
