@@ -211,6 +211,12 @@ fn window_state_to_create(
     ));
   }
 
+  if native_window.is_popup() {
+    return Ok(WindowState::Floating(
+        config.value.window_behavior.state_defaults.floating.clone(),
+    ));
+  }
+
   Ok(WindowState::default_from_config(&config.value))
 }
 
