@@ -204,19 +204,14 @@ fn window_state_to_create(
     ));
   }
 
-  // Initialize windows that can't be resized as floating.
-  if !native_window.is_resizable() {
+  // Initialize windows that can't be resized and popup windows as floating.
+  if !native_window.is_resizable() 
+    && native_window.is_popup() {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
     ));
   }
-
-  if native_window.is_popup() {
-    return Ok(WindowState::Floating(
-        config.value.window_behavior.state_defaults.floating.clone(),
-    ));
-  }
-
+    
   Ok(WindowState::default_from_config(&config.value))
 }
 
