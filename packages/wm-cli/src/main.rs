@@ -11,7 +11,8 @@ async fn main() -> anyhow::Result<()> {
 
   match app_command {
     AppCommand::Start { .. } => {
-      let exe_dir = env::current_exe()?
+      let exe_path = env::current_exe()?;
+      let exe_dir = exe_path
         .parent()
         .context("Failed to resolve path to the current executable.")?
         .to_owned();
@@ -21,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
       let main_path =
         [exe_dir.join("glazewm.exe"), exe_dir.join("../glazewm.exe")]
           .into_iter()
-          .find(|path| path.exists())
+          .find(|path| path.exists() && *path != exe_path)
           .and_then(|path| path.to_str().map(ToString::to_string))
           .context("Failed to resolve path to the main executable.")?;
 
