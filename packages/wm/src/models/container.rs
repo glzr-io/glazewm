@@ -220,9 +220,10 @@ impl std::fmt::Display for WindowContainer {
     let class = native.class_name().unwrap_or_default();
     let process = native.process_name().unwrap_or_default();
 
-    // Truncate title if longer than 20 chars.
+    // Truncate title if longer than 20 chars. Need to use `chars()`
+    // instead of byte slices to handle invalid byte indices.
     let title = if title.len() > 20 {
-      format!("{}...", &title[..17])
+      format!("{}...", &title.chars().take(17).collect::<String>())
     } else {
       title
     };
