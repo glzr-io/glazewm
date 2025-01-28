@@ -96,6 +96,11 @@ impl Default for ComInit {
 
 impl Drop for ComInit {
   fn drop(&mut self) {
+    // Explicitly drop COM interfaces first.
+    drop(self.taskbar_list.take());
+    drop(self.application_view_collection.take());
+    drop(self.service_provider.take());
+
     unsafe { CoUninitialize() };
   }
 }
