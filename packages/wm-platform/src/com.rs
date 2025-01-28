@@ -63,27 +63,27 @@ impl ComInit {
   }
 
   /// Returns an instance of `IServiceProvider`.
-  pub fn service_provider(&self) -> anyhow::Result<IServiceProvider> {
+  pub fn service_provider(&self) -> anyhow::Result<&IServiceProvider> {
     self
       .service_provider
-      .clone()
+      .as_ref()
       .context("Unable to create `IServiceProvider` instance.")
   }
 
   /// Returns an instance of `IApplicationViewCollection`.
   pub fn application_view_collection(
     &self,
-  ) -> anyhow::Result<IApplicationViewCollection> {
-    self.application_view_collection.clone().context(
+  ) -> anyhow::Result<&IApplicationViewCollection> {
+    self.application_view_collection.as_ref().context(
       "Failed to query for `IApplicationViewCollection` instance.",
     )
   }
 
   /// Returns an instance of `ITaskbarList2`.
-  pub fn taskbar_list(&self) -> anyhow::Result<ITaskbarList2> {
+  pub fn taskbar_list(&self) -> anyhow::Result<&ITaskbarList2> {
     self
       .taskbar_list
-      .clone()
+      .as_ref()
       .context("Unable to create `ITaskbarList2` instance.")
   }
 }
@@ -96,6 +96,11 @@ impl Default for ComInit {
 
 impl Drop for ComInit {
   fn drop(&mut self) {
+    // Explicitly drop COM interfaces first.
+    drop(self.taskbar_list.take());
+    drop(self.application_view_collection.take());
+    drop(self.service_provider.take());
+
     unsafe { CoUninitialize() };
   }
 }
