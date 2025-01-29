@@ -33,7 +33,8 @@ use windows::{
         SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
         WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
         WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_POPUP,
+        WS_THICKFRAME,
       },
     },
   },
@@ -282,6 +283,12 @@ impl NativeWindow {
   #[must_use]
   pub fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
+  }
+
+  /// Whether the window is meant to be a popup window.
+  #[must_use]
+  pub fn is_popup(&self) -> bool {
+    self.has_window_style(WS_POPUP)
   }
 
   /// Whether the window is fullscreen.
