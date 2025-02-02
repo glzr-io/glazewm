@@ -40,10 +40,27 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 ### Winget
 
-GlazeWM can be downloaded via Winget package manager:
+GlazeWM can be downloaded with the Winget package manager:
 
 ```sh
 winget install GlazeWM
+```
+
+### Chocolatey
+
+GlazeWM can also be installed with the Chocolatey package manager:
+
+```sh
+choco install glazewm
+```
+
+### Scoop
+
+GlazeWM can be downloaded and installed with the Scoop package manager as well:
+
+```sh
+scoop bucket add extras
+scoop install extras/glazewm
 ```
 
 ## Contributing
