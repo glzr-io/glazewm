@@ -222,7 +222,12 @@ impl std::fmt::Display for WindowContainer {
 
     // Truncate title if longer than 20 chars.
     let title = if title.len() > 20 {
-      format!("{}...", &title[..17])
+      format!(
+        "{}...",
+        &title
+          /* Find the first safe char boundary. */
+          [..(0..=17).rfind(|n| title.is_char_boundary(*n)).unwrap_or(0)]
+      )
     } else {
       title
     };
