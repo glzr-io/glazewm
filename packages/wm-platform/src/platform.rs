@@ -160,6 +160,19 @@ impl Platform {
     Ok(NativeWindow::new(handle.0))
   }
 
+  pub fn monitor_from_point(
+    point: &Point,
+  ) -> anyhow::Result<NativeMonitor> {
+    let monitors = native_monitor::available_monitors()?;
+    monitors
+      .iter()
+      .find_map(|monitor| {
+        let rect = monitor.rect().ok()?;
+        rect.contains_point(point).then(|| monitor.clone())
+      })
+      .context("Monitor not found")
+  }
+
   /// Gets the mouse position in screen space.
   pub fn mouse_position() -> anyhow::Result<Point> {
     let mut point = POINT { x: 0, y: 0 };
