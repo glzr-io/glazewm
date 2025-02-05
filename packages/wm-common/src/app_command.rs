@@ -232,10 +232,16 @@ pub enum InvokeCommand {
   },
   WmCycleFocus {
     #[clap(long, default_value_t = false)]
+    omit_floating: bool,
+
+    #[clap(long, default_value_t = false)]
     omit_fullscreen: bool,
 
     #[clap(long, default_value_t = true)]
     omit_minimized: bool,
+
+    #[clap(long, default_value_t = false)]
+    omit_tiled: bool,
   },
   WmDisableBindingMode {
     #[clap(long)]

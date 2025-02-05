@@ -14,8 +14,10 @@ use crate::{
 ///
 /// Does nothing if a workspace is focused.
 pub fn cycle_focus(
+  omit_floating: bool,
   omit_fullscreen: bool,
   omit_minimized: bool,
+  omit_tiled: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -35,8 +37,10 @@ pub fn cycle_focus(
       }
 
       // Skip the next state if it is to be omitted.
-      if (omit_fullscreen && matches!(next, WindowState::Fullscreen(_)))
+      if (omit_floating && matches!(next, WindowState::Floating(_)))
+        || omit_fullscreen && matches!(next, WindowState::Fullscreen(_))
         || omit_minimized && matches!(next, WindowState::Minimized)
+        || omit_tiled && matches!(next, WindowState::Tiling)
       {
         next = next_state(&next, config);
         continue;
