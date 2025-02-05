@@ -644,7 +644,14 @@ impl WindowManager {
         omit_fullscreen,
         omit_minimized,
         omit_tiled,
-      } => cycle_focus(*omit_floating, *omit_fullscreen, *omit_minimized, *omit_tiled, state, config),
+      } => cycle_focus(
+        *omit_floating,
+        *omit_fullscreen,
+        *omit_minimized,
+        *omit_tiled,
+        state,
+        config,
+      ),
       InvokeCommand::WmDisableBindingMode { name } => {
         disable_binding_mode(name, state);
         Ok(())
