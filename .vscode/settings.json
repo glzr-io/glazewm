@@ -2,4 +2,6 @@
   "rust-analyzer.check.command": "clippy",
   "editor.insertSpaces": true,
   "editor.tabSize": 2,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
 }
