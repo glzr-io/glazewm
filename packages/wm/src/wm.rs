@@ -288,7 +288,7 @@ impl WindowManager {
                 state,
                 config,
               )?;
-            };
+            }
 
             if let Some(name) = &args.workspace {
               move_window_to_workspace(

@@ -200,7 +200,7 @@ fn move_to_sibling_container(
           .queue_containers_to_redraw(parent.tiling_children());
       }
     }
-  };
+  }
 
   Ok(())
 }
@@ -270,7 +270,7 @@ fn move_to_workspace_in_direction(
       .queue_containers_to_redraw(parent.tiling_children())
       .queue_cursor_jump()
       .queue_workspace_to_reorder(target_workspace);
-  };
+  }
 
   Ok(())
 }

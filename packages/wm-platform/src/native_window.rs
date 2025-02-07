@@ -807,7 +807,7 @@ impl NativeWindow {
           }?;
         }
       }
-    };
+    }
 
     // Whether to hide or show the window.
     self.set_visible(is_visible, hide_method)?;
