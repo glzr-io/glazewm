@@ -92,7 +92,7 @@ fn sync_focus(
       info!("Setting focus to window: {window}");
     } else {
       info!("Setting focus to the desktop window.");
-    };
+    }
 
     if let Err(err) = native_window.set_foreground() {
       warn!("Failed to set foreground window: {}", err);
@@ -371,7 +371,7 @@ fn apply_window_effects(
     || window_effects.other_windows.border.enabled
   {
     apply_border_effect(window, effect_config);
-  };
+  }
 
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled

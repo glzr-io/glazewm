@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
       if let Err(err) = &res {
         error!("{:?}", err);
         Platform::show_error_dialog("Fatal error", &err.to_string());
-      };
+      }
 
       res
     }

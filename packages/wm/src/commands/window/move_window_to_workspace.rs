@@ -137,7 +137,7 @@ pub fn move_window_to_workspace(
           .queue_containers_to_redraw(current_workspace.tiling_children())
           .queue_containers_to_redraw(target_workspace.tiling_children());
       }
-    };
+    }
 
     state
       .pending_sync
