@@ -195,7 +195,7 @@ pub extern "system" fn event_window_proc(
             IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed);
           }
           _ => {}
-        };
+        }
 
         LRESULT(0)
       }

@@ -31,7 +31,7 @@ pub fn handle_window_shown(
         manage_window(native_window, None, state, config)?;
       }
     }
-  };
+  }
 
   Ok(())
 }
