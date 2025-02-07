@@ -241,7 +241,7 @@ pub enum InvokeCommand {
     omit_minimized: bool,
 
     #[clap(long, default_value_t = false)]
-    omit_tiled: bool,
+    omit_tiling: bool,
   },
   WmDisableBindingMode {
     #[clap(long)]
