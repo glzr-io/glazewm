@@ -32,19 +32,19 @@ pub fn handle_mouse_move(
     }
   } else {
     // Focus the monitor if no window is under the cursor.
-    let monitor_under_cursor = Platform::monitor_from_point(&event.point)
-      .map(|workspace| state.monitor_from_native(&workspace))?
+    let cursor_monitor = state
+      .monitor_at_point(&event.point)
       .context("No monitor under cursor.")?;
 
-    let currently_focused_monitor = state
+    let focused_monitor = state
       .focused_container()
       .context("No focused container.")?
       .monitor()
       .context("Focused container has no monitor.")?;
 
     // Avoid setting focus to the same monitor.
-    if monitor_under_cursor.id() != currently_focused_monitor.id() {
-      set_focused_descendant(&monitor_under_cursor.as_container(), None);
+    if cursor_monitor.id() != focused_monitor.id() {
+      set_focused_descendant(&cursor_monitor.as_container(), None);
       state.pending_sync.queue_focus_change();
     }
   }
