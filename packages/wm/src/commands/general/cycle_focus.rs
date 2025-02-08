@@ -13,6 +13,7 @@ use crate::{
 /// tiling.
 ///
 /// Does nothing if a workspace is focused.
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn cycle_focus(
   omit_floating: bool,
   omit_fullscreen: bool,
