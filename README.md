@@ -38,25 +38,21 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 **The latest version of GlazeWM is downloadable via [releases](https://github.com/glzr-io/GlazeWM/releases).** Zebar can optionally be installed as well via a checkbox during installation.
 
-### Winget
+GlazeWM is also available through several package managers:
 
-GlazeWM can be downloaded with the Winget package manager:
+**Winget**
 
 ```sh
 winget install GlazeWM
 ```
 
-### Chocolatey
-
-GlazeWM can also be installed with the Chocolatey package manager:
+**Chocolatey**
 
 ```sh
 choco install glazewm
 ```
 
-### Scoop
-
-GlazeWM can be downloaded and installed with the Scoop package manager as well:
+**Scoop**
 
 ```sh
 scoop bucket add extras
