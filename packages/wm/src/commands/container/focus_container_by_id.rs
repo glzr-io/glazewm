@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::set_focused_descendant;
 use crate::wm_state::WmState;
 
-pub fn focus_container_id(
+pub fn focus_container_by_id(
   container_id: &Uuid,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
