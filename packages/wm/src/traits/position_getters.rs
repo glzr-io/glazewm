@@ -20,66 +20,81 @@ macro_rules! impl_position_getters_as_resizable {
           .parent()
           .and_then(|parent| parent.as_direction_container().ok())
           .context("Parent does not have a tiling direction.")?;
-
         let parent_rect = parent.to_rect()?;
-
         let (horizontal_gap, vertical_gap) = self.inner_gaps()?;
-        let inner_gap = match parent.tiling_direction() {
-          TilingDirection::Vertical => vertical_gap,
-          TilingDirection::Horizontal => horizontal_gap,
-        };
 
-        #[allow(
-          clippy::cast_precision_loss,
-          clippy::cast_possible_truncation,
-          clippy::cast_possible_wrap
-        )]
-        let (width, height) = match parent.tiling_direction() {
+        match parent.tiling_direction() {
+          TilingDirection::Accordion => {
+            // For accordion, we stack windows with fixed 100px offset
+            let base_width = parent_rect.width();
+            let base_height = parent_rect.height();
+
+            // Calculate offset based on position in stack, convert index
+            // to i32
+            let offset = (self.index() as i32) * 100;
+
+            Ok(Rect::from_xy(
+              parent_rect.x(),
+              parent_rect.y() + offset,
+              base_width,
+              base_height,
+            ))
+          }
           TilingDirection::Vertical => {
+            let inner_gap = vertical_gap;
             let available_height = parent_rect.height()
               - inner_gap * self.tiling_siblings().count() as i32;
 
             let height =
               (self.tiling_size() * available_height as f32) as i32;
 
-            (parent_rect.width(), height)
+            let (x, y) = {
+              let mut prev_siblings = self
+                .prev_siblings()
+                .filter_map(|sibling| sibling.as_tiling_container().ok());
+
+              match prev_siblings.next() {
+                None => (parent_rect.x(), parent_rect.y()),
+                Some(sibling) => {
+                  let sibling_rect = sibling.to_rect()?;
+                  (
+                    parent_rect.x(),
+                    sibling_rect.y() + sibling_rect.height() + inner_gap,
+                  )
+                }
+              }
+            };
+
+            Ok(Rect::from_xy(x, y, parent_rect.width(), height))
           }
           TilingDirection::Horizontal => {
+            let inner_gap = horizontal_gap;
             let available_width = parent_rect.width()
               - inner_gap * self.tiling_siblings().count() as i32;
 
             let width =
               (available_width as f32 * self.tiling_size()).round() as i32;
 
-            (width, parent_rect.height())
-          }
-        };
+            let (x, y) = {
+              let mut prev_siblings = self
+                .prev_siblings()
+                .filter_map(|sibling| sibling.as_tiling_container().ok());
 
-        let (x, y) = {
-          let mut prev_siblings = self
-            .prev_siblings()
-            .filter_map(|sibling| sibling.as_tiling_container().ok());
-
-          match prev_siblings.next() {
-            None => (parent_rect.x(), parent_rect.y()),
-            Some(sibling) => {
-              let sibling_rect = sibling.to_rect()?;
-
-              match parent.tiling_direction() {
-                TilingDirection::Vertical => (
-                  parent_rect.x(),
-                  sibling_rect.y() + sibling_rect.height() + inner_gap,
-                ),
-                TilingDirection::Horizontal => (
-                  sibling_rect.x() + sibling_rect.width() + inner_gap,
-                  parent_rect.y(),
-                ),
+              match prev_siblings.next() {
+                None => (parent_rect.x(), parent_rect.y()),
+                Some(sibling) => {
+                  let sibling_rect = sibling.to_rect()?;
+                  (
+                    sibling_rect.x() + sibling_rect.width() + inner_gap,
+                    parent_rect.y(),
+                  )
+                }
               }
-            }
-          }
-        };
+            };
 
-        Ok(Rect::from_xy(x, y, width, height))
+            Ok(Rect::from_xy(x, y, width, parent_rect.height()))
+          }
+        }
       }
     }
   };

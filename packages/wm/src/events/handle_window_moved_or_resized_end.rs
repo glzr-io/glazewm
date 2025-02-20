@@ -167,6 +167,7 @@ fn drop_as_tiling_window(
         drop_position == DropPosition::Left
           || drop_position == DropPosition::Right
       }
+      TilingDirection::Accordion => false,
     };
 
   if should_split {
