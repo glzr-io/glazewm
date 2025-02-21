@@ -160,6 +160,7 @@ pub enum InvokeCommand {
   Close,
   Focus(InvokeFocusCommand),
   FocusWorkspaceOnCurrentMonitor(InvokeFocusWorkspaceOnCurrentMonitorCommand),
+  SwapWorkspace(InvokeSwapWorkspaceCommand),
   Ignore,
   Move(InvokeMoveCommand),
   MoveWorkspace {
@@ -351,6 +352,20 @@ pub struct InvokeFocusWorkspaceOnCurrentMonitorCommand {
 
   #[clap(long)]
   pub recent_workspace: bool,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true, requires_all=["monitor_1", "monitor_2"])]
+#[allow(clippy::struct_excessive_bools)]
+pub struct InvokeSwapWorkspaceCommand {
+  #[clap(long)]
+  pub monitor_1: Option<usize>,
+
+  #[clap(long)]
+  pub monitor_2: Option<usize>,
+
+  #[clap(long)]
+  pub stay_on_monitor: bool
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]

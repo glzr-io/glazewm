@@ -159,6 +159,10 @@ fn move_and_focus(
     .queue_container_to_redraw(focused_workspace.clone())
     .queue_cursor_jump();
 
+  state.emit_event(WmEvent::WorkspaceUpdated {
+    updated_workspace: target_workspace.to_dto()?
+  });
+
   state.recent_workspace_name = Some(target_workspace.config().name);
 
   Ok(())
