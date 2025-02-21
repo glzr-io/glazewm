@@ -23,7 +23,7 @@ use crate::{
       resize_window, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
-    workspace::{focus_workspace, move_workspace_in_direction},
+    workspace::{focus_workspace, move_workspace_in_direction, focus_workspace_on_current_monitor},
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
@@ -268,6 +268,37 @@ impl WindowManager {
 
         if args.recent_workspace {
           focus_workspace(WorkspaceTarget::Recent, state, config)?;
+        }
+
+        Ok(())
+      }
+      InvokeCommand::FocusWorkspaceOnCurrentMonitor(args) => {
+        if let Some(name) = &args.workspace {
+          focus_workspace_on_current_monitor(
+            WorkspaceTarget::Name(name.to_string()),
+            state,
+            config,
+          )?;
+        }
+
+        if args.next_active_workspace {
+          focus_workspace_on_current_monitor(WorkspaceTarget::NextActive, state, config)?;
+        }
+
+        if args.prev_active_workspace {
+          focus_workspace_on_current_monitor(WorkspaceTarget::PreviousActive, state, config)?;
+        }
+
+        if args.next_workspace {
+          focus_workspace_on_current_monitor(WorkspaceTarget::Next, state, config)?;
+        }
+
+        if args.prev_workspace {
+          focus_workspace_on_current_monitor(WorkspaceTarget::Previous, state, config)?;
+        }
+
+        if args.recent_workspace {
+          focus_workspace_on_current_monitor(WorkspaceTarget::Recent, state, config)?;
         }
 
         Ok(())

@@ -159,6 +159,7 @@ pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
   Focus(InvokeFocusCommand),
+  FocusWorkspaceOnCurrentMonitor(InvokeFocusWorkspaceOnCurrentMonitorCommand),
   Ignore,
   Move(InvokeMoveCommand),
   MoveWorkspace {
@@ -312,6 +313,29 @@ pub struct InvokeFocusCommand {
 
   #[clap(long)]
   pub monitor: Option<usize>,
+
+  #[clap(long)]
+  pub next_active_workspace: bool,
+
+  #[clap(long)]
+  pub prev_active_workspace: bool,
+
+  #[clap(long)]
+  pub next_workspace: bool,
+
+  #[clap(long)]
+  pub prev_workspace: bool,
+
+  #[clap(long)]
+  pub recent_workspace: bool,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = false)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct InvokeFocusWorkspaceOnCurrentMonitorCommand {
+  #[clap(long)]
+  pub workspace: Option<String>,
 
   #[clap(long)]
   pub next_active_workspace: bool,
