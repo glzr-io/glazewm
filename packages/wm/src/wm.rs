@@ -17,7 +17,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       platform_sync, reload_config, shell_exec, toggle_pause,
     },
-    monitor::focus_monitor,
+    monitor::{focus_monitor, focus_monitor_in_direction},
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
       resize_window, set_window_position, set_window_size,
@@ -236,6 +236,10 @@ impl WindowManager {
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
           focus_in_direction(&subject_container, direction, state)?;
+        }
+
+        if let Some(direction) = &args.monitor_direction {
+          focus_monitor_in_direction(direction, state)?;
         }
 
         if let Some(name) = &args.workspace {
