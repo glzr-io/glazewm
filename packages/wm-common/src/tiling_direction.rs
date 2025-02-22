@@ -10,7 +10,8 @@ use super::Direction;
 pub enum TilingDirection {
   Horizontal,
   Vertical,
-  Accordion
+  HorizontalAccordion,
+  VerticalAccordion,
 }
 
 impl TilingDirection {
@@ -25,9 +26,11 @@ impl TilingDirection {
   #[must_use]
   pub fn inverse(&self) -> Self {
     match self {
-      Self::Horizontal => Self::Vertical,
-      Self::Vertical => Self::Accordion,
-      Self::Accordion => Self::Vertical,
+      // TEMP for testing
+      Self::Horizontal => Self::VerticalAccordion,
+      Self::Vertical => Self::HorizontalAccordion,
+      Self::HorizontalAccordion => Self::VerticalAccordion,
+      Self::VerticalAccordion => Self::HorizontalAccordion,
     }
   }
 
@@ -66,9 +69,10 @@ impl FromStr for TilingDirection {
   /// ```
   fn from_str(unparsed: &str) -> anyhow::Result<Self> {
     match unparsed {
-      "horizontal" => Ok(Self::Accordion),
+      "horizontal" => Ok(Self::Horizontal),
       "vertical" => Ok(Self::Vertical),
-      "accordion" => Ok(Self::Accordion),
+      "horizontal_accordion" => Ok(Self::HorizontalAccordion),
+      "vertical_accordion" => Ok(Self::VerticalAccordion),
       _ => bail!("Not a valid tiling direction: {}", unparsed),
     }
   }

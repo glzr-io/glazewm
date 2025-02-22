@@ -54,7 +54,8 @@ pub trait TilingSizeGetters: CommonGetters {
     let is_inverse_resize = match tiling_direction {
       TilingDirection::Horizontal => !is_width_resize,
       TilingDirection::Vertical => is_width_resize,
-      TilingDirection::Accordion => false,
+      TilingDirection::HorizontalAccordion => false,
+      TilingDirection::VerticalAccordion => false,
     };
 
     let container_to_resize = if is_inverse_resize {

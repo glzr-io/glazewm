@@ -24,21 +24,43 @@ macro_rules! impl_position_getters_as_resizable {
         let (horizontal_gap, vertical_gap) = self.inner_gaps()?;
 
         match parent.tiling_direction() {
-          TilingDirection::Accordion => {
-            // For accordion, we stack windows with fixed 100px offset
-            let base_width = parent_rect.width();
-            let base_height = parent_rect.height();
+          TilingDirection::HorizontalAccordion => {
+            let total_windows = self.self_and_siblings().count() as i32;
+            let title_offset = 30; // TODO add to config
+            let max_total_offset = (total_windows - 1) * title_offset;
 
-            // Calculate offset based on position in stack, convert index
-            // to i32
-            let offset = (self.index() as i32) * 100;
+            let safe_offset = if max_total_offset >= parent_rect.height() {
+              (parent_rect.height() / total_windows.max(2)) - 1
+            } else {
+              title_offset
+            };
 
-            Ok(Rect::from_xy(
-              parent_rect.x(),
-              parent_rect.y() + offset,
-              base_width,
-              base_height,
-            ))
+            let width = parent_rect.width();
+            let height =
+              parent_rect.height() - ((total_windows - 1) * safe_offset);
+
+            let y = parent_rect.y() + (self.index() as i32) * safe_offset;
+
+            Ok(Rect::from_xy(parent_rect.x(), y, width, height))
+          }
+          TilingDirection::VerticalAccordion => {
+            let total_windows = self.self_and_siblings().count() as i32;
+            let title_offset = 30; // TODO add to config
+            let max_total_offset = (total_windows - 1) * title_offset;
+
+            let safe_offset = if max_total_offset >= parent_rect.width() {
+              (parent_rect.width() / total_windows.max(2)) - 1
+            } else {
+              title_offset
+            };
+
+            let height = parent_rect.height();
+            let width =
+              parent_rect.width() - ((total_windows - 1) * safe_offset);
+
+            let x = parent_rect.x() + (self.index() as i32) * safe_offset;
+
+            Ok(Rect::from_xy(x, parent_rect.y(), width, height))
           }
           TilingDirection::Vertical => {
             let inner_gap = vertical_gap;
