@@ -87,6 +87,7 @@ pub fn handle_window_focused(
     // Run window rules for focus events.
     run_window_rules(window, &WindowRuleEvent::Focus, state, config)?;
 
+    state.is_focus_synced = true;
     state.pending_sync.queue_workspace_to_reorder(workspace);
   }
 
