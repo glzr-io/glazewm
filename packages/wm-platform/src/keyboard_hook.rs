@@ -137,10 +137,19 @@ impl KeyboardHook {
 
     for keybinding in keybindings {
       for binding in &keybinding.bindings {
+        let mut duplicate_with_rwin = false;
         let vk_codes = binding
           .split('+')
           .filter_map(|key| {
-            let vk_code = Self::key_to_vk_code(key);
+
+            // Add an alias of "win" to duplicate the keybind for both lwin and rwin
+            // Gets around not having a VK_WIN
+            let vk_code = if key.to_lowercase().as_str() == "win" {
+              duplicate_with_rwin = true;
+              Some(VK_LWIN.0)
+            } else {
+              Self::key_to_vk_code(key)
+            };
 
             if vk_code.is_none() {
               warn!(
@@ -155,6 +164,22 @@ impl KeyboardHook {
 
         // Safety: A split string always has at least one element.
         let trigger_key = *vk_codes.last().unwrap();
+
+        if duplicate_with_rwin {
+          let vk_codes = vk_codes
+            .iter()
+            .copied()
+            .map(|code| if code == VK_LWIN.0 { VK_RWIN.0 } else { code })
+            .collect();
+
+          keybinding_map
+            .entry(trigger_key)
+            .or_insert_with(Vec::new)
+            .push(ActiveKeybinding {
+              vk_codes,
+              config: keybinding.clone(),
+            });
+        }
 
         keybinding_map
           .entry(trigger_key)
