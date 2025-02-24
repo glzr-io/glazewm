@@ -85,6 +85,70 @@ fn tiling_focus_target(
   let tiling_direction = TilingDirection::from_direction(direction);
   let mut origin_or_ancestor = origin_container.clone();
 
+  // First check if we're in an accordion container
+  if let Some(parent) = origin_or_ancestor.parent() {
+    if let Ok(direction_parent) = parent.as_direction_container() {
+      match direction_parent.tiling_direction() {
+        TilingDirection::HorizontalAccordion => {
+          match direction {
+            Direction::Up => {
+              // Try to focus previous sibling in accordion
+              if let Some(prev) = origin_or_ancestor
+                .prev_siblings()
+                .find_map(|c| c.as_tiling_container().ok())
+              {
+                return Ok(Some(prev.into()));
+              }
+              // If no previous sibling, allow falling through to normal
+              // navigation
+            }
+            Direction::Down => {
+              // Try to focus next sibling in accordion
+              if let Some(next) = origin_or_ancestor
+                .next_siblings()
+                .find_map(|c| c.as_tiling_container().ok())
+              {
+                return Ok(Some(next.into()));
+              }
+              // If no next sibling, allow falling through to normal
+              // navigation
+            }
+            // For Left/Right, immediately pass through to normal
+            // navigation
+            _ => {}
+          }
+        }
+        TilingDirection::VerticalAccordion => {
+          match direction {
+            Direction::Left => {
+              if let Some(prev) = origin_or_ancestor
+                .prev_siblings()
+                .find_map(|c| c.as_tiling_container().ok())
+              {
+                return Ok(Some(prev.into()));
+              }
+              // If no previous sibling, allow falling through to normal
+              // navigation
+            }
+            Direction::Right => {
+              if let Some(next) = origin_or_ancestor
+                .next_siblings()
+                .find_map(|c| c.as_tiling_container().ok())
+              {
+                return Ok(Some(next.into()));
+              }
+              // If no next sibling, allow falling through to normal
+              // navigation
+            }
+            // For Up/Down, immediately pass through to normal navigation
+            _ => {}
+          }
+        }
+        _ => {}
+      }
+    }
+  }
+
   // Traverse upwards from the focused container. Stop searching when a
   // workspace is encountered.
   while !origin_or_ancestor.is_workspace() {

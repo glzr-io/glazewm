@@ -67,61 +67,87 @@ fn move_tiling_window(
     .direction_container()
     .context("No direction container.")?;
 
-  let has_matching_tiling_direction = parent.tiling_direction()
-    == TilingDirection::from_direction(direction);
+  match parent.tiling_direction() {
+    TilingDirection::HorizontalAccordion => match direction {
+      Direction::Up | Direction::Down => {
+        if let Some(sibling) =
+          tiling_sibling_in_direction(&window_to_move, direction)
+        {
+          return move_to_sibling_container(
+            window_to_move,
+            sibling,
+            direction,
+            state,
+          );
+        }
+      }
+      _ => {}
+    },
+    TilingDirection::VerticalAccordion => match direction {
+      Direction::Left | Direction::Right => {
+        if let Some(sibling) =
+          tiling_sibling_in_direction(&window_to_move, direction)
+        {
+          return move_to_sibling_container(
+            window_to_move,
+            sibling,
+            direction,
+            state,
+          );
+        }
+      }
+      _ => {}
+    },
+    _ => {
+      let has_matching_tiling_direction = parent.tiling_direction()
+        == TilingDirection::from_direction(direction);
 
   // Attempt to swap or move the window into a sibling container.
-  if has_matching_tiling_direction {
-    if let Some(sibling) =
-      tiling_sibling_in_direction(&window_to_move, direction)
-    {
-      return move_to_sibling_container(
-        window_to_move,
-        sibling,
-        direction,
-        state,
-      );
+      if has_matching_tiling_direction {
+        if let Some(sibling) =
+          tiling_sibling_in_direction(&window_to_move, direction)
+        {
+          return move_to_sibling_container(
+            window_to_move,
+            sibling,
+            direction,
+            state,
+          );
+        }
+      }
     }
   }
 
-  // Attempt to move the window to workspace in given direction.
-  if (has_matching_tiling_direction
-    || window_to_move.tiling_siblings().count() == 0)
-    && parent.is_workspace()
-  {
-    return move_to_workspace_in_direction(
+  // If we couldn't move within current container, try parent containers or
+  // workspace
+  if parent.is_workspace() {
+    move_to_workspace_in_direction(
       &window_to_move.into(),
       direction,
       state,
-    );
-  }
+    )
+  } else {
+    let target_ancestor = parent.ancestors().find_map(|ancestor| {
+      ancestor.as_direction_container().ok().filter(|ancestor| {
+        ancestor.tiling_direction()
+          == TilingDirection::from_direction(direction)
+      })
+    });
 
-  // The window cannot be moved within the parent container, so traverse
-  // upwards to find an ancestor that has the correct tiling direction.
-  let target_ancestor = parent.ancestors().find_map(|ancestor| {
-    ancestor.as_direction_container().ok().filter(|ancestor| {
-      ancestor.tiling_direction()
-        == TilingDirection::from_direction(direction)
-    })
-  });
-
-  match target_ancestor {
-    // If there is no suitable ancestor, then change the tiling direction
-    // of the workspace.
-    None => invert_workspace_tiling_direction(
-      window_to_move,
-      direction,
-      state,
-      config,
-    ),
-    // Otherwise, move the container into the given ancestor. This could
-    // simply be the container's direct parent.
-    Some(target_ancestor) => insert_into_ancestor(
-      &window_to_move,
-      &target_ancestor,
-      direction,
-      state,
-    ),
+    match target_ancestor {
+      None => invert_workspace_tiling_direction(
+        window_to_move,
+        direction,
+        state,
+        config,
+      ),
+      Some(target_ancestor) => insert_into_ancestor(
+        &window_to_move,
+        &target_ancestor,
+        direction,
+        state,
+      ),
+    }
   }
 }
 
@@ -131,13 +157,39 @@ fn tiling_sibling_in_direction(
   window: &TilingWindow,
   direction: &Direction,
 ) -> Option<TilingContainer> {
-  match direction {
-    Direction::Up | Direction::Left => window
-      .prev_siblings()
-      .find_map(|sibling| sibling.as_tiling_container().ok()),
-    _ => window
-      .next_siblings()
-      .find_map(|sibling| sibling.as_tiling_container().ok()),
+  // Get parent's tiling direction
+  let parent_direction = window
+    .parent()
+    .and_then(|p| p.as_direction_container().ok())
+    .map(|p| p.tiling_direction());
+
+  match parent_direction {
+    Some(TilingDirection::HorizontalAccordion) => match direction {
+      Direction::Up => window
+        .prev_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+      Direction::Down => window
+        .next_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+      _ => None,
+    },
+    Some(TilingDirection::VerticalAccordion) => match direction {
+      Direction::Left => window
+        .prev_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+      Direction::Right => window
+        .next_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+      _ => None,
+    },
+    _ => match direction {
+      Direction::Up | Direction::Left => window
+        .prev_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+      _ => window
+        .next_siblings()
+        .find_map(|sibling| sibling.as_tiling_container().ok()),
+    },
   }
 }
 
