@@ -351,15 +351,34 @@ pub struct FocusCommand {
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
-#[group(required = true, multiple = true, requires_all=["monitor_1", "monitor_2"])]
+#[group(required = false, multiple = true)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct InvokeSwapWorkspaceCommand {
+  #[clap(flatten)]
+  pub invoke_swap: SwapWorkspaceCommand,
+
+  #[clap(flatten)]
+  pub flag: SwapWorkspaceFlag,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = false)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct SwapWorkspaceCommand {
   #[clap(long)]
-  pub monitor_1: Option<usize>,
+  pub workspace_in_direction: Option<Direction>,
 
   #[clap(long)]
-  pub monitor_2: Option<usize>,
+  pub monitor: Option<usize>,
 
+  #[clap(long, num_args = 2)]
+  pub monitors: Option<Vec<usize>>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = false, multiple = true)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct SwapWorkspaceFlag {
   #[clap(long)]
   pub stay_on_monitor: bool,
 }

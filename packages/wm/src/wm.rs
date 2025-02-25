@@ -26,6 +26,7 @@ use crate::{
     workspace::{
       focus_workspace, focus_workspace_on_current_monitor,
       move_workspace_in_direction, swap_workspace,
+      swap_workspace_by_index, swap_workspace_explicit,
     },
   },
   events::{
@@ -331,17 +332,34 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::SwapWorkspace(args) => {
-        if let (Some(monitor_1_index), Some(monitor_2_index)) =
-          (args.monitor_1, args.monitor_2)
-        {
+        if let Some(direction) = &args.invoke_swap.workspace_in_direction {
           swap_workspace(
-            monitor_1_index,
-            monitor_2_index,
-            args.stay_on_monitor,
+            WorkspaceTarget::Direction(direction.clone()),
+            args.flag.stay_on_monitor,
             state,
             config,
           )?;
         }
+
+        if let Some(monitor_index) = args.invoke_swap.monitor {
+          swap_workspace_by_index(
+            monitor_index,
+            args.flag.stay_on_monitor,
+            state,
+            config,
+          )?;
+        }
+
+        if let Some(monitors) = &args.invoke_swap.monitors {
+          swap_workspace_explicit(
+            monitors[0],
+            monitors[1],
+            args.flag.stay_on_monitor,
+            state,
+            config,
+          )?;
+        }
+
         Ok(())
       }
       InvokeCommand::Ignore => {
