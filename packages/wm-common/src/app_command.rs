@@ -308,7 +308,7 @@ pub struct InvokeFocusCommand {
   pub direction: Option<Direction>,
 
   #[clap(long)]
-  pub monitor_direction: Option<Direction>,
+  pub workspace_in_direction: Option<Direction>,
 
   #[clap(long)]
   pub workspace: Option<String>,
