@@ -23,7 +23,10 @@ use crate::{
       resize_window, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
-    workspace::{focus_workspace, move_workspace_in_direction, focus_workspace_on_current_monitor, swap_workspace},
+    workspace::{
+      focus_workspace, focus_workspace_on_current_monitor,
+      move_workspace_in_direction, swap_workspace,
+    },
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
@@ -234,11 +237,22 @@ impl WindowManager {
         }
       }
       InvokeCommand::Focus(args) => {
-        if let Some(direction) = &args.direction {
-          focus_in_direction(&subject_container, direction, state)?;
+        if let Some(direction) = &args.invoke_focus.direction {
+          if args.flag.summon_to_current_monitor {
+            // TODO
+          } else {
+            focus_in_direction(&subject_container, direction, state)?;
+          }
         }
 
-        if let Some(name) = &args.workspace {
+        if let Some(name) = &args.invoke_focus.workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::Name(name.to_string()),
+              state,
+              config,
+            )?;
+          }
           focus_workspace(
             WorkspaceTarget::Name(name.to_string()),
             state,
@@ -246,66 +260,87 @@ impl WindowManager {
           )?;
         }
 
-        if let Some(monitor_index) = &args.monitor {
+        if let Some(monitor_index) = &args.invoke_focus.monitor {
           focus_monitor(*monitor_index, state, config)?;
         }
 
-        if args.next_active_workspace {
-          focus_workspace(WorkspaceTarget::NextActive, state, config)?;
+        if args.invoke_focus.next_active_workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::NextActive,
+              state,
+              config,
+            )?;
+          } else {
+            focus_workspace(WorkspaceTarget::NextActive, state, config)?;
+          }
         }
 
-        if args.prev_active_workspace {
-          focus_workspace(WorkspaceTarget::PreviousActive, state, config)?;
+        if args.invoke_focus.prev_active_workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::PreviousActive,
+              state,
+              config,
+            )?;
+          } else {
+            focus_workspace(
+              WorkspaceTarget::PreviousActive,
+              state,
+              config,
+            )?;
+          }
         }
 
-        if args.next_workspace {
-          focus_workspace(WorkspaceTarget::Next, state, config)?;
+        if args.invoke_focus.next_workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::Next,
+              state,
+              config,
+            )?;
+          } else {
+            focus_workspace(WorkspaceTarget::Next, state, config)?;
+          }
         }
 
-        if args.prev_workspace {
-          focus_workspace(WorkspaceTarget::Previous, state, config)?;
+        if args.invoke_focus.prev_workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::Previous,
+              state,
+              config,
+            )?;
+          } else {
+            focus_workspace(WorkspaceTarget::Previous, state, config)?;
+          }
         }
 
-        if args.recent_workspace {
-          focus_workspace(WorkspaceTarget::Recent, state, config)?;
-        }
-
-        Ok(())
-      }
-      InvokeCommand::FocusWorkspaceOnCurrentMonitor(args) => {
-        if let Some(name) = &args.workspace {
-          focus_workspace_on_current_monitor(
-            WorkspaceTarget::Name(name.to_string()),
-            state,
-            config,
-          )?;
-        }
-
-        if args.next_active_workspace {
-          focus_workspace_on_current_monitor(WorkspaceTarget::NextActive, state, config)?;
-        }
-
-        if args.prev_active_workspace {
-          focus_workspace_on_current_monitor(WorkspaceTarget::PreviousActive, state, config)?;
-        }
-
-        if args.next_workspace {
-          focus_workspace_on_current_monitor(WorkspaceTarget::Next, state, config)?;
-        }
-
-        if args.prev_workspace {
-          focus_workspace_on_current_monitor(WorkspaceTarget::Previous, state, config)?;
-        }
-
-        if args.recent_workspace {
-          focus_workspace_on_current_monitor(WorkspaceTarget::Recent, state, config)?;
+        if args.invoke_focus.recent_workspace {
+          if args.flag.summon_to_current_monitor {
+            focus_workspace_on_current_monitor(
+              WorkspaceTarget::Recent,
+              state,
+              config,
+            )?;
+          } else {
+            focus_workspace(WorkspaceTarget::Recent, state, config)?;
+          }
         }
 
         Ok(())
       }
       InvokeCommand::SwapWorkspace(args) => {
-        if let (Some(monitor_1_index), Some(monitor_2_index)) = (args.monitor_1, args.monitor_2) {
-          swap_workspace(monitor_1_index, monitor_2_index, args.stay_on_monitor, state, config)?;
+        if let (Some(monitor_1_index), Some(monitor_2_index)) =
+          (args.monitor_1, args.monitor_2)
+        {
+          swap_workspace(
+            monitor_1_index,
+            monitor_2_index,
+            args.stay_on_monitor,
+            state,
+            config,
+          )?;
         }
         Ok(())
       }

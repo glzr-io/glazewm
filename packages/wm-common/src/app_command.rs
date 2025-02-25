@@ -159,7 +159,6 @@ pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
   Focus(InvokeFocusCommand),
-  FocusWorkspaceOnCurrentMonitor(InvokeFocusWorkspaceOnCurrentMonitorCommand),
   SwapWorkspace(InvokeSwapWorkspaceCommand),
   Ignore,
   Move(InvokeMoveCommand),
@@ -303,40 +302,37 @@ pub struct InvokeAdjustBordersCommand {
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
-#[group(required = true, multiple = false)]
+#[group(required = false, multiple = true)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct InvokeFocusCommand {
-  #[clap(long)]
-  pub direction: Option<Direction>,
+  #[clap(flatten)]
+  pub invoke_focus: FocusCommand,
 
-  #[clap(long)]
-  pub workspace: Option<String>,
+  #[clap(flatten)]
+  pub flag: FocusCommandFlag,
+}
 
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = false, multiple = true)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct FocusCommandFlag {
   #[clap(long)]
-  pub monitor: Option<usize>,
-
-  #[clap(long)]
-  pub next_active_workspace: bool,
-
-  #[clap(long)]
-  pub prev_active_workspace: bool,
-
-  #[clap(long)]
-  pub next_workspace: bool,
-
-  #[clap(long)]
-  pub prev_workspace: bool,
-
-  #[clap(long)]
-  pub recent_workspace: bool,
+  pub summon_to_current_monitor: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 #[allow(clippy::struct_excessive_bools)]
-pub struct InvokeFocusWorkspaceOnCurrentMonitorCommand {
+pub struct FocusCommand {
+  /// --summon-to-current-monitor is not yet implemented
+  #[clap(long, conflicts_with = "summon_to_current_monitor")]
+  pub direction: Option<Direction>,
+
   #[clap(long)]
   pub workspace: Option<String>,
+
+  #[clap(long, conflicts_with = "summon_to_current_monitor")]
+  pub monitor: Option<usize>,
 
   #[clap(long)]
   pub next_active_workspace: bool,
@@ -365,7 +361,7 @@ pub struct InvokeSwapWorkspaceCommand {
   pub monitor_2: Option<usize>,
 
   #[clap(long)]
-  pub stay_on_monitor: bool
+  pub stay_on_monitor: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
