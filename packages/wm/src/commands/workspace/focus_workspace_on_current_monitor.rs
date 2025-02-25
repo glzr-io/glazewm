@@ -65,9 +65,19 @@ pub fn focus_workspace_on_current_monitor(
       // Does the same thing as `focus_workspace`
       normal_focus(state, &target_workspace, &focused_workspace);
     } else if target_workspace.is_displayed() {
-      swap_and_focus(state, config, &target_workspace, &focused_workspace)?;
+      swap_and_focus(
+        state,
+        config,
+        &target_workspace,
+        &focused_workspace,
+      )?;
     } else {
-      move_and_focus(state, config, &target_workspace, &focused_workspace)?;
+      move_and_focus(
+        state,
+        config,
+        &target_workspace,
+        &focused_workspace,
+      )?;
     }
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
@@ -99,7 +109,6 @@ fn normal_focus(
     .unwrap_or_else(|| target_workspace.clone().into());
 
   set_focused_descendant(&container_to_focus, None);
-
 
   state
     .pending_sync
@@ -160,7 +169,7 @@ fn move_and_focus(
     .queue_cursor_jump();
 
   state.emit_event(WmEvent::WorkspaceUpdated {
-    updated_workspace: target_workspace.to_dto()?
+    updated_workspace: target_workspace.to_dto()?,
   });
 
   state.recent_workspace_name = Some(target_workspace.config().name);
@@ -194,12 +203,11 @@ fn swap_and_focus(
     &focused_workspace.clone().as_container(),
     &target_monitor.clone().as_container(),
     target_monitor.child_count(),
-    state
+    state,
   )?;
 
   sort_workspaces(&focused_monitor, config)?;
   sort_workspaces(&target_monitor, config)?;
-
 
   let windows = target_workspace
     .descendants()
@@ -244,11 +252,11 @@ fn swap_and_focus(
     .queue_cursor_jump();
 
   state.emit_event(WmEvent::WorkspaceUpdated {
-    updated_workspace: focused_workspace.to_dto()?
+    updated_workspace: focused_workspace.to_dto()?,
   });
 
   state.emit_event(WmEvent::WorkspaceUpdated {
-    updated_workspace: target_workspace.to_dto()?
+    updated_workspace: target_workspace.to_dto()?,
   });
 
   state.recent_workspace_name = Some(target_workspace.config().name);
