@@ -203,30 +203,28 @@ fn swap(
   let workspace_to_focus = if focused_workspace.id() == workspace_at_1.id()
   {
     if stay_on_monitor {
-      Some(&workspace_at_2)
+      &workspace_at_2
     } else {
-      None
+      &workspace_at_1
     }
   } else if focused_workspace.id() == workspace_at_2.id() {
     if stay_on_monitor {
-      Some(&workspace_at_1)
+      &workspace_at_1
     } else {
-      None
+      &workspace_at_2
     }
   } else {
     // There is nothing else to focus to so default back to the orignal
     // focus.
-    Some(&focused_workspace)
+    &focused_workspace
   };
 
-  if let Some(workspace_to_focus) = workspace_to_focus {
-    let container_to_focus = workspace_to_focus
-      .descendant_focus_order()
-      .next()
-      .unwrap_or_else(|| workspace_to_focus.clone().as_container());
+  let container_to_focus = workspace_to_focus
+    .descendant_focus_order()
+    .next()
+    .unwrap_or_else(|| workspace_to_focus.clone().as_container());
 
-    set_focused_descendant(&container_to_focus, None);
-  }
+  set_focused_descendant(&container_to_focus, None);
 
   state
     .pending_sync
