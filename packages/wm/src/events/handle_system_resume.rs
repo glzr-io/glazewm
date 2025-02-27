@@ -1,4 +1,3 @@
-use anyhow::Context;
 use tracing::info;
 use wm_common::WmEvent;
 
@@ -7,8 +6,8 @@ use crate::{
     container::move_container_within_tree,
     workspace::sort_workspaces,
   },
-  models::{Monitor, WindowContainer},
-  traits::{CommonGetters, WindowGetters},
+  models::WindowContainer,
+  traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -58,7 +57,7 @@ pub fn handle_system_resume(
     // Find the target monitor with the saved hardware ID
     let target_monitor = state.monitors().into_iter().find(|monitor| {
       if let Ok(Some(id)) = monitor.native().hardware_id() {
-        id == *saved_hardware_id
+        *id == *saved_hardware_id
       } else {
         false
       }
@@ -70,9 +69,9 @@ pub fn handle_system_resume(
         // Move the window to the target workspace
         move_container_to_workspace(&window, &target_workspace, state, config)?;
 
-        state.emit_event(WmEvent::WindowMoved {
-          window_id: window.id(),
-          workspace_id: target_workspace.id(),
+        // Emit an event that the window was moved to a different workspace
+        state.emit_event(WmEvent::FocusedContainerMoved {
+          focused_container: window.to_dto()?,
         });
       }
     }
@@ -104,7 +103,7 @@ fn move_container_to_workspace(
   }
 
   // Queue redraw
-  state.pending_sync.queue_container_to_redraw(window.clone().into());
+  state.pending_sync.queue_container_to_redraw(window.clone());
 
   Ok(())
 }

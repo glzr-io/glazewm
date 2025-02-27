@@ -10,6 +10,7 @@ pub enum PlatformEvent {
   DisplaySettingsChanged,
   KeybindingTriggered(KeybindingConfig),
   MouseMove(MouseMoveEvent),
+  SystemSleep,
   WindowDestroyed(NativeWindow),
   WindowFocused(NativeWindow),
   WindowHidden(NativeWindow),

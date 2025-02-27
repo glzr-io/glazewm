@@ -32,7 +32,7 @@ use crate::{
     handle_window_location_changed, handle_window_minimize_ended,
     handle_window_minimized, handle_window_moved_or_resized_end,
     handle_window_moved_or_resized_start, handle_window_shown,
-    handle_window_title_changed,
+    handle_window_title_changed, handle_system_sleep,
   },
   models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
@@ -80,6 +80,9 @@ impl WindowManager {
       }
       PlatformEvent::MouseMove(event) => {
         handle_mouse_move(&event, state, config)
+      }
+      PlatformEvent::SystemSleep => {
+        handle_system_sleep(state, config)
       }
       PlatformEvent::WindowDestroyed(window) => {
         handle_window_destroyed(&window, state)
