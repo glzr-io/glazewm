@@ -1,4 +1,5 @@
 use std::time::Instant;
+use std::collections::HashMap;
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -66,6 +67,10 @@ pub struct WmState {
 
   /// Sender for gracefully shutting down the WM.
   exit_tx: mpsc::UnboundedSender<()>,
+
+  /// Stores window-to-monitor assignments before sleep to restore after wake
+  /// Maps window IDs to monitor hardware IDs
+  pub sleep_monitor_assignments: HashMap<Uuid, String>,
 }
 
 impl WmState {
@@ -85,6 +90,7 @@ impl WmState {
       has_initialized: false,
       event_tx,
       exit_tx,
+      sleep_monitor_assignments: HashMap::new(),
     }
   }
 
@@ -524,6 +530,28 @@ impl WmState {
           .unwrap_or(false)
       })
       .cloned()
+  }
+
+  /// Saves the current window-to-monitor assignments before sleep
+  pub fn save_monitor_assignments(&mut self) -> anyhow::Result<()> {
+    self.sleep_monitor_assignments.clear();
+
+    for window in self.windows() {
+      if let Some(workspace) = window.workspace() {
+        if let Some(monitor) = workspace.monitor() {
+          if let Ok(Some(hardware_id)) = monitor.native().hardware_id() {
+            self.sleep_monitor_assignments.insert(window.id(), hardware_id.clone());
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Gets the saved monitor assignment for a window
+  pub fn get_saved_monitor_assignment(&self, window_id: &Uuid) -> Option<&String> {
+    self.sleep_monitor_assignments.get(window_id)
   }
 }
 
