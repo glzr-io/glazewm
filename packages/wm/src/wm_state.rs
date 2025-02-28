@@ -332,6 +332,54 @@ impl WmState {
           prev_active_workspace.cloned(),
         )
       }
+      WorkspaceTarget::NextActiveInMonitor => {
+        let monitor = origin_workspace
+          .monitor()
+          .context("No monitor in workspace")?;
+
+        let mut workspace_in_monitor = monitor.workspaces();
+        config.sort_workspaces(&mut workspace_in_monitor);
+
+        let origin_index = workspace_in_monitor
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id())
+          .context("Failed to get index of give workspace")?;
+
+        let next_active_workspace_in_monitor = workspace_in_monitor
+          .get(origin_index + 1)
+          .or_else(|| workspace_in_monitor.first());
+
+        (
+          next_active_workspace_in_monitor
+            .map(|workspace| workspace.config().name),
+          next_active_workspace_in_monitor.cloned(),
+        )
+      }
+      WorkspaceTarget::PreviousActiveInMonitor => {
+        let monitor = origin_workspace
+          .monitor()
+          .context("No monitor in workspace")?;
+
+        let mut workspace_in_monitor = monitor.workspaces();
+        config.sort_workspaces(&mut workspace_in_monitor);
+
+        let origin_index = workspace_in_monitor
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id())
+          .context("Failed to get index of give workspace")?;
+
+        let prev_active_workspace_in_monitor = workspace_in_monitor.get(
+          origin_index
+            .checked_sub(1)
+            .unwrap_or(workspace_in_monitor.len() - 1),
+        );
+
+        (
+          prev_active_workspace_in_monitor
+            .map(|workspace| workspace.config().name),
+          prev_active_workspace_in_monitor.cloned(),
+        )
+      }
       WorkspaceTarget::Next => {
         let workspaces = &config.value.workspaces;
         let origin_name = origin_workspace.config().name.clone();

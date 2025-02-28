@@ -275,6 +275,22 @@ impl WindowManager {
           focus_workspace(WorkspaceTarget::Recent, state, config)?;
         }
 
+        if args.next_active_workspace_in_monitor {
+          focus_workspace(
+            WorkspaceTarget::NextActiveInMonitor,
+            state,
+            config,
+          )?;
+        }
+
+        if args.prev_active_workspace_in_monitor {
+          focus_workspace(
+            WorkspaceTarget::PreviousActiveInMonitor,
+            state,
+            config,
+          )?;
+        }
+
         Ok(())
       }
       InvokeCommand::Ignore => {
