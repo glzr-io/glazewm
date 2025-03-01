@@ -308,6 +308,9 @@ pub struct InvokeFocusCommand {
   pub direction: Option<Direction>,
 
   #[clap(long)]
+  pub container_id: Option<Uuid>,
+
+  #[clap(long)]
   pub workspace_in_direction: Option<Direction>,
 
   #[clap(long)]

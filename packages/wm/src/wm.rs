@@ -11,7 +11,8 @@ use wm_platform::PlatformEvent;
 use crate::{
   commands::{
     container::{
-      focus_in_direction, set_tiling_direction, toggle_tiling_direction,
+      focus_container_by_id, focus_in_direction, set_tiling_direction,
+      toggle_tiling_direction,
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
@@ -244,6 +245,10 @@ impl WindowManager {
             state,
             config,
           )?;
+        }
+
+        if let Some(container_id) = &args.container_id {
+          focus_container_by_id(container_id, state)?;
         }
 
         if let Some(name) = &args.workspace {
