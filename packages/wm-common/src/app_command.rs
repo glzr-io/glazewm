@@ -343,6 +343,10 @@ pub struct InvokeMoveCommand {
   #[clap(long)]
   pub direction: Option<Direction>,
 
+  /// Move window to workspace in specified direction.
+  #[clap(long)]
+  pub workspace_in_direction: Option<Direction>,
+
   /// Name of workspace to move the window.
   #[clap(long)]
   pub workspace: Option<String>,

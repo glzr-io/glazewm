@@ -303,6 +303,15 @@ impl WindowManager {
               )?;
             }
 
+            if let Some(direction) = &args.workspace_in_direction {
+              move_window_to_workspace(
+                window.clone(),
+                WorkspaceTarget::Direction(direction.clone()),
+                state,
+                config,
+              )?;
+            }
+
             if let Some(name) = &args.workspace {
               move_window_to_workspace(
                 window.clone(),
