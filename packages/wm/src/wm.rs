@@ -239,6 +239,14 @@ impl WindowManager {
           focus_in_direction(&subject_container, direction, state)?;
         }
 
+        if let Some(direction) = &args.workspace_in_direction {
+          focus_workspace(
+            WorkspaceTarget::Direction(direction.clone()),
+            state,
+            config,
+          )?;
+        }
+
         if let Some(container_id) = &args.container_id {
           focus_container_by_id(container_id, state)?;
         }
