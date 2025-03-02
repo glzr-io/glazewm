@@ -1,12 +1,13 @@
 use anyhow::Context;
 use tracing::info;
 
-use super::activate_workspace;
+use super::{activate_workspace, swap_workspace_internal};
 use crate::{
   commands::{
-    container::set_focused_descendant, workspace::deactivate_workspace,
+    container::set_focused_descendant,
+    workspace::{deactivate_workspace, move_workspace_to_monitor},
   },
-  models::WorkspaceTarget,
+  models::{MonitorTarget, Workspace, WorkspaceTarget},
   traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
@@ -21,6 +22,7 @@ use crate::{
 /// The workspace will be activated if it isn't already active.
 pub fn focus_workspace(
   target: WorkspaceTarget,
+  summon_to_current_monitor: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -46,48 +48,117 @@ pub fn focus_workspace(
   }?;
 
   if let Some(target_workspace) = target_workspace {
-    info!("Focusing workspace: {target_workspace}");
+    if summon_to_current_monitor {
+      let target_monitor = target_workspace
+        .monitor()
+        .context("Focused workspace has no perent monitor.")?;
 
-    // Get the currently displayed workspace on the same monitor that the
-    // workspace to focus is on.
-    let displayed_workspace = target_workspace
-      .monitor()
-      .and_then(|monitor| monitor.displayed_workspace())
-      .context("No workspace is currently displayed.")?;
+      let focused_monitor = focused_workspace
+        .monitor()
+        .context("Workspace has no parent monitor.")?;
 
-    // Set focus to whichever window last had focus in workspace. If the
-    // workspace has no windows, then set focus to the workspace itself.
-    let container_to_focus = target_workspace
-      .descendant_focus_order()
-      .next()
-      .unwrap_or_else(|| target_workspace.clone().into());
-
-    set_focused_descendant(&container_to_focus, None);
-    state.pending_sync.queue_focus_change();
-
-    // Display the workspace to switch focus to.
-    state
-      .pending_sync
-      .queue_container_to_redraw(displayed_workspace)
-      .queue_container_to_redraw(target_workspace);
-
-    // Get empty workspace to destroy (if one is found). Cannot destroy
-    // empty workspaces if they're the only workspace on the monitor.
-    let workspace_to_destroy =
-      state.workspaces().into_iter().find(|workspace| {
-        !workspace.config().keep_alive
-          && !workspace.has_children()
-          && !workspace.is_displayed()
-      });
-
-    if let Some(workspace) = workspace_to_destroy {
-      deactivate_workspace(workspace, state)?;
+      if focused_monitor.id() == target_monitor.id() {
+        normal_focus(state, &target_workspace, &focused_workspace)?;
+      } else if target_workspace.is_displayed() {
+        swap_and_focus(
+          state,
+          config,
+          &target_workspace,
+          &focused_workspace,
+        )?;
+      } else {
+        move_and_focus(
+          state,
+          config,
+          &target_workspace,
+          &focused_workspace,
+        )?;
+      }
+    } else {
+      normal_focus(state, &target_workspace, &focused_workspace)?;
     }
-
-    // Save the currently focused workspace as recent.
-    state.recent_workspace_name = Some(focused_workspace.config().name);
-    state.pending_sync.queue_cursor_jump();
   }
 
   Ok(())
+}
+
+fn normal_focus(
+  state: &mut WmState,
+  target_workspace: &crate::models::Workspace,
+  focused_workspace: &crate::models::Workspace,
+) -> anyhow::Result<()> {
+  info!("Normal focus: {target_workspace}");
+
+  let container_to_focus = target_workspace
+    .descendant_focus_order()
+    .next()
+    .unwrap_or_else(|| target_workspace.clone().into());
+
+  set_focused_descendant(&container_to_focus, None);
+
+  state
+    .pending_sync
+    .queue_focus_change()
+    .queue_container_to_redraw(focused_workspace.clone())
+    .queue_container_to_redraw(target_workspace.clone())
+    .queue_cursor_jump();
+
+  // Get empty workspace to destroy (if one is found). Cannot destroy
+  // empty workspaces if they're the only workspace on the monitor.
+  let workspace_to_destroy =
+    state.workspaces().into_iter().find(|workspace| {
+      !workspace.config().keep_alive
+        && !workspace.has_children()
+        && !workspace.is_displayed()
+    });
+
+  if let Some(workspace) = workspace_to_destroy {
+    deactivate_workspace(workspace, state)?;
+  }
+
+  Ok(())
+}
+
+fn move_and_focus(
+  state: &mut WmState,
+  config: &UserConfig,
+  target_workspace: &Workspace,
+  focused_workspace: &Workspace,
+) -> anyhow::Result<()> {
+  info!("Move focus: {target_workspace}");
+  let focused_monitor = focused_workspace
+    .monitor()
+    .context("Workspace has no monitor")?;
+
+  move_workspace_to_monitor(
+    target_workspace,
+    MonitorTarget::Monitor(focused_monitor),
+    state,
+    config,
+  )
+}
+
+fn swap_and_focus(
+  state: &mut WmState,
+  config: &UserConfig,
+  target_workspace: &Workspace,
+  focused_workspace: &Workspace,
+) -> anyhow::Result<()> {
+  info!("Move focus: {target_workspace}");
+
+  let target_monitor = target_workspace
+    .monitor()
+    .context("Workspace has no monitor")?;
+
+  let focused_monitor = focused_workspace
+    .monitor()
+    .context("Workspace has no monitor")?;
+
+  swap_workspace_internal(
+    &target_monitor.into(),
+    &focused_monitor.into(),
+    true,
+    state,
+    config,
+  )
 }

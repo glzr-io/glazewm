@@ -1,24 +1,32 @@
 use anyhow::Context;
-use wm_common::{Direction, WmEvent};
+use wm_common::WmEvent;
 
 use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{
   commands::container::move_container_within_tree,
-  models::Workspace,
+  models::{MonitorTarget, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
 
-pub fn move_workspace_in_direction(
+pub fn move_workspace_to_monitor(
   workspace: &Workspace,
-  direction: &Direction,
+  target: MonitorTarget,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let origin_monitor = workspace.monitor().context("No monitor.")?;
-  let target_monitor =
-    state.monitor_in_direction(&origin_monitor, direction)?;
+  let target_monitor = match target {
+    MonitorTarget::Direction(direction) => {
+      state.monitor_in_direction(&origin_monitor, &direction)?
+    }
+    MonitorTarget::Index(index) => {
+      let monitors = state.monitors();
+      monitors.get(index).cloned()
+    }
+    MonitorTarget::Monitor(monitor) => Some(monitor),
+  };
 
   if let Some(target_monitor) = target_monitor {
     // Get currently displayed workspace on the target monitor.

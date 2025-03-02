@@ -68,6 +68,7 @@ pub fn handle_window_focused(
 
       focus_workspace(
         WorkspaceTarget::Name(workspace.config().name),
+        false,
         state,
         config,
       )?;

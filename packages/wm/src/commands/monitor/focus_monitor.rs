@@ -22,5 +22,10 @@ pub fn focus_monitor(
     .map(|workspace| workspace.config().name)
     .context("Failed to get target workspace name.")?;
 
-  focus_workspace(WorkspaceTarget::Name(workspace_name), state, config)
+  focus_workspace(
+    WorkspaceTarget::Name(workspace_name),
+    false,
+    state,
+    config,
+  )
 }

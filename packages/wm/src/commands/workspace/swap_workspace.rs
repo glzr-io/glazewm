@@ -2,12 +2,12 @@ use anyhow::Context;
 use tracing::info;
 use wm_common::WmEvent;
 
-use super::{activate_workspace, sort_workspaces};
+use super::sort_workspaces;
 use crate::{
   commands::container::{
     move_container_within_tree, set_focused_descendant,
   },
-  models::{Container, WorkspaceTarget},
+  models::{Container, MonitorTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -31,7 +31,7 @@ pub fn swap_workspace_explicit(
     format!("Monitor at {monitor_2_index} does not exist.")
   })?;
 
-  swap(
+  swap_workspace_internal(
     &monitor_1.as_container(),
     &monitor_2.as_container(),
     change_focus,
@@ -42,66 +42,32 @@ pub fn swap_workspace_explicit(
 
 /// This swap the current focused workspace with the one displayed at
 /// `target_monitor_index`.
-pub fn swap_workspace_by_index(
-  target_monitor_index: usize,
-  change_focus: bool,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  let monitors = state.monitors();
-
-  let focused_workspace = state
-    .focused_container()
-    .and_then(|container| container.workspace())
-    .context("No workspace is focused.")?;
-
-  let target_monitor =
-    monitors.get(target_monitor_index).with_context(|| {
-      format!("Monitor at {target_monitor_index} does not exist.")
-    })?;
-
-  swap(
-    &focused_workspace.as_container(),
-    &target_monitor.as_container(),
-    change_focus,
-    state,
-    config,
-  )
-}
-
-/// This swap the current focused workspace with the one displayed at
-/// `target_monitor_index`.
 pub fn swap_workspace(
-  target: WorkspaceTarget,
+  target: MonitorTarget,
   change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let focused_workspace = state
+  let focused_monitor = state
     .focused_container()
-    .and_then(|container| container.workspace())
-    .context("No workspace is focused.")?;
+    .and_then(|container| container.monitor())
+    .context("No monitor is focused.")?;
 
-  let (target_workspace_name, target_workspace) =
-    state.workspace_by_target(&focused_workspace, target, config)?;
+  let target_monitor = match target {
+    MonitorTarget::Direction(direction) => {
+      state.monitor_in_direction(&focused_monitor, &direction)?
+    }
+    MonitorTarget::Index(index) => {
+      let monitors = state.monitors();
+      monitors.get(index).cloned()
+    }
+    MonitorTarget::Monitor(monitor) => Some(monitor),
+  };
 
-  // Retrieve or activate the target workspace by its name.
-  let target_workspace = match target_workspace {
-    Some(_) => anyhow::Ok(target_workspace),
-    _ => match target_workspace_name {
-      Some(name) => {
-        activate_workspace(Some(&name), None, state, config)?;
-
-        Ok(state.workspace_by_name(&name))
-      }
-      _ => Ok(None),
-    },
-  }?;
-
-  if let Some(target_workspace) = target_workspace {
-    swap(
-      &focused_workspace.as_container(),
-      &target_workspace.as_container(),
+  if let Some(target_monitor) = target_monitor {
+    swap_workspace_internal(
+      &focused_monitor.into(),
+      &target_monitor.into(),
       change_focus,
       state,
       config,
@@ -119,7 +85,7 @@ pub fn swap_workspace(
 /// focus.
 ///
 /// Otherwise, `stay_on_monitor` will do nothing.
-fn swap(
+pub fn swap_workspace_internal(
   container_1: &Container,
   container_2: &Container,
   change_focus: bool,
