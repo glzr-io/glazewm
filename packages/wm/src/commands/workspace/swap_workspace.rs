@@ -7,55 +7,24 @@ use crate::{
   commands::container::{
     move_container_within_tree, set_focused_descendant,
   },
-  models::{Container, MonitorTarget},
+  models::{Container, Monitor, MonitorTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
 
-/// This swaps the displayed workspace on monitor 1 and monitor 2.
-pub fn swap_workspace_explicit(
-  monitor_1_index: usize,
-  monitor_2_index: usize,
-  change_focus: bool,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  let monitors = state.monitors();
-
-  let monitor_1 = monitors.get(monitor_1_index).with_context(|| {
-    format!("Monitor at {monitor_1_index} does not exist.")
-  })?;
-
-  let monitor_2 = monitors.get(monitor_2_index).with_context(|| {
-    format!("Monitor at {monitor_2_index} does not exist.")
-  })?;
-
-  swap_workspace_internal(
-    &monitor_1.as_container(),
-    &monitor_2.as_container(),
-    change_focus,
-    state,
-    config,
-  )
-}
-
 /// This swap the current focused workspace with the one displayed at
 /// `target_monitor_index`.
 pub fn swap_workspace(
   target: MonitorTarget,
+  subject_monitor: Monitor,
   change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let focused_monitor = state
-    .focused_container()
-    .and_then(|container| container.monitor())
-    .context("No monitor is focused.")?;
-
   let target_monitor = match target {
     MonitorTarget::Direction(direction) => {
-      state.monitor_in_direction(&focused_monitor, &direction)?
+      state.monitor_in_direction(&subject_monitor, &direction)?
     }
     MonitorTarget::Index(index) => {
       let monitors = state.monitors();
@@ -66,7 +35,7 @@ pub fn swap_workspace(
 
   if let Some(target_monitor) = target_monitor {
     swap_workspace_internal(
-      &focused_monitor.into(),
+      &subject_monitor.into(),
       &target_monitor.into(),
       change_focus,
       state,

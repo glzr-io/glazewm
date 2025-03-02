@@ -366,9 +366,6 @@ pub struct SwapWorkspaceTarget {
 
   #[clap(long)]
   pub monitor: Option<usize>,
-
-  #[clap(long, num_args = 2)]
-  pub monitors: Option<Vec<usize>>,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
