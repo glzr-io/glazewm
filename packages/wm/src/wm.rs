@@ -275,7 +275,7 @@ impl WindowManager {
           focus_workspace(WorkspaceTarget::Recent, state, config)?;
         }
 
-        if args.next_active_workspace_in_monitor {
+        if args.next_active_workspace_on_monitor {
           focus_workspace(
             WorkspaceTarget::NextActiveInMonitor,
             state,
@@ -283,7 +283,7 @@ impl WindowManager {
           )?;
         }
 
-        if args.prev_active_workspace_in_monitor {
+        if args.prev_active_workspace_on_monitor {
           focus_workspace(
             WorkspaceTarget::PreviousActiveInMonitor,
             state,

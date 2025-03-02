@@ -329,10 +329,10 @@ pub struct InvokeFocusCommand {
   pub prev_workspace: bool,
 
   #[clap(long)]
-  pub next_active_workspace_in_monitor: bool,
+  pub next_active_workspace_on_monitor: bool,
 
   #[clap(long)]
-  pub prev_active_workspace_in_monitor: bool,
+  pub prev_active_workspace_on_monitor: bool,
 
   #[clap(long)]
   pub recent_workspace: bool,
