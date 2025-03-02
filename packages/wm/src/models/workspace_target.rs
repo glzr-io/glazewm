@@ -5,6 +5,8 @@ pub enum WorkspaceTarget {
   Recent,
   NextActive,
   PreviousActive,
+  NextActiveInMonitor,
+  PreviousActiveInMonitor,
   Next,
   Previous,
   #[allow(dead_code)]
