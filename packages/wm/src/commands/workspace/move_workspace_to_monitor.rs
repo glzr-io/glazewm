@@ -3,7 +3,9 @@ use wm_common::WmEvent;
 
 use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{
-  commands::container::move_container_within_tree,
+  commands::container::{
+    move_container_within_tree, set_focused_descendant,
+  },
   models::{MonitorTarget, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -55,11 +57,21 @@ pub fn move_workspace_to_monitor(
       );
     }
 
+    // Make sure that it is focused after move
+    let container_to_focus = workspace
+      .descendant_focus_order()
+      .next()
+      .unwrap_or_else(|| displayed_workspace.clone().as_container());
+
+    set_focused_descendant(&container_to_focus, None);
+
+    state.recent_workspace_name = Some(workspace.config().name);
     state
       .pending_sync
-      .queue_cursor_jump()
+      .queue_focus_change()
       .queue_container_to_redraw(workspace.clone())
-      .queue_container_to_redraw(displayed_workspace);
+      .queue_container_to_redraw(displayed_workspace)
+      .queue_cursor_jump();
 
     match origin_monitor.child_count() {
       0 => {

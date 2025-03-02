@@ -96,6 +96,7 @@ fn normal_focus(
 
   set_focused_descendant(&container_to_focus, None);
 
+  state.recent_workspace_name = Some(target_workspace.config().name);
   state
     .pending_sync
     .queue_focus_change()

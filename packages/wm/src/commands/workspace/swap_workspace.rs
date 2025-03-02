@@ -192,6 +192,7 @@ pub fn swap_workspace_internal(
 
   set_focused_descendant(&container_to_focus, None);
 
+  state.recent_workspace_name = Some(workspace_to_focus.config().name);
   state
     .pending_sync
     .queue_focus_change()
