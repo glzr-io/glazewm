@@ -17,7 +17,7 @@ use crate::{
 pub fn swap_workspace_explicit(
   monitor_1_index: usize,
   monitor_2_index: usize,
-  stay_on_monitor: bool,
+  change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -34,7 +34,7 @@ pub fn swap_workspace_explicit(
   swap(
     &monitor_1.as_container(),
     &monitor_2.as_container(),
-    stay_on_monitor,
+    change_focus,
     state,
     config,
   )
@@ -44,7 +44,7 @@ pub fn swap_workspace_explicit(
 /// `target_monitor_index`.
 pub fn swap_workspace_by_index(
   target_monitor_index: usize,
-  stay_on_monitor: bool,
+  change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -63,7 +63,7 @@ pub fn swap_workspace_by_index(
   swap(
     &focused_workspace.as_container(),
     &target_monitor.as_container(),
-    stay_on_monitor,
+    change_focus,
     state,
     config,
   )
@@ -73,7 +73,7 @@ pub fn swap_workspace_by_index(
 /// `target_monitor_index`.
 pub fn swap_workspace(
   target: WorkspaceTarget,
-  stay_on_monitor: bool,
+  change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -102,7 +102,7 @@ pub fn swap_workspace(
     swap(
       &focused_workspace.as_container(),
       &target_workspace.as_container(),
-      stay_on_monitor,
+      change_focus,
       state,
       config,
     )?;
@@ -122,12 +122,12 @@ pub fn swap_workspace(
 fn swap(
   container_1: &Container,
   container_2: &Container,
-  stay_on_monitor: bool,
+  change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   info!("swap_workspace");
-  info!("stay_on_monitor: {stay_on_monitor}");
+  info!("change_focus: {change_focus}");
 
   let focused_workspace = state
     .focused_container()
@@ -202,13 +202,13 @@ fn swap(
 
   let workspace_to_focus = if focused_workspace.id() == workspace_at_1.id()
   {
-    if stay_on_monitor {
+    if change_focus {
       &workspace_at_2
     } else {
       &workspace_at_1
     }
   } else if focused_workspace.id() == workspace_at_2.id() {
-    if stay_on_monitor {
+    if change_focus {
       &workspace_at_1
     } else {
       &workspace_at_2

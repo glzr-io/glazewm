@@ -238,16 +238,16 @@ impl WindowManager {
         }
       }
       InvokeCommand::Focus(args) => {
-        if let Some(direction) = &args.invoke_focus.direction {
-          if args.flag.summon_to_current_monitor {
+        if let Some(direction) = &args.focus_target.direction {
+          if args.flags.summon_to_current_monitor {
             // TODO
           } else {
             focus_in_direction(&subject_container, direction, state)?;
           }
         }
 
-        if let Some(name) = &args.invoke_focus.workspace {
-          if args.flag.summon_to_current_monitor {
+        if let Some(name) = &args.focus_target.workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::Name(name.to_string()),
               state,
@@ -261,12 +261,12 @@ impl WindowManager {
           )?;
         }
 
-        if let Some(monitor_index) = &args.invoke_focus.monitor {
+        if let Some(monitor_index) = &args.focus_target.monitor {
           focus_monitor(*monitor_index, state, config)?;
         }
 
-        if args.invoke_focus.next_active_workspace {
-          if args.flag.summon_to_current_monitor {
+        if args.focus_target.next_active_workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::NextActive,
               state,
@@ -277,8 +277,8 @@ impl WindowManager {
           }
         }
 
-        if args.invoke_focus.prev_active_workspace {
-          if args.flag.summon_to_current_monitor {
+        if args.focus_target.prev_active_workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::PreviousActive,
               state,
@@ -293,8 +293,8 @@ impl WindowManager {
           }
         }
 
-        if args.invoke_focus.next_workspace {
-          if args.flag.summon_to_current_monitor {
+        if args.focus_target.next_workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::Next,
               state,
@@ -305,8 +305,8 @@ impl WindowManager {
           }
         }
 
-        if args.invoke_focus.prev_workspace {
-          if args.flag.summon_to_current_monitor {
+        if args.focus_target.prev_workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::Previous,
               state,
@@ -317,8 +317,8 @@ impl WindowManager {
           }
         }
 
-        if args.invoke_focus.recent_workspace {
-          if args.flag.summon_to_current_monitor {
+        if args.focus_target.recent_workspace {
+          if args.flags.summon_to_current_monitor {
             focus_workspace_on_current_monitor(
               WorkspaceTarget::Recent,
               state,
@@ -332,29 +332,29 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::SwapWorkspace(args) => {
-        if let Some(direction) = &args.invoke_swap.workspace_in_direction {
+        if let Some(direction) = &args.swap_target.workspace_in_direction {
           swap_workspace(
             WorkspaceTarget::Direction(direction.clone()),
-            args.flag.stay_on_monitor,
+            args.flags.change_focus,
             state,
             config,
           )?;
         }
 
-        if let Some(monitor_index) = args.invoke_swap.monitor {
+        if let Some(monitor_index) = args.swap_target.monitor {
           swap_workspace_by_index(
             monitor_index,
-            args.flag.stay_on_monitor,
+            args.flags.change_focus,
             state,
             config,
           )?;
         }
 
-        if let Some(monitors) = &args.invoke_swap.monitors {
+        if let Some(monitors) = &args.swap_target.monitors {
           swap_workspace_explicit(
             monitors[0],
             monitors[1],
-            args.flag.stay_on_monitor,
+            args.flags.change_focus,
             state,
             config,
           )?;

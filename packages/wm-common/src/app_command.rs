@@ -303,19 +303,17 @@ pub struct InvokeAdjustBordersCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = false, multiple = true)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct InvokeFocusCommand {
   #[clap(flatten)]
-  pub invoke_focus: FocusCommand,
+  pub focus_target: FocusCommandTarget,
 
   #[clap(flatten)]
-  pub flag: FocusCommandFlag,
+  pub flags: FocusCommandFlags,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = false, multiple = true)]
-#[allow(clippy::struct_excessive_bools)]
-pub struct FocusCommandFlag {
+pub struct FocusCommandFlags {
   #[clap(long)]
   pub summon_to_current_monitor: bool,
 }
@@ -323,7 +321,7 @@ pub struct FocusCommandFlag {
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 #[allow(clippy::struct_excessive_bools)]
-pub struct FocusCommand {
+pub struct FocusCommandTarget {
   /// --summon-to-current-monitor is not yet implemented
   #[clap(long, conflicts_with = "summon_to_current_monitor")]
   pub direction: Option<Direction>,
@@ -352,19 +350,17 @@ pub struct FocusCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = false, multiple = true)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct InvokeSwapWorkspaceCommand {
   #[clap(flatten)]
-  pub invoke_swap: SwapWorkspaceCommand,
+  pub swap_target: SwapWorkspaceTarget,
 
   #[clap(flatten)]
-  pub flag: SwapWorkspaceFlag,
+  pub flags: SwapWorkspaceFlags,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
-#[allow(clippy::struct_excessive_bools)]
-pub struct SwapWorkspaceCommand {
+pub struct SwapWorkspaceTarget {
   #[clap(long)]
   pub workspace_in_direction: Option<Direction>,
 
@@ -377,10 +373,9 @@ pub struct SwapWorkspaceCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = false, multiple = true)]
-#[allow(clippy::struct_excessive_bools)]
-pub struct SwapWorkspaceFlag {
+pub struct SwapWorkspaceFlags {
   #[clap(long)]
-  pub stay_on_monitor: bool,
+  pub change_focus: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
