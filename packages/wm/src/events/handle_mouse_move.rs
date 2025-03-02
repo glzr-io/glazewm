@@ -13,7 +13,12 @@ pub fn handle_mouse_move(
 ) -> anyhow::Result<()> {
   // Ignore event if left/right-click is down. Otherwise, this causes focus
   // to jitter when a window is being resized by its drag handles.
-  if event.is_mouse_down || !config.value.general.focus_follows_cursor {
+  // Also ignore if the OS focused window isn't the same as the WM's
+  // focused window.
+  if event.is_mouse_down
+    || !state.is_focus_synced
+    || !config.value.general.focus_follows_cursor
+  {
     return Ok(());
   }
 
@@ -28,6 +33,23 @@ pub fn handle_mouse_move(
 
     if focused_container.id() != window.id() {
       set_focused_descendant(&window.as_container(), None);
+      state.pending_sync.queue_focus_change();
+    }
+  } else {
+    // Focus the monitor if no window is under the cursor.
+    let cursor_monitor = state
+      .monitor_at_point(&event.point)
+      .context("No monitor under cursor.")?;
+
+    let focused_monitor = state
+      .focused_container()
+      .context("No focused container.")?
+      .monitor()
+      .context("Focused container has no monitor.")?;
+
+    // Avoid setting focus to the same monitor.
+    if cursor_monitor.id() != focused_monitor.id() {
+      set_focused_descendant(&cursor_monitor.as_container(), None);
       state.pending_sync.queue_focus_change();
     }
   }

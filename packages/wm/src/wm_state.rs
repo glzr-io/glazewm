@@ -58,6 +58,9 @@ pub struct WmState {
   /// Whether the WM is paused.
   pub is_paused: bool,
 
+  /// Whether the OS focused window is the same as the WM focused window.
+  pub is_focus_synced: bool,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -82,6 +85,7 @@ impl WmState {
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
       is_paused: false,
+      is_focus_synced: false,
       has_initialized: false,
       event_tx,
       exit_tx,
@@ -129,6 +133,7 @@ impl WmState {
       .context("Failed to get container to focus.")?;
 
     set_focused_descendant(&container_to_focus, None);
+    self.is_focus_synced = true;
 
     self
       .pending_sync
