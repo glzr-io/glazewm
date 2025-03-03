@@ -3,9 +3,7 @@ use wm_common::WmEvent;
 
 use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{
-  commands::container::{
-    move_container_within_tree, set_focused_descendant,
-  },
+  commands::container::move_container_within_tree,
   models::{MonitorTarget, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -56,14 +54,6 @@ pub fn move_workspace_to_monitor(
           .translate_to_center(&workspace.to_rect()?),
       );
     }
-
-    // Make sure that it is focused after move
-    let container_to_focus = workspace
-      .descendant_focus_order()
-      .next()
-      .unwrap_or_else(|| displayed_workspace.clone().as_container());
-
-    set_focused_descendant(&container_to_focus, None);
 
     state.recent_workspace_name = Some(workspace.config().name);
     state

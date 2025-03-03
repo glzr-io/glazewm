@@ -136,7 +136,17 @@ fn move_and_focus(
     MonitorTarget::Monitor(focused_monitor),
     state,
     config,
-  )
+  )?;
+
+  // Make sure that it is focused after move
+  let container_to_focus = target_workspace
+    .descendant_focus_order()
+    .next()
+    .unwrap_or_else(|| target_workspace.clone().as_container());
+
+  set_focused_descendant(&container_to_focus, None);
+
+  Ok(())
 }
 
 fn swap_and_focus(
