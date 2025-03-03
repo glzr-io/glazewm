@@ -6,6 +6,7 @@ use crate::{
   commands::monitor::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,
   },
+  events::handle_system_resume,
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -18,6 +19,9 @@ pub fn handle_display_settings_changed(
   info!("Display settings changed.");
 
   let native_monitors = Platform::sorted_monitors()?;
+
+  // Check if this might be a resume from sleep
+  let is_potential_resume = !state.sleep_monitor_assignments.is_empty();
 
   let hardware_ids = native_monitors
     .iter()
@@ -125,6 +129,11 @@ pub fn handle_display_settings_changed(
         .floating_placement()
         .translate_to_center(&workspace.to_rect()?),
     );
+  }
+
+  // If this might be a resume from sleep, try to restore monitor assignments
+  if is_potential_resume {
+    handle_system_resume(state, config)?;
   }
 
   // Redraw full container tree.

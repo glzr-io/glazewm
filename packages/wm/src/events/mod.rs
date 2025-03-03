@@ -10,6 +10,8 @@ mod handle_window_moved_or_resized_end;
 mod handle_window_moved_or_resized_start;
 mod handle_window_shown;
 mod handle_window_title_changed;
+pub mod handle_system_sleep;
+pub mod handle_system_resume;
 
 pub use handle_display_settings_changed::*;
 pub use handle_mouse_move::*;
@@ -23,3 +25,5 @@ pub use handle_window_moved_or_resized_end::*;
 pub use handle_window_moved_or_resized_start::*;
 pub use handle_window_shown::*;
 pub use handle_window_title_changed::*;
+pub use handle_system_sleep::handle_system_sleep;
+pub use handle_system_resume::handle_system_resume;
