@@ -1,182 +1,63 @@
 use anyhow::Context;
-use tracing::info;
-use wm_common::WmEvent;
 
-use super::sort_workspaces;
+use super::{focus_workspace, move_workspace_to_monitor};
 use crate::{
-  commands::container::{
-    move_container_within_tree, set_focused_descendant,
-  },
-  models::{Container, Monitor, MonitorTarget},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  models::{MonitorTarget, Workspace, WorkspaceTarget},
+  traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
 };
 
-/// This swap the current focused workspace with the one displayed at
-/// `target_monitor_index`.
+/// Swap workspace on origin and target
 pub fn swap_workspace(
+  origin_workspace: &Workspace,
   target: MonitorTarget,
-  subject_monitor: Monitor,
   change_focus: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  let origin_monitor = origin_workspace
+    .monitor()
+    .context("Workspace have no monitor.")?;
+
   let target_monitor = match target {
     MonitorTarget::Direction(direction) => {
-      state.monitor_in_direction(&subject_monitor, &direction)?
+      state.monitor_in_direction(&origin_monitor, &direction)?
     }
     MonitorTarget::Index(index) => {
       let monitors = state.monitors();
       monitors.get(index).cloned()
     }
     MonitorTarget::Monitor(monitor) => Some(monitor),
-  };
+  }
+  .context("There is no valid monitor")?;
 
-  if let Some(target_monitor) = target_monitor {
-    swap_workspace_internal(
-      &subject_monitor.into(),
-      &target_monitor.into(),
-      change_focus,
+  let target_workspace = target_monitor
+    .displayed_workspace()
+    .context("Target monitor have no displayed workspace.")?;
+
+  move_workspace_to_monitor(
+    &target_workspace,
+    MonitorTarget::Monitor(origin_monitor),
+    state,
+    config,
+  )?;
+
+  move_workspace_to_monitor(
+    origin_workspace,
+    MonitorTarget::Monitor(target_monitor),
+    state,
+    config,
+  )?;
+
+  if change_focus {
+    focus_workspace(
+      WorkspaceTarget::Name(target_workspace.config().name),
+      false,
       state,
       config,
     )?;
   }
-
-  Ok(())
-}
-
-/// This swaps the displayed workspace on `container_1` and `container_2`.
-///
-/// If one of the workspace moved is in focus, by default the focus will
-/// follow the swap, however, if `stay_on_monitor` is set to true, focus
-/// if be change to the swapped workspace. This is to not change monitor
-/// focus.
-///
-/// Otherwise, `stay_on_monitor` will do nothing.
-pub fn swap_workspace_internal(
-  container_1: &Container,
-  container_2: &Container,
-  change_focus: bool,
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
-  info!("swap_workspace");
-  info!("change_focus: {change_focus}");
-
-  let focused_workspace = state
-    .focused_container()
-    .and_then(|container| container.workspace())
-    .context("No focused workspace")?;
-
-  let monitor_1 = container_1
-    .monitor()
-    .context("container_1 has no monitor.")?;
-
-  let workspace_at_1 = monitor_1
-    .displayed_workspace()
-    .context("No displayed workspace.")?;
-
-  let monitor_2 = container_2
-    .monitor()
-    .context("container_2 has no monitor.")?;
-
-  let workspace_at_2 = monitor_2
-    .displayed_workspace()
-    .context("No displayed workspace.")?;
-
-  info!("monitor_1: {monitor_1}");
-  info!("workspace_at_1: {workspace_at_1}");
-  info!("monitor_2: {monitor_2}");
-  info!("workspace_at_2: {workspace_at_2}");
-
-  move_container_within_tree(
-    &workspace_at_1.clone().into(),
-    &monitor_2.clone().into(),
-    monitor_2.child_count(),
-    state,
-  )?;
-
-  move_container_within_tree(
-    &workspace_at_2.clone().into(),
-    &monitor_1.clone().into(),
-    monitor_1.child_count(),
-    state,
-  )?;
-
-  sort_workspaces(&monitor_1, config)?;
-  sort_workspaces(&monitor_2, config)?;
-
-  let windows = workspace_at_1
-    .descendants()
-    .filter_map(|descendant| descendant.as_window_container().ok());
-
-  for window in windows {
-    window.set_has_pending_dpi_adjustment(true);
-
-    window.set_floating_placement(
-      window
-        .floating_placement()
-        .translate_to_center(&workspace_at_1.to_rect()?),
-    );
-  }
-
-  let windows = workspace_at_2
-    .descendants()
-    .filter_map(|descendant| descendant.as_window_container().ok());
-
-  for window in windows {
-    window.set_has_pending_dpi_adjustment(true);
-
-    window.set_floating_placement(
-      window
-        .floating_placement()
-        .translate_to_center(&workspace_at_2.to_rect()?),
-    );
-  }
-
-  let workspace_to_focus = if focused_workspace.id() == workspace_at_1.id()
-  {
-    if change_focus {
-      &workspace_at_2
-    } else {
-      &workspace_at_1
-    }
-  } else if focused_workspace.id() == workspace_at_2.id() {
-    if change_focus {
-      &workspace_at_1
-    } else {
-      &workspace_at_2
-    }
-  } else {
-    // There is nothing else to focus to so default back to the orignal
-    // focus.
-    &focused_workspace
-  };
-
-  let container_to_focus = workspace_to_focus
-    .descendant_focus_order()
-    .next()
-    .unwrap_or_else(|| workspace_to_focus.clone().as_container());
-
-  set_focused_descendant(&container_to_focus, None);
-
-  state.recent_workspace_name = Some(workspace_to_focus.config().name);
-  state
-    .pending_sync
-    .queue_focus_change()
-    .queue_container_to_redraw(focused_workspace)
-    .queue_container_to_redraw(workspace_at_1.clone())
-    .queue_container_to_redraw(workspace_at_2.clone())
-    .queue_cursor_jump();
-
-  state.emit_event(WmEvent::WorkspaceUpdated {
-    updated_workspace: workspace_at_1.to_dto()?,
-  });
-
-  state.emit_event(WmEvent::WorkspaceUpdated {
-    updated_workspace: workspace_at_2.to_dto()?,
-  });
 
   Ok(())
 }

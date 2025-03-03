@@ -305,20 +305,20 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::SwapWorkspace(args) => {
-        if let Some(monitor) = subject_container.monitor() {
+        if let Some(subject_workspace) = subject_container.workspace() {
           if let Some(direction) = &args.swap_target.workspace_in_direction
           {
             swap_workspace(
+              &subject_workspace,
               MonitorTarget::Direction(direction.clone()),
-              monitor,
               args.flags.change_focus,
               state,
               config,
             )?;
           } else if let Some(monitor_index) = args.swap_target.monitor {
             swap_workspace(
+              &subject_workspace,
               MonitorTarget::Index(monitor_index),
-              monitor,
               args.flags.change_focus,
               state,
               config,

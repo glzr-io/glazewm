@@ -1,7 +1,7 @@
 use anyhow::Context;
 use tracing::info;
 
-use super::{activate_workspace, swap_workspace_internal};
+use super::activate_workspace;
 use crate::{
   commands::{
     container::set_focused_descendant,
@@ -165,11 +165,27 @@ fn swap_and_focus(
     .monitor()
     .context("Workspace has no monitor")?;
 
-  swap_workspace_internal(
-    &target_monitor.into(),
-    &focused_monitor.into(),
-    true,
+  move_workspace_to_monitor(
+    target_workspace,
+    MonitorTarget::Monitor(focused_monitor),
     state,
     config,
-  )
+  )?;
+
+  move_workspace_to_monitor(
+    focused_workspace,
+    MonitorTarget::Monitor(target_monitor),
+    state,
+    config,
+  )?;
+
+  // Make sure that it is focused after move
+  let container_to_focus = target_workspace
+    .descendant_focus_order()
+    .next()
+    .unwrap_or_else(|| target_workspace.clone().as_container());
+
+  set_focused_descendant(&container_to_focus, None);
+
+  Ok(())
 }
