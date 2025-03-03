@@ -138,6 +138,7 @@ fn move_and_focus(
     config,
   )?;
 
+  state.recent_workspace_name = Some(target_workspace.config().name);
   // Make sure that it is focused after move
   let container_to_focus = target_workspace
     .descendant_focus_order()
@@ -179,6 +180,7 @@ fn swap_and_focus(
     config,
   )?;
 
+  state.recent_workspace_name = Some(target_workspace.config().name);
   // Make sure that it is focused after move
   let container_to_focus = target_workspace
     .descendant_focus_order()

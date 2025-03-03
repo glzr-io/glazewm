@@ -55,13 +55,10 @@ pub fn move_workspace_to_monitor(
       );
     }
 
-    state.recent_workspace_name = Some(workspace.config().name);
     state
       .pending_sync
-      .queue_focus_change()
       .queue_container_to_redraw(workspace.clone())
-      .queue_container_to_redraw(displayed_workspace)
-      .queue_cursor_jump();
+      .queue_container_to_redraw(displayed_workspace);
 
     match origin_monitor.child_count() {
       0 => {
