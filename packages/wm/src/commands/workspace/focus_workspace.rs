@@ -1,4 +1,5 @@
 use anyhow::Context;
+use tracing::info;
 
 use super::activate_workspace;
 use crate::{
@@ -19,6 +20,9 @@ use crate::{
 /// in a given direction from the currently focused workspace.
 ///
 /// The workspace will be activated if it isn't already active.
+///
+/// `summon_to_current_monitor`: Moves the target workspace to the focused
+/// workspace's monitor.
 pub fn focus_workspace(
   target: WorkspaceTarget,
   summon_to_current_monitor: bool,
@@ -47,20 +51,60 @@ pub fn focus_workspace(
   }?;
 
   if let Some(target_workspace) = target_workspace {
+    info!("Focusing workspace: {target_workspace}");
+
+    // Get the currently displayed workspace on the same monitor that the
+    // workspace to focus is on.
+    let displayed_workspace = target_workspace
+      .monitor()
+      .and_then(|monitor| monitor.displayed_workspace())
+      .context("No workspace is currently displayed.")?;
+
+    // Set focus to whichever window last had focus in workspace. If the
+    // workspace has no windows, then set focus to the workspace itself.
     let container_to_focus = target_workspace
       .descendant_focus_order()
       .next()
       .unwrap_or_else(|| target_workspace.clone().into());
 
     set_focused_descendant(&container_to_focus, None);
+    state.pending_sync.queue_focus_change();
 
-    state.recent_workspace_name = Some(target_workspace.config().name);
+    // Display the workspace to switch focus to.
     state
       .pending_sync
-      .queue_focus_change()
-      .queue_container_to_redraw(focused_workspace.clone())
-      .queue_container_to_redraw(target_workspace.clone())
-      .queue_cursor_jump();
+      .queue_container_to_redraw(displayed_workspace.clone())
+      .queue_container_to_redraw(target_workspace.clone());
+
+    if summon_to_current_monitor {
+      let target_monitor = target_workspace
+        .monitor()
+        .context("Workspace has no monitor")?;
+
+      let displayed_monitor = displayed_workspace
+        .monitor()
+        .context("Workspace has no monitor")?;
+
+      if target_monitor.id() != displayed_monitor.id() {
+        // Moves workspace to original focused workspace's monitor
+        move_workspace_to_monitor(
+          &target_workspace,
+          MonitorTarget::Monitor(displayed_monitor),
+          state,
+          config,
+        )?;
+
+        // Swap if needed
+        if target_workspace.is_displayed() {
+          move_workspace_to_monitor(
+            &focused_workspace,
+            MonitorTarget::Monitor(target_monitor),
+            state,
+            config,
+          )?;
+        }
+      }
+    }
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
     // empty workspaces if they're the only workspace on the monitor.
@@ -75,33 +119,9 @@ pub fn focus_workspace(
       deactivate_workspace(workspace, state)?;
     }
 
-    if summon_to_current_monitor {
-      let target_monitor = target_workspace
-        .monitor()
-        .context("Workspace has no monitor")?;
-
-      let focused_monitor = focused_workspace
-        .monitor()
-        .context("Workspace has no monitor")?;
-
-      // Moves workspace to original focused workspace's monitor
-      move_workspace_to_monitor(
-        &target_workspace,
-        MonitorTarget::Monitor(focused_monitor),
-        state,
-        config,
-      )?;
-
-      // Swap if needed
-      if target_workspace.is_displayed() {
-        move_workspace_to_monitor(
-          &focused_workspace,
-          MonitorTarget::Monitor(target_monitor),
-          state,
-          config,
-        )?;
-      }
-    }
+    // Save the currently focused workspace as recent.
+    state.recent_workspace_name = Some(focused_workspace.config().name);
+    state.pending_sync.queue_cursor_jump();
   }
 
   Ok(())
