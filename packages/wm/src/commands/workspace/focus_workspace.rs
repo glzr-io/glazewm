@@ -60,6 +60,42 @@ pub fn focus_workspace(
       .and_then(|monitor| monitor.displayed_workspace())
       .context("No workspace is currently displayed.")?;
 
+    if summon_to_current_monitor {
+      let target_monitor = target_workspace
+        .monitor()
+        .context("Workspace has no monitor")?;
+
+      let focused_monitor = focused_workspace
+        .monitor()
+        .context("Workspace has no monitor")?;
+
+      if target_monitor.id() != focused_monitor.id() {
+        if target_workspace.is_displayed() {
+          // Swap workspace
+          move_workspace_to_monitor(
+            &target_workspace,
+            MonitorTarget::Monitor(focused_monitor),
+            state,
+            config,
+          )?;
+          move_workspace_to_monitor(
+            &focused_workspace,
+            MonitorTarget::Monitor(target_monitor),
+            state,
+            config,
+          )?;
+        } else {
+          // Moves workspace to original focused workspace's monitor
+          move_workspace_to_monitor(
+            &target_workspace,
+            MonitorTarget::Monitor(focused_monitor),
+            state,
+            config,
+          )?;
+        }
+      }
+    }
+
     // Set focus to whichever window last had focus in workspace. If the
     // workspace has no windows, then set focus to the workspace itself.
     let container_to_focus = target_workspace
@@ -75,36 +111,6 @@ pub fn focus_workspace(
       .pending_sync
       .queue_container_to_redraw(displayed_workspace.clone())
       .queue_container_to_redraw(target_workspace.clone());
-
-    if summon_to_current_monitor {
-      let target_monitor = target_workspace
-        .monitor()
-        .context("Workspace has no monitor")?;
-
-      let displayed_monitor = displayed_workspace
-        .monitor()
-        .context("Workspace has no monitor")?;
-
-      if target_monitor.id() != displayed_monitor.id() {
-        // Moves workspace to original focused workspace's monitor
-        move_workspace_to_monitor(
-          &target_workspace,
-          MonitorTarget::Monitor(displayed_monitor),
-          state,
-          config,
-        )?;
-
-        // Swap if needed
-        if target_workspace.is_displayed() {
-          move_workspace_to_monitor(
-            &focused_workspace,
-            MonitorTarget::Monitor(target_monitor),
-            state,
-            config,
-          )?;
-        }
-      }
-    }
 
     // Get empty workspace to destroy (if one is found). Cannot destroy
     // empty workspaces if they're the only workspace on the monitor.
