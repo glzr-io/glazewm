@@ -237,11 +237,7 @@ impl WindowManager {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.focus_target.direction {
-          if args.flags.summon_to_current_monitor {
-            // TODO
-          } else {
-            focus_in_direction(&subject_container, direction, state)?;
-          }
+          focus_in_direction(&subject_container, direction, state)?;
         }
 
         if let Some(name) = &args.focus_target.workspace {
