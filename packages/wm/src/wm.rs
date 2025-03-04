@@ -413,7 +413,9 @@ impl WindowManager {
           MonitorTarget::Direction(direction.clone()),
           state,
           config,
-        )
+        )?;
+        state.pending_sync.queue_cursor_jump();
+        Ok(())
       }
       InvokeCommand::Position(args) => {
         match subject_container.as_window_container() {
