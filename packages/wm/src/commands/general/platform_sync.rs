@@ -5,13 +5,15 @@ use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  TilingDirection, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
 use crate::{
-  models::{Container, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  models::{Container, DirectionContainer, WindowContainer},
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -175,6 +177,7 @@ fn redraw_containers(
   let windows_to_bring_to_front =
     windows_to_bring_to_front(focused_container, state)?;
 
+  // Process all regular windows first
   let windows_to_update = {
     let mut windows = windows_to_redraw
       .iter()
@@ -187,8 +190,6 @@ fn redraw_containers(
       .descendant_focus_order()
       .collect::<Vec<_>>();
 
-    // Sort the windows to update by their focus order. The most recently
-    // focused window will be updated first.
     windows.sort_by_key(|window| {
       descendant_focus_order
         .iter()
@@ -198,13 +199,29 @@ fn redraw_containers(
     windows
   };
 
+  // FIRST PASS: Process all windows normally for positioning
   for window in windows_to_update.iter().rev() {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
+
+    // Check if this window is in an accordion
+    let is_in_accordion = if let Some(parent) = window.parent() {
+      if let Ok(direction_parent) = parent.as_direction_container() {
+        matches!(
+          direction_parent.tiling_direction(),
+          TilingDirection::HorizontalAccordion
+            | TilingDirection::VerticalAccordion
+        )
+      } else {
+        false
+      }
+    } else {
+      false
+    };
 
     let workspace =
       window.workspace().context("Window has no workspace.")?;
 
-    // Whether the window should be shown above all other windows.
+    // Use a temporary normal z-order for all windows
     let z_order = match window.state() {
       WindowState::Floating(config) if config.shown_on_top => {
         ZOrder::TopMost
@@ -212,28 +229,14 @@ fn redraw_containers(
       WindowState::Fullscreen(config) if config.shown_on_top => {
         ZOrder::TopMost
       }
-      _ if should_bring_to_front => {
-        let focused_descendant = workspace
-          .descendant_focus_order()
-          .next()
-          .and_then(|container| container.as_window_container().ok());
-
-        if let Some(focused_descendant) = focused_descendant {
-          if window.id() == focused_descendant.id() {
-            ZOrder::Normal
-          } else {
-            ZOrder::AfterWindow(focused_descendant.native().handle)
-          }
-        } else {
-          ZOrder::Normal
-        }
-      }
       _ => ZOrder::Normal,
     };
 
-    // Set the z-order of the window and skip updating it's position if the
-    // window only requires a z-order change.
-    if should_bring_to_front && !windows_to_redraw.contains(window) {
+    // Skip positioning update if only z-order change needed
+    if should_bring_to_front
+      && !windows_to_redraw.contains(window)
+      && !is_in_accordion
+    {
       info!("Updating window z-order: {window}");
 
       if let Err(err) = window.native().set_z_order(&z_order) {
@@ -243,8 +246,7 @@ fn redraw_containers(
       continue;
     }
 
-    // Transition display state depending on whether window will be
-    // shown or hidden.
+    // Normal display state and positioning update
     window.set_display_state(
       match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
@@ -266,8 +268,7 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    info!("Updating window position: {window}");
-
+    // For position updates, use a temporary Normal z-order
     if let Err(err) = window.native().set_position(
       &window.state(),
       &rect,
@@ -279,9 +280,7 @@ fn redraw_containers(
       warn!("Failed to set window position: {}", err);
     }
 
-    // Whether the window is either transitioning to or from fullscreen.
-    // TODO: This check can be improved since `prev_state` can be
-    // fullscreen without it needing to be marked as not fullscreen.
+    // Handle fullscreen transitions
     let is_transitioning_fullscreen =
       match (window.prev_state(), window.state()) {
         (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
@@ -298,10 +297,7 @@ fn redraw_containers(
       }
     }
 
-    // Skip setting taskbar visibility if the window is hidden (has no
-    // effect). Since cloaked windows are normally always visible in the
-    // taskbar, we only need to set visibility if `show_all_in_taskbar` is
-    // `false`.
+    // Handle taskbar visibility
     if config.value.general.hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
       && matches!(
@@ -312,6 +308,54 @@ fn redraw_containers(
       if let Err(err) = window.native().set_taskbar_visibility(is_visible)
       {
         warn!("Failed to set taskbar visibility: {}", err);
+      }
+    }
+  }
+
+  // SECOND PASS: Handle z-order for accordion containers
+  // Find all accordion containers
+  let accordion_containers: Vec<DirectionContainer> = state
+    .root_container
+    .descendants()
+    .filter_map(|container| container.as_direction_container().ok())
+    .filter(|container| {
+      matches!(
+        container.tiling_direction(),
+        TilingDirection::HorizontalAccordion
+          | TilingDirection::VerticalAccordion
+      )
+    })
+    .collect();
+
+  // Process z-order for each accordion
+  for accordion in accordion_containers {
+    // Get all windows from this accordion
+    let accordion_windows: Vec<WindowContainer> = accordion
+      .children()
+      .into_iter()
+      .filter_map(|c| c.as_window_container().ok())
+      .collect();
+
+    if accordion_windows.is_empty() {
+      continue;
+    }
+
+    // Find the focused window in this accordion
+    let has_focus = accordion_windows
+      .iter()
+      .any(|window| window.id() == focused_container.id());
+
+    if !has_focus {
+      continue;
+    }
+
+    // Force focused window to TOP z-order
+    for window in accordion_windows.iter() {
+      if window.id() == focused_container.id() {
+        // Extra call to ensure this window is on top
+        if let Err(err) = window.native().set_z_order(&ZOrder::Top) {
+          warn!("Failed to set focused accordion window z-order: {}", err);
+        }
       }
     }
   }
