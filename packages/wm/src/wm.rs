@@ -11,7 +11,8 @@ use wm_platform::PlatformEvent;
 use crate::{
   commands::{
     container::{
-      focus_in_direction, set_tiling_direction, toggle_tiling_direction,
+      focus_in_accordion, focus_in_direction, set_tiling_direction,
+      toggle_tiling_direction,
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
@@ -235,9 +236,54 @@ impl WindowManager {
       }
       InvokeCommand::Focus(args) => {
         if let Some(direction) = &args.direction {
-          focus_in_direction(&subject_container, direction, state)?;
+          focus_in_direction(
+            &subject_container,
+            direction,
+            state,
+            args.cycle_accordions,
+          )?;
         }
 
+        if let Some(name) = &args.workspace {
+          focus_workspace(
+            WorkspaceTarget::Name(name.to_string()),
+            state,
+            config,
+          )?;
+        }
+
+        if let Some(monitor_index) = &args.monitor {
+          focus_monitor(*monitor_index, state, config)?;
+        }
+
+        if args.next_active_workspace {
+          focus_workspace(WorkspaceTarget::NextActive, state, config)?;
+        }
+
+        if args.prev_active_workspace {
+          focus_workspace(WorkspaceTarget::PreviousActive, state, config)?;
+        }
+
+        if args.next_workspace {
+          focus_workspace(WorkspaceTarget::Next, state, config)?;
+        }
+
+        if args.prev_workspace {
+          focus_workspace(WorkspaceTarget::Previous, state, config)?;
+        }
+
+        if args.recent_workspace {
+          focus_workspace(WorkspaceTarget::Recent, state, config)?;
+        }
+
+        Ok(())
+      }
+      InvokeCommand::FocusAccordion(args) => {
+        if let Some(direction) = &args.direction {
+          focus_in_accordion(&subject_container, direction, state)?;
+        }
+
+        // TODO - temp C+P
         if let Some(name) = &args.workspace {
           focus_workspace(
             WorkspaceTarget::Name(name.to_string()),

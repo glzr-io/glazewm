@@ -159,6 +159,7 @@ pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
   Focus(InvokeFocusCommand),
+  FocusAccordion(InvokeFocusCommand),
   Ignore,
   Move(InvokeMoveCommand),
   MoveWorkspace {
@@ -327,6 +328,10 @@ pub struct InvokeFocusCommand {
 
   #[clap(long)]
   pub recent_workspace: bool,
+
+  // #[clap(long, default_value_t = false)]
+  #[clap(long, default_value_t = true)]
+  pub cycle_accordions: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]

@@ -12,7 +12,55 @@ pub fn focus_in_direction(
   origin_container: &Container,
   direction: &Direction,
   state: &mut WmState,
+  cycle_accordions: bool, // New parameter
 ) -> anyhow::Result<()> {
+  // First, check if we're in an accordion and shouldn't cycle
+  if !cycle_accordions {
+    let is_in_accordion = if let Some(parent) = origin_container.parent() {
+      if let Ok(direction_parent) = parent.as_direction_container() {
+        matches!(
+          direction_parent.tiling_direction(),
+          TilingDirection::HorizontalAccordion
+            | TilingDirection::VerticalAccordion
+        )
+      } else {
+        false
+      }
+    } else {
+      false
+    };
+
+    // If in accordion but not cycling, treat the whole accordion as one
+    // unit
+    if is_in_accordion {
+      // Find the accordion container
+      let accordion_parent = origin_container
+        .parent()
+        .and_then(|p| p.as_direction_container().ok())
+        .context("No direction container")?;
+
+      // We'll convert it to container once and use that
+      let accordion_container = accordion_parent.clone().into();
+
+      // Try to move from the accordion to the next container
+      // Use the accordion parent as the origin instead of the window
+      let workspace_target =
+        workspace_focus_target(&accordion_container, direction, state)
+          .ok()
+          .flatten();
+      let tiling_target =
+        tiling_focus_target(&accordion_container, direction)?;
+      let focus_target = tiling_target.or(workspace_target);
+
+      if let Some(focus_target) = focus_target {
+        set_focused_descendant(&focus_target, None);
+        state.pending_sync.queue_focus_change().queue_cursor_jump();
+      }
+
+      return Ok(());
+    }
+  }
+
   let focus_target = match origin_container {
     Container::TilingWindow(_) => {
       // If a suitable focus target isn't found in the current workspace,
@@ -85,67 +133,41 @@ fn tiling_focus_target(
   let tiling_direction = TilingDirection::from_direction(direction);
   let mut origin_or_ancestor = origin_container.clone();
 
-  // First check if we're in an accordion container
-  if let Some(parent) = origin_or_ancestor.parent() {
+  // Check if origin is in an accordion and if direction is valid for that
+  // accordion
+  let in_accordion = if let Some(parent) = origin_or_ancestor.parent() {
     if let Ok(direction_parent) = parent.as_direction_container() {
       match direction_parent.tiling_direction() {
         TilingDirection::HorizontalAccordion => {
-          match direction {
-            Direction::Up => {
-              // Try to focus previous sibling in accordion
-              if let Some(prev) = origin_or_ancestor
-                .prev_siblings()
-                .find_map(|c| c.as_tiling_container().ok())
-              {
-                return Ok(Some(prev.into()));
-              }
-              // If no previous sibling, allow falling through to normal
-              // navigation
-            }
-            Direction::Down => {
-              // Try to focus next sibling in accordion
-              if let Some(next) = origin_or_ancestor
-                .next_siblings()
-                .find_map(|c| c.as_tiling_container().ok())
-              {
-                return Ok(Some(next.into()));
-              }
-              // If no next sibling, allow falling through to normal
-              // navigation
-            }
-            // For Left/Right, immediately pass through to normal
-            // navigation
-            _ => {}
-          }
+          matches!(direction, Direction::Up | Direction::Down)
         }
         TilingDirection::VerticalAccordion => {
-          match direction {
-            Direction::Left => {
-              if let Some(prev) = origin_or_ancestor
-                .prev_siblings()
-                .find_map(|c| c.as_tiling_container().ok())
-              {
-                return Ok(Some(prev.into()));
-              }
-              // If no previous sibling, allow falling through to normal
-              // navigation
-            }
-            Direction::Right => {
-              if let Some(next) = origin_or_ancestor
-                .next_siblings()
-                .find_map(|c| c.as_tiling_container().ok())
-              {
-                return Ok(Some(next.into()));
-              }
-              // If no next sibling, allow falling through to normal
-              // navigation
-            }
-            // For Up/Down, immediately pass through to normal navigation
-            _ => {}
-          }
+          matches!(direction, Direction::Left | Direction::Right)
         }
-        _ => {}
+        _ => false,
       }
+    } else {
+      false
+    }
+  } else {
+    false
+  };
+
+  // If we're in an accordion and moving in its main direction,
+  // handle accordion navigation directly
+  if in_accordion {
+    // Get the next/prev sibling depending on the direction
+    let focus_target = match direction {
+      Direction::Up | Direction::Left => origin_or_ancestor
+        .prev_siblings()
+        .find_map(|c| c.as_tiling_container().ok()),
+      _ => origin_or_ancestor
+        .next_siblings()
+        .find_map(|c| c.as_tiling_container().ok()),
+    };
+
+    if let Some(target) = focus_target {
+      return Ok(Some(target.into()));
     }
   }
 
