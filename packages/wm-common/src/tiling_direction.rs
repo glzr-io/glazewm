@@ -26,11 +26,27 @@ impl TilingDirection {
   #[must_use]
   pub fn inverse(&self) -> Self {
     match self {
-      // TEMP for testing
-      Self::Horizontal => Self::VerticalAccordion,
-      Self::Vertical => Self::HorizontalAccordion,
+      Self::Horizontal => Self::Vertical,
+      Self::Vertical => Self::Horizontal,
       Self::HorizontalAccordion => Self::VerticalAccordion,
       Self::VerticalAccordion => Self::HorizontalAccordion,
+    }
+  }
+
+  /// Toggles the TilingDirection into accordion mode.
+  ///
+  /// Example:
+  /// ```
+  /// # use wm::common::TilingDirection;
+  /// let dir = TilingDirection::HorizontalAccordion.inverse();
+  /// assert_eq!(dir, TilingDirection::VerticalAccordion);
+  /// ```
+  pub fn toggle_accordion(&self) -> Self {
+    match self {
+      Self::Horizontal => Self::HorizontalAccordion,
+      Self::Vertical => Self::VerticalAccordion,
+      Self::HorizontalAccordion => Self::Horizontal,
+      Self::VerticalAccordion => Self::Vertical,
     }
   }
 

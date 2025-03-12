@@ -210,6 +210,7 @@ pub enum InvokeCommand {
   },
   // Reuse `InvokeResizeCommand` struct.
   Size(InvokeResizeCommand),
+  ToggleAccordionMode,
   ToggleFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,

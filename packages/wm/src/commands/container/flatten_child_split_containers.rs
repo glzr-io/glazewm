@@ -29,6 +29,7 @@ pub fn flatten_child_split_containers(
       // single split container child.
       if let Some(split_child) = tiling_children[0].as_split() {
         flatten_split_container(split_child.clone())?;
+        // TODO this is the problem i think
         parent.set_tiling_direction(parent.tiling_direction().inverse());
       }
     } else {

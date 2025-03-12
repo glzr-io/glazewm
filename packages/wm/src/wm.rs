@@ -12,7 +12,7 @@ use crate::{
   commands::{
     container::{
       focus_in_accordion, focus_in_direction, set_tiling_direction,
-      toggle_tiling_direction,
+      toggle_accordion_mode, toggle_tiling_direction,
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
@@ -582,6 +582,9 @@ impl WindowManager {
           ),
           _ => Ok(()),
         }
+      }
+      InvokeCommand::ToggleAccordionMode => {
+        toggle_accordion_mode(subject_container, state, config)
       }
       InvokeCommand::ToggleFloating {
         centered,
