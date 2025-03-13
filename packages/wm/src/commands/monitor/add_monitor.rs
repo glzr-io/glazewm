@@ -36,6 +36,7 @@ pub fn add_monitor(
   // Active all keep_alive workspaces for this monitor
   config.keep_alive_workspace_configs().iter().for_each(
     |workspace_config| {
+      #[allow(clippy::cast_possible_truncation)]
       if workspace_config.bind_to_monitor == Some(monitor.index() as u32) {
         activate_workspace(
           Some(&workspace_config.name),
