@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
+use wm_common::{TilingDirection, TilingLayout, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
 use crate::{
@@ -61,6 +61,7 @@ pub fn activate_workspace(
     workspace_config.clone(),
     config.value.gaps.clone(),
     tiling_direction,
+    TilingLayout::MasterStack
   );
 
   // Attach the created workspace to the specified monitor.

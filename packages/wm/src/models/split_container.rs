@@ -8,6 +8,7 @@ use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
   ContainerDto, GapsConfig, Rect, SplitContainerDto, TilingDirection,
+  TilingLayout,
 };
 
 use crate::{
@@ -19,7 +20,7 @@ use crate::{
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
-    TilingSizeGetters,
+    TilingLayoutGetters, TilingSizeGetters,
   },
 };
 

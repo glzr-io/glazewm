@@ -11,6 +11,7 @@ pub struct ParsedConfig {
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
   pub keybindings: Vec<KeybindingConfig>,
+  pub tiling_modes: Vec<TilingModeConfig>,
   pub window_behavior: WindowBehaviorConfig,
   pub window_effects: WindowEffectsConfig,
   pub window_rules: Vec<WindowRuleConfig>,
@@ -139,6 +140,28 @@ pub struct KeybindingConfig {
 
   /// WM commands to run when the keybinding is triggered.
   pub commands: Vec<InvokeCommand>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct TilingModeConfig {
+  /// Name of the tiling mode.
+  pub name: String,
+
+  /// Display name of the tiling mode.
+  pub master_stack: Option<MasterStackConfig>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct MasterStackConfig {
+  pub enabled: bool,
+
+  /// The number of master windows.
+  pub master_count: Option<usize>,
+
+  /// The ratio of the master window.
+  pub master_ratio: Option<f32>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
