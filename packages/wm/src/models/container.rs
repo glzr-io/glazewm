@@ -15,8 +15,8 @@ use wm_platform::NativeWindow;
 #[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
-    Monitor, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
-    Workspace,
+    Monitor, NonTilingWindow, RootContainer,
+    SplitContainer, TilingWindow, Workspace,
   },
   traits::*,
   user_config::UserConfig,

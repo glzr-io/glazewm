@@ -230,6 +230,7 @@ pub enum InvokeCommand {
     #[clap(required = true)]
     tiling_direction: TilingDirection,
   },
+  AddToMaster,
   WmCycleFocus {
     #[clap(long, default_value_t = false)]
     omit_floating: bool,

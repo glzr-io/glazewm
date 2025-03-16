@@ -14,6 +14,7 @@ use crate::{
       focus_container_by_id, focus_in_direction, set_tiling_direction,
       toggle_tiling_direction,
     },
+    container_master_stack::add_to_master,
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       platform_sync, reload_config, shell_exec, toggle_pause,
@@ -694,6 +695,15 @@ impl WindowManager {
           config,
           tiling_direction,
         )
+      }
+      InvokeCommand::AddToMaster => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+        let window = subject_container
+          .as_tiling_window()
+          .expect("Not a tiling window.")
+          .clone();
+        add_to_master(window, &workspace)
       }
       InvokeCommand::WmCycleFocus {
         omit_floating,

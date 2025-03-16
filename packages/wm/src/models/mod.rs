@@ -1,5 +1,6 @@
 mod container;
 mod insertion_target;
+mod master_stack;
 mod monitor;
 mod non_tiling_window;
 mod root_container;
@@ -10,6 +11,7 @@ mod workspace_target;
 
 pub use container::*;
 pub use insertion_target::*;
+pub use master_stack::*;
 pub use monitor::*;
 pub use non_tiling_window::*;
 pub use root_container::*;

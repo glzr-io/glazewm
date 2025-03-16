@@ -4,23 +4,22 @@ use std::{
   rc::Rc,
 };
 
+use ::serde::{Deserialize, Serialize};
 use anyhow::Context;
-use uuid::Uuid;
+use uuid::{serde, Uuid};
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, TilingDirection, TilingLayout,
-  WorkspaceConfig, WorkspaceDto,
+  ContainerDto, GapsConfig, Rect, TilingDirection, WorkspaceConfig,
+  WorkspaceDto,
 };
 
+use super::TilingWindow;
 use crate::{
   impl_common_getters, impl_container_debug,
-  impl_tiling_direction_getters, impl_tiling_layout_getters,
+  impl_tiling_direction_getters,
   models::{
     Container, DirectionContainer, TilingContainer, WindowContainer,
   },
-  traits::{
-    CommonGetters, PositionGetters, TilingDirectionGetters,
-    TilingLayoutGetters,
-  },
+  traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
 };
 
 #[derive(Clone)]
@@ -35,15 +34,19 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   // TODO - consider combining these
-  tiling_direction: TilingDirection,
   tiling_layout: TilingLayout,
+}
+
+#[derive(Clone, Debug)]
+pub enum TilingLayout {
+  Manual { tiling_direction: TilingDirection },
+  MasterStack { master_window: Option<TilingWindow> },
 }
 
 impl Workspace {
   pub fn new(
     config: WorkspaceConfig,
     gaps_config: GapsConfig,
-    tiling_direction: TilingDirection,
     tiling_layout: TilingLayout,
   ) -> Self {
     let workspace = WorkspaceInner {
@@ -53,7 +56,6 @@ impl Workspace {
       child_focus_order: VecDeque::new(),
       config,
       gaps_config,
-      tiling_direction,
       tiling_layout,
     };
 
@@ -80,6 +82,15 @@ impl Workspace {
 
   pub fn set_gaps_config(&self, gaps_config: GapsConfig) {
     self.0.borrow_mut().gaps_config = gaps_config;
+  }
+
+  pub fn tiling_layout(&self) -> TilingLayout {
+    // TODO - should i be cloning this?
+    self.0.borrow().tiling_layout.clone()
+  }
+
+  pub fn set_tiling_layout(&self, tiling_layout: TilingLayout) {
+    self.0.borrow_mut().tiling_layout = tiling_layout;
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
@@ -112,8 +123,32 @@ impl Workspace {
 
 impl_container_debug!(Workspace);
 impl_common_getters!(Workspace);
-impl_tiling_direction_getters!(Workspace);
-impl_tiling_layout_getters!(Workspace);
+// impl_tiling_direction_getters!(Workspace);
+// impl_tiling_layout_getters!(Workspace);
+//
+impl TilingDirectionGetters for Workspace {
+  fn tiling_direction(&self) -> TilingDirection {
+    match &self.tiling_layout() {
+      TilingLayout::Manual {
+        tiling_direction, ..
+      } => tiling_direction.clone(),
+      // TODO - defaulting like this for now, maybe return option instead
+      TilingLayout::MasterStack { .. } => TilingDirection::Horizontal,
+    }
+  }
+
+  fn set_tiling_direction(&self, tiling_direction: TilingDirection) {
+    match &mut self.0.borrow_mut().tiling_layout {
+      TilingLayout::Manual {
+        tiling_direction: ref mut direction,
+        ..
+      } => {
+        *direction = tiling_direction;
+      }
+      _ => {}
+    }
+  }
+}
 
 impl PositionGetters for Workspace {
   fn to_rect(&self) -> anyhow::Result<Rect> {

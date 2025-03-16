@@ -19,7 +19,7 @@ macro_rules! impl_position_getters_as_resizable {
         let layout =
           self.workspace().expect("no workspace").tiling_layout();
         match layout {
-          TilingLayout::Manual => {
+          TilingLayout::Manual { tiling_direction } => {
             let parent = self
               .parent()
               .and_then(|parent| parent.as_direction_container().ok())
@@ -85,7 +85,7 @@ macro_rules! impl_position_getters_as_resizable {
 
             Ok(Rect::from_xy(x, y, width, height))
           }
-          TilingLayout::MasterStack => {
+          TilingLayout::MasterStack { master_window } => {
             let parent = self
               .parent()
               .and_then(|parent| parent.as_direction_container().ok())
@@ -112,9 +112,19 @@ macro_rules! impl_position_getters_as_resizable {
               .unwrap_or(0);
 
             // TODO - get from config
-            let master_ratio = 0.6;
+            let master_ratio = 0.5;
 
-            let is_master = index == 0;
+            let is_master = master_window
+              .map(|master| {
+                let master_id = master.id();
+                let self_id = self.id();
+                println!(
+                  "Comparing master ID: {:?} with self ID: {:?}",
+                  master_id, self_id
+                );
+                master_id == self_id
+              })
+              .unwrap_or(false);
 
             if is_master {
               // Master container takes left side
@@ -128,8 +138,8 @@ macro_rules! impl_position_getters_as_resizable {
               ))
             } else {
               // Stack containers on right side
-              let stack_count = all_containers.len() - 1; // Exclude master
-              let stack_position = index - 1; // Position in stack (0-indexed)
+              let stack_count = all_containers.len(); // Exclude master
+              let stack_position = index; // Position in stack (0-indexed)
 
               let master_width =
                 (parent_rect.width() as f32 * master_ratio) as i32;

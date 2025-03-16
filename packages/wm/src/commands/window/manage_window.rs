@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use tracing::info;
 use wm_common::{
   try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
@@ -11,7 +11,8 @@ use crate::{
     window::run_window_rules,
   },
   models::{
-    Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    Container, Monitor, NonTilingWindow, TilingLayout, TilingWindow,
+    WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -167,11 +168,27 @@ fn create_window(
     .into(),
   };
 
-  attach_container(
-    &window_container.clone().into(),
-    &target_parent,
-    Some(target_index),
-  )?;
+  match target_workspace.tiling_layout() {
+    TilingLayout::Manual { tiling_direction } => {
+      attach_container(
+        &window_container.clone().into(),
+        &target_parent,
+        Some(target_index),
+      )?;
+    }
+    TilingLayout::MasterStack { master_window } => {
+      attach_container(
+        &window_container.clone().into(),
+        &target_parent,
+        Some(target_index),
+      )?;
+    }
+    _ => {
+      bail!("Target parent ${target_parent} has invalid tiling layout ",
+        target_parent = target_parent.id()
+      );
+    }
+  }
 
   // The OS might spawn the window on a different monitor to the target
   // parent, so adjustments might need to be made because of DPI.

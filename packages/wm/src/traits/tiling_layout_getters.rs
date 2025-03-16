@@ -1,7 +1,7 @@
 use ambassador::delegatable_trait;
-use wm_common::TilingLayout;
 
 use super::CommonGetters;
+use crate::models::TilingLayout;
 
 #[delegatable_trait]
 pub trait TilingLayoutGetters: CommonGetters {

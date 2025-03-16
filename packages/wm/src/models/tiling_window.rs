@@ -8,7 +8,7 @@ use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
   ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
-  TilingDirection, TilingLayout, WindowDto, WindowRuleConfig, WindowState,
+  TilingDirection, WindowDto, WindowRuleConfig, WindowState,
 };
 use wm_platform::NativeWindow;
 
@@ -18,7 +18,7 @@ use crate::{
   impl_window_getters,
   models::{
     Container, DirectionContainer, InsertionTarget, NonTilingWindow,
-    TilingContainer, WindowContainer,
+    TilingContainer, WindowContainer, TilingLayout,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,

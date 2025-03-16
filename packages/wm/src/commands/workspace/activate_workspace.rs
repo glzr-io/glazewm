@@ -1,11 +1,13 @@
+use std::collections::VecDeque;
+
 use anyhow::Context;
 use tracing::info;
-use wm_common::{TilingDirection, TilingLayout, WmEvent, WorkspaceConfig};
+use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
 use crate::{
   commands::container::attach_container,
-  models::{Monitor, Workspace},
+  models::{Container, Monitor, TilingLayout, Workspace},
   traits::{CommonGetters, PositionGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -57,11 +59,20 @@ pub fn activate_workspace(
     TilingDirection::Horizontal
   };
 
+  // TODO - read from the config and spawn the workspace with the right
+  // default tiling or maybe use the tiling mode of the current workspace
+  // for new workspaces or something
+
+  let tiling_layout = TilingLayout::MasterStack { master_window: None };
+  // let tiling_layout = TilingLayout::Manual {
+  //   tiling_direction,
+  //   children: VecDeque::new(),
+  // };
+
   let workspace = Workspace::new(
     workspace_config.clone(),
     config.value.gaps.clone(),
-    tiling_direction,
-    TilingLayout::MasterStack
+    tiling_layout,
   );
 
   // Attach the created workspace to the specified monitor.
