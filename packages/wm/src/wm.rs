@@ -703,7 +703,7 @@ impl WindowManager {
           .as_tiling_window()
           .expect("Not a tiling window.")
           .clone();
-        add_to_master(window, &workspace)
+        add_to_master(window, &workspace, state)
       }
       InvokeCommand::WmCycleFocus {
         omit_floating,

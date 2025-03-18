@@ -114,19 +114,28 @@ macro_rules! impl_position_getters_as_resizable {
             // TODO - get from config
             let master_ratio = 0.5;
 
-            let is_master = master_window
-              .map(|master| {
+            println!("should be comparing..");
+            let is_master = match master_window {
+                Some(master) => {
                 let master_id = master.id();
                 let self_id = self.id();
                 println!(
-                  "Comparing master ID: {:?} with self ID: {:?}",
-                  master_id, self_id
+                  "{} Comparing master ID: {:?} with self ID: {:?}",
+                  master_id == self_id,
+                  master_id,
+                  self_id
                 );
+                // println!("master {:#?} self {:#?}", master, self);
                 master_id == self_id
-              })
-              .unwrap_or(false);
+              },
+              None => {
+                println!("master is none");
+                false
+              },
+            };
 
             if is_master {
+              println!("IS MASTER----------------------------------------------------");
               // Master container takes left side
               let master_width =
                 (parent_rect.width() as f32 * master_ratio) as i32;
