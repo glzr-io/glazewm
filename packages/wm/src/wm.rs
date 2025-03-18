@@ -11,10 +11,9 @@ use wm_platform::PlatformEvent;
 use crate::{
   commands::{
     container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction,
-      toggle_tiling_direction,
+      focus_container_by_id, set_tiling_direction, toggle_tiling_direction,
     },
-    container_master_stack::add_to_master,
+    container_master_stack::{add_to_master, focus_in_direction},
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       platform_sync, reload_config, shell_exec, toggle_pause,
@@ -236,8 +235,16 @@ impl WindowManager {
         }
       }
       InvokeCommand::Focus(args) => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
         if let Some(direction) = &args.direction {
-          focus_in_direction(&subject_container, direction, state)?;
+          focus_in_direction(
+            &subject_container,
+            direction,
+            &workspace,
+            state,
+          )?;
         }
 
         if let Some(direction) = &args.workspace_in_direction {

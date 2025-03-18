@@ -78,6 +78,7 @@ fn floating_focus_target(
 
 /// Gets a focus target within the current workspace. Traverse upwards from
 /// the origin container to find an adjacent container that can be focused.
+/// TODO holby - why does this return both and option and a result?
 fn tiling_focus_target(
   origin_container: &Container,
   direction: &Direction,
