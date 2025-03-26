@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
+use wm_common::{TilingDirection, TilingLayout, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
 use crate::{
@@ -60,7 +60,11 @@ pub fn activate_workspace(
   let workspace = Workspace::new(
     workspace_config.clone(),
     config.value.gaps.clone(),
-    tiling_direction,
+    tiling_direction.clone(),
+    TilingLayout::Manual { tiling_direction }
+    // TilingLayout::Dwindle
+    // TilingLayout::MasterStack { master_ratio: 0.5}
+    // TilingLayout::Grid,
   );
 
   // Attach the created workspace to the specified monitor.

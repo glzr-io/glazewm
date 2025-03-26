@@ -7,8 +7,8 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, TilingDirection, WorkspaceConfig,
-  WorkspaceDto,
+  ContainerDto, GapsConfig, Rect, TilingDirection, TilingLayout,
+  WorkspaceConfig, WorkspaceDto,
 };
 
 use crate::{
@@ -32,6 +32,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  tiling_layout: TilingLayout,
 }
 
 impl Workspace {
@@ -39,6 +40,7 @@ impl Workspace {
     config: WorkspaceConfig,
     gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
+    tiling_layout: TilingLayout,
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
@@ -48,9 +50,14 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      tiling_layout,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
+  }
+
+  pub fn tiling_layout(&self) -> TilingLayout {
+    self.0.borrow().tiling_layout.clone()
   }
 
   /// Underlying config for the workspace.
