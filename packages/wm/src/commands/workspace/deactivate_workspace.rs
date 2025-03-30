@@ -15,7 +15,7 @@ pub fn deactivate_workspace(
 ) -> anyhow::Result<()> {
   info!("Deactivating workspace: {workspace}");
 
-  detach_container(workspace.clone().into())?;
+  detach_container(workspace.clone().into(), false)?;
 
   state.emit_event(WmEvent::WorkspaceDeactivated {
     deactivated_id: workspace.id(),

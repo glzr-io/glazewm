@@ -10,7 +10,7 @@ use crate::{
 /// Replaces a container at the specified index.
 ///
 /// The replaced container will be detached from the tree.
-/// 
+///
 /// TODO return container and call 2 replace_continaers in swap_container
 pub fn replace_container(
   replacement_container: &Container,
@@ -38,7 +38,7 @@ pub fn replace_container(
   // container to flatten. Currently, that scenario shouldn't be possible.
   // We also can't attach first before detaching, because detaching
   // removes child based on ID and both containers might have the same ID.
-  detach_container(container_to_replace)?;
+  detach_container(container_to_replace, false)?;
 
   attach_container(
     replacement_container,

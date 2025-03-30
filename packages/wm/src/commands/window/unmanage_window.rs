@@ -22,7 +22,7 @@ pub fn unmanage_window(
   // Get container to switch focus to after the window has been removed.
   let focus_target = state.focus_target_after_removal(&window.clone());
 
-  detach_container(window.clone().into())?;
+  detach_container(window.clone().into(), false)?;
 
   // After detaching the container, flatten any redundant split containers.
   // For example, in the layout V[1 H[2]] where container 1 is detached to

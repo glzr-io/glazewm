@@ -49,7 +49,7 @@ pub fn remove_monitor(
     });
   }
 
-  detach_container(monitor.clone().into())?;
+  detach_container(monitor.clone().into(), false)?;
 
   state.emit_event(WmEvent::MonitorRemoved {
     removed_id: monitor.id(),

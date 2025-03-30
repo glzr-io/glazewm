@@ -19,7 +19,7 @@ pub fn ignore_window(
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
   state.ignored_windows.push(window.native().clone());
-  detach_container(window.clone().into())?;
+  detach_container(window.clone().into(), false)?;
 
   // After detaching the container, flatten any redundant split containers.
   // For example, in the layout V[1 H[2]] where container 1 is detached to
