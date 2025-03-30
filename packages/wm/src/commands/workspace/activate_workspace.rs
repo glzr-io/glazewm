@@ -61,8 +61,8 @@ pub fn activate_workspace(
     workspace_config.clone(),
     config.value.gaps.clone(),
     tiling_direction.clone(),
-    TilingLayout::Manual { tiling_direction }
-    // TilingLayout::Dwindle
+    // TilingLayout::Manual { tiling_direction }
+    TilingLayout::Dwindle
     // TilingLayout::MasterStack { master_ratio: 0.5}
     // TilingLayout::Grid,
   );
