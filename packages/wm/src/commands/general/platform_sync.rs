@@ -257,9 +257,15 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
+    let rect = {
+      let native_monitor =
+        window.monitor().context("No monitor associated.")?.native();
+      let window_rect = window
+        .to_rect()?
+        .apply_delta(&window.total_border_delta()?, None);
+      window_rect
+        .clamp_strictly(native_monitor.working_rect()?)
+    };
 
     let is_visible = matches!(
       window.display_state(),
