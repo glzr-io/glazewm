@@ -84,6 +84,9 @@ pub fn handle_window_focused(
     // Update the WM's focus state.
     set_focused_descendant(&window.clone().into(), None);
 
+    // Queue focus change to ensure focus_changed event is emitted
+    state.pending_sync.queue_focus_change();
+
     // Run window rules for focus events.
     run_window_rules(window, &WindowRuleEvent::Focus, state, config)?;
 
