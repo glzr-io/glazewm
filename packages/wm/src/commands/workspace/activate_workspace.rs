@@ -62,9 +62,9 @@ pub fn activate_workspace(
     config.value.gaps.clone(),
     tiling_direction.clone(),
     // TilingLayout::Manual { tiling_direction }
-    TilingLayout::Dwindle
+    // TilingLayout::Dwindle
     // TilingLayout::MasterStack { master_ratio: 0.5}
-    // TilingLayout::Grid,
+    TilingLayout::Grid,
   );
 
   // Attach the created workspace to the specified monitor.

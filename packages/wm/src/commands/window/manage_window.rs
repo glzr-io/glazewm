@@ -121,7 +121,17 @@ fn create_window(
       )
     };
 
-  add_dwindle_window(
+  // add_dwindle_window(
+  //   native_window,
+  //   target_parent,
+  //   &window_state,
+  //   target_workspace.clone(),
+  //   target_container.clone(), //TODO undo clone
+  //   config,
+  //   state,
+  // )
+
+  add_grid_window(
     native_window,
     target_parent,
     &window_state,
@@ -329,13 +339,13 @@ fn insertion_target(
     //   config,
     //   state,
     // ),
-    TilingLayout::Grid => add_grid_window(
-      target_parent.clone(),
-      window_state,
-      target_workspace,
-      target_container,
-      config,
-      state,
-    ),
+    TilingLayout::Grid => todo!(), /*   add_grid_window(
+                                    *   target_parent.clone(),
+                                    *   window_state,
+                                    *   target_workspace,
+                                    *   target_container,
+                                    *   config,
+                                    *   state,
+                                    * ), */
   }
 }
