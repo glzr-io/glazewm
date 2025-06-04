@@ -385,5 +385,5 @@ This isn't currently supported, however, the keybinding `alt+shift+p` in the def
 [downloads-badge]: https://img.shields.io/github/downloads/glzr-io/glazewm/total?logo=github&logoColor=white
 [downloads-link]: https://github.com/glzr-io/glazewm/releases
 [issues-badge]: https://img.shields.io/badge/good_first_issues-7057ff
-[issues-link]: https://github.com/users/lars-berger/projects/2/views/1?sliceBy%5Bvalue%5D=good+first+issue
+[issues-link]: https://github.com/orgs/glzr-io/projects/4/views/1?sliceBy%5Bvalue%5D=good+first+issue
 [demo-video]: resources/assets/demo.webp
