@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{DisplayState, WindowRuleEvent};
+use wm_common::{DisplayState, WindowRuleEvent, WmEvent};
 use wm_platform::{NativeWindow, Platform};
 
 use crate::{
@@ -84,14 +84,21 @@ pub fn handle_window_focused(
     // Update the WM's focus state.
     set_focused_descendant(&window.clone().into(), None);
 
-    // Queue focus change to ensure focus_changed event is emitted
-    state.pending_sync.queue_focus_change();
-
     // Run window rules for focus events.
-    run_window_rules(window, &WindowRuleEvent::Focus, state, config)?;
+    run_window_rules(
+      window.clone(),
+      &WindowRuleEvent::Focus,
+      state,
+      config,
+    )?;
 
     state.is_focus_synced = true;
     state.pending_sync.queue_workspace_to_reorder(workspace);
+
+    // Broadcast the focus change event.
+    state.emit_event(WmEvent::FocusChanged {
+      focused_container: window.to_dto()?,
+    });
   }
 
   Ok(())
