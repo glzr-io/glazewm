@@ -281,6 +281,15 @@ impl UserConfig {
       .collect()
   }
 
+  pub fn keep_alive_workspace_configs(&self) -> Vec<&WorkspaceConfig> {
+    self
+      .value
+      .workspaces
+      .iter()
+      .filter(|config| config.keep_alive)
+      .collect()
+  }
+
   pub fn workspace_config_for_monitor(
     &self,
     monitor: &Monitor,
