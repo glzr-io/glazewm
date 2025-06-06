@@ -88,7 +88,7 @@ pub fn handle_window_location_changed(
 
           update_window_state(
             window.clone(),
-            target_state,
+            if target_state == WindowState::Minimized {WindowState::Tiling} else {target_state},
             state,
             config,
           )?;
