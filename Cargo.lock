@@ -2267,6 +2267,7 @@ dependencies = [
  "enum-as-inner",
  "futures-util",
  "home",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",

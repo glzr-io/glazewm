@@ -195,6 +195,10 @@ pub enum InvokeCommand {
   },
   SetMinimized,
   SetTiling,
+  FocusWindow {
+    #[clap(required = true, trailing_var_arg = true)]
+    title: Vec<String>,
+  },
   SetTitleBarVisibility {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
