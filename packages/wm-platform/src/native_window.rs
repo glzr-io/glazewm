@@ -209,8 +209,10 @@ impl NativeWindow {
       return Ok(false);
     }
 
+    // Ensure window has a valid process name, title, and class name.
     let process_name = self.process_name()?;
-    let title = self.process_name()?;
+    let title = self.title()?;
+    let _ = self.class_name()?;
 
     // TODO: Temporary fix for managing Flow Launcher until a force manage
     // command is added.
