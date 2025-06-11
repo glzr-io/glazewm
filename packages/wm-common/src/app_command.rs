@@ -167,6 +167,12 @@ pub enum InvokeCommand {
   },
   Position(InvokePositionCommand),
   Resize(InvokeResizeCommand),
+  RenameWorkspace {
+    #[clap(long, allow_hyphen_values = true)]
+    workspace: Option<String>,
+    #[clap(flatten)]
+    args: InvokeRenameWorkspaceCommand,
+  },
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,
@@ -410,4 +416,16 @@ pub struct InvokePositionCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   pub y_pos: Option<i32>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true)]
+pub struct InvokeRenameWorkspaceCommand {
+  #[clap(long, allow_hyphen_values = true, conflicts_with="fullname")]
+  pub name: Option<String>,
+  #[clap(long, allow_hyphen_values = true, conflicts_with="fullname")]
+  pub display_name: Option<String>,
+  /// i3-style workspace name where the name and the display name are separated
+  /// by a colon, conflicting with 2 options above.
+  pub fullname: Option<String>,
 }
