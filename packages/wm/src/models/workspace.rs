@@ -128,7 +128,10 @@ impl PositionGetters for Workspace {
     let is_single_window = self.tiling_children().nth(1).is_none();
 
     let gaps = if is_single_window {
-      &gaps_config.single_screen_gap
+      gaps_config
+        .single_window_outer_gap
+        .as_ref()
+        .unwrap_or(&gaps_config.outer_gap)
     } else {
       &gaps_config.outer_gap
     };

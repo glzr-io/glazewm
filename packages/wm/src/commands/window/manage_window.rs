@@ -88,16 +88,9 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
-  let is_single_window =
-    nearest_workspace.tiling_children().nth(1).is_none();
-
   let gaps_config = config.value.gaps.clone();
-  let window_state = window_state_to_create(
-    &native_window,
-    &nearest_monitor,
-    config,
-    is_single_window,
-  )?;
+  let window_state =
+    window_state_to_create(&native_window, &nearest_monitor, config)?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -198,13 +191,16 @@ fn window_state_to_create(
   native_window: &NativeWindow,
   nearest_monitor: &Monitor,
   config: &UserConfig,
-  is_single_window: bool,
 ) -> anyhow::Result<WindowState> {
   if native_window.is_minimized()? {
     return Ok(WindowState::Minimized);
   }
 
-  let monitor_rect = if config.has_outer_gaps(is_single_window) {
+  // May be worth taking this as a parameter so it doesn't have to be
+  // queried again?
+  let nearest_workspace = nearest_monitor.displayed_workspace();
+
+  let monitor_rect = if config.has_outer_gaps(nearest_workspace.as_ref()) {
     nearest_monitor.native().working_rect()?.clone()
   } else {
     nearest_monitor.to_rect()?

@@ -343,17 +343,29 @@ impl UserConfig {
     });
   }
 
-  pub fn has_outer_gaps(&self, is_single_window: bool) -> bool {
-    let outer_gap = if is_single_window {
-      &self.value.gaps.single_screen_gap
+  pub fn outer_gaps_for_workspace(
+    &self,
+    workspace: Option<&Workspace>,
+  ) -> &wm_common::RectDelta {
+    let is_single_window = workspace.is_some_and(|workspace| {
+      workspace.tiling_children().nth(1).is_none()
+    });
+
+    if is_single_window {
+      self
+        .value
+        .gaps
+        .single_window_outer_gap
+        .as_ref()
+        .unwrap_or(&self.value.gaps.outer_gap)
     } else {
       &self.value.gaps.outer_gap
-    };
+    }
+  }
 
-    // Allow for 1px/1% of leeway.
-    outer_gap.bottom.amount > 1.0
-      || outer_gap.left.amount > 1.0
-      || outer_gap.right.amount > 1.0
-      || outer_gap.top.amount > 1.0
+  pub fn has_outer_gaps(&self, workspace: Option<&Workspace>) -> bool {
+    let outer_gap = self.outer_gaps_for_workspace(workspace);
+
+    outer_gap.is_significant()
   }
 }
