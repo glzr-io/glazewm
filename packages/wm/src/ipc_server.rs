@@ -331,7 +331,7 @@ impl IpcServer {
     });
 
     let message_json = serde_json::to_string(&message)?;
-    Ok(Message::Text(message_json))
+    Ok(Message::Text(message_json.into()))
   }
 
   fn to_event_subscription_msg(
@@ -347,7 +347,7 @@ impl IpcServer {
       });
 
     let message_json = serde_json::to_string(&message)?;
-    Ok(Message::Text(message_json))
+    Ok(Message::Text(message_json.into()))
   }
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {

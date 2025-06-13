@@ -32,7 +32,7 @@ tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tracing-appender = "0.2"
 tracing-subscriber = { workspace = true }
-tray-icon = "0.14"
+tray-icon = "0.20"
 uuid = { workspace = true }
 wm-common = { path = "../wm-common" }
 wm-cli = { path = "../wm-cli" }

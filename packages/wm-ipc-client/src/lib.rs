@@ -31,7 +31,7 @@ impl IpcClient {
   pub async fn send(&mut self, message: &str) -> anyhow::Result<()> {
     self
       .stream
-      .send(Message::Text(message.to_string()))
+      .send(Message::Text(message.into()))
       .await
       .context("Failed to send command.")?;
 
