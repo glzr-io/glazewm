@@ -1,5 +1,5 @@
 use anyhow::Context;
-use tracing::info;
+use tracing::{info, warn};
 use wm_common::WindowState;
 
 use crate::{
@@ -129,7 +129,11 @@ fn set_non_tiling(
     && !window.native().is_minimized()?
   {
     info!("No window state update. Minimizing window.");
-    window.native().minimize()?;
+
+    if let Err(err) = window.native().minimize() {
+      warn!("Failed to minimize window: {}", err);
+    }
+
     return Ok(window);
   }
 
