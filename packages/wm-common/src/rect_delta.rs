@@ -33,6 +33,8 @@ impl RectDelta {
     }
   }
 
+  /// Checks if the rectangle delta has a value greater than 1.0(px/%) for
+  /// any of its sides.
   #[must_use]
   pub fn is_significant(&self) -> bool {
     self.bottom.amount > 1.0
