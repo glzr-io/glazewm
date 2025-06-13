@@ -55,7 +55,7 @@ pub trait WindowGetters {
       })
   }
 
-  fn native(&self) -> Ref<NativeWindow>;
+  fn native(&self) -> Ref<'_, NativeWindow>;
 
   fn border_delta(&self) -> RectDelta;
 
@@ -145,7 +145,7 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().prev_state = Some(state);
       }
 
-      fn native(&self) -> Ref<NativeWindow> {
+      fn native(&self) -> Ref<'_, NativeWindow> {
         Ref::map(self.0.borrow(), |inner| &inner.native)
       }
 

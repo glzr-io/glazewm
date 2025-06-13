@@ -267,7 +267,7 @@ fn handle_input_msg(
       HRAWINPUT(lparam.0),
       RID_INPUT,
       Some(std::ptr::from_mut(&mut raw_input).cast()),
-      &mut raw_input_size,
+      &raw mut raw_input_size,
       std::mem::size_of::<RAWINPUTHEADER>() as u32,
     )
   };
@@ -325,7 +325,7 @@ fn handle_input_msg(
     || IS_R_MOUSE_DOWN.load(Ordering::Relaxed);
 
   let mut point = POINT { x: 0, y: 0 };
-  unsafe { GetCursorPos(&mut point) }?;
+  unsafe { GetCursorPos(&raw mut point) }?;
 
   event_tx.send(PlatformEvent::MouseMove(MouseMoveEvent {
     point: Point {
