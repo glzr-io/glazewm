@@ -1,6 +1,4 @@
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-  GetKeyState, GetKeyboardLayout, VkKeyScanExW,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyState;
 use wm_macros::KeyConversions;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, KeyConversions)]
@@ -323,5 +321,43 @@ impl Key {
   pub fn is_down_raw(self) -> bool {
     let vk_code = self.into_vk();
     unsafe { (GetKeyState(vk_code.into()) & 0x80) == 0x80 }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_macros::KeyConversions;
+
+  #[test]
+  fn test_key_conversions_output() {
+    #[derive(Debug, PartialEq, Eq, KeyConversions)]
+    enum Key {
+      #[key("a", VK_A)]
+      A,
+      #[key("b" | "c", VK_B)]
+      BC,
+      #[key("d e", VK_D)]
+      DE,
+      Custom(u16),
+    }
+
+    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_D};
+
+    assert_eq!(Key::A.into_vk(), VK_A.0);
+    assert_eq!(Key::BC.into_vk(), VK_B.0);
+    assert_eq!(Key::DE.into_vk(), VK_D.0);
+
+    assert_eq!(Key::from_str("a"), Some(Key::A));
+    assert_eq!(Key::from_str("b"), Some(Key::BC));
+    assert_eq!(Key::from_str("c"), Some(Key::BC));
+    assert_eq!(Key::from_str("d e"), Some(Key::DE));
+    assert_eq!(Key::from_str("d_e"), Some(Key::DE));
+    assert_eq!(Key::from_str("d-e"), Some(Key::DE));
+    assert_eq!(Key::from_str("dE"), Some(Key::DE));
+    assert_eq!(Key::from_str("this_is_not_a_key"), None);
+
+    assert_eq!(Key::from_vk(VK_A.0), Key::A);
+    assert_eq!(Key::from_vk(VK_B.0), Key::BC);
+    assert_eq!(Key::from_vk(VK_D.0), Key::DE);
   }
 }
