@@ -242,6 +242,7 @@ impl Key {
       "t" => Some(Key::T),
       "u" => Some(Key::U),
       "v" => Some(Key::V),
+      "w" => Some(Key::W),
       "x" => Some(Key::X),
       "y" => Some(Key::Y),
       "z" => Some(Key::Z),
