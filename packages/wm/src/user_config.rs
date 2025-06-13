@@ -38,14 +38,12 @@ impl UserConfig {
   /// Creates a new config file from sample if it doesn't exist.
   pub fn new(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
     let default_config_path = home::home_dir()
-      .map(|default_config_path| {
-        default_config_path.join(".glzr/glazewm/config.yaml")
-      })
-      .context("Unable to get home directory.");
+      .context("Unable to get home directory.")?
+      .join(".glzr/glazewm/config.yaml");
 
     let config_path = config_path
       .or_else(|| env::var("GLAZEWM_CONFIG_PATH").ok().map(PathBuf::from))
-      .unwrap_or(default_config_path?);
+      .unwrap_or(default_config_path);
 
     let (config_value, config_str) = Self::read(&config_path)?;
 
