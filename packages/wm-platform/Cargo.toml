@@ -35,3 +35,4 @@ windows = { version = "0.52", features = [
 ] }
 windows-interface = { version = "0.52" }
 wm-common = { path = "../wm-common" }
+wm-macros = { path = "../wm-macros" }

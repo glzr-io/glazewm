@@ -1,149 +1,257 @@
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-  GetKeyState, GetKeyboardLayout, VkKeyScanExW, VIRTUAL_KEY, VK_0, VK_1,
-  VK_2, VK_3, VK_4, VK_5, VK_6, VK_7, VK_8, VK_9, VK_A, VK_ADD, VK_B,
-  VK_BACK, VK_C, VK_CAPITAL, VK_CONTROL, VK_D, VK_DECIMAL, VK_DELETE,
-  VK_DIVIDE, VK_DOWN, VK_E, VK_END, VK_ESCAPE, VK_F, VK_F1, VK_F10,
-  VK_F11, VK_F12, VK_F13, VK_F14, VK_F15, VK_F16, VK_F17, VK_F18, VK_F19,
-  VK_F2, VK_F20, VK_F21, VK_F22, VK_F23, VK_F24, VK_F3, VK_F4, VK_F5,
-  VK_F6, VK_F7, VK_F8, VK_F9, VK_G, VK_H, VK_HOME, VK_I, VK_INSERT, VK_J,
-  VK_K, VK_L, VK_LCONTROL, VK_LEFT, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_M,
-  VK_MEDIA_NEXT_TRACK, VK_MEDIA_PLAY_PAUSE, VK_MEDIA_PREV_TRACK,
-  VK_MEDIA_STOP, VK_MENU, VK_MULTIPLY, VK_N, VK_NEXT, VK_NUMLOCK,
-  VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD3, VK_NUMPAD4, VK_NUMPAD5,
-  VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD8, VK_NUMPAD9, VK_O, VK_OEM_1,
-  VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7,
-  VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_P, VK_PRIOR,
-  VK_Q, VK_R, VK_RCONTROL, VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT,
-  VK_RWIN, VK_S, VK_SCROLL, VK_SHIFT, VK_SNAPSHOT, VK_SPACE, VK_SUBTRACT,
-  VK_T, VK_TAB, VK_U, VK_UP, VK_V, VK_VOLUME_DOWN, VK_VOLUME_MUTE,
-  VK_VOLUME_UP, VK_W, VK_X, VK_Y, VK_Z,
+  GetKeyState, GetKeyboardLayout, VkKeyScanExW,
 };
+use wm_macros::KeyConversions;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, KeyConversions)]
 pub enum Key {
+  #[key("a", VK_A)]
   A,
+  #[key("b", VK_B)]
   B,
+  #[key("c", VK_C)]
   C,
+  #[key("d", VK_D)]
   D,
+  #[key("e", VK_F)]
   E,
+  #[key("f", VK_F)]
   F,
+  #[key("g", VK_G)]
   G,
+  #[key("h", VK_H)]
   H,
+  #[key("i", VK_I)]
   I,
+  #[key("j", VK_J)]
   J,
+  #[key("k", VK_K)]
   K,
+  #[key("l", VK_L)]
   L,
+  #[key("m", VK_M)]
   M,
+  #[key("n", VK_N)]
   N,
+  #[key("o", VK_O)]
   O,
+  #[key("p", VK_P)]
   P,
+  #[key("q", VK_Q)]
   Q,
+  #[key("r", VK_R)]
   R,
+  #[key("s", VK_S)]
   S,
+  #[key("t", VK_T)]
   T,
+  #[key("u", VK_U)]
   U,
+  #[key("v", VK_V)]
   V,
+  #[key("w", VK_W)]
   W,
+  #[key("x", VK_X)]
   X,
+  #[key("y", VK_Y)]
   Y,
+  #[key("z", VK_Z)]
   Z,
+  #[key("0", VK_0)]
   D0,
+  #[key("1", VK_1)]
   D1,
+  #[key("2", VK_2)]
   D2,
+  #[key("3", VK_3)]
   D3,
+  #[key("4", VK_4)]
   D4,
+  #[key("5", VK_5)]
   D5,
+  #[key("6", VK_6)]
   D6,
+  #[key("7", VK_7)]
   D7,
+  #[key("8", VK_8)]
   D8,
+  #[key("9", VK_9)]
   D9,
+  #[key("numpad 0", VK_NUMPAD0)]
   Numpad0,
+  #[key("numpad 1", VK_NUMPAD1)]
   Numpad1,
+  #[key("numpad 2", VK_NUMPAD2)]
   Numpad2,
+  #[key("numpad 3", VK_NUMPAD3)]
   Numpad3,
+  #[key("numpad 4", VK_NUMPAD4)]
   Numpad4,
+  #[key("numpad 5", VK_NUMPAD5)]
   Numpad5,
+  #[key("numpad 6", VK_NUMPAD6)]
   Numpad6,
+  #[key("numpad 7", VK_NUMPAD7)]
   Numpad7,
+  #[key("numpad 8", VK_NUMPAD8)]
   Numpad8,
+  #[key("numpad 9", VK_NUMPAD9)]
   Numpad9,
+  #[key("f1", VK_F1)]
   F1,
+  #[key("f2", VK_F2)]
   F2,
+  #[key("f3", VK_F3)]
   F3,
+  #[key("f4", VK_F4)]
   F4,
+  #[key("f5", VK_F5)]
   F5,
+  #[key("f6", VK_F6)]
   F6,
+  #[key("f7", VK_F7)]
   F7,
+  #[key("f8", VK_F8)]
   F8,
+  #[key("f9", VK_F9)]
   F9,
+  #[key("f10", VK_F10)]
   F10,
+  #[key("f11", VK_F11)]
   F11,
+  #[key("f12", VK_F12)]
   F12,
+  #[key("f13", VK_F13)]
   F13,
+  #[key("f14", VK_F14)]
   F14,
+  #[key("f15", VK_F15)]
   F15,
+  #[key("f16", VK_F16)]
   F16,
+  #[key("f17", VK_F17)]
   F17,
+  #[key("f18", VK_F18)]
   F18,
+  #[key("f19", VK_F19)]
   F19,
+  #[key("f20", VK_F20)]
   F20,
+  #[key("f21", VK_F21)]
   F21,
+  #[key("f22", VK_F22)]
   F22,
+  #[key("f23", VK_F23)]
   F23,
+  #[key("f24", VK_F24)]
   F24,
+  #[key("shift", VK_SHIFT)]
   Shift,
+  #[key("lshift", VK_LSHIFT)]
   LShift,
+  #[key("rshift", VK_RSHIFT)]
   RShift,
+  #[key("control" | "ctrl" | "control key", VK_CONTROL)]
   Control,
+  #[key("lcontrol" | "lctrl" | "lcontrol key", VK_LCONTROL)]
   LControl,
+  #[key("rcontrol" | "rctrl" | "rcontrol key", VK_RCONTROL)]
   RControl,
+  #[key("alt" | "menu", VK_MENU)]
   Alt,
+  #[key("lalt" | "lmenu", VK_LMENU)]
   LAlt,
+  #[key("ralt" | "rmenu", VK_RMENU)]
   RAlt,
+  #[key("win", VK_LWIN)]
   Win,
+  #[key("lwin", VK_LWIN)]
   LWin,
+  #[key("rwin", VK_RWIN)]
   RWin,
+  #[key("space", VK_SPACE)]
   Space,
+  #[key("escape" | "esc", VK_ESCAPE)]
   Escape,
+  #[key("back", VK_BACK)]
   Back,
+  #[key("tab", VK_TAB)]
   Tab,
+  #[key("enter" | "return", VK_RETURN)]
   Enter,
+  #[key("left", VK_LEFT)]
   Left,
+  #[key("right", VK_RIGHT)]
   Right,
+  #[key("up", VK_UP)]
   Up,
+  #[key("down", VK_DOWN)]
   Down,
+  #[key("num lock", VK_NUMLOCK)]
   NumLock,
+  #[key("scroll lock", VK_SCROLL)]
   ScrollLock,
+  #[key("caps lock", VK_CAPITAL)]
   CapsLock,
+  #[key("page up", VK_PRIOR)]
   PageUp,
+  #[key("page down", VK_NEXT)]
   PageDown,
+  #[key("insert", VK_INSERT)]
   Insert,
+  #[key("delete" | "del", VK_DELETE)]
   Delete,
+  #[key("end", VK_END)]
   End,
+  #[key("home", VK_HOME)]
   Home,
+  #[key("print screen", VK_SNAPSHOT)]
   PrintScreen,
+  #[key("multiply", VK_MULTIPLY)]
   Multiply,
+  #[key("add", VK_ADD)]
   Add,
+  #[key("subtract", VK_SUBTRACT)]
   Subtract,
+  #[key("decimal", VK_DECIMAL)]
   Decimal,
+  #[key("divide", VK_DIVIDE)]
   Divide,
+  #[key("volume up", VK_VOLUME_UP)]
   VolumeUp,
+  #[key("volume down", VK_VOLUME_DOWN)]
   VolumeDown,
+  #[key("volume mute", VK_VOLUME_MUTE)]
   VolumeMute,
+  #[key("media next track", VK_MEDIA_NEXT_TRACK)]
   MediaNextTrack,
+  #[key("media prev track" | "media previous track", VK_MEDIA_PREV_TRACK)]
   MediaPrevTrack,
+  #[key("media stop", VK_MEDIA_STOP)]
   MediaStop,
+  #[key("media play pause", VK_MEDIA_PLAY_PAUSE)]
   MediaPlayPause,
+  #[key("oem semicolon", VK_OEM_1)]
   OemSemicolon,
+  #[key("oem question", VK_OEM_2)]
   OemQuestion,
+  #[key("oem tilde", VK_OEM_3)]
   OemTilde,
+  #[key("oem open brackets", VK_OEM_4)]
   OemOpenBrackets,
+  #[key("oem pipe", VK_OEM_5)]
   OemPipe,
+  #[key("oem close brackets", VK_OEM_6)]
   OemCloseBrackets,
+  #[key("oem quotes", VK_OEM_7)]
   OemQuotes,
+  #[key("oem plus", VK_OEM_PLUS)]
   OemPlus,
+  #[key("oem comma", VK_OEM_COMMA)]
   OemComma,
+  #[key("oem minus", VK_OEM_MINUS)]
   OemMinus,
+  #[key("oem period", VK_OEM_PERIOD)]
   OemPeriod,
   Custom(u16),
 }
@@ -215,426 +323,5 @@ impl Key {
   pub fn is_down_raw(self) -> bool {
     let vk_code = self.into_vk();
     unsafe { (GetKeyState(vk_code.into()) & 0x80) == 0x80 }
-  }
-
-  #[allow(clippy::too_many_lines)]
-  pub fn from_str(key: &str) -> Option<Self> {
-    match key.to_lowercase().as_str() {
-      "a" => Some(Key::A),
-      "b" => Some(Key::B),
-      "c" => Some(Key::C),
-      "d" => Some(Key::D),
-      "e" => Some(Key::E),
-      "f" => Some(Key::F),
-      "g" => Some(Key::G),
-      "h" => Some(Key::H),
-      "i" => Some(Key::I),
-      "j" => Some(Key::J),
-      "k" => Some(Key::K),
-      "l" => Some(Key::L),
-      "m" => Some(Key::M),
-      "n" => Some(Key::N),
-      "o" => Some(Key::O),
-      "p" => Some(Key::P),
-      "q" => Some(Key::Q),
-      "r" => Some(Key::R),
-      "s" => Some(Key::S),
-      "t" => Some(Key::T),
-      "u" => Some(Key::U),
-      "v" => Some(Key::V),
-      "w" => Some(Key::W),
-      "x" => Some(Key::X),
-      "y" => Some(Key::Y),
-      "z" => Some(Key::Z),
-      "0" | "d0" => Some(Key::D0),
-      "1" | "d1" => Some(Key::D1),
-      "2" | "d2" => Some(Key::D2),
-      "3" | "d3" => Some(Key::D3),
-      "4" | "d4" => Some(Key::D4),
-      "5" | "d5" => Some(Key::D5),
-      "6" | "d6" => Some(Key::D6),
-      "7" | "d7" => Some(Key::D7),
-      "8" | "d8" => Some(Key::D8),
-      "9" | "d9" => Some(Key::D9),
-      "numpad0" => Some(Key::Numpad0),
-      "numpad1" => Some(Key::Numpad1),
-      "numpad2" => Some(Key::Numpad2),
-      "numpad3" => Some(Key::Numpad3),
-      "numpad4" => Some(Key::Numpad4),
-      "numpad5" => Some(Key::Numpad5),
-      "numpad6" => Some(Key::Numpad6),
-      "numpad7" => Some(Key::Numpad7),
-      "numpad8" => Some(Key::Numpad8),
-      "numpad9" => Some(Key::Numpad9),
-      "f1" => Some(Key::F1),
-      "f2" => Some(Key::F2),
-      "f3" => Some(Key::F3),
-      "f4" => Some(Key::F4),
-      "f5" => Some(Key::F5),
-      "f6" => Some(Key::F6),
-      "f7" => Some(Key::F7),
-      "f8" => Some(Key::F8),
-      "f9" => Some(Key::F9),
-      "f10" => Some(Key::F10),
-      "f11" => Some(Key::F11),
-      "f12" => Some(Key::F12),
-      "f13" => Some(Key::F13),
-      "f14" => Some(Key::F14),
-      "f15" => Some(Key::F15),
-      "f16" => Some(Key::F16),
-      "f17" => Some(Key::F17),
-      "f18" => Some(Key::F18),
-      "f19" => Some(Key::F19),
-      "f20" => Some(Key::F20),
-      "f21" => Some(Key::F21),
-      "f22" => Some(Key::F22),
-      "f23" => Some(Key::F23),
-      "f24" => Some(Key::F24),
-      "shift" | "shiftkey" => Some(Key::Shift),
-      "lshift" | "lshiftkey" => Some(Key::LShift),
-      "rshift" | "rshiftkey" => Some(Key::RShift),
-      "ctrl" | "controlkey" | "control" => Some(Key::Control),
-      "lctrl" | "lcontrolkey" => Some(Key::LControl),
-      "rctrl" | "rcontrolkey" => Some(Key::RControl),
-      "alt" | "menu" => Some(Key::Alt),
-      "lalt" | "lmenu" => Some(Key::LAlt),
-      "ralt" | "rmenu" => Some(Key::RAlt),
-      "win" => Some(Key::Win),
-      "lwin" => Some(Key::LWin),
-      "rwin" => Some(Key::RWin),
-      "space" => Some(Key::Space),
-      "escape" => Some(Key::Escape),
-      "back" => Some(Key::Back),
-      "tab" => Some(Key::Tab),
-      "enter" | "return" => Some(Key::Enter),
-      "left" => Some(Key::Left),
-      "right" => Some(Key::Right),
-      "up" => Some(Key::Up),
-      "down" => Some(Key::Down),
-      "num_lock" => Some(Key::NumLock),
-      "scroll_lock" => Some(Key::ScrollLock),
-      "caps_lock" => Some(Key::CapsLock),
-      "page_up" => Some(Key::PageUp),
-      "page_down" => Some(Key::PageDown),
-      "insert" => Some(Key::Insert),
-      "delete" => Some(Key::Delete),
-      "end" => Some(Key::End),
-      "home" => Some(Key::Home),
-      "print_screen" => Some(Key::PrintScreen),
-      "multiply" => Some(Key::Multiply),
-      "add" => Some(Key::Add),
-      "subtract" => Some(Key::Subtract),
-      "decimal" => Some(Key::Decimal),
-      "divide" => Some(Key::Divide),
-      "volume_up" => Some(Key::VolumeUp),
-      "volume_down" => Some(Key::VolumeDown),
-      "volume_mute" => Some(Key::VolumeMute),
-      "media_next_track" => Some(Key::MediaNextTrack),
-      "media_prev_track" => Some(Key::MediaPrevTrack),
-      "media_stop" => Some(Key::MediaStop),
-      "media_play_pause" => Some(Key::MediaPlayPause),
-      "oem_semicolon" => Some(Key::OemSemicolon),
-      "oem_question" => Some(Key::OemQuestion),
-      "oem_tilde" => Some(Key::OemTilde),
-      "oem_open_brackets" => Some(Key::OemOpenBrackets),
-      "oem_pipe" => Some(Key::OemPipe),
-      "oem_close_brackets" => Some(Key::OemCloseBrackets),
-      "oem_quotes" => Some(Key::OemQuotes),
-      "oem_plus" => Some(Key::OemPlus),
-      "oem_comma" => Some(Key::OemComma),
-      "oem_minus" => Some(Key::OemMinus),
-      "oem_period" => Some(Key::OemPeriod),
-      _ => {
-        // Check if the key exists on the current keyboard layout.
-        let utf16_key = key.encode_utf16().next()?;
-        let layout = unsafe { GetKeyboardLayout(0) };
-        let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
-
-        if vk_code == -1 {
-          return None;
-        }
-
-        // The low-order byte contains the virtual-key code and the high-
-        // order byte contains the shift state.
-        let [high_order, low_order] = vk_code.to_be_bytes();
-
-        // Key is valid if it doesn't require shift or alt to be pressed.
-        match high_order {
-          0 => Some(Key::Custom(u16::from(low_order))),
-          _ => None,
-        }
-      }
-    }
-  }
-
-  #[allow(clippy::too_many_lines)]
-  pub fn from_vk(vk: u16) -> Self {
-    match VIRTUAL_KEY(vk) {
-      VK_A => Key::A,
-      VK_B => Key::B,
-      VK_C => Key::C,
-      VK_D => Key::D,
-      VK_E => Key::E,
-      VK_F => Key::F,
-      VK_G => Key::G,
-      VK_H => Key::H,
-      VK_I => Key::I,
-      VK_J => Key::J,
-      VK_K => Key::K,
-      VK_L => Key::L,
-      VK_M => Key::M,
-      VK_N => Key::N,
-      VK_O => Key::O,
-      VK_P => Key::P,
-      VK_Q => Key::Q,
-      VK_R => Key::R,
-      VK_S => Key::S,
-      VK_T => Key::T,
-      VK_U => Key::U,
-      VK_V => Key::V,
-      VK_W => Key::W,
-      VK_X => Key::X,
-      VK_Y => Key::Y,
-      VK_Z => Key::Z,
-      VK_0 => Key::D0,
-      VK_1 => Key::D1,
-      VK_2 => Key::D2,
-      VK_3 => Key::D3,
-      VK_4 => Key::D4,
-      VK_5 => Key::D5,
-      VK_6 => Key::D6,
-      VK_7 => Key::D7,
-      VK_8 => Key::D8,
-      VK_9 => Key::D9,
-      VK_NUMPAD0 => Key::Numpad0,
-      VK_NUMPAD1 => Key::Numpad1,
-      VK_NUMPAD2 => Key::Numpad2,
-      VK_NUMPAD3 => Key::Numpad3,
-      VK_NUMPAD4 => Key::Numpad4,
-      VK_NUMPAD5 => Key::Numpad5,
-      VK_NUMPAD6 => Key::Numpad6,
-      VK_NUMPAD7 => Key::Numpad7,
-      VK_NUMPAD8 => Key::Numpad8,
-      VK_NUMPAD9 => Key::Numpad9,
-      VK_F1 => Key::F1,
-      VK_F2 => Key::F2,
-      VK_F3 => Key::F3,
-      VK_F4 => Key::F4,
-      VK_F5 => Key::F5,
-      VK_F6 => Key::F6,
-      VK_F7 => Key::F7,
-      VK_F8 => Key::F8,
-      VK_F9 => Key::F9,
-      VK_F10 => Key::F10,
-      VK_F11 => Key::F11,
-      VK_F12 => Key::F12,
-      VK_F13 => Key::F13,
-      VK_F14 => Key::F14,
-      VK_F15 => Key::F15,
-      VK_F16 => Key::F16,
-      VK_F17 => Key::F17,
-      VK_F18 => Key::F18,
-      VK_F19 => Key::F19,
-      VK_F20 => Key::F20,
-      VK_F21 => Key::F21,
-      VK_F22 => Key::F22,
-      VK_F23 => Key::F23,
-      VK_F24 => Key::F24,
-      VK_SHIFT => Key::Shift,
-      VK_LSHIFT => Key::LShift,
-      VK_RSHIFT => Key::RShift,
-      VK_CONTROL => Key::Control,
-      VK_LCONTROL => Key::LControl,
-      VK_RCONTROL => Key::RControl,
-      VK_MENU => Key::Alt,
-      VK_LMENU => Key::LAlt,
-      VK_RMENU => Key::RAlt,
-      VK_LWIN => Key::LWin,
-      VK_RWIN => Key::RWin,
-      VK_SPACE => Key::Space,
-      VK_ESCAPE => Key::Escape,
-      VK_BACK => Key::Back,
-      VK_TAB => Key::Tab,
-      VK_RETURN => Key::Enter,
-      VK_LEFT => Key::Left,
-      VK_RIGHT => Key::Right,
-      VK_UP => Key::Up,
-      VK_DOWN => Key::Down,
-      VK_NUMLOCK => Key::NumLock,
-      VK_SCROLL => Key::ScrollLock,
-      VK_CAPITAL => Key::CapsLock,
-      VK_PRIOR => Key::PageUp,
-      VK_NEXT => Key::PageDown,
-      VK_INSERT => Key::Insert,
-      VK_DELETE => Key::Delete,
-      VK_END => Key::End,
-      VK_HOME => Key::Home,
-      VK_SNAPSHOT => Key::PrintScreen,
-      VK_MULTIPLY => Key::Multiply,
-      VK_ADD => Key::Add,
-      VK_SUBTRACT => Key::Subtract,
-      VK_DECIMAL => Key::Decimal,
-      VK_DIVIDE => Key::Divide,
-      VK_VOLUME_UP => Key::VolumeUp,
-      VK_VOLUME_DOWN => Key::VolumeDown,
-      VK_VOLUME_MUTE => Key::VolumeMute,
-      VK_MEDIA_NEXT_TRACK => Key::MediaNextTrack,
-      VK_MEDIA_PREV_TRACK => Key::MediaPrevTrack,
-      VK_MEDIA_STOP => Key::MediaStop,
-      VK_MEDIA_PLAY_PAUSE => Key::MediaPlayPause,
-      VK_OEM_1 => Key::OemSemicolon,
-      VK_OEM_2 => Key::OemQuestion,
-      VK_OEM_3 => Key::OemTilde,
-      VK_OEM_4 => Key::OemOpenBrackets,
-      VK_OEM_5 => Key::OemPipe,
-      VK_OEM_6 => Key::OemCloseBrackets,
-      VK_OEM_7 => Key::OemQuotes,
-      VK_OEM_PLUS => Key::OemPlus,
-      VK_OEM_COMMA => Key::OemComma,
-      VK_OEM_MINUS => Key::OemMinus,
-      VK_OEM_PERIOD => Key::OemPeriod,
-      _ => {
-        // Safe to assume that the key is valid on the keyboard layout if
-        // its coming from a vk code?
-        Key::Custom(vk)
-      }
-    }
-  }
-
-  #[allow(clippy::too_many_lines)]
-  fn into_vk(self) -> u16 {
-    match self {
-      Key::A => VK_A.0,
-      Key::B => VK_B.0,
-      Key::C => VK_C.0,
-      Key::D => VK_D.0,
-      Key::E => VK_E.0,
-      Key::F => VK_F.0,
-      Key::G => VK_G.0,
-      Key::H => VK_H.0,
-      Key::I => VK_I.0,
-      Key::J => VK_J.0,
-      Key::K => VK_K.0,
-      Key::L => VK_L.0,
-      Key::M => VK_M.0,
-      Key::N => VK_N.0,
-      Key::O => VK_O.0,
-      Key::P => VK_P.0,
-      Key::Q => VK_Q.0,
-      Key::R => VK_R.0,
-      Key::S => VK_S.0,
-      Key::T => VK_T.0,
-      Key::U => VK_U.0,
-      Key::V => VK_V.0,
-      Key::W => VK_W.0,
-      Key::X => VK_X.0,
-      Key::Y => VK_Y.0,
-      Key::Z => VK_Z.0,
-      Key::D0 => VK_0.0,
-      Key::D1 => VK_1.0,
-      Key::D2 => VK_2.0,
-      Key::D3 => VK_3.0,
-      Key::D4 => VK_4.0,
-      Key::D5 => VK_5.0,
-      Key::D6 => VK_6.0,
-      Key::D7 => VK_7.0,
-      Key::D8 => VK_8.0,
-      Key::D9 => VK_9.0,
-      Key::Numpad0 => VK_NUMPAD0.0,
-      Key::Numpad1 => VK_NUMPAD1.0,
-      Key::Numpad2 => VK_NUMPAD2.0,
-      Key::Numpad3 => VK_NUMPAD3.0,
-      Key::Numpad4 => VK_NUMPAD4.0,
-      Key::Numpad5 => VK_NUMPAD5.0,
-      Key::Numpad6 => VK_NUMPAD6.0,
-      Key::Numpad7 => VK_NUMPAD7.0,
-      Key::Numpad8 => VK_NUMPAD8.0,
-      Key::Numpad9 => VK_NUMPAD9.0,
-      Key::F1 => VK_F1.0,
-      Key::F2 => VK_F2.0,
-      Key::F3 => VK_F3.0,
-      Key::F4 => VK_F4.0,
-      Key::F5 => VK_F5.0,
-      Key::F6 => VK_F6.0,
-      Key::F7 => VK_F7.0,
-      Key::F8 => VK_F8.0,
-      Key::F9 => VK_F9.0,
-      Key::F10 => VK_F10.0,
-      Key::F11 => VK_F11.0,
-      Key::F12 => VK_F12.0,
-      Key::F13 => VK_F13.0,
-      Key::F14 => VK_F14.0,
-      Key::F15 => VK_F15.0,
-      Key::F16 => VK_F16.0,
-      Key::F17 => VK_F17.0,
-      Key::F18 => VK_F18.0,
-      Key::F19 => VK_F19.0,
-      Key::F20 => VK_F20.0,
-      Key::F21 => VK_F21.0,
-      Key::F22 => VK_F22.0,
-      Key::F23 => VK_F23.0,
-      Key::F24 => VK_F24.0,
-      Key::Shift => VK_SHIFT.0,
-      Key::LShift => VK_LSHIFT.0,
-      Key::RShift => VK_RSHIFT.0,
-      Key::Control => VK_CONTROL.0,
-      Key::LControl => VK_LCONTROL.0,
-      Key::RControl => VK_RCONTROL.0,
-      Key::Alt => VK_MENU.0,
-      Key::LAlt => VK_LMENU.0,
-      Key::RAlt => VK_RMENU.0,
-      Key::LWin => VK_LWIN.0,
-      Key::RWin => VK_RWIN.0,
-      Key::Space => VK_SPACE.0,
-      Key::Escape => VK_ESCAPE.0,
-      Key::Back => VK_BACK.0,
-      Key::Tab => VK_TAB.0,
-      Key::Enter => VK_RETURN.0,
-      Key::Left => VK_LEFT.0,
-      Key::Right => VK_RIGHT.0,
-      Key::Up => VK_UP.0,
-      Key::Down => VK_DOWN.0,
-      Key::NumLock => VK_NUMLOCK.0,
-      Key::ScrollLock => VK_SCROLL.0,
-      Key::CapsLock => VK_CAPITAL.0,
-      Key::PageUp => VK_PRIOR.0,
-      Key::PageDown => VK_NEXT.0,
-      Key::Insert => VK_INSERT.0,
-      Key::Delete => VK_DELETE.0,
-      Key::End => VK_END.0,
-      Key::Home => VK_HOME.0,
-      Key::PrintScreen => VK_SNAPSHOT.0,
-      Key::Multiply => VK_MULTIPLY.0,
-      Key::Add => VK_ADD.0,
-      Key::Subtract => VK_SUBTRACT.0,
-      Key::Decimal => VK_DECIMAL.0,
-      Key::Divide => VK_DIVIDE.0,
-      Key::VolumeUp => VK_VOLUME_UP.0,
-      Key::VolumeDown => VK_VOLUME_DOWN.0,
-      Key::VolumeMute => VK_VOLUME_MUTE.0,
-      Key::MediaNextTrack => VK_MEDIA_NEXT_TRACK.0,
-      Key::MediaPrevTrack => VK_MEDIA_PREV_TRACK.0,
-      Key::MediaStop => VK_MEDIA_STOP.0,
-      Key::MediaPlayPause => VK_MEDIA_PLAY_PAUSE.0,
-      Key::OemSemicolon => VK_OEM_1.0,
-      Key::OemQuestion => VK_OEM_2.0,
-      Key::OemTilde => VK_OEM_3.0,
-      Key::OemOpenBrackets => VK_OEM_4.0,
-      Key::OemPipe => VK_OEM_5.0,
-      Key::OemCloseBrackets => VK_OEM_6.0,
-      Key::OemQuotes => VK_OEM_7.0,
-      Key::OemPlus => VK_OEM_PLUS.0,
-      Key::OemComma => VK_OEM_COMMA.0,
-      Key::OemMinus => VK_OEM_MINUS.0,
-      Key::OemPeriod => VK_OEM_PERIOD.0,
-      Key::Custom(vk) => vk,
-      // Default `Key::Win` to LWin as it is the most commonly used and
-      // doesn't have a VK code of its own. This key should be handled
-      // using `get_specifics()`
-      Key::Win => {
-        tracing::warn!("Using generic Win key, defaulting to LWin.");
-        VK_LWIN.0
-      }
-    }
   }
 }

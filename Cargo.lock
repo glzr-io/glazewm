@@ -2361,6 +2361,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wm-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.67",
+]
+
+[[package]]
 name = "wm-platform"
 version = "0.0.0"
 dependencies = [
@@ -2371,6 +2380,7 @@ dependencies = [
  "windows",
  "windows-interface",
  "wm-common",
+ "wm-macros",
 ]
 
 [[package]]
