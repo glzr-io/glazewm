@@ -106,7 +106,7 @@ impl NativeMonitor {
             EnumDisplayDevicesW(
               PCWSTR(monitor_info.szDevice.as_ptr()),
               index,
-              &mut display_device,
+              &raw mut display_device,
               EDD_GET_DEVICE_INTERFACE_NAME,
             )
           }
@@ -231,8 +231,8 @@ fn monitor_dpi(handle: isize) -> anyhow::Result<u32> {
     GetDpiForMonitor(
       HMONITOR(handle),
       MDT_EFFECTIVE_DPI,
-      &mut dpi_x,
-      &mut dpi_y,
+      &raw mut dpi_x,
+      &raw mut dpi_y,
     )
   }?;
 
