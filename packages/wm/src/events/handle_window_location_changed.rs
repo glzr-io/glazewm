@@ -66,9 +66,13 @@ pub fn handle_window_location_changed(
       )?;
     }
 
-    let nearest_workspace = nearest_monitor.displayed_workspace();
+    let nearest_workspace = nearest_monitor
+      .displayed_workspace()
+      .context("No Workspace")?;
 
-    let monitor_rect = if config.has_outer_gaps(nearest_workspace.as_ref())
+    let monitor_rect = if config
+      .outer_gaps_for_workspace(&nearest_workspace)
+      .is_significant()
     {
       nearest_monitor.native().working_rect()?.clone()
     } else {

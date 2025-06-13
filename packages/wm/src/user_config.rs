@@ -343,11 +343,9 @@ impl UserConfig {
 
   pub fn outer_gaps_for_workspace(
     &self,
-    workspace: Option<&Workspace>,
+    workspace: &Workspace,
   ) -> &wm_common::RectDelta {
-    let is_single_window = workspace.is_some_and(|workspace| {
-      workspace.tiling_children().nth(1).is_none()
-    });
+    let is_single_window = workspace.tiling_children().nth(1).is_none();
 
     if is_single_window {
       self
@@ -359,11 +357,5 @@ impl UserConfig {
     } else {
       &self.value.gaps.outer_gap
     }
-  }
-
-  pub fn has_outer_gaps(&self, workspace: Option<&Workspace>) -> bool {
-    let outer_gap = self.outer_gaps_for_workspace(workspace);
-
-    outer_gap.is_significant()
   }
 }

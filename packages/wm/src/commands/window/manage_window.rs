@@ -196,11 +196,14 @@ fn window_state_to_create(
     return Ok(WindowState::Minimized);
   }
 
-  // May be worth taking this as a parameter so it doesn't have to be
-  // queried again?
-  let nearest_workspace = nearest_monitor.displayed_workspace();
+  let nearest_workspace = nearest_monitor
+    .displayed_workspace()
+    .context("No Workspace.")?;
 
-  let monitor_rect = if config.has_outer_gaps(nearest_workspace.as_ref()) {
+  let monitor_rect = if config
+    .outer_gaps_for_workspace(&nearest_workspace)
+    .is_significant()
+  {
     nearest_monitor.native().working_rect()?.clone()
   } else {
     nearest_monitor.to_rect()?
