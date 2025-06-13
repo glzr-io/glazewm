@@ -3,6 +3,8 @@ use quote::quote;
 
 use super::Key;
 
+/// Creates a `from_str` implementation for the `Key` enum using the list
+/// of keys.
 pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
   let lines = keys.iter().map(|key| {
     let ident = &key.ident;
@@ -12,10 +14,12 @@ pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
 
     let str_values = &key.str_values;
 
+    // Create a `|` separated list of string literals for the match arm.
     let str_values = quote! {
       #(#str_values)|*
     };
 
+    // Return the match arm tokens for this key.
     quote! {
       #str_values => Some(Self::#ident)
     }
@@ -23,6 +27,7 @@ pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
 
   quote! {
     pub fn from_str(key: &str) -> Option<Self> {
+      // Unpack the match arms (lines) made above, using `,` as the separator.
       match key {
         #(#lines),*
         _ => {
