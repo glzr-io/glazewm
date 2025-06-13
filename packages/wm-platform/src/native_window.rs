@@ -236,6 +236,9 @@ impl NativeWindow {
       return Ok(false);
     }
 
+    // Ensure window position is accessible.
+    self.refresh_frame_position()?;
+
     // Some applications spawn top-level windows for menus that should be
     // ignored. This includes the autocomplete popup in Notepad++ and title
     // bar menu in Keepass. Although not foolproof, these can typically be
