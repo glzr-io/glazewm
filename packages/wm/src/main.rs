@@ -120,13 +120,17 @@ async fn start_wm(
       )) = ipc_server.message_rx.recv() => {
         info!("Received IPC message: {:?}", message);
 
-        ipc_server.process_message(
+        if let Err(err) = ipc_server.process_message(
           message,
           &response_tx,
           &disconnection_tx,
           &mut wm,
           &mut config,
-        )
+        ) {
+          error!("{:?}", err);
+        }
+
+        Ok(())
       },
       Some(wm_event) = wm.event_rx.recv() => {
         debug!("Received WM event: {:?}", wm_event);
@@ -146,7 +150,11 @@ async fn start_wm(
           );
         }
 
-        ipc_server.process_event(wm_event)
+        if let Err(err) = ipc_server.process_event(wm_event) {
+          error!("{:?}", err);
+        }
+
+        Ok(())
       },
       Some(()) = tray.config_reload_rx.recv() => {
         wm.process_commands(
