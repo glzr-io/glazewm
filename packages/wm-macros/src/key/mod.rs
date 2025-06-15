@@ -1,174 +1,54 @@
+use attrs::{
+  find_key_attr,
+  variant::{VariantAttrs, VariantVkValue},
+};
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{DeriveInput, Token, parse_macro_input};
+use quote::{quote, quote_spanned};
+use syn::{DeriveInput, parse_macro_input};
 
+mod attrs;
 mod from_str;
 mod from_vk;
 mod into_vk;
 
+/// Holds the Key enum variant information, including the identifier and
+/// attributes parsed from the `#[key(...)]` attribute, such as the string
+/// aliases and the assosicated platform-specific virtual key codes.
+#[derive(Debug, Clone)]
 struct Key {
-  ident: syn::Ident,
-  str_values: Vec<String>,
-  vk_value: syn::Ident,
+  pub ident: syn::Ident,
+  pub attrs: VariantAttrs,
 }
 
 /// Converts an enum variant into a Key struct. This collects the relevant
 /// ident (`A`, `B`, etc.) and the string and virtual key (VK) values from
-/// the `#[key("a", VK_...)]` attribute.
+/// the `#[key("a", win = <key code>, macos = <key code>)]` attribute.
 fn variant_to_key(variant: &syn::Variant) -> syn::Result<Key> {
   let ident = variant.ident.clone();
   let attrs = &variant.attrs;
 
-  // Get the `#[key(...)]` attribute, and ignore any other attributes to
-  // not cause issues with other macros that might be applied to the
-  // variant, such as serde derive attributes.
-  let attr = match attrs
-    .iter()
-    // This will filter out any attributes that are not lists
-    .filter_map(|attr| attr.meta.require_list().ok())
-    // Find our `key` attribute
-    .find(|list| {
-      if let Ok(ident) = list.path.require_ident() {
-        *ident == "key"
-      } else {
-        false
-      }
-    }) {
+  let attr = match attrs::find_key_attr(attrs) {
     Some(attr) => attr,
     None => {
-      if ident == "Custom" {
-        // Custom variant is allowed to not have the key attribute
-        return Ok(Key {
-          ident: ident.clone(),
-          str_values: Vec::new(),
-          vk_value: syn::Ident::new("Custom", ident.span()),
-        });
-      } else {
-        // Return an error if the variant does not have the attribute above
-        // it (except for the Custom variant which is handled specially).
-        return Err(syn::Error::new_spanned(
-          &variant.ident,
-          "Missing `#[key(\"value\", VK_VAlue)]` attribute",
-        ));
-      }
+      // Return an error if the variant does not have the attribute above
+      // it
+      return Err(syn::Error::new_spanned(
+        &variant.ident,
+        "Missing `#[key]` attribute for this variant. Key variants must be annotated with `#[key(\"string\" | \"list\", win = <key code>, macos = <key code>)]` and the wildcard variant must be annotated with `#[key(..)]`",
+      ));
     }
   };
-
-  // Gets some string variants from the provided string.
-  // Allows for a name such as "page up" to be converted into a list of
-  // allowed strings: ["page up", "page_up", "page-up", "pageUp"].
-  // Also validates the string content
-  let get_string_variants = |string: String| -> syn::Result<Vec<String>> {
-    if string.is_empty() {
-      return Err(syn::Error::new_spanned(
-        attr,
-        "String value cannot be empty",
-      ));
-    }
-
-    if string.contains('+') {
-      return Err(syn::Error::new_spanned(
-        attr,
-        "String value cannot contain '+'",
-      ));
-    }
-
-    if string.ends_with(' ') {
-      return Err(syn::Error::new_spanned(
-        attr,
-        "String value should not end with a space",
-      ));
-    }
-
-    // Quick return if the string does not contain any spaces (no variants
-    // needed).
-    if !string.contains(' ') {
-      return Ok(vec![string]);
-    }
-
-    let underscored = string.replace(' ', "_");
-
-    let dashed = string.replace(' ', "-");
-
-    let camel_cased = string.split(' ').fold(String::new(), |acc, el| {
-      if acc.is_empty() {
-        return el.to_string();
-      }
-      let mut chars = el.chars();
-      let first_char = chars.next().unwrap();
-      let rest = chars.as_str();
-
-      let first_char = first_char.to_uppercase().to_string();
-
-      let mut new_el = acc.to_string();
-      new_el.push_str(&first_char);
-      new_el.push_str(rest);
-
-      new_el
-    });
-
-    let variants = vec![string, underscored, dashed, camel_cased];
-
-    Ok(variants)
-  };
-
-  // Parse an individual string from the input stream. Parses "a" only
-  let parse_str =
-    |input: syn::parse::ParseStream| -> syn::Result<Vec<String>> {
-      let string = input.parse::<syn::LitStr>()?;
-      get_string_variants(string.value())
-    };
-
-  // Parse a list of strings from the input stream. Parses "a" | "b" | "c"
-  let parse_strs =
-    |input: syn::parse::ParseStream| -> syn::Result<Vec<String>> {
-      let mut values = Vec::new();
-      values.extend(parse_str(input)?);
-
-      // Iterate while there are more strings separated by `|`
-      while input.peek(Token![|]) {
-        input.parse::<Token![|]>()?;
-        values.extend(parse_str(input)?);
-      }
-
-      Ok(values)
-    };
-
-  struct Conversions {
-    str_values: Vec<String>,
-    vk_value: syn::Ident,
-  }
 
   // Parse the `#[key(...)]` attribute to extract the string values and the
   // vk_value Expects the format:
   // `("string", VK_VALUE)`
   // or
   // `("string" | "list", VK_VALUE)`
-  let conversions: Conversions = attr.parse_args_with(
-    |input: syn::parse::ParseStream| -> syn::Result<Conversions> {
-      let str_values = parse_strs(input)?;
-
-      // Error if no comma, but discard it if present
-      _ = input.parse::<Token![,]>()?;
-
-      let vk_value = input.parse::<syn::Ident>().map_err(|_| {
-        syn::Error::new(
-          input.span(),
-          "Expected an identifier for VK value",
-        )
-      })?;
-
-      Ok(Conversions {
-        str_values,
-        vk_value,
-      })
-    },
-  )?;
+  let conversions: VariantAttrs = attr.parse_args()?;
 
   Ok(Key {
     ident,
-    str_values: conversions.str_values,
-    vk_value: conversions.vk_value,
+    attrs: conversions,
   })
 }
 
@@ -178,12 +58,54 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
 
   let name = &input.ident;
 
+  // Find the `#[key]` attribute on the enum itself. This is required to
+  // pass in the absolute paths for each platform's key codes.
+  let enum_attr = match find_key_attr(&input.attrs) {
+    Some(attr) => attr,
+    None => {
+      let error = syn::Error::new_spanned(
+        name,
+        "Missing `#[key]` attribute on the enum itself. It should be annotated like this:\n```rs\n#[key(win_prefix = <key::codes::prefix>, macos_prefix = <key::codes::prefix>)]\nenum // ...\n```",
+      )
+      .to_compile_error();
+      let default_impls = default_fn_impls(name);
+      return quote! {
+        #error
+        #default_impls
+      }
+      .into();
+    }
+  };
+
+  // Parse the `#[key(...)]` attribute on the enum to extract the prefixes
+  let enum_attrs = match enum_attr.parse_args::<attrs::enums::EnumAttr>() {
+    Ok(attrs) => attrs,
+    Err(e) => {
+      // Forward the error to the outputed token stream as a compile error.
+      // Include default function impls so that dependant code does
+      // not error out.
+      let error = e.into_compile_error();
+      let default_impls = default_fn_impls(name);
+      return quote! {
+        #error
+        #default_impls
+      }
+      .into();
+    }
+  };
+
   // Error out if the input is not an enum
   let enum_data = match &input.data {
     syn::Data::Enum(data) => data,
     _ => {
+      let error = syn::Error::new_spanned(
+        name,
+        "This macro can only be used on enums. Please annotate an enum with `#[key(...)]` and derive the `KeyConversions` trait.",
+      ).into_compile_error();
+      let default_impls = default_fn_impls(name);
       return quote! {
-        compile_error!("KeyConversions can only be derived for enums");
+        #error
+        #default_impls
       }
       .into();
     }
@@ -194,9 +116,8 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
     .variants
     .iter()
     .map(variant_to_key)
+    // Partition the results into successful variants and errors.
     .partition(|key| !key.is_err());
-
-  // Partition the results into successful variants and errors.
 
   let keys: Vec<_> = variants
     .into_iter()
@@ -204,10 +125,15 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
     .map(|var| unsafe { var.unwrap_unchecked() })
     .collect();
 
+  // Find any duplicate keys in the parsed keys.
+  // Will give an error if a key is defined multiple times.
+  let duplicate_errors = find_duplicate_keys(&keys);
+
   let errors: Vec<_> = errors
     .into_iter()
     // Saftey: Just partitioned the results, so this unwrap is safe.
     .map(|err| unsafe { err.unwrap_err_unchecked() })
+    .chain(duplicate_errors)
     // Convert the errors into a token stream to include in the output.
     // This is what gives accuratly spanned error messages in the macro
     // input.
@@ -216,8 +142,8 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
 
   // Make each function impl
   let from_str_impl = from_str::make_from_str_impl(&keys);
-  let from_vk_impl = from_vk::make_from_vk_impl(&keys);
-  let into_vk_impl = into_vk::make_into_vk_impl(&keys);
+  let from_vk_impl = from_vk::make_from_vk_impl(&keys, &enum_attrs);
+  let into_vk_impl = into_vk::make_into_vk_impl(&keys, &enum_attrs);
 
   // Create the output token stream
   // Errors are unpacked into individual spanned compile errors
@@ -234,4 +160,61 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
   };
 
   TokenStream::from(expanded)
+}
+
+/// Find duplicate keys per platform in the provided keys slice.
+/// Returns a vector of `syn::Error` instances for each duplicate key
+/// found, containing a reminder to use the `Vert` wrapper for virtual
+/// keys.
+fn find_duplicate_keys(keys: &[Key]) -> Vec<syn::Error> {
+  let mut win_seen = std::collections::HashSet::new();
+  let mut macos_seen = std::collections::HashSet::new();
+  let mut duplicates = Vec::new();
+
+  for key in keys {
+    if let VariantAttrs::Key(vk_value) = &key.attrs {
+      if let VariantVkValue::Key(vk_value) = &vk_value.win_key {
+        if !win_seen.insert(vk_value.clone()) {
+          // If the key is already seen, we have a duplicate
+          duplicates.push(syn::Error::new_spanned(
+            vk_value,
+            format!("Duplicate key value: {:?}. Wrap virtual keys with Vert, eg. The virtual key `Win` should use `Vert(VK_LWIN)` instead of just `VK_LWIN`", vk_value),
+          ));
+        }
+      }
+
+      if let VariantVkValue::Key(vk_value) = &vk_value.macos_key {
+        if !macos_seen.insert(vk_value.clone()) {
+          // If the key is already seen, we have a duplicate
+          duplicates.push(syn::Error::new_spanned(
+            vk_value,
+            format!("Duplicate key value: {:?}. Wrap virtual keys with Vert, eg. The virtual key `Win` should use `Vert(VK_LWIN)` instead of just `VK_LWIN`", vk_value),
+          ));
+        }
+      }
+    }
+  }
+
+  duplicates
+}
+
+/// Generate some generic default implementations just so that if the macro
+/// errors out we can spit out a fn impl so that every usage of the
+/// generated fn impls does not also show an error.
+fn default_fn_impls(name: &syn::Ident) -> proc_macro2::TokenStream {
+  quote! {
+    impl #name {
+      pub fn from_str(key: &str) -> Option<Self> {
+        panic!("`from_str` is not implemented for this enum. The macro likely panicked while parsing the input. Please check the input for errors.");
+      }
+
+      pub fn from_vk(vk: u16) -> Self {
+        panic!("`from_vk` is not implemented for this enum. The macro likely panicked while parsing the input. Please check the input for errors.");
+      }
+
+      pub fn into_vk(self) -> u16 {
+        panic!("`into_vk` is not implemented for this enum. The macro likely panicked while parsing the input. Please check the input for errors.");
+      }
+    }
+  }
 }

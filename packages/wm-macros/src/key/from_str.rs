@@ -1,36 +1,33 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use super::Key;
+use super::{Key, attrs::variant::VariantAttrs};
 
-/// Creates a `from_str` implementation for the `Key` enum using the list
-/// of keys.
-pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
-  let lines = keys.iter().map(|key| {
-    let ident = &key.ident;
-    if key.str_values.is_empty() {
-      return quote! {};
+/// Wrapper type to implement the `to_tokens` method for the `from_str`
+/// impl.
+struct KeyStrArm {
+  ident: syn::Ident,
+  attrs: VariantAttrs,
+}
+
+impl From<Key> for KeyStrArm {
+  fn from(key: Key) -> Self {
+    KeyStrArm {
+      ident: key.ident,
+      attrs: key.attrs,
     }
+  }
+}
 
-    let str_values = &key.str_values;
-
-    // Create a `|` separated list of string literals for the match arm.
-    let str_values = quote! {
-      #(#str_values)|*
-    };
-
-    // Return the match arm tokens for this key.
-    quote! {
-      #str_values => Some(Self::#ident)
-    }
-  });
-
-  quote! {
-    pub fn from_str(key: &str) -> Option<Self> {
-      // Unpack the match arms (lines) made above, using `,` as the separator.
-      match key {
-        #(#lines),*
-        _ => {
+/// Converts a `KeyStrArm` into a match arm for the `from_str`
+/// implementation.
+impl quote::ToTokens for KeyStrArm {
+  fn to_tokens(&self, tokens: &mut TokenStream) {
+    let ident = &self.ident;
+    match &self.attrs {
+      VariantAttrs::Wildcard => {
+        // If the key is a wildcard, we match it to the `Custom` variant.
+        tokens.extend(quote! { _ => {
           // Check if the key exists on the current keyboard layout.
           let mut encoding = key.encode_utf16();
           let utf16_key = encoding.next()?;
@@ -55,7 +52,29 @@ pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
             0 => Some(Key::Custom(u16::from(low_order))),
             _ => None,
           }
-        }
+        }});
+      }
+      super::VariantAttrs::Key(key_attrs) => {
+        // For regular keys, we match the string values to the key variant.
+        let str_values = &key_attrs.str_values;
+
+        // Output the match arms.
+        tokens.extend(quote! {#str_values => Some(Self::#ident)});
+      }
+    }
+  }
+}
+
+/// Creates a `from_str` implementation for the `Key` enum using the list
+/// of keys.
+pub fn make_from_str_impl(keys: &[Key]) -> TokenStream {
+  let lines = keys.iter().map(|key| KeyStrArm::from(key.clone()));
+
+  quote! {
+    pub fn from_str(key: &str) -> Option<Self> {
+      // Unpack the match arms (lines) made above, using `,` as the separator.
+      match key {
+        #(#lines),*
       }
     }
   }

@@ -1,4 +1,5 @@
 mod key;
+mod spanned_string;
 use proc_macro::TokenStream;
 
 #[proc_macro_derive(KeyConversions, attributes(key))]

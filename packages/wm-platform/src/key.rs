@@ -2,255 +2,257 @@ use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyState;
 use wm_macros::KeyConversions;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, KeyConversions)]
+#[key(win_prefix = windows::Win32::UI::Input::KeyboardAndMouse, macos_prefix = None)]
 pub enum Key {
-  #[key("a", VK_A)]
+  #[key("a", win = VK_A, macos = None)]
   A,
-  #[key("b", VK_B)]
+  #[key("b", win = VK_B, macos = None)]
   B,
-  #[key("c", VK_C)]
+  #[key("c", win = VK_C, macos = None)]
   C,
-  #[key("d", VK_D)]
+  #[key("d", win = VK_D, macos = None)]
   D,
-  #[key("e", VK_F)]
+  #[key("e", win = VK_E, macos = None)]
   E,
-  #[key("f", VK_F)]
+  #[key("f", win = VK_F, macos = None)]
   F,
-  #[key("g", VK_G)]
+  #[key("g", win = VK_G, macos = None)]
   G,
-  #[key("h", VK_H)]
+  #[key("h", win = VK_H, macos = None)]
   H,
-  #[key("i", VK_I)]
+  #[key("i", win = VK_I, macos = None)]
   I,
-  #[key("j", VK_J)]
+  #[key("j", win = VK_J, macos = None)]
   J,
-  #[key("k", VK_K)]
+  #[key("k", win = VK_K, macos = None)]
   K,
-  #[key("l", VK_L)]
+  #[key("l", win = VK_L, macos = None)]
   L,
-  #[key("m", VK_M)]
+  #[key("m", win = VK_M, macos = None)]
   M,
-  #[key("n", VK_N)]
+  #[key("n", win = VK_N, macos = None)]
   N,
-  #[key("o", VK_O)]
+  #[key("o", win = VK_O, macos = None)]
   O,
-  #[key("p", VK_P)]
+  #[key("p", win = VK_P, macos = None)]
   P,
-  #[key("q", VK_Q)]
+  #[key("q", win = VK_Q, macos = None)]
   Q,
-  #[key("r", VK_R)]
+  #[key("r", win = VK_R, macos = None)]
   R,
-  #[key("s", VK_S)]
+  #[key("s", win = VK_S, macos = None)]
   S,
-  #[key("t", VK_T)]
+  #[key("t", win = VK_T, macos = None)]
   T,
-  #[key("u", VK_U)]
+  #[key("u", win = VK_U, macos = None)]
   U,
-  #[key("v", VK_V)]
+  #[key("v", win = VK_V, macos = None)]
   V,
-  #[key("w", VK_W)]
+  #[key("w", win = VK_W, macos = None)]
   W,
-  #[key("x", VK_X)]
+  #[key("x", win = VK_X, macos = None)]
   X,
-  #[key("y", VK_Y)]
+  #[key("y",  win = VK_Y, macos = None)]
   Y,
-  #[key("z", VK_Z)]
+  #[key("z", win = VK_Z, macos = None)]
   Z,
-  #[key("0", VK_0)]
+  #[key("0", win = VK_0, macos = None)]
   D0,
-  #[key("1", VK_1)]
+  #[key("1", win = VK_1, macos = None)]
   D1,
-  #[key("2", VK_2)]
+  #[key("2", win = VK_2, macos = None)]
   D2,
-  #[key("3", VK_3)]
+  #[key("3", win = VK_3, macos = None)]
   D3,
-  #[key("4", VK_4)]
+  #[key("4", win = VK_4, macos = None)]
   D4,
-  #[key("5", VK_5)]
+  #[key("5", win = VK_5, macos = None)]
   D5,
-  #[key("6", VK_6)]
+  #[key("6", win = VK_6, macos = None)]
   D6,
-  #[key("7", VK_7)]
+  #[key("7", win = VK_7, macos = None)]
   D7,
-  #[key("8", VK_8)]
+  #[key("8", win = VK_8, macos = None)]
   D8,
-  #[key("9", VK_9)]
+  #[key("9", win = VK_9, macos = None)]
   D9,
-  #[key("numpad 0", VK_NUMPAD0)]
+  #[key("numpad 0", win = VK_NUMPAD0, macos = None)]
   Numpad0,
-  #[key("numpad 1", VK_NUMPAD1)]
+  #[key("numpad 1", win = VK_NUMPAD1, macos = None)]
   Numpad1,
-  #[key("numpad 2", VK_NUMPAD2)]
+  #[key("numpad 2", win = VK_NUMPAD2, macos = None)]
   Numpad2,
-  #[key("numpad 3", VK_NUMPAD3)]
+  #[key("numpad 3", win = VK_NUMPAD3, macos = None)]
   Numpad3,
-  #[key("numpad 4", VK_NUMPAD4)]
+  #[key("numpad 4", win = VK_NUMPAD4, macos = None)]
   Numpad4,
-  #[key("numpad 5", VK_NUMPAD5)]
+  #[key("numpad 5", win = VK_NUMPAD5, macos = None)]
   Numpad5,
-  #[key("numpad 6", VK_NUMPAD6)]
+  #[key("numpad 6", win = VK_NUMPAD6, macos = None)]
   Numpad6,
-  #[key("numpad 7", VK_NUMPAD7)]
+  #[key("numpad 7", win = VK_NUMPAD7, macos = None)]
   Numpad7,
-  #[key("numpad 8", VK_NUMPAD8)]
+  #[key("numpad 8", win = VK_NUMPAD8, macos = None)]
   Numpad8,
-  #[key("numpad 9", VK_NUMPAD9)]
+  #[key("numpad 9", win = VK_NUMPAD9, macos = None)]
   Numpad9,
-  #[key("f1", VK_F1)]
+  #[key("f1", win = VK_F1, macos = None)]
   F1,
-  #[key("f2", VK_F2)]
+  #[key("f2", win = VK_F2, macos = None)]
   F2,
-  #[key("f3", VK_F3)]
+  #[key("f3", win = VK_F3, macos = None)]
   F3,
-  #[key("f4", VK_F4)]
+  #[key("f4", win = VK_F4, macos = None)]
   F4,
-  #[key("f5", VK_F5)]
+  #[key("f5", win = VK_F5, macos = None)]
   F5,
-  #[key("f6", VK_F6)]
+  #[key("f6", win = VK_F6, macos = None)]
   F6,
-  #[key("f7", VK_F7)]
+  #[key("f7", win = VK_F7, macos = None)]
   F7,
-  #[key("f8", VK_F8)]
+  #[key("f8", win = VK_F8, macos = None)]
   F8,
-  #[key("f9", VK_F9)]
+  #[key("f9", win = VK_F9, macos = None)]
   F9,
-  #[key("f10", VK_F10)]
+  #[key("f10", win = VK_F10, macos = None)]
   F10,
-  #[key("f11", VK_F11)]
+  #[key("f11", win = VK_F11, macos = None)]
   F11,
-  #[key("f12", VK_F12)]
+  #[key("f12", win = VK_F12, macos = None)]
   F12,
-  #[key("f13", VK_F13)]
+  #[key("f13", win = VK_F13, macos = None)]
   F13,
-  #[key("f14", VK_F14)]
+  #[key("f14", win = VK_F14, macos = None)]
   F14,
-  #[key("f15", VK_F15)]
+  #[key("f15", win = VK_F15, macos = None)]
   F15,
-  #[key("f16", VK_F16)]
+  #[key("f16", win = VK_F16, macos = None)]
   F16,
-  #[key("f17", VK_F17)]
+  #[key("f17", win = VK_F17, macos = None)]
   F17,
-  #[key("f18", VK_F18)]
+  #[key("f18", win = VK_F18, macos = None)]
   F18,
-  #[key("f19", VK_F19)]
+  #[key("f19", win = VK_F19, macos = None)]
   F19,
-  #[key("f20", VK_F20)]
+  #[key("f20", win = VK_F20, macos = None)]
   F20,
-  #[key("f21", VK_F21)]
+  #[key("f21", win = VK_F21, macos = None)]
   F21,
-  #[key("f22", VK_F22)]
+  #[key("f22", win = VK_F22, macos = None)]
   F22,
-  #[key("f23", VK_F23)]
+  #[key("f23", win = VK_F23, macos = None)]
   F23,
-  #[key("f24", VK_F24)]
+  #[key("f24", win = VK_F24, macos = None)]
   F24,
-  #[key("shift", VK_SHIFT)]
+  #[key("shift", win = VK_SHIFT, macos = None)]
   Shift,
-  #[key("lshift", VK_LSHIFT)]
+  #[key("lshift", win = VK_LSHIFT, macos = None)]
   LShift,
-  #[key("rshift", VK_RSHIFT)]
+  #[key("rshift", win = VK_RSHIFT, macos = None)]
   RShift,
-  #[key("control" | "ctrl" | "control key", VK_CONTROL)]
+  #[key("control" | "ctrl" | "control key", win = VK_CONTROL, macos = None)]
   Control,
-  #[key("lcontrol" | "lctrl" | "lcontrol key", VK_LCONTROL)]
+  #[key("lcontrol" | "lctrl" | "lcontrol key", win = VK_LCONTROL, macos = None)]
   LControl,
-  #[key("rcontrol" | "rctrl" | "rcontrol key", VK_RCONTROL)]
+  #[key("rcontrol" | "rctrl" | "rcontrol key", win = VK_RCONTROL, macos = None)]
   RControl,
-  #[key("alt" | "menu", VK_MENU)]
+  #[key("alt" | "menu", win = VK_MENU, macos = None)]
   Alt,
-  #[key("lalt" | "lmenu", VK_LMENU)]
+  #[key("lalt" | "lmenu",  win = VK_LMENU, macos = None)]
   LAlt,
-  #[key("ralt" | "rmenu", VK_RMENU)]
+  #[key("ralt" | "rmenu", win = VK_RMENU, macos = None)]
   RAlt,
-  #[key("win", VK_LWIN)]
+  #[key("win",   win = Virt(VK_LWIN), macos = None)]
   Win,
-  #[key("lwin", VK_LWIN)]
+  #[key("lwin",  win = VK_LWIN, macos = None)]
   LWin,
-  #[key("rwin", VK_RWIN)]
+  #[key("rwin", win = VK_RWIN, macos = None)]
   RWin,
-  #[key("space", VK_SPACE)]
+  #[key("space", win = VK_SPACE, macos = None)]
   Space,
-  #[key("escape" | "esc", VK_ESCAPE)]
+  #[key("escape" | "esc", win = VK_ESCAPE, macos = None)]
   Escape,
-  #[key("back", VK_BACK)]
+  #[key("back", win = VK_BACK, macos = None)]
   Back,
-  #[key("tab", VK_TAB)]
+  #[key("tab", win = VK_TAB, macos = None)]
   Tab,
-  #[key("enter" | "return", VK_RETURN)]
+  #[key("enter" | "return", win = VK_RETURN, macos = None)]
   Enter,
-  #[key("left", VK_LEFT)]
+  #[key("left", win = VK_LEFT, macos = None)]
   Left,
-  #[key("right", VK_RIGHT)]
+  #[key("right", win = VK_RIGHT, macos = None)]
   Right,
-  #[key("up", VK_UP)]
+  #[key("up", win = VK_UP, macos = None)]
   Up,
-  #[key("down", VK_DOWN)]
+  #[key("down", win = VK_DOWN, macos = None)]
   Down,
-  #[key("num lock", VK_NUMLOCK)]
+  #[key("num lock", win = VK_NUMLOCK, macos = None)]
   NumLock,
-  #[key("scroll lock", VK_SCROLL)]
+  #[key("scroll lock", win = VK_SCROLL, macos = None)]
   ScrollLock,
-  #[key("caps lock", VK_CAPITAL)]
+  #[key("caps lock", win = VK_CAPITAL, macos = None)]
   CapsLock,
-  #[key("page up", VK_PRIOR)]
+  #[key("page up", win = VK_PRIOR, macos = None)]
   PageUp,
-  #[key("page down", VK_NEXT)]
+  #[key("page down", win = VK_NEXT, macos = None)]
   PageDown,
-  #[key("insert", VK_INSERT)]
+  #[key("insert", win = VK_INSERT, macos = None)]
   Insert,
-  #[key("delete" | "del", VK_DELETE)]
+  #[key("delete" | "del", win = VK_DELETE, macos = None)]
   Delete,
-  #[key("end", VK_END)]
+  #[key("end", win = VK_END, macos = None)]
   End,
-  #[key("home", VK_HOME)]
+  #[key("home", win = VK_HOME, macos = None)]
   Home,
-  #[key("print screen", VK_SNAPSHOT)]
+  #[key("print screen", win = VK_SNAPSHOT, macos = None)]
   PrintScreen,
-  #[key("multiply", VK_MULTIPLY)]
+  #[key("multiply", win = VK_MULTIPLY, macos = None)]
   Multiply,
-  #[key("add", VK_ADD)]
+  #[key("add", win = VK_ADD, macos = None)]
   Add,
-  #[key("subtract", VK_SUBTRACT)]
+  #[key("subtract", win = VK_SUBTRACT, macos = None)]
   Subtract,
-  #[key("decimal", VK_DECIMAL)]
+  #[key("decimal", win = VK_DECIMAL, macos = None)]
   Decimal,
-  #[key("divide", VK_DIVIDE)]
+  #[key("divide", win = VK_DIVIDE, macos = None)]
   Divide,
-  #[key("volume up", VK_VOLUME_UP)]
+  #[key("volume up", win = VK_VOLUME_UP, macos = None)]
   VolumeUp,
-  #[key("volume down", VK_VOLUME_DOWN)]
+  #[key("volume down", win = VK_VOLUME_DOWN, macos = None)]
   VolumeDown,
-  #[key("volume mute", VK_VOLUME_MUTE)]
+  #[key("volume mute", win = VK_VOLUME_MUTE, macos = None)]
   VolumeMute,
-  #[key("media next track", VK_MEDIA_NEXT_TRACK)]
+  #[key("media next track", win = VK_MEDIA_NEXT_TRACK, macos = None)]
   MediaNextTrack,
-  #[key("media prev track" | "media previous track", VK_MEDIA_PREV_TRACK)]
+  #[key("media prev track" | "media previous track", win = VK_MEDIA_PREV_TRACK, macos = None)]
   MediaPrevTrack,
-  #[key("media stop", VK_MEDIA_STOP)]
+  #[key("media stop", win = VK_MEDIA_STOP, macos = None)]
   MediaStop,
-  #[key("media play pause", VK_MEDIA_PLAY_PAUSE)]
+  #[key("media play pause", win = VK_MEDIA_PLAY_PAUSE, macos = None)]
   MediaPlayPause,
-  #[key("oem semicolon", VK_OEM_1)]
+  #[key("oem semicolon", win = VK_OEM_1, macos = None)]
   OemSemicolon,
-  #[key("oem question", VK_OEM_2)]
+  #[key("oem question", win = VK_OEM_2, macos = None)]
   OemQuestion,
-  #[key("oem tilde", VK_OEM_3)]
+  #[key("oem tilde", win = VK_OEM_3, macos = None)]
   OemTilde,
-  #[key("oem open brackets", VK_OEM_4)]
+  #[key("oem open brackets", win = VK_OEM_4, macos = None)]
   OemOpenBrackets,
-  #[key("oem pipe", VK_OEM_5)]
+  #[key("oem pipe", win = VK_OEM_5, macos = None)]
   OemPipe,
-  #[key("oem close brackets", VK_OEM_6)]
+  #[key("oem close brackets", win = VK_OEM_6, macos = None)]
   OemCloseBrackets,
-  #[key("oem quotes", VK_OEM_7)]
+  #[key("oem quotes", win = VK_OEM_7, macos = None)]
   OemQuotes,
-  #[key("oem plus", VK_OEM_PLUS)]
+  #[key("oem plus", win = VK_OEM_PLUS, macos = None)]
   OemPlus,
-  #[key("oem comma", VK_OEM_COMMA)]
+  #[key("oem comma", win = VK_OEM_COMMA, macos = None)]
   OemComma,
-  #[key("oem minus", VK_OEM_MINUS)]
+  #[key("oem minus", win = VK_OEM_MINUS, macos = None)]
   OemMinus,
-  #[key("oem period", VK_OEM_PERIOD)]
+  #[key("oem period", win = VK_OEM_PERIOD, macos = None)]
   OemPeriod,
+  #[key(..)]
   Custom(u16),
 }
 
@@ -331,13 +333,15 @@ mod tests {
   #[test]
   fn test_key_conversions_output() {
     #[derive(Debug, PartialEq, Eq, KeyConversions)]
+    #[key(win_prefix = windows::Win32::UI::Input::KeyboardAndMouse, macos_prefix = None)]
     enum Key {
-      #[key("a", VK_A)]
+      #[key("a", win = VK_A, macos = None)]
       A,
-      #[key("b" | "c", VK_B)]
+      #[key("b" | "c", win = VK_B, macos = None)]
       BC,
-      #[key("d e", VK_D)]
+      #[key("d e", win = VK_D, macos = None)]
       DE,
+      #[key(..)]
       Custom(u16),
     }
 
