@@ -118,7 +118,13 @@ impl syn::parse::Parse for VariantVkValue {
 impl syn::parse::Parse for VariantStringList {
   fn parse(input: ParseStream) -> syn::Result<Self> {
     // Parse the first string, which is required
-    let mut strings = vec![input.parse::<SpannedString>()?];
+    let mut strings =
+      vec![input.parse::<SpannedString>().map_err(|err| {
+        syn::Error::new(
+          err.span(),
+          "Expected a string value, or a string list seperated by `|`. Example: `\"enter\" | \"return\"`",
+        )
+      })?];
 
     // Iterate while the next token is the seperator
     while input.peek(Token![|]) {
@@ -251,14 +257,22 @@ mod parsing {
 
   impl syn::parse::Parse for AnyKeyCode {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-      let win_fork = input.fork();
-      let macos_fork = input.fork();
+      let fork = input.fork();
 
-      if let Ok(win_key) = win_fork.parse::<WinKeyCode>() {
-        input.advance_to(&win_fork);
+      let ident_fork = fork.fork();
+
+      let ident = ident_fork.parse::<syn::Ident>().map_err(|err| syn::Error::new(
+          err.span(),
+          "Expected either `win` or `macos` key specifiers. Eg. `win = <key code>` or `macos = <key code>`",
+        ))?;
+
+      if ident == "win" {
+        let win_key = fork.parse::<WinKeyCode>()?;
+        input.advance_to(&fork);
         Ok(AnyKeyCode::Win(win_key))
-      } else if let Ok(macos_key) = macos_fork.parse::<MacosKeyCode>() {
-        input.advance_to(&macos_fork);
+      } else if ident == "macos" {
+        let macos_key = fork.parse::<MacosKeyCode>()?;
+        input.advance_to(&fork);
         Ok(AnyKeyCode::Macos(macos_key))
       } else {
         Err(syn::Error::new(
@@ -288,7 +302,12 @@ mod parsing {
 
       _ = input.parse::<Token![=]>()?;
 
-      let vk_value = input.parse::<VariantVkValue>()?;
+      let vk_value = input.parse::<VariantVkValue>().map_err(|err| {
+        syn::Error::new(
+          err.span(),
+          "Expected a valid Windows key code. Example: `win = <key code>`",
+        )
+      })?;
 
       Ok(WinKeyCode { vk_value })
     }
@@ -313,7 +332,12 @@ mod parsing {
 
       _ = input.parse::<Token![=]>()?;
 
-      let vk_value = input.parse::<VariantVkValue>()?;
+      let vk_value = input.parse::<VariantVkValue>().map_err(|err| {
+        syn::Error::new(
+          err.span(),
+          "Expected a valid macOS key code. Example: `macos = <key code>`",
+        )
+      })?;
 
       Ok(MacosKeyCode { vk_value })
     }

@@ -36,10 +36,7 @@ impl syn::parse::Parse for WindowsPrefix {
 
     // Parse the path that follows the `=`
     let prefix = input.parse::<syn::Path>().map_err(|err| {
-      syn::Error::new(
-        err.span(),
-        "Expected a namespace path for the windows prefix",
-      )
+      syn::Error::new(err.span(), "Expected windows prefix")
     })?;
 
     Ok(WindowsPrefix { prefix })
@@ -72,7 +69,9 @@ impl syn::parse::Parse for MacOSPrefix {
     })?;
 
     // Get the path that follows the `=`
-    let prefix = input.parse::<syn::Path>()?;
+    let prefix = input.parse::<syn::Path>().map_err(|err| {
+      syn::Error::new(err.span(), "Expected macOS prefix")
+    })?;
     Ok(MacOSPrefix { prefix })
   }
 }
@@ -89,13 +88,17 @@ impl syn::parse::Parse for AnyPrefix {
     // Fork the input so that parsing either prefix does not advance the
     // main input. Advance the main input only after a successful parse of
     // the fork.
-    let win_fork = input.fork();
-    let mac_fork = input.fork();
-    if let Ok(prefix) = win_fork.parse::<WindowsPrefix>() {
-      input.advance_to(&win_fork);
+    let fork = input.fork();
+
+    let ident_fork = fork.fork();
+    let ident = ident_fork.parse::<syn::Ident>()?;
+    if ident == "win_prefix" {
+      let prefix = fork.parse::<WindowsPrefix>()?;
+      input.advance_to(&fork);
       Ok(AnyPrefix::Windows(prefix))
-    } else if let Ok(prefix) = mac_fork.parse::<MacOSPrefix>() {
-      input.advance_to(&mac_fork);
+    } else if ident == "macos_prefix" {
+      let prefix = fork.parse::<MacOSPrefix>()?;
+      input.advance_to(&fork);
       Ok(AnyPrefix::MacOS(prefix))
     } else {
       // Got neither, error out at the original input
@@ -123,12 +126,7 @@ impl syn::parse::Parse for EnumAttr {
         is_first_loop = false;
       }
       // Try to parse any prefix type
-      let prefix = if let Ok(prefix) = input.parse::<AnyPrefix>() {
-        prefix
-      } else {
-        // If we cannot parse a prefix, we break the loop
-        break;
-      };
+      let prefix = input.parse::<AnyPrefix>()?;
       // Set the appropriate prefix based on its type
       // Also check for duplicates
       match prefix {
