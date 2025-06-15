@@ -1,15 +1,23 @@
 use attrs::{
+  enums::EnumAttr,
   find_key_attr,
-  variant::{VariantAttrs, VariantVkValue},
+  variant::{VariantAttr, VkValue},
 };
 use proc_macro::TokenStream;
-use quote::{quote, quote_spanned};
+use quote::{ToTokens as _, quote};
 use syn::{DeriveInput, parse_macro_input};
+
+use crate::common::error_handling::ToError as _;
 
 mod attrs;
 mod from_str;
 mod from_vk;
 mod into_vk;
+
+const KEY_ATTR_NAME: &str = "key";
+
+const MISSING_KEY_ATTR_ON_ENUM_ERR_MSG: &str = "Missing `#[key]` attribute on the enum itself. It should be annotated like this:\n```\n#[key(win_prefix = <key::codes::prefix>, macos_prefix = <key::codes::prefix>)]\nenum // ...\n```";
+const MISSING_KEY_ATTR_ON_VARIANT_ERR_MSG: &str = "Missing `#[key]` attribute for this variant. Key variants must be annotated with `#[key(\"string\" | \"list\", win = <key code>, macos = <key code>)]` and the wildcard variant must be annotated with `#[key(..)]`";
 
 /// Holds the Key enum variant information, including the identifier and
 /// attributes parsed from the `#[key(...)]` attribute, such as the string
@@ -17,106 +25,95 @@ mod into_vk;
 #[derive(Debug, Clone)]
 struct Key {
   pub ident: syn::Ident,
-  pub attrs: VariantAttrs,
+  pub attrs: VariantAttr,
 }
 
-/// Converts an enum variant into a Key struct. This collects the relevant
-/// ident (`A`, `B`, etc.) and the string and virtual key (VK) values from
-/// the `#[key("a", win = <key code>, macos = <key code>)]` attribute.
+/// Converts an enum variant into a Key struct. This collects the ident and
+/// parses the attribute parameters to construct a `Key` instance.
+/// ```
+/// enum Key {
+///   #[key(<attribute parameters>)]
+///   <ident>,
+/// }
+/// ```
 fn variant_to_key(variant: &syn::Variant) -> syn::Result<Key> {
   let ident = variant.ident.clone();
   let attrs = &variant.attrs;
 
-  let attr = match attrs::find_key_attr(attrs) {
-    Some(attr) => attr,
-    None => {
-      // Return an error if the variant does not have the attribute above
-      // it
-      return Err(syn::Error::new_spanned(
-        &variant.ident,
-        "Missing `#[key]` attribute for this variant. Key variants must be annotated with `#[key(\"string\" | \"list\", win = <key code>, macos = <key code>)]` and the wildcard variant must be annotated with `#[key(..)]`",
-      ));
-    }
-  };
+  let attr = attrs::find_key_attr(attrs)
+    .ok_or(variant.ident.error(MISSING_KEY_ATTR_ON_VARIANT_ERR_MSG))?;
 
-  // Parse the `#[key(...)]` attribute to extract the string values and the
-  // vk_value Expects the format:
-  // `("string", VK_VALUE)`
-  // or
-  // `("string" | "list", VK_VALUE)`
-  let conversions: VariantAttrs = attr.parse_args()?;
+  let attrs: VariantAttr = attr.parse_args()?;
 
-  Ok(Key {
-    ident,
-    attrs: conversions,
-  })
+  Ok(Key { ident, attrs })
 }
 
-/// This macro derives the `KeyConversions` trait for an enum.
-pub fn key_conversions(input: TokenStream) -> TokenStream {
-  let input = parse_macro_input!(input as DeriveInput);
-
+/// Parses the attribute parmeters for the enum itself from the enums
+/// `#[key(...)]` attribute.
+///
+/// ```
+/// #[key(<attribute parameters>)]
+/// enum Key {
+///   // ...
+/// }
+/// ```
+///
+/// Returns an `EnumAttr` struct containing the parsed parameters, or an
+/// error if the attribute is missing or malformed.
+fn get_enum_attr(input: &DeriveInput) -> syn::Result<EnumAttr> {
   let name = &input.ident;
 
   // Find the `#[key]` attribute on the enum itself. This is required to
   // pass in the absolute paths for each platform's key codes.
-  let enum_attr = match find_key_attr(&input.attrs) {
-    Some(attr) => attr,
-    None => {
-      let error = syn::Error::new_spanned(
-        name,
-        "Missing `#[key]` attribute on the enum itself. It should be annotated like this:\n```rs\n#[key(win_prefix = <key::codes::prefix>, macos_prefix = <key::codes::prefix>)]\nenum // ...\n```",
-      )
-      .to_compile_error();
-      let default_impls = default_fn_impls(name);
-      return quote! {
-        #error
-        #default_impls
-      }
-      .into();
-    }
-  };
+  let enum_attr = find_key_attr(&input.attrs)
+    .ok_or(name.error(MISSING_KEY_ATTR_ON_ENUM_ERR_MSG))?;
 
-  // Parse the `#[key(...)]` attribute on the enum to extract the prefixes
-  let enum_attrs = match enum_attr.parse_args::<attrs::enums::EnumAttr>() {
-    Ok(attrs) => attrs,
-    Err(e) => {
-      // Forward the error to the outputed token stream as a compile error.
-      // Include default function impls so that dependant code does
-      // not error out.
-      let error = e.into_compile_error();
-      let default_impls = default_fn_impls(name);
-      return quote! {
-        #error
-        #default_impls
-      }
-      .into();
-    }
-  };
+  // Parse the enum attribute arguments into an `EnumAttr` struct.
+  // This calls the `syn::parse::Parse` implementation for `EnumAttr` on
+  // the arguments of the attribute.
+  enum_attr.parse_args::<attrs::enums::EnumAttr>()
+}
+
+/// Get the enum data from the input.
+/// Returns an error if the item being derived is not an enum.
+fn get_enum_data(input: &DeriveInput) -> syn::Result<&syn::DataEnum> {
+  let name = &input.ident;
 
   // Error out if the input is not an enum
-  let enum_data = match &input.data {
-    syn::Data::Enum(data) => data,
-    _ => {
-      let error = syn::Error::new_spanned(
-        name,
-        "This macro can only be used on enums. Please annotate an enum with `#[key(...)]` and derive the `KeyConversions` trait.",
-      ).into_compile_error();
-      let default_impls = default_fn_impls(name);
-      return quote! {
-        #error
-        #default_impls
-      }
-      .into();
+  match &input.data {
+    syn::Data::Enum(data) => Ok(data),
+    _ => Err(name.error("This macro can only be used on enums")),
+  }
+}
+
+/// This macro derives the `KeyConversions` trait for an enum.
+pub fn key_conversions(input: TokenStream) -> TokenStream {
+  // Syn has inbuilt parsing for derive macros, which returns the AST for
+  // the derived item in a more friendly form.
+  let input = parse_macro_input!(input as DeriveInput);
+
+  let name = &input.ident;
+
+  let enum_data = match get_enum_data(&input) {
+    Ok(data) => data,
+    Err(err) => {
+      return error_output(name, &[err]).into();
     }
   };
 
-  // Iterate over the enum variants and convert them into `Key` structs.
+  let enum_attrs = match get_enum_attr(&input) {
+    Ok(attrs) => attrs,
+    Err(err) => {
+      return error_output(name, &[err]).into();
+    }
+  };
+
+  // Iterate over the enum variants and convert them into `Key` structs,
+  // then partition them into valid and error variants.
   let (variants, errors): (Vec<_>, Vec<_>) = enum_data
     .variants
     .iter()
     .map(variant_to_key)
-    // Partition the results into successful variants and errors.
     .partition(|key| !key.is_err());
 
   let keys: Vec<_> = variants
@@ -126,17 +123,18 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
     .collect();
 
   // Find any duplicate keys in the parsed keys.
-  // Will give an error if a key is defined multiple times.
+  // Will give an error if a key is defined multiple times without being
+  // explicitly marked as an alias
   let duplicate_errors = find_duplicate_keys(&keys);
 
+  // Collect the errors from the partitioned results and the duplicate
+  // errors. Converts the errors into compile errors to include in the
+  // output, which is what gives accuratly spanned error messages.
   let errors: Vec<_> = errors
     .into_iter()
     // Saftey: Just partitioned the results, so this unwrap is safe.
     .map(|err| unsafe { err.unwrap_err_unchecked() })
     .chain(duplicate_errors)
-    // Convert the errors into a token stream to include in the output.
-    // This is what gives accuratly spanned error messages in the macro
-    // input.
     .map(|err| err.into_compile_error())
     .collect();
 
@@ -146,7 +144,11 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
   let into_vk_impl = into_vk::make_into_vk_impl(&keys, &enum_attrs);
 
   // Create the output token stream
-  // Errors are unpacked into individual spanned compile errors
+  // Uses `quote!` to convert normal Rust code into a token stream
+  // Variable names can be interpolated using a #, although this cannot be
+  // used with dot notation or the like - single identifiers only.
+  // Errors are unpacked using `#(#var)<separator>*` syntax (separators are
+  // optional).
   let expanded = quote! {
       impl #name {
         #from_str_impl
@@ -159,7 +161,9 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
       #(#errors)*
   };
 
-  TokenStream::from(expanded)
+  // quote uses proc_macro2::TokenStream, so we need to convert it back
+  // into the compiler given proc_macro::TokenStream.
+  expanded.into()
 }
 
 /// Find duplicate keys per platform in the provided keys slice.
@@ -172,30 +176,48 @@ fn find_duplicate_keys(keys: &[Key]) -> Vec<syn::Error> {
   let mut duplicates = Vec::new();
 
   for key in keys {
-    if let VariantAttrs::Key(vk_value) = &key.attrs {
-      if let VariantVkValue::Key(vk_value) = &vk_value.win_key {
+    if let VariantAttr::Key(vk_value) = &key.attrs {
+      if let VkValue::Key(vk_value) = &vk_value.key_codes.win {
         if !win_seen.insert(vk_value.clone()) {
           // If the key is already seen, we have a duplicate
-          duplicates.push(syn::Error::new_spanned(
-            vk_value,
-            format!("Duplicate key value: {:?}. Wrap virtual keys with Vert, eg. The virtual key `Win` should use `Vert(VK_LWIN)` instead of just `VK_LWIN`", vk_value),
-          ));
+          duplicates.push(
+            vk_value.error(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream())));
         }
       }
 
-      if let VariantVkValue::Key(vk_value) = &vk_value.macos_key {
+      if let VkValue::Key(vk_value) = &vk_value.key_codes.macos {
         if !macos_seen.insert(vk_value.clone()) {
           // If the key is already seen, we have a duplicate
-          duplicates.push(syn::Error::new_spanned(
-            vk_value,
-            format!("Duplicate key value: {:?}. Wrap virtual keys with Vert, eg. The virtual key `Win` should use `Vert(VK_LWIN)` instead of just `VK_LWIN`", vk_value),
-          ));
+          duplicates.push(
+            vk_value.error(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream())));
         }
       }
     }
   }
 
   duplicates
+}
+
+/// Generate the error output for the macro when it encounters errors
+/// Instead of panicking, it will return a token stream that contains
+/// the errors as compile errors, along with some default implementations
+/// so that the macro erroring does not cause every usage of the generated
+/// functions to also show an error.
+fn error_output(
+  name: &syn::Ident,
+  errors: &[syn::Error],
+) -> proc_macro2::TokenStream {
+  let errors = errors
+    .iter()
+    .map(|err| err.to_compile_error())
+    .collect::<proc_macro2::TokenStream>();
+
+  let default_impls = default_fn_impls(name);
+
+  quote! {
+    #errors
+    #default_impls
+  }
 }
 
 /// Generate some generic default implementations just so that if the macro

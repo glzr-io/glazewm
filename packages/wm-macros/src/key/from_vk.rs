@@ -3,66 +3,31 @@ use quote::quote;
 
 use super::{
   Key,
-  attrs::{enums::EnumAttr, variant::VariantVkValue},
+  attrs::{enums::EnumAttr, variant::VkValue},
 };
+use crate::Os;
 
-/// Wraps a key enum variant and its attributes, providing methods to
-/// create match arms for the `from_vk` implementation for each platform
-struct KeyFromVkArm<'a> {
-  ident: syn::Ident,
-  attrs: super::VariantAttrs,
-  enum_attrs: &'a EnumAttr,
-}
-
-impl<'a> KeyFromVkArm<'a> {
-  pub fn new(key: &Key, enum_attrs: &'a EnumAttr) -> Self {
-    Self {
-      ident: key.ident.clone(),
-      attrs: key.attrs.clone(),
-      enum_attrs,
+/// Creates the match arms for the `from_vk` impl for the given key and Os.
+fn to_match_arm(key: &Key, enum_attrs: &EnumAttr, os: Os) -> TokenStream {
+  let ident = &key.ident;
+  match &key.attrs {
+    super::VariantAttr::Wildcard => {
+      // If the key is a wildcard, we match it to the `Custom` variant.
+      quote! { _ => Self::Custom(vk)}
     }
-  }
-}
-
-impl<'a> KeyFromVkArm<'a> {
-  /// Creates the match arms for the `from_vk` impl for the
-  /// windows platform.
-  pub fn to_win_tokens(&self, tokens: &mut TokenStream) {
-    let ident = &self.ident;
-    match &self.attrs {
-      super::VariantAttrs::Wildcard => {
-        // If the key is a wildcard, we match it to the `Custom` variant.
-        tokens.extend(quote! { _ => Self::Custom(vk),});
-      }
-      super::VariantAttrs::Key(key_attrs) => {
-        let value = &key_attrs.win_key;
-        let prefix = &self.enum_attrs.win_prefix;
-
-        // Output the match arms.
-        if let VariantVkValue::Key(value) = value {
-          tokens.extend(quote! {#prefix::#value => Self::#ident,});
+    super::VariantAttr::Key(key_attrs) => {
+      let (value, prefix) = match os {
+        Os::Windows => (&key_attrs.key_codes.win, &enum_attrs.win_prefix),
+        Os::MacOS => {
+          (&key_attrs.key_codes.macos, &enum_attrs.macos_prefix)
         }
-      }
-    }
-  }
+      };
 
-  /// Creates the match arms for the `from_vk` impl for the
-  /// macOS platform.
-  pub fn to_mac_tokens(&self, tokens: &mut TokenStream) {
-    let ident = &self.ident;
-    match &self.attrs {
-      super::VariantAttrs::Wildcard => {
-        // If the key is a wildcard, we match it to the `Custom` variant.
-        tokens.extend(quote! { _ => Self::Custom(vk),});
-      }
-      super::VariantAttrs::Key(key_attrs) => {
-        let value = &key_attrs.macos_key;
-        let prefix = &self.enum_attrs.macos_prefix;
-
-        // Output the match arms.
-        if let VariantVkValue::Key(value) = value {
-          tokens.extend(quote! {#prefix::#value => Self::#ident,});
-        }
+      // Output the match arms.
+      if let VkValue::Key(value) = value {
+        quote! {#prefix::#value => Self::#ident}
+      } else {
+        quote! {}
       }
     }
   }
@@ -74,35 +39,28 @@ pub fn make_from_vk_impl(
   keys: &[Key],
   enum_attrs: &EnumAttr,
 ) -> TokenStream {
-  let keys = keys
+  let win_arms = keys
     .iter()
-    .map(|key| KeyFromVkArm::new(key, enum_attrs))
-    .collect::<Vec<_>>();
+    .map(|key| to_match_arm(key, enum_attrs, Os::Windows))
+    .filter(|arm| !arm.is_empty());
 
-  let win_lines = keys.iter().map(|key| {
-    let mut tokens = TokenStream::new();
-    key.to_win_tokens(&mut tokens);
-    tokens
-  });
-
-  let macos_lines = keys.iter().map(|key| {
-    let mut tokens = TokenStream::new();
-    key.to_mac_tokens(&mut tokens);
-    tokens
-  });
+  let mac_arms = keys
+    .iter()
+    .map(|key| to_match_arm(key, enum_attrs, Os::MacOS))
+    .filter(|arm| !arm.is_empty());
 
   quote! {
     #[cfg(target_os = "windows")]
     pub fn from_vk(vk: u16) -> Self {
       match ::windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(vk) {
-        #(#win_lines)*
+        #(#win_arms),*
       }
     }
 
     #[cfg(target_os = "macos")]
     pub fn from_vk(vk: u16) -> Self {
       match vk {
-        #(#macos_lines)*
+        #(#mac_arms),*
       }
     }
   }

@@ -13,10 +13,10 @@ pub fn find_key_attr(attrs: &[syn::Attribute]) -> Option<&syn::MetaList> {
     .filter_map(|attr| attr.meta.require_list().ok())
     // Find our `key` attribute
     .find(|list| {
-      if let Ok(ident) = list.path.require_ident() {
-        *ident == "key"
-      } else {
-        false
-      }
+      list
+        .path
+        .require_ident()
+        .map(|ident| *ident == crate::key::KEY_ATTR_NAME)
+        .unwrap_or(false)
     })
 }

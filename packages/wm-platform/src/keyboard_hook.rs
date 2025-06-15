@@ -227,8 +227,7 @@ impl KeyboardHook {
         // Check if any modifier keys to reject are currently down.
         let has_modifier_keys_to_reject =
           modifier_keys_to_reject.iter().any(|&modifier_key| {
-            if let Some(&is_key_down) =
-              cached_key_states.get(&modifier_key)
+            if let Some(&is_key_down) = cached_key_states.get(modifier_key)
             {
               if is_key_down {
                 tracing::info!(

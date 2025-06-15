@@ -3,80 +3,35 @@ use quote::quote;
 
 use super::{
   Key,
-  attrs::{enums::EnumAttr, variant::VariantVkValue},
+  attrs::{enums::EnumAttr, variant::VkValue},
 };
+use crate::Os;
 
-/// Wrapper type to implement the `to_*_tokens` methods for the `into_vk`
-/// impl.
-struct KeyIntoVkArm<'a> {
-  ident: syn::Ident,
-  attrs: super::VariantAttrs,
-  enum_attrs: &'a EnumAttr,
-}
-
-impl<'a> KeyIntoVkArm<'a> {
-  pub fn new(key: &Key, enum_attrs: &'a EnumAttr) -> Self {
-    Self {
-      ident: key.ident.clone(),
-      attrs: key.attrs.clone(),
-      enum_attrs,
+/// Creates the match arms for the `into_vk` impl for the given key and Os.
+fn to_match_arm(key: &Key, enum_attrs: &EnumAttr, os: Os) -> TokenStream {
+  let ident = &key.ident;
+  match &key.attrs {
+    super::VariantAttr::Wildcard => {
+      // If the key is a wildcard, we match it to the `Custom` variant.
+      quote! { Self::Custom(vk) => vk }
     }
-  }
-}
-
-impl<'a> KeyIntoVkArm<'a> {
-  /// Creates the match arms for the `into_vk` impl for the
-  /// windows platform.
-  pub fn to_win_tokens(&self, tokens: &mut TokenStream) {
-    let ident = &self.ident;
-    match &self.attrs {
-      super::VariantAttrs::Wildcard => {
-        // If the key is a wildcard, we match it to the `Custom` variant.
-        tokens.extend(quote! { Self::Custom(vk) => vk,});
-      }
-      super::VariantAttrs::Key(key_attrs) => {
-        let value = &key_attrs.win_key;
-        let prefix = &self.enum_attrs.win_prefix;
-        // Output the match arms.
-        match value {
-          VariantVkValue::Virt(value) => {
-            // For virtual keys, we return the value directly.
-            tokens.extend(quote! {Self::#ident => #prefix::#value.0,});
-          }
-          VariantVkValue::Key(value) => {
-            // For regular keys, we return the value from the enum.
-            tokens.extend(quote! {Self::#ident => #prefix::#value.0,});
-          }
-          _ => {}
+    super::VariantAttr::Key(key_attrs) => {
+      let (value, prefix) = match os {
+        Os::Windows => (&key_attrs.key_codes.win, &enum_attrs.win_prefix),
+        Os::MacOS => {
+          (&key_attrs.key_codes.macos, &enum_attrs.macos_prefix)
         }
-      }
-    }
-  }
+      };
 
-  /// Creates the match arms for the `into_vk` impl for the
-  /// macOS platform.
-  pub fn to_macos_tokens(&self, tokens: &mut TokenStream) {
-    let ident = &self.ident;
-    match &self.attrs {
-      super::VariantAttrs::Wildcard => {
-        // If the key is a wildcard, we match it to the `Custom` variant.
-        tokens.extend(quote! { Self::Custom(vk) => vk,});
-      }
-      super::VariantAttrs::Key(key_attrs) => {
-        let value = &key_attrs.macos_key;
-        let prefix = &self.enum_attrs.macos_prefix;
-        // Output the match arms.
-        match value {
-          VariantVkValue::Virt(value) => {
-            // For virtual keys, we return the value directly.
-            tokens.extend(quote! {Self::#ident => #prefix::#value.0,});
-          }
-          VariantVkValue::Key(value) => {
-            // For regular keys, we return the value from the enum.
-            tokens.extend(quote! {Self::#ident => #prefix::#value.0,});
-          }
-          _ => {}
+      // Output the match arms.
+      match value {
+        VkValue::Key(value) => {
+          quote! { Self::#ident => #prefix::#value.0 }
         }
+        VkValue::Virt(value) => {
+          quote! { Self::#ident => #prefix::#value.0 }
+        }
+        _ => quote! {},
       }
     }
   }
@@ -88,28 +43,22 @@ pub fn make_into_vk_impl(
   keys: &[Key],
   enum_attrs: &EnumAttr,
 ) -> TokenStream {
-  let lines = keys
+  let win_arms = keys
     .iter()
-    .map(|key| KeyIntoVkArm::new(key, enum_attrs))
-    .collect::<Vec<_>>();
+    .map(|key| to_match_arm(key, enum_attrs, Os::Windows))
+    .filter(|arm| !arm.is_empty());
 
-  let win_lines = lines.iter().map(|key| {
-    let mut tokens = TokenStream::new();
-    key.to_win_tokens(&mut tokens);
-    tokens
-  });
-
-  let macos_lines = lines.iter().map(|key| {
-    let mut tokens = TokenStream::new();
-    key.to_macos_tokens(&mut tokens);
-    tokens
-  });
+  let mac_arms = keys
+    .iter()
+    .map(|key| to_match_arm(key, enum_attrs, Os::MacOS))
+    .filter(|arm| !arm.is_empty());
 
   quote! {
     #[cfg(target_os = "windows")]
     pub fn into_vk(self) -> u16 {
+      // The comma is inside the brackes so that a trailing comma is generated for the last arm.
       match self {
-        #(#win_lines)*
+        #(#win_arms,)*
         _ => { unreachable!("Key not found in Windows VK mapping"); }
       }
     }
@@ -117,7 +66,7 @@ pub fn make_into_vk_impl(
     #[cfg(target_os = "macos")]
     pub fn into_vk(self) -> u16 {
       match self {
-        #(#macos_lines)*
+        #(#mac_arms,)*
         _ => { unreachable!("Key not found in macOS VK mapping"); }
       }
     }

@@ -262,7 +262,7 @@ impl Key {
   /// specialisation of self.
   ///
   /// # Example
-  /// ```rs
+  /// ```
   /// assert!(Key::A.is_analogous(Key::A));
   /// assert!(Key::Shift.is_analogous(Key::LShift));
   /// assert!(Key::LControl.is_analogous(Key::RControl) == false);
@@ -341,6 +341,8 @@ mod tests {
       BC,
       #[key("d e", win = VK_D, macos = None)]
       DE,
+      #[key("f", win = Virt(VK_D), macos = None)]
+      F,
       #[key(..)]
       Custom(u16),
     }
