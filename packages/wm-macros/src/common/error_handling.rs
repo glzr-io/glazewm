@@ -6,32 +6,40 @@ pub trait ErrorContext {
   ///
   /// # Example
   /// ```
-  /// # stream: syn::parse::ParseStream;
+  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
   /// stream.parse::<syn::Ident>().add_context("Expected ...")?;
+  /// # }
   /// ```
-  fn add_context(self, context: &str) -> Self;
+  fn add_context<D: core::fmt::Display>(self, context: D) -> Self;
 
-  /// Sets the error message to the provided string.
-  fn set_context(self, context: &str) -> Self;
+  /// Replaces the error message.
+  ///
+  /// # Example
+  /// ```
+  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+  /// stream.parse::<syn::Ident>().set_context("Expected ...")?;
+  /// # }
+  /// ```
+  fn set_context<D: core::fmt::Display>(self, context: D) -> Self;
 }
 
 impl<T> ErrorContext for Result<T, syn::Error> {
-  fn add_context(self, context: &str) -> Self {
+  fn add_context<D: core::fmt::Display>(self, context: D) -> Self {
     self.map_err(|e| e.add_context(context))
   }
 
-  fn set_context(self, context: &str) -> Self {
+  fn set_context<D: core::fmt::Display>(self, context: D) -> Self {
     self.map_err(|e| e.set_context(context))
   }
 }
 
 impl ErrorContext for syn::Error {
-  fn add_context(mut self, context: &str) -> Self {
+  fn add_context<D: core::fmt::Display>(mut self, context: D) -> Self {
     self.combine(syn::Error::new(self.span(), context));
     self
   }
 
-  fn set_context(self, context: &str) -> Self {
+  fn set_context<D: core::fmt::Display>(self, context: D) -> Self {
     syn::Error::new(self.span(), context)
   }
 }
@@ -45,7 +53,9 @@ where
   ///
   /// # Example
   /// ```
+  /// # fn example(string: &str, string_span: syn::Span) -> syn::Result<()> {
   /// string.is_empty().then_error(string_span.error("Expected a non-empty string"))?;
+  /// # }
   /// ```
   fn then_error(self, error: E) -> Result<Self, E>;
 }
@@ -62,17 +72,19 @@ pub trait ToError {
   ///
   /// # Example
   /// ```
+  /// # fn example(ident: syn::Ident) -> syn::Result<()> {
   /// return Err(ident.error("Didn't expect an identifier here"));
+  /// # }
   /// ```
-  fn error<M: core::fmt::Display>(&self, message: M) -> syn::Error;
+  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error;
 }
 
 impl<T> ToError for T
 where
   T: quote::ToTokens,
 {
-  fn error<M: core::fmt::Display>(&self, message: M) -> syn::Error {
-    syn::Error::new_spanned(self, message.to_string())
+  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error {
+    syn::Error::new_spanned(self, message)
   }
 }
 
@@ -83,16 +95,18 @@ pub trait ToSpanError {
   ///
   /// # Example
   /// ```
+  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
   /// return Err(stream.span().error("Expected ..."));
+  /// # }
   /// ```
-  fn error<M: core::fmt::Display>(&self, message: M) -> syn::Error;
+  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error;
 }
 
 impl<T> ToSpanError for T
 where
   T: syn::spanned::Spanned,
 {
-  fn error<M: core::fmt::Display>(&self, message: M) -> syn::Error {
-    syn::Error::new(self.span(), message.to_string())
+  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error {
+    syn::Error::new(self.span(), message)
   }
 }

@@ -1,10 +1,10 @@
 use syn::parse::ParseStream;
 
 use crate::{
-  Os,
+  Either, Os,
   common::{
-    error_handling::ErrorContext,
-    lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance},
+    branch::Alt, error_handling::ErrorContext, lookahead::PeekThenAdvance,
+    named_parameter::ParseNamedParameter,
   },
 };
 
@@ -12,16 +12,45 @@ use crate::{
 // Custom keywords can be parsed and peeked, which is better than forking
 // the stream to parse an ident and then check if it matches a string.
 mod kw {
-  syn::custom_keyword!(win_prefix);
-  syn::custom_keyword!(macos_prefix);
-  syn::custom_keyword!(None);
+  use crate::common::custom_keyword;
+
+  custom_keyword!(win_prefix);
+  custom_keyword!(macos_prefix);
+  custom_keyword!(None);
 }
 
 /// Holds the attributes for an enum that contains platform-specific
 /// prefixes
 pub struct EnumAttr {
-  pub win_prefix: Option<syn::Path>,
-  pub macos_prefix: Option<syn::Path>,
+  pub win_prefix: PlatformPrefix,
+  pub macos_prefix: PlatformPrefix,
+}
+
+pub enum PlatformPrefix {
+  None,
+  Some(syn::Path),
+}
+
+impl syn::parse::Parse for PlatformPrefix {
+  fn parse(input: ParseStream) -> syn::Result<Self> {
+    if input.peek_then_advance::<kw::None>().is_some() {
+      Ok(PlatformPrefix::None)
+    } else {
+      Ok(PlatformPrefix::Some(input.parse::<syn::Path>()
+        .add_context("Expected a prefix for the platforms key codes, or `None` for no prefix.")?))
+    }
+  }
+}
+
+impl quote::ToTokens for PlatformPrefix {
+  fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    match self {
+      PlatformPrefix::None => tokens.extend(quote::quote! {}),
+      PlatformPrefix::Some(prefix) => {
+        tokens.extend(quote::quote! { #prefix:: })
+      }
+    }
+  }
 }
 
 // Parse the `#[key(...)]` attribute on the enum to extract the prefixes.
@@ -30,51 +59,21 @@ impl syn::parse::Parse for EnumAttr {
     let mut win_prefix = None;
     let mut macos_prefix = None;
 
-    // Could use input.parse_terminated here, but this allows to skip
-    // parsing a prefix if we already have it.
-
     while !input.is_empty() {
-      // Lookaheads can be used to peek at the next token without consuming
-      // it, `lookahead.error()` returns an error with a formated string
-      // containing all `peek`s that failed.
-      let lookahead = input.lookahead1();
-
-      // If we havn't seen a `win_prefix` yet, check if the next token
-      // is `win_prefix`, and if it is, parse it.
-      let os = if win_prefix.is_none()
-        && lookahead
-          .peek_then_advance::<kw::win_prefix, _>(kw::win_prefix, input)
-          .is_some()
-      {
-        Os::Windows
-        // Same with `macos_prefix`
-      } else if macos_prefix.is_none()
-        && lookahead
-          .peek_then_advance::<kw::macos_prefix, _>(
-            kw::macos_prefix,
-            input,
-          )
-          .is_some()
-      {
-        Os::MacOS
-      } else {
-        return Err(lookahead.error());
-      };
-
-      // Consume the `=` token after the `win_prefix` or `macos_prefix`,
-      // erroring if its not present.
-      _ = input.parse::<syn::Token![=]>()?;
-
-      // Parse the prefix for the platforms key codes, which is a path or
-      // None.
-      let prefix = if input
-        .peek_then_advance::<kw::None, _>(kw::None)
-        .is_some()
-      {
-        None
-      } else {
-        Some(input.parse::<syn::Path>().add_context("Expected a prefix for the platforms key codes, or `None` for no prefix.")?)
-      };
+      let (os, prefix) = input.parse_named_parameter_with(
+        |input| {
+          input
+            .alt_if::<kw::win_prefix, kw::macos_prefix>(
+              win_prefix.is_none(),
+              macos_prefix.is_none(),
+            )
+            .map(|kw| match kw {
+              Either::Left(_) => Os::Windows,
+              Either::Right(_) => Os::MacOS,
+            })
+        },
+        PlatformPrefix::parse,
+      )?;
 
       match os {
         Os::Windows => {

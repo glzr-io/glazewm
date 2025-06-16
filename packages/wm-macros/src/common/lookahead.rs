@@ -1,35 +1,33 @@
 pub trait PeekThenAdvance {
-  /// Checks if the next token in the stream matches the provided token
-  /// type using the peek method, and if it does, it advances the stream
-  /// and parses the next token as type `T`.
-  /// Returns `Some(T)` if the token matches and is successfully parsed,
-  /// None if the token does not match or parsing fails.
+  /// Checks if the next token in the stream is a T, and if so parses
+  /// it. Returns `Some(T)` if the token matches and is successfully
+  /// parsed, None if the token does not match or parsing fails.
   ///
-  /// Useful for scenarios such as:
-  /// ```
-  /// if stream.peek(T) {
-  ///   stream.parse::<T>();
-  /// }
-  /// ```
+  /// See `LookaheadPeekThenAdvance` for a version that uses a lookahead
+  /// instead of a stream.
   ///
   /// # Example
   /// ```
-  /// if let Some(value) = stream.peek_then_advance::<syn::Ident, _>(syn::Ident) {
+  /// # fn example(stream: syn::parse::ParseStream) {
+  /// if let Some(value) = stream.peek_then_advance::<syn::Ident>() {
   ///   // ...
   /// }
+  /// # }
   /// ```
-  fn peek_then_advance<T: syn::parse::Parse, P: syn::parse::Peek>(
+  fn peek_then_advance<
+    T: syn::parse::Parse + crate::common::peekable::Peekable,
+  >(
     &self,
-    token: P,
   ) -> Option<T>;
 }
 
 impl PeekThenAdvance for syn::parse::ParseStream<'_> {
-  fn peek_then_advance<T: syn::parse::Parse, P: syn::parse::Peek>(
+  fn peek_then_advance<
+    T: syn::parse::Parse + crate::common::peekable::Peekable,
+  >(
     &self,
-    token: P,
   ) -> Option<T> {
-    if self.peek(token) {
+    if self.peek(T::peekable()) {
       self.parse::<T>().ok()
     } else {
       None
@@ -38,42 +36,35 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
 }
 
 pub trait LookaheadPeekThenAdvance {
-  /// Checks if the next token in the lookahead matches the provided token
-  /// type using the peek method, and if it does, it advances the given
-  /// stream and parses the next token as type `T`.
-  /// Returns `Some(T)` if the token matches and is successfully parsed,
-  /// None if the token does not match or parsing fails.
-  ///
-  /// Useful for scenarios such as:
-  /// ```
-  /// if lookahead.peek(T) {
-  ///   stream.parse::<T>();
-  /// }
-  /// ```
+  /// Checks if the next token in the lookahead is a T, and if so parses
+  /// it. Returns `Some(T)` if the token matches and is successfully
+  /// parsed, None if the token does not match or parsing fails.
   ///
   /// # Example
   /// ```
-  /// if let Some(value) = lookahead.peek_then_advance::<syn::Ident, _>(syn::Ident, stream) {
+  /// # fn example(stream: syn::parse::ParseStream) {
+  /// # let lookahead = stream.lookahead1();
+  /// if let Some(value) = lookahead.peek_then_advance::<syn::Ident>(stream) {
   ///   // ...
   /// }
+  /// # }
   /// ```
-  fn peek_then_advance<T, P>(
+  fn peek_then_advance<T>(
     &self,
-    token: P,
     stream: syn::parse::ParseStream,
   ) -> Option<T>
   where
-    T: syn::parse::Parse,
-    P: syn::parse::Peek;
+    T: syn::parse::Parse + crate::common::peekable::Peekable;
 }
 
 impl LookaheadPeekThenAdvance for syn::parse::Lookahead1<'_> {
-  fn peek_then_advance<T: syn::parse::Parse, P: syn::parse::Peek>(
+  fn peek_then_advance<
+    T: syn::parse::Parse + crate::common::peekable::Peekable,
+  >(
     &self,
-    token: P,
     stream: syn::parse::ParseStream,
   ) -> Option<T> {
-    if self.peek(token) {
+    if self.peek(T::peekable()) {
       stream.parse::<T>().ok()
     } else {
       None

@@ -25,7 +25,7 @@ fn to_match_arm(key: &Key, enum_attrs: &EnumAttr, os: Os) -> TokenStream {
 
       // Output the match arms.
       if let VkValue::Key(value) = value {
-        quote! {#prefix::#value => Self::#ident}
+        quote! {#prefix #value => Self::#ident}
       } else {
         quote! {}
       }

@@ -26,10 +26,10 @@ fn to_match_arm(key: &Key, enum_attrs: &EnumAttr, os: Os) -> TokenStream {
       // Output the match arms.
       match value {
         VkValue::Key(value) => {
-          quote! { Self::#ident => #prefix::#value.0 }
+          quote! { Self::#ident => #prefix #value.0 }
         }
         VkValue::Virt(value) => {
-          quote! { Self::#ident => #prefix::#value.0 }
+          quote! { Self::#ident => #prefix #value.0 }
         }
         _ => quote! {},
       }

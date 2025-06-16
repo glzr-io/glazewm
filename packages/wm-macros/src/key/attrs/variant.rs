@@ -15,10 +15,12 @@ use crate::{
 // Forking the stream to parse an ident and then check if it matches a
 // string.
 mod kw {
-  syn::custom_keyword!(win);
-  syn::custom_keyword!(macos);
-  syn::custom_keyword!(Virt);
-  syn::custom_keyword!(None);
+  use crate::common::custom_keyword;
+
+  custom_keyword!(win);
+  custom_keyword!(macos);
+  custom_keyword!(Virt);
+  custom_keyword!(None);
 }
 
 /// An enum variant attribute. Is either a KeyAttr (`#[key("string" |
@@ -38,10 +40,7 @@ impl syn::parse::Parse for VariantAttr {
   /// `"string" | "list", win = <key code>, macos = <key code>` for the key
   fn parse(input: ParseStream) -> syn::Result<Self> {
     // Check if the input is a wildcard
-    if input
-      .peek_then_advance::<Token![..], _>(Token![..])
-      .is_some()
-    {
+    if input.peek_then_advance::<Token![..]>().is_some() {
       Ok(VariantAttr::Wildcard)
     } else {
       // Else, try to parse a KeyAttr.
@@ -93,15 +92,11 @@ impl syn::parse::Parse for PlatformKeyCodes {
       let lookahead = input.lookahead1();
 
       let ident = if win.is_none()
-        && lookahead
-          .peek_then_advance::<kw::win, _>(kw::win, input)
-          .is_some()
+        && lookahead.peek_then_advance::<kw::win>(input).is_some()
       {
         Os::Windows
       } else if macos.is_none()
-        && lookahead
-          .peek_then_advance::<kw::macos, _>(kw::macos, input)
-          .is_some()
+        && lookahead.peek_then_advance::<kw::macos>(input).is_some()
       {
         Os::MacOS
       } else {
@@ -157,15 +152,9 @@ impl syn::parse::Parse for VkValue {
   /// `<ident / path>`
   fn parse(input: ParseStream) -> syn::Result<Self> {
     let lookahead = input.lookahead1();
-    if lookahead
-      .peek_then_advance::<kw::None, _>(kw::None, input)
-      .is_some()
-    {
+    if lookahead.peek_then_advance::<kw::None>(input).is_some() {
       Ok(VkValue::None)
-    } else if lookahead
-      .peek_then_advance::<kw::Virt, _>(kw::Virt, input)
-      .is_some()
-    {
+    } else if lookahead.peek_then_advance::<kw::Virt>(input).is_some() {
       let content;
       _ = syn::parenthesized!(content in input);
       let path = content
@@ -198,7 +187,7 @@ impl syn::parse::Parse for VariantStringList {
 
     // Iterate while the next token is the seperator, advancing over the
     // separator to parse the next string.
-    while input.peek_then_advance::<Token![|], _>(Token![|]).is_some() {
+    while input.peek_then_advance::<Token![|]>().is_some() {
       strings.push(input.parse::<SpannedString>()?);
     }
 
