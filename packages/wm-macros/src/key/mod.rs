@@ -215,8 +215,9 @@ fn error_output(
   let default_impls = default_fn_impls(name);
 
   quote! {
-    #errors
     #default_impls
+
+    #errors
   }
 }
 

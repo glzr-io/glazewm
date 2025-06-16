@@ -4,7 +4,7 @@ use crate::{
   Either, Os,
   common::{
     branch::Alt, error_handling::ErrorContext, lookahead::PeekThenAdvance,
-    named_parameter::ParseNamedParameter,
+    named_parameter::NamedParameter,
   },
 };
 
@@ -60,20 +60,20 @@ impl syn::parse::Parse for EnumAttr {
     let mut macos_prefix = None;
 
     while !input.is_empty() {
-      let (os, prefix) = input.parse_named_parameter_with(
-        |input| {
-          input
-            .alt_if::<kw::win_prefix, kw::macos_prefix>(
-              win_prefix.is_none(),
-              macos_prefix.is_none(),
-            )
-            .map(|kw| match kw {
-              Either::Left(_) => Os::Windows,
-              Either::Right(_) => Os::MacOS,
-            })
-        },
-        PlatformPrefix::parse,
-      )?;
+      let (os, prefix) = input.alt_if::<NamedParameter<
+        kw::win_prefix,
+        PlatformPrefix,
+      >, NamedParameter<
+        kw::macos_prefix,
+        PlatformPrefix,
+      >>(
+        win_prefix.is_none(),
+        macos_prefix.is_none(),
+      ).map(|either| { match either {
+        Either::Left(p) => (Os::Windows, p.param),
+        Either::Right(p) => (Os::MacOS, p.param),
+      }
+      })?;
 
       match os {
         Os::Windows => {
