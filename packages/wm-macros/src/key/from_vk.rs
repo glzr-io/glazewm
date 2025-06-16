@@ -63,5 +63,11 @@ pub fn make_from_vk_impl(
         #(#mac_arms),*
       }
     }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    pub fn from_vk(_vk: u16) -> Self {
+      compile_error!("`from_vk` is not supported on this OS at this time.");
+      Self::Custom(0) // Return a default value to satisfy the function signature.
+    }
   }
 }

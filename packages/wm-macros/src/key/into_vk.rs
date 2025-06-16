@@ -70,5 +70,11 @@ pub fn make_into_vk_impl(
         _ => { unreachable!("Key not found in macOS VK mapping"); }
       }
     }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    pub fn into_vk(self) -> u16 {
+      compile_error!("`into_vk` is not supported on this OS at this time.");
+      return 0; // This line is unreachable, but needed to satisfy the function signature.
+    }
   }
 }
