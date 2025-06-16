@@ -13,6 +13,12 @@ pub trait Peekable {
   /// }
   /// ```
   fn peekable() -> impl syn::parse::Peek;
+  fn display() -> &'static str;
+}
+
+pub fn get_peek_display<T: syn::parse::Peek>(_peek: T) -> &'static str {
+  use syn::token::Token;
+  T::Token::display()
 }
 
 /// Custom keyword macro to define a syn custom keyword that also
@@ -25,6 +31,10 @@ macro_rules! custom_keyword {
       fn peekable() -> impl syn::parse::Peek {
         $name
       }
+
+      fn display() -> &'static str {
+        $crate::common::peekable::get_peek_display($name)
+      }
     }
   };
 }
@@ -35,6 +45,10 @@ macro_rules! impl_peekable {
     impl Peekable for $($name)+ {
       fn peekable() -> impl syn::parse::Peek {
         $($name)+
+      }
+
+      fn display() -> &'static str {
+        get_peek_display($($name)+)
       }
     }
   };

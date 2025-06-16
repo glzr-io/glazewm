@@ -89,6 +89,7 @@ where
 }
 
 /// Converts a type that has a span into a `syn::Error`.
+#[allow(dead_code)]
 pub trait ToSpanError {
   /// Converts the object's span into a `syn::Error` with the provided
   /// message,

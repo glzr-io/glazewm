@@ -1,11 +1,8 @@
 use syn::parse::ParseStream;
 
-use crate::{
-  Either, Os,
-  common::{
-    branch::Alt, error_handling::ErrorContext, lookahead::PeekThenAdvance,
-    named_parameter::NamedParameter,
-  },
+use crate::common::{
+  branch::Combined, error_handling::ErrorContext,
+  lookahead::PeekThenAdvance, named_parameter::NamedParameter,
 };
 
 /// Custom keywords used when parsing the enum attributes.
@@ -56,46 +53,14 @@ impl quote::ToTokens for PlatformPrefix {
 // Parse the `#[key(...)]` attribute on the enum to extract the prefixes.
 impl syn::parse::Parse for EnumAttr {
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    let mut win_prefix = None;
-    let mut macos_prefix = None;
+    type WinPrefixParam = NamedParameter<kw::win_prefix, PlatformPrefix>;
+    type MacOSPrefixParam =
+      NamedParameter<kw::macos_prefix, PlatformPrefix>;
 
-    while !input.is_empty() {
-      let (os, prefix) = input.alt_if::<NamedParameter<
-        kw::win_prefix,
-        PlatformPrefix,
-      >, NamedParameter<
-        kw::macos_prefix,
-        PlatformPrefix,
-      >>(
-        win_prefix.is_none(),
-        macos_prefix.is_none(),
-      ).map(|either| { match either {
-        Either::Left(p) => (Os::Windows, p.param),
-        Either::Right(p) => (Os::MacOS, p.param),
-      }
+    let (win_prefix, macos_prefix) = input.parse_all_unordered::<(WinPrefixParam, MacOSPrefixParam), syn::Token![,]>()
+      .map(|(win_prefix, macos_prefix)| {
+        (win_prefix.param, macos_prefix.param)
       })?;
-
-      match os {
-        Os::Windows => {
-          win_prefix = Some(prefix);
-        }
-        Os::MacOS => {
-          macos_prefix = Some(prefix);
-        }
-      }
-
-      if !input.is_empty() {
-        // If there are more tokens, consume the `,` token.
-        _ = input.parse::<syn::Token![,]>()?;
-      }
-    }
-
-    // Ensure that both prefixes are present
-    let win_prefix =
-      win_prefix.ok_or(input.error("Missing `win_prefix` attribute"))?;
-
-    let macos_prefix = macos_prefix
-      .ok_or(input.error("Missing `macos_prefix` attribute"))?;
 
     Ok(EnumAttr {
       win_prefix,

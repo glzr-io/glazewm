@@ -30,4 +30,8 @@ where
   fn peekable() -> impl syn::parse::Peek {
     Name::peekable()
   }
+
+  fn display() -> &'static str {
+    Name::display()
+  }
 }

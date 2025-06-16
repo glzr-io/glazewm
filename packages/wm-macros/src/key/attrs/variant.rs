@@ -1,13 +1,12 @@
 use quote::quote;
 use syn::{Token, parse::ParseStream};
 
-use crate::{
-  Os,
-  common::{
-    error_handling::{ErrorContext, ThenError as _, ToError as _},
-    lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance as _},
-    spanned_string::SpannedString,
-  },
+use crate::common::{
+  branch::Combined as _,
+  error_handling::{ErrorContext, ThenError as _, ToError as _},
+  lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance as _},
+  named_parameter::NamedParameter,
+  spanned_string::SpannedString,
 };
 
 /// Custom keywords used when parsing the variant attributes.
@@ -85,45 +84,12 @@ impl syn::parse::Parse for PlatformKeyCodes {
   /// Expected format: `win = <key code>, macos = <key code>` (or vice
   /// versa).
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    let mut win = None;
-    let mut macos = None;
+    type WinParam = NamedParameter<kw::win, VkValue>;
+    type MacOSParam = NamedParameter<kw::macos, VkValue>;
 
-    while !input.is_empty() {
-      let lookahead = input.lookahead1();
-
-      let ident = if win.is_none()
-        && lookahead.peek_then_advance::<kw::win>(input).is_some()
-      {
-        Os::Windows
-      } else if macos.is_none()
-        && lookahead.peek_then_advance::<kw::macos>(input).is_some()
-      {
-        Os::MacOS
-      } else {
-        return Err(lookahead.error());
-      };
-
-      input.parse::<Token![=]>()?;
-
-      let vk_value: VkValue = input.parse()?;
-
-      match ident {
-        Os::Windows => {
-          win = Some(vk_value);
-        }
-        Os::MacOS => {
-          macos = Some(vk_value);
-        }
-      }
-
-      if !input.is_empty() {
-        input.parse::<Token![,]>()?;
-      }
-    }
-
-    let win = win.ok_or(input.error("Missing Windows key code"))?;
-
-    let macos = macos.ok_or(input.error("Missing macOS key code"))?;
+    let (win, macos) = input
+      .parse_all_unordered::<(WinParam, MacOSParam), Token![,]>()
+      .map(|(win, macos)| (win.param, macos.param))?;
 
     Ok(PlatformKeyCodes { win, macos })
   }
