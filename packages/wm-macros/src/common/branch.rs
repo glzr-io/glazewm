@@ -245,7 +245,7 @@ macro_rules! impl_for_tuple {
           // For each type in the tuple, insert the following block.
           $(
             // Try to peek this tuple item.
-            if lookahead.peek($types::peekable()) {
+            if output.$numbers.is_none() && lookahead.peek($types::peekable()) {
               // If so, parse it from the stream and set it in the output tuple.
               output.$numbers = Some(stream.parse::<$types>()?);
             }
