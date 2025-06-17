@@ -1,7 +1,7 @@
 pub trait PeekThenAdvance {
   /// Checks if the next token in the stream is a T, and if so parses
-  /// it. Returns `Some(T)` if the token matches and is successfully
-  /// parsed, None if the token does not match or parsing fails.
+  /// it. Returns `Some(<parse result>)` if the peek is successful, and
+  /// `None` if the token does not match.
   ///
   /// See `LookaheadPeekThenAdvance` for a version that uses a lookahead
   /// instead of a stream.
@@ -18,7 +18,7 @@ pub trait PeekThenAdvance {
     T: syn::parse::Parse + crate::common::peekable::Peekable,
   >(
     &self,
-  ) -> Option<T>;
+  ) -> Option<syn::Result<T>>;
 }
 
 impl PeekThenAdvance for syn::parse::ParseStream<'_> {
@@ -26,9 +26,9 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
     T: syn::parse::Parse + crate::common::peekable::Peekable,
   >(
     &self,
-  ) -> Option<T> {
+  ) -> Option<syn::Result<T>> {
     if self.peek(T::peekable()) {
-      self.parse::<T>().ok()
+      Some(self.parse::<T>())
     } else {
       None
     }
@@ -37,8 +37,8 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
 
 pub trait LookaheadPeekThenAdvance {
   /// Checks if the next token in the lookahead is a T, and if so parses
-  /// it. Returns `Some(T)` if the token matches and is successfully
-  /// parsed, None if the token does not match or parsing fails.
+  /// it. Returns `Some(<parse result>)` if the peek is successful, and
+  /// `None` if the token does not match.
   ///
   /// # Example
   /// ```
@@ -52,7 +52,7 @@ pub trait LookaheadPeekThenAdvance {
   fn peek_then_advance<T>(
     &self,
     stream: syn::parse::ParseStream,
-  ) -> Option<T>
+  ) -> Option<syn::Result<T>>
   where
     T: syn::parse::Parse + crate::common::peekable::Peekable;
 }
@@ -63,9 +63,9 @@ impl LookaheadPeekThenAdvance for syn::parse::Lookahead1<'_> {
   >(
     &self,
     stream: syn::parse::ParseStream,
-  ) -> Option<T> {
+  ) -> Option<syn::Result<T>> {
     if self.peek(T::peekable()) {
-      stream.parse::<T>().ok()
+      Some(stream.parse::<T>())
     } else {
       None
     }
