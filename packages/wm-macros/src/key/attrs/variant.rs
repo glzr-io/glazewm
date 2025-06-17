@@ -2,7 +2,7 @@ use quote::quote;
 use syn::{Token, parse::ParseStream};
 
 use crate::common::{
-  branch::Unordered,
+  branch::{IfElse, Ordered, Unordered},
   error_handling::{ErrorContext, ThenError as _, ToError as _},
   lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance as _},
   named_parameter::NamedParameter,
@@ -38,13 +38,12 @@ impl syn::parse::Parse for VariantAttr {
   /// `..` for the wildcard variant, or
   /// `"string" | "list", win = <key code>, macos = <key code>` for the key
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    // Check if the input is a wildcard
-    if input.peek_then_advance::<Token![..]>().is_some() {
-      Ok(VariantAttr::Wildcard)
-    } else {
-      // Else, try to parse a KeyAttr.
-      input.parse().map(VariantAttr::Key)
-    }
+    input
+      .parse::<IfElse<syn::Token![..], KeyAttr>>()
+      .map(|if_else| match if_else {
+        IfElse::If(_) => VariantAttr::Wildcard,
+        IfElse::Else(key_attr) => VariantAttr::Key(key_attr),
+      })
   }
 }
 
@@ -63,9 +62,9 @@ impl syn::parse::Parse for KeyAttr {
   /// Expected format:
   /// `"string" | "list", win = <key code>, macos = <key code>`
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    let strings = input.parse()?;
-    _ = input.parse::<Token![,]>()?;
-    let key_codes = input.parse()?;
+    let (strings, key_codes) = input
+      .parse::<Ordered<(VariantStringList, PlatformKeyCodes), Token![,]>>()
+      .map(|Ordered((strings, key_codes), _)| (strings, key_codes))?;
     Ok(KeyAttr { strings, key_codes })
   }
 }
@@ -117,10 +116,9 @@ impl syn::parse::Parse for VkValue {
   /// Parses a VKValue, which can be `None`, `Virt(<ident / path>)` or
   /// `<ident / path>`
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    let lookahead = input.lookahead1();
-    if lookahead.peek_then_advance::<kw::None>(input).is_some() {
-      Ok(VkValue::None)
-    } else if lookahead.peek_then_advance::<kw::Virt>(input).is_some() {
+    // Handle `Virt` seperately since its a special case (need to parse the
+    // parenthesis).
+    if input.peek_then_advance::<kw::Virt>().is_some() {
       let content;
       _ = syn::parenthesized!(content in input);
       let path = content
@@ -129,8 +127,14 @@ impl syn::parse::Parse for VkValue {
 
       Ok(VkValue::Virt(path))
     } else {
-      let path = input.parse()?;
-      Ok(VkValue::Key(path))
+      // Handle the other two cases.
+      input
+        .parse::<IfElse<kw::None, syn::Path>>()
+        .map(|if_else| match if_else {
+          IfElse::If(_) => VkValue::None,
+          IfElse::Else(path) => VkValue::Key(path),
+        })
+        .add_context("Expected a key code, or `None` for no key code.")
     }
   }
 }

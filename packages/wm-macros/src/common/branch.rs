@@ -73,19 +73,23 @@ macro_rules! impl_for_tuple {
         // Return the output tuple with all items parsed from the stream.
         // Parsing happens in a block to allow the separator to be parsed inside of the tuple
         // constructor
-        Ok((
-            // Craete the block for each type in the tuple
-          $(
-            {
-              // Parse the type from the stream
-              let t = stream.parse::<$types>()?;
-              // Parse the separator after the type
-              stream.parse::<Sep>()?;
-              // Return the parsed type to be included in the output tuple
-              t
-            }
-            ),+
-        ))
+
+        // Create a variable for the parsed version of each item in the tuple. Needs to be outside
+        // of the tuple constructor to allow the seperator to be parsed before each item in the
+        // correct order.
+        $(
+          // Parse the seperator before every item bar the first
+          if $numbers != 0 {
+            stream.parse::<Sep>()?;
+          }
+          // Parse the type from the stream
+          #[allow(non_snake_case)]
+          let $types = stream.parse::<$types>()?;
+          // Parse the separator after the type
+        )+
+
+        // Pack the parsed items into a tuple
+        Ok(($($types),+))
       }
     }
 
@@ -144,6 +148,20 @@ impl_for_tuple!(T, U, V, W | 0, 1, 2, 3);
 impl_for_tuple!(T, U, V, W, X | 0, 1, 2, 3, 4);
 impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 
+/// Type wrapper to parse all items in tuple `T` in order, using
+/// `Sep` as the separator between items.
+///
+/// # Example
+/// Parse `syn::Ident` and `syn::LitStr` from the stream, which are
+/// separated by a comma. E.g. `some_name, "some string"`. If the order is
+/// reversed, it will fail to parse.
+/// ```
+/// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+/// type T = (syn::Ident, syn::LitStr);
+///
+/// stream.parse::<Ordered<T, syn::Token![,]>>()?;
+/// # }
+/// ```
 pub struct Ordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
 where
   T: ParseableTuple,
@@ -172,6 +190,31 @@ where
   }
 }
 
+/// Typpe wrapper to parse all items in tuple `T` in any order, using `Sep`
+/// as the separator between items.
+///
+/// # Example
+/// Parse `syn::Ident` and `syn::LitStr` from the stream in any order,
+/// which are separated by a comma. E.g. `some_name, "some string"` or
+/// `"some string", some_name`.
+/// ```
+/// fn example(stream: proc_macro::TokenStream) -> syn::Result<(syn::Ident, syn::LitStr)> {
+///   type T = (syn::Ident, syn::LitStr);
+///
+///   stream.parse2::<Unordered<T, syn::Token![,]>>().map(|Unordered(t, _)| t)
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let normal = quote! { some_name, "some string" }.into();
+///   let reversed = quote! { "some string", some_name }.into();
+///   let error = quote! {some_name, other_name}.into();
+///
+///   assert!(example(normal).is_ok());
+///   assert!(example(reversed).is_ok());
+///   assert!(example(error).is_err());
+/// }
+/// ```
 pub struct Unordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
 where
   T: PeekableTuple,
@@ -197,5 +240,28 @@ where
 
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+pub enum IfElse<If, Else>
+where
+  If: syn::parse::Parse + crate::common::peekable::Peekable,
+  Else: syn::parse::Parse,
+{
+  If(If),
+  Else(Else),
+}
+
+impl<If, Else> syn::parse::Parse for IfElse<If, Else>
+where
+  If: syn::parse::Parse + crate::common::peekable::Peekable,
+  Else: syn::parse::Parse,
+{
+  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    if input.peek(If::peekable()) {
+      Ok(Self::If(input.parse()?))
+    } else {
+      Ok(Self::Else(input.parse()?))
+    }
   }
 }

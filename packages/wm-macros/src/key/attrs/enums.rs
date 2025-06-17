@@ -1,8 +1,9 @@
 use syn::parse::ParseStream;
 
 use crate::common::{
-  branch::Unordered, error_handling::ErrorContext,
-  lookahead::PeekThenAdvance, named_parameter::NamedParameter,
+  branch::{IfElse, Unordered},
+  error_handling::ErrorContext,
+  named_parameter::NamedParameter,
 };
 
 /// Custom keywords used when parsing the enum attributes.
@@ -30,12 +31,12 @@ pub enum PlatformPrefix {
 
 impl syn::parse::Parse for PlatformPrefix {
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    if input.peek_then_advance::<kw::None>().is_some() {
-      Ok(PlatformPrefix::None)
-    } else {
-      Ok(PlatformPrefix::Some(input.parse::<syn::Path>()
-        .add_context("Expected a prefix for the platforms key codes, or `None` for no prefix.")?))
-    }
+    input.parse::<IfElse<kw::None, syn::Path>>()
+      .map(|if_else| match if_else {
+        IfElse::If(_) => PlatformPrefix::None,
+        IfElse::Else(path) => PlatformPrefix::Some(path),
+      })
+        .add_context("Expected a prefix for the platforms key codes, or `None` for no prefix.")
   }
 }
 
