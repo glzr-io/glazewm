@@ -1,190 +1,55 @@
-use crate::Either;
-
-// Can't implement for slices, as they are not sized and FnOnce cannot be
-// in a slice ref (Can't move out of them, which means they can't be
-// called).
-
-// Marker trait for an iterable where all items are parser functions that
-// also take a lookahead
-pub trait ParseList<'a, T: 'a, F>: IntoIterator<Item = F>
-where
-  F: FnOnce(
-    syn::parse::ParseStream<'_>,
-    &syn::parse::Lookahead1<'_>,
-  ) -> Option<syn::Result<T>>,
-{
-}
-
-impl<'a, T, F, const N: usize> ParseList<'a, T, F> for [F; N]
-where
-  T: syn::parse::Parse + crate::common::peekable::Peekable + 'a,
-  F: FnOnce(
-    syn::parse::ParseStream<'_>,
-    &syn::parse::Lookahead1<'_>,
-  ) -> Option<syn::Result<T>>,
-{
-}
-
-// Can probably remove this now, but keeping it to reference for now.
-#[allow(dead_code)]
-pub trait Alt {
-  /// Parses either a `L` or `R` type from the stream, returning an
-  /// `Either<L, R>`. Left will be attempted first, then right.
-  /// Forwards parsing errors, and returns an error if neither type can be
-  /// parsed.
-  ///
-  /// # Example
-  /// Parse either an identifier or a string literal from the stream. This
-  /// will error if any type other than `syn::Ident` or `syn::LitStr` is
-  /// encountered. ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// match stream.alt::<syn::Ident, syn::LitStr>()? {
-  ///   Either::Left(ident) => { // ... },
-  ///   Either::Right(lit_str) => { // ... },
-  /// }
-  /// # }
-  fn alt<L, R>(&self) -> syn::Result<Either<L, R>>
-  where
-    L: syn::parse::Parse + crate::common::peekable::Peekable,
-    R: syn::parse::Parse + crate::common::peekable::Peekable;
-
-  /// Parses either a `L` or `R` type from the stream, returning an
-  /// `Either<L, R>`. Left will be attempted first, then right.
-  /// A side will only be attempted if the corresponding boolean is
-  /// `true`.
-  ///
-  /// # Example
-  /// Parse an identifier or a string literal from the stream in any order.
-  /// This will error if any type other than `syn::Ident` or `syn::LitStr`
-  /// is encountered, or if there are more than one of each type in the
-  /// stream.
-  /// ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// let ident = None;
-  /// let lit_str = None;
-  ///
-  /// while !stream.is_empty() {
-  ///   match stream.alt_if::<syn::Ident, syn::LitStr>(ident.is_none(), lit_str.is_none())? {
-  ///     Either::Left(i) => { ident = Some(i); },
-  ///     Either::Right(s) => { lit_str = Some(s); },
-  ///   }
-  /// }
-  /// # }
-  /// ```
-  fn alt_if<L, R>(
-    &self,
-    left: bool,
-    right: bool,
-  ) -> syn::Result<Either<L, R>>
-  where
-    L: syn::parse::Parse + crate::common::peekable::Peekable,
-    R: syn::parse::Parse + crate::common::peekable::Peekable;
-
-  /// Parses T from the stream, trying each parser in the list until one
-  /// succeeds. Works like `alt_for`, but also passes the lookahead for
-  /// better error handling.
-  /// If all parsers fail, returns the lookahead error.
-  fn alt_for<'a, T, L, F>(&self, list: L) -> syn::Result<T>
-  where
-    T: 'a,
-    L: ParseList<'a, T, F>,
-    F: FnOnce(
-        syn::parse::ParseStream<'_>,
-        &syn::parse::Lookahead1<'_>,
-      ) -> Option<syn::Result<T>>
-      + 'a;
-}
-
-impl Alt for syn::parse::ParseStream<'_> {
-  fn alt<L, R>(&self) -> syn::Result<Either<L, R>>
-  where
-    L: syn::parse::Parse + crate::common::peekable::Peekable,
-    R: syn::parse::Parse + crate::common::peekable::Peekable,
-  {
-    let lookahead = self.lookahead1();
-
-    if lookahead.peek(L::peekable()) {
-      Ok(Either::Left(self.parse::<L>()?))
-    } else if lookahead.peek(R::peekable()) {
-      Ok(Either::Right(self.parse::<R>()?))
-    } else {
-      Err(lookahead.error())
-    }
-  }
-
-  fn alt_if<L, R>(
-    &self,
-    left: bool,
-    right: bool,
-  ) -> syn::Result<Either<L, R>>
-  where
-    L: syn::parse::Parse + crate::common::peekable::Peekable,
-    R: syn::parse::Parse + crate::common::peekable::Peekable,
-  {
-    let lookahead = self.lookahead1();
-
-    if left && lookahead.peek(L::peekable()) {
-      Ok(Either::Left(self.parse::<L>()?))
-    } else if right && lookahead.peek(R::peekable()) {
-      Ok(Either::Right(self.parse::<R>()?))
-    } else {
-      Err(lookahead.error())
-    }
-  }
-
-  fn alt_for<'a, T, L, F>(&self, list: L) -> syn::Result<T>
-  where
-    T: 'a,
-    L: ParseList<'a, T, F>,
-    F: FnOnce(
-        syn::parse::ParseStream<'_>,
-        &syn::parse::Lookahead1<'_>,
-      ) -> Option<syn::Result<T>>
-      + 'a,
-  {
-    let lookahead = self.lookahead1();
-
-    for parser in list {
-      if let Some(res) = parser(self, &lookahead) {
-        return res;
-      }
-    }
-
-    Err(lookahead.error())
-  }
-}
-
 /// Trait for tuples where all items can be parsed from a
 /// parse stream.
-pub trait ParseableTuple {
-  /// Output type of the tuple parsing. Should probably be the same type as
-  /// the tuple itself.
-  type Output;
-
+pub trait ParseableTuple
+where
+  Self: Sized,
+{
   /// Parses all items in the tuple `T` from the stream in the order they
   /// appear in the tuple, and parses `Sep` in between each item. Returns
   /// all parsed items in a tuple, or the first error to occur.
+  ///
+  /// # Example
+  /// Parses a `syn::Ident` and a `syn::LitStr`, which are seperated by a
+  /// comma, from the stream. E.g. `some_name, "some string"`. If the
+  /// order is reversed, it will fail to parse. If order is irrelevant,
+  /// use `PeekableTuple` instead.
+  /// ```
+  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+  /// type T = (syn::Ident, syn::LitStr);
+  /// T::parse_tuple::<syn::Token![,]>(stream)?;
+  /// # }
+  /// ```
   fn parse_tuple<Sep>(
     stream: syn::parse::ParseStream,
-  ) -> syn::Result<Self::Output>
+  ) -> syn::Result<Self>
   where
     Sep: syn::parse::Parse;
 }
 
 /// Trait for tuples where all items can be peeked and parsed from a parse
 /// stream.
-pub trait PeekableTuple {
-  /// Output type of the tuple parsing. Should probably be the same type as
-  /// the tuple itself.
-  type Output;
-
+pub trait PeekableTuple
+where
+  Self: Sized,
+{
   /// Iterates until all items in the tuple `T` have been parsed, or an
   /// error occurs. Parsing is attempted in the order of the items in
   /// the tuple, although if an item is not found, it may be skipped and
   /// reattempted for the next item(s).
+  ///
+  /// # Example
+  /// Parses a `syn::Ident` and a `syn::LitStr`, which are seperated by a
+  /// comma, from the stream in any order. Will successfully parse both:
+  /// `some_name, "some string"` and `"some string", some_name`.
+  /// ```
+  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+  /// type T = (syn::Ident, syn::LitStr);
+  /// let (ident, lit_str) = T::peek_parse_tuple::<syn::Token![,]>(stream)?;
+  /// # }
+  /// ```
   fn peek_parse_tuple<Sep>(
     stream: syn::parse::ParseStream,
-  ) -> syn::Result<Self::Output>
+  ) -> syn::Result<Self>
   where
     Sep: syn::parse::Parse + crate::common::peekable::Peekable;
 }
@@ -203,10 +68,8 @@ macro_rules! impl_for_tuple {
   ($($types:tt),+ | $($numbers:tt),+) => {
     // Generic ensures that all types in the tuple implement `syn::parse::Parse`.
     impl<$($types),+> ParseableTuple for ($($types,)+) where $($types : syn::parse::Parse),+ {
-      // Set the output type to be the same as the tuple itself.
-      type Output = ($($types,)+);
 
-      fn parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self::Output> where Sep: syn::parse::Parse {
+      fn parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self> where Sep: syn::parse::Parse {
         // Return the output tuple with all items parsed from the stream.
         // Parsing happens in a block to allow the separator to be parsed inside of the tuple
         // constructor
@@ -220,18 +83,17 @@ macro_rules! impl_for_tuple {
               stream.parse::<Sep>()?;
               // Return the parsed type to be included in the output tuple
               t
-            },
-            )+
+            }
+            ),+
         ))
       }
     }
 
     // Generic ensures that all types in the tuple implement `syn::parse::Parse` and `Peekable`.
-    impl<$($types),+> PeekableTuple for ($($types,)+) where $($types : syn::parse::Parse + crate::common::peekable::Peekable),+ {
+    impl<$($types),+> PeekableTuple for ($($types,)+) where $($types : syn::parse::Parse + crate::common::peekable::Peekable),+{
       // Set the output type to be the same as the tuple itself.
-      type Output = ($($types,)+);
 
-      fn peek_parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self::Output>
+      fn peek_parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self>
         where Sep: syn::parse::Parse + crate::common::peekable::Peekable
       {
         // Creates a tuple with the same number of items as the tuple, but with each item being
@@ -276,60 +138,64 @@ macro_rules! impl_for_tuple {
 
 // Implement the `ParseableTuple` and `PeekableTuple` traits for tuples of
 // different sizes.
-impl_for_tuple!(T | 0);
 impl_for_tuple!(T, U | 0, 1);
 impl_for_tuple!(T, U, V | 0, 1, 2);
 impl_for_tuple!(T, U, V, W | 0, 1, 2, 3);
 impl_for_tuple!(T, U, V, W, X | 0, 1, 2, 3, 4);
 impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 
-/// Trait for parsing multiple items from a parse stream.
-#[allow(dead_code)]
-pub trait Combined {
-  /// Parses all items in the tuple `T` from the stream in the order they
-  /// are in the tuple, each item separated by `Sep`. Returns all parsed
-  /// items in a tuple, or the first error to occur.
-  fn parse_all<T, Sep>(&self) -> syn::Result<T::Output>
-  where
-    T: ParseableTuple,
-    Sep: syn::parse::Parse;
+pub struct Ordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
+where
+  T: ParseableTuple,
+  Sep: syn::parse::Parse;
 
-  /// Parses all items in the tuple `T` from the stream in any order, each
-  /// item separated by `Sep`. Returns all parsed items in a tuple, or the
-  /// first error to occur.
-  ///
-  /// Parsing is attempted in the order of the items in the tuple, although
-  /// if an item is not found, it may be skipped and reattempted for the
-  /// next item(s).
-  ///
-  /// If none of the items are successfully peeked, an error is returned.
-  ///
-  /// If any item is not found, an error will be returned for the first
-  /// missing item in the tuple.
-  fn parse_all_unordered<T, Sep>(&self) -> syn::Result<T::Output>
-  where
-    T: PeekableTuple,
-    Sep: syn::parse::Parse + crate::common::peekable::Peekable;
+impl<T, Sep> syn::parse::Parse for Ordered<T, Sep>
+where
+  T: ParseableTuple,
+  Sep: syn::parse::Parse,
+{
+  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    let output = T::parse_tuple::<Sep>(input)? as T;
+    Ok(Self(output, std::marker::PhantomData))
+  }
 }
 
-impl Combined for syn::parse::ParseStream<'_> {
-  fn parse_all<T, Sep>(&self) -> syn::Result<T::Output>
-  where
-    T: ParseableTuple,
-    Sep: syn::parse::Parse,
-  {
-    let output = T::parse_tuple::<Sep>(self)?;
+impl<T, Sep> core::ops::Deref for Ordered<T, Sep>
+where
+  T: ParseableTuple,
+  Sep: syn::parse::Parse,
+{
+  type Target = T;
 
-    Ok(output)
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
+}
 
-  fn parse_all_unordered<T, Sep>(&self) -> syn::Result<T::Output>
-  where
-    T: PeekableTuple,
-    Sep: syn::parse::Parse + crate::common::peekable::Peekable,
-  {
-    let output = T::peek_parse_tuple::<Sep>(self)?;
+pub struct Unordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
+where
+  T: PeekableTuple,
+  Sep: syn::parse::Parse + crate::common::peekable::Peekable;
 
-    Ok(output)
+impl<T, Sep> syn::parse::Parse for Unordered<T, Sep>
+where
+  T: PeekableTuple,
+  Sep: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    let output = T::peek_parse_tuple::<Sep>(input)? as T;
+    Ok(Self(output, std::marker::PhantomData))
+  }
+}
+
+impl<T, Sep> core::ops::Deref for Unordered<T, Sep>
+where
+  T: PeekableTuple,
+  Sep: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  type Target = T;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }

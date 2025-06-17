@@ -2,7 +2,7 @@ use quote::quote;
 use syn::{Token, parse::ParseStream};
 
 use crate::common::{
-  branch::Combined as _,
+  branch::Unordered,
   error_handling::{ErrorContext, ThenError as _, ToError as _},
   lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance as _},
   named_parameter::NamedParameter,
@@ -88,8 +88,8 @@ impl syn::parse::Parse for PlatformKeyCodes {
     type MacOSParam = NamedParameter<kw::macos, VkValue>;
 
     let (win, macos) = input
-      .parse_all_unordered::<(WinParam, MacOSParam), Token![,]>()
-      .map(|(win, macos)| (win.param, macos.param))?;
+      .parse::<Unordered<(WinParam, MacOSParam), Token![,]>>()
+      .map(|Unordered((win, macos), _)| (win.param, macos.param))?;
 
     Ok(PlatformKeyCodes { win, macos })
   }

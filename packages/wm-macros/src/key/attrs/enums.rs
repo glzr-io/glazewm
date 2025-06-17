@@ -1,7 +1,7 @@
 use syn::parse::ParseStream;
 
 use crate::common::{
-  branch::Combined, error_handling::ErrorContext,
+  branch::Unordered, error_handling::ErrorContext,
   lookahead::PeekThenAdvance, named_parameter::NamedParameter,
 };
 
@@ -57,8 +57,8 @@ impl syn::parse::Parse for EnumAttr {
     type MacOSPrefixParam =
       NamedParameter<kw::macos_prefix, PlatformPrefix>;
 
-    let (win_prefix, macos_prefix) = input.parse_all_unordered::<(WinPrefixParam, MacOSPrefixParam), syn::Token![,]>()
-      .map(|(win_prefix, macos_prefix)| {
+    let (win_prefix, macos_prefix) = input.parse::<Unordered<(WinPrefixParam, MacOSPrefixParam), syn::Token![,]>>()
+      .map(|Unordered((win_prefix, macos_prefix), _)| {
         (win_prefix.param, macos_prefix.param)
       })?;
 
