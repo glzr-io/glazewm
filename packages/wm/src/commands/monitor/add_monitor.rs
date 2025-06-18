@@ -47,37 +47,34 @@ pub fn add_monitor(
     })
     .collect::<Vec<_>>();
 
-  // Activate a workspace on the newly added monitor.
-  match bound_workspace_configs.len() {
-    0 => {
-      activate_workspace(None, Some(monitor), state, config)?;
-    }
-    _ => {
-      for workspace_config in bound_workspace_configs {
-        let existing_workspace =
-          state.workspace_by_name(&workspace_config.name);
+  for workspace_config in bound_workspace_configs {
+    let existing_workspace =
+      state.workspace_by_name(&workspace_config.name);
 
-        // Move workspaces that should be bound to the newly added monitor.
-        if let Some(existing_workspace) = existing_workspace {
-          move_workspace_to_monitor(
-            &existing_workspace,
-            &monitor,
-            state,
-            config,
-          )?;
-        }
-
-        // Activate all `keep_alive` workspaces for this monitor.
-        if workspace_config.keep_alive {
-          activate_workspace(
-            Some(&workspace_config.name),
-            Some(monitor.clone()),
-            state,
-            config,
-          )?;
-        }
-      }
+    if let Some(existing_workspace) = existing_workspace {
+      // Move workspaces that should be bound to the newly added monitor.
+      move_workspace_to_monitor(
+        &existing_workspace,
+        &monitor,
+        state,
+        config,
+      )?;
+    } else if workspace_config.keep_alive {
+      // Activate all `keep_alive` workspaces for this monitor.
+      activate_workspace(
+        Some(&workspace_config.name),
+        Some(monitor.clone()),
+        state,
+        config,
+      )?;
     }
+  }
+
+  // Make sure the monitor has at least one workspace. This will
+  // automatically prioritize bound workspace configs and fall back to the
+  // first available one if needed.
+  if monitor.child_count() == 0 {
+    activate_workspace(None, Some(monitor), state, config)?;
   }
 
   Ok(())
