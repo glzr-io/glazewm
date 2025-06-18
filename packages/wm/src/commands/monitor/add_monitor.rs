@@ -1,5 +1,5 @@
 use anyhow::Context;
-use tracing::{info, warn};
+use tracing::info;
 use wm_common::WmEvent;
 use wm_platform::NativeMonitor;
 
@@ -42,7 +42,7 @@ pub fn add_monitor(
     .iter()
     .filter(|config| {
       config.bind_to_monitor.is_some_and(|monitor_index| {
-        monitor.index() == *monitor_index as usize
+        monitor.index() == monitor_index as usize
       })
     })
     .collect::<Vec<_>>();
