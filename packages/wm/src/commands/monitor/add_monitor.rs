@@ -33,24 +33,38 @@ pub fn add_monitor(
     added_monitor: monitor.to_dto()?,
   });
 
-  let bound_workspace_configs = config.keep_alive_workspace_configs();
+  let bound_workspace_configs = config
+    .value
+    .workspaces
+    .iter()
+    .filter(|config| {
+      config.bind_to_monitor.is_some_and(|monitor_index| {
+        monitor.index() == *monitor_index as usize
+      })
+    })
+    .collect::<Vec<_>>();
 
-  // Activate all `keep_alive` workspaces for this monitor.
-  for workspace_config in bound_workspace_configs {
-    #[allow(clippy::cast_possible_truncation)]
-    if workspace_config.bind_to_monitor == Some(monitor.index() as u32) {
+  // Activate a workspace on the newly added monitor.
+  match bound_workspace_configs.len() {
+    0 => {
+      activate_workspace(None, Some(monitor), state, config)?;
+    }
+    _ => {
+      let workspace_config = bound_workspace_configs.first().unwrap();
+
+      // TODO: Move bound workspaces that are not on the newly added
+      // monitor.
+
+      // TODO: Activate all `keep_alive` workspaces for this monitor.
+
       activate_workspace(
         Some(&workspace_config.name),
-        Some(monitor.clone()),
+        Some(monitor),
         state,
         config,
       )?;
     }
   }
-
-  // Activate a workspace on the newly added monitor.
-  activate_workspace(None, Some(monitor), state, config)
-    .context("At least 1 workspace is required per monitor.")?;
 
   Ok(())
 }
