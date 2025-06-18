@@ -136,7 +136,7 @@ pub fn move_workspace_to_monitor(
     }
   }
 
-  sort_workspaces(&target_monitor, config)?;
+  sort_workspaces(target_monitor, config)?;
 
   state.emit_event(WmEvent::WorkspaceUpdated {
     updated_workspace: workspace.to_dto()?,
