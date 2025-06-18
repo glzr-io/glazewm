@@ -1,13 +1,16 @@
 use attrs::{
   enums::EnumAttr,
-  find_key_attr,
   variant::{VariantAttr, VkValue},
 };
 use proc_macro::TokenStream;
 use quote::{ToTokens as _, quote};
 use syn::{DeriveInput, parse_macro_input};
 
-use crate::common::error_handling::ToError as _;
+use crate::common::{
+  attributes::FindAttributes,
+  derive::RequireEnum,
+  error_handling::{EmitError, ToError as _},
+};
 
 mod attrs;
 mod from_str;
@@ -38,9 +41,11 @@ struct Key {
 /// ```
 fn variant_to_key(variant: &syn::Variant) -> syn::Result<Key> {
   let ident = variant.ident.clone();
-  let attrs = &variant.attrs;
 
-  let attr = attrs::find_key_attr(attrs)
+  let attr = variant
+    .attrs
+    .find_list_attrs(KEY_ATTR_NAME)
+    .next()
     .ok_or(variant.ident.error(MISSING_KEY_ATTR_ON_VARIANT_ERR_MSG))?;
 
   let attrs: VariantAttr = attr.parse_args()?;
@@ -65,25 +70,16 @@ fn get_enum_attr(input: &DeriveInput) -> syn::Result<EnumAttr> {
 
   // Find the `#[key]` attribute on the enum itself. This is required to
   // pass in the absolute paths for each platform's key codes.
-  let enum_attr = find_key_attr(&input.attrs)
+  let enum_attr = &input
+    .attrs
+    .find_list_attrs(KEY_ATTR_NAME)
+    .next()
     .ok_or(name.error(MISSING_KEY_ATTR_ON_ENUM_ERR_MSG))?;
 
   // Parse the enum attribute arguments into an `EnumAttr` struct.
   // This calls the `syn::parse::Parse` implementation for `EnumAttr` on
   // the arguments of the attribute.
   enum_attr.parse_args::<attrs::enums::EnumAttr>()
-}
-
-/// Get the enum data from the input.
-/// Returns an error if the item being derived is not an enum.
-fn get_enum_data(input: &DeriveInput) -> syn::Result<&syn::DataEnum> {
-  let name = &input.ident;
-
-  // Error out if the input is not an enum
-  match &input.data {
-    syn::Data::Enum(data) => Ok(data),
-    _ => Err(name.error("This macro can only be used on enums")),
-  }
 }
 
 /// This macro derives the `KeyConversions` trait for an enum.
@@ -94,7 +90,7 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
 
   let name = &input.ident;
 
-  let enum_data = match get_enum_data(&input) {
+  let enum_data = match input.data.require_enum() {
     Ok(data) => data,
     Err(err) => {
       return error_output(name, &[err]).into();
@@ -123,18 +119,17 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
     .collect();
 
   // Find any duplicate keys in the parsed keys.
-  // Will give an error if a key is defined multiple times without being
+  // Will give a warning if a key is defined multiple times without being
   // explicitly marked as an alias
-  let duplicate_errors = find_duplicate_keys(&keys);
+  find_duplicate_keys(&keys);
 
-  // Collect the errors from the partitioned results and the duplicate
-  // errors. Converts the errors into compile errors to include in the
-  // output, which is what gives accuratly spanned error messages.
+  // Collect the errors from the partitioned results. Converts the errors
+  // into compile errors to include in the output, which is what gives
+  // accuratly spanned error messages.
   let errors: Vec<_> = errors
     .into_iter()
     // Saftey: Just partitioned the results, so this unwrap is safe.
     .map(|err| unsafe { err.unwrap_err_unchecked() })
-    .chain(duplicate_errors)
     .map(|err| err.into_compile_error())
     .collect();
 
@@ -167,35 +162,30 @@ pub fn key_conversions(input: TokenStream) -> TokenStream {
 }
 
 /// Find duplicate keys per platform in the provided keys slice.
-/// Returns a vector of `syn::Error` instances for each duplicate key
+/// Emits a warning for each duplicate key
 /// found, containing a reminder to use the `Vert` wrapper for virtual
 /// keys.
-fn find_duplicate_keys(keys: &[Key]) -> Vec<syn::Error> {
+fn find_duplicate_keys(keys: &[Key]) {
   let mut win_seen = std::collections::HashSet::new();
   let mut macos_seen = std::collections::HashSet::new();
-  let mut duplicates = Vec::new();
 
   for key in keys {
     if let VariantAttr::Key(vk_value) = &key.attrs {
       if let VkValue::Key(vk_value) = &vk_value.key_codes.win {
         if !win_seen.insert(vk_value.clone()) {
           // If the key is already seen, we have a duplicate
-          duplicates.push(
-            vk_value.error(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream())));
+          vk_value.emit_warning(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream()));
         }
       }
 
       if let VkValue::Key(vk_value) = &vk_value.key_codes.macos {
         if !macos_seen.insert(vk_value.clone()) {
           // If the key is already seen, we have a duplicate
-          duplicates.push(
-            vk_value.error(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream())));
+          vk_value.emit_warning(format!("Duplicate key value: {}. Wrap virtual keys with `Virt(<key code>)`.", vk_value.to_token_stream()));
         }
       }
     }
   }
-
-  duplicates
 }
 
 /// Generate the error output for the macro when it encounters errors

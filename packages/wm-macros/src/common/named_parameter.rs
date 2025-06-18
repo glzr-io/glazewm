@@ -27,8 +27,11 @@ where
   Name: syn::parse::Parse + crate::common::peekable::Peekable,
   Param: syn::parse::Parse,
 {
-  fn peekable() -> impl syn::parse::Peek {
-    Name::peekable()
+  fn peek<S>(stream: S) -> bool
+  where
+    S: crate::common::peekable::PeekableStream,
+  {
+    Name::peek(stream)
   }
 
   fn display() -> &'static str {

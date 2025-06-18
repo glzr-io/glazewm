@@ -1,9 +1,13 @@
+use crate::prelude::*;
+
 /// Trait for tuples where all items can be parsed from a
 /// parse stream.
 pub trait ParseableTuple
 where
   Self: Sized,
 {
+  type FirstItem: syn::parse::Parse;
+
   /// Parses all items in the tuple `T` from the stream in the order they
   /// appear in the tuple, and parses `Sep` in between each item. Returns
   /// all parsed items in a tuple, or the first error to occur.
@@ -62,12 +66,19 @@ macro_rules! replace_expr {
   };
 }
 
+macro_rules! get_first_item {
+  ($first:tt, $($types:tt),+) => {
+    $first
+  };
+}
+
 macro_rules! impl_for_tuple {
   // Might be a way to create the number list from the types, but too complex to be worth it.
   // Types are the generic type args, numbers are the indices for each type in the tuple.
   ($($types:tt),+ | $($numbers:tt),+) => {
     // Generic ensures that all types in the tuple implement `syn::parse::Parse`.
     impl<$($types),+> ParseableTuple for ($($types,)+) where $($types : syn::parse::Parse),+ {
+      type FirstItem = get_first_item!($($types),+);
 
       fn parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self> where Sep: syn::parse::Parse {
         // Return the output tuple with all items parsed from the stream.
@@ -100,6 +111,7 @@ macro_rules! impl_for_tuple {
       fn peek_parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self>
         where Sep: syn::parse::Parse + crate::common::peekable::Peekable
       {
+        use crate::common::peekable::prelude::*;
         // Creates a tuple with the same number of items as the tuple, but with each item being
         // `None`.
         let mut output: ($(Option<$types>,)+) = ($(replace_expr!($types, None),)+);
@@ -111,7 +123,7 @@ macro_rules! impl_for_tuple {
           // For each type in the tuple, insert the following block.
           $(
             // Try to peek this tuple item.
-            if output.$numbers.is_none() && lookahead.peek($types::peekable()) {
+            if output.$numbers.is_none() && lookahead.tpeek::<$types>() {
               // If so, parse it from the stream and set it in the output tuple.
               output.$numbers = Some(stream.parse::<$types>()?);
             }
@@ -124,7 +136,8 @@ macro_rules! impl_for_tuple {
             }
 
           // If we havn't yet parsed all items in the tuple, parse the separator.
-          if $(output.$numbers.is_none())||+ {
+          // Also check if the stream is empty, which allows missing Optional items to be skipped
+          if !stream.is_empty() && $(output.$numbers.is_none())||+ {
             stream.parse::<Sep>()?;
           }
         }
@@ -148,6 +161,20 @@ impl_for_tuple!(T, U, V, W | 0, 1, 2, 3);
 impl_for_tuple!(T, U, V, W, X | 0, 1, 2, 3, 4);
 impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 
+// impl<T, P> crate::common::peekable::Peekable for T
+// where
+//   T: ParseableTuple<FirstItem = P>,
+//   P: crate::common::peekable::Peekable,
+// {
+//   fn display() -> &'static str {
+//     P::display()
+//   }
+//
+//   fn peek(stream: impl super::peekable::PeekableStream) -> bool {
+//     P::peek(stream)
+//   }
+// }
+
 /// Type wrapper to parse all items in tuple `T` in order, using
 /// `Sep` as the separator between items.
 ///
@@ -162,10 +189,14 @@ impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 /// stream.parse::<Ordered<T, syn::Token![,]>>()?;
 /// # }
 /// ```
-pub struct Ordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
+pub struct Ordered<T, Sep>
 where
   T: ParseableTuple,
-  Sep: syn::parse::Parse;
+  Sep: syn::parse::Parse,
+{
+  pub items: T,
+  sep: std::marker::PhantomData<Sep>,
+}
 
 impl<T, Sep> syn::parse::Parse for Ordered<T, Sep>
 where
@@ -174,7 +205,29 @@ where
 {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
     let output = T::parse_tuple::<Sep>(input)? as T;
-    Ok(Self(output, std::marker::PhantomData))
+    Ok(Self {
+      items: output,
+      sep: std::marker::PhantomData,
+    })
+  }
+}
+
+impl<T, FirstItem, Sep> crate::common::peekable::Peekable
+  for Ordered<T, Sep>
+where
+  T: ParseableTuple<FirstItem = FirstItem>,
+  Sep: syn::parse::Parse,
+  FirstItem: crate::common::peekable::Peekable,
+{
+  fn display() -> &'static str {
+    FirstItem::display()
+  }
+
+  fn peek<S>(stream: S) -> bool
+  where
+    S: crate::common::peekable::PeekableStream,
+  {
+    FirstItem::peek(stream)
   }
 }
 
@@ -186,7 +239,7 @@ where
   type Target = T;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.items
   }
 }
 
@@ -215,10 +268,14 @@ where
 ///   assert!(example(error).is_err());
 /// }
 /// ```
-pub struct Unordered<T, Sep>(pub T, pub std::marker::PhantomData<Sep>)
+pub struct Unordered<T, Sep>
 where
   T: PeekableTuple,
-  Sep: syn::parse::Parse + crate::common::peekable::Peekable;
+  Sep: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  pub items: T,
+  sep: std::marker::PhantomData<Sep>,
+}
 
 impl<T, Sep> syn::parse::Parse for Unordered<T, Sep>
 where
@@ -227,7 +284,10 @@ where
 {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
     let output = T::peek_parse_tuple::<Sep>(input)? as T;
-    Ok(Self(output, std::marker::PhantomData))
+    Ok(Self {
+      items: output,
+      sep: std::marker::PhantomData,
+    })
   }
 }
 
@@ -239,7 +299,7 @@ where
   type Target = T;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.items
   }
 }
 
@@ -258,10 +318,77 @@ where
   Else: syn::parse::Parse,
 {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-    if input.peek(If::peekable()) {
+    if input.tpeek::<If>() {
       Ok(Self::If(input.parse()?))
     } else {
       Ok(Self::Else(input.parse()?))
+    }
+  }
+}
+
+pub enum Optional<T>
+where
+  T: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  Some(T),
+  None,
+}
+
+impl<T> syn::parse::Parse for Optional<T>
+where
+  T: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    if input.is_empty() {
+      return Ok(Self::None);
+    }
+
+    if input.tpeek::<T>() {
+      Ok(Self::Some(input.parse()?))
+    } else {
+      Ok(Self::None)
+    }
+  }
+}
+
+impl<T> crate::common::peekable::Peekable for Optional<T>
+where
+  T: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  fn display() -> &'static str {
+    T::display()
+  }
+
+  fn peek<S>(stream: S) -> bool
+  where
+    S: crate::common::peekable::PeekableStream,
+  {
+    if stream.is_empty() {
+      return true;
+    }
+
+    T::peek(stream)
+  }
+}
+
+#[allow(dead_code)]
+impl<T> Optional<T>
+where
+  T: syn::parse::Parse + crate::common::peekable::Peekable,
+{
+  pub fn is_some(&self) -> bool {
+    matches!(self, Self::Some(_))
+  }
+
+  pub fn is_none(&self) -> bool {
+    matches!(self, Self::None)
+  }
+
+  #[allow(clippy::wrong_self_convention)]
+  pub fn to_opt(self) -> Option<T> {
+    match self {
+      Self::Some(value) => Some(value),
+      Self::None => None,
     }
   }
 }

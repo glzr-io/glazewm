@@ -59,7 +59,7 @@ impl syn::parse::Parse for EnumAttr {
       NamedParameter<kw::macos_prefix, PlatformPrefix>;
 
     let (win_prefix, macos_prefix) = input.parse::<Unordered<(WinPrefixParam, MacOSPrefixParam), syn::Token![,]>>()
-      .map(|Unordered((win_prefix, macos_prefix), _)| {
+      .map(|Unordered{items: (win_prefix, macos_prefix), ..}| {
         (win_prefix.param, macos_prefix.param)
       })?;
 

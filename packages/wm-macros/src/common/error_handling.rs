@@ -1,3 +1,10 @@
+pub mod prelude {
+  #[allow(unused_imports)]
+  pub use super::{
+    EmitError, ErrorContext, ThenError, ToError, ToSpanError,
+  };
+}
+
 /// Used to add a new message to an existing error.
 pub trait ErrorContext {
   /// Adds context to the error, typically a string describing the context.
@@ -109,5 +116,41 @@ where
 {
   fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error {
     syn::Error::new(self.span(), message)
+  }
+}
+
+#[allow(dead_code)]
+pub trait EmitError {
+  /// Directly emits an error message at the span of this object.
+  /// Should only be used when you are sure that the error should be
+  /// emitted, see `ToError` to convert to a `syn::Error` so allow the
+  /// error to be propagated.
+  fn emit_error<D: Into<String>>(&self, message: D);
+  /// Directly emits a warning message at the span of this object.
+  fn emit_warning<D: Into<String>>(&self, message: D);
+  /// Emits a help message at the span of this object.
+  fn emit_help<D: Into<String>>(&self, message: D);
+  /// Emits a note message at the span of this object.
+  fn emit_note<D: Into<String>>(&self, message: D);
+}
+
+impl<T> EmitError for T
+where
+  T: syn::spanned::Spanned,
+{
+  fn emit_error<D: Into<String>>(&self, message: D) {
+    self.span().unwrap().error(message).emit();
+  }
+
+  fn emit_warning<D: Into<String>>(&self, message: D) {
+    self.span().unwrap().warning(message).emit();
+  }
+
+  fn emit_help<D: Into<String>>(&self, message: D) {
+    self.span().unwrap().help(message).emit();
+  }
+
+  fn emit_note<D: Into<String>>(&self, message: D) {
+    self.span().unwrap().note(message).emit();
   }
 }

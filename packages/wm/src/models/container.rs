@@ -23,15 +23,41 @@ use crate::{
 };
 
 /// A container of any type.
-#[derive(Clone, Debug, EnumAsInner, Delegate)]
+#[derive(Clone, Debug, EnumAsInner, Delegate, wm_macros::SubEnum)]
 #[delegate(CommonGetters)]
 #[delegate(PositionGetters)]
+#[subenum(defaults(derives = (Clone, Debug, EnumAsInner, Delegate), delegates = (CommonGetters, PositionGetters)))]
+#[subenum(
+  doc = "Subset of containers that implement the following traits:"
+)]
+#[subenum(doc = " * `CommonGetters`")]
+#[subenum(doc = " * `PositionGetters`")]
+#[subenum(doc = " * `TilingSizeGetters`")]
+#[subenum(TilingContainer, delegates = (TilingSizeGetters))]
+#[subenum(
+  doc = "Subset of containers that implement the following traits:"
+)]
+#[subenum(doc = " * `CommonGetters`")]
+#[subenum(doc = " * `PositionGetters`")]
+#[subenum(doc = " * `WindowGetters`")]
+#[subenum(WindowContainer, delegates = (WindowGetters))]
+#[subenum(
+  doc = "  Subset of containers that implement the following traits:"
+)]
+#[subenum(doc = " * `CommonGetters`")]
+#[subenum(doc = " * `PositionGetters`")]
+#[subenum(doc = " * `TilingDirectionGetters`")]
+#[subenum(DirectionContainer, delegates = (TilingDirectionGetters))]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),
+  #[subenum(DirectionContainer)]
   Workspace(Workspace),
+  #[subenum(TilingContainer, DirectionContainer)]
   Split(SplitContainer),
+  #[subenum(TilingContainer, WindowContainer)]
   TilingWindow(TilingWindow),
+  #[subenum(WindowContainer)]
   NonTilingWindow(NonTilingWindow),
 }
 
@@ -106,19 +132,6 @@ impl PartialEq for Container {
 
 impl Eq for Container {}
 
-/// Subset of containers that implement the following traits:
-///  * `CommonGetters`
-///  * `PositionGetters`
-///  * `TilingSizeGetters`
-#[derive(Clone, Debug, EnumAsInner, Delegate)]
-#[delegate(CommonGetters)]
-#[delegate(PositionGetters)]
-#[delegate(TilingSizeGetters)]
-pub enum TilingContainer {
-  Split(SplitContainer),
-  TilingWindow(TilingWindow),
-}
-
 impl From<SplitContainer> for TilingContainer {
   fn from(value: SplitContainer) -> Self {
     TilingContainer::Split(value)
@@ -150,19 +163,6 @@ impl PartialEq for TilingContainer {
 }
 
 impl Eq for TilingContainer {}
-
-/// Subset of containers that implement the following traits:
-///  * `CommonGetters`
-///  * `PositionGetters`
-///  * `WindowGetters`
-#[derive(Clone, Debug, EnumAsInner, Delegate)]
-#[delegate(CommonGetters)]
-#[delegate(PositionGetters)]
-#[delegate(WindowGetters)]
-pub enum WindowContainer {
-  TilingWindow(TilingWindow),
-  NonTilingWindow(NonTilingWindow),
-}
 
 impl From<TilingWindow> for WindowContainer {
   fn from(value: TilingWindow) -> Self {
@@ -234,19 +234,6 @@ impl std::fmt::Display for WindowContainer {
       native.handle, process, class, title,
     )
   }
-}
-
-/// Subset of containers that implement the following traits:
-///  * `CommonGetters`
-///  * `PositionGetters`
-///  * `TilingDirectionGetters`
-#[derive(Clone, Debug, EnumAsInner, Delegate)]
-#[delegate(CommonGetters)]
-#[delegate(PositionGetters)]
-#[delegate(TilingDirectionGetters)]
-pub enum DirectionContainer {
-  Workspace(Workspace),
-  Split(SplitContainer),
 }
 
 impl From<Workspace> for DirectionContainer {

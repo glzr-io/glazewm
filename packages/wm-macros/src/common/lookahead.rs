@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 pub trait PeekThenAdvance {
   /// Checks if the next token in the stream is a T, and if so parses
   /// it. Returns `Some(<parse result>)` if the peek is successful, and
@@ -27,7 +29,7 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
   >(
     &self,
   ) -> Option<syn::Result<T>> {
-    if self.peek(T::peekable()) {
+    if self.tpeek::<T>() {
       Some(self.parse::<T>())
     } else {
       None
@@ -35,6 +37,7 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
   }
 }
 
+#[allow(dead_code)]
 pub trait LookaheadPeekThenAdvance {
   /// Checks if the next token in the lookahead is a T, and if so parses
   /// it. Returns `Some(<parse result>)` if the peek is successful, and
@@ -64,7 +67,7 @@ impl LookaheadPeekThenAdvance for syn::parse::Lookahead1<'_> {
     &self,
     stream: syn::parse::ParseStream,
   ) -> Option<syn::Result<T>> {
-    if self.peek(T::peekable()) {
+    if self.tpeek::<T>() {
       Some(stream.parse::<T>())
     } else {
       None

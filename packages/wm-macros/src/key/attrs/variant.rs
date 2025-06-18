@@ -1,10 +1,10 @@
 use quote::quote;
-use syn::{Token, parse::ParseStream};
+use syn::{Token, parse::ParseStream, punctuated::Punctuated};
 
 use crate::common::{
   branch::{IfElse, Ordered, Unordered},
   error_handling::{ErrorContext, ThenError as _, ToError as _},
-  lookahead::{LookaheadPeekThenAdvance, PeekThenAdvance as _},
+  lookahead::PeekThenAdvance as _,
   named_parameter::NamedParameter,
   spanned_string::SpannedString,
 };
@@ -64,7 +64,12 @@ impl syn::parse::Parse for KeyAttr {
   fn parse(input: ParseStream) -> syn::Result<Self> {
     let (strings, key_codes) = input
       .parse::<Ordered<(VariantStringList, PlatformKeyCodes), Token![,]>>()
-      .map(|Ordered((strings, key_codes), _)| (strings, key_codes))?;
+      .map(
+        |Ordered {
+           items: (strings, key_codes),
+           ..
+         }| (strings, key_codes),
+      )?;
     Ok(KeyAttr { strings, key_codes })
   }
 }
@@ -88,7 +93,12 @@ impl syn::parse::Parse for PlatformKeyCodes {
 
     let (win, macos) = input
       .parse::<Unordered<(WinParam, MacOSParam), Token![,]>>()
-      .map(|Unordered((win, macos), _)| (win.param, macos.param))?;
+      .map(
+        |Unordered {
+           items: (win, macos),
+           ..
+         }| (win.param, macos.param),
+      )?;
 
     Ok(PlatformKeyCodes { win, macos })
   }
@@ -151,15 +161,14 @@ impl syn::parse::Parse for VariantStringList {
   /// a list of strings separated by `|`, eg. `"string"` or `"string" |
   /// "list"`.
   fn parse(input: ParseStream) -> syn::Result<Self> {
-    // Parse the first string, which is required
-    let mut strings =
-      vec![input.parse().add_context("Expected a string value, or a string list seperated by `|`. Example: `\"enter\" | \"return\"`")?];
-
-    // Iterate while the next token is the seperator, advancing over the
-    // separator to parse the next string.
-    while input.peek_then_advance::<Token![|]>().is_some() {
-      strings.push(input.parse::<SpannedString>()?);
-    }
+    // Parse a list of strings separated by `|` or a single string.
+    let strings =
+      Punctuated::<SpannedString, Token![|]>::parse_separated_nonempty(
+        input,
+      )
+      .add_context(
+        "Expected a string or a list of strings separated by `|`",
+      )?;
 
     let mut validated_strings = Vec::new();
 
