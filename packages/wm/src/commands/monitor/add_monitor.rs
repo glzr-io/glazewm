@@ -33,21 +33,20 @@ pub fn add_monitor(
     added_monitor: monitor.to_dto()?,
   });
 
-  // Active all keep_alive workspaces for this monitor
-  config.keep_alive_workspace_configs().iter().for_each(
-    |workspace_config| {
-      #[allow(clippy::cast_possible_truncation)]
-      if workspace_config.bind_to_monitor == Some(monitor.index() as u32) {
-        activate_workspace(
-          Some(&workspace_config.name),
-          Some(monitor.clone()),
-          state,
-          config,
-        )
-        .unwrap_or_else(|err| warn!("{err}"));
-      }
-    },
-  );
+  let bound_workspace_configs = config.keep_alive_workspace_configs();
+
+  // Activate all `keep_alive` workspaces for this monitor.
+  for workspace_config in bound_workspace_configs {
+    #[allow(clippy::cast_possible_truncation)]
+    if workspace_config.bind_to_monitor == Some(monitor.index() as u32) {
+      activate_workspace(
+        Some(&workspace_config.name),
+        Some(monitor.clone()),
+        state,
+        config,
+      )?;
+    }
+  }
 
   // Activate a workspace on the newly added monitor.
   activate_workspace(None, Some(monitor), state, config)
