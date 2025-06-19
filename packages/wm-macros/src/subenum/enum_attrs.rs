@@ -1,6 +1,6 @@
 use syn::spanned::Spanned;
 
-use super::{IdentList, kw};
+use super::{PathList, kw};
 use crate::{
   common::{
     branch::{Optional, Ordered, Unordered},
@@ -12,17 +12,17 @@ use crate::{
 // Name-value pairs for derives and delegates with format `name =
 // value`
 type DerivesNameValue =
-  Ordered<(kw::derives, Parenthesized<IdentList>), syn::Token![=]>;
+  Ordered<(kw::derives, Parenthesized<PathList>), syn::Token![=]>;
 type DelegatesNameValue =
-  Ordered<(kw::delegates, Parenthesized<IdentList>), syn::Token![=]>;
+  Ordered<(kw::delegates, Parenthesized<PathList>), syn::Token![=]>;
 
 // Parse type for an unordered list of `derives = (<ident list>)` and
 // `delegates = (<ident list>)`, which are separated by commas, and each
 // item is optional.
 #[derive(Debug, Clone, Default)]
 struct DerivesAndDelegates {
-  derives: Vec<syn::Ident>,
-  delegates: Vec<syn::Ident>,
+  derives: Vec<syn::Path>,
+  delegates: Vec<syn::Path>,
 }
 
 impl syn::parse::Parse for DerivesAndDelegates {
@@ -42,7 +42,7 @@ impl syn::parse::Parse for DerivesAndDelegates {
 
     let delegates = delegates
       .to_opt()
-      .map_or_else(|| IdentList(vec![]), |d| d.items.1.into_inner());
+      .map_or_else(|| PathList(vec![]), |d| d.items.1.into_inner());
 
     Ok(DerivesAndDelegates {
       derives: derives.0,
@@ -87,8 +87,8 @@ impl syn::parse::Parse for SubEnumAttribute {
 #[derive(Debug, Clone)]
 pub struct SubEnumDeclaration {
   pub name: syn::Ident,
-  pub derives: Vec<syn::Ident>,
-  pub delegates: Vec<syn::Ident>,
+  pub derives: Vec<syn::Path>,
+  pub delegates: Vec<syn::Path>,
   pub docs: Vec<syn::LitStr>,
 }
 
@@ -216,7 +216,7 @@ pub fn collect_sub_enums<'a>(
       inner_enums.iter().filter_map(|e| {
         e.derives.iter().find(|d| d == derive).map(|d| d.span())
       }).for_each(|span| {
-        span.emit_help(format!("All sub-enums have the derive `{derive}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+        span.emit_help(format!("All sub-enums have the derive `{derive:#?}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
       });
     }
   }
@@ -230,7 +230,7 @@ pub fn collect_sub_enums<'a>(
           .find(|d| d == delegate)
           .map(|d| d.span())
       }).for_each(|span| {
-        span.emit_help(format!("All sub-enums have the delegate `{delegate}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+        span.emit_help(format!("All sub-enums have the delegate `{delegate:#?}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
       });
     }
   }

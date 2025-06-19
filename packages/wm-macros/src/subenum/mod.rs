@@ -17,16 +17,16 @@ mod kw {
 
 /// List of identifiers that are separated by commas.
 #[derive(Debug, Clone, Default)]
-struct IdentList(pub Vec<syn::Ident>);
+struct PathList(pub Vec<syn::Path>);
 
-impl syn::parse::Parse for IdentList {
+impl syn::parse::Parse for PathList {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
     let list = input
-      .parse_terminated(syn::Ident::parse, syn::Token![,])?
+      .parse_terminated(syn::Path::parse, syn::Token![,])?
       .iter()
       .cloned()
       .collect::<Vec<_>>();
-    Ok(IdentList(list))
+    Ok(PathList(list))
   }
 }
 
@@ -79,7 +79,87 @@ pub fn sub_enum(
     .iter()
     .map(|sub| try_from_main_to_sub_impl(&input.ident, sub));
 
-  // TODO: TryFrom sub enums that share variants.
+  struct SharedVariant {
+    sub_enum_a: syn::Ident,
+    sub_enum_b: syn::Ident,
+    variants: Vec<Variant>,
+  }
+
+  let mut shared_variants: Vec<SharedVariant> = Vec::new();
+  for i in 0..sub_enums.len() {
+    for j in (i + 1)..sub_enums.len() {
+      let sub_enum_a = &sub_enums[i];
+      let sub_enum_b = &sub_enums[j];
+
+      for variant_a in &sub_enum_a.variants {
+        if sub_enum_b.variants.iter().any(|v| v.name == variant_a.name) {
+          if let Some(shared) = shared_variants.iter_mut().find(|sv| {
+            sv.sub_enum_a == sub_enum_a.name
+              && sv.sub_enum_b == sub_enum_b.name
+          }) {
+            shared.variants.push(variant_a.clone());
+          } else {
+            shared_variants.push(SharedVariant {
+              sub_enum_a: sub_enum_a.name.clone(),
+              sub_enum_b: sub_enum_b.name.clone(),
+              variants: vec![variant_a.clone()],
+            });
+          }
+        }
+      }
+    }
+  }
+
+  let shared_variants = shared_variants.iter().map(|shared| {
+    let a = &shared.sub_enum_a;
+    let b = &shared.sub_enum_b;
+
+    let variants_a_b = shared.variants.iter().map(|v| {
+      let var_name = &v.name;
+      quote::quote! {
+        #a::#var_name(v) => Ok(#b::#var_name(v))
+      }
+    });
+
+    let variants_b_a = shared.variants.iter().map(|v| {
+      let var_name = &v.name;
+      quote::quote! {
+        #b::#var_name(v) => Ok(#a::#var_name(v))
+      }
+    });
+
+    let eror_a_b = format!(
+      "Cannot convert this variant of sub enum `{a}` to sub enum `{b}`."
+    );
+
+    let eror_b_a = format!(
+      "Cannot convert this variant of sub enum `{b}` to sub enum `{a}`."
+    );
+
+    quote::quote! {
+      impl TryFrom<#a> for #b {
+        type Error = &'static str;
+
+        fn try_from(value: #a) -> Result<Self, Self::Error> {
+          match value {
+            #(#variants_a_b),*,
+            _ => Err(#eror_a_b),
+          }
+        }
+      }
+
+      impl TryFrom<#b> for #a {
+        type Error = &'static str;
+
+        fn try_from(value: #b) -> Result<Self, Self::Error> {
+          match value {
+            #(#variants_b_a),*,
+            _ => Err(#eror_b_a),
+          }
+        }
+      }
+    }
+  });
 
   quote::quote! {
     #(#sub_enums)*
@@ -87,18 +167,21 @@ pub fn sub_enum(
     #(#sub_enum_to_main_impls)*
 
     #(#main_to_sub_impls)*
+
+    #(#shared_variants)*
   }
   .into()
 }
 
 struct SubEnum {
   pub name: syn::Ident,
-  pub derives: Vec<syn::Ident>,
-  pub delegates: Vec<syn::Ident>,
+  pub derives: Vec<syn::Path>,
+  pub delegates: Vec<syn::Path>,
   pub variants: Vec<Variant>,
   pub docs: Vec<syn::LitStr>,
 }
 
+#[derive(Debug, Clone)]
 struct Variant {
   pub name: syn::Ident,
   pub contained: syn::Type,
@@ -199,8 +282,9 @@ fn try_from_main_to_sub_impl(
     }
   });
 
-  let error =
-    format!("Cannot convert sub enum `{sub_name}` to main enum `{name}`.");
+  let error = format!(
+    "Cannot convert this variant of sub enum `{sub_name}` to main enum `{name}`."
+  );
 
   quote::quote! {
     impl TryFrom<#name> for #sub_name {

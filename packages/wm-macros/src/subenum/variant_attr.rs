@@ -1,3 +1,5 @@
+use syn::punctuated::Punctuated;
+
 use crate::prelude::*;
 
 pub struct SubenumVariant {
@@ -29,7 +31,11 @@ pub fn parse_variant(
   let enums = if let Some(enums) = variant
     .attrs
     .find_list_attrs(crate::subenum::SUBENUM_ATTR_NAME)
-    .map(|attr| attr.parse_args::<super::IdentList>().map(|list| list.0))
+    .map(|attr| {
+      attr.parse_args_with(
+        Punctuated::<syn::Ident, syn::Token![,]>::parse_terminated,
+      )
+    })
     .reduce(|acc, el| {
       acc.and_then(|mut acc| {
         el.map(|el| {
@@ -38,7 +44,7 @@ pub fn parse_variant(
         })
       })
     }) {
-    enums?
+    enums.map(|list| list.iter().cloned().collect::<Vec<_>>())?
   } else {
     vec![]
   };
