@@ -185,7 +185,54 @@ pub fn collect_sub_enums<'a>(
       // Saftey: a and b will always be from the same file
       .reduce(|a, b| a.join(b).unwrap())
       .unwrap();
-    span.emit_warning("Multiple `defaults` attributes found. Consider combining them into one.");
+    span.emit_note("Multiple `defaults` attributes found. Consider combining them into one.");
+  }
+
+  // Find derives and delegates that are in all enum declarations but not
+  // in defaults
+
+  let inner_enums = parsed_attrs
+    .iter()
+    .filter_map(|attr| match &attr.attr {
+      SubEnumAttribute::SubEnum(sub_enum) => Some(sub_enum),
+      _ => None,
+    })
+    .collect::<Vec<_>>();
+
+  let mut all_derives = inner_enums
+    .iter()
+    .flat_map(|e| &e.derives)
+    .collect::<Vec<_>>();
+  all_derives.dedup();
+  let mut all_delegates = inner_enums
+    .iter()
+    .flat_map(|e| &e.delegates)
+    .collect::<Vec<_>>();
+  all_delegates.dedup();
+
+  for derive in &all_derives {
+    if inner_enums.iter().all(|e| e.derives.contains(derive)) {
+      // Get all the spans of the derive
+      inner_enums.iter().filter_map(|e| {
+        e.derives.iter().find(|d| d == derive).map(|d| d.span())
+      }).for_each(|span| {
+        span.emit_help(format!("All sub-enums have the derive `{derive}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+      });
+    }
+  }
+
+  for delegate in &all_delegates {
+    if inner_enums.iter().all(|e| e.delegates.contains(delegate)) {
+      // Get all the spans of the delegate
+      inner_enums.iter().filter_map(|e| {
+        e.delegates
+          .iter()
+          .find(|d| d == delegate)
+          .map(|d| d.span())
+      }).for_each(|span| {
+        span.emit_help(format!("All sub-enums have the delegate `{delegate}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+      });
+    }
   }
 
   Ok(

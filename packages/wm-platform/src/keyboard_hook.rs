@@ -157,10 +157,7 @@ impl KeyboardHook {
   /// Returns `true` if the event should be blocked and not sent to other
   /// applications.
   fn handle_key_event(&self, vk_code: u16) -> bool {
-    // TODO: Remove logging after more thourough testing.
-
     let pressed_key = Key::from_vk(vk_code);
-    tracing::info!("Pressed key: {pressed_key:?}");
     match self
       .keybindings_by_trigger_key
       .lock()
@@ -196,16 +193,10 @@ impl KeyboardHook {
           .max_by_key(|keybinding| keybinding.keys.len());
 
         if longest_keybinding.is_none() {
-          tracing::warn!("Didn't find keybind");
           return false;
         }
 
         let longest_keybinding = longest_keybinding.unwrap();
-
-        tracing::info!(
-          "Longest keybinding: {:?}",
-          longest_keybinding.keys
-        );
 
         // Get the modifier keys to reject based on the longest matching
         // keybinding.
@@ -219,30 +210,14 @@ impl KeyboardHook {
           })
           .collect::<Vec<_>>();
 
-        tracing::info!(
-          "Modifier keys to reject: {:?}",
-          modifier_keys_to_reject
-        );
-
         // Check if any modifier keys to reject are currently down.
         let has_modifier_keys_to_reject =
           modifier_keys_to_reject.iter().any(|&modifier_key| {
             if let Some(&is_key_down) = cached_key_states.get(modifier_key)
             {
-              if is_key_down {
-                tracing::info!(
-                  "Modifier key is down, rejecting: {modifier_key:?}"
-                );
-              }
               is_key_down
             } else {
-              let is_key_down = modifier_key.is_down();
-              if is_key_down {
-                tracing::info!(
-                  "Modifier key is down, rejecting: {modifier_key:?}"
-                );
-              }
-              is_key_down
+              modifier_key.is_down()
             }
           });
 

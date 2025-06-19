@@ -71,32 +71,22 @@ pub fn sub_enum(
 
   let sub_enums = combine_variants(sub_enums, variants);
 
-  let sub_enum_decls = sub_enums.iter().map(|sub_enum| {
-    let name = &sub_enum.name;
-    let derives = &sub_enum.derives;
-    let delegates = &sub_enum.delegates;
-    let docs = &sub_enum.docs;
+  let sub_enum_to_main_impls = sub_enums
+    .iter()
+    .map(|sub_enum| from_sub_to_main_impl(&input.ident, sub_enum));
 
-    let variants = sub_enum.variants.iter().map(|variant| {
-      let variant_name = &variant.name;
-      let contained = &variant.contained;
-      quote::quote! {
-        #variant_name(#contained)
-      }
-    });
+  let main_to_sub_impls = sub_enums
+    .iter()
+    .map(|sub| try_from_main_to_sub_impl(&input.ident, sub));
 
-    quote::quote! {
-      #(#[doc = #docs])*
-      #[derive(#(#derives),*)]
-      #(#[delegate(#delegates)])*
-      pub enum #name {
-        #(#variants),*
-      }
-    }
-  });
+  // TODO: TryFrom sub enums that share variants.
 
   quote::quote! {
-    #(#sub_enum_decls)*
+    #(#sub_enums)*
+
+    #(#sub_enum_to_main_impls)*
+
+    #(#main_to_sub_impls)*
   }
   .into()
 }
@@ -112,6 +102,36 @@ struct SubEnum {
 struct Variant {
   pub name: syn::Ident,
   pub contained: syn::Type,
+}
+
+impl quote::ToTokens for SubEnum {
+  fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    let name = &self.name;
+    let derives = &self.derives;
+    let delegates = &self.delegates;
+    let docs = &self.docs;
+
+    let variants = &self.variants;
+
+    tokens.extend(quote::quote! {
+      #(#[doc = #docs])*
+      #[derive(#(#derives),*)]
+      #(#[delegate(#delegates)])*
+      pub enum #name {
+        #(#variants),*
+      }
+    });
+  }
+}
+
+impl quote::ToTokens for Variant {
+  fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    let variant_name = &self.name;
+    let contained = &self.contained;
+    tokens.extend(quote::quote! {
+      #variant_name(#contained)
+    });
+  }
 }
 
 /// Combine the sub enum declarations with its enum variants
@@ -140,4 +160,58 @@ fn combine_variants(
       }
     })
     .collect()
+}
+
+fn from_sub_to_main_impl(
+  name: &syn::Ident,
+  sub_enum: &SubEnum,
+) -> proc_macro2::TokenStream {
+  let sub_name = &sub_enum.name;
+
+  let variants = sub_enum.variants.iter().map(|v| {
+    let var_name = &v.name;
+    quote::quote! {
+      #sub_name::#var_name(v) => #name::#var_name(v)
+    }
+  });
+
+  quote::quote! {
+    impl From<#sub_name> for #name {
+      fn from(value: #sub_name) -> Self {
+        match value {
+          #(#variants),*
+        }
+      }
+    }
+  }
+}
+
+fn try_from_main_to_sub_impl(
+  name: &syn::Ident,
+  sub_enum: &SubEnum,
+) -> proc_macro2::TokenStream {
+  let sub_name = &sub_enum.name;
+
+  let variants = sub_enum.variants.iter().map(|v| {
+    let var_name = &v.name;
+    quote::quote! {
+      #name::#var_name(v) => Ok(#sub_name::#var_name(v))
+    }
+  });
+
+  let error =
+    format!("Cannot convert sub enum `{sub_name}` to main enum `{name}`.");
+
+  quote::quote! {
+    impl TryFrom<#name> for #sub_name {
+      type Error = &'static str;
+
+      fn try_from(value: #name) -> Result<Self, Self::Error> {
+        match value {
+          #(#variants),*,
+          _ => Err(#error),
+        }
+      }
+    }
+  }
 }

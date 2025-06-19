@@ -22,6 +22,8 @@ use crate::{
   user_config::UserConfig,
 };
 
+// TODO: Derive EnumFromInner for when it is created.
+
 /// A container of any type.
 #[derive(Clone, Debug, EnumAsInner, Delegate, wm_macros::SubEnum)]
 #[delegate(CommonGetters)]
@@ -97,33 +99,6 @@ impl From<TilingWindow> for Container {
   }
 }
 
-impl From<TilingContainer> for Container {
-  fn from(tiling_container: TilingContainer) -> Self {
-    match tiling_container {
-      TilingContainer::Split(c) => Container::Split(c),
-      TilingContainer::TilingWindow(c) => Container::TilingWindow(c),
-    }
-  }
-}
-
-impl From<WindowContainer> for Container {
-  fn from(window_container: WindowContainer) -> Self {
-    match window_container {
-      WindowContainer::NonTilingWindow(c) => Container::NonTilingWindow(c),
-      WindowContainer::TilingWindow(c) => Container::TilingWindow(c),
-    }
-  }
-}
-
-impl From<DirectionContainer> for Container {
-  fn from(direction_container: DirectionContainer) -> Self {
-    match direction_container {
-      DirectionContainer::Split(c) => Container::Split(c),
-      DirectionContainer::Workspace(c) => Container::Workspace(c),
-    }
-  }
-}
-
 impl PartialEq for Container {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()
@@ -144,18 +119,6 @@ impl From<TilingWindow> for TilingContainer {
   }
 }
 
-impl TryFrom<Container> for TilingContainer {
-  type Error = &'static str;
-
-  fn try_from(container: Container) -> Result<Self, Self::Error> {
-    match container {
-      Container::Split(c) => Ok(TilingContainer::Split(c)),
-      Container::TilingWindow(c) => Ok(TilingContainer::TilingWindow(c)),
-      _ => Err("Cannot convert type to `TilingContainer`."),
-    }
-  }
-}
-
 impl PartialEq for TilingContainer {
   fn eq(&self, other: &Self) -> bool {
     self.id() == other.id()
@@ -173,20 +136,6 @@ impl From<TilingWindow> for WindowContainer {
 impl From<NonTilingWindow> for WindowContainer {
   fn from(value: NonTilingWindow) -> Self {
     WindowContainer::NonTilingWindow(value)
-  }
-}
-
-impl TryFrom<Container> for WindowContainer {
-  type Error = &'static str;
-
-  fn try_from(container: Container) -> Result<Self, Self::Error> {
-    match container {
-      Container::TilingWindow(c) => Ok(WindowContainer::TilingWindow(c)),
-      Container::NonTilingWindow(c) => {
-        Ok(WindowContainer::NonTilingWindow(c))
-      }
-      _ => Err("Cannot convert type to a `WindowContainer`."),
-    }
   }
 }
 
@@ -245,18 +194,6 @@ impl From<Workspace> for DirectionContainer {
 impl From<SplitContainer> for DirectionContainer {
   fn from(value: SplitContainer) -> Self {
     DirectionContainer::Split(value)
-  }
-}
-
-impl TryFrom<Container> for DirectionContainer {
-  type Error = &'static str;
-
-  fn try_from(container: Container) -> Result<Self, Self::Error> {
-    match container {
-      Container::Workspace(c) => Ok(DirectionContainer::Workspace(c)),
-      Container::Split(c) => Ok(DirectionContainer::Split(c)),
-      _ => Err("Cannot convert type to a `DirectionContainer`."),
-    }
   }
 }
 
