@@ -216,7 +216,8 @@ pub fn collect_sub_enums<'a>(
       inner_enums.iter().filter_map(|e| {
         e.derives.iter().find(|d| d == derive).map(|d| d.span())
       }).for_each(|span| {
-        span.emit_help(format!("All sub-enums have the derive `{derive:#?}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+        let derive = derive.segments.iter().map(|seg| seg.ident.to_string()).reduce(|acc, el| format!("{acc}::{el}").to_string()).unwrap_or_else(|| "unknown".to_string());
+        span.emit_help(format!("All sub-enums have the derive `{derive}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
       });
     }
   }
@@ -230,7 +231,8 @@ pub fn collect_sub_enums<'a>(
           .find(|d| d == delegate)
           .map(|d| d.span())
       }).for_each(|span| {
-        span.emit_help(format!("All sub-enums have the delegate `{delegate:#?}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
+        let delegate = delegate.segments.iter().map(|seg| seg.ident.to_string()).reduce(|acc, el| format!("{acc}::{el}").to_string()).unwrap_or_else(|| "unknown".to_string());
+        span.emit_help(format!("All sub-enums have the delegate `{delegate}` but it is not in the `defaults` attribute. Consider adding it to the `defaults` attribute."));
       });
     }
   }
