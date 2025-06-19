@@ -4,7 +4,8 @@ use wm_platform::Platform;
 
 use crate::{
   commands::monitor::{
-    add_monitor, remove_monitor, sort_monitors, update_monitor,
+    add_monitor, rebind_workspaces_to_monitors, remove_monitor,
+    sort_monitors, update_monitor,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -110,6 +111,9 @@ pub fn handle_display_settings_changed(
 
   // Sort monitors by position.
   sort_monitors(&state.root_container)?;
+
+  // Rebind workspaces to their correct monitors after sorting
+  rebind_workspaces_to_monitors(state, config)?;
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark

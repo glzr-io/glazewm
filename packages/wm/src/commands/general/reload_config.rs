@@ -3,7 +3,10 @@ use tracing::{info, warn};
 use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
 
 use crate::{
-  commands::{window::run_window_rules, workspace::sort_workspaces},
+  commands::{
+    monitor::rebind_workspaces_to_monitors, window::run_window_rules,
+    workspace::sort_workspaces,
+  },
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm::WindowManager,
@@ -29,6 +32,9 @@ pub fn reload_config(
   }
 
   update_workspace_configs(state, config)?;
+
+  // Rebind workspaces to their correct monitors after config changes
+  rebind_workspaces_to_monitors(state, config)?;
 
   update_container_gaps(state, config);
 
