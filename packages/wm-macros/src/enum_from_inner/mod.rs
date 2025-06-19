@@ -18,6 +18,9 @@ pub fn enum_from_inner(
       syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
         &fields.unnamed[0].ty
       }
+      syn::Fields::Unit => {
+        return quote::quote! {};
+      }
       _ => {
         return ToError::error(
           &variant,
