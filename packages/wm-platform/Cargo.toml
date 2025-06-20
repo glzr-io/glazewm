@@ -11,6 +11,9 @@ anyhow = { workspace = true }
 home = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+wm-common = { path = "../wm-common" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52", features = [
   "implement",
   "Win32_Devices_HumanInterfaceDevice",
@@ -34,4 +37,26 @@ windows = { version = "0.52", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 windows-interface = { version = "0.52" }
-wm-common = { path = "../wm-common" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.1"
+objc2-app-kit = { version = "0.3.1", default-features = false, features = [
+  "NSApplication",
+  "NSEvent",
+  "NSGraphics",
+  "NSRunningApplication",
+  "NSResponder",
+  "NSScreen",
+  "NSWindow",
+  "NSWorkspace",
+] }
+objc2-core-foundation = { version = "0.3.1", features = ["CFCGTypes"] }
+objc2-foundation = { version = "0.3.1", default-features = false, features = [
+  "NSArray",
+  "NSEnumerator",
+  "NSNotification",
+  "NSKeyValueCoding",
+  "NSString",
+  "NSThread",
+  "NSValue",
+] }
