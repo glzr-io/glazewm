@@ -6,7 +6,6 @@
 mod com;
 mod event_listener;
 mod event_window;
-mod key;
 mod keyboard_hook;
 mod native_monitor;
 mod native_window;

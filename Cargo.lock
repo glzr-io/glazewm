@@ -2317,6 +2317,7 @@ dependencies = [
  "wm-cli",
  "wm-common",
  "wm-ipc-client",
+ "wm-macros",
  "wm-platform",
 ]
 
@@ -2366,7 +2367,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.67",
+ "syn 2.0.103",
 ]
 
 [[package]]
@@ -2380,7 +2381,6 @@ dependencies = [
  "windows",
  "windows-interface",
  "wm-common",
- "wm-macros",
 ]
 
 [[package]]
