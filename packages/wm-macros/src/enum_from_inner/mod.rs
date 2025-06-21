@@ -1,3 +1,5 @@
+use quote::ToTokens as _;
+
 use crate::prelude::*;
 
 pub fn enum_from_inner(
@@ -30,10 +32,38 @@ pub fn enum_from_inner(
       }
     };
 
+    let error = format!(
+      "Cannot convert this variant of enum `{}` to {}",
+      name,
+      inner_type.to_token_stream()
+    );
+
     quote::quote! {
       impl From<#inner_type> for #name {
         fn from(value: #inner_type) -> Self {
           #name::#ident(value)
+        }
+      }
+
+      impl TryFrom<#name> for #inner_type {
+        type Error = &'static str;
+
+        fn try_from(value: #name) -> Result<Self, Self::Error> {
+          match value {
+            #name::#ident(inner) => Ok(inner),
+            _ => Err(#error),
+          }
+        }
+      }
+
+      impl<'a> TryFrom<&'a #name> for &'a #inner_type {
+        type Error = &'static str;
+
+        fn try_from(value: &'a #name) -> Result<Self, Self::Error> {
+          match value {
+            #name::#ident(inner) => Ok(inner),
+            _ => Err(#error),
+          }
         }
       }
     }
