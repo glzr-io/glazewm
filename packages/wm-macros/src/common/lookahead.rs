@@ -1,12 +1,15 @@
+//! Extension traits for peeking and then advancing the stream if the peek
+//! is successful.
+
 use crate::prelude::*;
 
 pub trait PeekThenAdvance {
-  /// Checks if the next token in the stream is a T, and if so parses
+  /// Checks if the next token in the stream is a `T`, and if so parses
   /// it. Returns `Some(<parse result>)` if the peek is successful, and
   /// `None` if the token does not match.
   ///
-  /// See `LookaheadPeekThenAdvance` for a version that uses a lookahead
-  /// instead of a stream.
+  /// See [LookaheadPeekThenAdvance] for a version that uses a
+  /// [syn::parse::Lookahead1] instead of [syn::parse::ParseStream].
   ///
   /// # Example
   /// ```
@@ -39,9 +42,12 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
 
 #[allow(dead_code)]
 pub trait LookaheadPeekThenAdvance {
-  /// Checks if the next token in the lookahead is a T, and if so parses
+  /// Checks if the next token in the lookahead is a `T`, and if so parses
   /// it. Returns `Some(<parse result>)` if the peek is successful, and
   /// `None` if the token does not match.
+  ///
+  /// See [PeekThenAdvance] for a version that uses
+  /// [syn::parse::ParseStream] rather than a [syn::parse::Lookahead1].
   ///
   /// # Example
   /// ```

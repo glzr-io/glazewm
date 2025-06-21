@@ -1,4 +1,25 @@
+//! Types for parsing `name = value` patterns.
+
 #[allow(dead_code)]
+/// Type to represent a `name = value` pair, where `name` can be peeked and
+/// both `name` and `value` can be parsed.
+///
+/// # Example
+/// Parse a name-value pair of [syn::Ident] and [syn::LitStr].
+/// ```
+/// type NamedParam = NamedParameter<syn::Ident, syn::LitStr>;
+///
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<NamedParam> {
+///   stream.parse::<NamedParam>()
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let tokens = quote! { some_name = "some_value" }.into();
+///
+///   assert!(example(tokens).is_ok());
+/// }
+/// ```
 pub struct NamedParameter<Name, Param>
 where
   Name: syn::parse::Parse + crate::common::peekable::Peekable,

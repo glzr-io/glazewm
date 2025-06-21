@@ -1,3 +1,7 @@
+//! Types and traits for branching and combining parsing operations.
+//! Implements functionality similar to `nom`s alternatives and
+//! combinators, but for `syn::parse::ParseStream`.
+
 use crate::prelude::*;
 
 /// Trait for tuples where all items can be parsed from a
@@ -12,17 +16,7 @@ where
   /// appear in the tuple, and parses `Sep` in between each item. Returns
   /// all parsed items in a tuple, or the first error to occur.
   ///
-  /// # Example
-  /// Parses a `syn::Ident` and a `syn::LitStr`, which are seperated by a
-  /// comma, from the stream. E.g. `some_name, "some string"`. If the
-  /// order is reversed, it will fail to parse. If order is irrelevant,
-  /// use `PeekableTuple` instead.
-  /// ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// type T = (syn::Ident, syn::LitStr);
-  /// T::parse_tuple::<syn::Token![,]>(stream)?;
-  /// # }
-  /// ```
+  /// Do not use this directly, use the [Ordered] type instead,
   fn parse_tuple<Sep>(
     stream: syn::parse::ParseStream,
   ) -> syn::Result<Self>
@@ -41,16 +35,7 @@ where
   /// the tuple, although if an item is not found, it may be skipped and
   /// reattempted for the next item(s).
   ///
-  /// # Example
-  /// Parses a `syn::Ident` and a `syn::LitStr`, which are seperated by a
-  /// comma, from the stream in any order. Will successfully parse both:
-  /// `some_name, "some string"` and `"some string", some_name`.
-  /// ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// type T = (syn::Ident, syn::LitStr);
-  /// let (ident, lit_str) = T::peek_parse_tuple::<syn::Token![,]>(stream)?;
-  /// # }
-  /// ```
+  /// Do not use this directly, use the [Unordered] type instead.
   fn peek_parse_tuple<Sep>(
     stream: syn::parse::ParseStream,
   ) -> syn::Result<Self>
@@ -58,8 +43,6 @@ where
     Sep: syn::parse::Parse + crate::common::peekable::Peekable;
 }
 
-// For token replacing, primarily for varaidic argument unpacking.
-// Used to create the `None` value for each item in the tuple.
 macro_rules! replace_expr {
   ($idc:expr, $sub:expr) => {
     $sub
@@ -73,30 +56,20 @@ macro_rules! get_first_item {
 }
 
 macro_rules! impl_for_tuple {
-  // Might be a way to create the number list from the types, but too complex to be worth it.
-  // Types are the generic type args, numbers are the indices for each type in the tuple.
   ($($types:tt),+ | $($numbers:tt),+) => {
     // Generic ensures that all types in the tuple implement `syn::parse::Parse`.
     impl<$($types),+> ParseableTuple for ($($types,)+) where $($types : syn::parse::Parse),+ {
       type FirstItem = get_first_item!($($types),+);
 
       fn parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self> where Sep: syn::parse::Parse {
-        // Return the output tuple with all items parsed from the stream.
-        // Parsing happens in a block to allow the separator to be parsed inside of the tuple
-        // constructor
-
-        // Create a variable for the parsed version of each item in the tuple. Needs to be outside
-        // of the tuple constructor to allow the seperator to be parsed before each item in the
-        // correct order.
         $(
-          // Parse the seperator before every item bar the first
-          if $numbers != 0 {
+          // Also check if the stream is empty to allow for missing trailing Optional items
+          if $numbers != 0 && !stream.is_empty() {
             stream.parse::<Sep>()?;
           }
-          // Parse the type from the stream
+
           #[allow(non_snake_case)]
           let $types = stream.parse::<$types>()?;
-          // Parse the separator after the type
         )+
 
         // Pack the parsed items into a tuple
@@ -106,43 +79,41 @@ macro_rules! impl_for_tuple {
 
     // Generic ensures that all types in the tuple implement `syn::parse::Parse` and `Peekable`.
     impl<$($types),+> PeekableTuple for ($($types,)+) where $($types : syn::parse::Parse + crate::common::peekable::Peekable),+{
-      // Set the output type to be the same as the tuple itself.
 
       fn peek_parse_tuple<Sep>(stream: syn::parse::ParseStream) -> syn::Result<Self>
         where Sep: syn::parse::Parse + crate::common::peekable::Peekable
       {
         use crate::common::peekable::prelude::*;
+
         // Creates a tuple with the same number of items as the tuple, but with each item being
         // `None`.
         let mut output: ($(Option<$types>,)+) = ($(replace_expr!($types, None),)+);
 
-        // Iterate while all items in the tuple are `None`, meaning they have not been parsed yet.
+        // Iterate while any of the items in the tuple are `None`.
         while $(output.$numbers.is_none())||+ {
-          // Create a lookahaed for this iteration.
           let lookahead = stream.lookahead1();
-          // For each type in the tuple, insert the following block.
+
           $(
-            // Try to peek this tuple item.
             if output.$numbers.is_none() && lookahead.tpeek::<$types>() {
-              // If so, parse it from the stream and set it in the output tuple.
+
               output.$numbers = Some(stream.parse::<$types>()?);
             }
             // Insert an else before the next item in the tuple, to create `else if` on subsequent
             // unpacking
             )else+
             else {
-              // Else, if the item is not peeked, we will return an error.
               return Err(lookahead.error());
             }
 
           // If we havn't yet parsed all items in the tuple, parse the separator.
           // Also check if the stream is empty, which allows missing Optional items to be skipped
+          // TODO: Better handling of [Optional] items, so that we can handle them without needing
+          // the stream to end.
           if !stream.is_empty() && $(output.$numbers.is_none())||+ {
             stream.parse::<Sep>()?;
           }
         }
 
-        // Return a tuple with all items parsed from the stream.
         Ok(($(
         // Saftey, the output is guaranteed to have all items otherwise the loop would have errored
         // out.
@@ -161,33 +132,28 @@ impl_for_tuple!(T, U, V, W | 0, 1, 2, 3);
 impl_for_tuple!(T, U, V, W, X | 0, 1, 2, 3, 4);
 impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 
-// impl<T, P> crate::common::peekable::Peekable for T
-// where
-//   T: ParseableTuple<FirstItem = P>,
-//   P: crate::common::peekable::Peekable,
-// {
-//   fn display() -> &'static str {
-//     P::display()
-//   }
-//
-//   fn peek(stream: impl super::peekable::PeekableStream) -> bool {
-//     P::peek(stream)
-//   }
-// }
-
 /// Type wrapper to parse all items in tuple `T` in order, using
 /// `Sep` as the separator between items.
 ///
 /// # Example
-/// Parse `syn::Ident` and `syn::LitStr` from the stream, which are
+/// Parse [syn::Ident] and [syn::LitStr] from the stream, which are
 /// separated by a comma. E.g. `some_name, "some string"`. If the order is
 /// reversed, it will fail to parse.
 /// ```
-/// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-/// type T = (syn::Ident, syn::LitStr);
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+///   type T = (syn::Ident, syn::LitStr);
 ///
-/// stream.parse::<Ordered<T, syn::Token![,]>>()?;
-/// # }
+///   stream.parse::<Ordered<T, syn::Token![,]>>()?;
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let tokens = quote! { some_name, "some string" }.into();
+///   let error = quote! { "some string", some_name }.into();
+///
+///   assert!(example(tokens).is_ok());
+///   assert!(example(error).is_err());
+/// }
 /// ```
 pub struct Ordered<T, Sep>
 where
@@ -212,6 +178,8 @@ where
   }
 }
 
+/// Implement [Peekable] for [Ordered] if the first item in the
+/// tuple is peekable, by forwarding the implementation to the first item.
 impl<T, FirstItem, Sep> crate::common::peekable::Peekable
   for Ordered<T, Sep>
 where
@@ -243,11 +211,11 @@ where
   }
 }
 
-/// Typpe wrapper to parse all items in tuple `T` in any order, using `Sep`
+/// Type wrapper to parse all items in tuple `T` in any order, using `Sep`
 /// as the separator between items.
 ///
 /// # Example
-/// Parse `syn::Ident` and `syn::LitStr` from the stream in any order,
+/// Parse [syn::Ident] and [syn::LitStr] from the stream in any order,
 /// which are separated by a comma. E.g. `some_name, "some string"` or
 /// `"some string", some_name`.
 /// ```
@@ -303,6 +271,27 @@ where
   }
 }
 
+/// Type wrapper to parse `If` if it is present, otherwise parse `Else`.
+/// `If` must be peekable so it can be checked if it is present before
+/// parsing.
+///
+/// # Example
+/// Parse [syn::Ident] if it is present, otherwise parse [syn::LitStr].
+/// ```
+/// type IfElseType = IfElse<syn::Ident, syn::LitStr>;
+///
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<IfElseType> {
+///   stream.parse::<IfElseType>()
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let if_tokens = quote! { some_name }.into();
+///   let else_tokens = quote! { "some string" }.into();
+///
+///   assert!(example(if_tokens).is_ok_and(|if_else| if_else.is_if()));
+///   assert!(example(else_tokens).is_ok_and(|if_else| if_else.is_else()));
+/// }
 pub enum IfElse<If, Else>
 where
   If: syn::parse::Parse + crate::common::peekable::Peekable,
@@ -310,6 +299,21 @@ where
 {
   If(If),
   Else(Else),
+}
+
+#[allow(dead_code)]
+impl<If, Else> IfElse<If, Else>
+where
+  If: syn::parse::Parse + crate::common::peekable::Peekable,
+  Else: syn::parse::Parse,
+{
+  pub fn is_if(&self) -> bool {
+    matches!(self, Self::If(_))
+  }
+
+  pub fn is_else(&self) -> bool {
+    matches!(self, Self::Else(_))
+  }
 }
 
 impl<If, Else> syn::parse::Parse for IfElse<If, Else>
@@ -326,6 +330,79 @@ where
   }
 }
 
+/// Type wrapper to parse `T` only if it is present, otherwise returns
+/// None.
+///
+/// To be used in combination with [Ordered] then all optional items must
+/// be last in the tuple, and the stream must end to indicate that the
+/// optional items will not be present.
+///
+/// To be used in combination with [Unordered] the stream must end to
+/// indicate that the [Optional]s will not be present.
+///
+/// # Example
+/// Parse [syn::Ident] if it is present, otherwise return None.
+/// ```
+/// type OptionalType = Optional<syn::Ident>;
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<OptionalType> {
+///   stream.parse::<OptionalType>()
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let present = quote! { some_name }.into();
+///   let not_present = quote! {}.into();
+///   let other_present = quote! { "some_string" }.into();
+///
+///   assert!(example(present).is_ok_and(|opt| opt.is_some()));
+///   assert!(example(not_present).is_ok_and(|opt| opt.is_none()));
+///   assert!(example(other_present).is_ok_and(|opt| opt.is_none()));
+/// }
+/// ```
+/// Used in combination with [Ordered] to parse a [syn::Ident] and
+/// optionally a [syn::LitStr]:
+/// ```
+/// type OrderedOptionalType = Ordered<(syn::Ident, Optional<syn::LitStr>),
+/// syn::Token![,]>;
+///
+/// fn example(stream: syn::parse::ParseStream) ->
+/// syn::Result<OrderedOptionalType> {
+///   stream.parse::<OrderedOptionalType>()
+/// }
+///
+/// fn main() {
+///   let present = quote! { some_name, "some string" }.into();
+///   let missing = quote! { some_name }.into();
+///   // Will error since the stream did not end after the Ordered to indicate no optionals.
+///   let error = quote! { some_name, not_a_string }.into();
+///
+///   assert!(example(present).is_ok_and(|Ordered { items: (ident, string), ..}| string.is_some()));
+///   assert!(example(missing).is_ok_and(|Ordered { items: (ident, string), ..}| string.is_none()));
+///   assert!(example(error).is_err());
+/// }
+/// ```
+/// Used in combination with [Unordered] it can be used to parse a
+/// [syn::Ident] and optionally a [syn::LitStr] in any order:
+/// ```
+/// type UnorderedOptionalType = Unordered<(syn::Ident, Optional<syn::LitStr>), syn::Token![,]>;
+///
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<UnorderedOptionalType> {
+///   stream.parse::<UnorderedOptionalType>()
+/// }
+///
+/// fn main() {
+///   let present = quote! { some_name, "some string" }.into();
+///   let not_present = quote! { some_name }.into();
+///   let backwards = quote! { "some string", some_name }.into();
+///   // Will error since the stream did not end after the Unordered to indicate no optionals.
+///   let error = quote! { some_name, not_a_string }.into();
+///
+///   assert!(example(present).is_ok_and(|Unordered { items: (ident, string), ..}| string.is_some()));
+///   assert!(example(not_present).is_ok_and(|Unordered { items: (ident, string), ..}| string.is_none()));
+///   assert!(example(backwards).is_ok_and(|Unordered { items: (ident, string), ..}| string.is_some()));
+///   assert!(example(error).is_err());
+/// }
+/// ```
 pub enum Optional<T>
 where
   T: syn::parse::Parse + crate::common::peekable::Peekable,

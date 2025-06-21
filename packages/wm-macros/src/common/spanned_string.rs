@@ -1,3 +1,5 @@
+//! Type for a String with an associated source code span.
+
 /// A String with an associated source code span.
 /// An owned version of a syn::LitStr.
 #[derive(Debug, Clone)]

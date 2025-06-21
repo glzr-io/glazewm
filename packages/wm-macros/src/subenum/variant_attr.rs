@@ -2,12 +2,14 @@ use syn::punctuated::Punctuated;
 
 use crate::prelude::*;
 
+/// Holds the parsed data for a single subenum variant.
 pub struct SubenumVariant {
   pub name: syn::Ident,
   pub contained: syn::Type,
   pub enums: Vec<syn::Ident>,
 }
 
+/// Parse a single subenum variant from a [syn::Variant].
 pub fn parse_variant(
   variant: &syn::Variant,
 ) -> syn::Result<SubenumVariant> {

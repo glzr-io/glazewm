@@ -1,3 +1,5 @@
+//! Utlities for working with [syn::DeriveInput] and other related types.
+
 use syn::DataEnum;
 
 pub mod prelude {
@@ -5,6 +7,7 @@ pub mod prelude {
 }
 
 pub trait RequireEnum {
+  /// Return the enum data, or an error if the data is not an enum.
   fn require_enum(&self) -> syn::Result<&DataEnum>;
 }
 

@@ -1,15 +1,8 @@
-use syn::spanned::Spanned;
+use super::kw;
+use crate::common::{branch::Ordered, lookahead::PeekThenAdvance};
 
-use super::{PathList, kw};
-use crate::{
-  common::{
-    branch::{Optional, Ordered, Unordered},
-    lookahead::PeekThenAdvance,
-    parenthesized::Parenthesized,
-  },
-  prelude::*,
-};
-
+/// Collects all `#[subenum(...)]` attributes from the given iterator of
+/// attributes and returns a list of `Subenum` instances.
 pub fn collect_sub_enums<'a>(
   attrs: impl Iterator<Item = &'a syn::MetaList>,
 ) -> syn::Result<Vec<Subenum>> {
@@ -18,6 +11,8 @@ pub fn collect_sub_enums<'a>(
     .collect::<syn::Result<Vec<_>>>()
 }
 
+/// Each subenum can either be a declaration with a name and attribute
+/// block, or a defaults block to append to every subenum.
 pub enum Subenum {
   Defaults(proc_macro2::TokenStream),
   Declaration(SubenumDeclaration),
@@ -39,6 +34,8 @@ impl syn::parse::Parse for Subenum {
   }
 }
 
+/// Parser for `<name>, {...}` where name is the name of the subenum, and
+/// the block contents are passed through as is.
 pub struct SubenumDeclaration {
   pub name: syn::Ident,
   pub attrs: proc_macro2::TokenStream,
@@ -56,6 +53,7 @@ impl syn::parse::Parse for SubenumDeclaration {
   }
 }
 
+/// Block of arbitray tokens that are contained within { ... }
 struct AttrBlock {
   pub attrs: proc_macro2::TokenStream,
 }

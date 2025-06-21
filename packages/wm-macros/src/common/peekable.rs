@@ -1,7 +1,17 @@
+//! Custom peek implementation to support generics and custom peek
+//! functions.
+
+// Syn has a `Peek` trait, but it works weirdly. There is `syn::Ident` the
+// type which implements `Parse` and `syn::Ident` the function which
+// implements `Peek`. This file is for implementing a custom method of
+// peeking using the type itself rather than a function using the same name
+// as a type. This allows peeking to work nicer with generics.
+
 pub mod prelude {
   pub use super::{Peekable, TPeek};
 }
 
+/// Trait for any stream that can peek at the next token.
 pub trait PeekableStream {
   fn is_empty(&self) -> bool;
   fn peek<T: syn::parse::Peek>(&self, token: T) -> bool;
@@ -53,6 +63,7 @@ impl PeekableStream for &syn::parse::Lookahead1<'_> {
   }
 }
 
+/// Custom trait for types that can be peeked.
 pub trait Peekable {
   /// Gets the type's `Peek` implementation, since in syn the type
   /// implements `Parse` but there is a function with the same path that
@@ -73,11 +84,15 @@ pub trait Peekable {
   fn display() -> &'static str;
 }
 
+/// Trait for the types in syn that have a corresponding function that
+/// implements [syn::parse::Peek]. E.g. it implements a method for
+/// [syn::Ident] the type that returns [syn::Ident] the function.
 pub trait SynPeek {
   fn peekable() -> impl syn::parse::Peek;
   fn display() -> &'static str;
 }
 
+/// Implement [Peekable] for [SynPeek]
 impl<T: SynPeek> Peekable for T {
   fn peek<S>(stream: S) -> bool
   where
@@ -91,11 +106,23 @@ impl<T: SynPeek> Peekable for T {
   }
 }
 
+/// Helper fucntion to get the display string for a peekable type.
 pub fn get_peek_display<T: syn::parse::Peek>(_peek: T) -> &'static str {
   use syn::token::Token;
   T::Token::display()
 }
 
+/// Extends the [PeekableStream] trait with a method to peek at a type
+/// rather than a value.
+///
+/// # Example
+/// ```
+/// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
+/// // Allows for
+/// stream.tpeek::<syn::Ident>()?;
+/// // Rather than
+/// stream.peek(syn::Ident)?;
+/// # }
 pub trait TPeek<'a> {
   fn tpeek<T>(&'a self) -> bool
   where
@@ -133,6 +160,8 @@ macro_rules! custom_keyword {
 }
 pub(crate) use custom_keyword;
 
+/// Macro for implementing [SynPeek] for a type that implements
+/// [syn::parse::Peek].
 macro_rules! impl_syn_peek {
   ($($name:tt)+) => {
     impl SynPeek for $($name)+ {

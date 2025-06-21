@@ -1,3 +1,5 @@
+//! Utilities for simplifying error handling and diagnostics.
+
 pub mod prelude {
   #[allow(unused_imports)]
   pub use super::{
@@ -5,7 +7,8 @@ pub mod prelude {
   };
 }
 
-/// Used to add a new message to an existing error.
+/// Extension trait for [syn::Result] to add or replace a message of an
+/// existing error.
 pub trait ErrorContext {
   /// Adds context to the error, typically a string describing the context.
   /// The original error is preserved, although some editors may hide it
@@ -51,12 +54,14 @@ impl ErrorContext for syn::Error {
   }
 }
 
+/// Extends the `bool` type with a method that returns an error if the
+/// value is `true`.
 pub trait ThenError<E>
 where
   Self: Sized,
 {
-  /// Converts the `Result` into a `Result`, returning `Ok(self)` if false,
-  /// or `Err(error)` if true.
+  /// Returns `Err(error)` if the value is `true`, otherwise returns
+  /// `Ok(self)`.
   ///
   /// # Example
   /// ```
@@ -73,9 +78,11 @@ impl<E> ThenError<E> for bool {
   }
 }
 
-/// Converts a type that can be tokenized into a `syn::Error`.
+/// Extension trait for any type that can be tokenized to create a
+/// [syn::Error] at its location.
 pub trait ToError {
-  /// Converts the object into a `syn::Error` with the provided message.
+  /// Create a [syn::Error] at the span of this object with the given
+  /// message.
   ///
   /// # Example
   /// ```
@@ -95,11 +102,12 @@ where
   }
 }
 
-/// Converts a type that has a span into a `syn::Error`.
+/// Extension trait for any [syn::spanned::Spanned] type that creates a
+/// [syn::Error] at its location.
 #[allow(dead_code)]
 pub trait ToSpanError {
-  /// Converts the object's span into a `syn::Error` with the provided
-  /// message,
+  /// Creates a [syn::Error] at the location of this span with the given
+  /// message.
   ///
   /// # Example
   /// ```
@@ -123,7 +131,7 @@ where
 pub trait EmitError {
   /// Directly emits an error message at the span of this object.
   /// Should only be used when you are sure that the error should be
-  /// emitted, see `ToError` to convert to a `syn::Error` so allow the
+  /// emitted, see [ToError] to convert to a [syn::Error] so allow the
   /// error to be propagated.
   fn emit_error<D: Into<String>>(&self, message: D);
   /// Directly emits a warning message at the span of this object.

@@ -1,3 +1,23 @@
+//! Type wrappers for parsing content that is within delimiters, such as
+//! parenthesis or brackets.
+
+/// Type wrapper for parsing content within parenthesis.
+///
+/// # Example
+/// Parse a [syn::Ident] within parenthesis:
+/// ```
+/// type ParenthesizedIdent = wm_macros::Parenthesized<syn::Ident>;
+/// fn example(stream: syn::parse::ParseStream) -> syn::Result<ParenthesizedIdent> {
+///   stream.parse::<ParenthesizedIdent>()
+/// }
+///
+/// fn main() {
+///   # use quote::quote;
+///   let tokens = quote! { (some_name) }.into();
+///
+///   assert!(example(tokens).is_ok());
+/// }
+/// ```
 pub struct Parenthesized<T>(pub T)
 where
   T: syn::parse::Parse;
