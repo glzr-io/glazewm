@@ -33,28 +33,32 @@ use crate::{
 )]
 #[delegate(CommonGetters)]
 #[delegate(PositionGetters)]
-#[subenum(defaults(derives = (Clone, Debug, EnumAsInner, Delegate, wm_macros::EnumFromInner), delegates = (CommonGetters, PositionGetters)))]
-#[subenum(
-  doc = "Subset of containers that implement the following traits:
- * `CommonGetters`
- * `PositionGetters`
- * `TilingSizeGetters`"
-)]
-#[subenum(TilingContainer, delegates = (TilingSizeGetters))]
-#[subenum(
-  doc = "Subset of containers that implement the following traits:
- * `CommonGetters`
- * `PositionGetters`
- * `WindowGetters`"
-)]
-#[subenum(WindowContainer, delegates = (WindowGetters))]
-#[subenum(
-  doc = "  Subset of containers that implement the following traits:
- * `CommonGetters`
- * `PositionGetters`
- * `TilingDirectionGetters`"
-)]
-#[subenum(DirectionContainer, delegates = (TilingDirectionGetters))]
+#[subenum(defaults, {
+  #[derive(Clone, Debug, EnumAsInner, Delegate, wm_macros::EnumFromInner)]
+  #[delegate(CommonGetters)]
+  #[delegate(PositionGetters)]
+})]
+#[subenum(TilingContainer, {
+  /// Subset of containers that implement the following traits:
+  /// * `CommonGetters`
+  /// * `PositionGetters`
+  /// * `TilingSizeGetters`
+  #[delegate(TilingSizeGetters)]
+})]
+#[subenum(WindowContainer, {
+  /// Subset of containers that implement the following traits:
+  /// * `CommonGetters`
+  /// * `PositionGetters`
+  /// * `WindowGetters`
+  #[delegate(WindowGetters)]
+})]
+#[subenum(DirectionContainer, {
+  /// Subset of containers that implement the following traits:
+  /// * `CommonGetters`
+  /// * `PositionGetters`
+  /// * `DirectionGetters`
+  #[delegate(TilingDirectionGetters)]
+})]
 pub enum Container {
   Root(RootContainer),
   Monitor(Monitor),

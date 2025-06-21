@@ -1,4 +1,4 @@
-use enum_attrs::SubEnumDeclaration;
+use enum_attrs::{Subenum, SubenumDeclaration};
 
 use crate::prelude::*;
 
@@ -38,7 +38,7 @@ pub fn sub_enum(
   let attrs = &input.attrs;
 
   let sub_enums = match enum_attrs::collect_sub_enums(
-    attrs.iter().map(|attr| &attr.meta),
+    attrs.find_list_attrs(SUBENUM_ATTR_NAME),
   ) {
     Ok(sub_enums) => sub_enums,
     Err(err) => return err.to_compile_error().into(),
@@ -59,6 +59,26 @@ pub fn sub_enum(
     Err(err) => return err.to_compile_error().into(),
   };
 
+  let defaults = sub_enums
+    .iter()
+    .filter_map(|sub| match &sub {
+      Subenum::Defaults(attrs) => Some(attrs.clone()),
+      _ => None,
+    })
+    .reduce(|mut acc, el| {
+      acc.extend(el);
+      acc
+    })
+    .unwrap_or_default();
+
+  let sub_enums = sub_enums
+    .into_iter()
+    .filter_map(|sub| match sub {
+      Subenum::Declaration(decl) => Some(decl),
+      Subenum::Defaults(_) => None,
+    })
+    .collect::<Vec<_>>();
+
   for variant in &variants {
     for enum_name in &variant.enums {
       if !sub_enums.iter().any(|sub_enum| sub_enum.name == *enum_name) {
@@ -69,7 +89,7 @@ pub fn sub_enum(
     }
   }
 
-  let sub_enums = combine_variants(sub_enums, variants);
+  let sub_enums = combine_variants(sub_enums, variants, &defaults);
 
   let sub_enum_to_main_impls = sub_enums
     .iter()
@@ -173,12 +193,11 @@ pub fn sub_enum(
   .into()
 }
 
-struct SubEnum {
+struct SubEnum<'a> {
   pub name: syn::Ident,
-  pub derives: Vec<syn::Path>,
-  pub delegates: Vec<syn::Path>,
+  pub defaults: &'a proc_macro2::TokenStream,
+  pub attrs: proc_macro2::TokenStream,
   pub variants: Vec<Variant>,
-  pub docs: Vec<syn::LitStr>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,19 +206,16 @@ struct Variant {
   pub contained: syn::Type,
 }
 
-impl quote::ToTokens for SubEnum {
+impl<'a> quote::ToTokens for SubEnum<'a> {
   fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
     let name = &self.name;
-    let derives = &self.derives;
-    let delegates = &self.delegates;
-    let docs = &self.docs;
-
+    let defaults = &self.defaults;
+    let attrs = &self.attrs;
     let variants = &self.variants;
 
     tokens.extend(quote::quote! {
-      #(#[doc = #docs])*
-      #[derive(#(#derives),*)]
-      #(#[delegate(#delegates)])*
+      #defaults
+      #attrs
       pub enum #name {
         #(#variants),*
       }
@@ -219,8 +235,9 @@ impl quote::ToTokens for Variant {
 
 /// Combine the sub enum declarations with its enum variants
 fn combine_variants(
-  sub_enums: Vec<SubEnumDeclaration>,
+  sub_enums: Vec<SubenumDeclaration>,
   variants: Vec<variant_attr::SubenumVariant>,
+  defaults: &proc_macro2::TokenStream,
 ) -> Vec<SubEnum> {
   sub_enums
     .into_iter()
@@ -235,11 +252,10 @@ fn combine_variants(
         }
       }
       SubEnum {
+        defaults,
         name: sub_enum.name,
-        derives: sub_enum.derives,
-        delegates: sub_enum.delegates,
+        attrs: sub_enum.attrs,
         variants: combined_variants,
-        docs: sub_enum.docs,
       }
     })
     .collect()
