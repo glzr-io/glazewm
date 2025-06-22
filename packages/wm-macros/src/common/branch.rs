@@ -26,6 +26,8 @@ where
 
 /// Trait for tuples where all items can be peeked and parsed from a parse
 /// stream.
+// Used with [Unordered]
+#[allow(dead_code)]
 pub trait PeekableTuple
 where
   Self: Sized,
@@ -236,6 +238,8 @@ where
 ///   assert!(example(error).is_err());
 /// }
 /// ```
+// Util function that will be used in future.
+#[allow(dead_code)]
 pub struct Unordered<T, Sep>
 where
   T: PeekableTuple,

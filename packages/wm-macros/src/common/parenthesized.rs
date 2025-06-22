@@ -18,6 +18,8 @@
 ///   assert!(example(tokens).is_ok());
 /// }
 /// ```
+// Util type that will be used in future
+#[allow(dead_code)]
 pub struct Parenthesized<T>(pub T)
 where
   T: syn::parse::Parse;

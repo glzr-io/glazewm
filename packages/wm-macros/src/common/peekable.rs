@@ -81,6 +81,8 @@ pub trait Peekable {
   fn peek<T>(stream: T) -> bool
   where
     T: PeekableStream;
+  // Useful for debugging and custom error messages.
+  #[allow(dead_code)]
   fn display() -> &'static str;
 }
 
@@ -89,6 +91,8 @@ pub trait Peekable {
 /// [syn::Ident] the type that returns [syn::Ident] the function.
 pub trait SynPeek {
   fn peekable() -> impl syn::parse::Peek;
+  // To be forwarded to [Peekable]
+  #[allow(dead_code)]
   fn display() -> &'static str;
 }
 
@@ -107,6 +111,8 @@ impl<T: SynPeek> Peekable for T {
 }
 
 /// Helper fucntion to get the display string for a peekable type.
+// Used in a macro call
+#[allow(dead_code)]
 pub fn get_peek_display<T: syn::parse::Peek>(_peek: T) -> &'static str {
   use syn::token::Token;
   T::Token::display()

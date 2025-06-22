@@ -228,7 +228,7 @@ fn combine_variants(
   sub_enums: Vec<SubenumDeclaration>,
   variants: Vec<variant_attr::SubenumVariant>,
   defaults: &proc_macro2::TokenStream,
-) -> Vec<SubEnum> {
+) -> Vec<SubEnum<'_>> {
   sub_enums
     .into_iter()
     .map(|sub_enum| {
