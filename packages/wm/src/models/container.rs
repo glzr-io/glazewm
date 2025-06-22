@@ -23,6 +23,38 @@ use crate::{
 };
 
 /// A container of any type.
+///
+/// Uses:
+///
+///  * [`wm_macros::SubEnum`] to define subtypes of containers.
+///  * [`wm_macros::EnumFromInner`] to define conversions between the enum
+///    and wrapped types.
+///  * [`ambassador::Delegate`] to delegate common getters to the contained
+///    types. E.g. implements [`CommonGetters`] for [Container] by
+///    forwarding the call to the item contained in the enum variant.
+///
+/// # Example
+/// Conversion between the different container types:
+/// ```
+/// fn example(split: SplitContainer) {
+///   // Convert a `SplitContainer` into a `Container`
+///   let container: Container = split.into(); // Will be a `Container::Split`
+///
+///   // Could also have gone straight to a [TilingContainer] from SplitContainer
+///   // let tiling: TilingContainer = split.into(); // Will be a `TilingContainer::Split`
+///
+///   // Try to convert a [Container] into a sub container type ([TilingContainer] in this case).
+///   let tiling: TilingContainer = container.try_into().unwrap(); // Will be a `TilingContainer::Split`
+///   tiling.tiling_size(); // Can use methods from the `TilingSizeGetters` trait.
+///
+///   // Try to convert a one sub container type into another. ([TilingContainer] to [DirectionContainer] in this case).
+///   let direction: DirectionContainer = tiling.try_into().unwrap(); // Will be a `DirectionContainer::Split`
+///   direction.tiling_direction(); // Can use methods from the `TilingDirectionGetters` trait.
+///
+///   // Covert a sub container back into a [Container]
+///   let container: Container = direction.into(); // Will be a `Container::Split`
+/// }
+/// ```
 #[derive(
   Clone,
   Debug,
@@ -34,6 +66,7 @@ use crate::{
 #[delegate(CommonGetters)]
 #[delegate(PositionGetters)]
 #[subenum(defaults, {
+  /// Subenum of [Container]
   #[derive(Clone, Debug, EnumAsInner, Delegate, wm_macros::EnumFromInner)]
   #[delegate(CommonGetters)]
   #[delegate(PositionGetters)]
