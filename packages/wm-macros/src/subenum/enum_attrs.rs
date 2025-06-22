@@ -1,4 +1,4 @@
-use crate::common::{branch::Ordered, lookahead::PeekThenAdvance};
+use crate::{common::branch::Ordered, prelude::*};
 
 mod kw {
   crate::common::custom_keyword!(defaults);
@@ -24,11 +24,11 @@ pub enum Subenum {
 impl syn::parse::Parse for Subenum {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
     type Defaults = Ordered<(kw::defaults, AttrBlock), syn::Token![,]>;
-    if let Some(def) = input.peek_then_advance::<Defaults>() {
+    if input.tpeek::<Defaults>() {
       let Ordered {
         items: (_, AttrBlock { attrs }),
         ..
-      } = def?;
+      } = input.parse::<Defaults>()?;
       return Ok(Self::Defaults(attrs));
     }
 

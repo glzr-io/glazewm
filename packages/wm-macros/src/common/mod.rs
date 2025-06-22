@@ -4,9 +4,6 @@ pub mod attributes;
 pub mod branch;
 /// Extension traits and utilities to make error handling more succinct
 pub mod error_handling;
-/// Extensions for syn ParseStreams and Lookaheads to combine common
-/// operations
-pub mod lookahead;
 /// Utilitirs for parsing a named parameter (`name = vaue`)
 pub mod named_parameter;
 /// Type for a parsable type within parenthesis

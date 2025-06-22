@@ -19,6 +19,8 @@
 ///   assert!(example(tokens).is_ok());
 /// }
 /// ```
+// Will be used in future.
+#[allow(dead_code)]
 pub struct NamedParameter<Name, Param>
 where
   Name: syn::parse::Parse + crate::common::peekable::Peekable,
