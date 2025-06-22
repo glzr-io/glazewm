@@ -1,5 +1,8 @@
-use super::kw;
 use crate::common::{branch::Ordered, lookahead::PeekThenAdvance};
+
+mod kw {
+  crate::common::custom_keyword!(defaults);
+}
 
 /// Collects all `#[subenum(...)]` attributes from the given iterator of
 /// attributes and returns a list of `Subenum` instances.

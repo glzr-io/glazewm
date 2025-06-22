@@ -15,9 +15,14 @@ pub fn enum_from_inner(
 
   let name = &input.ident;
 
-  let enum_data = match input.data.require_enum() {
-    Ok(data) => data,
-    Err(err) => return err.to_compile_error().into(),
+  let enum_data = match input.data {
+    syn::Data::Enum(data) => data,
+    _ => {
+      return name
+        .error("This macro can only be used on enums")
+        .to_compile_error()
+        .into();
+    }
   };
 
   let variants = enum_data.variants.iter().map(|variant| {
@@ -31,11 +36,9 @@ pub fn enum_from_inner(
         return quote::quote! {};
       }
       _ => {
-        return ToError::error(
-          &variant,
-          "Enum variants must have exactly one unnamed field",
-        )
-        .to_compile_error();
+        return variant
+          .error("Enum variants must have exactly one unnamed field")
+          .to_compile_error();
       }
     };
 

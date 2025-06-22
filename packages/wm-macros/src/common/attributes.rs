@@ -4,7 +4,6 @@ pub mod prelude {
   pub use super::FindAttributes;
 }
 
-#[allow(dead_code)]
 /// Trait for filtering lists of [syn::Attribute] by name and type.
 pub trait FindAttributes {
   /// Find attributes by name. E.g. `#[name]`, `#[name(...)]` or `#[name =
@@ -21,24 +20,6 @@ pub trait FindAttributes {
     self
       .find_attrs(name)
       .filter_map(|attr| attr.meta.require_list().ok())
-  }
-  /// Find name-value attributes by name. E.g. `#[name = <value>]`
-  fn find_name_attrs(
-    &self,
-    name: &str,
-  ) -> impl Iterator<Item = &syn::MetaNameValue> {
-    self
-      .find_attrs(name)
-      .filter_map(|attr| attr.meta.require_name_value().ok())
-  }
-  /// Find path attributes by name. E.g. `#[name]` or `#[name::path]`
-  fn find_path_attrs(
-    &self,
-    name: &str,
-  ) -> impl Iterator<Item = &syn::Path> {
-    self
-      .find_attrs(name)
-      .filter_map(|attr| attr.meta.require_path_only().ok())
   }
 }
 

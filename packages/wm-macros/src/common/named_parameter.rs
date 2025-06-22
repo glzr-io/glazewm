@@ -1,6 +1,5 @@
 //! Types for parsing `name = value` patterns.
 
-#[allow(dead_code)]
 /// Type to represent a `name = value` pair, where `name` can be peeked and
 /// both `name` and `value` can be parsed.
 ///

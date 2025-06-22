@@ -9,8 +9,8 @@ use proc_macro::TokenStream;
 
 mod prelude {
   pub use crate::common::{
-    attributes::prelude::*, derive::prelude::*,
-    error_handling::prelude::*, peekable::prelude::*,
+    attributes::prelude::*, error_handling::prelude::*,
+    peekable::prelude::*,
   };
 }
 

@@ -1,57 +1,10 @@
 //! Utilities for simplifying error handling and diagnostics.
 
 pub mod prelude {
+  // ToSpanError is not used yet, but will be used in the future.
+  // TODO: Remove unused_imports allow
   #[allow(unused_imports)]
-  pub use super::{
-    EmitError, ErrorContext, ThenError, ToError, ToSpanError,
-  };
-}
-
-/// Extension trait for [syn::Result] to add or replace a message of an
-/// existing error.
-pub trait ErrorContext {
-  /// Adds context to the error, typically a string describing the context.
-  /// The original error is preserved, although some editors may hide it
-  /// unless the error is expanded.
-  ///
-  /// # Example
-  /// ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// stream.parse::<syn::Ident>().add_context("Expected ...")?;
-  /// # }
-  /// ```
-  fn add_context<D: core::fmt::Display>(self, context: D) -> Self;
-
-  /// Replaces the error message.
-  ///
-  /// # Example
-  /// ```
-  /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// stream.parse::<syn::Ident>().set_context("Expected ...")?;
-  /// # }
-  /// ```
-  fn set_context<D: core::fmt::Display>(self, context: D) -> Self;
-}
-
-impl<T> ErrorContext for Result<T, syn::Error> {
-  fn add_context<D: core::fmt::Display>(self, context: D) -> Self {
-    self.map_err(|e| e.add_context(context))
-  }
-
-  fn set_context<D: core::fmt::Display>(self, context: D) -> Self {
-    self.map_err(|e| e.set_context(context))
-  }
-}
-
-impl ErrorContext for syn::Error {
-  fn add_context<D: core::fmt::Display>(mut self, context: D) -> Self {
-    self.combine(syn::Error::new(self.span(), context));
-    self
-  }
-
-  fn set_context<D: core::fmt::Display>(self, context: D) -> Self {
-    syn::Error::new(self.span(), context)
-  }
+  pub use super::{EmitError, ThenError, ToError, ToSpanError};
 }
 
 /// Extends the `bool` type with a method that returns an error if the
@@ -102,38 +55,41 @@ where
   }
 }
 
-/// Extension trait for any [syn::spanned::Spanned] type that creates a
-/// [syn::Error] at its location.
+// Very likely to be used in future.
+// TODO: Remove dead code allow
 #[allow(dead_code)]
+/// Extension trait for any [syn::spanned::Spanned] type that creates a
+/// [syn::Error] at its location. Use [ToError] where possible, as it
+/// creates more accurately spanned errors.
 pub trait ToSpanError {
   /// Creates a [syn::Error] at the location of this span with the given
   /// message.
   ///
+  /// If the object can be tokenized, prefer using [ToError] instead, as it
+  /// gives more accurately spanned errors.
+  ///
   /// # Example
   /// ```
   /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
-  /// return Err(stream.span().error("Expected ..."));
+  /// return Err(stream.span().serror("Expected ..."));
   /// # }
   /// ```
-  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error;
+  fn serror<D: core::fmt::Display>(&self, message: D) -> syn::Error;
 }
 
 impl<T> ToSpanError for T
 where
   T: syn::spanned::Spanned,
 {
-  fn error<D: core::fmt::Display>(&self, message: D) -> syn::Error {
+  fn serror<D: core::fmt::Display>(&self, message: D) -> syn::Error {
     syn::Error::new(self.span(), message)
   }
 }
 
+// Very likely to be used in future.
+// TODO: Remove dead code allow
 #[allow(dead_code)]
 pub trait EmitError {
-  /// Directly emits an error message at the span of this object.
-  /// Should only be used when you are sure that the error should be
-  /// emitted, see [ToError] to convert to a [syn::Error] so allow the
-  /// error to be propagated.
-  fn emit_error<D: Into<String>>(&self, message: D);
   /// Directly emits a warning message at the span of this object.
   fn emit_warning<D: Into<String>>(&self, message: D);
   /// Emits a help message at the span of this object.
@@ -146,10 +102,6 @@ impl<T> EmitError for T
 where
   T: syn::spanned::Spanned,
 {
-  fn emit_error<D: Into<String>>(&self, message: D) {
-    self.span().unwrap().error(message).emit();
-  }
-
   fn emit_warning<D: Into<String>>(&self, message: D) {
     self.span().unwrap().warning(message).emit();
   }

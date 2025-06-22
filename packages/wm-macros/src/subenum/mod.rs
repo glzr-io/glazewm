@@ -7,14 +7,6 @@ const SUBENUM_ATTR_NAME: &str = "subenum";
 mod enum_attrs;
 mod variant_attr;
 
-mod kw {
-  crate::common::custom_keyword!(doc);
-  crate::common::custom_keyword!(defaults);
-  crate::common::custom_keyword!(derives);
-  crate::common::custom_keyword!(delegates);
-  crate::common::custom_keyword!(None);
-}
-
 pub fn sub_enum(
   input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -29,9 +21,15 @@ pub fn sub_enum(
     Err(err) => return err.to_compile_error().into(),
   };
 
-  let enum_data = match input.data.require_enum() {
-    Ok(data) => data,
-    Err(err) => return err.to_compile_error().into(),
+  let enum_data = match input.data {
+    syn::Data::Enum(data) => data,
+    _ => {
+      return input
+        .ident
+        .error("This macro can only be used on enums")
+        .to_compile_error()
+        .into();
+    }
   };
 
   let variants = match enum_data
@@ -44,7 +42,8 @@ pub fn sub_enum(
     Err(err) => return err.to_compile_error().into(),
   };
 
-  // Extract default blocks and combine them into a single token stream.
+  // Filter to get the default blocks and combine them into a single token
+  // stream.
   let defaults = sub_enums
     .iter()
     .filter_map(|sub| match &sub {
@@ -91,6 +90,8 @@ pub fn sub_enum(
     variants: Vec<Variant>,
   }
 
+  // Find all sub enums that have a shared variant, so we can make
+  // `TryFrom` impls between them.
   let mut shared_variants: Vec<SharedVariant> = Vec::new();
   for i in 0..sub_enums.len() {
     for j in (i + 1)..sub_enums.len() {
@@ -250,6 +251,7 @@ fn combine_variants(
     .collect()
 }
 
+/// Create a `impl From<sub_enum> for name` block
 fn from_sub_to_main_impl(
   name: &syn::Ident,
   sub_enum: &SubEnum,
@@ -274,6 +276,7 @@ fn from_sub_to_main_impl(
   }
 }
 
+/// Create a `impl TryFrom<name> for sub_enum` block
 fn try_from_main_to_sub_impl(
   name: &syn::Ident,
   sub_enum: &SubEnum,

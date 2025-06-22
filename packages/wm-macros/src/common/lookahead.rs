@@ -40,7 +40,6 @@ impl PeekThenAdvance for syn::parse::ParseStream<'_> {
   }
 }
 
-#[allow(dead_code)]
 pub trait LookaheadPeekThenAdvance {
   /// Checks if the next token in the lookahead is a `T`, and if so parses
   /// it. Returns `Some(<parse result>)` if the peek is successful, and

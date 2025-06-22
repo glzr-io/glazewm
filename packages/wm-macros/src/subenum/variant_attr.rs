@@ -19,16 +19,12 @@ pub fn parse_variant(
     .next()
     .map(|field| field.ty.clone())
     .ok_or_else(|| {
-      ToError::error(
-        &variant,
-        "Subenum variants must have a contained type",
-      )
+      variant.error("Subenum variants must have a contained type")
     })?;
 
-  contained_iter.next().is_some().then_error(ToError::error(
-    &variant,
-    "Subenum variants must have exactly one contained type",
-  ))?;
+  contained_iter.next().is_some().then_error(
+    variant.error("Subenum variants must have exactly one contained type"),
+  )?;
 
   let enums = if let Some(enums) = variant
     .attrs

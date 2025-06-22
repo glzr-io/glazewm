@@ -53,7 +53,6 @@ where
   }
 }
 
-#[allow(dead_code)]
 impl<T> Parenthesized<T>
 where
   T: syn::parse::Parse,

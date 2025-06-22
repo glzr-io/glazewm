@@ -301,6 +301,7 @@ where
   Else(Else),
 }
 
+// Methods are used in doc tests, but linter doesn't pick that up.
 #[allow(dead_code)]
 impl<If, Else> IfElse<If, Else>
 where
@@ -448,6 +449,7 @@ where
   }
 }
 
+// Methods are used in doc tests, but linter doesn't pick that up.
 #[allow(dead_code)]
 impl<T> Optional<T>
 where

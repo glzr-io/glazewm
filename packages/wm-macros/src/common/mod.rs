@@ -2,8 +2,6 @@
 pub mod attributes;
 /// Utilities for parsing alternitives and combinators
 pub mod branch;
-/// Extensions for derive macros
-pub mod derive;
 /// Extension traits and utilities to make error handling more succinct
 pub mod error_handling;
 /// Extensions for syn ParseStreams and Lookaheads to combine common
