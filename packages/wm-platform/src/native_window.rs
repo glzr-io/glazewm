@@ -18,16 +18,7 @@ pub enum ZOrder {
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  pub handle: isize,
   inner: platform_impl::NativeWindow,
-  title: Memo<String>,
-  process_name: Memo<String>,
-  #[cfg(windows)]
-  class_name: Memo<String>,
-  frame_position: Memo<Rect>,
-  border_position: Memo<Rect>,
-  is_minimized: Memo<bool>,
-  is_maximized: Memo<bool>,
 }
 
 impl NativeWindow {
@@ -35,19 +26,7 @@ impl NativeWindow {
   #[must_use]
   pub fn new(handle: isize, event_loop: &EventLoop) -> Self {
     let inner = platform_impl::NativeWindow::new(handle, event_loop);
-
-    Self {
-      handle,
-      inner,
-      title: Memo::new(),
-      process_name: Memo::new(),
-      #[cfg(windows)]
-      class_name: Memo::new(),
-      frame_position: Memo::new(),
-      border_position: Memo::new(),
-      is_minimized: Memo::new(),
-      is_maximized: Memo::new(),
-    }
+    Self { inner }
   }
 
   /// Gets the window's title. If the window is invalid, returns an empty
@@ -55,35 +34,35 @@ impl NativeWindow {
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   pub fn title(&self) -> anyhow::Result<String> {
-    self.title.get_or_init(self.inner.title, self)
+    self.inner.title()
   }
 
   /// Updates the cached window title.
   pub fn invalidate_title(&self) -> anyhow::Result<String> {
-    self.title.update(self.inner.title, self)
+    self.inner.invalidate_title()
   }
 
   /// Gets the process name associated with the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   pub fn process_name(&self) -> anyhow::Result<String> {
-    self.process_name.get_or_init(self.inner.process_name, self)
+    self.inner.process_name()
   }
 
   /// Gets the class name of the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   pub fn class_name(&self) -> anyhow::Result<String> {
-    self.class_name.get_or_init(self.inner.class_name, self)
+    self.inner.class_name()
   }
 
   /// Whether the window is actually visible.
   pub fn is_visible(&self) -> anyhow::Result<bool> {
-    todo!()
+    self.inner.is_visible()
   }
 
   pub fn cleanup(&self) {
-    todo!()
+    self.inner.cleanup()
   }
 }
 
