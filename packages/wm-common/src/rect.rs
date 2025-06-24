@@ -119,6 +119,25 @@ impl Rect {
     )
   }
 
+  /// Contrains this rectangle to fit entirely within the given outer
+  /// rectangle. Unlike `clamp`, this method adjusts both the position and
+  /// size to ensure the rectangle doesn't extend beyond the boundaries.
+  #[must_use]
+  pub fn constrain_within(&self, outer_rect: &Rect) -> Self {
+    let clamped_x = self.x().max(outer_rect.x());
+    let clamped_y = self.y().max(outer_rect.y());
+
+    let max_width = outer_rect.right - clamped_x;
+    let max_height = outer_rect.bottom - clamped_y;
+
+    Self::from_xy(
+      clamped_x,
+      clamped_y,
+      self.width().min(max_width),
+      self.height().min(max_height),
+    )
+  }
+
   #[must_use]
   pub fn center_point(&self) -> Point {
     Point {

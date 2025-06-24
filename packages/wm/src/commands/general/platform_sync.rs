@@ -257,9 +257,17 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
+    let mut rect = window
       .to_rect()?
       .apply_delta(&window.total_border_delta()?, None);
+
+    // Constrain tiling windows to their workspace's bounds to prevent
+    // overflow on multi-monitor setup with different scaling factors.
+    if window.is_tiling_window() {
+      if let Some(workspace) = window.workspace() {
+        rect = rect.constrain_within(&workspace.to_rect()?);
+      }
+    }
 
     let is_visible = matches!(
       window.display_state(),
