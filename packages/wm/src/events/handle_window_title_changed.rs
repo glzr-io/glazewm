@@ -17,7 +17,7 @@ pub fn handle_window_title_changed(
   if let Some(window) = found_window {
     info!("Window title changed: {window}");
 
-    try_warn!(window.native().refresh_title());
+    try_warn!(window.native().invalidate_title());
 
     // Run window rules for title change events.
     run_window_rules(

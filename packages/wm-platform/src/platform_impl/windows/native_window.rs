@@ -97,7 +97,7 @@ impl NativeWindow {
   }
 
   /// Updates the cached window title.
-  pub fn refresh_title(&self) -> anyhow::Result<String> {
+  pub fn invalidate_title(&self) -> anyhow::Result<String> {
     self.title.update(Self::updated_title, self)
   }
 
@@ -236,7 +236,7 @@ impl NativeWindow {
     }
 
     // Ensure window position is accessible.
-    self.refresh_frame_position()?;
+    self.invalidate_frame_position()?;
 
     // Some applications spawn top-level windows for menus that should be
     // ignored. This includes the autocomplete popup in Notepad++ and title
@@ -259,7 +259,7 @@ impl NativeWindow {
   }
 
   /// Updates the cached minimized status.
-  pub fn refresh_is_minimized(&self) -> anyhow::Result<bool> {
+  pub fn invalidate_is_minimized(&self) -> anyhow::Result<bool> {
     self.is_minimized.update(Self::updated_is_minimized, self)
   }
 
@@ -279,7 +279,7 @@ impl NativeWindow {
   }
 
   /// Updates the cached maximized status.
-  pub fn refresh_is_maximized(&self) -> anyhow::Result<bool> {
+  pub fn invalidate_is_maximized(&self) -> anyhow::Result<bool> {
     self.is_maximized.update(Self::updated_is_maximized, self)
   }
 
@@ -501,8 +501,8 @@ impl NativeWindow {
   }
 
   /// Updates the cached frame position.
-  pub fn refresh_frame_position(&self) -> anyhow::Result<Rect> {
-    _ = self.refresh_border_position()?;
+  pub fn invalidate_frame_position(&self) -> anyhow::Result<Rect> {
+    _ = self.invalidate_border_position()?;
 
     self
       .frame_position
@@ -548,7 +548,7 @@ impl NativeWindow {
   }
 
   /// Updates the cached border position.
-  pub fn refresh_border_position(&self) -> anyhow::Result<Rect> {
+  pub fn invalidate_border_position(&self) -> anyhow::Result<Rect> {
     self
       .border_position
       .update(Self::updated_border_position, self)
