@@ -29,10 +29,10 @@ pub fn handle_window_location_changed(
   if let Some(window) = found_window {
     let old_frame_position = window.native().frame_position()?;
     let frame_position =
-      try_warn!(window.native().refresh_frame_position());
+      try_warn!(window.native().invalidate_frame_position());
 
     let old_is_maximized = window.native().is_maximized()?;
-    let is_maximized = try_warn!(window.native().refresh_is_maximized());
+    let is_maximized = try_warn!(window.native().invalidate_is_maximized());
 
     // Ignore duplicate location change events. Window position changes
     // can trigger multiple events (e.g. restore from maximized can trigger
@@ -43,7 +43,7 @@ pub fn handle_window_location_changed(
       return Ok(());
     }
 
-    let is_minimized = try_warn!(window.native().refresh_is_minimized());
+    let is_minimized = try_warn!(window.native().invalidate_is_minimized());
 
     // Ignore events for minimized windows. Let them be handled by the
     // handler for `PlatformEvent::WindowMinimized` instead.

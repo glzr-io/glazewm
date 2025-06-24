@@ -3,12 +3,8 @@
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
-#[cfg(target_os = "macos")]
-mod macos;
-#[cfg(target_os = "windows")]
-mod windows;
+mod native_window;
+mod platform_impl;
 
-#[cfg(target_os = "macos")]
-pub use macos::*;
-#[cfg(target_os = "windows")]
-pub use windows::*;
+pub use native_window::*;
+pub use platform_impl::*;
