@@ -56,7 +56,7 @@ fn move_tiling_window(
   // Flatten the parent split container if it only contains the window.
   if let Some(split_parent) = window_to_move
     .parent()
-    .and_then(|parent| parent.as_split().cloned())
+    .and_then(|parent| SplitContainer::try_from(parent).ok())
   {
     if split_parent.child_count() == 1 {
       flatten_split_container(split_parent)?;
@@ -87,7 +87,7 @@ fn move_tiling_window(
   // Attempt to move the window to workspace in given direction.
   if (has_matching_tiling_direction
     || window_to_move.tiling_siblings().count() == 0)
-    && parent.is_workspace()
+    && matches!(parent, DirectionContainer::Workspace(_))
   {
     return move_to_workspace_in_direction(
       &window_to_move.into(),

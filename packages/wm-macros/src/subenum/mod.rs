@@ -265,11 +265,26 @@ fn from_sub_to_main_impl(
     }
   });
 
+  let clone_variants = sub_enum.variants.iter().map(|v| {
+    let var_name = &v.name;
+    quote::quote! {
+      #sub_name::#var_name(v) => #name::#var_name(v.clone())
+    }
+  });
+
   quote::quote! {
     impl From<#sub_name> for #name {
       fn from(value: #sub_name) -> Self {
         match value {
           #(#variants),*
+        }
+      }
+    }
+
+    impl From<&#sub_name> for #name {
+      fn from(value: &#sub_name) -> Self {
+        match value {
+          #(#clone_variants),*
         }
       }
     }
@@ -290,6 +305,13 @@ fn try_from_main_to_sub_impl(
     }
   });
 
+  let clone_variants = sub_enum.variants.iter().map(|v| {
+    let var_name = &v.name;
+    quote::quote! {
+      #name::#var_name(v) => Ok(#sub_name::#var_name(v.clone()))
+    }
+  });
+
   let error = format!(
     "Cannot convert this variant of sub enum `{sub_name}` to main enum `{name}`."
   );
@@ -301,6 +323,17 @@ fn try_from_main_to_sub_impl(
       fn try_from(value: #name) -> Result<Self, Self::Error> {
         match value {
           #(#variants),*,
+          _ => Err(#error),
+        }
+      }
+    }
+
+    impl TryFrom<&#name> for #sub_name {
+      type Error = &'static str;
+
+      fn try_from(value: &#name) -> Result<Self, Self::Error> {
+        match value {
+          #(#clone_variants),*,
           _ => Err(#error),
         }
       }

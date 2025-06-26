@@ -4,7 +4,6 @@ use std::{
 };
 
 use ambassador::Delegate;
-use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
 use wm_common::{
   ActiveDrag, ContainerDto, Direction, DisplayState, GapsConfig, Rect,
@@ -56,18 +55,13 @@ use crate::{
 /// }
 /// ```
 #[derive(
-  Clone,
-  Debug,
-  EnumAsInner,
-  wm_macros::EnumFromInner,
-  Delegate,
-  wm_macros::SubEnum,
+  Clone, Debug, wm_macros::EnumFromInner, Delegate, wm_macros::SubEnum,
 )]
 #[delegate(CommonGetters)]
 #[delegate(PositionGetters)]
 #[subenum(defaults, {
   /// Subenum of [Container]
-  #[derive(Clone, Debug, EnumAsInner, Delegate, wm_macros::EnumFromInner)]
+  #[derive(Clone, Debug, Delegate, wm_macros::EnumFromInner)]
   #[delegate(CommonGetters)]
   #[delegate(PositionGetters)]
 })]

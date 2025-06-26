@@ -1,6 +1,6 @@
 use super::flatten_split_container;
 use crate::{
-  models::Container,
+  models::{Container, SplitContainer},
   traits::{CommonGetters, TilingDirectionGetters},
 };
 
@@ -21,20 +21,24 @@ pub fn flatten_child_split_containers(
     let tiling_children = parent
       .children()
       .into_iter()
-      .filter(|child| child.is_tiling_window() || child.is_split())
+      .filter(|child| {
+        matches!(child, Container::TilingWindow(_) | Container::Split(_))
+      })
       .collect::<Vec<_>>();
 
     if tiling_children.len() == 1 {
       // Handle case where the parent is a split container and has a
       // single split container child.
-      if let Some(split_child) = tiling_children[0].as_split() {
+      if let Ok(split_child) =
+        <&SplitContainer>::try_from(&tiling_children[0])
+      {
         flatten_split_container(split_child.clone())?;
         parent.set_tiling_direction(parent.tiling_direction().inverse());
       }
     } else {
       let split_children = tiling_children
         .into_iter()
-        .filter_map(|child| child.as_split().cloned())
+        .filter_map(|child| SplitContainer::try_from(child.clone()).ok())
         .collect::<Vec<_>>();
 
       for split_child in split_children.iter().filter(|split_child| {
@@ -43,8 +47,8 @@ pub fn flatten_child_split_containers(
         // Additionally flatten redundant top-level split containers in
         // the child.
         if split_child.child_count() == 1 {
-          if let Some(split_grandchild) =
-            split_child.children()[0].as_split()
+          if let Ok(split_grandchild) =
+            <&SplitContainer>::try_from(&split_child.children()[0])
           {
             flatten_split_container(split_grandchild.clone())?;
           }
