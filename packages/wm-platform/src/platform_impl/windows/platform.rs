@@ -32,11 +32,11 @@ use windows::{
     },
   },
 };
-use wm_common::{ParsedConfig, Point};
+use wm_common::Point;
 
 use super::{
-  native_monitor, native_window, EventListener, NativeMonitor,
-  NativeWindow, SingleInstance,
+  native_monitor, native_window, NativeMonitor, NativeWindow,
+  SingleInstance,
 };
 
 pub type WindowProcedure = WNDPROC;
@@ -57,13 +57,13 @@ impl Platform {
   /// explorer.exe isn't running, then default to the desktop window below
   /// the wallpaper window.
   #[must_use]
-  pub fn desktop_window() -> NativeWindow {
+  pub fn desktop_window() -> crate::NativeWindow {
     let handle = match unsafe { GetShellWindow() } {
       HWND(0) => unsafe { GetDesktopWindow() },
       handle => handle,
     };
 
-    NativeWindow::new(handle.0)
+    crate::NativeWindow::new(handle.0)
   }
 
   /// Gets a vector of available monitors as `NativeMonitor` instances
@@ -118,13 +118,6 @@ impl Platform {
         .filter(|window| window.is_manageable().unwrap_or(false))
         .collect(),
     )
-  }
-
-  /// Creates a new `EventListener` for the specified user config.
-  pub fn start_event_listener(
-    config: &ParsedConfig,
-  ) -> anyhow::Result<EventListener> {
-    EventListener::start(config)
   }
 
   /// Creates a new `SingleInstance`.

@@ -19,7 +19,7 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
-use wm_platform::Platform;
+use wm_platform::{Platform, PlatformHook, WindowEventType};
 
 use crate::{
   ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
@@ -89,7 +89,17 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config.value)?;
+  let mut hook = PlatformHook::dedicated()?;
+
+  let mut mouse_hook = hook.create_mouse_listener().await?;
+  let mut display_hook = hook.create_display_listener().await?;
+  tracing::warn!("Creating Window hook");
+  let mut window_hook =
+    hook.with_window_events(WindowEventType::ALL).await?;
+  tracing::warn!("Creating Keyboard hook");
+  let mut keyboard_hook = hook
+    .create_keyboard_listener(&config.value.keybindings)
+    .await?;
 
   // Run startup commands.
   let startup_commands = config.value.general.startup_commands.clone();
@@ -109,9 +119,21 @@ async fn start_wm(
         info!("Received SIGINT signal.");
         break;
       },
-      Some(event) = event_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        wm.process_event(event, &mut config)
+      Some(event) = mouse_hook.next_event() => {
+        debug!("Received mouse event: {:?}", event);
+        wm.process_mouse_event(event, &mut config)
+      },
+      Some(event) = display_hook.next_event() => {
+        debug!("Received display event: {:?}", event);
+        wm.process_display_event(&event, &mut config)
+      },
+      Some(event) = window_hook.next_event() => {
+        debug!("Received window event: {:?}", event);
+        wm.process_window_event(event, &mut config)
+      },
+      Some(event) = keyboard_hook.next_event() => {
+        debug!("Received keyboard event: {:?}", event);
+        wm.process_keyboard_event(event, &mut config)
       },
       Some((
         message,
@@ -143,11 +165,8 @@ async fn start_wm(
             | WmEvent::BindingModesChanged { .. }
             | WmEvent::PauseChanged { .. }
         ) {
-          event_listener.update(
-            &config.value,
-            &wm.state.binding_modes,
-            wm.state.is_paused,
-          );
+          hook.update_keybinds(&config.value.keybindings, &config.value.binding_modes, wm.state.is_paused)?;
+          hook.update_mouse(config.value.general.focus_follows_cursor && !wm.state.is_paused);
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {

@@ -1,7 +1,4 @@
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex, OnceLock},
-};
+use std::{cell::RefCell, collections::HashMap};
 
 use tokio::sync::mpsc;
 use tracing::warn;
@@ -35,14 +32,16 @@ use windows::Win32::{
     },
   },
 };
-use wm_common::KeybindingConfig;
+use wm_common::{BindingModeConfig, InvokeCommand, KeybindingConfig};
 
-use super::PlatformEvent;
+use crate::{platform_impl::Installable, EventLoop, KeyboardEvent};
 
+thread_local! {
 /// Global instance of `KeyboardHook`.
 ///
 /// For use with hook procedure.
-static KEYBOARD_HOOK: OnceLock<Arc<KeyboardHook>> = OnceLock::new();
+static KEYBOARD_HOOK: RefCell<Option<KeyboardHookThread>> = const { RefCell::new(None) };
+}
 
 /// Available modifier keys.
 const MODIFIER_KEYS: [u16; 6] = [
@@ -61,62 +60,138 @@ pub struct ActiveKeybinding {
 }
 
 #[derive(Debug)]
-pub struct KeyboardHook {
+pub struct KeyboardHookThread {
   /// Sender to emit platform events.
-  event_tx: mpsc::UnboundedSender<PlatformEvent>,
+  event_tx: mpsc::UnboundedSender<KeyboardEvent>,
 
   /// Handle to the keyboard hook.
-  hook: Arc<Mutex<HHOOK>>,
+  hook: HHOOK,
 
   /// Active keybindings grouped by trigger key. The trigger key is the
   /// final key in a key combination.
-  keybindings_by_trigger_key:
-    Arc<Mutex<HashMap<u16, Vec<ActiveKeybinding>>>>,
+  keybindings_by_trigger_key: HashMap<u16, Vec<ActiveKeybinding>>,
+}
+
+pub struct KeyboardHook {
+  rx: mpsc::UnboundedReceiver<KeyboardEvent>,
 }
 
 impl KeyboardHook {
   /// Creates an instance of `KeyboardHook`.
+  #[must_use]
   pub fn new(
-    keybindings: &Vec<KeybindingConfig>,
-    event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> anyhow::Result<Arc<Self>> {
-    let keyboard_hook = Arc::new(Self {
-      event_tx,
-      hook: Arc::new(Mutex::new(HHOOK::default())),
-      keybindings_by_trigger_key: Arc::new(Mutex::new(
-        Self::keybindings_by_trigger_key(keybindings),
-      )),
-    });
+    keybindings: &[KeybindingConfig],
+  ) -> (
+    Self,
+    Installable<
+      impl FnOnce() -> anyhow::Result<()> + 'static,
+      impl FnOnce() -> anyhow::Result<()> + 'static,
+    >,
+  ) {
+    let (tx, rx) = mpsc::unbounded_channel();
 
-    KEYBOARD_HOOK
-      .set(keyboard_hook.clone())
-      .map_err(|_| anyhow::anyhow!("Keyboard hook already running."))?;
+    let keyboard_hook = KeyboardHook { rx };
 
-    Ok(keyboard_hook)
+    // Need to clone to satisfy 'static lifetime
+    let keybindings = keybindings.to_vec();
+
+    let install = move || {
+      let hook_id = unsafe {
+        SetWindowsHookExW(
+          WH_KEYBOARD_LL,
+          Some(keyboard_hook_proc),
+          None,
+          0,
+        )
+      }?;
+
+      let hook = KeyboardHookThread {
+        event_tx: tx,
+        hook: hook_id,
+        keybindings_by_trigger_key:
+          KeyboardHookThread::keybindings_by_trigger_key(&keybindings),
+      };
+
+      KEYBOARD_HOOK.with(|hook_cell| {
+        // Safety: This is only called once per thread.
+        hook_cell.replace(Some(hook));
+      });
+
+      Ok(())
+    };
+
+    let stop = move || {
+      tracing::info!("Stopping keyboard hook");
+      KEYBOARD_HOOK.with(|hook_cell| -> anyhow::Result<()> {
+        if let Some(hook) = hook_cell.replace(None) {
+          hook.stop()?;
+        }
+
+        Ok(())
+      })?;
+
+      Ok(())
+    };
+
+    let installable = Installable {
+      installer: install,
+      stop,
+    };
+
+    (keyboard_hook, installable)
   }
 
-  /// Starts a keyboard hook on the current thread.
-  ///
-  /// Assumes that a message loop is currently running.
-  ///
-  /// # Panics
-  ///
-  /// If the internal mutex is poisoned.
-  pub fn start(&self) -> anyhow::Result<()> {
-    *self.hook.lock().unwrap() = unsafe {
-      SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), None, 0)
-    }?;
+  pub fn update(
+    keybindings: &[KeybindingConfig],
+    binding_modes: &[BindingModeConfig],
+    paused: bool,
+    event_loop: &EventLoop,
+  ) -> anyhow::Result<()> {
+    let keybindings = if paused {
+      &keybindings
+        .iter()
+        .filter(|config| {
+          config.commands.contains(&InvokeCommand::WmTogglePause)
+        })
+        .cloned()
+        .collect::<Vec<_>>()
+    } else {
+      match binding_modes.first() {
+        Some(binding_mode) => &binding_mode.keybindings,
+        None => keybindings,
+      }
+    };
+
+    let keybindings = keybindings.to_vec();
+
+    let updater = move || {
+      KEYBOARD_HOOK.with(|hook_cell| {
+        if let Some(hook) = hook_cell.borrow_mut().as_mut() {
+          hook.update(&keybindings);
+        } else {
+          warn!("Keyboard hook is not initialized.");
+        }
+      });
+    };
+
+    event_loop.dispatch("Keyboard hook update", updater)?;
 
     Ok(())
   }
 
+  pub async fn next_event(&mut self) -> Option<KeyboardEvent> {
+    self.rx.recv().await
+  }
+}
+
+impl KeyboardHookThread {
   /// Updates the keybindings for the keyboard hook.
   ///
   /// # Panics
   ///
   /// If the internal mutex is poisoned.
-  pub fn update(&self, keybindings: &Vec<KeybindingConfig>) {
-    *self.keybindings_by_trigger_key.lock().unwrap() =
+  pub fn update(&mut self, keybindings: &[KeybindingConfig]) {
+    self.keybindings_by_trigger_key =
       Self::keybindings_by_trigger_key(keybindings);
   }
 
@@ -125,13 +200,13 @@ impl KeyboardHook {
   /// # Panics
   ///
   /// If the internal mutex is poisoned.
-  pub fn stop(&self) -> anyhow::Result<()> {
-    unsafe { UnhookWindowsHookEx(*self.hook.lock().unwrap()) }?;
+  pub fn stop(self) -> anyhow::Result<()> {
+    unsafe { UnhookWindowsHookEx(self.hook) }?;
     Ok(())
   }
 
   fn keybindings_by_trigger_key(
-    keybindings: &Vec<KeybindingConfig>,
+    keybindings: &[KeybindingConfig],
   ) -> HashMap<u16, Vec<ActiveKeybinding>> {
     let mut keybinding_map = HashMap::new();
 
@@ -323,12 +398,7 @@ impl KeyboardHook {
   /// Returns `true` if the event should be blocked and not sent to other
   /// applications.
   fn handle_key_event(&self, vk_code: u16) -> bool {
-    match self
-      .keybindings_by_trigger_key
-      .lock()
-      .unwrap()
-      .get(&vk_code)
-    {
+    match self.keybindings_by_trigger_key.get(&vk_code) {
       // Forward the event if no keybindings exist for the trigger key.
       None => false,
       // Otherwise, check if there is a matching keybinding.
@@ -391,7 +461,7 @@ impl KeyboardHook {
 
         // Invoke the callback function for the longest matching
         // keybinding.
-        let _ = self.event_tx.send(PlatformEvent::KeybindingTriggered(
+        let _ = self.event_tx.send(KeyboardEvent::KeybindingTriggered(
           longest_keybinding.config.clone(),
         ));
 
@@ -456,13 +526,18 @@ extern "system" fn keyboard_hook_proc(
   // Get struct with keyboard input event.
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
-  if let Some(hook) = KEYBOARD_HOOK.get() {
-    #[allow(clippy::cast_possible_truncation)]
-    let should_block = hook.handle_key_event(input.vkCode as u16);
+  if let Some(res) = KEYBOARD_HOOK.with(|hook_cell| {
+    if let Some(hook) = hook_cell.borrow().as_ref() {
+      #[allow(clippy::cast_possible_truncation)]
+      let should_block = hook.handle_key_event(input.vkCode as u16);
 
-    if should_block {
-      return LRESULT(1);
+      if should_block {
+        return Some(LRESULT(1));
+      }
     }
+    None
+  }) {
+    return res;
   }
 
   unsafe { CallNextHookEx(None, code, wparam, lparam) }

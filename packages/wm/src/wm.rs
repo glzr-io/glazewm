@@ -6,7 +6,7 @@ use wm_common::{
   FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
   RectDelta, TitleBarVisibility, WindowState, WmEvent,
 };
-use wm_platform::PlatformEvent;
+use wm_platform::{DisplayEvent, KeyboardEvent, MouseEvent, WindowEvent};
 
 use crate::{
   commands::{
@@ -61,59 +61,100 @@ impl WindowManager {
     })
   }
 
-  pub fn process_event(
+  pub fn process_display_event(
     &mut self,
-    event: PlatformEvent,
+    event: &DisplayEvent,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     let state = &mut self.state;
 
     match event {
-      PlatformEvent::DisplaySettingsChanged => {
+      DisplayEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
-      }
-      PlatformEvent::KeybindingTriggered(kb_config) => {
-        self.process_commands(&kb_config.commands, None, config)?;
-
-        // Return early since we don't want to redraw twice.
-        return Ok(());
-      }
-      PlatformEvent::MouseMove(event) => {
-        handle_mouse_move(&event, state, config)
-      }
-      PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(&window, state)
-      }
-      PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(&window, state, config)
-      }
-      PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(&window, state)
-      }
-      PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(&window, state, config)
-      }
-      PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(&window, state, config)
-      }
-      PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedEnd(window) => {
-        handle_window_moved_or_resized_end(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(&window, state);
-        Ok(())
-      }
-      PlatformEvent::WindowShown(window) => {
-        handle_window_shown(window, state, config)
-      }
-      PlatformEvent::WindowTitleChanged(window) => {
-        handle_window_title_changed(&window, state, config)
       }
     }?;
 
+    if !state.is_paused && state.pending_sync.has_changes() {
+      platform_sync(state, config)?;
+    }
+
+    Ok(())
+  }
+
+  pub fn process_keyboard_event(
+    &mut self,
+    event: KeyboardEvent,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    match event {
+      KeyboardEvent::KeybindingTriggered(kb_config) => {
+        self.process_commands(&kb_config.commands, None, config)?;
+      }
+    }
+
+    // No sync for keyboard events to avoid double syncs.
+
+    Ok(())
+  }
+
+  pub fn process_mouse_event(
+    &mut self,
+    event: MouseEvent,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    let state = &mut self.state;
+    match event {
+      MouseEvent::MouseMove(event) => {
+        handle_mouse_move(&event, state, config)
+      }
+    }?;
+
+    if !state.is_paused && state.pending_sync.has_changes() {
+      platform_sync(state, config)?;
+    }
+
+    Ok(())
+  }
+
+  pub fn process_window_event(
+    &mut self,
+    event: WindowEvent,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    let state = &mut self.state;
+    match event {
+      WindowEvent::WindowDestroyed(window) => {
+        handle_window_destroyed(&window, state)
+      }
+      WindowEvent::WindowFocused(window) => {
+        handle_window_focused(&window, state, config)
+      }
+      WindowEvent::WindowHidden(window) => {
+        handle_window_hidden(&window, state)
+      }
+      WindowEvent::WindowLocationChanged(window) => {
+        handle_window_location_changed(&window, state, config)
+      }
+      WindowEvent::WindowMinimized(window) => {
+        handle_window_minimized(&window, state, config)
+      }
+      WindowEvent::WindowMinimizeEnded(window) => {
+        handle_window_minimize_ended(&window, state, config)
+      }
+      WindowEvent::WindowMovedOrResizedEnd(window) => {
+        handle_window_moved_or_resized_end(&window, state, config)
+      }
+      WindowEvent::WindowMovedOrResizedStart(window) => {
+        handle_window_moved_or_resized_start(&window, state);
+        Ok(())
+      }
+      WindowEvent::WindowShown(window) => {
+        handle_window_shown(window, state, config)
+      }
+      WindowEvent::WindowTitleChanged(window) => {
+        handle_window_title_changed(&window, state, config)
+      }
+    }?;
     if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }

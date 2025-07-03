@@ -1,19 +1,24 @@
 mod com;
-mod event_listener;
-mod event_window;
+mod display_hook;
+mod event_loop;
 mod keyboard_hook;
+mod mouse_hook;
 mod native_monitor;
 mod native_window;
+#[allow(clippy::module_inception)]
 mod platform;
+mod platform_hook;
 mod single_instance;
 mod window_event_hook;
 
 pub use com::*;
-pub use event_listener::*;
-pub use event_window::*;
+pub use display_hook::*;
+pub use event_loop::*;
 pub use keyboard_hook::*;
+pub use mouse_hook::*;
 pub use native_monitor::*;
 pub use native_window::*;
 pub use platform::*;
+pub use platform_hook::*;
 pub use single_instance::*;
 pub use window_event_hook::*;
