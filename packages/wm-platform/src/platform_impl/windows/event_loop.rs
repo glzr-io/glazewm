@@ -2,12 +2,12 @@ use std::{
   cell::RefCell,
   sync::{
     atomic::{AtomicBool, Ordering},
-    mpsc::{self},
     LazyLock,
   },
   thread::{self, JoinHandle},
 };
 
+use anyhow::bail;
 use windows::{
   core::s,
   Win32::{
@@ -25,32 +25,46 @@ use windows::{
 
 use crate::platform_impl::{DisplayHook, MouseHook};
 
-// Custom message ID for our dispatch mechanism
+/// Custom message ID for our dispatch mechanism
 static WM_DISPATCH_CALLBACK: LazyLock<u32> = LazyLock::new(|| unsafe {
   RegisterWindowMessageA(s!("Glaze:Dispatch"))
 });
+
 /// Whether the system is currently sleeping/hibernating.
 ///
 /// For use with window procedure.
 static IS_SYSTEM_SUSPENDED: AtomicBool = AtomicBool::new(false);
 
+/// Type used for cleanup functions
 type CleanupFn = Box<dyn FnOnce() -> anyhow::Result<()>>;
+
 thread_local! {
+  /// Thread-local storage for cleanup functions
   static CLEANUP_FUNCTIONS: RefCell<Vec<CleanupFn>> = RefCell::new(Vec::new());
 }
 
-// Type alias for the callback function
+/// Type alias for the callback function used with dispatches
 type EventCallback = Box<Box<dyn FnOnce() + Send + 'static>>;
 
+/// The install and stop functions for an installable component.
 pub struct Installable<I, S>
 where
   I: FnOnce() -> anyhow::Result<()> + Send + 'static,
   S: FnOnce() -> anyhow::Result<()> + Send + 'static,
 {
+  /// Called on the event loop thread immediately to install the
+  /// component.
   pub installer: I,
+  /// Stored on the event loop thread and gets called before the event
+  /// loop is exits.
   pub stop: S,
 }
 
+/// Objects related to the event loop running on the event thread. Will
+/// shutdown the event loop when dropped.
+///
+/// Callbacks can be dispatched to the event loop thread using `dispatch`,
+/// and components installed via `install`.
 pub struct EventLoop {
   message_window_handle: crate::WindowHandle,
   thread_handle: Option<JoinHandle<anyhow::Result<()>>>,
@@ -59,23 +73,31 @@ pub struct EventLoop {
 
 impl EventLoop {
   /// Creates a new Win32 [`EventLoop`] and starts the message loop in a
-  /// separate thread
+  /// separate thread.
   pub fn new() -> anyhow::Result<Self> {
-    let (sender, receiver) = mpsc::channel::<(crate::WindowHandle, u32)>();
+    let (sender, receiver) =
+      tokio::sync::oneshot::channel::<(crate::WindowHandle, u32)>();
 
     let thread_handle = thread::spawn(move || -> anyhow::Result<()> {
       let hwnd =
         super::Platform::create_message_window(Some(Self::window_proc))?;
       let thread_id = unsafe { GetCurrentThreadId() };
 
-      // Send the window handle and thread ID back to the main thread
-      sender.send((hwnd, thread_id))?;
+      // Send the window handle and thread ID back to the main thread. Will
+      // only fail if the reciever was closed, which would be due to
+      // the main thread erroring - so just bail.
+      if sender.send((hwnd, thread_id)).is_err() {
+        unsafe { DestroyWindow(HWND(hwnd)) }?;
+        bail!("Failed to send window handle back to main thread, channel was closed");
+      }
 
-      // Run the message loop
+      // Run the message loop. This will block until `WM_QUIT` is
+      // dispatched.
       Self::run_message_loop();
 
       tracing::info!("Event thread exiting");
 
+      // Run cleanup functions from any installed components.
       let fns = CLEANUP_FUNCTIONS.with(|fns| fns.replace(vec![]));
       for cleanup_fn in fns {
         if let Err(err) = cleanup_fn() {
@@ -89,7 +111,7 @@ impl EventLoop {
     });
 
     // Wait for the window handle and thread ID
-    let (hwnd, thread_id) = receiver.recv()?;
+    let (hwnd, thread_id) = receiver.blocking_recv()?;
 
     Ok(EventLoop {
       message_window_handle: hwnd,
@@ -103,18 +125,21 @@ impl EventLoop {
   /// # Arguments
   /// * `callback` - A closure that will be executed on the message loop
   ///   thread
+  // TODO: Remove `name` arg after testing
   pub fn dispatch<F>(&self, name: &str, callback: F) -> anyhow::Result<()>
   where
     F: FnOnce() + Send + 'static,
   {
-    tracing::warn!("Dispatching callback: {name}");
+    tracing::debug!("Dispatching callback: {name}");
 
-    // Box the callback and convert to raw pointer
+    // Needs to be double boxed to avoid a `STATUS_ACCESS_VIOLATION`. See
+    // Tau's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
     let boxed_callback = Box::new(callback);
     let box2: EventCallback = Box::new(boxed_callback);
+    // Leak to a raw pointer to be passed as WPARAM in the message.
     let callback_ptr = Box::into_raw(box2);
 
-    // Post a message with the callback pointer as lParam
+    // Post a message with the callback pointer as wParam
     unsafe {
       if PostMessageW(
         HWND(self.message_window_handle),
@@ -133,19 +158,17 @@ impl EventLoop {
     }
   }
 
-  /// Dispatches a callback and waits for it to complete
+  /// Dispatches a callback and waits for it to complete.
   ///
-  /// # Warning
-  /// This method blocks the calling thread until the callback completes.
-  /// Do not call this from the message loop thread itself to avoid
-  /// deadlock.
+  /// Returns Ok(R) if the callback completes successfully, or an
+  /// Error if the callback panics or fails to send the result.
   pub async fn dispatch_and_wait<F, R>(
     &self,
     name: &str,
     callback: F,
   ) -> anyhow::Result<R>
   where
-    F: FnOnce() -> anyhow::Result<R> + Send + 'static,
+    F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
   {
     let (sender, receiver) = tokio::sync::oneshot::channel();
@@ -162,11 +185,12 @@ impl EventLoop {
     })?;
 
     match receiver.await {
-      Ok(r) => r,
+      Ok(r) => Ok(r),
       Err(_) => Err(anyhow::anyhow!("Failed to receive dispatch result")),
     }
   }
 
+  /// Installs a component on the event loop thread.
   pub async fn install<I, S>(
     &mut self,
     name: &str,
@@ -179,15 +203,17 @@ impl EventLoop {
     // Dispatch the installer function to the message loop thread
     self
       .dispatch_and_wait(name, move || -> anyhow::Result<()> {
+        // Run the installer immediately
         (installable.installer)()?;
 
+        // Queue the cleanup function
         CLEANUP_FUNCTIONS.with(|fns| {
           fns.borrow_mut().push(Box::new(installable.stop));
         });
 
         Ok(())
       })
-      .await?;
+      .await??;
 
     Ok(())
   }
@@ -258,9 +284,9 @@ impl EventLoop {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> LRESULT {
-    // Can't match on a LazyLock
+    // Can't match on a LazyLock, TODO: Possibly fixable using lazy_static?
     if msg == *WM_DISPATCH_CALLBACK {
-      tracing::warn!("Received dispatch callback message");
+      // Convert the wparam fn pointer back to a double boxed function.
       let function: EventCallback = Box::from_raw(wparam.0 as *mut _);
       function();
       return LRESULT(0);
@@ -305,6 +331,8 @@ impl EventLoop {
         LRESULT(0)
       }
 
+      // `WM_QUIT` is handled for us by the message loop, so should be
+      // forwarded along with other messages we don't care about.
       _ => DefWindowProcW(hwnd, msg, wparam, lparam),
     }
   }

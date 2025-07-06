@@ -31,7 +31,7 @@ impl PlatformHook {
     let event_loop =
       unsafe { self.event_loop.as_mut().unwrap_unchecked() };
     let (mouse_hook, installer) =
-      MouseHook::new(event_loop.message_window_handle())?;
+      MouseHook::new(event_loop.message_window_handle());
 
     event_loop.install("Mouse Hook Install", installer).await?;
 
@@ -41,7 +41,7 @@ impl PlatformHook {
   pub async fn create_display_listener(
     &mut self,
   ) -> anyhow::Result<DisplayHook> {
-    let (hook, installer) = DisplayHook::new()?;
+    let (hook, installer) = DisplayHook::new();
 
     if self.event_loop.is_none() {
       self.event_loop = Some(EventLoop::new()?);
@@ -60,7 +60,7 @@ impl PlatformHook {
     &mut self,
     events: &'static [WindowEventType],
   ) -> anyhow::Result<WindowEventHook> {
-    let (window_event_hook, installer) = WindowEventHook::new(events)?;
+    let (window_event_hook, installer) = WindowEventHook::new(events);
 
     if self.event_loop.is_none() {
       self.event_loop = Some(EventLoop::new()?);

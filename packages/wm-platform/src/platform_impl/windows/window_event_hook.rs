@@ -24,11 +24,15 @@ thread_local! {
   static WINDOW_EVENTS: RefCell<Option<WindowEventHandles>> = const { RefCell::new(None) };
 }
 
+/// Holds objects related to the window event hook on the event thread.
 struct WindowEventHandles {
   event_tx: mpsc::UnboundedSender<WindowEvent>,
   hook_handles: Vec<HWINEVENTHOOK>,
 }
 
+/// Window event hook to be used in the main program.
+///
+/// Receives window events from the event loop.
 #[derive(Debug)]
 pub struct WindowEventHook {
   rx: mpsc::UnboundedReceiver<WindowEvent>,
@@ -37,24 +41,27 @@ pub struct WindowEventHook {
 impl WindowEventHook {
   /// Creates an instance of `WindowEventHook`.
   #[allow(clippy::type_complexity)]
-  pub fn new(
+  pub(crate) fn new(
     event_types: &'static [WindowEventType],
-  ) -> anyhow::Result<(
+  ) -> (
     Self,
     Installable<
       impl FnOnce() -> anyhow::Result<()> + Send + 'static,
       impl FnOnce() -> anyhow::Result<()> + Send + 'static,
     >,
-  )> {
+  ) {
     let (tx, rx) = mpsc::unbounded_channel::<WindowEvent>();
 
     let install = move || {
+      // Collect all the event IDs from the provided event types.
       let mut ids: Vec<u32> = event_types
         .iter()
         .map(crate::events::WindowEventType::id)
         .collect();
       ids.sort_unstable();
 
+      // Create ranges of consecutive event IDs.
+      // Results in the minimum needed number of hooks.
       let mut iter = ids.iter();
       let mut ranges = vec![];
       while let Some(id) = iter.next() {
@@ -68,6 +75,7 @@ impl WindowEventHook {
         ranges.push((*id, max));
       }
 
+      // Create a hook for each range of event IDs.
       let handles: Vec<HWINEVENTHOOK> = ranges
         .iter()
         .map(|range| {
@@ -111,7 +119,7 @@ impl WindowEventHook {
     };
     let win_event_hook = Self { rx };
 
-    Ok((win_event_hook, installer))
+    (win_event_hook, installer)
   }
 
   /// Creates a window hook for the specified event range.

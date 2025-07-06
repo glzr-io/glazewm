@@ -506,6 +506,9 @@ impl KeyboardHookThread {
   }
 }
 
+/// System hook procedure for handling keyboard events.
+/// Checks if the key event is an appropriate keydown event and then parses
+/// the VK code and forwards it to the [`KeyboardHookThread`] instance.
 extern "system" fn keyboard_hook_proc(
   code: i32,
   wparam: WPARAM,
@@ -526,6 +529,7 @@ extern "system" fn keyboard_hook_proc(
   // Get struct with keyboard input event.
   let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
+  // For the key event, we only care about the virtual key code.
   if let Some(res) = KEYBOARD_HOOK.with(|hook_cell| {
     if let Some(hook) = hook_cell.borrow().as_ref() {
       #[allow(clippy::cast_possible_truncation)]
@@ -540,5 +544,6 @@ extern "system" fn keyboard_hook_proc(
     return res;
   }
 
+  // If we didn't handle the key event, forward it
   unsafe { CallNextHookEx(None, code, wparam, lparam) }
 }

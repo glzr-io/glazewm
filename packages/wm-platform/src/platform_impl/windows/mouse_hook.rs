@@ -30,6 +30,10 @@ use crate::{
   MouseEvent, MouseMoveEvent,
 };
 
+/// Global mouse event sender.
+///
+/// Used by the window procedure to send mouse events baack to the main
+/// platform.
 static MOUSE_EVENT_TX: OnceLock<
   tokio::sync::mpsc::UnboundedSender<crate::MouseEvent>,
 > = const { OnceLock::new() };
@@ -54,6 +58,9 @@ static IS_R_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 /// For use with window procedure.
 static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 
+/// Mouse hook to be used in the main program.
+///
+/// Can receive mouse events from the event loop
 pub struct MouseHook {
   event_rx: tokio::sync::mpsc::UnboundedReceiver<crate::MouseEvent>,
 }
@@ -63,15 +70,15 @@ impl MouseHook {
   /// specified window. Returns a tuple containing the [`MouseHook`]
   /// instance and a function to install the hook on the message thread.
   #[allow(clippy::type_complexity)]
-  pub fn new(
+  pub(crate) fn new(
     window_handle: crate::WindowHandle,
-  ) -> anyhow::Result<(
+  ) -> (
     Self,
     Installable<
       impl FnOnce() -> anyhow::Result<()>,
       impl FnOnce() -> anyhow::Result<()>,
     >,
-  )> {
+  ) {
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let install = move || {
       let rid = RAWINPUTDEVICE {
@@ -107,7 +114,7 @@ impl MouseHook {
       stop,
     };
 
-    Ok((Self { event_rx: rx }, install))
+    (Self { event_rx: rx }, install)
   }
 
   pub fn update(enable_events: bool) {
@@ -128,6 +135,11 @@ impl MouseHook {
     _wparam: WPARAM,
     lparam: LPARAM,
   ) -> anyhow::Result<()> {
+    // Early exit if mouse events are not enabled.
+    if !ENABLE_MOUSE_EVENTS.load(Ordering::Relaxed) {
+      return Ok(());
+    }
+
     let event_tx = MOUSE_EVENT_TX.get().ok_or_else(|| {
       anyhow::anyhow!("Mouse event transmitter not set.")
     })?;

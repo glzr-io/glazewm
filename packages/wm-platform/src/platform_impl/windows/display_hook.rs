@@ -11,23 +11,31 @@ use windows::Win32::{
 use crate::{platform_impl::Installable, DisplayEvent};
 
 thread_local! {
+  // Event sender for display events.
   static DISPLAY_EVENT_TX: OnceLock<tokio::sync::mpsc::UnboundedSender<crate::DisplayEvent>> = const { OnceLock::new() };
 }
 
+/// Hook for display events to be used in the main program.
+///
+/// Should be created using `PlatformHook::create_display_hook`
+///
+/// Recieves display events from the event loop.
 pub struct DisplayHook {
   event_rx: tokio::sync::mpsc::UnboundedReceiver<crate::DisplayEvent>,
 }
 
 impl DisplayHook {
   // Can't simplfy this since closures don't have a dedicated type.
+  /// Creates a new [`DisplayHook`] that listens for display events. Only
+  /// to be used by [`crate::PlatformHook`]
   #[allow(clippy::type_complexity)]
-  pub fn new() -> anyhow::Result<(
+  pub(crate) fn new() -> (
     Self,
     Installable<
       impl FnOnce() -> anyhow::Result<()>,
       impl FnOnce() -> anyhow::Result<()>,
     >,
-  )> {
+  ) {
     let (event_tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let install = move || -> anyhow::Result<()> {
       DISPLAY_EVENT_TX.with(|tx| {
@@ -47,7 +55,7 @@ impl DisplayHook {
       stop,
     };
 
-    Ok((Self { event_rx: rx }, install))
+    (Self { event_rx: rx }, install)
   }
 
   pub async fn next_event(&mut self) -> Option<crate::DisplayEvent> {
