@@ -15,49 +15,65 @@ use smithay::{
 use crate::state::State;
 
 impl State {
+  fn process_keyboard_event<I: InputBackend>(
+    &mut self,
+    event: &I::KeyboardKeyEvent,
+  ) {
+    let serial = SERIAL_COUNTER.next_serial();
+    let time = Event::time_msec(event);
+
+    self.seat.get_keyboard().unwrap().input::<(), _>(
+      self,
+      event.key_code(),
+      event.state(),
+      serial,
+      time,
+      |_, _, _| FilterResult::Forward, /* TODO: Can intercept
+                                        * keystrokes for the WM here,
+                                        * return
+                                        * [`FilterResult::Intercept`] */
+    );
+  }
+
+  pub fn process_pointer_motion_absolute<I: InputBackend>(
+    &mut self,
+    event: &I::PointerMotionAbsoluteEvent,
+  ) {
+    let output = self.space.outputs().next().unwrap();
+
+    let output_geo = self.space.output_geometry(output).unwrap();
+
+    let pos = event.position_transformed(output_geo.size)
+      + output_geo.loc.to_f64();
+
+    let serial = SERIAL_COUNTER.next_serial();
+
+    let pointer = self.seat.get_pointer().unwrap();
+
+    let under = self.surface_under(pos);
+
+    pointer.motion(
+      self,
+      under,
+      &MotionEvent {
+        location: pos,
+        serial,
+        time: event.time_msec(),
+      },
+    );
+    pointer.frame(self);
+  }
+
   pub fn process_input_event<I: InputBackend>(
     &mut self,
     event: InputEvent<I>,
   ) {
     match event {
       InputEvent::Keyboard { event, .. } => {
-        let serial = SERIAL_COUNTER.next_serial();
-        let time = Event::time_msec(&event);
-
-        self.seat.get_keyboard().unwrap().input::<(), _>(
-          self,
-          event.key_code(),
-          event.state(),
-          serial,
-          time,
-          |_, _, _| FilterResult::Forward,
-        );
+        self.process_keyboard_event::<I>(&event);
       }
-      InputEvent::PointerMotion { .. } => {}
       InputEvent::PointerMotionAbsolute { event, .. } => {
-        let output = self.space.outputs().next().unwrap();
-
-        let output_geo = self.space.output_geometry(output).unwrap();
-
-        let pos = event.position_transformed(output_geo.size)
-          + output_geo.loc.to_f64();
-
-        let serial = SERIAL_COUNTER.next_serial();
-
-        let pointer = self.seat.get_pointer().unwrap();
-
-        let under = self.surface_under(pos);
-
-        pointer.motion(
-          self,
-          under,
-          &MotionEvent {
-            location: pos,
-            serial,
-            time: event.time_msec(),
-          },
-        );
-        pointer.frame(self);
+        self.process_pointer_motion_absolute::<I>(&event);
       }
       InputEvent::PointerButton { event, .. } => {
         let pointer = self.seat.get_pointer().unwrap();

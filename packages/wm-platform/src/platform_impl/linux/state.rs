@@ -2,7 +2,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
   desktop::{PopupManager, Space, Window, WindowSurfaceType},
-  input::{Seat, SeatState},
+  input::{keyboard::XkbConfig, Seat, SeatState},
   reexports::{
     calloop::{
       generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction,
@@ -70,7 +70,7 @@ impl State {
     // Notify clients that we have a keyboard, for the sake of the example
     // we assume that keyboard is always present. You may want to track
     // keyboard hot-plug in real compositor.
-    seat.add_keyboard(Default::default(), 200, 25).unwrap();
+    seat.add_keyboard(XkbConfig::default(), 200, 25).unwrap();
 
     // Notify clients that we have a pointer (mouse)
     // Here we assume that there is always pointer plugged in
@@ -122,7 +122,7 @@ impl State {
     let loop_handle = event_loop.handle();
 
     loop_handle
-      .insert_source(listening_socket, move |client_stream, _, state| {
+      .insert_source(listening_socket, move |client_stream, (), state| {
         // Inside the callback, you should insert the client into the
         // display.
         //

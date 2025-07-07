@@ -55,11 +55,11 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &ButtonEvent,
   ) {
-    handle.button(data, event);
-
     // The button is a button code as defined in the
     // Linux kernel's linux/input-event-codes.h header file, e.g. BTN_LEFT.
     const BTN_LEFT: u32 = 0x110;
+
+    handle.button(data, event);
 
     if !handle.current_pressed().contains(&BTN_LEFT) {
       // No more buttons are pressed, release the grab.
@@ -73,7 +73,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     details: AxisFrame,
   ) {
-    handle.axis(data, details)
+    handle.axis(data, details);
   }
 
   fn frame(
@@ -90,7 +90,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GestureSwipeBeginEvent,
   ) {
-    handle.gesture_swipe_begin(data, event)
+    handle.gesture_swipe_begin(data, event);
   }
 
   fn gesture_swipe_update(
@@ -99,7 +99,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GestureSwipeUpdateEvent,
   ) {
-    handle.gesture_swipe_update(data, event)
+    handle.gesture_swipe_update(data, event);
   }
 
   fn gesture_swipe_end(
@@ -108,7 +108,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GestureSwipeEndEvent,
   ) {
-    handle.gesture_swipe_end(data, event)
+    handle.gesture_swipe_end(data, event);
   }
 
   fn gesture_pinch_begin(
@@ -117,7 +117,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GesturePinchBeginEvent,
   ) {
-    handle.gesture_pinch_begin(data, event)
+    handle.gesture_pinch_begin(data, event);
   }
 
   fn gesture_pinch_update(
@@ -126,7 +126,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GesturePinchUpdateEvent,
   ) {
-    handle.gesture_pinch_update(data, event)
+    handle.gesture_pinch_update(data, event);
   }
 
   fn gesture_pinch_end(
@@ -135,7 +135,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GesturePinchEndEvent,
   ) {
-    handle.gesture_pinch_end(data, event)
+    handle.gesture_pinch_end(data, event);
   }
 
   fn gesture_hold_begin(
@@ -144,7 +144,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GestureHoldBeginEvent,
   ) {
-    handle.gesture_hold_begin(data, event)
+    handle.gesture_hold_begin(data, event);
   }
 
   fn gesture_hold_end(
@@ -153,7 +153,7 @@ impl PointerGrab<State> for MoveSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &GestureHoldEndEvent,
   ) {
-    handle.gesture_hold_end(data, event)
+    handle.gesture_hold_end(data, event);
   }
 
   fn start_data(&self) -> &PointerGrabStartData<State> {

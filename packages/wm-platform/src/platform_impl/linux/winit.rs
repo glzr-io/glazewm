@@ -55,7 +55,7 @@ pub fn init_winit(
 
   event_loop
     .handle()
-    .insert_source(winit, move |event, _, data| {
+    .insert_source(winit, move |event, (), data| {
       let display = &mut data.display_handle;
       let state = &mut data.state;
 
@@ -104,7 +104,7 @@ pub fn init_winit(
               state.start_time.elapsed(),
               Some(Duration::ZERO),
               |_, _| Some(output.clone()),
-            )
+            );
           });
 
           state.space.refresh();
@@ -117,7 +117,9 @@ pub fn init_winit(
         WinitEvent::CloseRequested => {
           state.loop_signal.stop();
         }
-        _ => (),
+        WinitEvent::Focus(f) => {
+          tracing::info!("Window focused: {}", f);
+        }
       };
     })?;
 

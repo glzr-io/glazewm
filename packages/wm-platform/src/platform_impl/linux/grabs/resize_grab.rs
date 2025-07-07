@@ -168,11 +168,11 @@ impl PointerGrab<State> for ResizeSurfaceGrab {
     handle: &mut PointerInnerHandle<'_, State>,
     event: &ButtonEvent,
   ) {
-    handle.button(data, event);
-
     // The button is a button code as defined in the
     // Linux kernel's linux/input-event-codes.h header file, e.g. BTN_LEFT.
     const BTN_LEFT: u32 = 0x110;
+
+    handle.button(data, event);
 
     if !handle.current_pressed().contains(&BTN_LEFT) {
       // No more buttons are pressed, release the grab.
