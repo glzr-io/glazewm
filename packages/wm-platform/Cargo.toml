@@ -60,3 +60,7 @@ objc2-foundation = { version = "0.3.1", default-features = false, features = [
   "NSThread",
   "NSValue",
 ] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+smithay = { version = "0.7.0" }
+bitflags = "2.2.1"

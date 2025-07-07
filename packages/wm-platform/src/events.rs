@@ -1,10 +1,3 @@
-use windows::Win32::UI::WindowsAndMessaging::{
-  EVENT_OBJECT_CLOAKED, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE,
-  EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE, EVENT_OBJECT_SHOW,
-  EVENT_OBJECT_UNCLOAKED, EVENT_SYSTEM_FOREGROUND,
-  EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART,
-  EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZESTART,
-};
 use wm_common::{KeybindingConfig, Point};
 
 use crate::NativeWindow;
@@ -61,6 +54,7 @@ pub enum WindowEventType {
 }
 
 impl WindowEventType {
+  #[cfg(target_os = "windows")]
   #[must_use]
   pub fn id(&self) -> u32 {
     match self {

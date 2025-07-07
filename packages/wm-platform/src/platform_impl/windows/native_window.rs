@@ -89,6 +89,10 @@ impl NativeWindow {
     }
   }
 
+  pub fn handle(&self) -> crate::WindowHandle {
+    self.handle
+  }
+
   /// Gets the window's title. If the window is invalid, returns an empty
   /// string.
   ///
