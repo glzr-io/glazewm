@@ -48,13 +48,6 @@ use wm_common::{
 
 use super::COM_INIT;
 
-pub enum ZOrder {
-  Normal,
-  AfterWindow(isize),
-  Top,
-  TopMost,
-}
-
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.
 pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;

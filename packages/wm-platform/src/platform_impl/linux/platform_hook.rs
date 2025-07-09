@@ -1,34 +1,69 @@
-use std::thread::JoinHandle;
+use std::{borrow::Cow, thread::JoinHandle};
 
 use anyhow::bail;
-use smithay::reexports::{
-  calloop::EventLoop,
-  wayland_server::{Display, DisplayHandle},
+use smithay::{
+  desktop::{Space, Window},
+  reexports::{
+    pixman::Point,
+    wayland_server::{Display, DisplayHandle},
+  },
+  utils::{Serial, SERIAL_COUNTER},
+  wayland::seat::WaylandFocus,
 };
 
-use super::{state::State, CalloopData};
+use super::{
+  event_loop::EventLoop, state::State, CalloopData, NativeWindow,
+};
 
-pub struct PlatformHook<'a> {
-  event_loop: EventLoop<'a, CalloopData>,
+pub struct PlatformHook {
+  event_loop: EventLoop,
 }
 
-impl<'a> PlatformHook<'a> {
+impl PlatformHook {
   pub fn dedicated() -> anyhow::Result<Self> {
-    let mut event_loop = EventLoop::<CalloopData>::try_new()?;
-
-    let display: Display<State> = Display::new()?;
-    let handle = display.handle();
-    let state = State::new(&mut event_loop, display);
-
-    let mut data = CalloopData {
-      state,
-      display_handle: handle,
-    };
-
-    if let Err(e) = super::winit::init_winit(&mut event_loop, &mut data) {
-      bail!("Failed to initialize winit: {}", e);
-    }
+    let event_loop = EventLoop::new();
 
     Ok(Self { event_loop })
+  }
+
+  #[must_use]
+  pub fn desktop_window(&self) -> NativeWindow {
+    todo!()
+  }
+
+  #[must_use]
+  pub fn is_foreground_window(&self, _: &NativeWindow) -> bool {
+    false
+  }
+
+  pub fn mouse_position(&self) -> anyhow::Result<wm_common::Point> {
+    todo!()
+  }
+
+  pub fn set_cursor_pos(&self, x: i32, y: i32) -> anyhow::Result<()> {
+    self.event_loop.dispatch(move |data| {
+      if let Some(pointer) = data.state.seat.get_pointer() {
+        let point = smithay::utils::Point::new(f64::from(x), f64::from(y));
+        let surface = data
+          .state
+          .space
+          .element_under(point)
+          .and_then(|(win, _point)| {
+            win.wl_surface().map(std::borrow::Cow::into_owned)
+          })
+          .map(|surface| (surface, point));
+        #[allow(clippy::cast_possible_truncation)]
+        let event = smithay::input::pointer::MotionEvent {
+          location: point,
+          serial: SERIAL_COUNTER.next_serial(),
+          time: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u32,
+        };
+        pointer.motion(&mut data.state, surface, &event);
+      }
+    })?;
+    Ok(())
   }
 }

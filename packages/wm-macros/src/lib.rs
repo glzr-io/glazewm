@@ -4,7 +4,9 @@
 
 mod common;
 mod enum_from_inner;
+mod key;
 mod subenum;
+mod try_to_enum_discriminant;
 use proc_macro::TokenStream;
 
 mod prelude {
@@ -12,6 +14,12 @@ mod prelude {
     attributes::prelude::*, error_handling::prelude::*,
     peekable::prelude::*,
   };
+}
+
+enum Os {
+  Windows,
+  MacOS,
+  Linux,
 }
 
 /// Creates subenums from a main enum, and defines
@@ -116,4 +124,62 @@ pub fn sub_enum(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(EnumFromInner)]
 pub fn enum_from_inner(input: TokenStream) -> TokenStream {
   enum_from_inner::enum_from_inner(input)
+}
+
+/// Generates conversions for an enum containing keys, using the `key`
+/// attribute that specifies the name(s) of the key and the respective
+/// native key variant for that key.
+///
+/// # Example
+/// ```
+/// enum WinKey {
+///   A,
+///   Ctrl,
+///   PageUp
+/// }
+///
+/// enum MacKey {
+///   A,
+///   Ctrl,
+///   PageUp
+/// }
+///
+/// enum LinuxKey {
+///   Ctrl,
+///   PageUp
+/// }
+///
+/// #[derive(wm_macros::KeyConversions)]
+/// #[key(win = WinKey, mac = MacKey, linux = LinuxKey)]
+/// enum Key {
+///   // Linux enum does not have an A key in this example, so marked as absent with `!`
+///   #[key("a", win = A, mac = A, linux = !)]
+///   A,
+///   // Can use multiple names for the same key, separated by `|`.
+///   #[key("ctrl" | "control", win = Ctrl, mac = Ctrl, linux = Ctrl)]
+///   Ctrl,
+///   // Using spaces in the name will generate variant names, such as in the following example
+///   // "page up", "pageup" , "pageUp" "page_up" and "page-up" are all valid names generated from
+///   // the single name.
+///   #[key("page up", win = PageUp, mac = PageUp, linux = PageUp)]
+///   PageUp,
+///   // Wildcard for valid but unmatched keys
+///   #[key(..)]
+///   Custom(u16)
+/// }
+///
+/// let name = "a";
+/// let a_key = Key::from_str(name).unwrap(); // Will get None if the key does not have a match, and doesn't exist on the current keyboard layout.
+///
+/// let win_a = WinKey::A;
+/// let a_key = Key::from_vk(win_a); // Infallible, will get Key::Custom if there isn't a match.
+/// ```
+#[proc_macro_derive(KeyConversions, attributes(key))]
+pub fn key_conversions(input: TokenStream) -> TokenStream {
+  key::key_conversions(input)
+}
+
+#[proc_macro_derive(TryToDiscriminant)]
+pub fn try_to_discriminant(input: TokenStream) -> TokenStream {
+  try_to_enum_discriminant::try_to_enum_discriminant(input)
 }

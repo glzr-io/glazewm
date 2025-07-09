@@ -7,7 +7,7 @@ use uuid::Uuid;
 use wm_common::{
   BindingModeConfig, Direction, Point, WindowState, WmEvent,
 };
-use wm_platform::{NativeMonitor, NativeWindow, Platform};
+use wm_platform::{NativeMonitor, NativeWindow, PlatformHook};
 
 use crate::{
   commands::{
@@ -24,6 +24,8 @@ use crate::{
 };
 
 pub struct WmState {
+  pub platform: PlatformHook,
+
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
   pub root_container: RootContainer,

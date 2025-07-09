@@ -166,6 +166,24 @@ macro_rules! custom_keyword {
 }
 pub(crate) use custom_keyword;
 
+/// Custum punctuation definition that also implements `SynPeek`.
+macro_rules! custom_punct {
+  ($name:ident, $($tokens:tt)*) => {
+    syn::custom_punctuation!($name, $($tokens)*);
+
+    impl $crate::common::peekable::SynPeek for $name {
+      fn peekable() -> impl syn::parse::Peek {
+        $name
+      }
+
+      fn display() -> &'static str {
+        crate::common::peekable::get_peek_display(Self::peekable())
+      }
+    }
+  };
+}
+pub(crate) use custom_punct;
+
 /// Macro for implementing [SynPeek] for a type that implements
 /// [syn::parse::Peek].
 macro_rules! impl_syn_peek {

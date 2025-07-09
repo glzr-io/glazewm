@@ -5,9 +5,13 @@ pub(crate) mod event_loop;
 pub(crate) mod grabs;
 pub(crate) mod handlers;
 pub(crate) mod input;
+pub(crate) mod key;
 pub(crate) mod state;
 pub(crate) mod winit;
 
+mod native_monitor;
+
+pub use native_monitor::*;
 pub use native_window::*;
 pub use platform_hook::*;
 use smithay::reexports::wayland_server::DisplayHandle;

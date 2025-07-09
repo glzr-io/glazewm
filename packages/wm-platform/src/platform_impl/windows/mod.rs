@@ -1,6 +1,7 @@
 mod com;
 mod display_hook;
 mod event_loop;
+pub(crate) mod key;
 mod keyboard_hook;
 mod mouse_hook;
 mod native_monitor;

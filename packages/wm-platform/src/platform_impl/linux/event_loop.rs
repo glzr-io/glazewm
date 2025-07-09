@@ -1,16 +1,20 @@
-use std::thread::JoinHandle;
-
 use anyhow::bail;
-use smithay::reexports::{
-  calloop,
-  wayland_server::{Display, DisplayHandle},
-};
+use smithay::reexports::{calloop, wayland_server::Display};
 
 use super::{state::State, CalloopData};
 
+pub type DispatchFn = Box<Box<dyn FnOnce(&mut CalloopData) + Send>>;
+
+#[derive(Clone, Copy)]
+struct RawDispatchFn(
+  pub *mut Box<dyn FnOnce(&mut CalloopData) + Send + 'static>,
+);
+
+unsafe impl Send for RawDispatchFn {}
+
 pub struct EventLoop {
   join_handle: Option<std::thread::JoinHandle<anyhow::Result<()>>>,
-  dispatcher: calloop::channel::Sender<Box<dyn FnOnce() + Send>>,
+  dispatcher: calloop::channel::Sender<RawDispatchFn>,
 }
 
 impl EventLoop {
@@ -36,13 +40,12 @@ impl EventLoop {
 
       let _token = match event_loop.handle().insert_source(
         receiver,
-        |event: calloop::channel::Event<Box<dyn FnOnce() + Send>>,
-         (),
-         _| {
+        |event: calloop::channel::Event<RawDispatchFn>, (), data| {
           match event {
-            calloop::channel::Event::Msg(func) => {
+            calloop::channel::Event::Msg(raw) => {
+              let func: DispatchFn = unsafe { Box::from_raw(raw.0) };
               // Execute the function in the main thread
-              func();
+              func(data);
             }
             calloop::channel::Event::Closed => {}
           }
@@ -61,5 +64,47 @@ impl EventLoop {
       join_handle: Some(join_handle),
       dispatcher,
     }
+  }
+
+  pub fn dispatch<F>(&self, callback: F) -> anyhow::Result<()>
+  where
+    F: FnOnce(&mut CalloopData) + Send + 'static,
+  {
+    let cb = Box::new(Box::new(callback)
+      as Box<dyn FnOnce(&mut CalloopData) + Send + 'static>);
+    let raw = RawDispatchFn(Box::into_raw(cb));
+    if let Err(e) = self.dispatcher.send(raw) {
+      unsafe {
+        _ = Box::from_raw(raw.0);
+      } // Ensure we clean up the memory if sending fails
+      return Err(anyhow::anyhow!(
+        "Failed to send dispatch callback: {}",
+        e
+      ));
+    }
+
+    Ok(())
+  }
+
+  pub fn dispatch_and_wait<F, R>(&self, callback: F) -> anyhow::Result<R>
+  where
+    F: FnOnce(&mut CalloopData) -> R + Send + 'static,
+    R: Send + 'static,
+  {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+
+    self.dispatch(move |state| {
+      let res = callback(state);
+
+      if tx.send(res).is_err() {
+        tracing::error!(
+          "Failed to send result from callback, receiver dropped"
+        );
+      }
+    });
+
+    let res = rx.blocking_recv()?;
+
+    Ok(res)
   }
 }
