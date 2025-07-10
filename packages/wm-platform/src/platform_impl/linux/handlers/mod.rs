@@ -19,15 +19,15 @@ use smithay::{
   },
 };
 
-use crate::state::State;
+use crate::state::Glaze;
 
-impl SeatHandler for State {
+impl SeatHandler for Glaze {
   type KeyboardFocus = WlSurface;
   type PointerFocus = WlSurface;
   type TouchFocus = WlSurface;
 
-  fn seat_state(&mut self) -> &mut SeatState<State> {
-    &mut self.seat_state
+  fn seat_state(&mut self) -> &mut SeatState<Glaze> {
+    &mut self.state.seat
   }
 
   fn cursor_image(
@@ -48,30 +48,30 @@ impl SeatHandler for State {
   }
 }
 
-delegate_seat!(State);
+delegate_seat!(Glaze);
 
 //
 // Wl Data Device
 //
 
-impl SelectionHandler for State {
+impl SelectionHandler for Glaze {
   type SelectionUserData = ();
 }
 
-impl DataDeviceHandler for State {
+impl DataDeviceHandler for Glaze {
   fn data_device_state(&self) -> &DataDeviceState {
-    &self.data_device_state
+    &self.state.data_device
   }
 }
 
-impl ClientDndGrabHandler for State {}
-impl ServerDndGrabHandler for State {}
+impl ClientDndGrabHandler for Glaze {}
+impl ServerDndGrabHandler for Glaze {}
 
-delegate_data_device!(State);
+delegate_data_device!(Glaze);
 
 //
 // Wl Output & Xdg Output
 //
 
-impl OutputHandler for State {}
-delegate_output!(State);
+impl OutputHandler for Glaze {}
+delegate_output!(Glaze);

@@ -18,12 +18,12 @@ use smithay::{
 use super::xdg_shell;
 use crate::{
   grabs::resize_grab,
-  state::{ClientState, State},
+  state::{ClientState, Glaze},
 };
 
-impl CompositorHandler for State {
+impl CompositorHandler for Glaze {
   fn compositor_state(&mut self) -> &mut CompositorState {
-    &mut self.compositor_state
+    &mut self.state.compositor
   }
 
   fn client_compositor_state<'a>(
@@ -47,22 +47,22 @@ impl CompositorHandler for State {
       {
         window.on_commit();
       }
-    };
+    }
 
     xdg_shell::handle_commit(&mut self.popups, &self.space, surface);
     resize_grab::handle_commit(&mut self.space, surface);
   }
 }
 
-impl BufferHandler for State {
+impl BufferHandler for Glaze {
   fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
 }
 
-impl ShmHandler for State {
+impl ShmHandler for Glaze {
   fn shm_state(&self) -> &ShmState {
-    &self.shm_state
+    &self.state.shm
   }
 }
 
-delegate_compositor!(State);
-delegate_shm!(State);
+delegate_compositor!(Glaze);
+delegate_shm!(Glaze);

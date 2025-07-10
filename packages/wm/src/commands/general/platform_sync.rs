@@ -7,7 +7,7 @@ use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::{Platform, ZOrder};
+use wm_platform::ZOrder;
 
 use crate::{
   models::{Container, WindowContainer},

@@ -1,7 +1,8 @@
 use anyhow::bail;
 use smithay::reexports::{calloop, wayland_server::Display};
+use wm_common::ParsedConfig;
 
-use super::{state::State, CalloopData};
+use super::{state::Glaze, CalloopData};
 
 pub type DispatchFn = Box<Box<dyn FnOnce(&mut CalloopData) + Send>>;
 
@@ -18,15 +19,17 @@ pub struct EventLoop {
 }
 
 impl EventLoop {
-  pub fn new() -> Self {
+  pub fn new(config: &ParsedConfig) -> Self {
     let (dispatcher, receiver) = calloop::channel::channel();
+
+    let config = config.clone();
 
     let join_handle = std::thread::spawn(move || {
       let mut event_loop = calloop::EventLoop::<CalloopData>::try_new()?;
 
-      let display: Display<State> = Display::new()?;
+      let display: Display<Glaze> = Display::new()?;
       let handle = display.handle();
-      let state = State::new(&mut event_loop, display);
+      let state = Glaze::new(&mut event_loop, display, config);
 
       let mut data = CalloopData {
         state,

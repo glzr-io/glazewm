@@ -3,7 +3,7 @@ use smithay::{
   reexports::{wayland_server::Display, winit::monitor::MonitorHandle},
 };
 
-use super::state::State;
+use super::state::Glaze;
 
 pub struct NativeMonitor {
   inner: MonitorHandle,

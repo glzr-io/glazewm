@@ -24,20 +24,38 @@ use smithay::{
     },
   },
 };
+use wm_common::{InitialWindowState, WindowState};
 
 use crate::{
   grabs::{MoveSurfaceGrab, ResizeSurfaceGrab},
-  state::State,
+  state::Glaze,
+  NativeWindow,
 };
 
-impl XdgShellHandler for State {
+impl XdgShellHandler for Glaze {
   fn xdg_shell_state(&mut self) -> &mut XdgShellState {
-    &mut self.xdg_shell_state
+    &mut self.state.xdg_shell
   }
 
+  // Called whenever a new window is added to the compositor
   fn new_toplevel(&mut self, surface: ToplevelSurface) {
     let window = Window::new_wayland_window(surface);
-    self.space.map_element(window, (0, 0), false);
+    let initial_window_state = &self.config.window_behavior.initial_state;
+    let win_state = match initial_window_state {
+      InitialWindowState::Tiling => WindowState::Tiling,
+      InitialWindowState::Floating => {
+        let floating_config =
+          self.config.window_behavior.state_defaults.floating.clone();
+        WindowState::Floating(floating_config)
+      }
+    };
+    let native_window = NativeWindow::new(window, win_state);
+    self.windows.new_window(native_window);
+  }
+
+  /// Called whenever a window is closed
+  fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
+    self.windows.window_close(&surface);
   }
 
   fn new_popup(
@@ -148,13 +166,13 @@ impl XdgShellHandler for State {
 }
 
 // Xdg Shell
-delegate_xdg_shell!(State);
+delegate_xdg_shell!(Glaze);
 
 fn check_grab(
-  seat: &Seat<State>,
+  seat: &Seat<Glaze>,
   surface: &WlSurface,
   serial: Serial,
-) -> Option<PointerGrabStartData<State>> {
+) -> Option<PointerGrabStartData<Glaze>> {
   let pointer = seat.get_pointer()?;
 
   // Check that this surface has a click grab.
@@ -216,7 +234,7 @@ pub fn handle_commit(
   }
 }
 
-impl State {
+impl Glaze {
   fn unconstrain_popup(&self, popup: &PopupSurface) {
     let Ok(root) = find_popup_root_surface(&PopupKind::Xdg(popup.clone()))
     else {

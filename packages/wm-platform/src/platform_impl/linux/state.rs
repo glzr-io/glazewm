@@ -13,7 +13,7 @@ use smithay::{
       Display, DisplayHandle,
     },
   },
-  utils::{Logical, Point},
+  utils::{Clock, Logical, Monotonic, Point},
   wayland::{
     compositor::{CompositorClientState, CompositorState},
     output::OutputManagerState,
@@ -23,49 +23,80 @@ use smithay::{
     socket::ListeningSocketSource,
   },
 };
+use wm_common::ParsedConfig;
 
-use super::CalloopData;
-pub struct State {
+use super::{windows::Windows, CalloopData, Hooks};
+
+pub struct Glaze {
   pub start_time: std::time::Instant,
+  pub clock: Clock<Monotonic>,
+
   pub socket_name: OsString,
   pub display_handle: DisplayHandle,
 
   pub space: Space<Window>,
   pub loop_signal: LoopSignal,
 
-  // Smithay State
-  pub compositor_state: CompositorState,
-  pub xdg_shell_state: XdgShellState,
-  pub shm_state: ShmState,
-  pub output_manager_state: OutputManagerState,
-  pub seat_state: SeatState<State>,
-  pub data_device_state: DataDeviceState,
+  pub state: State,
+
   pub popups: PopupManager,
 
   pub seat: Seat<Self>,
+
+  pub config: wm_common::ParsedConfig,
+
+  pub windows: Windows,
+  pub hooks: Hooks,
 }
-impl State {
+
+pub struct State {
+  pub compositor: CompositorState,
+  pub xdg_shell: XdgShellState,
+  pub shm: ShmState,
+  pub output_manager: OutputManagerState,
+  pub seat: SeatState<Glaze>,
+  pub data_device: DataDeviceState,
+}
+
+impl Glaze {
   pub fn new(
     event_loop: &mut EventLoop<CalloopData>,
     display: Display<Self>,
+    config: ParsedConfig,
   ) -> Self {
     let start_time = std::time::Instant::now();
 
     let dh = display.handle();
 
+    // Compositor State
     let compositor_state = CompositorState::new::<Self>(&dh);
+    // State for desktop windows, and their popups
     let xdg_shell_state = XdgShellState::new::<Self>(&dh);
+    // Shared memory for the compositor and wayland clients
     let shm_state = ShmState::new::<Self>(&dh, vec![]);
+    // An output is an area of space that the compositor uses, such as a
+    // monitor. This uses the xdg-output extension
     let output_manager_state =
       OutputManagerState::new_with_xdg_output::<Self>(&dh);
-    let mut seat_state = SeatState::new();
+    let seat_state = SeatState::new();
+    // Copy-Paste and drag operations
     let data_device_state = DataDeviceState::new::<Self>(&dh);
+
+    let mut state = State {
+      compositor: compositor_state,
+      xdg_shell: xdg_shell_state,
+      shm: shm_state,
+      output_manager: output_manager_state,
+      seat: seat_state,
+      data_device: data_device_state,
+    };
+
     let popups = PopupManager::default();
 
     // A seat is a group of keyboards, pointer and touch devices.
     // A seat typically has a pointer and maintains a keyboard focus and a
     // pointer focus.
-    let mut seat: Seat<Self> = seat_state.new_wl_seat(&dh, "winit");
+    let mut seat: Seat<Self> = state.seat.new_wl_seat(&dh, "winit");
 
     // Notify clients that we have a keyboard, for the sake of the example
     // we assume that keyboard is always present. You may want to track
@@ -89,26 +120,29 @@ impl State {
     // Get the loop signal, used to stop the event loop
     let loop_signal = event_loop.get_signal();
 
+    let clock = Clock::new();
+
     Self {
       start_time,
+      clock,
       display_handle: dh,
 
       space,
       loop_signal,
       socket_name,
 
-      compositor_state,
-      xdg_shell_state,
-      shm_state,
-      output_manager_state,
-      seat_state,
-      data_device_state,
+      state,
       popups,
       seat,
+      config,
+      windows: Windows::default(),
+      hooks: Hooks::default(),
     }
   }
+
+  /// Connect wayland to the event loop
   fn init_wayland_listener(
-    display: Display<State>,
+    display: Display<Glaze>,
     event_loop: &mut EventLoop<CalloopData>,
   ) -> OsString {
     // Creates a new listening socket, automatically choosing the next
@@ -121,6 +155,8 @@ impl State {
 
     let loop_handle = event_loop.handle();
 
+    // Add the Unix socket to the event loop so we can process events from
+    // clients connected to the wayland server
     loop_handle
       .insert_source(listening_socket, move |client_stream, (), state| {
         // Inside the callback, you should insert the client into the
@@ -142,12 +178,14 @@ impl State {
         Generic::new(display, Interest::READ, Mode::Level),
         |_, display, state| {
           // Safety: we don't drop the display
+          // Dispatch wayland events to all clients
           unsafe {
             display
               .get_mut()
               .dispatch_clients(&mut state.state)
               .unwrap();
           }
+          // Tell the event loop to continue
           Ok(PostAction::Continue)
         },
       )

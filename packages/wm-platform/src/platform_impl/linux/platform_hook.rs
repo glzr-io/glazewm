@@ -1,27 +1,15 @@
-use std::{borrow::Cow, thread::JoinHandle};
+use smithay::utils::SERIAL_COUNTER;
+use wm_common::ParsedConfig;
 
-use anyhow::bail;
-use smithay::{
-  desktop::{Space, Window},
-  reexports::{
-    pixman::Point,
-    wayland_server::{Display, DisplayHandle},
-  },
-  utils::{Serial, SERIAL_COUNTER},
-  wayland::seat::WaylandFocus,
-};
-
-use super::{
-  event_loop::EventLoop, state::State, CalloopData, NativeWindow,
-};
+use super::{event_loop::EventLoop, NativeWindow};
 
 pub struct PlatformHook {
   event_loop: EventLoop,
 }
 
 impl PlatformHook {
-  pub fn dedicated() -> anyhow::Result<Self> {
-    let event_loop = EventLoop::new();
+  pub fn dedicated(config: &ParsedConfig) -> anyhow::Result<Self> {
+    let event_loop = EventLoop::new(config);
 
     Ok(Self { event_loop })
   }
@@ -44,22 +32,12 @@ impl PlatformHook {
     self.event_loop.dispatch(move |data| {
       if let Some(pointer) = data.state.seat.get_pointer() {
         let point = smithay::utils::Point::new(f64::from(x), f64::from(y));
-        let surface = data
-          .state
-          .space
-          .element_under(point)
-          .and_then(|(win, _point)| {
-            win.wl_surface().map(std::borrow::Cow::into_owned)
-          })
-          .map(|surface| (surface, point));
+        let surface = data.state.surface_under(point);
         #[allow(clippy::cast_possible_truncation)]
         let event = smithay::input::pointer::MotionEvent {
           location: point,
           serial: SERIAL_COUNTER.next_serial(),
-          time: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u32,
+          time: data.state.clock.now().as_millis(),
         };
         pointer.motion(&mut data.state, surface, &event);
       }

@@ -11,19 +11,19 @@ use smithay::{
   utils::{Logical, Point},
 };
 
-use crate::state::State;
+use crate::state::Glaze;
 
 pub struct MoveSurfaceGrab {
-  pub start_data: PointerGrabStartData<State>,
+  pub start_data: PointerGrabStartData<Glaze>,
   pub window: Window,
   pub initial_window_location: Point<i32, Logical>,
 }
 
-impl PointerGrab<State> for MoveSurfaceGrab {
+impl PointerGrab<Glaze> for MoveSurfaceGrab {
   fn motion(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     _focus: Option<(WlSurface, Point<f64, Logical>)>,
     event: &MotionEvent,
   ) {
@@ -41,8 +41,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn relative_motion(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     focus: Option<(WlSurface, Point<f64, Logical>)>,
     event: &RelativeMotionEvent,
   ) {
@@ -51,8 +51,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn button(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &ButtonEvent,
   ) {
     // The button is a button code as defined in the
@@ -69,8 +69,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn axis(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     details: AxisFrame,
   ) {
     handle.axis(data, details);
@@ -78,16 +78,16 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn frame(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
   ) {
     handle.frame(data);
   }
 
   fn gesture_swipe_begin(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GestureSwipeBeginEvent,
   ) {
     handle.gesture_swipe_begin(data, event);
@@ -95,8 +95,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_swipe_update(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GestureSwipeUpdateEvent,
   ) {
     handle.gesture_swipe_update(data, event);
@@ -104,8 +104,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_swipe_end(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GestureSwipeEndEvent,
   ) {
     handle.gesture_swipe_end(data, event);
@@ -113,8 +113,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_pinch_begin(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GesturePinchBeginEvent,
   ) {
     handle.gesture_pinch_begin(data, event);
@@ -122,8 +122,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_pinch_update(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GesturePinchUpdateEvent,
   ) {
     handle.gesture_pinch_update(data, event);
@@ -131,8 +131,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_pinch_end(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GesturePinchEndEvent,
   ) {
     handle.gesture_pinch_end(data, event);
@@ -140,8 +140,8 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_hold_begin(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GestureHoldBeginEvent,
   ) {
     handle.gesture_hold_begin(data, event);
@@ -149,16 +149,16 @@ impl PointerGrab<State> for MoveSurfaceGrab {
 
   fn gesture_hold_end(
     &mut self,
-    data: &mut State,
-    handle: &mut PointerInnerHandle<'_, State>,
+    data: &mut Glaze,
+    handle: &mut PointerInnerHandle<'_, Glaze>,
     event: &GestureHoldEndEvent,
   ) {
     handle.gesture_hold_end(data, event);
   }
 
-  fn start_data(&self) -> &PointerGrabStartData<State> {
+  fn start_data(&self) -> &PointerGrabStartData<Glaze> {
     &self.start_data
   }
 
-  fn unset(&mut self, _data: &mut State) {}
+  fn unset(&mut self, _data: &mut Glaze) {}
 }

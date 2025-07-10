@@ -9,6 +9,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = { workspace = true }
 home = { workspace = true }
+thiserror = "2.0.12"
 tokio = { workspace = true }
 tracing = { workspace = true }
 wm-common = { path = "../wm-common" }

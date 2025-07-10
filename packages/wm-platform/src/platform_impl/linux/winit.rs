@@ -12,13 +12,31 @@ use smithay::{
   reexports::calloop::EventLoop,
   utils::{Rectangle, Transform},
 };
+use thiserror::Error;
 
-use crate::{state::State, CalloopData};
+use crate::{state::Glaze, CalloopData};
 
+#[derive(Error, Debug)]
+pub enum WinitError {
+  #[error("failed to init winit: {0}")]
+  Init(#[from] smithay::backend::winit::Error),
+  #[error("failed to add the winit event source: {0}")]
+  SourceAdd(
+    #[from]
+    Box<
+      smithay::reexports::calloop::InsertError<
+        smithay::backend::winit::WinitEventLoop,
+      >,
+    >,
+  ),
+}
+
+/// Creates an output window using `winit` to act as a virtual monitor.
+/// Used for testing
 pub fn init_winit(
   event_loop: &mut EventLoop<CalloopData>,
   data: &mut CalloopData,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), WinitError> {
   let display_handle = &mut data.display_handle;
   let state = &mut data.state;
 
@@ -38,7 +56,7 @@ pub fn init_winit(
       model: "Winit".into(),
     },
   );
-  let _global = output.create_global::<State>(display_handle);
+  let _global = output.create_global::<Glaze>(display_handle);
   output.change_current_state(
     Some(mode),
     Some(Transform::Flipped180),
@@ -117,11 +135,10 @@ pub fn init_winit(
         WinitEvent::CloseRequested => {
           state.loop_signal.stop();
         }
-        WinitEvent::Focus(f) => {
-          tracing::info!("Window focused: {}", f);
-        }
-      };
-    })?;
+        WinitEvent::Focus(_f) => {}
+      }
+    })
+    .map_err(Box::new)?;
 
   Ok(())
 }

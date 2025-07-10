@@ -12,9 +12,9 @@ use smithay::{
   utils::SERIAL_COUNTER,
 };
 
-use crate::state::State;
+use crate::state::Glaze;
 
-impl State {
+impl Glaze {
   fn process_keyboard_event<I: InputBackend>(
     &mut self,
     event: &I::KeyboardKeyEvent,

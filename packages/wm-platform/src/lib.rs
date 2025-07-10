@@ -10,7 +10,6 @@ mod platform_impl;
 pub use events::*;
 pub use key::*;
 pub use platform_impl::*;
-pub use wm_common::WindowHandle;
 
 pub enum ZOrder {
   Normal,
