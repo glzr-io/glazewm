@@ -1,7 +1,20 @@
+use tokio::sync::mpsc::error::SendError;
+
+use crate::WindowEvent;
+
 mod display;
 mod keyboard;
 mod mouse;
 mod window;
+
+pub trait Hook {
+  type Event;
+
+  fn dispatch(
+    &self,
+    event: Self::Event,
+  ) -> Result<(), SendError<Self::Event>>;
+}
 
 #[derive(Default, Debug)]
 pub struct Hooks {
@@ -15,6 +28,14 @@ pub struct Hooks {
 pub enum RegisterError {
   #[error("this hook is already registered")]
   AlreadyRegistered,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum DispatchError<E> {
+  #[error("hook is not registered")]
+  NoHook,
+  #[error("dispatch error")]
+  DispatchError(#[from] tokio::sync::mpsc::error::SendError<E>),
 }
 
 impl Hooks {
@@ -60,5 +81,17 @@ impl Hooks {
     }
     self.display = Some(hook);
     Ok(())
+  }
+
+  pub fn dispatch_window_event(
+    &self,
+    event: WindowEvent,
+  ) -> Result<(), DispatchError<WindowEvent>> {
+    if let Some(hook) = &self.window {
+      hook.dispatch(event)?;
+      Ok(())
+    } else {
+      Err(DispatchError::NoHook)
+    }
   }
 }
