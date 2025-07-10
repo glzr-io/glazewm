@@ -14,25 +14,30 @@ impl Windows {
     self.unmapped.last().unwrap()
   }
 
-  pub fn window_close(&mut self, surface: &ToplevelSurface) {
-    let idx = self
+  pub fn window_close(
+    &mut self,
+    surface: &ToplevelSurface,
+  ) -> NativeWindow {
+    if let Some(idx) = self
       .unmapped
       .iter()
       .enumerate()
       .find(|(_, w)| w.toplevel().is_some_and(|s| *s == *surface))
-      .map(|(i, _)| i);
-    if let Some(idx) = idx {
-      self.unmapped.remove(idx);
-    }
-
-    let idx = self
+      .map(|(i, _)| i)
+    {
+      self.unmapped.remove(idx)
+    } else if let Some(idx) = self
       .mapped
       .iter()
       .enumerate()
       .find(|(_, w)| w.toplevel().is_some_and(|s| *s == *surface))
-      .map(|(i, _)| i);
-    if let Some(idx) = idx {
-      self.mapped.remove(idx);
+      .map(|(i, _)| i)
+    {
+      self.mapped.remove(idx)
+    } else {
+      unreachable!(
+        "Window not found in unmapped or mapped list, should not happen"
+      )
     }
   }
 

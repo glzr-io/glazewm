@@ -9,7 +9,7 @@ use super::{
   keyboard::{EventThreadKeyboardHook, KeyboardHook},
   mouse::{EventThreadMouseHook, MouseHook},
   window::{EventThreadWindowEventHook, WindowEventHook},
-  NativeWindow,
+  NativeMonitor, NativeWindow,
 };
 use crate::WindowEventType;
 
@@ -135,6 +135,10 @@ impl PlatformHook {
   #[must_use]
   pub fn is_foreground_window(&self, _: &NativeWindow) -> bool {
     false
+  }
+
+  pub fn sorted_monitors(&self) -> anyhow::Result<Vec<NativeMonitor>> {
+    todo!()
   }
 
   pub fn mouse_position(&self) -> anyhow::Result<wm_common::Point> {

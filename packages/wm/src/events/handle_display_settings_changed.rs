@@ -16,7 +16,7 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  let native_monitors = Platform::sorted_monitors()?;
+  let native_monitors = state.platform.sorted_monitors()?;
 
   let hardware_ids = native_monitors
     .iter()

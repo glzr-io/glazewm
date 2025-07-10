@@ -24,12 +24,11 @@ use smithay::{
     },
   },
 };
-use wm_common::{InitialWindowState, WindowState};
 
 use crate::{
   grabs::{MoveSurfaceGrab, ResizeSurfaceGrab},
   state::Glaze,
-  NativeWindow,
+  DispatchError, NativeWindow,
 };
 
 impl XdgShellHandler for Glaze {
@@ -42,12 +41,26 @@ impl XdgShellHandler for Glaze {
     let window = Window::new_wayland_window(surface);
 
     let native_window = NativeWindow::new(window);
-    self.windows.new_window(native_window);
+    let window = self.windows.new_window(native_window).clone();
+
+    if let Err(DispatchError::DispatchError(e)) = self
+      .hooks
+      .dispatch_window_event(crate::WindowEvent::WindowShown(window))
+    {
+      tracing::error!("Failed to dispatch window shown event: {}", e);
+    }
   }
 
   /// Called whenever a window is closed
   fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
-    self.windows.window_close(&surface);
+    let window = self.windows.window_close(&surface);
+
+    if let Err(DispatchError::DispatchError(e)) = self
+      .hooks
+      .dispatch_window_event(crate::WindowEvent::WindowDestroyed(window))
+    {
+      tracing::error!("Failed to dispatch window closed event: {}", e);
+    }
   }
 
   fn new_popup(

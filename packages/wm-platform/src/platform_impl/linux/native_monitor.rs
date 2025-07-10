@@ -1,31 +1,55 @@
 use smithay::{
-  desktop::{Space, Window},
-  reexports::{wayland_server::Display, winit::monitor::MonitorHandle},
+  output::Output,
+  utils::{Physical, Size},
 };
 
-use super::state::Glaze;
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeMonitor {
-  inner: MonitorHandle,
+  inner: Output,
 }
 
 impl NativeMonitor {
+  #[must_use]
+  pub fn handle(&self) -> &Output {
+    &self.inner
+  }
+
   pub fn device_name(&self) -> anyhow::Result<String> {
-    self
-      .inner
-      .name()
-      .ok_or_else(|| anyhow::anyhow!("Monitor name not available"))
+    Ok(self.inner.name())
+  }
+
+  pub fn device_path(&self) -> anyhow::Result<Option<&String>> {
+    todo!()
+  }
+
+  pub fn hardware_id(&self) -> anyhow::Result<Option<&String>> {
+    todo!()
   }
 
   pub fn working_rect(&self) -> anyhow::Result<wm_common::Rect> {
-    let pos = self.inner.position();
-    let size = self.inner.size();
+    let pos = self.inner.current_location();
+    let size = self
+      .size()
+      .ok_or_else(|| anyhow::anyhow!("Monitor has no available size"))?;
 
-    Ok(wm_common::Rect::from_xy(
-      pos.x,
-      pos.y,
-      size.width as i32,
-      size.height as i32,
-    ))
+    Ok(wm_common::Rect::from_xy(pos.x, pos.y, size.w, size.h))
+  }
+
+  fn size(&self) -> Option<Size<i32, Physical>> {
+    // Prefer current
+    let size = self.inner.current_mode().map(|mode| mode.size);
+    if size.is_some() {
+      return size;
+    }
+
+    // Else what the monitor likes
+    let size = self.inner.preferred_mode().map(|mode| mode.size);
+    if size.is_some() {
+      return size;
+    }
+
+    // Otherwise, fallback to whatever is available
+    // TODO: Can probably be smarter with this, if needed
+    self.inner.modes().first().map(|mode| mode.size)
   }
 }
