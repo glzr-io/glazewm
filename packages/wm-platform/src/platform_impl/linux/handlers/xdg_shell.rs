@@ -40,16 +40,8 @@ impl XdgShellHandler for Glaze {
   // Called whenever a new window is added to the compositor
   fn new_toplevel(&mut self, surface: ToplevelSurface) {
     let window = Window::new_wayland_window(surface);
-    let initial_window_state = &self.config.window_behavior.initial_state;
-    let win_state = match initial_window_state {
-      InitialWindowState::Tiling => WindowState::Tiling,
-      InitialWindowState::Floating => {
-        let floating_config =
-          self.config.window_behavior.state_defaults.floating.clone();
-        WindowState::Floating(floating_config)
-      }
-    };
-    let native_window = NativeWindow::new(window, win_state);
+
+    let native_window = NativeWindow::new(window);
     self.windows.new_window(native_window);
   }
 

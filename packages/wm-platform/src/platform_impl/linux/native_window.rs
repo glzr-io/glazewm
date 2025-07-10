@@ -8,13 +8,12 @@ use crate::ZOrder;
 #[derive(Debug, Clone, PartialEq)]
 pub struct NativeWindow {
   inner: Window,
-  state: WindowState,
 }
 
 impl NativeWindow {
   #[must_use]
-  pub fn new(inner: Window, state: WindowState) -> Self {
-    Self { inner, state }
+  pub fn new(inner: Window) -> Self {
+    Self { inner }
   }
 
   #[must_use]
@@ -31,23 +30,23 @@ impl NativeWindow {
   }
 
   pub fn is_minimized(&self) -> anyhow::Result<bool> {
-    Ok(matches!(self.state, WindowState::Minimized))
+    todo!()
   }
 
   pub fn minimize(&self) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn is_maximized(&self) -> anyhow::Result<bool> {
-    Ok(matches!(self.state, WindowState::Fullscreen(_)))
+    todo!()
   }
 
   pub fn mark_fullscreen(&self, b: bool) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn is_fullscreen(&self, rect: &Rect) -> anyhow::Result<bool> {
-    Ok(matches!(self.state, WindowState::Fullscreen(_)))
+    todo!()
   }
 
   #[must_use]
@@ -56,34 +55,34 @@ impl NativeWindow {
   }
 
   pub fn set_taskbar_visibility(&self, b: bool) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_border_color(
     &self,
     color: Option<&Color>,
   ) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_title_bar_visibility(&self, b: bool) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_corner_style(&self, b: &CornerStyle) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_transparency(&self, v: &OpacityValue) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn show(&self) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_position(
@@ -95,14 +94,11 @@ impl NativeWindow {
     hide_method: &HideMethod,
     has_pending_dpi_adjustment: bool,
   ) -> anyhow::Result<()> {
-    Ok(())
+    todo!()
   }
 
   pub fn set_z_order(&self, _z_order: &ZOrder) -> anyhow::Result<()> {
-    // NoOp as example
-    // let z = self.inner.z_index();
-    // self.inner.override_z_index(z);
-    Ok(())
+    todo!()
   }
 }
 
