@@ -37,26 +37,28 @@ pub enum MouseEvent {
   MouseMove(MouseMoveEvent),
 }
 
-#[derive(Debug, Clone)]
-pub enum WindowEventType {
-  WindowDestroyed,
-  WindowFocused,
-  WindowHidden,
-  WindowCloaked,
-  WindowLocationChanged,
-  WindowMinimized,
-  WindowMinimizeEnded,
-  WindowMovedOrResizedEnd,
-  WindowMovedOrResizedStart,
-  WindowShown,
-  WindowUncloaked,
-  WindowTitleChanged,
+bitflags::bitflags! {
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowEventType: u16 {
+    const WindowDestroyed =           0b0000_0000_0001;
+    const WindowFocused =             0b0000_0000_0010;
+    const WindowHidden =              0b0000_0000_0100;
+    const WindowCloaked =             0b0000_0000_1000;
+    const WindowLocationChanged =     0b0000_0001_0000;
+    const WindowMinimized =           0b0000_0010_0000;
+    const WindowMinimizeEnded =       0b0000_0100_0000;
+    const WindowMovedOrResizedEnd =   0b0000_1000_0000;
+    const WindowMovedOrResizedStart = 0b0001_0000_0000;
+    const WindowShown =               0b0010_0000_0000;
+    const WindowUncloaked =           0b0100_0000_0000;
+    const WindowTitleChanged =        0b1000_0000_0000;
+  }
 }
 
 impl WindowEventType {
   #[cfg(target_os = "windows")]
   #[must_use]
-  pub fn id(&self) -> u32 {
+  pub fn id(&self) -> Vec<u32> {
     use windows::Win32::UI::WindowsAndMessaging::{
       EVENT_OBJECT_CLOAKED, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE,
       EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE,
@@ -84,21 +86,6 @@ impl WindowEventType {
       WindowEventType::WindowTitleChanged => EVENT_OBJECT_NAMECHANGE,
     }
   }
-
-  pub const ALL: &'static [WindowEventType] = &[
-    WindowEventType::WindowDestroyed,
-    WindowEventType::WindowFocused,
-    WindowEventType::WindowHidden,
-    WindowEventType::WindowCloaked,
-    WindowEventType::WindowLocationChanged,
-    WindowEventType::WindowMinimized,
-    WindowEventType::WindowMinimizeEnded,
-    WindowEventType::WindowMovedOrResizedEnd,
-    WindowEventType::WindowMovedOrResizedStart,
-    WindowEventType::WindowShown,
-    WindowEventType::WindowUncloaked,
-    WindowEventType::WindowTitleChanged,
-  ];
 }
 
 #[derive(Debug, Clone)]
@@ -113,4 +100,32 @@ pub enum WindowEvent {
   WindowMovedOrResizedStart(NativeWindow),
   WindowShown(NativeWindow),
   WindowTitleChanged(NativeWindow),
+}
+
+impl WindowEvent {
+  #[must_use]
+  pub fn get_type(&self) -> WindowEventType {
+    match self {
+      WindowEvent::WindowDestroyed(_) => WindowEventType::WindowDestroyed,
+      WindowEvent::WindowFocused(_) => WindowEventType::WindowFocused,
+      WindowEvent::WindowHidden(_) => WindowEventType::WindowHidden,
+      WindowEvent::WindowLocationChanged(_) => {
+        WindowEventType::WindowLocationChanged
+      }
+      WindowEvent::WindowMinimized(_) => WindowEventType::WindowMinimized,
+      WindowEvent::WindowMinimizeEnded(_) => {
+        WindowEventType::WindowMinimizeEnded
+      }
+      WindowEvent::WindowMovedOrResizedEnd(_) => {
+        WindowEventType::WindowMovedOrResizedEnd
+      }
+      WindowEvent::WindowMovedOrResizedStart(_) => {
+        WindowEventType::WindowMovedOrResizedStart
+      }
+      WindowEvent::WindowShown(_) => WindowEventType::WindowShown,
+      WindowEvent::WindowTitleChanged(_) => {
+        WindowEventType::WindowTitleChanged
+      }
+    }
+  }
 }

@@ -1,6 +1,12 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::missing_errors_doc)]
 
+#[cfg(target_os = "windows")]
+pub type WindowHandle = isize;
+
+#[cfg(target_os = "linux")]
+pub type WindowHandle = uuid::Uuid;
+
 mod active_drag;
 mod app_command;
 mod color;

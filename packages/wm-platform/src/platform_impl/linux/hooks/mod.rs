@@ -1,11 +1,12 @@
 use tokio::sync::mpsc::error::SendError;
+use wm_common::KeybindingConfig;
 
 use crate::WindowEvent;
 
-mod display;
-mod keyboard;
-mod mouse;
-mod window;
+pub mod display;
+pub mod keyboard;
+pub mod mouse;
+pub mod window;
 
 pub trait Hook {
   type Event;
@@ -36,6 +37,12 @@ pub enum DispatchError<E> {
   NoHook,
   #[error("dispatch error")]
   DispatchError(#[from] tokio::sync::mpsc::error::SendError<E>),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum UpdateError {
+  #[error("hook is not registered")]
+  NoHook,
 }
 
 impl Hooks {
@@ -92,6 +99,30 @@ impl Hooks {
       Ok(())
     } else {
       Err(DispatchError::NoHook)
+    }
+  }
+
+  pub fn update_keybinds(
+    &mut self,
+    keybinds: Vec<KeybindingConfig>,
+  ) -> Result<(), UpdateError> {
+    if let Some(hook) = &mut self.keyboard {
+      hook.update_keybinds(keybinds);
+      Ok(())
+    } else {
+      Err(UpdateError::NoHook)
+    }
+  }
+
+  pub fn update_mouse(
+    &mut self,
+    enable_mouse_events: bool,
+  ) -> Result<(), UpdateError> {
+    if let Some(hook) = &mut self.mouse {
+      hook.update(enable_mouse_events);
+      Ok(())
+    } else {
+      Err(UpdateError::NoHook)
     }
   }
 }

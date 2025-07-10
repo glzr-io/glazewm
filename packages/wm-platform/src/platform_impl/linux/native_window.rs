@@ -7,18 +7,22 @@ use crate::ZOrder;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NativeWindow {
+  // Smithay doesn't expose a window ID (that I can find), so create our
+  // own
+  id: uuid::Uuid,
   inner: Window,
 }
 
 impl NativeWindow {
   #[must_use]
   pub fn new(inner: Window) -> Self {
-    Self { inner }
+    let id = uuid::Uuid::new_v4();
+    Self { id, inner }
   }
 
   #[must_use]
   pub fn handle(&self) -> crate::WindowHandle {
-    self.inner.clone()
+    self.id
   }
 
   pub fn frame_position(&self) -> anyhow::Result<Rect> {

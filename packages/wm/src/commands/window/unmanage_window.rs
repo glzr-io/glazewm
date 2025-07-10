@@ -33,7 +33,7 @@ pub fn unmanage_window(
 
   state.emit_event(WmEvent::WindowUnmanaged {
     unmanaged_id: window.id(),
-    unmanaged_handle: window.native().handle,
+    unmanaged_handle: window.native().handle(),
   });
 
   // Reassign focus to suitable target.

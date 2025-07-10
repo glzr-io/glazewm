@@ -12,8 +12,10 @@ home = { workspace = true }
 thiserror = "2.0.12"
 tokio = { workspace = true }
 tracing = { workspace = true }
+uuid = { workspace = true }
 wm-common = { path = "../wm-common" }
 wm-macros = { path = "../wm-macros" }
+bitflags = "2.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52", features = [
@@ -65,4 +67,3 @@ objc2-foundation = { version = "0.3.1", default-features = false, features = [
 
 [target.'cfg(target_os = "linux")'.dependencies]
 smithay = { version = "0.7.0" }
-bitflags = "2.2.1"

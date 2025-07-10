@@ -3749,6 +3749,7 @@ dependencies = [
  "clap",
  "regex",
  "serde",
+ "smithay",
  "tracing",
  "uuid",
 ]
@@ -3790,6 +3791,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tracing",
+ "uuid",
  "windows",
  "windows-interface",
  "wm-common",

@@ -82,7 +82,7 @@ async fn query_initial_windows(
 
 async fn watch_managed_handles(
   client: &mut IpcClient,
-  handles: &mut Vec<isize>,
+  handles: &mut Vec<wm_common::WindowHandle>,
 ) -> anyhow::Result<()> {
   let subscription_message =
     "sub -e window_managed window_unmanaged application_exiting";

@@ -82,12 +82,14 @@ fn sync_focus(
 ) -> anyhow::Result<()> {
   let native_window = match focused_container.as_window_container() {
     Ok(window) => window.native().clone(),
-    _ => Platform::desktop_window(),
+    // FIXME: Wayland has no desktop window, need some way to specify to
+    // focus nothing
+    _ => return Ok(()),
   };
 
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  if Platform::foreground_window() != native_window {
+  if !state.platform.is_foreground_window(&native_window) {
     if let Ok(window) = focused_container.as_window_container() {
       info!("Setting focus to window: {window}");
     } else {
@@ -222,7 +224,7 @@ fn redraw_containers(
           if window.id() == focused_descendant.id() {
             ZOrder::Normal
           } else {
-            ZOrder::AfterWindow(focused_descendant.native().handle)
+            ZOrder::AfterWindow(focused_descendant.native().handle())
           }
         } else {
           ZOrder::Normal
@@ -332,7 +334,9 @@ fn jump_cursor(
       let target_monitor =
         focused_container.monitor().context("No monitor.")?;
 
-      let cursor_monitor = Platform::mouse_position()
+      let cursor_monitor = state
+        .platform
+        .mouse_position()
         .ok()
         .and_then(|pos| state.monitor_at_point(&pos));
 
@@ -346,7 +350,7 @@ fn jump_cursor(
   if let Some(jump_target) = jump_target {
     let center = jump_target.to_rect()?.center_point();
 
-    if let Err(err) = Platform::set_cursor_pos(center.x, center.y) {
+    if let Err(err) = state.platform.set_cursor_pos(center.x, center.y) {
       warn!("Failed to set cursor position: {}", err);
     }
   }

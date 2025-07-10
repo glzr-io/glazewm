@@ -18,10 +18,8 @@ pub use hooks::*;
 pub use native_monitor::*;
 pub use native_window::*;
 pub use platform_hook::*;
-
-pub type WindowHandle = Window;
-
-use smithay::{desktop::Window, reexports::wayland_server::DisplayHandle};
+use smithay::reexports::wayland_server::DisplayHandle;
+pub use wm_common::WindowHandle;
 
 pub struct CalloopData {
   pub state: state::Glaze,

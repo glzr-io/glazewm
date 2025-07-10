@@ -13,3 +13,6 @@ regex = "1"
 serde = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+smithay = { version = "0.7.0" }

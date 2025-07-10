@@ -48,7 +48,7 @@ pub enum WmEvent {
   },
   WindowUnmanaged {
     unmanaged_id: Uuid,
-    unmanaged_handle: isize,
+    unmanaged_handle: crate::WindowHandle,
   },
   WorkspaceActivated {
     activated_workspace: ContainerDto,

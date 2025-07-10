@@ -19,7 +19,7 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
-use wm_platform::{Platform, PlatformHook, WindowEventType};
+use wm_platform::{PlatformHook, WindowEventType};
 
 use crate::{
   ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
@@ -57,6 +57,11 @@ async fn main() -> anyhow::Result<()> {
       // is shown.
       if let Err(err) = &res {
         error!("{:?}", err);
+        // If the WM failed to start on Linux, we may not even have a
+        // desktop environment
+        // TODO: Check in the function if we are running in a WM
+        // that can create a dialog
+        #[cfg(not(target_os = "linux"))]
         Platform::show_error_dialog("Fatal error", &err.to_string());
       }
 
@@ -73,6 +78,8 @@ async fn start_wm(
   setup_logging(&verbosity)?;
 
   // Ensure that only one instance of the WM is running.
+  // Can have multiple running on Linux
+  #[cfg(not(target_os = "linux"))]
   let _single_instance = Platform::new_single_instance()?;
 
   // Parse and validate user config.
@@ -89,13 +96,13 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start listening for platform events after populating initial state.
-  let mut hook = PlatformHook::dedicated()?;
+  let mut hook = PlatformHook::dedicated(&config.value)?;
 
   let mut mouse_hook = hook.create_mouse_listener().await?;
   let mut display_hook = hook.create_display_listener().await?;
   tracing::warn!("Creating Window hook");
   let mut window_hook =
-    hook.with_window_events(WindowEventType::ALL).await?;
+    hook.with_window_events(WindowEventType::all()).await?;
   tracing::warn!("Creating Keyboard hook");
   let mut keyboard_hook = hook
     .create_keyboard_listener(&config.value.keybindings)
@@ -186,7 +193,7 @@ async fn start_wm(
 
     if let Err(err) = res {
       error!("{:?}", err);
-      Platform::show_error_dialog("Non-fatal error", &err.to_string());
+      hook.show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 
