@@ -1,0 +1,583 @@
+# GlazeWM Configuration Schema
+# JSON Schema for validating GlazeWM configuration YAML files
+$schema: "http://json-schema.org/draft-07/schema#"
+title: "GlazeWM Configuration"
+description: "Configuration schema for GlazeWM window manager"
+type: object
+
+definitions:
+  # Basic types
+  LengthValue:
+    description: "A length value that can be specified in pixels (px) or percentage (%)"
+    oneOf:
+      - type: string
+        pattern: "^[+-]?\\d+(%|px)?$"
+        examples: ["10px", "50%", "0", "-5px", "100%"]
+      - type: object
+        properties:
+          amount:
+            type: number
+            description: "The numeric amount"
+          unit:
+            type: string
+            enum: ["percentage", "pixel"]
+            description: "The unit type"
+        required: ["amount", "unit"]
+        additionalProperties: false
+
+  OpacityValue:
+    description: "Opacity value as a decimal (0.0-1.0) or percentage (0%-100%)"
+    oneOf:
+      - type: number
+        minimum: 0.0
+        maximum: 1.0
+      - type: string
+        pattern: "^\\d+%$"
+        examples: ["50%", "75%", "100%"]
+
+  Color:
+    description: "Color value as hex string or RGBA object"
+    oneOf:
+      - type: string
+        pattern: "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+        examples: ["#FF0000", "#00FF00FF", "#8CBEff"]
+      - type: object
+        properties:
+          r:
+            type: integer
+            minimum: 0
+            maximum: 255
+            description: "Red component"
+          g:
+            type: integer
+            minimum: 0
+            maximum: 255
+            description: "Green component"
+          b:
+            type: integer
+            minimum: 0
+            maximum: 255
+            description: "Blue component"
+          a:
+            type: integer
+            minimum: 0
+            maximum: 255
+            description: "Alpha component"
+        required: ["r", "g", "b", "a"]
+        additionalProperties: false
+
+  RectDelta:
+    description: "Rectangle delta with length values for each side"
+    type: object
+    properties:
+      left:
+        $ref: "#/definitions/LengthValue"
+        description: "Left side delta"
+      top:
+        $ref: "#/definitions/LengthValue"
+        description: "Top side delta"
+      right:
+        $ref: "#/definitions/LengthValue"
+        description: "Right side delta"
+      bottom:
+        $ref: "#/definitions/LengthValue"
+        description: "Bottom side delta"
+    required: ["left", "top", "right", "bottom"]
+    additionalProperties: false
+
+  Direction:
+    type: string
+    enum: ["left", "right", "up", "down"]
+    description: "Directional movement"
+
+  TilingDirection:
+    type: string
+    enum: ["horizontal", "vertical"]
+    description: "Tiling layout direction"
+
+  CursorJumpTrigger:
+    type: string
+    enum: ["monitor_focus", "window_focus"]
+    description: "When to trigger cursor jump"
+
+  HideMethod:
+    type: string
+    enum: ["hide", "cloak"]
+    description: "Method for hiding windows"
+
+  InitialWindowState:
+    type: string
+    enum: ["tiling", "floating"]
+    description: "Default state for new windows"
+
+  CornerStyle:
+    type: string
+    enum: ["default", "square", "rounded", "small_rounded"]
+    description: "Window corner style"
+
+  WindowRuleEvent:
+    type: string
+    enum: ["focus", "manage", "title_change"]
+    description: "Events that trigger window rules"
+
+  # Match types for window rules
+  MatchType:
+    description: "Pattern matching for window properties"
+    oneOf:
+      - type: object
+        properties:
+          equals:
+            type: string
+            description: "Exact string match"
+        required: ["equals"]
+        additionalProperties: false
+      - type: object
+        properties:
+          includes:
+            type: string
+            description: "Substring match"
+        required: ["includes"]
+        additionalProperties: false
+      - type: object
+        properties:
+          regex:
+            type: string
+            description: "Regular expression match"
+        required: ["regex"]
+        additionalProperties: false
+      - type: object
+        properties:
+          not_equals:
+            type: string
+            description: "Not equal to string"
+        required: ["not_equals"]
+        additionalProperties: false
+      - type: object
+        properties:
+          not_regex:
+            type: string
+            description: "Does not match regular expression"
+        required: ["not_regex"]
+        additionalProperties: false
+
+  # Command definitions
+  InvokeCommand:
+    description: "Commands that can be invoked by keybindings or window rules"
+    type: string
+    examples:
+      - "focus --direction left"
+      - "move --direction up"
+      - "set_floating --centered"
+      - "close"
+      - "toggle_tiling"
+      - "wm_reload_config"
+
+  # Configuration sections
+  CursorJumpConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+        description: "Whether to automatically move the cursor"
+      trigger:
+        $ref: "#/definitions/CursorJumpTrigger"
+        default: "monitor_focus"
+        description: "When to trigger cursor movement"
+    additionalProperties: false
+
+  FloatingStateConfig:
+    type: object
+    properties:
+      centered:
+        type: boolean
+        default: true
+        description: "Whether to center new floating windows"
+      shown_on_top:
+        type: boolean
+        default: false
+        description: "Whether to show floating windows as always on top"
+    additionalProperties: false
+
+  FullscreenStateConfig:
+    type: object
+    properties:
+      maximized:
+        type: boolean
+        default: true
+        description: "Whether to prefer fullscreen windows to be maximized"
+      shown_on_top:
+        type: boolean
+        default: false
+        description: "Whether to show fullscreen windows as always on top"
+    additionalProperties: false
+
+  WindowStateDefaultsConfig:
+    type: object
+    properties:
+      floating:
+        $ref: "#/definitions/FloatingStateConfig"
+        description: "Default options for floating windows"
+      fullscreen:
+        $ref: "#/definitions/FullscreenStateConfig"
+        description: "Default options for fullscreen windows"
+    required: ["floating", "fullscreen"]
+    additionalProperties: false
+
+  BorderEffectConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+        description: "Whether to enable the border effect"
+      color:
+        $ref: "#/definitions/Color"
+        default: "#8CBEFF"
+        description: "Color of the window border"
+    required: ["enabled", "color"]
+    additionalProperties: false
+
+  HideTitleBarEffectConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+        description: "Whether to hide the title bar"
+    required: ["enabled"]
+    additionalProperties: false
+
+  CornerEffectConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+        description: "Whether to enable corner effects"
+      style:
+        $ref: "#/definitions/CornerStyle"
+        default: "default"
+        description: "Style of the window corners"
+    required: ["enabled", "style"]
+    additionalProperties: false
+
+  TransparencyEffectConfig:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+        description: "Whether to enable transparency effects"
+      opacity:
+        $ref: "#/definitions/OpacityValue"
+        default: 1.0
+        description: "The opacity to apply"
+    required: ["enabled", "opacity"]
+    additionalProperties: false
+
+  WindowEffectConfig:
+    type: object
+    properties:
+      border:
+        $ref: "#/definitions/BorderEffectConfig"
+        description: "Border effect configuration"
+      hide_title_bar:
+        $ref: "#/definitions/HideTitleBarEffectConfig"
+        description: "Title bar hiding configuration"
+      corner_style:
+        $ref: "#/definitions/CornerEffectConfig"
+        description: "Corner style configuration"
+      transparency:
+        $ref: "#/definitions/TransparencyEffectConfig"
+        description: "Transparency effect configuration"
+    required: ["border", "hide_title_bar", "corner_style", "transparency"]
+    additionalProperties: false
+
+  WindowMatchConfig:
+    type: object
+    properties:
+      window_process:
+        $ref: "#/definitions/MatchType"
+        description: "Match against window process name"
+      window_class:
+        $ref: "#/definitions/MatchType"
+        description: "Match against window class"
+      window_title:
+        $ref: "#/definitions/MatchType"
+        description: "Match against window title"
+    additionalProperties: false
+
+  BindingModeConfig:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Name of the binding mode"
+      display_name:
+        type: string
+        description: "Display name of the binding mode"
+      keybindings:
+        type: array
+        items:
+          $ref: "#/definitions/KeybindingConfig"
+        default: []
+        description: "Keybindings active in this mode"
+    required: ["name"]
+    additionalProperties: false
+
+  KeybindingConfig:
+    type: object
+    properties:
+      bindings:
+        type: array
+        items:
+          type: string
+        description: "Keyboard shortcuts that trigger this keybinding"
+        examples: [["Alt+H"], ["Ctrl+Shift+Q", "Cmd+Q"]]
+      commands:
+        type: array
+        items:
+          $ref: "#/definitions/InvokeCommand"
+        description: "Commands to run when keybinding is triggered"
+    required: ["bindings", "commands"]
+    additionalProperties: false
+
+  WindowRuleConfig:
+    type: object
+    properties:
+      commands:
+        type: array
+        items:
+          $ref: "#/definitions/InvokeCommand"
+        description: "Commands to run when rule matches"
+      match:
+        type: array
+        items:
+          $ref: "#/definitions/WindowMatchConfig"
+        description: "Conditions that must match for the rule to apply"
+      on:
+        type: array
+        items:
+          $ref: "#/definitions/WindowRuleEvent"
+        default: ["manage", "title_change"]
+        description: "Events that trigger this rule"
+      run_once:
+        type: boolean
+        default: true
+        description: "Whether to run the rule only once per window"
+    required: ["commands", "match"]
+    additionalProperties: false
+
+  WorkspaceConfig:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Name of the workspace"
+      display_name:
+        type: string
+        description: "Display name of the workspace"
+      bind_to_monitor:
+        type: integer
+        minimum: 0
+        description: "Monitor index to bind this workspace to"
+      keep_alive:
+        type: boolean
+        default: false
+        description: "Whether to keep workspace alive when empty"
+    required: ["name"]
+    additionalProperties: false
+
+# Main configuration structure
+properties:
+  binding_modes:
+    type: array
+    items:
+      $ref: "#/definitions/BindingModeConfig"
+    default: []
+    description: "Custom binding modes for keybindings"
+
+  gaps:
+    type: object
+    properties:
+      scale_with_dpi:
+        type: boolean
+        default: true
+        description: "Whether to scale gaps with monitor DPI"
+      inner_gap:
+        $ref: "#/definitions/LengthValue"
+        default: "0px"
+        description: "Gap between adjacent windows"
+      outer_gap:
+        $ref: "#/definitions/RectDelta"
+        description: "Gap between windows and screen edge"
+      single_window_outer_gap:
+        $ref: "#/definitions/RectDelta"
+        description: "Gap when only one window in workspace"
+    required: ["scale_with_dpi", "inner_gap", "outer_gap"]
+    additionalProperties: false
+
+  general:
+    type: object
+    properties:
+      cursor_jump:
+        $ref: "#/definitions/CursorJumpConfig"
+        description: "Cursor auto-movement configuration"
+      focus_follows_cursor:
+        type: boolean
+        default: false
+        description: "Whether to automatically focus windows under cursor"
+      toggle_workspace_on_refocus:
+        type: boolean
+        default: true
+        description: "Whether to toggle between current and previous workspace"
+      startup_commands:
+        type: array
+        items:
+          $ref: "#/definitions/InvokeCommand"
+        default: []
+        description: "Commands to run when WM starts"
+      shutdown_commands:
+        type: array
+        items:
+          $ref: "#/definitions/InvokeCommand"
+        default: []
+        description: "Commands to run when WM shuts down"
+      config_reload_commands:
+        type: array
+        items:
+          $ref: "#/definitions/InvokeCommand"
+        default: []
+        description: "Commands to run after config reload"
+      hide_method:
+        $ref: "#/definitions/HideMethod"
+        default: "cloak"
+        description: "How to hide windows when switching workspaces"
+      show_all_in_taskbar:
+        type: boolean
+        default: false
+        description: "Whether to show all windows in taskbar"
+    required: ["cursor_jump", "focus_follows_cursor", "toggle_workspace_on_refocus", "startup_commands", "shutdown_commands", "config_reload_commands", "hide_method", "show_all_in_taskbar"]
+    additionalProperties: false
+
+  keybindings:
+    type: array
+    items:
+      $ref: "#/definitions/KeybindingConfig"
+    default: []
+    description: "Global keybindings"
+
+  window_behavior:
+    type: object
+    properties:
+      initial_state:
+        $ref: "#/definitions/InitialWindowState"
+        default: "tiling"
+        description: "Default state for new windows"
+      state_defaults:
+        $ref: "#/definitions/WindowStateDefaultsConfig"
+        description: "Default options for window states"
+    required: ["initial_state", "state_defaults"]
+    additionalProperties: false
+
+  window_effects:
+    type: object
+    properties:
+      focused_window:
+        $ref: "#/definitions/WindowEffectConfig"
+        description: "Effects applied to focused window"
+      other_windows:
+        $ref: "#/definitions/WindowEffectConfig"
+        description: "Effects applied to non-focused windows"
+    required: ["focused_window", "other_windows"]
+    additionalProperties: false
+
+  window_rules:
+    type: array
+    items:
+      $ref: "#/definitions/WindowRuleConfig"
+    default: []
+    description: "Rules for automatically managing windows"
+
+  workspaces:
+    type: array
+    items:
+      $ref: "#/definitions/WorkspaceConfig"
+    default: []
+    description: "Workspace definitions"
+
+required: []
+additionalProperties: false
+
+examples:
+  - # Minimal configuration
+    general:
+      cursor_jump:
+        enabled: false
+      focus_follows_cursor: false
+      toggle_workspace_on_refocus: true
+      startup_commands: []
+      shutdown_commands: []
+      config_reload_commands: []
+      hide_method: "cloak"
+      show_all_in_taskbar: false
+    gaps:
+      scale_with_dpi: true
+      inner_gap: "8px"
+      outer_gap:
+        left: "8px"
+        top: "8px"
+        right: "8px"
+        bottom: "8px"
+    keybindings:
+      - bindings: ["Alt+H"]
+        commands: ["focus --direction left"]
+      - bindings: ["Alt+L"]
+        commands: ["focus --direction right"]
+    workspaces:
+      - name: "1"
+      - name: "2"
+      - name: "3"
+
+  - # Advanced configuration with effects
+    gaps:
+      scale_with_dpi: true
+      inner_gap: "10px"
+      outer_gap:
+        left: "10px"
+        top: "40px"
+        right: "10px"
+        bottom: "10px"
+    window_effects:
+      focused_window:
+        border:
+          enabled: true
+          color: "#8CBEFF"
+        transparency:
+          enabled: false
+          opacity: 1.0
+        corner_style:
+          enabled: false
+          style: "default"
+        hide_title_bar:
+          enabled: false
+      other_windows:
+        border:
+          enabled: false
+          color: "#8CBEFF"
+        transparency:
+          enabled: true
+          opacity: 0.9
+        corner_style:
+          enabled: false
+          style: "default"
+        hide_title_bar:
+          enabled: false
+    window_rules:
+      - commands: ["set_floating --centered"]
+        match:
+          - window_process:
+              equals: "Calculator.exe"
+        on: ["manage"]
+        run_once: true
