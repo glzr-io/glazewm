@@ -9,7 +9,7 @@ use std::{
 
 use anyhow::bail;
 use windows::{
-  core::s,
+  core::w,
   Win32::{
     Foundation::{HWND, LPARAM, LRESULT, WPARAM},
     System::Threading::GetCurrentThreadId,
@@ -23,12 +23,16 @@ use windows::{
   },
 };
 
-use crate::platform_impl::{DisplayHook, MouseHook};
-
-/// Custom message ID for our dispatch mechanism.
-static WM_DISPATCH_CALLBACK: LazyLock<u32> = LazyLock::new(|| unsafe {
-  RegisterWindowMessageA(s!("GlazeWM:Dispatch"))
-});
+thread_local! {
+  /// Custom message ID for dispatching callbacks to the event loop thread.
+  ///
+  /// `WPARAM` contains a `Box<Box<dyn FnOnce()>>` that must be retrieved
+  /// with `Box::from_raw`, and `LPARAM` is unused.
+  ///
+  /// This message is sent using `PostMessageW` and handled in
+  /// [`EventLoop::window_proc`].
+  static WM_DISPATCH_CALLBACK: u32 = RegisterWindowMessageW(w!("GlazeWM:Dispatch"));
+}
 
 /// Type alias for the callback function used with dispatches.
 type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
@@ -51,7 +55,7 @@ impl EventLoop {
       tokio::sync::oneshot::channel::<(crate::WindowHandle, u32)>();
 
     let thread_handle = thread::spawn(move || -> anyhow::Result<()> {
-      // Create a hidden window on the current thread.
+      // Create a hidden message window on the current thread.
       let window_handle =
         super::Platform::create_message_window(Some(Self::window_proc))?;
 
@@ -85,11 +89,12 @@ impl EventLoop {
     })
   }
 
-  /// Dispatches a callback to be executed on the Win32 message loop thread
+  /// Dispatches a callback to be executed on the Win32 message loop
+  /// thread.
   ///
   /// # Arguments
   /// * `callback` - A closure that will be executed on the message loop
-  ///   thread
+  ///   thread.
   // TODO: Remove `name` arg after testing
   pub fn dispatch<F>(&self, name: &str, callback: F) -> anyhow::Result<()>
   where
@@ -97,7 +102,7 @@ impl EventLoop {
   {
     tracing::debug!("Dispatching callback: {name}.");
 
-    // Double box callback to avoid `STATUS_ACCESS_VIOLATION`.
+    // Double box the callback to avoid `STATUS_ACCESS_VIOLATION`.
     // Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
     let boxed_callback = Box::new(callback);
     let boxed_callback2: DispatchFn = Box::new(boxed_callback);
@@ -116,42 +121,10 @@ impl EventLoop {
       {
         Ok(())
       } else {
-        // If PostMessage fails, we need to clean up the callback
+        // If `PostMessage` fails, we need to clean up the callback.
         let _ = Box::from_raw(callback_ptr);
         Err(anyhow::anyhow!("Failed to post message"))
       }
-    }
-  }
-
-  /// Dispatches a callback and waits for it to complete.
-  ///
-  /// Returns Ok(R) if the callback completes successfully, or an
-  /// Error if the callback panics or fails to send the result.
-  pub async fn dispatch_and_wait<F, R>(
-    &self,
-    name: &str,
-    callback: F,
-  ) -> anyhow::Result<R>
-  where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
-  {
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-    let name_clone = name.to_string();
-
-    self.dispatch(name, move || {
-      let result = callback();
-      if sender.send(result).is_err() {
-        tracing::error!(
-          "Error sending dispatch result for {}",
-          name_clone
-        );
-      }
-    })?;
-
-    match receiver.await {
-      Ok(r) => Ok(r),
-      Err(_) => Err(anyhow::anyhow!("Failed to receive dispatch result")),
     }
   }
 
@@ -200,51 +173,12 @@ impl EventLoop {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> LRESULT {
-    // Can't match on a `LazyLock`, TODO: Possibly fixable using
-    // `lazy_static`.
-    if msg == *WM_DISPATCH_CALLBACK {
-      // Convert the `wparam` fn pointer back to a double boxed function.
-      let function: DispatchFn = Box::from_raw(wparam.0 as *mut _);
-      function();
-      return LRESULT(0);
-    }
+    // TODO: Allow listeners to pre-process messages.
     match msg {
-      WM_POWERBROADCAST => {
-        #[allow(clippy::cast_possible_truncation)]
-        match wparam.0 as u32 {
-          // System is resuming from sleep/hibernation.
-          PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
-            IS_SYSTEM_SUSPENDED.store(false, Ordering::Relaxed);
-          }
-          // System is entering sleep/hibernation.
-          PBT_APMSUSPEND => {
-            IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed);
-          }
-          _ => {}
-        }
-
-        LRESULT(0)
-      }
-      WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-        // Ignore display change messages if the system hasn't fully
-        // resumed from sleep.
-        if !IS_SYSTEM_SUSPENDED.load(Ordering::Relaxed) {
-          if let Err(err) = DisplayHook::handle_display_event(msg, wparam)
-          {
-            tracing::warn!(
-              "Failed to handle display change message: {}",
-              err
-            );
-          }
-        }
-
-        LRESULT(0)
-      }
-      WM_INPUT => {
-        if let Err(err) = MouseHook::handle_mouse_input(wparam, lparam) {
-          tracing::warn!("Failed to handle input message: {}", err);
-        }
-
+      WM_DISPATCH_CALLBACK => {
+        // Convert the `WPARAM` fn pointer back to a double boxed function.
+        let dispatch_fn: DispatchFn = Box::from_raw(wparam.0 as *mut _);
+        dispatch_fn();
         LRESULT(0)
       }
 
