@@ -6,11 +6,34 @@ use std::{
 use anyhow::Context;
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
-  CFRunLoopSourceContext,
+  CFRunLoopSourceContext, Type,
 };
+
+use crate::platform_impl::EventLoopDispatcher;
 
 /// Type alias for the callback function used with dispatches.
 type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
+
+struct SendableCFRetained<T>(CFRetained<T>);
+
+unsafe impl<T> Send for SendableCFRetained<T> {}
+
+impl<T> SendableCFRetained<T> {
+  /// Creates a new sendable wrapper around a CFRetained.
+  ///
+  /// # Safety
+  ///
+  /// The caller must ensure the wrapped type is only used on appropriate
+  /// threads.
+  fn new(retained: CFRetained<T>) -> Self {
+    Self(retained)
+  }
+
+  /// Unwraps the CFRetained, consuming the wrapper.
+  fn into_inner(self) -> CFRetained<T> {
+    self.0
+  }
+}
 
 pub struct EventLoop {
   operations: Arc<Mutex<Vec<DispatchFn>>>,
@@ -19,13 +42,13 @@ pub struct EventLoop {
 }
 
 impl EventLoop {
-  pub fn new() -> anyhow::Result<Self> {
+  pub fn new() -> anyhow::Result<(Self, EventLoopDispatcher)> {
     let operations = Arc::new(Mutex::new(Vec::new()));
     let operations_clone = Arc::clone(&operations);
 
     let (sender, receiver) = tokio::sync::oneshot::channel::<(
-      CFRetained<CFRunLoopSource>,
-      CFRetained<CFRunLoop>,
+      SendableCFRetained<CFRunLoopSource>,
+      SendableCFRetained<CFRunLoop>,
       ThreadId,
     )>();
 
@@ -37,7 +60,14 @@ impl EventLoop {
         Self::setup_runloop(&operations_clone)?;
 
       // Send data back to main thread
-      if sender.send((source_ptr, run_loop_ptr, thread_id)).is_err() {
+      if sender
+        .send((
+          SendableCFRetained::new(source_ptr.retain()),
+          SendableCFRetained::new(run_loop_ptr.retain()),
+          thread_id,
+        ))
+        .is_err()
+      {
         anyhow::bail!("Failed to send run loop data back to main thread");
       }
 
@@ -51,19 +81,18 @@ impl EventLoop {
     let (source_ptr, run_loop_ptr, loop_thread_id) =
       receiver.blocking_recv()?;
 
+    // Unwrap the CFRetained objects.
+    let source = source_ptr.into_inner();
+    let run_loop = run_loop_ptr.into_inner();
+
     let event_loop = EventLoop {
-      operations,
-      run_loop: Some(run_loop_ptr.clone()),
-      source: Some(source_ptr.clone()),
+      operations: operations.clone(),
+      run_loop: Some(run_loop.clone()),
+      source: Some(source.clone()),
     };
 
-    let dispatcher = EventLoopDispatcher {
-      thread_id: loop_thread_id,
-      running_flag: running_flag_weak,
-      operations,
-      source_ptr,
-      run_loop_ptr,
-    };
+    let dispatcher =
+      EventLoopDispatcher::new(operations, Some(run_loop), Some(source));
 
     Ok((event_loop, dispatcher))
   }
