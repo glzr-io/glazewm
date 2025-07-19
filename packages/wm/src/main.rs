@@ -19,23 +19,24 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
-use wm_platform::Platform;
+use wm_platform::PlatformHook;
 
-use crate::{
-  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
-  wm::WindowManager,
-};
+// use wm_platform::Platform;
+// use crate::{
+//   ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
+//   wm::WindowManager,
+// };
 
-mod commands;
-mod events;
-mod ipc_server;
-mod models;
-mod pending_sync;
-mod sys_tray;
-mod traits;
-mod user_config;
-mod wm;
-mod wm_state;
+// mod commands;
+// mod events;
+// mod ipc_server;
+// mod models;
+// mod pending_sync;
+// mod sys_tray;
+// mod traits;
+// mod user_config;
+// mod wm;
+// mod wm_state;
 
 /// Main entry point for the application.
 ///
@@ -57,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
       // is shown.
       if let Err(err) = &res {
         error!("{:?}", err);
-        Platform::show_error_dialog("Fatal error", &err.to_string());
+        // Platform::show_error_dialog("Fatal error", &err.to_string());
       }
 
       res
@@ -65,114 +66,130 @@ async fn main() -> anyhow::Result<()> {
     _ => wm_cli::start(args).await,
   }
 }
-
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
-  // Ensure that only one instance of the WM is running.
-  let _single_instance = Platform::new_single_instance()?;
-
-  // Parse and validate user config.
-  let mut config = UserConfig::new(config_path)?;
-
-  // Start watcher process for restoring hidden windows on crash.
-  start_watcher_process()?;
-
-  // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.path)?;
-
-  let mut wm = WindowManager::new(&mut config)?;
-
-  let mut ipc_server = IpcServer::start().await?;
-
-  // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config.value)?;
-
-  // Run startup commands.
-  let startup_commands = config.value.general.startup_commands.clone();
-  wm.process_commands(&startup_commands, None, &mut config)?;
+  let _platform_hook = PlatformHook::dedicated()?;
 
   loop {
-    let res = tokio::select! {
-      Some(()) = tray.exit_rx.recv() => {
-        info!("Exiting through system tray.");
-        break;
-      },
-      Some(()) = wm.exit_rx.recv() => {
-        info!("Exiting through WM command.");
-        break;
-      },
-      _ = signal::ctrl_c() => {
-        info!("Received SIGINT signal.");
-        break;
-      },
-      Some(event) = event_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        wm.process_event(event, &mut config)
-      },
-      Some((
-        message,
-        response_tx,
-        disconnection_tx
-      )) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {:?}", message);
-
-        if let Err(err) = ipc_server.process_message(
-          message,
-          &response_tx,
-          &disconnection_tx,
-          &mut wm,
-          &mut config,
-        ) {
-          error!("{:?}", err);
-        }
-
-        Ok(())
-      },
-      Some(wm_event) = wm.event_rx.recv() => {
-        debug!("Received WM event: {:?}", wm_event);
-
-        // Update event listener when keyboard or mouse listener needs to
-        // be changed.
-        if matches!(
-          wm_event,
-          WmEvent::UserConfigChanged { .. }
-            | WmEvent::BindingModesChanged { .. }
-            | WmEvent::PauseChanged { .. }
-        ) {
-          event_listener.update(
-            &config.value,
-            &wm.state.binding_modes,
-            wm.state.is_paused,
-          );
-        }
-
-        if let Err(err) = ipc_server.process_event(wm_event) {
-          error!("{:?}", err);
-        }
-
-        Ok(())
-      },
-      Some(()) = tray.config_reload_rx.recv() => {
-        wm.process_commands(
-          &vec![InvokeCommand::WmReloadConfig],
-          None,
-          &mut config,
-        ).map(|_| ())
-      },
-    };
-
-    if let Err(err) = res {
-      error!("{:?}", err);
-      Platform::show_error_dialog("Non-fatal error", &err.to_string());
-    }
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    info!("Hello, world!");
   }
 
-  run_cleanup(&mut wm, &mut config, &mut ipc_server)
+  Ok(())
 }
+
+// async fn start_wm(
+//   config_path: Option<PathBuf>,
+//   verbosity: Verbosity,
+// ) -> anyhow::Result<()> {
+//   setup_logging(&verbosity)?;
+
+//   // Ensure that only one instance of the WM is running.
+//   let _single_instance = Platform::new_single_instance()?;
+
+//   // Parse and validate user config.
+//   let mut config = UserConfig::new(config_path)?;
+
+//   // Start watcher process for restoring hidden windows on crash.
+//   start_watcher_process()?;
+
+//   // Add application icon to system tray.
+//   let mut tray = SystemTray::new(&config.path)?;
+
+//   let mut wm = WindowManager::new(&mut config)?;
+
+//   let mut ipc_server = IpcServer::start().await?;
+
+//   // Start listening for platform events after populating initial state.
+//   let mut event_listener =
+// Platform::start_event_listener(&config.value)?;
+
+//   // Run startup commands.
+//   let startup_commands = config.value.general.startup_commands.clone();
+//   wm.process_commands(&startup_commands, None, &mut config)?;
+
+//   loop {
+//     let res = tokio::select! {
+//       Some(()) = tray.exit_rx.recv() => {
+//         info!("Exiting through system tray.");
+//         break;
+//       },
+//       Some(()) = wm.exit_rx.recv() => {
+//         info!("Exiting through WM command.");
+//         break;
+//       },
+//       _ = signal::ctrl_c() => {
+//         info!("Received SIGINT signal.");
+//         break;
+//       },
+//       Some(event) = event_listener.event_rx.recv() => {
+//         debug!("Received platform event: {:?}", event);
+//         wm.process_event(event, &mut config)
+//       },
+//       Some((
+//         message,
+//         response_tx,
+//         disconnection_tx
+//       )) = ipc_server.message_rx.recv() => {
+//         info!("Received IPC message: {:?}", message);
+
+//         if let Err(err) = ipc_server.process_message(
+//           message,
+//           &response_tx,
+//           &disconnection_tx,
+//           &mut wm,
+//           &mut config,
+//         ) {
+//           error!("{:?}", err);
+//         }
+
+//         Ok(())
+//       },
+//       Some(wm_event) = wm.event_rx.recv() => {
+//         debug!("Received WM event: {:?}", wm_event);
+
+//         // Update event listener when keyboard or mouse listener needs
+// to         // be changed.
+//         if matches!(
+//           wm_event,
+//           WmEvent::UserConfigChanged { .. }
+//             | WmEvent::BindingModesChanged { .. }
+//             | WmEvent::PauseChanged { .. }
+//         ) {
+//           event_listener.update(
+//             &config.value,
+//             &wm.state.binding_modes,
+//             wm.state.is_paused,
+//           );
+//         }
+
+//         if let Err(err) = ipc_server.process_event(wm_event) {
+//           error!("{:?}", err);
+//         }
+
+//         Ok(())
+//       },
+//       Some(()) = tray.config_reload_rx.recv() => {
+//         wm.process_commands(
+//           &vec![InvokeCommand::WmReloadConfig],
+//           None,
+//           &mut config,
+//         ).map(|_| ())
+//       },
+//     };
+
+//     if let Err(err) = res {
+//       error!("{:?}", err);
+//       Platform::show_error_dialog("Non-fatal error", &err.to_string());
+//     }
+//   }
+
+//   run_cleanup(&mut wm, &mut config, &mut ipc_server)
+// }
 
 /// Initialize logging with the specified verbosity level.
 ///
@@ -207,47 +224,48 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   Ok(())
 }
 
-/// Launches watcher binary. This is a separate process that is responsible
-/// for restoring hidden windows in case the main WM process crashes.
-///
-/// This assumes the watcher binary exists in the same directory as the WM
-/// binary.
-fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
-{
-  let watcher_path = env::current_exe()?
-    .parent()
-    .context("Failed to resolve path to the watcher process.")?
-    .join("glazewm-watcher");
+// /// Launches watcher binary. This is a separate process that is
+// responsible /// for restoring hidden windows in case the main WM process
+// crashes. ///
+// /// This assumes the watcher binary exists in the same directory as the
+// WM /// binary.
+// fn start_watcher_process() -> anyhow::Result<tokio::process::Child,
+// Error> {
+//   let watcher_path = env::current_exe()?
+//     .parent()
+//     .context("Failed to resolve path to the watcher process.")?
+//     .join("glazewm-watcher");
 
-  Command::new(&watcher_path)
-    .spawn()
-    .context("Failed to start watcher process.")
-}
+//   Command::new(&watcher_path)
+//     .spawn()
+//     .context("Failed to start watcher process.")
+// }
 
-/// Runs cleanup tasks when the WM is exiting.
-fn run_cleanup(
-  wm: &mut WindowManager,
-  config: &mut UserConfig,
-  ipc_server: &mut IpcServer,
-) -> anyhow::Result<()> {
-  // Ensure that the WM is unpaused, otherwise, shutdown commands won't get
-  // executed.
-  wm.state.is_paused = false;
+// /// Runs cleanup tasks when the WM is exiting.
+// fn run_cleanup(
+//   wm: &mut WindowManager,
+//   config: &mut UserConfig,
+//   ipc_server: &mut IpcServer,
+// ) -> anyhow::Result<()> {
+//   // Ensure that the WM is unpaused, otherwise, shutdown commands won't
+// get   // executed.
+//   wm.state.is_paused = false;
 
-  // Run shutdown commands.
-  let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(&shutdown_commands, None, config)?;
+//   // Run shutdown commands.
+//   let shutdown_commands =
+// config.value.general.shutdown_commands.clone();   wm.process_commands(&
+// shutdown_commands, None, config)?;
 
-  wm.state.emit_event(WmEvent::ApplicationExiting);
+//   wm.state.emit_event(WmEvent::ApplicationExiting);
 
-  // Emit remaining WM events before exiting.
-  while let Ok(wm_event) = wm.event_rx.try_recv() {
-    info!("Emitting WM event before shutting down: {:?}", wm_event);
+//   // Emit remaining WM events before exiting.
+//   while let Ok(wm_event) = wm.event_rx.try_recv() {
+//     info!("Emitting WM event before shutting down: {:?}", wm_event);
 
-    if let Err(err) = ipc_server.process_event(wm_event) {
-      warn!("{:?}", err);
-    }
-  }
+//     if let Err(err) = ipc_server.process_event(wm_event) {
+//       warn!("{:?}", err);
+//     }
+//   }
 
-  Ok(())
-}
+//   Ok(())
+// }

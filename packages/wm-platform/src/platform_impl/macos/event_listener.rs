@@ -5,7 +5,6 @@ use wm_common::{
 
 use super::NativeWindow;
 
-#[derive(Debug)]
 pub enum PlatformEvent {
   DisplaySettingsChanged,
   WindowDestroyed(NativeWindow),

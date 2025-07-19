@@ -39,6 +39,8 @@ windows = { version = "0.52", features = [
 windows-interface = { version = "0.52" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+# core-graphics = "0.25"
+objc2-core-graphics = "0.3.1"
 objc2 = "0.6.1"
 objc2-app-kit = { version = "0.3.1", default-features = false, features = [
   "NSApplication",

@@ -46,7 +46,7 @@ impl EventLoop {
     let operations = Arc::new(Mutex::new(Vec::new()));
     let operations_clone = Arc::clone(&operations);
 
-    let (sender, receiver) = tokio::sync::oneshot::channel::<(
+    let (sender, mut receiver) = std::sync::mpsc::channel::<(
       SendableCFRetained<CFRunLoopSource>,
       SendableCFRetained<CFRunLoop>,
       ThreadId,
@@ -78,8 +78,9 @@ impl EventLoop {
       Ok(())
     });
 
-    let (source_ptr, run_loop_ptr, loop_thread_id) =
-      receiver.blocking_recv()?;
+    let (source_ptr, run_loop_ptr, loop_thread_id) = receiver
+      .recv()
+      .context("Failed to receive run loop data.")?;
 
     // Unwrap the CFRetained objects.
     let source = source_ptr.into_inner();
@@ -140,6 +141,7 @@ impl EventLoop {
     };
 
     for callback in callbacks {
+      println!("Running callback from event loop.");
       callback();
     }
   }

@@ -8,7 +8,7 @@ use wm_common::{
   Rect, RectDelta, WindowState,
 };
 
-use crate::platform_impl;
+use crate::platform_impl::{self, EventLoopDispatcher};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
@@ -18,7 +18,7 @@ pub enum ZOrder {
   TopMost,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct NativeWindow {
   inner: platform_impl::NativeWindow,
 }

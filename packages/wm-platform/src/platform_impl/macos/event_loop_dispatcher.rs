@@ -5,6 +5,7 @@ use objc2_core_foundation::{CFRetained, CFRunLoop, CFRunLoopSource};
 /// Type alias for the callback function used with dispatches.
 type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
 
+#[derive(Clone)]
 pub struct EventLoopDispatcher {
   operations: Arc<Mutex<Vec<DispatchFn>>>,
   run_loop: Option<CFRetained<CFRunLoop>>,
@@ -24,7 +25,12 @@ impl EventLoopDispatcher {
     }
   }
 
-  pub fn dispatch(&self, callback: DispatchFn) -> anyhow::Result<()> {
+  pub fn dispatch<F>(&self, callback: F) -> anyhow::Result<()>
+  where
+    F: FnOnce() + Send + 'static,
+  {
+    let callback: DispatchFn = Box::new(Box::new(callback));
+
     {
       let mut ops = self.operations.lock().unwrap();
       ops.push(callback);

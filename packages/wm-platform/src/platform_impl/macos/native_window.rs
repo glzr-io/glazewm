@@ -1,6 +1,8 @@
 use wm_common::{Memo, Rect};
 
-#[derive(Clone, Debug)]
+use crate::platform_impl::EventLoopDispatcher;
+
+#[derive(Clone)]
 pub struct NativeWindow {
   dispatcher: EventLoopDispatcher,
   pub handle: isize,
@@ -31,11 +33,27 @@ impl NativeWindow {
   }
 
   pub fn title(&self) -> anyhow::Result<String> {
-    self.dispatcher.run(self.handle, |window| window.title())
+    todo!()
   }
 
   pub fn invalidate_title(&self) -> anyhow::Result<String> {
-    self.dispatcher.run(self.handle, |window| window.title())
+    todo!()
+  }
+
+  pub fn process_name(&self) -> anyhow::Result<String> {
+    todo!()
+  }
+
+  pub fn class_name(&self) -> anyhow::Result<String> {
+    todo!()
+  }
+
+  pub fn is_visible(&self) -> anyhow::Result<bool> {
+    todo!()
+  }
+
+  pub fn cleanup(&self) {
+    todo!()
   }
 }
 
