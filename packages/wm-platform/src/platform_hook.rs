@@ -23,7 +23,6 @@ use crate::{
 };
 
 pub struct PlatformHook {
-  event_loop: Option<EventLoop>,
   dispatcher: Option<EventLoopDispatcher>,
 }
 
@@ -53,13 +52,7 @@ impl PlatformHook {
     let (installed_tx, installed_rx) = mpsc::unbounded_channel();
     let installer = PlatformHookInstaller::new(installed_tx);
 
-    (
-      Self {
-        event_loop: None,
-        dispatcher: None,
-      },
-      installer,
-    )
+    (Self { dispatcher: None }, installer)
   }
 
   // /// Creates a new [`MouseListener`] instance.
@@ -71,20 +64,12 @@ impl PlatformHook {
   //   let dispatcher = self.resolve_dispatcher().await?;
   //   MouseListener::new(dispatcher)
   // }
-
-  // async fn resolve_dispatcher(
-  //   &mut self,
-  // ) -> anyhow::Result<EventLoopDispatcher> {
-  //   // TODO: Wait for the dispatcher to be installed.
-  //   todo!()
-  // }
 }
 
 impl Drop for PlatformHook {
   fn drop(&mut self) {
-    if let Some(event_loop) = self.event_loop.take() {
-      // event_loop.stop();
-    }
+    // TODO: Stop the event loop if installed via
+    // `PlatformHookInstaller::run_dedicated_loop`.
   }
 }
 

@@ -31,6 +31,11 @@ impl PlatformHookInstaller {
   /// - **Windows**: Can be called from any thread. Runs a Win32 message
   ///   loop.
   pub fn run_dedicated_loop(self) -> anyhow::Result<()> {
+    // TODO: Replace with `EventLoop::run`.
+    // TODO: Send `EventLoopDispatcher` back to `PlatformHook` to be used
+    // for callback dispatching.
+    // TODO: Need to verify we're on the main thread in macOS event loop
+    // implementation.
     #[cfg(target_os = "macos")]
     self.run_macos_main_loop();
 

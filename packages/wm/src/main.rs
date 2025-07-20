@@ -51,10 +51,10 @@ async fn main() -> anyhow::Result<()> {
       config_path,
       verbosity,
     } => {
+      let rt = tokio::runtime::Runtime::new()?;
       let (platform_hook, installer) = PlatformHook::new();
 
-      let rt = tokio::runtime::Runtime::new()?;
-      _ = rt.spawn(async {
+      let task_handle = rt.spawn(async {
         let res = start_wm(config_path, verbosity, platform_hook).await;
 
         // If unable to start the WM, the error is fatal and a message
@@ -66,8 +66,12 @@ async fn main() -> anyhow::Result<()> {
         res
       });
 
-      // Blocks until shutdown - must be on main thread for macOS.
-      installer.run_dedicated_loop()
+      // Run event loop (blocks until shutdown). This must be on the main
+      // thread for macOS compatibility.
+      installer.run_dedicated_loop()?;
+
+      // Wait for clean exit of the WM.
+      task_handle.await?
     }
     _ => {
       let rt = tokio::runtime::Runtime::new()?;
@@ -83,35 +87,37 @@ async fn start_wm(
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
-  let mouse_listener = hook.create_mouse_listener()?;
-  let keyboard_listener = hook.create_keyboard_listener()?;
-  let window_listener = hook.create_window_listener()?;
+  // These will wait for the event loop to be ready
+  let mut mouse_listener = hook.create_mouse_listener().await?;
+  let mut keyboard_listener = hook.create_keyboard_listener().await?;
+  let mut window_listener = hook.create_window_listener().await?;
+
+  tracing::info!("Window manager started.");
 
   loop {
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    info!("Hello, world!");
-  }
-
-  loop {
-    let res = tokio::select! {
+    tokio::select! {
       _ = signal::ctrl_c() => {
-        info!("Received SIGINT signal.");
+        tracing::info!("Received SIGINT signal.");
         break;
       },
       Some(event) = mouse_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        // TODO: handle mouse event.
+        tracing::debug!("Received mouse event: {:?}", event);
+        // TODO: Handle mouse event.
       },
       Some(event) = keyboard_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        // TODO: handle keyboard event.
+        tracing::debug!("Received keyboard event: {:?}", event);
+        // TODO: Handle keyboard event.
       },
       Some(event) = window_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        // TODO: handle window event.
+        tracing::debug!("Received window event: {:?}", event);
+        // TODO: Handle window event.
       },
-    };
+    }
   }
+
+  // Shutdown the platform hook.
+  hook.shutdown().await?;
+  tracing::info!("Window manager shutting down.");
 
   Ok(())
 }
