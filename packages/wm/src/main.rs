@@ -68,10 +68,12 @@ async fn main() -> anyhow::Result<()> {
 
       // Run event loop (blocks until shutdown). This must be on the main
       // thread for macOS compatibility.
-      installer.run_dedicated_loop()?;
+      let loop_res = installer.run_dedicated_loop();
 
       // Wait for clean exit of the WM.
-      task_handle.await?
+      let wm_res = task_handle.await.flatten();
+
+      loop_res.and(wm_res)
     }
     _ => {
       let rt = tokio::runtime::Runtime::new()?;

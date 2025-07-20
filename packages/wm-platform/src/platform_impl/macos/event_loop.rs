@@ -43,6 +43,8 @@ pub struct EventLoop {
 
 impl EventLoop {
   pub fn new() -> anyhow::Result<(Self, EventLoopDispatcher)> {
+    // TODO: Need to verify we're on the main thread.
+
     let operations = Arc::new(Mutex::new(Vec::new()));
     let operations_clone = Arc::clone(&operations);
 

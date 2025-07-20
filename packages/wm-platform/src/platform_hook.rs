@@ -15,7 +15,7 @@ use objc2_core_graphics::{
   CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
 use objc2_foundation::{NSString, NSThread};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 
 use crate::{
   platform_impl::{EventLoop, EventLoopDispatcher},
@@ -23,6 +23,7 @@ use crate::{
 };
 
 pub struct PlatformHook {
+  dispatcher_rx: Option<oneshot::Receiver<EventLoopDispatcher>>,
   dispatcher: Option<EventLoopDispatcher>,
 }
 
@@ -49,10 +50,38 @@ impl PlatformHook {
   /// ```
   #[must_use]
   pub fn new() -> (Self, PlatformHookInstaller) {
-    let (installed_tx, installed_rx) = mpsc::unbounded_channel();
-    let installer = PlatformHookInstaller::new(installed_tx);
+    let (dispatcher_tx, dispatcher_rx) = oneshot::channel();
+    let installer = PlatformHookInstaller::new(dispatcher_tx);
 
-    (Self { dispatcher: None }, installer)
+    (
+      Self {
+        dispatcher_rx: Some(dispatcher_rx),
+        dispatcher: None,
+      },
+      installer,
+    )
+  }
+
+  /// Resolves the event loop dispatcher, waiting for it to be available if
+  /// necessary.
+  async fn resolve_dispatcher(
+    &mut self,
+  ) -> anyhow::Result<&EventLoopDispatcher> {
+    if let Some(ref dispatcher) = self.dispatcher {
+      return Ok(dispatcher);
+    }
+
+    let dispatcher_rx = self
+      .dispatcher_rx
+      .take()
+      .context("Dispatcher receiver has already been consumed.")?;
+
+    let dispatcher = dispatcher_rx
+      .await
+      .context("Failed to receive dispatcher from installer.")?;
+
+    // Insert and get reference in one go.
+    Ok(self.dispatcher.insert(dispatcher))
   }
 
   // /// Creates a new [`MouseListener`] instance.

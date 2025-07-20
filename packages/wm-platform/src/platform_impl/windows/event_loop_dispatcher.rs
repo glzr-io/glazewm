@@ -7,7 +7,8 @@
 ///
 /// # Thread safety
 ///
-/// This type is `Send + Sync` and can be safely shared across threads.
+/// This type is `Send + Sync` and can be safely cloned and shared across
+/// threads.
 ///
 /// # Platform-specific behavior
 ///
