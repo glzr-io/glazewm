@@ -42,83 +42,85 @@ use wm_platform::PlatformHook;
 ///
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
-  match app_command {
-    AppCommand::Start {
-      config_path,
-      verbosity,
-    } => {
-      let rt = tokio::runtime::Runtime::new()?;
-      let (platform_hook, installer) = PlatformHook::new();
+  if let AppCommand::Start {
+    config_path,
+    verbosity,
+  } = app_command
+  {
+    let rt = tokio::runtime::Runtime::new()?;
+    let (platform_hook, installer) = PlatformHook::new();
 
-      let task_handle = rt.spawn(async {
-        let res = start_wm(config_path, verbosity, platform_hook).await;
+    let task_handle = rt.spawn(async {
+      let res = start_wm(config_path, verbosity, platform_hook).await;
 
-        // If unable to start the WM, the error is fatal and a message
-        // dialog is shown.
-        if let Err(err) = &res {
-          error!("{:?}", err);
-        }
+      // If unable to start the WM, the error is fatal and a message
+      // dialog is shown.
+      if let Err(err) = &res {
+        error!("{:?}", err);
+      }
 
-        res
-      });
+      res
+    });
 
-      // Run event loop (blocks until shutdown). This must be on the main
-      // thread for macOS compatibility.
-      let loop_res = installer.run_dedicated_loop();
+    // Run event loop (blocks until shutdown). This must be on the main
+    // thread for macOS compatibility.
+    installer.run_dedicated_loop()?;
 
-      // Wait for clean exit of the WM.
-      let wm_res = task_handle.await.flatten();
-
-      loop_res.and(wm_res)
-    }
-    _ => {
-      let rt = tokio::runtime::Runtime::new()?;
-      rt.block_on(wm_cli::start(args))
-    }
+    // Wait for clean exit of the WM.
+    rt.block_on(task_handle)?
+  } else {
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(wm_cli::start(args))
   }
 }
 
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
-  hook: PlatformHook,
+  mut hook: PlatformHook,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
+  std::thread::spawn(move || {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(hook.create_mouse_listener());
+  });
   // These will wait for the event loop to be ready
-  let mut mouse_listener = hook.create_mouse_listener().await?;
-  let mut keyboard_listener = hook.create_keyboard_listener().await?;
-  let mut window_listener = hook.create_window_listener().await?;
+  // let mut mouse_listener = hook.create_mouse_listener().await?;
+  // let mut keyboard_listener = hook.create_keyboard_listener().await?;
+  // let mut window_listener = hook.create_window_listener().await?;
 
   tracing::info!("Window manager started.");
 
   loop {
-    tokio::select! {
-      _ = signal::ctrl_c() => {
-        tracing::info!("Received SIGINT signal.");
-        break;
-      },
-      Some(event) = mouse_listener.event_rx.recv() => {
-        tracing::debug!("Received mouse event: {:?}", event);
-        // TODO: Handle mouse event.
-      },
-      Some(event) = keyboard_listener.event_rx.recv() => {
-        tracing::debug!("Received keyboard event: {:?}", event);
-        // TODO: Handle keyboard event.
-      },
-      Some(event) = window_listener.event_rx.recv() => {
-        tracing::debug!("Received window event: {:?}", event);
-        // TODO: Handle window event.
-      },
-    }
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    tracing::info!("Window manager running.");
+    // tokio::select! {
+    //   _ = signal::ctrl_c() => {
+    //     tracing::info!("Received SIGINT signal.");
+    //     break;
+    //   },
+    //   Some(event) = mouse_listener.event_rx.recv() => {
+    //     tracing::debug!("Received mouse event: {:?}", event);
+    //     // TODO: Handle mouse event.
+    //   },
+    //   Some(event) = keyboard_listener.event_rx.recv() => {
+    //     tracing::debug!("Received keyboard event: {:?}", event);
+    //     // TODO: Handle keyboard event.
+    //   },
+    //   Some(event) = window_listener.event_rx.recv() => {
+    //     tracing::debug!("Received window event: {:?}", event);
+    //     // TODO: Handle window event.
+    //   },
+    // }
   }
 
   // Shutdown the platform hook.
-  hook.shutdown().await?;
+  // hook.shutdown().await?;
   tracing::info!("Window manager shutting down.");
 
   Ok(())

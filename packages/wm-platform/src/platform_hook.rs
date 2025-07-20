@@ -84,15 +84,18 @@ impl PlatformHook {
     Ok(self.dispatcher.insert(dispatcher))
   }
 
-  // /// Creates a new [`MouseListener`] instance.
-  // ///
-  // /// This method will wait for the platform hook to be installed.
-  // pub async fn create_mouse_listener(
-  //   &mut self,
-  // ) -> anyhow::Result<MouseListener> {
-  //   let dispatcher = self.resolve_dispatcher().await?;
-  //   MouseListener::new(dispatcher)
-  // }
+  /// Creates a new [`MouseListener`] instance.
+  ///
+  /// This method will wait for the platform hook to be installed.
+  pub async fn create_mouse_listener(&mut self) -> anyhow::Result<()> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    // MouseListener::new(dispatcher)
+
+    dispatcher.dispatch(|| {
+      println!("Hello, world!");
+      println!("Is main thread: {}", is_main_thread());
+    })
+  }
 }
 
 impl Drop for PlatformHook {

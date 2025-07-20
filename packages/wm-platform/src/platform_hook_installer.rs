@@ -43,12 +43,13 @@ impl PlatformHookInstaller {
     }
 
     // Run the event loop (blocks until shutdown).
-    event_loop.run()
+    event_loop.run();
+    Ok(())
   }
 
   /// Install on main thread (MacOS only).
   #[cfg(target_os = "macos")]
-  pub async fn install_on_main_thread(self) -> anyhow::Result<()> {
+  pub fn install_on_main_thread(self) -> anyhow::Result<()> {
     let is_main_thread: bool =
       unsafe { msg_send![NSThread::class(), isMainThread] };
 
@@ -65,7 +66,7 @@ impl PlatformHookInstaller {
   /// Install on an existing event loop via window subclassing (Windows
   /// only).
   #[cfg(windows)]
-  pub async fn install_with_subclass(
+  pub fn install_with_subclass(
     mut self,
     hwnd: WindowHandle,
   ) -> anyhow::Result<()> {

@@ -1,12 +1,9 @@
-use std::{
-  sync::{Arc, Mutex},
-  thread::{self, ThreadId},
-};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
-  CFRunLoopSourceContext, Type,
+  CFRunLoopSourceContext,
 };
 
 use crate::platform_impl::EventLoopDispatcher;
@@ -14,31 +11,10 @@ use crate::platform_impl::EventLoopDispatcher;
 /// Type alias for the callback function used with dispatches.
 type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
 
-struct SendableCFRetained<T>(CFRetained<T>);
-
-unsafe impl<T> Send for SendableCFRetained<T> {}
-
-impl<T> SendableCFRetained<T> {
-  /// Creates a new sendable wrapper around a CFRetained.
-  ///
-  /// # Safety
-  ///
-  /// The caller must ensure the wrapped type is only used on appropriate
-  /// threads.
-  fn new(retained: CFRetained<T>) -> Self {
-    Self(retained)
-  }
-
-  /// Unwraps the CFRetained, consuming the wrapper.
-  fn into_inner(self) -> CFRetained<T> {
-    self.0
-  }
-}
-
 pub struct EventLoop {
   operations: Arc<Mutex<Vec<DispatchFn>>>,
-  run_loop: Option<CFRetained<CFRunLoop>>,
-  source: Option<CFRetained<CFRunLoopSource>>,
+  run_loop: CFRetained<CFRunLoop>,
+  source: CFRetained<CFRunLoopSource>,
 }
 
 impl EventLoop {
@@ -46,58 +22,30 @@ impl EventLoop {
     // TODO: Need to verify we're on the main thread.
 
     let operations = Arc::new(Mutex::new(Vec::new()));
-    let operations_clone = Arc::clone(&operations);
 
-    let (sender, mut receiver) = std::sync::mpsc::channel::<(
-      SendableCFRetained<CFRunLoopSource>,
-      SendableCFRetained<CFRunLoop>,
-      ThreadId,
-    )>();
-
-    let thread_handle = thread::spawn(move || -> anyhow::Result<()> {
-      let thread_id = thread::current().id();
-
-      // Set up the `CFRunLoop` source.
-      let (source_ptr, run_loop_ptr) =
-        Self::setup_runloop(&operations_clone)?;
-
-      // Send data back to main thread
-      if sender
-        .send((
-          SendableCFRetained::new(source_ptr.retain()),
-          SendableCFRetained::new(run_loop_ptr.retain()),
-          thread_id,
-        ))
-        .is_err()
-      {
-        anyhow::bail!("Failed to send run loop data back to main thread");
-      }
-
-      // Run the run loop.
-      Self::run_cf_runloop();
-
-      tracing::info!("macOS event loop thread exiting.");
-      Ok(())
-    });
-
-    let (source_ptr, run_loop_ptr, loop_thread_id) = receiver
-      .recv()
-      .context("Failed to receive run loop data.")?;
-
-    // Unwrap the CFRetained objects.
-    let source = source_ptr.into_inner();
-    let run_loop = run_loop_ptr.into_inner();
+    // Set up the `CFRunLoop` directly on the current thread.
+    let (source, run_loop) = Self::setup_runloop(&operations)?;
 
     let event_loop = EventLoop {
       operations: operations.clone(),
-      run_loop: Some(run_loop.clone()),
-      source: Some(source.clone()),
+      run_loop: run_loop.clone(),
+      source: source.clone(),
     };
 
     let dispatcher =
       EventLoopDispatcher::new(operations, Some(run_loop), Some(source));
 
     Ok((event_loop, dispatcher))
+  }
+
+  /// Runs the event loop.
+  ///
+  /// This method will block the current thread until the event loop is
+  /// stopped.
+  pub fn run(&self) {
+    tracing::info!("Starting macOS event loop.");
+    CFRunLoop::run();
+    tracing::info!("macOS event loop exiting.");
   }
 
   fn setup_runloop(
@@ -145,25 +93,6 @@ impl EventLoop {
     for callback in callbacks {
       println!("Running callback from event loop.");
       callback();
-    }
-  }
-
-  fn run_cf_runloop() {
-    CFRunLoop::run();
-  }
-
-  // Dispatch an operation from any thread
-  fn dispatch(&self, operation: DispatchFn) {
-    {
-      let mut ops = self.operations.lock().unwrap();
-      ops.push(operation);
-    }
-
-    // Signal the run loop source and wake up the run loop.
-    if let (Some(source), Some(run_loop)) = (&self.source, &self.run_loop)
-    {
-      source.signal();
-      run_loop.wake_up();
     }
   }
 }

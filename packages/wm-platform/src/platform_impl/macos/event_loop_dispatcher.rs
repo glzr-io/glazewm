@@ -12,6 +12,12 @@ pub struct EventLoopDispatcher {
   source: Option<CFRetained<CFRunLoopSource>>,
 }
 
+// Safety: `CFRunLoop` and `CFRunLoopSource` are thread-safe Core
+// Foundation types. The objc2 bindings don't implement `Send + Sync`, but
+// the underlying CF types are safe to send between threads.
+unsafe impl Send for EventLoopDispatcher {}
+unsafe impl Sync for EventLoopDispatcher {}
+
 impl EventLoopDispatcher {
   pub fn new(
     operations: Arc<Mutex<Vec<DispatchFn>>>,
