@@ -5,9 +5,9 @@
 
 mod native_window;
 mod platform_hook;
-// mod platform_hook_installer;
+mod platform_hook_installer;
 mod platform_impl;
 
 pub use native_window::*;
 pub use platform_hook::*;
-// pub use platform_hook_installer::*;
+pub use platform_hook_installer::*;

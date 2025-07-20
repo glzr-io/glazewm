@@ -42,7 +42,6 @@ use wm_platform::PlatformHook;
 ///
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
-#[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
@@ -52,31 +51,66 @@ async fn main() -> anyhow::Result<()> {
       config_path,
       verbosity,
     } => {
-      let res = start_wm(config_path, verbosity).await;
+      let (platform_hook, installer) = PlatformHook::new();
 
-      // If unable to start the WM, the error is fatal and a message dialog
-      // is shown.
-      if let Err(err) = &res {
-        error!("{:?}", err);
-        // Platform::show_error_dialog("Fatal error", &err.to_string());
-      }
+      let rt = tokio::runtime::Runtime::new()?;
+      _ = rt.spawn(async {
+        let res = start_wm(config_path, verbosity, platform_hook).await;
 
-      res
+        // If unable to start the WM, the error is fatal and a message
+        // dialog is shown.
+        if let Err(err) = &res {
+          error!("{:?}", err);
+        }
+
+        res
+      });
+
+      // Blocks until shutdown - must be on main thread for macOS.
+      installer.run_dedicated_loop()
     }
-    _ => wm_cli::start(args).await,
+    _ => {
+      let rt = tokio::runtime::Runtime::new()?;
+      rt.block_on(wm_cli::start(args))
+    }
   }
 }
+
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
+  hook: PlatformHook,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
-  let _platform_hook = PlatformHook::dedicated()?;
+  let mouse_listener = hook.create_mouse_listener()?;
+  let keyboard_listener = hook.create_keyboard_listener()?;
+  let window_listener = hook.create_window_listener()?;
 
   loop {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     info!("Hello, world!");
+  }
+
+  loop {
+    let res = tokio::select! {
+      _ = signal::ctrl_c() => {
+        info!("Received SIGINT signal.");
+        break;
+      },
+      Some(event) = mouse_listener.event_rx.recv() => {
+        debug!("Received platform event: {:?}", event);
+        // TODO: handle mouse event.
+      },
+      Some(event) = keyboard_listener.event_rx.recv() => {
+        debug!("Received platform event: {:?}", event);
+        // TODO: handle keyboard event.
+      },
+      Some(event) = window_listener.event_rx.recv() => {
+        debug!("Received platform event: {:?}", event);
+        // TODO: handle window event.
+      },
+    };
   }
 
   Ok(())

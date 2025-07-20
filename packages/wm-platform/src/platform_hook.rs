@@ -15,14 +15,12 @@ use objc2_core_graphics::{
   CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
 use objc2_foundation::{NSString, NSThread};
-use tokio::{sync::mpsc, task};
-use tracing::warn;
-use wm_common::{
-  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
-  Rect, RectDelta, WindowState,
-};
+use tokio::sync::mpsc;
 
-use crate::platform_impl::{EventLoop, EventLoopDispatcher};
+use crate::{
+  platform_impl::{EventLoop, EventLoopDispatcher},
+  PlatformHookInstaller,
+};
 
 pub struct PlatformHook {
   event_loop: Option<EventLoop>,
@@ -30,58 +28,39 @@ pub struct PlatformHook {
 }
 
 impl PlatformHook {
-  /// Creates a new `PlatformHook` instance with its own event loop running
-  /// on a separate, dedicated thread.
+  /// Creates a new `PlatformHook` instance and returns an installer for
+  /// setting up the platform-specific event loop integration.
   ///
-  /// ## Platform-specific
+  /// The `PlatformHook` can be used immediately to create listeners and
+  /// query system state, but events will only be received after the
+  /// `PlatformHookInstaller` has been used to integrate with an event
+  /// loop.
   ///
-  /// - Windows: Creates a new Win32 message loop.
-  /// - MacOS: Creates a new *main* run loop (`CFRunLoopGetMain()`). Note
-  ///   that MacOS only allows a single main run loop in a process, so if
-  ///   you'd like to run your own main run loop, set up the hook using
-  ///   [`PlatformHook::remote`] instead.
+  /// # Example usage
+  ///
+  /// ```rust
+  /// // Create hook and installer.
+  /// let (hook, installer) = PlatformHook::new();
+  ///
+  /// // Set up listeners.
+  /// let mouse_listener = hook.create_mouse_listener()?;
+  ///
+  /// // Install on platform-specific event loop.
+  /// installer.run_dedicated_loop(); // Blocks until shutdown.
+  /// ```
   #[must_use]
-  pub fn dedicated() -> anyhow::Result<Self> {
-    let (event_loop, dispatcher) = EventLoop::new()?;
+  pub fn new() -> (Self, PlatformHookInstaller) {
+    let (installed_tx, installed_rx) = mpsc::unbounded_channel();
+    let installer = PlatformHookInstaller::new(installed_tx);
 
-    dispatcher.dispatch(move || {
-      println!("Hello, world! from dispatcher");
-      println!("Running apps: {:?}", list_apps().collect::<Vec<_>>());
-      println!("Creating event tap");
-      create_event_tap().unwrap();
-      println!("Is main thread: {}", is_main_thread());
-    })?;
-
-    println!("Running apps outside!");
-    println!("Creating event tap outside");
-    std::thread::sleep(std::time::Duration::from_secs(3));
-    println!("Is main thread: {}", is_main_thread());
-    create_event_tap().unwrap();
-    // println!("Running apps: {:?}",
-    // running_apps(None).collect::<Vec<_>>());
-
-    Ok(Self {
-      event_loop: Some(event_loop),
-      dispatcher: Some(dispatcher),
-    })
+    (
+      Self {
+        event_loop: None,
+        dispatcher: None,
+      },
+      installer,
+    )
   }
-
-  // /// Creates a new `PlatformHook` instance to be installed on a target
-  // /// thread. The `PlatformHookInstaller` returned is used to install
-  // /// the hook on the target thread.
-  // #[must_use]
-  // pub fn remote() -> (Self, PlatformHookInstaller) {
-  //   let (installed_tx, installed_rx) = mpsc::unbounded_channel();
-  //   let installer = PlatformHookInstaller::new(installed_tx);
-
-  //   (
-  //     Self {
-  //       event_loop: None,
-  //       dispatcher: None,
-  //     },
-  //     installer,
-  //   )
-  // }
 
   // /// Creates a new [`MouseListener`] instance.
   // ///
