@@ -22,14 +22,12 @@ pub struct WindowListener {
 }
 
 impl WindowListener {
-  pub fn new(dispatcher: &EventLoopDispatcher) -> Self {
+  pub fn new(dispatcher: &EventLoopDispatcher) -> anyhow::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
-    dispatcher.run(|| {
-      Self::add_observers(events_tx);
-    });
+    dispatcher.run_sync(|| Self::add_observers(events_tx))?;
 
-    Self { event_rx }
+    Ok(Self { event_rx })
   }
 
   fn add_observers(events_tx: mpsc::UnboundedSender<PlatformEvent>) {

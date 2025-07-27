@@ -99,7 +99,7 @@ impl PlatformHook {
     &mut self,
   ) -> anyhow::Result<WindowListener> {
     let dispatcher = self.resolve_dispatcher().await?;
-    Ok(WindowListener::new(dispatcher))
+    WindowListener::new(dispatcher)
   }
 
   /// Creates a new [`KeybindingListener`] instance.
