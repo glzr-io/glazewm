@@ -18,7 +18,7 @@ pub enum ZOrder {
   TopMost,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NativeWindow {
   inner: platform_impl::NativeWindow,
 }
@@ -28,6 +28,7 @@ impl NativeWindow {
   #[must_use]
   pub fn new(handle: isize, dispatcher: EventLoopDispatcher) -> Self {
     let inner = platform_impl::NativeWindow::new(handle, dispatcher);
+
     Self { inner }
   }
 

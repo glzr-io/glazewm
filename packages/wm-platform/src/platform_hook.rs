@@ -18,7 +18,7 @@ use objc2_foundation::{NSString, NSThread};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::{
-  platform_impl::{EventLoop, EventLoopDispatcher},
+  platform_impl::{EventLoop, EventLoopDispatcher, WindowListener},
   PlatformHookInstaller,
 };
 
@@ -88,13 +88,28 @@ impl PlatformHook {
   ///
   /// This method will wait for the platform hook to be installed.
   pub async fn create_mouse_listener(&mut self) -> anyhow::Result<()> {
-    let dispatcher = self.resolve_dispatcher().await?;
-    // MouseListener::new(dispatcher)
+    let _ = self.resolve_dispatcher().await?;
+    todo!()
+  }
 
-    dispatcher.dispatch(|| {
-      println!("Hello, world!");
-      println!("Is main thread: {}", is_main_thread());
-    })
+  /// Creates a new [`WindowListener`] instance.
+  ///
+  /// This method will wait for the platform hook to be installed.
+  pub async fn create_window_listener(
+    &mut self,
+  ) -> anyhow::Result<WindowListener> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    Ok(WindowListener::new(dispatcher))
+  }
+
+  /// Creates a new [`KeybindingListener`] instance.
+  ///
+  /// This method will wait for the platform hook to be installed.
+  pub async fn create_keybinding_listener(
+    &mut self,
+  ) -> anyhow::Result<()> {
+    let _ = self.resolve_dispatcher().await?;
+    todo!()
   }
 }
 

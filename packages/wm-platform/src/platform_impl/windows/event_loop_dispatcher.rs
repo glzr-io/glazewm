@@ -49,7 +49,7 @@ impl EventLoopDispatcher {
   /// * `callback` - A closure that will be executed on the message loop
   ///   thread.
   // TODO: Remove `name` arg after testing
-  pub fn dispatch<F>(&self, name: &str, callback: F) -> anyhow::Result<()>
+  pub fn run<F>(&self, name: &str, callback: F) -> anyhow::Result<()>
   where
     F: FnOnce() + Send + 'static,
   {

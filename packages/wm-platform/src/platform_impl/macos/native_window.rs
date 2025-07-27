@@ -2,9 +2,9 @@ use wm_common::{Memo, Rect};
 
 use crate::platform_impl::EventLoopDispatcher;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NativeWindow {
-  dispatcher: EventLoopDispatcher,
+  // dispatcher: EventLoopDispatcher,
   pub handle: isize,
   title: Memo<String>,
   process_name: Memo<String>,
@@ -20,7 +20,7 @@ impl NativeWindow {
   #[must_use]
   pub fn new(handle: isize, dispatcher: EventLoopDispatcher) -> Self {
     Self {
-      dispatcher,
+      // dispatcher,
       handle,
       title: Memo::new(),
       process_name: Memo::new(),
@@ -56,11 +56,3 @@ impl NativeWindow {
     todo!()
   }
 }
-
-impl PartialEq for NativeWindow {
-  fn eq(&self, other: &Self) -> bool {
-    self.handle == other.handle
-  }
-}
-
-impl Eq for NativeWindow {}

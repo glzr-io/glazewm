@@ -85,38 +85,34 @@ async fn start_wm(
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
-  std::thread::spawn(move || {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(hook.create_mouse_listener());
-  });
   // These will wait for the event loop to be ready
   // let mut mouse_listener = hook.create_mouse_listener().await?;
   // let mut keyboard_listener = hook.create_keyboard_listener().await?;
-  // let mut window_listener = hook.create_window_listener().await?;
+  let mut window_listener = hook.create_window_listener().await?;
 
   tracing::info!("Window manager started.");
 
   loop {
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    tracing::info!("Window manager running.");
-    // tokio::select! {
-    //   _ = signal::ctrl_c() => {
-    //     tracing::info!("Received SIGINT signal.");
-    //     break;
-    //   },
+    // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    // tracing::info!("Window manager running.");
+    tokio::select! {
+      _ = signal::ctrl_c() => {
+        tracing::info!("Received SIGINT signal.");
+        break;
+      },
     //   Some(event) = mouse_listener.event_rx.recv() => {
     //     tracing::debug!("Received mouse event: {:?}", event);
-    //     // TODO: Handle mouse event.
+    //     handle_event(PlatformEvent::Window(event)).await;
     //   },
     //   Some(event) = keyboard_listener.event_rx.recv() => {
     //     tracing::debug!("Received keyboard event: {:?}", event);
-    //     // TODO: Handle keyboard event.
+    //     handle_event(PlatformEvent::Keyboard(event)).await;
     //   },
-    //   Some(event) = window_listener.event_rx.recv() => {
-    //     tracing::debug!("Received window event: {:?}", event);
-    //     // TODO: Handle window event.
-    //   },
-    // }
+      Some(event) = window_listener.event_rx.recv() => {
+        tracing::debug!("Received window event: {:?}", event);
+        // handle_event(PlatformEvent::Window(event)).await;
+      },
+    }
   }
 
   // Shutdown the platform hook.

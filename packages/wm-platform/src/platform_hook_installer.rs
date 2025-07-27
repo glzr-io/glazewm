@@ -47,7 +47,7 @@ impl PlatformHookInstaller {
     Ok(())
   }
 
-  /// Install on main thread (MacOS only).
+  /// Install on main thread (macOS only).
   #[cfg(target_os = "macos")]
   pub fn install_on_main_thread(self) -> anyhow::Result<()> {
     let is_main_thread: bool =
