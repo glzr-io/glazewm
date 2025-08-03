@@ -17,8 +17,6 @@ use objc2_foundation::{
 };
 use tokio::sync::mpsc;
 
-use crate::PlatformEvent;
-
 #[derive(Debug)]
 pub(crate) enum NotificationName {
   WorkspaceActiveSpaceDidChange,
@@ -84,9 +82,19 @@ impl From<NotificationName> for &NSString {
   }
 }
 
+#[derive(Debug)]
+pub(crate) enum NotificationEvent {
+  WorkspaceActiveSpaceDidChange,
+  WorkspaceDidActivateApplication,
+  WorkspaceDidDeactivateApplication,
+  WorkspaceDidLaunchApplication,
+  WorkspaceDidTerminateApplication,
+  ApplicationDidChangeScreenParameters,
+}
+
 #[repr(C)]
 pub(crate) struct NotificationObserverIvars {
-  events_tx: mpsc::UnboundedSender<PlatformEvent>,
+  events_tx: mpsc::UnboundedSender<NotificationEvent>,
 }
 
 define_class! {
@@ -108,42 +116,48 @@ define_class! {
 
 impl NotificationObserver {
   pub fn new(
-    events_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> Retained<Self> {
+  ) -> (Retained<Self>, mpsc::UnboundedReceiver<NotificationEvent>) {
+    let (events_tx, events_rx) = mpsc::unbounded_channel();
+
     let instance = Self::alloc()
       .set_ivars(Box::new(NotificationObserverIvars { events_tx }));
 
     // Safety: The signature of `NSObject`'s `init` method is correct.
-    unsafe { msg_send![super(instance), init] }
+    (unsafe { msg_send![super(instance), init] }, events_rx)
   }
 
   fn handle_event(&self, notif: &NSNotification) {
     tracing::info!("Received notification: {notif:#?}");
 
-    // TODO: Properly handle the events.
     match NotificationName::from(unsafe { &*notif.name() }) {
       NotificationName::WorkspaceActiveSpaceDidChange => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self.emit_event(NotificationEvent::WorkspaceActiveSpaceDidChange);
       }
       NotificationName::WorkspaceDidActivateApplication => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self
+          .emit_event(NotificationEvent::WorkspaceDidActivateApplication);
       }
       NotificationName::WorkspaceDidDeactivateApplication => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self.emit_event(
+          NotificationEvent::WorkspaceDidDeactivateApplication,
+        );
       }
       NotificationName::WorkspaceDidLaunchApplication => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self.emit_event(NotificationEvent::WorkspaceDidLaunchApplication);
       }
       NotificationName::WorkspaceDidTerminateApplication => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self
+          .emit_event(NotificationEvent::WorkspaceDidTerminateApplication);
       }
       NotificationName::ApplicationDidChangeScreenParameters => {
-        self.emit_event(PlatformEvent::DisplaySettingsChanged);
+        self.emit_event(
+          NotificationEvent::ApplicationDidChangeScreenParameters,
+        );
       }
     }
   }
 
-  fn emit_event(&self, event: PlatformEvent) {
+  fn emit_event(&self, event: NotificationEvent) {
     if let Err(err) = self.ivars().events_tx.send(event) {
       tracing::warn!("Failed to send event: {err}");
     }
