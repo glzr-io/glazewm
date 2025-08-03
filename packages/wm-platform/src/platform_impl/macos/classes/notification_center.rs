@@ -87,8 +87,8 @@ pub(crate) enum NotificationEvent {
   WorkspaceActiveSpaceDidChange,
   WorkspaceDidActivateApplication,
   WorkspaceDidDeactivateApplication,
-  WorkspaceDidLaunchApplication,
-  WorkspaceDidTerminateApplication,
+  WorkspaceDidLaunchApplication(Retained<NSRunningApplication>),
+  WorkspaceDidTerminateApplication(Retained<NSRunningApplication>),
   ApplicationDidChangeScreenParameters,
 }
 
@@ -143,11 +143,26 @@ impl NotificationObserver {
         );
       }
       NotificationName::WorkspaceDidLaunchApplication => {
-        self.emit_event(NotificationEvent::WorkspaceDidLaunchApplication);
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(
+            NotificationEvent::WorkspaceDidLaunchApplication(app),
+          );
+        } else {
+          tracing::warn!(
+            "Failed to extract application from launch notification"
+          );
+        }
       }
       NotificationName::WorkspaceDidTerminateApplication => {
-        self
-          .emit_event(NotificationEvent::WorkspaceDidTerminateApplication);
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(
+            NotificationEvent::WorkspaceDidTerminateApplication(app),
+          );
+        } else {
+          tracing::warn!(
+            "Failed to extract application from terminate notification"
+          );
+        }
       }
       NotificationName::ApplicationDidChangeScreenParameters => {
         self.emit_event(

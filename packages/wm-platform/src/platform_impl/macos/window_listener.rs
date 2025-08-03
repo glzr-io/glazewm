@@ -1,16 +1,18 @@
-use accessibility::{
-  AXAttribute, AXUIElement, AXUIElementActions, AXUIElementAttributes,
-};
+use std::collections::HashMap;
+
 use accessibility_sys::{
-  kAXApplicationActivatedNotification,
-  kAXApplicationDeactivatedNotification, kAXErrorCannotComplete,
-  kAXMainWindowChangedNotification, kAXStandardWindowSubrole,
-  kAXTitleChangedNotification, kAXUIElementDestroyedNotification,
-  kAXWindowCreatedNotification, kAXWindowDeminiaturizedNotification,
-  kAXWindowMiniaturizedNotification, kAXWindowMovedNotification,
-  kAXWindowResizedNotification, kAXWindowRole,
+  kAXMainWindowChangedNotification, kAXTitleChangedNotification,
+  kAXUIElementDestroyedNotification, kAXWindowCreatedNotification,
+  kAXWindowDeminiaturizedNotification, kAXWindowMiniaturizedNotification,
+  kAXWindowMovedNotification, kAXWindowResizedNotification, pid_t,
+  AXObserverAddNotification, AXObserverCreate, AXObserverGetRunLoopSource,
+  AXObserverRef, AXUIElementCreateApplication, AXUIElementRef,
 };
+use anyhow::Context;
 use objc2_app_kit::{NSApplication, NSWorkspace};
+use objc2_core_foundation::{
+  kCFRunLoopDefaultMode, CFRunLoop, CFRunLoopSource, CFString, Type,
+};
 use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
 
@@ -22,8 +24,47 @@ use crate::{
     },
     EventLoopDispatcher,
   },
-  PlatformEvent,
+  NativeWindow, PlatformEvent, WindowEvent,
 };
+
+/// Type alias for CFString pointer as expected by accessibility APIs
+type CFStringRef = *const std::ffi::c_void;
+
+/// Represents an accessibility observer for a specific application
+#[derive(Debug)]
+struct AppWindowObserver {
+  // observer: AXObserverRef,
+  // pid: pid_t,
+  // app_element: AXUIElement,
+  // _runloop_source: objc2_core_foundation::CFRetained<CFRunLoopSource>,
+}
+
+impl Drop for AppWindowObserver {
+  fn drop(&mut self) {
+    // Remove notifications and cleanup
+    let window_notifications = [
+      kAXWindowCreatedNotification,
+      kAXUIElementDestroyedNotification,
+      kAXWindowMovedNotification,
+      kAXWindowResizedNotification,
+      kAXWindowMiniaturizedNotification,
+      kAXWindowDeminiaturizedNotification,
+      kAXTitleChangedNotification,
+      kAXMainWindowChangedNotification,
+    ];
+
+    for notification in &window_notifications {
+      unsafe {
+        let notification_cfstr = CFString::from_str(notification);
+        // AXObserverRemoveNotification(
+        //   self.observer,
+        //   (&self.app_element as *const AXUIElement) as *mut _,
+        //   (&*notification_cfstr as *const CFString) as *const _,
+        // );
+      }
+    }
+  }
+}
 
 #[derive(Debug)]
 pub struct WindowListener {
@@ -79,7 +120,9 @@ impl WindowListener {
       );
     }
 
-    std::thread::spawn(move || Self::listen(events_rx, dispatcher));
+    std::thread::spawn(move || {
+      Self::listen(events_rx, events_tx, dispatcher)
+    });
 
     // TODO: Hack to prevent the handler from being deregistered.
     std::mem::forget(observer);
@@ -89,24 +132,271 @@ impl WindowListener {
 
   fn listen(
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
+    events_tx: mpsc::UnboundedSender<PlatformEvent>,
     dispatcher: EventLoopDispatcher,
   ) {
+    // Track window observers for each application by PID
+    // let mut app_observers: HashMap<pid_t, AppWindowObserver> =
+    //   HashMap::new();
+
     while let Some(event) = events_rx.blocking_recv() {
       tracing::info!("Received event: {event:?}");
 
       match event {
-        NotificationEvent::WorkspaceDidLaunchApplication => {
+        NotificationEvent::WorkspaceDidLaunchApplication(running_app) => {
           tracing::info!("Workspace launched application.");
 
-          // TODO: Register window event listeners for the new application.
+          let dispatcher_clone = dispatcher.clone();
+          let events_tx_clone = events_tx.clone();
+          dispatcher.dispatch_sync(move || {
+            // Register window event listeners for the new application
+            let pid = unsafe { running_app.processIdentifier() };
+
+            match Self::register_window_observer(
+              pid,
+              events_tx_clone.clone(),
+              &dispatcher_clone,
+            ) {
+              Ok(observer) => {
+                tracing::info!(
+                  "Successfully registered window observer for PID: {}",
+                  pid
+                );
+                // app_observers.insert(pid, observer);
+              }
+              Err(err) => {
+                tracing::warn!(
+                  "Failed to register window observer for PID {}: {}",
+                  pid,
+                  err
+                );
+              }
+            }
+          });
+        }
+        NotificationEvent::WorkspaceDidTerminateApplication(
+          running_app,
+        ) => {
+          tracing::info!("Workspace terminated application.");
+
+          // Clean up window observers for the terminated application
+          let pid = unsafe { running_app.processIdentifier() };
+
+          // if let Some(observer) = app_observers.remove(&pid) {
+          //   tracing::info!(
+          //     "Removed window observer for terminated PID: {}",
+          //     pid
+          //   );
+          //   drop(observer); // This will trigger the cleanup in Drop
+          //                   // implementation
+          // }
         }
         _ => {}
       }
     }
   }
 
+  /// Register an accessibility observer for window events on the specified
+  /// application
+  fn register_window_observer(
+    pid: pid_t,
+    events_tx: mpsc::UnboundedSender<PlatformEvent>,
+    dispatcher: &EventLoopDispatcher,
+  ) -> anyhow::Result<AppWindowObserver> {
+    // NOTE: Accessibility APIs must be called directly on main thread
+    // dispatch_sync can cause threading issues with the accessibility
+    // system
+
+    // Create the application AX element using low-level API
+    let app_element = unsafe { AXUIElementCreateApplication(pid) };
+
+    // Create an accessibility observer for this application
+    let mut observer: AXObserverRef = std::ptr::null_mut();
+    let result = unsafe {
+      AXObserverCreate(
+        pid,
+        std::mem::transmute(window_event_callback as *const ()),
+        &mut observer,
+      )
+    };
+
+    if result != 0 {
+      return Err(anyhow::anyhow!(
+        "Failed to create AX observer for PID {}: {}",
+        pid,
+        result
+      ));
+    }
+
+    println!("got here1");
+
+    // Set up the callback context (we'll store the events_tx here)
+    let context = Box::into_raw(Box::new(WindowEventContext {
+      events_tx,
+      dispatcher: dispatcher.clone(),
+      pid,
+    }));
+
+    // Store the context pointer in the observer (this is a simplified
+    // approach) In a real implementation, you'd want to use a global
+    // registry to map observers to contexts
+
+    println!("got here2");
+    // Get the run loop source and add it to the current run loop
+    let runloop_source = unsafe {
+      let source = AXObserverGetRunLoopSource(observer);
+      CFRunLoopSource::wrap_under_get_rule(source as *const _)
+    };
+
+    println!("got here2.5");
+
+    unsafe {
+      let runloop =
+        CFRunLoop::current().context("Failed to get current runloop")?;
+      runloop.add_source(Some(&runloop_source), kCFRunLoopDefaultMode);
+    }
+    println!("got here2.6");
+
+    // Register for window notifications
+    let window_notifications = [
+      kAXWindowCreatedNotification,
+      kAXUIElementDestroyedNotification,
+      kAXWindowMovedNotification,
+      kAXWindowResizedNotification,
+      kAXWindowMiniaturizedNotification,
+      kAXWindowDeminiaturizedNotification,
+      kAXTitleChangedNotification,
+      kAXMainWindowChangedNotification,
+    ];
+
+    for notification in &window_notifications {
+      unsafe {
+        let notification_cfstr = CFString::from_static_str(notification);
+        println!("got here2.7");
+
+        let result = AXObserverAddNotification(
+          observer,
+          app_element,
+          (&*notification_cfstr as *const CFString) as *const _,
+          context as *mut std::ffi::c_void,
+        );
+
+        println!("got here2.8");
+
+        if result != 0 {
+          tracing::warn!(
+            "Failed to add notification {} for PID {}: {}",
+            notification,
+            pid,
+            result
+          );
+        }
+      }
+    }
+
+    println!("got here3");
+    Ok(AppWindowObserver {
+      // observer,
+      // pid,
+      // app_element,
+      // _runloop_source: runloop_source,
+    })
+  }
+
   /// Returns the next event from the `WindowListener`.
   pub async fn next_event(&mut self) -> Option<PlatformEvent> {
     self.event_rx.recv().await
+  }
+}
+
+/// Context data passed to the window event callback
+struct WindowEventContext {
+  events_tx: mpsc::UnboundedSender<PlatformEvent>,
+  dispatcher: EventLoopDispatcher,
+  pid: pid_t,
+}
+
+/// Callback function for accessibility window events
+unsafe extern "C" fn window_event_callback(
+  _observer: AXObserverRef,
+  element: AXUIElementRef,
+  notification: CFStringRef,
+  context: *mut std::ffi::c_void,
+) {
+  println!("got here4");
+  if context.is_null() {
+    println!("got here4.1");
+    tracing::error!("Window event callback received null context");
+    return;
+  }
+
+  println!("got here4.2");
+  let context = &*(context as *const WindowEventContext);
+  let cf_string = CFString::wrap_under_get_rule(notification as *const _);
+  let notification_str = cf_string.to_string();
+  println!("got here4.3");
+
+  tracing::info!(
+    "Received window event: {} for PID: {}",
+    notification_str,
+    context.pid
+  );
+
+  // Create a NativeWindow from the element
+  // Note: This is simplified - in a real implementation you'd extract the
+  // window handle
+  let window =
+    NativeWindow::new(element as isize, context.dispatcher.clone());
+
+  // Convert the notification to appropriate WindowEvent
+  let window_event = match notification_str.as_str() {
+    kAXWindowCreatedNotification => {
+      tracing::info!("Window created for PID: {}", context.pid);
+      Some(WindowEvent::Show(window))
+    }
+    kAXUIElementDestroyedNotification => {
+      tracing::info!("Window destroyed for PID: {}", context.pid);
+      Some(WindowEvent::Hide(window))
+    }
+    kAXWindowMovedNotification | kAXWindowResizedNotification => {
+      tracing::debug!("Window moved/resized for PID: {}", context.pid);
+      Some(WindowEvent::LocationChange(window))
+    }
+    kAXWindowMiniaturizedNotification => {
+      tracing::info!("Window minimized for PID: {}", context.pid);
+      Some(WindowEvent::Minimize(window))
+    }
+    kAXWindowDeminiaturizedNotification => {
+      tracing::info!("Window deminimized for PID: {}", context.pid);
+      Some(WindowEvent::MinimizeEnd(window))
+    }
+    kAXTitleChangedNotification => {
+      tracing::debug!("Window title changed for PID: {}", context.pid);
+      Some(WindowEvent::TitleChange(window))
+    }
+    kAXMainWindowChangedNotification => {
+      tracing::debug!("Main window changed for PID: {}", context.pid);
+      Some(WindowEvent::Focus(window))
+    }
+    _ => {
+      tracing::debug!(
+        "Unhandled window notification: {} for PID: {}",
+        notification_str,
+        context.pid
+      );
+      None
+    }
+  };
+
+  // Send the event if we created one
+  if let Some(event) = window_event {
+    if let Err(err) = context.events_tx.send(PlatformEvent::Window(event))
+    {
+      tracing::warn!(
+        "Failed to send window event for PID {}: {}",
+        context.pid,
+        err
+      );
+    }
   }
 }
