@@ -1,22 +1,35 @@
-use std::{ops::Deref, ptr};
+use std::{
+  fmt,
+  ops::Deref,
+  ptr::{self, NonNull},
+};
 
 use accessibility_sys::{
   kAXPositionAttribute, kAXSizeAttribute, kAXTitleAttribute, kAXWindowRole,
 };
 use anyhow::{Context, Result};
-use objc2_core_foundation::{CFRetained, CFString, CFType};
+use objc2_core_foundation::{CFBoolean, CFRetained, CFString, CFType};
 
 use crate::platform_impl::{
-  AXUIElementCopyAttributeValue, AXUIElementRef,
+  AXUIElement, AXUIElementCopyAttributeValue, AXUIElementRef,
 };
 
 /// A safe wrapper around `AXUIElementRef` that provides utility methods
 /// for getting and setting accessibility attributes.
-#[derive(Debug, Clone)]
 pub struct AXElement {
-  // Retain the underlying CF object so it stays alive beyond the callback
-  retained: CFRetained<CFType>,
-  element_ref: AXUIElementRef,
+  // Retain the underlying AXUIElement so it stays alive beyond the
+  // callback
+  element_ref: CFRetained<AXUIElement>,
+}
+
+impl fmt::Debug for AXElement {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "AXElement({:p})",
+      CFRetained::as_ptr(&self.element_ref).as_ptr()
+    )
+  }
 }
 
 impl AXElement {
@@ -28,27 +41,22 @@ impl AXElement {
   pub unsafe fn from_ref(
     element_ref: AXUIElementRef,
   ) -> anyhow::Result<Self> {
-    if element_ref.is_null() {
-      return Err(anyhow::anyhow!("nullptr passed."));
-    }
+    let ptr = NonNull::new(element_ref)
+      .map(std::ptr::NonNull::cast)
+      .ok_or(anyhow::anyhow!("nullptr passed."))?;
 
-    // AXUIElementRef is a CoreFoundation type; retain it to extend
-    // lifetime. This is necessary to ensure the underlying object
-    // remains valid beyond event callbacks.
-    let retained: CFRetained<CFType> = CFRetained::retain(
-      std::ptr::NonNull::new_unchecked(element_ref as *mut CFType),
-    );
+    // Retain the AXUIElement itself
+    let retained: CFRetained<AXUIElement> = CFRetained::retain(ptr);
 
     Ok(Self {
-      retained,
-      element_ref,
+      element_ref: retained,
     })
   }
 
-  /// Returns the raw `AXUIElementRef`.
-  pub fn as_ref(&self) -> AXUIElementRef {
-    self.element_ref
-  }
+  // /// Returns the raw `AXUIElementRef`.
+  // pub fn as_ref(&self) -> AXUIElementRef {
+  //   self.element_ref
+  // }
 
   /// Gets the title of the element (typically used for windows).
   pub fn title(&self) -> anyhow::Result<String> {
@@ -109,7 +117,7 @@ impl AXElement {
 
     let result = unsafe {
       AXUIElementCopyAttributeValue(
-        self.element_ref,
+        CFRetained::as_ptr(&self.element_ref).as_ptr(),
         cf_attribute.deref(),
         &mut value,
       )
@@ -131,10 +139,16 @@ impl AXElement {
     }
 
     unsafe {
-      let cf_string: CFRetained<CFString> = CFRetained::retain(
-        std::ptr::NonNull::new_unchecked(value as *mut _),
+      let any_value: CFRetained<CFType> = CFRetained::from_raw(
+        std::ptr::NonNull::new_unchecked(value as *mut CFType),
       );
-      Ok(cf_string.to_string())
+      match any_value.downcast::<CFString>() {
+        Ok(cf_string) => Ok(cf_string.to_string()),
+        Err(_) => Err(anyhow::anyhow!(
+          "Attribute '{}' is not a CFString",
+          attribute
+        )),
+      }
     }
   }
 
@@ -145,7 +159,7 @@ impl AXElement {
 
     let result = unsafe {
       AXUIElementCopyAttributeValue(
-        self.element_ref,
+        CFRetained::as_ptr(&self.element_ref).as_ptr(),
         cf_attribute.deref(),
         &mut value,
       )
@@ -166,13 +180,19 @@ impl AXElement {
       ));
     }
 
-    // For boolean attributes, we need to interpret the CFType as CFBoolean
-    // This is a simplified implementation that checks the CFType directly
-    // In a real implementation, you'd want to use proper CFBoolean
-    // handling For now, we'll do a basic check - you may need to
-    // implement proper CFBoolean type checking and value extraction
-    // This is a placeholder implementation
-    Ok(true) // TODO: Implement proper boolean extraction from CFType
+    // Interpret the CFType as CFBoolean
+    unsafe {
+      let any_value: CFRetained<CFType> = CFRetained::from_raw(
+        std::ptr::NonNull::new_unchecked(value as *mut CFType),
+      );
+      match any_value.downcast::<CFBoolean>() {
+        Ok(cf_bool) => Ok(cf_bool.value()),
+        Err(_) => Err(anyhow::anyhow!(
+          "Attribute '{}' is not a CFBoolean",
+          attribute
+        )),
+      }
+    }
   }
 
   /// Generic method to get a point attribute (x, y coordinates).
@@ -182,7 +202,7 @@ impl AXElement {
 
     let result = unsafe {
       AXUIElementCopyAttributeValue(
-        self.element_ref,
+        CFRetained::as_ptr(&self.element_ref).as_ptr(),
         cf_attribute.deref(),
         &mut value,
       )
@@ -203,11 +223,11 @@ impl AXElement {
       ));
     }
 
-    // This is a simplified implementation for point attributes
-    // In practice, you would need to properly handle CFPoint/CGPoint types
-    // For now, we'll return a placeholder
-    // TODO: Implement proper CFPoint/CGPoint parsing
-    Ok((0.0, 0.0))
+    // TODO: Implement AXValue (CGPoint) extraction
+    Err(anyhow::anyhow!(
+      "Attribute '{}' point parsing not implemented",
+      attribute
+    ))
   }
 
   /// Generic method to get a rect attribute (x, y, width, height).
@@ -220,7 +240,7 @@ impl AXElement {
 
     let result = unsafe {
       AXUIElementCopyAttributeValue(
-        self.element_ref,
+        CFRetained::as_ptr(&self.element_ref).as_ptr(),
         cf_attribute.deref(),
         &mut value,
       )
@@ -241,11 +261,11 @@ impl AXElement {
       ));
     }
 
-    // This is a simplified implementation for rect attributes
-    // In practice, you would need to properly handle CFRect/CGRect types
-    // For now, we'll return a placeholder
-    // TODO: Implement proper CFRect/CGRect parsing
-    Ok((0.0, 0.0, 0.0, 0.0))
+    // TODO: Implement AXValue (CGRect) extraction
+    Err(anyhow::anyhow!(
+      "Attribute '{}' rect parsing not implemented",
+      attribute
+    ))
   }
 }
 

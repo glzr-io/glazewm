@@ -43,10 +43,7 @@ impl NativeWindow {
   pub fn title(&self) -> anyhow::Result<String> {
     self
       .element
-      .with(|element| {
-        println!("Element: {:?}", element);
-        element.title()
-      })
+      .with(|element| element.title())
       .and_then(|res| res)
   }
 

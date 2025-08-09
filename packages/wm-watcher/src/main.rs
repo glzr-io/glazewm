@@ -36,13 +36,16 @@ async fn main() -> anyhow::Result<()> {
     Err(err) => {
       info!("Running watcher cleanup. WM exited unexpectedly: {}", err);
 
-      let managed_windows = managed_handles
-        .into_iter()
-        .map(NativeWindow::new)
-        .collect::<Vec<_>>();
+      #[cfg(target_os = "windows")]
+      {
+        let managed_windows = managed_handles
+          .into_iter()
+          .map(NativeWindow::new)
+          .collect::<Vec<_>>();
 
-      for window in managed_windows {
-        window.cleanup();
+        for window in managed_windows {
+          window.cleanup();
+        }
       }
     }
   }
