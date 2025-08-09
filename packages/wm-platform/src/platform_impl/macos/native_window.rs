@@ -1,10 +1,12 @@
+use accessibility::AXUIElement;
 use wm_common::{Memo, Rect};
 
-use crate::platform_impl::EventLoopDispatcher;
+use crate::platform_impl::{EventLoopDispatcher, MainThreadRef};
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  // dispatcher: EventLoopDispatcher,
+  element: MainThreadRef<AXUIElement>,
+  dispatcher: EventLoopDispatcher,
   pub handle: isize,
   title: Memo<String>,
   process_name: Memo<String>,
@@ -18,9 +20,14 @@ pub struct NativeWindow {
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
   #[must_use]
-  pub fn new(handle: isize, dispatcher: EventLoopDispatcher) -> Self {
+  pub fn new(
+    handle: isize,
+    dispatcher: EventLoopDispatcher,
+    element: MainThreadRef<AXUIElement>,
+  ) -> Self {
     Self {
-      // dispatcher,
+      dispatcher,
+      element,
       handle,
       title: Memo::new(),
       process_name: Memo::new(),

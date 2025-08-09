@@ -85,3 +85,9 @@ impl EventLoopDispatcher {
     res_rx.recv().context("Failed to receive closure result.")
   }
 }
+
+impl std::fmt::Debug for EventLoopDispatcher {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "EventLoopDispatcher")
+  }
+}

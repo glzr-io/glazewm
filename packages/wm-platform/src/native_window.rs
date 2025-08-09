@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use accessibility::AXUIElement;
 use anyhow::{bail, Context};
 use tokio::task;
 use tracing::warn;
@@ -8,7 +9,7 @@ use wm_common::{
   Rect, RectDelta, WindowState,
 };
 
-use crate::platform_impl::{self, EventLoopDispatcher};
+use crate::platform_impl::{self, EventLoopDispatcher, MainThreadRef};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
@@ -20,18 +21,10 @@ pub enum ZOrder {
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  inner: platform_impl::NativeWindow,
+  pub(crate) inner: platform_impl::NativeWindow,
 }
 
 impl NativeWindow {
-  /// Creates a new `NativeWindow` instance with the given window handle.
-  #[must_use]
-  pub fn new(handle: isize, dispatcher: EventLoopDispatcher) -> Self {
-    let inner = platform_impl::NativeWindow::new(handle, dispatcher);
-
-    Self { inner }
-  }
-
   /// Gets the window's title. If the window is invalid, returns an empty
   /// string.
   ///
