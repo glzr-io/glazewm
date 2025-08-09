@@ -1,8 +1,8 @@
-use objc2_core_foundation::CFRetained;
+use objc2_core_foundation::{CFBoolean, CFRetained, CFString, CGSize};
 use wm_common::{Memo, Rect};
 
 use crate::platform_impl::{
-  AXUIElement, AXUIElementExt, EventLoopDispatcher, MainThreadRef,
+  AXUIElement, AXUIElementExt, AXValue, EventLoopDispatcher, MainThreadRef,
 };
 
 #[derive(Clone, Debug)]
@@ -50,10 +50,10 @@ impl NativeWindow {
   }
 
   fn updated_title(&self) -> anyhow::Result<String> {
-    self
-      .element
-      .with(|el| el.get_attribute::<String>("AXTitle"))
-      .and_then(|r| r)
+    self.element.with(|el| {
+      el.get_attribute::<CFString>("AXTitle")
+        .map(|r| r.to_string())
+    })?
   }
 
   pub fn process_name(&self) -> anyhow::Result<String> {
@@ -63,19 +63,32 @@ impl NativeWindow {
 
   pub fn class_name(&self) -> anyhow::Result<String> {
     // AXRole / AXSubrole might serve as class-like identifiers.
-    self
-      .element
-      .with(|el| el.get_attribute::<String>("AXRole"))
-      .and_then(|r| r)
+    self.element.with(|el| {
+      el.get_attribute::<CFString>("AXRole")
+        .map(|r| r.to_string())
+    })?
   }
 
   pub fn is_visible(&self) -> anyhow::Result<bool> {
     // Heuristic: visible if not minimized.
     let minimized = self
       .element
-      .with(|el| el.get_attribute::<bool>("AXMinimized"))
-      .and_then(|r| r)?;
+      .with(|el| el.get_attribute::<CFBoolean>("AXMinimized"))
+      .and_then(|r| r.map(|cf_bool| cf_bool.value()))?;
     Ok(!minimized)
+  }
+
+  pub fn resize(&self, size: Rect) -> anyhow::Result<()> {
+    let width = size.width() as f64;
+    let height = size.height() as f64;
+
+    self.element.with(move |el| -> anyhow::Result<()> {
+      let ax_size = CGSize::new(width, height);
+      let ax_value = AXValue::new(&ax_size)?;
+      el.set_attribute("AXSize", &ax_value)
+    })??;
+
+    Ok(())
   }
 
   /// Whether the window is minimized.
@@ -97,8 +110,8 @@ impl NativeWindow {
   fn updated_is_minimized(&self) -> anyhow::Result<bool> {
     self
       .element
-      .with(|el| el.get_attribute::<bool>("AXMinimized"))
-      .and_then(|r| r)
+      .with(|el| el.get_attribute::<CFBoolean>("AXMinimized"))
+      .and_then(|r| r.map(|cf_bool| cf_bool.value()))
   }
 
   pub fn cleanup(&self) {

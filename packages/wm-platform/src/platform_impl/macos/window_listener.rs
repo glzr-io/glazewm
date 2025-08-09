@@ -7,7 +7,7 @@ use accessibility_sys::{
 use anyhow::Context;
 use objc2_app_kit::{NSApplication, NSWorkspace};
 use objc2_core_foundation::{
-  kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFString,
+  kCFRunLoopDefaultMode, CFBoolean, CFRetained, CFRunLoop, CFString,
 };
 use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
@@ -344,8 +344,9 @@ unsafe extern "C" fn window_event_callback(
   };
 
   // Get window title using generic attribute API
-  match ax_element.get_attribute::<String>("AXTitle") {
-    Ok(title) => {
+  match ax_element.get_attribute::<CFString>("AXTitle") {
+    Ok(cf_title) => {
+      let title = cf_title.to_string();
       println!("Window title: '{}'", title);
       tracing::debug!(
         "Window title: '{}' for PID: {}",
@@ -364,8 +365,10 @@ unsafe extern "C" fn window_event_callback(
   }
 
   // Example: Get additional window attributes
-  if let Ok(is_minimized) = ax_element.get_attribute::<bool>("AXMinimized")
+  if let Ok(cf_minimized) =
+    ax_element.get_attribute::<CFBoolean>("AXMinimized")
   {
+    let is_minimized = cf_minimized.value();
     tracing::debug!(
       "Window minimized state: {} for PID: {}",
       is_minimized,

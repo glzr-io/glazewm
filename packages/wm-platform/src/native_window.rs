@@ -57,6 +57,11 @@ impl NativeWindow {
     self.inner.is_visible()
   }
 
+  /// Resize the window to the specified size.
+  pub fn resize(&self, size: Rect) -> anyhow::Result<()> {
+    self.inner.resize(size)
+  }
+
   pub fn cleanup(&self) {
     self.inner.cleanup()
   }

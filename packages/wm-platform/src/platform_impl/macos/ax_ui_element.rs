@@ -3,8 +3,7 @@ use std::{
   ptr::{self, NonNull},
 };
 
-use anyhow::Result;
-use objc2_core_foundation::{CFBoolean, CFRetained, CFString, CFType};
+use objc2_core_foundation::{CFRetained, CFString, CFType};
 
 use crate::platform_impl::AXUIElementCopyAttributeValue;
 
@@ -34,16 +33,22 @@ impl AXUIElement {
 }
 
 pub trait AXUIElementExt {
-  fn get_attribute<T: FromAXValue>(&self, attribute: &str) -> Result<T>;
-  fn set_attribute<T: IntoAXValue>(
+  fn get_attribute<T: objc2_core_foundation::Type>(
     &self,
     attribute: &str,
-    value: &T,
-  ) -> Result<()>;
+  ) -> anyhow::Result<CFRetained<T>>;
+  fn set_attribute<T: objc2_core_foundation::Type>(
+    &self,
+    attribute: &str,
+    value: &CFRetained<T>,
+  ) -> anyhow::Result<()>;
 }
 
 impl AXUIElementExt for CFRetained<AXUIElement> {
-  fn get_attribute<T: FromAXValue>(&self, attribute: &str) -> Result<T> {
+  fn get_attribute<T: objc2_core_foundation::Type>(
+    &self,
+    attribute: &str,
+  ) -> anyhow::Result<CFRetained<T>> {
     let cf_attribute = CFString::from_str(attribute);
     let mut value: *mut CFType = ptr::null_mut();
 
@@ -59,84 +64,30 @@ impl AXUIElementExt for CFRetained<AXUIElement> {
       return Err(anyhow::anyhow!("AX get_attribute failed: {}", result));
     }
 
-    if value.is_null() {
-      return Err(anyhow::anyhow!("AX get_attribute returned null"));
-    }
-
-    unsafe { T::from_ax_value(value) }
+    NonNull::new(value)
+      .map(|ptr| unsafe { CFRetained::from_raw(ptr.cast()) })
+      .ok_or(anyhow::anyhow!("AX get_attribute returned null."))
   }
 
-  fn set_attribute<T: IntoAXValue>(
+  fn set_attribute<T: objc2_core_foundation::Type>(
     &self,
     attribute: &str,
-    value: &T,
-  ) -> Result<()> {
+    value: &CFRetained<T>,
+  ) -> anyhow::Result<()> {
     let cf_attribute = CFString::from_str(attribute);
-    let cf_value = value.into_ax_value()?;
     let result = unsafe {
       crate::platform_impl::AXUIElementSetAttributeValue(
         CFRetained::as_ptr(self).as_ptr(),
         cf_attribute.deref(),
-        CFRetained::as_ptr(&cf_value).as_ptr().cast(),
+        CFRetained::as_ptr(value).as_ptr() as *const CFType,
       )
     };
+
     if result != 0 {
       return Err(anyhow::anyhow!("AX set_attribute failed: {}", result));
     }
+
     Ok(())
-  }
-}
-
-pub trait FromAXValue: Sized {
-  unsafe fn from_ax_value(raw: *mut CFType) -> Result<Self>;
-}
-
-pub trait IntoAXValue {
-  fn into_ax_value(&self) -> Result<CFRetained<CFType>>;
-}
-
-impl FromAXValue for String {
-  unsafe fn from_ax_value(raw: *mut CFType) -> Result<Self> {
-    let any_value: CFRetained<CFType> = CFRetained::from_raw(
-      std::ptr::NonNull::new_unchecked(raw as *mut CFType),
-    );
-    let cf_string = any_value
-      .downcast::<CFString>()
-      .map_err(|_| anyhow::anyhow!("AX value is not CFString"))?;
-    Ok(cf_string.to_string())
-  }
-}
-
-impl FromAXValue for bool {
-  unsafe fn from_ax_value(raw: *mut CFType) -> Result<Self> {
-    let any_value: CFRetained<CFType> = CFRetained::from_raw(
-      std::ptr::NonNull::new_unchecked(raw as *mut CFType),
-    );
-    let cf_bool = any_value
-      .downcast::<CFBoolean>()
-      .map_err(|_| anyhow::anyhow!("AX value is not CFBoolean"))?;
-    Ok(cf_bool.value())
-  }
-}
-
-impl IntoAXValue for String {
-  fn into_ax_value(&self) -> Result<CFRetained<CFType>> {
-    let s = CFString::from_str(self);
-    Ok(CFRetained::from(s))
-  }
-}
-
-impl IntoAXValue for bool {
-  fn into_ax_value(&self) -> Result<CFRetained<CFType>> {
-    // CFBoolean singletons are not owned, but CF APIs typically accept
-    // CFType. Represent by converting the static CFBoolean to CFType
-    // and retaining.
-    let cf = if *self {
-      CFBoolean::new(true)
-    } else {
-      CFBoolean::new(false)
-    };
-    Ok(CFRetained::from(cf))
   }
 }
 
