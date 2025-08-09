@@ -18,10 +18,11 @@ use crate::{
       NotificationCenter, NotificationEvent, NotificationName,
       NotificationObserver,
     },
-    AXElement, AXObserverAddNotification, AXObserverCreate,
-    AXObserverGetRunLoopSource, AXObserverRef,
-    AXUIElementCreateApplication, AXUIElementRef, CFStringRef,
-    EventLoopDispatcher, MainThreadRef, NativeWindow, ProcessId,
+    AXObserverAddNotification, AXObserverCreate,
+    AXObserverGetRunLoopSource, AXObserverRef, AXUIElement,
+    AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
+    CFStringRef, EventLoopDispatcher, MainThreadRef, NativeWindow,
+    ProcessId,
   },
   WindowEvent,
 };
@@ -333,20 +334,17 @@ unsafe extern "C" fn window_event_callback(
   let notification_str = cf_string.to_string();
   println!("got here4.3");
 
-  // Use the new AXElement wrapper for easier attribute access
-  let ax_element = match unsafe { AXElement::from_ref(element) } {
+  // Retain the element for safe access
+  let ax_element = match unsafe { AXUIElement::from_ref(element) } {
     Ok(el) => el,
     Err(err) => {
-      tracing::error!(
-        "Failed to construct AXElement in callback: {}",
-        err
-      );
+      tracing::error!("Failed to retain AXUIElement in callback: {}", err);
       return;
     }
   };
 
-  // Get window title using the wrapper
-  match ax_element.title() {
+  // Get window title using generic attribute API
+  match ax_element.get_attribute::<String>("AXTitle") {
     Ok(title) => {
       println!("Window title: '{}'", title);
       tracing::debug!(
@@ -366,7 +364,8 @@ unsafe extern "C" fn window_event_callback(
   }
 
   // Example: Get additional window attributes
-  if let Ok(is_minimized) = ax_element.is_minimized() {
+  if let Ok(is_minimized) = ax_element.get_attribute::<bool>("AXMinimized")
+  {
     tracing::debug!(
       "Window minimized state: {} for PID: {}",
       is_minimized,
@@ -374,16 +373,7 @@ unsafe extern "C" fn window_event_callback(
     );
   }
 
-  if let Ok((x, y, width, height)) = ax_element.frame() {
-    tracing::debug!(
-      "Window frame: ({}, {}, {}, {}) for PID: {}",
-      x,
-      y,
-      width,
-      height,
-      context.pid
-    );
-  }
+  // TODO: Implement AXValue extraction for frame/position
 
   tracing::info!(
     "Received window event: {} for PID: {}",

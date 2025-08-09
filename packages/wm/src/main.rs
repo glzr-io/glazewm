@@ -116,8 +116,13 @@ async fn start_wm(
           WindowEvent::LocationChange(window)=>{
             tracing::info!("Window location changed: {:?}",window);
             println!("Window title aaa: {:?}", window.title());
+            println!("Window is visible: {:?}", window.is_visible());
+            println!("Window role aaa: {:?}", window.class_name());
           }
-          WindowEvent::Minimize(window)=>{tracing::info!("Window minimized: {:?}",window);}
+          WindowEvent::Minimize(window)=>{
+            tracing::info!("Window minimized: {:?}",window);
+            println!("Window is visible: {:?}", window.is_visible());
+          }
           WindowEvent::MinimizeEnd(window)=>{tracing::info!("Window deminimized: {:?}",window);}
           WindowEvent::TitleChange(window)=>{tracing::info!("Window title changed: {:?}",window);}
           WindowEvent::Focus(window)=>{tracing::info!("Window focused: {:?}",window);}

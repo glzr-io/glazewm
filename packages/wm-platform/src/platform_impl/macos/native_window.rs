@@ -1,12 +1,13 @@
+use objc2_core_foundation::CFRetained;
 use wm_common::{Memo, Rect};
 
 use crate::platform_impl::{
-  AXElement, EventLoopDispatcher, MainThreadRef,
+  AXUIElement, AXUIElementExt, EventLoopDispatcher, MainThreadRef,
 };
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  element: MainThreadRef<AXElement>,
+  element: MainThreadRef<CFRetained<AXUIElement>>,
   dispatcher: EventLoopDispatcher,
   pub handle: isize,
   title: Memo<String>,
@@ -24,7 +25,7 @@ impl NativeWindow {
   pub fn new(
     handle: isize,
     dispatcher: EventLoopDispatcher,
-    element: MainThreadRef<AXElement>,
+    element: MainThreadRef<CFRetained<AXUIElement>>,
   ) -> Self {
     Self {
       dispatcher,
@@ -41,30 +42,67 @@ impl NativeWindow {
   }
 
   pub fn title(&self) -> anyhow::Result<String> {
-    self
-      .element
-      .with(|element| element.title())
-      .and_then(|res| res)
+    self.title.get_or_init(Self::updated_title, self)
   }
 
   pub fn invalidate_title(&self) -> anyhow::Result<String> {
-    todo!()
+    self.title.update(Self::updated_title, self)
+  }
+
+  fn updated_title(&self) -> anyhow::Result<String> {
+    self
+      .element
+      .with(|el| el.get_attribute::<String>("AXTitle"))
+      .and_then(|r| r)
   }
 
   pub fn process_name(&self) -> anyhow::Result<String> {
-    todo!()
+    // AX has AXProcessIdentifier; getting name requires more hops. Stub.
+    Ok(String::new())
   }
 
   pub fn class_name(&self) -> anyhow::Result<String> {
-    todo!()
+    // AXRole / AXSubrole might serve as class-like identifiers.
+    self
+      .element
+      .with(|el| el.get_attribute::<String>("AXRole"))
+      .and_then(|r| r)
   }
 
   pub fn is_visible(&self) -> anyhow::Result<bool> {
-    todo!()
+    // Heuristic: visible if not minimized.
+    let minimized = self
+      .element
+      .with(|el| el.get_attribute::<bool>("AXMinimized"))
+      .and_then(|r| r)?;
+    Ok(!minimized)
+  }
+
+  /// Whether the window is minimized.
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
+  pub fn is_minimized(&self) -> anyhow::Result<bool> {
+    self
+      .is_minimized
+      .get_or_init(Self::updated_is_minimized, self)
+  }
+
+  /// Updates the cached minimized status.
+  pub fn invalidate_is_minimized(&self) -> anyhow::Result<bool> {
+    self.is_minimized.update(Self::updated_is_minimized, self)
+  }
+
+  /// Whether the window is minimized.
+  #[allow(clippy::unnecessary_wraps)]
+  fn updated_is_minimized(&self) -> anyhow::Result<bool> {
+    self
+      .element
+      .with(|el| el.get_attribute::<bool>("AXMinimized"))
+      .and_then(|r| r)
   }
 
   pub fn cleanup(&self) {
-    todo!()
+    let _ = self.invalidate_title();
   }
 }
 

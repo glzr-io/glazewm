@@ -1,4 +1,4 @@
-mod ax_element;
+mod ax_ui_element;
 pub(crate) mod classes;
 mod event_loop;
 mod event_loop_dispatcher;
@@ -7,7 +7,7 @@ mod main_thread_ref;
 mod native_window;
 mod window_listener;
 
-pub use ax_element::*;
+pub use ax_ui_element::*;
 pub use event_loop::*;
 pub use event_loop_dispatcher::*;
 pub use ffi::*;

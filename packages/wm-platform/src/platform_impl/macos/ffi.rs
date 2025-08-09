@@ -3,14 +3,7 @@ use std::ffi::c_void;
 use accessibility_sys::AXError;
 use objc2_core_foundation::{CFString, CFType};
 
-// Opaque CoreFoundation type representing AXUIElement
-// AXUIElement is a CFType, not an Objective-C class.
-// It follows CFRetain/CFRelease semantics.
-pub enum AXUIElement {}
-pub type AXUIElementRef = *mut AXUIElement;
-
-// Mark the opaque CF type so it can be used with CFRetained
-unsafe impl objc2_core_foundation::Type for AXUIElement {}
+use super::ax_ui_element::AXUIElementRef;
 
 pub enum __AXObserver {}
 pub type AXObserverRef = *mut __AXObserver;
@@ -57,6 +50,12 @@ extern "C" {
     element: AXUIElementRef,
     attribute: CFStringRef,
     value: &mut *mut CFType,
+  ) -> AXError;
+
+  pub fn AXUIElementSetAttributeValue(
+    element: AXUIElementRef,
+    attribute: CFStringRef,
+    value: *const CFType,
   ) -> AXError;
 
   pub fn AXUIElementCreateApplication(pid: ProcessId) -> AXUIElementRef;
