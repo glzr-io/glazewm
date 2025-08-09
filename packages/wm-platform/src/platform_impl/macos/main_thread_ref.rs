@@ -93,7 +93,7 @@ where
   /// thread
   pub fn with<F, R>(&self, f: F) -> anyhow::Result<R>
   where
-    F: FnOnce(Option<&T>) -> R + Send + 'static,
+    F: FnOnce(&T) -> R + Send + 'static,
     R: Send + 'static,
     T: 'static,
   {
@@ -103,7 +103,9 @@ where
         let storage = storage.lock().unwrap();
         f(storage
           .get(&id)
-          .map(|value| value.downcast_ref::<T>().unwrap()))
+          .expect("Value not found.")
+          .downcast_ref::<T>()
+          .unwrap())
       })
     })
   }

@@ -1,11 +1,12 @@
-use accessibility::AXUIElement;
 use wm_common::{Memo, Rect};
 
-use crate::platform_impl::{EventLoopDispatcher, MainThreadRef};
+use crate::platform_impl::{
+  AXElement, EventLoopDispatcher, MainThreadRef,
+};
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  element: MainThreadRef<AXUIElement>,
+  element: MainThreadRef<AXElement>,
   dispatcher: EventLoopDispatcher,
   pub handle: isize,
   title: Memo<String>,
@@ -23,7 +24,7 @@ impl NativeWindow {
   pub fn new(
     handle: isize,
     dispatcher: EventLoopDispatcher,
-    element: MainThreadRef<AXUIElement>,
+    element: MainThreadRef<AXElement>,
   ) -> Self {
     Self {
       dispatcher,
@@ -40,7 +41,13 @@ impl NativeWindow {
   }
 
   pub fn title(&self) -> anyhow::Result<String> {
-    todo!()
+    self
+      .element
+      .with(|element| {
+        println!("Element: {:?}", element);
+        element.title()
+      })
+      .and_then(|res| res)
   }
 
   pub fn invalidate_title(&self) -> anyhow::Result<String> {
@@ -61,5 +68,11 @@ impl NativeWindow {
 
   pub fn cleanup(&self) {
     todo!()
+  }
+}
+
+impl From<NativeWindow> for crate::NativeWindow {
+  fn from(window: NativeWindow) -> Self {
+    crate::NativeWindow { inner: window }
   }
 }

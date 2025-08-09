@@ -21,9 +21,9 @@ use crate::{
     AXElement, AXObserverAddNotification, AXObserverCreate,
     AXObserverGetRunLoopSource, AXObserverRef,
     AXUIElementCreateApplication, AXUIElementRef, CFStringRef,
-    EventLoopDispatcher, ProcessId,
+    EventLoopDispatcher, MainThreadRef, NativeWindow, ProcessId,
   },
-  PlatformEvent,
+  WindowEvent,
 };
 
 /// Represents an accessibility observer for a specific application
@@ -62,7 +62,7 @@ impl Drop for AppWindowObserver {
 
 #[derive(Debug)]
 pub struct WindowListener {
-  pub event_rx: mpsc::UnboundedReceiver<PlatformEvent>,
+  pub event_rx: mpsc::UnboundedReceiver<WindowEvent>,
 }
 
 impl WindowListener {
@@ -78,7 +78,7 @@ impl WindowListener {
   }
 
   fn add_observers(
-    events_tx: mpsc::UnboundedSender<PlatformEvent>,
+    events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: EventLoopDispatcher,
   ) {
     let (observer, events_rx) = NotificationObserver::new();
@@ -126,7 +126,7 @@ impl WindowListener {
 
   fn listen(
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
-    events_tx: mpsc::UnboundedSender<PlatformEvent>,
+    events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: EventLoopDispatcher,
   ) {
     // Track window observers for each application by PID
@@ -142,7 +142,7 @@ impl WindowListener {
 
           let dispatcher_clone = dispatcher.clone();
           let events_tx_clone = events_tx.clone();
-          dispatcher.dispatch_sync(move || {
+          let _ = dispatcher.dispatch_sync(move || {
             // Register window event listeners for the new application
             let pid = unsafe { running_app.processIdentifier() };
 
@@ -194,7 +194,7 @@ impl WindowListener {
   /// application
   fn register_window_observer(
     pid: ProcessId,
-    events_tx: mpsc::UnboundedSender<PlatformEvent>,
+    events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &EventLoopDispatcher,
   ) -> anyhow::Result<AppWindowObserver> {
     // NOTE: Accessibility APIs must be called directly on main thread
@@ -296,19 +296,20 @@ impl WindowListener {
   }
 
   /// Returns the next event from the `WindowListener`.
-  pub async fn next_event(&mut self) -> Option<PlatformEvent> {
+  pub async fn next_event(&mut self) -> Option<WindowEvent> {
     self.event_rx.recv().await
   }
 }
 
 /// Context data passed to the window event callback
 struct WindowEventContext {
-  events_tx: mpsc::UnboundedSender<PlatformEvent>,
+  events_tx: mpsc::UnboundedSender<WindowEvent>,
   dispatcher: EventLoopDispatcher,
   pid: ProcessId,
 }
 
 /// Callback function for accessibility window events
+#[allow(clippy::too_many_lines)]
 unsafe extern "C" fn window_event_callback(
   _observer: AXObserverRef,
   element: AXUIElementRef,
@@ -333,7 +334,16 @@ unsafe extern "C" fn window_event_callback(
   println!("got here4.3");
 
   // Use the new AXElement wrapper for easier attribute access
-  let ax_element = unsafe { AXElement::from_ref(element) };
+  let ax_element = match unsafe { AXElement::from_ref(element) } {
+    Ok(el) => el,
+    Err(err) => {
+      tracing::error!(
+        "Failed to construct AXElement in callback: {}",
+        err
+      );
+      return;
+    }
+  };
 
   // Get window title using the wrapper
   match ax_element.title() {
@@ -375,52 +385,48 @@ unsafe extern "C" fn window_event_callback(
     );
   }
 
-  // element
-  // let is_minimized = element.
-
   tracing::info!(
     "Received window event: {} for PID: {}",
     notification_str,
     context.pid
   );
 
-  // Example: Create a NativeWindow from the element using the wrapper
-  // Now you can convert the AXElement to the high-level AXUIElement type
-  /*
-  let high_level_element = unsafe { ax_element.to_ax_ui_element() };
-  let main_thread_ref = MainThreadRef::new(context.dispatcher.clone(), high_level_element);
-  let window = NativeWindow::new(
-    0, // You'll need to get the actual window handle
-    context.dispatcher.clone(),
-    main_thread_ref,
-  );
-  */
+  let ax_element_ref =
+    MainThreadRef::new(context.dispatcher.clone(), ax_element);
 
-  // TEMPORARY: Comment out window event handling until we resolve the
-  // AXUIElementRef -> AXUIElement conversion issue
+  let window =
+    NativeWindow::new(0, context.dispatcher.clone(), ax_element_ref);
 
-  // Log the notifications for now
-  match notification_str.as_str() {
+  // println!("Window title 222: '{:?}'", window.title());
+
+  let window_event = match notification_str.as_str() {
     kAXWindowCreatedNotification => {
       tracing::info!("Window created for PID: {}", context.pid);
+      Some(WindowEvent::Show(window.into()))
     }
     kAXUIElementDestroyedNotification => {
       tracing::info!("Window destroyed for PID: {}", context.pid);
+      Some(WindowEvent::Hide(window.into()))
     }
     kAXWindowMovedNotification | kAXWindowResizedNotification => {
       tracing::debug!("Window moved/resized for PID: {}", context.pid);
+      Some(WindowEvent::LocationChange(window.into()))
     }
     kAXWindowMiniaturizedNotification => {
       tracing::info!("Window minimized for PID: {}", context.pid);
+      Some(WindowEvent::Minimize(window.into()))
     }
     kAXWindowDeminiaturizedNotification => {
       tracing::info!("Window deminimized for PID: {}", context.pid);
+      Some(WindowEvent::MinimizeEnd(window.into()))
     }
     kAXTitleChangedNotification => {
       tracing::debug!("Window title changed for PID: {}", context.pid);
+      Some(WindowEvent::TitleChange(window.into()))
     }
     kAXMainWindowChangedNotification => {
       tracing::debug!("Main window changed for PID: {}", context.pid);
+      Some(WindowEvent::Focus(window.into()))
     }
     _ => {
       tracing::debug!(
@@ -428,11 +434,19 @@ unsafe extern "C" fn window_event_callback(
         notification_str,
         context.pid
       );
+      None
+    }
+  };
+
+  if let Some(event) = window_event {
+    if let Err(err) = context.events_tx.send(event) {
+      tracing::warn!(
+        "Failed to send window event for PID {}: {}",
+        context.pid,
+        err
+      );
     }
   }
-
-  // TODO: Re-enable window event sending once we resolve the type
-  // conversion
 }
 
 // TODO: Implement get_attribute function when needed

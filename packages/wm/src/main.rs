@@ -19,7 +19,7 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
-use wm_platform::PlatformHook;
+use wm_platform::{PlatformHook, WindowEvent};
 
 // use wm_platform::Platform;
 // use crate::{
@@ -109,7 +109,21 @@ async fn start_wm(
     //     handle_event(PlatformEvent::Keyboard(event)).await;
     //   },
       Some(event) = window_listener.event_rx.recv() => {
-        tracing::debug!("Received window event: {:?}", event);
+        tracing::info!("Received window event: {:?}", event);
+        match event {
+          WindowEvent::Show(window)=>{tracing::info!("Window shown: {:?}",window);}
+          WindowEvent::Hide(window)=>{tracing::info!("Window hidden: {:?}",window);}
+          WindowEvent::LocationChange(window)=>{
+            tracing::info!("Window location changed: {:?}",window);
+            println!("Window title aaa: {:?}", window.title());
+          }
+          WindowEvent::Minimize(window)=>{tracing::info!("Window minimized: {:?}",window);}
+          WindowEvent::MinimizeEnd(window)=>{tracing::info!("Window deminimized: {:?}",window);}
+          WindowEvent::TitleChange(window)=>{tracing::info!("Window title changed: {:?}",window);}
+          WindowEvent::Focus(window)=>{tracing::info!("Window focused: {:?}",window);}
+          WindowEvent::MoveOrResizeEnd(native_window) => todo!(),
+          WindowEvent::MoveOrResizeStart(native_window) => todo!(),
+        }
         // handle_event(PlatformEvent::Window(event)).await;
       },
     }

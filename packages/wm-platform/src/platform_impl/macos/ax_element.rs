@@ -14,6 +14,8 @@ use crate::platform_impl::{
 /// for getting and setting accessibility attributes.
 #[derive(Debug, Clone)]
 pub struct AXElement {
+  // Retain the underlying CF object so it stays alive beyond the callback
+  retained: CFRetained<CFType>,
   element_ref: AXUIElementRef,
 }
 
@@ -22,10 +24,25 @@ impl AXElement {
   ///
   /// # Safety
   /// The caller must ensure that `element_ref` is a valid, non-null
-  /// `AXUIElementRef` that will remain valid for the lifetime of this
-  /// wrapper.
-  pub unsafe fn from_ref(element_ref: AXUIElementRef) -> Self {
-    Self { element_ref }
+  /// `AXUIElementRef`.
+  pub unsafe fn from_ref(
+    element_ref: AXUIElementRef,
+  ) -> anyhow::Result<Self> {
+    if element_ref.is_null() {
+      return Err(anyhow::anyhow!("nullptr passed."));
+    }
+
+    // AXUIElementRef is a CoreFoundation type; retain it to extend
+    // lifetime. This is necessary to ensure the underlying object
+    // remains valid beyond event callbacks.
+    let retained: CFRetained<CFType> = CFRetained::retain(
+      std::ptr::NonNull::new_unchecked(element_ref as *mut CFType),
+    );
+
+    Ok(Self {
+      retained,
+      element_ref,
+    })
   }
 
   /// Returns the raw `AXUIElementRef`.
@@ -34,7 +51,7 @@ impl AXElement {
   }
 
   /// Gets the title of the element (typically used for windows).
-  pub fn title(&self) -> Result<String> {
+  pub fn title(&self) -> anyhow::Result<String> {
     self
       .get_string_attribute(kAXTitleAttribute)
       .with_context(|| "Failed to get title attribute")
@@ -230,40 +247,13 @@ impl AXElement {
     // TODO: Implement proper CFRect/CGRect parsing
     Ok((0.0, 0.0, 0.0, 0.0))
   }
-
-  /// Converts this wrapper to the high-level `accessibility::AXUIElement`
-  /// type.
-  ///
-  /// # Safety
-  /// This creates an `AXUIElement` from the raw pointer. The caller must
-  /// ensure the element reference remains valid for the lifetime of the
-  /// returned `AXUIElement`.
-  pub unsafe fn to_ax_ui_element(&self) -> accessibility::AXUIElement {
-    // This is a bit of a hack since we need to convert from our raw
-    // pointer to the accessibility crate's type. The accessibility
-    // crate uses core_foundation types internally.
-
-    // Note: This conversion depends on the internal representation of
-    // accessibility::AXUIElement. You may need to adjust this based on
-    // the actual implementation of the accessibility crate.
-
-    // For now, we'll use a transmute - this is unsafe but should work
-    // if the types have the same layout
-    std::mem::transmute(self.element_ref)
-  }
 }
 
 unsafe impl Send for AXElement {}
 unsafe impl Sync for AXElement {}
 
-impl Drop for AXElement {
-  fn drop(&mut self) {
-    // AXUIElementRef is reference-counted, but we don't need to explicitly
-    // release it in most cases as the system manages the lifecycle.
-    // If you need explicit release, you would call CFRelease on the
-    // element.
-  }
-}
+// No Drop implementation; allow Copy semantics for this raw-pointer
+// wrapper
 
 #[cfg(test)]
 mod tests {
@@ -278,6 +268,6 @@ mod tests {
     // For now, just test that the struct can be created
     let null_ref = std::ptr::null_mut();
     let element = unsafe { AXElement::from_ref(null_ref) };
-    assert_eq!(element.as_ref(), null_ref);
+    assert!(element.is_err());
   }
 }
