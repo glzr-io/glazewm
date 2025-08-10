@@ -41,27 +41,23 @@ impl NativeWindow {
     }
   }
 
-  pub fn title(&self) -> anyhow::Result<String> {
-    self.title.get_or_init(Self::updated_title, self)
-  }
-
-  pub fn invalidate_title(&self) -> anyhow::Result<String> {
-    self.title.update(Self::updated_title, self)
-  }
-
-  fn updated_title(&self) -> anyhow::Result<String> {
+  pub fn title(&self) -> crate::Result<String> {
     self.element.with(|el| {
       el.get_attribute::<CFString>("AXTitle")
         .map(|r| r.to_string())
     })?
   }
 
-  pub fn process_name(&self) -> anyhow::Result<String> {
+  pub fn invalidate_title(&self) -> crate::Result<String> {
+    self.title()
+  }
+
+  pub fn process_name(&self) -> crate::Result<String> {
     // AX has AXProcessIdentifier; getting name requires more hops. Stub.
     Ok(String::new())
   }
 
-  pub fn class_name(&self) -> anyhow::Result<String> {
+  pub fn class_name(&self) -> crate::Result<String> {
     // AXRole / AXSubrole might serve as class-like identifiers.
     self.element.with(|el| {
       el.get_attribute::<CFString>("AXRole")
@@ -69,54 +65,40 @@ impl NativeWindow {
     })?
   }
 
-  pub fn is_visible(&self) -> anyhow::Result<bool> {
+  pub fn is_visible(&self) -> crate::Result<bool> {
     // Heuristic: visible if not minimized.
-    let minimized = self
-      .element
-      .with(|el| el.get_attribute::<CFBoolean>("AXMinimized"))
-      .and_then(|r| r.map(|cf_bool| cf_bool.value()))?;
+    let minimized = self.element.with(|el| {
+      el.get_attribute::<CFBoolean>("AXMinimized")
+        .map(|cf_bool| cf_bool.value())
+    })??;
     Ok(!minimized)
   }
 
-  pub fn resize(&self, size: Rect) -> anyhow::Result<()> {
+  pub fn resize(&self, size: Rect) -> crate::Result<()> {
     let width = size.width() as f64;
     let height = size.height() as f64;
 
-    self.element.with(move |el| -> anyhow::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width, height);
       let ax_value = AXValue::new(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
-    })??;
-
-    Ok(())
+    })?
   }
 
   /// Whether the window is minimized.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
-  pub fn is_minimized(&self) -> anyhow::Result<bool> {
-    self
-      .is_minimized
-      .get_or_init(Self::updated_is_minimized, self)
+  pub fn is_minimized(&self) -> crate::Result<bool> {
+    self.element.with(|el| {
+      el.get_attribute::<CFBoolean>("AXMinimized")
+        .map(|cf_bool| cf_bool.value())
+    })?
   }
 
   /// Updates the cached minimized status.
-  pub fn invalidate_is_minimized(&self) -> anyhow::Result<bool> {
-    self.is_minimized.update(Self::updated_is_minimized, self)
+  pub fn invalidate_is_minimized(&self) -> crate::Result<bool> {
+    self.is_minimized()
   }
 
-  /// Whether the window is minimized.
-  #[allow(clippy::unnecessary_wraps)]
-  fn updated_is_minimized(&self) -> anyhow::Result<bool> {
-    self
-      .element
-      .with(|el| el.get_attribute::<CFBoolean>("AXMinimized"))
-      .and_then(|r| r.map(|cf_bool| cf_bool.value()))
-  }
-
-  pub fn cleanup(&self) {
-    let _ = self.invalidate_title();
-  }
+  pub fn cleanup(&self) {}
 }
 
 impl From<NativeWindow> for crate::NativeWindow {

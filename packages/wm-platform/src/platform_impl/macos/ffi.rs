@@ -91,23 +91,29 @@ impl AXValueDefault for CFRange {
 impl AXValue {
   pub fn new<T: AXValueKind>(
     val: &T,
-  ) -> anyhow::Result<objc2_core_foundation::CFRetained<Self>> {
+  ) -> crate::Result<objc2_core_foundation::CFRetained<Self>> {
     let ptr =
       unsafe { AXValueCreate(T::TYPE, val as *const T as *const c_void) };
 
     if ptr.is_null() {
-      Err(anyhow::anyhow!("AXValueCreate failed"))
+      Err(crate::Error::AXValueCreation(
+        "AXValueCreate failed".to_string(),
+      ))
     } else {
       // Convert raw pointer to CFRetained
-      let nn_ptr = std::ptr::NonNull::new(ptr as *mut Self)
-        .ok_or_else(|| anyhow::anyhow!("AXValueCreate returned null"))?;
+      let nn_ptr =
+        std::ptr::NonNull::new(ptr as *mut Self).ok_or_else(|| {
+          crate::Error::AXValueCreation(
+            "AXValueCreate returned null".to_string(),
+          )
+        })?;
       Ok(unsafe { objc2_core_foundation::CFRetained::from_raw(nn_ptr) })
     }
   }
 
   pub fn get_value<T: AXValueKind + AXValueDefault>(
     &self,
-  ) -> anyhow::Result<T> {
+  ) -> crate::Result<T> {
     let mut value = T::ax_default();
     let success = unsafe {
       AXValueGetValue(
@@ -120,7 +126,9 @@ impl AXValue {
     if success {
       Ok(value)
     } else {
-      Err(anyhow::anyhow!("AXValueGetValue failed"))
+      Err(crate::Error::AXValueCreation(
+        "AXValueGetValue failed".to_string(),
+      ))
     }
   }
 }

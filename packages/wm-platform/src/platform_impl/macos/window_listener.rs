@@ -335,7 +335,7 @@ unsafe extern "C" fn window_event_callback(
   println!("got here4.3");
 
   // Retain the element for safe access
-  let ax_element = match unsafe { AXUIElement::from_ref(element) } {
+  let ax_element = match AXUIElement::from_ref(element) {
     Ok(el) => el,
     Err(err) => {
       tracing::error!("Failed to retain AXUIElement in callback: {}", err);

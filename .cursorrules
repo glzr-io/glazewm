@@ -33,12 +33,12 @@ GlazeWM is a window manager written in Rust, organized as a workspace with multi
 
 - Document public APIs with rustdoc comments, especially important for the `wm-platform` crate.
 - Rustdoc comments should include (in the following order):
-  - (required) A concise summary of the purpose of the function or type.
-  - (required) Any notable caveats when using the function or type.
+  - (required) A _concise_ summary of the purpose of the function or type.
+  - (required) Any notable caveats when using the function or type. Again, should be kept brief.
   - (optional) If unclear from the summary, include an additional note about the return type of the function (e.g. "Returns a vector of `NativeMonitor` sorted from left-to-right.").
   - (optional) Cases where the function might panic (use "# Panics" as heading).
   - (optional) Platform-specific notes (use "# Platform-specific" as heading).
-  - (optional) Example usage (use "# Examples" as heading).
+  - (optional) Example usage, not needed for most cases (use "# Examples" as heading).
 - Use punctuation marks at the end of doc comments and in-line comments.
 - If using unsafe features, add a "SAFETY: ..." comment.
 
