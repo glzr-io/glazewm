@@ -2546,6 +2546,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation",
+ "thiserror 2.0.12",
  "tokio",
  "tracing",
  "windows",

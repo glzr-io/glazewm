@@ -11,6 +11,7 @@ home = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 tauri-winres = "0.1"
+thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.26"
 tracing = "0.1"
