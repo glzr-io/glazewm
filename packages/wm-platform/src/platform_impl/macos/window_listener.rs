@@ -6,6 +6,7 @@ use accessibility_sys::{
 };
 use anyhow::Context;
 use objc2_app_kit::{NSApplication, NSWorkspace};
+use objc2_application_services::{AXError, AXUIElement, AXValue};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFBoolean, CFRetained, CFRunLoop, CFString,
   CGPoint, CGRect, CGSize,
@@ -20,10 +21,10 @@ use crate::{
       NotificationObserver,
     },
     AXObserverAddNotification, AXObserverCreate,
-    AXObserverGetRunLoopSource, AXObserverRef, AXUIElement,
-    AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef, AXValue,
-    CFStringRef, EventLoopDispatcher, MainThreadRef, NativeWindow,
-    ProcessId,
+    AXObserverGetRunLoopSource, AXObserverRef,
+    AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
+    AXValueExt, CFStringRef, EventLoopDispatcher, MainThreadRef,
+    NativeWindow, ProcessId,
   },
   WindowEvent,
 };
@@ -212,9 +213,9 @@ impl WindowListener {
       AXObserverCreate(pid, window_event_callback, &mut observer)
     };
 
-    if result != 0 {
+    if result != AXError::Success {
       return Err(anyhow::anyhow!(
-        "Failed to create AX observer for PID {}: {}",
+        "Failed to create AX observer for PID {}: {:?}",
         pid,
         result
       ));
@@ -277,9 +278,9 @@ impl WindowListener {
 
         println!("got here2.8");
 
-        if result != 0 {
+        if result != AXError::Success {
           tracing::warn!(
-            "Failed to add notification {} for PID {}: {}",
+            "Failed to add notification {} for PID {}: {:?}",
             notification,
             pid,
             result
@@ -379,7 +380,7 @@ unsafe extern "C" fn window_event_callback(
 
   // Extract window frame (position and size)
   if let Ok(frame) = ax_element.get_attribute::<AXValue>("AXFrame") {
-    let frame = frame.value::<CGRect>().unwrap();
+    let frame = frame.value_strict::<CGRect>().unwrap();
     tracing::info!(
       "Window frame: origin=({}, {}), size=({}, {}) for PID: {}",
       frame.origin.x,
@@ -392,7 +393,7 @@ unsafe extern "C" fn window_event_callback(
 
   // Extract window position
   if let Ok(position) = ax_element.get_attribute::<AXValue>("AXPosition") {
-    let position = position.value::<CGPoint>().unwrap();
+    let position = position.value_strict::<CGPoint>().unwrap();
     tracing::info!(
       "Window position: ({}, {}) for PID: {}",
       position.x,
@@ -403,7 +404,7 @@ unsafe extern "C" fn window_event_callback(
 
   // Extract window size
   if let Ok(size) = ax_element.get_attribute::<AXValue>("AXSize") {
-    let size = size.value::<CGSize>().unwrap();
+    let size = size.value_strict::<CGSize>().unwrap();
     tracing::info!(
       "Window size: ({}, {}) for PID: {}",
       size.width,

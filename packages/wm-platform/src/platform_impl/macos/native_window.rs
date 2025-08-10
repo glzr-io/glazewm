@@ -1,8 +1,10 @@
+use objc2_application_services::AXValue;
 use objc2_core_foundation::{CFBoolean, CFRetained, CFString, CGSize};
 use wm_common::{Memo, Rect};
 
 use crate::platform_impl::{
-  AXUIElement, AXUIElementExt, AXValue, EventLoopDispatcher, MainThreadRef,
+  AXUIElement, AXUIElementExt, AXValueExt, EventLoopDispatcher,
+  MainThreadRef,
 };
 
 #[derive(Clone, Debug)]
@@ -80,7 +82,7 @@ impl NativeWindow {
 
     self.element.with(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width, height);
-      let ax_value = AXValue::new(&ax_size)?;
+      let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
     })?
   }
