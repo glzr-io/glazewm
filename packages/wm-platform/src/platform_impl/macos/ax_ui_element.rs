@@ -15,7 +15,6 @@ const AX_ERROR_SUCCESS: i32 = 0;
 ///
 /// It follows `CFRetain` / `CFRelease` semantics.
 #[derive(Debug)]
-#[repr(C)]
 pub struct AXUIElement;
 pub type AXUIElementRef = *mut AXUIElement;
 

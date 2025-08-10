@@ -1,8 +1,8 @@
-use std::ffi::c_void;
+use std::{ffi::c_void, mem::MaybeUninit, ptr::NonNull};
 
 use accessibility_sys::{
   kAXValueTypeCFRange, kAXValueTypeCGPoint, kAXValueTypeCGRect,
-  kAXValueTypeCGSize, AXError, AXValueGetValue,
+  kAXValueTypeCGSize, AXError,
 };
 use objc2_core_foundation::{
   CFRange, CFString, CFType, CGPoint, CGRect, CGSize,
@@ -39,96 +39,83 @@ pub type AXValueType = u32;
 // Mark the opaque CF type so it can be used with CFRetained
 unsafe impl objc2_core_foundation::Type for AXValue {}
 
-pub trait AXValueKind {
-  const TYPE: AXValueType;
+/// Trait for types that can be converted to and from `AXValue`.
+pub trait AXValueConvertible: Sized + Copy {
+  /// The `AXValueType` constant for this type.
+  const AX_TYPE: AXValueType;
 }
 
-impl AXValueKind for CGPoint {
-  const TYPE: AXValueType = kAXValueTypeCGPoint;
-}
-impl AXValueKind for CGSize {
-  const TYPE: AXValueType = kAXValueTypeCGSize;
-}
-impl AXValueKind for CGRect {
-  const TYPE: AXValueType = kAXValueTypeCGRect;
-}
-impl AXValueKind for CFRange {
-  const TYPE: AXValueType = kAXValueTypeCFRange;
+impl AXValueConvertible for CGPoint {
+  const AX_TYPE: AXValueType = kAXValueTypeCGPoint;
 }
 
-// Helper trait for creating default values
-pub trait AXValueDefault {
-  fn ax_default() -> Self;
+impl AXValueConvertible for CGSize {
+  const AX_TYPE: AXValueType = kAXValueTypeCGSize;
 }
 
-impl AXValueDefault for CGPoint {
-  fn ax_default() -> Self {
-    CGPoint::new(0.0, 0.0)
-  }
+impl AXValueConvertible for CGRect {
+  const AX_TYPE: AXValueType = kAXValueTypeCGRect;
 }
 
-impl AXValueDefault for CGSize {
-  fn ax_default() -> Self {
-    CGSize::new(0.0, 0.0)
-  }
-}
-
-impl AXValueDefault for CGRect {
-  fn ax_default() -> Self {
-    CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(0.0, 0.0))
-  }
-}
-
-impl AXValueDefault for CFRange {
-  fn ax_default() -> Self {
-    CFRange {
-      location: 0,
-      length: 0,
-    }
-  }
+impl AXValueConvertible for CFRange {
+  const AX_TYPE: AXValueType = kAXValueTypeCFRange;
 }
 
 impl AXValue {
-  pub fn new<T: AXValueKind>(
+  /// Creates a new `AXValue` from the given value.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the `AXValue` creation fails.
+  pub fn new<T: AXValueConvertible>(
     val: &T,
   ) -> crate::Result<objc2_core_foundation::CFRetained<Self>> {
-    let ptr =
-      unsafe { AXValueCreate(T::TYPE, val as *const T as *const c_void) };
+    let ptr = unsafe {
+      AXValueCreate(T::AX_TYPE, val as *const T as *const c_void)
+    };
 
     if ptr.is_null() {
-      Err(crate::Error::AXValueCreation(
-        "AXValueCreate failed".to_string(),
-      ))
+      Err(crate::Error::AXValueCreation(format!(
+        "Failed to create AXValue for type with AX_TYPE {}",
+        T::AX_TYPE
+      )))
     } else {
-      // Convert raw pointer to CFRetained
-      let nn_ptr =
-        std::ptr::NonNull::new(ptr as *mut Self).ok_or_else(|| {
-          crate::Error::AXValueCreation(
-            "AXValueCreate returned null".to_string(),
-          )
-        })?;
+      let nn_ptr = NonNull::new(ptr as *mut Self).ok_or_else(|| {
+        crate::Error::AXValueCreation(
+          "AXValueCreate returned non-null but pointer conversion failed"
+            .to_string(),
+        )
+      })?;
+
+      // SAFETY: Pointer is verified to be non-null.
       Ok(unsafe { objc2_core_foundation::CFRetained::from_raw(nn_ptr) })
     }
   }
 
-  pub fn get_value<T: AXValueKind + AXValueDefault>(
-    &self,
-  ) -> crate::Result<T> {
-    let mut value = T::ax_default();
+  /// Extracts the value from this `AXValue`.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if:
+  /// - The `AXValue` type doesn't match the requested type `T`.
+  /// - The accessibility framework fails to extract the value.
+  pub fn value<T: AXValueConvertible>(&self) -> crate::Result<T> {
+    let mut value = MaybeUninit::<T>::uninit();
     let success = unsafe {
       AXValueGetValue(
-        self as *const Self as *mut accessibility_sys::__AXValue,
-        T::TYPE,
-        &mut value as *mut T as *mut c_void,
+        self as *const Self as *mut Self,
+        T::AX_TYPE,
+        value.as_mut_ptr() as *mut c_void,
       )
     };
 
     if success {
-      Ok(value)
+      Ok(unsafe { value.assume_init() })
     } else {
-      Err(crate::Error::AXValueCreation(
-        "AXValueGetValue failed".to_string(),
-      ))
+      Err(crate::Error::AXValueCreation(format!(
+        "Failed to extract value from AXValue for type with AX_TYPE {}",
+        T::AX_TYPE
+      )))
     }
   }
 }
@@ -176,4 +163,10 @@ extern "C" {
     theType: AXValueType,
     valuePtr: *const c_void,
   ) -> AXValueRef;
+
+  pub fn AXValueGetValue(
+    value: AXValueRef,
+    theType: AXValueType,
+    valuePtr: *mut c_void,
+  ) -> bool;
 }

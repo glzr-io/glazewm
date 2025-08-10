@@ -8,6 +8,7 @@ use anyhow::Context;
 use objc2_app_kit::{NSApplication, NSWorkspace};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFBoolean, CFRetained, CFRunLoop, CFString,
+  CGPoint, CGRect, CGSize,
 };
 use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
@@ -20,7 +21,7 @@ use crate::{
     },
     AXObserverAddNotification, AXObserverCreate,
     AXObserverGetRunLoopSource, AXObserverRef, AXUIElement,
-    AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
+    AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef, AXValue,
     CFStringRef, EventLoopDispatcher, MainThreadRef, NativeWindow,
     ProcessId,
   },
@@ -369,14 +370,47 @@ unsafe extern "C" fn window_event_callback(
     ax_element.get_attribute::<CFBoolean>("AXMinimized")
   {
     let is_minimized = cf_minimized.value();
-    tracing::debug!(
+    tracing::info!(
       "Window minimized state: {} for PID: {}",
       is_minimized,
       context.pid
     );
   }
 
-  // TODO: Implement AXValue extraction for frame/position
+  // Extract window frame (position and size)
+  if let Ok(frame) = ax_element.get_attribute::<AXValue>("AXFrame") {
+    let frame = frame.value::<CGRect>().unwrap();
+    tracing::info!(
+      "Window frame: origin=({}, {}), size=({}, {}) for PID: {}",
+      frame.origin.x,
+      frame.origin.y,
+      frame.size.width,
+      frame.size.height,
+      context.pid
+    );
+  }
+
+  // Extract window position
+  if let Ok(position) = ax_element.get_attribute::<AXValue>("AXPosition") {
+    let position = position.value::<CGPoint>().unwrap();
+    tracing::info!(
+      "Window position: ({}, {}) for PID: {}",
+      position.x,
+      position.y,
+      context.pid
+    );
+  }
+
+  // Extract window size
+  if let Ok(size) = ax_element.get_attribute::<AXValue>("AXSize") {
+    let size = size.value::<CGSize>().unwrap();
+    tracing::info!(
+      "Window size: ({}, {}) for PID: {}",
+      size.width,
+      size.height,
+      context.pid
+    );
+  }
 
   tracing::info!(
     "Received window event: {} for PID: {}",
@@ -441,6 +475,3 @@ unsafe extern "C" fn window_event_callback(
     }
   }
 }
-
-// TODO: Implement get_attribute function when needed
-// This function was corrupted and is commented out for now
