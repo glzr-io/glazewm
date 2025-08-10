@@ -1,7 +1,4 @@
-use std::{
-  ops::Deref,
-  ptr::{self, NonNull},
-};
+use std::ptr::{self, NonNull};
 
 use objc2_core_foundation::{CFRetained, CFString, CFType};
 
@@ -55,7 +52,7 @@ impl AXUIElementExt for CFRetained<AXUIElement> {
     let result = unsafe {
       AXUIElementCopyAttributeValue(
         CFRetained::as_ptr(self).as_ptr(),
-        cf_attribute.deref(),
+        &raw const *cf_attribute,
         &mut value,
       )
     };
@@ -78,7 +75,7 @@ impl AXUIElementExt for CFRetained<AXUIElement> {
     let result = unsafe {
       crate::platform_impl::AXUIElementSetAttributeValue(
         CFRetained::as_ptr(self).as_ptr(),
-        cf_attribute.deref(),
+        &raw const *cf_attribute,
         CFRetained::as_ptr(value).as_ptr() as *const CFType,
       )
     };

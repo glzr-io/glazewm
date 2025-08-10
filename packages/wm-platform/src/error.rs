@@ -7,3 +7,5 @@ pub enum Error {
   #[cfg(target_os = "windows")]
   Windows(#[from] windows::core::Error),
 }
+
+pub type Result<T> = std::result::Result<T, Error>;
