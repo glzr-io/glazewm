@@ -91,6 +91,12 @@ async fn start_wm(
   let mut window_listener = hook.create_window_listener().await?;
 
   tracing::info!("Window manager started.");
+  let monitors = hook.monitors()?;
+
+  for monitor in monitors {
+    tracing::info!("Monitor: {:?}", monitor.device_name());
+    tracing::info!("Monitor: {:?}", monitor);
+  }
 
   loop {
     // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
@@ -115,26 +121,26 @@ async fn start_wm(
           WindowEvent::Hide(window)=>{tracing::info!("Window hidden: {:?}",window);}
           WindowEvent::LocationChange(window)=>{
             tracing::info!("Window location changed: {:?}",window);
-            println!("Window title: {:?}", window.title());
-            println!("Window is visible: {:?}", window.is_visible());
-            println!("Window class name: {:?}", window.class_name());
+            // println!("Window title: {:?}", window.title());
+            // println!("Window is visible: {:?}", window.is_visible());
+            // println!("Window class name: {:?}", window.class_name());
 
             // Test resizing window to 400x300
-            println!("Attempting to resize window...");
-            match window.resize(Rect::from_xy(100, 100, 400, 300)) {
-              Ok(()) => {
-                println!("✅ Window resize successful!");
-                tracing::info!("Successfully resized window to 400x300");
-              }
-              Err(e) => {
-                println!("❌ Window resize failed: {}", e);
-                tracing::error!("Failed to resize window: {}", e);
-              }
-            }
+            // println!("Attempting to resize window...");
+            // match window.resize(Rect::from_xy(100, 100, 400, 300)) {
+            //   Ok(()) => {
+            //     println!("✅ Window resize successful!");
+            //     tracing::info!("Successfully resized window to 400x300");
+            //   }
+            //   Err(e) => {
+            //     println!("❌ Window resize failed: {}", e);
+            //     tracing::error!("Failed to resize window: {}", e);
+            //   }
+            // }
           }
           WindowEvent::Minimize(window)=>{
             tracing::info!("Window minimized: {:?}",window);
-            println!("Window is visible: {:?}", window.is_visible());
+            // println!("Window is visible: {:?}", window.is_visible());
           }
           WindowEvent::MinimizeEnd(window)=>{tracing::info!("Window deminimized: {:?}",window);}
           WindowEvent::TitleChange(window)=>{tracing::info!("Window title changed: {:?}",window);}
@@ -142,17 +148,17 @@ async fn start_wm(
             tracing::info!("Window focused: {:?}",window);
 
             // Also test resizing on focus (different size)
-            println!("Window focused - testing resize to 600x400...");
-            match window.resize(Rect::from_xy(50, 50, 600, 400)) {
-              Ok(()) => {
-                println!("✅ Focus resize successful!");
-                tracing::info!("Successfully resized focused window to 600x400");
-              }
-              Err(e) => {
-                println!("❌ Focus resize failed: {}", e);
-                tracing::error!("Failed to resize focused window: {}", e);
-              }
-            }
+            // println!("Window focused - testing resize to 600x400...");
+            // match window.resize(Rect::from_xy(50, 50, 600, 400)) {
+            //   Ok(()) => {
+            //     println!("✅ Focus resize successful!");
+            //     tracing::info!("Successfully resized focused window to 600x400");
+            //   }
+            //   Err(e) => {
+            //     println!("❌ Focus resize failed: {}", e);
+            //     tracing::error!("Failed to resize focused window: {}", e);
+            //   }
+            // }
           }
           WindowEvent::MoveOrResizeEnd(native_window) => todo!(),
           WindowEvent::MoveOrResizeStart(native_window) => todo!(),

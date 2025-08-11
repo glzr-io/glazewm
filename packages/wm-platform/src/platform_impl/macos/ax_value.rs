@@ -102,12 +102,13 @@ mod tests {
     let point = CGPoint { x: 10.0, y: 20.0 };
     let ax_value =
       AXValue::new_strict(&point).expect("Failed to create AXValue");
+
     let extracted_point: CGPoint = ax_value
       .value_strict()
       .expect("Failed to extract value from AXValue");
 
-    assert_eq!(point.x, extracted_point.x);
-    assert_eq!(point.y, extracted_point.y);
+    assert!((point.x - extracted_point.x).abs() < f64::EPSILON);
+    assert!((point.y - extracted_point.y).abs() < f64::EPSILON);
   }
 
   #[test]
@@ -116,7 +117,7 @@ mod tests {
     let ax_value =
       AXValue::new_strict(&point).expect("Failed to create AXValue");
 
-    // Try to extract as CGSize instead of CGPoint.
+    // Try to extract as `CGSize` instead of `CGPoint`.
     let result: Result<CGSize> = ax_value.value_strict();
     assert!(result.is_err());
   }

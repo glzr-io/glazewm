@@ -1,12 +1,8 @@
 use std::{ffi::c_void, ptr::NonNull};
 
-use anyhow::{bail, Context};
-// use core_graphics::event::{
-//   CGEventTap, CGEventTapLocation, CGEventTapOptions,
-// CGEventTapPlacement,   CGEventType, CallbackResult,
-// };
-use objc2::{msg_send, rc::Retained, ClassType, MainThreadMarker};
-use objc2_app_kit::{NSRunningApplication, NSWorkspace};
+use anyhow::Context;
+use objc2::{msg_send, ClassType};
+use objc2_app_kit::NSWorkspace;
 use objc2_core_foundation::{
   kCFRunLoopCommonModes, CFMachPort, CFRunLoop,
 };
@@ -14,11 +10,13 @@ use objc2_core_graphics::{
   CGEvent, CGEventMask, CGEventTapLocation, CGEventTapOptions,
   CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
-use objc2_foundation::{NSString, NSThread};
-use tokio::sync::{mpsc, oneshot};
+use objc2_foundation::NSThread;
+use tokio::sync::oneshot;
 
 use crate::{
-  platform_impl::{EventLoop, EventLoopDispatcher, WindowListener},
+  platform_impl::{
+    available_monitors, EventLoopDispatcher, NativeMonitor, WindowListener,
+  },
   PlatformHookInstaller,
 };
 
@@ -110,6 +108,15 @@ impl PlatformHook {
   ) -> anyhow::Result<()> {
     let _ = self.resolve_dispatcher().await?;
     todo!()
+  }
+
+  /// Gets all available monitors.
+  ///
+  /// Returns a vector of `NativeMonitor` instances representing all
+  /// currently connected displays. This method does not require the
+  /// platform hook to be installed.
+  pub fn monitors(&self) -> anyhow::Result<Vec<NativeMonitor>> {
+    available_monitors().map_err(Into::into)
   }
 }
 

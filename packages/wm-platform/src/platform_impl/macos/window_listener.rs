@@ -330,7 +330,7 @@ unsafe extern "C" fn window_event_callback(
   let context = &*(context as *const WindowEventContext);
   let cf_string: CFRetained<CFString> = unsafe {
     CFRetained::retain(std::ptr::NonNull::new_unchecked(
-      notification as *mut _,
+      notification.cast_mut(),
     ))
   };
   let notification_str = cf_string.to_string();
