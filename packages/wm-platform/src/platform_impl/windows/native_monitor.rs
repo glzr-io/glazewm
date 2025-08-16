@@ -1,13 +1,12 @@
-use std::cell::OnceCell;
-
 use windows::{
   core::PCWSTR,
   Win32::{
     Foundation::{BOOL, HWND, LPARAM, RECT},
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
-      MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
-      HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE,
+      DISPLAY_DEVICE_MIRRORING_DRIVER, HDC, HMONITOR, MONITORINFO,
+      MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
     },
     UI::{
       HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
@@ -15,184 +14,235 @@ use windows::{
     },
   },
 };
-use wm_common::Rect;
+use wm_common::{Point, Rect};
 
-#[derive(Clone, Debug)]
+use crate::{MonitorState, Result};
+
+/// Windows-specific monitor implementation.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeMonitor {
   pub handle: isize,
-  info: OnceCell<MonitorInfo>,
-}
-
-#[derive(Clone, Debug)]
-struct MonitorInfo {
-  device_name: String,
-  device_path: Option<String>,
-  hardware_id: Option<String>,
-  rect: Rect,
-  working_rect: Rect,
-  dpi: u32,
-  scale_factor: f32,
 }
 
 impl NativeMonitor {
+  /// Creates a new `NativeMonitor` for the given handle.
   #[must_use]
   pub fn new(handle: isize) -> Self {
-    Self {
-      handle,
-      info: OnceCell::new(),
-    }
+    Self { handle }
   }
 
-  pub fn device_name(&self) -> anyhow::Result<&String> {
-    self.monitor_info().map(|info| &info.device_name)
+  /// Gets the device name of the monitor.
+  pub fn device_name(&self) -> Result<String> {
+    let monitor_info = self.get_monitor_info()?;
+    Ok(String::from_utf16_lossy(&monitor_info.szDevice))
   }
 
-  pub fn device_path(&self) -> anyhow::Result<Option<&String>> {
-    self.monitor_info().map(|info| info.device_path.as_ref())
+  /// Gets the hardware identifier for the monitor.
+  pub fn hardware_id(&self) -> Result<Option<String>> {
+    let monitor_info = self.get_monitor_info()?;
+    let display_devices = self.get_display_devices(&monitor_info)?;
+
+    // Get the hardware ID from the first valid device
+    let hardware_id = display_devices.first().and_then(|device| {
+      let device_path = String::from_utf16_lossy(&device.DeviceID)
+        .trim_end_matches('\0')
+        .to_string();
+
+      device_path
+        .split('#')
+        .nth(1)
+        .map(std::string::ToString::to_string)
+    });
+
+    Ok(hardware_id)
   }
 
-  pub fn hardware_id(&self) -> anyhow::Result<Option<&String>> {
-    self.monitor_info().map(|info| info.hardware_id.as_ref())
+  /// Gets the full bounds rectangle of the monitor.
+  pub fn rect(&self) -> Result<Rect> {
+    let monitor_info = self.get_monitor_info()?;
+    let rc_monitor = monitor_info.monitorInfo.rcMonitor;
+    Ok(Rect::from_ltrb(
+      rc_monitor.left,
+      rc_monitor.top,
+      rc_monitor.right,
+      rc_monitor.bottom,
+    ))
   }
 
-  pub fn rect(&self) -> anyhow::Result<&Rect> {
-    self.monitor_info().map(|info| &info.rect)
+  /// Gets the working area rectangle (excluding taskbar and docked
+  /// windows).
+  pub fn working_rect(&self) -> Result<Rect> {
+    let monitor_info = self.get_monitor_info()?;
+    let rc_work = monitor_info.monitorInfo.rcWork;
+    Ok(Rect::from_ltrb(
+      rc_work.left,
+      rc_work.top,
+      rc_work.right,
+      rc_work.bottom,
+    ))
   }
 
-  pub fn working_rect(&self) -> anyhow::Result<&Rect> {
-    self.monitor_info().map(|info| &info.working_rect)
+  /// Gets the DPI for the monitor.
+  pub fn dpi(&self) -> Result<u32> {
+    let mut dpi_x = u32::default();
+    let mut dpi_y = u32::default();
+
+    unsafe {
+      GetDpiForMonitor(
+        HMONITOR(self.handle),
+        MDT_EFFECTIVE_DPI,
+        &raw mut dpi_x,
+        &raw mut dpi_y,
+      )
+    }?;
+
+    // Return the Y DPI (could also use X DPI)
+    Ok(dpi_y)
   }
 
-  pub fn dpi(&self) -> anyhow::Result<u32> {
-    self.monitor_info().map(|info| info.dpi)
+  /// Gets the scale factor for the monitor.
+  pub fn scale_factor(&self) -> Result<f32> {
+    let dpi = self.dpi()?;
+    #[allow(clippy::cast_precision_loss)]
+    Ok(dpi as f32 / 96.0)
   }
 
-  pub fn scale_factor(&self) -> anyhow::Result<f32> {
-    self.monitor_info().map(|info| info.scale_factor)
-  }
+  /// Gets the current state of the monitor.
+  pub fn state(&self) -> Result<MonitorState> {
+    let monitor_info = self.get_monitor_info()?;
+    let display_devices = self.get_display_devices(&monitor_info)?;
 
-  fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
-    self.info.get_or_try_init(|| {
-      let mut monitor_info = MONITORINFOEXW {
-        monitorInfo: MONITORINFO {
-          #[allow(clippy::cast_possible_truncation)]
-          cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
-          ..Default::default()
-        },
-        ..Default::default()
-      };
-
-      unsafe {
-        GetMonitorInfoW(
-          HMONITOR(self.handle),
-          std::ptr::from_mut(&mut monitor_info).cast(),
-        )
+    // Check the state of the display devices
+    for device in display_devices {
+      if device.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER != 0 {
+        return Ok(MonitorState::Mirroring);
       }
-      .ok()?;
+      if device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0 {
+        return Ok(MonitorState::Active);
+      }
+    }
 
-      // Get the display devices associated with the monitor.
-      let mut display_devices = (0..)
-        .map_while(|index| {
-          #[allow(clippy::cast_possible_truncation)]
-          let mut display_device = DISPLAY_DEVICEW {
-            cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
-            ..Default::default()
-          };
+    Ok(MonitorState::Inactive)
+  }
 
-          // Due to the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the device
-          // struct will contain the DOS device path under the `DeviceId`
-          // field.
-          unsafe {
-            EnumDisplayDevicesW(
-              PCWSTR(monitor_info.szDevice.as_ptr()),
-              index,
-              &raw mut display_device,
-              EDD_GET_DEVICE_INTERFACE_NAME,
-            )
-          }
-          .as_bool()
-          .then_some(display_device)
-        })
-        // Filter out any devices that are not active.
-        .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0);
+  /// Returns whether this is the primary monitor.
+  pub fn is_primary(&self) -> Result<bool> {
+    let monitor_info = self.get_monitor_info()?;
+    Ok(monitor_info.monitorInfo.dwFlags & 0x1 != 0) // MONITORINFOF_PRIMARY
+  }
 
-      // Get the device path and hardware ID from the first valid device.
-      let (device_path, hardware_id) =
-        display_devices.next().map_or((None, None), |device| {
-          let device_path = String::from_utf16_lossy(&device.DeviceID)
-            .trim_end_matches('\0')
-            .to_string();
+  /// Gets the monitor info structure from Windows API.
+  fn get_monitor_info(&self) -> Result<MONITORINFOEXW> {
+    let mut monitor_info = MONITORINFOEXW {
+      monitorInfo: MONITORINFO {
+        #[allow(clippy::cast_possible_truncation)]
+        cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
+        ..Default::default()
+      },
+      ..Default::default()
+    };
 
-          let hardware_id = device_path
-            .split('#')
-            .collect::<Vec<_>>()
-            .get(1)
-            .map(|id| (*id).to_string());
+    unsafe {
+      GetMonitorInfoW(
+        HMONITOR(self.handle),
+        std::ptr::from_mut(&mut monitor_info).cast(),
+      )
+    }
+    .ok()?;
 
-          (Some(device_path), hardware_id)
-        });
+    Ok(monitor_info)
+  }
 
-      let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
-      let dpi = monitor_dpi(self.handle)?;
-      #[allow(clippy::cast_precision_loss)]
-      let scale_factor = dpi as f32 / 96.0;
+  /// Gets the display devices associated with this monitor.
+  fn get_display_devices(
+    &self,
+    monitor_info: &MONITORINFOEXW,
+  ) -> Result<Vec<DISPLAY_DEVICEW>> {
+    let display_devices = (0..)
+      .map_while(|index| {
+        #[allow(clippy::cast_possible_truncation)]
+        let mut display_device = DISPLAY_DEVICEW {
+          cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
+          ..Default::default()
+        };
 
-      let rc_monitor = monitor_info.monitorInfo.rcMonitor;
-      let rect = Rect::from_ltrb(
-        rc_monitor.left,
-        rc_monitor.top,
-        rc_monitor.right,
-        rc_monitor.bottom,
-      );
-
-      let rc_work = monitor_info.monitorInfo.rcWork;
-      let working_rect = Rect::from_ltrb(
-        rc_work.left,
-        rc_work.top,
-        rc_work.right,
-        rc_work.bottom,
-      );
-
-      Ok(MonitorInfo {
-        device_name,
-        device_path,
-        hardware_id,
-        rect,
-        working_rect,
-        dpi,
-        scale_factor,
+        unsafe {
+          EnumDisplayDevicesW(
+            PCWSTR(monitor_info.szDevice.as_ptr()),
+            index,
+            &raw mut display_device,
+            EDD_GET_DEVICE_INTERFACE_NAME,
+          )
+        }
+        .as_bool()
+        .then_some(display_device)
       })
-    })
+      .collect();
+
+    Ok(display_devices)
   }
 }
 
-impl PartialEq for NativeMonitor {
-  fn eq(&self, other: &Self) -> bool {
-    self.handle == other.handle
-  }
-}
-
-impl Eq for NativeMonitor {}
-
-/// Gets all available monitors.
-pub fn available_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
+/// Gets all monitors, including active, mirroring, and inactive ones.
+pub fn all_monitors() -> Result<Vec<NativeMonitor>> {
   Ok(
-    available_monitor_handles()?
+    get_all_monitor_handles()?
       .into_iter()
       .map(NativeMonitor::new)
       .collect(),
   )
 }
 
+/// Gets the monitor containing the specified point.
+pub fn monitor_from_point(point: Point) -> Result<NativeMonitor> {
+  let monitors = all_monitors()?;
+
+  for monitor in &monitors {
+    let rect = monitor.rect()?;
+    if rect.contains_point(&point) {
+      return Ok(monitor.clone());
+    }
+  }
+
+  // Fall back to primary monitor
+  primary_monitor()
+}
+
+/// Gets the primary monitor.
+pub fn primary_monitor() -> Result<NativeMonitor> {
+  let monitors = all_monitors()?;
+
+  for monitor in monitors {
+    if monitor.is_primary()? {
+      return Ok(monitor);
+    }
+  }
+
+  // If no primary found, use the first monitor
+  all_monitors()?
+    .into_iter()
+    .next()
+    .ok_or_else(|| anyhow::anyhow!("No monitors found").into())
+}
+
+/// Gets the monitor nearest to the specified window.
+pub fn nearest_monitor(window_handle: isize) -> Result<NativeMonitor> {
+  let handle = unsafe {
+    MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)
+  };
+
+  Ok(NativeMonitor::new(handle.0))
+}
+
 /// Gets all available monitor handles.
-fn available_monitor_handles() -> anyhow::Result<Vec<isize>> {
+fn get_all_monitor_handles() -> Result<Vec<isize>> {
   let mut monitors: Vec<isize> = Vec::new();
 
   unsafe {
     EnumDisplayMonitors(
       HDC::default(),
       None,
-      Some(available_monitor_handles_proc),
+      Some(monitor_enum_proc),
       LPARAM(std::ptr::from_mut(&mut monitors) as _),
     )
   }
@@ -201,9 +251,8 @@ fn available_monitor_handles() -> anyhow::Result<Vec<isize>> {
   Ok(monitors)
 }
 
-/// Callback passed to `EnumDisplayMonitors` to get all available monitor
-/// handles.
-extern "system" fn available_monitor_handles_proc(
+/// Callback for `EnumDisplayMonitors` to collect monitor handles.
+extern "system" fn monitor_enum_proc(
   handle: HMONITOR,
   _hdc: HDC,
   _clip: *mut RECT,
@@ -214,28 +263,18 @@ extern "system" fn available_monitor_handles_proc(
   true.into()
 }
 
-#[must_use]
-pub fn nearest_monitor(window_handle: isize) -> NativeMonitor {
-  let handle = unsafe {
-    MonitorFromWindow(HWND(window_handle), MONITOR_DEFAULTTONEAREST)
-  };
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-  NativeMonitor::new(handle.0)
-}
+  #[test]
+  fn test_monitor_creation() {
+    let monitor = NativeMonitor::new(1);
+    assert_eq!(monitor.handle, 1);
 
-fn monitor_dpi(handle: isize) -> anyhow::Result<u32> {
-  let mut dpi_x = u32::default();
-  let mut dpi_y = u32::default();
-
-  unsafe {
-    GetDpiForMonitor(
-      HMONITOR(handle),
-      MDT_EFFECTIVE_DPI,
-      &raw mut dpi_x,
-      &raw mut dpi_y,
-    )
-  }?;
-
-  // Arbitrarily choose the Y DPI.
-  Ok(dpi_y)
+    let monitor2 = NativeMonitor::new(1);
+    let monitor3 = NativeMonitor::new(2);
+    assert_eq!(monitor, monitor2);
+    assert_ne!(monitor, monitor3);
+  }
 }
