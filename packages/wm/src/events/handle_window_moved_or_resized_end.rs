@@ -12,8 +12,8 @@ use crate::{
     window::{resize_window, update_window_state},
   },
   models::{
-    DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
-    WindowContainer,
+    Container, DirectionContainer, NonTilingWindow, SplitContainer,
+    TilingContainer, WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -98,19 +98,23 @@ fn drop_as_tiling_window(
   );
 
   let mouse_pos = Platform::mouse_position()?;
-  let workspace = moved_window.workspace().context("No workspace.")?;
+  let mouse_workspace = state
+    .monitor_at_point(&mouse_pos)
+    .and_then(|monitor| monitor.displayed_workspace())
+    .or_else(|| moved_window.workspace())
+    .context("Couldn't find workspace for window drop")?;
 
   // Get the workspace, split containers, and other windows under the
   // dragged window.
   let containers_at_pos = state
-    .containers_at_point(&workspace.clone().into(), &mouse_pos)
+    .containers_at_point(&mouse_workspace.clone().into(), &mouse_pos)
     .into_iter()
     .filter(|container| container.id() != moved_window.id());
 
   // Get the deepest direction container under the dragged window.
   let target_parent: DirectionContainer = containers_at_pos
     .filter_map(|container| container.as_direction_container().ok())
-    .fold(workspace.into(), |acc, container| {
+    .fold(mouse_workspace.into(), |acc, container| {
       if container.ancestors().count() > acc.ancestors().count() {
         container
       } else {
@@ -121,14 +125,12 @@ fn drop_as_tiling_window(
   // If the target parent has no children (i.e. an empty workspace), then
   // add the window directly.
   if target_parent.tiling_children().count() == 0 {
-    update_window_state(
-      moved_window.clone().into(),
-      WindowState::Tiling,
+    return dropped_on_empty_workspace(
+      moved_window,
+      &target_parent.as_container(),
       state,
       config,
-    )?;
-
-    return Ok(());
+    );
   }
 
   let nearest_container = target_parent
@@ -209,6 +211,26 @@ fn drop_as_tiling_window(
   state.pending_sync.queue_container_to_redraw(target_parent);
 
   Ok(())
+}
+
+fn dropped_on_empty_workspace(
+  moved_window: &NonTilingWindow,
+  target_parent: &Container,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  moved_window.set_insertion_target(None);
+
+  let win_container = moved_window
+    .as_window_container()
+    .expect("NonTilingWindow is not a window container");
+  let container = win_container.as_container();
+
+  move_container_within_tree(&container, target_parent, 0, state)?;
+
+  moved_window.set_insertion_target(None);
+  update_window_state(win_container, WindowState::Tiling, state, config)
+    .map(|_| ())
 }
 
 /// Represents where the window was dropped over another.
