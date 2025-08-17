@@ -1,8 +1,8 @@
-## Project Overview
+## Project overview
 
-GlazeWM is a window manager written in Rust, organized as a workspace with multiple crates.
+GlazeWM is a window manager written in Rust. The project is organized as a Cargo workspace with multiple crates.
 
-### Crate Organization
+### Crates overview
 
 - `wm` (bin): Main application, which implements the core window management logic.
   - Gets installed to `C:\Program Files\glzr.io\glazewm.exe`.
@@ -14,22 +14,15 @@ GlazeWM is a window manager written in Rust, organized as a workspace with multi
 - `wm-watcher` (bin): Watchdog process that ensures proper cleanup when the main application exits.
   - Gets installed to `C:\Program Files\glzr.io\glazewm-watcher.exe`.
 
-## Rust General Guidelines
+### Code style & formatting
 
-### Code Style & Formatting
-
-- Use the project's rustfmt.toml configuration:
-  - Maximum line width of 75 characters.
-  - Use field init shorthand when possible.
-  - Wrap comments to fit line width.
+- Use the project's rustfmt.toml configuration.
 - Follow clippy suggestions unless there's a compelling reason not to.
 - Use rust-analyzer with clippy for continuous linting.
 - The project uses the nightly Rust toolchain. However, only use nightly features when they provide clear benefit.
 - Avoid `.unwrap()` wherever possible!
 
-## Project-Specific Conventions
-
-### Documentation
+### Code comments
 
 - Document public APIs with rustdoc comments, especially important for the `wm-platform` crate.
 - Rustdoc comments should include (in the following order):
@@ -47,26 +40,21 @@ GlazeWM is a window manager written in Rust, organized as a workspace with multi
 - Use `#[cfg(test)]` for test modules.
 - Write unit tests for core functionality.
 
-### Module Structure
-
-- Use `mod.rs` files for module organization
-- Declare submodules with `pub mod module_name;`
-- Re-export public APIs using `pub use module_name::*;` pattern
-- Group related functionality in dedicated modules (e.g., commands/, events/, models/)
-
-### Error Handling
+### Error handling
 
 - `anyhow` is being replaced with `thiserror` in the `wm-platform` crate. Please use `thiserror` for error handling within this crate.
-- Use `thiserror` for custom error types with `#[derive(Debug, thiserror::Error)]`
+- Use `thiserror` for custom error types with `#[derive(Debug, thiserror::Error)]`.
 
-### Logging & Tracing
+### Logging
 
-- Use `tracing` crate for structured logging
-- Log levels: `error!`, `warn!`, `info!`, `debug!`
+- Use `tracing` crate for structured logging.
+- Log levels: `error!`, `warn!`, `info!`, `debug!`.
 
-### Platform Abstraction
+### Reference material
 
-- Isolate platform-specific code in `wm-platform` crate
-- Use conditional compilation: `#[cfg(target_os = "windows")]`, `#[cfg(target_os = "macos")]`
-- Provide unified APIs that abstract platform differences
-- Handle platform-specific errors appropriately
+For platform-specific API documentation, use the Context7 MCP server:
+
+- **Windows (`windows` crate)**: `mcp__context7__resolve-library-id` with `/microsoft/windows-rs` and `/websites/docs_rs-windows-latest-windows`.
+- **macOS (`objc2` crate ecosystem)**: `mcp__context7__resolve-library-id` with crate names like "objc2-foundation", "objc2-app-kit", etc.
+  - Foundation types: `/websites/docs_rs-objc2-foundation-latest-objc2_foundation`
+  - Use topic parameters for specific types (e.g., "NSString", "NSArray", "memory management")

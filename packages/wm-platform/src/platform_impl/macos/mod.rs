@@ -1,6 +1,7 @@
 mod ax_ui_element;
 mod ax_value;
 pub(crate) mod classes;
+mod display;
 mod event_loop;
 mod event_loop_dispatcher;
 mod ffi;
@@ -11,6 +12,7 @@ mod window_listener;
 
 pub use ax_ui_element::*;
 pub use ax_value::*;
+pub use display::*;
 pub use event_loop::*;
 pub use event_loop_dispatcher::*;
 pub use ffi::*;

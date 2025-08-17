@@ -14,10 +14,8 @@ use objc2_foundation::NSThread;
 use tokio::sync::oneshot;
 
 use crate::{
-  platform_impl::{
-    available_monitors, EventLoopDispatcher, NativeMonitor, WindowListener,
-  },
-  PlatformHookInstaller,
+  platform_impl::{self, EventLoopDispatcher, WindowListener},
+  NativeMonitor, PlatformHookInstaller,
 };
 
 pub struct PlatformHook {
@@ -113,10 +111,14 @@ impl PlatformHook {
   /// Gets all available monitors.
   ///
   /// Returns a vector of `NativeMonitor` instances representing all
-  /// currently connected displays. This method does not require the
-  /// platform hook to be installed.
+  /// currently connected displays.
   pub fn monitors(&self) -> anyhow::Result<Vec<NativeMonitor>> {
-    available_monitors().map_err(Into::into)
+    Ok(
+      platform_impl::all_monitors()?
+        .into_iter()
+        .map(NativeMonitor::from_platform_impl)
+        .collect(),
+    )
   }
 }
 

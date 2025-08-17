@@ -3,6 +3,7 @@
 #![feature(iterator_try_collect)]
 #![feature(once_cell_try)]
 
+mod display;
 mod error;
 mod native_monitor;
 mod native_window;
@@ -12,6 +13,7 @@ mod platform_hook;
 mod platform_hook_installer;
 mod platform_impl;
 
+pub use display::*;
 pub use error::*;
 pub use native_monitor::*;
 pub use native_window::*;
