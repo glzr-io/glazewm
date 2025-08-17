@@ -261,16 +261,15 @@ fn redraw_containers(
       .monitor()
       .and_then(|monitor| monitor.native().scale_factor().ok());
 
-    let mut rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, scale_factor);
+    let mut rect = window.to_rect()?.apply_delta(
+      &window.total_border_delta(scale_factor)?,
+      scale_factor,
+    );
 
     // Constrain tiling windows to their workspace's bounds to prevent
     // overflow on multi-monitor setup with different scaling factors.
     if window.is_tiling_window() {
-      if let Some(workspace) = window.workspace() {
-        rect = rect.constrain_within(&workspace.to_rect()?);
-      }
+      rect = rect.clamp(&workspace.to_rect()?);
     }
 
     let is_visible = matches!(

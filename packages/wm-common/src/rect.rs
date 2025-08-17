@@ -97,33 +97,10 @@ impl Rect {
   }
 
   /// Returns a new `Rect` that is clamped within the bounds of the given
-  /// outer rectangle. Attempts to preserve the width and height of the
-  /// original rectangle.
+  /// outer rectangle. Adjusts the position and size of the
+  /// rectangle to ensure it fits entirely within the outer rectangle.
   #[must_use]
   pub fn clamp(&self, outer_rect: &Rect) -> Self {
-    Self::from_xy(
-      self.left.max(outer_rect.left),
-      self.top.max(outer_rect.top),
-      self.width().min(outer_rect.width()),
-      self.height().min(outer_rect.height()),
-    )
-  }
-
-  #[must_use]
-  pub fn clamp_size(&self, width: i32, height: i32) -> Self {
-    Self::from_xy(
-      self.x(),
-      self.y(),
-      self.width().min(width),
-      self.height().min(height),
-    )
-  }
-
-  /// Contrains this rectangle to fit entirely within the given outer
-  /// rectangle. Unlike `clamp`, this method adjusts both the position and
-  /// size to ensure the rectangle doesn't extend beyond the boundaries.
-  #[must_use]
-  pub fn constrain_within(&self, outer_rect: &Rect) -> Self {
     let clamped_x = self.x().max(outer_rect.x());
     let clamped_y = self.y().max(outer_rect.y());
 
@@ -135,6 +112,16 @@ impl Rect {
       clamped_y,
       self.width().min(max_width),
       self.height().min(max_height),
+    )
+  }
+
+  #[must_use]
+  pub fn clamp_size(&self, width: i32, height: i32) -> Self {
+    Self::from_xy(
+      self.x(),
+      self.y(),
+      self.width().min(width),
+      self.height().min(height),
     )
   }
 
