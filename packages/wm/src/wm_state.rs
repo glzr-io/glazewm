@@ -7,7 +7,7 @@ use uuid::Uuid;
 use wm_common::{
   BindingModeConfig, Direction, Point, WindowState, WmEvent,
 };
-use wm_platform::{NativeMonitor, NativeWindow, Platform};
+use wm_platform::{Display, NativeWindow, Platform};
 
 use crate::{
   commands::{
@@ -103,8 +103,8 @@ impl WmState {
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_monitor in Platform::sorted_monitors()? {
-      add_monitor(native_monitor, self, config)?;
+    for native_display in Platform::sorted_monitors()? {
+      add_monitor(native_display, self, config)?;
     }
 
     // Manage windows in reverse z-order (bottom to top). This helps to
@@ -190,15 +190,15 @@ impl WmState {
       .or(self.monitors().first().cloned())
   }
 
-  /// Gets monitor that corresponds to the given `NativeMonitor`.
+  /// Gets monitor that corresponds to the given `Display`.
   pub fn monitor_from_native(
     &self,
-    native_monitor: &NativeMonitor,
+    native_display: &Display,
   ) -> Option<Monitor> {
     self
       .monitors()
       .into_iter()
-      .find(|monitor| monitor.native() == *native_monitor)
+      .find(|monitor| monitor.native() == *native_display)
   }
 
   /// Gets the closest monitor in a given direction.

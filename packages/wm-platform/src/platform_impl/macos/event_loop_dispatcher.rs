@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use anyhow::Context;
 use objc2_core_foundation::{CFRetained, CFRunLoop, CFRunLoopSource};
 
 /// Type alias for the closure used with dispatches.
@@ -67,7 +66,7 @@ impl EventLoopDispatcher {
   /// thread until the closure finishes executing.
   ///
   /// Returns a result containing the closure's return value if successful.
-  pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> anyhow::Result<R>
+  pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
@@ -82,7 +81,7 @@ impl EventLoopDispatcher {
       }
     })?;
 
-    res_rx.recv().context("Failed to receive closure result.")
+    res_rx.recv().map_err(crate::Error::ChannelRecv)
   }
 }
 

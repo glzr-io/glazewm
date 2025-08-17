@@ -1,32 +1,25 @@
 use objc2_app_kit::NSScreen;
+use objc2_core_foundation::CFRetained;
 use objc2_core_graphics::{
-  CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyAllDisplayModes,
-  CGDisplayCopyDisplayMode, CGDisplayMirrorsDisplay,
-  CGDisplayModeGetHeight, CGDisplayModeGetPixelHeight,
-  CGDisplayModeGetPixelWidth, CGDisplayModeGetRefreshRate,
-  CGDisplayModeGetWidth, CGDisplayModeRef, CGDisplayScreenSize, CGError,
-  CGGetActiveDisplayList, CGGetOnlineDisplayList, CGMainDisplayID,
+  CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode,
+  CGDisplayMirrorsDisplay, CGDisplayMode, CGDisplayModeGetPixelHeight,
+  CGDisplayModeGetPixelWidth, CGError, CGGetActiveDisplayList,
+  CGGetOnlineDisplayList, CGMainDisplayID,
 };
-use objc2_foundation::MainThreadMarker;
 use wm_common::{Point, Rect};
 
 use crate::{
-  display::{
-    DisplayConnection, DisplayDeviceData, DisplayDeviceId,
-    DisplayDeviceState, DisplayId, MirroringState, PhysicalDeviceData,
-    VirtualDeviceData,
-  },
+  display::{ConnectionState, DisplayDeviceId, DisplayId, MirroringState},
   error::{Error, Result},
-  platform_ext::macos::{CFRetained, MainThreadRef, MetalDeviceRef},
-  platform_impl::EventLoopDispatcher,
+  platform_impl::MainThreadRef,
 };
 
 /// macOS-specific display implementation.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// TODO: Add `PartialEq` and `Eq`.
+#[derive(Clone, Debug)]
 pub struct Display {
   pub(crate) display_id: CGDirectDisplayID,
-  pub(crate) device_id: String,
-  dispatcher: EventLoopDispatcher,
+  pub(crate) ns_screen: MainThreadRef<CFRetained<NSScreen>>,
 }
 
 impl Display {
@@ -34,25 +27,34 @@ impl Display {
   #[must_use]
   pub fn new(
     display_id: CGDirectDisplayID,
-    device_id: String,
-    dispatcher: &EventLoopDispatcher,
+    ns_screen: MainThreadRef<CFRetained<NSScreen>>,
   ) -> Self {
     Self {
       display_id,
-      device_id,
-      dispatcher: dispatcher.clone(),
+      ns_screen,
     }
   }
 
-  /// Gets the unique identifier for this display.
+  /// Gets the [`crate::Display`] ID.
   pub fn id(&self) -> DisplayId {
-    DisplayId::new(format!("macos:{}", self.display_id))
+    DisplayId(self.display_id)
+  }
+
+  /// Gets the Core Graphics display ID.
+  pub fn cg_display_id(&self) -> CGDirectDisplayID {
+    self.display_id
+  }
+
+  /// Gets the `NSScreen` instance for this display.
+  pub fn ns_screen(&self) -> &MainThreadRef<CFRetained<NSScreen>> {
+    &self.ns_screen
   }
 
   /// Gets the display name.
   pub fn name(&self) -> Result<String> {
-    EventLoopDispatcher::with_main_thread(|mtm| {
-      self.device_name_on_main_thread(mtm)
+    self.ns_screen.with(|screen| {
+      let name = unsafe { screen.localizedName() };
+      name.to_string()
     })
   }
 
@@ -71,9 +73,154 @@ impl Display {
 
   /// Gets the working area rectangle (excluding dock and menu bar).
   pub fn working_area(&self) -> Result<Rect> {
-    EventLoopDispatcher::with_main_thread(|mtm| {
-      self.working_rect_on_main_thread(mtm)
+    self.ns_screen.with(|screen| {
+      let visible_frame = screen.visibleFrame();
+      #[allow(clippy::cast_possible_truncation)]
+      Ok(Rect::from_ltrb(
+        visible_frame.origin.x as i32,
+        (visible_frame.origin.y + visible_frame.size.height) as i32,
+        (visible_frame.origin.x + visible_frame.size.width) as i32,
+        visible_frame.origin.y as i32,
+      ))
     })
+  }
+
+  /// Gets the scale factor for the display.
+  pub fn scale_factor(&self) -> Result<f32> {
+    self.ns_screen.with(|screen| {
+      #[allow(clippy::cast_possible_truncation)]
+      Ok(screen.backingScaleFactor() as f32)
+    })
+  }
+
+  /// Gets the DPI for the display.
+  pub fn dpi(&self) -> Result<u32> {
+    let scale_factor = self.scale_factor()?;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    Ok((72.0 * scale_factor) as u32)
+  }
+
+  /// Gets the bit depth of the display.
+  pub fn bit_depth(&self) -> Result<u32> {
+    // TODO
+    Ok(24)
+  }
+
+  /// Returns whether this is the primary display.
+  pub fn is_primary(&self) -> Result<bool> {
+    // TODO: Is this correct?
+    let main_display_id = unsafe { CGMainDisplayID() };
+    Ok(self.display_id == main_display_id)
+  }
+
+  /// Gets the display devices for this display.
+  pub fn devices(&self) -> Result<Vec<crate::display::DisplayDevice>> {
+    let all_devices = all_display_devices()?;
+
+    // TODO
+    Ok(
+      all_devices
+        .into_iter()
+        .map(crate::display::DisplayDevice::from_platform_impl)
+        .collect(),
+    )
+  }
+
+  /// Gets the main device (first non-mirroring device) for this display.
+  pub fn main_device(
+    &self,
+  ) -> Result<Option<crate::display::DisplayDevice>> {
+    // TODO
+    let devices = self.devices()?;
+
+    // Find first device that is not mirroring.
+    for device in devices {
+      if device.mirroring_state()? == MirroringState::None
+        || device.mirroring_state()? == MirroringState::Source
+      {
+        return Ok(Some(device));
+      }
+    }
+
+    Ok(None)
+  }
+
+  /// Checks if this is a built-in display.
+  pub fn is_builtin(&self) -> Result<bool> {
+    // TODO
+    self.is_primary()
+  }
+}
+
+/// macOS-specific display device implementation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DisplayDevice {
+  pub(crate) cg_display_id: CGDirectDisplayID,
+}
+
+impl DisplayDevice {
+  /// Creates a new macOS display device.
+  #[must_use]
+  pub fn new(cg_display_id: CGDirectDisplayID) -> Self {
+    Self { cg_display_id }
+  }
+
+  /// Gets the unique identifier for this display device.
+  pub fn id(&self) -> DisplayDeviceId {
+    DisplayDeviceId(self.cg_display_id)
+  }
+
+  /// Gets the Core Graphics display ID.
+  pub fn cg_display_id(&self) -> CGDirectDisplayID {
+    self.cg_display_id
+  }
+
+  /// Gets the device name.
+  pub fn name(&self) -> Result<String> {
+    // TODO
+    Ok(format!("Display Device {}", self.cg_display_id))
+  }
+
+  /// Gets the rotation of the device in degrees.
+  pub fn rotation(&self) -> Result<f32> {
+    // TODO
+    Ok(0.0)
+  }
+
+  /// Gets the connection state of the device.
+  pub fn connection_state(&self) -> Result<ConnectionState> {
+    // TODO
+    Ok(ConnectionState::Active)
+  }
+
+  /// Gets the refresh rate of the device in Hz.
+  pub fn refresh_rate(&self) -> Result<f32> {
+    let display_mode =
+      unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
+
+    let refresh_rate =
+      unsafe { CGDisplayMode::refresh_rate(display_mode.as_deref()) };
+
+    Ok(refresh_rate as f32)
+  }
+
+  /// Returns whether this is a built-in device.
+  pub fn is_builtin(&self) -> Result<bool> {
+    // TODO
+    Ok(false)
+  }
+
+  /// Gets the mirroring state of the device.
+  pub fn mirroring_state(&self) -> Result<MirroringState> {
+    let mirrored_display =
+      unsafe { CGDisplayMirrorsDisplay(self.cg_display_id) };
+
+    // TODO
+    if mirrored_display == 0 {
+      Ok(MirroringState::None)
+    } else {
+      Ok(MirroringState::Target)
+    }
   }
 
   /// Gets the display resolution in pixels.
@@ -92,387 +239,17 @@ impl Display {
 
     Ok((width as u32, height as u32))
   }
-
-  /// Gets the current refresh rate in Hz.
-  pub fn refresh_rate(&self) -> Result<f32> {
-    let display_mode =
-      unsafe { CGDisplayCopyDisplayMode(self.display_id) };
-    if display_mode.is_null() {
-      return Err(Error::Anyhow(anyhow::anyhow!(
-        "Failed to get display mode for display {}",
-        self.display_id
-      )));
-    }
-
-    let refresh_rate =
-      unsafe { CGDisplayModeGetRefreshRate(display_mode) };
-    Ok(refresh_rate as f32)
-  }
-
-  /// Gets the scale factor for the display.
-  pub fn scale_factor(&self) -> Result<f32> {
-    EventLoopDispatcher::with_main_thread(|mtm| {
-      self.scale_factor_on_main_thread(mtm)
-    })
-  }
-
-  /// Gets the DPI for the display.
-  pub fn dpi(&self) -> Result<u32> {
-    let scale_factor = self.scale_factor()?;
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    Ok((72.0 * scale_factor) as u32)
-  }
-
-  /// Gets the bit depth of the display.
-  pub fn bit_depth(&self) -> Result<u32> {
-    // Most modern macOS displays are 24-bit or 30-bit
-    // Would need IOKit to get exact bit depth
-    Ok(24)
-  }
-
-  /// Returns whether this is the primary display.
-  pub fn is_primary(&self) -> Result<bool> {
-    let main_display_id = unsafe { CGMainDisplayID() };
-    Ok(self.display_id == main_display_id)
-  }
-
-  /// Returns whether this display supports HDR.
-  pub fn is_hdr_capable(&self) -> Result<bool> {
-    // Would need to check display capabilities via IOKit or NSScreen
-    Ok(false)
-  }
-
-  /// Gets all supported refresh rates for this display.
-  pub fn supported_refresh_rates(&self) -> Result<Vec<f32>> {
-    let modes_array = unsafe {
-      CGDisplayCopyAllDisplayModes(self.display_id, std::ptr::null())
-    };
-    if modes_array.is_null() {
-      return Ok(vec![self.refresh_rate()?]);
-    }
-
-    let mut refresh_rates = Vec::new();
-
-    // Would need to iterate through CFArray of display modes
-    // This is a simplified implementation
-    refresh_rates.push(self.refresh_rate()?);
-
-    // Common refresh rates for macOS displays
-    refresh_rates.extend([60.0, 120.0]);
-    refresh_rates.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    refresh_rates.dedup();
-
-    Ok(refresh_rates)
-  }
-
-  /// Gets all supported resolutions for this display.
-  pub fn supported_resolutions(&self) -> Result<Vec<(u32, u32)>> {
-    let modes_array = unsafe {
-      CGDisplayCopyAllDisplayModes(self.display_id, std::ptr::null())
-    };
-    if modes_array.is_null() {
-      return Ok(vec![self.resolution()?]);
-    }
-
-    let mut resolutions = Vec::new();
-
-    // Would need to iterate through CFArray of display modes
-    // This is a simplified implementation
-    resolutions.push(self.resolution()?);
-
-    // Common resolutions for macOS displays
-    resolutions.extend([
-      (2560, 1440),
-      (1920, 1080),
-      (1680, 1050),
-      (1440, 900),
-    ]);
-
-    resolutions.sort();
-    resolutions.dedup();
-
-    Ok(resolutions)
-  }
-
-  /// Gets the ID of the device driving this display.
-  pub fn device_id(&self) -> DisplayDeviceId {
-    DisplayDeviceId::new(&self.device_id)
-  }
-
-  // macOS-specific methods
-
-  /// Gets the Core Graphics display ID.
-  pub fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.display_id
-  }
-
-  /// Gets the NSScreen instance for this display.
-  pub fn ns_screen(&self) -> Result<MainThreadRef<CFRetained<NSScreen>>> {
-    // This would need proper implementation with MainThreadRef and
-    // CFRetained For now, this is a placeholder
-    todo!("Implement proper MainThreadRef<CFRetained<NSScreen>> handling")
-  }
-
-  /// Checks if this is a built-in display.
-  pub fn is_builtin(&self) -> Result<bool> {
-    // Would use IOKit to check if this is an internal display
-    // For now, check if it's the main display as a heuristic
-    self.is_primary()
-  }
-
-  /// Gets the device name on the main thread.
-  fn device_name_on_main_thread(
-    &self,
-    mtm: MainThreadMarker,
-  ) -> Result<String> {
-    let screens = NSScreen::screens(mtm);
-    let rect = self.bounds()?;
-
-    // Find the corresponding NSScreen by comparing bounds
-    for screen in &screens {
-      let screen_frame = screen.frame();
-
-      #[allow(clippy::cast_possible_truncation)]
-      let screen_rect = Rect::from_ltrb(
-        screen_frame.origin.x as i32,
-        // Flip Y coordinate (NSScreen uses bottom-left origin)
-        (screen_frame.origin.y + screen_frame.size.height) as i32,
-        (screen_frame.origin.x + screen_frame.size.width) as i32,
-        screen_frame.origin.y as i32,
-      );
-
-      if screen_rect.x() == rect.x() && screen_rect.width() == rect.width()
-      {
-        return Ok(format!(
-          "Display {} ({}×{})",
-          self.display_id,
-          rect.width(),
-          rect.height()
-        ));
-      }
-    }
-
-    Ok(format!("Display {}", self.display_id))
-  }
-
-  /// Gets the working rect on the main thread.
-  fn working_rect_on_main_thread(
-    &self,
-    mtm: MainThreadMarker,
-  ) -> Result<Rect> {
-    let screens = NSScreen::screens(mtm);
-    let rect = self.bounds()?;
-
-    // Find the corresponding NSScreen by comparing bounds
-    for screen in &screens {
-      let screen_frame = screen.frame();
-      let screen_rect = Rect::from_ltrb(
-        #[allow(clippy::cast_possible_truncation)]
-        screen_frame.origin.x as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        (screen_frame.origin.y + screen_frame.size.height) as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        (screen_frame.origin.x + screen_frame.size.width) as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        screen_frame.origin.y as i32,
-      );
-
-      if screen_rect.x() == rect.x() && screen_rect.width() == rect.width()
-      {
-        let visible_frame = screen.visibleFrame();
-        return Ok(Rect::from_ltrb(
-          #[allow(clippy::cast_possible_truncation)]
-          visible_frame.origin.x as i32,
-          #[allow(clippy::cast_possible_truncation)]
-          (visible_frame.origin.y + visible_frame.size.height)
-            as i32,
-          #[allow(clippy::cast_possible_truncation)]
-          (visible_frame.origin.x + visible_frame.size.width)
-            as i32,
-          #[allow(clippy::cast_possible_truncation)]
-          visible_frame.origin.y as i32,
-        ));
-      }
-    }
-
-    // If no NSScreen found, return the full rect
-    Ok(rect)
-  }
-
-  /// Gets the scale factor on the main thread.
-  fn scale_factor_on_main_thread(
-    &self,
-    mtm: MainThreadMarker,
-  ) -> Result<f32> {
-    let screens = NSScreen::screens(mtm);
-    let rect = self.bounds()?;
-
-    // Find the corresponding NSScreen by comparing bounds
-    for screen in &screens {
-      let screen_frame = screen.frame();
-      let screen_rect = Rect::from_ltrb(
-        #[allow(clippy::cast_possible_truncation)]
-        screen_frame.origin.x as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        (screen_frame.origin.y + screen_frame.size.height) as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        (screen_frame.origin.x + screen_frame.size.width) as i32,
-        #[allow(clippy::cast_possible_truncation)]
-        screen_frame.origin.y as i32,
-      );
-
-      if screen_rect.x() == rect.x() && screen_rect.width() == rect.width()
-      {
-        #[allow(clippy::cast_possible_truncation)]
-        return Ok(screen.backingScaleFactor() as f32);
-      }
-    }
-
-    // Default to 1.0 if no matching NSScreen found
-    Ok(1.0)
-  }
-}
-
-/// macOS-specific display device implementation.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DisplayDevice {
-  pub(crate) gpu_id: u64,
-  pub(crate) name: String,
-  pub(crate) is_virtual: bool,
-  pub(crate) is_builtin: bool,
-}
-
-impl DisplayDevice {
-  /// Creates a new macOS display device.
-  #[must_use]
-  pub fn new(
-    gpu_id: u64,
-    name: String,
-    is_virtual: bool,
-    is_builtin: bool,
-  ) -> Self {
-    Self {
-      gpu_id,
-      name,
-      is_virtual,
-      is_builtin,
-    }
-  }
-
-  /// Gets the unique identifier for this display device.
-  pub fn id(&self) -> DisplayDeviceId {
-    DisplayDeviceId::new(format!("gpu:{}", self.gpu_id))
-  }
-
-  /// Gets the device name.
-  pub fn name(&self) -> Result<String> {
-    Ok(self.name.clone())
-  }
-
-  /// Gets the current state of the device.
-  pub fn state(&self) -> Result<DisplayDeviceState> {
-    // All enumerated devices are typically active on macOS
-    Ok(DisplayDeviceState::Active)
-  }
-
-  /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> Result<MirroringState> {
-    // Would need to check display mirroring status
-    Ok(MirroringState::None)
-  }
-
-  /// Gets the device-specific data.
-  pub fn data(&self) -> Result<DisplayDeviceData> {
-    if self.is_virtual {
-      Ok(DisplayDeviceData::Virtual(VirtualDeviceData {
-        driver_name: Some("Virtual Display Driver".to_string()),
-        virtual_adapter_id: Some(format!("virtual:{}", self.gpu_id)),
-      }))
-    } else {
-      let vendor = self.extract_vendor();
-      let model = self.extract_model();
-
-      Ok(DisplayDeviceData::Physical(PhysicalDeviceData {
-        vendor,
-        model,
-        serial_number: None, // Would need IOKit lookup
-        hardware_id: Some(format!("GPU:{}", self.gpu_id)),
-        edid_data: None, // Would need IOKit EDID retrieval
-        physical_size_mm: None, // Would need EDID parsing
-        connection_type: Some(if self.is_builtin {
-          DisplayConnection::Internal
-        } else {
-          DisplayConnection::Unknown
-        }),
-        is_builtin: self.is_builtin,
-      }))
-    }
-  }
-
-  // macOS-specific methods
-
-  /// Gets the display unit number.
-  pub fn unit_number(&self) -> Result<Option<u32>> {
-    if self.is_virtual {
-      Ok(None)
-    } else {
-      Ok(Some(0)) // Would need IOKit lookup
-    }
-  }
-
-  /// Gets the GPU registry ID.
-  pub fn registry_id(&self) -> Result<Option<u64>> {
-    if self.is_virtual {
-      Ok(None)
-    } else {
-      Ok(Some(self.gpu_id))
-    }
-  }
-
-  /// Gets a reference to the Metal device.
-  pub fn metal_device(&self) -> Result<Option<MetalDeviceRef>> {
-    if self.is_virtual {
-      Ok(None)
-    } else {
-      Ok(Some(MetalDeviceRef { inner: self.gpu_id }))
-    }
-  }
-
-  /// Extracts vendor name from device name.
-  fn extract_vendor(&self) -> Option<String> {
-    let name_lower = self.name.to_lowercase();
-
-    if name_lower.contains("apple") {
-      Some("Apple".to_string())
-    } else if name_lower.contains("nvidia") {
-      Some("NVIDIA".to_string())
-    } else if name_lower.contains("amd") || name_lower.contains("radeon") {
-      Some("AMD".to_string())
-    } else if name_lower.contains("intel") {
-      Some("Intel".to_string())
-    } else {
-      None
-    }
-  }
-
-  /// Extracts model name from device name.
-  fn extract_model(&self) -> Option<String> {
-    // Extract meaningful model name from full device name
-    Some(self.name.clone())
-  }
 }
 
 /// Gets all active displays on macOS.
 pub fn all_displays() -> Result<Vec<Display>> {
   let display_ids = get_active_display_ids()?;
-  let dispatcher = EventLoopDispatcher::new();
+
   let mut displays = Vec::new();
 
   for display_id in display_ids {
-    // Use display ID as device ID for now - in real implementation,
-    // would map displays to their GPU devices via IOKit
-    let device_id = format!("gpu:{}", display_id);
-    displays.push(Display::new(display_id, device_id, &dispatcher));
+    // TODO
+    displays.push(Display::new(display_id, ns_screen));
   }
 
   Ok(displays)
@@ -480,16 +257,12 @@ pub fn all_displays() -> Result<Vec<Display>> {
 
 /// Gets all display devices on macOS.
 pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
+  let display_ids = get_all_display_ids()?;
   let mut devices = Vec::new();
 
-  // This is a simplified implementation
-  // Real implementation would use IOKit to enumerate graphics devices
-  devices.push(DisplayDevice::new(
-    1,
-    "Apple M1 Pro".to_string(),
-    false,
-    true,
-  ));
+  for display_id in display_ids {
+    devices.push(DisplayDevice::new(display_id));
+  }
 
   Ok(devices)
 }
@@ -511,11 +284,12 @@ pub fn display_from_point(point: Point) -> Result<Display> {
 
 /// Gets primary display on macOS.
 pub fn primary_display() -> Result<Display> {
-  let main_display_id = unsafe { CGMainDisplayID() };
-  let dispatcher = EventLoopDispatcher::new();
-  let device_id = format!("gpu:{}", main_display_id);
+  let _main_display_id = unsafe { CGMainDisplayID() };
 
-  Ok(Display::new(main_display_id, device_id, &dispatcher))
+  // TODO
+  Err(Error::Anyhow(anyhow::anyhow!(
+    "Primary display not implemented yet"
+  )))
 }
 
 /// Gets active display IDs.
@@ -597,3 +371,6 @@ fn get_all_display_ids() -> Result<Vec<CGDirectDisplayID>> {
 
   Ok(display_ids)
 }
+
+// TODO: Implement proper MainThreadRef creation when needed
+// This would require proper integration with the event loop context

@@ -3,45 +3,42 @@ use wm_common::{Point, Rect};
 use crate::{platform_impl, Result};
 
 /// Unique identifier for a display.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DisplayId(String);
-
-impl DisplayId {
-  /// Creates a new display ID.
-  #[must_use]
-  pub fn new(id: impl Into<String>) -> Self {
-    Self(id.into())
-  }
-
-  /// Gets the string representation of the display ID.
-  #[must_use]
-  pub fn as_str(&self) -> &str {
-    &self.0
-  }
-}
+///
+/// Can be obtained with `display.id()`.
+///
+/// # Platform-specific
+///
+/// - **Windows**: `isize` (`HMONITOR`)
+/// - **macOS**: `u32` (`CGDirectDisplayID`)
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DisplayId(
+  #[cfg(target_os = "windows")] pub(crate) isize,
+  #[cfg(target_os = "macos")] pub(crate) u32,
+);
 
 /// Unique identifier for a display device.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DisplayDeviceId(String);
-
-impl DisplayDeviceId {
-  /// Creates a new display device ID.
-  #[must_use]
-  pub fn new(id: impl Into<String>) -> Self {
-    Self(id.into())
-  }
-
-  /// Gets the string representation of the display device ID.
-  #[must_use]
-  pub fn as_str(&self) -> &str {
-    &self.0
-  }
-}
-
-/// Represents an active display output.
 ///
-/// Displays are always active - inactive displays are not enumerated.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Can be obtained with `display_device.id()`.
+///
+/// # Platform-specific
+///
+/// - **Windows**: `String`
+/// - **macOS**: `u32` (`CGDirectDisplayID`)
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DisplayDeviceId(
+  #[cfg(target_os = "windows")] pub(crate) isize,
+  #[cfg(target_os = "macos")] pub(crate) u32,
+);
+
+/// Represents a logical display space where windows can be placed.
+///
+/// # Platform-specific
+///
+/// - **Windows**: This corresponds to a "display monitor", each with a
+///   monitor handle (`HMONITOR`).
+/// - **macOS**: This corresponds to an `NSScreen`.
+/// TODO: Add `PartialEq` and `Eq`.
+#[derive(Clone, Debug)]
 pub struct Display {
   pub(crate) inner: platform_impl::Display,
 }
@@ -73,16 +70,6 @@ impl Display {
     self.inner.working_area()
   }
 
-  /// Gets the display resolution in pixels.
-  pub fn resolution(&self) -> Result<(u32, u32)> {
-    self.inner.resolution()
-  }
-
-  /// Gets the current refresh rate in Hz.
-  pub fn refresh_rate(&self) -> Result<f32> {
-    self.inner.refresh_rate()
-  }
-
   /// Gets the scale factor for the display.
   pub fn scale_factor(&self) -> Result<f32> {
     self.inner.scale_factor()
@@ -93,57 +80,44 @@ impl Display {
     self.inner.dpi()
   }
 
-  /// Gets the bit depth of the display.
-  pub fn bit_depth(&self) -> Result<u32> {
-    self.inner.bit_depth()
-  }
-
   /// Returns whether this is the primary display.
   pub fn is_primary(&self) -> Result<bool> {
     self.inner.is_primary()
   }
 
-  /// Returns whether this display supports HDR.
-  pub fn is_hdr_capable(&self) -> Result<bool> {
-    self.inner.is_hdr_capable()
+  /// Gets the display devices for this display.
+  ///
+  /// A single display can be associated with multiple display devices. For
+  /// example, when mirroring a display or combining multiple displays
+  /// (e.g. using NVIDIA Surround).
+  pub fn devices(&self) -> Result<Vec<DisplayDevice>> {
+    self.inner.devices()
   }
 
-  /// Gets all supported refresh rates for this display.
-  pub fn supported_refresh_rates(&self) -> Result<Vec<f32>> {
-    self.inner.supported_refresh_rates()
-  }
-
-  /// Gets all supported resolutions for this display.
-  pub fn supported_resolutions(&self) -> Result<Vec<(u32, u32)>> {
-    self.inner.supported_resolutions()
-  }
-
-  /// Gets the ID of the device driving this display.
-  pub fn device_id(&self) -> DisplayDeviceId {
-    self.inner.device_id()
+  /// Gets the main device (first non-mirroring device) for this display.
+  pub fn main_device(&self) -> Result<Option<DisplayDevice>> {
+    self.inner.main_device()
   }
 }
 
-/// State of a display device.
+/// Connection state of a display device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DisplayDeviceState {
+pub enum ConnectionState {
   /// Device is active and can drive displays.
   Active,
-  /// Device is present but inactive.
+  /// Device is connected but inactive (e.g. on standby or in sleep mode).
   Inactive,
-  /// Device was disconnected.
+  /// Device is disconnected.
   Disconnected,
 }
 
 /// Mirroring state of a display device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MirroringState {
-  /// Not mirroring.
-  None,
   /// This device is the source being mirrored.
   Source,
-  /// This device is mirroring another.
-  Mirror,
+  /// This device is mirroring another (target).
+  Target,
 }
 
 /// Display connection type for physical devices.
@@ -169,47 +143,13 @@ pub enum DisplayConnection {
   Unknown,
 }
 
-/// Properties specific to physical display devices.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PhysicalDeviceData {
-  /// Device vendor name.
-  pub vendor: Option<String>,
-  /// Device model name.
-  pub model: Option<String>,
-  /// Device serial number.
-  pub serial_number: Option<String>,
-  /// Hardware identifier.
-  pub hardware_id: Option<String>,
-  /// EDID data if available.
-  pub edid_data: Option<Vec<u8>>,
-  /// Physical size in millimeters.
-  pub physical_size_mm: Option<(u32, u32)>,
-  /// Connection type.
-  pub connection_type: Option<DisplayConnection>,
-  /// Whether this is a built-in display.
-  pub is_builtin: bool,
-}
-
-/// Properties specific to virtual display devices.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VirtualDeviceData {
-  /// Virtual driver name.
-  pub driver_name: Option<String>,
-  /// Virtual adapter identifier.
-  pub virtual_adapter_id: Option<String>,
-}
-
-/// Device-specific data separated by type.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DisplayDeviceData {
-  /// Physical display device data.
-  Physical(PhysicalDeviceData),
-  /// Virtual display device data.
-  Virtual(VirtualDeviceData),
-}
-
 /// Represents a display adapter/device (physical or virtual).
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// This is typically a physical display device, such as a monitor or
+/// built-in laptop screen.
+///
+/// TODO: Add `PartialEq` and `Eq`.
+#[derive(Clone, Debug)]
 pub struct DisplayDevice {
   pub(crate) inner: platform_impl::DisplayDevice,
 }
@@ -233,39 +173,34 @@ impl DisplayDevice {
     self.inner.name()
   }
 
-  /// Gets the current state of the device.
-  pub fn state(&self) -> Result<DisplayDeviceState> {
-    self.inner.state()
+  /// Gets the rotation of the device in degrees.
+  pub fn rotation(&self) -> Result<f32> {
+    self.inner.rotation()
+  }
+
+  /// Gets the connection state of the device.
+  pub fn connection_state(&self) -> Result<ConnectionState> {
+    self.inner.connection_state()
+  }
+
+  /// Gets the refresh rate of the device in Hz.
+  pub fn refresh_rate(&self) -> Result<f32> {
+    self.inner.refresh_rate()
   }
 
   /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> Result<MirroringState> {
+  pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
     self.inner.mirroring_state()
   }
 
-  /// Gets the device-specific data.
-  pub fn data(&self) -> Result<DisplayDeviceData> {
-    self.inner.data()
-  }
-
-  /// Returns whether this is a physical device.
-  pub fn is_physical(&self) -> Result<bool> {
-    Ok(matches!(self.data()?, DisplayDeviceData::Physical(_)))
-  }
-
-  /// Returns whether this is a virtual device.
-  pub fn is_virtual(&self) -> Result<bool> {
-    Ok(matches!(self.data()?, DisplayDeviceData::Virtual(_)))
+  /// Gets the output technology (Windows-specific).
+  pub fn output_technology(&self) -> Result<Option<String>> {
+    self.inner.output_technology()
   }
 
   /// Returns whether this is a built-in device.
-  ///
-  /// Only physical devices can be built-in.
   pub fn is_builtin(&self) -> Result<bool> {
-    match self.data()? {
-      DisplayDeviceData::Physical(data) => Ok(data.is_builtin),
-      DisplayDeviceData::Virtual(_) => Ok(false),
-    }
+    self.inner.is_builtin()
   }
 }
 
@@ -307,3 +242,6 @@ pub fn primary_display() -> Result<Display> {
   let display = platform_impl::primary_display()?;
   Ok(Display::from_platform_impl(display))
 }
+
+#[cfg(test)]
+mod tests {}

@@ -1,14 +1,11 @@
-#[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Gdi::HMONITOR;
 
-#[cfg(target_os = "windows")]
 use crate::{
   display::{Display, DisplayDevice},
   Result,
 };
 
 /// Windows-specific display settings.
-#[cfg(target_os = "windows")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WindowsDisplaySettings {
   /// Display mode width.
@@ -24,7 +21,6 @@ pub struct WindowsDisplaySettings {
 }
 
 /// Display orientation on Windows.
-#[cfg(target_os = "windows")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DisplayOrientation {
   /// Default orientation.
@@ -41,12 +37,14 @@ pub enum DisplayOrientation {
 ///
 /// This trait provides access to platform-specific functionality
 /// that is only available on Windows.
-#[cfg(target_os = "windows")]
 pub trait DisplayExtWindows {
-  /// Gets the Windows monitor handle.
+  /// Gets the monitor handle.
+  ///
+  /// # Platform-specific
+  /// This method is only available on Windows.
   fn hmonitor(&self) -> HMONITOR;
 
-  /// Gets Windows-specific display settings.
+  /// Gets display settings.
   ///
   /// # Platform-specific
   /// This method is only available on Windows.
@@ -57,7 +55,6 @@ pub trait DisplayExtWindows {
 ///
 /// This trait provides access to platform-specific functionality
 /// that is only available on Windows.
-#[cfg(target_os = "windows")]
 pub trait DisplayDeviceExtWindows {
   /// Gets the device path for the display adapter.
   ///
@@ -104,7 +101,6 @@ pub trait DisplayDeviceExtWindows {
   fn is_builtin_windows(&self) -> Result<bool>;
 }
 
-#[cfg(target_os = "windows")]
 impl DisplayExtWindows for Display {
   fn hmonitor(&self) -> HMONITOR {
     self.inner.hmonitor()
@@ -115,7 +111,6 @@ impl DisplayExtWindows for Display {
   }
 }
 
-#[cfg(target_os = "windows")]
 impl DisplayDeviceExtWindows for DisplayDevice {
   fn adapter_device_path(&self) -> Result<Option<String>> {
     self.inner.adapter_device_path()

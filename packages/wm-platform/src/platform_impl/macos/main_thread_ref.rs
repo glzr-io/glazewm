@@ -1,28 +1,18 @@
-use std::{
-  collections::HashMap,
-  marker::PhantomData,
-  sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, marker::PhantomData, sync::Mutex};
 
 use crate::platform_impl::EventLoopDispatcher;
 
-// Using Box<dyn std::any::Any> to store heterogeneous types.
+// Using `Box<dyn std::any::Any>` to store heterogeneous types.
 type MainThreadStorage = HashMap<u64, Box<dyn std::any::Any>>;
 
-// Global storage that lives on the main thread
+// Global storage that lives on the main thread.
 thread_local! {
   static MAIN_THREAD_STORAGE: Mutex<MainThreadStorage> = Mutex::new(HashMap::new());
 }
 
-// fn get_main_thread_storage() -> &'static Mutex<MainThreadStorage> {
-//   MAIN_THREAD_STORAGE.with(|storage| storage)
-//   // MAIN_THREAD_STORAGE.get_or_init(||
-//   // Mutex::new(MainThreadStorage::new()))
-// }
-
 /// A reference to a value that can only be safely accessed on the main
-/// thread This provides Send + Sync while ensuring the actual value is
-/// only touched on the main thread through the dispatcher
+/// thread. This provides Send + Sync while ensuring the actual value is
+/// only touched on the main thread through the dispatcher.
 #[derive(Debug)]
 pub struct MainThreadRef<T> {
   id: u64,
@@ -40,7 +30,7 @@ impl<T> Clone for MainThreadRef<T> {
   }
 }
 
-// Safe because the actual value is only accessed on the main thread
+// SAFETY: The value is only accessed on the main thread.
 unsafe impl<T> Send for MainThreadRef<T> {}
 unsafe impl<T> Sync for MainThreadRef<T> {}
 
@@ -48,8 +38,8 @@ impl<T> MainThreadRef<T>
 where
   T: 'static,
 {
-  /// Create a new `MainThreadRef` with an initial value
-  /// This should only be called from the main thread
+  /// Create a new `MainThreadRef` with an initial value.
+  /// This should only be called from the main thread.
   pub fn new(dispatcher: EventLoopDispatcher, value: T) -> Self {
     let storage_id = Self::storage_id();
 
@@ -70,10 +60,10 @@ where
     COUNTER.fetch_add(1, Ordering::Relaxed) as u64
   }
 
-  /// Execute a closure with access to the value on the main thread
+  /// Execute a closure with access to the value on the main thread.
   /// The closure receives an Option<&mut T> - None if the value hasn't
-  /// been set
-  pub fn with_mut<F, R>(&self, f: F) -> anyhow::Result<R>
+  /// been set.
+  pub fn with_mut<F, R>(&self, f: F) -> crate::Result<R>
   where
     F: FnOnce(Option<&mut T>) -> R + Send + 'static,
     R: Send + 'static,
@@ -90,8 +80,8 @@ where
   }
 
   /// Execute a closure with immutable access to the value on the main
-  /// thread
-  pub fn with<F, R>(&self, f: F) -> anyhow::Result<R>
+  /// thread.
+  pub fn with<F, R>(&self, f: F) -> crate::Result<R>
   where
     F: FnOnce(&T) -> R + Send + 'static,
     R: Send + 'static,
@@ -101,6 +91,8 @@ where
     self.dispatcher.dispatch_sync(move || {
       MAIN_THREAD_STORAGE.with(|storage| {
         let storage = storage.lock().unwrap();
+
+        // TODO: Improve error handling.
         f(storage
           .get(&id)
           .expect("Value not found.")
@@ -110,18 +102,15 @@ where
     })
   }
 
-  /// Set the value (can only be done from main thread via dispatcher)
-  pub fn set(&self, new_value: T) -> anyhow::Result<()> {
-    let id = self.id;
+  /// Set the value (can only be done from main thread via dispatcher).
+  pub fn set(&self, new_value: T) {
     MAIN_THREAD_STORAGE.with(|storage| {
       let mut storage = storage.lock().unwrap();
-      storage.insert(id, Box::new(new_value));
+      storage.insert(self.id, Box::new(new_value));
     });
-
-    Ok(())
   }
 
-  /// Check if the value is set (non-blocking, but may be stale)
+  /// Check if the value is set (non-blocking, but may be stale).
   pub fn is_set(&self) -> bool {
     MAIN_THREAD_STORAGE.with(|storage| {
       let storage = storage.lock().unwrap();

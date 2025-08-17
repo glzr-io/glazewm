@@ -1,35 +1,17 @@
-#[cfg(target_os = "macos")]
 use objc2_app_kit::NSScreen;
-#[cfg(target_os = "macos")]
+use objc2_core_foundation::CFRetained;
 use objc2_core_graphics::CGDirectDisplayID;
 
-#[cfg(target_os = "macos")]
 use crate::{
   display::{Display, DisplayDevice},
+  platform_impl::MainThreadRef,
   Result,
 };
-
-/// Placeholder for MainThreadRef type - would need proper implementation.
-#[cfg(target_os = "macos")]
-pub struct MainThreadRef<T>(pub T);
-
-/// Placeholder for CFRetained type - would need proper implementation.
-#[cfg(target_os = "macos")]
-pub struct CFRetained<T>(pub T);
-
-/// Reference to a Metal device on macOS.
-#[cfg(target_os = "macos")]
-#[derive(Clone, Debug)]
-pub struct MetalDeviceRef {
-  /// Internal Metal device reference.
-  pub(crate) inner: u64, // Placeholder
-}
 
 /// macOS-specific extensions for `Display`.
 ///
 /// This trait provides access to platform-specific functionality
 /// that is only available on macOS.
-#[cfg(target_os = "macos")]
 pub trait DisplayExtMacos {
   /// Gets the Core Graphics display ID.
   fn cg_display_id(&self) -> CGDirectDisplayID;
@@ -56,34 +38,9 @@ pub trait DisplayExtMacos {
 ///
 /// This trait provides access to platform-specific functionality
 /// that is only available on macOS.
-#[cfg(target_os = "macos")]
 pub trait DisplayDeviceExtMacos {
-  /// Gets the display unit number.
-  ///
-  /// The unit number is a macOS-specific identifier for the
-  /// display device.
-  ///
-  /// # Platform-specific
-  /// This method is only available on macOS.
-  fn unit_number(&self) -> Result<Option<u32>>;
-
-  /// Gets the GPU registry ID.
-  ///
-  /// The registry ID uniquely identifies the GPU in the
-  /// macOS IOKit registry. Only available for physical devices.
-  ///
-  /// # Platform-specific
-  /// This method is only available on macOS.
-  fn registry_id(&self) -> Result<Option<u64>>;
-
-  /// Gets a reference to the Metal device.
-  ///
-  /// Provides access to the Metal device associated with this
-  /// display device. Only available for physical devices.
-  ///
-  /// # Platform-specific
-  /// This method is only available on macOS.
-  fn metal_device(&self) -> Result<Option<MetalDeviceRef>>;
+  /// Gets the Core Graphics display ID.
+  fn cg_display_id(&self) -> CGDirectDisplayID;
 }
 
 #[cfg(target_os = "macos")]
@@ -101,17 +58,8 @@ impl DisplayExtMacos for Display {
   }
 }
 
-#[cfg(target_os = "macos")]
 impl DisplayDeviceExtMacos for DisplayDevice {
-  fn unit_number(&self) -> Result<Option<u32>> {
-    self.inner.unit_number()
-  }
-
-  fn registry_id(&self) -> Result<Option<u64>> {
-    self.inner.registry_id()
-  }
-
-  fn metal_device(&self) -> Result<Option<MetalDeviceRef>> {
-    self.inner.metal_device()
+  fn cg_display_id(&self) -> CGDirectDisplayID {
+    self.inner.cg_display_id()
   }
 }

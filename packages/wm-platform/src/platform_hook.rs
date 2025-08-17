@@ -15,7 +15,7 @@ use tokio::sync::oneshot;
 
 use crate::{
   platform_impl::{self, EventLoopDispatcher, WindowListener},
-  NativeMonitor, PlatformHookInstaller,
+  Display, PlatformHookInstaller,
 };
 
 pub struct PlatformHook {
@@ -110,13 +110,13 @@ impl PlatformHook {
 
   /// Gets all available monitors.
   ///
-  /// Returns a vector of `NativeMonitor` instances representing all
+  /// Returns a vector of `Display` instances representing all
   /// currently connected displays.
-  pub fn monitors(&self) -> anyhow::Result<Vec<NativeMonitor>> {
+  pub fn monitors(&self) -> anyhow::Result<Vec<Display>> {
     Ok(
-      platform_impl::all_monitors()?
+      platform_impl::all_displays()?
         .into_iter()
-        .map(NativeMonitor::from_platform_impl)
+        .map(Display::from_platform_impl)
         .collect(),
     )
   }

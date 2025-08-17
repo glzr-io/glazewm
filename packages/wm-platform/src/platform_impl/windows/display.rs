@@ -26,6 +26,9 @@ use crate::{
   Result,
 };
 
+pub type DisplayId = isize;
+pub type DisplayDeviceId = isize;
+
 /// Windows-specific display implementation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Display {
@@ -177,6 +180,7 @@ impl Display {
 
   /// Gets all supported resolutions for this display.
   pub fn supported_resolutions(&self) -> Result<Vec<(u32, u32)>> {
+    let device_name = self.get_device_name()?;
     let mut resolutions = Vec::new();
     let mut mode_index = 0u32;
 
@@ -188,9 +192,7 @@ impl Display {
 
       let result = unsafe {
         EnumDisplaySettingsW(
-          PCWSTR(
-            self.device_name.encode_utf16().collect::<Vec<_>>().as_ptr(),
-          ),
+          PCWSTR(device_name.encode_utf16().collect::<Vec<_>>().as_ptr()),
           mode_index,
           &raw mut device_mode,
         )
@@ -212,10 +214,46 @@ impl Display {
 
   /// Gets the ID of the device driving this display.
   pub fn device_id(&self) -> DisplayDeviceId {
-    DisplayDeviceId::new(&self.device_id)
+    self
+      .get_device_name()
+      .map(|name| DisplayDeviceId::new(name))
+      .unwrap_or_else(|_| {
+        DisplayDeviceId::new(format!("unknown:{}", self.monitor_handle))
+      })
   }
 
-  // Windows-specific methods
+  /// Gets the display devices for this display.
+  pub fn devices(&self) -> Result<Vec<crate::display::DisplayDevice>> {
+    let device_name = self.get_device_name()?;
+    let all_devices = all_display_devices()?;
+
+    // Filter devices that match this display's device name
+    Ok(
+      all_devices
+        .into_iter()
+        .filter(|device| device.device_name == device_name)
+        .map(crate::display::DisplayDevice::from_platform_impl)
+        .collect(),
+    )
+  }
+
+  /// Gets the main device (first non-mirroring device) for this display.
+  pub fn main_device(
+    &self,
+  ) -> Result<Option<crate::display::DisplayDevice>> {
+    let devices = self.devices()?;
+
+    // Find first device that is not mirroring
+    for device in devices {
+      if device.mirroring_state()? == MirroringState::None
+        || device.mirroring_state()? == MirroringState::Source
+      {
+        return Ok(Some(device));
+      }
+    }
+
+    Ok(None)
+  }
 
   /// Gets the Windows monitor handle.
   pub fn hmonitor(&self) -> HMONITOR {
@@ -290,92 +328,121 @@ impl Display {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DisplayDevice {
   pub(crate) device_name: String,
-  pub(crate) adapter_name: String,
-  pub(crate) device_string: String,
-  pub(crate) state_flags: u32,
-  pub(crate) device_id: String,
-  pub(crate) device_key: String,
+  pub(crate) hardware_id: String,
 }
 
 impl DisplayDevice {
   /// Creates a new Windows display device.
   #[must_use]
-  pub fn new(
-    device_name: String,
-    adapter_name: String,
-    device_string: String,
-    state_flags: u32,
-    device_id: String,
-    device_key: String,
-  ) -> Self {
+  pub fn new(device_name: String, hardware_id: String) -> Self {
     Self {
       device_name,
-      adapter_name,
-      device_string,
-      state_flags,
-      device_id,
-      device_key,
+      hardware_id,
     }
   }
 
   /// Gets the unique identifier for this display device.
   pub fn id(&self) -> DisplayDeviceId {
-    DisplayDeviceId::new(&self.device_name)
+    DisplayDeviceId::new(&self.hardware_id)
   }
 
   /// Gets the device name.
   pub fn name(&self) -> Result<String> {
-    Ok(self.device_string.clone())
+    self.get_device_string()
   }
 
-  /// Gets the current state of the device.
-  pub fn state(&self) -> Result<DisplayDeviceState> {
-    if self.state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
-      Ok(DisplayDeviceState::Active)
+  /// Gets the rotation of the device in degrees.
+  pub fn rotation(&self) -> Result<f32> {
+    let device_mode = self.get_current_device_mode()?;
+    let orientation = device_mode.dmDisplayOrientation;
+
+    Ok(match orientation {
+      0 => 0.0,   // Default
+      1 => 90.0,  // 90 degrees
+      2 => 180.0, // 180 degrees
+      3 => 270.0, // 270 degrees
+      _ => 0.0,
+    })
+  }
+
+  /// Gets the connection state of the device.
+  pub fn connection_state(&self) -> Result<ConnectionState> {
+    let state_flags = self.get_state_flags()?;
+    if state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
+      Ok(ConnectionState::Active)
     } else {
-      Ok(DisplayDeviceState::Inactive)
+      Ok(ConnectionState::Inactive)
     }
+  }
+
+  /// Gets the refresh rate of the device in Hz.
+  pub fn refresh_rate(&self) -> Result<f32> {
+    let device_mode = self.get_current_device_mode()?;
+    Ok(device_mode.dmDisplayFrequency as f32)
+  }
+
+  /// Returns whether this is a built-in device.
+  pub fn is_builtin(&self) -> Result<bool> {
+    let device_string = self.get_device_string()?;
+    let device_lower = device_string.to_lowercase();
+    Ok(
+      device_lower.contains("laptop")
+        || device_lower.contains("internal")
+        || device_lower.contains("built-in"),
+    )
   }
 
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> Result<MirroringState> {
-    if self.state_flags & DISPLAY_DEVICE_MIRRORING_DRIVER != 0 {
-      Ok(MirroringState::Mirror)
+    let state_flags = self.get_state_flags()?;
+
+    // TODO
+    if state_flags & DISPLAY_DEVICE_MIRRORING_DRIVER != 0 {
+      Ok(MirroringState::Target)
     } else {
-      // Would need additional logic to detect if this is a mirroring
-      // source
       Ok(MirroringState::None)
     }
   }
 
   /// Gets the device-specific data.
   pub fn data(&self) -> Result<DisplayDeviceData> {
-    // Determine if this is a virtual or physical device based on device
-    // characteristics
-    let is_virtual = self.device_string.contains("Virtual")
-      || self.device_string.contains("Software")
-      || self.adapter_name.contains("Remote");
+    let device_string = self.get_device_string()?;
+    let adapter_name = self.get_adapter_name()?;
+
+    // Determine if this is a virtual or physical device
+    let is_virtual = device_string.contains("Virtual")
+      || device_string.contains("Software")
+      || adapter_name.contains("Remote");
 
     if is_virtual {
       Ok(DisplayDeviceData::Virtual(VirtualDeviceData {
-        driver_name: Some(self.adapter_name.clone()),
-        virtual_adapter_id: Some(self.device_id.clone()),
+        driver_name: Some(adapter_name),
+        virtual_adapter_id: Some(self.hardware_id.clone()),
       }))
     } else {
-      let connection_type = self.determine_connection_type();
-      let is_builtin = self.is_builtin_device();
+      let connection_type = self.determine_connection_type(&device_string);
+      let is_builtin = self.is_builtin()?;
+      let output_technology = self.output_technology()?;
 
       Ok(DisplayDeviceData::Physical(PhysicalDeviceData {
-        vendor: self.extract_vendor(),
-        model: Some(self.device_string.clone()),
+        vendor: self.extract_vendor(&device_string),
+        model: Some(device_string),
         serial_number: None, // Would need registry lookup
-        hardware_id: Some(self.device_id.clone()),
+        hardware_id: Some(self.hardware_id.clone()),
         edid_data: None,        // Would need registry lookup
         physical_size_mm: None, // Would need EDID parsing
         connection_type: Some(connection_type),
+        output_technology,
         is_builtin,
       }))
     }
+  }
+
+  /// Gets the output technology (Windows-specific).
+  pub fn output_technology(&self) -> Result<Option<String>> {
+    // This would require querying Windows APIs for output technology
+    // For now, return None as a placeholder
+    Ok(None)
   }
 
   // Windows-specific methods
@@ -420,9 +487,120 @@ impl DisplayDevice {
     Ok(self.is_builtin_device())
   }
 
+  /// Gets the device string from Windows API.
+  fn get_device_string(&self) -> Result<String> {
+    let mut display_device = DISPLAY_DEVICEW {
+      cb: std::mem::size_of::<DISPLAY_DEVICEW>().try_into()?,
+      ..Default::default()
+    };
+
+    // Find the device by device name
+    let mut device_index = 0u32;
+    loop {
+      let result = unsafe {
+        EnumDisplayDevicesW(
+          PCWSTR::null(),
+          device_index,
+          &raw mut display_device,
+          0,
+        )
+      };
+
+      if !result.as_bool() {
+        break;
+      }
+
+      let current_device_name =
+        String::from_utf16_lossy(&display_device.DeviceName)
+          .trim_end_matches('\0')
+          .to_string();
+
+      if current_device_name == self.device_name {
+        return Ok(
+          String::from_utf16_lossy(&display_device.DeviceString)
+            .trim_end_matches('\0')
+            .to_string(),
+        );
+      }
+
+      device_index += 1;
+    }
+
+    Ok("Unknown Device".to_string())
+  }
+
+  /// Gets the adapter name from Windows API.
+  fn get_adapter_name(&self) -> Result<String> {
+    // This would require additional Windows API calls
+    // For now, return a placeholder
+    Ok("Unknown Adapter".to_string())
+  }
+
+  /// Gets the state flags from Windows API.
+  fn get_state_flags(&self) -> Result<u32> {
+    let mut display_device = DISPLAY_DEVICEW {
+      cb: std::mem::size_of::<DISPLAY_DEVICEW>().try_into()?,
+      ..Default::default()
+    };
+
+    // Find the device by device name
+    let mut device_index = 0u32;
+    loop {
+      let result = unsafe {
+        EnumDisplayDevicesW(
+          PCWSTR::null(),
+          device_index,
+          &raw mut display_device,
+          0,
+        )
+      };
+
+      if !result.as_bool() {
+        break;
+      }
+
+      let current_device_name =
+        String::from_utf16_lossy(&display_device.DeviceName)
+          .trim_end_matches('\0')
+          .to_string();
+
+      if current_device_name == self.device_name {
+        return Ok(display_device.StateFlags);
+      }
+
+      device_index += 1;
+    }
+
+    Ok(0)
+  }
+
+  /// Gets the current device mode from Windows API.
+  fn get_current_device_mode(&self) -> Result<DEVMODEW> {
+    let mut device_mode = DEVMODEW {
+      dmSize: std::mem::size_of::<DEVMODEW>().try_into()?,
+      ..Default::default()
+    };
+
+    unsafe {
+      EnumDisplaySettingsW(
+        PCWSTR(
+          self.device_name.encode_utf16().collect::<Vec<_>>().as_ptr(),
+        ),
+        u32::MAX, // ENUM_CURRENT_SETTINGS
+        &raw mut device_mode,
+      )
+    }
+    .ok()?;
+
+    Ok(device_mode)
+  }
+
   /// Determines the connection type based on device information.
-  fn determine_connection_type(&self) -> DisplayConnection {
-    let device_lower = self.device_string.to_lowercase();
+  fn determine_connection_type(
+    &self,
+    device_string: &str,
+  ) -> DisplayConnection {
+    let device_lower = device_string.to_lowercase();
 
     if device_lower.contains("laptop") || device_lower.contains("internal")
     {
@@ -446,18 +624,10 @@ impl DisplayDevice {
     }
   }
 
-  /// Checks if this is a built-in device.
-  fn is_builtin_device(&self) -> bool {
-    let device_lower = self.device_string.to_lowercase();
-    device_lower.contains("laptop")
-      || device_lower.contains("internal")
-      || device_lower.contains("built-in")
-  }
-
   /// Extracts vendor name from device information.
-  fn extract_vendor(&self) -> Option<String> {
+  fn extract_vendor(&self, device_string: &str) -> Option<String> {
     // Common vendor patterns in device strings
-    let device_lower = self.device_string.to_lowercase();
+    let device_lower = device_string.to_lowercase();
 
     if device_lower.contains("nvidia") {
       Some("NVIDIA".to_string())
@@ -479,16 +649,7 @@ pub fn all_displays() -> Result<Vec<Display>> {
   let mut displays = Vec::new();
 
   for handle in monitor_handles {
-    if let Ok(monitor_info) = get_monitor_info_for_handle(handle) {
-      let device_name = String::from_utf16_lossy(&monitor_info.szDevice)
-        .trim_end_matches('\0')
-        .to_string();
-
-      // Use device name as device ID for now
-      let device_id = device_name.clone();
-
-      displays.push(Display::new(handle, device_name, device_id));
-    }
+    displays.push(Display::new(handle));
   }
 
   Ok(displays)
@@ -532,14 +693,7 @@ pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
       .trim_end_matches('\0')
       .to_string();
 
-    devices.push(DisplayDevice::new(
-      device_name.clone(),
-      device_string.clone(),
-      device_string,
-      display_device.StateFlags,
-      device_id,
-      device_key,
-    ));
+    devices.push(DisplayDevice::new(device_name, device_id));
 
     device_index += 1;
   }

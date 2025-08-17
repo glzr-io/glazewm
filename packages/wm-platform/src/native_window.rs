@@ -2,6 +2,20 @@ use wm_common::Rect;
 
 use crate::platform_impl;
 
+/// Unique identifier of a window.
+///
+/// Can be obtained with `window.id()`.
+///
+/// # Platform-specific
+///
+/// - **Windows**: `isize` (`HWND`)
+/// - **macOS**: `u32` (`CGWindowID`)
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct WindowId(
+  #[cfg(target_os = "windows")] pub(crate) isize,
+  #[cfg(target_os = "macos")] pub(crate) u32,
+);
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
   Normal,

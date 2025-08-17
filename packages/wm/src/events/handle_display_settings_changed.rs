@@ -17,9 +17,9 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  let native_monitors = Platform::sorted_monitors()?;
+  let native_displays = Platform::sorted_monitors()?;
 
-  let hardware_ids = native_monitors
+  let hardware_ids = native_displays
     .iter()
     .filter_map(|m| m.hardware_id().ok())
     .flatten()
@@ -27,9 +27,9 @@ pub fn handle_display_settings_changed(
     .collect::<Vec<_>>();
 
   let mut pending_monitors = state.monitors();
-  let mut new_native_monitors = Vec::new();
+  let mut new_native_displays = Vec::new();
 
-  for native_monitor in native_monitors {
+  for native_display in native_displays {
     // Get the corresponding `Monitor` instance by either its handle,
     // device path, or hardware ID. Monitor handles and device paths
     // *should* be unique, but can both change over time. The hardware ID
@@ -37,12 +37,12 @@ pub fn handle_display_settings_changed(
     let found_monitor = pending_monitors
       .iter()
       .find_map(|monitor| {
-        if monitor.native().handle == native_monitor.handle {
+        if monitor.native().handle == native_display.handle {
           return Some(monitor);
         }
 
         if monitor.native().device_path().ok()??
-          == native_monitor.device_path().ok()??
+          == native_display.device_path().ok()??
         {
           return Some(monitor);
         }
@@ -56,7 +56,7 @@ pub fn handle_display_settings_changed(
             == 1;
 
         if is_unique
-          && hardware_id == *native_monitor.hardware_id().ok()??
+          && hardware_id == *native_display.hardware_id().ok()??
         {
           Some(monitor)
         } else {
@@ -76,22 +76,22 @@ pub fn handle_display_settings_changed(
           pending_monitors.remove(index);
         }
 
-        update_monitor(&found_monitor, native_monitor, state)?;
+        update_monitor(&found_monitor, native_display, state)?;
       }
       None => {
-        new_native_monitors.push(native_monitor);
+        new_native_displays.push(native_display);
       }
     }
   }
 
-  for native_monitor in new_native_monitors {
+  for native_display in new_native_displays {
     match pending_monitors.first() {
       Some(_) => {
         let monitor = pending_monitors.remove(0);
-        update_monitor(&monitor, native_monitor, state)
+        update_monitor(&monitor, native_display, state)
       }
       // Add monitor if it doesn't exist in state.
-      None => add_monitor(native_monitor, state, config),
+      None => add_monitor(native_display, state, config),
     }?;
   }
 

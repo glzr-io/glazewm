@@ -7,7 +7,7 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{ContainerDto, MonitorDto, Rect};
-use wm_platform::NativeMonitor;
+use wm_platform::Display;
 
 use crate::{
   impl_common_getters, impl_container_debug,
@@ -26,27 +26,27 @@ struct MonitorInner {
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  native: NativeMonitor,
+  native: Display,
 }
 
 impl Monitor {
-  pub fn new(native_monitor: NativeMonitor) -> Self {
+  pub fn new(native_display: Display) -> Self {
     let monitor = MonitorInner {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      native: native_monitor,
+      native: native_display,
     };
 
     Self(Rc::new(RefCell::new(monitor)))
   }
 
-  pub fn native(&self) -> NativeMonitor {
+  pub fn native(&self) -> Display {
     self.0.borrow().native.clone()
   }
 
-  pub fn set_native(&self, native: NativeMonitor) {
+  pub fn set_native(&self, native: Display) {
     self.0.borrow_mut().native = native;
   }
 

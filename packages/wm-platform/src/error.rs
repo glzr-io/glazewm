@@ -19,6 +19,9 @@ pub enum Error {
   AXValueCreation(String),
 
   #[error(transparent)]
+  ChannelRecv(#[from] std::sync::mpsc::RecvError),
+
+  #[error(transparent)]
   Anyhow(#[from] anyhow::Error),
 }
 

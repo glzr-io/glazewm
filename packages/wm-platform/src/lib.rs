@@ -5,7 +5,6 @@
 
 mod display;
 mod error;
-mod native_monitor;
 mod native_window;
 mod platform_event;
 pub mod platform_ext;
@@ -15,7 +14,6 @@ mod platform_impl;
 
 pub use display::*;
 pub use error::*;
-pub use native_monitor::*;
 pub use native_window::*;
 pub use platform_event::*;
 pub use platform_hook::*;
