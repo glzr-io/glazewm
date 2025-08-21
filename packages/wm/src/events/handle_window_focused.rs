@@ -68,6 +68,12 @@ pub fn handle_window_focused(
 
     info!("Window manually focused: {window}");
 
+    // Check if focus stealing is disabled - if so, block ALL automatic focus changes
+    if !config.value.general.steal_focus {
+      info!("Window focus change blocked by steal_focus setting: {window}");
+      return Ok(());
+    }
+
     // Handle focus events from windows on hidden workspaces. For example,
     // if Discord is forcefully shown by the OS when it's on a hidden
     // workspace, switch focus to Discord's workspace.
