@@ -7,6 +7,9 @@ use crate::platform_impl::{
   MainThreadRef,
 };
 
+// TODO: Add `NativeWindowMacOsExt` trait with `ax_ui_element` getter,
+// `bundle_id`.
+
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
   element: MainThreadRef<CFRetained<AXUIElement>>,

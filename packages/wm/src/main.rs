@@ -91,7 +91,7 @@ async fn start_wm(
   let mut window_listener = hook.create_window_listener().await?;
 
   tracing::info!("Window manager started.");
-  let monitors = hook.monitors().await?;
+  let monitors = hook.displays().await?;
 
   for monitor in monitors {
     // tracing::info!("Monitor: {:?}", monitor.device_name());

@@ -23,6 +23,18 @@ pub enum Error {
 
   #[error(transparent)]
   Anyhow(#[from] anyhow::Error),
+
+  #[error("Display enumeration failed")]
+  DisplayEnumerationFailed,
+
+  #[error("Display mode not found")]
+  DisplayModeNotFound,
+
+  #[error("Primary display not found")]
+  PrimaryDisplayNotFound,
+
+  #[error("Not main thread")]
+  NotMainThread,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -22,11 +22,11 @@ pub struct DisplayId(
 ///
 /// # Platform-specific
 ///
-/// - **Windows**: `String`
-/// - **macOS**: `u32` (`CGDirectDisplayID`)
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// - **Windows**: Hardware ID string
+/// - **macOS**: `u32` (CGUUID as u32)
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DisplayDeviceId(
-  #[cfg(target_os = "windows")] pub(crate) isize,
+  #[cfg(target_os = "windows")] pub(crate) String,
   #[cfg(target_os = "macos")] pub(crate) u32,
 );
 
@@ -44,12 +44,6 @@ pub struct Display {
 }
 
 impl Display {
-  /// Creates a new `Display` from platform-specific data.
-  #[must_use]
-  pub(crate) fn from_platform_impl(inner: platform_impl::Display) -> Self {
-    Self { inner }
-  }
-
   /// Gets the unique identifier for this display.
   pub fn id(&self) -> DisplayId {
     self.inner.id()
@@ -103,10 +97,12 @@ impl Display {
 /// Connection state of a display device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConnectionState {
-  /// Device is active and can drive displays.
+  /// Device is connected and part of the desktop coordinate space.
   Active,
+
   /// Device is connected but inactive (e.g. on standby or in sleep mode).
   Inactive,
+
   /// Device is disconnected.
   Disconnected,
 }
@@ -116,13 +112,14 @@ pub enum ConnectionState {
 pub enum MirroringState {
   /// This device is the source being mirrored.
   Source,
+
   /// This device is mirroring another (target).
   Target,
 }
 
 /// Display connection type for physical devices.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DisplayConnection {
+pub enum OutputTechnology {
   /// Built-in display (laptop screen).
   Internal,
   /// VGA connection.
@@ -168,14 +165,14 @@ impl DisplayDevice {
     self.inner.id()
   }
 
-  /// Gets the device name.
-  pub fn name(&self) -> Result<String> {
-    self.inner.name()
-  }
-
   /// Gets the rotation of the device in degrees.
   pub fn rotation(&self) -> Result<f32> {
     self.inner.rotation()
+  }
+
+  /// Returns whether this is a built-in device.
+  pub fn is_builtin(&self) -> Result<bool> {
+    self.inner.is_builtin()
   }
 
   /// Gets the connection state of the device.
@@ -183,64 +180,15 @@ impl DisplayDevice {
     self.inner.connection_state()
   }
 
-  /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> Result<f32> {
-    self.inner.refresh_rate()
-  }
-
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
     self.inner.mirroring_state()
   }
 
-  /// Gets the output technology (Windows-specific).
-  pub fn output_technology(&self) -> Result<Option<String>> {
-    self.inner.output_technology()
+  /// Gets the refresh rate of the device in Hz.
+  pub fn refresh_rate(&self) -> Result<f32> {
+    self.inner.refresh_rate()
   }
-
-  /// Returns whether this is a built-in device.
-  pub fn is_builtin(&self) -> Result<bool> {
-    self.inner.is_builtin()
-  }
-}
-
-/// Gets all active displays.
-///
-/// Returns all displays that are currently active and available for use.
-pub fn all_displays() -> Result<Vec<Display>> {
-  Ok(
-    platform_impl::all_displays()?
-      .into_iter()
-      .map(Display::from_platform_impl)
-      .collect(),
-  )
-}
-
-/// Gets all display devices.
-///
-/// Returns all display devices including active, inactive, and
-/// disconnected ones.
-pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
-  Ok(
-    platform_impl::all_display_devices()?
-      .into_iter()
-      .map(DisplayDevice::from_platform_impl)
-      .collect(),
-  )
-}
-
-/// Gets the display containing the specified point.
-///
-/// If no display contains the point, returns the primary display.
-pub fn display_from_point(point: Point) -> Result<Display> {
-  let display = platform_impl::display_from_point(point)?;
-  Ok(Display::from_platform_impl(display))
-}
-
-/// Gets the primary display.
-pub fn primary_display() -> Result<Display> {
-  let display = platform_impl::primary_display()?;
-  Ok(Display::from_platform_impl(display))
 }
 
 #[cfg(test)]

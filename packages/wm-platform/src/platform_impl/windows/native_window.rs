@@ -48,6 +48,8 @@ use wm_common::{
 
 use super::COM_INIT;
 
+// TODO: Add `NativeWindowWindowsExt` trait with `class_name`.
+
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.
 pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;

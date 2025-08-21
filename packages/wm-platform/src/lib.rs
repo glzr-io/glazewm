@@ -7,7 +7,6 @@ mod display;
 mod error;
 mod native_window;
 mod platform_event;
-pub mod platform_ext;
 mod platform_hook;
 mod platform_hook_installer;
 mod platform_impl;

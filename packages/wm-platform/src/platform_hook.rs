@@ -15,7 +15,7 @@ use tokio::sync::oneshot;
 
 use crate::{
   platform_impl::{self, EventLoopDispatcher, WindowListener},
-  Display, PlatformHookInstaller,
+  Display, DisplayDevice, PlatformHookInstaller,
 };
 
 pub struct PlatformHook {
@@ -108,17 +108,42 @@ impl PlatformHook {
     todo!()
   }
 
-  /// Gets all available monitors.
+  /// Gets all active displays.
   ///
-  /// Returns a vector of `Display` instances representing all
-  /// currently connected displays.
-  pub fn monitors(&self) -> anyhow::Result<Vec<Display>> {
-    Ok(
-      platform_impl::all_displays()?
-        .into_iter()
-        .map(Display::from_platform_impl)
-        .collect(),
-    )
+  /// Returns all displays that are currently active and available for use.
+  pub async fn displays(&self) -> crate::Result<Vec<Display>> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::all_displays(dispatcher).map(Into::into)
+  }
+
+  /// Gets all display devices.
+  ///
+  /// Returns all display devices including active, inactive, and
+  /// disconnected ones.
+  pub async fn all_display_devices(
+    &self,
+  ) -> crate::Result<Vec<DisplayDevice>> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::all_display_devices(dispatcher)?
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  /// Gets the display containing the specified point.
+  ///
+  /// If no display contains the point, returns the primary display.
+  pub fn display_from_point(point: Point) -> crate::Result<Display> {
+    platform_impl::display_from_point(point).map(Into::into)
+  }
+
+  /// Gets the primary display.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: Returns the display containing the menu bar.
+  pub fn primary_display() -> crate::Result<Display> {
+    platform_impl::primary_display().map(Into::into)
   }
 }
 
