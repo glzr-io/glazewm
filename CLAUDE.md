@@ -16,11 +16,12 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 
 ### Code style & formatting
 
+- Do not leave partial or simplified implementations!
+- Avoid `.unwrap()` wherever possible!
 - Use the project's rustfmt.toml configuration.
 - Follow clippy suggestions unless there's a compelling reason not to.
 - Use rust-analyzer with clippy for continuous linting.
 - The project uses the nightly Rust toolchain. However, only use nightly features when they provide clear benefit.
-- Avoid `.unwrap()` wherever possible!
 
 ### Code comments
 
@@ -33,6 +34,7 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
   - (optional) Platform-specific notes (use "# Platform-specific" as heading).
   - (optional) Example usage, not needed for most cases (use "# Examples" as heading).
 - Use punctuation marks at the end of doc comments and in-line comments.
+- Wrap names of types in \` (e.g. `ExampleStruct`).
 - If using unsafe features, add a "SAFETY: ..." comment.
 
 ### Testing
