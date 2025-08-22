@@ -17,8 +17,11 @@ use windows::{
 use wm_common::{Point, Rect};
 
 use crate::{
-  display::{ConnectionState, DisplayDeviceId, DisplayId, MirroringState},
-  error::{PlatformError, Result},
+  display::{
+    ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
+    OutputTechnology,
+  },
+  Result,
 };
 
 /// Windows-specific extensions for `Display`.
@@ -38,24 +41,18 @@ pub trait DisplayDeviceExtWindows {
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  pub fn output_technology(&self) -> Result<Option<String>> {
-    self.inner.output_technology()
-  }
+  fn output_technology(&self) -> Result<Option<OutputTechnology>>;
 }
 
-impl DisplayExtWindows for Display {
+impl DisplayExtWindows for crate::Display {
   fn hmonitor(&self) -> HMONITOR {
-    self.inner.hmonitor()
-  }
-
-  fn display_settings(&self) -> Result<WindowsDisplaySettings> {
-    self.inner.display_settings()
+    HMONITOR(self.inner.hmonitor())
   }
 }
 
-impl DisplayDeviceExtWindows for DisplayDevice {
-  fn is_builtin(&self) -> Result<bool> {
-    self.inner.is_builtin()
+impl DisplayDeviceExtWindows for crate::DisplayDevice {
+  fn output_technology(&self) -> Result<Option<OutputTechnology>> {
+    self.inner.output_technology()
   }
 }
 
@@ -78,19 +75,13 @@ impl Display {
   }
 
   /// Gets the Windows monitor handle.
-  pub fn hmonitor(&self) -> isize {
-    self.monitor_handle
-  }
-
-  /// Gets the NSScreen instance (not available on Windows).
-  #[cfg(target_os = "macos")]
-  pub fn ns_screen(&self) -> &crate::platform_impl::NSScreenRef {
-    unreachable!("NSScreen not available on Windows")
+  pub fn hmonitor(&self) -> HMONITOR {
+    HMONITOR(self.monitor_handle)
   }
 
   /// Gets the display name.
   pub fn name(&self) -> Result<String> {
-    let monitor_info = self.get_monitor_info()?;
+    let monitor_info = self.monitor_info()?;
     let device_name = String::from_utf16_lossy(&monitor_info.szDevice)
       .trim_end_matches('\0')
       .to_string();
@@ -99,7 +90,7 @@ impl Display {
 
   /// Gets the full bounds rectangle of the display.
   pub fn bounds(&self) -> Result<Rect> {
-    let monitor_info = self.get_monitor_info()?;
+    let monitor_info = self.monitor_info()?;
     let rc_monitor = monitor_info.monitorInfo.rcMonitor;
     Ok(Rect::from_ltrb(
       rc_monitor.left,
@@ -111,7 +102,7 @@ impl Display {
 
   /// Gets the working area rectangle (excluding system UI).
   pub fn working_area(&self) -> Result<Rect> {
-    let monitor_info = self.get_monitor_info()?;
+    let monitor_info = self.monitor_info()?;
     let rc_work = monitor_info.monitorInfo.rcWork;
     Ok(Rect::from_ltrb(
       rc_work.left,
@@ -147,16 +138,16 @@ impl Display {
 
   /// Returns whether this is the primary display.
   pub fn is_primary(&self) -> Result<bool> {
-    let monitor_info = self.get_monitor_info()?;
+    let monitor_info = self.monitor_info()?;
     Ok(monitor_info.monitorInfo.dwFlags & 0x1 != 0) // MONITORINFOF_PRIMARY
   }
 
   /// Gets the display devices for this display.
   pub fn devices(&self) -> Result<Vec<crate::display::DisplayDevice>> {
-    let device_name = self.get_device_name()?;
+    let device_name = self.device_name()?;
     let all_devices = all_display_devices()?;
 
-    // Filter devices that match this display's device name
+    // Filter devices that match this display's device name.
     Ok(
       all_devices
         .into_iter()
@@ -208,7 +199,7 @@ impl Display {
 
   /// Gets the device name for this display.
   fn device_name(&self) -> Result<String> {
-    let monitor_info = self.get_monitor_info()?;
+    let monitor_info = self.monitor_info()?;
     Ok(
       String::from_utf16_lossy(&monitor_info.szDevice)
         .trim_end_matches('\0')
@@ -255,17 +246,28 @@ impl DisplayDevice {
 
   /// Gets the output technology.
   pub fn output_technology(&self) -> Result<Option<OutputTechnology>> {
-    todo!()
+    // TODO: Use DisplayConfigGetDeviceInfo to get actual output technology
+    Ok(Some(OutputTechnology::Unknown))
   }
 
   /// Returns whether this is a built-in device.
   pub fn is_builtin(&self) -> Result<bool> {
-    todo!()
+    // Check if this is an internal/laptop display
+    // This is a heuristic - internal displays typically have certain
+    // characteristics
+    let device_string = self.device_string()?;
+
+    // Look for common internal display indicators
+    let is_internal = device_string.to_lowercase().contains("internal")
+      || device_string.to_lowercase().contains("laptop")
+      || device_string.to_lowercase().contains("built-in");
+
+    Ok(is_internal)
   }
 
   /// Gets the connection state of the device.
   pub fn connection_state(&self) -> Result<ConnectionState> {
-    let state_flags = self.get_state_flags()?;
+    let state_flags = self.state_flags()?;
     // TODO: Get whether disconnected.
     if state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
       Ok(ConnectionState::Active)
@@ -276,7 +278,7 @@ impl DisplayDevice {
 
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
-    let state_flags = self.get_state_flags()?;
+    let state_flags = self.state_flags()?;
 
     // TODO: Implement this properly.
     if state_flags & DISPLAY_DEVICE_MIRRORING_DRIVER != 0 {
@@ -473,7 +475,7 @@ pub fn display_from_point(point: Point) -> Result<Display> {
     }
   }
 
-  Err(crate::Error::DisplayNotFound.into())
+  Err(crate::Error::DisplayNotFound)
 }
 
 /// Gets primary display on Windows.
@@ -486,8 +488,5 @@ pub fn primary_display() -> Result<Display> {
     }
   }
 
-  Err(crate::Error::PrimaryDisplayNotFound.into())
+  Err(crate::Error::PrimaryDisplayNotFound)
 }
-
-/// Gets all available monitor handles.
-fn all_monitor_handles() -> Result<Vec<isize>> {}

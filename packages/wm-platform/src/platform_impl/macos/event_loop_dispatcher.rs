@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use objc2::MainThreadMarker;
 use objc2_core_foundation::{CFRetained, CFRunLoop, CFRunLoopSource};
 
 /// Type alias for the closure used with dispatches.
@@ -42,6 +43,12 @@ impl EventLoopDispatcher {
   where
     F: FnOnce() + Send + 'static,
   {
+    // Execute the function directly if we're already on the main thread.
+    if MainThreadMarker::new().is_some() {
+      dispatch_fn();
+      return Ok(());
+    }
+
     let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
 
     {
@@ -63,7 +70,8 @@ impl EventLoopDispatcher {
   /// blocks until it completes, returning its result.
   ///
   /// This method synchronously executes the closure, blocking the calling
-  /// thread until the closure finishes executing.
+  /// thread until the closure finishes executing. If already on the main
+  /// thread, the function is executed directly.
   ///
   /// Returns a result containing the closure's return value if successful.
   pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
@@ -71,6 +79,11 @@ impl EventLoopDispatcher {
     F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
   {
+    // Execute the function directly if we're already on the main thread.
+    if MainThreadMarker::new().is_some() {
+      return Ok(dispatch_fn());
+    }
+
     let (res_tx, res_rx) = std::sync::mpsc::channel();
 
     self.dispatch(move || {

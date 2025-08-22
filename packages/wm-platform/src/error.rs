@@ -35,6 +35,15 @@ pub enum Error {
 
   #[error("Not main thread")]
   NotMainThread,
+
+  #[error("Display not found")]
+  DisplayNotFound,
+
+  #[error("Display device not found")]
+  DisplayDeviceNotFound,
+
+  #[error("Hardware enumeration failed")]
+  HardwareEnumerationFailed,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -94,8 +94,14 @@ async fn start_wm(
   let monitors = hook.displays().await?;
 
   for monitor in monitors {
-    // tracing::info!("Monitor: {:?}", monitor.device_name());
-    tracing::info!("Monitor: {:?}", monitor);
+    tracing::info!("Monitor id: {:?}", monitor.id());
+    tracing::info!("Monitor name: {:?}", monitor.name());
+    tracing::info!("Monitor bounds: {:?}", monitor.bounds());
+    tracing::info!("Monitor working area: {:?}", monitor.working_area());
+    tracing::info!("Monitor scale factor: {:?}", monitor.scale_factor());
+    tracing::info!("Monitor dpi: {:?}", monitor.dpi());
+    tracing::info!("Monitor is primary: {:?}", monitor.is_primary());
+    tracing::info!("Monitor devices: {:?}", monitor.devices());
   }
 
   loop {

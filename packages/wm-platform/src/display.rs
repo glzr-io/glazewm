@@ -1,4 +1,4 @@
-use wm_common::{Point, Rect};
+use wm_common::Rect;
 
 use crate::{platform_impl, Result};
 
@@ -152,14 +152,6 @@ pub struct DisplayDevice {
 }
 
 impl DisplayDevice {
-  /// Creates a new `DisplayDevice` from platform-specific data.
-  #[must_use]
-  pub(crate) fn from_platform_impl(
-    inner: platform_impl::DisplayDevice,
-  ) -> Self {
-    Self { inner }
-  }
-
   /// Gets the unique identifier for this display device.
   pub fn id(&self) -> DisplayDeviceId {
     self.inner.id()
@@ -170,7 +162,9 @@ impl DisplayDevice {
     self.inner.rotation()
   }
 
-  /// Returns whether this is a built-in device.
+  /// Gets whether this is a built-in display.
+  ///
+  /// Returns `true` for embedded displays (like laptop screens).
   pub fn is_builtin(&self) -> Result<bool> {
     self.inner.is_builtin()
   }

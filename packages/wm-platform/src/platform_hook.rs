@@ -112,9 +112,9 @@ impl PlatformHook {
   /// Gets all active displays.
   ///
   /// Returns all displays that are currently active and available for use.
-  pub async fn displays(&self) -> crate::Result<Vec<Display>> {
+  pub async fn displays(&mut self) -> crate::Result<Vec<Display>> {
     let dispatcher = self.resolve_dispatcher().await?;
-    platform_impl::all_displays(dispatcher).map(Into::into)
+    platform_impl::all_displays(dispatcher)
   }
 
   /// Gets all display devices.
@@ -122,20 +122,21 @@ impl PlatformHook {
   /// Returns all display devices including active, inactive, and
   /// disconnected ones.
   pub async fn all_display_devices(
-    &self,
+    &mut self,
   ) -> crate::Result<Vec<DisplayDevice>> {
     let dispatcher = self.resolve_dispatcher().await?;
-    platform_impl::all_display_devices(dispatcher)?
-      .into_iter()
-      .map(Into::into)
-      .collect()
+    platform_impl::all_display_devices(dispatcher)
   }
 
   /// Gets the display containing the specified point.
   ///
   /// If no display contains the point, returns the primary display.
-  pub fn display_from_point(point: Point) -> crate::Result<Display> {
-    platform_impl::display_from_point(point).map(Into::into)
+  pub async fn display_from_point(
+    &mut self,
+    point: Point,
+  ) -> crate::Result<Display> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::display_from_point(point, dispatcher)
   }
 
   /// Gets the primary display.
@@ -143,8 +144,9 @@ impl PlatformHook {
   /// # Platform-specific
   ///
   /// - **macOS**: Returns the display containing the menu bar.
-  pub fn primary_display() -> crate::Result<Display> {
-    platform_impl::primary_display().map(Into::into)
+  pub async fn primary_display(&mut self) -> crate::Result<Display> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::primary_display(dispatcher)
   }
 }
 
