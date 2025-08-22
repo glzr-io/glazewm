@@ -11,6 +11,7 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 - `wm-common` (lib): Shared types, utilities, and constants used across other crates.
 - `wm-ipc-client` (lib): WebSocket client library for IPC with the main application.
 - `wm-platform` (lib): Wrappers over platform-specific API's - other crates don't interact directly with the Windows and macOS API's.
+  - See `.claude/doc/wm-platform-guide.md` for development guidelines and best practices when working with the `wm-platform` crate.
 - `wm-watcher` (bin): Watchdog process that ensures proper cleanup when the main application exits.
   - Gets installed to `C:\Program Files\glzr.io\glazewm-watcher.exe`.
 
@@ -18,7 +19,6 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 
 - Do not leave partial or simplified implementations!
 - Avoid `.unwrap()` wherever possible!
-- Use the project's rustfmt.toml configuration.
 - Follow clippy suggestions unless there's a compelling reason not to.
 - Use rust-analyzer with clippy for continuous linting.
 - The project uses the nightly Rust toolchain. However, only use nightly features when they provide clear benefit.
@@ -49,14 +49,5 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 
 ### Logging
 
-- Use `tracing` crate for structured logging.
+- Use `tracing` crate for logging.
 - Log levels: `error!`, `warn!`, `info!`, `debug!`.
-
-### Reference material
-
-For platform-specific API documentation, use the Context7 MCP server:
-
-- **Windows (`windows` crate)**: `mcp__context7__resolve-library-id` with `/microsoft/windows-rs` and `/websites/docs_rs-windows-latest-windows`.
-- **macOS (`objc2` crate ecosystem)**: `mcp__context7__resolve-library-id` with crate names like "objc2-foundation", "objc2-app-kit", etc.
-  - Foundation types: `/websites/docs_rs-objc2-foundation-latest-objc2_foundation`
-  - Use topic parameters for specific types (e.g., "NSString", "NSArray", "memory management")

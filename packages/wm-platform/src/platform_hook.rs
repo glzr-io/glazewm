@@ -12,6 +12,7 @@ use objc2_core_graphics::{
 };
 use objc2_foundation::NSThread;
 use tokio::sync::oneshot;
+use wm_common::Point;
 
 use crate::{
   platform_impl::{self, EventLoopDispatcher, WindowListener},
