@@ -1,16 +1,12 @@
-use std::ptr::NonNull;
-
-use objc2::{msg_send, rc::Retained, runtime::AnyObject};
 use objc2_application_services::AXValue;
 use objc2_core_foundation::{
-  CFBoolean, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGSize,
+  CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
+  CFType, CGSize,
 };
 use objc2_core_graphics::{
-  kCGWindowNumber, CGWindowID, CGWindowListCopyWindowInfo,
+  kCGNullWindowID, kCGWindowNumber, CGWindowListCopyWindowInfo,
   CGWindowListOption,
 };
-use objc2_foundation::{NSDictionary, NSString};
-use wm_common::Rect;
 
 use crate::platform_impl::{
   AXUIElement, AXUIElementExt, AXValueExt, EventLoopDispatcher,
@@ -133,124 +129,22 @@ pub fn all_windows(
   let options = CGWindowListOption::OptionOnScreenOnly
     | CGWindowListOption::ExcludeDesktopElements;
 
-  let window_list = unsafe { CGWindowListCopyWindowInfo(options, 0) }
-    .ok_or(crate::Error::WindowEnumerationFailed)?;
+  let window_list: CFRetained<CFArray<CFDictionary<CFString, CFType>>> = unsafe {
+    CGWindowListCopyWindowInfo(options, kCGNullWindowID)
+      .map(|list| CFRetained::cast_unchecked(list))
+      .ok_or(crate::Error::WindowEnumerationFailed)
+  }?;
 
   let mut windows = Vec::new();
 
-  for index in 0..window_list.count() {
-    let window_dict_ref =
-      unsafe { window_list.value_at_index(index) } as *const CFDictionary;
+  for index in window_list {
+    let window_id: CFRetained<CFNumber> = index
+      .get(unsafe { kCGWindowNumber })
+      .and_then(|window_id| CFRetained::downcast(window_id).ok())
+      .ok_or(crate::Error::WindowEnumerationFailed)?;
 
-    // Ensure it's not a null pointer.
-    if window_dict_ref.is_null() {
-      continue;
-    }
-
-    if let Ok(window) =
-      parse_window_dict(unsafe { &*window_dict_ref }, dispatcher)
-    {
-      windows.push(window.into());
-    }
+    println!("window_id: {:?}", window_id);
   }
 
   Ok(windows)
-}
-
-/// Parses a window dictionary from CGWindowListCopyWindowInfo.
-fn parse_window_dict(
-  window_dict_ref: &CFDictionary,
-  dispatcher: &EventLoopDispatcher,
-) -> crate::Result<crate::platform_impl::NativeWindow> {
-  // Extract window ID - this is the minimum we need
-  // let window_id = window_dict_ref.get("kCGWindowNumber")?;
-  // let window_id: CFRetained<CFNumber> =
-  //   window_dict_ref.get("kCGWindowNumber").unwrap();
-  let window_id: Option<CFRetained<CFNumber>> = {
-    let window_id = window_dict_ref.get(unsafe { kCGWindowNumber });
-    Some(CFRetained::downcast(window_id).unwrap())
-  };
-
-  // .unwrap_or(crate::Error::WindowEnumerationFailed)?;
-
-  // Extract owner PID to create proper AXUIElement
-  let owner_pid =
-    get_number_from_dict(window_dict_ref, "kCGWindowOwnerPID")? as i32;
-
-  // Extract layer to filter system windows
-  let layer = get_number_from_dict(window_dict_ref, "kCGWindowLayer")
-    .unwrap_or(0.0) as i64;
-
-  // Extract alpha (transparency)
-  let alpha =
-    get_number_from_dict(window_dict_ref, "kCGWindowAlpha").unwrap_or(1.0);
-
-  // Filter out desktop elements, dock, menu bar, etc.
-  // Layer 0 is normal application windows
-  if layer != 0 || alpha < 0.1 {
-    return None;
-  }
-
-  // Extract window bounds for size filtering
-  if let Some(bounds) = get_bounds_from_dict(window_dict_ref) {
-    // Skip very small windows (likely system elements)
-    if bounds.width() < 50 || bounds.height() < 50 {
-      return None;
-    }
-  }
-
-  // Create application accessibility element from PID
-  let ax_element = unsafe { AXUIElement::new_application(owner_pid) };
-
-  let element_ref = crate::platform_impl::MainThreadRef::new(
-    dispatcher.clone(),
-    ax_element,
-  );
-
-  Some(crate::platform_impl::NativeWindow::new(
-    window_id as isize,
-    dispatcher.clone(),
-    element_ref,
-  ))
-}
-
-/// Gets a number value from a CFDictionary.
-fn get_number_from_dict(
-  window_dict_ref: *const CFDictionary,
-  key: &str,
-) -> Option<f64> {
-  let key_string = NSString::from_str(key);
-
-  // Cast to NSDictionary and get value
-  let dict = unsafe { NSDictionary::cast_unchecked(dict_obj) };
-  let value_obj = dict.objectForKey(&*key_string)?;
-
-  // Try to convert to CFNumber and get f64 value
-  unsafe {
-    let f64_value: f64 = msg_send![&*value_obj, doubleValue];
-    Some(f64_value)
-  }
-}
-
-/// Gets window bounds from a CFDictionary.
-fn get_bounds_from_dict(dict_obj: &CFRetained<CFType>) -> Option<Rect> {
-  let bounds_key = NSString::from_str("kCGWindowBounds");
-
-  // Cast to NSDictionary and get bounds dictionary
-  let dict = unsafe { NSDictionary::cast_unchecked(dict_obj) };
-  let bounds_dict = dict.objectForKey(&*bounds_key)?;
-
-  // Cast the bounds dictionary to CFType for the helper function
-  let bounds_cf = unsafe {
-    CFRetained::retain(NonNull::new_unchecked(
-      Retained::as_ptr(&bounds_dict).cast::<CFType>() as *mut CFType,
-    ))
-  };
-
-  let x = get_number_from_dict(&bounds_cf, "X")? as i32;
-  let y = get_number_from_dict(&bounds_cf, "Y")? as i32;
-  let width = get_number_from_dict(&bounds_cf, "Width")? as i32;
-  let height = get_number_from_dict(&bounds_cf, "Height")? as i32;
-
-  Some(Rect::from_ltrb(x, y, x + width, y + height))
 }
