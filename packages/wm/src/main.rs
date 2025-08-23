@@ -19,7 +19,7 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
-use wm_platform::{PlatformHook, WindowEvent};
+use wm_platform::{NativeWindowExtMacOs, PlatformHook, WindowEvent};
 
 // use wm_platform::Platform;
 // use crate::{
@@ -104,6 +104,13 @@ async fn start_wm(
     tracing::info!("Monitor devices: {:?}", monitor.devices());
   }
 
+  let windows = hook.all_windows().await?;
+  for window in windows {
+    tracing::info!("Window id: {:?}", window.title());
+    tracing::info!("Window name: {:?}", window.role());
+    tracing::info!("Window bundle id: {:?}", window.bundle_id());
+  }
+
   loop {
     // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // tracing::info!("Window manager running.");
@@ -133,7 +140,7 @@ async fn start_wm(
 
             // Test resizing window to 400x300
             // println!("Attempting to resize window...");
-            // match window.resize(Rect::from_xy(100, 100, 400, 300)) {
+            // match window.resize(400, 300)) {
             //   Ok(()) => {
             //     println!("✅ Window resize successful!");
             //     tracing::info!("Successfully resized window to 400x300");

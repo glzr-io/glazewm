@@ -41,6 +41,7 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 
 - Use `#[cfg(test)]` for test modules.
 - Write unit tests for core functionality.
+- Tests are there to verify correctness, not to define the solution. Provide a principled implementation that follows best practices and software design principles.
 
 ### Error handling
 
@@ -51,3 +52,5 @@ GlazeWM is a window manager written in Rust. The project is organized as a Cargo
 
 - Use `tracing` crate for logging.
 - Log levels: `error!`, `warn!`, `info!`, `debug!`.
+
+If the task is unreasonable or infeasible, or if any of the tests are incorrect, please tell me. The solution should be robust, maintainable, and extendable.

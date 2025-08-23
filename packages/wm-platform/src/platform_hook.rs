@@ -16,7 +16,7 @@ use wm_common::Point;
 
 use crate::{
   platform_impl::{self, EventLoopDispatcher, WindowListener},
-  Display, DisplayDevice, PlatformHookInstaller,
+  Display, DisplayDevice, NativeWindow, PlatformHookInstaller,
 };
 
 pub struct PlatformHook {
@@ -147,6 +147,21 @@ impl PlatformHook {
   pub async fn primary_display(&mut self) -> crate::Result<Display> {
     let dispatcher = self.resolve_dispatcher().await?;
     platform_impl::primary_display(dispatcher)
+  }
+
+  /// Gets all windows.
+  ///
+  /// Returns all windows that are currently on-screen and meet the
+  /// filtering criteria, excluding system windows like Dock, menu bar,
+  /// and desktop elements.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: Uses `CGWindowListCopyWindowInfo` to enumerate windows
+  ///   and filters out system applications and UI elements.
+  pub async fn all_windows(&mut self) -> crate::Result<Vec<NativeWindow>> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::all_windows(dispatcher)
   }
 }
 

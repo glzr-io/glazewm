@@ -44,6 +44,9 @@ pub enum Error {
 
   #[error("Hardware enumeration failed")]
   HardwareEnumerationFailed,
+
+  #[error("Window enumeration failed")]
+  WindowEnumerationFailed,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

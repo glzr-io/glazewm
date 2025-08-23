@@ -54,6 +54,7 @@ objc2-app-kit = { version = "0.3.1", default-features = false, features = [
   "NSWindow",
   "NSWorkspace",
   "libc",
+  "objc2-core-foundation",
 ] }
 objc2-application-services = "0.3.1"
 objc2-core-foundation = { version = "0.3.1", features = ["CFCGTypes"] }
