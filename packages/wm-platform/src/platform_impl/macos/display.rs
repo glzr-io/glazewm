@@ -2,8 +2,8 @@ use objc2::{rc::Retained, MainThreadMarker};
 use objc2_app_kit::NSScreen;
 use objc2_core_graphics::{
   CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode,
-  CGDisplayMirrorsDisplay, CGDisplayMode, CGError, CGGetActiveDisplayList,
-  CGGetOnlineDisplayList, CGMainDisplayID,
+  CGDisplayMirrorsDisplay, CGDisplayMode, CGDisplayRotation, CGError,
+  CGGetActiveDisplayList, CGGetOnlineDisplayList, CGMainDisplayID,
 };
 use objc2_foundation::{ns_string, NSNumber};
 use wm_common::{Point, Rect};
@@ -161,7 +161,7 @@ impl Display {
   }
 
   /// Gets the display devices for this display.
-  pub fn devices(&self) -> Result<Vec<crate::display::DisplayDevice>> {
+  pub fn devices(&self) -> Result<Vec<crate::DisplayDevice>> {
     // TODO: Get main device as well as any devices that are mirroring this
     // display.
     let device = DisplayDevice::new(self.cg_display_id);
@@ -169,21 +169,17 @@ impl Display {
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(
-    &self,
-  ) -> Result<Option<crate::display::DisplayDevice>> {
-    let devices = self.devices()?;
-
-    for device in devices {
-      let mirroring_state = device.mirroring_state()?;
-      if mirroring_state.is_none()
-        || mirroring_state == Some(MirroringState::Source)
-      {
-        return Ok(Some(device));
-      }
-    }
-
-    Ok(None)
+  pub fn main_device(&self) -> Result<crate::DisplayDevice> {
+    self
+      .devices()?
+      .into_iter()
+      .find(|device| {
+        matches!(
+          device.mirroring_state(),
+          Ok(None | Some(MirroringState::Source))
+        )
+      })
+      .ok_or(crate::Error::DisplayNotFound)
   }
 }
 
@@ -229,8 +225,8 @@ impl DisplayDevice {
 
   /// Gets the rotation of the device in degrees.
   pub fn rotation(&self) -> Result<f32> {
-    // TODO: Implement this.
-    Ok(0.0)
+    #[allow(clippy::cast_possible_truncation)]
+    Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
   }
 
   /// Gets the connection state of the device.
@@ -248,6 +244,8 @@ impl DisplayDevice {
 
   /// Gets the refresh rate of the device in Hz.
   pub fn refresh_rate(&self) -> Result<f32> {
+    // Calling `CGDisplayModeRelease` on the display mode is not needed as
+    // it's functionally equivalent to `CFRelease`.
     let display_mode =
       unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) }
         .ok_or(crate::Error::DisplayModeNotFound)?;
@@ -255,13 +253,13 @@ impl DisplayDevice {
     let refresh_rate =
       unsafe { CGDisplayMode::refresh_rate(Some(&display_mode)) };
 
+    #[allow(clippy::cast_possible_truncation)]
     Ok(refresh_rate as f32)
   }
 
   /// Returns whether this is a built-in device.
   pub fn is_builtin(&self) -> Result<bool> {
-    // For now, consider the main display as built-in
-    // TODO: Use IOKit to query display type properly
+    // TODO: Implement this properly.
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }

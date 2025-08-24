@@ -219,3 +219,5 @@ See `.claude/references/` for implementation patterns from similar projects:
 Note that reference projects may use other API crates like `winapi` on Windows or `core-foundation` and its related subcrates on macOS. These may have different API signatures.
 
 You can use the GitHub MCP server to look up specific files from these references, e.g. to read `src/manager.rs` from paneru.
+
+You can also use Grep's MCP server to search through all public GitHub repos for code snipepts. For example, "CGWindowListCopyWindowInfo objc2" for snippets that are likely using `CGWindowListCopyWindowInfo` together with `objc2`.

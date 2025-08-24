@@ -19,7 +19,10 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
-use wm_platform::{NativeWindowExtMacOs, PlatformHook, WindowEvent};
+use wm_platform::{
+  print_all_app_window_titles, NativeWindowExtMacOs, PlatformHook,
+  WindowEvent,
+};
 
 // use wm_platform::Platform;
 // use crate::{
@@ -103,6 +106,8 @@ async fn start_wm(
     tracing::info!("Monitor is primary: {:?}", monitor.is_primary());
     tracing::info!("Monitor devices: {:?}", monitor.devices());
   }
+
+  hook.test().await?;
 
   let windows = hook.all_windows().await?;
   for window in windows {

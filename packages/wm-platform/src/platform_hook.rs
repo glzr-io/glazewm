@@ -163,6 +163,11 @@ impl PlatformHook {
     let dispatcher = self.resolve_dispatcher().await?;
     platform_impl::all_windows(dispatcher)
   }
+
+  pub async fn test(&mut self) -> crate::Result<()> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::print_all_app_window_titles(dispatcher)
+  }
 }
 
 impl Drop for PlatformHook {

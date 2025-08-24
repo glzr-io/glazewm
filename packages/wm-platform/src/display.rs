@@ -89,7 +89,7 @@ impl Display {
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(&self) -> Result<Option<DisplayDevice>> {
+  pub fn main_device(&self) -> Result<DisplayDevice> {
     self.inner.main_device()
   }
 }
