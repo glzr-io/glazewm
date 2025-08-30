@@ -20,8 +20,8 @@ use tracing_subscriber::{
 };
 use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
 use wm_platform::{
-  NativeWindowExtMacOs, PlatformHook,
-  WindowEvent,
+  Dispatcher, EventLoop, KeybindingListener, MouseListener,
+  NativeWindowExtMacOs, WindowEvent, WindowListener,
 };
 
 // use wm_platform::Platform;
@@ -55,10 +55,10 @@ fn main() -> anyhow::Result<()> {
   } = app_command
   {
     let rt = tokio::runtime::Runtime::new()?;
-    let (platform_hook, installer) = PlatformHook::new();
+    let (event_loop, dispatcher) = EventLoop::new()?;
 
     let task_handle = rt.spawn(async {
-      let res = start_wm(config_path, verbosity, platform_hook).await;
+      let res = start_wm(config_path, verbosity, dispatcher).await;
 
       // If unable to start the WM, the error is fatal and a message
       // dialog is shown.
@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
 
     // Run event loop (blocks until shutdown). This must be on the main
     // thread for macOS compatibility.
-    installer.run_dedicated_loop()?;
+    event_loop.run()?;
 
     // Wait for clean exit of the WM.
     rt.block_on(task_handle)?
@@ -84,17 +84,17 @@ fn main() -> anyhow::Result<()> {
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
-  mut hook: PlatformHook,
+  mut dispatcher: Dispatcher,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
   // These will wait for the event loop to be ready
-  // let mut mouse_listener = hook.create_mouse_listener().await?;
-  // let mut keyboard_listener = hook.create_keyboard_listener().await?;
-  let mut window_listener = hook.create_window_listener().await?;
+  let mut mouse_listener = MouseListener::new(dispatcher.clone())?;
+  let mut keyboard_listener = KeybindingListener::new(dispatcher.clone())?;
+  let mut window_listener = WindowListener::new(dispatcher.clone())?;
 
   tracing::info!("Window manager started.");
-  let monitors = hook.displays().await?;
+  let monitors = dispatcher.displays()?;
 
   for monitor in monitors {
     tracing::info!("Monitor id: {:?}", monitor.id());
@@ -107,9 +107,7 @@ async fn start_wm(
     tracing::info!("Monitor devices: {:?}", monitor.devices());
   }
 
-  // hook.test().await?;
-
-  let windows = hook.all_windows().await?;
+  let windows = dispatcher.all_windows()?;
   for window in windows {
     tracing::info!("Window id: {:?}", window.title());
     tracing::info!("Window name: {:?}", window.role());
@@ -145,7 +143,7 @@ async fn start_wm(
     //     tracing::debug!("Received keyboard event: {:?}", event);
     //     handle_event(PlatformEvent::Keyboard(event)).await;
     //   },
-      Some(event) = window_listener.event_rx.recv() => {
+      Some(event) = window_listener.next_event() => {
         tracing::info!("Received window event: {:?}", event);
         match event {
           WindowEvent::Show(window)=>{tracing::info!("Window shown: {:?}",window);}

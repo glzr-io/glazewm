@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Mutex};
 
-use crate::platform_impl::EventLoopDispatcher;
+use crate::Dispatcher;
 
 // Using `Box<dyn std::any::Any>` to store heterogeneous types.
 type MainThreadStorage = HashMap<u64, Box<dyn std::any::Any>>;
@@ -16,7 +16,7 @@ thread_local! {
 #[derive(Debug)]
 pub struct MainThreadRef<T> {
   id: u64,
-  dispatcher: EventLoopDispatcher,
+  dispatcher: Dispatcher,
   _phantom: PhantomData<T>,
 }
 
@@ -40,7 +40,7 @@ where
 {
   /// Create a new `MainThreadRef` with an initial value.
   /// This should only be called from the main thread.
-  pub fn new(dispatcher: EventLoopDispatcher, value: T) -> Self {
+  pub fn new(dispatcher: Dispatcher, value: T) -> Self {
     let storage_id = Self::storage_id();
 
     MAIN_THREAD_STORAGE.with(|storage| {

@@ -6,34 +6,48 @@ use objc2_core_foundation::{
   CFRunLoopSourceContext,
 };
 
-use crate::platform_impl::EventLoopDispatcher;
+use crate::{DispatchFn, Dispatcher};
 
-/// Type alias for the callback function used with dispatches.
-type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
-
-pub struct EventLoop {
-  operations: Arc<Mutex<Vec<DispatchFn>>>,
-  run_loop: CFRetained<CFRunLoop>,
+#[derive(Clone)]
+pub(crate) struct EventLoopSource {
   source: CFRetained<CFRunLoopSource>,
+  run_loop: CFRetained<CFRunLoop>,
+}
+
+impl EventLoopSource {
+  pub fn queue_dispatch(&self) {
+    self.source.signal();
+    self.run_loop.wake_up();
+  }
+}
+
+// SAFETY: `CFRunLoop` and `CFRunLoopSource` are thread-safe Core
+// Foundation types. The `objc2` bindings don't implement `Send + Sync`,
+// but the underlying CF types are safe to send between threads.
+unsafe impl Send for EventLoopSource {}
+unsafe impl Sync for EventLoopSource {}
+
+/// macOS-specific implementation of [`EventLoop`].
+pub(crate) struct EventLoop {
+  operations: Arc<Mutex<Vec<DispatchFn>>>,
+  source: EventLoopSource,
 }
 
 impl EventLoop {
-  pub fn new() -> anyhow::Result<(Self, EventLoopDispatcher)> {
+  pub fn new() -> anyhow::Result<(Self, Dispatcher)> {
     // TODO: Need to verify we're on the main thread.
 
     let operations = Arc::new(Mutex::new(Vec::new()));
 
     // Set up the `CFRunLoop` directly on the current thread.
-    let (source, run_loop) = Self::setup_runloop(&operations)?;
+    let source = Self::create_run_loop(&operations)?;
 
     let event_loop = EventLoop {
       operations: operations.clone(),
-      run_loop: run_loop.clone(),
       source: source.clone(),
     };
 
-    let dispatcher =
-      EventLoopDispatcher::new(operations, Some(run_loop), Some(source));
+    let dispatcher = Dispatcher::new(operations, Some(source));
 
     Ok((event_loop, dispatcher))
   }
@@ -49,13 +63,12 @@ impl EventLoop {
     Ok(())
   }
 
-  fn setup_runloop(
+  pub(crate) fn create_run_loop(
     operations: &Arc<Mutex<Vec<DispatchFn>>>,
-  ) -> anyhow::Result<(CFRetained<CFRunLoopSource>, CFRetained<CFRunLoop>)>
-  {
+  ) -> anyhow::Result<EventLoopSource> {
     let operations_ptr = Arc::as_ptr(operations) as *mut std::ffi::c_void;
 
-    // Create CFRunLoopSource context
+    // Create `CFRunLoopSource` context.
     let mut context = CFRunLoopSourceContext {
       version: 0,
       info: operations_ptr,
@@ -70,19 +83,19 @@ impl EventLoop {
     };
 
     // Create the run loop source.
-    let source = unsafe { CFRunLoopSource::new(None, 0, &mut context) }
-      .context("Failed to create run loop source.")?;
+    let source =
+      unsafe { CFRunLoopSource::new(None, 0, &raw mut context) }
+        .context("Failed to create run loop source.")?;
 
-    let current_loop =
+    let run_loop =
       CFRunLoop::current().context("Failed to get current run loop.")?;
 
-    current_loop
-      .add_source(Some(&source), unsafe { kCFRunLoopDefaultMode });
+    run_loop.add_source(Some(&source), unsafe { kCFRunLoopDefaultMode });
 
-    Ok((source, current_loop))
+    Ok(EventLoopSource { source, run_loop })
   }
 
-  // This function is called by the CFRunLoopSource when signaled.
+  // This function is called by the `CFRunLoopSource` when signaled.
   extern "C-unwind" fn perform_operations(info: *mut std::ffi::c_void) {
     let operations = unsafe { &*(info as *const Mutex<Vec<DispatchFn>>) };
 
@@ -95,5 +108,18 @@ impl EventLoop {
       println!("Running callback from event loop.");
       callback();
     }
+  }
+}
+
+impl Drop for EventLoop {
+  fn drop(&mut self) {
+    tracing::info!("Shutting down event loop.");
+
+    self
+      .source
+      .run_loop
+      .remove_source(Some(&self.source.source), None);
+
+    self.source.run_loop.stop();
   }
 }

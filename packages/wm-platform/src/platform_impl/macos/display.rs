@@ -9,9 +9,8 @@ use objc2_foundation::{ns_string, NSNumber};
 use wm_common::{Point, Rect};
 
 use crate::{
-  display::{ConnectionState, DisplayDeviceId, DisplayId, MirroringState},
-  error::Result,
-  platform_impl::{EventLoopDispatcher, MainThreadRef},
+  platform_impl::MainThreadRef, ConnectionState, Dispatcher,
+  DisplayDeviceId, DisplayId, MirroringState, Result,
 };
 
 /// macOS-specific extensions for `Display`.
@@ -316,7 +315,7 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 ///
 /// Must be called on the main thread.
 pub fn all_displays(
-  dispatcher: &EventLoopDispatcher,
+  dispatcher: &Dispatcher,
 ) -> Result<Vec<crate::Display>> {
   let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {
@@ -336,7 +335,7 @@ pub fn all_displays(
 
 /// Gets all display devices on macOS.
 pub fn all_display_devices(
-  _dispatcher: &EventLoopDispatcher,
+  _dispatcher: &Dispatcher,
 ) -> Result<Vec<crate::DisplayDevice>> {
   let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
@@ -366,7 +365,7 @@ pub fn all_display_devices(
 
 /// Gets active display devices on macOS.
 pub fn active_display_devices(
-  _dispatcher: &EventLoopDispatcher,
+  _dispatcher: &Dispatcher,
 ) -> Result<Vec<crate::DisplayDevice>> {
   let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
@@ -397,7 +396,7 @@ pub fn active_display_devices(
 /// Gets display from point.
 pub fn display_from_point(
   point: Point,
-  dispatcher: &EventLoopDispatcher,
+  dispatcher: &Dispatcher,
 ) -> Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
@@ -412,9 +411,7 @@ pub fn display_from_point(
 }
 
 /// Gets primary display on macOS.
-pub fn primary_display(
-  dispatcher: &EventLoopDispatcher,
-) -> Result<crate::Display> {
+pub fn primary_display(dispatcher: &Dispatcher) -> Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
   for display in displays {

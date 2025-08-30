@@ -1,43 +1,144 @@
+use std::sync::{Arc, Mutex};
+
 use wm_common::Point;
 
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow};
 
-/// A thread-safe dispatcher for cross-platform operations.
+/// Type alias for a closure executed by dispatching to the event loop.
+pub type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
+
+/// A thread-safe dispatcher for various cross-platform operations.
 ///
-/// The dispatcher provides synchronous methods for querying system state.
-/// All operations are thread-safe and will automatically dispatch to the
-/// appropriate thread when necessary.
+/// On macOS, operations are automatically dispatched to the main thread
+/// whenever necessary.
 ///
 /// # Thread safety
 ///
-/// The dispatcher is cheap to clone and can be used from any thread.
-/// Operations will automatically be dispatched to the main thread on
-/// platforms that require it (such as macOS).
+/// This type is `Send + Sync` and can be cheaply cloned and shared across
+/// threads.
+///
+/// # Example usage
+///
+/// ```rust
+/// use std::thread;
+///
+/// let (event_loop, dispatcher) = EventLoop::new()?;
+///
+/// // Dispatch from another thread.
+/// thread::spawn(move || {
+///   dispatcher.dispatch(|| {
+///     println!("This is running on the event loop thread!");
+///   }).unwrap();
+/// });
+///
+/// event_loop.run();
+/// ```
 #[derive(Clone)]
 pub struct Dispatcher {
-  inner: platform_impl::EventLoopDispatcher,
+  operations: Arc<Mutex<Vec<DispatchFn>>>,
+  source: Option<platform_impl::EventLoopSource>,
 }
 
 impl Dispatcher {
-  /// Creates a new dispatcher wrapping the platform-specific
-  /// implementation.
-  pub(crate) fn new(inner: platform_impl::EventLoopDispatcher) -> Self {
-    Self { inner }
+  // TODO: Allow for source to be resolved after creation when used via
+  // `EventLoopInstaller`.
+  pub(crate) fn new(
+    operations: Arc<Mutex<Vec<DispatchFn>>>,
+    source: Option<platform_impl::EventLoopSource>,
+  ) -> Self {
+    Self { operations, source }
   }
 
-  /// Gets a reference to the inner platform-specific dispatcher.
-  pub(crate) fn inner(&self) -> &platform_impl::EventLoopDispatcher {
-    &self.inner
+  /// Asynchronously executes a closure on the event loop thread.
+  ///
+  /// If the current thread is the event loop thread, the function is
+  /// executed directly. Otherwise, this is a fire-and-forget operation
+  /// that schedules the closure to run asynchronously.
+  ///
+  /// Returns `Ok(())` if the closure was successfully queued. No result is
+  /// returned.
+  pub fn dispatch<F>(&self, dispatch_fn: F) -> crate::Result<()>
+  where
+    F: FnOnce() + Send + 'static,
+  {
+    // Execute the function directly if already on the main thread.
+    if self.is_main_thread() {
+      dispatch_fn();
+      return Ok(());
+    }
+
+    // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
+    // Windows. Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
+    let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
+
+    {
+      let mut ops = self.operations.lock().unwrap();
+      ops.push(dispatch_fn);
+    }
+
+    if let Some(source) = &self.source {
+      // Platform-specific behavior:
+      // * On Windows, this uses `PostMessageW` to send callbacks via
+      //   window messages.
+      // * On macOS, this uses `CFRunLoopSourceSignal` to wake the run loop
+      //   and process callbacks.
+      source.queue_dispatch();
+    }
+
+    Ok(())
+  }
+
+  /// Synchronously executes a closure on the event loop thread.
+  ///
+  /// If the current thread is the event loop thread, the function is
+  /// executed directly. Otherwise, this method synchronously executes
+  /// the closure, blocking the calling thread until the closure finishes
+  /// executing.
+  ///
+  /// Returns a result with the closure's return value.
+  pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
+  where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+  {
+    // Execute the function directly if already on the main thread.
+    if self.is_main_thread() {
+      return Ok(dispatch_fn());
+    }
+
+    let (res_tx, res_rx) = std::sync::mpsc::channel();
+
+    self.dispatch(move || {
+      let res = dispatch_fn();
+
+      if res_tx.send(res).is_err() {
+        tracing::error!("Failed to send closure result.");
+      }
+    })?;
+
+    res_rx.recv().map_err(crate::Error::ChannelRecv)
+  }
+
+  /// Get whether the current thread is the main thread.
+  #[must_use]
+  pub fn is_main_thread(&self) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+      use objc2::MainThreadMarker;
+      MainThreadMarker::new().is_some()
+    }
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::System::Threading::GetCurrentThreadId;
+      self.source.thread_id == unsafe { GetCurrentThreadId() }
+    }
   }
 
   /// Gets all active displays.
   ///
   /// Returns all displays that are currently active and available for use.
   pub fn displays(&self) -> crate::Result<Vec<Display>> {
-    let inner_clone = self.inner.clone();
-    self
-      .inner
-      .dispatch_sync(move || platform_impl::all_displays(&inner_clone))?
+    platform_impl::all_displays(self)
   }
 
   /// Gets all display devices.
@@ -45,10 +146,7 @@ impl Dispatcher {
   /// Returns all display devices including active, inactive, and
   /// disconnected ones.
   pub fn all_display_devices(&self) -> crate::Result<Vec<DisplayDevice>> {
-    let inner_clone = self.inner.clone();
-    self.inner.dispatch_sync(move || {
-      platform_impl::all_display_devices(&inner_clone)
-    })?
+    platform_impl::all_display_devices(self)
   }
 
   /// Gets the display containing the specified point.
@@ -58,10 +156,7 @@ impl Dispatcher {
     &self,
     point: Point,
   ) -> crate::Result<Display> {
-    let inner_clone = self.inner.clone();
-    self.inner.dispatch_sync(move || {
-      platform_impl::display_from_point(point, &inner_clone)
-    })?
+    platform_impl::display_from_point(point, self)
   }
 
   /// Gets the primary display.
@@ -70,10 +165,7 @@ impl Dispatcher {
   ///
   /// - **macOS**: Returns the display containing the menu bar.
   pub fn primary_display(&self) -> crate::Result<Display> {
-    let inner_clone = self.inner.clone();
-    self.inner.dispatch_sync(move || {
-      platform_impl::primary_display(&inner_clone)
-    })?
+    platform_impl::primary_display(self)
   }
 
   /// Gets all windows.
@@ -87,10 +179,7 @@ impl Dispatcher {
   /// - **macOS**: Uses `CGWindowListCopyWindowInfo` to enumerate windows
   ///   and filters out system applications and UI elements.
   pub fn all_windows(&self) -> crate::Result<Vec<NativeWindow>> {
-    let inner_clone = self.inner.clone();
-    self
-      .inner
-      .dispatch_sync(move || platform_impl::all_windows(&inner_clone))?
+    platform_impl::all_windows(self)
   }
 
   /// Gets all windows from all running applications.
@@ -98,10 +187,7 @@ impl Dispatcher {
   /// Returns a vector of `NativeWindow` instances for all windows
   /// from all running applications, including hidden applications.
   pub fn all_applications(&self) -> crate::Result<Vec<NativeWindow>> {
-    let inner_clone = self.inner.clone();
-    self.inner.dispatch_sync(move || {
-      platform_impl::all_applications(&inner_clone)
-    })?
+    platform_impl::all_applications(self)
   }
 
   /// Gets all visible windows from all running applications.
@@ -109,13 +195,12 @@ impl Dispatcher {
   /// Returns a vector of `NativeWindow` instances for windows that are
   /// currently visible (not minimized or hidden).
   pub fn visible_windows(&self) -> crate::Result<Vec<NativeWindow>> {
-    let inner_clone = self.inner.clone();
-    self.inner.dispatch_sync(move || {
-      platform_impl::visible_windows(&inner_clone)
-    })?
+    platform_impl::visible_windows(self)
   }
 }
 
-// Thread safety: The underlying EventLoopDispatcher is already Send + Sync
-unsafe impl Send for Dispatcher {}
-unsafe impl Sync for Dispatcher {}
+impl std::fmt::Debug for Dispatcher {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "EventLoopDispatcher")
+  }
+}

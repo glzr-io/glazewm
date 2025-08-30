@@ -10,9 +10,12 @@ use objc2_core_graphics::{
 };
 use wm_common::Rect;
 
-use crate::platform_impl::{
-  AXUIElement, AXUIElementCreateApplication, AXUIElementExt, AXValueExt,
-  EventLoopDispatcher, MainThreadRef,
+use crate::{
+  platform_impl::{
+    AXUIElement, AXUIElementCreateApplication, AXUIElementExt, AXValueExt,
+    MainThreadRef,
+  },
+  Dispatcher,
 };
 
 /// macOS-specific extensions for `NativeWindow`.
@@ -62,7 +65,7 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
   element: MainThreadRef<CFRetained<AXUIElement>>,
-  dispatcher: EventLoopDispatcher,
+  dispatcher: Dispatcher,
   pub handle: isize,
 }
 
@@ -71,7 +74,7 @@ impl NativeWindow {
   #[must_use]
   pub fn new(
     handle: isize,
-    dispatcher: EventLoopDispatcher,
+    dispatcher: Dispatcher,
     element: MainThreadRef<CFRetained<AXUIElement>>,
   ) -> Self {
     Self {
@@ -145,7 +148,7 @@ impl From<NativeWindow> for crate::NativeWindow {
 /// Returns all windows that are on-screen and meet filtering criteria,
 /// excluding system windows like Dock, menu bar, and desktop elements.
 pub fn all_windows(
-  dispatcher: &EventLoopDispatcher,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   let options = CGWindowListOption::OptionOnScreenOnly
     | CGWindowListOption::ExcludeDesktopElements;
@@ -195,7 +198,7 @@ pub fn all_windows(
 /// from all running applications, including hidden applications.
 /// Each `NativeWindow` contains the corresponding `AXUIElement`.
 pub fn all_applications(
-  dispatcher: &EventLoopDispatcher,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {
@@ -255,7 +258,7 @@ pub fn all_applications(
 /// currently visible (not minimized or hidden). Each `NativeWindow`
 /// contains the corresponding `AXUIElement`.
 pub fn visible_windows(
-  dispatcher: &EventLoopDispatcher,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {

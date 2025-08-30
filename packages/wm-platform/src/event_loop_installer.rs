@@ -1,48 +1,49 @@
-#[cfg(target_os = "windows")]
-use windows::Win32::Foundation::HWND;
+use std::sync::{Arc, Mutex};
+
+use tokio::sync::oneshot;
 
 use crate::{platform_impl, Dispatcher};
 
-/// An installer for integrating with existing event loops.
-///
-/// This allows the platform integration to work with existing event loops
-/// rather than requiring a dedicated event loop. The installer provides
-/// platform-specific installation methods.
+/// An installer for integrating [`Dispatcher`] with an existing
+/// event loop.
 pub struct EventLoopInstaller {
-  inner: platform_impl::EventLoopInstaller,
+  _source_tx: oneshot::Sender<platform_impl::EventLoopSource>,
 }
 
 impl EventLoopInstaller {
-  /// Creates a new installer and dispatcher for integrating with existing
-  /// event loops.
-  ///
-  /// The dispatcher can be used immediately to create listeners and query
-  /// system state, but events will only be received after calling the
-  /// appropriate install method.
+  /// Creates a new installer and dispatcher for integrating with an
+  /// existing event loop.
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
-    let (inner_installer, inner_dispatcher) =
-      platform_impl::EventLoopInstaller::new()?;
-    let dispatcher = Dispatcher::new(inner_dispatcher);
+    let (source_tx, _source_rx) = oneshot::channel();
+
+    let dispatcher =
+      Dispatcher::new(Arc::new(Mutex::new(Vec::new())), None);
 
     Ok((
       Self {
-        inner: inner_installer,
+        _source_tx: source_tx,
       },
       dispatcher,
     ))
   }
 
-  /// Install on the main thread (macOS only).
+  /// Install on an existing event loop running on the main thread (macOS
+  /// only).
   ///
-  /// This method integrates with the existing CFRunLoop on the main
-  /// thread. It must be called from the main thread.
+  /// This method integrates with the existing `CFRunLoop` on the main
+  /// thread.
   ///
   /// # Platform-specific
   ///
-  /// - **macOS**: Must be called from the main thread.
+  /// This method is only available on macOS.
   #[cfg(target_os = "macos")]
   pub fn install(self) -> crate::Result<()> {
-    self.inner.install()
+    platform_impl::EventLoop::create_run_loop(&Arc::new(Mutex::new(
+      Vec::new(),
+    )))?;
+
+    // TODO: Need to send the source to the dispatcher.
+    todo!();
   }
 
   /// Install on an existing event loop via window subclassing (Windows
@@ -53,7 +54,7 @@ impl EventLoopInstaller {
   ///
   /// # Platform-specific
   ///
-  /// - **Windows**: Integrates with existing message loop via subclassing.
+  /// This method is only available on Windows.
   #[cfg(target_os = "windows")]
   pub fn install_with_subclass(self, hwnd: HWND) -> crate::Result<()> {
     self.inner.install_with_subclass(hwnd)

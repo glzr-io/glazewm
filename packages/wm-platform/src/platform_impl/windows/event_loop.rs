@@ -35,23 +35,47 @@ thread_local! {
   static WM_DISPATCH_CALLBACK: u32 = RegisterWindowMessageW(w!("GlazeWM:Dispatch"));
 }
 
-/// Type alias for the callback function used with dispatches.
-type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
+#[derive(Clone)]
+pub(crate) struct EventLoopSource {
+  message_window_handle: crate::WindowHandle,
+  thread_id: u32,
+}
 
-/// Represents a Win32 message loop that runs on a separate thread.
-///
-/// Callbacks can be remotely dispatched to the event loop thread using
-/// [`EventLoop::dispatch`].
-pub struct EventLoop {
+impl EventLoopSource {
+  pub fn queue_dispatch(&self, dispatch_fn: DispatchFn) {
+    // Leak to a raw pointer to then be passed as `WPARAM` in the message.
+    let callback_ptr = Box::into_raw(Box::new(dispatch_fn));
+
+    unsafe {
+      if PostMessageW(
+        HWND(self.message_window_handle),
+        *WM_DISPATCH_CALLBACK,
+        WPARAM(callback_ptr as _),
+        LPARAM(0),
+      )
+      .is_ok()
+      {
+        Ok(())
+      } else {
+        // If `PostMessage` fails, we need to clean up the callback.
+        let _ = Box::from_raw(callback_ptr);
+        Err(crate::Error::WindowMessage(
+          "Failed to post message".to_string(),
+        ))
+      }
+    }
+  }
+}
+
+/// Windows-specific implementation of [`EventLoop`].
+pub(crate) struct EventLoop {
   message_window_handle: crate::WindowHandle,
   thread_handle: Option<JoinHandle<anyhow::Result<()>>>,
   thread_id: u32,
 }
 
 impl EventLoop {
-  /// Creates a new Win32 [`EventLoop`] and starts the message loop in a
-  /// separate thread.
-  pub fn new() -> crate::Result<(Self, super::EventLoopDispatcher)> {
+  pub fn new() -> crate::Result<(Self, super::Dispatcher)> {
     let (sender, receiver) =
       tokio::sync::oneshot::channel::<(crate::WindowHandle, u32)>();
 
@@ -91,8 +115,7 @@ impl EventLoop {
       thread_id,
     };
 
-    let dispatcher =
-      super::EventLoopDispatcher::new(window_handle, thread_id);
+    let dispatcher = super::Dispatcher::new(window_handle, thread_id);
 
     Ok((event_loop, dispatcher))
   }
@@ -172,7 +195,7 @@ impl EventLoop {
         LRESULT(0)
       }
 
-      // `WM_QUIT` is handled for us by the message loop, so should be
+      // `WM_QUIT` is handled for us by the message loop and should be
       // forwarded along with other messages we don't care about.
       _ => DefWindowProcW(hwnd, msg, wparam, lparam),
     }

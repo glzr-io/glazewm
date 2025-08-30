@@ -34,8 +34,8 @@ pub struct DisplayDeviceId(
 ///
 /// # Platform-specific
 ///
-/// - **Windows**: This corresponds to a "display monitor", each with a
-///   monitor handle (`HMONITOR`).
+/// - **Windows**: This corresponds to a Win32 "display monitor", each with
+///   a monitor handle (`HMONITOR`).
 /// - **macOS**: This corresponds to an `NSScreen`.
 /// TODO: Add `PartialEq` and `Eq`.
 #[derive(Clone, Debug)]
@@ -45,6 +45,7 @@ pub struct Display {
 
 impl Display {
   /// Gets the unique identifier for this display.
+  #[must_use]
   pub fn id(&self) -> DisplayId {
     self.inner.id()
   }
@@ -153,6 +154,7 @@ pub struct DisplayDevice {
 
 impl DisplayDevice {
   /// Gets the unique identifier for this display device.
+  #[must_use]
   pub fn id(&self) -> DisplayDeviceId {
     self.inner.id()
   }

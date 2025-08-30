@@ -23,10 +23,9 @@ use crate::{
     AXObserverAddNotification, AXObserverCreate,
     AXObserverGetRunLoopSource, AXObserverRef,
     AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
-    AXValueExt, CFStringRef, EventLoopDispatcher, MainThreadRef,
-    NativeWindow, ProcessId,
+    AXValueExt, CFStringRef, MainThreadRef, NativeWindow, ProcessId,
   },
-  WindowEvent,
+  Dispatcher, WindowEvent,
 };
 
 /// Represents an accessibility observer for a specific application
@@ -69,12 +68,11 @@ pub struct WindowListener {
 }
 
 impl WindowListener {
-  pub fn new(dispatcher: EventLoopDispatcher) -> anyhow::Result<Self> {
+  pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
-    let dispatcher_clone = dispatcher.clone();
-    dispatcher.dispatch_sync(|| {
-      Self::add_observers(events_tx, dispatcher_clone);
+    dispatcher.clone().dispatch_sync(|| {
+      Self::add_observers(events_tx, dispatcher);
     })?;
 
     Ok(Self { event_rx })
@@ -82,7 +80,7 @@ impl WindowListener {
 
   fn add_observers(
     events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: EventLoopDispatcher,
+    dispatcher: Dispatcher,
   ) {
     let (observer, events_rx) = NotificationObserver::new();
 
@@ -130,7 +128,7 @@ impl WindowListener {
   fn listen(
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: EventLoopDispatcher,
+    dispatcher: Dispatcher,
   ) {
     // Track window observers for each application by PID
     // let mut app_observers: HashMap<pid_t, AppWindowObserver> =
@@ -198,7 +196,7 @@ impl WindowListener {
   fn register_window_observer(
     pid: ProcessId,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: &EventLoopDispatcher,
+    dispatcher: &Dispatcher,
   ) -> anyhow::Result<AppWindowObserver> {
     // NOTE: Accessibility APIs must be called directly on main thread
     // dispatch_sync can cause threading issues with the accessibility
@@ -307,7 +305,7 @@ impl WindowListener {
 /// Context data passed to the window event callback
 struct WindowEventContext {
   events_tx: mpsc::UnboundedSender<WindowEvent>,
-  dispatcher: EventLoopDispatcher,
+  dispatcher: Dispatcher,
   pid: ProcessId,
 }
 

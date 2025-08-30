@@ -1,18 +1,12 @@
 use crate::Dispatcher;
 
-/// Listener for mouse events across the system.
-///
-/// The mouse listener provides events for mouse movement, clicks, and
-/// other mouse interactions that occur anywhere on the system.
+/// A listener for system-wide mouse events.
 pub struct MouseListener {
   _dispatcher: Dispatcher,
 }
 
 impl MouseListener {
-  /// Creates a new mouse listener using the provided dispatcher.
-  ///
-  /// The listener will use the dispatcher to receive mouse events from
-  /// the platform event loop.
+  /// Creates a new mouse listener.
   pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
     // TODO: Implement platform-specific mouse listener setup
     Ok(Self {

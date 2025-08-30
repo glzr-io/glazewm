@@ -12,8 +12,6 @@ pub type AXObserverRef = *mut __AXObserver;
 pub struct __CFRunLoopSource(c_void);
 
 pub type CFRunLoopSourceRef = *mut __CFRunLoopSource;
-pub type CGKeyCode = u16;
-pub type CGCharCode = u16;
 
 pub type ProcessId = i32;
 pub type CFStringRef = *const CFString;
