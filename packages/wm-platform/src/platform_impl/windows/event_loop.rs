@@ -24,10 +24,11 @@ use windows::{
 };
 
 thread_local! {
-  /// Custom message ID for dispatching callbacks to the event loop thread.
+  /// Custom message ID for dispatching closures to be run on the event
+  /// loop thread.
   ///
   /// `WPARAM` contains a `Box<Box<dyn FnOnce()>>` that must be retrieved
-  /// with `Box::from_raw`, and `LPARAM` is unused.
+  /// with `Box::from_raw`. `LPARAM` is unused.
   ///
   /// This message is sent using `PostMessageW` and handled in
   /// [`EventLoop::window_proc`].
@@ -50,7 +51,7 @@ pub struct EventLoop {
 impl EventLoop {
   /// Creates a new Win32 [`EventLoop`] and starts the message loop in a
   /// separate thread.
-  pub fn new() -> anyhow::Result<Self> {
+  pub fn new() -> crate::Result<(Self, super::EventLoopDispatcher)> {
     let (sender, receiver) =
       tokio::sync::oneshot::channel::<(crate::WindowHandle, u32)>();
 
@@ -80,13 +81,41 @@ impl EventLoop {
     });
 
     // Wait for the window handle and thread ID.
-    let (window_handle, thread_id) = receiver.blocking_recv()?;
+    let (window_handle, thread_id) = receiver
+      .blocking_recv()
+      .map_err(|e| crate::Error::ChannelRecv(e))?;
 
-    Ok(EventLoop {
+    let event_loop = EventLoop {
       message_window_handle: window_handle,
       thread_handle: Some(thread_handle),
       thread_id,
-    })
+    };
+
+    let dispatcher =
+      super::EventLoopDispatcher::new(window_handle, thread_id);
+
+    Ok((event_loop, dispatcher))
+  }
+
+  /// Runs the event loop, blocking until shutdown.
+  ///
+  /// This method will block the current thread until the event loop is
+  /// stopped.
+  pub fn run(mut self) -> crate::Result<()> {
+    tracing::info!("Starting Windows event loop.");
+
+    // Join the thread to wait for completion
+    if let Some(thread_handle) = self.thread_handle.take() {
+      thread_handle
+        .join()
+        .map_err(|_| {
+          crate::Error::Thread("Event loop thread panicked".to_string())
+        })?
+        .map_err(|e| crate::Error::Platform(e.to_string()))?;
+    }
+
+    tracing::info!("Windows event loop exiting.");
+    Ok(())
   }
 
   /// Shuts down the event loop gracefully.

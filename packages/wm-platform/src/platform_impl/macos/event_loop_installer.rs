@@ -1,57 +1,58 @@
 use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
+use objc2::{msg_send, ClassType};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
   CFRunLoopSourceContext,
 };
+use objc2_foundation::NSThread;
 
 use crate::platform_impl::EventLoopDispatcher;
 
 /// Type alias for the callback function used with dispatches.
 type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
 
-pub struct EventLoop {
+pub struct EventLoopInstaller {
   operations: Arc<Mutex<Vec<DispatchFn>>>,
-  run_loop: CFRetained<CFRunLoop>,
-  source: CFRetained<CFRunLoopSource>,
 }
 
-impl EventLoop {
-  pub fn new() -> anyhow::Result<(Self, EventLoopDispatcher)> {
-    // TODO: Need to verify we're on the main thread.
-
+impl EventLoopInstaller {
+  pub fn new() -> crate::Result<(Self, EventLoopDispatcher)> {
     let operations = Arc::new(Mutex::new(Vec::new()));
+    
+    // Create a dispatcher that will be set up when installed
+    let dispatcher = EventLoopDispatcher::new(
+      operations.clone(),
+      None, // Will be set when installed
+      None, // Will be set when installed
+    );
 
-    // Set up the `CFRunLoop` directly on the current thread.
-    let (source, run_loop) = Self::setup_runloop(&operations)?;
-
-    let event_loop = EventLoop {
-      operations: operations.clone(),
-      run_loop: run_loop.clone(),
-      source: source.clone(),
-    };
-
-    let dispatcher =
-      EventLoopDispatcher::new(operations, Some(run_loop), Some(source));
-
-    Ok((event_loop, dispatcher))
+    Ok((Self { operations }, dispatcher))
   }
 
-  /// Runs the event loop.
+  /// Install on the main thread (macOS only).
   ///
-  /// This method will block the current thread until the event loop is
-  /// stopped.
-  pub fn run(&self) -> crate::Result<()> {
-    tracing::info!("Starting macOS event loop.");
-    CFRunLoop::run();
-    tracing::info!("macOS event loop exiting.");
+  /// This method integrates with the existing CFRunLoop on the main thread.
+  /// It must be called from the main thread.
+  pub fn install(self) -> crate::Result<()> {
+    let is_main_thread: bool =
+      unsafe { msg_send![NSThread::class(), isMainThread] };
+
+    // Verify we're on the main thread.
+    if !is_main_thread {
+      return Err(crate::Error::NotMainThread);
+    }
+
+    let (_source, _run_loop) = Self::setup_runloop(&self.operations)?;
+
+    tracing::info!("EventLoopInstaller installed on main thread.");
     Ok(())
   }
 
   fn setup_runloop(
     operations: &Arc<Mutex<Vec<DispatchFn>>>,
-  ) -> anyhow::Result<(CFRetained<CFRunLoopSource>, CFRetained<CFRunLoop>)>
+  ) -> crate::Result<(CFRetained<CFRunLoopSource>, CFRetained<CFRunLoop>)>
   {
     let operations_ptr = Arc::as_ptr(operations) as *mut std::ffi::c_void;
 
@@ -92,7 +93,6 @@ impl EventLoop {
     };
 
     for callback in callbacks {
-      println!("Running callback from event loop.");
       callback();
     }
   }

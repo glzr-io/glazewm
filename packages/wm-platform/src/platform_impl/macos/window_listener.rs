@@ -69,7 +69,7 @@ pub struct WindowListener {
 }
 
 impl WindowListener {
-  pub fn new(dispatcher: &EventLoopDispatcher) -> anyhow::Result<Self> {
+  pub fn new(dispatcher: EventLoopDispatcher) -> anyhow::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
     let dispatcher_clone = dispatcher.clone();

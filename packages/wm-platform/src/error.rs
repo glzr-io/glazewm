@@ -47,6 +47,15 @@ pub enum Error {
 
   #[error("Window enumeration failed")]
   WindowEnumerationFailed,
+
+  #[error("Thread error: {0}")]
+  Thread(String),
+
+  #[error("Window message error: {0}")]
+  WindowMessage(String),
+
+  #[error("Platform error: {0}")]
+  Platform(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

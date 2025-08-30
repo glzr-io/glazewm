@@ -23,7 +23,7 @@ pub trait AXUIElementExt {
   /// # Errors
   ///
   /// Returns an error if:
-  /// - The accessibility operation fails (e.g., invalid attribute name).
+  /// - The accessibility operation fails (e.g. invalid attribute name).
   /// - The attribute value cannot be cast to the requested type.
   fn get_attribute<T: objc2_core_foundation::Type>(
     &self,
