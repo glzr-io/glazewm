@@ -1,11 +1,11 @@
-use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use wm_common::Point;
 
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow};
 
-/// Type alias for a closure executed by dispatching to the event loop.
-pub type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
+/// Type alias for a closure to be executed by the event loop.
+pub type DispatchFn = dyn FnOnce() + Send + 'static;
 
 /// A thread-safe dispatcher for various cross-platform operations.
 ///
@@ -35,7 +35,6 @@ pub type DispatchFn = Box<Box<dyn FnOnce() + Send + 'static>>;
 /// ```
 #[derive(Clone)]
 pub struct Dispatcher {
-  operations: Arc<Mutex<Vec<DispatchFn>>>,
   source: Option<platform_impl::EventLoopSource>,
 }
 
@@ -43,10 +42,9 @@ impl Dispatcher {
   // TODO: Allow for source to be resolved after creation when used via
   // `EventLoopInstaller`.
   pub(crate) fn new(
-    operations: Arc<Mutex<Vec<DispatchFn>>>,
     source: Option<platform_impl::EventLoopSource>,
   ) -> Self {
-    Self { operations, source }
+    Self { source }
   }
 
   /// Asynchronously executes a closure on the event loop thread.
@@ -67,22 +65,13 @@ impl Dispatcher {
       return Ok(());
     }
 
-    // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
-    // Windows. Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
-    let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
-
-    {
-      let mut ops = self.operations.lock().unwrap();
-      ops.push(dispatch_fn);
-    }
-
     if let Some(source) = &self.source {
       // Platform-specific behavior:
       // * On Windows, this uses `PostMessageW` to send callbacks via
       //   window messages.
       // * On macOS, this uses `CFRunLoopSourceSignal` to wake the run loop
       //   and process callbacks.
-      source.queue_dispatch();
+      source.send_dispatch(Box::new(dispatch_fn))?;
     }
 
     Ok(())

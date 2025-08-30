@@ -43,6 +43,10 @@ pub(crate) struct EventLoopSource {
 
 impl EventLoopSource {
   pub fn queue_dispatch(&self, dispatch_fn: DispatchFn) {
+    // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
+    // Windows. Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
+    let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
+
     // Leak to a raw pointer to then be passed as `WPARAM` in the message.
     let callback_ptr = Box::into_raw(Box::new(dispatch_fn));
 

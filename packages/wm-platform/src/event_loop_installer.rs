@@ -1,30 +1,15 @@
-use std::sync::{Arc, Mutex};
-
-use tokio::sync::oneshot;
-
 use crate::{platform_impl, Dispatcher};
 
 /// An installer for integrating [`Dispatcher`] with an existing
 /// event loop.
-pub struct EventLoopInstaller {
-  _source_tx: oneshot::Sender<platform_impl::EventLoopSource>,
-}
+pub struct EventLoopInstaller;
 
 impl EventLoopInstaller {
   /// Creates a new installer and dispatcher for integrating with an
   /// existing event loop.
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
-    let (source_tx, _source_rx) = oneshot::channel();
-
-    let dispatcher =
-      Dispatcher::new(Arc::new(Mutex::new(Vec::new())), None);
-
-    Ok((
-      Self {
-        _source_tx: source_tx,
-      },
-      dispatcher,
-    ))
+    let dispatcher = Dispatcher::new(None);
+    Ok((Self, dispatcher))
   }
 
   /// Install on an existing event loop running on the main thread (macOS
@@ -38,9 +23,7 @@ impl EventLoopInstaller {
   /// This method is only available on macOS.
   #[cfg(target_os = "macos")]
   pub fn install(self) -> crate::Result<()> {
-    platform_impl::EventLoop::create_run_loop(&Arc::new(Mutex::new(
-      Vec::new(),
-    )))?;
+    let _source = platform_impl::EventLoop::add_dispatch_source()?;
 
     // TODO: Need to send the source to the dispatcher.
     todo!();

@@ -21,6 +21,9 @@ pub enum Error {
   #[error(transparent)]
   ChannelRecv(#[from] std::sync::mpsc::RecvError),
 
+  #[error("Channel send error: {0}")]
+  ChannelSend(String),
+
   #[error(transparent)]
   Anyhow(#[from] anyhow::Error),
 
