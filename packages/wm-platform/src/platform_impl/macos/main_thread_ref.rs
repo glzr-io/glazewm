@@ -57,7 +57,7 @@ where
   fn storage_id() -> u64 {
     use std::sync::atomic::{AtomicU64, Ordering};
     static COUNTER: AtomicU64 = AtomicU64::new(0);
-    COUNTER.fetch_add(1, Ordering::Relaxed) as u64
+    COUNTER.fetch_add(1, Ordering::Relaxed)
   }
 
   /// Execute a closure with access to the value on the main thread.

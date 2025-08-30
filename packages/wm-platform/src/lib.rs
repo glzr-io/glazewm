@@ -19,7 +19,7 @@ pub use platform_hook::*;
 pub use platform_hook_installer::*;
 #[cfg(target_os = "macos")]
 pub use platform_impl::{
-  print_all_app_window_titles, DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
+  all_applications, visible_windows, DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{DisplayDeviceExtWindows, DisplayExtWindows};

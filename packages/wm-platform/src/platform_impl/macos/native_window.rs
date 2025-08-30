@@ -1,5 +1,4 @@
-use accessibility_sys::kAXWindowsAttribute;
-use objc2_app_kit::{NSRunningApplication, NSWorkspace};
+use objc2_app_kit::NSWorkspace;
 use objc2_application_services::AXValue;
 use objc2_core_foundation::{
   CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
@@ -190,17 +189,19 @@ pub fn all_windows(
   Ok(windows)
 }
 
-/// Gets all running applications and prints the titles of their windows.
+/// Gets all windows from all running applications.
 ///
-/// Iterates through all running applications and their AXUIElement
-/// windows, printing the title of each window found.
-pub fn print_all_app_window_titles(
+/// Returns a vector of `NativeWindow` instances for all windows
+/// from all running applications, including hidden applications.
+/// Each `NativeWindow` contains the corresponding `AXUIElement`.
+pub fn all_applications(
   dispatcher: &EventLoopDispatcher,
-) -> crate::Result<()> {
+) -> crate::Result<Vec<crate::NativeWindow>> {
   let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {
     let workspace = unsafe { NSWorkspace::sharedWorkspace() };
     let running_apps = unsafe { workspace.runningApplications() };
+    let mut windows = Vec::new();
 
     for app in running_apps.iter() {
       let pid = unsafe { app.processIdentifier() };
@@ -211,24 +212,16 @@ pub fn print_all_app_window_titles(
         continue;
       }
 
-      let bundle_id_str =
-        bundle_id.map(|id| id.to_string()).unwrap_or_default();
-      println!("Application: {} (PID: {})", bundle_id_str, pid);
-
       // Create AXUIElement for the application
       let app_element_ref = unsafe { AXUIElementCreateApplication(pid) };
 
       if app_element_ref.is_null() {
-        println!("  Failed to create AXUIElement for application");
         continue;
       }
 
       let app_element = match AXUIElement::from_ref(app_element_ref) {
         Ok(element) => element,
-        Err(e) => {
-          println!("  Failed to retain AXUIElement: {}", e);
-          continue;
-        }
+        Err(_) => continue,
       };
 
       // Get windows from the application. Note that this fails if
@@ -236,61 +229,81 @@ pub fn print_all_app_window_titles(
       let windows_result =
         app_element.get_attribute::<CFArray<AXUIElement>>("AXWindows");
 
-      match windows_result {
-        Ok(windows_array) => {
-          println!("  Found {} windows:", windows_array.len());
+      if let Ok(windows_array) = windows_result {
+        for window in windows_array.iter() {
+          let ax_ui_element =
+            MainThreadRef::new(dispatcher_clone.clone(), window);
 
-          for window in windows_array.iter() {
-            // Get the title of each window
-            match window.get_attribute::<CFString>("AXTitle") {
-              Ok(title) => {
-                let title_str = title.to_string();
-                if !title_str.is_empty() {
-                  println!("    Window: \"{}\"", title_str);
-                } else {
-                  println!("    Window: (no title)");
-                }
-              }
-              Err(_) => {
-                println!("    Window: (failed to get title)");
-              }
-            }
+          let native_window = NativeWindow::new(
+            pid as isize,
+            dispatcher_clone.clone(),
+            ax_ui_element,
+          );
 
-            let ax_ui_element =
-              MainThreadRef::new(dispatcher_clone.clone(), window);
-
-            let native_window = NativeWindow::new(
-              1,
-              dispatcher_clone.clone(),
-              ax_ui_element,
-            );
-
-            let bundle_id_str = bundle_id_str.clone();
-            std::thread::spawn(move || {
-              for i in 1..60 {
-                if let Err(e) = native_window
-                  .resize(400. + (i as f64 * 10.), 400. + (i as f64 * 10.))
-                {
-                  println!("  Failed to resize window: {}", e);
-                  println!(
-                    "Failed to resize window: Application: {} (PID: {})",
-                    bundle_id_str, pid
-                  );
-                }
-
-                std::thread::sleep(std::time::Duration::from_secs(1));
-              }
-            });
-          }
-        }
-        Err(e) => {
-          println!("  Failed to get windows: {}", e);
+          windows.push(native_window.into());
         }
       }
-
-      println!();
     }
 
-    Ok(())
+    Ok(windows)
+  })?
+}
+
+/// Gets all visible windows from all running applications.
+///
+/// Returns a vector of `NativeWindow` instances for windows that are
+/// currently visible (not minimized or hidden). Each `NativeWindow`
+/// contains the corresponding `AXUIElement`.
+pub fn visible_windows(
+  dispatcher: &EventLoopDispatcher,
+) -> crate::Result<Vec<crate::NativeWindow>> {
+  let dispatcher_clone = dispatcher.clone();
+  dispatcher.dispatch_sync(move || {
+    let workspace = unsafe { NSWorkspace::sharedWorkspace() };
+    let running_apps = unsafe { workspace.runningApplications() };
+    let mut windows = Vec::new();
+
+    for app in &running_apps {
+      let pid = unsafe { app.processIdentifier() };
+
+      // Skip system applications without a bundle identifier
+      let bundle_id = unsafe { app.bundleIdentifier() };
+      if bundle_id.is_none() {
+        continue;
+      }
+
+      // Create AXUIElement for the application
+      let app_element_ref = unsafe { AXUIElementCreateApplication(pid) };
+
+      if app_element_ref.is_null() {
+        continue;
+      }
+
+      let Ok(app_element) = AXUIElement::from_ref(app_element_ref) else {
+        continue;
+      };
+
+      // Get windows from the application. Note that this fails if
+      // accessibility permissions are not granted.
+      let windows_result =
+        app_element.get_attribute::<CFArray<AXUIElement>>("AXWindows");
+
+      if let Ok(windows_array) = windows_result {
+        for window in windows_array.iter() {
+          let ax_ui_element =
+            MainThreadRef::new(dispatcher_clone.clone(), window);
+
+          let native_window = NativeWindow::new(
+            pid as isize,
+            dispatcher_clone.clone(),
+            ax_ui_element,
+          );
+
+          windows.push(native_window.into());
+        }
+      }
+    }
+
+    Ok(windows)
   })?
 }

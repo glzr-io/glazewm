@@ -20,7 +20,7 @@ use tracing_subscriber::{
 };
 use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
 use wm_platform::{
-  print_all_app_window_titles, NativeWindowExtMacOs, PlatformHook,
+  NativeWindowExtMacOs, PlatformHook,
   WindowEvent,
 };
 
@@ -107,7 +107,7 @@ async fn start_wm(
     tracing::info!("Monitor devices: {:?}", monitor.devices());
   }
 
-  hook.test().await?;
+  // hook.test().await?;
 
   let windows = hook.all_windows().await?;
   for window in windows {
@@ -117,6 +117,19 @@ async fn start_wm(
   }
 
   loop {
+    // let monitors = hook.displays().await?;
+
+    // for monitor in monitors {
+    //   tracing::info!("Monitor id: {:?}", monitor.id());
+    //   tracing::info!("Monitor name: {:?}", monitor.name());
+    //   tracing::info!("Monitor bounds: {:?}", monitor.bounds());
+    //   tracing::info!("Monitor working area: {:?}",
+    // monitor.working_area());   tracing::info!("Monitor scale factor:
+    // {:?}", monitor.scale_factor());   tracing::info!("Monitor dpi:
+    // {:?}", monitor.dpi());   tracing::info!("Monitor is primary:
+    // {:?}", monitor.is_primary());   tracing::info!("Monitor devices:
+    // {:?}", monitor.devices()); }
+
     // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // tracing::info!("Window manager running.");
     tokio::select! {

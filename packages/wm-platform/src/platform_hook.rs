@@ -164,9 +164,22 @@ impl PlatformHook {
     platform_impl::all_windows(dispatcher)
   }
 
-  pub async fn test(&mut self) -> crate::Result<()> {
+  /// Gets all windows from all running applications.
+  ///
+  /// Returns a vector of `NativeWindow` instances for all windows
+  /// from all running applications, including hidden applications.
+  pub async fn all_applications(&mut self) -> crate::Result<Vec<NativeWindow>> {
     let dispatcher = self.resolve_dispatcher().await?;
-    platform_impl::print_all_app_window_titles(dispatcher)
+    platform_impl::all_applications(dispatcher)
+  }
+
+  /// Gets all visible windows from all running applications.
+  ///
+  /// Returns a vector of `NativeWindow` instances for windows that are
+  /// currently visible (not minimized or hidden).
+  pub async fn visible_windows(&mut self) -> crate::Result<Vec<NativeWindow>> {
+    let dispatcher = self.resolve_dispatcher().await?;
+    platform_impl::visible_windows(dispatcher)
   }
 }
 
