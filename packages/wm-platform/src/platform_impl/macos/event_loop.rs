@@ -18,28 +18,18 @@ pub(crate) struct EventLoopSource {
 }
 
 impl EventLoopSource {
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub fn send_dispatch(
     &self,
     dispatch_fn: Box<DispatchFn>,
   ) -> crate::Result<()> {
-    // self
-    //   .dispatch_tx
-    //   .send(dispatch_fn)
-    //   .map_err(|err| crate::Error::ChannelSend(err.to_string()))?;
-
-    // self.source.signal();
-    // self.run_loop.wake_up();
-
-    DispatchQueue::main().exec_sync(|| {
-      dispatch_fn();
-    });
-
-    // dispatch2::run_on_main(move || {
-    // });
-
+    // TODO: Fully remove dispatch channels (`dispatch_tx` and
+    // `dispatch_rx`).
+    DispatchQueue::main().exec_sync(dispatch_fn);
     Ok(())
   }
 
+  #[allow(clippy::unnecessary_wraps)]
   pub fn send_stop(&self) -> crate::Result<()> {
     self.run_loop.stop();
     Ok(())

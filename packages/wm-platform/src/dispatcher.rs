@@ -229,8 +229,7 @@ mod tests {
 
   #[test]
   fn dispatch_after_stop_fails() {
-    let (_event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop.");
+    let (_event_loop, dispatcher) = EventLoop::new().unwrap();
 
     dispatcher
       .stop_event_loop()
@@ -249,8 +248,7 @@ mod tests {
   fn multiple_dispatches_execute_in_order() {
     const ITERATIONS: usize = 500;
 
-    let (event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop.");
+    let (event_loop, dispatcher) = EventLoop::new().unwrap();
 
     let order = Arc::new(Mutex::new(Vec::new()));
     let order_clone = order.clone();
@@ -262,7 +260,7 @@ mod tests {
           .dispatch(move || {
             order_clone.lock().unwrap().push(index);
           })
-          .expect("Failed to dispatch.");
+          .unwrap();
       }
 
       dispatcher.stop_event_loop().unwrap();
@@ -277,9 +275,7 @@ mod tests {
 
   #[test]
   fn dispatch_from_different_threads() {
-    let (event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop.");
-
+    let (event_loop, dispatcher) = EventLoop::new().unwrap();
     let results = Arc::new(Mutex::new(Vec::new()));
 
     let thread_handles: Vec<_> = (0..3)
@@ -291,19 +287,17 @@ mod tests {
             .dispatch(move || {
               results.lock().unwrap().push(index);
             })
-            .expect("Failed to dispatch.");
+            .unwrap();
         })
       })
       .collect();
 
     std::thread::spawn(move || {
       std::thread::sleep(Duration::from_millis(100));
-      dispatcher
-        .stop_event_loop()
-        .expect("Failed to stop dispatcher.");
+      dispatcher.stop_event_loop().unwrap();
     });
 
-    event_loop.run().expect("Failed to run event loop.");
+    event_loop.run().unwrap();
     for handle in thread_handles {
       handle.join().unwrap();
     }
