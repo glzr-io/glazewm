@@ -6,6 +6,16 @@ edition = "2021"
 [lib]
 path = "src/lib.rs"
 
+[[test]]
+name = "dispatcher_tests"
+path = "tests/dispatcher_tests.rs"
+harness = false
+
+[[test]]
+name = "event_loop_tests"
+path = "tests/event_loop_tests.rs"
+harness = false
+
 [dependencies]
 anyhow = { workspace = true }
 home = { workspace = true }
@@ -42,6 +52,7 @@ windows-interface = { version = "0.52" }
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility = "0.2"
 accessibility-sys = "0.2"
+dispatch2 = "0.3"
 objc2-core-graphics = "0.3.1"
 objc2 = "0.6.1"
 objc2-app-kit = { version = "0.3.1", default-features = false, features = [

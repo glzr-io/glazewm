@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use wm_common::Point;
 
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow};
@@ -20,18 +18,22 @@ pub type DispatchFn = dyn FnOnce() + Send + 'static;
 /// # Example usage
 ///
 /// ```rust
+/// use wm_platform::EventLoop;
 /// use std::thread;
 ///
+/// # fn main() -> wm_platform::Result<()> {
 /// let (event_loop, dispatcher) = EventLoop::new()?;
 ///
 /// // Dispatch from another thread.
 /// thread::spawn(move || {
 ///   dispatcher.dispatch(|| {
 ///     println!("This is running on the event loop thread!");
+///     assert!(true);
 ///   }).unwrap();
 /// });
 ///
-/// event_loop.run();
+/// event_loop.run()
+/// # }
 /// ```
 #[derive(Clone)]
 pub struct Dispatcher {
