@@ -225,138 +225,91 @@ mod tests {
     time::Duration,
   };
 
-  use super::*;
   use crate::EventLoop;
 
   #[test]
   fn dispatch_after_stop_fails() {
     let (_event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop");
+      EventLoop::new().expect("Failed to create event loop.");
 
-    // Stop the dispatcher
     dispatcher
       .stop_event_loop()
-      .expect("Failed to stop dispatcher");
+      .expect("Failed to stop dispatcher.");
 
-    // Try to dispatch - should fail with EventLoopStopped
+    // Try to dispatch asynchronously - should fail.
     let result = dispatcher.dispatch(|| {});
-    assert!(
-      matches!(result, Err(crate::Error::EventLoopStopped)),
-      "dispatch should fail with EventLoopStopped after stop"
-    );
+    assert!(matches!(result, Err(crate::Error::EventLoopStopped)));
 
-    // Try dispatch_sync - should also fail
-    let sync_result: crate::Result<i32> = dispatcher.dispatch_sync(|| 42);
-    assert!(
-      matches!(sync_result, Err(crate::Error::EventLoopStopped)),
-      "dispatch_sync should fail with EventLoopStopped after stop"
-    );
+    // Try dispatch synchronously - should fail.
+    let sync_result: crate::Result<i32> = dispatcher.dispatch_sync(|| 69);
+    assert!(matches!(sync_result, Err(crate::Error::EventLoopStopped)));
   }
 
   #[test]
   fn multiple_dispatches_execute_in_order() {
+    const ITERATIONS: usize = 500;
+
     let (event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop");
+      EventLoop::new().expect("Failed to create event loop.");
 
-    let execution_order = Arc::new(Mutex::new(Vec::new()));
-    let order_clone1 = execution_order.clone();
-    let order_clone2 = execution_order.clone();
-    let order_clone3 = execution_order.clone();
+    let order = Arc::new(Mutex::new(Vec::new()));
+    let order_clone = order.clone();
 
-    let dispatcher_clone = dispatcher.clone();
     std::thread::spawn(move || {
-      std::thread::sleep(Duration::from_millis(50));
+      for index in 1..=ITERATIONS {
+        let order_clone = order_clone.clone();
+        dispatcher
+          .dispatch(move || {
+            order_clone.lock().unwrap().push(index);
+          })
+          .expect("Failed to dispatch.");
+      }
 
-      // Dispatch multiple tasks
-      dispatcher_clone
-        .dispatch(move || {
-          order_clone1.lock().unwrap().push(1);
-        })
-        .expect("Failed to dispatch task 1");
-
-      dispatcher_clone
-        .dispatch(move || {
-          order_clone2.lock().unwrap().push(2);
-        })
-        .expect("Failed to dispatch task 2");
-
-      dispatcher_clone
-        .dispatch(move || {
-          order_clone3.lock().unwrap().push(3);
-        })
-        .expect("Failed to dispatch task 3");
-
-      std::thread::sleep(Duration::from_millis(100));
-      dispatcher_clone
-        .stop_event_loop()
-        .expect("Failed to stop event loop");
+      dispatcher.stop_event_loop().unwrap();
     });
 
-    event_loop.run().expect("Event loop failed");
-
-    let final_order = execution_order.lock().unwrap();
+    event_loop.run().unwrap();
     assert_eq!(
-      *final_order,
-      vec![1, 2, 3],
-      "Tasks should execute in dispatch order"
+      *order.lock().unwrap(),
+      (1..=ITERATIONS).collect::<Vec<_>>()
     );
   }
 
   #[test]
-  fn dispatcher_from_different_threads() {
+  fn dispatch_from_different_threads() {
     let (event_loop, dispatcher) =
-      EventLoop::new().expect("Failed to create event loop");
+      EventLoop::new().expect("Failed to create event loop.");
 
     let results = Arc::new(Mutex::new(Vec::new()));
 
-    // Spawn multiple threads that all dispatch to the same event loop
-    let mut handles = vec![];
-    for i in 0..3 {
-      let dispatcher_clone = dispatcher.clone();
-      let results_clone = results.clone();
+    let thread_handles: Vec<_> = (0..3)
+      .map(|index| {
+        let dispatcher = dispatcher.clone();
+        let results = results.clone();
+        std::thread::spawn(move || {
+          dispatcher
+            .dispatch(move || {
+              results.lock().unwrap().push(index);
+            })
+            .expect("Failed to dispatch.");
+        })
+      })
+      .collect();
 
-      let handle = std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(50));
-
-        dispatcher_clone
-          .dispatch(move || {
-            results_clone.lock().unwrap().push(i);
-          })
-          .expect("Failed to dispatch from thread");
-      });
-
-      handles.push(handle);
-    }
-
-    // Stop after allowing time for dispatches
-    let dispatcher_clone = dispatcher.clone();
     std::thread::spawn(move || {
-      std::thread::sleep(Duration::from_millis(200));
-      dispatcher_clone
+      std::thread::sleep(Duration::from_millis(100));
+      dispatcher
         .stop_event_loop()
-        .expect("Failed to stop event loop");
+        .expect("Failed to stop dispatcher.");
     });
 
-    event_loop.run().expect("Event loop failed");
-
-    // Wait for all threads to complete
-    for handle in handles {
-      handle.join().expect("Thread panicked");
+    event_loop.run().expect("Failed to run event loop.");
+    for handle in thread_handles {
+      handle.join().unwrap();
     }
 
-    let final_results = results.lock().unwrap();
-    assert_eq!(
-      final_results.len(),
-      3,
-      "All dispatched tasks should execute"
-    );
-
-    let mut sorted_results = final_results.clone();
-    sorted_results.sort();
-    assert_eq!(
-      sorted_results,
-      vec![0, 1, 2],
-      "All thread IDs should be present"
-    );
+    let mut results = results.lock().unwrap().clone();
+    results.sort_unstable();
+    assert_eq!(results, vec![0, 1, 2]);
   }
 }
