@@ -5,8 +5,6 @@ use objc2_core_foundation::{
   CFRange, CFRetained, CGPoint, CGRect, CGSize,
 };
 
-use crate::Result;
-
 /// Trait for types that can be converted to and from `AXValue`.
 pub trait AXValueTypeMarker: Sized + Copy {
   /// The `AXValueType` constant for this type.
@@ -40,7 +38,7 @@ pub trait AXValueExt {
   /// Returns an error if the `AXValue` creation fails.
   fn new_strict<T: AXValueTypeMarker>(
     val: &T,
-  ) -> Result<CFRetained<AXValue>>;
+  ) -> crate::Result<CFRetained<AXValue>>;
 
   /// Extracts the value from this `AXValue`.
   ///
@@ -51,13 +49,13 @@ pub trait AXValueExt {
   /// Returns an error if:
   /// - The `AXValue` type doesn't match the requested type `T`.
   /// - The accessibility framework fails to extract the value.
-  fn value_strict<T: AXValueTypeMarker>(&self) -> Result<T>;
+  fn value_strict<T: AXValueTypeMarker>(&self) -> crate::Result<T>;
 }
 
 impl AXValueExt for AXValue {
   fn new_strict<T: AXValueTypeMarker>(
     val: &T,
-  ) -> Result<CFRetained<AXValue>> {
+  ) -> crate::Result<CFRetained<AXValue>> {
     let ptr = NonNull::new(std::ptr::from_ref::<T>(val) as *mut c_void)
       .ok_or_else(|| {
         crate::Error::InvalidPointer("Value pointer is null".to_string())
@@ -71,7 +69,7 @@ impl AXValueExt for AXValue {
     })
   }
 
-  fn value_strict<T: AXValueTypeMarker>(&self) -> Result<T> {
+  fn value_strict<T: AXValueTypeMarker>(&self) -> crate::Result<T> {
     let mut value = MaybeUninit::<T>::uninit();
     let ptr = NonNull::new(value.as_mut_ptr().cast::<c_void>())
       .ok_or_else(|| {
@@ -101,11 +99,11 @@ mod tests {
   fn test_ax_value_creation_and_extraction() {
     let point = CGPoint { x: 10.0, y: 20.0 };
     let ax_value =
-      AXValue::new_strict(&point).expect("Failed to create AXValue");
+      AXValue::new_strict(&point).expect("Failed to create AXValue.");
 
     let extracted_point: CGPoint = ax_value
       .value_strict()
-      .expect("Failed to extract value from AXValue");
+      .expect("Failed to extract value from AXValue.");
 
     assert!((point.x - extracted_point.x).abs() < f64::EPSILON);
     assert!((point.y - extracted_point.y).abs() < f64::EPSILON);
@@ -115,10 +113,10 @@ mod tests {
   fn test_ax_value_wrong_type_extraction() {
     let point = CGPoint { x: 10.0, y: 20.0 };
     let ax_value =
-      AXValue::new_strict(&point).expect("Failed to create AXValue");
+      AXValue::new_strict(&point).expect("Failed to create AXValue.");
 
     // Try to extract as `CGSize` instead of `CGPoint`.
-    let result: Result<CGSize> = ax_value.value_strict();
+    let result = ax_value.value_strict::<CGSize>();
     assert!(result.is_err());
   }
 }

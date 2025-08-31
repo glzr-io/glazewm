@@ -5,16 +5,12 @@ edition = "2021"
 
 [lib]
 path = "src/lib.rs"
+test = false
 
 [[test]]
-name = "dispatcher_tests"
-path = "tests/dispatcher_tests.rs"
+name = "test"
 harness = false
-
-[[test]]
-name = "event_loop_tests"
-path = "tests/event_loop_tests.rs"
-harness = false
+path = "src/test.rs"
 
 [dependencies]
 anyhow = { workspace = true }
@@ -23,6 +19,9 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 wm-common = { path = "../wm-common" }
+
+[dev-dependencies]
+libtest-mimic-collect = "0.3.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52", features = [

@@ -10,7 +10,7 @@ use wm_common::{Point, Rect};
 
 use crate::{
   platform_impl::MainThreadRef, ConnectionState, Dispatcher,
-  DisplayDeviceId, DisplayId, MirroringState, Result,
+  DisplayDeviceId, DisplayId, MirroringState,
 };
 
 /// macOS-specific extensions for `Display`.
@@ -67,7 +67,7 @@ impl Display {
   #[must_use]
   pub fn new(
     ns_screen: MainThreadRef<Retained<NSScreen>>,
-  ) -> Result<Self> {
+  ) -> crate::Result<Self> {
     let cg_display_id = ns_screen
       .with(|screen| {
         let device_description = screen.deviceDescription();
@@ -102,7 +102,7 @@ impl Display {
   }
 
   /// Gets the display name.
-  pub fn name(&self) -> Result<String> {
+  pub fn name(&self) -> crate::Result<String> {
     self.ns_screen.with(|screen| {
       let name = unsafe { screen.localizedName() };
       Ok(name.to_string())
@@ -110,7 +110,7 @@ impl Display {
   }
 
   /// Gets the full bounds rectangle of the display.
-  pub fn bounds(&self) -> Result<Rect> {
+  pub fn bounds(&self) -> crate::Result<Rect> {
     let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
 
     #[allow(clippy::cast_possible_truncation)]
@@ -123,7 +123,7 @@ impl Display {
   }
 
   /// Gets the working area rectangle (excluding dock and menu bar).
-  pub fn working_area(&self) -> Result<Rect> {
+  pub fn working_area(&self) -> crate::Result<Rect> {
     self.ns_screen.with(|screen| {
       let visible_frame = screen.visibleFrame();
 
@@ -138,7 +138,7 @@ impl Display {
   }
 
   /// Gets the scale factor for the display.
-  pub fn scale_factor(&self) -> Result<f32> {
+  pub fn scale_factor(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     self
       .ns_screen
@@ -146,7 +146,7 @@ impl Display {
   }
 
   /// Gets the DPI for the display.
-  pub fn dpi(&self) -> Result<u32> {
+  pub fn dpi(&self) -> crate::Result<u32> {
     let scale_factor = self.scale_factor()?;
 
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -154,13 +154,13 @@ impl Display {
   }
 
   /// Returns whether this is the primary display.
-  pub fn is_primary(&self) -> Result<bool> {
+  pub fn is_primary(&self) -> crate::Result<bool> {
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }
 
   /// Gets the display devices for this display.
-  pub fn devices(&self) -> Result<Vec<crate::DisplayDevice>> {
+  pub fn devices(&self) -> crate::Result<Vec<crate::DisplayDevice>> {
     // TODO: Get main device as well as any devices that are mirroring this
     // display.
     let device = DisplayDevice::new(self.cg_display_id);
@@ -168,7 +168,7 @@ impl Display {
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(&self) -> Result<crate::DisplayDevice> {
+  pub fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
     self
       .devices()?
       .into_iter()
@@ -223,13 +223,13 @@ impl DisplayDevice {
   }
 
   /// Gets the rotation of the device in degrees.
-  pub fn rotation(&self) -> Result<f32> {
+  pub fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
   }
 
   /// Gets the connection state of the device.
-  pub fn connection_state(&self) -> Result<ConnectionState> {
+  pub fn connection_state(&self) -> crate::Result<ConnectionState> {
     let display_mode =
       unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
 
@@ -242,7 +242,7 @@ impl DisplayDevice {
   }
 
   /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> Result<f32> {
+  pub fn refresh_rate(&self) -> crate::Result<f32> {
     // Calling `CGDisplayModeRelease` on the display mode is not needed as
     // it's functionally equivalent to `CFRelease`.
     let display_mode =
@@ -257,14 +257,14 @@ impl DisplayDevice {
   }
 
   /// Returns whether this is a built-in device.
-  pub fn is_builtin(&self) -> Result<bool> {
+  pub fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }
 
   /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
+  pub fn mirroring_state(&self) -> crate::Result<Option<MirroringState>> {
     let mirrored_display =
       unsafe { CGDisplayMirrorsDisplay(self.cg_display_id) };
 
@@ -316,7 +316,7 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 /// Must be called on the main thread.
 pub fn all_displays(
   dispatcher: &Dispatcher,
-) -> Result<Vec<crate::Display>> {
+) -> crate::Result<Vec<crate::Display>> {
   let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {
     let mtm =
@@ -336,7 +336,7 @@ pub fn all_displays(
 /// Gets all display devices on macOS.
 pub fn all_display_devices(
   _dispatcher: &Dispatcher,
-) -> Result<Vec<crate::DisplayDevice>> {
+) -> crate::Result<Vec<crate::DisplayDevice>> {
   let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
 
@@ -366,7 +366,7 @@ pub fn all_display_devices(
 /// Gets active display devices on macOS.
 pub fn active_display_devices(
   _dispatcher: &Dispatcher,
-) -> Result<Vec<crate::DisplayDevice>> {
+) -> crate::Result<Vec<crate::DisplayDevice>> {
   let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
 
@@ -397,7 +397,7 @@ pub fn active_display_devices(
 pub fn display_from_point(
   point: Point,
   dispatcher: &Dispatcher,
-) -> Result<crate::Display> {
+) -> crate::Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
   for display in displays {
@@ -411,7 +411,9 @@ pub fn display_from_point(
 }
 
 /// Gets primary display on macOS.
-pub fn primary_display(dispatcher: &Dispatcher) -> Result<crate::Display> {
+pub fn primary_display(
+  dispatcher: &Dispatcher,
+) -> crate::Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
   for display in displays {

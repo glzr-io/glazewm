@@ -17,7 +17,7 @@ pub type DispatchFn = dyn FnOnce() + Send + 'static;
 ///
 /// # Example usage
 ///
-/// ```rust
+/// ```rust,no_run
 /// use wm_platform::EventLoop;
 /// use std::thread;
 ///
@@ -28,7 +28,6 @@ pub type DispatchFn = dyn FnOnce() + Send + 'static;
 /// thread::spawn(move || {
 ///   dispatcher.dispatch(|| {
 ///     println!("This is running on the event loop thread!");
-///     assert!(true);
 ///   }).unwrap();
 /// });
 ///

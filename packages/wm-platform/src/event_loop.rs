@@ -32,3 +32,20 @@ impl EventLoop {
     self.inner.run()
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_event_loop_struct_exists() {
+    let event_loop = EventLoop::new();
+    assert!(event_loop.is_ok());
+
+    if let Ok((event_loop, _)) = event_loop {
+      // TODO: Without the `event_loop.run()` call, macOS crashes. But this
+      // then causes the test case to run forever.
+      event_loop.run();
+    }
+  }
+}
