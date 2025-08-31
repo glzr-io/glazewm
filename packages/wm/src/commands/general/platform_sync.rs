@@ -7,7 +7,7 @@ use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::{Platform, ZOrder};
+use wm_platform::ZOrder;
 
 use crate::{
   models::{Container, WindowContainer},
@@ -33,6 +33,7 @@ pub fn platform_sync(
     redraw_containers(&focused_container, state, config)?;
   }
 
+  #[cfg(target_os = "windows")]
   if state.pending_sync.needs_cursor_jump()
     && config.value.general.cursor_jump.enabled
   {
@@ -82,22 +83,23 @@ fn sync_focus(
 ) -> anyhow::Result<()> {
   let native_window = match focused_container.as_window_container() {
     Ok(window) => window.native().clone(),
-    _ => Platform::desktop_window(),
+    // _ => Platform::desktop_window(),
+    _ => todo!(),
   };
 
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  if Platform::foreground_window() != native_window {
-    if let Ok(window) = focused_container.as_window_container() {
-      info!("Setting focus to window: {window}");
-    } else {
-      info!("Setting focus to the desktop window.");
-    }
+  // if Platform::foreground_window() != native_window {
+  //   if let Ok(window) = focused_container.as_window_container() {
+  //     info!("Setting focus to window: {window}");
+  //   } else {
+  //     info!("Setting focus to the desktop window.");
+  //   }
 
-    if let Err(err) = native_window.set_foreground() {
-      warn!("Failed to set foreground window: {}", err);
-    }
-  }
+  //   if let Err(err) = native_window.set_foreground() {
+  //     warn!("Failed to set foreground window: {}", err);
+  //   }
+  // }
 
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
@@ -222,7 +224,7 @@ fn redraw_containers(
           if window.id() == focused_descendant.id() {
             ZOrder::Normal
           } else {
-            ZOrder::AfterWindow(focused_descendant.native().handle)
+            ZOrder::AfterWindow(focused_descendant.native().id())
           }
         } else {
           ZOrder::Normal
@@ -236,6 +238,7 @@ fn redraw_containers(
     if should_bring_to_front && !windows_to_redraw.contains(window) {
       info!("Updating window z-order: {window}");
 
+      #[cfg(target_os = "windows")]
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }
@@ -268,14 +271,7 @@ fn redraw_containers(
 
     info!("Updating window position: {window}");
 
-    if let Err(err) = window.native().set_position(
-      &window.state(),
-      &rect,
-      &z_order,
-      is_visible,
-      &config.value.general.hide_method,
-      window.has_pending_dpi_adjustment(),
-    ) {
+    if let Err(err) = window.native().set_frame(&rect) {
       warn!("Failed to set window position: {}", err);
     }
 
@@ -290,6 +286,7 @@ fn redraw_containers(
       };
 
     if is_transitioning_fullscreen {
+      #[cfg(target_os = "windows")]
       if let Err(err) = window.native().mark_fullscreen(matches!(
         window.state(),
         WindowState::Fullscreen(_)
@@ -302,6 +299,7 @@ fn redraw_containers(
     // effect). Since cloaked windows are normally always visible in the
     // taskbar, we only need to set visibility if `show_all_in_taskbar` is
     // `false`.
+    #[cfg(target_os = "windows")]
     if config.value.general.hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
       && matches!(
@@ -319,6 +317,7 @@ fn redraw_containers(
   Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn jump_cursor(
   focused_container: Container,
   state: &WmState,
@@ -368,24 +367,28 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
     apply_border_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.corner_style.enabled
     || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.transparency.enabled
     || window_effects.other_windows.transparency.enabled
   {
@@ -393,6 +396,7 @@ fn apply_window_effects(
   }
 }
 
+#[cfg(target_os = "windows")]
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -416,6 +420,7 @@ fn apply_border_effect(
   });
 }
 
+#[cfg(target_os = "windows")]
 fn apply_hide_title_bar_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -425,6 +430,7 @@ fn apply_hide_title_bar_effect(
     .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
 }
 
+#[cfg(target_os = "windows")]
 fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -438,6 +444,7 @@ fn apply_corner_effect(
   _ = window.native().set_corner_style(corner_style);
 }
 
+#[cfg(target_os = "windows")]
 fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,

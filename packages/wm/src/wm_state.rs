@@ -7,7 +7,7 @@ use uuid::Uuid;
 use wm_common::{
   BindingModeConfig, Direction, Point, WindowState, WmEvent,
 };
-use wm_platform::{Display, NativeWindow, Platform};
+use wm_platform::{Dispatcher, Display, NativeWindow};
 
 use crate::{
   commands::{
@@ -27,6 +27,8 @@ pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
   pub root_container: RootContainer,
+
+  pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
 
@@ -73,11 +75,13 @@ pub struct WmState {
 
 impl WmState {
   pub fn new(
+    dispatcher: Dispatcher,
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
+      dispatcher,
       pending_sync: PendingSync::default(),
       prev_effects_window: None,
       recent_workspace_name: None,
@@ -99,17 +103,18 @@ impl WmState {
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     // Get the originally focused window when the WM was started.
-    let foreground_window = Platform::foreground_window();
+    // let foreground_window = Platform::foreground_window();
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_display in Platform::sorted_monitors()? {
+    for native_display in self.dispatcher.displays()? {
       add_monitor(native_display, self, config)?;
     }
 
     // Manage windows in reverse z-order (bottom to top). This helps to
     // preserve the original stacking order.
-    for native_window in Platform::manageable_windows()?.into_iter().rev()
+    for native_window in
+      self.dispatcher.visible_windows()?.into_iter().rev()
     {
       let nearest_workspace = self
         .nearest_monitor(&native_window)
@@ -125,10 +130,16 @@ impl WmState {
       }
     }
 
+    // let container_to_focus = self
+    //   .window_from_native(&foreground_window)
+    //   .map(|c| c.as_container())
+    //   .or(self.windows().pop().map(Into::into))
+    //   .or(self.workspaces().pop().map(Into::into))
+    //   .context("Failed to get container to focus.")?;
     let container_to_focus = self
-      .window_from_native(&foreground_window)
-      .map(|c| c.as_container())
-      .or(self.windows().pop().map(Into::into))
+      .windows()
+      .pop()
+      .map(Into::into)
       .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
@@ -186,7 +197,9 @@ impl WmState {
     native_window: &NativeWindow,
   ) -> Option<Monitor> {
     self
-      .monitor_from_native(&Platform::nearest_monitor(native_window))
+      .monitor_from_native(
+        &self.dispatcher.nearest_monitor(native_window).ok()?,
+      )
       .or(self.monitors().first().cloned())
   }
 
@@ -209,14 +222,14 @@ impl WmState {
     origin_monitor: &Monitor,
     direction: &Direction,
   ) -> anyhow::Result<Option<Monitor>> {
-    let origin_rect = origin_monitor.native().rect()?.clone();
+    let origin_rect = origin_monitor.native().bounds()?.clone();
 
     // Create a tuple of monitors and their rect.
     let monitors_with_rect = self
       .monitors()
       .into_iter()
       .map(|monitor| {
-        let rect = monitor.native().rect()?.clone();
+        let rect = monitor.native().bounds()?.clone();
         anyhow::Ok((monitor, rect))
       })
       .try_collect::<Vec<_>>()?;
@@ -589,7 +602,8 @@ impl Drop for WmState {
       .collect::<Vec<_>>();
 
     for window in managed_windows {
-      window.cleanup();
+      // TODO: Implement this.
+      // window.cleanup();
     }
   }
 }

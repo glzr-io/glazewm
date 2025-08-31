@@ -39,6 +39,8 @@ pub fn reload_config(
     && config.value.general.hide_method == HideMethod::Cloak
   {
     for window in state.windows() {
+      // TODO: Implement this for macOS.
+      #[cfg(target_os = "windows")]
       let _ = window.native().show();
     }
   }
@@ -50,6 +52,7 @@ pub fn reload_config(
     && config.value.general.show_all_in_taskbar
   {
     for window in state.windows() {
+      #[cfg(target_os = "windows")]
       let _ = window.native().set_taskbar_visibility(true);
     }
   }
@@ -161,6 +164,7 @@ fn update_window_effects(
   // Window border effects are left at system defaults if disabled in the
   // config. However, when transitioning from colored borders to having
   // them disabled, it's best to reset to the system defaults.
+  #[cfg(target_os = "windows")]
   if !window_effects.focused_window.border.enabled
     && old_window_effects.focused_window.border.enabled
   {
@@ -169,6 +173,7 @@ fn update_window_effects(
     }
   }
 
+  #[cfg(target_os = "windows")]
   if !window_effects.other_windows.border.enabled
     && old_window_effects.other_windows.border.enabled
   {

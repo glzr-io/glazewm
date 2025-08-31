@@ -37,8 +37,7 @@ pub struct DisplayDeviceId(
 /// - **Windows**: This corresponds to a Win32 "display monitor", each with
 ///   a monitor handle (`HMONITOR`).
 /// - **macOS**: This corresponds to an `NSScreen`.
-/// TODO: Add `PartialEq` and `Eq`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Display {
   pub(crate) inner: platform_impl::Display,
 }

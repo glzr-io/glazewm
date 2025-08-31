@@ -121,7 +121,7 @@ impl PositionGetters for Workspace {
     // Get delta between monitor bounds and its working area.
     let working_delta = monitor
       .native()
-      .working_rect()
+      .working_area()
       .context("Failed to get working area of parent monitor.")?
       .delta(&monitor.to_rect()?);
 

@@ -15,7 +15,7 @@ use crate::{
     AXUIElement, AXUIElementCreateApplication, AXUIElementExt, AXValueExt,
     MainThreadRef,
   },
-  Dispatcher,
+  Dispatcher, WindowId,
 };
 
 /// macOS-specific extensions for `NativeWindow`.
@@ -84,6 +84,10 @@ impl NativeWindow {
     }
   }
 
+  pub fn id(&self) -> WindowId {
+    WindowId(self.handle as u32)
+  }
+
   pub fn title(&self) -> crate::Result<String> {
     self.element.with(|el| {
       el.get_attribute::<CFString>("AXTitle")
@@ -99,6 +103,34 @@ impl NativeWindow {
     })??;
 
     Ok(!minimized)
+  }
+
+  pub fn size(&self) -> crate::Result<(f64, f64)> {
+    self.element.with(move |el| {
+      el.get_attribute::<AXValue>("AXSize")
+        .and_then(|ax_value| ax_value.value_strict::<CGSize>())
+        .map(|size| (size.width, size.height))
+    })?
+  }
+
+  pub fn position(&self) -> crate::Result<(f64, f64)> {
+    self.element.with(move |el| {
+      el.get_attribute::<AXValue>("AXPosition")
+        .and_then(|ax_value| ax_value.value_strict::<CGPoint>())
+        .map(|point| (point.x, point.y))
+    })?
+  }
+
+  pub fn frame(&self) -> crate::Result<Rect> {
+    // TODO: Consider refactoring this to use a single dispatch.
+    let size = self.size()?;
+    let position = self.position()?;
+    Ok(Rect::from_xy(
+      position.0 as i32,
+      position.1 as i32,
+      size.0 as i32,
+      size.1 as i32,
+    ))
   }
 
   pub fn resize(&self, width: f64, height: f64) -> crate::Result<()> {
@@ -133,6 +165,13 @@ impl NativeWindow {
     self.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
         .map(|cf_bool| cf_bool.value())
+    })?
+  }
+
+  pub fn minimize(&self) -> crate::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
+      let ax_bool = CFBoolean::new(true);
+      el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
     })?
   }
 }

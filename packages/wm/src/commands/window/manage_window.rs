@@ -116,10 +116,10 @@ fn create_window(
   let floating_placement = {
     let placement = if !is_same_workspace || prefers_centered {
       native_window
-        .frame_position()?
+        .frame()?
         .translate_to_center(&target_workspace.to_rect()?)
     } else {
-      native_window.frame_position()?
+      native_window.frame()?
     };
 
     // Clamp the window size to 90% of the workspace size.
@@ -204,7 +204,7 @@ fn window_state_to_create(
     .outer_gaps_for_workspace(&nearest_workspace)
     .is_significant()
   {
-    nearest_monitor.native().working_rect()?.clone()
+    nearest_monitor.native().working_area()?.clone()
   } else {
     nearest_monitor.to_rect()?
   };
@@ -221,7 +221,7 @@ fn window_state_to_create(
   }
 
   // Initialize windows that can't be resized as floating.
-  if !native_window.is_resizable() {
+  if !native_window.is_resizable()? {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
     ));

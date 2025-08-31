@@ -27,12 +27,13 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let old_frame_position = window.native().frame_position()?;
+    let old_frame_position = window.native().frame()?;
     let frame_position =
       try_warn!(window.native().invalidate_frame_position());
 
     let old_is_maximized = window.native().is_maximized()?;
-    let is_maximized = try_warn!(window.native().invalidate_is_maximized());
+    let is_maximized =
+      try_warn!(window.native().invalidate_is_maximized());
 
     // Ignore duplicate location change events. Window position changes
     // can trigger multiple events (e.g. restore from maximized can trigger
@@ -43,7 +44,8 @@ pub fn handle_window_location_changed(
       return Ok(());
     }
 
-    let is_minimized = try_warn!(window.native().invalidate_is_minimized());
+    let is_minimized =
+      try_warn!(window.native().invalidate_is_minimized());
 
     // Ignore events for minimized windows. Let them be handled by the
     // handler for `PlatformEvent::WindowMinimized` instead.
@@ -74,7 +76,7 @@ pub fn handle_window_location_changed(
       .outer_gaps_for_workspace(&nearest_workspace)
       .is_significant()
     {
-      nearest_monitor.native().working_rect()?.clone()
+      nearest_monitor.native().working_area()?.clone()
     } else {
       nearest_monitor.to_rect()?
     };

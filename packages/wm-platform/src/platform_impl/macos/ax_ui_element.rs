@@ -69,7 +69,7 @@ impl AXUIElementExt for AXUIElement {
     };
 
     if result != AXError::Success {
-      return Err(Error::Accessibility(result.0));
+      return Err(Error::Accessibility(attribute.to_string(), result.0));
     }
 
     NonNull::new(value.cast_mut())
@@ -98,7 +98,7 @@ impl AXUIElementExt for AXUIElement {
       unsafe { self.set_attribute_value(&cf_attribute, value.as_ref()) };
 
     if result != AXError::Success {
-      return Err(Error::Accessibility(result.0));
+      return Err(Error::Accessibility(attribute.to_string(), result.0));
     }
 
     Ok(())

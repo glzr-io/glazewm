@@ -7,9 +7,9 @@ pub enum Error {
   #[cfg(target_os = "windows")]
   Windows(#[from] windows::core::Error),
 
-  #[error("Accessibility operation failed with error code: {0}")]
+  #[error("Accessibility operation failed for attribute {0} with error code: {1}")]
   #[cfg(target_os = "macos")]
-  Accessibility(i32),
+  Accessibility(String, i32),
 
   #[error("Invalid pointer: {0}")]
   InvalidPointer(String),

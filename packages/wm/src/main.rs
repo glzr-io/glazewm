@@ -21,8 +21,10 @@ use tracing_subscriber::{
 use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
 use wm_platform::{
   Dispatcher, EventLoop, KeybindingListener, MouseListener,
-  NativeWindowExtMacOs, WindowEvent, WindowListener,
+  NativeWindowExtMacOs, PlatformEvent, WindowEvent, WindowListener,
 };
+
+use crate::{user_config::UserConfig, wm::WindowManager};
 
 // use wm_platform::Platform;
 // use crate::{
@@ -30,16 +32,16 @@ use wm_platform::{
 //   wm::WindowManager,
 // };
 
-// mod commands;
-// mod events;
-// mod ipc_server;
-// mod models;
-// mod pending_sync;
+mod commands;
+mod events;
+mod ipc_server;
+mod models;
+mod pending_sync;
 // mod sys_tray;
-// mod traits;
-// mod user_config;
-// mod wm;
-// mod wm_state;
+mod traits;
+mod user_config;
+mod wm;
+mod wm_state;
 
 /// Main entry point for the application.
 ///
@@ -57,24 +59,40 @@ fn main() -> anyhow::Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     let (event_loop, dispatcher) = EventLoop::new()?;
 
-    let task_handle = rt.spawn(async {
-      let res = start_wm(config_path, verbosity, dispatcher).await;
+    // let local = tokio::task::LocalSet::new();
 
-      // If unable to start the WM, the error is fatal and a message
-      // dialog is shown.
-      if let Err(err) = &res {
-        error!("{:?}", err);
-      }
+    // let task_handle = std::thread::spawn(async {
+    //   println!("start_wm2");
+    //   let res = start_wm(config_path, verbosity, dispatcher).await;
 
-      res
+    //   // If unable to start the WM, the error is fatal and a message
+    //   // dialog is shown.
+    //   if let Err(err) = &res {
+    //     error!("{:?}", err);
+    //   }
+
+    //   // res
+    //   Ok(())
+    // });
+
+    let task_handle = std::thread::spawn(move || {
+      rt.block_on(async {
+        if let Err(err) =
+          start_wm(config_path, verbosity, dispatcher).await
+        {
+          error!("{:?}", err);
+        }
+
+        Ok(())
+      })
     });
-
     // Run event loop (blocks until shutdown). This must be on the main
     // thread for macOS compatibility.
     event_loop.run()?;
 
     // Wait for clean exit of the WM.
-    rt.block_on(task_handle)?
+    // rt.block_on(local.run_until(task_handle))?
+    task_handle.join().unwrap()
   } else {
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(wm_cli::start(args))
@@ -114,6 +132,11 @@ async fn start_wm(
     tracing::info!("Window bundle id: {:?}", window.bundle_id());
   }
 
+  // Parse and validate user config.
+  let mut config = UserConfig::new(config_path)?;
+
+  let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
+
   loop {
     // let monitors = hook.displays().await?;
 
@@ -130,10 +153,15 @@ async fn start_wm(
 
     // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // tracing::info!("Window manager running.");
-    tokio::select! {
+    let res = tokio::select! {
       _ = signal::ctrl_c() => {
         tracing::info!("Received SIGINT signal.");
         break;
+      },
+
+      Some(event) = window_listener.next_event() => {
+        tracing::debug!("Received platform event: {:?}", event);
+        wm.process_event(PlatformEvent::Window(event), &mut config)
       },
     //   Some(event) = mouse_listener.event_rx.recv() => {
     //     tracing::debug!("Received mouse event: {:?}", event);
@@ -143,57 +171,62 @@ async fn start_wm(
     //     tracing::debug!("Received keyboard event: {:?}", event);
     //     handle_event(PlatformEvent::Keyboard(event)).await;
     //   },
-      Some(event) = window_listener.next_event() => {
-        tracing::info!("Received window event: {:?}", event);
-        match event {
-          WindowEvent::Show(window)=>{tracing::info!("Window shown: {:?}",window);}
-          WindowEvent::Hide(window)=>{tracing::info!("Window hidden: {:?}",window);}
-          WindowEvent::LocationChange(window)=>{
-            tracing::info!("Window location changed: {:?}",window);
-            // println!("Window title: {:?}", window.title());
-            // println!("Window is visible: {:?}", window.is_visible());
-            // println!("Window class name: {:?}", window.class_name());
+      // Some(event) = window_listener.next_event() => {
+      //   tracing::info!("Received window event: {:?}", event);
+      //   match event {
+      //     WindowEvent::Show(window)=>{tracing::info!("Window shown: {:?}",window);}
+      //     WindowEvent::Hide(window)=>{tracing::info!("Window hidden: {:?}",window);}
+      //     WindowEvent::LocationChange(window)=>{
+      //       tracing::info!("Window location changed: {:?}",window);
+      //       // println!("Window title: {:?}", window.title());
+      //       // println!("Window is visible: {:?}", window.is_visible());
+      //       // println!("Window class name: {:?}", window.class_name());
 
-            // Test resizing window to 400x300
-            // println!("Attempting to resize window...");
-            // match window.resize(400, 300)) {
-            //   Ok(()) => {
-            //     println!("✅ Window resize successful!");
-            //     tracing::info!("Successfully resized window to 400x300");
-            //   }
-            //   Err(e) => {
-            //     println!("❌ Window resize failed: {}", e);
-            //     tracing::error!("Failed to resize window: {}", e);
-            //   }
-            // }
-          }
-          WindowEvent::Minimize(window)=>{
-            tracing::info!("Window minimized: {:?}",window);
-            // println!("Window is visible: {:?}", window.is_visible());
-          }
-          WindowEvent::MinimizeEnd(window)=>{tracing::info!("Window deminimized: {:?}",window);}
-          WindowEvent::TitleChange(window)=>{tracing::info!("Window title changed: {:?}",window);}
-          WindowEvent::Focus(window)=>{
-            tracing::info!("Window focused: {:?}",window);
+      //       // Test resizing window to 400x300
+      //       // println!("Attempting to resize window...");
+      //       // match window.resize(400, 300)) {
+      //       //   Ok(()) => {
+      //       //     println!("✅ Window resize successful!");
+      //       //     tracing::info!("Successfully resized window to 400x300");
+      //       //   }
+      //       //   Err(e) => {
+      //       //     println!("❌ Window resize failed: {}", e);
+      //       //     tracing::error!("Failed to resize window: {}", e);
+      //       //   }
+      //       // }
+      //     }
+      //     WindowEvent::Minimize(window)=>{
+      //       tracing::info!("Window minimized: {:?}",window);
+      //       // println!("Window is visible: {:?}", window.is_visible());
+      //     }
+      //     WindowEvent::MinimizeEnd(window)=>{tracing::info!("Window deminimized: {:?}",window);}
+      //     WindowEvent::TitleChange(window)=>{tracing::info!("Window title changed: {:?}",window);}
+      //     WindowEvent::Focus(window)=>{
+      //       tracing::info!("Window focused: {:?}",window);
 
-            // Also test resizing on focus (different size)
-            // println!("Window focused - testing resize to 600x400...");
-            // match window.resize(Rect::from_xy(50, 50, 600, 400)) {
-            //   Ok(()) => {
-            //     println!("✅ Focus resize successful!");
-            //     tracing::info!("Successfully resized focused window to 600x400");
-            //   }
-            //   Err(e) => {
-            //     println!("❌ Focus resize failed: {}", e);
-            //     tracing::error!("Failed to resize focused window: {}", e);
-            //   }
-            // }
-          }
-          WindowEvent::MoveOrResizeEnd(native_window) => todo!(),
-          WindowEvent::MoveOrResizeStart(native_window) => todo!(),
-        }
-        // handle_event(PlatformEvent::Window(event)).await;
-      },
+      //       // Also test resizing on focus (different size)
+      //       // println!("Window focused - testing resize to 600x400...");
+      //       // match window.resize(Rect::from_xy(50, 50, 600, 400)) {
+      //       //   Ok(()) => {
+      //       //     println!("✅ Focus resize successful!");
+      //       //     tracing::info!("Successfully resized focused window to 600x400");
+      //       //   }
+      //       //   Err(e) => {
+      //       //     println!("❌ Focus resize failed: {}", e);
+      //       //     tracing::error!("Failed to resize focused window: {}", e);
+      //       //   }
+      //       // }
+      //     }
+      //     WindowEvent::MoveOrResizeEnd(native_window) => todo!(),
+      //     WindowEvent::MoveOrResizeStart(native_window) => todo!(),
+      //   }
+      //   // handle_event(PlatformEvent::Window(event)).await;
+      // },
+    };
+
+    if let Err(err) = res {
+      error!("{:?}", err);
+      // Platform::show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 

@@ -308,7 +308,7 @@ impl NativeWindow {
       return Ok(false);
     }
 
-    let position = self.frame_position()?;
+    let position = self.frame()?;
 
     // Allow for 1px of leeway around edges of monitor.
     Ok(
@@ -580,7 +580,7 @@ impl NativeWindow {
   /// This represents the size of a window's shadow borders.
   pub fn shadow_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_pos = self.border_position()?;
-    let frame_pos = self.frame_position()?;
+    let frame_pos = self.frame()?;
 
     Ok(RectDelta::new(
       LengthValue::from_px(frame_pos.left - border_pos.left),

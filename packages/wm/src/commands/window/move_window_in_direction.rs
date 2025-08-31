@@ -412,8 +412,8 @@ fn new_floating_position(
   state: &mut WmState,
 ) -> anyhow::Result<Option<(Rect, Monitor)>> {
   let monitor = window_to_move.monitor().context("No monitor.")?;
-  let monitor_rect = monitor.native().working_rect()?.clone();
-  let window_pos = window_to_move.native().frame_position()?;
+  let monitor_rect = monitor.native().working_area()?.clone();
+  let window_pos = window_to_move.native().frame()?;
 
   let is_on_monitor_edge = match direction {
     Direction::Up => window_pos.top == monitor_rect.top,
@@ -428,7 +428,7 @@ fn new_floating_position(
     let next_monitor = state.monitor_in_direction(&monitor, direction)?;
 
     if let Some(next_monitor) = next_monitor {
-      let monitor_rect = next_monitor.native().working_rect()?.clone();
+      let monitor_rect = next_monitor.native().working_area()?.clone();
 
       let position = snap_to_monitor_edge(
         &window_pos,

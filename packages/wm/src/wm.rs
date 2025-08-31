@@ -6,7 +6,7 @@ use wm_common::{
   FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
   RectDelta, TitleBarVisibility, WindowState, WmEvent,
 };
-use wm_platform::PlatformEvent;
+use wm_platform::{Dispatcher, PlatformEvent, WindowEvent};
 
 use crate::{
   commands::{
@@ -27,12 +27,14 @@ use crate::{
     workspace::{focus_workspace, move_workspace_in_direction},
   },
   events::{
-    handle_display_settings_changed, handle_mouse_move,
-    handle_window_destroyed, handle_window_focused, handle_window_hidden,
-    handle_window_location_changed, handle_window_minimize_ended,
-    handle_window_minimized, handle_window_moved_or_resized_end,
-    handle_window_moved_or_resized_start, handle_window_shown,
-    handle_window_title_changed,
+    handle_window_destroyed,
+    // handle_display_settings_changed, handle_mouse_move,
+    //  handle_window_focused,
+    // handle_window_location_changed, handle_window_minimize_ended,
+    // handle_window_minimized, handle_window_moved_or_resized_end,
+    // handle_window_moved_or_resized_start, handle_window_shown,
+    // handle_window_title_changed,
+    handle_window_hidden,
   },
   models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
@@ -47,11 +49,14 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
+  pub fn new(
+    dispatcher: Dispatcher,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(event_tx, exit_tx);
+    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
     state.populate(config)?;
 
     Ok(Self {
@@ -70,51 +75,62 @@ impl WindowManager {
 
     match event {
       PlatformEvent::DisplaySettingsChanged => {
-        handle_display_settings_changed(state, config)
+        // handle_display_settings_changed(state, config)
+        Ok(())
       }
-      PlatformEvent::KeybindingTriggered(kb_config) => {
-        self.process_commands(&kb_config.commands, None, config)?;
+      PlatformEvent::Keybinding(kb_config) => {
+        // self.process_commands(&kb_config.commands, None, config)?;
 
         // Return early since we don't want to redraw twice.
         return Ok(());
       }
       PlatformEvent::MouseMove(event) => {
-        handle_mouse_move(&event, state, config)
-      }
-      PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(&window, state)
-      }
-      PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(&window, state, config)
-      }
-      PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(&window, state)
-      }
-      PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(&window, state, config)
-      }
-      PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(&window, state, config)
-      }
-      PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedEnd(window) => {
-        handle_window_moved_or_resized_end(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(&window, state);
+        // handle_mouse_move(&event, state, config)
         Ok(())
       }
-      PlatformEvent::WindowShown(window) => {
-        handle_window_shown(window, state, config)
-      }
-      PlatformEvent::WindowTitleChanged(window) => {
-        handle_window_title_changed(&window, state, config)
-      }
+      PlatformEvent::Window(window_event) => match window_event {
+        WindowEvent::Focus(window) => {
+          // handle_window_focused(&window, state, config)
+          Ok(())
+        }
+        WindowEvent::Show(window) => {
+          // handle_window_shown(window, state, config)
+          Ok(())
+        }
+        WindowEvent::Hide(window) => handle_window_hidden(&window, state),
+        WindowEvent::LocationChange(window) => {
+          // handle_window_location_changed(&window, state, config)
+          Ok(())
+        }
+        WindowEvent::Minimize(window) => {
+          // handle_window_minimized(&window, state, config)
+          Ok(())
+        }
+        WindowEvent::MinimizeEnd(window) => {
+          // handle_window_minimize_ended(&window, state, config)
+          Ok(())
+        }
+        WindowEvent::MoveOrResizeEnd(window) => {
+          // handle_window_moved_or_resized_end(&window, state, config)
+          Ok(())
+        }
+        WindowEvent::MoveOrResizeStart(window) => {
+          // handle_window_moved_or_resized_start(&window, state);
+          Ok(())
+        }
+        WindowEvent::Show(window) => {
+          // handle_window_shown(window, state, config)
+          Ok(())
+        }
+        WindowEvent::TitleChange(window) => {
+          // handle_window_title_changed(&window, state, config)
+          Ok(())
+        }
+      },
     }?;
 
     if !state.is_paused && state.pending_sync.has_changes() {
+      println!("platform_sync");
       platform_sync(state, config)?;
     }
 
@@ -221,6 +237,7 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      #[cfg(target_os = "windows")]
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
           Ok(window) => {
@@ -551,6 +568,7 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      #[cfg(target_os = "windows")]
       InvokeCommand::SetTitleBarVisibility { visibility } => {
         match subject_container.as_window_container() {
           Ok(window) => {
@@ -562,6 +580,7 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      #[cfg(target_os = "windows")]
       InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {
@@ -728,6 +747,7 @@ impl WindowManager {
         toggle_pause(state);
         Ok(())
       }
+      _ => Ok(()),
     }
   }
 }
