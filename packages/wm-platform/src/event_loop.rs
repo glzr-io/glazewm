@@ -35,17 +35,72 @@ impl EventLoop {
 
 #[cfg(test)]
 mod tests {
+  use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+  };
+
   use super::*;
 
   #[test]
-  fn test_event_loop_struct_exists() {
-    let event_loop = EventLoop::new();
-    assert!(event_loop.is_ok());
+  fn event_loop_start_stop_with_dispatch() {
+    let (event_loop, dispatcher) =
+      EventLoop::new().expect("Failed to create event loop");
 
-    if let Ok((event_loop, _)) = event_loop {
-      // TODO: Without the `event_loop.run()` call, macOS crashes. But this
-      // then causes the test case to run forever.
-      event_loop.run();
-    }
+    // Test that we can dispatch work and stop the event loop
+    let test_value = Arc::new(Mutex::new(0));
+    let test_value_clone = test_value.clone();
+
+    let dispatcher_clone = dispatcher.clone();
+    std::thread::spawn(move || {
+      std::thread::sleep(Duration::from_millis(100));
+
+      // Dispatch some work
+      dispatcher_clone
+        .dispatch(move || {
+          *test_value_clone.lock().unwrap() = 42;
+        })
+        .expect("Failed to dispatch");
+
+      // Stop the event loop after a short delay
+      std::thread::sleep(Duration::from_millis(100));
+      dispatcher_clone
+        .stop_event_loop()
+        .expect("Failed to stop event loop");
+    });
+
+    // Run the event loop (this blocks until stopped)
+    event_loop.run().expect("Event loop failed");
+
+    // Verify the dispatch actually executed
+    assert_eq!(
+      *test_value.lock().unwrap(),
+      42,
+      "Dispatched work should have executed"
+    );
+  }
+
+  #[test]
+  fn dispatcher_sync_dispatch() {
+    let (event_loop, dispatcher) =
+      EventLoop::new().expect("Failed to create event loop");
+
+    let dispatcher_clone = dispatcher.clone();
+    std::thread::spawn(move || {
+      std::thread::sleep(Duration::from_millis(100));
+
+      // Test synchronous dispatch
+      let result = dispatcher_clone
+        .dispatch_sync(|| 42)
+        .expect("Failed to dispatch_sync");
+
+      assert_eq!(result, 42, "dispatch_sync should return correct value");
+
+      dispatcher_clone
+        .stop_event_loop()
+        .expect("Failed to stop event loop");
+    });
+
+    event_loop.run().expect("Event loop failed");
   }
 }

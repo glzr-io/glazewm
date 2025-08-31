@@ -59,6 +59,9 @@ pub enum Error {
 
   #[error("Platform error: {0}")]
   Platform(String),
+
+  #[error("Event loop has been stopped")]
+  EventLoopStopped,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

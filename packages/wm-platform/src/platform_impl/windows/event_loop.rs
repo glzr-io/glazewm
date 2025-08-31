@@ -2,7 +2,7 @@ use std::{
   cell::RefCell,
   sync::{
     atomic::{AtomicBool, Ordering},
-    LazyLock,
+    Arc, LazyLock,
   },
   thread::{self, JoinHandle},
 };
@@ -23,6 +23,8 @@ use windows::{
   },
 };
 
+use crate::{DispatchFn, Dispatcher};
+
 thread_local! {
   /// Custom message ID for dispatching closures to be run on the event
   /// loop thread.
@@ -42,7 +44,10 @@ pub(crate) struct EventLoopSource {
 }
 
 impl EventLoopSource {
-  pub fn queue_dispatch(&self, dispatch_fn: DispatchFn) {
+  pub fn send_dispatch(
+    &self,
+    dispatch_fn: DispatchFn,
+  ) -> crate::Result<()> {
     // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
     // Windows. Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
     let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
@@ -68,6 +73,18 @@ impl EventLoopSource {
         ))
       }
     }
+  }
+
+  pub fn send_stop(&self) -> crate::Result<()> {
+    unsafe {
+      PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0))
+    }
+    .ok()
+    .map_err(|_| {
+      crate::Error::WindowMessage(
+        "Failed to post quit message".to_string(),
+      )
+    })
   }
 }
 
@@ -119,7 +136,13 @@ impl EventLoop {
       thread_id,
     };
 
-    let dispatcher = super::Dispatcher::new(window_handle, thread_id);
+    let event_loop_source = EventLoopSource {
+      message_window_handle: window_handle,
+      thread_id,
+    };
+
+    let stopped = Arc::new(AtomicBool::new(false));
+    let dispatcher = Dispatcher::new(Some(event_loop_source), stopped);
 
     Ok((event_loop, dispatcher))
   }

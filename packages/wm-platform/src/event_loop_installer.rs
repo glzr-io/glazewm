@@ -1,3 +1,5 @@
+use std::sync::{atomic::AtomicBool, Arc};
+
 use crate::{platform_impl, Dispatcher};
 
 /// An installer for integrating [`Dispatcher`] with an existing
@@ -8,7 +10,8 @@ impl EventLoopInstaller {
   /// Creates a new installer and dispatcher for integrating with an
   /// existing event loop.
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
-    let dispatcher = Dispatcher::new(None);
+    let stopped = Arc::new(AtomicBool::new(false));
+    let dispatcher = Dispatcher::new(None, stopped);
     Ok((Self, dispatcher))
   }
 

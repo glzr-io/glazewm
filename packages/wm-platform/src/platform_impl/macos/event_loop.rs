@@ -1,6 +1,7 @@
-use std::sync::mpsc;
+use std::sync::{atomic::AtomicBool, mpsc, Arc};
 
 use anyhow::Context;
+use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
@@ -21,14 +22,26 @@ impl EventLoopSource {
     &self,
     dispatch_fn: Box<DispatchFn>,
   ) -> crate::Result<()> {
-    self
-      .dispatch_tx
-      .send(dispatch_fn)
-      .map_err(|err| crate::Error::ChannelSend(err.to_string()))?;
+    // self
+    //   .dispatch_tx
+    //   .send(dispatch_fn)
+    //   .map_err(|err| crate::Error::ChannelSend(err.to_string()))?;
 
-    self.source.signal();
-    self.run_loop.wake_up();
+    // self.source.signal();
+    // self.run_loop.wake_up();
 
+    DispatchQueue::main().exec_sync(|| {
+      dispatch_fn();
+    });
+
+    // dispatch2::run_on_main(move || {
+    // });
+
+    Ok(())
+  }
+
+  pub fn send_stop(&self) -> crate::Result<()> {
+    self.run_loop.stop();
     Ok(())
   }
 }
@@ -49,7 +62,8 @@ impl EventLoop {
     // Set up the `CFRunLoop` directly on the current thread.
     let source = Self::add_dispatch_source()?;
 
-    let dispatcher = Dispatcher::new(Some(source.clone()));
+    let stopped = Arc::new(AtomicBool::new(false));
+    let dispatcher = Dispatcher::new(Some(source.clone()), stopped);
 
     Ok((
       Self {
@@ -118,7 +132,7 @@ impl EventLoop {
       unsafe { &*(info as *const mpsc::Receiver<Box<DispatchFn>>) };
 
     for callback in operations.try_iter() {
-      println!("Running callback from event loop.");
+      tracing::info!("Running callback from event loop.");
       callback();
     }
   }
@@ -128,11 +142,8 @@ impl Drop for EventLoop {
   fn drop(&mut self) {
     tracing::info!("Shutting down event loop.");
 
-    self
-      .source
-      .run_loop
-      .remove_source(Some(&self.source.source), None);
-
+    // Removing the added `CFRunLoopSource` prior to stopping the run loop
+    // is not necessary.
     self.source.run_loop.stop();
   }
 }
