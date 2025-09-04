@@ -79,7 +79,7 @@ impl WindowManager {
         Ok(())
       }
       PlatformEvent::Keybinding(kb_config) => {
-        // self.process_commands(&kb_config.commands, None, config)?;
+        self.process_commands(&kb_config.0.commands, None, config)?;
 
         // Return early since we don't want to redraw twice.
         return Ok(());

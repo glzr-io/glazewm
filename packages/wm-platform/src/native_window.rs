@@ -30,6 +30,7 @@ pub struct NativeWindow {
 }
 
 impl NativeWindow {
+  #[must_use]
   pub fn id(&self) -> WindowId {
     self.inner.id()
   }
@@ -41,13 +42,16 @@ impl NativeWindow {
     Ok("test".to_string())
   }
 
+  // TODO: Remove this (should only be on `NativeWindowWindowsExt`).
   pub fn class_name(&self) -> crate::Result<String> {
     Ok("test".to_string())
   }
 
+  // TODO: Remove this (should only be on `NativeWindowWindowsExt`).
   pub fn process_name(&self) -> crate::Result<String> {
     Ok("test".to_string())
   }
+
   pub fn frame(&self) -> crate::Result<Rect> {
     self.inner.frame()
   }
@@ -94,7 +98,7 @@ impl NativeWindow {
 
   pub fn is_resizable(&self) -> crate::Result<bool> {
     // TODO: Implement this.
-    Ok(false)
+    Ok(true)
   }
 }
 

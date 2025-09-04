@@ -1,56 +1,135 @@
-## Project overview
+<context>
+  <project_overview>
+    <summary>
+      GlazeWM is a window manager for Windows and macOS written in Rust.
+    </summary>
 
-GlazeWM is a window manager written in Rust. The project is organized as a Cargo workspace with multiple crates.
+    <crates>
+      <crate name="wm" kind="bin">
+        <purpose
+          >Main application implementing core window management logic.</purpose
+        >
+        <install_path>C:\Program Files\glzr.io\glazewm.exe</install_path>
+      </crate>
 
-### Crates overview
+      <crate name="wm-cli" kind="bin,lib">
+        <purpose>CLI for interacting with the main application.</purpose>
+        <install_path>C:\Program Files\glzr.io\cli\glazewm.exe</install_path>
+        <note>Added to $PATH by default.</note>
+      </crate>
 
-- `wm` (bin): Main application, which implements the core window management logic.
-  - Gets installed to `C:\Program Files\glzr.io\glazewm.exe`.
-- `wm-cli` (bin/lib): CLI for interacting with the main application.
-  - Gets installed to `C:\Program Files\glzr.io\cli\glazewm.exe`. This is added to `$PATH` by default.
-- `wm-common` (lib): Shared types, utilities, and constants used across other crates.
-- `wm-ipc-client` (lib): WebSocket client library for IPC with the main application.
-- `wm-platform` (lib): Wrappers over platform-specific API's - other crates don't interact directly with the Windows and macOS API's.
-  - See `.claude/doc/wm-platform-guide.md` for development guidelines and best practices when working with the `wm-platform` crate.
-- `wm-watcher` (bin): Watchdog process that ensures proper cleanup when the main application exits.
-  - Gets installed to `C:\Program Files\glzr.io\glazewm-watcher.exe`.
+      <crate name="wm-common" kind="lib">
+        <purpose
+          >Shared types, utilities, and constants used across other
+          crates.</purpose
+        >
+      </crate>
 
-### Code style & formatting
+      <crate name="wm-ipc-client" kind="lib">
+        <purpose
+          >WebSocket client library for IPC with the main application.</purpose
+        >
+      </crate>
 
-- Do not leave partial or simplified implementations!
-- Avoid `.unwrap()` wherever possible!
-- Follow clippy suggestions unless there's a compelling reason not to.
-- Use rust-analyzer with clippy for continuous linting.
-- The project uses the nightly Rust toolchain. However, only use nightly features when they provide clear benefit.
+      <crate name="wm-platform" kind="lib">
+        <purpose
+          >Wrappers over platform-specific APIs; other crates do not call
+          Windows/macOS APIs directly.</purpose
+        >
+      </crate>
 
-### Code comments
+      <crate name="wm-watcher" kind="bin">
+        <purpose
+          >Watchdog process ensuring proper cleanup when the main application
+          exits.</purpose
+        >
+        <install_path
+          >C:\Program Files\glzr.io\glazewm-watcher.exe</install_path
+        >
+      </crate>
+    </crates>
+  </project_overview>
 
-- Document public APIs with rustdoc comments, especially important for the `wm-platform` crate.
-- Rustdoc comments should include (in the following order):
-  - (required) A _concise_ summary of the purpose of the function or type.
-  - (required) Any notable caveats when using the function or type. Again, should be kept brief.
-  - (optional) If unclear from the summary, include an additional note about the return type of the function (e.g. "Returns a vector of `NativeMonitor` sorted from left-to-right.").
-  - (optional) Cases where the function might panic (use "# Panics" as heading).
-  - (optional) Platform-specific notes (use "# Platform-specific" as heading).
-  - (optional) Example usage, not needed for most cases (use "# Examples" as heading).
-- Use punctuation marks at the end of doc comments and in-line comments.
-- Wrap names of types in \` (e.g. `ExampleStruct`).
-- If using unsafe features, add a "SAFETY: ..." comment.
+  <guidelines>
+    <code_style_and_formatting>
+      <rule>Do not leave partial or simplified implementations.</rule>
+      <rule>Avoid .unwrap() wherever possible.</rule>
+      <rule
+        >Follow clippy suggestions unless there is a compelling reason not
+        to.</rule
+      >
+      <rule>Use rust-analyzer with clippy for continuous linting.</rule>
+      <toolchain channel="nightly">
+        <policy
+          >Only use nightly features when they provide clear benefit.</policy
+        >
+      </toolchain>
+    </code_style_and_formatting>
 
-### Testing
+    <documentation>
+      <rule
+        >Document public APIs with rustdoc comments, especially for the
+        wm-platform crate.</rule
+      >
 
-- Use `#[cfg(test)]` for test modules.
-- Write unit tests for core functionality.
-- Tests are there to verify correctness, not to define the solution. Provide a principled implementation that follows best practices and software design principles.
+      <rustdoc_requirements>
+        <item required="true">Concise summary of the function or type.</item>
+        <item required="true">Notable caveats for usage (kept brief).</item>
+        <item
+          >Return value note if unclear (e.g., Returns a vector of NativeMonitor
+          sorted left-to-right.).</item
+        >
+        <item heading="# Panics">List cases where the function can panic.</item>
+        <item heading="# Platform-specific">Platform-specific notes.</item>
+        <item heading="# Examples">Example usage (usually optional).</item>
+      </rustdoc_requirements>
 
-### Error handling
+      <notes>
+        <note
+          >Use punctuation at the end of doc comments and in-line
+          comments.</note
+        >
+        <note
+          >Wrap type names in code style when referenced (e.g.,
+          ExampleStruct).</note
+        >
+        <note>If using unsafe features, include a "SAFETY: ..." comment.</note>
+      </notes>
+    </documentation>
 
-- `anyhow` is being replaced with `thiserror` in the `wm-platform` crate. Please use `thiserror` for error handling within this crate.
-- Use `thiserror` for custom error types with `#[derive(Debug, thiserror::Error)]`.
+    <testing>
+      <rule>Use #[cfg(test)] for test modules.</rule>
+      <rule>Write unit tests for core functionality.</rule>
+      <note
+        >Tests verify correctness; provide a principled implementation that
+        follows best practices.</note
+      >
+    </testing>
 
-### Logging
+    <error_handling>
+      <rule>Prefer thiserror over anyhow in the wm-platform crate.</rule>
+      <rule
+        >Use thiserror for custom error types with #[derive(Debug,
+        thiserror::Error)].</rule
+      >
+    </error_handling>
 
-- Use `tracing` crate for logging.
-- Log levels: `error!`, `warn!`, `info!`, `debug!`.
+    <logging_and_tracing>
+      <rule>Use the tracing crate for logging.</rule>
+      <levels>
+        <level>error!</level>
+        <level>warn!</level>
+        <level>info!</level>
+        <level>debug!</level>
+      </levels>
+    </logging_and_tracing>
+  </guidelines>
 
-If the task is unreasonable or infeasible, or if any of the tests are incorrect, please tell me. The solution should be robust, maintainable, and extendable.
+  <other_context load_condition="if working with wm-platform crate">./thoughts/wm-platform-guide.md</other_context>
+
+  <feasibility_note>
+    If a task is unreasonable or infeasible, or if any tests are incorrect,
+    state this explicitly. Solutions should be robust, maintainable, and
+    extendable.
+  </feasibility_note>
+</context>

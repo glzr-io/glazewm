@@ -108,7 +108,8 @@ async fn start_wm(
 
   // These will wait for the event loop to be ready
   let mut mouse_listener = MouseListener::new(dispatcher.clone())?;
-  let mut keyboard_listener = KeybindingListener::new(dispatcher.clone())?;
+  let mut keybinding_listener =
+    KeybindingListener::new(dispatcher.clone())?;
   let mut window_listener = WindowListener::new(dispatcher.clone())?;
 
   tracing::info!("Window manager started.");
@@ -167,10 +168,10 @@ async fn start_wm(
     //     tracing::debug!("Received mouse event: {:?}", event);
     //     handle_event(PlatformEvent::Window(event)).await;
     //   },
-    //   Some(event) = keyboard_listener.event_rx.recv() => {
-    //     tracing::debug!("Received keyboard event: {:?}", event);
-    //     handle_event(PlatformEvent::Keyboard(event)).await;
-    //   },
+      Some(event) = keybinding_listener.next_event() => {
+        tracing::debug!("Received keyboard event: {:?}", event);
+        wm.process_event(PlatformEvent::Keybinding(event), &mut config)
+      },
       // Some(event) = window_listener.next_event() => {
       //   tracing::info!("Received window event: {:?}", event);
       //   match event {
@@ -231,8 +232,8 @@ async fn start_wm(
   }
 
   // Shutdown the platform hook.
-  // hook.shutdown().await?;
   tracing::info!("Window manager shutting down.");
+  dispatcher.stop_event_loop()?;
 
   Ok(())
 }

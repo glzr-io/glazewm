@@ -48,7 +48,9 @@ use wm_common::{
 
 use super::COM_INIT;
 
-// TODO: Add `NativeWindowWindowsExt` trait with `class_name`.
+// TODO: Add `NativeWindowWindowsExt` trait with `class_name`,
+// `process_name`, `mark_fullscreen`, `set_title_bar_visibility`,
+// `set_border_color`, `set_corner_style`, `set_transparency`.
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.

@@ -1,4 +1,4 @@
-use wm_common::Point;
+use wm_common::{KeybindingConfig, Point};
 
 use super::NativeWindow;
 
@@ -23,12 +23,9 @@ pub enum WindowEvent {
   TitleChange(NativeWindow),
 }
 
+// TODO: Decouple `KeybindingConfig` from `KeybindingEvent`.
 #[derive(Clone, Debug)]
-pub struct KeybindingEvent {
-  pub key: String,
-  pub command: String,
-  pub mode: String,
-}
+pub struct KeybindingEvent(pub KeybindingConfig);
 
 #[derive(Clone, Debug)]
 pub struct MouseMoveEvent {

@@ -137,11 +137,11 @@ impl PositionGetters for Workspace {
     };
 
     Ok(
-      monitor
-        .to_rect()?
-        // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(gaps, Some(scale_factor))
-        .apply_delta(&working_delta, None),
+      monitor.to_rect()?, /* Scale the gaps if `scale_with_dpi` is
+                           * enabled.
+                           * .apply_inverse_delta(gaps,
+                           * Some(scale_factor))
+                           * .apply_delta(&working_delta, None), */
     )
   }
 }
