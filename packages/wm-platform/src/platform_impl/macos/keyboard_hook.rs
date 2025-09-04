@@ -1,99 +1,50 @@
 use std::{
   collections::HashMap,
   os::raw::{c_int, c_void},
+  ptr::NonNull,
   sync::{Arc, Mutex},
 };
 
-use objc2_core_foundation::CFMachPort;
-use objc2_core_graphics::{CGEvent, CGEventType};
+use dispatch2::MainThreadBound;
+use objc2::MainThreadMarker;
+use objc2_core_foundation::{
+  kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop,
+};
+use objc2_core_graphics::{
+  CGEvent, CGEventField, CGEventFlags, CGEventGetFlags,
+  CGEventGetIntegerValueField, CGEventMask, CGEventSourceFlagsState,
+  CGEventSourceStateID, CGEventTapLocation, CGEventTapOptions,
+  CGEventTapPlacement, CGEventTapProxy, CGEventType,
+};
 use tokio::sync::mpsc;
+use tracing::event;
 use wm_common::KeybindingConfig;
 
 use crate::{platform_event::KeybindingEvent, Error};
 
-// FFI definitions for missing CGEventTap functionality
-type CGEventRef = *mut CGEvent;
-
-type CGEventTapCallBack = unsafe extern "C" fn(
-  proxy: CGEventTapProxy,
-  event_type: CGEventType,
-  event: CGEventRef,
-  user_info: *mut c_void,
-) -> CGEventRef;
-
-type CGEventTapProxy = *mut c_void;
-
-type CGEventTapLocation = u32;
-const kCGSessionEventTap: CGEventTapLocation = 0;
-
-type CGEventTapPlacement = u32;
-const kCGHeadInsertEventTap: CGEventTapPlacement = 0;
-
-type CGEventTapOptions = u32;
-const kCGEventTapOptionDefault: CGEventTapOptions = 0;
-
-const kCGEventKeyDown: CGEventType = CGEventType(10);
-
-type CGEventField = u32;
-const kCGKeyboardEventKeycode: CGEventField = 9;
-
-type CGEventSourceStateID = c_int;
-const kCGEventSourceStatePrivate: CGEventSourceStateID = -1;
-
-type CGEventFlags = u64;
-const kCGEventFlagMaskCommand: CGEventFlags = 0x100000;
-const kCGEventFlagMaskAlternate: CGEventFlags = 0x80000;
-const kCGEventFlagMaskControl: CGEventFlags = 0x40000;
-const kCGEventFlagMaskShift: CGEventFlags = 0x20000;
-
-#[link(name = "CoreGraphics", kind = "framework")]
-extern "C" {
-  fn CGEventTapCreate(
-    tap: CGEventTapLocation,
-    place: CGEventTapPlacement,
-    options: CGEventTapOptions,
-    events_of_interest: u64,
-    callback: CGEventTapCallBack,
-    user_info: *mut c_void,
-  ) -> *mut CFMachPort;
-
-  fn CGEventTapEnable(tap: *mut CFMachPort, enable: bool);
-
-  fn CGEventGetIntegerValueField(
-    event: CGEventRef,
-    field: CGEventField,
-  ) -> i64;
-
-  fn CGEventSourceFlagsState(
-    state_id: CGEventSourceStateID,
-  ) -> CGEventFlags;
-}
-
-#[link(name = "CoreFoundation", kind = "framework")]
-extern "C" {
-  fn CFRelease(cf: *const c_void);
+#[derive(Debug)]
+pub struct KeyboardHook {
+  inner: Arc<Mutex<KeyboardHookInner>>,
 }
 
 #[derive(Debug)]
-pub struct KeyboardHook {
+struct KeyboardHookInner {
   /// Sender to emit platform events.
   event_tx: mpsc::UnboundedSender<KeybindingEvent>,
 
   /// CGEventTap handle for keyboard monitoring.
-  event_tap: Arc<Mutex<Option<*mut CFMachPort>>>,
+  event_tap: Option<MainThreadBound<CFRetained<CFMachPort>>>,
 
   /// RunLoop source for event tap.
-  run_loop_source:
-    Arc<Mutex<Option<*mut objc2_core_foundation::CFRunLoopSource>>>,
+  run_loop_source: Option<*mut objc2_core_foundation::CFRunLoopSource>,
 
   /// Active keybindings grouped by trigger key.
-  keybindings_by_trigger_key:
-    Arc<Mutex<HashMap<u16, Vec<ActiveKeybinding>>>>,
+  keybindings_by_trigger_key: HashMap<i64, Vec<ActiveKeybinding>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ActiveKeybinding {
-  pub key_codes: Vec<u16>,
+  pub key_codes: Vec<i64>,
   pub config: KeybindingConfig,
 }
 
@@ -102,24 +53,26 @@ impl KeyboardHook {
   pub fn new(
     keybindings: &Vec<KeybindingConfig>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
-  ) -> crate::Result<Arc<Self>> {
-    let keyboard_hook = Arc::new(Self {
+  ) -> crate::Result<Self> {
+    let inner = KeyboardHookInner {
       event_tx,
-      event_tap: Arc::new(Mutex::new(None)),
-      run_loop_source: Arc::new(Mutex::new(None)),
-      keybindings_by_trigger_key: Arc::new(Mutex::new(
-        Self::keybindings_by_trigger_key(keybindings),
-      )),
-    });
+      event_tap: None,
+      run_loop_source: None,
+      keybindings_by_trigger_key: Self::keybindings_by_trigger_key(
+        keybindings,
+      ),
+    };
 
-    Ok(keyboard_hook)
+    Ok(Self {
+      inner: Arc::new(Mutex::new(inner)),
+    })
   }
 
   /// Groups keybindings by their trigger key (last key in the
   /// combination).
   fn keybindings_by_trigger_key(
     keybindings: &Vec<KeybindingConfig>,
-  ) -> HashMap<u16, Vec<ActiveKeybinding>> {
+  ) -> HashMap<i64, Vec<ActiveKeybinding>> {
     let mut keybinding_map = HashMap::new();
 
     for keybinding in keybindings {
@@ -145,7 +98,7 @@ impl KeyboardHook {
   }
 
   /// Converts a string key name to its corresponding macOS key code.
-  fn string_to_key_code(key: &str) -> Option<u16> {
+  fn string_to_key_code(key: &str) -> Option<i64> {
     match key.to_lowercase().as_str() {
       // Letter keys
       "a" => Some(0x00),
@@ -234,95 +187,170 @@ impl KeyboardHook {
   }
 
   /// Handles a key event and determines if it should be blocked.
-  fn handle_key_event(&self, key_code: u16) -> bool {
-    let keybindings = self.keybindings_by_trigger_key.lock().unwrap();
+  fn handle_key_event(
+    inner: &mut KeyboardHookInner,
+    event_type: CGEventType,
+    event: &CGEvent,
+  ) -> bool {
+    let key_code = unsafe {
+      CGEventGetIntegerValueField(
+        Some(event),
+        CGEventField::KeyboardEventKeycode,
+      )
+    };
 
-    match keybindings.get(&key_code) {
+    let event_flags = unsafe { CGEventGetFlags(Some(event)) };
+    // let key_code = unsafe {
+    //   CGEventGetIntegerValueField(
+    //     Some(&event.as_ref()),
+    //     CGEventField::KeyboardEventKeycode,
+    //   ) as i64
+    // };
+
+    // let event_flags = unsafe {
+    //   CGEventGetIntegerValueField(
+    //     Some(&event.as_ref()),
+    //     CGEventField::EventFlags,
+    //   )
+    // };
+
+    tracing::info!("Key code: {:?} {:?}", key_code, event_type);
+
+    println!("gets here 1");
+    match inner.keybindings_by_trigger_key.get(&key_code) {
       None => false,
       Some(bindings) => {
-        let matched_bindings = bindings.iter().filter(|binding| {
-          binding.key_codes.iter().all(|&code| {
-            if code == key_code {
-              return true;
-            }
-            Self::is_modifier_pressed(code)
-          })
-        });
+        println!("gets here 2");
+        println!("bindings: {:?}", inner.keybindings_by_trigger_key);
 
+        println!("gets here 3");
+        let matched_bindings: Vec<_> = bindings
+          .iter()
+          .filter(|binding| {
+            binding.key_codes.iter().all(|&code| {
+              if code == key_code {
+                return true;
+              }
+              Self::is_modifier_pressed_from_flags(code, event_flags)
+            })
+          })
+          .collect();
+
+        println!("gets here 4");
+        println!("matched_bindings: {:?}", matched_bindings);
         if let Some(longest_binding) =
-          matched_bindings.max_by_key(|b| b.key_codes.len())
+          matched_bindings.iter().max_by_key(|b| b.key_codes.len())
         {
-          let _ = self
+          println!("gets here 5");
+          let _ = inner
             .event_tx
             .send(KeybindingEvent(longest_binding.config.clone()));
           return true;
         }
 
+        println!("gets here 6");
         false
       }
     }
   }
 
-  /// Checks if a modifier key is currently pressed.
-  fn is_modifier_pressed(key_code: u16) -> bool {
-    unsafe {
-      let flags = CGEventSourceFlagsState(kCGEventSourceStatePrivate);
-      match key_code {
-        0x37 => flags & kCGEventFlagMaskCommand != 0, // cmd
-        0x3A => flags & kCGEventFlagMaskAlternate != 0, // option/alt
-        0x3B => flags & kCGEventFlagMaskControl != 0, // control
-        0x38 => flags & kCGEventFlagMaskShift != 0,   // shift
-        _ => false,
-      }
-    }
+  /// Checks if a modifier key is currently pressed based on event flags.
+  fn is_modifier_pressed_from_flags(
+    key_code: i64,
+    event_flags: CGEventFlags,
+  ) -> bool {
+    println!("is_modifier_pressed_from_flags: {:?}", key_code);
+    // let flags = CGEventFlags::from_bits_retain(event_flags);
+    let res = match key_code {
+      0x37 => {
+        event_flags & CGEventFlags::MaskCommand != CGEventFlags::empty()
+      } /* cmd */
+      0x3A => {
+        event_flags & CGEventFlags::MaskAlternate != CGEventFlags::empty()
+      } /* option/alt */
+      0x3B => {
+        event_flags & CGEventFlags::MaskControl != CGEventFlags::empty()
+      } /* control */
+      0x38 => {
+        event_flags & CGEventFlags::MaskShift != CGEventFlags::empty()
+      } /* shift */
+      _ => false,
+    };
+    println!("is_modifier_pressed_from_flags: {:?}", res);
+    res
   }
 
   /// Starts the keyboard hook by creating and enabling a CGEventTap.
-  pub fn start(&self) -> crate::Result<()> {
-    unsafe {
-      let event_mask = 1u64 << kCGEventKeyDown.0;
-      let event_tap = CGEventTapCreate(
-        kCGSessionEventTap,
-        kCGHeadInsertEventTap,
-        kCGEventTapOptionDefault,
-        event_mask,
-        keyboard_event_callback,
-        self as *const Self as *mut c_void,
-      );
+  pub fn start(&mut self) -> crate::Result<()> {
+    let mask: CGEventMask = 1u64 << CGEventType::KeyDown.0 as u64;
 
-      if event_tap.is_null() {
-        return Err(Error::Platform("Failed to create CGEventTap. Accessibility permissions may be required.".to_string()));
-      }
+    // Clone the Arc to increment reference count for the callback
+    let arc_clone = Arc::clone(&self.inner);
+    let arc_ptr = Arc::into_raw(arc_clone) as *mut c_void;
+    let event_tap = unsafe {
+        CGEvent::tap_create(
+          CGEventTapLocation::SessionEventTap,
+          CGEventTapPlacement::HeadInsertEventTap,
+          CGEventTapOptions::ListenOnly,
+          mask,
+          Some(keyboard_event_callback),
+          arc_ptr,
+        )
+      }.ok_or(Error::Platform("Failed to create CGEventTap. Accessibility permissions may be required.".to_string()))?;
 
-      CGEventTapEnable(event_tap, true);
-      *self.event_tap.lock().unwrap() = Some(event_tap);
-    }
+    // let event_tap = CGEvent::tap_create(
+    //   kCGSessionEventTap,
+    //   kCGHeadInsertEventTap,
+    //   kCGEventTapOptionDefault,
+    //   event_mask,
+    //   keyboard_event_callback,
+    //   self as *const Self as *mut c_void,
+    // );
+
+    println!("======================Event tap: {:?}", event_tap);
+    // if event_tap.is_null() {
+    //   return Err(Error::Platform("Failed to create CGEventTap.
+    // Accessibility permissions may be required.".to_string())); }
+
+    let loop_ = CFMachPort::new_run_loop_source(None, Some(&event_tap), 0)
+      .ok_or(anyhow::anyhow!("Failed to create loop source"))?;
+
+    let current_loop = CFRunLoop::current().unwrap();
+    current_loop
+      .add_source(Some(&loop_), unsafe { kCFRunLoopCommonModes });
+
+    unsafe { CGEvent::tap_enable(&event_tap, true) };
+
+    let tap = MainThreadBound::new(event_tap, unsafe {
+      MainThreadMarker::new_unchecked()
+    });
+
+    let mut inner = self.inner.lock().unwrap();
+    inner.event_tap = Some(tap);
 
     Ok(())
   }
 
   /// Stops the keyboard hook by disabling the CGEventTap.
-  pub fn stop(&self) -> crate::Result<()> {
-    let mut event_tap = self.event_tap.lock().unwrap();
-
-    if let Some(tap) = *event_tap {
+  pub fn stop(&mut self) -> crate::Result<()> {
+    let mut inner = self.inner.lock().unwrap();
+    if let Some(tap) = inner.event_tap.take() {
       unsafe {
-        CGEventTapEnable(tap, false);
-        CFRelease(tap as *const c_void);
+        // Disable the event tap
+        let tap_ref = tap.get(MainThreadMarker::new_unchecked());
+        CGEvent::tap_enable(tap_ref, false);
       }
     }
-
-    *event_tap = None;
-
     Ok(())
   }
 
   /// Updates the keybindings for the keyboard hook.
   pub fn update(
-    &self,
+    &mut self,
     keybindings: &Vec<KeybindingConfig>,
   ) -> crate::Result<()> {
-    *self.keybindings_by_trigger_key.lock().unwrap() =
+    let mut inner = self.inner.lock().unwrap();
+    inner.keybindings_by_trigger_key =
       Self::keybindings_by_trigger_key(keybindings);
     Ok(())
   }
@@ -333,33 +361,43 @@ impl KeyboardHook {
 /// This is called by macOS whenever a keyboard event occurs that matches
 /// our event mask. It processes the event and determines if it should be
 /// blocked (not forwarded to other applications).
-unsafe extern "C" fn keyboard_event_callback(
+extern "C-unwind" fn keyboard_event_callback(
   _proxy: CGEventTapProxy,
   event_type: CGEventType,
-  event: CGEventRef,
+  mut event: NonNull<CGEvent>,
   user_info: *mut c_void,
-) -> CGEventRef {
+) -> *mut CGEvent {
+  tracing::info!("Key code: {:?} {:?}", event_type, event);
   // Only process key down events
-  if event_type != kCGEventKeyDown {
-    return event;
+  if event_type != CGEventType::KeyDown {
+    return event.as_ptr();
   }
 
-  // Get the keyboard hook instance from the user_info pointer
-  let hook = &*(user_info as *const KeyboardHook);
-
-  // Extract the key code from the event
-  let key_code =
-    CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode) as u16;
-
-  // Check if this key event should trigger a keybinding
-  let should_block = hook.handle_key_event(key_code);
-
-  // If we should block the event, return null to prevent it from
-  // being forwarded to other applications
-  if should_block {
-    return std::ptr::null_mut();
+  if user_info.is_null() {
+    tracing::error!("Null pointer passed to Event Handler.");
+    return unsafe { event.as_mut() };
   }
 
-  // Otherwise, let the event pass through normally
-  event
+  // Reconstruct the Arc from the raw pointer
+  let inner_arc =
+    unsafe { Arc::from_raw(user_info.cast::<Mutex<KeyboardHookInner>>()) };
+
+  // Access the inner data through the mutex
+  let intercept = if let Ok(mut inner) = inner_arc.try_lock() {
+    KeyboardHook::handle_key_event(&mut *inner, event_type, unsafe {
+      event.as_ref()
+    })
+  } else {
+    tracing::warn!("Failed to acquire mutex lock in keyboard callback");
+    false
+  };
+
+  // Convert back to raw pointer to avoid dropping the Arc
+  let _ = Arc::into_raw(inner_arc);
+
+  if intercept {
+    std::ptr::null_mut()
+  } else {
+    unsafe { event.as_mut() }
+  }
 }

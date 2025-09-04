@@ -108,8 +108,6 @@ async fn start_wm(
 
   // These will wait for the event loop to be ready
   let mut mouse_listener = MouseListener::new(dispatcher.clone())?;
-  let mut keybinding_listener =
-    KeybindingListener::new(dispatcher.clone())?;
   let mut window_listener = WindowListener::new(dispatcher.clone())?;
 
   tracing::info!("Window manager started.");
@@ -135,6 +133,11 @@ async fn start_wm(
 
   // Parse and validate user config.
   let mut config = UserConfig::new(config_path)?;
+
+  let mut keybinding_listener = KeybindingListener::new(
+    dispatcher.clone(),
+    &config.value.keybindings,
+  )?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 
