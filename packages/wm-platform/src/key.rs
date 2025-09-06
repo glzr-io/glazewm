@@ -374,39 +374,6 @@ pub enum KeyParseError {
 /// Type alias for a sequence of keys representing a keybinding.
 pub type Keybinding = Vec<Key>;
 
-/// Parses a keybinding string like "cmd+shift+a" into a vector of keys.
-pub(crate) fn parse_key_binding(
-  binding: &str,
-) -> Result<Keybinding, KeyParseError> {
-  binding.split('+').map(|key| key.trim().parse()).collect()
-}
-
-/// Finds the longest matching keybinding from a list of candidates.
-/// Returns the config associated with the longest match, or None if no
-/// match is found.
-pub(crate) fn find_longest_match<T>(
-  candidates: &[(Vec<Key>, T)],
-  trigger_key: Key,
-  is_key_pressed: impl Fn(Key) -> bool,
-) -> Option<&T> {
-  let matched_bindings: Vec<_> = candidates
-    .iter()
-    .filter(|(keys, _)| {
-      keys.iter().all(|&key| {
-        if key == trigger_key {
-          return true;
-        }
-        is_key_pressed(key)
-      })
-    })
-    .collect();
-
-  matched_bindings
-    .iter()
-    .max_by_key(|(keys, _)| keys.len())
-    .map(|(_, config)| config)
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -430,58 +397,6 @@ mod tests {
     assert_eq!(Key::F1.to_string(), "F1");
     assert_eq!(Key::Space.to_string(), "Space");
     assert_eq!(Key::Semicolon.to_string(), ";");
-  }
-
-  #[test]
-  fn test_parse_key_binding() {
-    let keys = parse_key_binding("cmd+shift+a").unwrap();
-    assert_eq!(keys, vec![Key::Cmd, Key::Shift, Key::A]);
-
-    let single_key = parse_key_binding("space").unwrap();
-    assert_eq!(single_key, vec![Key::Space]);
-
-    let complex_binding = parse_key_binding("ctrl+alt+f1").unwrap();
-    assert_eq!(complex_binding, vec![Key::Ctrl, Key::Alt, Key::F1]);
-  }
-
-  #[test]
-  fn test_parse_key_binding_with_whitespace() {
-    let keys = parse_key_binding("cmd + shift + a").unwrap();
-    assert_eq!(keys, vec![Key::Cmd, Key::Shift, Key::A]);
-  }
-
-  #[test]
-  fn test_parse_key_binding_invalid() {
-    assert!(parse_key_binding("cmd+invalid").is_err());
-    assert!(parse_key_binding("").is_err());
-  }
-
-  #[test]
-  fn test_find_longest_match() {
-    let candidates = vec![
-      (vec![Key::Cmd, Key::A], "short"),
-      (vec![Key::Cmd, Key::Shift, Key::A], "long"),
-    ];
-
-    // When all modifiers are pressed, should find the longest match
-    let result =
-      find_longest_match(&candidates, Key::A, |key| match key {
-        Key::Cmd | Key::Shift => true,
-        _ => false,
-      });
-    assert_eq!(result, Some(&"long"));
-
-    // When only Cmd is pressed, should find the shorter match
-    let result =
-      find_longest_match(&candidates, Key::A, |key| match key {
-        Key::Cmd => true,
-        _ => false,
-      });
-    assert_eq!(result, Some(&"short"));
-
-    // When no modifiers are pressed, should find no match
-    let result = find_longest_match(&candidates, Key::A, |_| false);
-    assert_eq!(result, None);
   }
 
   #[test]
