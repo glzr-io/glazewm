@@ -11,7 +11,7 @@ use objc2_core_graphics::{
 };
 
 use super::key::macos_code_to_key;
-use crate::{Error, Key};
+use crate::{Dispatcher, Error, Key};
 
 /// macOS-specific keyboard event.
 #[derive(Clone, Debug)]
@@ -40,7 +40,7 @@ impl KeyEvent {
     }
   }
 
-  /// Gets whether the specified key is currently down.
+  /// Gets whether the specified key is currently pressed.
   pub fn is_key_down(&self, key: Key) -> bool {
     match key {
       Key::Cmd => {
@@ -66,13 +66,32 @@ impl KeyEvent {
   }
 }
 
+/// macOS-specific keyboard hook.
+#[derive(Debug)]
 pub struct KeyboardHook {
   event_tap: Option<MainThreadBound<CFRetained<CFMachPort>>>,
+  dispatcher: Dispatcher,
 }
 
 impl KeyboardHook {
   /// Creates an instance of `KeyboardHook`.
-  pub fn new<F>(callback: F) -> crate::Result<Self>
+  pub fn new<F>(dispatcher: Dispatcher, callback: F) -> crate::Result<Self>
+  where
+    F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
+  {
+    let event_tap =
+      dispatcher.dispatch_sync(|| Self::create_event_tap(callback))??;
+
+    Ok(Self {
+      event_tap: Some(event_tap),
+      dispatcher,
+    })
+  }
+
+  /// Creates a `CGEventTap` object.
+  pub fn create_event_tap<F>(
+    callback: F,
+  ) -> crate::Result<MainThreadBound<CFRetained<CFMachPort>>>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
@@ -123,12 +142,12 @@ impl KeyboardHook {
       MainThreadMarker::new_unchecked()
     });
 
-    Ok(Self {
-      event_tap: Some(event_tap),
-    })
+    Ok(event_tap)
   }
 
-  /// `CGEventTap` callback function for keyboard events.
+  /// Callback function for keyboard events.
+  ///
+  /// For use with `CGEventTap`.
   extern "C-unwind" fn keyboard_event_callback<F>(
     _proxy: CGEventTapProxy,
     event_type: CGEventType,
@@ -143,6 +162,7 @@ impl KeyboardHook {
       return unsafe { event.as_mut() };
     }
 
+    // Extract the key code of the pressed/released key.
     let key_code = unsafe {
       CGEvent::integer_value_field(
         Some(event.as_ref()),
@@ -160,7 +180,7 @@ impl KeyboardHook {
       is_keypress
     );
 
-    // Convert macOS key code to our Key enum
+    // Convert macOS key code to the `Key` enum.
     let Some(pressed_key) = macos_code_to_key(key_code) else {
       return unsafe { event.as_mut() };
     };
@@ -182,10 +202,10 @@ impl KeyboardHook {
   #[allow(clippy::unnecessary_wraps)]
   pub fn stop(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.event_tap.take() {
-      unsafe {
+      self.dispatcher.dispatch(move || unsafe {
         let tap_ref = tap.get(MainThreadMarker::new_unchecked());
         CGEvent::tap_enable(tap_ref, false);
-      }
+      })?;
     }
 
     Ok(())

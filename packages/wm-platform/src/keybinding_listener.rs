@@ -17,70 +17,91 @@ pub struct ActiveKeybinding {
   pub config: KeybindingConfig,
 }
 
-/// Listener for system-wide keybindings.
+/// A listener for system-wide keybindings.
+#[derive(Debug)]
 pub struct KeybindingListener {
+  /// A receiver channel for outgoing keybinding events.
   event_rx: mpsc::UnboundedReceiver<KeybindingEvent>,
+
+  /// A map of keybindings to their trigger key.
+  ///
+  /// The trigger key is the final key in a keybinding. For example,
+  /// in the keybinding `[Key::Cmd, Key::Shift, Key::A]`, `Key::A` is the
+  /// trigger key.
+  keybinding_map: Arc<Mutex<HashMap<Key, Vec<ActiveKeybinding>>>>,
+
+  /// The underlying keyboard hook used to listen for key events.
+  keyboard_hook: platform_impl::KeyboardHook,
 }
 
 impl KeybindingListener {
-  /// Creates a new keybinding listener using the provided dispatcher.
+  /// Creates an instance of `KeybindingListener`.
   pub fn new(
     dispatcher: Dispatcher,
     keybindings: &[KeybindingConfig],
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
-    // Build keybinding map.
-    let keybinding_map = Self::build_keybinding_map(keybindings);
-    let keybinding_map = Arc::new(Mutex::new(keybinding_map));
+    let keybinding_map =
+      Arc::new(Mutex::new(Self::create_keybinding_map(keybindings)));
 
-    let callback = move |event: platform_impl::KeyEvent| -> bool {
-      if !event.is_keypress {
-        return false;
-      }
+    let keyboard_hook = Self::create_keyboard_hook(
+      dispatcher,
+      keybinding_map.clone(),
+      event_tx,
+    )?;
 
-      let Ok(keybinding_map) = keybinding_map.lock() else {
-        tracing::error!("Failed to acquire lock on keybinding map.");
-        return false;
-      };
+    Ok(Self {
+      event_rx,
+      keybinding_map,
+      keyboard_hook,
+    })
+  }
 
-      // Find trigger key candidates
-      if let Some(candidates) = keybinding_map.get(&event.key) {
-        // Convert to the format expected by find_longest_match
-        let candidate_tuples: Vec<_> = candidates
-          .iter()
-          .map(|binding| (binding.keys.clone(), binding))
-          .collect();
-
-        if let Some(active_binding) =
-          find_longest_match(&candidate_tuples, event.key, |key| {
-            event.is_key_down(key)
-          })
-        {
-          let _ =
-            event_tx.send(KeybindingEvent(active_binding.config.clone()));
-          return true;
+  /// Creates and starts the keyboard hook with the callback.
+  fn create_keyboard_hook(
+    dispatcher: Dispatcher,
+    keybinding_map: Arc<Mutex<HashMap<Key, Vec<ActiveKeybinding>>>>,
+    event_tx: mpsc::UnboundedSender<KeybindingEvent>,
+  ) -> crate::Result<platform_impl::KeyboardHook> {
+    platform_impl::KeyboardHook::new(
+      dispatcher,
+      move |event: platform_impl::KeyEvent| -> bool {
+        if !event.is_keypress {
+          return false;
         }
-      }
 
-      false
-    };
+        let Ok(keybinding_map) = keybinding_map.lock() else {
+          tracing::error!("Failed to acquire lock on keybinding map.");
+          return false;
+        };
 
-    // Create and start the keyboard hook with the callback.
-    dispatcher.dispatch_sync(move || {
-      let keyboard_hook = platform_impl::KeyboardHook::new(callback)?;
+        // Find trigger key candidates.
+        if let Some(candidates) = keybinding_map.get(&event.key) {
+          // Convert to the format expected by find_longest_match.
+          let candidate_tuples: Vec<_> = candidates
+            .iter()
+            .map(|binding| (binding.keys.clone(), binding))
+            .collect();
 
-      // TODO: Avoid use of `std::mem::forget`.
-      std::mem::forget(keyboard_hook);
+          if let Some(active_binding) =
+            find_longest_match(&candidate_tuples, event.key, |key| {
+              event.is_key_down(key)
+            })
+          {
+            let _ = event_tx
+              .send(KeybindingEvent(active_binding.config.clone()));
+            return true;
+          }
+        }
 
-      crate::Result::Ok(())
-    })?;
-
-    Ok(Self { event_rx })
+        false
+      },
+    )
   }
 
   /// Builds the keybinding map from configs.
-  fn build_keybinding_map(
+  fn create_keybinding_map(
     keybindings: &[KeybindingConfig],
   ) -> HashMap<Key, Vec<ActiveKeybinding>> {
     let mut keybinding_map = HashMap::new();
@@ -120,8 +141,24 @@ impl KeybindingListener {
     self.event_rx.recv().await
   }
 
+  /// Updates the keybindings for the keybinding listener.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
+  pub fn update(&self, keybindings: &[KeybindingConfig]) {
+    *self.keybinding_map.lock().unwrap() =
+      Self::create_keybinding_map(keybindings);
+  }
+
   /// Stops the keybinding listener.
-  pub fn stop(&mut self) {
-    todo!()
+  pub fn stop(&mut self) -> crate::Result<()> {
+    self.keyboard_hook.stop()
+  }
+}
+
+impl Drop for KeybindingListener {
+  fn drop(&mut self) {
+    let _ = self.stop();
   }
 }

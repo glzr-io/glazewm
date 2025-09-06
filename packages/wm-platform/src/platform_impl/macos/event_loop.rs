@@ -25,7 +25,10 @@ impl EventLoopSource {
   ) -> crate::Result<()> {
     // TODO: Fully remove dispatch channels (`dispatch_tx` and
     // `dispatch_rx`).
-    DispatchQueue::main().exec_sync(dispatch_fn);
+    // TODO: Not sure whether to use `exec_async` or `exec_sync`.
+    // `exec_async` might be more performant, but removes the ordering
+    // guarantee.
+    DispatchQueue::main().exec_async(dispatch_fn);
     Ok(())
   }
 
