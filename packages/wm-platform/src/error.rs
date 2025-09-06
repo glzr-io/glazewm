@@ -62,6 +62,9 @@ pub enum Error {
 
   #[error("Event loop has been stopped")]
   EventLoopStopped,
+
+  #[error("Keybinding is empty")]
+  InvalidKeybinding,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -4,11 +4,9 @@ use std::{
 };
 
 use tokio::sync::mpsc;
-use wm_common::KeybindingConfig;
 
 use crate::{
   platform_event::KeybindingEvent, platform_impl, Dispatcher, Key,
-  KeyParseError,
 };
 
 const MODIFIER_KEYS: [Key; 8] = [
@@ -22,10 +20,37 @@ const MODIFIER_KEYS: [Key; 8] = [
   Key::RCmd,
 ];
 
-#[derive(Debug, Clone)]
-pub struct ActiveKeybinding {
-  pub keys: Vec<Key>,
-  pub config: KeybindingConfig,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Keybinding(Vec<Key>);
+
+impl Keybinding {
+  /// Creates a new keybinding from a vector of keys.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the keybinding is empty.
+  pub fn new(keys: Vec<Key>) -> crate::Result<Self> {
+    if keys.is_empty() {
+      return Err(crate::Error::InvalidKeybinding);
+    }
+
+    Ok(Self(keys))
+  }
+
+  /// Returns the keys in the keybinding.
+  #[must_use]
+  pub fn keys(&self) -> &[Key] {
+    &self.0
+  }
+
+  /// Returns the trigger key in the keybinding.
+  #[must_use]
+  #[allow(clippy::missing_panics_doc)]
+  pub fn trigger_key(&self) -> &Key {
+    // SAFETY: Keys vector is verified to be non-empty in
+    // `Keybinding::new`.
+    self.0.last().unwrap()
+  }
 }
 
 /// A listener for system-wide keybindings.
@@ -39,7 +64,7 @@ pub struct KeybindingListener {
   /// The trigger key is the final key in a keybinding. For example,
   /// in the keybinding `[Key::Cmd, Key::Shift, Key::A]`, `Key::A` is the
   /// trigger key.
-  keybinding_map: Arc<Mutex<HashMap<Key, Vec<ActiveKeybinding>>>>,
+  keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
 
   /// The underlying keyboard hook used to listen for key events.
   keyboard_hook: platform_impl::KeyboardHook,
@@ -49,7 +74,7 @@ impl KeybindingListener {
   /// Creates an instance of `KeybindingListener`.
   pub fn new(
     dispatcher: Dispatcher,
-    keybindings: &[KeybindingConfig],
+    keybindings: &[Keybinding],
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
@@ -72,7 +97,7 @@ impl KeybindingListener {
   /// Creates and starts the keyboard hook with the given callback.
   fn create_keyboard_hook(
     dispatcher: Dispatcher,
-    keybinding_map: Arc<Mutex<HashMap<Key, Vec<ActiveKeybinding>>>>,
+    keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
   ) -> crate::Result<platform_impl::KeyboardHook> {
     platform_impl::KeyboardHook::new(
@@ -95,7 +120,7 @@ impl KeybindingListener {
           // Find the matching keybindings based on the pressed keys.
           let matched_keybindings =
             candidates.iter().filter(|keybinding| {
-              keybinding.keys.iter().all(|&key| {
+              keybinding.keys().iter().all(|&key| {
                 if key == event.key {
                   return true;
                 }
@@ -112,7 +137,7 @@ impl KeybindingListener {
 
           // Find the longest matching keybinding.
           let Some(longest_keybinding) = matched_keybindings
-            .max_by_key(|keybinding| keybinding.keys.len())
+            .max_by_key(|keybinding| keybinding.keys().len())
           else {
             return false;
           };
@@ -121,9 +146,9 @@ impl KeybindingListener {
           // keybinding.
           let mut modifier_keys_to_reject =
             MODIFIER_KEYS.iter().filter(|&&modifier_key| {
-              !longest_keybinding.keys.contains(&modifier_key)
+              !longest_keybinding.keys().contains(&modifier_key)
                 && !longest_keybinding
-                  .keys
+                  .keys()
                   .contains(&Self::generic_modifier_key(modifier_key))
             });
 
@@ -143,8 +168,8 @@ impl KeybindingListener {
             return false;
           }
 
-          let _ = event_tx
-            .send(KeybindingEvent(longest_keybinding.config.clone()));
+          let _ =
+            event_tx.send(KeybindingEvent(longest_keybinding.clone()));
 
           return true;
         }
@@ -156,39 +181,15 @@ impl KeybindingListener {
 
   /// Builds the keybinding map from configs.
   fn create_keybinding_map(
-    keybindings: &[KeybindingConfig],
-  ) -> HashMap<Key, Vec<ActiveKeybinding>> {
+    keybindings: &[Keybinding],
+  ) -> HashMap<Key, Vec<Keybinding>> {
     let mut keybinding_map = HashMap::new();
 
-    for config in keybindings {
-      for binding in &config.bindings {
-        // TODO: This should be outside of `wm-platform`.
-        let parsed = binding
-          .split('+')
-          .map(|key| key.trim().parse::<Key>())
-          .collect::<Result<Vec<Key>, KeyParseError>>();
-
-        match parsed {
-          Ok(keys) => {
-            if let Some(&trigger_key) = keys.last() {
-              keybinding_map
-                .entry(trigger_key)
-                .or_insert_with(Vec::new)
-                .push(ActiveKeybinding {
-                  keys,
-                  config: config.clone(),
-                });
-            }
-          }
-          Err(err) => {
-            tracing::warn!(
-              "Failed to parse keybinding '{}': {}",
-              binding,
-              err
-            );
-          }
-        }
-      }
+    for keybinding in keybindings {
+      keybinding_map
+        .entry(*keybinding.trigger_key())
+        .or_insert_with(Vec::new)
+        .push(keybinding.clone());
     }
 
     keybinding_map
@@ -217,7 +218,7 @@ impl KeybindingListener {
   /// # Panics
   ///
   /// If the internal mutex is poisoned.
-  pub fn update(&self, keybindings: &[KeybindingConfig]) {
+  pub fn update(&self, keybindings: &[Keybinding]) {
     *self.keybinding_map.lock().unwrap() =
       Self::create_keybinding_map(keybindings);
   }

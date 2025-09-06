@@ -371,9 +371,6 @@ pub enum KeyParseError {
   UnknownKey(String),
 }
 
-/// Type alias for a sequence of keys representing a keybinding.
-pub type Keybinding = Vec<Key>;
-
 #[cfg(test)]
 mod tests {
   use super::*;
