@@ -41,7 +41,7 @@ use windows::{
     },
   },
 };
-use wm_common::{
+use crate::{
   Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
   Rect, RectDelta, WindowState,
 };

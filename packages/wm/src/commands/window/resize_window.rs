@@ -1,4 +1,4 @@
-use wm_common::LengthValue;
+use wm_platform::LengthValue;
 
 use super::set_window_size;
 use crate::{

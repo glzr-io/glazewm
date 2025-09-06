@@ -1,4 +1,4 @@
-use wm_common::Rect;
+use crate::Rect;
 
 use crate::{platform_impl, Result};
 

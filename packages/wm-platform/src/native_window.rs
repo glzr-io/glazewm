@@ -1,6 +1,4 @@
-use wm_common::Rect;
-
-use crate::platform_impl;
+use crate::{platform_impl, Rect};
 
 /// Unique identifier of a window.
 ///

@@ -4,10 +4,8 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
-use wm_common::{
-  BindingModeConfig, Direction, Point, WindowState, WmEvent,
-};
-use wm_platform::{Dispatcher, Display, NativeWindow};
+use wm_common::{BindingModeConfig, WindowState, WmEvent};
+use wm_platform::{Direction, Dispatcher, Display, NativeWindow, Point};
 
 use crate::{
   commands::{

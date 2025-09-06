@@ -14,7 +14,7 @@ use windows::{
     },
   },
 };
-use wm_common::{Point, Rect};
+use crate::{Point, Rect};
 
 use crate::{
   display::{

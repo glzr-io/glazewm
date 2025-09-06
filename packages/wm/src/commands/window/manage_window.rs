@@ -1,9 +1,7 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
-};
-use wm_platform::NativeWindow;
+use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
+use wm_platform::{LengthValue, NativeWindow, RectDelta};
 
 use crate::{
   commands::{

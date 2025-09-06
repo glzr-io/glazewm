@@ -1,5 +1,6 @@
 use anyhow::Context;
-use wm_common::{Direction, TilingDirection, WindowState};
+use wm_common::{TilingDirection, WindowState};
+use wm_platform::Direction;
 
 use super::set_focused_descendant;
 use crate::{

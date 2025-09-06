@@ -20,7 +20,7 @@ const MODIFIER_KEYS: [Key; 8] = [
   Key::RCmd,
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Keybinding(Vec<Key>);
 
 impl Keybinding {

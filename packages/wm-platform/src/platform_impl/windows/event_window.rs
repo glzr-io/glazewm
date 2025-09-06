@@ -30,7 +30,7 @@ use windows::Win32::{
     },
   },
 };
-use wm_common::{KeybindingConfig, Point};
+use crate::{KeybindingConfig, Point};
 
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,

@@ -18,10 +18,10 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
-use wm_common::{AppCommand, InvokeCommand, Rect, Verbosity, WmEvent};
+use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 use wm_platform::{
   Dispatcher, EventLoop, KeybindingListener, MouseListener,
-  NativeWindowExtMacOs, PlatformEvent, WindowEvent, WindowListener,
+  NativeWindowExtMacOs, PlatformEvent, Rect, WindowEvent, WindowListener,
 };
 
 use crate::{user_config::UserConfig, wm::WindowManager};
@@ -134,10 +134,17 @@ async fn start_wm(
   // Parse and validate user config.
   let mut config = UserConfig::new(config_path)?;
 
-  let mut keybinding_listener = KeybindingListener::new(
-    dispatcher.clone(),
-    &config.value.keybindings,
-  )?;
+  // Extract all keybindings from keybinding configs
+  let all_keybindings: Vec<wm_platform::Keybinding> = config
+    .value
+    .keybindings
+    .iter()
+    .flat_map(|kb_config| &kb_config.bindings)
+    .cloned()
+    .collect();
+
+  let mut keybinding_listener =
+    KeybindingListener::new(dispatcher.clone(), &all_keybindings)?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 

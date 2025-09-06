@@ -8,7 +8,7 @@ use objc2_core_graphics::{
   kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
   CGWindowListCopyWindowInfo, CGWindowListOption,
 };
-use wm_common::Rect;
+use crate::Rect;
 
 use crate::{
   platform_impl::{

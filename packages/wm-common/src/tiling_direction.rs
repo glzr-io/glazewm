@@ -2,8 +2,7 @@ use std::str::FromStr;
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
-
-use super::Direction;
+use wm_platform::Direction;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]

@@ -1,4 +1,4 @@
-use wm_common::Direction;
+use wm_platform::Direction;
 
 pub enum WorkspaceTarget {
   Name(String),

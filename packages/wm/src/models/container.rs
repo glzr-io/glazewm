@@ -7,10 +7,10 @@ use ambassador::Delegate;
 use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, Direction, DisplayState, GapsConfig, Rect,
-  RectDelta, TilingDirection, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
+  WindowRuleConfig, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 
 #[allow(clippy::wildcard_imports)]
 use crate::{

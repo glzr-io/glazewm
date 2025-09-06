@@ -6,7 +6,7 @@ use objc2_core_graphics::{
   CGGetActiveDisplayList, CGGetOnlineDisplayList, CGMainDisplayID,
 };
 use objc2_foundation::{ns_string, NSNumber};
-use wm_common::{Point, Rect};
+use crate::{Point, Rect};
 
 use crate::{
   platform_impl::MainThreadRef, ConnectionState, Dispatcher,

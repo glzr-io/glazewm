@@ -4,10 +4,10 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, UniqueExt,
+  WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::ZOrder;
+use wm_platform::{OpacityValue, ZOrder};
 
 use crate::{
   models::{Container, WindowContainer},

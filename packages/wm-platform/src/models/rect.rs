@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Direction, LengthValue, Point, RectDelta};
+use crate::{Direction, LengthValue, Point, RectDelta};
 
 #[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {

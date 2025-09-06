@@ -1,7 +1,5 @@
-use wm_common::Point;
-
 use super::NativeWindow;
-use crate::Keybinding;
+use crate::{Keybinding, Point};
 
 #[derive(Clone, Debug)]
 pub enum PlatformEvent {

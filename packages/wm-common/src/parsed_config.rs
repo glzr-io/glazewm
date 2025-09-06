@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
-
-use crate::{
-  app_command::InvokeCommand, Color, LengthValue, OpacityValue, RectDelta,
+use wm_platform::{
+  Color, Key, Keybinding, LengthValue, OpacityValue, RectDelta,
 };
+
+use crate::app_command::InvokeCommand;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
@@ -140,7 +141,11 @@ pub enum HideMethod {
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
-  pub bindings: Vec<String>,
+  #[serde(
+    deserialize_with = "deserialize_bindings",
+    serialize_with = "serialize_bindings"
+  )]
+  pub bindings: Vec<Keybinding>,
 
   /// WM commands to run when the keybinding is triggered.
   pub commands: Vec<InvokeCommand>,
@@ -388,4 +393,54 @@ const fn default_bool<const V: bool>() -> bool {
 /// Helper function for setting a default value for window rule events.
 fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+/// Helper function for serializing a vector of keybindings.
+///
+/// Causes the keybindings to be serialized to a vector of strings like
+/// "cmd+shift+a" and "ctrl+shift+b".
+fn serialize_bindings<S>(
+  bindings: &[Keybinding],
+  serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+  S: serde::Serializer,
+{
+  let binding_strings: Vec<String> = bindings
+    .iter()
+    .map(|binding| {
+      binding
+        .keys()
+        .iter()
+        .map(|key| key.to_string().to_lowercase())
+        .collect::<Vec<_>>()
+        .join("+")
+    })
+    .collect();
+  
+  binding_strings.serialize(serializer)
+}
+
+/// Helper function for deserializing a vector of keybindings.
+///
+/// Causes the keybindings to be deserialized from a vector of strings like
+/// "cmd+shift+a" and "ctrl+shift+b".
+fn deserialize_bindings<'de, D>(
+  deserializer: D,
+) -> Result<Vec<Keybinding>, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  let s: Vec<&str> = serde::de::Deserialize::deserialize(deserializer)?;
+  s.iter()
+    .map(|keybinding_str| {
+      let keys: Vec<Key> = keybinding_str
+        .split('+')
+        .map(|key| key.trim().parse())
+        .collect::<Result<Vec<Key>, _>>()
+        .map_err(serde::de::Error::custom)?;
+
+      Keybinding::new(keys).map_err(serde::de::Error::custom)
+    })
+    .collect()
 }

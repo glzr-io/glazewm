@@ -335,7 +335,7 @@ impl UserConfig {
   pub fn outer_gaps_for_workspace(
     &self,
     workspace: &Workspace,
-  ) -> &wm_common::RectDelta {
+  ) -> &wm_platform::RectDelta {
     let is_single_window = workspace.tiling_children().nth(1).is_none();
 
     if is_single_window {

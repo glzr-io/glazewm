@@ -3,10 +3,12 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
-  RectDelta, TitleBarVisibility, WindowState, WmEvent,
+  FloatingStateConfig, FullscreenStateConfig, InvokeCommand,
+  TitleBarVisibility, WindowState, WmEvent,
 };
-use wm_platform::{Dispatcher, PlatformEvent, WindowEvent};
+use wm_platform::{
+  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
+};
 
 use crate::{
   commands::{
@@ -78,8 +80,21 @@ impl WindowManager {
         // handle_display_settings_changed(state, config)
         Ok(())
       }
-      PlatformEvent::Keybinding(kb_config) => {
-        self.process_commands(&kb_config.0.commands, None, config)?;
+      PlatformEvent::Keybinding(keybinding_event) => {
+        // Find the keybinding config that matches this keybinding and
+        // clone the commands
+        let commands = config
+          .value
+          .keybindings
+          .iter()
+          .find(|kb_config| {
+            kb_config.bindings.contains(&keybinding_event.0)
+          })
+          .map(|kb_config| kb_config.commands.clone());
+
+        if let Some(commands) = commands {
+          self.process_commands(&commands, None, config)?;
+        }
 
         // Return early since we don't want to redraw twice.
         return Ok(());

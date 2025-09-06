@@ -1,5 +1,6 @@
 use anyhow::Context;
-use wm_common::{Direction, Rect, TilingDirection, WindowState};
+use wm_common::{TilingDirection, WindowState};
+use wm_platform::{Direction, Rect};
 
 use crate::{
   commands::container::{

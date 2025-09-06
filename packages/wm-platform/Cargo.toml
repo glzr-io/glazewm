@@ -18,7 +18,8 @@ home = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-wm-common = { path = "../wm-common" }
+serde = { workspace = true }
+regex = { workspace = true }
 
 [dev-dependencies]
 libtest-mimic-collect = "0.3.2"

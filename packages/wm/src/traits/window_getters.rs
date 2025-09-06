@@ -1,11 +1,8 @@
 use std::cell::Ref;
 
 use ambassador::delegatable_trait;
-use wm_common::{
-  ActiveDrag, DisplayState, LengthValue, Rect, RectDelta,
-  WindowRuleConfig, WindowState,
-};
-use wm_platform::NativeWindow;
+use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
+use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::user_config::UserConfig;
 

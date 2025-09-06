@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::ContainerDto;
-use crate::Rect;
+use wm_platform::Rect;
 
 /// User-friendly representation of a monitor.
 ///

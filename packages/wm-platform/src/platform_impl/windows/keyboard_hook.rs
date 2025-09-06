@@ -35,7 +35,7 @@ use windows::Win32::{
     },
   },
 };
-use wm_common::KeybindingConfig;
+use crate::KeybindingConfig;
 
 use super::PlatformEvent;
 

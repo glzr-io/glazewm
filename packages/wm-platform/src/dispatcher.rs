@@ -3,7 +3,7 @@ use std::sync::{
   Arc,
 };
 
-use wm_common::Point;
+use crate::Point;
 
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow};
 

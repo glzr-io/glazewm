@@ -32,7 +32,7 @@ use windows::{
     },
   },
 };
-use wm_common::{ParsedConfig, Point};
+use crate::{ParsedConfig, Point};
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,

@@ -1,5 +1,5 @@
 use tokio::sync::mpsc::{self, UnboundedReceiver};
-use wm_common::{
+use crate::{
   BindingModeConfig, InvokeCommand, KeybindingConfig, ParsedConfig, Point,
 };
 
