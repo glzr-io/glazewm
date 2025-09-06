@@ -8,6 +8,7 @@ mod display;
 mod error;
 mod event_loop;
 mod event_loop_installer;
+mod key;
 mod keybinding_listener;
 mod mouse_listener;
 mod native_window;
@@ -20,14 +21,15 @@ pub use display::*;
 pub use error::*;
 pub use event_loop::*;
 pub use event_loop_installer::*;
+pub use key::*;
 pub use keybinding_listener::*;
 pub use mouse_listener::*;
 pub use native_window::*;
 pub use platform_event::*;
-pub use window_listener::*;
 #[cfg(target_os = "macos")]
 pub use platform_impl::{
-  all_applications, visible_windows, DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
+  DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{DisplayDeviceExtWindows, DisplayExtWindows};
+pub use window_listener::*;
