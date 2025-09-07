@@ -40,9 +40,6 @@ pub enum KeyParseError {
   UnknownKey(String),
 }
 
-// TODO: Simplify key conversions from string with serde serialization. Use
-// aliases for keys that can be defined in multiple ways.
-
 /// Cross-platform key representation.
 #[derive(
   Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize,
@@ -78,25 +75,15 @@ pub enum Key {
   Z,
 
   // Number keys
-  #[serde(alias = "0")]
   D0,
-  #[serde(alias = "1")]
   D1,
-  #[serde(alias = "2")]
   D2,
-  #[serde(alias = "3")]
   D3,
-  #[serde(alias = "4")]
   D4,
-  #[serde(alias = "5")]
   D5,
-  #[serde(alias = "6")]
   D6,
-  #[serde(alias = "7")]
   D7,
-  #[serde(alias = "8")]
   D8,
-  #[serde(alias = "9")]
   D9,
 
   // Function keys
@@ -131,25 +118,15 @@ pub enum Key {
   Alt,
   Shift,
   Win,
-  #[serde(rename = "lcmd")]
   LCmd,
-  #[serde(rename = "rcmd")]
   RCmd,
-  #[serde(rename = "lctrl")]
   LCtrl,
-  #[serde(rename = "rctrl")]
   RCtrl,
-  #[serde(rename = "lalt")]
   LAlt,
-  #[serde(rename = "ralt")]
   RAlt,
-  #[serde(rename = "lshift")]
   LShift,
-  #[serde(rename = "rshift")]
   RShift,
-  #[serde(rename = "lwin")]
   LWin,
-  #[serde(rename = "rwin")]
   RWin,
 
   // Special keys
@@ -166,12 +143,17 @@ pub enum Key {
   Up,
   Down,
 
-  // Other keys
+  // Navigation keys
   Home,
   End,
   PageUp,
   PageDown,
   Insert,
+
+  // Lock keys
+  NumLock,
+  ScrollLock,
+  CapsLock,
 
   // Numpad
   Numpad0,
@@ -184,19 +166,11 @@ pub enum Key {
   Numpad7,
   Numpad8,
   Numpad9,
-  #[serde(alias = "add")]
   NumpadAdd,
-  #[serde(alias = "subtract")]
   NumpadSubtract,
-  #[serde(alias = "multiply")]
   NumpadMultiply,
-  #[serde(alias = "divide")]
   NumpadDivide,
-  #[serde(alias = "decimal")]
   NumpadDecimal,
-  NumLock,
-  ScrollLock,
-  CapsLock,
 
   // Media keys
   VolumeUp,
@@ -220,320 +194,213 @@ pub enum Key {
   OemComma,
   OemMinus,
   OemPeriod,
-
-  // Raw key codes that can't be mapped to a known key.
-  Raw(KeyCode),
 }
 
-impl FromStr for Key {
-  type Err = KeyParseError;
+impl Key {
+  /// Attempts to parse a key from a literal string (e.g. `a`, `;`, `à`).
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: Not implemented. Returns `KeyParseError::UnknownKey` for
+  ///   all keys.
+  ///
+  /// # Errors
+  ///
+  /// Returns `KeyParseError::UnknownKey` if the key is not found on the
+  /// current keyboard layout.
+  pub fn try_from_literal(key_str: &str) -> Result<Self, KeyParseError> {
+    #[cfg(target_os = "macos")]
+    {
+      Err(KeyParseError::UnknownKey(key_str.to_string()))
+    }
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::UI::Input::KeyboardAndMouse::{
+        GetKeyState, GetKeyboardLayout, VkKeyScanExW,
+      };
 
-  #[allow(clippy::too_many_lines)]
-  fn from_str(key_str: &str) -> Result<Self, Self::Err> {
-    match key_str.to_lowercase().as_str() {
-      "a" => Ok(Key::A),
-      "b" => Ok(Key::B),
-      "c" => Ok(Key::C),
-      "d" => Ok(Key::D),
-      "e" => Ok(Key::E),
-      "f" => Ok(Key::F),
-      "g" => Ok(Key::G),
-      "h" => Ok(Key::H),
-      "i" => Ok(Key::I),
-      "j" => Ok(Key::J),
-      "k" => Ok(Key::K),
-      "l" => Ok(Key::L),
-      "m" => Ok(Key::M),
-      "n" => Ok(Key::N),
-      "o" => Ok(Key::O),
-      "p" => Ok(Key::P),
-      "q" => Ok(Key::Q),
-      "r" => Ok(Key::R),
-      "s" => Ok(Key::S),
-      "t" => Ok(Key::T),
-      "u" => Ok(Key::U),
-      "v" => Ok(Key::V),
-      "w" => Ok(Key::W),
-      "x" => Ok(Key::X),
-      "y" => Ok(Key::Y),
-      "z" => Ok(Key::Z),
-      "0" | "d0" => Ok(Key::D0),
-      "1" | "d1" => Ok(Key::D1),
-      "2" | "d2" => Ok(Key::D2),
-      "3" | "d3" => Ok(Key::D3),
-      "4" | "d4" => Ok(Key::D4),
-      "5" | "d5" => Ok(Key::D5),
-      "6" | "d6" => Ok(Key::D6),
-      "7" | "d7" => Ok(Key::D7),
-      "8" | "d8" => Ok(Key::D8),
-      "9" | "d9" => Ok(Key::D9),
-      "numpad0" => Ok(Key::Numpad0),
-      "numpad1" => Ok(Key::Numpad1),
-      "numpad2" => Ok(Key::Numpad2),
-      "numpad3" => Ok(Key::Numpad3),
-      "numpad4" => Ok(Key::Numpad4),
-      "numpad5" => Ok(Key::Numpad5),
-      "numpad6" => Ok(Key::Numpad6),
-      "numpad7" => Ok(Key::Numpad7),
-      "numpad8" => Ok(Key::Numpad8),
-      "numpad9" => Ok(Key::Numpad9),
-      "f1" => Ok(Key::F1),
-      "f2" => Ok(Key::F2),
-      "f3" => Ok(Key::F3),
-      "f4" => Ok(Key::F4),
-      "f5" => Ok(Key::F5),
-      "f6" => Ok(Key::F6),
-      "f7" => Ok(Key::F7),
-      "f8" => Ok(Key::F8),
-      "f9" => Ok(Key::F9),
-      "f10" => Ok(Key::F10),
-      "f11" => Ok(Key::F11),
-      "f12" => Ok(Key::F12),
-      "f13" => Ok(Key::F13),
-      "f14" => Ok(Key::F14),
-      "f15" => Ok(Key::F15),
-      "f16" => Ok(Key::F16),
-      "f17" => Ok(Key::F17),
-      "f18" => Ok(Key::F18),
-      "f19" => Ok(Key::F19),
-      "f20" => Ok(Key::F20),
-      "f21" => Ok(Key::F21),
-      "f22" => Ok(Key::F22),
-      "f23" => Ok(Key::F23),
-      "f24" => Ok(Key::F24),
-      "shift" | "shiftkey" => Ok(Key::Shift),
-      "lshift" | "lshiftkey" => Ok(Key::LShift),
-      "rshift" | "rshiftkey" => Ok(Key::RShift),
-      "ctrl" | "controlkey" | "control" => Ok(Key::Ctrl),
-      "lctrl" | "lcontrolkey" => Ok(Key::LCtrl),
-      "rctrl" | "rcontrolkey" => Ok(Key::RCtrl),
-      "alt" | "menu" => Ok(Key::Alt),
-      "lalt" | "lmenu" => Ok(Key::LAlt),
-      "ralt" | "rmenu" => Ok(Key::RAlt),
-      "win" => Ok(Key::Win),
-      "lwin" => Ok(Key::LWin),
-      "rwin" => Ok(Key::RWin),
-      "space" => Ok(Key::Space),
-      "escape" => Ok(Key::Escape),
-      "back" => Ok(Key::Backspace),
-      "tab" => Ok(Key::Tab),
-      "enter" | "return" => Ok(Key::Enter),
-      "left" => Ok(Key::Left),
-      "right" => Ok(Key::Right),
-      "up" => Ok(Key::Up),
-      "down" => Ok(Key::Down),
-      "num_lock" => Ok(Key::NumLock),
-      "scroll_lock" => Ok(Key::ScrollLock),
-      "caps_lock" => Ok(Key::CapsLock),
-      "page_up" => Ok(Key::PageUp),
-      "page_down" => Ok(Key::PageDown),
-      "insert" => Ok(Key::Insert),
-      "delete" => Ok(Key::Delete),
-      "end" => Ok(Key::End),
-      "home" => Ok(Key::Home),
-      "print_screen" => Ok(Key::PrintScreen),
-      "multiply" => Ok(Key::NumpadMultiply),
-      "add" => Ok(Key::NumpadAdd),
-      "subtract" => Ok(Key::NumpadSubtract),
-      "decimal" => Ok(Key::NumpadDecimal),
-      "divide" => Ok(Key::NumpadDivide),
-      "volume_up" => Ok(Key::VolumeUp),
-      "volume_down" => Ok(Key::VolumeDown),
-      "volume_mute" => Ok(Key::VolumeMute),
-      "media_next_track" => Ok(Key::MediaNextTrack),
-      "media_prev_track" => Ok(Key::MediaPrevTrack),
-      "media_stop" => Ok(Key::MediaStop),
-      "media_play_pause" => Ok(Key::MediaPlayPause),
-      "oem_semicolon" => Ok(Key::OemSemicolon),
-      "oem_question" => Ok(Key::OemQuestion),
-      "oem_tilde" => Ok(Key::OemTilde),
-      "oem_open_brackets" => Ok(Key::OemOpenBrackets),
-      "oem_pipe" => Ok(Key::OemPipe),
-      "oem_close_brackets" => Ok(Key::OemCloseBrackets),
-      "oem_quotes" => Ok(Key::OemQuotes),
-      "oem_plus" => Ok(Key::OemPlus),
-      "oem_comma" => Ok(Key::OemComma),
-      "oem_minus" => Ok(Key::OemMinus),
-      "oem_period" => Ok(Key::OemPeriod),
+      // Check if the key exists on the current keyboard layout.
+      let utf16_key = key_str.encode_utf16().next()?;
+      let layout = unsafe { GetKeyboardLayout(0) };
+      let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
 
-      _ => {
-        #[cfg(target_os = "macos")]
-        {
-          Err(KeyParseError::UnknownKey(key_str.to_string()))
-        }
-        #[cfg(target_os = "windows")]
-        {
-          use windows::Win32::UI::Input::KeyboardAndMouse::{
-            GetKeyState, GetKeyboardLayout, VkKeyScanExW,
-          };
+      if vk_code == -1 {
+        return Err(KeyParseError::UnknownKey(key_str.to_string()));
+      }
 
-          // Check if the key exists on the current keyboard layout.
-          let utf16_key = key_str.encode_utf16().next()?;
-          let layout = unsafe { GetKeyboardLayout(0) };
-          let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
+      // The low-order byte contains the virtual-key code and the high-
+      // order byte contains the shift state.
+      let [high_order, low_order] = vk_code.to_be_bytes();
 
-          if vk_code == -1 {
-            return Err(KeyParseError::UnknownKey(key_str.to_string()));
-          }
-
-          // The low-order byte contains the virtual-key code and the high-
-          // order byte contains the shift state.
-          let [high_order, low_order] = vk_code.to_be_bytes();
-
-          // Key is valid if it doesn't require shift or alt to be pressed.
-          match high_order {
-            0 => Ok(Key::Raw(KeyCode(u16::from(low_order)))),
-            _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
-          }
-        }
+      // Key is valid if it doesn't require shift or alt to be pressed.
+      match high_order {
+        0 => Ok(Key::Raw(KeyCode(u16::from(low_order)))),
+        _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
       }
     }
   }
 }
 
-impl fmt::Display for Key {
-  #[allow(clippy::too_many_lines)]
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let s = match self {
-      Key::A => "a",
-      Key::B => "b",
-      Key::C => "c",
-      Key::D => "d",
-      Key::E => "e",
-      Key::F => "f",
-      Key::G => "g",
-      Key::H => "h",
-      Key::I => "i",
-      Key::J => "j",
-      Key::K => "k",
-      Key::L => "l",
-      Key::M => "m",
-      Key::N => "n",
-      Key::O => "o",
-      Key::P => "p",
-      Key::Q => "q",
-      Key::R => "r",
-      Key::S => "s",
-      Key::T => "t",
-      Key::U => "u",
-      Key::V => "v",
-      Key::W => "w",
-      Key::X => "x",
-      Key::Y => "y",
-      Key::Z => "z",
+/// Generates `FromStr` and `Display` implementations for the `Key` enum.
+///
+/// Each variant can have multiple string aliases, with the first used for
+/// the `Display` implementation.
+///
+/// # Example
+/// ```
+/// impl_key_parsing! {
+///   Enter => ["enter", "return", "cr"],
+///   Space => ["space", "spacebar", " "],
+/// }
+/// ```
+macro_rules! impl_key_parsing {
+  ($( $variant:ident => [$($str_name:literal),+ $(,)?]),* $(,)?) => {
+    impl FromStr for Key {
+      type Err = KeyParseError;
 
-      Key::D0 => "0",
-      Key::D1 => "1",
-      Key::D2 => "2",
-      Key::D3 => "3",
-      Key::D4 => "4",
-      Key::D5 => "5",
-      Key::D6 => "6",
-      Key::D7 => "7",
-      Key::D8 => "8",
-      Key::D9 => "9",
+      fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+          $($($str_name)|+ => Ok(Key::$variant),)*
+          _ => Err(KeyParseError::UnknownKey(s.to_string())),
+        }
+      }
+    }
 
-      Key::F1 => "f1",
-      Key::F2 => "f2",
-      Key::F3 => "f3",
-      Key::F4 => "f4",
-      Key::F5 => "f5",
-      Key::F6 => "f6",
-      Key::F7 => "f7",
-      Key::F8 => "f8",
-      Key::F9 => "f9",
-      Key::F10 => "f10",
-      Key::F11 => "f11",
-      Key::F12 => "f12",
-      Key::F13 => "f13",
-      Key::F14 => "f14",
-      Key::F15 => "f15",
-      Key::F16 => "f16",
-      Key::F17 => "f17",
-      Key::F18 => "f18",
-      Key::F19 => "f19",
-      Key::F20 => "f20",
-      Key::F21 => "f21",
-      Key::F22 => "f22",
-      Key::F23 => "f23",
-      Key::F24 => "f24",
+    impl fmt::Display for Key {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+          $(Key::$variant => {
+            // Return the first string alias as the display name.
+            let aliases = &[$($str_name),+];
+            write!(f, "{}", aliases[0])
+          },)*
+          _ => write!(f, "Unknown"),
+        }
+      }
+    }
 
-      Key::Cmd => "cmd",
-      Key::Ctrl => "ctrl",
-      Key::Alt => "alt",
-      Key::Shift => "shift",
-      Key::LCmd => "lcmd",
-      Key::RCmd => "rcmd",
-      Key::LCtrl => "lctrl",
-      Key::RCtrl => "rctrl",
-      Key::LAlt => "lalt",
-      Key::RAlt => "ralt",
-      Key::LShift => "lshift",
-      Key::RShift => "rshift",
-      Key::LWin => "lwin",
-      Key::RWin => "rwin",
-      Key::Win => "win",
+    impl Key {
+      /// Returns all string aliases for this key variant.
+      pub fn all_aliases(&self) -> Option<&'static [&'static str]> {
+        match self {
+          $(Key::$variant => Some(&[$($str_name),+]),)*
+          _ => None,
+        }
+      }
+    }
+  };
+}
 
-      Key::Space => "space",
-      Key::Tab => "tab",
-      Key::Enter => "enter",
-      Key::Delete => "delete",
-      Key::Escape => "escape",
-      Key::Backspace => "backspace",
+impl_key_parsing! {
+  // Letter keys
+  A => ["a"], B => ["b"], C => ["c"], D => ["d"], E => ["e"], F => ["f"],
+  G => ["g"], H => ["h"], I => ["i"], J => ["j"], K => ["k"], L => ["l"],
+  M => ["m"], N => ["n"], O => ["o"], P => ["p"], Q => ["q"], R => ["r"],
+  S => ["s"], T => ["t"], U => ["u"], V => ["v"], W => ["w"], X => ["x"],
+  Y => ["y"], Z => ["z"],
 
-      Key::Left => "left",
-      Key::Right => "right",
-      Key::Up => "up",
-      Key::Down => "down",
+  // Number keys
+  D0 => ["0", "d0"],
+  D1 => ["1", "d1"],
+  D2 => ["2", "d2"],
+  D3 => ["3", "d3"],
+  D4 => ["4", "d4"],
+  D5 => ["5", "d5"],
+  D6 => ["6", "d6"],
+  D7 => ["7", "d7"],
+  D8 => ["8", "d8"],
+  D9 => ["9", "d9"],
 
-      Key::Home => "home",
-      Key::End => "end",
-      Key::PageUp => "page_up",
-      Key::PageDown => "page_down",
-      Key::Insert => "insert",
+  // Function keys
+  F1 => ["f1"], F2 => ["f2"], F3 => ["f3"], F4 => ["f4"], F5 => ["f5"],
+  F6 => ["f6"], F7 => ["f7"], F8 => ["f8"], F9 => ["f9"], F10 => ["f10"],
+  F11 => ["f11"], F12 => ["f12"], F13 => ["f13"], F14 => ["f14"],
+  F15 => ["f15"], F16 => ["f16"], F17 => ["f17"], F18 => ["f18"],
+  F19 => ["f19"], F20 => ["f20"], F21 => ["f21"], F22 => ["f22"],
+  F23 => ["f23"], F24 => ["f24"],
 
-      Key::Numpad0 => "numpad0",
-      Key::Numpad1 => "numpad1",
-      Key::Numpad2 => "numpad2",
-      Key::Numpad3 => "numpad3",
-      Key::Numpad4 => "numpad4",
-      Key::Numpad5 => "numpad5",
-      Key::Numpad6 => "numpad6",
-      Key::Numpad7 => "numpad7",
-      Key::Numpad8 => "numpad8",
-      Key::Numpad9 => "numpad9",
-      Key::NumpadAdd => "numpad_add",
-      Key::NumpadSubtract => "numpad_subtract",
-      Key::NumpadMultiply => "numpad_multiply",
-      Key::NumpadDivide => "NumpadDivide",
-      Key::NumpadDecimal => "numpad_decimal",
-      Key::NumLock => "NumLock",
-      Key::ScrollLock => "ScrollLock",
-      Key::CapsLock => "CapsLock",
-      Key::VolumeUp => "VolumeUp",
-      Key::VolumeDown => "VolumeDown",
-      Key::VolumeMute => "VolumeMute",
-      Key::MediaNextTrack => "MediaNextTrack",
-      Key::MediaPrevTrack => "MediaPrevTrack",
-      Key::MediaStop => "MediaStop",
-      Key::MediaPlayPause => "MediaPlayPause",
-      Key::PrintScreen => "PrintScreen",
-      Key::OemSemicolon => "oem_semicolon",
-      Key::OemQuestion => "OemQuestion",
-      Key::OemTilde => "OemTilde",
-      Key::OemOpenBrackets => "oem_open_brackets",
-      Key::OemPipe => "OemPipe",
-      Key::OemCloseBrackets => "OemCloseBrackets",
-      Key::OemQuotes => "oem_quotes",
-      Key::OemPlus => "OemPlus",
-      Key::OemComma => "OemComma",
-      Key::OemMinus => "OemMinus",
-      Key::OemPeriod => "oem_period",
-      Key::Raw(keycode) => return write!(f, "KeyCode({keycode})"),
-    };
+  // Modifier keys
+  Cmd => ["cmd"],
+  Ctrl => ["ctrl", "control"],
+  Alt => ["alt", "menu"],
+  Shift => ["shift"],
+  Win => ["win"],
+  LCmd => ["lcmd"],
+  RCmd => ["rcmd"],
+  LCtrl => ["lctrl"],
+  RCtrl => ["rctrl"],
+  LAlt => ["lalt", "lmenu"],
+  RAlt => ["ralt", "rmenu"],
+  LShift => ["lshift"],
+  RShift => ["rshift"],
+  LWin => ["lwin"],
+  RWin => ["rwin"],
 
-    write!(f, "{s}")
-  }
+  // Special keys
+  Space => ["space"],
+  Tab => ["tab"],
+  Enter => ["enter", "return"],
+  Delete => ["delete"],
+  Escape => ["escape"],
+  Backspace => ["backspace"],
+
+  // Arrow keys
+  Left => ["left"],
+  Right => ["right"],
+  Up => ["up"],
+  Down => ["down"],
+
+  // Navigation keys
+  Home => ["home"],
+  End => ["end"],
+  PageUp => ["page_up"],
+  PageDown => ["page_down"],
+  Insert => ["insert"],
+
+  // Lock keys
+  NumLock => ["num_lock"],
+  ScrollLock => ["scroll_lock"],
+  CapsLock => ["caps_lock"],
+
+  // Numpad
+  Numpad0 => ["numpad0"],
+  Numpad1 => ["numpad1"],
+  Numpad2 => ["numpad2"],
+  Numpad3 => ["numpad3"],
+  Numpad4 => ["numpad4"],
+  Numpad5 => ["numpad5"],
+  Numpad6 => ["numpad6"],
+  Numpad7 => ["numpad7"],
+  Numpad8 => ["numpad8"],
+  Numpad9 => ["numpad9"],
+  NumpadAdd => ["numpad_add", "add"],
+  NumpadSubtract => ["numpad_subtract", "subtract"],
+  NumpadMultiply => ["numpad_multiply", "multiply"],
+  NumpadDivide => ["numpad_divide", "divide"],
+  NumpadDecimal => ["numpad_decimal", "decimal"],
+
+  // Media keys
+  VolumeUp => ["volume_up"],
+  VolumeDown => ["volume_down"],
+  VolumeMute => ["volume_mute"],
+  MediaNextTrack => ["media_next_track"],
+  MediaPrevTrack => ["media_prev_track"],
+  MediaStop => ["media_stop"],
+  MediaPlayPause => ["media_play_pause"],
+  PrintScreen => ["print_screen"],
+
+  // OEM keys
+  OemSemicolon => ["oem_semicolon"],
+  OemQuestion => ["oem_question"],
+  OemTilde => ["oem_tilde"],
+  OemOpenBrackets => ["oem_open_brackets"],
+  OemPipe => ["oem_pipe"],
+  OemCloseBrackets => ["oem_close_brackets"],
+  OemQuotes => ["oem_quotes"],
+  OemPlus => ["oem_plus"],
+  OemComma => ["oem_comma"],
+  OemMinus => ["oem_minus"],
+  OemPeriod => ["oem_period"],
 }
 
 #[cfg(test)]

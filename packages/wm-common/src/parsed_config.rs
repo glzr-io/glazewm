@@ -417,7 +417,7 @@ where
         .join("+")
     })
     .collect();
-  
+
   binding_strings.serialize(serializer)
 }
 
@@ -436,7 +436,9 @@ where
     .map(|keybinding_str| {
       let keys: Vec<Key> = keybinding_str
         .split('+')
-        .map(|key| key.trim().parse())
+        .map(|key| {
+          key.trim().parse().or_else(|_| Key::try_from_literal(key))
+        })
         .collect::<Result<Vec<Key>, _>>()
         .map_err(serde::de::Error::custom)?;
 

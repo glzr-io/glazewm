@@ -181,6 +181,11 @@ impl KeyboardHook {
       )
     });
 
+    // Try to convert the key code to a known key.
+    let Ok(key) = Key::try_from(key_code) else {
+      return unsafe { event.as_mut() };
+    };
+
     let is_keypress = event_type == CGEventType::KeyDown;
     let event_flags = unsafe { CGEvent::flags(Some(event.as_ref())) };
 
@@ -191,12 +196,7 @@ impl KeyboardHook {
       is_keypress
     );
 
-    let key_event = KeyEvent::new(
-      Key::from(key_code),
-      key_code,
-      is_keypress,
-      event_flags,
-    );
+    let key_event = KeyEvent::new(key, key_code, is_keypress, event_flags);
 
     // Get callback from user data and invoke it.
     let callback = unsafe { &*(user_info as *const F) };
