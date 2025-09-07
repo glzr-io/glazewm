@@ -32,12 +32,12 @@ use windows::{
     },
   },
 };
-use crate::{ParsedConfig, Point};
 
 use super::{
   native_monitor, native_window, EventListener, NativeMonitor,
   NativeWindow, SingleInstance,
 };
+use crate::{ParsedConfig, Point};
 
 pub type WindowProcedure = WNDPROC;
 
@@ -345,7 +345,7 @@ impl Platform {
   /// # Examples
   ///
   /// ```no_run
-  /// # use wm::common::platform::Platform;
+  /// # use wm_platform::platform::Platform;
   ///   let (prog, args) = Platform::parse_command("code .")?;
   ///   assert_eq!(prog, "code");
   ///   assert_eq!(args, ".");

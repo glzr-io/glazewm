@@ -4,7 +4,7 @@ use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct OpacityValue(f32);
+pub struct OpacityValue(pub f32);
 
 impl OpacityValue {
   #[must_use]
@@ -34,7 +34,7 @@ impl FromStr for OpacityValue {
   ///
   /// Example:
   /// ```
-  /// # use wm::common::{OpacityValue};
+  /// # use wm_platform::{OpacityValue};
   /// # use std::str::FromStr;
   /// let check = OpacityValue(0.75);
   /// let parsed = OpacityValue::from_str("75%");

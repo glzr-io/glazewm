@@ -17,7 +17,7 @@ impl Direction {
   ///
   /// Example:
   /// ```
-  /// # use wm::common::Direction;
+  /// # use wm_platform::Direction;
   /// let dir = Direction::Left.inverse();
   /// assert_eq!(dir, Direction::Right);
   /// ```
@@ -39,7 +39,7 @@ impl FromStr for Direction {
   ///
   /// Example:
   /// ```
-  /// # use wm::common::Direction;
+  /// # use wm_platform::Direction;
   /// # use std::str::FromStr;
   /// let dir = Direction::from_str("left");
   /// assert_eq!(dir.unwrap(), Direction::Left);

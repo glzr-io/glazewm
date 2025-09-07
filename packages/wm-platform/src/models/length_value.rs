@@ -56,7 +56,7 @@ impl FromStr for LengthValue {
   ///
   /// Example:
   /// ```
-  /// # use wm::common::{LengthValue, LengthUnit};
+  /// # use wm_platform::{LengthValue, LengthUnit};
   /// # use std::str::FromStr;
   /// let check = LengthValue {
   ///   amount: 100.0,
