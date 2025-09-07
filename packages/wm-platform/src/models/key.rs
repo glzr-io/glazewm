@@ -541,10 +541,10 @@ mod tests {
 
   #[test]
   fn test_key_display() {
-    assert_eq!(Key::A.to_string(), "A");
-    assert_eq!(Key::Cmd.to_string(), "Cmd");
-    assert_eq!(Key::F1.to_string(), "F1");
-    assert_eq!(Key::Space.to_string(), "Space");
+    assert_eq!(Key::A.to_string(), "a");
+    assert_eq!(Key::Cmd.to_string(), "cmd");
+    assert_eq!(Key::F1.to_string(), "f1");
+    assert_eq!(Key::Space.to_string(), "space");
     assert_eq!(Key::Semicolon.to_string(), ";");
   }
 }
