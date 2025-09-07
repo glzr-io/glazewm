@@ -160,7 +160,6 @@ create_key_code_mapping![
   (Space, VK_SPACE, 0x31),
   (Tab, VK_TAB, 0x30),
   (Enter, VK_RETURN, 0x24),
-  (Return, VK_RETURN, 0x24),
   // macOS: Backspace == 0x33, Forward Delete == 0x75
   (Delete, VK_DELETE, 0x75),
   (Escape, VK_ESCAPE, 0x35),
@@ -176,18 +175,6 @@ create_key_code_mapping![
   (PageUp, VK_PRIOR, 0x74),
   (PageDown, VK_NEXT, 0x79),
   (Insert, VK_INSERT, 0x72), // Note: macOS 0x72 is Help
-  // Punctuation (common)
-  (Semicolon, VK_OEM_1, 0x29),
-  (Quote, VK_OEM_7, 0x27),
-  (Comma, VK_OEM_COMMA, 0x2B),
-  (Period, VK_OEM_PERIOD, 0x2F),
-  (Slash, VK_OEM_2, 0x2C),
-  (Backslash, VK_OEM_5, 0x2A),
-  (LeftBracket, VK_OEM_4, 0x21),
-  (RightBracket, VK_OEM_6, 0x1E),
-  (Minus, VK_OEM_MINUS, 0x1B),
-  (Equal, VK_OEM_PLUS, 0x18),
-  (Grave, VK_OEM_3, 0x32),
   // OEM explicit variants (Windows)
   (OemSemicolon, VK_OEM_1, 0x29),
   (OemQuestion, VK_OEM_2, 0x2C),

@@ -1,5 +1,7 @@
 use std::{fmt, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
 /// Platform-specific keyboard key code.
 ///
 /// Represents the raw key code from the underlying platform's keyboard
@@ -9,7 +11,18 @@ use std::{fmt, str::FromStr};
 ///
 /// - **Windows**: `u16` (Virtual key code from Windows API). See <https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
 /// - **macOS**: `i64` (Virtual key code from `CGEvent`). See <https://developer.apple.com/documentation/coregraphics/cgeventfield/keyboardeventkeycode>
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+  Debug,
+  Copy,
+  Clone,
+  PartialEq,
+  Eq,
+  PartialOrd,
+  Ord,
+  Hash,
+  Serialize,
+  Deserialize,
+)]
 pub struct KeyCode(
   #[cfg(target_os = "windows")] pub(crate) u16,
   #[cfg(target_os = "macos")] pub(crate) i64,
@@ -31,7 +44,10 @@ pub enum KeyParseError {
 // aliases for keys that can be defined in multiple ways.
 
 /// Cross-platform key representation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
 pub enum Key {
   // Letter keys
   A,
@@ -62,15 +78,25 @@ pub enum Key {
   Z,
 
   // Number keys
+  #[serde(alias = "0")]
   D0,
+  #[serde(alias = "1")]
   D1,
+  #[serde(alias = "2")]
   D2,
+  #[serde(alias = "3")]
   D3,
+  #[serde(alias = "4")]
   D4,
+  #[serde(alias = "5")]
   D5,
+  #[serde(alias = "6")]
   D6,
+  #[serde(alias = "7")]
   D7,
+  #[serde(alias = "8")]
   D8,
+  #[serde(alias = "9")]
   D9,
 
   // Function keys
@@ -104,23 +130,32 @@ pub enum Key {
   Ctrl,
   Alt,
   Shift,
-  LCmd,
-  RCmd,
-  LCtrl,
-  RCtrl,
-  LAlt,
-  RAlt,
-  LShift,
-  RShift,
-  LWin,
-  RWin,
   Win,
+  #[serde(rename = "lcmd")]
+  LCmd,
+  #[serde(rename = "rcmd")]
+  RCmd,
+  #[serde(rename = "lctrl")]
+  LCtrl,
+  #[serde(rename = "rctrl")]
+  RCtrl,
+  #[serde(rename = "lalt")]
+  LAlt,
+  #[serde(rename = "ralt")]
+  RAlt,
+  #[serde(rename = "lshift")]
+  LShift,
+  #[serde(rename = "rshift")]
+  RShift,
+  #[serde(rename = "lwin")]
+  LWin,
+  #[serde(rename = "rwin")]
+  RWin,
 
   // Special keys
   Space,
   Tab,
   Enter,
-  Return,
   Delete,
   Escape,
   Backspace,
@@ -138,19 +173,6 @@ pub enum Key {
   PageDown,
   Insert,
 
-  // Punctuation (common ones)
-  Semicolon,
-  Quote,
-  Comma,
-  Period,
-  Slash,
-  Backslash,
-  LeftBracket,
-  RightBracket,
-  Minus,
-  Equal,
-  Grave,
-
   // Numpad
   Numpad0,
   Numpad1,
@@ -162,10 +184,15 @@ pub enum Key {
   Numpad7,
   Numpad8,
   Numpad9,
+  #[serde(alias = "add")]
   NumpadAdd,
+  #[serde(alias = "subtract")]
   NumpadSubtract,
+  #[serde(alias = "multiply")]
   NumpadMultiply,
+  #[serde(alias = "divide")]
   NumpadDivide,
+  #[serde(alias = "decimal")]
   NumpadDecimal,
   NumLock,
   ScrollLock,
@@ -450,7 +477,6 @@ impl fmt::Display for Key {
       Key::Space => "space",
       Key::Tab => "tab",
       Key::Enter => "enter",
-      Key::Return => "return",
       Key::Delete => "delete",
       Key::Escape => "escape",
       Key::Backspace => "backspace",
@@ -465,18 +491,6 @@ impl fmt::Display for Key {
       Key::PageUp => "page_up",
       Key::PageDown => "page_down",
       Key::Insert => "insert",
-
-      Key::Semicolon => ";",
-      Key::Quote => "'",
-      Key::Comma => ",",
-      Key::Period => ".",
-      Key::Slash => "/",
-      Key::Backslash => "\\",
-      Key::LeftBracket => "[",
-      Key::RightBracket => "]",
-      Key::Minus => "-",
-      Key::Equal => "=",
-      Key::Grave => "`",
 
       Key::Numpad0 => "numpad0",
       Key::Numpad1 => "numpad1",
@@ -545,6 +559,5 @@ mod tests {
     assert_eq!(Key::Cmd.to_string(), "cmd");
     assert_eq!(Key::F1.to_string(), "f1");
     assert_eq!(Key::Space.to_string(), "space");
-    assert_eq!(Key::Semicolon.to_string(), ";");
   }
 }
