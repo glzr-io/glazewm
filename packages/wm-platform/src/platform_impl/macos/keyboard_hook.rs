@@ -75,6 +75,9 @@ pub struct KeyboardHook {
 
 impl KeyboardHook {
   /// Creates an instance of `KeyboardHook`.
+  ///
+  /// The callback is called for every keyboard event and returns
+  /// `true` if the event should be intercepted.
   pub fn new<F>(dispatcher: Dispatcher, callback: F) -> crate::Result<Self>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,

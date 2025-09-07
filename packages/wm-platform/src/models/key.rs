@@ -82,6 +82,9 @@ pub enum Key {
   RAlt,
   LShift,
   RShift,
+  LWin,
+  RWin,
+  Win,
 
   // Special keys
   Space,
@@ -312,6 +315,9 @@ impl fmt::Display for Key {
       Key::RAlt => "RAlt",
       Key::LShift => "LShift",
       Key::RShift => "RShift",
+      Key::LWin => "LWin",
+      Key::RWin => "RWin",
+      Key::Win => "Win",
 
       Key::Space => "Space",
       Key::Tab => "Tab",
