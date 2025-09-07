@@ -27,7 +27,7 @@ use windows::Win32::{
   },
 };
 
-use crate::{Dispatcher, Key};
+use crate::{Dispatcher, Key, KeyCode};
 
 thread_local! {
   /// Stores the hook callback for the current thread.
@@ -46,18 +46,27 @@ pub struct KeyEvent {
   /// The key that was pressed or released.
   pub key: Key,
 
-  /// Virtual key code of the pressed key.
-  vk_code: u16,
+  /// Key code of the pressed key.
+  key_code: KeyCode,
 }
 
 impl KeyEvent {
   /// Creates an instance of `KeyEvent`.
-  pub(crate) fn new(key: Key, is_keypress: bool, vk_code: u16) -> Self {
+  pub(crate) fn new(
+    key: Key,
+    key_code: KeyCode,
+    is_keypress: bool,
+  ) -> Self {
     Self {
       is_keypress,
+      key_code,
       key,
-      vk_code,
     }
+  }
+
+  /// Gets the raw key code for this event.
+  pub fn key_code(&self) -> KeyCode {
+    self.key_code
   }
 
   /// Gets whether the specified key is currently pressed.
@@ -394,26 +403,25 @@ impl KeyboardHook {
     // Get struct with the keyboard input event.
     let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
-    let vk_code = input.vkCode as u16;
+    let key_code = KeyCode(input.vkCode as u16);
     let is_keydown =
       wparam.0 as u32 == WM_KEYDOWN || wparam.0 as u32 == WM_SYSKEYDOWN;
 
-    if let Some(key) = vk_code_to_key(vk_code) {
-      let key_event = KeyEvent::new(key, is_keydown, vk_code);
+    let key_event =
+      KeyEvent::new(Key::from(key_code), key_code, is_keydown);
 
-      let should_intercept = HOOK.with(|state| {
-        if let Some(mut callback) = state.take() {
-          let result = callback(key_event);
-          state.set(Some(callback));
-          result
-        } else {
-          false
-        }
-      });
-
-      if should_intercept {
-        return LRESULT(1);
+    let should_intercept = HOOK.with(|state| {
+      if let Some(mut callback) = state.take() {
+        let result = callback(key_event);
+        state.set(Some(callback));
+        result
+      } else {
+        false
       }
+    });
+
+    if should_intercept {
+      return LRESULT(1);
     }
 
     unsafe { CallNextHookEx(None, code, wparam, lparam) }

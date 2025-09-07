@@ -10,34 +10,42 @@ use objc2_core_graphics::{
   CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
 
-use super::key::macos_code_to_key;
-use crate::{Dispatcher, Error, Key};
+use crate::{Dispatcher, Error, Key, KeyCode};
 
 /// macOS-specific keyboard event.
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
-  /// Whether the event is for a key press or release.
-  pub is_keypress: bool,
-
   /// The key that was pressed or released.
   pub key: Key,
+
+  /// Key code that generated this event.
+  key_code: KeyCode,
+
+  /// Whether the event is for a key press or release.
+  pub is_keypress: bool,
 
   /// Modifier key flags at the time of the event.
   event_flags: CGEventFlags,
 }
 
 impl KeyEvent {
-  /// Creates an instance of `KeyEvent`.
   pub(crate) fn new(
     key: Key,
+    key_code: KeyCode,
     is_keypress: bool,
     event_flags: CGEventFlags,
   ) -> Self {
     Self {
-      is_keypress,
       key,
+      key_code,
+      is_keypress,
       event_flags,
     }
+  }
+
+  /// Gets the raw key code for this event.
+  pub fn key_code(&self) -> KeyCode {
+    self.key_code
   }
 
   /// Gets whether the specified key is currently pressed.
@@ -166,12 +174,12 @@ impl KeyboardHook {
     }
 
     // Extract the key code of the pressed/released key.
-    let key_code = unsafe {
+    let key_code = KeyCode(unsafe {
       CGEvent::integer_value_field(
         Some(event.as_ref()),
         CGEventField::KeyboardEventKeycode,
       )
-    };
+    });
 
     let is_keypress = event_type == CGEventType::KeyDown;
     let event_flags = unsafe { CGEvent::flags(Some(event.as_ref())) };
@@ -183,14 +191,14 @@ impl KeyboardHook {
       is_keypress
     );
 
-    // Convert macOS key code to the `Key` enum.
-    let Some(pressed_key) = macos_code_to_key(key_code) else {
-      return unsafe { event.as_mut() };
-    };
+    let key_event = KeyEvent::new(
+      Key::from(key_code),
+      key_code,
+      is_keypress,
+      event_flags,
+    );
 
-    let key_event = KeyEvent::new(pressed_key, is_keypress, event_flags);
-
-    // Get callback from user data and call it.
+    // Get callback from user data and invoke it.
     let callback = unsafe { &*(user_info as *const F) };
     let should_intercept = callback(key_event);
 
