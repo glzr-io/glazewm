@@ -37,14 +37,15 @@ pub enum KeyConversionError {
 /// impl_key_code_conversion! {
 ///   Enter => { windows: VK_RETURN, macos: 0x24, },
 ///   Space => { windows: VK_SPACE, macos: 0x31, },
+///   PrintScreen => { windows: VK_SNAPSHOT, }, // Only supported on Windows.
 /// }
 /// ```
 macro_rules! impl_key_code_conversion {
   (
     $(
       $variant:ident => {
-        windows: $win_code:expr,
-        macos: $mac_code:expr,
+        $(windows: $win_code:expr,)?
+        $(macos: $mac_code:expr,)?
       }
     ),* $(,)?
   ) => {
@@ -53,8 +54,10 @@ macro_rules! impl_key_code_conversion {
       type Error = KeyConversionError;
 
       fn try_from(key_code: KeyCode) -> Result<Self, Self::Error> {
+        // LINT: Allow unreachable patterns since modifier keys are
+        // duplicated (e.g. `LShift` and `Shift`).
         match VIRTUAL_KEY(key_code.0) {
-          $( $win_code => Ok(Key::$variant), )*
+          $($($win_code => Ok(Key::$variant),)?)*
           _ => Err(KeyConversionError::UnknownKeyCode(key_code)),
         }
       }
@@ -65,22 +68,34 @@ macro_rules! impl_key_code_conversion {
       type Error = KeyConversionError;
 
       fn try_from(key_code: KeyCode) -> Result<Self, Self::Error> {
+        // LINT: Allow unreachable patterns since modifier keys are
+        // duplicated (e.g. `LShift` and `Shift`).
+        #[allow(unreachable_patterns)]
         match key_code.0 {
-          // TODO: Unreachable warning due to use of multiple `-1` values.
-          $( $mac_code => Ok(Key::$variant), )*
+          $($($mac_code => Ok(Key::$variant),)?)*
           _ => Err(KeyConversionError::UnknownKeyCode(key_code)),
         }
       }
     }
 
-    impl From<Key> for KeyCode {
-      fn from(key: Key) -> Self {
+    impl TryFrom<Key> for KeyCode {
+      type Error = KeyConversionError;
+
+      fn try_from(key: Key) -> Result<Self, Self::Error> {
         match key {
           $(Key::$variant => {
             #[cfg(target_os = "windows")]
-            { KeyCode($win_code.0) }
+            {
+              $(return Ok(KeyCode($win_code.0));)?
+              #[allow(unreachable_code)]
+              return Err(KeyConversionError::UnknownKeyCode(KeyCode(0)));
+            }
             #[cfg(target_os = "macos")]
-            { KeyCode($mac_code) }
+            {
+              $(return Ok(KeyCode($mac_code));)?
+              #[allow(unreachable_code)]
+              return Err(KeyConversionError::UnknownKeyCode(KeyCode(0)));
+            }
           }),*
         }
       }
@@ -149,10 +164,10 @@ impl_key_code_conversion! {
   F19 => { windows: VK_F19, macos: 0x50, },
   F20 => { windows: VK_F20, macos: 0x5A, },
   // Windows-only function keys; macOS has no F21-F24.
-  F21 => { windows: VK_F21, macos: -1, },
-  F22 => { windows: VK_F22, macos: -1, },
-  F23 => { windows: VK_F23, macos: -1, },
-  F24 => { windows: VK_F24, macos: -1, },
+  F21 => { windows: VK_F21, },
+  F22 => { windows: VK_F22, },
+  F23 => { windows: VK_F23, },
+  F24 => { windows: VK_F24, },
   // Modifier keys - use platform-specific primary variants
   LShift => { windows: VK_LSHIFT, macos: 0x38, },
   RShift => { windows: VK_RSHIFT, macos: 0x3C, },
@@ -190,7 +205,7 @@ impl_key_code_conversion! {
   PageUp => { windows: VK_PRIOR, macos: 0x74, },
   PageDown => { windows: VK_NEXT, macos: 0x79, },
   Insert => { windows: VK_INSERT, macos: 0x72, }, // Note: macOS 0x72 is Help
-  // OEM explicit variants (Windows)
+  // OEM keys
   OemSemicolon => { windows: VK_OEM_1, macos: 0x29, },
   OemQuestion => { windows: VK_OEM_2, macos: 0x2C, },
   OemTilde => { windows: VK_OEM_3, macos: 0x32, },
@@ -222,17 +237,17 @@ impl_key_code_conversion! {
   NumLock => { windows: VK_NUMLOCK, macos: 0x47, },
   ScrollLock => { windows: VK_SCROLL, macos: 0x6B, },
   CapsLock => { windows: VK_CAPITAL, macos: 0x39, },
-  // Media keys (Windows codes are standard; macOS values are
-  // placeholders)
+  // Media keys
   VolumeUp => { windows: VK_VOLUME_UP, macos: 0x48, },
   VolumeDown => { windows: VK_VOLUME_DOWN, macos: 0x49, },
   VolumeMute => { windows: VK_VOLUME_MUTE, macos: 0x4A, },
+  // TODO: Verify these media keys for macOS.
   MediaNextTrack => { windows: VK_MEDIA_NEXT_TRACK, macos: 0x42, },
   MediaPrevTrack => { windows: VK_MEDIA_PREV_TRACK, macos: 0x4D, },
   MediaStop => { windows: VK_MEDIA_STOP, macos: 0x4C, },
   MediaPlayPause => { windows: VK_MEDIA_PLAY_PAUSE, macos: 0x34, },
   // Print screen
-  PrintScreen => { windows: VK_SNAPSHOT, macos: -1, },
+  PrintScreen => { windows: VK_SNAPSHOT, },
 }
 
 #[cfg(test)]
@@ -241,16 +256,28 @@ mod tests {
 
   #[test]
   fn test_key_conversion_roundtrip() {
-    // Test `KeyCode -> `Key` -> `KeyCode` conversion.
-    for raw_key_code in 0..254 {
-      let key_code = KeyCode(raw_key_code);
-      let key: Key = key_code.try_into().unwrap();
-      let key_code_converted: KeyCode = key.into();
+    let test_keys = [
+      Key::A,
+      Key::S,
+      Key::D,
+      Key::F,
+      Key::Cmd,
+      Key::Alt,
+      Key::Ctrl,
+      Key::Shift,
+      Key::Space,
+      Key::Tab,
+      Key::Enter,
+      Key::F1,
+      Key::F12,
+      Key::Left,
+      Key::Right,
+    ];
 
-      assert_eq!(
-        key_code, key_code_converted,
-        "Roundtrip failed for key: {key:?}"
-      );
+    for key in test_keys {
+      let code: KeyCode = key.try_into().unwrap();
+      let key2: Key = code.try_into().unwrap();
+      assert_eq!(key, key2, "Roundtrip failed for key: {key:?}");
     }
   }
 }

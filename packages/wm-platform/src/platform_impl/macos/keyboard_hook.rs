@@ -19,7 +19,7 @@ pub struct KeyEvent {
   pub key: Key,
 
   /// Key code that generated this event.
-  key_code: KeyCode,
+  pub key_code: KeyCode,
 
   /// Whether the event is for a key press or release.
   pub is_keypress: bool,
@@ -41,11 +41,6 @@ impl KeyEvent {
       is_keypress,
       event_flags,
     }
-  }
-
-  /// Gets the raw key code for this event.
-  pub fn key_code(&self) -> KeyCode {
-    self.key_code
   }
 
   /// Gets whether the specified key is currently pressed.

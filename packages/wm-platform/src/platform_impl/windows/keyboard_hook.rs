@@ -40,14 +40,14 @@ thread_local! {
 /// Windows-specific keyboard event.
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
-  /// Whether the event is for a key press or release.
-  pub is_keypress: bool,
-
   /// The key that was pressed or released.
   pub key: Key,
 
-  /// Key code of the pressed key.
-  key_code: KeyCode,
+  /// Key code that generated this event.
+  pub key_code: KeyCode,
+
+  /// Whether the event is for a key press or release.
+  pub is_keypress: bool,
 }
 
 impl KeyEvent {
@@ -62,11 +62,6 @@ impl KeyEvent {
       key_code,
       key,
     }
-  }
-
-  /// Gets the raw key code for this event.
-  pub fn key_code(&self) -> KeyCode {
-    self.key_code
   }
 
   /// Gets whether the specified key is currently pressed.
