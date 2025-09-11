@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use dispatch2::MainThreadBound;
+use objc2::MainThreadMarker;
 use objc2_app_kit::NSWorkspace;
 use objc2_application_services::AXValue;
 use objc2_core_foundation::{
@@ -8,14 +12,12 @@ use objc2_core_graphics::{
   kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
   CGWindowListCopyWindowInfo, CGWindowListOption,
 };
-use crate::Rect;
 
 use crate::{
   platform_impl::{
     AXUIElement, AXUIElementCreateApplication, AXUIElementExt, AXValueExt,
-    MainThreadRef,
   },
-  Dispatcher, WindowId,
+  Dispatcher, Rect, WindowId,
 };
 
 /// macOS-specific extensions for `NativeWindow`.
@@ -25,7 +27,7 @@ pub trait NativeWindowExtMacOs {
   /// # Platform-specific
   ///
   /// This method is only available on macOS.
-  fn ax_ui_element(&self) -> &MainThreadRef<CFRetained<AXUIElement>>;
+  fn ax_ui_element(&self) -> &MainThreadBound<CFRetained<AXUIElement>>;
 
   /// Gets the bundle ID of the window.
   ///
@@ -43,28 +45,28 @@ pub trait NativeWindowExtMacOs {
 }
 
 impl NativeWindowExtMacOs for crate::NativeWindow {
-  fn ax_ui_element(&self) -> &MainThreadRef<CFRetained<AXUIElement>> {
+  fn ax_ui_element(&self) -> &MainThreadBound<CFRetained<AXUIElement>> {
     &self.inner.element
   }
 
   fn bundle_id(&self) -> crate::Result<String> {
-    self.inner.element.with(|el| {
+    self.inner.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXBundleID")
         .map(|cf_string| cf_string.to_string())
-    })?
+    })
   }
 
   fn role(&self) -> crate::Result<String> {
-    self.inner.element.with(|el| {
+    self.inner.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXRole")
         .map(|cf_string| cf_string.to_string())
-    })?
+    })
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  element: MainThreadRef<CFRetained<AXUIElement>>,
+  element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
   dispatcher: Dispatcher,
   pub handle: isize,
 }
@@ -75,10 +77,10 @@ impl NativeWindow {
   pub fn new(
     handle: isize,
     dispatcher: Dispatcher,
-    element: MainThreadRef<CFRetained<AXUIElement>>,
+    element: MainThreadBound<CFRetained<AXUIElement>>,
   ) -> Self {
     Self {
-      element,
+      element: Arc::new(element),
       dispatcher,
       handle,
     }
@@ -89,36 +91,36 @@ impl NativeWindow {
   }
 
   pub fn title(&self) -> crate::Result<String> {
-    self.element.with(|el| {
+    self.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXTitle")
         .map(|r| r.to_string())
-    })?
+    })
   }
 
   pub fn is_visible(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
-    let minimized = self.element.with(|el| {
+    let minimized = self.element.get_on_main(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
         .map(|cf_bool| cf_bool.value())
-    })??;
+    })?;
 
     Ok(!minimized)
   }
 
   pub fn size(&self) -> crate::Result<(f64, f64)> {
-    self.element.with(move |el| {
+    self.element.get_on_main(move |el| {
       el.get_attribute::<AXValue>("AXSize")
         .and_then(|ax_value| ax_value.value_strict::<CGSize>())
         .map(|size| (size.width, size.height))
-    })?
+    })
   }
 
   pub fn position(&self) -> crate::Result<(f64, f64)> {
-    self.element.with(move |el| {
+    self.element.get_on_main(move |el| {
       el.get_attribute::<AXValue>("AXPosition")
         .and_then(|ax_value| ax_value.value_strict::<CGPoint>())
         .map(|point| (point.x, point.y))
-    })?
+    })
   }
 
   pub fn frame(&self) -> crate::Result<Rect> {
@@ -134,19 +136,19 @@ impl NativeWindow {
   }
 
   pub fn resize(&self, width: f64, height: f64) -> crate::Result<()> {
-    self.element.with(move |el| -> crate::Result<()> {
+    self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width, height);
       let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
-    })?
+    })
   }
 
   pub fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
-    self.element.with(move |el| -> crate::Result<()> {
+    self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_point = CGPoint::new(x, y);
       let ax_value = AXValue::new_strict(&ax_point)?;
       el.set_attribute("AXPosition", &ax_value)
-    })?
+    })
   }
 
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
@@ -162,17 +164,17 @@ impl NativeWindow {
 
   /// Whether the window is minimized.
   pub fn is_minimized(&self) -> crate::Result<bool> {
-    self.element.with(|el| {
+    self.element.get_on_main(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
         .map(|cf_bool| cf_bool.value())
-    })?
+    })
   }
 
   pub fn minimize(&self) -> crate::Result<()> {
-    self.element.with(move |el| -> crate::Result<()> {
+    self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
-    })?
+    })
   }
 }
 
@@ -273,8 +275,10 @@ pub fn all_applications(
 
       if let Ok(windows_array) = windows_result {
         for window in windows_array.iter() {
-          let ax_ui_element =
-            MainThreadRef::new(dispatcher_clone.clone(), window);
+          let ax_ui_element = MainThreadBound::new(
+            window.into(),
+            MainThreadMarker::new().unwrap(),
+          );
 
           let native_window = NativeWindow::new(
             pid as isize,
@@ -332,8 +336,10 @@ pub fn visible_windows(
 
       if let Ok(windows_array) = windows_result {
         for window in windows_array.iter() {
-          let ax_ui_element =
-            MainThreadRef::new(dispatcher_clone.clone(), window);
+          let ax_ui_element = MainThreadBound::new(
+            window.into(),
+            MainThreadMarker::new().unwrap(),
+          );
 
           let native_window = NativeWindow::new(
             pid as isize,

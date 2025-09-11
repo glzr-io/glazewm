@@ -5,6 +5,7 @@ use accessibility_sys::{
   kAXWindowMovedNotification, kAXWindowResizedNotification,
 };
 use anyhow::Context;
+use dispatch2::MainThreadBound;
 use objc2_app_kit::{NSApplication, NSWorkspace};
 use objc2_application_services::{AXError, AXUIElement, AXValue};
 use objc2_core_foundation::{
@@ -23,7 +24,7 @@ use crate::{
     AXObserverAddNotification, AXObserverCreate,
     AXObserverGetRunLoopSource, AXObserverRef,
     AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
-    AXValueExt, CFStringRef, MainThreadRef, NativeWindow, ProcessId,
+    AXValueExt, CFStringRef, NativeWindow, ProcessId,
   },
   Dispatcher, WindowEvent,
 };
@@ -418,7 +419,7 @@ unsafe extern "C" fn window_event_callback(
   );
 
   let ax_element_ref =
-    MainThreadRef::new(context.dispatcher.clone(), ax_element);
+    MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
 
   let window =
     NativeWindow::new(0, context.dispatcher.clone(), ax_element_ref);

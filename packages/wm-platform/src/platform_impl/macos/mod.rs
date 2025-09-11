@@ -5,7 +5,6 @@ mod display;
 mod event_loop;
 mod ffi;
 mod keyboard_hook;
-mod main_thread_ref;
 mod native_window;
 mod window_listener;
 
@@ -15,6 +14,5 @@ pub use display::*;
 pub(crate) use event_loop::*;
 pub use ffi::*;
 pub use keyboard_hook::*;
-pub use main_thread_ref::*;
 pub use native_window::*;
 pub use window_listener::*;
