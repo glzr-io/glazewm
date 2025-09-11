@@ -112,7 +112,7 @@ impl KeyboardHook {
       CGEvent::tap_create(
         CGEventTapLocation::SessionEventTap,
         CGEventTapPlacement::HeadInsertEventTap,
-        CGEventTapOptions::ListenOnly,
+        CGEventTapOptions::Default,
         mask,
         Some(Self::keyboard_event_callback::<F>),
         callback_ptr,
