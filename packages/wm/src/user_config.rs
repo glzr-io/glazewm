@@ -224,9 +224,11 @@ impl UserConfig {
     window: &WindowContainer,
     event: &WindowRuleEvent,
   ) -> anyhow::Result<Vec<WindowRuleConfig>> {
-    let window_title = window.native().title()?;
-    let window_class = window.native().class_name()?;
-    let window_process = window.native().process_name()?;
+    // TODO: Access these from `window.properties` (name TBD) instead.
+    let window_title = window.native().title().unwrap_or_default();
+    let window_class = window.native().class_name().unwrap_or_default();
+    let window_process =
+      window.native().process_name().unwrap_or_default();
 
     let pending_window_rules = self
       .window_rules_by_event
@@ -348,5 +350,15 @@ impl UserConfig {
     } else {
       &self.value.gaps.outer_gap
     }
+  }
+
+  pub fn all_bindings(
+    &self,
+  ) -> impl Iterator<Item = &wm_platform::Keybinding> {
+    self
+      .value
+      .keybindings
+      .iter()
+      .flat_map(|kb| kb.bindings.iter())
   }
 }

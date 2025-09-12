@@ -17,8 +17,9 @@ use crate::{
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
   models::{
-    Container, DirectionContainer, InsertionTarget, NonTilingWindow,
-    TilingContainer, WindowContainer,
+    Container, DirectionContainer, InsertionTarget,
+    NativeWindowProperties, NonTilingWindow, TilingContainer,
+    WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
@@ -36,6 +37,7 @@ struct TilingWindowInner {
   child_focus_order: VecDeque<Uuid>,
   tiling_size: f32,
   native: NativeWindow,
+  native_properties: NativeWindowProperties,
   state: WindowState,
   prev_state: Option<WindowState>,
   display_state: DisplayState,
@@ -53,6 +55,7 @@ impl TilingWindow {
   pub fn new(
     id: Option<Uuid>,
     native: NativeWindow,
+    properties: NativeWindowProperties,
     prev_state: Option<WindowState>,
     border_delta: RectDelta,
     floating_placement: Rect,
@@ -68,6 +71,7 @@ impl TilingWindow {
       child_focus_order: VecDeque::new(),
       tiling_size: 1.0,
       native,
+      native_properties: properties,
       state: WindowState::Tiling,
       prev_state,
       display_state: DisplayState::Shown,
@@ -91,6 +95,7 @@ impl TilingWindow {
     NonTilingWindow::new(
       Some(self.id()),
       self.native().clone(),
+      self.native_properties().clone(),
       state,
       Some(WindowState::Tiling),
       self.border_delta(),
@@ -120,9 +125,19 @@ impl TilingWindow {
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
       // handle: self.native().handle,
-      title: self.native().title()?,
-      class_name: self.native().class_name()?,
-      process_name: self.native().process_name()?,
+      // TODO: Access these from `window.properties` (name TBD) instead.
+      title: self
+        .native()
+        .title()
+        .unwrap_or_else(|_| "Error".to_string()),
+      class_name: self
+        .native()
+        .class_name()
+        .unwrap_or_else(|_| "Error".to_string()),
+      process_name: self
+        .native()
+        .process_name()
+        .unwrap_or_else(|_| "Error".to_string()),
       active_drag: self.active_drag(),
     }))
   }

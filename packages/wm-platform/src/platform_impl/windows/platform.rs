@@ -71,7 +71,7 @@ impl Platform {
   ///
   /// Note that this also ensures that the `NativeMonitor` instances have
   /// valid position values.
-  pub fn sorted_monitors() -> anyhow::Result<Vec<NativeMonitor>> {
+  pub fn sorted_monitors() -> crate::Result<Vec<NativeMonitor>> {
     let monitors = native_monitor::available_monitors()?;
 
     // Create a tuple of monitors and their rects.
@@ -111,7 +111,7 @@ impl Platform {
   /// Manageable windows are visible windows that the WM is most likely
   /// able to manage. Windows are returned in z-order (top to bottom),
   /// although the order is not guaranteed by the underlying API.
-  pub fn manageable_windows() -> anyhow::Result<Vec<NativeWindow>> {
+  pub fn manageable_windows() -> crate::Result<Vec<NativeWindow>> {
     Ok(
       native_window::available_windows()?
         .into_iter()
@@ -123,25 +123,25 @@ impl Platform {
   /// Creates a new `EventListener` for the specified user config.
   pub fn start_event_listener(
     config: &ParsedConfig,
-  ) -> anyhow::Result<EventListener> {
+  ) -> crate::Result<EventListener> {
     EventListener::start(config)
   }
 
   /// Creates a new `SingleInstance`.
-  pub fn new_single_instance() -> anyhow::Result<SingleInstance> {
+  pub fn new_single_instance() -> crate::Result<SingleInstance> {
     SingleInstance::new()
   }
 
   // Gets the root window of the specified window.
   pub fn root_ancestor(
     window: &NativeWindow,
-  ) -> anyhow::Result<NativeWindow> {
+  ) -> crate::Result<NativeWindow> {
     let handle = unsafe { GetAncestor(HWND(window.handle), GA_ROOT) };
     Ok(NativeWindow::new(handle.0))
   }
 
   /// Sets the cursor position to the specified coordinates.
-  pub fn set_cursor_pos(x: i32, y: i32) -> anyhow::Result<()> {
+  pub fn set_cursor_pos(x: i32, y: i32) -> crate::Result<()> {
     unsafe {
       SetCursorPos(x, y)?;
     };
@@ -150,7 +150,7 @@ impl Platform {
   }
 
   /// Finds the window at the specified point in screen space.
-  pub fn window_from_point(point: &Point) -> anyhow::Result<NativeWindow> {
+  pub fn window_from_point(point: &Point) -> crate::Result<NativeWindow> {
     let point = POINT {
       x: point.x,
       y: point.y,
@@ -161,7 +161,7 @@ impl Platform {
   }
 
   /// Gets the mouse position in screen space.
-  pub fn mouse_position() -> anyhow::Result<Point> {
+  pub fn mouse_position() -> crate::Result<Point> {
     let mut point = POINT { x: 0, y: 0 };
     unsafe { GetCursorPos(&raw mut point) }?;
 
@@ -176,7 +176,7 @@ impl Platform {
   /// Returns a handle to the created window.
   pub fn create_message_window(
     window_procedure: WindowProcedure,
-  ) -> anyhow::Result<isize> {
+  ) -> crate::Result<isize> {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("MessageWindow"),
       style: CS_HREDRAW | CS_VREDRAW,
@@ -232,7 +232,7 @@ impl Platform {
   /// Runs a single cycle of a message loop on the current thread.
   ///
   /// Is non-blocking and returns immediately if there are no messages.
-  pub fn run_message_cycle() -> anyhow::Result<()> {
+  pub fn run_message_cycle() -> crate::Result<()> {
     let mut msg = MSG::default();
 
     let has_message =
@@ -256,7 +256,7 @@ impl Platform {
   /// Gracefully terminates the message loop on the given thread.
   pub fn kill_message_loop<T>(
     thread: &JoinHandle<T>,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     let handle = thread.as_raw_handle();
     let handle = HANDLE(handle as isize);
     let thread_id = unsafe { GetThreadId(handle) };
@@ -276,7 +276,7 @@ impl Platform {
   /// Gets whether window transition animations are currently enabled.
   ///
   /// Note that this is a global system setting.
-  pub fn window_animations_enabled() -> anyhow::Result<bool> {
+  pub fn window_animations_enabled() -> crate::Result<bool> {
     let mut animation_info = ANIMATIONINFO {
       #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
@@ -298,9 +298,7 @@ impl Platform {
   /// Enables or disables window transition animations.
   ///
   /// Note that this is a global system setting.
-  pub fn set_window_animations_enabled(
-    enable: bool,
-  ) -> anyhow::Result<()> {
+  pub fn set_window_animations_enabled(enable: bool) -> crate::Result<()> {
     let mut animation_info = ANIMATIONINFO {
       #[allow(clippy::cast_possible_truncation)]
       cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
@@ -320,7 +318,7 @@ impl Platform {
   }
 
   /// Opens File Explorer at the specified path.
-  pub fn open_file_explorer(path: &PathBuf) -> anyhow::Result<()> {
+  pub fn open_file_explorer(path: &PathBuf) -> crate::Result<()> {
     let normalized_path = std::fs::canonicalize(path)?;
 
     std::process::Command::new("explorer")
@@ -355,9 +353,9 @@ impl Platform {
   ///   )?;
   ///   assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
   ///   assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
-  /// # Ok::<(), anyhow::Error>(())
+  /// # Ok::<(), crate::Error>(())
   /// ```
-  pub fn parse_command(command: &str) -> anyhow::Result<(String, String)> {
+  pub fn parse_command(command: &str) -> crate::Result<(String, String)> {
     // Expand environment variables in the command string.
     let expanded_command = {
       let wide_command = to_wide(command);
@@ -433,7 +431,7 @@ impl Platform {
     program: &str,
     args: &str,
     hide_window: bool,
-  ) -> anyhow::Result<()> {
+  ) -> crate::Result<()> {
     let home_dir = home::home_dir()
       .context("Unable to get home directory.")?
       .to_str()

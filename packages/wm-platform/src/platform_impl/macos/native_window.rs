@@ -42,6 +42,27 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn role(&self) -> crate::Result<String>;
+
+  /// Gets the sub-role of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn subrole(&self) -> crate::Result<String>;
+
+  /// Whether the window is modal.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn is_modal(&self) -> crate::Result<bool>;
+
+  /// Whether the window is the main window for its application.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn is_main(&self) -> crate::Result<bool>;
 }
 
 impl NativeWindowExtMacOs for crate::NativeWindow {
@@ -50,6 +71,7 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
   }
 
   fn bundle_id(&self) -> crate::Result<String> {
+    // TODO: This is not correct.
     self.inner.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXBundleID")
         .map(|cf_string| cf_string.to_string())
@@ -60,6 +82,27 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
     self.inner.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXRole")
         .map(|cf_string| cf_string.to_string())
+    })
+  }
+
+  fn subrole(&self) -> crate::Result<String> {
+    self.inner.element.get_on_main(|el| {
+      el.get_attribute::<CFString>("AXSubrole")
+        .map(|cf_string| cf_string.to_string())
+    })
+  }
+
+  fn is_modal(&self) -> crate::Result<bool> {
+    self.inner.element.get_on_main(|el| {
+      el.get_attribute::<CFBoolean>("AXModal")
+        .map(|cf_bool| cf_bool.value())
+    })
+  }
+
+  fn is_main(&self) -> crate::Result<bool> {
+    self.inner.element.get_on_main(|el| {
+      el.get_attribute::<CFBoolean>("AXMain")
+        .map(|cf_bool| cf_bool.value())
     })
   }
 }
@@ -176,6 +219,20 @@ impl NativeWindow {
       el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
     })
   }
+
+  pub fn is_maximized(&self) -> crate::Result<bool> {
+    self.element.get_on_main(|el| {
+      el.get_attribute::<CFBoolean>("AXFullScreen")
+        .map(|cf_bool| cf_bool.value())
+    })
+  }
+
+  pub fn maximize(&self) -> crate::Result<()> {
+    self.element.get_on_main(move |el| -> crate::Result<()> {
+      let ax_bool = CFBoolean::new(true);
+      el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
+    })
+  }
 }
 
 impl From<NativeWindow> for crate::NativeWindow {
@@ -263,9 +320,8 @@ pub fn all_applications(
         continue;
       }
 
-      let app_element = match AXUIElement::from_ref(app_element_ref) {
-        Ok(element) => element,
-        Err(_) => continue,
+      let Ok(app_element) = AXUIElement::from_ref(app_element_ref) else {
+        continue;
       };
 
       // Get windows from the application. Note that this fails if
@@ -275,10 +331,8 @@ pub fn all_applications(
 
       if let Ok(windows_array) = windows_result {
         for window in windows_array.iter() {
-          let ax_ui_element = MainThreadBound::new(
-            window.into(),
-            MainThreadMarker::new().unwrap(),
-          );
+          let ax_ui_element =
+            MainThreadBound::new(window, MainThreadMarker::new().unwrap());
 
           let native_window = NativeWindow::new(
             pid as isize,

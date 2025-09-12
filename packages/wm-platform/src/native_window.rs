@@ -33,11 +33,15 @@ impl NativeWindow {
     self.inner.id()
   }
 
-  /// Gets the window's title. If the window is invalid, returns an empty
-  /// string.
+  /// Gets the window's title.
+  ///
+  /// Note that empty strings are valid window titles.
+  ///
+  /// # Errors
+  ///
+  /// Returns `crate::Error::WindowNotFound` if the window is invalid.
   pub fn title(&self) -> crate::Result<String> {
-    // self.inner.title()
-    Ok("test".to_string())
+    self.inner.title()
   }
 
   // TODO: Remove this (should only be on `NativeWindowWindowsExt`).
@@ -45,7 +49,7 @@ impl NativeWindow {
     Ok("test".to_string())
   }
 
-  // TODO: Remove this (should only be on `NativeWindowWindowsExt`).
+  // TODO: Implement this for macOS.
   pub fn process_name(&self) -> crate::Result<String> {
     Ok("test".to_string())
   }
@@ -72,6 +76,11 @@ impl NativeWindow {
     self.inner.is_minimized()
   }
 
+  /// Whether the window is maximized.
+  pub fn is_maximized(&self) -> crate::Result<bool> {
+    self.inner.is_maximized()
+  }
+
   /// Resize the window to the specified size.
   pub fn resize(&self, width: f64, height: f64) -> crate::Result<()> {
     self.inner.resize(width, height)
@@ -87,6 +96,10 @@ impl NativeWindow {
 
   pub fn minimize(&self) -> crate::Result<()> {
     self.inner.minimize()
+  }
+
+  pub fn maximize(&self) -> crate::Result<()> {
+    self.inner.maximize()
   }
 
   pub fn is_fullscreen(&self, monitor_rect: &Rect) -> crate::Result<bool> {

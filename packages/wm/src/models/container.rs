@@ -15,7 +15,7 @@ use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 #[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
-    Monitor, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
+    Monitor, NativeWindowProperties, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
     Workspace,
   },
   traits::*,

@@ -4,7 +4,10 @@ use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
 use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
-use crate::user_config::UserConfig;
+use crate::{
+  models::{NativeWindowProperties}, 
+  user_config::UserConfig,
+};
 
 #[delegatable_trait]
 pub trait WindowGetters {
@@ -115,6 +118,14 @@ pub trait WindowGetters {
   fn active_drag(&self) -> Option<ActiveDrag>;
 
   fn set_active_drag(&self, active_drag: Option<ActiveDrag>);
+
+  /// Gets the cached native window properties.
+  fn native_properties(&self) -> NativeWindowProperties;
+
+  /// Updates the cached native window properties using a closure.
+  fn update_native_properties<F>(&self, updater: F) 
+  where 
+    F: FnOnce(&mut NativeWindowProperties);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -211,6 +222,17 @@ macro_rules! impl_window_getters {
 
       fn set_active_drag(&self, active_drag: Option<ActiveDrag>) {
         self.0.borrow_mut().active_drag = active_drag;
+      }
+
+      fn native_properties(&self) -> NativeWindowProperties {
+        self.0.borrow().native_properties.clone()
+      }
+
+      fn update_native_properties<F>(&self, updater: F) 
+      where 
+        F: FnOnce(&mut NativeWindowProperties)
+      {
+        updater(&mut self.0.borrow_mut().native_properties);
       }
     }
   };

@@ -9,7 +9,8 @@ use crate::{
     window::run_window_rules,
   },
   models::{
-    Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    Container, Monitor, NativeWindowProperties, NonTilingWindow,
+    TilingWindow, WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -137,10 +138,23 @@ fn create_window(
     LengthValue::from_px(0),
   );
 
+  // Create native properties cache from current window state.
+  let native_properties = NativeWindowProperties {
+    title: native_window.title()?,
+    class_name: native_window.class_name()?,
+    process_name: native_window.process_name()?,
+    is_visible: native_window.is_visible()?,
+    is_minimized: native_window.is_minimized()?,
+    is_maximized: native_window.is_maximized()?,
+    is_fullscreen: native_window
+      .is_fullscreen(&nearest_workspace.to_rect()?)?,
+  };
+
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
       None,
       native_window,
+      native_properties,
       None,
       border_delta,
       floating_placement,
@@ -153,6 +167,7 @@ fn create_window(
     _ => NonTilingWindow::new(
       None,
       native_window,
+      native_properties,
       window_state,
       None,
       border_delta,

@@ -1,6 +1,5 @@
 use std::sync::{atomic::AtomicBool, mpsc, Arc};
 
-use anyhow::Context;
 use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
 use objc2_core_foundation::{
@@ -104,11 +103,14 @@ impl EventLoop {
 
     // Create the run loop source.
     let source =
-      unsafe { CFRunLoopSource::new(None, 0, &raw mut context) }
-        .context("Failed to create run loop source.")?;
+      unsafe { CFRunLoopSource::new(None, 0, &raw mut context) }.ok_or(
+        crate::Error::Platform(
+          "Failed to create run loop source.".to_string(),
+        ),
+      )?;
 
     let run_loop =
-      CFRunLoop::current().context("Failed to get current run loop.")?;
+      CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
 
     run_loop.add_source(Some(&source), unsafe { kCFRunLoopDefaultMode });
 

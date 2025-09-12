@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::{bail, Context};
 use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -49,7 +48,7 @@ impl LengthValue {
 }
 
 impl FromStr for LengthValue {
-  type Err = anyhow::Error;
+  type Err = crate::ParseError;
 
   /// Parses a string containing a number followed by a unit (`px`, `%`).
   /// Allows for negative numbers.
@@ -65,33 +64,32 @@ impl FromStr for LengthValue {
   /// let parsed = LengthValue::from_str("100px");
   /// assert_eq!(parsed.unwrap(), check);
   /// ```
-  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
-    let units_regex = Regex::new(r"([+-]?\d+)(%|px)?")?;
-
-    let err_msg = format!(
-      "Not a valid length value '{unparsed}'. Must be of format '10px' or '10%'."
-    );
+  fn from_str(unparsed: &str) -> Result<Self, crate::ParseError> {
+    let units_regex =
+      Regex::new(r"([+-]?\d+)(%|px)?").expect("Invalid regex.");
 
     let captures = units_regex
       .captures(unparsed)
-      .context(err_msg.to_string())?;
+      .ok_or(crate::ParseError::Length(unparsed.to_string()))?;
 
-    let unit_str = captures.get(2).map_or("", |m| m.as_str());
-    let unit = match unit_str {
+    let unit = match captures.get(2).map_or("", |m| m.as_str()) {
       "px" | "" => LengthUnit::Pixel,
       "%" => LengthUnit::Percentage,
-      _ => bail!(err_msg),
+      _ => return Err(crate::ParseError::Length(unparsed.to_string())),
     };
 
     let amount = captures
       .get(1)
-      .and_then(|amount_str| f32::from_str(amount_str.into()).ok())
+      .and_then(|m| m.as_str().parse::<f32>().ok())
       // Store percentage units as a fraction of 1.
-      .map(|amount| match unit {
-        LengthUnit::Pixel => amount,
-        LengthUnit::Percentage => amount / 100.0,
+      .map(|amount| {
+        if unit == LengthUnit::Percentage {
+          amount / 100.0
+        } else {
+          amount
+        }
       })
-      .context(err_msg.to_string())?;
+      .ok_or(crate::ParseError::Length(unparsed.to_string()))?;
 
     Ok(LengthValue { amount, unit })
   }

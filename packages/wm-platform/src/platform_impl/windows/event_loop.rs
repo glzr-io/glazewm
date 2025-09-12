@@ -91,7 +91,7 @@ impl EventLoopSource {
 /// Windows-specific implementation of [`EventLoop`].
 pub(crate) struct EventLoop {
   message_window_handle: crate::WindowHandle,
-  thread_handle: Option<JoinHandle<anyhow::Result<()>>>,
+  thread_handle: Option<JoinHandle<crate::Result<()>>>,
   thread_id: u32,
 }
 
@@ -100,7 +100,7 @@ impl EventLoop {
     let (sender, receiver) =
       tokio::sync::oneshot::channel::<(crate::WindowHandle, u32)>();
 
-    let thread_handle = thread::spawn(move || -> anyhow::Result<()> {
+    let thread_handle = thread::spawn(move || -> crate::Result<()> {
       // Create a hidden message window on the current thread.
       let window_handle =
         super::Platform::create_message_window(Some(Self::window_proc))?;
@@ -169,7 +169,7 @@ impl EventLoop {
   }
 
   /// Shuts down the event loop gracefully.
-  pub fn shutdown(&mut self) -> anyhow::Result<()> {
+  pub fn shutdown(&mut self) -> crate::Result<()> {
     tracing::info!("Shutting down event loop.");
 
     // Wait for the spawned thread to finish.

@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex, OnceLock};
 
-use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::warn;
 use windows::Win32::{
@@ -19,6 +18,7 @@ use windows::Win32::{
 };
 
 use super::{NativeWindow, PlatformEvent};
+use crate::Result;
 
 /// Global instance of `WindowEventHook`.
 ///
@@ -35,7 +35,7 @@ impl WindowEventHook {
   /// Creates an instance of `WindowEventHook`.
   pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> anyhow::Result<Arc<Self>> {
+  ) -> crate::Result<Arc<Self>> {
     let win_event_hook = Arc::new(Self {
       event_tx,
       hook_handles: Arc::new(Mutex::new(Vec::new())),
@@ -54,7 +54,7 @@ impl WindowEventHook {
   /// # Panics
   ///
   /// If the internal mutex is poisoned.
-  pub fn start(&self) -> anyhow::Result<()> {
+  pub fn start(&self) -> crate::Result<()> {
     *self.hook_handles.lock().unwrap() = Self::hook_win_events()?;
     Ok(())
   }
@@ -148,7 +148,7 @@ impl WindowEventHook {
   /// # Panics
   ///
   /// If the internal mutex is poisoned.
-  pub fn stop(&self) -> anyhow::Result<()> {
+  pub fn stop(&self) -> crate::Result<()> {
     for hook_handle in self.hook_handles.lock().unwrap().drain(..) {
       unsafe { UnhookWinEvent(hook_handle) }.ok()?;
     }

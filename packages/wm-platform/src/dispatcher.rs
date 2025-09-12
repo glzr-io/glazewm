@@ -211,7 +211,7 @@ impl Dispatcher {
 
   pub fn nearest_monitor(
     &self,
-    native_window: &NativeWindow,
+    _native_window: &NativeWindow,
   ) -> crate::Result<Display> {
     // TODO: Implement this.
     platform_impl::primary_display(self)

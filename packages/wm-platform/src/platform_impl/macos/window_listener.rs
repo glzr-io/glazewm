@@ -4,7 +4,6 @@ use accessibility_sys::{
   kAXWindowDeminiaturizedNotification, kAXWindowMiniaturizedNotification,
   kAXWindowMovedNotification, kAXWindowResizedNotification,
 };
-use anyhow::Context;
 use dispatch2::MainThreadBound;
 use objc2_app_kit::{NSApplication, NSWorkspace};
 use objc2_application_services::{AXError, AXUIElement, AXValue};
@@ -198,7 +197,7 @@ impl WindowListener {
     pid: ProcessId,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
-  ) -> anyhow::Result<AppWindowObserver> {
+  ) -> crate::Result<AppWindowObserver> {
     // NOTE: Accessibility APIs must be called directly on main thread
     // dispatch_sync can cause threading issues with the accessibility
     // system
@@ -213,11 +212,10 @@ impl WindowListener {
     };
 
     if result != AXError::Success {
-      return Err(anyhow::anyhow!(
+      return Err(crate::Error::Platform(format!(
         "Failed to create AX observer for PID {}: {:?}",
-        pid,
-        result
-      ));
+        pid, result
+      )));
     }
 
     println!("got here1");
@@ -228,10 +226,6 @@ impl WindowListener {
       dispatcher: dispatcher.clone(),
       pid,
     }));
-
-    // Store the context pointer in the observer (this is a simplified
-    // approach) In a real implementation, you'd want to use a global
-    // registry to map observers to contexts
 
     println!("got here2");
     // Get the run loop source and add it to the current run loop
@@ -246,7 +240,7 @@ impl WindowListener {
 
     unsafe {
       let runloop =
-        CFRunLoop::current().context("Failed to get current runloop")?;
+        CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
       runloop.add_source(Some(&runloop_source), kCFRunLoopDefaultMode);
     }
     println!("got here2.6");

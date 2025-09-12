@@ -81,17 +81,18 @@ fn main() -> anyhow::Result<()> {
           start_wm(config_path, verbosity, dispatcher).await
         {
           error!("{:?}", err);
+          return Err(err);
         }
 
         Ok(())
       })
     });
+
     // Run event loop (blocks until shutdown). This must be on the main
     // thread for macOS compatibility.
     event_loop.run()?;
 
     // Wait for clean exit of the WM.
-    // rt.block_on(local.run_until(task_handle))?
     task_handle.join().unwrap()
   } else {
     let rt = tokio::runtime::Runtime::new()?;
@@ -134,17 +135,10 @@ async fn start_wm(
   // Parse and validate user config.
   let mut config = UserConfig::new(config_path)?;
 
-  // Extract all keybindings from keybinding configs
-  let all_keybindings: Vec<wm_platform::Keybinding> = config
-    .value
-    .keybindings
-    .iter()
-    .flat_map(|kb_config| &kb_config.bindings)
-    .cloned()
-    .collect();
-
-  let mut keybinding_listener =
-    KeybindingListener::new(dispatcher.clone(), &all_keybindings)?;
+  let mut keybinding_listener = KeybindingListener::new(
+    dispatcher.clone(),
+    &config.all_bindings().cloned().collect::<Vec<_>>(),
+  )?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 
@@ -241,8 +235,16 @@ async fn start_wm(
     }
   }
 
-  // Shutdown the platform hook.
   tracing::info!("Window manager shutting down.");
+
+  // Shutdown listeners first to ensure clean exit.
+  // TODO: This should be handled automatically in the `stop_event_loop`
+  // method.
+  if let Err(err) = keybinding_listener.stop() {
+    tracing::warn!("Failed to stop keybinding listener: {}", err);
+  }
+
+  // Now shutdown the platform event loop.
   dispatcher.stop_event_loop()?;
 
   Ok(())

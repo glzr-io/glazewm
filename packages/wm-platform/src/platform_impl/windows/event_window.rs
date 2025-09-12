@@ -71,7 +71,7 @@ static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 #[derive(Debug)]
 pub struct EventWindow {
   keyboard_hook: Arc<KeyboardHook>,
-  window_thread: Option<JoinHandle<anyhow::Result<()>>>,
+  window_thread: Option<JoinHandle<crate::Result<()>>>,
 }
 
 impl EventWindow {
@@ -84,7 +84,7 @@ impl EventWindow {
     event_tx: &mpsc::UnboundedSender<PlatformEvent>,
     keybindings: &Vec<KeybindingConfig>,
     enable_mouse_events: bool,
-  ) -> anyhow::Result<Self> {
+  ) -> crate::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
     let window_event_hook = WindowEventHook::new(event_tx.clone())?;
     let keyboard_hook_clone = keyboard_hook.clone();
@@ -147,7 +147,7 @@ impl EventWindow {
   }
 
   /// Destroys the event window and stops the message loop.
-  pub fn destroy(&mut self) -> anyhow::Result<()> {
+  pub fn destroy(&mut self) -> crate::Result<()> {
     info!("Shutting down event window.");
 
     // Wait for the spawned thread to finish.
@@ -232,7 +232,7 @@ fn handle_display_change_msg(
   message: u32,
   wparam: WPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
-) -> anyhow::Result<()> {
+) -> crate::Result<()> {
   #[allow(clippy::cast_possible_truncation)]
   let should_emit_event = match message {
     WM_SETTINGCHANGE => {
@@ -256,7 +256,7 @@ fn handle_input_msg(
   _wparam: WPARAM,
   lparam: LPARAM,
   event_tx: &mpsc::UnboundedSender<PlatformEvent>,
-) -> anyhow::Result<()> {
+) -> crate::Result<()> {
   let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
   #[allow(clippy::cast_possible_truncation)]
   let mut raw_input_size = std::mem::size_of::<RAWINPUT>() as u32;

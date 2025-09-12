@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -27,7 +26,7 @@ impl Default for OpacityValue {
 }
 
 impl FromStr for OpacityValue {
-  type Err = anyhow::Error;
+  type Err = crate::ParseError;
 
   /// Parses a string for an opacity value. The string must be a percentage
   /// or a decimal number.
@@ -40,21 +39,21 @@ impl FromStr for OpacityValue {
   /// let parsed = OpacityValue::from_str("75%");
   /// assert_eq!(parsed.unwrap(), check);
   /// ```
-  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
+  fn from_str(unparsed: &str) -> Result<Self, crate::ParseError> {
     let unparsed = unparsed.trim();
 
     if unparsed.ends_with('%') {
       let percentage = unparsed
         .trim_end_matches('%')
         .parse::<f32>()
-        .context("Invalid percentage format.")?;
+        .map_err(|_| crate::ParseError::Opacity(unparsed.to_string()))?;
 
       Ok(Self(percentage / 100.0))
     } else {
       unparsed
         .parse::<f32>()
         .map(Self)
-        .context("Invalid decimal format.")
+        .map_err(|_| crate::ParseError::Opacity(unparsed.to_string()))
     }
   }
 }

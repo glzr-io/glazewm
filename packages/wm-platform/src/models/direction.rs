@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::bail;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -33,7 +32,7 @@ impl Direction {
 }
 
 impl FromStr for Direction {
-  type Err = anyhow::Error;
+  type Err = crate::ParseError;
 
   /// Parses a string into a direction.
   ///
@@ -44,13 +43,13 @@ impl FromStr for Direction {
   /// let dir = Direction::from_str("left");
   /// assert_eq!(dir.unwrap(), Direction::Left);
   /// ```
-  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
+  fn from_str(unparsed: &str) -> Result<Self, crate::ParseError> {
     match unparsed {
       "left" => Ok(Direction::Left),
       "right" => Ok(Direction::Right),
       "up" => Ok(Direction::Up),
       "down" => Ok(Direction::Down),
-      _ => bail!("Not a valid direction: {}", unparsed),
+      _ => Err(crate::ParseError::Direction(unparsed.to_string())),
     }
   }
 }

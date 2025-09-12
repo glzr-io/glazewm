@@ -274,7 +274,6 @@ macro_rules! impl_key_parsing {
             let aliases = &[$($str_name),+];
             write!(f, "{}", aliases[0])
           },)*
-          _ => write!(f, "Unknown"),
         }
       }
     }
@@ -284,7 +283,6 @@ macro_rules! impl_key_parsing {
       pub fn all_aliases(&self) -> Option<&'static [&'static str]> {
         match self {
           $(Key::$variant => Some(&[$($str_name),+]),)*
-          _ => None,
         }
       }
     }

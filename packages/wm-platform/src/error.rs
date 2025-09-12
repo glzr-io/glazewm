@@ -11,6 +11,9 @@ pub enum Error {
   #[cfg(target_os = "macos")]
   Accessibility(String, i32),
 
+  #[error(transparent)]
+  Parse(#[from] ParseError),
+
   #[error("Invalid pointer: {0}")]
   InvalidPointer(String),
 
@@ -23,9 +26,6 @@ pub enum Error {
 
   #[error("Channel send error: {0}")]
   ChannelSend(String),
-
-  #[error(transparent)]
-  Anyhow(#[from] anyhow::Error),
 
   #[error("Display enumeration failed")]
   DisplayEnumerationFailed,
@@ -51,6 +51,9 @@ pub enum Error {
   #[error("Window enumeration failed")]
   WindowEnumerationFailed,
 
+  #[error("Window not found")]
+  WindowNotFound,
+
   #[error("Thread error: {0}")]
   Thread(String),
 
@@ -65,6 +68,33 @@ pub enum Error {
 
   #[error("Keybinding is empty")]
   InvalidKeybinding,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+  #[error(
+    "Invalid length value '{0}': must be of format '10px' or '10%'."
+  )]
+  Length(String),
+
+  #[error("Invalid keybinding: {0}")]
+  Keybinding(String),
+
+  #[error(
+    "Invalid opacity value '{0}': must be of format '75%' or '0.75'."
+  )]
+  Opacity(String),
+
+  #[error(
+    "Invalid color '{0}': must be of format '#RRGGBB' or '#RRGGBBAA'."
+  )]
+  Color(String),
+
+  #[error("Invalid delta value: {0}")]
+  Delta(String),
+
+  #[error("Invalid direction '{0}': must be one of 'left', 'right', 'up', or 'down'.")]
+  Direction(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

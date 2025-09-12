@@ -63,7 +63,7 @@ impl ComInit {
   }
 
   /// Returns an instance of `IServiceProvider`.
-  pub fn service_provider(&self) -> anyhow::Result<&IServiceProvider> {
+  pub fn service_provider(&self) -> crate::Result<&IServiceProvider> {
     self
       .service_provider
       .as_ref()
@@ -73,14 +73,14 @@ impl ComInit {
   /// Returns an instance of `IApplicationViewCollection`.
   pub fn application_view_collection(
     &self,
-  ) -> anyhow::Result<&IApplicationViewCollection> {
+  ) -> crate::Result<&IApplicationViewCollection> {
     self.application_view_collection.as_ref().context(
       "Failed to query for `IApplicationViewCollection` instance.",
     )
   }
 
   /// Returns an instance of `ITaskbarList2`.
-  pub fn taskbar_list(&self) -> anyhow::Result<&ITaskbarList2> {
+  pub fn taskbar_list(&self) -> crate::Result<&ITaskbarList2> {
     self
       .taskbar_list
       .as_ref()

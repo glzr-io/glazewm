@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::bail;
 use serde::Serialize;
 
 /// A wrapper that indicates a value should be interpreted as a delta
@@ -11,21 +10,21 @@ pub struct Delta<T> {
   pub is_negative: bool,
 }
 
-impl<T: FromStr<Err = anyhow::Error>> FromStr for Delta<T> {
-  type Err = anyhow::Error;
+impl<T: FromStr<Err = crate::ParseError>> FromStr for Delta<T> {
+  type Err = crate::ParseError;
 
-  fn from_str(unparsed: &str) -> anyhow::Result<Self> {
+  fn from_str(unparsed: &str) -> Result<Self, crate::ParseError> {
     let unparsed = unparsed.trim();
 
     let (raw, is_negative) = match unparsed.chars().next() {
       Some('+') => (&unparsed[1..], false),
       Some('-') => (&unparsed[1..], true),
-      // No sign means positive.
+      // No sign is interpreted as positive.
       _ => (unparsed, false),
     };
 
     if raw.is_empty() {
-      bail!("Empty value.");
+      return Err(crate::ParseError::Delta(unparsed.to_string()));
     }
 
     let inner = T::from_str(raw)?;
