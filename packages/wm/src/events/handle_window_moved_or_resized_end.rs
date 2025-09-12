@@ -1,10 +1,9 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, ActiveDragOperation, LengthValue, Point, Rect,
-  TilingDirection, WindowState,
+  try_warn, ActiveDragOperation, TilingDirection, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{LengthValue, NativeWindow, Point, Rect};
 
 use crate::{
   commands::{
@@ -42,8 +41,12 @@ pub fn handle_window_moved_or_resized_end(
   if let Some(window) = found_window {
     info!("Window move/resize ended: {window}");
 
-    let new_rect = try_warn!(window.native().invalidate_frame_position());
-    let old_rect = window.to_rect()?;
+    let old_rect = window.native_properties().frame;
+    let new_rect = try_warn!(window.native().frame());
+
+    window.update_native_properties(|properties| {
+      properties.frame = new_rect.clone();
+    });
 
     let width_delta = new_rect.width() - old_rect.width();
     let height_delta = new_rect.height() - old_rect.height();
@@ -97,7 +100,7 @@ fn drop_as_tiling_window(
     moved_window.as_window_container()?
   );
 
-  let mouse_pos = Platform::mouse_position()?;
+  let mouse_pos = state.dispatcher.mouse_position()?;
   let workspace = moved_window.workspace().context("No workspace.")?;
 
   // Get the workspace, split containers, and other windows under the

@@ -30,13 +30,16 @@ use crate::{
   },
   events::{
     handle_window_destroyed,
+    handle_window_hidden,
     // handle_display_settings_changed, handle_mouse_move,
     //  handle_window_focused,
-    // handle_window_location_changed, handle_window_minimize_ended,
-    // handle_window_minimized, handle_window_moved_or_resized_end,
-    // handle_window_moved_or_resized_start, handle_window_shown,
-    // handle_window_title_changed,
-    handle_window_hidden,
+    handle_window_location_changed,
+    handle_window_minimize_ended,
+    handle_window_minimized,
+    handle_window_moved_or_resized_end,
+    handle_window_moved_or_resized_start,
+    handle_window_shown,
+    handle_window_title_changed,
   },
   models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
@@ -109,37 +112,30 @@ impl WindowManager {
           Ok(())
         }
         WindowEvent::Show(window) => {
-          // handle_window_shown(window, state, config)
-          Ok(())
+          handle_window_shown(window, state, config)
         }
         WindowEvent::Hide(window) => handle_window_hidden(&window, state),
         WindowEvent::LocationChange(window) => {
-          // handle_window_location_changed(&window, state, config)
-          Ok(())
+          handle_window_location_changed(&window, state, config)
         }
         WindowEvent::Minimize(window) => {
-          // handle_window_minimized(&window, state, config)
-          Ok(())
+          handle_window_minimized(&window, state, config)
         }
         WindowEvent::MinimizeEnd(window) => {
-          // handle_window_minimize_ended(&window, state, config)
-          Ok(())
+          handle_window_minimize_ended(&window, state, config)
         }
         WindowEvent::MoveOrResizeEnd(window) => {
-          // handle_window_moved_or_resized_end(&window, state, config)
-          Ok(())
+          handle_window_moved_or_resized_end(&window, state, config)
         }
         WindowEvent::MoveOrResizeStart(window) => {
-          // handle_window_moved_or_resized_start(&window, state);
-          Ok(())
-        }
-        WindowEvent::Show(window) => {
-          // handle_window_shown(window, state, config)
+          handle_window_moved_or_resized_start(&window, state);
           Ok(())
         }
         WindowEvent::TitleChange(window) => {
-          // handle_window_title_changed(&window, state, config)
-          Ok(())
+          handle_window_title_changed(&window, state, config)
+        }
+        WindowEvent::Destroy(window_id) => {
+          handle_window_destroyed(window_id, state)
         }
       },
     }?;

@@ -2,9 +2,9 @@ use anyhow::Context;
 use tracing::info;
 use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
-  FullscreenStateConfig, Rect, WindowState,
+  FullscreenStateConfig, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, Rect};
 
 use crate::{
   commands::{
@@ -27,13 +27,11 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let old_frame_position = window.native().frame()?;
-    let frame_position =
-      try_warn!(window.native().invalidate_frame_position());
+    let old_frame_position = window.native_properties().frame;
+    let frame_position = try_warn!(window.native().frame());
 
-    let old_is_maximized = window.native().is_maximized()?;
-    let is_maximized =
-      try_warn!(window.native().invalidate_is_maximized());
+    let old_is_maximized = window.native_properties().is_maximized;
+    let is_maximized = try_warn!(window.native().is_maximized());
 
     // Ignore duplicate location change events. Window position changes
     // can trigger multiple events (e.g. restore from maximized can trigger
@@ -44,8 +42,13 @@ pub fn handle_window_location_changed(
       return Ok(());
     }
 
-    let is_minimized =
-      try_warn!(window.native().invalidate_is_minimized());
+    let is_minimized = try_warn!(window.native().is_minimized());
+
+    window.update_native_properties(|properties| {
+      properties.frame = frame_position.clone();
+      properties.is_maximized = is_maximized;
+      properties.is_minimized = is_minimized;
+    });
 
     // Ignore events for minimized windows. Let them be handled by the
     // handler for `PlatformEvent::WindowMinimized` instead.

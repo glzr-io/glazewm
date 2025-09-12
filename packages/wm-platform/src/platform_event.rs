@@ -1,5 +1,5 @@
 use super::NativeWindow;
-use crate::{Keybinding, Point};
+use crate::{Keybinding, Point, WindowId};
 
 #[derive(Clone, Debug)]
 pub enum PlatformEvent {
@@ -20,6 +20,7 @@ pub enum WindowEvent {
   MoveOrResizeStart(NativeWindow),
   Show(NativeWindow),
   TitleChange(NativeWindow),
+  Destroy(WindowId),
 }
 
 #[derive(Clone, Debug)]

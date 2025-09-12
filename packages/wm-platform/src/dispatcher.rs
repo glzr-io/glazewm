@@ -216,6 +216,10 @@ impl Dispatcher {
     // TODO: Implement this.
     platform_impl::primary_display(self)
   }
+
+  pub fn mouse_position(&self) -> crate::Result<Point> {
+    todo!()
+  }
 }
 
 impl std::fmt::Debug for Dispatcher {

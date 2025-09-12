@@ -1,18 +1,21 @@
 use anyhow::Context;
 use tracing::info;
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, WindowId};
 
 use crate::{
   commands::{window::unmanage_window, workspace::deactivate_workspace},
-  traits::CommonGetters,
+  traits::{CommonGetters, WindowGetters},
   wm_state::WmState,
 };
 
 pub fn handle_window_destroyed(
-  native_window: &NativeWindow,
+  native_window_id: WindowId,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let found_window = state.window_from_native(native_window);
+  let found_window = state
+    .windows()
+    .into_iter()
+    .find(|window| window.native().id() == native_window_id);
 
   // Unmanage the window if it's currently managed.
   if let Some(window) = found_window {

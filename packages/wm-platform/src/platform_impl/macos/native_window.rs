@@ -136,7 +136,7 @@ impl NativeWindow {
   pub fn title(&self) -> crate::Result<String> {
     self.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXTitle")
-        .map(|r| r.to_string())
+        .map(|cf_string| cf_string.to_string())
     })
   }
 

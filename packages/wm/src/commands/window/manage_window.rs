@@ -138,11 +138,12 @@ fn create_window(
     LengthValue::from_px(0),
   );
 
-  // Create native properties cache from current window state.
+  // Create native properties cache.
   let native_properties = NativeWindowProperties {
     title: native_window.title()?,
     class_name: native_window.class_name()?,
     process_name: native_window.process_name()?,
+    frame: native_window.frame()?,
     is_visible: native_window.is_visible()?,
     is_minimized: native_window.is_minimized()?,
     is_maximized: native_window.is_maximized()?,

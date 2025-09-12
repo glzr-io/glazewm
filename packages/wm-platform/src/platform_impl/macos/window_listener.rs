@@ -427,7 +427,7 @@ unsafe extern "C" fn window_event_callback(
     }
     kAXUIElementDestroyedNotification => {
       tracing::info!("Window destroyed for PID: {}", context.pid);
-      Some(WindowEvent::Hide(window.into()))
+      Some(WindowEvent::Destroy(window.id()))
     }
     kAXWindowMovedNotification | kAXWindowResizedNotification => {
       tracing::debug!("Window moved/resized for PID: {}", context.pid);
