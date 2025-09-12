@@ -248,7 +248,6 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      #[cfg(target_os = "windows")]
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
           Ok(window) => {

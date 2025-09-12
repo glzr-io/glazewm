@@ -6,10 +6,9 @@ use accessibility_sys::{
 };
 use dispatch2::MainThreadBound;
 use objc2_app_kit::{NSApplication, NSWorkspace};
-use objc2_application_services::{AXError, AXUIElement, AXValue};
+use objc2_application_services::{AXError, AXUIElement};
 use objc2_core_foundation::{
-  kCFRunLoopDefaultMode, CFBoolean, CFRetained, CFRunLoop, CFString,
-  CGPoint, CGRect, CGSize,
+  kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFString,
 };
 use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
@@ -23,7 +22,7 @@ use crate::{
     AXObserverAddNotification, AXObserverCreate,
     AXObserverGetRunLoopSource, AXObserverRef,
     AXUIElementCreateApplication, AXUIElementExt, AXUIElementRef,
-    AXValueExt, CFStringRef, NativeWindow, ProcessId,
+    CFStringRef, NativeWindow, ProcessId,
   },
   Dispatcher, WindowEvent,
 };
@@ -198,10 +197,6 @@ impl WindowListener {
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<AppWindowObserver> {
-    // NOTE: Accessibility APIs must be called directly on main thread
-    // dispatch_sync can cause threading issues with the accessibility
-    // system
-
     // Create the application AX element using low-level API
     let app_element = unsafe { AXUIElementCreateApplication(pid) };
 
@@ -312,22 +307,19 @@ unsafe extern "C" fn window_event_callback(
   notification: CFStringRef,
   context: *mut std::ffi::c_void,
 ) {
-  println!("got here4");
   if context.is_null() {
-    println!("got here4.1");
     tracing::error!("Window event callback received null context");
     return;
   }
 
-  println!("got here4.2");
   let context = &*(context as *const WindowEventContext);
   let cf_string: CFRetained<CFString> = unsafe {
     CFRetained::retain(std::ptr::NonNull::new_unchecked(
       notification.cast_mut(),
     ))
   };
+
   let notification_str = cf_string.to_string();
-  println!("got here4.3");
 
   // Retain the element for safe access
   let ax_element = match AXUIElement::from_ref(element) {
@@ -337,74 +329,6 @@ unsafe extern "C" fn window_event_callback(
       return;
     }
   };
-
-  // Get window title using generic attribute API
-  match ax_element.get_attribute::<CFString>("AXTitle") {
-    Ok(cf_title) => {
-      let title = cf_title.to_string();
-      println!("Window title: '{}'", title);
-      tracing::debug!(
-        "Window title: '{}' for PID: {}",
-        title,
-        context.pid
-      );
-    }
-    Err(err) => {
-      println!("Failed to get window title: {}", err);
-      tracing::debug!(
-        "Failed to get window title for PID {}: {}",
-        context.pid,
-        err
-      );
-    }
-  }
-
-  // Example: Get additional window attributes
-  if let Ok(cf_minimized) =
-    ax_element.get_attribute::<CFBoolean>("AXMinimized")
-  {
-    let is_minimized = cf_minimized.value();
-    tracing::info!(
-      "Window minimized state: {} for PID: {}",
-      is_minimized,
-      context.pid
-    );
-  }
-
-  // Extract window frame (position and size)
-  if let Ok(frame) = ax_element.get_attribute::<AXValue>("AXFrame") {
-    let frame = frame.value_strict::<CGRect>().unwrap();
-    tracing::info!(
-      "Window frame: origin=({}, {}), size=({}, {}) for PID: {}",
-      frame.origin.x,
-      frame.origin.y,
-      frame.size.width,
-      frame.size.height,
-      context.pid
-    );
-  }
-
-  // Extract window position
-  if let Ok(position) = ax_element.get_attribute::<AXValue>("AXPosition") {
-    let position = position.value_strict::<CGPoint>().unwrap();
-    tracing::info!(
-      "Window position: ({}, {}) for PID: {}",
-      position.x,
-      position.y,
-      context.pid
-    );
-  }
-
-  // Extract window size
-  if let Ok(size) = ax_element.get_attribute::<AXValue>("AXSize") {
-    let size = size.value_strict::<CGSize>().unwrap();
-    tracing::info!(
-      "Window size: ({}, {}) for PID: {}",
-      size.width,
-      size.height,
-      context.pid
-    );
-  }
 
   tracing::info!(
     "Received window event: {} for PID: {}",
@@ -417,8 +341,6 @@ unsafe extern "C" fn window_event_callback(
 
   let window =
     NativeWindow::new(0, context.dispatcher.clone(), ax_element_ref);
-
-  // println!("Window title 222: '{:?}'", window.title());
 
   let window_event = match notification_str.as_str() {
     kAXWindowCreatedNotification => {

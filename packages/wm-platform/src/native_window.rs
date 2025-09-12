@@ -102,6 +102,22 @@ impl NativeWindow {
     self.inner.maximize()
   }
 
+  /// Closes the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: This sends a `WM_CLOSE` message to the window.
+  /// - **macOS**: This simulates pressing the close button on the window's
+  ///   title bar.
+  ///
+  /// # Errors
+  ///
+  /// Returns `crate::Error::WindowNotFound` if the window is invalid or
+  /// cannot be closed.
+  pub fn close(&self) -> crate::Result<()> {
+    self.inner.close()
+  }
+
   pub fn is_fullscreen(&self, monitor_rect: &Rect) -> crate::Result<bool> {
     // TODO: Implement this.
     Ok(false)

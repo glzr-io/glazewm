@@ -3,10 +3,10 @@ use std::sync::Arc;
 use dispatch2::MainThreadBound;
 use objc2::MainThreadMarker;
 use objc2_app_kit::NSWorkspace;
-use objc2_application_services::AXValue;
+use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
-  CFType, CGPoint, CGSize,
+  CFType, CGPoint, CGRect, CGSize,
 };
 use objc2_core_graphics::{
   kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
@@ -36,14 +36,14 @@ pub trait NativeWindowExtMacOs {
   /// This method is only available on macOS.
   fn bundle_id(&self) -> crate::Result<String>;
 
-  /// Gets the role of the window.
+  /// Gets the role of the window (e.g. `AXWindow`).
   ///
   /// # Platform-specific
   ///
   /// This method is only available on macOS.
   fn role(&self) -> crate::Result<String>;
 
-  /// Gets the sub-role of the window.
+  /// Gets the sub-role of the window (e.g. `AXStandardWindow`).
   ///
   /// # Platform-specific
   ///
@@ -231,6 +231,27 @@ impl NativeWindow {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
+    })
+  }
+
+  pub fn close(&self) -> crate::Result<()> {
+    self.element.get_on_main(|el| -> crate::Result<()> {
+      let close_button =
+        el.get_attribute::<AXUIElement>("AXCloseButton")?;
+
+      // Simulate pressing the window's close button.
+      let result = unsafe {
+        close_button.perform_action(&CFString::from_str("AXPress"))
+      };
+
+      if result != AXError::Success {
+        return Err(crate::Error::Accessibility(
+          "AXPress".to_string(),
+          result.0,
+        ));
+      }
+
+      Ok(())
     })
   }
 }
