@@ -1,3 +1,4 @@
+mod application_observer;
 mod ax_ui_element;
 mod ax_value;
 pub(crate) mod classes;
@@ -8,6 +9,7 @@ mod keyboard_hook;
 mod native_window;
 mod window_listener;
 
+pub use application_observer::*;
 pub use ax_ui_element::*;
 pub use ax_value::*;
 pub use display::*;
