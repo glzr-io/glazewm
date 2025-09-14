@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::Arc};
 
 use accessibility_sys::{
   kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification,
@@ -16,7 +16,7 @@ use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
 
 use crate::{
-  platform_impl::{NativeWindow, ProcessId},
+  platform_impl::{Application, NativeWindow, ProcessId},
   Dispatcher, WindowEvent, WindowId,
 };
 
@@ -37,9 +37,9 @@ const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
 ];
 
 /// Context data passed to the window event callback.
+#[derive(Debug)]
 struct WindowEventContext {
   pid: ProcessId,
-  dispatcher: Dispatcher,
   events_tx: mpsc::UnboundedSender<WindowEvent>,
 }
 
@@ -49,8 +49,8 @@ pub(crate) struct ApplicationObserver {
   pub(crate) pid: ProcessId,
   observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
-  app_element: CFRetained<AXUIElement>,
-  context: *mut WindowEventContext,
+  app_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
+  context: Box<WindowEventContext>,
 }
 
 // TODO: Remove this.
@@ -58,20 +58,19 @@ unsafe impl Send for ApplicationObserver {}
 
 impl ApplicationObserver {
   pub fn new(
-    pid: ProcessId,
+    app: &Application,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     // Creation of `AXUIElement` for an application does not fail even if
     // the PID is invalid. Instead, subsequent operations on the returned
     // `AXUIElement` will error.
-    let app_element = unsafe { AXUIElement::new_application(pid) };
+    // let app_element = unsafe { AXUIElement::new_application(pid) };
 
     let observer = unsafe {
       let mut observer = std::ptr::null_mut();
 
       let result = AXObserver::create(
-        pid,
+        app.pid,
         Some(Self::window_event_callback),
         // SAFETY: Stack address of `observer` is guaranteed to be
         // non-null.
@@ -90,11 +89,10 @@ impl ApplicationObserver {
       })?)
     };
 
-    let context = Box::into_raw(Box::new(WindowEventContext {
-      pid,
-      dispatcher: dispatcher.clone(),
+    let context = Box::new(WindowEventContext {
+      pid: app.pid,
       events_tx,
-    }));
+    });
 
     let runloop =
       CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
@@ -106,22 +104,23 @@ impl ApplicationObserver {
 
     // Register for all window notifications.
     // TODO: Remove from runloop if registration fails.
-    Self::register_notifications(&observer, &app_element, context)?;
+    Self::register_notifications(app, &observer, context.as_ref())?;
 
     Ok(Self {
-      pid,
+      pid: app.pid,
       observer,
       observer_source,
-      app_element,
+      app_element: app.ax_element.clone(),
       context,
     })
   }
 
   fn register_notifications(
+    app: &Application,
     observer: &CFRetained<AXObserver>,
-    app_element: &CFRetained<AXUIElement>,
-    context: *mut WindowEventContext,
+    context: &WindowEventContext,
   ) -> crate::Result<()> {
+    let mtm = MainThreadMarker::new().unwrap();
     let notifications = [
       kAXWindowCreatedNotification,
       kAXUIElementDestroyedNotification,
@@ -137,20 +136,24 @@ impl ApplicationObserver {
       unsafe {
         let notification_cfstr = CFString::from_static_str(notification);
         let result = observer.add_notification(
-          app_element,
+          app.ax_element.get(mtm),
           &notification_cfstr,
-          context.cast::<std::ffi::c_void>(),
+          std::ptr::from_ref(context) as *mut std::ffi::c_void,
         );
 
         if result != AXError::Success {
           return Err(crate::Error::Platform(format!(
             "Failed to add notification {} for PID {}: {:?}",
-            notification,
-            (*context).pid,
-            result
+            notification, context.pid, result
           )));
         }
       }
+    }
+
+    // Emit `WindowEvent::Show` for all existing windows.
+    for window in app.windows()? {
+      let window_event = WindowEvent::Show(window);
+      context.events_tx.send(window_event).unwrap();
     }
 
     Ok(())
@@ -169,12 +172,7 @@ impl ApplicationObserver {
     }
 
     let context = &*(context as *const WindowEventContext);
-    let cf_string: CFRetained<CFString> =
-      unsafe { CFRetained::retain(notification) };
-
-    let notification_str = cf_string.to_string();
-
-    // Retain the element for safe access.
+    let notification_str = notification.as_ref().to_string();
     let ax_element = unsafe { CFRetained::retain(element) };
 
     tracing::info!(
@@ -256,14 +254,14 @@ impl Drop for ApplicationObserver {
       kAXMainWindowChangedNotification,
     ];
 
-    for notification in &notifications {
-      unsafe {
-        let notification_cfstr = CFString::from_static_str(notification);
-        self
-          .observer
-          .remove_notification(&self.app_element, &notification_cfstr);
-      }
-    }
+    // for notification in &notifications {
+    //   unsafe {
+    //     let notification_cfstr =
+    // CFString::from_static_str(notification);     self
+    //       .observer
+    //       .remove_notification(&self.app_element, &notification_cfstr);
+    //   }
+    // }
 
     // Remove from run loop.
     unsafe {
@@ -273,11 +271,6 @@ impl Drop for ApplicationObserver {
           kCFRunLoopDefaultMode,
         );
       }
-    }
-
-    // Clean up context.
-    if !self.context.is_null() {
-      let _context = unsafe { Box::from_raw(self.context) };
     }
 
     tracing::debug!(

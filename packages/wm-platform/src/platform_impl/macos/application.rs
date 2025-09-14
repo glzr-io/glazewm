@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use dispatch2::MainThreadBound;
 use objc2::{rc::Retained, MainThreadMarker};
 use objc2_app_kit::{NSRunningApplication, NSWorkspace};
@@ -14,24 +16,22 @@ pub type ProcessId = i32;
 pub struct Application {
   pub(crate) pid: ProcessId,
   pub(crate) ns_app: Retained<NSRunningApplication>,
-  pub(crate) ax_element: MainThreadBound<CFRetained<AXUIElement>>,
+  pub(crate) ax_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
 }
 
 impl Application {
-  pub fn new(
-    ns_app: Retained<NSRunningApplication>,
-  ) -> crate::Result<Self> {
+  pub(crate) fn new(ns_app: Retained<NSRunningApplication>) -> Self {
     let pid = unsafe { ns_app.processIdentifier() };
-    let ax_element = MainThreadBound::new(
+    let ax_element = Arc::new(MainThreadBound::new(
       unsafe { AXUIElement::new_application(pid) },
       MainThreadMarker::new().unwrap(),
-    );
+    ));
 
-    Ok(Self {
+    Self {
       pid,
       ns_app,
       ax_element,
-    })
+    }
   }
 
   pub fn windows(&self) -> crate::Result<Vec<crate::NativeWindow>> {
@@ -60,9 +60,6 @@ pub fn all_applications(
     let running_apps =
       unsafe { NSWorkspace::sharedWorkspace().runningApplications() };
 
-    running_apps
-      .iter()
-      .filter_map(|app| Application::new(app).ok())
-      .collect()
+    running_apps.iter().map(Application::new).collect()
   })
 }

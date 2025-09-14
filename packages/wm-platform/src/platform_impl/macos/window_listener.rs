@@ -11,7 +11,7 @@ use crate::{
       NotificationCenter, NotificationEvent, NotificationName,
       NotificationObserver,
     },
-    Application, ApplicationObserver,
+    Application, ApplicationObserver, ProcessId,
   },
   Dispatcher, WindowEvent,
 };
@@ -75,8 +75,7 @@ impl WindowListener {
     let app_observers = running_apps
       .into_iter()
       .filter_map(|app| {
-        Self::create_app_observer(&app, events_tx.clone(), &dispatcher)
-          .ok()
+        Self::create_app_observer(&app, events_tx.clone()).ok()
       })
       .collect::<Vec<_>>();
 
@@ -104,7 +103,7 @@ impl WindowListener {
     dispatcher: Dispatcher,
   ) {
     // Track window observers for each application by PID.
-    let mut app_observers: HashMap<i32, ApplicationObserver> =
+    let mut app_observers: HashMap<ProcessId, ApplicationObserver> =
       app_observers
         .into_iter()
         .map(|observer| (observer.pid, observer))
@@ -115,33 +114,24 @@ impl WindowListener {
 
       match event {
         NotificationEvent::WorkspaceDidLaunchApplication(running_app) => {
-          let pid = unsafe { running_app.processIdentifier() };
+          let events_tx = events_tx.clone();
 
-          if app_observers.contains_key(&pid) {
-            tracing::debug!("Observer already exists for PID {}.", pid);
+          let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(move || {
+            let app = Application::new(running_app);
+            ApplicationObserver::new(&app, events_tx.clone())
+          }) else {
+            continue;
+          };
+
+          if app_observers.contains_key(&app_observer.pid) {
+            tracing::debug!(
+              "Observer already exists for PID {}.",
+              app_observer.pid
+            );
             continue;
           }
 
-          match ApplicationObserver::new(
-            pid,
-            events_tx.clone(),
-            &dispatcher,
-          ) {
-            Ok(observer) => {
-              tracing::info!(
-                "Registered window observer for PID: {}",
-                pid
-              );
-              app_observers.insert(pid, observer);
-            }
-            Err(err) => {
-              tracing::warn!(
-                "Failed to register window observer for PID {}: {}",
-                pid,
-                err
-              );
-            }
-          }
+          app_observers.insert(app_observer.pid, app_observer);
         }
         NotificationEvent::WorkspaceDidTerminateApplication(
           running_app,
@@ -164,10 +154,8 @@ impl WindowListener {
   fn create_app_observer(
     app: &Application,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: &Dispatcher,
   ) -> crate::Result<ApplicationObserver> {
-    let app_observer_res =
-      ApplicationObserver::new(app.pid, events_tx, dispatcher);
+    let app_observer_res = ApplicationObserver::new(app, events_tx);
 
     if let Err(err) = &app_observer_res {
       tracing::debug!(
