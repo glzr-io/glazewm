@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
 use dispatch2::MainThreadBound;
-use objc2::MainThreadMarker;
-use objc2_app_kit::NSWorkspace;
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
-  CFType, CGPoint, CGRect, CGSize,
+  CFType, CGPoint, CGSize,
 };
 use objc2_core_graphics::{
   kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
@@ -14,9 +12,7 @@ use objc2_core_graphics::{
 };
 
 use crate::{
-  platform_impl::{
-    AXUIElement, AXUIElementCreateApplication, AXUIElementExt, AXValueExt,
-  },
+  platform_impl::{self, AXUIElement, AXUIElementExt, AXValueExt},
   Dispatcher, Rect, WindowId,
 };
 
@@ -110,7 +106,6 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
   element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
-  dispatcher: Dispatcher,
   pub handle: isize,
 }
 
@@ -119,12 +114,10 @@ impl NativeWindow {
   #[must_use]
   pub fn new(
     handle: isize,
-    dispatcher: Dispatcher,
     element: MainThreadBound<CFRetained<AXUIElement>>,
   ) -> Self {
     Self {
       element: Arc::new(element),
-      dispatcher,
       handle,
     }
   }
@@ -311,122 +304,18 @@ pub fn all_windows(
   Ok(windows)
 }
 
-/// Gets all windows from all running applications.
-///
-/// Returns a vector of `NativeWindow` instances for all windows
-/// from all running applications, including hidden applications.
-/// Each `NativeWindow` contains the corresponding `AXUIElement`.
-pub fn all_applications(
-  dispatcher: &Dispatcher,
-) -> crate::Result<Vec<crate::NativeWindow>> {
-  let dispatcher_clone = dispatcher.clone();
-  dispatcher.dispatch_sync(move || {
-    let workspace = unsafe { NSWorkspace::sharedWorkspace() };
-    let running_apps = unsafe { workspace.runningApplications() };
-    let mut windows = Vec::new();
-
-    for app in running_apps.iter() {
-      let pid = unsafe { app.processIdentifier() };
-
-      // Skip system applications without a bundle identifier
-      let bundle_id = unsafe { app.bundleIdentifier() };
-      if bundle_id.is_none() {
-        continue;
-      }
-
-      // Create AXUIElement for the application
-      let app_element_ref = unsafe { AXUIElementCreateApplication(pid) };
-
-      if app_element_ref.is_null() {
-        continue;
-      }
-
-      let Ok(app_element) = AXUIElement::from_ref(app_element_ref) else {
-        continue;
-      };
-
-      // Get windows from the application. Note that this fails if
-      // accessibility permissions are not granted.
-      let windows_result =
-        app_element.get_attribute::<CFArray<AXUIElement>>("AXWindows");
-
-      if let Ok(windows_array) = windows_result {
-        for window in windows_array.iter() {
-          let ax_ui_element =
-            MainThreadBound::new(window, MainThreadMarker::new().unwrap());
-
-          let native_window = NativeWindow::new(
-            pid as isize,
-            dispatcher_clone.clone(),
-            ax_ui_element,
-          );
-
-          windows.push(native_window.into());
-        }
-      }
-    }
-
-    Ok(windows)
-  })?
-}
-
 /// Gets all visible windows from all running applications.
 ///
 /// Returns a vector of `NativeWindow` instances for windows that are
-/// currently visible (not minimized or hidden). Each `NativeWindow`
-/// contains the corresponding `AXUIElement`.
+/// currently visible on the current space.
 pub fn visible_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
-  let dispatcher_clone = dispatcher.clone();
-  dispatcher.dispatch_sync(move || {
-    let workspace = unsafe { NSWorkspace::sharedWorkspace() };
-    let running_apps = unsafe { workspace.runningApplications() };
-    let mut windows = Vec::new();
-
-    for app in &running_apps {
-      let pid = unsafe { app.processIdentifier() };
-
-      // Skip system applications without a bundle identifier
-      let bundle_id = unsafe { app.bundleIdentifier() };
-      if bundle_id.is_none() {
-        continue;
-      }
-
-      // Create AXUIElement for the application
-      let app_element_ref = unsafe { AXUIElementCreateApplication(pid) };
-
-      if app_element_ref.is_null() {
-        continue;
-      }
-
-      let Ok(app_element) = AXUIElement::from_ref(app_element_ref) else {
-        continue;
-      };
-
-      // Get windows from the application. Note that this fails if
-      // accessibility permissions are not granted.
-      let windows_result =
-        app_element.get_attribute::<CFArray<AXUIElement>>("AXWindows");
-
-      if let Ok(windows_array) = windows_result {
-        for window in windows_array.iter() {
-          let ax_ui_element = MainThreadBound::new(
-            window.into(),
-            MainThreadMarker::new().unwrap(),
-          );
-
-          let native_window = NativeWindow::new(
-            pid as isize,
-            dispatcher_clone.clone(),
-            ax_ui_element,
-          );
-
-          windows.push(native_window.into());
-        }
-      }
-    }
-
-    Ok(windows)
-  })?
+  Ok(
+    platform_impl::all_applications(dispatcher)?
+      .iter()
+      .filter_map(|app| app.windows().ok())
+      .flat_map(std::iter::IntoIterator::into_iter)
+      .collect(),
+  )
 }

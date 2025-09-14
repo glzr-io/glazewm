@@ -187,8 +187,7 @@ impl ApplicationObserver {
       MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
 
     // TODO: Extract proper CGWindowID from AX element instead of using 0
-    let window =
-      NativeWindow::new(0, context.dispatcher.clone(), ax_element_ref);
+    let window = NativeWindow::new(0, ax_element_ref);
 
     let window_event = match notification_str.as_str() {
       kAXWindowCreatedNotification => {

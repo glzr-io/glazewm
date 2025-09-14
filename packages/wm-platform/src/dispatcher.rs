@@ -3,10 +3,30 @@ use std::sync::{
   Arc,
 };
 
+#[cfg(target_os = "macos")]
+use crate::platform_impl::Application;
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow, Point};
 
 /// Type alias for a closure to be executed by the event loop.
 pub type DispatchFn = dyn FnOnce() + Send + 'static;
+
+/// macOS-specific extensions for `Dispatcher`.
+#[cfg(target_os = "macos")]
+pub trait DispatcherExtMacOs {
+  /// Gets all running applications.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn all_applications(&self) -> crate::Result<Vec<Application>>;
+}
+
+#[cfg(target_os = "macos")]
+impl DispatcherExtMacOs for Dispatcher {
+  fn all_applications(&self) -> crate::Result<Vec<Application>> {
+    platform_impl::all_applications(self)
+  }
+}
 
 /// A thread-safe dispatcher for various cross-platform operations.
 ///
@@ -191,14 +211,6 @@ impl Dispatcher {
   ///   and filters out system applications and UI elements.
   pub fn all_windows(&self) -> crate::Result<Vec<NativeWindow>> {
     platform_impl::all_windows(self)
-  }
-
-  /// Gets all windows from all running applications.
-  ///
-  /// Returns a vector of `NativeWindow` instances for all windows
-  /// from all running applications, including hidden applications.
-  pub fn all_applications(&self) -> crate::Result<Vec<NativeWindow>> {
-    platform_impl::all_applications(self)
   }
 
   /// Gets all visible windows from all running applications.

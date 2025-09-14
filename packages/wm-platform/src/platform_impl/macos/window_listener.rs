@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use objc2::rc::Retained;
-use objc2_app_kit::{NSApplication, NSRunningApplication, NSWorkspace};
+use objc2_app_kit::{NSApplication, NSWorkspace};
 use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::{
+    self,
     classes::{
       NotificationCenter, NotificationEvent, NotificationName,
       NotificationObserver,
     },
-    ApplicationObserver,
+    Application, ApplicationObserver,
   },
   Dispatcher, WindowEvent,
 };
@@ -25,9 +25,9 @@ impl WindowListener {
   pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
-    dispatcher.clone().dispatch_sync(|| {
-      Self::init(events_tx, dispatcher);
-    })?;
+    dispatcher
+      .clone()
+      .dispatch_sync(|| Self::init(events_tx, dispatcher))??;
 
     Ok(Self { event_rx })
   }
@@ -35,7 +35,7 @@ impl WindowListener {
   fn init(
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: Dispatcher,
-  ) {
+  ) -> crate::Result<()> {
     let (observer, events_rx) = NotificationObserver::new();
 
     let workspace = unsafe { NSWorkspace::sharedWorkspace() };
@@ -69,18 +69,14 @@ impl WindowListener {
       );
     }
 
-    let running_apps =
-      unsafe { NSWorkspace::sharedWorkspace().runningApplications() }
-        .into_iter()
-        // Skip system applications without bundle identifier.
-        .filter(|app| unsafe { app.bundleIdentifier() }.is_some())
-        .collect::<Vec<_>>();
+    let running_apps = platform_impl::all_applications(&dispatcher)?;
 
     // Create observers for all running applications.
     let app_observers = running_apps
       .into_iter()
       .filter_map(|app| {
-        Self::create_app_observer(app, events_tx.clone(), &dispatcher).ok()
+        Self::create_app_observer(&app, events_tx.clone(), &dispatcher)
+          .ok()
       })
       .collect::<Vec<_>>();
 
@@ -97,6 +93,8 @@ impl WindowListener {
     std::mem::forget(observer);
     std::mem::forget(workspace_center);
     std::mem::forget(default_center);
+
+    Ok(())
   }
 
   fn listen_events(
@@ -164,19 +162,17 @@ impl WindowListener {
   }
 
   fn create_app_observer(
-    app: Retained<NSRunningApplication>,
+    app: &Application,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<ApplicationObserver> {
-    let pid = unsafe { app.processIdentifier() };
-
     let app_observer_res =
-      ApplicationObserver::new(pid, events_tx, dispatcher);
+      ApplicationObserver::new(app.pid, events_tx, dispatcher);
 
     if let Err(err) = &app_observer_res {
       tracing::debug!(
         "Skipped observer registration for PID {}: {}",
-        pid,
+        app.pid,
         err
       );
     }
