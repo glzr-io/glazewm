@@ -11,7 +11,7 @@ use crate::{
       NotificationCenter, NotificationEvent, NotificationName,
       NotificationObserver,
     },
-    AppWindowObserver,
+    ApplicationObserver,
   },
   Dispatcher, WindowEvent,
 };
@@ -85,7 +85,7 @@ impl WindowListener {
       .collect::<Vec<_>>();
 
     tracing::info!(
-      "Registered observers for {} existing applications",
+      "Registered observers for {} existing applications.",
       app_observers.len()
     );
 
@@ -100,16 +100,17 @@ impl WindowListener {
   }
 
   fn listen_events(
-    app_observers: Vec<AppWindowObserver>,
+    app_observers: Vec<ApplicationObserver>,
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: Dispatcher,
   ) {
     // Track window observers for each application by PID.
-    let mut app_observers: HashMap<i32, AppWindowObserver> = app_observers
-      .into_iter()
-      .map(|observer| (observer.pid, observer))
-      .collect();
+    let mut app_observers: HashMap<i32, ApplicationObserver> =
+      app_observers
+        .into_iter()
+        .map(|observer| (observer.pid, observer))
+        .collect();
 
     while let Some(event) = events_rx.blocking_recv() {
       tracing::debug!("Received workspace event: {event:?}");
@@ -119,12 +120,15 @@ impl WindowListener {
           let pid = unsafe { running_app.processIdentifier() };
 
           if app_observers.contains_key(&pid) {
-            tracing::debug!("Observer already exists for PID {}", pid);
+            tracing::debug!("Observer already exists for PID {}.", pid);
             continue;
           }
 
-          match AppWindowObserver::new(pid, events_tx.clone(), &dispatcher)
-          {
+          match ApplicationObserver::new(
+            pid,
+            events_tx.clone(),
+            &dispatcher,
+          ) {
             Ok(observer) => {
               tracing::info!(
                 "Registered window observer for PID: {}",
@@ -163,11 +167,11 @@ impl WindowListener {
     app: Retained<NSRunningApplication>,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
-  ) -> crate::Result<AppWindowObserver> {
+  ) -> crate::Result<ApplicationObserver> {
     let pid = unsafe { app.processIdentifier() };
 
     let app_observer_res =
-      AppWindowObserver::new(pid, events_tx, dispatcher);
+      ApplicationObserver::new(pid, events_tx, dispatcher);
 
     if let Err(err) = &app_observer_res {
       tracing::debug!(
