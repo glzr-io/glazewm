@@ -1,3 +1,8 @@
+#[cfg(target_os = "macos")]
+use objc2_application_services::AXUIElement;
+#[cfg(target_os = "macos")]
+use objc2_core_foundation::CFRetained;
+
 use crate::{platform_impl, Rect};
 
 /// Unique identifier of a window.
@@ -13,6 +18,22 @@ pub struct WindowId(
   #[cfg(target_os = "windows")] pub(crate) isize,
   #[cfg(target_os = "macos")] pub(crate) u32,
 );
+
+impl WindowId {
+  #[cfg(target_os = "macos")]
+  pub(crate) fn from_window_element(el: &CFRetained<AXUIElement>) -> Self {
+    let mut window_id = 0;
+
+    unsafe {
+      platform_impl::ffi::_AXUIElementGetWindow(
+        CFRetained::as_ptr(el),
+        &raw mut window_id,
+      )
+    };
+
+    Self(window_id)
+  }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
@@ -131,7 +152,7 @@ impl NativeWindow {
 
 impl PartialEq for NativeWindow {
   fn eq(&self, other: &Self) -> bool {
-    self.inner.handle == other.inner.handle
+    self.inner.id() == other.inner.id()
   }
 }
 

@@ -105,25 +105,25 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
+  id: WindowId,
   element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
-  pub handle: isize,
 }
 
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
   #[must_use]
   pub fn new(
-    handle: isize,
+    id: WindowId,
     element: MainThreadBound<CFRetained<AXUIElement>>,
   ) -> Self {
     Self {
       element: Arc::new(element),
-      handle,
+      id,
     }
   }
 
   pub fn id(&self) -> WindowId {
-    WindowId(self.handle as u32)
+    self.id
   }
 
   pub fn title(&self) -> crate::Result<String> {

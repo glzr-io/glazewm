@@ -17,7 +17,7 @@ use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::{NativeWindow, ProcessId},
-  Dispatcher, WindowEvent,
+  Dispatcher, WindowEvent, WindowId,
 };
 
 // TODO: Use these.
@@ -183,11 +183,11 @@ impl ApplicationObserver {
       context.pid
     );
 
-    let ax_element_ref =
+    let window_id = WindowId::from_window_element(&ax_element);
+    let ax_element =
       MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
 
-    // TODO: Extract proper CGWindowID from AX element instead of using 0
-    let window = NativeWindow::new(0, ax_element_ref);
+    let window = NativeWindow::new(window_id, ax_element);
 
     let window_event = match notification_str.as_str() {
       kAXWindowCreatedNotification => {
@@ -196,7 +196,7 @@ impl ApplicationObserver {
       }
       kAXUIElementDestroyedNotification => {
         tracing::info!("Window destroyed for PID: {}", context.pid);
-        Some(WindowEvent::Destroy(window.id()))
+        Some(WindowEvent::Destroy(window_id))
       }
       kAXWindowMovedNotification | kAXWindowResizedNotification => {
         tracing::debug!("Window moved/resized for PID: {}", context.pid);

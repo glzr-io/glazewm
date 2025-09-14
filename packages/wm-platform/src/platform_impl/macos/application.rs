@@ -6,11 +6,13 @@ use objc2_core_foundation::{CFArray, CFRetained};
 
 use crate::{
   platform_impl::{AXUIElementExt, NativeWindow},
-  Dispatcher,
+  Dispatcher, WindowId,
 };
 
+pub type ProcessId = i32;
+
 pub struct Application {
-  pub(crate) pid: i32,
+  pub(crate) pid: ProcessId,
   pub(crate) ns_app: Retained<NSRunningApplication>,
   pub(crate) ax_element: MainThreadBound<CFRetained<AXUIElement>>,
 }
@@ -40,10 +42,10 @@ impl Application {
       windows.map(|windows| {
         windows
           .iter()
-          .map(|window| {
-            let window_element = MainThreadBound::new(window, mtm);
-            // TODO: Extract proper CGWindowID from AX element.
-            NativeWindow::new(self.pid as isize, window_element).into()
+          .map(|window_el| {
+            let window_id = WindowId::from_window_element(&window_el);
+            let window_el = MainThreadBound::new(window_el, mtm);
+            NativeWindow::new(window_id, window_el).into()
           })
           .collect()
       })
