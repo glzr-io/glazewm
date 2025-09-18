@@ -13,8 +13,8 @@ use crate::{
     monitor::add_monitor, window::manage_window,
   },
   models::{
-    Container, Monitor, RootContainer, WindowContainer, Workspace,
-    WorkspaceTarget,
+    Container, Monitor, NativeMonitorProperties, RootContainer,
+    WindowContainer, Workspace, WorkspaceTarget,
   },
   pending_sync::PendingSync,
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -106,7 +106,11 @@ impl WmState {
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
     for native_display in self.dispatcher.displays()? {
-      add_monitor(native_display, self, config)?;
+      if let Ok(native_properties) =
+        NativeMonitorProperties::try_from(&native_display)
+      {
+        add_monitor(native_display, native_properties, self, config)?;
+      }
     }
 
     // Manage windows in reverse z-order (bottom to top). This helps to
@@ -220,14 +224,14 @@ impl WmState {
     origin_monitor: &Monitor,
     direction: &Direction,
   ) -> anyhow::Result<Option<Monitor>> {
-    let origin_rect = origin_monitor.native().bounds()?.clone();
+    let origin_rect = origin_monitor.native_properties().bounds;
 
     // Create a tuple of monitors and their rect.
     let monitors_with_rect = self
       .monitors()
       .into_iter()
       .map(|monitor| {
-        let rect = monitor.native().bounds()?.clone();
+        let rect = monitor.native_properties().bounds;
         anyhow::Ok((monitor, rect))
       })
       .try_collect::<Vec<_>>()?;

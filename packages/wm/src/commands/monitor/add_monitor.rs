@@ -8,7 +8,7 @@ use crate::{
     container::{attach_container, move_container_within_tree},
     workspace::{activate_workspace, sort_workspaces},
   },
-  models::{Monitor, Workspace},
+  models::{Monitor, NativeMonitorProperties, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -16,13 +16,14 @@ use crate::{
 
 pub fn add_monitor(
   native_display: Display,
+  native_properties: NativeMonitorProperties,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   // Create `Monitor` instance. This uses the working area of the monitor
   // instead of the bounds of the display. The working area excludes
   // taskbars and other reserved display space.
-  let monitor = Monitor::new(native_display);
+  let monitor = Monitor::new(native_display, native_properties);
 
   attach_container(
     &monitor.clone().into(),

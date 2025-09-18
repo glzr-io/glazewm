@@ -15,8 +15,8 @@ use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 #[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
-    Monitor, NativeWindowProperties, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
-    Workspace,
+    Monitor, NativeWindowProperties, NonTilingWindow, RootContainer,
+    SplitContainer, TilingWindow, Workspace,
   },
   traits::*,
   user_config::UserConfig,
@@ -215,10 +215,9 @@ impl Eq for WindowContainer {}
 
 impl std::fmt::Display for WindowContainer {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let native = self.native();
-    let title = native.title().unwrap_or_default();
-    let class = native.class_name().unwrap_or_default();
-    let process = native.process_name().unwrap_or_default();
+    let title = self.native_properties().title;
+    let class = self.native_properties().class_name;
+    let process = self.native_properties().process_name;
 
     // Truncate title if longer than 20 chars. Need to use `chars()`
     // instead of byte slices to handle invalid byte indices.
@@ -231,7 +230,7 @@ impl std::fmt::Display for WindowContainer {
     write!(
       f,
       "Window(hwnd={:?}, process={}, class={}, title={})",
-      native.id(),
+      self.native().id(),
       process,
       class,
       title,

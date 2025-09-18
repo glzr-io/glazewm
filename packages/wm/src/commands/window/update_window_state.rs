@@ -126,7 +126,7 @@ fn set_non_tiling(
   // A window can only be updated to a minimized state if it is
   // natively minimized.
   if target_state == WindowState::Minimized
-    && !window.native().is_minimized()?
+    && !window.native_properties().is_minimized
   {
     info!("No window state update. Minimizing window.");
 

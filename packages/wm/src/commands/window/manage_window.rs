@@ -218,9 +218,9 @@ fn window_state_to_create(
     .outer_gaps_for_workspace(&nearest_workspace)
     .is_significant()
   {
-    nearest_monitor.native().working_area()?.clone()
+    nearest_monitor.native_properties().working_area
   } else {
-    nearest_monitor.to_rect()?
+    nearest_monitor.native_properties().bounds
   };
 
   if native_window.is_fullscreen(&monitor_rect)? {

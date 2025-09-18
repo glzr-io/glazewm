@@ -114,16 +114,15 @@ impl PositionGetters for Workspace {
 
     let gaps_config = &self.0.borrow().gaps_config;
     let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native().scale_factor()?,
+      true => monitor.native_properties().scale_factor,
       false => 1.,
     };
 
     // Get delta between monitor bounds and its working area.
     let working_delta = monitor
-      .native()
-      .working_area()
-      .context("Failed to get working area of parent monitor.")?
-      .delta(&monitor.to_rect()?);
+      .native_properties()
+      .working_area
+      .delta(&monitor.native_properties().bounds);
 
     let is_single_window = self.tiling_children().nth(1).is_none();
 
@@ -137,11 +136,13 @@ impl PositionGetters for Workspace {
     };
 
     Ok(
-      monitor.to_rect()?, /* Scale the gaps if `scale_with_dpi` is
-                           * enabled.
-                           * .apply_inverse_delta(gaps,
-                           * Some(scale_factor))
-                           * .apply_delta(&working_delta, None), */
+      monitor.native_properties().bounds, /* Scale the gaps if
+                                           * `scale_with_dpi` is
+                                           * enabled.
+                                           * .apply_inverse_delta(gaps,
+                                           * Some(scale_factor))
+                                           * .apply_delta(&
+                                           * working_delta, None), */
     )
   }
 }

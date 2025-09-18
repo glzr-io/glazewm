@@ -125,19 +125,9 @@ impl NonTilingWindow {
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
       // handle: self.native().handle,
-      // TODO: Access these from `window.properties` (name TBD) instead.
-      title: self
-        .native()
-        .title()
-        .unwrap_or_else(|_| "Error".to_string()),
-      class_name: self
-        .native()
-        .class_name()
-        .unwrap_or_else(|_| "Error".to_string()),
-      process_name: self
-        .native()
-        .process_name()
-        .unwrap_or_else(|_| "Error".to_string()),
+      title: self.native_properties().title,
+      class_name: self.native_properties().class_name,
+      process_name: self.native_properties().process_name,
       active_drag: self.active_drag(),
     }))
   }

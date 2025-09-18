@@ -206,11 +206,6 @@ fn redraw_containers(
     let workspace =
       window.workspace().context("Window has no workspace.")?;
 
-    println!("workspace: {:?}", workspace.to_rect()?);
-    println!(
-      "monitor: {:?}",
-      window.monitor().unwrap().native().bounds()?
-    );
     // Whether the window should be shown above all other windows.
     let z_order = match window.state() {
       WindowState::Floating(config) if config.shown_on_top => {

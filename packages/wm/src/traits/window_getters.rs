@@ -4,10 +4,7 @@ use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
 use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
-use crate::{
-  models::{NativeWindowProperties}, 
-  user_config::UserConfig,
-};
+use crate::{models::NativeWindowProperties, user_config::UserConfig};
 
 #[delegatable_trait]
 pub trait WindowGetters {
@@ -123,8 +120,8 @@ pub trait WindowGetters {
   fn native_properties(&self) -> NativeWindowProperties;
 
   /// Updates the cached native window properties using a closure.
-  fn update_native_properties<F>(&self, updater: F) 
-  where 
+  fn update_native_properties<F>(&self, updater: F)
+  where
     F: FnOnce(&mut NativeWindowProperties);
 }
 
@@ -228,9 +225,9 @@ macro_rules! impl_window_getters {
         self.0.borrow().native_properties.clone()
       }
 
-      fn update_native_properties<F>(&self, updater: F) 
-      where 
-        F: FnOnce(&mut NativeWindowProperties)
+      fn update_native_properties<F>(&self, updater: F)
+      where
+        F: FnOnce(&mut NativeWindowProperties),
       {
         updater(&mut self.0.borrow_mut().native_properties);
       }

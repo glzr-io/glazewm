@@ -22,11 +22,11 @@ pub trait TilingSizeGetters: CommonGetters {
   /// Gets the horizontal and vertical gaps between windows in pixels.
   fn inner_gaps(&self) -> anyhow::Result<(i32, i32)> {
     let monitor = self.monitor().context("No monitor.")?;
-    let monitor_rect = monitor.to_rect()?;
+    let monitor_rect = monitor.native_properties().bounds;
     let gaps_config = self.gaps_config();
 
     let scale_factor = if gaps_config.scale_with_dpi {
-      monitor.native().scale_factor()?
+      monitor.native_properties().scale_factor
     } else {
       1.
     };

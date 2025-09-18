@@ -224,11 +224,9 @@ impl UserConfig {
     window: &WindowContainer,
     event: &WindowRuleEvent,
   ) -> anyhow::Result<Vec<WindowRuleConfig>> {
-    // TODO: Access these from `window.properties` (name TBD) instead.
-    let window_title = window.native().title().unwrap_or_default();
-    let window_class = window.native().class_name().unwrap_or_default();
-    let window_process =
-      window.native().process_name().unwrap_or_default();
+    let window_title = window.native_properties().title;
+    let window_class = window.native_properties().class_name;
+    let window_process = window.native_properties().process_name;
 
     let pending_window_rules = self
       .window_rules_by_event

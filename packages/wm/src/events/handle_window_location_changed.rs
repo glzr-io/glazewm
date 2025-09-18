@@ -79,9 +79,9 @@ pub fn handle_window_location_changed(
       .outer_gaps_for_workspace(&nearest_workspace)
       .is_significant()
     {
-      nearest_monitor.native().working_area()?.clone()
+      nearest_monitor.native_properties().working_area
     } else {
-      nearest_monitor.to_rect()?
+      nearest_monitor.native_properties().bounds
     };
 
     let is_fullscreen = window.native().is_fullscreen(&monitor_rect)?;
