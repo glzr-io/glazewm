@@ -4,7 +4,7 @@ use dispatch2::MainThreadBound;
 use objc2::{rc::Retained, MainThreadMarker};
 use objc2_app_kit::{NSRunningApplication, NSWorkspace};
 use objc2_application_services::AXUIElement;
-use objc2_core_foundation::{CFArray, CFRetained};
+use objc2_core_foundation::{CFArray, CFBoolean, CFRetained};
 
 use crate::{
   platform_impl::{AXUIElementExt, NativeWindow},
@@ -50,6 +50,19 @@ impl Application {
           .collect()
       })
     })
+  }
+
+  /// Whether the application is an XPC service.
+  ///
+  /// Some of Apple's own XPC services have window capabilities. These
+  /// windows are non-standard and unmanageable.
+  pub fn is_xpc(&self) -> crate::Result<bool> {
+    Ok(false)
+  }
+
+  /// Whether the application should be observed.
+  pub(crate) fn should_observe(&self) -> bool {
+    !self.is_xpc().unwrap_or(false)
   }
 }
 

@@ -118,6 +118,13 @@ impl WindowListener {
 
           let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(move || {
             let app = Application::new(running_app);
+            if !app.should_observe() {
+              return Err(crate::Error::Platform(format!(
+                "Skipped observer registration for PID {} (should ignore).",
+                app.pid,
+              )));
+            }
+
             ApplicationObserver::new(&app, events_tx.clone())
           }) else {
             continue;
@@ -155,6 +162,13 @@ impl WindowListener {
     app: &Application,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
   ) -> crate::Result<ApplicationObserver> {
+    if !app.should_observe() {
+      return Err(crate::Error::Platform(format!(
+        "Skipped observer registration for PID {} (should ignore).",
+        app.pid,
+      )));
+    }
+
     let app_observer_res = ApplicationObserver::new(app, events_tx);
 
     if let Err(err) = &app_observer_res {

@@ -17,16 +17,14 @@ use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::{Application, NativeWindow, ProcessId},
-  Dispatcher, WindowEvent, WindowId,
+  NativeWindowExtMacOs, WindowEvent, WindowId,
 };
 
-// TODO: Use these.
 const AX_APP_NOTIFICATIONS: &[&str] = &[
   kAXFocusedWindowChangedNotification,
   kAXWindowCreatedNotification,
 ];
 
-// TODO: Use these.
 const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
   kAXTitleChangedNotification,
   kAXUIElementDestroyedNotification,
@@ -36,11 +34,13 @@ const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
   kAXWindowMiniaturizedNotification,
 ];
 
-/// Context data passed to the window event callback.
+/// Context data passed to the application event callback.
 #[derive(Debug)]
-struct WindowEventContext {
+struct ApplicationEventContext {
   pid: ProcessId,
   events_tx: mpsc::UnboundedSender<WindowEvent>,
+  app_windows: Vec<crate::NativeWindow>,
+  observer: CFRetained<AXObserver>,
 }
 
 /// Represents an accessibility observer for a specific application.
@@ -50,7 +50,7 @@ pub(crate) struct ApplicationObserver {
   observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
   app_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
-  context: Box<WindowEventContext>,
+  // context: Box<ApplicationEventContext>,
 }
 
 // TODO: Remove this.
@@ -89,10 +89,13 @@ impl ApplicationObserver {
       })?)
     };
 
-    let context = Box::new(WindowEventContext {
+    let app_windows = app.windows()?;
+    let context = Box::into_raw(Box::new(ApplicationEventContext {
       pid: app.pid,
-      events_tx,
-    });
+      events_tx: events_tx.clone(),
+      app_windows: app_windows.clone(),
+      observer: observer.clone(),
+    }));
 
     let runloop =
       CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
@@ -104,56 +107,91 @@ impl ApplicationObserver {
 
     // Register for all window notifications.
     // TODO: Remove from runloop if registration fails.
-    Self::register_notifications(app, &observer, context.as_ref())?;
+    Self::register_app_notifications(app, &observer, context)?;
+
+    // Emit `WindowEvent::Show` for all existing windows.
+    for window in app_windows {
+      if let Err(err) =
+        Self::register_window_notifications(&window, &observer, context)
+      {
+        tracing::warn!(
+          "Failed to register window notifications for PID {}: {}",
+          app.pid,
+          err
+        );
+      }
+
+      if let Err(err) = events_tx.send(WindowEvent::Show(window)) {
+        tracing::warn!(
+          "Failed to send window event for PID {}: {}",
+          app.pid,
+          err
+        );
+      }
+    }
 
     Ok(Self {
       pid: app.pid,
       observer,
       observer_source,
       app_element: app.ax_element.clone(),
-      context,
+      // context,
     })
   }
 
-  fn register_notifications(
+  fn register_app_notifications(
     app: &Application,
     observer: &CFRetained<AXObserver>,
-    context: &WindowEventContext,
+    context: *mut ApplicationEventContext,
   ) -> crate::Result<()> {
     let mtm = MainThreadMarker::new().unwrap();
-    let notifications = [
-      kAXWindowCreatedNotification,
-      kAXUIElementDestroyedNotification,
-      kAXWindowMovedNotification,
-      kAXWindowResizedNotification,
-      kAXWindowMiniaturizedNotification,
-      kAXWindowDeminiaturizedNotification,
-      kAXTitleChangedNotification,
-      kAXMainWindowChangedNotification,
-    ];
 
-    for notification in &notifications {
+    for notification in AX_APP_NOTIFICATIONS {
       unsafe {
         let notification_cfstr = CFString::from_static_str(notification);
         let result = observer.add_notification(
           app.ax_element.get(mtm),
           &notification_cfstr,
-          std::ptr::from_ref(context) as *mut std::ffi::c_void,
+          context.cast::<std::ffi::c_void>(),
         );
 
         if result != AXError::Success {
           return Err(crate::Error::Platform(format!(
             "Failed to add notification {} for PID {}: {:?}",
-            notification, context.pid, result
+            notification, app.pid, result
           )));
         }
       }
     }
 
-    // Emit `WindowEvent::Show` for all existing windows.
-    for window in app.windows()? {
-      let window_event = WindowEvent::Show(window);
-      context.events_tx.send(window_event).unwrap();
+    Ok(())
+  }
+
+  fn register_window_notifications(
+    window: &crate::NativeWindow,
+    observer: &CFRetained<AXObserver>,
+    context: *mut ApplicationEventContext,
+  ) -> crate::Result<()> {
+    let mtm = MainThreadMarker::new().unwrap();
+
+    for notification in AX_WINDOW_NOTIFICATIONS {
+      unsafe {
+        let notification_cfstr = CFString::from_static_str(notification);
+        let result = observer.add_notification(
+          window.ax_ui_element().get(mtm),
+          &notification_cfstr,
+          context.cast::<std::ffi::c_void>(),
+        );
+
+        if result != AXError::Success {
+          return Err(crate::Error::Platform(format!(
+            "Failed to add notification {} for window {}: {:?}",
+            notification,
+            window.id().0,
+            result
+          )));
+        }
+      }
     }
 
     Ok(())
@@ -171,7 +209,7 @@ impl ApplicationObserver {
       return;
     }
 
-    let context = &*(context as *const WindowEventContext);
+    let context = &mut *context.cast::<ApplicationEventContext>();
     let notification_str = notification.as_ref().to_string();
     let ax_element = unsafe { CFRetained::retain(element) };
 
@@ -181,40 +219,63 @@ impl ApplicationObserver {
       context.pid
     );
 
+    let mtm = MainThreadMarker::new().unwrap();
+    let found_window = context
+      .app_windows
+      .iter()
+      .find(|window| window.ax_ui_element().get(mtm) == &ax_element);
+
     let window_id = WindowId::from_window_element(&ax_element);
     let ax_element =
       MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
 
-    let window = NativeWindow::new(window_id, ax_element);
+    if let Some(window) = found_window {
+      println!("Found window: {:?} {:?}", window.id(), window_id);
+    } else {
+      println!("Window not found: {:?}", window_id);
+    }
+
+    let window: crate::NativeWindow =
+      NativeWindow::new(window_id, ax_element).into();
 
     let window_event = match notification_str.as_str() {
       kAXWindowCreatedNotification => {
         tracing::info!("Window created for PID: {}", context.pid);
-        Some(WindowEvent::Show(window.into()))
+        context.app_windows.push(window.clone());
+        let observer = context.observer.clone();
+        let _ =
+          Self::register_window_notifications(&window, &observer, context);
+        Some(WindowEvent::Show(window))
       }
       kAXUIElementDestroyedNotification => {
         tracing::info!("Window destroyed for PID: {}", context.pid);
-        Some(WindowEvent::Destroy(window_id))
+        if let Some(window) = found_window {
+          // TODO: Should remove the window from the list of windows.
+          // context.app_windows.retain(|w| w.id() != window.id());
+          Some(WindowEvent::Destroy(window.id()))
+        } else {
+          None
+        }
       }
       kAXWindowMovedNotification | kAXWindowResizedNotification => {
         tracing::debug!("Window moved/resized for PID: {}", context.pid);
-        Some(WindowEvent::LocationChange(window.into()))
+        Some(WindowEvent::LocationChange(window))
       }
       kAXWindowMiniaturizedNotification => {
         tracing::info!("Window minimized for PID: {}", context.pid);
-        Some(WindowEvent::Minimize(window.into()))
+        Some(WindowEvent::Minimize(window))
       }
       kAXWindowDeminiaturizedNotification => {
         tracing::info!("Window deminimized for PID: {}", context.pid);
-        Some(WindowEvent::MinimizeEnd(window.into()))
+        Some(WindowEvent::MinimizeEnd(window))
       }
       kAXTitleChangedNotification => {
         tracing::debug!("Window title changed for PID: {}", context.pid);
-        Some(WindowEvent::TitleChange(window.into()))
+        Some(WindowEvent::TitleChange(window))
       }
       kAXMainWindowChangedNotification => {
         tracing::debug!("Main window changed for PID: {}", context.pid);
-        Some(WindowEvent::Focus(window.into()))
+        Some(WindowEvent::Focus(window))
       }
       _ => {
         tracing::debug!(
@@ -243,18 +304,7 @@ impl Drop for ApplicationObserver {
     tracing::debug!("Cleaning up AppWindowObserver for PID {}", self.pid);
 
     // Remove all notifications.
-    let notifications = [
-      kAXWindowCreatedNotification,
-      kAXUIElementDestroyedNotification,
-      kAXWindowMovedNotification,
-      kAXWindowResizedNotification,
-      kAXWindowMiniaturizedNotification,
-      kAXWindowDeminiaturizedNotification,
-      kAXTitleChangedNotification,
-      kAXMainWindowChangedNotification,
-    ];
-
-    // for notification in &notifications {
+    // for notification in AX_APP_NOTIFICATIONS {
     //   unsafe {
     //     let notification_cfstr =
     // CFString::from_static_str(notification);     self
