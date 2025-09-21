@@ -7,6 +7,7 @@ use objc2_app_kit::{
 };
 use objc2_application_services::AXUIElement;
 use objc2_core_foundation::{CFArray, CFRetained};
+use objc2_foundation::NSString;
 
 use crate::{
   platform_impl::{ffi, AXUIElementExt, NativeWindow},
@@ -35,6 +36,22 @@ impl Application {
       ns_app,
       ax_element,
     }
+  }
+
+  pub fn focused_window(
+    &self,
+  ) -> crate::Result<Option<crate::NativeWindow>> {
+    self.ax_element.get_on_main(|el| {
+      let mtm = MainThreadMarker::new().unwrap();
+      let focused_window =
+        el.get_attribute::<AXUIElement>("AXFocusedWindow");
+
+      focused_window.map(|window_el| {
+        let window_id = WindowId::from_window_element(&window_el);
+        let window_el = MainThreadBound::new(window_el, mtm);
+        Some(NativeWindow::new(window_id, window_el, self.clone()).into())
+      })
+    })
   }
 
   pub fn windows(&self) -> crate::Result<Vec<crate::NativeWindow>> {
@@ -118,7 +135,7 @@ impl Application {
   }
 }
 
-pub fn all_applications(
+pub(crate) fn all_applications(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<Application>> {
   dispatcher.dispatch_sync(move || {
@@ -126,5 +143,21 @@ pub fn all_applications(
       unsafe { NSWorkspace::sharedWorkspace().runningApplications() };
 
     running_apps.iter().map(Application::new).collect()
+  })
+}
+
+pub(crate) fn application_for_bundle_id(
+  dispatcher: &Dispatcher,
+  bundle_id: &str,
+) -> crate::Result<Option<Application>> {
+  let bundle_id = bundle_id.to_owned();
+  dispatcher.dispatch_sync(move || {
+    let apps = unsafe {
+      NSRunningApplication::runningApplicationsWithBundleIdentifier(
+        &NSString::from_str(&bundle_id),
+      )
+    };
+
+    apps.into_iter().next().map(Application::new)
   })
 }

@@ -27,7 +27,7 @@ pub fn handle_window_focused(
   // the WM's focused container, then the focus is not synced.
   state.is_focus_synced = match focused_container.as_window_container() {
     Ok(window) => *window.native() == *native_window,
-    _ => Platform::desktop_window() == *native_window,
+    _ => native_window.is_desktop_window().unwrap_or(false),
   };
 
   // Handle overriding focus on close/minimize. After a window is closed

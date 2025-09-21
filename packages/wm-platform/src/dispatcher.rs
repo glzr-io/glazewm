@@ -178,7 +178,7 @@ impl Dispatcher {
   ///
   /// Returns all display devices including active, inactive, and
   /// disconnected ones.
-  pub fn all_display_devices(&self) -> crate::Result<Vec<DisplayDevice>> {
+  pub fn display_devices(&self) -> crate::Result<Vec<DisplayDevice>> {
     platform_impl::all_display_devices(self)
   }
 
@@ -233,6 +233,17 @@ impl Dispatcher {
 
   pub fn mouse_position(&self) -> crate::Result<Point> {
     todo!()
+  }
+
+  /// Removes focus from the current window and focuses the desktop.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: Uses
+  ///   `NSApplicationActivationOptions::ActivateAllWindows` to activate
+  ///   the desktop application.
+  pub fn reset_focus(&self) -> crate::Result<()> {
+    platform_impl::reset_focus(self)
   }
 }
 

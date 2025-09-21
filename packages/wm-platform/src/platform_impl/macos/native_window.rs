@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use dispatch2::MainThreadBound;
+use objc2_app_kit::NSApplicationActivationOptions;
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
@@ -264,6 +265,12 @@ impl NativeWindow {
       Ok(())
     })
   }
+
+  pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
+    Ok(
+      self.application.bundle_id() == Some("com.apple.finder".to_string()),
+    )
+  }
 }
 
 impl From<NativeWindow> for crate::NativeWindow {
@@ -335,4 +342,31 @@ pub(crate) fn visible_windows(
       .flat_map(std::iter::IntoIterator::into_iter)
       .collect(),
   )
+}
+
+// TODO: Move this to a better-suited module.
+pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
+  let Some(application) = platform_impl::application_for_bundle_id(
+    dispatcher,
+    "com.apple.finder",
+  )?
+  else {
+    return Err(crate::Error::Platform(
+      "Failed to get desktop application.".to_string(),
+    ));
+  };
+
+  let success = unsafe {
+    application.ns_app.activateWithOptions(
+      NSApplicationActivationOptions::ActivateAllWindows,
+    )
+  };
+
+  if !success {
+    return Err(crate::Error::Platform(
+      "Failed to activate desktop application.".to_string(),
+    ));
+  }
+
+  Ok(())
 }

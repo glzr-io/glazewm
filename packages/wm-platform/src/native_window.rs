@@ -147,6 +147,10 @@ impl NativeWindow {
     // TODO: Implement this.
     Ok(true)
   }
+
+  pub fn is_desktop_window(&self) -> crate::Result<bool> {
+    self.inner.is_desktop_window()
+  }
 }
 
 impl PartialEq for NativeWindow {

@@ -30,9 +30,9 @@ use crate::{
   },
   events::{
     handle_window_destroyed,
-    handle_window_hidden,
     // handle_display_settings_changed, handle_mouse_move,
-    //  handle_window_focused,
+    handle_window_focused,
+    handle_window_hidden,
     handle_window_location_changed,
     handle_window_minimize_ended,
     handle_window_minimized,
@@ -108,8 +108,7 @@ impl WindowManager {
       }
       PlatformEvent::Window(window_event) => match window_event {
         WindowEvent::Focus(window) => {
-          // handle_window_focused(&window, state, config)
-          Ok(())
+          handle_window_focused(&window, state, config)
         }
         WindowEvent::Show(window) => {
           handle_window_shown(window, state, config)

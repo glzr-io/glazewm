@@ -85,8 +85,8 @@ impl From<NotificationName> for &NSString {
 #[derive(Debug)]
 pub(crate) enum NotificationEvent {
   WorkspaceActiveSpaceDidChange,
-  WorkspaceDidActivateApplication,
-  WorkspaceDidDeactivateApplication,
+  WorkspaceDidActivateApplication(Retained<NSRunningApplication>),
+  WorkspaceDidDeactivateApplication(Retained<NSRunningApplication>),
   WorkspaceDidLaunchApplication(Retained<NSRunningApplication>),
   WorkspaceDidTerminateApplication(Retained<NSRunningApplication>),
   ApplicationDidChangeScreenParameters,
@@ -134,13 +134,26 @@ impl NotificationObserver {
         self.emit_event(NotificationEvent::WorkspaceActiveSpaceDidChange);
       }
       NotificationName::WorkspaceDidActivateApplication => {
-        self
-          .emit_event(NotificationEvent::WorkspaceDidActivateApplication);
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(
+            NotificationEvent::WorkspaceDidActivateApplication(app),
+          );
+        } else {
+          tracing::warn!(
+            "Failed to extract application from activate notification"
+          );
+        }
       }
       NotificationName::WorkspaceDidDeactivateApplication => {
-        self.emit_event(
-          NotificationEvent::WorkspaceDidDeactivateApplication,
-        );
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(
+            NotificationEvent::WorkspaceDidDeactivateApplication(app),
+          );
+        } else {
+          tracing::warn!(
+            "Failed to extract application from deactivate notification"
+          );
+        }
       }
       NotificationName::WorkspaceDidLaunchApplication => {
         if let Some(app) = unsafe { get_app_from_notification(notif) } {

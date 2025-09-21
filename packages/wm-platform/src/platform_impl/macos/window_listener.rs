@@ -159,6 +159,20 @@ impl WindowListener {
             observer.emit_all_windows_destroyed();
           }
         }
+        NotificationEvent::WorkspaceDidActivateApplication(
+          running_app,
+        ) => {
+          let Ok(Ok(Some(focused_window))) =
+            dispatcher.dispatch_sync(move || {
+              let app = Application::new(running_app);
+              app.focused_window()
+            })
+          else {
+            continue;
+          };
+
+          let _ = events_tx.send(WindowEvent::Focus(focused_window));
+        }
         _ => {}
       }
     }
