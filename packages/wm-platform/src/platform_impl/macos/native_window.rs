@@ -188,14 +188,21 @@ impl NativeWindow {
   }
 
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
-    // TODO: Consider refactoring this to use a single dispatch.
     // TODO: Consider adding a separate `set_frame_async` method which
     // spawns a thread. Calling blocking AXUIElement methods from different
     // threads supposedly works fine.
-    self.resize(rect.width().into(), rect.height().into())?;
-    self.reposition(rect.x().into(), rect.y().into())?;
-    self.resize(rect.width().into(), rect.height().into())?;
-    Ok(())
+    // TODO: Refactor the repeated `set_attribute` calls.
+    self.element.get_on_main(move |el| -> crate::Result<()> {
+      let ax_size = CGSize::new(rect.width().into(), rect.height().into());
+      let ax_value = AXValue::new_strict(&ax_size)?;
+      el.set_attribute("AXSize", &ax_value)?;
+      let ax_point = CGPoint::new(rect.x().into(), rect.y().into());
+      let ax_value = AXValue::new_strict(&ax_point)?;
+      el.set_attribute("AXPosition", &ax_value)?;
+      let ax_size = CGSize::new(rect.width().into(), rect.height().into());
+      let ax_value = AXValue::new_strict(&ax_size)?;
+      el.set_attribute("AXSize", &ax_value)
+    })
   }
 
   /// Whether the window is minimized.

@@ -117,7 +117,7 @@ impl ApplicationObserver {
     // Emit `WindowEvent::Show` for all existing windows.
     for window in app_windows.lock().unwrap().iter() {
       if let Err(err) =
-        Self::register_window_notifications(&window, &observer, context)
+        Self::register_window_notifications(window, &observer, context)
       {
         tracing::warn!(
           "Failed to register window notifications for PID {}: {}",
@@ -234,73 +234,87 @@ impl ApplicationObserver {
     let notification_str = notification.as_ref().to_string();
     let ax_element = unsafe { CFRetained::retain(element) };
 
-    tracing::info!(
+    tracing::debug!(
       "Received window event: {} for PID: {}",
       notification_str,
       context.pid
     );
 
-    let mtm = MainThreadMarker::new().unwrap();
-    let found_window = context
-      .app_windows
-      .lock()
-      .unwrap()
-      .iter()
-      .find(|window| window.ax_ui_element().get(mtm) == &ax_element)
-      .cloned();
+    let mtm = MainThreadMarker::new_unchecked();
+    let found_window = {
+      let app_windows = context.app_windows.lock().unwrap();
 
-    let window_id = WindowId::from_window_element(&ax_element);
-    let ax_element =
-      MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
+      app_windows
+        .iter()
+        .find(|window| window.ax_ui_element().get(mtm) == &ax_element)
+        .cloned()
+    };
 
-    if let Some(window) = &found_window {
-      println!("Found window: {:?} {:?}", window.id(), window_id);
-    } else {
-      println!("Window not found: {:?}", window_id);
-    }
+    if notification_str.as_str() == kAXUIElementDestroyedNotification {
+      if let Some(window) = &found_window {
+        context
+          .app_windows
+          .lock()
+          .unwrap()
+          .retain(|w| w.id() != window.id());
 
-    let window: crate::NativeWindow =
-      NativeWindow::new(window_id, ax_element).into();
-
-    let window_event = match notification_str.as_str() {
-      kAXWindowCreatedNotification => {
-        tracing::info!("Window created for PID: {}", context.pid);
-        context.app_windows.lock().unwrap().push(window.clone());
-        let observer = context.observer.clone();
-        let _ =
-          Self::register_window_notifications(&window, &observer, context);
-        Some(WindowEvent::Show(window))
-      }
-      kAXUIElementDestroyedNotification => {
-        tracing::info!("Window destroyed for PID: {}", context.pid);
-        if let Some(window) = found_window {
-          // TODO: Should remove the window from the list of windows.
-          // context.app_windows.retain(|w| w.id() != window.id());
-          Some(WindowEvent::Destroy(window.id()))
-        } else {
-          None
+        if let Err(err) =
+          context.events_tx.send(WindowEvent::Destroy(window.id()))
+        {
+          tracing::warn!(
+            "Failed to send window event for PID {}: {}",
+            context.pid,
+            err
+          );
         }
       }
+
+      return;
+    }
+
+    let is_new_window = found_window.is_none();
+    let window = found_window.unwrap_or_else(|| {
+      let window_id = WindowId::from_window_element(&ax_element);
+      let ax_element = MainThreadBound::new(ax_element, mtm);
+      NativeWindow::new(window_id, ax_element).into()
+    });
+
+    if is_new_window {
+      context.app_windows.lock().unwrap().push(window.clone());
+      let _ = Self::register_window_notifications(
+        &window,
+        &context.observer.clone(),
+        context,
+      );
+
+      if let Err(err) =
+        context.events_tx.send(WindowEvent::Show(window.clone()))
+      {
+        tracing::warn!(
+          "Failed to send window event for PID {}: {}",
+          context.pid,
+          err
+        );
+      }
+    }
+
+    let window_event = match notification_str.as_str() {
+      kAXFocusedWindowChangedNotification => {
+        Some(WindowEvent::Focus(window))
+      }
       kAXWindowMovedNotification | kAXWindowResizedNotification => {
-        tracing::debug!("Window moved/resized for PID: {}", context.pid);
         Some(WindowEvent::LocationChange(window))
       }
       kAXWindowMiniaturizedNotification => {
-        tracing::info!("Window minimized for PID: {}", context.pid);
         Some(WindowEvent::Minimize(window))
       }
       kAXWindowDeminiaturizedNotification => {
-        tracing::info!("Window deminimized for PID: {}", context.pid);
         Some(WindowEvent::MinimizeEnd(window))
       }
       kAXTitleChangedNotification => {
-        tracing::debug!("Window title changed for PID: {}", context.pid);
         Some(WindowEvent::TitleChange(window))
       }
-      kAXMainWindowChangedNotification => {
-        tracing::debug!("Main window changed for PID: {}", context.pid);
-        Some(WindowEvent::Focus(window))
-      }
+      kAXMainWindowChangedNotification => Some(WindowEvent::Focus(window)),
       _ => {
         tracing::debug!(
           "Unhandled window notification: {} for PID: {}",
