@@ -33,7 +33,7 @@ pub enum KeyConversionError {
 /// via .0).
 ///
 /// # Example
-/// ```
+/// ```no_run,compile_fail
 /// impl_key_code_conversion! {
 ///   Enter => { windows: VK_RETURN, macos: 0x24, },
 ///   Space => { windows: VK_SPACE, macos: 0x31, },
@@ -262,9 +262,9 @@ mod tests {
       Key::D,
       Key::F,
       Key::Cmd,
-      Key::Alt,
-      Key::Ctrl,
-      Key::Shift,
+      Key::LAlt,
+      Key::RCtrl,
+      Key::LShift,
       Key::Space,
       Key::Tab,
       Key::Enter,

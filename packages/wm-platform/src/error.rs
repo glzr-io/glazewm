@@ -22,7 +22,7 @@ pub enum Error {
   AXValueCreation(String),
 
   #[error(transparent)]
-  ChannelRecv(#[from] std::sync::mpsc::RecvError),
+  ChannelRecv(#[from] std::sync::mpsc::RecvTimeoutError),
 
   #[error("Channel send error: {0}")]
   ChannelSend(String),

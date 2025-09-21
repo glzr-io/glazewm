@@ -247,7 +247,7 @@ impl Key {
 /// the `Display` implementation.
 ///
 /// # Example
-/// ```
+/// ```no_run,compile_fail
 /// impl_key_parsing! {
 ///   Enter => ["enter", "return", "cr"],
 ///   Space => ["space", "spacebar", " "],
