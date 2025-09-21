@@ -23,6 +23,13 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
+  let is_manageable =
+    is_window_manageable(&native_window).unwrap_or(false);
+
+  if !is_manageable {
+    return Ok(());
+  }
+
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
   let window =
@@ -73,6 +80,31 @@ pub fn manage_window(
   Ok(())
 }
 
+// TODO: Add comprehensive `is_manageable` check here.
+fn is_window_manageable(
+  native_window: &NativeWindow,
+) -> anyhow::Result<bool> {
+  let is_visible = native_window.is_visible()?;
+
+  if !is_visible {
+    return Ok(false);
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    use wm_platform::NativeWindowExtMacOs;
+
+    let is_standard_window = native_window.role()? == "AXWindow"
+      && native_window.subrole()? == "AXStandardWindow";
+
+    if !is_standard_window {
+      return Ok(false);
+    }
+  }
+
+  Ok(true)
+}
+
 fn create_window(
   native_window: NativeWindow,
   target_parent: Option<Container>,
@@ -86,6 +118,12 @@ fn create_window(
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
     .context("No nearest workspace.")?;
+
+  let native_properties =
+    NativeWindowProperties::try_from(&native_window, &nearest_workspace)
+      .map_err(|err| {
+      anyhow::anyhow!("Failed to get native properties for window: {err}")
+    })?;
 
   let gaps_config = config.value.gaps.clone();
   let window_state =
@@ -137,19 +175,6 @@ fn create_window(
     LengthValue::from_px(0),
     LengthValue::from_px(0),
   );
-
-  // Create native properties cache.
-  let native_properties = NativeWindowProperties {
-    title: native_window.title()?,
-    class_name: native_window.class_name()?,
-    process_name: native_window.process_name()?,
-    frame: native_window.frame()?,
-    is_visible: native_window.is_visible()?,
-    is_minimized: native_window.is_minimized()?,
-    is_maximized: native_window.is_maximized()?,
-    is_fullscreen: native_window
-      .is_fullscreen(&nearest_workspace.to_rect()?)?,
-  };
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(

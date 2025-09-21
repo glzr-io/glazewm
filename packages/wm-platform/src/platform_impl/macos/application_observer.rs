@@ -23,11 +23,13 @@ use crate::{
   NativeWindowExtMacOs, WindowEvent, WindowId,
 };
 
+/// Notifications to register for the `AXUIElement` of an application.
 const AX_APP_NOTIFICATIONS: &[&str] = &[
   kAXFocusedWindowChangedNotification,
   kAXWindowCreatedNotification,
 ];
 
+/// Notifications to register for the `AXUIElement` of a window.
 const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
   kAXTitleChangedNotification,
   kAXUIElementDestroyedNotification,
@@ -37,7 +39,7 @@ const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
   kAXWindowMiniaturizedNotification,
 ];
 
-/// Context data passed to the application event callback.
+/// Context passed to the application event callback.
 #[derive(Debug)]
 struct ApplicationEventContext {
   application: Application,

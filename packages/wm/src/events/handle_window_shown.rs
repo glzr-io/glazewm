@@ -24,13 +24,8 @@ pub fn handle_window_shown(
       state.pending_sync.queue_container_to_redraw(window);
     }
   } else {
-    // TODO: Move comprehensive `is_manageable` check here.
-    let is_manageable = native_window.is_visible().unwrap_or(false);
-
     // If the window is not managed, manage it.
-    if is_manageable {
-      manage_window(native_window, None, state, config)?;
-    }
+    manage_window(native_window, None, state, config)?;
   }
 
   Ok(())
