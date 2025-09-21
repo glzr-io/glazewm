@@ -70,9 +70,8 @@ impl NativeWindow {
     Ok("test".to_string())
   }
 
-  // TODO: Implement this for macOS.
   pub fn process_name(&self) -> crate::Result<String> {
-    Ok("test".to_string())
+    self.inner.process_name()
   }
 
   pub fn frame(&self) -> crate::Result<Rect> {

@@ -12,7 +12,9 @@ use objc2_core_graphics::{
 };
 
 use crate::{
-  platform_impl::{self, AXUIElement, AXUIElementExt, AXValueExt},
+  platform_impl::{
+    self, AXUIElement, AXUIElementExt, AXValueExt, Application,
+  },
   Dispatcher, Rect, WindowId,
 };
 
@@ -25,12 +27,12 @@ pub trait NativeWindowExtMacOs {
   /// This method is only available on macOS.
   fn ax_ui_element(&self) -> &MainThreadBound<CFRetained<AXUIElement>>;
 
-  /// Gets the bundle ID of the window.
+  /// Gets the bundle ID of the application that owns the window.
   ///
   /// # Platform-specific
   ///
   /// This method is only available on macOS.
-  fn bundle_id(&self) -> crate::Result<String>;
+  fn bundle_id(&self) -> Option<String>;
 
   /// Gets the role of the window (e.g. `AXWindow`).
   ///
@@ -66,12 +68,8 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
     &self.inner.element
   }
 
-  fn bundle_id(&self) -> crate::Result<String> {
-    // TODO: This is not correct.
-    self.inner.element.get_on_main(|el| {
-      el.get_attribute::<CFString>("AXBundleID")
-        .map(|cf_string| cf_string.to_string())
-    })
+  fn bundle_id(&self) -> Option<String> {
+    self.inner.application.bundle_id()
   }
 
   fn role(&self) -> crate::Result<String> {
@@ -107,33 +105,45 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
 pub struct NativeWindow {
   id: WindowId,
   element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
+  application: Application,
 }
 
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
   #[must_use]
-  pub fn new(
+  pub(crate) fn new(
     id: WindowId,
     element: MainThreadBound<CFRetained<AXUIElement>>,
+    application: Application,
   ) -> Self {
     Self {
       element: Arc::new(element),
       id,
+      application,
     }
   }
 
-  pub fn id(&self) -> WindowId {
+  pub(crate) fn id(&self) -> WindowId {
     self.id
   }
 
-  pub fn title(&self) -> crate::Result<String> {
+  pub(crate) fn title(&self) -> crate::Result<String> {
     self.element.get_on_main(|el| {
       el.get_attribute::<CFString>("AXTitle")
         .map(|cf_string| cf_string.to_string())
     })
   }
 
-  pub fn is_visible(&self) -> crate::Result<bool> {
+  pub(crate) fn process_name(&self) -> crate::Result<String> {
+    self
+      .application
+      .process_name()
+      .ok_or(crate::Error::Platform(
+        "Failed to get application process name.".to_string(),
+      ))
+  }
+
+  pub(crate) fn is_visible(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
     let minimized = self.element.get_on_main(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
@@ -143,7 +153,7 @@ impl NativeWindow {
     Ok(!minimized)
   }
 
-  pub fn size(&self) -> crate::Result<(f64, f64)> {
+  pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
     self.element.get_on_main(move |el| {
       el.get_attribute::<AXValue>("AXSize")
         .and_then(|ax_value| ax_value.value_strict::<CGSize>())
@@ -151,7 +161,7 @@ impl NativeWindow {
     })
   }
 
-  pub fn position(&self) -> crate::Result<(f64, f64)> {
+  pub(crate) fn position(&self) -> crate::Result<(f64, f64)> {
     self.element.get_on_main(move |el| {
       el.get_attribute::<AXValue>("AXPosition")
         .and_then(|ax_value| ax_value.value_strict::<CGPoint>())
@@ -159,8 +169,9 @@ impl NativeWindow {
     })
   }
 
-  pub fn frame(&self) -> crate::Result<Rect> {
+  pub(crate) fn frame(&self) -> crate::Result<Rect> {
     // TODO: Consider refactoring this to use a single dispatch.
+    // TODO: Would `AXFrame` work instead?
     let size = self.size()?;
     let position = self.position()?;
     Ok(Rect::from_xy(
@@ -171,7 +182,11 @@ impl NativeWindow {
     ))
   }
 
-  pub fn resize(&self, width: f64, height: f64) -> crate::Result<()> {
+  pub(crate) fn resize(
+    &self,
+    width: f64,
+    height: f64,
+  ) -> crate::Result<()> {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width, height);
       let ax_value = AXValue::new_strict(&ax_size)?;
@@ -179,7 +194,7 @@ impl NativeWindow {
     })
   }
 
-  pub fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
+  pub(crate) fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_point = CGPoint::new(x, y);
       let ax_value = AXValue::new_strict(&ax_point)?;
@@ -187,7 +202,7 @@ impl NativeWindow {
     })
   }
 
-  pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
+  pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     // TODO: Consider adding a separate `set_frame_async` method which
     // spawns a thread. Calling blocking AXUIElement methods from different
     // threads supposedly works fine.
@@ -206,35 +221,35 @@ impl NativeWindow {
   }
 
   /// Whether the window is minimized.
-  pub fn is_minimized(&self) -> crate::Result<bool> {
+  pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     self.element.get_on_main(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
         .map(|cf_bool| cf_bool.value())
     })
   }
 
-  pub fn minimize(&self) -> crate::Result<()> {
+  pub(crate) fn minimize(&self) -> crate::Result<()> {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
     })
   }
 
-  pub fn is_maximized(&self) -> crate::Result<bool> {
+  pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
     self.element.get_on_main(|el| {
       el.get_attribute::<CFBoolean>("AXFullScreen")
         .map(|cf_bool| cf_bool.value())
     })
   }
 
-  pub fn maximize(&self) -> crate::Result<()> {
+  pub(crate) fn maximize(&self) -> crate::Result<()> {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
     })
   }
 
-  pub fn close(&self) -> crate::Result<()> {
+  pub(crate) fn close(&self) -> crate::Result<()> {
     self.element.get_on_main(|el| -> crate::Result<()> {
       let close_button =
         el.get_attribute::<AXUIElement>("AXCloseButton")?;
@@ -266,7 +281,7 @@ impl From<NativeWindow> for crate::NativeWindow {
 ///
 /// Returns all windows that are on-screen and meet filtering criteria,
 /// excluding system windows like Dock, menu bar, and desktop elements.
-pub fn all_windows(
+pub(crate) fn all_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   let options = CGWindowListOption::OptionOnScreenOnly
@@ -315,7 +330,7 @@ pub fn all_windows(
 ///
 /// Returns a vector of `NativeWindow` instances for windows that are
 /// currently visible on the current space.
-pub fn visible_windows(
+pub(crate) fn visible_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   Ok(

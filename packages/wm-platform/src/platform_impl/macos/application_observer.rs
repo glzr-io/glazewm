@@ -40,7 +40,7 @@ const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
 /// Context data passed to the application event callback.
 #[derive(Debug)]
 struct ApplicationEventContext {
-  pid: ProcessId,
+  application: Application,
   events_tx: mpsc::UnboundedSender<WindowEvent>,
   app_windows: Arc<Mutex<Vec<crate::NativeWindow>>>,
   observer: CFRetained<AXObserver>,
@@ -96,7 +96,7 @@ impl ApplicationObserver {
 
     let app_windows = Arc::new(Mutex::new(app.windows()?));
     let context = Box::into_raw(Box::new(ApplicationEventContext {
-      pid: app.pid,
+      application: app.clone(),
       events_tx: events_tx.clone(),
       app_windows: app_windows.clone(),
       observer: observer.clone(),
@@ -237,7 +237,7 @@ impl ApplicationObserver {
     tracing::debug!(
       "Received window event: {} for PID: {}",
       notification_str,
-      context.pid
+      context.application.pid
     );
 
     let mtm = MainThreadMarker::new_unchecked();
@@ -263,7 +263,7 @@ impl ApplicationObserver {
         {
           tracing::warn!(
             "Failed to send window event for PID {}: {}",
-            context.pid,
+            context.application.pid,
             err
           );
         }
@@ -276,7 +276,8 @@ impl ApplicationObserver {
     let window = found_window.unwrap_or_else(|| {
       let window_id = WindowId::from_window_element(&ax_element);
       let ax_element = MainThreadBound::new(ax_element, mtm);
-      NativeWindow::new(window_id, ax_element).into()
+      NativeWindow::new(window_id, ax_element, context.application.clone())
+        .into()
     });
 
     if is_new_window {
@@ -292,7 +293,7 @@ impl ApplicationObserver {
       {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
-          context.pid,
+          context.application.pid,
           err
         );
       }
@@ -319,7 +320,7 @@ impl ApplicationObserver {
         tracing::debug!(
           "Unhandled window notification: {} for PID: {}",
           notification_str,
-          context.pid
+          context.application.pid
         );
         None
       }
@@ -329,7 +330,7 @@ impl ApplicationObserver {
       if let Err(err) = context.events_tx.send(event) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
-          context.pid,
+          context.application.pid,
           err
         );
       }
@@ -340,6 +341,9 @@ impl ApplicationObserver {
 impl Drop for ApplicationObserver {
   fn drop(&mut self) {
     tracing::debug!("Cleaning up AppWindowObserver for PID {}", self.pid);
+
+    // TODO: **** The following needs to be run on the thread in which the
+    // observer was created.
 
     // Remove all notifications.
     // for notification in AX_APP_NOTIFICATIONS {

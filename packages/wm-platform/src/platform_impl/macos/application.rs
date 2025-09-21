@@ -2,17 +2,20 @@ use std::sync::Arc;
 
 use dispatch2::MainThreadBound;
 use objc2::{rc::Retained, MainThreadMarker};
-use objc2_app_kit::{NSRunningApplication, NSWorkspace};
+use objc2_app_kit::{
+  NSApplicationActivationPolicy, NSRunningApplication, NSWorkspace,
+};
 use objc2_application_services::AXUIElement;
-use objc2_core_foundation::{CFArray, CFBoolean, CFRetained};
+use objc2_core_foundation::{CFArray, CFRetained};
 
 use crate::{
-  platform_impl::{AXUIElementExt, NativeWindow},
+  platform_impl::{ffi, AXUIElementExt, NativeWindow},
   Dispatcher, WindowId,
 };
 
 pub type ProcessId = i32;
 
+#[derive(Clone, Debug)]
 pub struct Application {
   pub(crate) pid: ProcessId,
   pub(crate) ns_app: Retained<NSRunningApplication>,
@@ -45,11 +48,33 @@ impl Application {
           .map(|window_el| {
             let window_id = WindowId::from_window_element(&window_el);
             let window_el = MainThreadBound::new(window_el, mtm);
-            NativeWindow::new(window_id, window_el).into()
+            NativeWindow::new(window_id, window_el, self.clone()).into()
           })
           .collect()
       })
     })
+  }
+
+  pub fn psn(&self) -> crate::Result<ffi::ProcessSerialNumber> {
+    let mut psn = ffi::ProcessSerialNumber::default();
+
+    if unsafe { ffi::GetProcessForPID(self.pid, &raw mut psn) } != 0 {
+      return Err(crate::Error::Platform(
+        "Failed to get process serial number.".to_string(),
+      ));
+    }
+
+    Ok(psn)
+  }
+
+  pub fn bundle_id(&self) -> Option<String> {
+    unsafe { self.ns_app.bundleIdentifier() }
+      .map(|ns_string| ns_string.to_string())
+  }
+
+  pub fn process_name(&self) -> Option<String> {
+    unsafe { self.ns_app.localizedName() }
+      .map(|ns_string| ns_string.to_string())
   }
 
   /// Whether the application is an XPC service.
@@ -57,11 +82,34 @@ impl Application {
   /// Some of Apple's own XPC services have window capabilities. These
   /// windows are non-standard and unmanageable.
   pub fn is_xpc(&self) -> crate::Result<bool> {
-    Ok(false)
+    let psn = self.psn()?;
+
+    let mut info = ffi::ProcessInfo::default();
+    info.info_length = std::mem::size_of::<ffi::ProcessInfo>() as u32;
+
+    if unsafe { ffi::GetProcessInformation(&raw const psn, &raw mut info) }
+      != 0
+    {
+      return Err(crate::Error::Platform(
+        "Failed to get process information.".to_string(),
+      ));
+    }
+
+    Ok(info.r#type.to_be_bytes() == *b"XPC!")
+  }
+
+  pub fn activation_policy(&self) -> NSApplicationActivationPolicy {
+    unsafe { self.ns_app.activationPolicy() }
   }
 
   /// Whether the application should be observed.
   pub(crate) fn should_observe(&self) -> bool {
+    if self.activation_policy()
+      == NSApplicationActivationPolicy::Prohibited
+    {
+      return false;
+    }
+
     !self.is_xpc().unwrap_or(false)
   }
 }
