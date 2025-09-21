@@ -9,12 +9,12 @@ use objc2_core_foundation::{
 };
 use objc2_core_graphics::{
   kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
-  CGWindowListCopyWindowInfo, CGWindowListOption,
+  CGError, CGWindowListCopyWindowInfo, CGWindowListOption,
 };
 
 use crate::{
   platform_impl::{
-    self, AXUIElement, AXUIElementExt, AXValueExt, Application,
+    self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
   },
   Dispatcher, Rect, WindowId,
 };
@@ -273,17 +273,78 @@ impl NativeWindow {
   }
 
   pub(crate) fn focus_with_raise(&self) -> crate::Result<()> {
+    let psn = self.application.psn()?;
+    self.set_front_process(&psn)?;
+    self.set_key_window(&psn)?;
+    self.raise()
+  }
+
+  fn raise(&self) -> crate::Result<()> {
     self.element.get_on_main(move |el| -> crate::Result<()> {
       let result =
         unsafe { el.perform_action(&CFString::from_str("AXRaise")) };
+
       if result != AXError::Success {
         return Err(crate::Error::Accessibility(
           "AXRaise".to_string(),
           result.0,
         ));
       }
+
       Ok(())
     })
+  }
+
+  fn set_front_process(
+    &self,
+    psn: &ffi::ProcessSerialNumber,
+  ) -> crate::Result<()> {
+    let result = unsafe {
+      #[allow(clippy::cast_possible_wrap)]
+      ffi::_SLPSSetFrontProcessWithOptions(
+        psn,
+        self.id.0 as i32,
+        ffi::CPS_USER_GENERATED,
+      )
+    };
+
+    if result != CGError::Success {
+      return Err(crate::Error::Platform(
+        "Failed to set front process.".to_string(),
+      ));
+    }
+
+    Ok(())
+  }
+
+  fn set_key_window(
+    &self,
+    psn: &ffi::ProcessSerialNumber,
+  ) -> crate::Result<()> {
+    // Ref: https://github.com/Hammerspoon/hammerspoon/issues/370#issuecomment-545545468
+    let window_id = self.id.0.to_ne_bytes();
+    let mut event1 = [0u8; 0xf8];
+    event1[0x04] = 0xf8;
+    event1[0x08] = 0x01;
+    event1[0x3a] = 0x10;
+    event1[0x3c..(0x3c + window_id.len())].copy_from_slice(&window_id);
+    event1[0x20..(0x20 + 0x10)].fill(0xff);
+
+    let mut event2 = event1;
+    event2[0x08] = 0x02;
+
+    for event in [event1, event2] {
+      let result =
+        unsafe { ffi::SLPSPostEventRecordTo(psn, event.as_ptr().cast()) };
+
+      if result != CGError::Success {
+        return Err(crate::Error::Platform(
+          "Failed to set key window.".to_string(),
+        ));
+      }
+    }
+
+    Ok(())
   }
 }
 

@@ -1,7 +1,7 @@
-use std::ptr::NonNull;
+use std::{ffi::c_void, ptr::NonNull};
 
 use objc2_application_services::{AXError, AXUIElement};
-use objc2_core_graphics::CGWindowID;
+use objc2_core_graphics::{CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
 
@@ -30,6 +30,8 @@ pub(crate) struct ProcessInfo {
   app_ref: *const u8,
 }
 
+pub const CPS_USER_GENERATED: u32 = 0x200;
+
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
   // Deprecated in macOS 10.9 in late 2014, but still works fine.
@@ -41,13 +43,27 @@ extern "C" {
   // Deprecated in macOS 10.9 in late 2014, but still works fine.
   pub(crate) fn GetProcessInformation(
     psn: *const ProcessSerialNumber,
-    info: *mut ProcessInfo,
+    process_info: *mut ProcessInfo,
   ) -> u32;
 }
 
 unsafe extern "C" {
   pub(crate) fn _AXUIElementGetWindow(
     elem: NonNull<AXUIElement>,
-    wid: *mut CGWindowID,
+    window_id: *mut CGWindowID,
   ) -> AXError;
+}
+
+#[link(name = "SkyLight", kind = "framework")]
+unsafe extern "C" {
+  pub(crate) fn _SLPSSetFrontProcessWithOptions(
+    psn: &ProcessSerialNumber,
+    window_id: i32,
+    mode: u32,
+  ) -> CGError;
+
+  pub(crate) fn SLPSPostEventRecordTo(
+    psn: &ProcessSerialNumber,
+    event: *const c_void,
+  ) -> CGError;
 }
