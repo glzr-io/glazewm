@@ -178,12 +178,61 @@ impl NativeWindow {
     ))
   }
 
+  /// Executes a callback with the `AXEnhancedUserInterface` attribute
+  /// temporarily disabled on the application `AXUIElement`.
+  ///
+  /// This is to prevent inconsistent window resizing and repositioning
+  /// for certain applications (e.g. Firefox).
+  ///
+  /// References:
+  /// - <https://github.com/koekeishiya/yabai/commit/3fe4c77b001e1a4f613c26f01ea68c0f09327f3a>
+  /// - <https://github.com/rxhanson/Rectangle/pull/285>
+  fn with_enhanced_ui_disabled<F, R>(
+    &self,
+    callback: F,
+  ) -> crate::Result<R>
+  where
+    F: FnOnce(&CFRetained<AXUIElement>) -> crate::Result<R> + Send,
+    R: Send,
+  {
+    self.application.ax_element.get_on_main(|app_el| {
+      // Get whether enhanced UI is currently enabled.
+      let was_enabled = app_el
+        .get_attribute::<CFBoolean>("AXEnhancedUserInterface")
+        .map(|cf_bool| cf_bool.value())
+        .unwrap_or(false);
+
+      // Disable enhanced UI if it was enabled.
+      if was_enabled {
+        let ax_bool = CFBoolean::new(false);
+        let _ = app_el.set_attribute::<CFBoolean>(
+          "AXEnhancedUserInterface",
+          &ax_bool.into(),
+        );
+      }
+
+      // Execute the callback with the window element.
+      let result = self.element.get_on_main(callback);
+
+      // Restore enhanced UI if it was originally enabled.
+      if was_enabled {
+        let ax_bool = CFBoolean::new(true);
+        let _ = app_el.set_attribute::<CFBoolean>(
+          "AXEnhancedUserInterface",
+          &ax_bool.into(),
+        );
+      }
+
+      result
+    })
+  }
+
   pub(crate) fn resize(
     &self,
     width: f64,
     height: f64,
   ) -> crate::Result<()> {
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width, height);
       let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
@@ -191,7 +240,7 @@ impl NativeWindow {
   }
 
   pub(crate) fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_point = CGPoint::new(x, y);
       let ax_value = AXValue::new_strict(&ax_point)?;
       el.set_attribute("AXPosition", &ax_value)
@@ -203,7 +252,8 @@ impl NativeWindow {
     // spawns a thread. Calling blocking AXUIElement methods from different
     // threads supposedly works fine.
     // TODO: Refactor the repeated `set_attribute` calls.
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    let rect = rect.clone();
+    self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(rect.width().into(), rect.height().into());
       let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)?;
