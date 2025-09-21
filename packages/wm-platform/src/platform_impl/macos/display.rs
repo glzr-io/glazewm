@@ -321,7 +321,6 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 pub fn all_displays(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::Display>> {
-  let dispatcher_clone = dispatcher.clone();
   dispatcher.dispatch_sync(move || {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;

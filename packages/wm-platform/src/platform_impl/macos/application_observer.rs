@@ -1,4 +1,7 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::{
+  ptr::NonNull,
+  sync::{Arc, Mutex},
+};
 
 use accessibility_sys::{
   kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification,
@@ -39,7 +42,7 @@ const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
 struct ApplicationEventContext {
   pid: ProcessId,
   events_tx: mpsc::UnboundedSender<WindowEvent>,
-  app_windows: Vec<crate::NativeWindow>,
+  app_windows: Arc<Mutex<Vec<crate::NativeWindow>>>,
   observer: CFRetained<AXObserver>,
 }
 
@@ -47,6 +50,8 @@ struct ApplicationEventContext {
 #[derive(Debug)]
 pub(crate) struct ApplicationObserver {
   pub(crate) pid: ProcessId,
+  app_windows: Arc<Mutex<Vec<crate::NativeWindow>>>,
+  events_tx: mpsc::UnboundedSender<WindowEvent>,
   observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
   app_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
@@ -89,7 +94,7 @@ impl ApplicationObserver {
       })?)
     };
 
-    let app_windows = app.windows()?;
+    let app_windows = Arc::new(Mutex::new(app.windows()?));
     let context = Box::into_raw(Box::new(ApplicationEventContext {
       pid: app.pid,
       events_tx: events_tx.clone(),
@@ -110,7 +115,7 @@ impl ApplicationObserver {
     Self::register_app_notifications(app, &observer, context)?;
 
     // Emit `WindowEvent::Show` for all existing windows.
-    for window in app_windows {
+    for window in app_windows.lock().unwrap().iter() {
       if let Err(err) =
         Self::register_window_notifications(&window, &observer, context)
       {
@@ -121,7 +126,7 @@ impl ApplicationObserver {
         );
       }
 
-      if let Err(err) = events_tx.send(WindowEvent::Show(window)) {
+      if let Err(err) = events_tx.send(WindowEvent::Show(window.clone())) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
           app.pid,
@@ -132,6 +137,8 @@ impl ApplicationObserver {
 
     Ok(Self {
       pid: app.pid,
+      app_windows,
+      events_tx,
       observer,
       observer_source,
       app_element: app.ax_element.clone(),
@@ -197,6 +204,20 @@ impl ApplicationObserver {
     Ok(())
   }
 
+  pub(crate) fn emit_all_windows_destroyed(&self) {
+    for window in self.app_windows.lock().unwrap().iter() {
+      if let Err(err) =
+        self.events_tx.send(WindowEvent::Destroy(window.id()))
+      {
+        tracing::warn!(
+          "Failed to send window event for PID {}: {}",
+          self.pid,
+          err
+        );
+      }
+    }
+  }
+
   /// Callback function for accessibility window events.
   unsafe extern "C-unwind" fn window_event_callback(
     _observer: NonNull<AXObserver>,
@@ -222,14 +243,17 @@ impl ApplicationObserver {
     let mtm = MainThreadMarker::new().unwrap();
     let found_window = context
       .app_windows
+      .lock()
+      .unwrap()
       .iter()
-      .find(|window| window.ax_ui_element().get(mtm) == &ax_element);
+      .find(|window| window.ax_ui_element().get(mtm) == &ax_element)
+      .cloned();
 
     let window_id = WindowId::from_window_element(&ax_element);
     let ax_element =
       MainThreadBound::new(ax_element, MainThreadMarker::new().unwrap());
 
-    if let Some(window) = found_window {
+    if let Some(window) = &found_window {
       println!("Found window: {:?} {:?}", window.id(), window_id);
     } else {
       println!("Window not found: {:?}", window_id);
@@ -241,7 +265,7 @@ impl ApplicationObserver {
     let window_event = match notification_str.as_str() {
       kAXWindowCreatedNotification => {
         tracing::info!("Window created for PID: {}", context.pid);
-        context.app_windows.push(window.clone());
+        context.app_windows.lock().unwrap().push(window.clone());
         let observer = context.observer.clone();
         let _ =
           Self::register_window_notifications(&window, &observer, context);

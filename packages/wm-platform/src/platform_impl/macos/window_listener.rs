@@ -85,7 +85,12 @@ impl WindowListener {
     );
 
     std::thread::spawn(move || {
-      Self::listen_events(app_observers, events_rx, events_tx, dispatcher);
+      Self::listen_workspace_events(
+        app_observers,
+        events_rx,
+        events_tx,
+        dispatcher,
+      );
     });
 
     // TODO: Hack to prevent the handler from being deregistered.
@@ -96,7 +101,7 @@ impl WindowListener {
     Ok(())
   }
 
-  fn listen_events(
+  fn listen_workspace_events(
     app_observers: Vec<ApplicationObserver>,
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
@@ -150,7 +155,8 @@ impl WindowListener {
               "Removed window observer for terminated PID: {}",
               pid
             );
-            drop(observer); // Triggers cleanup in Drop implementation
+
+            observer.emit_all_windows_destroyed();
           }
         }
         _ => {}

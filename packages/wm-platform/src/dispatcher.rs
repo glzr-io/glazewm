@@ -148,7 +148,7 @@ impl Dispatcher {
     })?;
 
     result_rx
-      .recv_timeout(std::time::Duration::from_millis(1000))
+      .recv_timeout(std::time::Duration::from_millis(3000))
       .map_err(crate::Error::ChannelRecv)
   }
 
