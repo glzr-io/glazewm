@@ -112,6 +112,10 @@ impl Application {
 
     !self.is_xpc().unwrap_or(false)
   }
+
+  pub(crate) fn is_hidden(&self) -> bool {
+    unsafe { self.ns_app.isHidden() }
+  }
 }
 
 pub fn all_applications(

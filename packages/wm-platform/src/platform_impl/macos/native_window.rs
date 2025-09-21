@@ -143,14 +143,9 @@ impl NativeWindow {
       ))
   }
 
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_visible(&self) -> crate::Result<bool> {
-    // TODO: Implement this properly.
-    let minimized = self.element.get_on_main(|el| {
-      el.get_attribute::<CFBoolean>("AXMinimized")
-        .map(|cf_bool| cf_bool.value())
-    })?;
-
-    Ok(!minimized)
+    Ok(!self.application.is_hidden())
   }
 
   pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
