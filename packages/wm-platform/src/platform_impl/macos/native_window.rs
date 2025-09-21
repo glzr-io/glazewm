@@ -271,6 +271,20 @@ impl NativeWindow {
       self.application.bundle_id() == Some("com.apple.finder".to_string()),
     )
   }
+
+  pub(crate) fn focus_with_raise(&self) -> crate::Result<()> {
+    self.element.get_on_main(move |el| -> crate::Result<()> {
+      let result =
+        unsafe { el.perform_action(&CFString::from_str("AXRaise")) };
+      if result != AXError::Success {
+        return Err(crate::Error::Accessibility(
+          "AXRaise".to_string(),
+          result.0,
+        ));
+      }
+      Ok(())
+    })
+  }
 }
 
 impl From<NativeWindow> for crate::NativeWindow {

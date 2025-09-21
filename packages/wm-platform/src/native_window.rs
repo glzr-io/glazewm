@@ -151,6 +151,10 @@ impl NativeWindow {
   pub fn is_desktop_window(&self) -> crate::Result<bool> {
     self.inner.is_desktop_window()
   }
+
+  pub fn focus_with_raise(&self) -> crate::Result<()> {
+    self.inner.focus_with_raise()
+  }
 }
 
 impl PartialEq for NativeWindow {

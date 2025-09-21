@@ -81,11 +81,15 @@ fn sync_focus(
   focused_container: &Container,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
-  let native_window = match focused_container.as_window_container() {
-    Ok(window) => window.native().clone(),
-    // _ => Platform::desktop_window(),
-    _ => todo!(),
-  };
+  let native_window = focused_container.as_window_container().ok();
+
+  if let Err(err) = if let Some(window) = native_window {
+    window.native().focus_with_raise()
+  } else {
+    state.dispatcher.reset_focus()
+  } {
+    warn!("Failed to set focus: {}", err);
+  }
 
   // Set focus to the given window handle. If the container is a normal
   // window, then this will trigger a `PlatformEvent::WindowFocused` event.
