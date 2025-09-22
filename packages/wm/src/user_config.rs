@@ -2,8 +2,8 @@ use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use wm_common::{
-  InvokeCommand, MatchType, ParsedConfig, WindowMatchConfig,
-  WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
+  InvokeCommand, KeybindingConfig, MatchType, ParsedConfig,
+  WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
 };
 
 use crate::{
@@ -350,13 +350,30 @@ impl UserConfig {
     }
   }
 
-  pub fn all_bindings(
+  /// Keybinding configs that should be active for the current binding mode
+  /// and pause state.
+  ///
+  /// When paused, only the configs with `InvokeCommand::WmTogglePause` are
+  /// returned so that unpausing remains possible.
+  pub fn active_keybinding_configs(
     &self,
-  ) -> impl Iterator<Item = &wm_platform::Keybinding> {
-    self
-      .value
-      .keybindings
-      .iter()
-      .flat_map(|kb| kb.bindings.iter())
+    binding_modes: &[wm_common::BindingModeConfig],
+    is_paused: bool,
+  ) -> impl Iterator<Item = KeybindingConfig> {
+    let source_configs = if let Some(first_mode) = binding_modes.first() {
+      &first_mode.keybindings
+    } else {
+      &self.value.keybindings
+    }
+    .clone();
+
+    source_configs.into_iter().filter(move |kb| {
+      if is_paused {
+        kb.commands
+          .contains(&wm_common::InvokeCommand::WmTogglePause)
+      } else {
+        true
+      }
+    })
   }
 }

@@ -223,6 +223,11 @@ impl KeybindingListener {
       Self::create_keybinding_map(keybindings);
   }
 
+  /// Enables or disables the keybinding listener.
+  pub fn enable(&mut self, enabled: bool) {
+    // TODO: Implement platform-specific keybinding listener enabling.
+  }
+
   /// Stops the keybinding listener.
   pub fn stop(&mut self) -> crate::Result<()> {
     self.keyboard_hook.stop()

@@ -23,4 +23,9 @@ impl MouseListener {
     // TODO: Implement mouse event reception
     None
   }
+
+  /// Enables or disables the mouse listener.
+  pub fn enable(&mut self, enabled: bool) {
+    // TODO: Implement platform-specific mouse listener enabling
+  }
 }

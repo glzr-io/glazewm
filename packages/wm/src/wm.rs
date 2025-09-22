@@ -84,12 +84,12 @@ impl WindowManager {
         Ok(())
       }
       PlatformEvent::Keybinding(keybinding_event) => {
-        // Find the keybinding config that matches this keybinding and
-        // clone the commands
+        // Find the keybinding config that matches this keybinding.
         let commands = config
-          .value
-          .keybindings
-          .iter()
+          .active_keybinding_configs(
+            &self.state.binding_modes,
+            self.state.is_paused,
+          )
           .find(|kb_config| {
             kb_config.bindings.contains(&keybinding_event.0)
           })

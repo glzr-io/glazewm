@@ -3,13 +3,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use accessibility_sys::{
-  kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification,
-  kAXTitleChangedNotification, kAXUIElementDestroyedNotification,
-  kAXWindowCreatedNotification, kAXWindowDeminiaturizedNotification,
-  kAXWindowMiniaturizedNotification, kAXWindowMovedNotification,
-  kAXWindowResizedNotification,
-};
 use dispatch2::MainThreadBound;
 use objc2_application_services::{AXError, AXObserver, AXUIElement};
 use objc2_core_foundation::{
@@ -24,19 +17,17 @@ use crate::{
 };
 
 /// Notifications to register for the `AXUIElement` of an application.
-const AX_APP_NOTIFICATIONS: &[&str] = &[
-  kAXFocusedWindowChangedNotification,
-  kAXWindowCreatedNotification,
-];
+const AX_APP_NOTIFICATIONS: &[&str] =
+  &["AXFocusedWindowChanged", "AXWindowCreated"];
 
 /// Notifications to register for the `AXUIElement` of a window.
 const AX_WINDOW_NOTIFICATIONS: &[&str] = &[
-  kAXTitleChangedNotification,
-  kAXUIElementDestroyedNotification,
-  kAXWindowMovedNotification,
-  kAXWindowResizedNotification,
-  kAXWindowDeminiaturizedNotification,
-  kAXWindowMiniaturizedNotification,
+  "AXTitleChanged",
+  "AXUIElementDestroyed",
+  "AXWindowMoved",
+  "AXWindowResized",
+  "AXWindowDeminiaturized",
+  "AXWindowMiniaturized",
 ];
 
 /// Context passed to the application event callback.
@@ -252,7 +243,7 @@ impl ApplicationObserver {
         .cloned()
     };
 
-    if notification_str.as_str() == kAXUIElementDestroyedNotification {
+    if notification_str.as_str() == "AXUIElementDestroyed" {
       if let Some(window) = &found_window {
         context
           .app_windows
@@ -302,22 +293,13 @@ impl ApplicationObserver {
     }
 
     let window_event = match notification_str.as_str() {
-      kAXFocusedWindowChangedNotification => {
-        Some(WindowEvent::Focus(window))
-      }
-      kAXWindowMovedNotification | kAXWindowResizedNotification => {
+      "AXFocusedWindowChanged" => Some(WindowEvent::Focus(window)),
+      "AXWindowMoved" | "AXWindowResized" => {
         Some(WindowEvent::LocationChange(window))
       }
-      kAXWindowMiniaturizedNotification => {
-        Some(WindowEvent::Minimize(window))
-      }
-      kAXWindowDeminiaturizedNotification => {
-        Some(WindowEvent::MinimizeEnd(window))
-      }
-      kAXTitleChangedNotification => {
-        Some(WindowEvent::TitleChange(window))
-      }
-      kAXMainWindowChangedNotification => Some(WindowEvent::Focus(window)),
+      "AXWindowMiniaturized" => Some(WindowEvent::Minimize(window)),
+      "AXWindowDeminiaturized" => Some(WindowEvent::MinimizeEnd(window)),
+      "AXTitleChanged" => Some(WindowEvent::TitleChange(window)),
       _ => {
         tracing::debug!(
           "Unhandled window notification: {} for PID: {}",
