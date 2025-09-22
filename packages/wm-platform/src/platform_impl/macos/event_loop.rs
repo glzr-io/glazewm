@@ -2,6 +2,7 @@ use std::sync::{atomic::AtomicBool, mpsc, Arc};
 
 use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
+use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
   CFRunLoopSourceContext,
@@ -70,8 +71,12 @@ impl EventLoop {
   /// This method will block the current thread until the event loop is
   /// stopped.
   pub fn run(&self) -> crate::Result<()> {
+    let mtm =
+      MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
+
     tracing::info!("Starting macOS event loop.");
-    CFRunLoop::run();
+    NSApplication::sharedApplication(mtm).run();
+
     tracing::info!("macOS event loop exiting.");
     Ok(())
   }
@@ -81,7 +86,15 @@ impl EventLoop {
   ///
   /// Can only be called on the main thread.
   pub(crate) fn add_dispatch_source() -> crate::Result<EventLoopSource> {
-    MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
+    let mtm =
+      MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
+
+    // Ensure NSApplication is initialized on the main thread so
+    // AppKit-based components (e.g. status bar items) are fully
+    // functional. Use Accessory policy to avoid a Dock icon while
+    // still allowing UI.
+    let ns_app = NSApplication::sharedApplication(mtm);
+    ns_app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
 
     let (dispatch_tx, dispatch_rx) = mpsc::channel();
     let dispatch_rx_ptr =
@@ -137,8 +150,10 @@ impl Drop for EventLoop {
   fn drop(&mut self) {
     tracing::info!("Shutting down event loop.");
 
-    // Removing the added `CFRunLoopSource` prior to stopping the run loop
-    // is not necessary.
-    self.source.run_loop.stop();
+    // Stop the run loop if not already stopped. Removing the added
+    // `CFRunLoopSource` prior to stopping the run loop is not necessary.
+    if let Some(mtm) = MainThreadMarker::new() {
+      NSApplication::sharedApplication(mtm).stop(None);
+    }
   }
 }

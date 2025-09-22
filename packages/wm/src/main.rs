@@ -18,14 +18,15 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
-use wm_common::{AppCommand, Verbosity, WmEvent};
+use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 use wm_platform::{
   Dispatcher, EventLoop, KeybindingListener, MouseListener, PlatformEvent,
   WindowListener,
 };
 
 use crate::{
-  ipc_server::IpcServer, user_config::UserConfig, wm::WindowManager,
+  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
+  wm::WindowManager,
 };
 
 mod commands;
@@ -33,7 +34,7 @@ mod events;
 mod ipc_server;
 mod models;
 mod pending_sync;
-// mod sys_tray;
+mod sys_tray;
 mod traits;
 mod user_config;
 mod wm;
@@ -83,6 +84,7 @@ fn main() -> anyhow::Result<()> {
   }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
@@ -98,8 +100,8 @@ async fn start_wm(
   let mut config = UserConfig::new(config_path)?;
 
   // Add application icon to system tray.
-  // TODO: Implement this for macOS.
-  // let mut tray = SystemTray::new(&config.path)?;
+  // let mut tray = SystemTray::new(&config.path, &dispatcher)?;
+  let tray = SystemTray::install(&dispatcher)?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 

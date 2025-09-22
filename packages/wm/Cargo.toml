@@ -24,6 +24,7 @@ clap = { workspace = true }
 enum-as-inner = "0.6"
 futures-util = { workspace = true }
 home = { workspace = true }
+image = "0.25"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
@@ -32,7 +33,7 @@ tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tracing-appender = "0.2"
 tracing-subscriber = { workspace = true }
-tray-icon = "0.20"
+tray-icon = "0.21"
 uuid = { workspace = true }
 wm-common = { path = "../wm-common" }
 wm-cli = { path = "../wm-cli" }
