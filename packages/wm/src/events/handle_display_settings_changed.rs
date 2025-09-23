@@ -17,7 +17,8 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  let native_monitors = Platform::sorted_monitors_with_config(&config.value.monitors)?;
+  let native_monitors =
+    Platform::sorted_monitors_with_config(&config.value.monitors)?;
 
   let hardware_ids = native_monitors
     .iter()
@@ -109,7 +110,10 @@ pub fn handle_display_settings_changed(
   }
 
   // Sort monitors by position and configuration.
-  sort_monitors_with_config(&state.root_container, &config.value.monitors)?;
+  sort_monitors_with_config(
+    &state.root_container,
+    &config.value.monitors,
+  )?;
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark

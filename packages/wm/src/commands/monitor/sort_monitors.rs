@@ -3,12 +3,6 @@ use crate::{
   traits::{CommonGetters, PositionGetters},
 };
 
-/// Sorts the root container's monitors from left-to-right and
-/// top-to-bottom.
-pub fn sort_monitors(root: &RootContainer) -> anyhow::Result<()> {
-  sort_monitors_with_config(root, &[])
-}
-
 /// Sorts the root container's monitors according to configuration, falling
 /// back to physical position (left-to-right, top-to-bottom) for
 /// unconfigured monitors.
