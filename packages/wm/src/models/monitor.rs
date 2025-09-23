@@ -89,6 +89,9 @@ impl Monitor {
       .map(CommonGetters::to_dto)
       .try_collect()?;
 
+    let hardware_id = self.native().hardware_id()?.cloned();
+    let machine_id = self.native().machine_id()?;
+
     Ok(ContainerDto::Monitor(MonitorDto {
       id: self.id(),
       parent_id: self.parent().map(|parent| parent.id()),
@@ -104,8 +107,10 @@ impl Monitor {
       handle: self.native().handle,
       device_name: self.native().device_name()?.clone(),
       device_path: self.native().device_path()?.cloned(),
-      hardware_id: self.native().hardware_id()?.cloned(),
+      hardware_id,
+      machine_id, // Clean machine ID extracted from device path
       working_rect: self.native().working_rect()?.clone(),
+      index: self.index(),
     }))
   }
 }

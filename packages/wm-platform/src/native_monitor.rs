@@ -55,6 +55,23 @@ impl NativeMonitor {
     self.monitor_info().map(|info| info.hardware_id.as_ref())
   }
 
+  /// Extracts a clean machine ID from the device path for configuration
+  /// purposes.
+  ///
+  /// Extracts the meaningful part from device paths like:
+  /// `\\?\DISPLAY#MSI3CA8#5&2fdae59&0&UID4358#{...}`
+  /// to produce: `MSI3CA8#5&2fdae59&0&UID4358`
+  pub fn machine_id(&self) -> anyhow::Result<Option<String>> {
+    Ok(self.device_path()?.and_then(|path| {
+      path
+        .strip_prefix("\\\\?\\DISPLAY#")?
+        .split_once("#{")?
+        .0
+        .to_string()
+        .into()
+    }))
+  }
+
   pub fn rect(&self) -> anyhow::Result<&Rect> {
     self.monitor_info().map(|info| &info.rect)
   }
