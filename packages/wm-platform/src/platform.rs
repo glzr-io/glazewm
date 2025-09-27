@@ -163,7 +163,7 @@ impl Platform {
   /// Gets the mouse position in screen space.
   pub fn mouse_position() -> anyhow::Result<Point> {
     let mut point = POINT { x: 0, y: 0 };
-    unsafe { GetCursorPos(&mut point) }?;
+    unsafe { GetCursorPos(&raw mut point) }?;
 
     Ok(Point {
       x: point.x,
@@ -184,7 +184,7 @@ impl Platform {
       ..Default::default()
     };
 
-    unsafe { RegisterClassW(&wnd_class) };
+    unsafe { RegisterClassW(&raw const wnd_class) };
 
     let handle = unsafe {
       CreateWindowExW(
@@ -218,10 +218,10 @@ impl Platform {
     let mut msg = MSG::default();
 
     loop {
-      if unsafe { GetMessageW(&mut msg, None, 0, 0) }.as_bool() {
+      if unsafe { GetMessageW(&raw mut msg, None, 0, 0) }.as_bool() {
         unsafe {
-          TranslateMessage(&msg);
-          DispatchMessageW(&msg);
+          TranslateMessage(&raw const msg);
+          DispatchMessageW(&raw const msg);
         }
       } else {
         break;
@@ -236,7 +236,8 @@ impl Platform {
     let mut msg = MSG::default();
 
     let has_message =
-      unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE) }.as_bool();
+      unsafe { PeekMessageW(&raw mut msg, None, 0, 0, PM_REMOVE) }
+        .as_bool();
 
     if has_message {
       if msg.message == WM_QUIT {
@@ -244,8 +245,8 @@ impl Platform {
       }
 
       unsafe {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
+        TranslateMessage(&raw const msg);
+        DispatchMessageW(&raw const msg);
       }
     }
 
@@ -462,7 +463,7 @@ impl Platform {
       ..Default::default()
     };
 
-    unsafe { ShellExecuteExW(&mut exec_info) }?;
+    unsafe { ShellExecuteExW(&raw mut exec_info) }?;
     Ok(())
   }
 

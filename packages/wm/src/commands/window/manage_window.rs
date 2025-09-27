@@ -196,7 +196,14 @@ fn window_state_to_create(
     return Ok(WindowState::Minimized);
   }
 
-  let monitor_rect = if config.has_outer_gaps() {
+  let nearest_workspace = nearest_monitor
+    .displayed_workspace()
+    .context("No Workspace.")?;
+
+  let monitor_rect = if config
+    .outer_gaps_for_workspace(&nearest_workspace)
+    .is_significant()
+  {
     nearest_monitor.native().working_rect()?.clone()
   } else {
     nearest_monitor.to_rect()?
@@ -213,8 +220,8 @@ fn window_state_to_create(
     ));
   }
 
-  // Initialize non-resizable windows and popups as floating.
-  if !native_window.is_resizable() || native_window.is_popup() {
+  // Initialize windows that can't be resized as floating.
+  if !native_window.is_resizable() {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
     ));
