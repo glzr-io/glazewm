@@ -55,9 +55,14 @@ pub(crate) struct ApplicationObserver {
 unsafe impl Send for ApplicationObserver {}
 
 impl ApplicationObserver {
+  /// Creates a new `ApplicationObserver` for the given application.
+  ///
+  /// If `is_startup` is `true`, the observer will not emit
+  /// `WindowEvent::Show` for windows already running on startup.
   pub fn new(
     app: &Application,
     events_tx: mpsc::UnboundedSender<WindowEvent>,
+    is_startup: bool,
   ) -> crate::Result<Self> {
     // Creation of `AXUIElement` for an application does not fail even if
     // the PID is invalid. Instead, subsequent operations on the returned
@@ -119,12 +124,17 @@ impl ApplicationObserver {
         );
       }
 
-      if let Err(err) = events_tx.send(WindowEvent::Show(window.clone())) {
-        tracing::warn!(
-          "Failed to send window event for PID {}: {}",
-          app.pid,
-          err
-        );
+      // Don't emit `WindowEvent::Show` for windows that are already
+      // running on startup.
+      if !is_startup {
+        if let Err(err) = events_tx.send(WindowEvent::Show(window.clone()))
+        {
+          tracing::warn!(
+            "Failed to send window event for PID {}: {}",
+            app.pid,
+            err
+          );
+        }
       }
     }
 

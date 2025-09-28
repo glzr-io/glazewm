@@ -130,7 +130,7 @@ impl WindowListener {
               )));
             }
 
-            ApplicationObserver::new(&app, events_tx.clone())
+            ApplicationObserver::new(&app, events_tx.clone(), false)
           }) else {
             continue;
           };
@@ -189,7 +189,7 @@ impl WindowListener {
       )));
     }
 
-    let app_observer_res = ApplicationObserver::new(app, events_tx);
+    let app_observer_res = ApplicationObserver::new(app, events_tx, true);
 
     if let Err(err) = &app_observer_res {
       tracing::debug!(
