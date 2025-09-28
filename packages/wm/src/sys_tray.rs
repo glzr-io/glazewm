@@ -53,41 +53,32 @@ impl SystemTray {
   /// Install the system tray on the main thread after the run loop starts.
   pub fn new(
     config_path: &Path,
-    dispatcher: &Dispatcher,
+    dispatcher: Dispatcher,
   ) -> anyhow::Result<Self> {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
-    let _config_dir = config_path
-      .parent()
-      .context("Invalid config path.")?
-      .to_owned();
 
-    let tray_icon = dispatcher.dispatch_sync(move || {
+    let tray_icon = dispatcher.dispatch_sync(|| {
       let tray_icon = Self::create_tray_icon().unwrap();
       ThreadBound::new(tray_icon, dispatcher.clone())
     })?;
 
-    // Spawn thread to handle menu events and forward them to channels
+    // Spawn thread to handle tray menu events.
+    let config_path = config_path.to_owned();
     let icon_thread = std::thread::spawn(move || {
       let menu_event_rx = MenuEvent::receiver();
 
       while let Ok(event) = menu_event_rx.recv() {
-        let event_res = match TrayMenuId::from_str(event.id.as_ref()) {
-          Ok(TrayMenuId::ShowConfigFolder) => {
-            // TODO: Implement show config folder
-            tracing::info!("Show config folder requested");
-            Ok(())
+        if let Ok(menu_event) = TrayMenuId::from_str(event.id.as_ref()) {
+          if let Err(err) = Self::handle_menu_event(
+            &menu_event,
+            &dispatcher,
+            &config_path,
+            &config_reload_tx,
+            &exit_tx,
+          ) {
+            tracing::warn!("Failed to handle tray menu event: {}", err);
           }
-          Ok(TrayMenuId::ReloadConfig) => config_reload_tx.send(()),
-          Ok(TrayMenuId::Exit) => exit_tx.send(()),
-          Err(err) => {
-            tracing::warn!("Failed to parse tray menu event: {}", err);
-            continue;
-          }
-        };
-
-        if let Err(err) = event_res {
-          tracing::warn!("Failed to send tray menu event: {}", err);
         }
       }
     });
@@ -126,12 +117,9 @@ impl SystemTray {
       &exit_item,
     ])?;
 
-    let path = concat!(
-      env!("CARGO_MANIFEST_DIR"),
-      "/../../resources/assets/icon.png"
-    );
-
-    let icon = Self::load_icon(Path::new(path))?;
+    let icon = Self::load_icon(include_bytes!(
+      "../../../resources/assets/icon.png"
+    ))?;
 
     let tray_icon = TrayIconBuilder::new()
       .with_menu(Box::new(tray_menu))
@@ -142,10 +130,10 @@ impl SystemTray {
     Ok(tray_icon)
   }
 
-  fn load_icon(path: &Path) -> anyhow::Result<Icon> {
+  fn load_icon(bytes: &[u8]) -> anyhow::Result<Icon> {
     let (icon_rgba, icon_width, icon_height) = {
-      let image = image::open(path)
-        .context("Failed to open icon path.")?
+      let image = image::load_from_memory(bytes)
+        .context("Failed to to create tray icon image from resource.")?
         .into_rgba8();
 
       let (width, height) = image.dimensions();
@@ -158,6 +146,31 @@ impl SystemTray {
       icon_width,
       icon_height,
     )?)
+  }
+
+  fn handle_menu_event(
+    menu_id: &TrayMenuId,
+    dispatcher: &Dispatcher,
+    config_path: &Path,
+    config_reload_tx: &mpsc::UnboundedSender<()>,
+    exit_tx: &mpsc::UnboundedSender<()>,
+  ) -> anyhow::Result<()> {
+    tracing::info!("Processing tray menu event: {:?}", menu_id);
+
+    match menu_id {
+      TrayMenuId::ShowConfigFolder => {
+        dispatcher.open_file_explorer(config_path)?;
+        Ok(())
+      }
+      TrayMenuId::ReloadConfig => {
+        config_reload_tx.send(())?;
+        Ok(())
+      }
+      TrayMenuId::Exit => {
+        exit_tx.send(())?;
+        Ok(())
+      }
+    }
   }
 
   /// Destroys the system tray icon and stops its associated message loop.

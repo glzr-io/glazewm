@@ -1,4 +1,5 @@
 use std::{
+  path::Path,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -256,6 +257,29 @@ impl Dispatcher {
   ///   the desktop application.
   pub fn reset_focus(&self) -> crate::Result<()> {
     platform_impl::reset_focus(self)
+  }
+
+  /// Opens the OS-specific file explorer at the specified path.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Uses `explorer` to open the file explorer.
+  /// - **macOS**: Uses `open` to open the file explorer.
+  pub fn open_file_explorer(&self, path: &Path) -> crate::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+      std::process::Command::new("explorer").arg(path).spawn()?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+      std::process::Command::new("open")
+        .arg(path)
+        .arg("-R")
+        .spawn()?;
+    }
+
+    Ok(())
   }
 }
 

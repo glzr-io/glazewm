@@ -100,7 +100,7 @@ async fn start_wm(
   let mut config = UserConfig::new(config_path)?;
 
   // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.path, &dispatcher)?;
+  let mut tray = SystemTray::new(&config.path, dispatcher.clone())?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 
