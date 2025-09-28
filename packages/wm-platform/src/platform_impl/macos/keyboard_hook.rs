@@ -208,7 +208,7 @@ impl KeyboardHook {
   #[allow(clippy::unnecessary_wraps)]
   pub fn stop(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.event_tap.take() {
-      self.dispatcher.dispatch(move || unsafe {
+      self.dispatcher.dispatch_async(move || unsafe {
         let tap_ref = tap.get(MainThreadMarker::new_unchecked());
         CGEvent::tap_enable(tap_ref, false);
       })?;

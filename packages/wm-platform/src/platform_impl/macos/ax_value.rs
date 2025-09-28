@@ -31,7 +31,7 @@ impl AXValueTypeMarker for CFRange {
 pub trait AXValueExt {
   /// Creates a new `AXValue` from the given value.
   ///
-  /// This is a wrapper over the `AXValue::new` method from `objc2`.
+  /// This is a wrapper over `AXValue::new` from `objc2`.
   ///
   /// # Errors
   ///
@@ -42,7 +42,7 @@ pub trait AXValueExt {
 
   /// Extracts the value from this `AXValue`.
   ///
-  /// This is a wrapper over the `AXValue::value` method from `objc2`.
+  /// This is a wrapper over `AXValue::value` from `objc2`.
   ///
   /// # Errors
   ///

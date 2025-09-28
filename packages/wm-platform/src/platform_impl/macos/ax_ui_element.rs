@@ -5,19 +5,8 @@ use objc2_core_foundation::{CFRetained, CFString, CFType};
 
 use crate::Error;
 
-pub type AXUIElementRef = *mut AXUIElement;
-
 /// Extension trait for `AXUIElement`.
 pub trait AXUIElementExt {
-  /// Creates a retained `AXUIElement` from a raw `AXUIElementRef`.
-  ///
-  /// # Errors
-  ///
-  /// Returns an error if `element_ref` is a null pointer.
-  fn from_ref(
-    element_ref: AXUIElementRef,
-  ) -> crate::Result<CFRetained<AXUIElement>>;
-
   /// Retrieves the value of an accessibility attribute.
   ///
   /// # Errors
@@ -43,28 +32,18 @@ pub trait AXUIElementExt {
 }
 
 impl AXUIElementExt for AXUIElement {
-  fn from_ref(
-    element_ref: AXUIElementRef,
-  ) -> crate::Result<CFRetained<Self>> {
-    let ptr = NonNull::new(element_ref).ok_or_else(|| {
-      Error::InvalidPointer("AXUIElementRef is null".to_string())
-    })?;
-
-    // SAFETY: Pointer is verified to be non-null.
-    Ok(unsafe { CFRetained::retain(ptr.cast()) })
-  }
-
   fn get_attribute<T: objc2_core_foundation::Type>(
     &self,
     attribute: &str,
   ) -> crate::Result<CFRetained<T>> {
-    let cf_attribute = CFString::from_str(attribute);
     let mut value: *const CFType = ptr::null();
 
     let result = unsafe {
       self.copy_attribute_value(
-        &cf_attribute,
-        NonNull::new(&raw mut value).expect("Failed to get mut ptr"),
+        &CFString::from_str(attribute),
+        // SAFETY: Stack address of `value` is guaranteed to be
+        // non-null.
+        NonNull::new(&raw mut value).unwrap(),
       )
     };
 
@@ -73,13 +52,7 @@ impl AXUIElementExt for AXUIElement {
     }
 
     NonNull::new(value.cast_mut())
-      .map(|ptr| {
-        // SAFETY: The copy_attribute_value function guarantees that
-        // if it succeeds (result == 0), the returned pointer is valid and
-        // properly initialized. We take ownership of this retained
-        // reference.
-        unsafe { CFRetained::from_raw(ptr.cast()) }
-      })
+      .map(|ptr| unsafe { CFRetained::from_raw(ptr.cast()) })
       .ok_or_else(|| {
         Error::InvalidPointer(
           "copy_attribute_value returned success but null pointer"
@@ -107,13 +80,29 @@ impl AXUIElementExt for AXUIElement {
 
 #[cfg(test)]
 mod tests {
+  use objc2_core_foundation::CFString;
+
   use super::*;
 
   #[test]
-  fn test_ax_element_creation_with_null_pointer() {
-    let null_ref = std::ptr::null_mut();
-    let result = AXUIElement::from_ref(null_ref);
+  fn get_attribute_invalid_attribute_is_err() {
+    let pid = i32::try_from(std::process::id()).expect("pid overflow");
 
-    assert!(matches!(result, Err(Error::InvalidPointer(_))));
+    let el = unsafe { AXUIElement::new_application(pid) };
+    let result =
+      el.get_attribute::<CFString>("AXDefinitelyNotARealAttribute");
+
+    assert!(result.is_err());
+  }
+
+  #[test]
+  fn set_attribute_invalid_attribute_is_err() {
+    let pid = i32::try_from(std::process::id()).expect("pid overflow");
+
+    let el = unsafe { AXUIElement::new_application(pid) };
+    let value = CFString::from_str("dummy");
+    let result = el.set_attribute("AXDefinitelyNotARealAttribute", &value);
+
+    assert!(result.is_err());
   }
 }

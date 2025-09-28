@@ -1,6 +1,9 @@
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
+use std::{
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
+  thread::ThreadId,
 };
 
 #[cfg(target_os = "macos")]
@@ -8,7 +11,7 @@ use crate::platform_impl::Application;
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow, Point};
 
 /// Type alias for a closure to be executed by the event loop.
-pub type DispatchFn = dyn FnOnce() + Send + 'static;
+pub type DispatchFn = dyn FnOnce() + Send;
 
 /// macOS-specific extensions for `Dispatcher`.
 #[cfg(target_os = "macos")]
@@ -49,7 +52,7 @@ impl DispatcherExtMacOs for Dispatcher {
 ///
 /// // Dispatch from another thread.
 /// thread::spawn(move || {
-///   dispatcher.dispatch(|| {
+///   dispatcher.dispatch_async(|| {
 ///     println!("This is running on the event loop thread!");
 ///   }).unwrap();
 /// });
@@ -97,7 +100,7 @@ impl Dispatcher {
   ///
   /// Returns `Ok(())` if the closure was successfully queued. No result is
   /// returned.
-  pub fn dispatch<F>(&self, dispatch_fn: F) -> crate::Result<()>
+  pub fn dispatch_async<F>(&self, dispatch_fn: F) -> crate::Result<()>
   where
     F: FnOnce() + Send + 'static,
   {
@@ -106,8 +109,8 @@ impl Dispatcher {
       return Err(crate::Error::EventLoopStopped);
     }
 
-    // Execute the function directly if already on the main thread.
-    if self.is_main_thread() {
+    // Execute the function directly if already on the event loop thread.
+    if self.is_event_loop_thread() {
       dispatch_fn();
       return Ok(());
     }
@@ -118,7 +121,7 @@ impl Dispatcher {
       //   window messages.
       // * On macOS, this uses `CFRunLoopSourceSignal` to wake the run loop
       //   and process callbacks.
-      source.send_dispatch(Box::new(dispatch_fn))?;
+      source.send_dispatch_async(dispatch_fn)?;
     }
 
     Ok(())
@@ -134,12 +137,23 @@ impl Dispatcher {
   /// Returns a result with the closure's return value.
   pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
   where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
+    F: FnOnce() -> R + Send,
+    R: Send,
   {
+    // Check if stopped first.
+    if self.stopped.load(Ordering::SeqCst) {
+      return Err(crate::Error::EventLoopStopped);
+    }
+
+    // Execute the function directly if already on the event loop thread.
+    if self.is_event_loop_thread() {
+      return Ok(dispatch_fn());
+    }
+
     let (result_tx, result_rx) = std::sync::mpsc::channel();
 
-    self.dispatch(move || {
+    // TODO: Block until event loop source is set.
+    self.source.as_ref().unwrap().send_dispatch_sync(move || {
       let result = dispatch_fn();
 
       if result_tx.send(result).is_err() {
@@ -152,19 +166,17 @@ impl Dispatcher {
       .map_err(crate::Error::ChannelRecv)
   }
 
-  /// Get whether the current thread is the main thread.
+  /// Get the thread ID of the event loop thread.
   #[must_use]
-  pub fn is_main_thread(&self) -> bool {
-    #[cfg(target_os = "macos")]
-    {
-      use objc2::MainThreadMarker;
-      MainThreadMarker::new().is_some()
-    }
-    #[cfg(target_os = "windows")]
-    {
-      use windows::Win32::System::Threading::GetCurrentThreadId;
-      self.source.thread_id == unsafe { GetCurrentThreadId() }
-    }
+  pub fn thread_id(&self) -> ThreadId {
+    // TODO: Block until event loop source is set.
+    self.source.as_ref().unwrap().thread_id
+  }
+
+  /// Get whether the current thread is the event loop thread.
+  #[must_use]
+  fn is_event_loop_thread(&self) -> bool {
+    std::thread::current().id() == self.thread_id()
   }
 
   /// Gets all active displays.
@@ -271,7 +283,7 @@ mod tests {
       .expect("Failed to stop dispatcher.");
 
     // Try to dispatch asynchronously - should fail.
-    let result = dispatcher.dispatch(|| {});
+    let result = dispatcher.dispatch_async(|| {});
     assert!(matches!(result, Err(crate::Error::EventLoopStopped)));
 
     // Try dispatch synchronously - should fail.
@@ -319,7 +331,7 @@ mod tests {
         let results = results.clone();
         std::thread::spawn(move || {
           dispatcher
-            .dispatch(move || {
+            .dispatch_async(move || {
               results.lock().unwrap().push(index);
             })
             .unwrap();

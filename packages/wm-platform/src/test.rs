@@ -12,6 +12,7 @@ mod mouse_listener;
 mod native_window;
 mod platform_event;
 mod platform_impl;
+mod thread_bound;
 mod window_listener;
 
 pub use dispatcher::*;
@@ -30,6 +31,7 @@ pub use platform_impl::{
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{DisplayDeviceExtWindows, DisplayExtWindows};
+pub use thread_bound::*;
 pub use window_listener::*;
 
 pub fn main() {

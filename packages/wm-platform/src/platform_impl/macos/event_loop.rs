@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicBool, mpsc, Arc};
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  mpsc, Arc,
+};
 
 use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
@@ -15,27 +18,39 @@ pub(crate) struct EventLoopSource {
   dispatch_tx: mpsc::Sender<Box<DispatchFn>>,
   source: CFRetained<CFRunLoopSource>,
   run_loop: CFRetained<CFRunLoop>,
+  pub(crate) thread_id: std::thread::ThreadId,
 }
 
 impl EventLoopSource {
+  pub fn send_dispatch_async<F>(&self, dispatch_fn: F) -> crate::Result<()>
+  where
+    F: FnOnce() + Send + 'static,
+  {
+    DispatchQueue::main().exec_async(dispatch_fn);
+    Ok(())
+  }
+
   #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-  pub fn send_dispatch(
-    &self,
-    dispatch_fn: Box<DispatchFn>,
-  ) -> crate::Result<()> {
+  pub fn send_dispatch_sync<F>(&self, dispatch_fn: F) -> crate::Result<()>
+  where
+    F: FnOnce() + Send,
+  {
     // TODO: Fully remove dispatch channels (`dispatch_tx` and
     // `dispatch_rx`).
     // TODO: Not sure whether to use `exec_async` or `exec_sync`.
     // `exec_async` might be more performant, but removes the ordering
     // guarantee.
-    DispatchQueue::main().exec_async(dispatch_fn);
+    // TODO: This deadlocks if the event loop is stopped.
+    DispatchQueue::main().exec_sync(dispatch_fn);
     Ok(())
   }
 
   #[allow(clippy::unnecessary_wraps)]
   pub fn send_stop(&self) -> crate::Result<()> {
-    self.run_loop.stop();
-    Ok(())
+    self.send_dispatch_async(|| {
+      let mtm = unsafe { MainThreadMarker::new_unchecked() };
+      unsafe { NSApplication::sharedApplication(mtm).terminate(None) };
+    })
   }
 }
 
@@ -48,6 +63,7 @@ unsafe impl Sync for EventLoopSource {}
 /// macOS-specific implementation of [`EventLoop`].
 pub(crate) struct EventLoop {
   source: EventLoopSource,
+  stopped: Arc<AtomicBool>,
 }
 
 impl EventLoop {
@@ -56,11 +72,13 @@ impl EventLoop {
     let source = Self::add_dispatch_source()?;
 
     let stopped = Arc::new(AtomicBool::new(false));
-    let dispatcher = Dispatcher::new(Some(source.clone()), stopped);
+    let dispatcher =
+      Dispatcher::new(Some(source.clone()), stopped.clone());
 
     Ok((
       Self {
         source: source.clone(),
+        stopped,
       },
       dispatcher,
     ))
@@ -131,6 +149,7 @@ impl EventLoop {
       dispatch_tx,
       source,
       run_loop,
+      thread_id: std::thread::current().id(),
     })
   }
 
@@ -152,8 +171,8 @@ impl Drop for EventLoop {
 
     // Stop the run loop if not already stopped. Removing the added
     // `CFRunLoopSource` prior to stopping the run loop is not necessary.
-    if let Some(mtm) = MainThreadMarker::new() {
-      NSApplication::sharedApplication(mtm).stop(None);
+    if !self.stopped.load(Ordering::SeqCst) {
+      let _ = self.source.send_stop();
     }
   }
 }
