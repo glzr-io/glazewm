@@ -100,8 +100,7 @@ async fn start_wm(
   let mut config = UserConfig::new(config_path)?;
 
   // Add application icon to system tray.
-  // let mut tray = SystemTray::new(&config.path, &dispatcher)?;
-  let tray = SystemTray::install(&dispatcher)?;
+  let mut tray = SystemTray::new(&config.path, &dispatcher)?;
 
   let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
 
@@ -135,10 +134,10 @@ async fn start_wm(
         tracing::info!("Exiting through WM command.");
         break;
       },
-      // Some(()) = tray.exit_rx.recv() => {
-      //   tracing::info!("Exiting through system tray.");
-      //   break;
-      // },
+      Some(()) = tray.exit_rx.recv() => {
+        tracing::info!("Exiting through system tray.");
+        break;
+      },
       Some(event) = window_listener.next_event() => {
         tracing::debug!("Received platform event: {:?}", event);
         wm.process_event(PlatformEvent::Window(event), &mut config)
@@ -199,13 +198,13 @@ async fn start_wm(
 
         Ok(())
       },
-      // Some(()) = tray.config_reload_rx.recv() => {
-      //   wm.process_commands(
-      //     &vec![InvokeCommand::WmReloadConfig],
-      //     None,
-      //     &mut config,
-      //   ).map(|_| ())
-      // },
+      Some(()) = tray.config_reload_rx.recv() => {
+        wm.process_commands(
+          &vec![InvokeCommand::WmReloadConfig],
+          None,
+          &mut config,
+        ).map(|_| ())
+      },
     };
 
     if let Err(err) = res {
