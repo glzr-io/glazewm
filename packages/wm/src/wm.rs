@@ -20,9 +20,9 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
-      update_window_state, WindowPositionTarget,
+      ignore_window, move_window_in_direction,
+      move_window_to_workspace, resize_window, set_window_position,
+      set_window_size, update_window_state, WindowPositionTarget,
     },
     workspace::{focus_workspace, move_workspace_in_direction},
   },
@@ -34,7 +34,7 @@ use crate::{
     handle_window_moved_or_resized_start, handle_window_shown,
     handle_window_title_changed,
   },
-  models::{Container, WorkspaceTarget},
+  models::{Container, WindowContainer, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -203,23 +203,40 @@ impl WindowManager {
 
     match &command {
       InvokeCommand::AdjustBorders(args) => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            let args = args.clone();
-            let border_delta = RectDelta::new(
-              args.left.unwrap_or(LengthValue::from_px(0)),
-              args.top.unwrap_or(LengthValue::from_px(0)),
-              args.right.unwrap_or(LengthValue::from_px(0)),
-              args.bottom.unwrap_or(LengthValue::from_px(0)),
-            );
+        let windows: Vec<WindowContainer> =
+          if let Some(class_name) = &args.class_name {
+            state
+              .windows()
+              .into_iter()
+              .filter(|w| {
+                w.native()
+                  .class_name()
+                  .ok()
+                  .map(|c| c.starts_with(class_name))
+                  == Some(true)
+              })
+              .collect::<Vec<_>>()
+          } else {
+            subject_container
+              .as_window_container()
+              .into_iter()
+              .collect::<Vec<_>>()
+          };
 
-            window.set_border_delta(border_delta);
-            state.pending_sync.queue_container_to_redraw(window);
+        for window in windows {
+          let window: WindowContainer = window;
+          let args = args.clone();
+          let border_delta = RectDelta::new(
+            args.left.unwrap_or(LengthValue::from_px(0)),
+            args.top.unwrap_or(LengthValue::from_px(0)),
+            args.right.unwrap_or(LengthValue::from_px(0)),
+            args.bottom.unwrap_or(LengthValue::from_px(0)),
+          );
 
-            Ok(())
-          }
-          _ => Ok(()),
+          window.set_border_delta(border_delta);
+          state.pending_sync.queue_container_to_redraw(window);
         }
+        Ok(())
       }
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
