@@ -59,11 +59,6 @@ pub trait CommonGetters {
     !self.borrow_children().is_empty()
   }
 
-  /// Whether this container has any siblings.
-  fn has_siblings(&self) -> bool {
-    self.siblings().count() > 0
-  }
-
   /// Whether this container is detached from the tree (i.e. it does not
   /// have a parent).
   fn is_detached(&self) -> bool {

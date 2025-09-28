@@ -93,35 +93,42 @@ impl IpcServer {
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     let (disconnection_tx, _) = broadcast::channel(16);
 
-    loop {
-      tokio::select! {
-        Some(response) = response_rx.recv() => {
-          if let Err(err) = outgoing.send(response).await {
-            warn!("Error sending response: {}", err);
-            break;
+    let res = async {
+      loop {
+        tokio::select! {
+          Some(response) = response_rx.recv() => {
+            outgoing.send(response).await?;
           }
-        }
-        message = incoming.next() => {
-          if let Some(Ok(message)) = message {
-            if message.is_text() || message.is_binary() {
-              message_tx.send((
-                message.to_text()?.to_owned(),
-                response_tx.clone(),
-                disconnection_tx.clone(),
-              ))?;
+          message = incoming.next() => {
+            match message {
+              Some(Ok(message)) => {
+                if message.is_text() || message.is_binary() {
+                  message_tx.send((
+                    message.to_text()?.to_string(),
+                    response_tx.clone(),
+                    disconnection_tx.clone(),
+                  ))?;
+                }
+              }
+              Some(Err(err)) => bail!("WebSocket error: {}", err),
+              None => {
+                // WebSocket connection closed.
+                break Ok(());
+              },
             }
-          } else {
-            warn!("Could not read next websocket message.");
-            break;
           }
         }
       }
     }
+    .await;
 
     info!("IPC disconnection from: {}.", addr);
-    disconnection_tx.send(())?;
 
-    Ok(())
+    if let Err(err) = disconnection_tx.send(()) {
+      warn!("Failed to broadcast disconnection: {}", err);
+    }
+
+    res
   }
 
   pub fn process_message(
@@ -151,7 +158,10 @@ impl IpcServer {
 
     // Respond to the client with the result of the command.
     response_tx
-      .send(Self::to_client_response_msg(message, response_data)?)?;
+      .send(Self::to_client_response_msg(message, response_data)?)
+      .map_err(|err| {
+        anyhow::anyhow!("Failed to send response: {}", err)
+      })?;
 
     Ok(())
   }
@@ -321,7 +331,7 @@ impl IpcServer {
     });
 
     let message_json = serde_json::to_string(&message)?;
-    Ok(Message::Text(message_json))
+    Ok(Message::Text(message_json.into()))
   }
 
   fn to_event_subscription_msg(
@@ -337,7 +347,7 @@ impl IpcServer {
       });
 
     let message_json = serde_json::to_string(&message)?;
-    Ok(Message::Text(message_json))
+    Ok(Message::Text(message_json.into()))
   }
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
@@ -375,7 +385,10 @@ impl IpcServer {
       WmEvent::PauseChanged { .. } => SubscribableEvent::PauseChanged,
     };
 
-    self.event_tx.send((event_type, event))?;
+    self
+      .event_tx
+      .send((event_type, event))
+      .map_err(|err| anyhow::anyhow!("Failed to send event: {}", err))?;
 
     Ok(())
   }

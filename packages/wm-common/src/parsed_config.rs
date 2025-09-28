@@ -43,6 +43,10 @@ pub struct GapsConfig {
 
   /// Gap between windows and the screen edge.
   pub outer_gap: RectDelta,
+
+  /// Gap between window and the screen edge if there is only one window
+  /// in the workspace
+  pub single_window_outer_gap: Option<RectDelta>,
 }
 
 impl Default for GapsConfig {
@@ -56,6 +60,7 @@ impl Default for GapsConfig {
         LengthValue::from_px(0),
         LengthValue::from_px(0),
       ),
+      single_window_outer_gap: None,
     }
   }
 }

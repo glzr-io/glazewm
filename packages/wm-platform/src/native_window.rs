@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use anyhow::{bail, Context};
+use tokio::task;
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -33,8 +36,7 @@ use windows::{
         SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
         WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
         WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_POPUP,
-        WS_THICKFRAME,
+        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
       },
     },
   },
@@ -123,7 +125,10 @@ impl NativeWindow {
   fn updated_process_name(&self) -> anyhow::Result<String> {
     let mut process_id = 0u32;
     unsafe {
-      GetWindowThreadProcessId(HWND(self.handle), Some(&mut process_id));
+      GetWindowThreadProcessId(
+        HWND(self.handle),
+        Some(&raw mut process_id),
+      );
     }
 
     let process_handle = unsafe {
@@ -137,7 +142,7 @@ impl NativeWindow {
         process_handle,
         PROCESS_NAME_WIN32,
         PWSTR(buffer.as_mut_ptr()),
-        &mut length,
+        &raw mut length,
       )?;
 
       CloseHandle(process_handle)?;
@@ -209,8 +214,10 @@ impl NativeWindow {
       return Ok(false);
     }
 
+    // Ensure window has a valid process name, title, and class name.
     let process_name = self.process_name()?;
-    let title = self.process_name()?;
+    let title = self.title()?;
+    let _ = self.class_name()?;
 
     // TODO: Temporary fix for managing Flow Launcher until a force manage
     // command is added.
@@ -227,6 +234,9 @@ impl NativeWindow {
     if !is_application_window {
       return Ok(false);
     }
+
+    // Ensure window position is accessible.
+    self.refresh_frame_position()?;
 
     // Some applications spawn top-level windows for menus that should be
     // ignored. This includes the autocomplete popup in Notepad++ and title
@@ -283,12 +293,6 @@ impl NativeWindow {
   #[must_use]
   pub fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
-  }
-
-  /// Whether the window is meant to be a popup window.
-  #[must_use]
-  pub fn is_popup(&self) -> bool {
-    self.has_window_style(WS_POPUP)
   }
 
   /// Whether the window is fullscreen.
@@ -447,8 +451,8 @@ impl NativeWindow {
       GetLayeredWindowAttributes(
         HWND(self.handle),
         None,
-        Some(&mut alpha),
-        Some(&mut flag),
+        Some(&raw mut alpha),
+        Some(&raw mut flag),
       )?;
     }
 
@@ -617,7 +621,10 @@ impl NativeWindow {
       ..Default::default()
     };
 
-    unsafe { SetWindowPlacement(HWND(self.handle), &placement) }?;
+    unsafe {
+      SetWindowPlacement(HWND(self.handle), &raw const placement)
+    }?;
+
     Ok(())
   }
 
@@ -671,8 +678,10 @@ impl NativeWindow {
       let view_collection = com_init.application_view_collection()?;
 
       let mut view = None;
-      unsafe { view_collection.get_view_for_hwnd(self.handle, &mut view) }
-        .ok()?;
+      unsafe {
+        view_collection.get_view_for_hwnd(self.handle, &raw mut view)
+      }
+      .ok()?;
 
       let view = view
         .context("Unable to get application view by window handle.")?;
@@ -856,23 +865,29 @@ impl NativeWindow {
       )
     }?;
 
+    let handle = self.handle;
+
     // Z-order can sometimes still be incorrect after the above call.
-    unsafe {
-      SetWindowPos(
-        HWND(self.handle),
-        z_order,
-        0,
-        0,
-        0,
-        0,
-        SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
-          | SWP_ASYNCWINDOWPOS
-          | SWP_SHOWWINDOW
-          | SWP_NOMOVE
-          | SWP_NOSIZE,
-      )
-    }?;
+    task::spawn(async move {
+      tokio::time::sleep(Duration::from_millis(10)).await;
+
+      let _ = unsafe {
+        SetWindowPos(
+          HWND(handle),
+          z_order,
+          0,
+          0,
+          0,
+          0,
+          SWP_NOACTIVATE
+            | SWP_NOCOPYBITS
+            | SWP_ASYNCWINDOWPOS
+            | SWP_SHOWWINDOW
+            | SWP_NOMOVE
+            | SWP_NOSIZE,
+        )
+      };
+    });
 
     Ok(())
   }
