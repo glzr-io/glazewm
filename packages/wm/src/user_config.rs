@@ -2,8 +2,8 @@ use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use wm_common::{
-  InvokeCommand, MatchType, ParsedConfig, WindowMatchConfig,
-  WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
+  does_window_match, InvokeCommand, MatchType, ParsedConfig,
+  WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
 };
 
 use crate::{
@@ -239,25 +239,12 @@ impl UserConfig {
           return false;
         }
 
-        // Check if the window matches the rule.
-        rule.match_window.iter().any(|match_config| {
-          let is_process_match = match_config
-            .window_process
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_process));
-
-          let is_class_match = match_config
-            .window_class
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_class));
-
-          let is_title_match = match_config
-            .window_title
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_title));
-
-          is_process_match && is_class_match && is_title_match
-        })
+        does_window_match(
+          &rule.match_window,
+          &window_title,
+          &window_class,
+          &window_process,
+        )
       })
       .cloned()
       .collect::<Vec<_>>();

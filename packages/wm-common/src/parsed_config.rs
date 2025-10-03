@@ -245,6 +245,10 @@ pub struct BorderEffectConfig {
 
   /// Color of the window border.
   pub color: Color,
+
+  /// Conditions controlling to which windows to apply this effect.
+  #[serde(rename = "match")]
+  pub match_window: Vec<WindowMatchConfig>,
 }
 
 impl Default for BorderEffectConfig {
@@ -257,6 +261,7 @@ impl Default for BorderEffectConfig {
         b: 255,
         a: 255,
       },
+      match_window: Vec::new(),
     }
   }
 }
@@ -266,6 +271,10 @@ impl Default for BorderEffectConfig {
 pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
+
+  /// Conditions controlling to which windows to apply this effect.
+  #[serde(rename = "match")]
+  pub match_window: Vec<WindowMatchConfig>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -276,6 +285,10 @@ pub struct CornerEffectConfig {
 
   /// Style of the window corners.
   pub style: CornerStyle,
+
+  /// Conditions controlling to which windows to apply this effect.
+  #[serde(rename = "match")]
+  pub match_window: Vec<WindowMatchConfig>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -296,6 +309,10 @@ pub struct TransparencyEffectConfig {
 
   /// The opacity to apply.
   pub opacity: OpacityValue,
+
+  /// Conditions controlling to which windows to apply this effect.
+  #[serde(rename = "match")]
+  pub match_window: Vec<WindowMatchConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -378,6 +395,35 @@ pub struct WorkspaceConfig {
 
   #[serde(default = "default_bool::<false>")]
   pub keep_alive: bool,
+}
+
+/// Helper function for checking if a window matches any of the match
+/// rules.
+#[must_use]
+pub fn does_window_match(
+  match_window: &[WindowMatchConfig],
+  window_title: &str,
+  window_class: &str,
+  window_process: &str,
+) -> bool {
+  match_window.iter().any(|match_config| {
+    let is_process_match = match_config
+      .window_process
+      .as_ref()
+      .is_none_or(|match_type| match_type.is_match(window_process));
+
+    let is_class_match = match_config
+      .window_class
+      .as_ref()
+      .is_none_or(|match_type| match_type.is_match(window_class));
+
+    let is_title_match = match_config
+      .window_title
+      .as_ref()
+      .is_none_or(|match_type| match_type.is_match(window_title));
+
+    is_process_match && is_class_match && is_title_match
+  })
 }
 
 /// Helper function for setting a default value for a boolean field.

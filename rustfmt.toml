@@ -4,3 +4,4 @@ imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
 use_field_init_shorthand = true
 wrap_comments = true
+edition = "2018"
