@@ -244,8 +244,42 @@ impl Dispatcher {
     platform_impl::primary_display(self)
   }
 
-  pub fn mouse_position(&self) -> crate::Result<Point> {
-    todo!()
+  pub fn cursor_position(&self) -> crate::Result<Point> {
+    #[cfg(target_os = "macos")]
+    {
+      use objc2_core_graphics::CGEvent;
+
+      let event = unsafe { CGEvent::new(None) };
+      let point = unsafe { CGEvent::location(event.as_deref()) };
+
+      #[allow(clippy::cast_possible_truncation)]
+      Ok(Point {
+        x: point.x as i32,
+        y: point.y as i32,
+      })
+    }
+  }
+
+  /// Sets the cursor position to the specified coordinates.
+  pub fn set_cursor_position(&self, point: &Point) -> crate::Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+      use objc2_core_foundation::CGPoint;
+      use objc2_core_graphics::{CGError, CGWarpMouseCursorPosition};
+
+      let point = CGPoint {
+        x: f64::from(point.x),
+        y: f64::from(point.y),
+      };
+
+      if unsafe { CGWarpMouseCursorPosition(point) } != CGError::Success {
+        return Err(crate::Error::Platform(
+          "Failed to set cursor position.".to_string(),
+        ));
+      }
+    }
+
+    Ok(())
   }
 
   /// Removes focus from the current window and focuses the desktop.

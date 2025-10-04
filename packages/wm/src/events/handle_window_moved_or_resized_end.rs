@@ -100,7 +100,7 @@ fn drop_as_tiling_window(
     moved_window.as_window_container()?
   );
 
-  let mouse_pos = state.dispatcher.mouse_position()?;
+  let mouse_pos = state.dispatcher.cursor_position()?;
   let workspace = moved_window.workspace().context("No workspace.")?;
 
   // Get the workspace, split containers, and other windows under the

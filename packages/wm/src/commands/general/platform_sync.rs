@@ -33,7 +33,6 @@ pub fn platform_sync(
     redraw_containers(&focused_container, state, config)?;
   }
 
-  #[cfg(target_os = "windows")]
   if state.pending_sync.needs_cursor_jump()
     && config.value.general.cursor_jump.enabled
   {
@@ -320,7 +319,6 @@ fn redraw_containers(
   Ok(())
 }
 
-#[cfg(target_os = "windows")]
 fn jump_cursor(
   focused_container: Container,
   state: &WmState,
@@ -334,7 +332,9 @@ fn jump_cursor(
       let target_monitor =
         focused_container.monitor().context("No monitor.")?;
 
-      let cursor_monitor = Platform::mouse_position()
+      let cursor_monitor = state
+        .dispatcher
+        .cursor_position()
         .ok()
         .and_then(|pos| state.monitor_at_point(&pos));
 
@@ -348,7 +348,7 @@ fn jump_cursor(
   if let Some(jump_target) = jump_target {
     let center = jump_target.to_rect()?.center_point();
 
-    if let Err(err) = Platform::set_cursor_pos(center.x, center.y) {
+    if let Err(err) = state.dispatcher.set_cursor_position(&center) {
       warn!("Failed to set cursor position: {}", err);
     }
   }
