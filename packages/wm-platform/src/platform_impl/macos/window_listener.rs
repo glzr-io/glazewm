@@ -51,6 +51,8 @@ impl WindowListener {
       NotificationName::WorkspaceDidActivateApplication,
       NotificationName::WorkspaceDidDeactivateApplication,
       NotificationName::WorkspaceDidTerminateApplication,
+      NotificationName::WorkspaceDidHideApplication,
+      NotificationName::WorkspaceDidUnhideApplication,
     ] {
       unsafe {
         workspace_center.add_observer(
@@ -172,6 +174,20 @@ impl WindowListener {
           };
 
           let _ = events_tx.send(WindowEvent::Focus(focused_window));
+        }
+        NotificationEvent::WorkspaceDidHideApplication(running_app) => {
+          if let Some(app_observer) =
+            app_observers.get(unsafe { &running_app.processIdentifier() })
+          {
+            app_observer.emit_all_windows_hidden();
+          }
+        }
+        NotificationEvent::WorkspaceDidUnhideApplication(running_app) => {
+          if let Some(app_observer) =
+            app_observers.get(unsafe { &running_app.processIdentifier() })
+          {
+            app_observer.emit_all_windows_shown();
+          }
         }
         _ => {}
       }

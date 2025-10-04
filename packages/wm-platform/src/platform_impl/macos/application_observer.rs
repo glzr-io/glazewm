@@ -221,6 +221,34 @@ impl ApplicationObserver {
     }
   }
 
+  pub(crate) fn emit_all_windows_hidden(&self) {
+    for window in self.app_windows.lock().unwrap().iter() {
+      if let Err(err) =
+        self.events_tx.send(WindowEvent::Hide(window.clone()))
+      {
+        tracing::warn!(
+          "Failed to send window event for PID {}: {}",
+          self.pid,
+          err
+        );
+      }
+    }
+  }
+
+  pub(crate) fn emit_all_windows_shown(&self) {
+    for window in self.app_windows.lock().unwrap().iter() {
+      if let Err(err) =
+        self.events_tx.send(WindowEvent::Show(window.clone()))
+      {
+        tracing::warn!(
+          "Failed to send window event for PID {}: {}",
+          self.pid,
+          err
+        );
+      }
+    }
+  }
+
   /// Callback function for accessibility window events.
   unsafe extern "C-unwind" fn window_event_callback(
     _observer: NonNull<AXObserver>,

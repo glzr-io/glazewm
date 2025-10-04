@@ -8,8 +8,10 @@ use objc2_app_kit::{
   NSWorkspaceActiveSpaceDidChangeNotification,
   NSWorkspaceDidActivateApplicationNotification,
   NSWorkspaceDidDeactivateApplicationNotification,
+  NSWorkspaceDidHideApplicationNotification,
   NSWorkspaceDidLaunchApplicationNotification,
   NSWorkspaceDidTerminateApplicationNotification,
+  NSWorkspaceDidUnhideApplicationNotification,
 };
 use objc2_foundation::{
   ns_string, NSNotification, NSNotificationCenter, NSNotificationName,
@@ -24,6 +26,8 @@ pub(crate) enum NotificationName {
   WorkspaceDidDeactivateApplication,
   WorkspaceDidLaunchApplication,
   WorkspaceDidTerminateApplication,
+  WorkspaceDidHideApplication,
+  WorkspaceDidUnhideApplication,
   ApplicationDidChangeScreenParameters,
 }
 
@@ -47,6 +51,13 @@ impl From<&NSNotificationName> for NotificationName {
       == unsafe { NSWorkspaceActiveSpaceDidChangeNotification }
     {
       Self::WorkspaceActiveSpaceDidChange
+    } else if name == unsafe { NSWorkspaceDidHideApplicationNotification }
+    {
+      Self::WorkspaceDidHideApplication
+    } else if name
+      == unsafe { NSWorkspaceDidUnhideApplicationNotification }
+    {
+      Self::WorkspaceDidUnhideApplication
     } else if name
       == unsafe { NSApplicationDidChangeScreenParametersNotification }
     {
@@ -75,6 +86,12 @@ impl From<NotificationName> for &NSString {
       NotificationName::WorkspaceDidTerminateApplication => unsafe {
         NSWorkspaceDidTerminateApplicationNotification
       },
+      NotificationName::WorkspaceDidHideApplication => unsafe {
+        NSWorkspaceDidHideApplicationNotification
+      },
+      NotificationName::WorkspaceDidUnhideApplication => unsafe {
+        NSWorkspaceDidUnhideApplicationNotification
+      },
       NotificationName::ApplicationDidChangeScreenParameters => unsafe {
         NSApplicationDidChangeScreenParametersNotification
       },
@@ -89,6 +106,8 @@ pub(crate) enum NotificationEvent {
   WorkspaceDidDeactivateApplication(Retained<NSRunningApplication>),
   WorkspaceDidLaunchApplication(Retained<NSRunningApplication>),
   WorkspaceDidTerminateApplication(Retained<NSRunningApplication>),
+  WorkspaceDidHideApplication(Retained<NSRunningApplication>),
+  WorkspaceDidUnhideApplication(Retained<NSRunningApplication>),
   ApplicationDidChangeScreenParameters,
 }
 
@@ -174,6 +193,20 @@ impl NotificationObserver {
         } else {
           tracing::warn!(
             "Failed to extract application from terminate notification"
+          );
+        }
+      }
+      NotificationName::WorkspaceDidHideApplication => {
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(NotificationEvent::WorkspaceDidHideApplication(
+            app,
+          ));
+        }
+      }
+      NotificationName::WorkspaceDidUnhideApplication => {
+        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+          self.emit_event(
+            NotificationEvent::WorkspaceDidUnhideApplication(app),
           );
         }
       }
