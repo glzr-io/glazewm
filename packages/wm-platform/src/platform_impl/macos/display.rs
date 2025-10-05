@@ -417,13 +417,78 @@ pub fn display_from_point(
 pub fn primary_display(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
-  let displays = all_displays(dispatcher)?;
+  dispatcher.dispatch_sync(move || {
+    let mtm =
+      MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
-  for display in displays {
-    if display.is_primary()? {
-      return Ok(display);
+    let ns_screen = MainThreadBound::new(
+      NSScreen::mainScreen(mtm).ok_or(crate::Error::DisplayNotFound)?,
+      mtm,
+    );
+
+    Display::new(ns_screen).map(Into::into)
+  })?
+}
+
+/// Gets the nearest display to a window on macOS.
+///
+/// Returns the display that contains the largest area of the window's
+/// frame. If the window is completely off-screen, returns the main
+/// display.
+///
+/// NOTE: This was benchmarked against `CGGetDisplaysWithRect` (and then
+/// getting the corresponding `NSScreen`) and found to be 2-3x faster.
+pub fn nearest_display(
+  native_window: &crate::NativeWindow,
+  dispatcher: &Dispatcher,
+) -> crate::Result<crate::Display> {
+  dispatcher.dispatch_sync(move || {
+    let mtm =
+      MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
+
+    // Get the window's frame in screen coordinates.
+    let window_frame = native_window.frame()?;
+
+    let screens = NSScreen::screens(mtm);
+    let mut best_screen = None;
+    let mut max_intersection_area = 0.0;
+
+    // Iterate through all screens to find the one with the largest
+    // intersection with the window.
+    for screen in screens {
+      let screen_frame = screen.frame();
+
+      // Calculate intersection area.
+      let intersection_x =
+        f64::max(f64::from(window_frame.x()), screen_frame.origin.x);
+      let intersection_y =
+        f64::max(f64::from(window_frame.y()), screen_frame.origin.y);
+      let intersection_width = f64::min(
+        f64::from(window_frame.x() + window_frame.width()),
+        screen_frame.origin.x + screen_frame.size.width,
+      ) - intersection_x;
+      let intersection_height = f64::min(
+        f64::from(window_frame.y() + window_frame.height()),
+        screen_frame.origin.y + screen_frame.size.height,
+      ) - intersection_y;
+
+      // If there's a valid intersection, calculate its area.
+      if intersection_width > 0.0 && intersection_height > 0.0 {
+        let area = intersection_width * intersection_height;
+        if area > max_intersection_area {
+          max_intersection_area = area;
+          best_screen = Some(screen);
+        }
+      }
     }
-  }
 
-  Err(crate::Error::PrimaryDisplayNotFound)
+    // If we found a screen with intersection, use it. Otherwise, if the
+    // window is off-screen, use the main screen.
+    let ns_screen = best_screen
+      .or_else(|| NSScreen::mainScreen(mtm))
+      .ok_or(crate::Error::DisplayNotFound)?;
+
+    let ns_screen = MainThreadBound::new(ns_screen, mtm);
+    Display::new(ns_screen).map(Into::into)
+  })?
 }

@@ -200,7 +200,7 @@ impl WmState {
   ) -> Option<Monitor> {
     self
       .monitor_from_native(
-        &self.dispatcher.nearest_monitor(native_window).ok()?,
+        &self.dispatcher.nearest_display(native_window).ok()?,
       )
       .or(self.monitors().first().cloned())
   }

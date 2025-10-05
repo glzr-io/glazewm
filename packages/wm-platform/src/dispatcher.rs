@@ -236,12 +236,11 @@ impl Dispatcher {
     platform_impl::visible_windows(self)
   }
 
-  pub fn nearest_monitor(
+  pub fn nearest_display(
     &self,
-    _native_window: &NativeWindow,
+    native_window: &NativeWindow,
   ) -> crate::Result<Display> {
-    // TODO: Implement this.
-    platform_impl::primary_display(self)
+    platform_impl::nearest_display(native_window, self)
   }
 
   pub fn cursor_position(&self) -> crate::Result<Point> {

@@ -47,6 +47,7 @@ impl EventLoopSource {
 
   #[allow(clippy::unnecessary_wraps)]
   pub fn send_stop(&self) -> crate::Result<()> {
+    // TODO: This doesn't seem to work.
     self.send_dispatch_async(|| {
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
       unsafe { NSApplication::sharedApplication(mtm).terminate(None) };
