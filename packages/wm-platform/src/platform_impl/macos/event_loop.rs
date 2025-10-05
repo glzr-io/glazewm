@@ -22,6 +22,7 @@ pub(crate) struct EventLoopSource {
 }
 
 impl EventLoopSource {
+  // TODO: Get rid of this method.
   pub fn send_dispatch_async<F>(&self, dispatch_fn: F) -> crate::Result<()>
   where
     F: FnOnce() + Send + 'static,
@@ -35,23 +36,50 @@ impl EventLoopSource {
   where
     F: FnOnce() + Send,
   {
-    // TODO: Fully remove dispatch channels (`dispatch_tx` and
-    // `dispatch_rx`).
-    // TODO: Not sure whether to use `exec_async` or `exec_sync`.
-    // `exec_async` might be more performant, but removes the ordering
-    // guarantee.
-    // TODO: This deadlocks if the event loop is stopped.
-    DispatchQueue::main().exec_sync(dispatch_fn);
+    // TODO: Avoid duplicate check in `dispatch_sync`.
+    if std::thread::current().id() == self.thread_id {
+      dispatch_fn();
+      return Ok(());
+    }
+
+    // SAFETY: This function is guaranteed to be used in a synchronous
+    // context where the dispatch function will be executed before the
+    // caller's stack frame is dropped. We transmute the lifetime to
+    // satisfy the channel's `'static` requirement.
+    let dispatch_fn_static: Box<dyn FnOnce() + Send + 'static> = unsafe {
+      std::mem::transmute(Box::new(dispatch_fn) as Box<dyn FnOnce() + Send>)
+    };
+
+    self.dispatch_tx.send(dispatch_fn_static).unwrap();
+
+    // Signal the run loop source and wake up the run loop.
+    self.source.signal();
+    self.run_loop.wake_up();
+
     Ok(())
   }
 
   #[allow(clippy::unnecessary_wraps)]
   pub fn send_stop(&self) -> crate::Result<()> {
-    // TODO: This doesn't seem to work.
-    self.send_dispatch_async(|| {
+    let (result_tx, result_rx) = std::sync::mpsc::channel();
+
+    self.send_dispatch_sync(|| {
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
-      unsafe { NSApplication::sharedApplication(mtm).terminate(None) };
-    })
+
+      // Call `stop()` to mark the run loop for termination.
+      let ns_app = NSApplication::sharedApplication(mtm);
+      ns_app.stop(None);
+
+      // `stop()` only takes effect after processing a subsequent UI event.
+      // Post a dummy event so the application actually exits.
+      unsafe { ns_app.abortModal() };
+
+      let _ = result_tx.send(());
+    })?;
+
+    result_rx
+      .recv_timeout(std::time::Duration::from_millis(3000))
+      .map_err(crate::Error::ChannelRecv)
   }
 }
 
@@ -124,13 +152,13 @@ impl EventLoop {
       version: 0,
       info: dispatch_rx_ptr,
       retain: None,
-      release: None,
+      release: Some(Self::runloop_source_released_callback),
       copyDescription: None,
       equal: None,
       hash: None,
       schedule: None,
       cancel: None,
-      perform: Some(Self::perform_operations),
+      perform: Some(Self::runloop_signaled_callback),
     };
 
     // Create the run loop source.
@@ -155,7 +183,9 @@ impl EventLoop {
   }
 
   // This function is called by the `CFRunLoopSource` when signaled.
-  extern "C-unwind" fn perform_operations(info: *mut std::ffi::c_void) {
+  extern "C-unwind" fn runloop_signaled_callback(
+    info: *mut std::ffi::c_void,
+  ) {
     let operations =
       unsafe { &*(info as *const mpsc::Receiver<Box<DispatchFn>>) };
 
@@ -164,16 +194,31 @@ impl EventLoop {
       callback();
     }
   }
+
+  // This function is called when the `CFRunLoopSource` is released.
+  extern "C-unwind" fn runloop_source_released_callback(
+    info: *const std::ffi::c_void,
+  ) {
+    // SAFETY: This pointer was created with `Box::into_raw` in
+    // `add_dispatch_source`, so it can safely be converted back to a `Box`
+    // and dropped.
+    let _ = unsafe {
+      Box::from_raw(info as *mut mpsc::Receiver<Box<DispatchFn>>)
+    };
+  }
 }
 
 impl Drop for EventLoop {
   fn drop(&mut self) {
     tracing::info!("Shutting down event loop.");
 
-    // Stop the run loop if not already stopped. Removing the added
-    // `CFRunLoopSource` prior to stopping the run loop is not necessary.
+    // Stop the run loop if not already stopped.
     if !self.stopped.load(Ordering::SeqCst) {
       let _ = self.source.send_stop();
     }
+
+    // Invalidate the runloop source to trigger its release callback. This
+    // is thread-safe and is OK to call after the run loop is stopped.
+    self.source.source.invalidate();
   }
 }

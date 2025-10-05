@@ -167,14 +167,14 @@ impl Dispatcher {
       .map_err(crate::Error::ChannelRecv)
   }
 
-  /// Get the thread ID of the event loop thread.
+  /// Gets the thread ID of the event loop thread.
   #[must_use]
   pub fn thread_id(&self) -> ThreadId {
     // TODO: Block until event loop source is set.
     self.source.as_ref().unwrap().thread_id
   }
 
-  /// Get whether the current thread is the event loop thread.
+  /// Gets whether the current thread is the event loop thread.
   #[must_use]
   fn is_event_loop_thread(&self) -> bool {
     std::thread::current().id() == self.thread_id()
@@ -378,36 +378,76 @@ mod tests {
   }
 
   #[test]
-  fn dispatch_from_different_threads() {
-    let (event_loop, dispatcher) = EventLoop::new().unwrap();
-    let results = Arc::new(Mutex::new(Vec::new()));
+  fn dispatch_sync_from_different_threads() {
+    // Stress test with many threads calling `dispatch_sync`
+    // simultaneously. Ensure that dispatching doesn't deadlock.
+    const NUM_THREADS: usize = 10;
+    const ITERATIONS: usize = 1000;
 
-    let thread_handles: Vec<_> = (0..3)
-      .map(|index| {
+    let (event_loop, dispatcher) = EventLoop::new().unwrap();
+    let counter = Arc::new(Mutex::new(0));
+
+    let thread_handles: Vec<_> = (0..NUM_THREADS)
+      .map(|_| {
+        let counter = counter.clone();
         let dispatcher = dispatcher.clone();
-        let results = results.clone();
         std::thread::spawn(move || {
-          dispatcher
-            .dispatch_async(move || {
-              results.lock().unwrap().push(index);
-            })
-            .unwrap();
+          for _ in 0..ITERATIONS {
+            let counter = counter.clone();
+            dispatcher
+              .dispatch_sync(move || {
+                let mut count = counter.lock().unwrap();
+                *count += 1;
+              })
+              .unwrap();
+          }
         })
       })
       .collect();
 
     std::thread::spawn(move || {
-      std::thread::sleep(Duration::from_millis(100));
+      // Wait for all threads to finish.
+      for handle in thread_handles {
+        handle.join().unwrap();
+      }
       dispatcher.stop_event_loop().unwrap();
     });
 
     event_loop.run().unwrap();
-    for handle in thread_handles {
-      handle.join().unwrap();
-    }
 
-    let mut results = results.lock().unwrap().clone();
-    results.sort_unstable();
-    assert_eq!(results, vec![0, 1, 2]);
+    assert_eq!(*counter.lock().unwrap(), NUM_THREADS * ITERATIONS);
+  }
+
+  #[test]
+  fn dispatch_sync_with_nested() {
+    // Test that calling `dispatch_sync` from within a `dispatch_sync`
+    // callback works correctly (should execute directly without blocking).
+    let (event_loop, dispatcher) = EventLoop::new().unwrap();
+    let result = Arc::new(Mutex::new(Vec::new()));
+
+    let result_clone = result.clone();
+    std::thread::spawn(move || {
+      let dispatcher_clone = dispatcher.clone();
+      dispatcher
+        .dispatch_sync(move || {
+          result_clone.lock().unwrap().push(1);
+
+          // Nested `dispatch_sync` - should execute immediately since it's
+          // already on the event loop thread.
+          dispatcher_clone
+            .dispatch_sync(|| {
+              result_clone.lock().unwrap().push(2);
+            })
+            .unwrap();
+
+          result_clone.lock().unwrap().push(3);
+        })
+        .unwrap();
+
+      dispatcher.stop_event_loop().unwrap();
+    });
+
+    event_loop.run().unwrap();
+    assert_eq!(*result.lock().unwrap(), vec![1, 2, 3]);
   }
 }
