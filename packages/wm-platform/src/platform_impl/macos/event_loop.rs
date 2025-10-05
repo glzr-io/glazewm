@@ -194,7 +194,6 @@ impl EventLoop {
       unsafe { &*(info as *const mpsc::Receiver<Box<DispatchFn>>) };
 
     for callback in operations.try_iter() {
-      tracing::info!("Running callback from event loop.");
       callback();
     }
   }

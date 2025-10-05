@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use dispatch2::MainThreadBound;
-use objc2::{rc::Retained, MainThreadMarker};
+use objc2::rc::Retained;
 use objc2_app_kit::{
   NSApplicationActivationPolicy, NSRunningApplication, NSWorkspace,
 };
@@ -11,7 +10,7 @@ use objc2_foundation::NSString;
 
 use crate::{
   platform_impl::{ffi, AXUIElementExt, NativeWindow},
-  Dispatcher, WindowId,
+  Dispatcher, ThreadBound, WindowId,
 };
 
 pub type ProcessId = i32;
@@ -19,20 +18,25 @@ pub type ProcessId = i32;
 #[derive(Clone, Debug)]
 pub struct Application {
   pub(crate) pid: ProcessId,
+  pub(crate) dispatcher: Dispatcher,
   pub(crate) ns_app: Retained<NSRunningApplication>,
-  pub(crate) ax_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
+  pub(crate) ax_element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
 }
 
 impl Application {
-  pub(crate) fn new(ns_app: Retained<NSRunningApplication>) -> Self {
+  pub(crate) fn new(
+    dispatcher: Dispatcher,
+    ns_app: Retained<NSRunningApplication>,
+  ) -> Self {
     let pid = unsafe { ns_app.processIdentifier() };
-    let ax_element = Arc::new(MainThreadBound::new(
+    let ax_element = Arc::new(ThreadBound::new(
       unsafe { AXUIElement::new_application(pid) },
-      MainThreadMarker::new().unwrap(),
+      dispatcher.clone(),
     ));
 
     Self {
       pid,
+      dispatcher,
       ns_app,
       ax_element,
     }
@@ -41,22 +45,21 @@ impl Application {
   pub fn focused_window(
     &self,
   ) -> crate::Result<Option<crate::NativeWindow>> {
-    self.ax_element.get_on_main(|el| {
-      let mtm = MainThreadMarker::new().unwrap();
+    self.ax_element.with(|el| {
       let focused_window =
         el.get_attribute::<AXUIElement>("AXFocusedWindow");
 
       focused_window.map(|window_el| {
         let window_id = WindowId::from_window_element(&window_el);
-        let window_el = MainThreadBound::new(window_el, mtm);
+        let window_el =
+          ThreadBound::new(window_el, self.dispatcher.clone());
         Some(NativeWindow::new(window_id, window_el, self.clone()).into())
       })
-    })
+    })?
   }
 
   pub fn windows(&self) -> crate::Result<Vec<crate::NativeWindow>> {
-    self.ax_element.get_on_main(|el| {
-      let mtm = MainThreadMarker::new().unwrap();
+    self.ax_element.with(|el| {
       let windows = el.get_attribute::<CFArray<AXUIElement>>("AXWindows");
 
       windows.map(|windows| {
@@ -64,12 +67,13 @@ impl Application {
           .iter()
           .map(|window_el| {
             let window_id = WindowId::from_window_element(&window_el);
-            let window_el = MainThreadBound::new(window_el, mtm);
+            let window_el =
+              ThreadBound::new(window_el, self.dispatcher.clone());
             NativeWindow::new(window_id, window_el, self.clone()).into()
           })
           .collect()
       })
-    })
+    })?
   }
 
   pub fn psn(&self) -> crate::Result<ffi::ProcessSerialNumber> {
@@ -138,11 +142,14 @@ impl Application {
 pub(crate) fn all_applications(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<Application>> {
-  dispatcher.dispatch_sync(move || {
+  dispatcher.dispatch_sync(|| {
     let running_apps =
       unsafe { NSWorkspace::sharedWorkspace().runningApplications() };
 
-    running_apps.iter().map(Application::new).collect()
+    running_apps
+      .iter()
+      .map(|app| Application::new(dispatcher.clone(), app))
+      .collect()
   })
 }
 
@@ -151,13 +158,16 @@ pub(crate) fn application_for_bundle_id(
   bundle_id: &str,
 ) -> crate::Result<Option<Application>> {
   let bundle_id = bundle_id.to_owned();
-  dispatcher.dispatch_sync(move || {
+  dispatcher.dispatch_sync(|| {
     let apps = unsafe {
       NSRunningApplication::runningApplicationsWithBundleIdentifier(
         &NSString::from_str(&bundle_id),
       )
     };
 
-    apps.into_iter().next().map(Application::new)
+    apps
+      .into_iter()
+      .next()
+      .map(|app| Application::new(dispatcher.clone(), app))
   })
 }

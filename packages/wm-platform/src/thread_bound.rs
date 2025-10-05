@@ -40,8 +40,8 @@ use crate::Dispatcher;
 /// let len = bound.with(|s| s.len())?;
 /// assert_eq!(len, 5);
 ///
-/// // Direct access only works on the original thread.
-/// assert!(bound.get_ref().is_some());
+/// // Direct access only works on the origin thread.
+/// assert!(bound.get_ref().is_ok());
 ///
 /// drop(bound); // Drop is scheduled on the event loop thread.
 /// # Ok(()) }
@@ -53,11 +53,8 @@ pub struct ThreadBound<T> {
   dispatcher: Dispatcher,
 }
 
-// SAFETY: Access to the inner value is only exposed via methods that
-// dispatch the provided closure to the designated event loop thread using
-// the stored `Dispatcher`. The inner value is also dropped on that thread
-// synchronously in `Drop`, so the value never gets accessed from the wrong
-// thread.
+// SAFETY: Access to the inner value is only exposed on the origin thread
+// or via dispatching to the origin thread.
 unsafe impl<T> Send for ThreadBound<T> {}
 unsafe impl<T> Sync for ThreadBound<T> {}
 
@@ -66,7 +63,7 @@ impl<T> ThreadBound<T> {
   ///
   /// # Panics
   ///
-  /// Panics if called from a thread different from the event loop thread
+  /// Panics if called from a different thread than the one that's
   /// referenced by the dispatcher.
   #[inline]
   pub fn new(inner: T, dispatcher: Dispatcher) -> Self {
@@ -82,47 +79,51 @@ impl<T> ThreadBound<T> {
     }
   }
 
-  /// Returns `Some(&T)` if called on the original thread.
+  /// Returns `Ok(&T)` if called on the origin thread.
   ///
-  /// Returns `None` if called from a different thread.
+  /// # Errors
+  ///
+  /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
-  #[must_use]
-  pub fn get_ref(&self) -> Option<&T> {
+  pub fn get_ref(&self) -> crate::Result<&T> {
     if self.is_origin_thread() {
-      Some(&self.value)
+      Ok(&self.value)
     } else {
-      None
+      Err(crate::Error::NotMainThread)
     }
   }
 
-  /// Returns `Some(&mut T)` if called on the original thread.
+  /// Returns `Ok(&mut T)` if called on the origin thread.
   ///
-  /// Returns `None` if called from a different thread.
+  /// # Errors
+  ///
+  /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
-  #[must_use]
-  pub fn get_mut(&mut self) -> Option<&mut T> {
+  pub fn get_mut(&mut self) -> crate::Result<&mut T> {
     if self.is_origin_thread() {
-      Some(&mut self.value)
+      Ok(&mut self.value)
     } else {
-      None
+      Err(crate::Error::NotMainThread)
     }
   }
 
-  /// Consumes the wrapper and returns `Some(T)` if called on the
-  /// original thread.
+  /// Consumes the wrapper and returns `Ok(T)` if called on the
+  /// origin thread.
   ///
-  /// Returns `None` if called from a different thread.
+  /// # Errors
+  ///
+  /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
-  pub fn into_inner(self) -> Option<T> {
+  pub fn into_inner(self) -> crate::Result<T> {
     if self.is_origin_thread() {
       // Prevent `Drop` from running.
       let mut this = ManuallyDrop::new(self);
 
       // SAFETY: `self` is consumed by this function, and wrapped in
       // `ManuallyDrop`, so the item's destructor is never run.
-      Some(unsafe { ManuallyDrop::take(&mut this.value) })
+      Ok(unsafe { ManuallyDrop::take(&mut this.value) })
     } else {
-      None
+      Err(crate::Error::NotMainThread)
     }
   }
 
@@ -152,9 +153,10 @@ impl<T> ThreadBound<T> {
     F: Send + FnOnce(&mut T) -> R,
     R: Send,
   {
+    // TODO: This is pretty cursed. Should be a better way.
     let value_ptr =
       std::ptr::from_mut::<ManuallyDrop<T>>(&mut self.value) as usize;
-    self.dispatcher.dispatch_sync(move || unsafe {
+    self.dispatcher.dispatch_sync(|| unsafe {
       // SAFETY: The closure executes on the event loop thread where the
       // value was created, and we only create a unique mutable reference.
       let value_mut: &mut T = &mut *(value_ptr as *mut T);
@@ -162,7 +164,7 @@ impl<T> ThreadBound<T> {
     })
   }
 
-  /// Returns `true` if called on the original thread.
+  /// Returns `true` if called on the origin thread.
   #[inline]
   #[must_use]
   pub fn is_origin_thread(&self) -> bool {
@@ -185,10 +187,11 @@ impl<T> Drop for ThreadBound<T> {
   )]
   fn drop(&mut self) {
     if mem::needs_drop::<T>() {
+      // TODO: This is pretty cursed. Should be a better way.
       let value_ptr =
         std::ptr::from_mut::<ManuallyDrop<T>>(&mut self.value) as usize;
 
-      let _ = self.dispatcher.dispatch_sync(move || unsafe {
+      let _ = self.dispatcher.dispatch_sync(|| unsafe {
         // SAFETY: The value is dropped on the event loop thread, which is
         // the same thread that it originated from (guaranteed by `new`).
         // Additionally, the value is never used again after this point.

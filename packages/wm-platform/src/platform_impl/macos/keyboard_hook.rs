@@ -1,6 +1,5 @@
 use std::{os::raw::c_void, ptr::NonNull};
 
-use dispatch2::MainThreadBound;
 use objc2::MainThreadMarker;
 use objc2_core_foundation::{
   kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop,
@@ -10,7 +9,7 @@ use objc2_core_graphics::{
   CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
 
-use crate::{Dispatcher, Error, Key, KeyCode};
+use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
 /// macOS-specific keyboard event.
 #[derive(Clone, Debug)]
@@ -72,7 +71,7 @@ impl KeyEvent {
 /// macOS-specific keyboard hook.
 #[derive(Debug)]
 pub struct KeyboardHook {
-  event_tap: Option<MainThreadBound<CFRetained<CFMachPort>>>,
+  event_tap: Option<ThreadBound<CFRetained<CFMachPort>>>,
   dispatcher: Dispatcher,
 }
 
@@ -85,8 +84,8 @@ impl KeyboardHook {
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
-    let event_tap =
-      dispatcher.dispatch_sync(|| Self::create_event_tap(callback))??;
+    let event_tap = dispatcher
+      .dispatch_sync(|| Self::create_event_tap(&dispatcher, callback))??;
 
     Ok(Self {
       event_tap: Some(event_tap),
@@ -96,8 +95,9 @@ impl KeyboardHook {
 
   /// Creates a `CGEventTap` object.
   pub fn create_event_tap<F>(
+    dispatcher: &Dispatcher,
     callback: F,
-  ) -> crate::Result<MainThreadBound<CFRetained<CFMachPort>>>
+  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
@@ -144,9 +144,7 @@ impl KeyboardHook {
 
     unsafe { CGEvent::tap_enable(&event_tap, true) };
 
-    let event_tap = MainThreadBound::new(event_tap, unsafe {
-      MainThreadMarker::new_unchecked()
-    });
+    let event_tap = ThreadBound::new(event_tap, dispatcher.clone());
 
     Ok(event_tap)
   }
@@ -209,7 +207,7 @@ impl KeyboardHook {
   pub fn stop(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.event_tap.take() {
       self.dispatcher.dispatch_async(move || unsafe {
-        let tap_ref = tap.get(MainThreadMarker::new_unchecked());
+        let tap_ref = tap.get_ref().unwrap();
         CGEvent::tap_enable(tap_ref, false);
       })?;
     }

@@ -123,8 +123,8 @@ impl WindowListener {
         NotificationEvent::WorkspaceDidLaunchApplication(running_app) => {
           let events_tx = events_tx.clone();
 
-          let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(move || {
-            let app = Application::new(running_app);
+          let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(|| {
+            let app = Application::new(dispatcher.clone(), running_app);
             if !app.should_observe() {
               return Err(crate::Error::Platform(format!(
                 "Skipped observer registration for PID {} (should ignore).",
@@ -165,8 +165,8 @@ impl WindowListener {
           running_app,
         ) => {
           let Ok(Ok(Some(focused_window))) =
-            dispatcher.dispatch_sync(move || {
-              let app = Application::new(running_app);
+            dispatcher.dispatch_sync(|| {
+              let app = Application::new(dispatcher.clone(), running_app);
               app.focused_window()
             })
           else {

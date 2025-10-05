@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dispatch2::MainThreadBound;
 use objc2_app_kit::NSApplicationActivationOptions;
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
@@ -16,7 +15,7 @@ use crate::{
   platform_impl::{
     self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
   },
-  Dispatcher, Rect, WindowId,
+  Dispatcher, Rect, ThreadBound, WindowId,
 };
 
 /// macOS-specific extensions for `NativeWindow`.
@@ -26,7 +25,7 @@ pub trait NativeWindowExtMacOs {
   /// # Platform-specific
   ///
   /// This method is only available on macOS.
-  fn ax_ui_element(&self) -> &MainThreadBound<CFRetained<AXUIElement>>;
+  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>>;
 
   /// Gets the bundle ID of the application that owns the window.
   ///
@@ -65,7 +64,7 @@ pub trait NativeWindowExtMacOs {
 }
 
 impl NativeWindowExtMacOs for crate::NativeWindow {
-  fn ax_ui_element(&self) -> &MainThreadBound<CFRetained<AXUIElement>> {
+  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>> {
     &self.inner.element
   }
 
@@ -74,38 +73,38 @@ impl NativeWindowExtMacOs for crate::NativeWindow {
   }
 
   fn role(&self) -> crate::Result<String> {
-    self.inner.element.get_on_main(|el| {
+    self.inner.element.with(|el| {
       el.get_attribute::<CFString>("AXRole")
         .map(|cf_string| cf_string.to_string())
-    })
+    })?
   }
 
   fn subrole(&self) -> crate::Result<String> {
-    self.inner.element.get_on_main(|el| {
+    self.inner.element.with(|el| {
       el.get_attribute::<CFString>("AXSubrole")
         .map(|cf_string| cf_string.to_string())
-    })
+    })?
   }
 
   fn is_modal(&self) -> crate::Result<bool> {
-    self.inner.element.get_on_main(|el| {
+    self.inner.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXModal")
         .map(|cf_bool| cf_bool.value())
-    })
+    })?
   }
 
   fn is_main(&self) -> crate::Result<bool> {
-    self.inner.element.get_on_main(|el| {
+    self.inner.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
-    })
+    })?
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
   id: WindowId,
-  element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
+  element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
   application: Application,
 }
 
@@ -114,7 +113,7 @@ impl NativeWindow {
   #[must_use]
   pub(crate) fn new(
     id: WindowId,
-    element: MainThreadBound<CFRetained<AXUIElement>>,
+    element: ThreadBound<CFRetained<AXUIElement>>,
     application: Application,
   ) -> Self {
     Self {
@@ -129,10 +128,10 @@ impl NativeWindow {
   }
 
   pub(crate) fn title(&self) -> crate::Result<String> {
-    self.element.get_on_main(|el| {
+    self.element.with(|el| {
       el.get_attribute::<CFString>("AXTitle")
         .map(|cf_string| cf_string.to_string())
-    })
+    })?
   }
 
   pub(crate) fn process_name(&self) -> crate::Result<String> {
@@ -150,19 +149,19 @@ impl NativeWindow {
   }
 
   pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
-    self.element.get_on_main(move |el| {
+    self.element.with(move |el| {
       el.get_attribute::<AXValue>("AXSize")
         .and_then(|ax_value| ax_value.value_strict::<CGSize>())
         .map(|size| (size.width, size.height))
-    })
+    })?
   }
 
   pub(crate) fn position(&self) -> crate::Result<(f64, f64)> {
-    self.element.get_on_main(move |el| {
+    self.element.with(move |el| {
       el.get_attribute::<AXValue>("AXPosition")
         .and_then(|ax_value| ax_value.value_strict::<CGPoint>())
         .map(|point| (point.x, point.y))
-    })
+    })?
   }
 
   pub(crate) fn frame(&self) -> crate::Result<Rect> {
@@ -195,7 +194,7 @@ impl NativeWindow {
     F: FnOnce(&CFRetained<AXUIElement>) -> crate::Result<R> + Send,
     R: Send,
   {
-    self.application.ax_element.get_on_main(|app_el| {
+    self.application.ax_element.with(|app_el| {
       // Get whether enhanced UI is currently enabled.
       let was_enabled = app_el
         .get_attribute::<CFBoolean>("AXEnhancedUserInterface")
@@ -212,7 +211,7 @@ impl NativeWindow {
       }
 
       // Execute the callback with the window element.
-      let result = self.element.get_on_main(callback);
+      let result = self.element.with(callback);
 
       // Restore enhanced UI if it was originally enabled.
       if was_enabled {
@@ -224,7 +223,7 @@ impl NativeWindow {
       }
 
       result
-    })
+    })??
   }
 
   pub(crate) fn resize(
@@ -268,35 +267,35 @@ impl NativeWindow {
 
   /// Whether the window is minimized.
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
-    self.element.get_on_main(|el| {
+    self.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
         .map(|cf_bool| cf_bool.value())
-    })
+    })?
   }
 
   pub(crate) fn minimize(&self) -> crate::Result<()> {
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
-    })
+    })?
   }
 
   pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
-    self.element.get_on_main(|el| {
+    self.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXFullScreen")
         .map(|cf_bool| cf_bool.value())
-    })
+    })?
   }
 
   pub(crate) fn maximize(&self) -> crate::Result<()> {
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
-    })
+    })?
   }
 
   pub(crate) fn close(&self) -> crate::Result<()> {
-    self.element.get_on_main(|el| -> crate::Result<()> {
+    self.element.with(|el| -> crate::Result<()> {
       let close_button =
         el.get_attribute::<AXUIElement>("AXCloseButton")?;
 
@@ -313,7 +312,7 @@ impl NativeWindow {
       }
 
       Ok(())
-    })
+    })?
   }
 
   pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
@@ -330,7 +329,7 @@ impl NativeWindow {
   }
 
   fn raise(&self) -> crate::Result<()> {
-    self.element.get_on_main(move |el| -> crate::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
       let result =
         unsafe { el.perform_action(&CFString::from_str("AXRaise")) };
 
@@ -342,7 +341,7 @@ impl NativeWindow {
       }
 
       Ok(())
-    })
+    })?
   }
 
   fn set_front_process(

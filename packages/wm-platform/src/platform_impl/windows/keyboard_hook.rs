@@ -114,7 +114,7 @@ impl KeyboardHook {
   where
     F: FnMut(KeyEvent) -> bool + 'static,
   {
-    let handle = dispatcher.dispatch_sync(move || {
+    let handle = dispatcher.dispatch_sync(|| {
       HOOK.with(|state| {
         assert!(
           state.take().is_none(),

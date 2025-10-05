@@ -202,7 +202,7 @@ impl Dispatcher {
     &self,
     point: Point,
   ) -> crate::Result<Display> {
-    platform_impl::display_from_point(point, self)
+    platform_impl::display_from_point(self, point)
   }
 
   /// Gets the primary display.
@@ -324,10 +324,7 @@ impl std::fmt::Debug for Dispatcher {
 
 #[cfg(test)]
 mod tests {
-  use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-  };
+  use std::sync::{Arc, Mutex};
 
   use crate::EventLoop;
 
@@ -340,7 +337,7 @@ mod tests {
       .expect("Failed to stop dispatcher.");
 
     // Try to dispatch asynchronously - should fail.
-    let result = dispatcher.dispatch_async(|| {});
+    let result = dispatcher.dispatch_sync(|| {});
     assert!(matches!(result, Err(crate::Error::EventLoopStopped)));
 
     // Try dispatch synchronously - should fail.
@@ -359,9 +356,8 @@ mod tests {
 
     std::thread::spawn(move || {
       for index in 1..=ITERATIONS {
-        let order_clone = order_clone.clone();
         dispatcher
-          .dispatch_sync(move || {
+          .dispatch_sync(|| {
             order_clone.lock().unwrap().push(index);
           })
           .unwrap();
@@ -393,9 +389,8 @@ mod tests {
         let dispatcher = dispatcher.clone();
         std::thread::spawn(move || {
           for _ in 0..ITERATIONS {
-            let counter = counter.clone();
             dispatcher
-              .dispatch_sync(move || {
+              .dispatch_sync(|| {
                 let mut count = counter.lock().unwrap();
                 *count += 1;
               })
@@ -427,14 +422,13 @@ mod tests {
 
     let result_clone = result.clone();
     std::thread::spawn(move || {
-      let dispatcher_clone = dispatcher.clone();
       dispatcher
-        .dispatch_sync(move || {
+        .dispatch_sync(|| {
           result_clone.lock().unwrap().push(1);
 
           // Nested `dispatch_sync` - should execute immediately since it's
           // already on the event loop thread.
-          dispatcher_clone
+          dispatcher
             .dispatch_sync(|| {
               result_clone.lock().unwrap().push(2);
             })

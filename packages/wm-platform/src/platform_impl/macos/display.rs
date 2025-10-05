@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dispatch2::MainThreadBound;
 use objc2::{rc::Retained, MainThreadMarker};
 use objc2_app_kit::NSScreen;
 use objc2_core_graphics::{
@@ -12,7 +11,7 @@ use objc2_foundation::{ns_string, NSNumber};
 
 use crate::{
   ConnectionState, Dispatcher, DisplayDeviceId, DisplayId, MirroringState,
-  Point, Rect,
+  Point, Rect, ThreadBound,
 };
 
 /// macOS-specific extensions for `Display`.
@@ -28,7 +27,7 @@ pub trait DisplayExtMacOs {
   /// # Platform-specific
   ///
   /// This method is only available on macOS.
-  fn ns_screen(&self) -> &MainThreadBound<Retained<NSScreen>>;
+  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>>;
 }
 
 /// macOS-specific extensions for `DisplayDevice`.
@@ -46,7 +45,7 @@ impl DisplayExtMacOs for crate::Display {
     self.inner.cg_display_id()
   }
 
-  fn ns_screen(&self) -> &MainThreadBound<Retained<NSScreen>> {
+  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
     self.inner.ns_screen()
   }
 }
@@ -61,17 +60,17 @@ impl DisplayDeviceExtMacOs for crate::DisplayDevice {
 #[derive(Clone, Debug)]
 pub struct Display {
   cg_display_id: CGDirectDisplayID,
-  ns_screen: Arc<MainThreadBound<Retained<NSScreen>>>,
+  ns_screen: Arc<ThreadBound<Retained<NSScreen>>>,
 }
 
 impl Display {
   /// Creates a new macOS display.
   #[must_use]
   pub fn new(
-    ns_screen: MainThreadBound<Retained<NSScreen>>,
+    ns_screen: ThreadBound<Retained<NSScreen>>,
   ) -> crate::Result<Self> {
     let cg_display_id = ns_screen
-      .get_on_main(|screen| {
+      .with(|screen| {
         let device_description = screen.deviceDescription();
 
         device_description
@@ -79,7 +78,7 @@ impl Display {
           .and_then(|val| {
             val.downcast_ref::<NSNumber>().map(NSNumber::as_u32)
           })
-      })
+      })?
       .ok_or(crate::Error::DisplayNotFound)?;
 
     Ok(Self {
@@ -99,16 +98,16 @@ impl Display {
   }
 
   /// Gets the `NSScreen` instance for this display.
-  pub fn ns_screen(&self) -> &MainThreadBound<Retained<NSScreen>> {
+  pub fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
     &self.ns_screen
   }
 
   /// Gets the display name.
   pub fn name(&self) -> crate::Result<String> {
-    self.ns_screen.get_on_main(|screen| {
+    self.ns_screen.with(|screen| {
       let name = unsafe { screen.localizedName() };
       Ok(name.to_string())
-    })
+    })?
   }
 
   /// Gets the full bounds rectangle of the display.
@@ -126,7 +125,7 @@ impl Display {
 
   /// Gets the working area rectangle (excluding dock and menu bar).
   pub fn working_area(&self) -> crate::Result<Rect> {
-    self.ns_screen.get_on_main(|screen| {
+    self.ns_screen.with(|screen| {
       let visible_frame = screen.visibleFrame();
 
       #[allow(clippy::cast_possible_truncation)]
@@ -136,7 +135,7 @@ impl Display {
         (visible_frame.origin.x + visible_frame.size.width) as i32,
         visible_frame.origin.y as i32,
       ))
-    })
+    })?
   }
 
   /// Gets the scale factor for the display.
@@ -145,7 +144,7 @@ impl Display {
       #[allow(clippy::cast_possible_truncation)]
       self
         .ns_screen
-        .get_on_main(|screen| screen.backingScaleFactor() as f32),
+        .with(|screen| screen.backingScaleFactor() as f32)?,
     )
   }
 
@@ -321,14 +320,14 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 pub fn all_displays(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::Display>> {
-  dispatcher.dispatch_sync(move || {
+  dispatcher.dispatch_sync(|| {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
     let mut displays = Vec::new();
 
     for screen in NSScreen::screens(mtm) {
-      let ns_screen = MainThreadBound::new(screen, mtm);
+      let ns_screen = ThreadBound::new(screen, dispatcher.clone());
       displays.push(Display::new(ns_screen)?.into());
     }
 
@@ -398,8 +397,8 @@ pub fn active_display_devices(
 
 /// Gets display from point.
 pub fn display_from_point(
-  point: Point,
   dispatcher: &Dispatcher,
+  point: Point,
 ) -> crate::Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
@@ -417,13 +416,13 @@ pub fn display_from_point(
 pub fn primary_display(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
-  dispatcher.dispatch_sync(move || {
+  dispatcher.dispatch_sync(|| {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
-    let ns_screen = MainThreadBound::new(
+    let ns_screen = ThreadBound::new(
       NSScreen::mainScreen(mtm).ok_or(crate::Error::DisplayNotFound)?,
-      mtm,
+      dispatcher.clone(),
     );
 
     Display::new(ns_screen).map(Into::into)
@@ -444,7 +443,7 @@ pub fn nearest_display(
   native_window: &crate::NativeWindow,
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
-  dispatcher.dispatch_sync(move || {
+  dispatcher.dispatch_sync(|| {
     // Get the window's frame in screen coordinates.
     let window_frame = native_window.frame()?;
 

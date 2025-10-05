@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use dispatch2::MainThreadBound;
 use objc2_application_services::{AXError, AXObserver, AXUIElement};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource, CFString,
@@ -13,7 +12,7 @@ use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::{Application, NativeWindow, ProcessId},
-  NativeWindowExtMacOs, WindowEvent, WindowId,
+  NativeWindowExtMacOs, ThreadBound, WindowEvent, WindowId,
 };
 
 /// Notifications to register for the `AXUIElement` of an application.
@@ -47,7 +46,7 @@ pub(crate) struct ApplicationObserver {
   events_tx: mpsc::UnboundedSender<WindowEvent>,
   observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
-  app_element: Arc<MainThreadBound<CFRetained<AXUIElement>>>,
+  app_element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
   // context: Box<ApplicationEventContext>,
 }
 
@@ -154,13 +153,11 @@ impl ApplicationObserver {
     observer: &CFRetained<AXObserver>,
     context: *mut ApplicationEventContext,
   ) -> crate::Result<()> {
-    let mtm = MainThreadMarker::new().unwrap();
-
     for notification in AX_APP_NOTIFICATIONS {
       unsafe {
         let notification_cfstr = CFString::from_static_str(notification);
         let result = observer.add_notification(
-          app.ax_element.get(mtm),
+          app.ax_element.get_ref()?,
           &notification_cfstr,
           context.cast::<std::ffi::c_void>(),
         );
@@ -182,13 +179,11 @@ impl ApplicationObserver {
     observer: &CFRetained<AXObserver>,
     context: *mut ApplicationEventContext,
   ) -> crate::Result<()> {
-    let mtm = MainThreadMarker::new().unwrap();
-
     for notification in AX_WINDOW_NOTIFICATIONS {
       unsafe {
         let notification_cfstr = CFString::from_static_str(notification);
         let result = observer.add_notification(
-          window.ax_ui_element().get(mtm),
+          window.ax_ui_element().get_ref()?,
           &notification_cfstr,
           context.cast::<std::ffi::c_void>(),
         );
@@ -271,13 +266,14 @@ impl ApplicationObserver {
       context.application.pid
     );
 
-    let mtm = MainThreadMarker::new_unchecked();
     let found_window = {
       let app_windows = context.app_windows.lock().unwrap();
 
       app_windows
         .iter()
-        .find(|window| window.ax_ui_element().get(mtm) == &ax_element)
+        .find(|window| {
+          window.ax_ui_element().get_ref().ok() == Some(&ax_element)
+        })
         .cloned()
     };
 
@@ -306,7 +302,10 @@ impl ApplicationObserver {
     let is_new_window = found_window.is_none();
     let window = found_window.unwrap_or_else(|| {
       let window_id = WindowId::from_window_element(&ax_element);
-      let ax_element = MainThreadBound::new(ax_element, mtm);
+      let ax_element = ThreadBound::new(
+        ax_element,
+        context.application.dispatcher.clone(),
+      );
       NativeWindow::new(window_id, ax_element, context.application.clone())
         .into()
     });
