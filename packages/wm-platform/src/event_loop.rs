@@ -5,21 +5,31 @@ use crate::{platform_impl, Dispatcher};
 ///
 /// Does not start pumping events until [`EventLoop::run`] is called.
 ///
+/// This type is `!Send` to ensure it stays on the thread where it was
+/// created, as the `Drop` implementation relies on thread-specific
+/// cleanup.
+///
 /// # Platform-specific
 ///
-/// - **macOS**: Must be called from the main thread. Runs
-///   `CFRunLoopRun()`.
-/// - **Windows**: Can be called from any thread. Runs a Win32 message
-///   loop.
+/// - **macOS**: Can be created on any thread. Runs `CFRunLoopRun()`.
+/// - **Windows**: Can be created on any thread. Runs a Win32 message loop.
 pub struct EventLoop {
   inner: platform_impl::EventLoop,
+  /// Marker to ensure not `Send`.
+  _marker: std::marker::PhantomData<*const ()>,
 }
 
 impl EventLoop {
   /// Creates a new event loop and dispatcher.
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
     let (event_loop, dispatcher) = platform_impl::EventLoop::new()?;
-    Ok((Self { inner: event_loop }, dispatcher))
+    Ok((
+      Self {
+        inner: event_loop,
+        _marker: std::marker::PhantomData,
+      },
+      dispatcher,
+    ))
   }
 
   /// Runs the event loop, blocking the current thread until shutdown.

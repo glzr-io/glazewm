@@ -12,7 +12,7 @@ use crate::platform_impl::Application;
 use crate::{platform_impl, Display, DisplayDevice, NativeWindow, Point};
 
 /// Type alias for a closure to be executed by the event loop.
-pub type DispatchFn = dyn FnOnce() + Send;
+pub type DispatchFn = dyn FnOnce() + Send + 'static;
 
 /// macOS-specific extensions for `Dispatcher`.
 #[cfg(target_os = "macos")]

@@ -3,7 +3,6 @@ use std::sync::{
   mpsc, Arc,
 };
 
-use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
 use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
 use objc2_core_foundation::{
@@ -22,19 +21,12 @@ pub(crate) struct EventLoopSource {
 }
 
 impl EventLoopSource {
-  // TODO: Get rid of this method.
-  pub fn send_dispatch_async<F>(&self, dispatch_fn: F) -> crate::Result<()>
+  pub(crate) fn send_dispatch_async<F>(
+    &self,
+    dispatch_fn: F,
+  ) -> crate::Result<()>
   where
     F: FnOnce() + Send + 'static,
-  {
-    DispatchQueue::main().exec_async(dispatch_fn);
-    Ok(())
-  }
-
-  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-  pub fn send_dispatch_sync<F>(&self, dispatch_fn: F) -> crate::Result<()>
-  where
-    F: FnOnce() + Send,
   {
     // TODO: Avoid duplicate check in `dispatch_sync`.
     if std::thread::current().id() == self.thread_id {
@@ -42,15 +34,7 @@ impl EventLoopSource {
       return Ok(());
     }
 
-    // SAFETY: This function is guaranteed to be used in a synchronous
-    // context where the dispatch function will be executed before the
-    // caller's stack frame is dropped. We transmute the lifetime to
-    // satisfy the channel's `'static` requirement.
-    let dispatch_fn_static: Box<dyn FnOnce() + Send + 'static> = unsafe {
-      std::mem::transmute(Box::new(dispatch_fn) as Box<dyn FnOnce() + Send>)
-    };
-
-    self.dispatch_tx.send(dispatch_fn_static).unwrap();
+    self.dispatch_tx.send(Box::new(dispatch_fn)).unwrap();
 
     // Signal the run loop source and wake up the run loop.
     self.source.signal();
@@ -59,8 +43,28 @@ impl EventLoopSource {
     Ok(())
   }
 
-  #[allow(clippy::unnecessary_wraps)]
-  pub fn send_stop(&self) -> crate::Result<()> {
+  pub(crate) fn send_dispatch_sync<F>(
+    &self,
+    dispatch_fn: F,
+  ) -> crate::Result<()>
+  where
+    F: FnOnce() + Send,
+  {
+    // SAFETY: This function is guaranteed to be used in a synchronous
+    // context where the dispatch function will be executed before the
+    // caller's stack frame is dropped. We transmute the lifetime to
+    // satisfy the channel's `'static` requirement.
+    let dispatch_fn_static = unsafe {
+      std::mem::transmute::<
+        Box<dyn FnOnce() + Send>,
+        Box<dyn FnOnce() + Send + 'static>,
+      >(Box::new(dispatch_fn))
+    };
+
+    self.send_dispatch_async(dispatch_fn_static)
+  }
+
+  pub(crate) fn send_stop(&self) -> crate::Result<()> {
     let (result_tx, result_rx) = std::sync::mpsc::channel();
 
     self.send_dispatch_sync(|| {
