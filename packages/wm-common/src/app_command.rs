@@ -420,18 +420,6 @@ pub struct InvokePositionCommand {
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
-pub struct InvokeRenameWorkspaceCommand {
-  #[clap(long, conflicts_with = "fullname")]
-  pub name: Option<String>,
-  #[clap(long, allow_hyphen_values = true, conflicts_with = "fullname")]
-  pub display_name: Option<String>,
-  /// i3-style workspace name where the name and the display name are
-  /// separated by a colon, conflicting with 2 options above.
-  pub fullname: Option<String>,
-}
-
-#[derive(Args, Clone, Debug, PartialEq, Serialize)]
-#[group(required = true, multiple = true)]
 pub struct InvokeUpdateWorkspaceConfig {
   #[clap(long, allow_hyphen_values = true)]
   pub name: Option<String>,
