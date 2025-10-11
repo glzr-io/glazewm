@@ -167,11 +167,11 @@ pub enum InvokeCommand {
   },
   Position(InvokePositionCommand),
   Resize(InvokeResizeCommand),
-  RenameWorkspace {
+  UpdateWorkspaceConfig {
     #[clap(long, allow_hyphen_values = true)]
     workspace: Option<String>,
     #[clap(flatten)]
-    args: InvokeRenameWorkspaceCommand,
+    new_config: InvokeUpdateWorkspaceConfig,
   },
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
@@ -421,11 +421,34 @@ pub struct InvokePositionCommand {
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = true)]
 pub struct InvokeRenameWorkspaceCommand {
-  #[clap(long, allow_hyphen_values = true, conflicts_with="fullname")]
+  #[clap(long, conflicts_with = "fullname")]
   pub name: Option<String>,
-  #[clap(long, allow_hyphen_values = true, conflicts_with="fullname")]
+  #[clap(long, allow_hyphen_values = true, conflicts_with = "fullname")]
   pub display_name: Option<String>,
-  /// i3-style workspace name where the name and the display name are separated
-  /// by a colon, conflicting with 2 options above.
+  /// i3-style workspace name where the name and the display name are
+  /// separated by a colon, conflicting with 2 options above.
   pub fullname: Option<String>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true)]
+pub struct InvokeUpdateWorkspaceConfig {
+  #[clap(long, allow_hyphen_values = true)]
+  pub name: Option<String>,
+
+  #[clap(
+    long,
+    allow_hyphen_values = true,
+    conflicts_with = "no_display_name"
+  )]
+  pub display_name: Option<String>,
+
+  #[clap(long, conflicts_with = "display_name")]
+  pub no_display_name: bool,
+
+  #[clap(long)]
+  pub bind_to_monitor: Option<u32>,
+
+  #[clap(long)]
+  pub keep_alive: Option<bool>,
 }

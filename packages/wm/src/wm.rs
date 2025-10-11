@@ -25,7 +25,8 @@ use crate::{
       update_window_state, WindowPositionTarget,
     },
     workspace::{
-      focus_workspace, move_workspace_in_direction, rename_workspace,
+      focus_workspace, move_workspace_in_direction,
+      update_workspace_config,
     },
   },
   events::{
@@ -433,52 +434,18 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      InvokeCommand::RenameWorkspace {
+      InvokeCommand::UpdateWorkspaceConfig {
         workspace,
-        args,
+        new_config,
       } => {
-        use wm_common::InvokeRenameWorkspaceCommand;
-        let InvokeRenameWorkspaceCommand {
-          fullname,
-          name,
-          display_name,
-        } = args;
-        let workspace =
-          if let Some(workspace_name) = workspace {
-            state
-              .workspace_by_name(workspace_name)
-              .context("Workspace doesn't exist.")?
-          } else {
-            subject_container.workspace().context("No workspace.")?
-          };
-
-        let (name, display_name) = if let Some(fullname) = fullname {
-          let fullname = fullname.trim();
-          if let Some((name, display_name)) = fullname.split_once(':') {
-            let display_name = display_name.trim().to_owned();
-            (
-              name.trim().to_owned(),
-              (!display_name.is_empty()).then_some(display_name),
-            )
-          } else {
-            (fullname.to_owned(), None)
-          }
+        let workspace = if let Some(workspace_name) = workspace {
+          state
+            .workspace_by_name(workspace_name)
+            .context("Workspace doesn't exist.")?
         } else {
-          (
-            name
-              .clone()
-              .unwrap_or_else(|| workspace.config().name),
-            display_name.to_owned(),
-          )
+          subject_container.workspace().context("No workspace.")?
         };
-
-        rename_workspace(
-          &workspace,
-          &name,
-          display_name,
-          state,
-          config,
-        )
+        update_workspace_config(&workspace, state, config, new_config)
       }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
