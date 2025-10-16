@@ -10,6 +10,7 @@ use wm_common::{
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
+  animation_state::AnimationManager,
   commands::{
     container::set_focused_descendant, general::platform_sync,
     monitor::add_monitor, window::manage_window,
@@ -29,6 +30,9 @@ pub struct WmState {
   pub root_container: RootContainer,
 
   pub pending_sync: PendingSync,
+
+  /// Manager for window animations.
+  pub animation_manager: AnimationManager,
 
   /// Name of the most recently focused workspace.
   ///
@@ -79,6 +83,7 @@ impl WmState {
     Self {
       root_container: RootContainer::new(),
       pending_sync: PendingSync::default(),
+      animation_manager: AnimationManager::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,

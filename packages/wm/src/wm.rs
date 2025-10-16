@@ -43,6 +43,8 @@ use crate::{
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
+  pub animation_tick_rx: mpsc::UnboundedReceiver<()>,
+  animation_tick_tx: mpsc::UnboundedSender<()>,
   pub state: WmState,
 }
 
@@ -50,6 +52,7 @@ impl WindowManager {
   pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
+    let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
     let mut state = WmState::new(event_tx, exit_tx);
     state.populate(config)?;
@@ -57,6 +60,8 @@ impl WindowManager {
     Ok(Self {
       event_rx,
       exit_rx,
+      animation_tick_rx,
+      animation_tick_tx,
       state,
     })
   }
@@ -118,7 +123,80 @@ impl WindowManager {
       platform_sync(state, config)?;
     }
 
+    // Start animation timer if needed
+    self.ensure_animation_timer_running();
+
     Ok(())
+  }
+
+  /// Updates all active animations and redraws windows that are animating.
+  pub fn update_animations(
+    &mut self,
+    config: &UserConfig,
+  ) -> anyhow::Result<()> {
+    if !self.state.animation_manager.has_active_animations() {
+      return Ok(());
+    }
+
+    // Get all windows that have active animations
+    let active_window_ids = self.state.animation_manager.active_window_ids();
+
+    for window_id in &active_window_ids {
+      if let Some(container) = self.state.container_by_id(*window_id) {
+        if let Ok(window) = container.as_window_container() {
+          self.state.pending_sync.queue_container_to_redraw(window);
+        }
+      }
+    }
+
+    // Remove completed animations and ensure final positions
+    let completed_animations: Vec<_> = self.state.animation_manager
+      .active_window_ids()
+      .into_iter()
+      .filter_map(|id| {
+        let anim = self.state.animation_manager.get_animation(&id)?;
+        if anim.is_complete() {
+          Some((id, anim.target_rect.clone()))
+        } else {
+          None
+        }
+      })
+      .collect();
+
+    // Remove completed animations
+    let _completed_ids = self.state.animation_manager.remove_completed_animations();
+
+    // For completed animations, ensure windows are at their final position
+    for (window_id, _target_rect) in &completed_animations {
+      if let Some(container) = self.state.container_by_id(*window_id) {
+        if let Ok(window) = container.as_window_container() {
+          self.state.pending_sync.queue_container_to_redraw(window);
+        }
+      }
+    }
+
+    // Sync platform if there are changes
+    if self.state.pending_sync.has_changes() {
+      platform_sync(&mut self.state, config)?;
+    }
+
+    // Continue timer if there are still active animations
+    self.ensure_animation_timer_running();
+
+    Ok(())
+  }
+
+  /// Ensures the animation timer is running if there are active animations.
+  fn ensure_animation_timer_running(&self) {
+    if self.state.animation_manager.has_active_animations() {
+      let tx = self.animation_tick_tx.clone();
+      tokio::spawn(async move {
+        // Target frame time based on monitor refresh rate
+        // Default to 60Hz (16.67ms per frame)
+        tokio::time::sleep(tokio::time::Duration::from_millis(16)).await;
+        let _ = tx.send(());
+      });
+    }
   }
 
   pub fn process_commands(

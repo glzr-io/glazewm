@@ -10,6 +10,7 @@ use wm_common::{
 use wm_platform::{Platform, ZOrder};
 
 use crate::{
+  animation_state::WindowAnimationState,
   models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -245,6 +246,7 @@ fn redraw_containers(
 
     // Transition display state depending on whether window will be
     // shown or hidden.
+    let prev_display_state = window.display_state();
     window.set_display_state(
       match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
@@ -257,7 +259,7 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
+    let target_rect = window
       .to_rect()?
       .apply_delta(&window.total_border_delta()?, None);
 
@@ -266,17 +268,107 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
+    // Determine if we should animate this window
+    let animations_enabled = config.value.animations.enabled;
+    let is_opening = matches!(
+      (prev_display_state, window.display_state()),
+      (DisplayState::Hidden, DisplayState::Showing)
+    );
+    let is_closing = matches!(
+      window.display_state(),
+      DisplayState::Hiding
+    );
+
+    // Determine the rect and opacity to use
+    let (rect_to_use, opacity_override) = if animations_enabled {
+      // Check if there's already an animation for this window
+      let existing_animation = state.animation_manager.get_animation(&window.id());
+
+      // Decide whether to start a new animation
+      let should_start_new_animation = if is_opening && config.value.animations.window_open.enabled {
+        existing_animation.is_none()
+      } else if is_closing && config.value.animations.window_close.enabled {
+        existing_animation.is_none()
+      } else if !is_opening && !is_closing && config.value.animations.window_movement.enabled {
+        if let Some(anim) = existing_animation {
+          // Don't restart animations that are completing or already at target
+          if anim.is_complete() {
+            false
+          } else {
+            // Only start new animation if target has changed significantly
+            let target_distance = (anim.target_rect.x() - target_rect.x()).abs() +
+                                 (anim.target_rect.y() - target_rect.y()).abs() +
+                                 (anim.target_rect.width() - target_rect.width()).abs() +
+                                 (anim.target_rect.height() - target_rect.height()).abs();
+            target_distance > 5
+          }
+        } else if let Ok(current_pos) = window.native().frame_position() {
+          // Only animate if the window is actually moving (with a threshold to avoid micro-movements)
+          let distance = (current_pos.x() - target_rect.x()).abs() +
+                         (current_pos.y() - target_rect.y()).abs() +
+                         (current_pos.width() - target_rect.width()).abs() +
+                         (current_pos.height() - target_rect.height()).abs();
+          // Increased threshold to prevent restart loops
+          distance > 10
+        } else {
+          false
+        }
+      } else {
+        false
+      };
+
+      // Start new animation if needed
+      if should_start_new_animation {
+        if is_opening {
+          let animation = WindowAnimationState::new_open(
+            target_rect.clone(),
+            &config.value.animations.window_open,
+          );
+          state.animation_manager.start_animation(window.id(), animation);
+        } else if is_closing {
+          let animation = WindowAnimationState::new_close(
+            target_rect.clone(),
+            &config.value.animations.window_close,
+          );
+          state.animation_manager.start_animation(window.id(), animation);
+        } else if let Ok(current_pos) = window.native().frame_position() {
+          let animation = WindowAnimationState::new_movement(
+            current_pos,
+            target_rect.clone(),
+            &config.value.animations.window_movement,
+          );
+          state.animation_manager.start_animation(window.id(), animation);
+        }
+      }
+
+      // Get the current animation state (re-fetch after potentially starting new animation)
+      if let Some(animation) = state.animation_manager.get_animation(&window.id()) {
+        (animation.current_rect(), animation.current_opacity())
+      } else {
+        (target_rect.clone(), None)
+      }
+    } else {
+      (target_rect.clone(), None)
+    };
+
     info!("Updating window position: {window}");
 
     if let Err(err) = window.native().set_position(
       &window.state(),
-      &rect,
+      &rect_to_use,
       &z_order,
       is_visible,
       &config.value.general.hide_method,
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
+    }
+
+    // Apply opacity if there's an animation with fade
+    if let Some(opacity) = opacity_override {
+      if let Err(err) = window.native().set_transparency(&opacity) {
+        warn!("Failed to set window opacity during animation: {}", err);
+      }
     }
 
     // Whether the window is either transitioning to or from fullscreen.

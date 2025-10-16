@@ -7,6 +7,7 @@ use crate::{
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
+  pub animations: AnimationsConfig,
   pub binding_modes: Vec<BindingModeConfig>,
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
@@ -388,4 +389,96 @@ const fn default_bool<const V: bool>() -> bool {
 /// Helper function for setting a default value for window rule events.
 fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationsConfig {
+  pub enabled: bool,
+  pub window_movement: AnimationTypeConfig,
+  pub window_open: AnimationEffectsConfig,
+  pub window_close: AnimationEffectsConfig,
+}
+
+impl Default for AnimationsConfig {
+  fn default() -> Self {
+    AnimationsConfig {
+      enabled: true,
+      window_movement: AnimationTypeConfig::default(),
+      window_open: AnimationEffectsConfig::default_open(),
+      window_close: AnimationEffectsConfig::default_close(),
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationTypeConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+}
+
+impl Default for AnimationTypeConfig {
+  fn default() -> Self {
+    AnimationTypeConfig {
+      enabled: true,
+      duration_ms: 150,
+      easing: EasingFunction::EaseInOut,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationEffectsConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  pub fade: bool,
+  pub slide: bool,
+  pub scale: bool,
+}
+
+impl AnimationEffectsConfig {
+  fn default_open() -> Self {
+    AnimationEffectsConfig {
+      enabled: true,
+      duration_ms: 200,
+      easing: EasingFunction::EaseOut,
+      fade: true,
+      slide: true,
+      scale: true,
+    }
+  }
+
+  fn default_close() -> Self {
+    AnimationEffectsConfig {
+      enabled: true,
+      duration_ms: 150,
+      easing: EasingFunction::EaseIn,
+      fade: true,
+      slide: false,
+      scale: true,
+    }
+  }
+}
+
+impl Default for AnimationEffectsConfig {
+  fn default() -> Self {
+    Self::default_open()
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EasingFunction {
+  Linear,
+  #[default]
+  EaseInOut,
+  EaseIn,
+  EaseOut,
+  EaseInOutCubic,
+  EaseInCubic,
+  EaseOutCubic,
 }

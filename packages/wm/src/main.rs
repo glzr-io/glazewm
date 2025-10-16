@@ -26,6 +26,8 @@ use crate::{
   wm::WindowManager,
 };
 
+mod animation_engine;
+mod animation_state;
 mod commands;
 mod events;
 mod ipc_server;
@@ -112,6 +114,9 @@ async fn start_wm(
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
         wm.process_event(event, &mut config)
+      },
+      Some(()) = wm.animation_tick_rx.recv() => {
+        wm.update_animations(&config)
       },
       Some((
         message,
