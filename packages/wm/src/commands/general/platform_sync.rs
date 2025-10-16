@@ -281,6 +281,12 @@ fn redraw_containers(
 
     // Determine the rect and opacity to use
     let (rect_to_use, opacity_override) = if animations_enabled {
+      // Get the previous target position before updating
+      let previous_target = state.window_target_positions.get(&window.id()).cloned();
+
+      // Update the stored target position
+      state.window_target_positions.insert(window.id(), target_rect.clone());
+
       // Check if there's already an animation for this window
       let existing_animation = state.animation_manager.get_animation(&window.id());
 
@@ -302,15 +308,15 @@ fn redraw_containers(
                                  (anim.target_rect.height() - target_rect.height()).abs();
             target_distance > 5
           }
-        } else if let Ok(current_pos) = window.native().frame_position() {
-          // Only animate if the window is actually moving (with a threshold to avoid micro-movements)
-          let distance = (current_pos.x() - target_rect.x()).abs() +
-                         (current_pos.y() - target_rect.y()).abs() +
-                         (current_pos.width() - target_rect.width()).abs() +
-                         (current_pos.height() - target_rect.height()).abs();
-          // Increased threshold to prevent restart loops
+        } else if let Some(ref prev_target) = previous_target {
+          // Compare PREVIOUS target to NEW target, not current position to target
+          let distance = (prev_target.x() - target_rect.x()).abs() +
+                         (prev_target.y() - target_rect.y()).abs() +
+                         (prev_target.width() - target_rect.width()).abs() +
+                         (prev_target.height() - target_rect.height()).abs();
           distance > 10
         } else {
+          // First time seeing this window, no animation needed
           false
         }
       } else {
@@ -331,9 +337,10 @@ fn redraw_containers(
             &config.value.animations.window_close,
           );
           state.animation_manager.start_animation(window.id(), animation);
-        } else if let Ok(current_pos) = window.native().frame_position() {
+        } else if let Some(prev_target) = previous_target.clone() {
+          // Use previous target as start position for movement animation
           let animation = WindowAnimationState::new_movement(
-            current_pos,
+            prev_target,
             target_rect.clone(),
             &config.value.animations.window_movement,
           );
