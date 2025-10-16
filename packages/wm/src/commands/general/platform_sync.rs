@@ -4,8 +4,8 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, EasingFunction, HideMethod,
+  OpacityValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -338,11 +338,56 @@ fn redraw_containers(
           );
           state.animation_manager.start_animation(window.id(), animation);
         } else if let Some(prev_target) = previous_target.clone() {
+          // Detect operation type and calculate adaptive timing
+          let prev_area = prev_target.width() * prev_target.height();
+          let target_area = target_rect.width() * target_rect.height();
+          let area_change_ratio = if prev_area > 0 {
+            ((target_area as f32 / prev_area as f32) - 1.0).abs()
+          } else {
+            1.0
+          };
+
+          let is_expansion = target_area > prev_area;
+          let is_shrinking = target_area < prev_area;
+
+          // Create custom animation config based on operation type and size change
+          let mut animation_config = config.value.animations.window_movement.clone();
+
+          // Determine base duration based on operation type
+          let base_duration = if is_expansion {
+            80  // Fast for expansions to minimize black areas
+          } else if is_shrinking {
+            100  // Slightly faster for shrinking
+          } else {
+            150  // Normal speed for pure movement (< 1% area change)
+          };
+
+          // Scale duration based on magnitude of size change
+          let adaptive_duration = if area_change_ratio < 0.2 {
+            // Small change (< 20% area): Full animation
+            base_duration
+          } else if area_change_ratio < 0.5 {
+            // Medium change (20-50%): 70% of duration
+            (base_duration as f32 * 0.7) as u32
+          } else {
+            // Large change (> 50%): 50% of duration, very fast
+            (base_duration as f32 * 0.5) as u32
+          };
+
+          animation_config.duration_ms = adaptive_duration.max(40); // Never less than 40ms
+
+          // Use better easing for expansions
+          if is_expansion {
+            animation_config.easing = EasingFunction::EaseOutCubic; // Fast start, slow end
+          } else if is_shrinking {
+            animation_config.easing = EasingFunction::EaseInOutCubic; // Smooth both ways
+          }
+
           // Use previous target as start position for movement animation
           let animation = WindowAnimationState::new_movement(
             prev_target,
             target_rect.clone(),
-            &config.value.animations.window_movement,
+            &animation_config,
           );
           state.animation_manager.start_animation(window.id(), animation);
         }
