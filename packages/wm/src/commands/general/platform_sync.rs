@@ -279,13 +279,14 @@ fn redraw_containers(
       DisplayState::Hiding
     );
 
-    // Determine the rect and opacity to use
-    let (rect_to_use, opacity_override) = if animations_enabled {
-      // Get the previous target position before updating
-      let previous_target = state.window_target_positions.get(&window.id()).cloned();
+    // Get the previous target position before updating
+    let previous_target = state.window_target_positions.get(&window.id()).cloned();
 
-      // Update the stored target position
-      state.window_target_positions.insert(window.id(), target_rect.clone());
+    // Update the stored target position (always do this, even if animations are skipped)
+    state.window_target_positions.insert(window.id(), target_rect.clone());
+
+    // Determine the rect and opacity to use
+    let (rect_to_use, opacity_override) = if animations_enabled && !state.pending_sync.should_skip_animations() {
 
       // Check if there's already an animation for this window
       let existing_animation = state.animation_manager.get_animation(&window.id());

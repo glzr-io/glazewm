@@ -30,6 +30,9 @@ pub struct PendingSync {
   /// Whether to jump the cursor to the focused container (if enabled in
   /// user config).
   needs_cursor_jump: bool,
+
+  /// Whether to skip animations for the current sync (e.g., during workspace switches).
+  skip_animations: bool,
 }
 
 impl PendingSync {
@@ -49,6 +52,7 @@ impl PendingSync {
     self.needs_focused_effect_update = false;
     self.needs_all_effects_update = false;
     self.needs_cursor_jump = false;
+    self.skip_animations = false;
     self
   }
 
@@ -114,6 +118,15 @@ impl PendingSync {
   pub fn queue_cursor_jump(&mut self) -> &mut Self {
     self.needs_cursor_jump = true;
     self
+  }
+
+  pub fn set_skip_animations(&mut self, skip: bool) -> &mut Self {
+    self.skip_animations = skip;
+    self
+  }
+
+  pub fn should_skip_animations(&self) -> bool {
+    self.skip_animations
   }
 
   pub fn needs_focus_update(&self) -> bool {
