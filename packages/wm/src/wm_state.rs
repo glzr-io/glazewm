@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -39,6 +39,9 @@ pub struct WmState {
 
   /// Manager for window animations.
   pub animation_manager: AnimationManager,
+
+  /// Tracks the target position for each window to prevent animation restart loops.
+  pub window_target_positions: HashMap<Uuid, Rect>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -92,6 +95,7 @@ impl WmState {
       dispatcher,
       pending_sync: PendingSync::default(),
       animation_manager: AnimationManager::new(),
+      window_target_positions: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
