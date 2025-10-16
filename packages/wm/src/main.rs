@@ -34,6 +34,8 @@ use crate::{
   wm::WindowManager,
 };
 
+mod animation_engine;
+mod animation_state;
 mod commands;
 mod events;
 mod ipc_server;
@@ -220,6 +222,9 @@ async fn start_wm(
         } else {
           wm.state.cleanup_invalid_windows()
         }
+      },
+      Some(()) = wm.animation_tick_rx.recv() => {
+        wm.update_animations(&config)
       },
       Some((
         message,
