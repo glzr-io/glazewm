@@ -10,6 +10,12 @@ animations:
   # - 'custom': Use the detailed settings below
   profile: "balanced"
 
+  # Minimum pixel distance required to trigger movement animations.
+  # Helps prevent animations from starting on very small position changes.
+  # Increase this value on high-DPI displays to reduce sensitivity.
+  # Default: 10
+  movement_threshold_px: 10
+
   # Animation settings for window movement (tiling, resizing, etc).
   # Only used when profile is set to 'custom'.
   window_movement:

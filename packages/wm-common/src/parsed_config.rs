@@ -489,6 +489,7 @@ impl AnimationProfile {
 pub struct AnimationsConfig {
   pub enabled: bool,
   pub profile: AnimationProfile,
+  pub movement_threshold_px: u32,
   pub window_movement: AnimationTypeConfig,
   pub window_open: AnimationEffectsConfig,
   pub window_close: AnimationEffectsConfig,
@@ -499,6 +500,7 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       enabled: true,
       profile: AnimationProfile::Balanced,
+      movement_threshold_px: 10,
       window_movement: AnimationTypeConfig::default(),
       window_open: AnimationEffectsConfig::default_open(),
       window_close: AnimationEffectsConfig::default_close(),

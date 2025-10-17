@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use tokio::task;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, EasingFunction, HideMethod,
   OpacityValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
@@ -288,6 +288,9 @@ fn redraw_containers(
     // Determine the rect and opacity to use
     let (rect_to_use, opacity_override) = if animations_enabled && !state.pending_sync.should_skip_animations() {
 
+      // Get the movement threshold from config
+      let threshold = config.value.animations.movement_threshold_px as i32;
+
       // Check if there's already an animation for this window
       let existing_animation = state.animation_manager.get_animation(&window.id());
 
@@ -311,7 +314,7 @@ fn redraw_containers(
                                  (anim.target_rect.y() - target_rect.y()).abs() +
                                  (anim.target_rect.width() - target_rect.width()).abs() +
                                  (anim.target_rect.height() - target_rect.height()).abs();
-            target_distance > 10
+            target_distance > threshold
           }
         } else if let Some(ref prev_target) = previous_target {
           // Compare PREVIOUS target to NEW target, not current position to target
@@ -319,7 +322,7 @@ fn redraw_containers(
                          (prev_target.y() - target_rect.y()).abs() +
                          (prev_target.width() - target_rect.width()).abs() +
                          (prev_target.height() - target_rect.height()).abs();
-          distance > 10
+          distance > threshold
         } else {
           // First time seeing this window, no animation needed
           false
@@ -428,7 +431,7 @@ fn redraw_containers(
       (target_rect.clone(), None)
     };
 
-    info!("Updating window position: {window}");
+    debug!("Updating window position: {window}");
 
     if let Err(err) = window.native().set_position(
       &window.state(),
