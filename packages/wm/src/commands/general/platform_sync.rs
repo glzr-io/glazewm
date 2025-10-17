@@ -291,6 +291,9 @@ fn redraw_containers(
       // Check if there's already an animation for this window
       let existing_animation = state.animation_manager.get_animation(&window.id());
 
+      // Store the existing animation for later use (clone it so we can use it after starting new animation)
+      let existing_animation_clone = existing_animation.clone();
+
       // Decide whether to start a new animation
       let should_start_new_animation = if is_opening && config.value.animations.effective_window_open().enabled {
         existing_animation.is_none()
@@ -302,12 +305,13 @@ fn redraw_containers(
           if anim.is_complete() {
             false
           } else {
-            // Only start new animation if target has changed significantly
+            // Check if target has changed significantly from the animation's current target
+            // Use a reasonable threshold to avoid creating animations for every tiny change
             let target_distance = (anim.target_rect.x() - target_rect.x()).abs() +
                                  (anim.target_rect.y() - target_rect.y()).abs() +
                                  (anim.target_rect.width() - target_rect.width()).abs() +
                                  (anim.target_rect.height() - target_rect.height()).abs();
-            target_distance > 5
+            target_distance > 10
           }
         } else if let Some(ref prev_target) = previous_target {
           // Compare PREVIOUS target to NEW target, not current position to target
@@ -339,8 +343,16 @@ fn redraw_containers(
           );
           state.animation_manager.start_animation(window.id(), animation);
         } else if let Some(prev_target) = previous_target.clone() {
-          // Detect operation type and calculate adaptive timing
-          let prev_area = prev_target.width() * prev_target.height();
+          // Determine the start position for the new animation
+          // Cancel and replace: start from current animated position if an animation is running
+          let start_rect = if let Some(existing_anim) = &existing_animation_clone {
+            existing_anim.current_rect()
+          } else {
+            prev_target
+          };
+
+          // Detect operation type and calculate adaptive timing using start_rect
+          let prev_area = start_rect.width() * start_rect.height();
           let target_area = target_rect.width() * target_rect.height();
           let area_change_ratio = if prev_area > 0 {
             ((target_area as f32 / prev_area as f32) - 1.0).abs()
@@ -384,9 +396,9 @@ fn redraw_containers(
             animation_config.easing = EasingFunction::EaseInOutCubic; // Smooth both ways
           }
 
-          // Use previous target as start position for movement animation
+          // Create animation from current position to new target (cancel and replace)
           let animation = WindowAnimationState::new_movement(
-            prev_target,
+            start_rect,
             target_rect.clone(),
             &animation_config,
           );
