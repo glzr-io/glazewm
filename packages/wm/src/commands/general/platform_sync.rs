@@ -292,11 +292,11 @@ fn redraw_containers(
       let existing_animation = state.animation_manager.get_animation(&window.id());
 
       // Decide whether to start a new animation
-      let should_start_new_animation = if is_opening && config.value.animations.window_open.enabled {
+      let should_start_new_animation = if is_opening && config.value.animations.effective_window_open().enabled {
         existing_animation.is_none()
-      } else if is_closing && config.value.animations.window_close.enabled {
+      } else if is_closing && config.value.animations.effective_window_close().enabled {
         existing_animation.is_none()
-      } else if !is_opening && !is_closing && config.value.animations.window_movement.enabled {
+      } else if !is_opening && !is_closing && config.value.animations.effective_window_movement().enabled {
         if let Some(anim) = existing_animation {
           // Don't restart animations that are completing or already at target
           if anim.is_complete() {
@@ -329,13 +329,13 @@ fn redraw_containers(
         if is_opening {
           let animation = WindowAnimationState::new_open(
             target_rect.clone(),
-            &config.value.animations.window_open,
+            &config.value.animations.effective_window_open(),
           );
           state.animation_manager.start_animation(window.id(), animation);
         } else if is_closing {
           let animation = WindowAnimationState::new_close(
             target_rect.clone(),
-            &config.value.animations.window_close,
+            &config.value.animations.effective_window_close(),
           );
           state.animation_manager.start_animation(window.id(), animation);
         } else if let Some(prev_target) = previous_target.clone() {
@@ -352,7 +352,7 @@ fn redraw_containers(
           let is_shrinking = target_area < prev_area;
 
           // Create custom animation config based on operation type and size change
-          let mut animation_config = config.value.animations.window_movement.clone();
+          let mut animation_config = config.value.animations.effective_window_movement();
 
           // Determine base duration based on operation type
           let base_duration = if is_expansion {

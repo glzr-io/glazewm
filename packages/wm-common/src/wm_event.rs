@@ -63,4 +63,7 @@ pub enum WmEvent {
   PauseChanged {
     is_paused: bool,
   },
+  AnimationsChanged {
+    animations_enabled: bool,
+  },
 }

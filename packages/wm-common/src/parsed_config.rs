@@ -391,10 +391,104 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnimationProfile {
+  Fast,
+  #[default]
+  Balanced,
+  Smooth,
+  Custom,
+}
+
+impl AnimationProfile {
+  pub fn window_movement_config(&self) -> AnimationTypeConfig {
+    match self {
+      AnimationProfile::Fast => AnimationTypeConfig {
+        enabled: true,
+        duration_ms: 100,
+        easing: EasingFunction::EaseInOut,
+      },
+      AnimationProfile::Balanced => AnimationTypeConfig {
+        enabled: true,
+        duration_ms: 150,
+        easing: EasingFunction::EaseInOut,
+      },
+      AnimationProfile::Smooth => AnimationTypeConfig {
+        enabled: true,
+        duration_ms: 200,
+        easing: EasingFunction::EaseInOutCubic,
+      },
+      AnimationProfile::Custom => AnimationTypeConfig::default(),
+    }
+  }
+
+  pub fn window_open_config(&self) -> AnimationEffectsConfig {
+    match self {
+      AnimationProfile::Fast => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 120,
+        easing: EasingFunction::EaseOut,
+        fade: true,
+        slide: true,
+        scale: true,
+      },
+      AnimationProfile::Balanced => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 200,
+        easing: EasingFunction::EaseOut,
+        fade: true,
+        slide: true,
+        scale: true,
+      },
+      AnimationProfile::Smooth => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 250,
+        easing: EasingFunction::EaseOutCubic,
+        fade: true,
+        slide: true,
+        scale: true,
+      },
+      AnimationProfile::Custom => AnimationEffectsConfig::default_open(),
+    }
+  }
+
+  pub fn window_close_config(&self) -> AnimationEffectsConfig {
+    match self {
+      AnimationProfile::Fast => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 100,
+        easing: EasingFunction::EaseIn,
+        fade: true,
+        slide: false,
+        scale: true,
+      },
+      AnimationProfile::Balanced => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 150,
+        easing: EasingFunction::EaseIn,
+        fade: true,
+        slide: false,
+        scale: true,
+      },
+      AnimationProfile::Smooth => AnimationEffectsConfig {
+        enabled: true,
+        duration_ms: 200,
+        easing: EasingFunction::EaseInCubic,
+        fade: true,
+        slide: false,
+        scale: true,
+      },
+      AnimationProfile::Custom => AnimationEffectsConfig::default_close(),
+    }
+  }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
   pub enabled: bool,
+  pub profile: AnimationProfile,
   pub window_movement: AnimationTypeConfig,
   pub window_open: AnimationEffectsConfig,
   pub window_close: AnimationEffectsConfig,
@@ -404,9 +498,39 @@ impl Default for AnimationsConfig {
   fn default() -> Self {
     AnimationsConfig {
       enabled: true,
+      profile: AnimationProfile::Balanced,
       window_movement: AnimationTypeConfig::default(),
       window_open: AnimationEffectsConfig::default_open(),
       window_close: AnimationEffectsConfig::default_close(),
+    }
+  }
+}
+
+impl AnimationsConfig {
+  /// Get the effective window movement config based on the profile
+  pub fn effective_window_movement(&self) -> AnimationTypeConfig {
+    if self.profile != AnimationProfile::Custom {
+      self.profile.window_movement_config()
+    } else {
+      self.window_movement.clone()
+    }
+  }
+
+  /// Get the effective window open config based on the profile
+  pub fn effective_window_open(&self) -> AnimationEffectsConfig {
+    if self.profile != AnimationProfile::Custom {
+      self.profile.window_open_config()
+    } else {
+      self.window_open.clone()
+    }
+  }
+
+  /// Get the effective window close config based on the profile
+  pub fn effective_window_close(&self) -> AnimationEffectsConfig {
+    if self.profile != AnimationProfile::Custom {
+      self.profile.window_close_config()
+    } else {
+      self.window_close.clone()
     }
   }
 }

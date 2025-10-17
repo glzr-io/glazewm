@@ -16,7 +16,8 @@ use crate::{
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
+      platform_sync, reload_config, shell_exec, toggle_animations,
+      toggle_pause,
     },
     monitor::focus_monitor,
     window::{
@@ -190,10 +191,22 @@ impl WindowManager {
   fn ensure_animation_timer_running(&self) {
     if self.state.animation_manager.has_active_animations() {
       let tx = self.animation_tick_tx.clone();
+
+      // Calculate frame time based on monitor refresh rate
+      let mut frame_time_ms = 16u32;  // Default to 60 FPS
+
+      if let Some(container) = self.state.focused_container() {
+        if let Some(monitor) = container.monitor() {
+          if let Ok(refresh_rate) = monitor.native().refresh_rate() {
+            // Convert refresh rate to milliseconds per frame
+            // Cap at 60 Hz minimum for safety
+            frame_time_ms = 1000 / refresh_rate.max(60);
+          }
+        }
+      }
+
       tokio::spawn(async move {
-        // Target frame time based on monitor refresh rate
-        // Default to 60Hz (16.67ms per frame)
-        tokio::time::sleep(tokio::time::Duration::from_millis(16)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(frame_time_ms as u64)).await;
         let _ = tx.send(());
       });
     }
@@ -802,6 +815,10 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
+      InvokeCommand::WmToggleAnimations => {
+        toggle_animations(config, state);
+        Ok(())
+      }
       InvokeCommand::WmTogglePause => {
         toggle_pause(state);
         Ok(())

@@ -2,7 +2,16 @@ animations:
   # Whether to enable window animations.
   enabled: true
 
+  # Animation profile controls all timing values at once.
+  # Options: 'fast', 'balanced', 'smooth', 'custom'
+  # - 'fast': Snappy animations (100-120ms)
+  # - 'balanced': Default, smooth but responsive (150-200ms)
+  # - 'smooth': Slower, more fluid animations (200-250ms)
+  # - 'custom': Use the detailed settings below
+  profile: "balanced"
+
   # Animation settings for window movement (tiling, resizing, etc).
+  # Only used when profile is set to 'custom'.
   window_movement:
     enabled: true
     duration_ms: 150
@@ -11,6 +20,7 @@ animations:
     easing: "ease_in_out"
 
   # Animation settings for when windows open.
+  # Only used when profile is set to 'custom'.
   window_open:
     enabled: true
     duration_ms: 200
@@ -23,6 +33,7 @@ animations:
     scale: true
 
   # Animation settings for when windows close.
+  # Only used when profile is set to 'custom'.
   window_close:
     enabled: true
     duration_ms: 150
@@ -244,6 +255,10 @@ keybindings:
   # is pressed again.
   - commands: ["wm-toggle-pause"]
     bindings: ["alt+shift+p"]
+
+  # Toggles window animations on and off.
+  - commands: ["wm-toggle-animations"]
+    bindings: ["alt+shift+n"]
 
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
