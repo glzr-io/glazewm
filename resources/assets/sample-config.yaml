@@ -1,6 +1,7 @@
 animations:
-  # Whether to enable window animations.
-  enabled: true
+  # Whether to enable window animations (opt-in feature).
+  # Default: false
+  enabled: false
 
   # Animation profile controls all timing values at once.
   # Options: 'fast', 'balanced', 'smooth', 'custom'

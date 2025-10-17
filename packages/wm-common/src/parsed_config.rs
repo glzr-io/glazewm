@@ -498,7 +498,7 @@ pub struct AnimationsConfig {
 impl Default for AnimationsConfig {
   fn default() -> Self {
     AnimationsConfig {
-      enabled: true,
+      enabled: false,
       profile: AnimationProfile::Balanced,
       movement_threshold_px: 10,
       window_movement: AnimationTypeConfig::default(),
