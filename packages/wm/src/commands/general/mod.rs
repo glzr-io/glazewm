@@ -4,6 +4,7 @@ mod enable_binding_mode;
 mod platform_sync;
 mod reload_config;
 mod shell_exec;
+mod toggle_animations;
 mod toggle_pause;
 
 pub use cycle_focus::*;
@@ -12,4 +13,5 @@ pub use enable_binding_mode::*;
 pub use platform_sync::*;
 pub use reload_config::*;
 pub use shell_exec::*;
+pub use toggle_animations::*;
 pub use toggle_pause::*;
