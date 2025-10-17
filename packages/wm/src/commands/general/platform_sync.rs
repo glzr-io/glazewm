@@ -351,50 +351,62 @@ fn redraw_containers(
             prev_target
           };
 
-          // Detect operation type and calculate adaptive timing using start_rect
-          let prev_area = start_rect.width() * start_rect.height();
-          let target_area = target_rect.width() * target_rect.height();
-          let area_change_ratio = if prev_area > 0 {
-            ((target_area as f32 / prev_area as f32) - 1.0).abs()
+          let is_cancel_and_replace = existing_animation_clone.is_some();
+
+          // Choose animation config based on whether this is a cancel-and-replace
+          let animation_config = if is_cancel_and_replace {
+            // Use fixed short duration for interrupted animations to ensure consistent timing
+            let mut config = config.value.animations.effective_window_movement();
+            config.duration_ms = 100; // Fixed 100ms for cancel-and-replace
+            config
           } else {
-            1.0
+            // Detect operation type and calculate adaptive timing using start_rect
+            let prev_area = start_rect.width() * start_rect.height();
+            let target_area = target_rect.width() * target_rect.height();
+            let area_change_ratio = if prev_area > 0 {
+              ((target_area as f32 / prev_area as f32) - 1.0).abs()
+            } else {
+              1.0
+            };
+
+            let is_expansion = target_area > prev_area;
+            let is_shrinking = target_area < prev_area;
+
+            // Create custom animation config based on operation type and size change
+            let mut animation_config = config.value.animations.effective_window_movement();
+
+            // Determine base duration based on operation type
+            let base_duration = if is_expansion {
+              80  // Fast for expansions to minimize black areas
+            } else if is_shrinking {
+              100  // Slightly faster for shrinking
+            } else {
+              150  // Normal speed for pure movement (< 1% area change)
+            };
+
+            // Scale duration based on magnitude of size change
+            let adaptive_duration = if area_change_ratio < 0.2 {
+              // Small change (< 20% area): Full animation
+              base_duration
+            } else if area_change_ratio < 0.5 {
+              // Medium change (20-50%): 70% of duration
+              (base_duration as f32 * 0.7) as u32
+            } else {
+              // Large change (> 50%): 50% of duration, very fast
+              (base_duration as f32 * 0.5) as u32
+            };
+
+            animation_config.duration_ms = adaptive_duration.max(40); // Never less than 40ms
+
+            // Use better easing for expansions
+            if is_expansion {
+              animation_config.easing = EasingFunction::EaseOutCubic; // Fast start, slow end
+            } else if is_shrinking {
+              animation_config.easing = EasingFunction::EaseInOutCubic; // Smooth both ways
+            }
+
+            animation_config
           };
-
-          let is_expansion = target_area > prev_area;
-          let is_shrinking = target_area < prev_area;
-
-          // Create custom animation config based on operation type and size change
-          let mut animation_config = config.value.animations.effective_window_movement();
-
-          // Determine base duration based on operation type
-          let base_duration = if is_expansion {
-            80  // Fast for expansions to minimize black areas
-          } else if is_shrinking {
-            100  // Slightly faster for shrinking
-          } else {
-            150  // Normal speed for pure movement (< 1% area change)
-          };
-
-          // Scale duration based on magnitude of size change
-          let adaptive_duration = if area_change_ratio < 0.2 {
-            // Small change (< 20% area): Full animation
-            base_duration
-          } else if area_change_ratio < 0.5 {
-            // Medium change (20-50%): 70% of duration
-            (base_duration as f32 * 0.7) as u32
-          } else {
-            // Large change (> 50%): 50% of duration, very fast
-            (base_duration as f32 * 0.5) as u32
-          };
-
-          animation_config.duration_ms = adaptive_duration.max(40); // Never less than 40ms
-
-          // Use better easing for expansions
-          if is_expansion {
-            animation_config.easing = EasingFunction::EaseOutCubic; // Fast start, slow end
-          } else if is_shrinking {
-            animation_config.easing = EasingFunction::EaseInOutCubic; // Smooth both ways
-          }
 
           // Create animation from current position to new target (cancel and replace)
           let animation = WindowAnimationState::new_movement(
