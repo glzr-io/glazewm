@@ -7,7 +7,6 @@ use objc2_application_services::{AXError, AXObserver, AXUIElement};
 use objc2_core_foundation::{
   kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource, CFString,
 };
-use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -126,8 +125,10 @@ impl ApplicationObserver {
       // Don't emit `WindowEvent::Show` for windows that are already
       // running on startup.
       if !is_startup {
-        if let Err(err) = events_tx.send(WindowEvent::Show(window.clone()))
-        {
+        if let Err(err) = events_tx.send(WindowEvent::Show {
+          window: window.clone(),
+          notification: crate::WindowEventNotification(None),
+        }) {
           tracing::warn!(
             "Failed to send window event for PID {}: {}",
             app.pid,
@@ -204,9 +205,10 @@ impl ApplicationObserver {
 
   pub(crate) fn emit_all_windows_destroyed(&self) {
     for window in self.app_windows.lock().unwrap().iter() {
-      if let Err(err) =
-        self.events_tx.send(WindowEvent::Destroy(window.id()))
-      {
+      if let Err(err) = self.events_tx.send(WindowEvent::Destroy {
+        window_id: window.id(),
+        notification: crate::WindowEventNotification(None),
+      }) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
           self.pid,
@@ -218,9 +220,10 @@ impl ApplicationObserver {
 
   pub(crate) fn emit_all_windows_hidden(&self) {
     for window in self.app_windows.lock().unwrap().iter() {
-      if let Err(err) =
-        self.events_tx.send(WindowEvent::Hide(window.clone()))
-      {
+      if let Err(err) = self.events_tx.send(WindowEvent::Hide {
+        window: window.clone(),
+        notification: crate::WindowEventNotification(None),
+      }) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
           self.pid,
@@ -232,9 +235,10 @@ impl ApplicationObserver {
 
   pub(crate) fn emit_all_windows_shown(&self) {
     for window in self.app_windows.lock().unwrap().iter() {
-      if let Err(err) =
-        self.events_tx.send(WindowEvent::Show(window.clone()))
-      {
+      if let Err(err) = self.events_tx.send(WindowEvent::Show {
+        window: window.clone(),
+        notification: crate::WindowEventNotification(None),
+      }) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
           self.pid,
@@ -245,10 +249,11 @@ impl ApplicationObserver {
   }
 
   /// Callback function for accessibility window events.
+  #[allow(clippy::too_many_lines)]
   unsafe extern "C-unwind" fn window_event_callback(
     _observer: NonNull<AXObserver>,
     element: NonNull<AXUIElement>,
-    notification: NonNull<CFString>,
+    notification_name: NonNull<CFString>,
     context: *mut std::ffi::c_void,
   ) {
     if context.is_null() {
@@ -257,12 +262,15 @@ impl ApplicationObserver {
     }
 
     let context = &mut *context.cast::<ApplicationEventContext>();
-    let notification_str = notification.as_ref().to_string();
     let ax_element = unsafe { CFRetained::retain(element) };
+    let notification = crate::WindowEventNotificationInner {
+      name: notification_name.as_ref().to_string(),
+      ax_element_ptr: element.as_ptr().cast::<std::ffi::c_void>(),
+    };
 
     tracing::debug!(
       "Received window event: {} for PID: {}",
-      notification_str,
+      notification.name,
       context.application.pid
     );
 
@@ -277,7 +285,7 @@ impl ApplicationObserver {
         .cloned()
     };
 
-    if notification_str.as_str() == "AXUIElementDestroyed" {
+    if notification.name.as_str() == "AXUIElementDestroyed" {
       if let Some(window) = &found_window {
         context
           .app_windows
@@ -285,9 +293,10 @@ impl ApplicationObserver {
           .unwrap()
           .retain(|w| w.id() != window.id());
 
-        if let Err(err) =
-          context.events_tx.send(WindowEvent::Destroy(window.id()))
-        {
+        if let Err(err) = context.events_tx.send(WindowEvent::Destroy {
+          window_id: window.id(),
+          notification: crate::WindowEventNotification(Some(notification)),
+        }) {
           tracing::warn!(
             "Failed to send window event for PID {}: {}",
             context.application.pid,
@@ -318,9 +327,12 @@ impl ApplicationObserver {
         context,
       );
 
-      if let Err(err) =
-        context.events_tx.send(WindowEvent::Show(window.clone()))
-      {
+      if let Err(err) = context.events_tx.send(WindowEvent::Show {
+        window: window.clone(),
+        notification: crate::WindowEventNotification(Some(
+          notification.clone(),
+        )),
+      }) {
         tracing::warn!(
           "Failed to send window event for PID {}: {}",
           context.application.pid,
@@ -329,32 +341,45 @@ impl ApplicationObserver {
       }
     }
 
-    let window_event = match notification_str.as_str() {
-      "AXFocusedWindowChanged" => Some(WindowEvent::Focus(window)),
-      "AXWindowMoved" | "AXWindowResized" => {
-        Some(WindowEvent::LocationChange(window))
-      }
-      "AXWindowMiniaturized" => Some(WindowEvent::Minimize(window)),
-      "AXWindowDeminiaturized" => Some(WindowEvent::MinimizeEnd(window)),
-      "AXTitleChanged" => Some(WindowEvent::TitleChange(window)),
+    let window_event = match notification.name.as_str() {
+      "AXFocusedWindowChanged" => WindowEvent::Focus {
+        window,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
+      "AXWindowMoved" | "AXWindowResized" => WindowEvent::MoveOrResize {
+        window,
+        is_interactive_start: false,
+        is_interactive_end: false,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
+      "AXWindowMiniaturized" => WindowEvent::Minimize {
+        window,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
+      "AXWindowDeminiaturized" => WindowEvent::MinimizeEnd {
+        window,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
+      "AXTitleChanged" => WindowEvent::TitleChange {
+        window,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
       _ => {
         tracing::debug!(
           "Unhandled window notification: {} for PID: {}",
-          notification_str,
+          notification.name,
           context.application.pid
         );
-        None
+        return;
       }
     };
 
-    if let Some(event) = window_event {
-      if let Err(err) = context.events_tx.send(event) {
-        tracing::warn!(
-          "Failed to send window event for PID {}: {}",
-          context.application.pid,
-          err
-        );
-      }
+    if let Err(err) = context.events_tx.send(window_event) {
+      tracing::warn!(
+        "Failed to send window event for PID {}: {}",
+        context.application.pid,
+        err
+      );
     }
   }
 }

@@ -107,33 +107,40 @@ impl WindowManager {
         Ok(())
       }
       PlatformEvent::Window(window_event) => match window_event {
-        WindowEvent::Focus(window) => {
+        WindowEvent::Focus { window, .. } => {
           handle_window_focused(&window, state, config)
         }
-        WindowEvent::Show(window) => {
+        WindowEvent::Show { window, .. } => {
           handle_window_shown(window, state, config)
         }
-        WindowEvent::Hide(window) => handle_window_hidden(&window, state),
-        WindowEvent::LocationChange(window) => {
-          handle_window_location_changed(&window, state, config)
+        WindowEvent::Hide { window, .. } => {
+          handle_window_hidden(&window, state)
         }
-        WindowEvent::Minimize(window) => {
+        WindowEvent::MoveOrResize {
+          window,
+          is_interactive_start,
+          is_interactive_end,
+          ..
+        } => {
+          if is_interactive_start {
+            handle_window_moved_or_resized_start(&window, state);
+            Ok(())
+          } else if is_interactive_end {
+            handle_window_moved_or_resized_end(&window, state, config)
+          } else {
+            handle_window_location_changed(&window, state, config)
+          }
+        }
+        WindowEvent::Minimize { window, .. } => {
           handle_window_minimized(&window, state, config)
         }
-        WindowEvent::MinimizeEnd(window) => {
+        WindowEvent::MinimizeEnd { window, .. } => {
           handle_window_minimize_ended(&window, state, config)
         }
-        WindowEvent::MoveOrResizeEnd(window) => {
-          handle_window_moved_or_resized_end(&window, state, config)
-        }
-        WindowEvent::MoveOrResizeStart(window) => {
-          handle_window_moved_or_resized_start(&window, state);
-          Ok(())
-        }
-        WindowEvent::TitleChange(window) => {
+        WindowEvent::TitleChange { window, .. } => {
           handle_window_title_changed(&window, state, config)
         }
-        WindowEvent::Destroy(window_id) => {
+        WindowEvent::Destroy { window_id, .. } => {
           handle_window_destroyed(window_id, state)
         }
       },

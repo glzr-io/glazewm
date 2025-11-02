@@ -173,7 +173,10 @@ impl WindowListener {
             continue;
           };
 
-          let _ = events_tx.send(WindowEvent::Focus(focused_window));
+          let _ = events_tx.send(WindowEvent::Focus {
+            window: focused_window,
+            notification: crate::WindowEventNotification(None),
+          });
         }
         NotificationEvent::WorkspaceDidHideApplication(running_app) => {
           if let Some(app_observer) =

@@ -202,6 +202,7 @@ impl KeybindingListener {
       Key::LCtrl | Key::RCtrl => Key::Ctrl,
       Key::LAlt | Key::RAlt => Key::Alt,
       Key::LShift | Key::RShift => Key::Shift,
+      // TODO: Not ideal, shouldn't panic if used incorrectly.
       _ => unreachable!(),
     }
   }

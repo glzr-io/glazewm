@@ -104,7 +104,7 @@ impl KeyboardHook {
     let mask: CGEventMask = (1u64 << u64::from(CGEventType::KeyDown.0))
       | (1u64 << u64::from(CGEventType::KeyUp.0));
 
-    // Box the callback and convert to raw pointer for C callback.
+    // Box the callback and convert it to a raw pointer.
     let callback_box = Box::new(callback);
     let callback_ptr = Box::into_raw(callback_box).cast::<c_void>();
 
@@ -118,12 +118,11 @@ impl KeyboardHook {
         callback_ptr,
       )
       .ok_or_else(|| {
-        // Cleanup callback if tap creation fails.
+        // Cleanup callback if event tap creation fails.
         let _ = Box::from_raw(callback_ptr.cast::<F>());
 
         Error::Platform(
-          "Failed to create CGEventTap. Accessibility permissions
-    may be required."
+          "Failed to create CGEventTap. Accessibility permissions may be required."
             .to_string(),
         )
       })
