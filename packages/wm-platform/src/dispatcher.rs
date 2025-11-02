@@ -9,7 +9,9 @@ use std::{
 
 #[cfg(target_os = "macos")]
 use crate::platform_impl::Application;
-use crate::{platform_impl, Display, DisplayDevice, NativeWindow, Point};
+use crate::{
+  platform_impl, Display, DisplayDevice, MouseButton, NativeWindow, Point,
+};
 
 /// Type alias for a closure to be executed by the event loop.
 pub type DispatchFn = dyn FnOnce() + Send + 'static;
@@ -256,6 +258,41 @@ impl Dispatcher {
         x: point.x as i32,
         y: point.y as i32,
       })
+    }
+  }
+
+  #[must_use]
+  pub fn is_mouse_down(&self, button: &MouseButton) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+      use objc2_app_kit::NSEvent;
+
+      let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
+      let bit_index = match button {
+        MouseButton::Left => 0usize,
+        MouseButton::Right => 1usize,
+        MouseButton::Middle => 2usize,
+      };
+
+      // Check if bit at corresponding index is flipped on in the bitmask.
+      (pressed_mask & (1usize << bit_index)) != 0
+    }
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::UI::Input::KeyboardAndMouse::{
+        GetAsyncKeyState, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON,
+      };
+
+      // Virtual-key codes for mouse buttons.
+      let vk_code: i32 = match button {
+        MouseButton::Left => VK_LBUTTON,
+        MouseButton::Right => VK_RBUTTON,
+        MouseButton::Middle => VK_MBUTTON,
+      };
+
+      // High-order bit set indicates the key is currently down.
+      let state = unsafe { GetAsyncKeyState(vk_code) };
+      (state as u16 & 0x8000) != 0
     }
   }
 

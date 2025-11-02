@@ -7,7 +7,8 @@ use wm_common::{
   TitleBarVisibility, WindowState, WmEvent,
 };
 use wm_platform::{
-  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
+  Dispatcher, LengthValue, MouseButton, PlatformEvent, RectDelta,
+  WindowEvent,
 };
 
 use crate::{
@@ -33,11 +34,9 @@ use crate::{
     // handle_display_settings_changed, handle_mouse_move,
     handle_window_focused,
     handle_window_hidden,
-    handle_window_location_changed,
     handle_window_minimize_ended,
     handle_window_minimized,
-    handle_window_moved_or_resized_end,
-    handle_window_moved_or_resized_start,
+    handle_window_moved_or_resized,
     handle_window_shown,
     handle_window_title_changed,
   },
@@ -121,16 +120,13 @@ impl WindowManager {
           is_interactive_start,
           is_interactive_end,
           ..
-        } => {
-          if is_interactive_start {
-            handle_window_moved_or_resized_start(&window, state);
-            Ok(())
-          } else if is_interactive_end {
-            handle_window_moved_or_resized_end(&window, state, config)
-          } else {
-            handle_window_location_changed(&window, state, config)
-          }
-        }
+        } => handle_window_moved_or_resized(
+          &window,
+          is_interactive_start,
+          is_interactive_end,
+          state,
+          config,
+        ),
         WindowEvent::Minimize { window, .. } => {
           handle_window_minimized(&window, state, config)
         }

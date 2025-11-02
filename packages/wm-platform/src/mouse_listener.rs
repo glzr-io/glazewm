@@ -1,5 +1,11 @@
 use crate::Dispatcher;
 
+pub enum MouseButton {
+  Left,
+  Right,
+  Middle,
+}
+
 /// A listener for system-wide mouse events.
 pub struct MouseListener {
   _dispatcher: Dispatcher,

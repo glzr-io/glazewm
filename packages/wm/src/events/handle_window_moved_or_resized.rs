@@ -4,12 +4,16 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
   FullscreenStateConfig, WindowState,
 };
-use wm_platform::{NativeWindow, Rect};
+use wm_platform::{MouseButton, NativeWindow, Rect};
 
 use crate::{
   commands::{
     container::{flatten_split_container, move_container_within_tree},
     window::update_window_state,
+  },
+  events::{
+    handle_window_moved_or_resized_end,
+    handle_window_moved_or_resized_start,
   },
   models::{TilingWindow, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -18,8 +22,10 @@ use crate::{
 };
 
 #[allow(clippy::too_many_lines)]
-pub fn handle_window_location_changed(
+pub fn handle_window_moved_or_resized(
   native_window: &NativeWindow,
+  is_interactive_start: bool,
+  is_interactive_end: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -27,6 +33,21 @@ pub fn handle_window_location_changed(
 
   // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
+    let is_left_click = state.dispatcher.is_mouse_down(&MouseButton::Left);
+
+    if is_interactive_start || is_left_click {
+      handle_window_moved_or_resized_start(native_window, state);
+      return Ok(());
+    } else if is_interactive_end
+      || (!is_left_click && window.active_drag().is_some())
+    {
+      return handle_window_moved_or_resized_end(
+        native_window,
+        state,
+        config,
+      );
+    }
+
     let old_frame_position = window.native_properties().frame;
     let frame_position = try_warn!(window.native().frame());
 
