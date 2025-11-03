@@ -39,6 +39,7 @@ struct NonTilingWindowInner {
   floating_placement: Rect,
   has_custom_floating_placement: bool,
   done_window_rules: Vec<WindowRuleConfig>,
+  transparency_exclusion: bool,
   active_drag: Option<ActiveDrag>,
 }
 
@@ -71,6 +72,7 @@ impl NonTilingWindow {
       floating_placement,
       has_custom_floating_placement,
       done_window_rules,
+      transparency_exclusion: false,
       active_drag,
     };
 

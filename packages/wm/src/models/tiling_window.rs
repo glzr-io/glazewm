@@ -45,6 +45,7 @@ struct TilingWindowInner {
   has_custom_floating_placement: bool,
   gaps_config: GapsConfig,
   done_window_rules: Vec<WindowRuleConfig>,
+  transparency_exclusion: bool,
   active_drag: Option<ActiveDrag>,
 }
 
@@ -77,6 +78,7 @@ impl TilingWindow {
       has_custom_floating_placement,
       gaps_config,
       done_window_rules,
+      transparency_exclusion: false,
       active_drag,
     };
 
