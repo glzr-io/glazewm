@@ -154,6 +154,14 @@ window_rules:
       - window_process: { equals: 'POWERPNT' }
         window_class: { not_regex: 'PPTFrameClass' }
 
+  # Exclude apps from transparency effects.
+  - commands: ['set-transparency-exclusion']
+    match:
+      - window_process: { equals: 'Unity.exe' }
+      - window_process: { equals: 'Unity Hub.exe' }
+      - window_class: { regex: 'UnityContainerWndClass' }
+      - window_title: { regex: 'Unity' }
+
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
   - name: 'resize'
