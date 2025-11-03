@@ -14,7 +14,7 @@ impl WindowListener {
 
   /// Returns the next window event from the listener.
   ///
-  /// This method will block until a window event is available.
+  /// This will block until a window event is available.
   pub async fn next_event(&mut self) -> Option<WindowEvent> {
     self.inner.next_event().await
   }

@@ -30,12 +30,12 @@ use windows::Win32::{
     },
   },
 };
-use crate::{KeybindingConfig, Point};
 
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
   FOREGROUND_INPUT_IDENTIFIER,
 };
+use crate::{KeybindingConfig, Point};
 
 /// Global instance of sender for platform events.
 ///
@@ -67,6 +67,10 @@ static IS_R_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 ///
 /// For use with window procedure.
 static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
+
+/// Windows-specific mouse event notification.
+#[derive(Clone, Debug)]
+pub struct MouseEventNotificationInner;
 
 #[derive(Debug)]
 pub struct EventWindow {

@@ -30,8 +30,9 @@ use crate::{
     workspace::{focus_workspace, move_workspace_in_direction},
   },
   events::{
+    // handle_display_settings_changed,
+    handle_mouse_move,
     handle_window_destroyed,
-    // handle_display_settings_changed, handle_mouse_move,
     handle_window_focused,
     handle_window_hidden,
     handle_window_minimize_ended,
@@ -101,9 +102,8 @@ impl WindowManager {
         // Return early since we don't want to redraw twice.
         return Ok(());
       }
-      PlatformEvent::MouseMove(event) => {
-        // handle_mouse_move(&event, state, config)
-        Ok(())
+      PlatformEvent::Mouse(event) => {
+        handle_mouse_move(&event, state, config)
       }
       PlatformEvent::Window(window_event) => match window_event {
         WindowEvent::Focus { window, .. } => {

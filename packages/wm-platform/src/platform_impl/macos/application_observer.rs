@@ -10,7 +10,9 @@ use objc2_core_foundation::{
 use tokio::sync::mpsc;
 
 use crate::{
-  platform_impl::{Application, NativeWindow, ProcessId},
+  platform_impl::{
+    Application, NativeWindow, ProcessId, WindowEventNotificationInner,
+  },
   NativeWindowExtMacOs, ThreadBound, WindowEvent, WindowId,
 };
 
@@ -263,7 +265,7 @@ impl ApplicationObserver {
 
     let context = &mut *context.cast::<ApplicationEventContext>();
     let ax_element = unsafe { CFRetained::retain(element) };
-    let notification = crate::WindowEventNotificationInner {
+    let notification = WindowEventNotificationInner {
       name: notification_name.as_ref().to_string(),
       ax_element_ptr: element.as_ptr().cast::<std::ffi::c_void>(),
     };

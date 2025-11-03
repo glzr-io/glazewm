@@ -25,6 +25,10 @@ use crate::Result;
 /// For use with hook procedure.
 static WIN_EVENT_HOOK: OnceLock<Arc<WindowEventHook>> = OnceLock::new();
 
+/// Windows-specific window event notification.
+#[derive(Clone, Debug)]
+pub struct WindowEventNotificationInner;
+
 #[derive(Debug)]
 pub struct WindowEventHook {
   event_tx: mpsc::UnboundedSender<PlatformEvent>,

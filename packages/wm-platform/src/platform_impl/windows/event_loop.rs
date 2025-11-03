@@ -149,7 +149,7 @@ impl EventLoop {
 
   /// Runs the event loop, blocking until shutdown.
   ///
-  /// This method will block the current thread until the event loop is
+  /// This will block the current thread until the event loop is
   /// stopped.
   pub fn run(mut self) -> crate::Result<()> {
     tracing::info!("Starting Windows event loop.");

@@ -144,7 +144,7 @@ async fn start_wm(
       },
       Some(event) = mouse_listener.next_event() => {
         tracing::debug!("Received mouse event: {:?}", event);
-        wm.process_event(PlatformEvent::MouseMove(event), &mut config)
+        wm.process_event(PlatformEvent::Mouse(event), &mut config)
       },
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);

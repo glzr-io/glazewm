@@ -1,21 +1,18 @@
 use std::sync::Arc;
 
-use objc2_app_kit::NSApplicationActivationOptions;
+use objc2::MainThreadMarker;
+use objc2_app_kit::{NSApplicationActivationOptions, NSWindow};
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString,
-  CFType, CGPoint, CGSize,
+  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
 };
-use objc2_core_graphics::{
-  kCGNullWindowID, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
-  CGError, CGWindowListCopyWindowInfo, CGWindowListOption,
-};
+use objc2_core_graphics::CGError;
 
 use crate::{
   platform_impl::{
     self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
   },
-  Dispatcher, Rect, ThreadBound, WindowId,
+  Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
 
 /// macOS-specific extensions for `NativeWindow`.
@@ -403,55 +400,6 @@ impl From<NativeWindow> for crate::NativeWindow {
   }
 }
 
-/// Gets all windows on macOS.
-///
-/// Returns all windows that are on-screen and meet filtering criteria,
-/// excluding system windows like Dock, menu bar, and desktop elements.
-pub(crate) fn all_windows(
-  dispatcher: &Dispatcher,
-) -> crate::Result<Vec<crate::NativeWindow>> {
-  let options = CGWindowListOption::OptionOnScreenOnly
-    | CGWindowListOption::ExcludeDesktopElements;
-
-  // let options = CGWindowListOption::ExcludeDesktopElements;
-
-  let window_list: CFRetained<CFArray<CFDictionary<CFString, CFType>>> = unsafe {
-    CGWindowListCopyWindowInfo(options, kCGNullWindowID)
-      .map(|list| CFRetained::cast_unchecked(list))
-      .ok_or(crate::Error::WindowEnumerationFailed)
-  }?;
-
-  let mut windows = Vec::new();
-
-  for index in window_list {
-    let window_id: CFRetained<CFNumber> = index
-      .get(unsafe { kCGWindowNumber })
-      .and_then(|window_id| CFRetained::downcast(window_id).ok())
-      .ok_or(crate::Error::WindowEnumerationFailed)?;
-
-    println!("window_id: {:?}", window_id);
-
-    if let Some(owner_name) = index
-      .get(unsafe { kCGWindowOwnerName })
-      .and_then(|owner_name| {
-        CFRetained::downcast::<CFString>(owner_name).ok()
-      })
-    {
-      println!("owner_name: {:?}", owner_name);
-    }
-
-    if let Some(window_name) =
-      index.get(unsafe { kCGWindowName }).and_then(|window_name| {
-        CFRetained::downcast::<CFString>(window_name).ok()
-      })
-    {
-      println!("window_name: {:?}", window_name);
-    }
-  }
-
-  Ok(windows)
-}
-
 /// Gets all visible windows from all running applications.
 ///
 /// Returns a vector of `NativeWindow` instances for windows that are
@@ -466,6 +414,57 @@ pub(crate) fn visible_windows(
       .flat_map(std::iter::IntoIterator::into_iter)
       .collect(),
   )
+}
+
+pub(crate) fn window_by_id(
+  id: WindowId,
+  dispatcher: &Dispatcher,
+) -> crate::Result<Option<crate::NativeWindow>> {
+  // TODO: The performance of this is terrible. A better solution would be
+  // to have a cache of window ID <-> `NativeWindow` instances.
+  for app in platform_impl::all_applications(dispatcher)? {
+    if let Ok(windows) = app.windows() {
+      if let Some(win) = windows.into_iter().find(|w| w.id() == id) {
+        return Ok(Some(win));
+      }
+    }
+  }
+
+  Ok(None)
+}
+
+pub(crate) fn window_from_point(
+  point: &Point,
+  dispatcher: &Dispatcher,
+) -> crate::Result<Option<crate::NativeWindow>> {
+  // Get the top-most window ID at the given point.
+  let window_id = dispatcher.dispatch_sync(|| {
+    let cg_point = CGPoint {
+      x: f64::from(point.x),
+      y: f64::from(point.y),
+    };
+
+    let window_id = unsafe {
+      NSWindow::windowNumberAtPoint_belowWindowWithWindowNumber(
+        cg_point,
+        // 0 for all windows.
+        0,
+        MainThreadMarker::new_unchecked(),
+      )
+    };
+
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    WindowId(window_id as u32)
+  })?;
+
+  // No window found at the given point.
+  if window_id.0 == 0 {
+    return Ok(None);
+  }
+
+  // Find the corresponding `NativeWindow`.
+  window_by_id(window_id, dispatcher)
+    .map_err(|_| crate::Error::WindowNotFound)
 }
 
 // TODO: Move this to a better-suited module.

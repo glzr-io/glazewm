@@ -216,24 +216,10 @@ impl Dispatcher {
     platform_impl::primary_display(self)
   }
 
-  /// Gets all windows.
-  ///
-  /// Returns all windows that are currently on-screen and meet the
-  /// filtering criteria, excluding system windows like Dock, menu bar,
-  /// and desktop elements.
-  ///
-  /// # Platform-specific
-  ///
-  /// - **macOS**: Uses `CGWindowListCopyWindowInfo` to enumerate windows
-  ///   and filters out system applications and UI elements.
-  pub fn all_windows(&self) -> crate::Result<Vec<NativeWindow>> {
-    platform_impl::all_windows(self)
-  }
-
   /// Gets all visible windows from all running applications.
   ///
   /// Returns a vector of `NativeWindow` instances for windows that are
-  /// currently visible (not minimized or hidden).
+  /// not hidden and on the current virtual desktop.
   pub fn visible_windows(&self) -> crate::Result<Vec<NativeWindow>> {
     platform_impl::visible_windows(self)
   }
@@ -267,33 +253,38 @@ impl Dispatcher {
     {
       use objc2_app_kit::NSEvent;
 
-      let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
       let bit_index = match button {
         MouseButton::Left => 0usize,
         MouseButton::Right => 1usize,
-        MouseButton::Middle => 2usize,
       };
 
-      // Check if bit at corresponding index is flipped on in the bitmask.
+      // Check if bit at corresponding index is set in the bitmask.
+      let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
       (pressed_mask & (1usize << bit_index)) != 0
     }
     #[cfg(target_os = "windows")]
     {
       use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetAsyncKeyState, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON,
+        GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
       };
 
       // Virtual-key codes for mouse buttons.
       let vk_code: i32 = match button {
         MouseButton::Left => VK_LBUTTON,
         MouseButton::Right => VK_RBUTTON,
-        MouseButton::Middle => VK_MBUTTON,
       };
 
       // High-order bit set indicates the key is currently down.
       let state = unsafe { GetAsyncKeyState(vk_code) };
       (state as u16 & 0x8000) != 0
     }
+  }
+
+  pub fn window_from_point(
+    &self,
+    point: &Point,
+  ) -> crate::Result<Option<crate::NativeWindow>> {
+    platform_impl::window_from_point(point, self)
   }
 
   /// Sets the cursor position to the specified coordinates.

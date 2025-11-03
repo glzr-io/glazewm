@@ -16,6 +16,18 @@ use crate::{
   Dispatcher, WindowEvent,
 };
 
+/// macOS-specific window event notification.
+#[derive(Clone, Debug)]
+pub struct WindowEventNotificationInner {
+  /// Name of the notification (e.g. `AXWindowMoved`).
+  pub name: String,
+
+  /// Pointer to the `AXUIElement` that triggered the notification.
+  pub ax_element_ptr: *mut std::ffi::c_void,
+}
+
+unsafe impl Send for WindowEventNotificationInner {}
+
 #[derive(Debug)]
 pub struct WindowListener {
   pub event_rx: mpsc::UnboundedReceiver<WindowEvent>,

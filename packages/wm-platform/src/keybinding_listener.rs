@@ -209,7 +209,7 @@ impl KeybindingListener {
 
   /// Returns the next keybinding event from the listener.
   ///
-  /// This method will block until a keybinding event is available.
+  /// This will block until a keybinding event is available.
   pub async fn next_event(&mut self) -> Option<KeybindingEvent> {
     self.event_rx.recv().await
   }

@@ -71,7 +71,8 @@ impl KeyEvent {
 /// macOS-specific keyboard hook.
 #[derive(Debug)]
 pub struct KeyboardHook {
-  event_tap: Option<ThreadBound<CFRetained<CFMachPort>>>,
+  /// Mach port for the created `CGEventTap`.
+  tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
   dispatcher: Dispatcher,
 }
 
@@ -84,11 +85,11 @@ impl KeyboardHook {
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
-    let event_tap = dispatcher
+    let tap_port = dispatcher
       .dispatch_sync(|| Self::create_event_tap(&dispatcher, callback))??;
 
     Ok(Self {
-      event_tap: Some(event_tap),
+      tap_port: Some(tap_port),
       dispatcher,
     })
   }
@@ -108,7 +109,7 @@ impl KeyboardHook {
     let callback_box = Box::new(callback);
     let callback_ptr = Box::into_raw(callback_box).cast::<c_void>();
 
-    let event_tap = unsafe {
+    let tap_port = unsafe {
       CGEvent::tap_create(
         CGEventTapLocation::SessionEventTap,
         CGEventTapPlacement::HeadInsertEventTap,
@@ -129,7 +130,7 @@ impl KeyboardHook {
     }?;
 
     let loop_source =
-      CFMachPort::new_run_loop_source(None, Some(&event_tap), 0)
+      CFMachPort::new_run_loop_source(None, Some(&tap_port), 0)
         .ok_or_else(|| {
           Error::Platform("Failed to create loop source".to_string())
         })?;
@@ -141,11 +142,9 @@ impl KeyboardHook {
     current_loop
       .add_source(Some(&loop_source), unsafe { kCFRunLoopCommonModes });
 
-    unsafe { CGEvent::tap_enable(&event_tap, true) };
+    unsafe { CGEvent::tap_enable(&tap_port, true) };
 
-    let event_tap = ThreadBound::new(event_tap, dispatcher.clone());
-
-    Ok(event_tap)
+    Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
 
   /// Callback function for keyboard events.
@@ -204,7 +203,7 @@ impl KeyboardHook {
   /// Stops the keyboard hook by disabling the `CGEventTap`.
   #[allow(clippy::unnecessary_wraps)]
   pub fn stop(&mut self) -> crate::Result<()> {
-    if let Some(tap) = self.event_tap.take() {
+    if let Some(tap) = self.tap_port.take() {
       self.dispatcher.dispatch_async(move || unsafe {
         let tap_ref = tap.get_ref().unwrap();
         CGEvent::tap_enable(tap_ref, false);

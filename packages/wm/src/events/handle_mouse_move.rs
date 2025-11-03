@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_platform::MouseMoveEvent;
+use wm_platform::MouseEvent;
 
 use crate::{
   commands::container::set_focused_descendant, traits::CommonGetters,
@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub fn handle_mouse_move(
-  event: &MouseMoveEvent,
+  event: &MouseEvent,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -22,9 +22,30 @@ pub fn handle_mouse_move(
     return Ok(());
   }
 
-  let window_under_cursor = Platform::window_from_point(&event.point)
-    .and_then(|window| Platform::root_ancestor(&window))
-    .map(|root| state.window_from_native(&root))?;
+  let window_under_cursor = {
+    #[cfg(target_os = "macos")]
+    {
+      event
+        .notification
+        .0
+        .below_window_id()
+        .and_then(|window_id| {
+          use crate::traits::WindowGetters;
+
+          state
+            .windows()
+            .into_iter()
+            .find(|w| w.native().id() == window_id)
+        })
+    }
+    #[cfg(target_os = "windows")]
+    {
+      state
+        .dispatcher
+        .window_from_point(&event.point)?
+        .and_then(|native| state.window_from_native(&native))
+    }
+  };
 
   // Set focus to whichever window is currently under the cursor.
   if let Some(window) = window_under_cursor {

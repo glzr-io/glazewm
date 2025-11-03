@@ -1,11 +1,16 @@
 use super::NativeWindow;
-use crate::{Keybinding, Point, WindowId};
+use crate::{
+  platform_impl::{
+    MouseEventNotificationInner, WindowEventNotificationInner,
+  },
+  Keybinding, Point, WindowId,
+};
 
 #[derive(Clone, Debug)]
 pub enum PlatformEvent {
   Window(WindowEvent),
   Keybinding(KeybindingEvent),
-  MouseMove(MouseMoveEvent),
+  Mouse(MouseEvent),
   DisplaySettingsChanged,
 }
 
@@ -24,6 +29,10 @@ pub enum WindowEvent {
   },
 
   /// Size or position of window has changed.
+  ///
+  /// `is_interactive_start` and `is_interactive_end` indicate whether the
+  /// move or resize was initiated via manual interaction with the
+  /// window's drag handles.
   ///
   /// # Platform-specific
   ///
@@ -98,43 +107,25 @@ impl WindowEvent {
 ///   if a different notification is received first.
 #[derive(Clone, Debug)]
 pub struct WindowEventNotification(
-  pub(crate) Option<WindowEventNotificationInner>,
+  pub Option<WindowEventNotificationInner>,
 );
-
-impl WindowEventNotification {
-  #[must_use]
-  pub fn inner(&self) -> Option<&WindowEventNotificationInner> {
-    self.0.as_ref()
-  }
-}
-
-/// Windows-specific window event notification.
-#[derive(Clone, Debug)]
-#[cfg(target_os = "windows")]
-pub struct WindowEventNotificationInner;
-
-/// macOS-specific window event notification.
-#[derive(Clone, Debug)]
-#[cfg(target_os = "macos")]
-pub struct WindowEventNotificationInner {
-  /// Name of the notification (e.g. `AXWindowMoved`).
-  pub name: String,
-
-  /// Pointer to the `AXUIElement` that triggered the notification.
-  pub ax_element_ptr: *mut std::ffi::c_void,
-}
-
-unsafe impl Send for WindowEventNotificationInner {}
 
 #[derive(Clone, Debug)]
 pub struct KeybindingEvent(pub Keybinding);
 
 #[derive(Clone, Debug)]
-pub struct MouseMoveEvent {
+pub struct MouseEvent {
   /// Location of mouse with 0,0 being the top-left corner of the primary
   /// monitor.
   pub point: Point,
 
   /// Whether either left or right-click is currently pressed.
   pub is_mouse_down: bool,
+
+  /// Platform-specific mouse event notification.
+  pub notification: MouseEventNotification,
 }
+
+/// Platform-specific mouse event notification.
+#[derive(Clone, Debug)]
+pub struct MouseEventNotification(pub MouseEventNotificationInner);

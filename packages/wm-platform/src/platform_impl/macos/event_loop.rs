@@ -119,7 +119,7 @@ impl EventLoop {
 
   /// Runs the event loop.
   ///
-  /// This method will block the current thread until the event loop is
+  /// This will block the current thread until the event loop is
   /// stopped.
   pub fn run(&self) -> crate::Result<()> {
     let mtm =
