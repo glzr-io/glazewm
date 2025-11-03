@@ -55,6 +55,7 @@ impl NonTilingWindow {
     floating_placement: Rect,
     has_custom_floating_placement: bool,
     done_window_rules: Vec<WindowRuleConfig>,
+    transparency_exclusion: bool,
     active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = NonTilingWindowInner {
@@ -72,7 +73,7 @@ impl NonTilingWindow {
       floating_placement,
       has_custom_floating_placement,
       done_window_rules,
-      transparency_exclusion: false,
+      transparency_exclusion,
       active_drag,
     };
 
@@ -100,6 +101,7 @@ impl NonTilingWindow {
       self.has_custom_floating_placement(),
       gaps_config,
       self.done_window_rules(),
+      self.transparency_exclusion(),
       self.active_drag(),
     )
   }
