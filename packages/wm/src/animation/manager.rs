@@ -294,7 +294,6 @@ impl AnimationManager {
         let animation_config = if is_cancel_and_replace {
           // Use fixed short duration for interrupted animations to ensure consistent timing
           let mut movement_config = config.value.animations.window_move.clone();
-          movement_config.duration_ms = 100; // Fixed 100ms for cancel-and-replace
           movement_config
         } else {
           // Use config duration directly
