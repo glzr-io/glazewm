@@ -5,8 +5,7 @@ use wm_common::{
 };
 
 use crate::animation::engine::{
-  animation_progress, interpolate_opacity, interpolate_rect,
-  interpolate_with_easing, scale_rect_from_center,
+  animation_progress, interpolate_with_easing, scale_rect_from_center,
 };
 
 /// Type of animation being performed.
@@ -117,7 +116,7 @@ impl WindowAnimationState {
       &self.target_rect,
       progress,
       &self.easing,
-      interpolate_rect,
+      |start, end, eased_progress| start.interpolate(end, eased_progress),
     )
   }
 
@@ -131,7 +130,7 @@ impl WindowAnimationState {
         end,
         progress,
         &self.easing,
-        interpolate_opacity,
+        |start, end, eased_progress| start.interpolate(end, eased_progress),
       ))
     } else {
       None
