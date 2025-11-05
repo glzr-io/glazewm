@@ -246,7 +246,6 @@ fn redraw_containers(
 
     // Transition display state depending on whether window will be
     // shown or hidden.
-    let prev_display_state = window.display_state();
     window.set_display_state(
       match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
@@ -268,14 +267,19 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    // Determine if we should animate this window
-    let is_opening = matches!(
-      (prev_display_state, window.display_state()),
-      (DisplayState::Hidden, DisplayState::Showing)
-    );
-
     // Get the previous target position before updating
     let previous_target = state.window_target_positions.get(&window.id()).cloned();
+
+    // Determine if this window is opening for the first time
+    // A window is opening if:
+    // 1. It's showing or shown (not hidden)
+    // 2. It has no previous target position (first time being positioned)
+    // This distinguishes actual window opening from workspace switches, where
+    // windows already have a previous target position.
+    let is_opening = matches!(
+      window.display_state(),
+      DisplayState::Showing | DisplayState::Shown
+    ) && previous_target.is_none();
 
     // Update the stored target position (always do this, even if animations are skipped)
     state.window_target_positions.insert(window.id(), target_rect.clone());
