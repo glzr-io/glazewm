@@ -12,7 +12,7 @@ use wm_platform::{
 use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
-  animation_state::AnimationManager,
+  animation::AnimationManager,
   commands::{
     container::set_focused_descendant,
     general::platform_sync,
@@ -89,12 +89,13 @@ impl WmState {
     dispatcher: Dispatcher,
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
+    animation_tick_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
       dispatcher,
       pending_sync: PendingSync::default(),
-      animation_manager: AnimationManager::new(),
+      animation_manager: AnimationManager::new(animation_tick_tx),
       window_target_positions: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
