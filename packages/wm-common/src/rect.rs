@@ -202,4 +202,22 @@ impl Rect {
     #[allow(clippy::cast_precision_loss)]
     ((dx * dx + dy * dy) as f32).sqrt()
   }
+
+  /// Interpolates between this rectangle and another rectangle.
+  /// `progress` should be a value between 0.0 (this rect) and 1.0 (other rect).
+  #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+  #[must_use]
+  pub fn interpolate(&self, other: &Rect, progress: f32) -> Rect {
+    let x = self.x() as f32 + (other.x() - self.x()) as f32 * progress;
+    let y = self.y() as f32 + (other.y() - self.y()) as f32 * progress;
+    let width = self.width() as f32 + (other.width() - self.width()) as f32 * progress;
+    let height = self.height() as f32 + (other.height() - self.height()) as f32 * progress;
+
+    Rect::from_xy(
+      x.round() as i32,
+      y.round() as i32,
+      width.round() as i32,
+      height.round() as i32,
+    )
+  }
 }

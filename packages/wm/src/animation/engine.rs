@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use wm_common::{EasingFunction, OpacityValue, Rect};
+use wm_common::{EasingFunction, Rect};
 
 /// Calculates the current progress of an animation (0.0 to 1.0).
 pub fn animation_progress(
@@ -68,35 +68,6 @@ fn ease_out_cubic(t: f32) -> f32 {
   1.0 - (1.0 - t).powi(3)
 }
 
-/// Interpolates between two rectangles.
-#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-pub fn interpolate_rect(start: &Rect, end: &Rect, progress: f32) -> Rect {
-  let x = start.x() as f32 + (end.x() - start.x()) as f32 * progress;
-  let y = start.y() as f32 + (end.y() - start.y()) as f32 * progress;
-  let width = start.width() as f32 + (end.width() - start.width()) as f32 * progress;
-  let height = start.height() as f32 + (end.height() - start.height()) as f32 * progress;
-
-  Rect::from_xy(
-    x.round() as i32,
-    y.round() as i32,
-    width.round() as i32,
-    height.round() as i32,
-  )
-}
-
-/// Interpolates between two opacity values.
-#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
-pub fn interpolate_opacity(
-  start: &OpacityValue,
-  end: &OpacityValue,
-  progress: f32,
-) -> OpacityValue {
-  let start_alpha = start.to_alpha() as f32;
-  let end_alpha = end.to_alpha() as f32;
-  let alpha = start_alpha + (end_alpha - start_alpha) * progress;
-
-  OpacityValue::from_alpha((alpha.round() as u32).clamp(0, 255) as u8)
-}
 
 /// Interpolates a value with an easing function applied.
 pub fn interpolate_with_easing<T>(
@@ -143,7 +114,7 @@ mod tests {
     let start = Rect::from_xy(0, 0, 100, 100);
     let end = Rect::from_xy(100, 100, 200, 200);
 
-    let mid = interpolate_rect(&start, &end, 0.5);
+    let mid = start.interpolate(&end, 0.5);
     assert_eq!(mid.x(), 50);
     assert_eq!(mid.y(), 50);
     assert_eq!(mid.width(), 150);
