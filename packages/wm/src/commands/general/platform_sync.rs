@@ -351,25 +351,25 @@ fn redraw_containers(
       }
     }
 
-    // Whether the window is either transitioning to or from fullscreen.
-    // TODO: This check can be improved since `prev_state` can be
-    // fullscreen without it needing to be marked as not fullscreen.
-    #[cfg(target_os = "windows")]
-    {
-      let is_transitioning_fullscreen =
-        match (window.prev_state(), window.state()) {
-          (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
-          (Some(WindowState::Fullscreen(_)), _) => true,
-          _ => false,
-        };
+    // Mark fullscreen windows as fullscreen on every redraw (including during animations)
+    // to ensure browser fullscreen APIs work correctly.
+    let is_transitioning_fullscreen =
+      match (window.prev_state(), window.state()) {
+        (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
+        (Some(WindowState::Fullscreen(_)), _) => true,
+        _ => false,
+      };
 
-      if is_transitioning_fullscreen {
-        if let Err(err) = window.native().mark_fullscreen(matches!(
-          window.state(),
-          WindowState::Fullscreen(_)
-        )) {
-          tracing::warn!("Failed to mark window as fullscreen: {}", err);
-        }
+    let is_currently_fullscreen =
+      matches!(window.state(), WindowState::Fullscreen(_));
+
+    if is_currently_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(true) {
+        warn!("Failed to mark window as fullscreen: {}", err);
+      }
+    } else if is_transitioning_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(false) {
+        warn!("Failed to unmark window as fullscreen: {}", err);
       }
     }
 
