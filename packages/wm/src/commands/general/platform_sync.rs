@@ -243,19 +243,21 @@ fn redraw_containers(
       continue;
     }
 
+    // Capture display state before transition to detect opening windows
+    let previous_display_state = window.display_state();
+
     // Transition display state depending on whether window will be
     // shown or hidden.
-    window.set_display_state(
-      match (window.display_state(), workspace.is_displayed()) {
-        (DisplayState::Hidden | DisplayState::Hiding, true) => {
-          DisplayState::Showing
-        }
-        (DisplayState::Shown | DisplayState::Showing, false) => {
-          DisplayState::Hiding
-        }
-        _ => window.display_state(),
-      },
-    );
+    let new_display_state = match (previous_display_state.clone(), workspace.is_displayed()) {
+      (DisplayState::Hidden | DisplayState::Hiding, true) => {
+        DisplayState::Showing
+      }
+      (DisplayState::Shown | DisplayState::Showing, false) => {
+        DisplayState::Hiding
+      }
+      _ => previous_display_state,
+    };
+    window.set_display_state(new_display_state);
 
     let target_rect = window
       .to_rect()?
@@ -273,8 +275,9 @@ fn redraw_containers(
     // A window is opening if:
     // 1. It's showing or shown (not hidden)
     // 2. It has no previous target position (first time being positioned)
-    // This distinguishes actual window opening from workspace switches, where
-    // windows already have a previous target position.
+    // This correctly detects new windows that are being positioned for the first time.
+    // Windows transitioning from hidden to shown during workspace switches will have
+    // a previous target position, so they won't trigger opening animations.
     let is_opening = matches!(
       window.display_state(),
       DisplayState::Showing | DisplayState::Shown
