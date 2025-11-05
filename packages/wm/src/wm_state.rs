@@ -10,7 +10,7 @@ use wm_common::{
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
-  animation_state::AnimationManager,
+  animation::AnimationManager,
   commands::{
     container::set_focused_descendant, general::platform_sync,
     monitor::add_monitor, window::manage_window,
@@ -82,11 +82,12 @@ impl WmState {
   pub fn new(
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
+    animation_tick_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
       pending_sync: PendingSync::default(),
-      animation_manager: AnimationManager::new(),
+      animation_manager: AnimationManager::new(animation_tick_tx),
       window_target_positions: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,

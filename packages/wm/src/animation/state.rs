@@ -1,15 +1,10 @@
-use std::{
-  collections::HashMap,
-  time::{Duration, Instant},
-};
-
-use uuid::Uuid;
+use std::time::{Duration, Instant};
 use wm_common::{
   AnimationEffectsConfig, AnimationTypeConfig, EasingFunction, OpacityValue,
   Rect,
 };
 
-use crate::animation_engine::{
+use crate::animation::engine::{
   animation_progress, interpolate_opacity, interpolate_rect,
   interpolate_with_easing, scale_rect_from_center,
 };
@@ -143,73 +138,4 @@ impl WindowAnimationState {
     }
   }
 }
-
-/// Manages animations for all windows.
-#[derive(Default)]
-pub struct AnimationManager {
-  /// Active animations keyed by window ID.
-  animations: HashMap<Uuid, WindowAnimationState>,
-}
-
-impl AnimationManager {
-  pub fn new() -> Self {
-    Self {
-      animations: HashMap::new(),
-    }
-  }
-
-  /// Starts a new animation for a window.
-  pub fn start_animation(
-    &mut self,
-    window_id: Uuid,
-    animation: WindowAnimationState,
-  ) {
-    self.animations.insert(window_id, animation);
-  }
-
-  /// Gets the current state of a window's animation.
-  pub fn get_animation(&self, window_id: &Uuid) -> Option<&WindowAnimationState> {
-    self.animations.get(window_id)
-  }
-
-  /// Removes a window's animation.
-  #[allow(dead_code)]
-  pub fn remove_animation(&mut self, window_id: &Uuid) {
-    self.animations.remove(window_id);
-  }
-
-  /// Removes all completed animations and returns the list of window IDs
-  /// that had animations complete.
-  pub fn remove_completed_animations(&mut self) -> Vec<Uuid> {
-    let completed_ids: Vec<Uuid> = self
-      .animations
-      .iter()
-      .filter(|(_, anim)| anim.is_complete())
-      .map(|(id, _)| *id)
-      .collect();
-
-    for id in &completed_ids {
-      self.animations.remove(id);
-    }
-
-    completed_ids
-  }
-
-  /// Whether there are any active animations.
-  pub fn has_active_animations(&self) -> bool {
-    !self.animations.is_empty()
-  }
-
-  /// Gets all active animation window IDs.
-  pub fn active_window_ids(&self) -> Vec<Uuid> {
-    self.animations.keys().copied().collect()
-  }
-
-  /// Clears all animations.
-  #[allow(dead_code)]
-  pub fn clear(&mut self) {
-    self.animations.clear();
-  }
-}
-
 

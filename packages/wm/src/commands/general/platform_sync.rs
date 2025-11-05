@@ -10,7 +10,6 @@ use wm_common::{
 use wm_platform::{Platform, ZOrder};
 
 use crate::{
-  animation_state::WindowAnimationState,
   models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -292,94 +291,13 @@ fn redraw_containers(
 
     // Determine the rect and opacity to use
     let (rect_to_use, opacity_override) = if should_use_animations {
-
-      // Get the movement threshold from config
-      let threshold = config.value.animations.window_move.threshold_px as i32;
-
-      // Check if there's already an animation for this window
-      let existing_animation = state.animation_manager.get_animation(&window.id());
-
-      // Store the existing animation for later use (clone it so we can use it after starting new animation)
-      let existing_animation_clone = existing_animation.clone();
-
-      // Decide whether to start a new animation
-      let should_start_new_animation = if is_opening && config.value.animations.window_open.enabled {
-        existing_animation.is_none()
-      } else if !is_opening && config.value.animations.window_move.enabled {
-        if let Some(anim) = existing_animation {
-          // Don't restart animations that are completing or already at target
-          if anim.is_complete() {
-            false
-          } else {
-            // Check if target has changed significantly from the animation's current target
-            // Use a reasonable threshold to avoid creating animations for every tiny change
-            let target_distance = (anim.target_rect.x() - target_rect.x()).abs() +
-                                 (anim.target_rect.y() - target_rect.y()).abs() +
-                                 (anim.target_rect.width() - target_rect.width()).abs() +
-                                 (anim.target_rect.height() - target_rect.height()).abs();
-            target_distance > threshold
-          }
-        } else if let Some(ref prev_target) = previous_target {
-          // Compare PREVIOUS target to NEW target, not current position to target
-          let distance = (prev_target.x() - target_rect.x()).abs() +
-                         (prev_target.y() - target_rect.y()).abs() +
-                         (prev_target.width() - target_rect.width()).abs() +
-                         (prev_target.height() - target_rect.height()).abs();
-          distance > threshold
-        } else {
-          // First time seeing this window, no animation needed
-          false
-        }
-      } else {
-        false
-      };
-
-      // Start new animation if needed
-      if should_start_new_animation {
-        if is_opening {
-          let animation = WindowAnimationState::new_open(
-            target_rect.clone(),
-            &config.value.animations.window_open,
-          );
-          state.animation_manager.start_animation(window.id(), animation);
-        } else if let Some(prev_target) = previous_target.clone() {
-          // Determine the start position for the new animation
-          // Cancel and replace: start from current animated position if an animation is running
-          let start_rect = if let Some(existing_anim) = &existing_animation_clone {
-            existing_anim.current_rect()
-          } else {
-            prev_target
-          };
-
-          let is_cancel_and_replace = existing_animation_clone.is_some();
-
-          // Choose animation config based on whether this is a cancel-and-replace
-          let animation_config = if is_cancel_and_replace {
-            // Use fixed short duration for interrupted animations to ensure consistent timing
-            let mut movement_config = config.value.animations.window_move.clone();
-            movement_config.duration_ms = 100; // Fixed 100ms for cancel-and-replace
-            movement_config
-          } else {
-            // Use config duration directly
-            config.value.animations.window_move.clone()
-          };
-
-          // Create animation from current position to new target (cancel and replace)
-          let animation = WindowAnimationState::new_movement(
-            start_rect,
-            target_rect.clone(),
-            &animation_config,
-          );
-          state.animation_manager.start_animation(window.id(), animation);
-        }
-      }
-
-      // Get the current animation state (re-fetch after potentially starting new animation)
-      if let Some(animation) = state.animation_manager.get_animation(&window.id()) {
-        (animation.current_rect(), animation.current_opacity())
-      } else {
-        (target_rect.clone(), None)
-      }
+      state.animation_manager.start_animation_if_needed(
+        window.id(),
+        is_opening,
+        target_rect.clone(),
+        previous_target,
+        config,
+      )
     } else {
       (target_rect.clone(), None)
     };

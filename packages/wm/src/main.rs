@@ -26,8 +26,7 @@ use crate::{
   wm::WindowManager,
 };
 
-mod animation_engine;
-mod animation_state;
+mod animation;
 mod commands;
 mod events;
 mod ipc_server;

@@ -1,5 +1,4 @@
 use anyhow::{bail, Context};
-use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
@@ -45,8 +44,6 @@ pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
   pub animation_tick_rx: mpsc::UnboundedReceiver<()>,
-  animation_tick_tx: mpsc::UnboundedSender<()>,
-  animation_timer_running: Arc<AtomicBool>,
   pub state: WmState,
 }
 
@@ -56,15 +53,13 @@ impl WindowManager {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(event_tx, exit_tx);
+    let mut state = WmState::new(event_tx, exit_tx, animation_tick_tx.clone());
     state.populate(config)?;
 
     Ok(Self {
       event_rx,
       exit_rx,
       animation_tick_rx,
-      animation_tick_tx,
-      animation_timer_running: Arc::new(AtomicBool::new(false)),
       state,
     })
   }
@@ -127,7 +122,7 @@ impl WindowManager {
     }
 
     // Start animation timer if needed
-    self.ensure_animation_timer_running();
+    self.state.animation_manager.ensure_timer_running(&self.state);
 
     Ok(())
   }
@@ -137,92 +132,9 @@ impl WindowManager {
     &mut self,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
-    if !self.state.animation_manager.has_active_animations() {
-      return Ok(());
-    }
-
-    // Get windows that have INCOMPLETE animations only
-    let active_window_ids: Vec<_> = self.state.animation_manager
-      .active_window_ids()
-      .into_iter()
-      .filter(|id| {
-        self.state.animation_manager
-          .get_animation(id)
-          .map(|anim| !anim.is_complete())
-          .unwrap_or(false)
-      })
-      .collect();
-
-    for window_id in &active_window_ids {
-      if let Some(container) = self.state.container_by_id(*window_id) {
-        if let Ok(window) = container.as_window_container() {
-          self.state.pending_sync.queue_container_to_redraw(window);
-        }
-      }
-    }
-
-    // Remove completed animations and get their IDs
-    let completed_ids = self.state.animation_manager.remove_completed_animations();
-
-    // Queue completed animations for final redraw
-    for window_id in &completed_ids {
-      if let Some(container) = self.state.container_by_id(*window_id) {
-        if let Ok(window) = container.as_window_container() {
-          self.state.pending_sync.queue_container_to_redraw(window);
-        }
-      }
-    }
-
-    // Sync platform if there are changes
-    if self.state.pending_sync.has_changes() {
-      platform_sync(&mut self.state, config)?;
-    }
-
-    // Continue timer if there are still active animations
-    self.ensure_animation_timer_running();
-
-    Ok(())
-  }
-
-  /// Ensures the animation timer is running if there are active animations.
-  fn ensure_animation_timer_running(&self) {
-    if self.state.animation_manager.has_active_animations()
-      && !self.animation_timer_running.load(Ordering::Relaxed) {
-
-      self.animation_timer_running.store(true, Ordering::Relaxed);
-      let tx = self.animation_tick_tx.clone();
-      let timer_flag = self.animation_timer_running.clone();
-
-      // Calculate frame time based on monitor refresh rate
-      // Default to 60 FPS if refresh rate cannot be determined
-      let mut frame_time_ms = 16u32;
-
-      if let Some(container) = self.state.focused_container() {
-        if let Some(monitor) = container.monitor() {
-          // Default to 60Hz if refresh rate cannot be determined
-          let refresh_rate = monitor.native().refresh_rate().unwrap_or(60);
-          // Convert refresh rate to milliseconds per frame
-          // Cap at 60 Hz minimum for safety
-          frame_time_ms = 1000 / refresh_rate.max(60);
-        }
-      }
-
-      tokio::spawn(async move {
-        let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(frame_time_ms as u64)
-        );
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-        loop {
-          interval.tick().await;
-          if tx.send(()).is_err() {
-            break;
-          }
-        }
-
-        timer_flag.store(false, Ordering::Relaxed);
-      });
-    }
+    use crate::animation::AnimationManager;
+    // Access animation_manager through state to avoid double borrow
+    AnimationManager::update_internal(&mut self.state, config)
   }
 
   pub fn process_commands(
