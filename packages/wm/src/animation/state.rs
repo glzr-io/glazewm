@@ -69,7 +69,7 @@ impl WindowAnimationState {
     target_rect: Rect,
     config: &AnimationEffectsConfig,
   ) -> Self {
-    let start_rect = if config.scale {
+    let start_rect = if config.animation_type.has_scale() {
       scale_rect_from_center(&target_rect, 0.9)
     } else {
       target_rect.clone()
@@ -82,19 +82,19 @@ impl WindowAnimationState {
       easing: config.easing.clone(),
       start_rect,
       target_rect,
-      start_opacity: if config.fade {
+      start_opacity: if config.animation_type.has_fade() {
         Some(OpacityValue::from_alpha(0))
       } else {
         None
       },
-      target_opacity: if config.fade {
+      target_opacity: if config.animation_type.has_fade() {
         Some(OpacityValue::from_alpha(255))
       } else {
         None
       },
-      fade_enabled: config.fade,
-      scale_enabled: config.scale,
-      slide_enabled: config.slide,
+      fade_enabled: config.animation_type.has_fade(),
+      scale_enabled: config.animation_type.has_scale(),
+      slide_enabled: config.animation_type.has_slide(),
     }
   }
 

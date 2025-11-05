@@ -17,12 +17,9 @@ animations:
     enabled: true
     duration_ms: 200
     easing: "ease_out"
-    # Whether to fade in windows.
-    fade: true
-    # Whether to slide windows into position.
-    slide: true
-    # Whether to scale windows from a smaller size.
-    scale: true
+    # Type of animation effects to apply.
+    # Options: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
+    animation_type: "fade_slide_scale"
 
 general:
   # Commands to run when the WM has started. This is useful for running a

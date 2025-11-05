@@ -436,9 +436,9 @@ pub struct AnimationEffectsConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
-  pub fade: bool,
-  pub slide: bool,
-  pub scale: bool,
+  /// Type of animation effects to apply.
+  /// Can be: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
+  pub animation_type: AnimationEffectType,
 }
 
 impl AnimationEffectsConfig {
@@ -447,17 +447,72 @@ impl AnimationEffectsConfig {
       enabled: true,
       duration_ms: 200,
       easing: EasingFunction::EaseOut,
-      fade: true,
-      slide: true,
-      scale: true,
+      animation_type: AnimationEffectType::FadeSlideScale,
     }
   }
-
 }
 
 impl Default for AnimationEffectsConfig {
   fn default() -> Self {
     Self::default_open()
+  }
+}
+
+/// Animation effect types that can be combined.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnimationEffectType {
+  /// No animation effects.
+  None,
+  /// Fade in/out effect.
+  Fade,
+  /// Slide animation effect.
+  Slide,
+  /// Scale animation effect.
+  Scale,
+  /// Fade and slide combined.
+  FadeSlide,
+  /// Fade and scale combined.
+  FadeScale,
+  /// Slide and scale combined.
+  SlideScale,
+  /// All effects combined (fade, slide, and scale).
+  #[default]
+  FadeSlideScale,
+}
+
+impl AnimationEffectType {
+  /// Returns whether fade effect is enabled.
+  pub fn has_fade(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Fade
+        | AnimationEffectType::FadeSlide
+        | AnimationEffectType::FadeScale
+        | AnimationEffectType::FadeSlideScale
+    )
+  }
+
+  /// Returns whether slide effect is enabled.
+  pub fn has_slide(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Slide
+        | AnimationEffectType::FadeSlide
+        | AnimationEffectType::SlideScale
+        | AnimationEffectType::FadeSlideScale
+    )
+  }
+
+  /// Returns whether scale effect is enabled.
+  pub fn has_scale(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Scale
+        | AnimationEffectType::FadeScale
+        | AnimationEffectType::SlideScale
+        | AnimationEffectType::FadeSlideScale
+    )
   }
 }
 
