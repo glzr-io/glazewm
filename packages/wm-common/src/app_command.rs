@@ -131,8 +131,6 @@ pub enum QueryCommand {
   Workspaces,
   /// Outputs whether the window manager is paused.
   Paused,
-  /// Outputs whether animations are enabled.
-  AnimationsEnabled,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
@@ -154,7 +152,6 @@ pub enum SubscribableEvent {
   WorkspaceDeactivated,
   WorkspaceUpdated,
   PauseChanged,
-  AnimationsChanged,
 }
 
 #[derive(Clone, Debug, Parser, PartialEq, Serialize)]
@@ -257,7 +254,6 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
-  WmToggleAnimations,
   WmTogglePause,
 }
 

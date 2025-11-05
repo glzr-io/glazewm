@@ -1,33 +1,18 @@
 animations:
-  # Whether to enable window animations (opt-in feature).
-  # Default: false
-  enabled: false
-
-  # Animation profile controls all timing values at once.
-  # Options: 'fast', 'balanced', 'smooth', 'custom'
-  # - 'fast': Snappy animations (100-120ms)
-  # - 'balanced': Default, smooth but responsive (150-200ms)
-  # - 'smooth': Slower, more fluid animations (200-250ms)
-  # - 'custom': Use the detailed settings below
-  profile: "balanced"
-
-  # Minimum pixel distance required to trigger movement animations.
-  # Helps prevent animations from starting on very small position changes.
-  # Increase this value on high-DPI displays to reduce sensitivity.
-  # Default: 10
-  movement_threshold_px: 10
-
   # Animation settings for window movement (tiling, resizing, etc).
-  # Only used when profile is set to 'custom'.
-  window_movement:
+  window_move:
     enabled: true
     duration_ms: 150
     # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
     # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic'
     easing: "ease_in_out"
+    # Minimum pixel distance required to trigger movement animations.
+    # Helps prevent animations from starting on very small position changes.
+    # Increase this value on high-DPI displays to reduce sensitivity.
+    # Default: 10
+    threshold_px: 10
 
   # Animation settings for when windows open.
-  # Only used when profile is set to 'custom'.
   window_open:
     enabled: true
     duration_ms: 200
@@ -37,16 +22,6 @@ animations:
     # Whether to slide windows into position.
     slide: true
     # Whether to scale windows from a smaller size.
-    scale: true
-
-  # Animation settings for when windows close.
-  # Only used when profile is set to 'custom'.
-  window_close:
-    enabled: true
-    duration_ms: 150
-    easing: "ease_in"
-    fade: true
-    slide: false
     scale: true
 
 general:

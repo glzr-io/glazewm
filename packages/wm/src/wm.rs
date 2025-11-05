@@ -10,16 +10,15 @@ use wm_common::{
 use wm_platform::PlatformEvent;
 
 use crate::{
-  commands::{
-    container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction,
-      toggle_tiling_direction,
-    },
-    general::{
-      cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_animations,
-      toggle_pause,
-    },
+    commands::{
+      container::{
+        focus_container_by_id, focus_in_direction, set_tiling_direction,
+        toggle_tiling_direction,
+      },
+      general::{
+        cycle_focus, disable_binding_mode, enable_binding_mode,
+        platform_sync, reload_config, shell_exec, toggle_pause,
+      },
     monitor::focus_monitor,
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
@@ -195,15 +194,16 @@ impl WindowManager {
       let timer_flag = self.animation_timer_running.clone();
 
       // Calculate frame time based on monitor refresh rate
-      let mut frame_time_ms = 16u32;  // Default to 60 FPS
+      // Default to 60 FPS if refresh rate cannot be determined
+      let mut frame_time_ms = 16u32;
 
       if let Some(container) = self.state.focused_container() {
         if let Some(monitor) = container.monitor() {
-          if let Ok(refresh_rate) = monitor.native().refresh_rate() {
-            // Convert refresh rate to milliseconds per frame
-            // Cap at 60 Hz minimum for safety
-            frame_time_ms = 1000 / refresh_rate.max(60);
-          }
+          // Default to 60Hz if refresh rate cannot be determined
+          let refresh_rate = monitor.native().refresh_rate().unwrap_or(60);
+          // Convert refresh rate to milliseconds per frame
+          // Cap at 60 Hz minimum for safety
+          frame_time_ms = 1000 / refresh_rate.max(60);
         }
       }
 
@@ -828,10 +828,6 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
-      InvokeCommand::WmToggleAnimations => {
-        toggle_animations(config, state);
-        Ok(())
-      }
       InvokeCommand::WmTogglePause => {
         toggle_pause(state);
         Ok(())

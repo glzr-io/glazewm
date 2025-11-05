@@ -4,7 +4,7 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{debug, info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, EasingFunction, HideMethod,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
   OpacityValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
@@ -269,14 +269,9 @@ fn redraw_containers(
     );
 
     // Determine if we should animate this window
-    let animations_enabled = config.value.animations.enabled;
     let is_opening = matches!(
       (prev_display_state, window.display_state()),
       (DisplayState::Hidden, DisplayState::Showing)
-    );
-    let is_closing = matches!(
-      window.display_state(),
-      DisplayState::Hiding
     );
 
     // Get the previous target position before updating
@@ -285,11 +280,17 @@ fn redraw_containers(
     // Update the stored target position (always do this, even if animations are skipped)
     state.window_target_positions.insert(window.id(), target_rect.clone());
 
+    // Determine if animations should be used for this window based on type
+    let should_use_animations = !state.pending_sync.should_skip_animations() && (
+      (is_opening && config.value.animations.window_open.enabled) ||
+      (!is_opening && config.value.animations.window_move.enabled)
+    );
+
     // Determine the rect and opacity to use
-    let (rect_to_use, opacity_override) = if animations_enabled && !state.pending_sync.should_skip_animations() {
+    let (rect_to_use, opacity_override) = if should_use_animations {
 
       // Get the movement threshold from config
-      let threshold = config.value.animations.movement_threshold_px as i32;
+      let threshold = config.value.animations.window_move.threshold_px as i32;
 
       // Check if there's already an animation for this window
       let existing_animation = state.animation_manager.get_animation(&window.id());
@@ -298,11 +299,9 @@ fn redraw_containers(
       let existing_animation_clone = existing_animation.clone();
 
       // Decide whether to start a new animation
-      let should_start_new_animation = if is_opening && config.value.animations.effective_window_open().enabled {
+      let should_start_new_animation = if is_opening && config.value.animations.window_open.enabled {
         existing_animation.is_none()
-      } else if is_closing && config.value.animations.effective_window_close().enabled {
-        existing_animation.is_none()
-      } else if !is_opening && !is_closing && config.value.animations.effective_window_movement().enabled {
+      } else if !is_opening && config.value.animations.window_move.enabled {
         if let Some(anim) = existing_animation {
           // Don't restart animations that are completing or already at target
           if anim.is_complete() {
@@ -336,13 +335,7 @@ fn redraw_containers(
         if is_opening {
           let animation = WindowAnimationState::new_open(
             target_rect.clone(),
-            &config.value.animations.effective_window_open(),
-          );
-          state.animation_manager.start_animation(window.id(), animation);
-        } else if is_closing {
-          let animation = WindowAnimationState::new_close(
-            target_rect.clone(),
-            &config.value.animations.effective_window_close(),
+            &config.value.animations.window_open,
           );
           state.animation_manager.start_animation(window.id(), animation);
         } else if let Some(prev_target) = previous_target.clone() {
@@ -359,56 +352,12 @@ fn redraw_containers(
           // Choose animation config based on whether this is a cancel-and-replace
           let animation_config = if is_cancel_and_replace {
             // Use fixed short duration for interrupted animations to ensure consistent timing
-            let mut config = config.value.animations.effective_window_movement();
-            config.duration_ms = 100; // Fixed 100ms for cancel-and-replace
-            config
+            let mut movement_config = config.value.animations.window_move.clone();
+            movement_config.duration_ms = 100; // Fixed 100ms for cancel-and-replace
+            movement_config
           } else {
-            // Detect operation type and calculate adaptive timing using start_rect
-            let prev_area = start_rect.width() * start_rect.height();
-            let target_area = target_rect.width() * target_rect.height();
-            let area_change_ratio = if prev_area > 0 {
-              ((target_area as f32 / prev_area as f32) - 1.0).abs()
-            } else {
-              1.0
-            };
-
-            let is_expansion = target_area > prev_area;
-            let is_shrinking = target_area < prev_area;
-
-            // Create custom animation config based on operation type and size change
-            let mut animation_config = config.value.animations.effective_window_movement();
-
-            // Determine base duration based on operation type
-            let base_duration = if is_expansion {
-              80  // Fast for expansions to minimize black areas
-            } else if is_shrinking {
-              100  // Slightly faster for shrinking
-            } else {
-              150  // Normal speed for pure movement (< 1% area change)
-            };
-
-            // Scale duration based on magnitude of size change
-            let adaptive_duration = if area_change_ratio < 0.2 {
-              // Small change (< 20% area): Full animation
-              base_duration
-            } else if area_change_ratio < 0.5 {
-              // Medium change (20-50%): 70% of duration
-              (base_duration as f32 * 0.7) as u32
-            } else {
-              // Large change (> 50%): 50% of duration, very fast
-              (base_duration as f32 * 0.5) as u32
-            };
-
-            animation_config.duration_ms = adaptive_duration.max(40); // Never less than 40ms
-
-            // Use better easing for expansions
-            if is_expansion {
-              animation_config.easing = EasingFunction::EaseOutCubic; // Fast start, slow end
-            } else if is_shrinking {
-              animation_config.easing = EasingFunction::EaseInOutCubic; // Smooth both ways
-            }
-
-            animation_config
+            // Use config duration directly
+            config.value.animations.window_move.clone()
           };
 
           // Create animation from current position to new target (cancel and replace)

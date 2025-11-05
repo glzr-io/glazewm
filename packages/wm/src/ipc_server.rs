@@ -242,9 +242,6 @@ impl IpcServer {
         QueryCommand::Paused => {
           ClientResponseData::Paused(wm.state.is_paused)
         }
-        QueryCommand::AnimationsEnabled => {
-          ClientResponseData::AnimationsEnabled(config.value.animations.enabled)
-        }
       },
       AppCommand::Command {
         subject_container_id,
@@ -386,9 +383,6 @@ impl IpcServer {
         SubscribableEvent::WorkspaceUpdated
       }
       WmEvent::PauseChanged { .. } => SubscribableEvent::PauseChanged,
-      WmEvent::AnimationsChanged { .. } => {
-        SubscribableEvent::AnimationsChanged
-      }
     };
 
     self

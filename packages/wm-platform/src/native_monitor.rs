@@ -191,12 +191,11 @@ fn monitor_refresh_rate(device_name: &[u16]) -> anyhow::Result<u32> {
   }
   .ok()?;
 
-  // Default to 60Hz if the refresh rate is not set or invalid
-  Ok(if dev_mode.dmDisplayFrequency > 0 {
-    dev_mode.dmDisplayFrequency
+  if dev_mode.dmDisplayFrequency > 0 {
+    Ok(dev_mode.dmDisplayFrequency)
   } else {
-    60
-  })
+    anyhow::bail!("Invalid refresh rate: {}", dev_mode.dmDisplayFrequency)
+  }
 }
 
 impl PartialEq for NativeMonitor {
