@@ -35,7 +35,6 @@ pub enum ClientResponseData {
   Windows(WindowsData),
   Workspaces(WorkspacesData),
   Paused(bool),
-  AnimationsEnabled(bool),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

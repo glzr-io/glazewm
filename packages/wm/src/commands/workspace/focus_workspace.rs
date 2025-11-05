@@ -66,7 +66,8 @@ pub fn focus_workspace(
     state.pending_sync.queue_focus_change();
 
     // Display the workspace to switch focus to.
-    // Skip animations during workspace switches for better performance.
+    // Skip animations during workspace switches to avoid jarring visual effects
+    // when switching between workspaces quickly.
     state
       .pending_sync
       .set_skip_animations(true)

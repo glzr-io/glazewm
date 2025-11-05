@@ -19,7 +19,6 @@ use crate::animation_engine::{
 pub enum AnimationType {
   Movement,
   Open,
-  Close,
 }
 
 /// State of an individual window animation.
@@ -104,48 +103,15 @@ impl WindowAnimationState {
     }
   }
 
-  /// Creates a new close animation.
-  pub fn new_close(
-    start_rect: Rect,
-    config: &AnimationEffectsConfig,
-  ) -> Self {
-    let target_rect = if config.scale {
-      scale_rect_from_center(&start_rect, 0.9)
-    } else {
-      start_rect.clone()
-    };
-
-    Self {
-      animation_type: AnimationType::Close,
-      start_time: Instant::now(),
-      duration: Duration::from_millis(u64::from(config.duration_ms)),
-      easing: config.easing.clone(),
-      start_rect,
-      target_rect,
-      start_opacity: if config.fade {
-        Some(OpacityValue::from_alpha(255))
-      } else {
-        None
-      },
-      target_opacity: if config.fade {
-        Some(OpacityValue::from_alpha(0))
-      } else {
-        None
-      },
-      fade_enabled: config.fade,
-      scale_enabled: config.scale,
-      slide_enabled: config.slide,
-    }
-  }
-
   /// Gets the current animation progress (0.0 to 1.0).
   pub fn progress(&self) -> f32 {
     animation_progress(self.start_time, self.duration)
   }
 
   /// Whether the animation has completed.
+  /// NOTE: Progress is clamped to [0.0, 1.0], so exact comparison is safe.
   pub fn is_complete(&self) -> bool {
-    self.progress() >= 1.0
+    self.progress() == 1.0
   }
 
   /// Gets the interpolated rect at the current animation progress.
