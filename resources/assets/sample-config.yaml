@@ -21,6 +21,11 @@ animations:
     # Options: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
     animation_type: "fade_slide_scale"
 
+  # Maximum frame rate for animations in Hz. The animation timer will not
+  # exceed this rate even if the monitor supports higher refresh rates.
+  # Default: 120
+  max_frame_rate: 120
+
 general:
   # Commands to run when the WM has started. This is useful for running a
   # script or launching another application.

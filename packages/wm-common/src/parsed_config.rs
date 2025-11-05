@@ -396,6 +396,10 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
 pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   pub window_open: AnimationEffectsConfig,
+  /// Maximum frame rate for animations in Hz. The animation timer will
+  /// not exceed this rate even if the monitor supports higher refresh rates.
+  /// Default: 120 Hz
+  pub max_frame_rate: u32,
 }
 
 impl Default for AnimationsConfig {
@@ -403,6 +407,7 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_open: AnimationEffectsConfig::default_open(),
+      max_frame_rate: 120,
     }
   }
 }

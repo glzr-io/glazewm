@@ -89,7 +89,11 @@ impl AnimationManager {
   }
 
   /// Ensures the animation timer is running if there are active animations.
-  pub fn ensure_timer_running(&self, state: &crate::wm_state::WmState) {
+  pub fn ensure_timer_running(
+    &self,
+    state: &crate::wm_state::WmState,
+    config: &UserConfig,
+  ) {
     if self.has_active_animations()
       && !self.animation_timer_running.load(Ordering::Relaxed) {
 
@@ -97,7 +101,7 @@ impl AnimationManager {
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
 
-      // Calculate frame time based on monitor refresh rate
+      // Calculate frame time based on monitor refresh rate, capped by config max_frame_rate
       // Default to 60 FPS if refresh rate cannot be determined
       let mut frame_time_ms = 16u32;
 
@@ -105,10 +109,17 @@ impl AnimationManager {
         if let Some(monitor) = CommonGetters::monitor(&container) {
           // Default to 60Hz if refresh rate cannot be determined
           let refresh_rate = monitor.native().refresh_rate().unwrap_or(60);
-          // Convert refresh rate to milliseconds per frame
+          // Cap refresh rate at configured max_frame_rate
+          let capped_rate = refresh_rate.min(config.value.animations.max_frame_rate);
           // Cap at 60 Hz minimum for safety
-          frame_time_ms = 1000 / refresh_rate.max(60);
+          let final_rate = capped_rate.max(60);
+          // Convert refresh rate to milliseconds per frame
+          frame_time_ms = 1000 / final_rate;
         }
+      } else {
+        // If no monitor found, use max_frame_rate from config (capped at 60Hz minimum)
+        let final_rate = config.value.animations.max_frame_rate.max(60);
+        frame_time_ms = 1000 / final_rate;
       }
 
       tokio::spawn(async move {
@@ -186,7 +197,7 @@ impl AnimationManager {
     }
 
     // Continue timer if there are still active animations
-    state.animation_manager.ensure_timer_running(state);
+    state.animation_manager.ensure_timer_running(state, config);
 
     Ok(())
   }

@@ -122,7 +122,7 @@ impl WindowManager {
     }
 
     // Start animation timer if needed
-    self.state.animation_manager.ensure_timer_running(&self.state);
+    self.state.animation_manager.ensure_timer_running(&self.state, config);
 
     Ok(())
   }
