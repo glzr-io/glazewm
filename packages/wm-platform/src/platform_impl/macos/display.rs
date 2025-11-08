@@ -7,7 +7,7 @@ use objc2_core_graphics::{
   CGDisplayMirrorsDisplay, CGDisplayMode, CGDisplayRotation, CGError,
   CGGetActiveDisplayList, CGGetOnlineDisplayList, CGMainDisplayID,
 };
-use objc2_foundation::{ns_string, NSNumber};
+use objc2_foundation::{ns_string, NSNumber, NSRect};
 
 use crate::{
   ConnectionState, Dispatcher, DisplayDeviceId, DisplayId, MirroringState,
@@ -115,37 +115,44 @@ impl Display {
     let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
 
     #[allow(clippy::cast_possible_truncation)]
-    Ok(Rect::from_ltrb(
+    Ok(Rect::from_xy(
       cg_rect.origin.x as i32,
       cg_rect.origin.y as i32,
-      (cg_rect.origin.x + cg_rect.size.width) as i32,
-      (cg_rect.origin.y + cg_rect.size.height) as i32,
+      cg_rect.size.width as i32,
+      cg_rect.size.height as i32,
     ))
   }
 
-  /// Gets the working area rectangle (excluding dock and menu bar).
+  /// Gets the working area rectangle (excludes dock and menu bar).
   pub fn working_area(&self) -> crate::Result<Rect> {
-    self.ns_screen.with(|screen| {
-      let visible_frame = screen.visibleFrame();
+    let primary_display_bounds = {
+      let bounds = unsafe { CGDisplayBounds(CGMainDisplayID()) };
 
       #[allow(clippy::cast_possible_truncation)]
-      Ok(Rect::from_ltrb(
-        visible_frame.origin.x as i32,
-        (visible_frame.origin.y + visible_frame.size.height) as i32,
-        (visible_frame.origin.x + visible_frame.size.width) as i32,
-        visible_frame.origin.y as i32,
+      Rect::from_xy(
+        bounds.origin.x as i32,
+        bounds.origin.y as i32,
+        bounds.size.width as i32,
+        bounds.size.height as i32,
+      )
+    };
+
+    self.ns_screen.with(|screen| {
+      // Convert `NSScreen.visibleFrame` into the same coordinate space as
+      // `CGDisplayBounds`.
+      Ok(appkit_rect_to_cg_rect(
+        screen.visibleFrame(),
+        &primary_display_bounds,
       ))
     })?
   }
 
   /// Gets the scale factor for the display.
   pub fn scale_factor(&self) -> crate::Result<f32> {
-    Ok(
-      #[allow(clippy::cast_possible_truncation)]
-      self
-        .ns_screen
-        .with(|screen| screen.backingScaleFactor() as f32)?,
-    )
+    #[allow(clippy::cast_possible_truncation)]
+    self
+      .ns_screen
+      .with(|screen| screen.backingScaleFactor() as f32)
   }
 
   /// Gets the DPI for the display.
@@ -183,6 +190,33 @@ impl Display {
       })
       .ok_or(crate::Error::DisplayNotFound)
   }
+}
+
+/// Transforms an AppKit screen rectangle (e.g. `NSScreen.visibleFrame`)
+/// into Core Graphics coordinate space (e.g. `CGDisplayBounds`).
+///
+/// AppKit has (0,0) at the bottom-left corner of the primary display,
+/// whereas Core Graphics has it at the top-left corner. So we can convert
+/// between the two by offsetting the Y-axis by the primary display height.
+///
+/// # Arguments
+/// * `appkit_rect` - The rectangle in AppKit coordinate space.
+/// * `primary_display_bounds` - The bounds of the primary display in CG
+///   space.
+fn appkit_rect_to_cg_rect(
+  appkit_rect: NSRect,
+  primary_display_bounds: &Rect,
+) -> Rect {
+  let adjusted_y = f64::from(primary_display_bounds.height())
+    - (appkit_rect.origin.y + appkit_rect.size.height);
+
+  #[allow(clippy::cast_possible_truncation)]
+  Rect::from_xy(
+    appkit_rect.origin.x as i32,
+    adjusted_y as i32,
+    appkit_rect.size.width as i32,
+    appkit_rect.size.height as i32,
+  )
 }
 
 impl From<Display> for crate::Display {
