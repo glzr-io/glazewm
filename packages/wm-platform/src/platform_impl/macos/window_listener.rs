@@ -184,7 +184,7 @@ impl WindowListener {
             continue;
           };
 
-          let _ = events_tx.send(WindowEvent::Focus {
+          let _ = events_tx.send(WindowEvent::Focused {
             window: focused_window,
             notification: crate::WindowEventNotification(None),
           });

@@ -106,16 +106,16 @@ impl WindowManager {
         handle_mouse_move(&event, state, config)
       }
       PlatformEvent::Window(window_event) => match window_event {
-        WindowEvent::Focus { window, .. } => {
+        WindowEvent::Focused { window, .. } => {
           handle_window_focused(&window, state, config)
         }
-        WindowEvent::Show { window, .. } => {
+        WindowEvent::Shown { window, .. } => {
           handle_window_shown(window, state, config)
         }
-        WindowEvent::Hide { window, .. } => {
+        WindowEvent::Hidden { window, .. } => {
           handle_window_hidden(&window, state)
         }
-        WindowEvent::MoveOrResize {
+        WindowEvent::MovedOrResized {
           window,
           is_interactive_start,
           is_interactive_end,
@@ -127,16 +127,16 @@ impl WindowManager {
           state,
           config,
         ),
-        WindowEvent::Minimize { window, .. } => {
+        WindowEvent::Minimized { window, .. } => {
           handle_window_minimized(&window, state, config)
         }
-        WindowEvent::MinimizeEnd { window, .. } => {
+        WindowEvent::MinimizeEnded { window, .. } => {
           handle_window_minimize_ended(&window, state, config)
         }
-        WindowEvent::TitleChange { window, .. } => {
+        WindowEvent::TitleChanged { window, .. } => {
           handle_window_title_changed(&window, state, config)
         }
-        WindowEvent::Destroy { window_id, .. } => {
+        WindowEvent::Destroyed { window_id, .. } => {
           handle_window_destroyed(window_id, state)
         }
       },

@@ -17,13 +17,13 @@ pub enum PlatformEvent {
 #[derive(Clone, Debug)]
 pub enum WindowEvent {
   /// Window gained focus.
-  Focus {
+  Focused {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
 
   /// Window was hidden.
-  Hide {
+  Hidden {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
@@ -41,7 +41,7 @@ pub enum WindowEvent {
   /// - **macOS**: Corresponds to `AXWindowMoved` and `AXWindowResized`.
   ///   The `is_interactive_start` and `is_interactive_end` flags are
   ///   always `false`.
-  MoveOrResize {
+  MovedOrResized {
     window: NativeWindow,
     is_interactive_start: bool,
     is_interactive_end: bool,
@@ -49,31 +49,31 @@ pub enum WindowEvent {
   },
 
   /// Window was minimized.
-  Minimize {
+  Minimized {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
 
   /// Window was restored from minimized state.
-  MinimizeEnd {
+  MinimizeEnded {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
 
   /// Window became visible.
-  Show {
+  Shown {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
 
   /// Window title changed.
-  TitleChange {
+  TitleChanged {
     window: NativeWindow,
     notification: WindowEventNotification,
   },
 
   /// Window was destroyed.
-  Destroy {
+  Destroyed {
     window_id: WindowId,
     notification: WindowEventNotification,
   },
@@ -81,18 +81,18 @@ pub enum WindowEvent {
 
 impl WindowEvent {
   /// Get the window handle if available (not available for
-  /// `WindowEvent::Destroy`).
+  /// `WindowEvent::Destroyed`).
   #[must_use]
   pub fn window(&self) -> Option<&NativeWindow> {
     match self {
-      Self::Focus { window, .. }
-      | Self::Hide { window, .. }
-      | Self::MoveOrResize { window, .. }
-      | Self::Minimize { window, .. }
-      | Self::MinimizeEnd { window, .. }
-      | Self::Show { window, .. }
-      | Self::TitleChange { window, .. } => Some(window),
-      Self::Destroy { .. } => None,
+      Self::Focused { window, .. }
+      | Self::Hidden { window, .. }
+      | Self::MovedOrResized { window, .. }
+      | Self::Minimized { window, .. }
+      | Self::MinimizeEnded { window, .. }
+      | Self::Shown { window, .. }
+      | Self::TitleChanged { window, .. } => Some(window),
+      Self::Destroyed { .. } => None,
     }
   }
 }
@@ -103,8 +103,8 @@ impl WindowEvent {
 /// notification (represented by `None`).
 ///
 /// Synthetic events can occur when:
-/// * On macOS, `WindowEvent::Show` is emitted for new visible windows even
-///   if a different notification is received first.
+/// * On macOS, `WindowEvent::Shown` is emitted for new visible windows
+///   even if a different notification is received first.
 #[derive(Clone, Debug)]
 pub struct WindowEventNotification(
   pub Option<WindowEventNotificationInner>,
