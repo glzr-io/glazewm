@@ -34,12 +34,11 @@ pub struct WindowListener {
 }
 
 impl WindowListener {
-  pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
     dispatcher
-      .clone()
-      .dispatch_sync(|| Self::init(events_tx, dispatcher))??;
+      .dispatch_sync(|| Self::init(events_tx, dispatcher.clone()))??;
 
     Ok(Self { event_rx })
   }
@@ -102,8 +101,8 @@ impl WindowListener {
       Self::listen_workspace_events(
         app_observers,
         events_rx,
-        events_tx,
-        dispatcher,
+        &events_tx,
+        &dispatcher,
       );
     });
 
@@ -118,8 +117,8 @@ impl WindowListener {
   fn listen_workspace_events(
     app_observers: Vec<ApplicationObserver>,
     mut events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
-    events_tx: mpsc::UnboundedSender<WindowEvent>,
-    dispatcher: Dispatcher,
+    events_tx: &mpsc::UnboundedSender<WindowEvent>,
+    dispatcher: &Dispatcher,
   ) {
     // Track window observers for each application by PID.
     let mut app_observers: HashMap<ProcessId, ApplicationObserver> =

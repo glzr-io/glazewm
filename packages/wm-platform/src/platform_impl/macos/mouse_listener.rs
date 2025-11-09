@@ -53,22 +53,19 @@ pub struct MouseListener {
 
   /// Mach port for the created `CGEventTap`.
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
-
-  dispatcher: Dispatcher,
 }
 
 impl MouseListener {
   /// Creates a new mouse listener and starts the event tap.
-  pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let tap_port = dispatcher
-      .dispatch_sync(|| Self::create_event_tap(&dispatcher, event_tx))??;
+      .dispatch_sync(|| Self::create_event_tap(dispatcher, event_tx))??;
 
     Ok(Self {
       event_rx,
       tap_port: Some(tap_port),
-      dispatcher,
     })
   }
 

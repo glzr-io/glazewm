@@ -110,10 +110,10 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Start listening for platform events after populating initial state.
-  let mut mouse_listener = MouseListener::new(dispatcher.clone())?;
-  let mut window_listener = WindowListener::new(dispatcher.clone())?;
+  let mut mouse_listener = MouseListener::new(&dispatcher)?;
+  let mut window_listener = WindowListener::new(&dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
-    dispatcher.clone(),
+    &dispatcher,
     &config
       .active_keybinding_configs(&[], false)
       .flat_map(|kb| kb.bindings)

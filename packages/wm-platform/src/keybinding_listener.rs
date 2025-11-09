@@ -73,7 +73,7 @@ pub struct KeybindingListener {
 impl KeybindingListener {
   /// Creates an instance of `KeybindingListener`.
   pub fn new(
-    dispatcher: Dispatcher,
+    dispatcher: &Dispatcher,
     keybindings: &[Keybinding],
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
@@ -96,7 +96,7 @@ impl KeybindingListener {
 
   /// Creates and starts the keyboard hook with the given callback.
   fn create_keyboard_hook(
-    dispatcher: Dispatcher,
+    dispatcher: &Dispatcher,
     keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
   ) -> crate::Result<platform_impl::KeyboardHook> {

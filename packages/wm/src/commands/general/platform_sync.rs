@@ -238,12 +238,13 @@ fn redraw_containers(
 
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
+    //
+    // NOTE: macOS doesn't have a robust public API for setting the z-order
+    // of a window. See `NativeWindow::raise` for more details.
+    #[cfg(target_os = "windows")]
     if should_bring_to_front && !windows_to_redraw.contains(window) {
       info!("Updating window z-order: {window}");
 
-      // macOS doesn't have a robust public API for setting the z-order of
-      // a window. See `NativeWindow::raise` for more details.
-      #[cfg(target_os = "windows")]
       if let Err(err) = window.native().set_z_order(&z_order) {
         warn!("Failed to set window z-order: {}", err);
       }

@@ -1,6 +1,5 @@
 use std::{os::raw::c_void, ptr::NonNull};
 
-use objc2::MainThreadMarker;
 use objc2_core_foundation::{
   kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop,
 };
@@ -73,7 +72,6 @@ impl KeyEvent {
 pub struct KeyboardHook {
   /// Mach port for the created `CGEventTap`.
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
-  dispatcher: Dispatcher,
 }
 
 impl KeyboardHook {
@@ -81,16 +79,18 @@ impl KeyboardHook {
   ///
   /// The callback is called for every keyboard event and returns
   /// `true` if the event should be intercepted.
-  pub fn new<F>(dispatcher: Dispatcher, callback: F) -> crate::Result<Self>
+  pub fn new<F>(
+    dispatcher: &Dispatcher,
+    callback: F,
+  ) -> crate::Result<Self>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
     let tap_port = dispatcher
-      .dispatch_sync(|| Self::create_event_tap(&dispatcher, callback))??;
+      .dispatch_sync(|| Self::create_event_tap(dispatcher, callback))??;
 
     Ok(Self {
       tap_port: Some(tap_port),
-      dispatcher,
     })
   }
 
@@ -204,10 +204,7 @@ impl KeyboardHook {
   #[allow(clippy::unnecessary_wraps)]
   pub fn stop(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {
-      self.dispatcher.dispatch_async(move || unsafe {
-        let tap_ref = tap.get_ref().unwrap();
-        CGEvent::tap_enable(tap_ref, false);
-      })?;
+      let _ = tap.with(|tap| unsafe { CGEvent::tap_enable(tap, false) });
     }
 
     Ok(())

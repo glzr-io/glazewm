@@ -12,7 +12,7 @@ pub struct MouseListener {
 
 impl MouseListener {
   /// Creates a new mouse listener.
-  pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     Ok(Self {
       inner: platform_impl::MouseListener::new(dispatcher)?,
     })

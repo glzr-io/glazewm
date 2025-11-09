@@ -7,7 +7,7 @@ pub struct WindowListener {
 
 impl WindowListener {
   /// Creates a new window listener.
-  pub fn new(dispatcher: Dispatcher) -> crate::Result<Self> {
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let inner = platform_impl::WindowListener::new(dispatcher)?;
     Ok(Self { inner })
   }
