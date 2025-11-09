@@ -200,11 +200,22 @@ impl KeyboardHook {
     }
   }
 
-  /// Stops the keyboard hook by disabling the `CGEventTap`.
+  /// Enables or disables the event tap.
+  pub fn enable(&mut self, enabled: bool) {
+    if let Some(tap_port) = &self.tap_port {
+      let _ =
+        tap_port.with(|tap| unsafe { CGEvent::tap_enable(tap, enabled) });
+    }
+  }
+
+  /// Terminates the keyboard hook by invalidating the event tap.
   #[allow(clippy::unnecessary_wraps)]
-  pub fn stop(&mut self) -> crate::Result<()> {
+  pub fn terminate(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {
-      let _ = tap.with(|tap| unsafe { CGEvent::tap_enable(tap, false) });
+      // Invalidate the event tap to stop it from receiving events. This
+      // also invalidates the run loop source.
+      // See: https://developer.apple.com/documentation/corefoundation/cfmachportinvalidate(_:)
+      let _ = tap.with(|tap| CFMachPort::invalidate(tap));
     }
 
     Ok(())
@@ -213,6 +224,6 @@ impl KeyboardHook {
 
 impl Drop for KeyboardHook {
   fn drop(&mut self) {
-    let _ = self.stop();
+    let _ = self.terminate();
   }
 }

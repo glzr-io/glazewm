@@ -226,17 +226,17 @@ impl KeybindingListener {
 
   /// Enables or disables the keybinding listener.
   pub fn enable(&mut self, enabled: bool) {
-    // TODO: Implement platform-specific keybinding listener enabling.
+    self.keyboard_hook.enable(enabled);
   }
 
-  /// Stops the keybinding listener.
-  pub fn stop(&mut self) -> crate::Result<()> {
-    self.keyboard_hook.stop()
+  /// Terminates the keybinding listener.
+  pub fn terminate(&mut self) -> crate::Result<()> {
+    self.keyboard_hook.terminate()
   }
 }
 
 impl Drop for KeybindingListener {
   fn drop(&mut self) {
-    let _ = self.stop();
+    let _ = self.terminate();
   }
 }

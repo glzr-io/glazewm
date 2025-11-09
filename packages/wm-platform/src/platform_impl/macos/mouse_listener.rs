@@ -38,6 +38,7 @@ impl MouseEventNotificationInner {
     if window_id == 0 {
       None
     } else {
+      #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
       Some(WindowId(window_id as u32))
     }
   }
@@ -98,7 +99,7 @@ impl MouseListener {
         event_tx_ptr,
       )
       .ok_or_else(|| {
-        // Cleanup sender if event tap creation fails.
+        // Clean up the sender if event tap creation fails.
         let _ = Box::from_raw(event_tx_ptr.cast::<mpsc::UnboundedSender<MouseEvent>>());
         Error::Platform(
           "Failed to create CGEventTap. Accessibility permissions may be required.".to_string(),
@@ -132,11 +133,14 @@ impl MouseListener {
     }
   }
 
-  /// Stops the mouse listener by disabling the event tap.
+  /// Terminates the mouse listener by invalidating the event tap.
   #[allow(clippy::unnecessary_wraps)]
-  pub fn stop(&mut self) -> crate::Result<()> {
+  pub fn terminate(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {
-      let _ = tap.with(|tap| unsafe { CGEvent::tap_enable(tap, false) });
+      // Invalidate the event tap to stop it from receiving events. This
+      // also invalidates the run loop source.
+      // See: https://developer.apple.com/documentation/corefoundation/cfmachportinvalidate(_:)
+      let _ = tap.with(|tap| CFMachPort::invalidate(tap));
     }
 
     Ok(())
@@ -200,6 +204,6 @@ impl MouseListener {
 
 impl Drop for MouseListener {
   fn drop(&mut self) {
-    let _ = self.stop();
+    let _ = self.terminate();
   }
 }

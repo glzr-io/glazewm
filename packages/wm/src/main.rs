@@ -219,7 +219,7 @@ async fn start_wm(
   // Shutdown listeners first to ensure clean exit.
   // TODO: This should be handled automatically in the `stop_event_loop`
   // method.
-  if let Err(err) = keybinding_listener.stop() {
+  if let Err(err) = keybinding_listener.terminate() {
     tracing::warn!("Failed to stop keybinding listener: {}", err);
   }
 
