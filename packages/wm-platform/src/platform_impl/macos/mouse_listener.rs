@@ -15,7 +15,7 @@ use crate::{
   Point, ThreadBound, WindowId,
 };
 
-/// macOS-specific mouse event notification.
+/// macOS-specific implementation of [`MouseEventNotification`].
 #[derive(Clone, Debug)]
 pub struct MouseEventNotificationInner {
   pub event_type: CGEventType,
@@ -46,7 +46,7 @@ impl MouseEventNotificationInner {
 
 unsafe impl Send for MouseEventNotificationInner {}
 
-/// macOS-specific listener for system-wide mouse events.
+/// macOS-specific implementation of [`MouseListener`].
 #[derive(Debug)]
 pub struct MouseListener {
   /// Receiver for outgoing mouse events.
@@ -57,7 +57,7 @@ pub struct MouseListener {
 }
 
 impl MouseListener {
-  /// Creates a new mouse listener and starts the event tap.
+  /// macOS-specific implementation of [`MouseListener::new`].
   pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
@@ -125,7 +125,7 @@ impl MouseListener {
     Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
 
-  /// Enables or disables the event tap.
+  /// macOS-specific implementation of [`MouseListener::enable`].
   pub fn enable(&mut self, enabled: bool) {
     if let Some(tap_port) = &self.tap_port {
       let _ =
@@ -133,7 +133,7 @@ impl MouseListener {
     }
   }
 
-  /// Terminates the mouse listener by invalidating the event tap.
+  /// macOS-specific implementation of [`MouseListener::terminate`].
   #[allow(clippy::unnecessary_wraps)]
   pub fn terminate(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {

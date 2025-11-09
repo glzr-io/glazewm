@@ -100,6 +100,7 @@ pub(crate) struct EventLoop {
 }
 
 impl EventLoop {
+  /// macOS-specific implementation of [`EventLoop::new`].
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
     // Set up the `CFRunLoop` directly on the current thread.
     let source = Self::add_dispatch_source()?;
@@ -117,10 +118,7 @@ impl EventLoop {
     ))
   }
 
-  /// Runs the event loop.
-  ///
-  /// This will block the current thread until the event loop is
-  /// stopped.
+  /// macOS-specific implementation of [`EventLoop::run`].
   pub fn run(&self) -> crate::Result<()> {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;

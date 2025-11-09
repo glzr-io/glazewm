@@ -14,7 +14,7 @@ use crate::{
   Point, Rect, ThreadBound,
 };
 
-/// macOS-specific extensions for `Display`.
+/// macOS-specific extensions for [`Display`].
 pub trait DisplayExtMacOs {
   /// Gets the Core Graphics display ID.
   fn cg_display_id(&self) -> CGDirectDisplayID;
@@ -30,16 +30,6 @@ pub trait DisplayExtMacOs {
   fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>>;
 }
 
-/// macOS-specific extensions for `DisplayDevice`.
-pub trait DisplayDeviceExtMacOs {
-  /// Gets the Core Graphics display ID.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn cg_display_id(&self) -> CGDirectDisplayID;
-}
-
 impl DisplayExtMacOs for crate::Display {
   fn cg_display_id(&self) -> CGDirectDisplayID {
     self.inner.cg_display_id()
@@ -50,13 +40,23 @@ impl DisplayExtMacOs for crate::Display {
   }
 }
 
+/// macOS-specific extensions for [`DisplayDevice`].
+pub trait DisplayDeviceExtMacOs {
+  /// Gets the Core Graphics display ID.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn cg_display_id(&self) -> CGDirectDisplayID;
+}
+
 impl DisplayDeviceExtMacOs for crate::DisplayDevice {
   fn cg_display_id(&self) -> CGDirectDisplayID {
     self.inner.cg_display_id()
   }
 }
 
-/// macOS-specific display implementation.
+/// macOS-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
 pub struct Display {
   cg_display_id: CGDirectDisplayID,
@@ -64,7 +64,7 @@ pub struct Display {
 }
 
 impl Display {
-  /// Creates a new macOS display.
+  /// macOS-specific implementation of [`Display::new`].
   #[must_use]
   pub fn new(
     ns_screen: ThreadBound<Retained<NSScreen>>,
@@ -233,14 +233,14 @@ impl PartialEq for Display {
 
 impl Eq for Display {}
 
-/// macOS-specific display device implementation.
+/// macOS-specific implementation of [`DisplayDevice`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DisplayDevice {
   pub(crate) cg_display_id: CGDirectDisplayID,
 }
 
 impl DisplayDevice {
-  /// Creates a new macOS display device.
+  /// macOS-specific implementation of [`DisplayDevice::new`].
   #[must_use]
   pub fn new(cg_display_id: CGDirectDisplayID) -> Self {
     Self { cg_display_id }
