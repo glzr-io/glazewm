@@ -47,9 +47,30 @@ use crate::{
   Rect, RectDelta, WindowState,
 };
 
-// TODO: Add `NativeWindowWindowsExt` trait with `class_name`,
-// `process_name`, `mark_fullscreen`, `set_title_bar_visibility`,
-// `set_border_color`, `set_corner_style`, `set_transparency`.
+pub trait NativeWindowWindowsExt {
+  fn class_name(&self) -> crate::Result<String>;
+  fn process_name(&self) -> crate::Result<String>;
+  fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()>;
+  fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()>;
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
+  fn set_corner_style(
+    &self,
+    corner_style: &CornerStyle,
+  ) -> crate::Result<()>;
+  fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> crate::Result<()>;
+
+  /// Sets the window's z-order.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_z_order(&self, zorder: &ZOrder) -> crate::Result<()>;
+}
+
+impl NativeWindowWindowsExt for NativeWindow {}
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.

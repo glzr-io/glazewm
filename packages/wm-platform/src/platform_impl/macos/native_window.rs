@@ -327,6 +327,18 @@ impl NativeWindow {
 
   fn raise(&self) -> crate::Result<()> {
     self.element.with(move |el| -> crate::Result<()> {
+      // This has a couple of caveats:
+      // - Some windows do not get raised without first calling
+      //   `_SLPSSetFrontProcessWithOptions`.
+      // - This changes focus if raising a window of the currently active
+      //   application. For example, if 2 Chrome windows are open and one
+      //   is focused, raising the other will change focus to the other
+      //   window.
+      //
+      // Because of these caveats, this method is not exposed as a public
+      // API. It's also the reason why the GlazeWM feature of bringing all
+      // tiling/floating windows to the front on focus change is not
+      // implemented for macOS.
       let result =
         unsafe { el.perform_action(&CFString::from_str("AXRaise")) };
 

@@ -35,7 +35,7 @@ impl WindowId {
   }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ZOrder {
   Normal,
   AfterWindow(WindowId),
