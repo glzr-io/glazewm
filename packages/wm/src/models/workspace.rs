@@ -9,7 +9,7 @@ use uuid::Uuid;
 use wm_common::{
   ContainerDto, GapsConfig, TilingDirection, WorkspaceConfig, WorkspaceDto,
 };
-use wm_platform::Rect;
+use wm_platform::{Rect, RectDelta};
 
 use crate::{
   impl_common_getters, impl_container_debug,
@@ -75,6 +75,27 @@ impl Workspace {
     self.0.borrow_mut().gaps_config = gaps_config;
   }
 
+  /// Effective outer gaps for this workspace.
+  ///
+  /// Uses `single_window_outer_gap` when the workspace has a single tiling
+  /// window, otherwise falls back to `outer_gap`.
+  pub fn outer_gaps(&self) -> RectDelta {
+    let is_single_window = self.tiling_children().nth(1).is_none();
+
+    let gaps_config = &self.0.borrow().gaps_config;
+    let gaps = if is_single_window {
+      gaps_config
+        .single_window_outer_gap
+        .as_ref()
+        .unwrap_or(&gaps_config.outer_gap)
+    } else {
+      &gaps_config.outer_gap
+    };
+
+    // TODO: Should this be scaled by the monitor's DPI?
+    gaps.clone()
+  }
+
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let config = self.config();
@@ -124,23 +145,12 @@ impl PositionGetters for Workspace {
       .working_area
       .delta(&monitor.native_properties().bounds);
 
-    let is_single_window = self.tiling_children().nth(1).is_none();
-
-    let gaps = if is_single_window {
-      gaps_config
-        .single_window_outer_gap
-        .as_ref()
-        .unwrap_or(&gaps_config.outer_gap)
-    } else {
-      &gaps_config.outer_gap
-    };
-
     Ok(
       monitor
         .native_properties()
         .bounds
         // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(gaps, Some(scale_factor))
+        .apply_inverse_delta(&self.outer_gaps(), Some(scale_factor))
         .apply_delta(&working_delta, None),
     )
   }

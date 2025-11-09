@@ -332,23 +332,7 @@ impl UserConfig {
     });
   }
 
-  pub fn outer_gaps_for_workspace(
-    &self,
-    workspace: &Workspace,
-  ) -> &wm_platform::RectDelta {
-    let is_single_window = workspace.tiling_children().nth(1).is_none();
 
-    if is_single_window {
-      self
-        .value
-        .gaps
-        .single_window_outer_gap
-        .as_ref()
-        .unwrap_or(&self.value.gaps.outer_gap)
-    } else {
-      &self.value.gaps.outer_gap
-    }
-  }
 
   /// Keybinding configs that should be active for the current binding mode
   /// and pause state.
