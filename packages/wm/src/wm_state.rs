@@ -101,7 +101,7 @@ impl WmState {
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     // Get the originally focused window when the WM was started.
-    // let foreground_window = Platform::foreground_window();
+    let focused_window = self.dispatcher.focused_window()?;
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
@@ -132,16 +132,10 @@ impl WmState {
       }
     }
 
-    // let container_to_focus = self
-    //   .window_from_native(&foreground_window)
-    //   .map(|c| c.as_container())
-    //   .or(self.windows().pop().map(Into::into))
-    //   .or(self.workspaces().pop().map(Into::into))
-    //   .context("Failed to get container to focus.")?;
     let container_to_focus = self
-      .windows()
-      .pop()
-      .map(Into::into)
+      .window_from_native(&focused_window)
+      .map(|c| c.as_container())
+      .or(self.windows().pop().map(Into::into))
       .or(self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 

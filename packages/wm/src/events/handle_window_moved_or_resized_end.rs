@@ -44,12 +44,12 @@ pub fn handle_window_moved_or_resized_end(
     let old_rect = window.native_properties().frame;
     let new_rect = try_warn!(window.native().frame());
 
-    window.update_native_properties(|properties| {
-      properties.frame = new_rect.clone();
-    });
-
     let width_delta = new_rect.width() - old_rect.width();
     let height_delta = new_rect.height() - old_rect.height();
+
+    window.update_native_properties(|properties| {
+      properties.frame = new_rect;
+    });
 
     match &window {
       WindowContainer::NonTilingWindow(window) => {

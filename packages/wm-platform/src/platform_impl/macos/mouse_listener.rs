@@ -8,11 +8,10 @@ use objc2_core_graphics::{
   CGEvent, CGEventField, CGEventMask, CGEventTapLocation,
   CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
-use tokio::sync::mpsc;
 
 use crate::{
-  platform_event::MouseEvent, Dispatcher, Error, MouseEventNotification,
-  Point, ThreadBound, WindowId,
+  platform_event::MouseEventNotification, Dispatcher, Error, MouseButton,
+  MouseEventType, Point, ThreadBound, WindowId,
 };
 
 /// macOS-specific implementation of [`MouseEventNotification`].
@@ -42,31 +41,93 @@ impl MouseEventNotificationInner {
       Some(WindowId(window_id as u32))
     }
   }
+
+  pub fn event_type(&self) -> MouseEventType {
+    match self.event_type {
+      CGEventType::MouseMoved => MouseEventType::Move,
+      CGEventType::LeftMouseDragged => MouseEventType::Move,
+      CGEventType::RightMouseDragged => MouseEventType::Move,
+      CGEventType::LeftMouseDown => MouseEventType::LeftClickDown,
+      CGEventType::LeftMouseUp => MouseEventType::LeftClickUp,
+      CGEventType::RightMouseDown => MouseEventType::RightClickDown,
+      CGEventType::RightMouseUp => MouseEventType::RightClickUp,
+      _ => unreachable!(),
+    }
+  }
+
+  pub fn position(&self) -> Point {
+    let cg_point = unsafe { CGEvent::location(Some(self.event.as_ref())) };
+
+    #[allow(clippy::cast_possible_truncation)]
+    Point {
+      x: cg_point.x as i32,
+      y: cg_point.y as i32,
+    }
+  }
+
+  pub fn pressed_buttons(&self) -> Vec<MouseButton> {
+    let mut pressed_buttons = Vec::new();
+
+    let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
+    if pressed_mask & 1 != 0 {
+      pressed_buttons.push(MouseButton::Left);
+    }
+    if pressed_mask & 2 != 0 {
+      pressed_buttons.push(MouseButton::Right);
+    }
+
+    pressed_buttons
+  }
 }
 
 unsafe impl Send for MouseEventNotificationInner {}
 
-/// macOS-specific implementation of [`MouseListener`].
-#[derive(Debug)]
-pub struct MouseListener {
-  /// Receiver for outgoing mouse events.
-  pub event_rx: mpsc::UnboundedReceiver<MouseEvent>,
+/// A callback invoked for every mouse notification received by the
+/// system `CGEventTap`.
+type HookCallback = dyn Fn(MouseEventNotification) + Send + Sync + 'static;
 
+/// macOS-specific mouse hook that listens for configured mouse events and
+/// executes a provided callback for each notification.
+#[derive(Debug)]
+pub struct MouseHook {
   /// Mach port for the created `CGEventTap`.
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
+
+  /// Opaque pointer to the boxed callback state passed to the C callback.
+  user_data: Option<*mut c_void>,
 }
 
-impl MouseListener {
-  /// macOS-specific implementation of [`MouseListener::new`].
-  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    let (event_tx, event_rx) = mpsc::unbounded_channel();
+impl MouseHook {
+  /// Creates a new mouse hook with the specified enabled mouse event
+  /// kinds and callback.
+  ///
+  /// The callback is executed for every received mouse notification.
+  pub fn new(
+    dispatcher: &Dispatcher,
+    enabled_events: &[crate::mouse_listener::MouseEventType],
+    callback: Box<HookCallback>,
+  ) -> crate::Result<Self> {
+    // Box the callback and pass the raw pointer as user data to the C
+    // callback.
+    let callback_ptr = Box::into_raw(callback).cast::<c_void>();
 
-    let tap_port = dispatcher
-      .dispatch_sync(|| Self::create_event_tap(dispatcher, event_tx))??;
+    let tap_port = match dispatcher.dispatch_sync(|| {
+      Self::create_event_tap(dispatcher, enabled_events, callback_ptr)
+    }) {
+      Ok(Ok(port)) => port,
+      Ok(Err(err)) | Err(err) => {
+        // Clean up the boxed state if event tap creation fails.
+        // SAFETY: We just created the Box above.
+        let _ = unsafe {
+          Box::from_raw(callback_ptr.cast::<Box<HookCallback>>())
+        };
+        return Err(err);
+      }
+    };
 
     Ok(Self {
-      event_rx,
       tap_port: Some(tap_port),
+      user_data: Some(callback_ptr),
     })
   }
 
@@ -74,20 +135,10 @@ impl MouseListener {
   /// loop.
   fn create_event_tap(
     dispatcher: &Dispatcher,
-    event_tx: mpsc::UnboundedSender<MouseEvent>,
+    enabled_events: &[crate::mouse_listener::MouseEventType],
+    user_data_ptr: *mut c_void,
   ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
-    // Listen for mouse movement and drag events. Down/up are included to
-    // ensure accurate pressed state via `pressedMouseButtons`.
-    let mask: CGEventMask = (1u64 << u64::from(CGEventType::MouseMoved.0))
-      | (1u64 << u64::from(CGEventType::LeftMouseDragged.0))
-      | (1u64 << u64::from(CGEventType::RightMouseDragged.0))
-      | (1u64 << u64::from(CGEventType::LeftMouseDown.0))
-      | (1u64 << u64::from(CGEventType::LeftMouseUp.0))
-      | (1u64 << u64::from(CGEventType::RightMouseDown.0))
-      | (1u64 << u64::from(CGEventType::RightMouseUp.0));
-
-    // Box the sender and pass as user data to the callback.
-    let event_tx_ptr = Box::into_raw(Box::new(event_tx)).cast::<c_void>();
+    let mask = Self::event_mask_from_enabled(enabled_events);
 
     let tap_port = unsafe {
       CGEvent::tap_create(
@@ -96,11 +147,9 @@ impl MouseListener {
         CGEventTapOptions::Default,
         mask,
         Some(Self::mouse_event_callback),
-        event_tx_ptr,
+        user_data_ptr,
       )
       .ok_or_else(|| {
-        // Clean up the sender if event tap creation fails.
-        let _ = Box::from_raw(event_tx_ptr.cast::<mpsc::UnboundedSender<MouseEvent>>());
         Error::Platform(
           "Failed to create CGEventTap. Accessibility permissions may be required.".to_string(),
         )
@@ -125,7 +174,7 @@ impl MouseListener {
     Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
 
-  /// macOS-specific implementation of [`MouseListener::enable`].
+  /// Enables or disables the underlying event tap.
   pub fn enable(&mut self, enabled: bool) {
     if let Some(tap_port) = &self.tap_port {
       let _ =
@@ -133,7 +182,8 @@ impl MouseListener {
     }
   }
 
-  /// macOS-specific implementation of [`MouseListener::terminate`].
+  /// Terminates the hook by invalidating the event tap and cleaning up
+  /// resources.
   #[allow(clippy::unnecessary_wraps)]
   pub fn terminate(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {
@@ -143,7 +193,44 @@ impl MouseListener {
       let _ = tap.with(|tap| CFMachPort::invalidate(tap));
     }
 
+    if let Some(user_data) = self.user_data.take() {
+      // SAFETY: `user_data` was allocated via `Box::into_raw` in `new`.
+      let _ =
+        unsafe { Box::from_raw(user_data.cast::<Box<HookCallback>>()) };
+    }
+
     Ok(())
+  }
+
+  /// Converts enabled high-level mouse events into a CGEvent mask.
+  fn event_mask_from_enabled(
+    enabled_events: &[crate::mouse_listener::MouseEventType],
+  ) -> CGEventMask {
+    let mut mask = 0u64;
+
+    for event in enabled_events {
+      match event {
+        crate::mouse_listener::MouseEventType::Move => {
+          mask |= 1u64 << u64::from(CGEventType::MouseMoved.0);
+          mask |= 1u64 << u64::from(CGEventType::LeftMouseDragged.0);
+          mask |= 1u64 << u64::from(CGEventType::RightMouseDragged.0);
+        }
+        crate::mouse_listener::MouseEventType::LeftClickDown => {
+          mask |= 1u64 << u64::from(CGEventType::LeftMouseDown.0);
+        }
+        crate::mouse_listener::MouseEventType::RightClickDown => {
+          mask |= 1u64 << u64::from(CGEventType::RightMouseDown.0);
+        }
+        crate::mouse_listener::MouseEventType::LeftClickUp => {
+          mask |= 1u64 << u64::from(CGEventType::LeftMouseUp.0);
+        }
+        crate::mouse_listener::MouseEventType::RightClickUp => {
+          mask |= 1u64 << u64::from(CGEventType::RightMouseUp.0);
+        }
+      }
+    }
+
+    mask
   }
 
   /// Callback for mouse `CGEventTap`.
@@ -158,51 +245,23 @@ impl MouseListener {
       return unsafe { event.as_mut() };
     }
 
-    // Only emit for movement/drag events. Other mouse events fall through.
-    let is_move_event = matches!(
-      event_type,
-      CGEventType::MouseMoved
-        | CGEventType::LeftMouseDragged
-        | CGEventType::RightMouseDragged
-    );
+    // Build notification and invoke the user callback for all enabled
+    // events.
+    let notification =
+      MouseEventNotification(MouseEventNotificationInner {
+        event_type,
+        event,
+      });
 
-    if is_move_event {
-      let cg_point = unsafe { CGEvent::location(Some(event.as_ref())) };
-
-      // Determine if left or right mouse button is down.
-      let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
-      let is_mouse_down =
-        (pressed_mask & ((1usize << 0) | (1usize << 1))) != 0;
-
-      // Convert to platform point (truncate toward zero).
-      #[allow(clippy::cast_possible_truncation)]
-      let point = Point {
-        x: cg_point.x as i32,
-        y: cg_point.y as i32,
-      };
-
-      let mouse_event = MouseEvent {
-        point,
-        is_mouse_down,
-        notification: MouseEventNotification(
-          MouseEventNotificationInner { event_type, event },
-        ),
-      };
-
-      // SAFETY: `user_info` points to a boxed
-      // `UnboundedSender<MouseEvent>`.
-      let tx = unsafe {
-        &*(user_info as *const mpsc::UnboundedSender<MouseEvent>)
-      };
-
-      let _ = tx.send(mouse_event);
-    }
+    // SAFETY: `user_info` points to a boxed `HookCallback`.
+    let callback = unsafe { &*(user_info as *const Box<HookCallback>) };
+    (callback)(notification);
 
     unsafe { event.as_mut() }
   }
 }
 
-impl Drop for MouseListener {
+impl Drop for MouseHook {
   fn drop(&mut self) {
     let _ = self.terminate();
   }

@@ -95,6 +95,20 @@ impl WindowEvent {
       Self::Destroyed { .. } => None,
     }
   }
+
+  /// Returns the platform-specific window event notification.
+  pub fn notification(&self) -> &WindowEventNotification {
+    match self {
+      Self::Focused { notification, .. }
+      | Self::Hidden { notification, .. }
+      | Self::MovedOrResized { notification, .. }
+      | Self::Minimized { notification, .. }
+      | Self::MinimizeEnded { notification, .. }
+      | Self::Shown { notification, .. }
+      | Self::TitleChanged { notification, .. } => notification,
+      Self::Destroyed { notification, .. } => notification,
+    }
+  }
 }
 
 /// Platform-specific window event notification.
@@ -114,16 +128,67 @@ pub struct WindowEventNotification(
 pub struct KeybindingEvent(pub Keybinding);
 
 #[derive(Clone, Debug)]
-pub struct MouseEvent {
-  /// Location of mouse with 0,0 being the top-left corner of the primary
-  /// monitor.
-  pub point: Point,
+pub enum MouseButton {
+  Left,
+  Right,
+}
 
-  /// Whether either left or right-click is currently pressed.
-  pub is_mouse_down: bool,
+#[derive(Clone, Debug)]
+pub enum MouseEvent {
+  MouseMove {
+    position: Point,
+    pressed_buttons: Vec<MouseButton>,
+    notification: MouseEventNotification,
+  },
+  MouseButtonDown {
+    position: Point,
+    button: MouseButton,
+    pressed_buttons: Vec<MouseButton>,
+    notification: MouseEventNotification,
+  },
+  MouseButtonUp {
+    position: Point,
+    button: MouseButton,
+    pressed_buttons: Vec<MouseButton>,
+    notification: MouseEventNotification,
+  },
+}
 
-  /// Platform-specific mouse event notification.
-  pub notification: MouseEventNotification,
+impl MouseEvent {
+  /// Returns the position of the mouse.
+  ///
+  /// `0,0` is the top-left corner of the primary monitor.
+  pub fn position(&self) -> &Point {
+    match self {
+      MouseEvent::MouseMove { position, .. } => position,
+      MouseEvent::MouseButtonDown { position, .. } => position,
+      MouseEvent::MouseButtonUp { position, .. } => position,
+    }
+  }
+
+  /// Returns the buttons that are currently pressed.
+  pub fn pressed_buttons(&self) -> &[MouseButton] {
+    match self {
+      MouseEvent::MouseMove {
+        pressed_buttons, ..
+      } => pressed_buttons,
+      MouseEvent::MouseButtonDown {
+        pressed_buttons, ..
+      } => pressed_buttons,
+      MouseEvent::MouseButtonUp {
+        pressed_buttons, ..
+      } => pressed_buttons,
+    }
+  }
+
+  /// Returns the platform-specific mouse event notification.
+  pub fn notification(&self) -> &MouseEventNotification {
+    match self {
+      MouseEvent::MouseMove { notification, .. } => notification,
+      MouseEvent::MouseButtonDown { notification, .. } => notification,
+      MouseEvent::MouseButtonUp { notification, .. } => notification,
+    }
+  }
 }
 
 /// Platform-specific mouse event notification.

@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use objc2::MainThreadMarker;
-use objc2_app_kit::{NSApplicationActivationOptions, NSWindow};
+use objc2_app_kit::{
+  NSApplicationActivationOptions, NSWindow, NSWorkspace,
+};
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFBoolean, CFRetained, CFString, CGPoint, CGSize,
@@ -330,7 +332,7 @@ impl NativeWindow {
       // This has a couple of caveats:
       // - Some windows do not get raised without first calling
       //   `_SLPSSetFrontProcessWithOptions`.
-      // - This changes focus if raising a window of the currently active
+      // - This changes focus if raising a window of the frontmost (active)
       //   application. For example, if 2 Chrome windows are open and one
       //   is focused, raising the other will change focus to the other
       //   window.
@@ -428,6 +430,7 @@ pub(crate) fn visible_windows(
   )
 }
 
+/// macOS-specific implementation of [`Dispatcher::window_by_id`].
 pub(crate) fn window_by_id(
   id: WindowId,
   dispatcher: &Dispatcher,
@@ -445,6 +448,7 @@ pub(crate) fn window_by_id(
   Ok(None)
 }
 
+/// macOS-specific implementation of [`Dispatcher::window_from_point`].
 pub(crate) fn window_from_point(
   point: &Point,
   dispatcher: &Dispatcher,
@@ -479,6 +483,24 @@ pub(crate) fn window_from_point(
     .map_err(|_| crate::Error::WindowNotFound)
 }
 
+/// macOS-specific implementation of [`Dispatcher::focused_window`].
+pub(crate) fn focused_window(
+  dispatcher: &Dispatcher,
+) -> crate::Result<crate::NativeWindow> {
+  dispatcher
+    .dispatch_sync(|| unsafe {
+      // Get the frontmost (active) application.
+      let frontmost_app = NSWorkspace::sharedWorkspace()
+        .frontmostApplication()
+        .map(|app| Application::new(dispatcher.clone(), app));
+
+      // Query the focused window of the frontmost application.
+      frontmost_app.and_then(|app| app.focused_window().ok().flatten())
+    })?
+    .ok_or(crate::Error::WindowNotFound)
+}
+
+/// macOS-specific implementation of [`Dispatcher::reset_focus`].
 // TODO: Move this to a better-suited module.
 pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
   let Some(application) = platform_impl::application_for_bundle_id(

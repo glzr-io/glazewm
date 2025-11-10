@@ -216,6 +216,18 @@ impl Dispatcher {
     platform_impl::primary_display(self)
   }
 
+  /// Gets the nearest display to a window.
+  ///
+  /// Returns the display that contains the largest area of the window's
+  /// frame. If the window is completely off-screen, returns the primary
+  /// display.
+  pub fn nearest_display(
+    &self,
+    native_window: &NativeWindow,
+  ) -> crate::Result<Display> {
+    platform_impl::nearest_display(native_window, self)
+  }
+
   /// Gets all visible windows from all running applications.
   ///
   /// Returns a vector of `NativeWindow` instances for windows that are
@@ -224,11 +236,11 @@ impl Dispatcher {
     platform_impl::visible_windows(self)
   }
 
-  pub fn nearest_display(
-    &self,
-    native_window: &NativeWindow,
-  ) -> crate::Result<Display> {
-    platform_impl::nearest_display(native_window, self)
+  /// Gets the currently focused (foreground) window.
+  ///
+  /// This may be the desktop window if no window has focus.
+  pub fn focused_window(&self) -> crate::Result<NativeWindow> {
+    platform_impl::focused_window(self)
   }
 
   pub fn cursor_position(&self) -> crate::Result<Point> {

@@ -956,6 +956,14 @@ pub fn available_window_handles() -> crate::Result<Vec<isize>> {
   Ok(handles)
 }
 
+/// Windows-specific implementation of [`Dispatcher::focused_window`].
+pub(crate) fn focused_window(
+  _: &Dispatcher,
+) -> crate::Result<crate::NativeWindow> {
+  let handle = unsafe { GetForegroundWindow() };
+  Ok(NativeWindow::new(handle.0).into())
+}
+
 extern "system" fn available_window_handles_proc(
   handle: HWND,
   data: LPARAM,

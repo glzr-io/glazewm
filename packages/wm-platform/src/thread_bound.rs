@@ -6,7 +6,7 @@ use std::thread::ThreadId;
 
 use crate::Dispatcher;
 
-/// Binds a value to a specific event loop thread.
+/// Binds a value to the current event loop thread.
 ///
 /// `ThreadBound<T>` wraps a value created on an event loop thread and
 /// guarantees that all access and destruction of that value happens on
@@ -40,7 +40,7 @@ use crate::Dispatcher;
 /// let len = bound.with(|s| s.len())?;
 /// assert_eq!(len, 5);
 ///
-/// // Direct access only works on the origin thread.
+/// // Direct access only works on the original thread.
 /// assert!(bound.get_ref().is_ok());
 ///
 /// drop(bound); // Drop is scheduled on the event loop thread.
@@ -53,18 +53,18 @@ pub struct ThreadBound<T> {
   dispatcher: Dispatcher,
 }
 
-// SAFETY: Access to the inner value is only exposed on the origin thread
-// or via dispatching to the origin thread.
+// SAFETY: Access to the inner value is only exposed on the event loop
+// thread.
 unsafe impl<T> Send for ThreadBound<T> {}
 unsafe impl<T> Sync for ThreadBound<T> {}
 
 impl<T> ThreadBound<T> {
-  /// Create a new wrapper tied to the given event loop [`Dispatcher`].
+  /// Binds a value to the current event loop thread.
   ///
   /// # Panics
   ///
-  /// Panics if called from a different thread than the one that's
-  /// referenced by the dispatcher.
+  /// Panics if `dispatcher` is not tied to an event loop running on the
+  /// current thread.
   #[inline]
   pub fn new(inner: T, dispatcher: Dispatcher) -> Self {
     let thread_id = std::thread::current().id();
@@ -79,43 +79,43 @@ impl<T> ThreadBound<T> {
     }
   }
 
-  /// Returns `Ok(&T)` if called on the origin thread.
+  /// Returns `Ok(&T)` if called on the event loop thread.
   ///
   /// # Errors
   ///
   /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
   pub fn get_ref(&self) -> crate::Result<&T> {
-    if self.is_origin_thread() {
+    if self.is_event_loop_thread() {
       Ok(&self.value)
     } else {
       Err(crate::Error::NotMainThread)
     }
   }
 
-  /// Returns `Ok(&mut T)` if called on the origin thread.
+  /// Returns `Ok(&mut T)` if called on the event loop thread.
   ///
   /// # Errors
   ///
   /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
   pub fn get_mut(&mut self) -> crate::Result<&mut T> {
-    if self.is_origin_thread() {
+    if self.is_event_loop_thread() {
       Ok(&mut self.value)
     } else {
       Err(crate::Error::NotMainThread)
     }
   }
 
-  /// Consumes the wrapper and returns `Ok(T)` if called on the
-  /// origin thread.
+  /// Consumes the wrapper and returns `Ok(T)` if called on the event loop
+  /// thread.
   ///
   /// # Errors
   ///
   /// Returns `Error::NotMainThread` if called from a different thread.
   #[inline]
   pub fn into_inner(self) -> crate::Result<T> {
-    if self.is_origin_thread() {
+    if self.is_event_loop_thread() {
       // Prevent `Drop` from running.
       let mut this = ManuallyDrop::new(self);
 
@@ -164,10 +164,10 @@ impl<T> ThreadBound<T> {
     })
   }
 
-  /// Returns `true` if called on the origin thread.
+  /// Returns `true` if called on the event loop thread.
   #[inline]
   #[must_use]
-  pub fn is_origin_thread(&self) -> bool {
+  pub fn is_event_loop_thread(&self) -> bool {
     std::thread::current().id() == self.thread_id
   }
 }
