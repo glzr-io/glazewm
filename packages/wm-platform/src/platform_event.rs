@@ -127,7 +127,7 @@ pub struct WindowEventNotification(
 #[derive(Clone, Debug)]
 pub struct KeybindingEvent(pub Keybinding);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MouseButton {
   Left,
   Right,
@@ -154,42 +154,42 @@ pub enum MouseEvent {
   },
 }
 
-impl MouseEvent {
-  /// Returns the position of the mouse.
-  ///
-  /// `0,0` is the top-left corner of the primary monitor.
-  pub fn position(&self) -> &Point {
-    match self {
-      MouseEvent::MouseMove { position, .. } => position,
-      MouseEvent::MouseButtonDown { position, .. } => position,
-      MouseEvent::MouseButtonUp { position, .. } => position,
-    }
-  }
+// impl MouseEvent {
+//   /// Returns the position of the mouse.
+//   ///
+//   /// `0,0` is the top-left corner of the primary monitor.
+//   pub fn position(&self) -> &Point {
+//     match self {
+//       MouseEvent::MouseMove { position, .. } => position,
+//       MouseEvent::MouseButtonDown { position, .. } => position,
+//       MouseEvent::MouseButtonUp { position, .. } => position,
+//     }
+//   }
 
-  /// Returns the buttons that are currently pressed.
-  pub fn pressed_buttons(&self) -> &[MouseButton] {
-    match self {
-      MouseEvent::MouseMove {
-        pressed_buttons, ..
-      } => pressed_buttons,
-      MouseEvent::MouseButtonDown {
-        pressed_buttons, ..
-      } => pressed_buttons,
-      MouseEvent::MouseButtonUp {
-        pressed_buttons, ..
-      } => pressed_buttons,
-    }
-  }
+//   /// Returns the buttons that are currently pressed.
+//   pub fn pressed_buttons(&self) -> &[MouseButton] {
+//     match self {
+//       MouseEvent::MouseMove {
+//         pressed_buttons, ..
+//       } => pressed_buttons,
+//       MouseEvent::MouseButtonDown {
+//         pressed_buttons, ..
+//       } => pressed_buttons,
+//       MouseEvent::MouseButtonUp {
+//         pressed_buttons, ..
+//       } => pressed_buttons,
+//     }
+//   }
 
-  /// Returns the platform-specific mouse event notification.
-  pub fn notification(&self) -> &MouseEventNotification {
-    match self {
-      MouseEvent::MouseMove { notification, .. } => notification,
-      MouseEvent::MouseButtonDown { notification, .. } => notification,
-      MouseEvent::MouseButtonUp { notification, .. } => notification,
-    }
-  }
-}
+//   /// Returns the platform-specific mouse event notification.
+//   pub fn notification(&self) -> &MouseEventNotification {
+//     match self {
+//       MouseEvent::MouseMove { notification, .. } => notification,
+//       MouseEvent::MouseButtonDown { notification, .. } => notification,
+//       MouseEvent::MouseButtonUp { notification, .. } => notification,
+//     }
+//   }
+// }
 
 /// Platform-specific mouse event notification.
 #[derive(Clone, Debug)]

@@ -20,8 +20,8 @@ use tracing_subscriber::{
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 use wm_platform::{
-  Dispatcher, EventLoop, KeybindingListener, MouseListener, PlatformEvent,
-  WindowListener,
+  Dispatcher, EventLoop, KeybindingListener, MouseEventType,
+  MouseListener, PlatformEvent, WindowListener,
 };
 
 use crate::{
@@ -110,7 +110,8 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Start listening for platform events after populating initial state.
-  let mut mouse_listener = MouseListener::new(&dispatcher)?;
+  let mut mouse_listener =
+    MouseListener::new(&dispatcher, vec![MouseEventType::Move])?;
   let mut window_listener = WindowListener::new(&dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
     &dispatcher,

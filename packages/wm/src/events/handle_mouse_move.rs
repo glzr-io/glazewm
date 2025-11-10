@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_platform::MouseEvent;
+use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
   commands::container::set_focused_descendant, traits::CommonGetters,
@@ -11,25 +11,29 @@ pub fn handle_mouse_move(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // Ignore event if left/right-click is down. Otherwise, this causes focus
-  // to jitter when a window is being resized by its drag handles.
-  // Also ignore if the OS focused window isn't the same as the WM's
-  // focused window.
-  if event.is_mouse_down
-    || !state.is_focus_synced
-    || !config.value.general.focus_follows_cursor
+  if let MouseEvent::MouseMove {
+    pressed_buttons,
+    notification,
+    position,
+    ..
+  } = event
   {
-    return Ok(());
-  }
-
-  let window_under_cursor = {
-    #[cfg(target_os = "macos")]
+    // Ignore event if left/right-click is down. Otherwise, this causes
+    // focus to jitter when a window is being resized by its drag
+    // handles. Also ignore if the OS focused window isn't the same as
+    // the WM's focused window.
+    if pressed_buttons.contains(&MouseButton::Left)
+      || pressed_buttons.contains(&MouseButton::Right)
+      || !state.is_focus_synced
+      || !config.value.general.focus_follows_cursor
     {
-      event
-        .notification
-        .0
-        .below_window_id()
-        .and_then(|window_id| {
+      return Ok(());
+    }
+
+    let window_under_cursor = {
+      #[cfg(target_os = "macos")]
+      {
+        notification.0.below_window_id().and_then(|window_id| {
           use crate::traits::WindowGetters;
 
           state
@@ -37,41 +41,42 @@ pub fn handle_mouse_move(
             .into_iter()
             .find(|w| w.native().id() == window_id)
         })
-    }
-    #[cfg(target_os = "windows")]
-    {
-      state
-        .dispatcher
-        .window_from_point(&event.point)?
-        .and_then(|native| state.window_from_native(&native))
-    }
-  };
+      }
+      #[cfg(target_os = "windows")]
+      {
+        state
+          .dispatcher
+          .window_from_point(&event.point)?
+          .and_then(|native| state.window_from_native(&native))
+      }
+    };
 
-  // Set focus to whichever window is currently under the cursor.
-  if let Some(window) = window_under_cursor {
-    let focused_container =
-      state.focused_container().context("No focused container.")?;
+    // Set focus to whichever window is currently under the cursor.
+    if let Some(window) = window_under_cursor {
+      let focused_container =
+        state.focused_container().context("No focused container.")?;
 
-    if focused_container.id() != window.id() {
-      set_focused_descendant(&window.as_container(), None);
-      state.pending_sync.queue_focus_change();
-    }
-  } else {
-    // Focus the monitor if no window is under the cursor.
-    let cursor_monitor = state
-      .monitor_at_point(&event.point)
-      .context("No monitor under cursor.")?;
+      if focused_container.id() != window.id() {
+        set_focused_descendant(&window.as_container(), None);
+        state.pending_sync.queue_focus_change();
+      }
+    } else {
+      // Focus the monitor if no window is under the cursor.
+      let cursor_monitor = state
+        .monitor_at_point(position)
+        .context("No monitor under cursor.")?;
 
-    let focused_monitor = state
-      .focused_container()
-      .context("No focused container.")?
-      .monitor()
-      .context("Focused container has no monitor.")?;
+      let focused_monitor = state
+        .focused_container()
+        .context("No focused container.")?
+        .monitor()
+        .context("Focused container has no monitor.")?;
 
-    // Avoid setting focus to the same monitor.
-    if cursor_monitor.id() != focused_monitor.id() {
-      set_focused_descendant(&cursor_monitor.as_container(), None);
-      state.pending_sync.queue_focus_change();
+      // Avoid setting focus to the same monitor.
+      if cursor_monitor.id() != focused_monitor.id() {
+        set_focused_descendant(&cursor_monitor.as_container(), None);
+        state.pending_sync.queue_focus_change();
+      }
     }
   }
 

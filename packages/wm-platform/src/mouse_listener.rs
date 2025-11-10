@@ -96,13 +96,13 @@ impl MouseListener {
   /// Creates and starts the mouse hook with the given callback.
   fn create_mouse_hook(
     dispatcher: &Dispatcher,
-    enabled_events: &Vec<MouseEventType>,
+    enabled_events: &[MouseEventType],
     event_tx: mpsc::UnboundedSender<MouseEvent>,
   ) -> crate::Result<platform_impl::MouseHook> {
     platform_impl::MouseHook::new(
       dispatcher,
       enabled_events,
-      Box::new(move |notification: MouseEventNotification| {
+      move |notification: MouseEventNotification| {
         let event_type = notification.0.event_type();
 
         match event_type {
@@ -139,7 +139,7 @@ impl MouseListener {
             });
           }
         }
-      }),
+      },
     )
   }
 }

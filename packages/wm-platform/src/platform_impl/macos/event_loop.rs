@@ -36,10 +36,13 @@ impl EventLoopSource {
 
     self.dispatch_tx.send(Box::new(dispatch_fn)).unwrap();
 
-    // Signal the run loop source and wake up the run loop.
+    // Signal the run loop source, which schedules the `perform` callback
+    // to be invoked. If signaled multiple times in a short period,
+    // this gets coalesced into a single signal.
     self.source.signal();
-    self.run_loop.wake_up();
 
+    // Wake up the run loop to process the signal.
+    self.run_loop.wake_up();
     Ok(())
   }
 
@@ -102,7 +105,7 @@ pub(crate) struct EventLoop {
 impl EventLoop {
   /// macOS-specific implementation of [`EventLoop::new`].
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
-    // Set up the `CFRunLoop` directly on the current thread.
+    // Add a new run loop source that allows dispatching from any thread.
     let source = Self::add_dispatch_source()?;
 
     let stopped = Arc::new(AtomicBool::new(false));
@@ -138,10 +141,10 @@ impl EventLoop {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
-    // Ensure NSApplication is initialized on the main thread so
-    // AppKit-based components (e.g. status bar items) are fully
-    // functional. Use Accessory policy to avoid a Dock icon while
-    // still allowing UI.
+    // Initialize `NSApplication` on the main thread. This is necessary for
+    // some AppKit components (e.g. system tray) to be functional.
+    // TODO: Skip this if not on the main thread, and instead run a normal
+    // run loop.
     let ns_app = NSApplication::sharedApplication(mtm);
     ns_app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
 
@@ -188,10 +191,13 @@ impl EventLoop {
   extern "C-unwind" fn runloop_signaled_callback(
     info: *mut std::ffi::c_void,
   ) {
-    let operations =
+    let callbacks =
       unsafe { &*(info as *const mpsc::Receiver<Box<DispatchFn>>) };
 
-    for callback in operations.try_iter() {
+    // Process any pending dispatched callbacks. Multiple run loop signals
+    // may be coalesced together (calling `perform` only once), so it's
+    // important to drain all pending callbacks.
+    for callback in callbacks.try_iter() {
       callback();
     }
   }

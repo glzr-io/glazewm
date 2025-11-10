@@ -1,4 +1,4 @@
-use std::{os::raw::c_void, ptr::NonNull};
+use std::{fmt, os::raw::c_void, ptr::NonNull};
 
 use objc2_app_kit::NSEvent;
 use objc2_core_foundation::{
@@ -86,59 +86,197 @@ unsafe impl Send for MouseEventNotificationInner {}
 /// system `CGEventTap`.
 type HookCallback = dyn Fn(MouseEventNotification) + Send + Sync + 'static;
 
+/// Wrapper for the opaque callback pointer passed to C callbacks.
+///
+/// Ensures the pointer can be moved across threads (`Send + Sync`) and
+/// is properly reclaimed on drop.
+struct CallbackUserData {
+  // ptr: Box<*mut c_void>,
+  // ptr: Box<HookCallback>,
+  ptr: *mut c_void,
+}
+
+impl CallbackUserData {
+  #[inline]
+  fn new(callback: *mut c_void) -> Self {
+    // SAFETY: Caller must ensure `ptr` is non-null and points to memory
+    // allocated by `Box::into_raw(Box<HookCallback>)`.
+    Self {
+      ptr: callback,
+      // ptr: Box::new(
+      //   NonNull::new(ptr).expect("callback pointer must be non-null"),
+      // ),
+      // ptr: Box::new(
+      //   ptr, /* NonNull::new(ptr).expect("callback pointer must be
+      //        * non-null"), */
+      // ),
+    }
+    // fn new(ptr: *mut c_void) -> Self {
+    //   // SAFETY: Caller must ensure `ptr` is non-null and points to
+    // memory   // allocated by `Box::into_raw(Box<HookCallback>)`.
+    //   Self {
+    //     // ptr: Box::new(
+    //     //   NonNull::new(ptr).expect("callback pointer must be
+    // non-null"),     // ),
+    //     ptr: Box::new(
+    //       ptr, /* NonNull::new(ptr).expect("callback pointer must be
+    //            * non-null"), */
+    //     ),
+    //   }
+  }
+
+  fn as_ptr(&self) -> *mut c_void {
+    // Box::into_raw(&self.ptr).cast::<c_void>()
+    self.ptr
+  }
+
+  // #[inline]
+  // fn as_ptr(&self) -> *mut c_void {
+  //   (&self.ptr).as
+  // }
+}
+
+// SAFETY: The pointer refers to a `Box<HookCallback>` which is `Send +
+// Sync + 'static`. We never mutate the Box here; the pointer is only
+// passed as opaque user data to the C callback, and reclaimed exactly once
+// in `Drop`.
+unsafe impl Send for CallbackUserData {}
+// unsafe impl Sync for CallbackUserData {}
+
+impl Drop for CallbackUserData {
+  fn drop(&mut self) {
+    // SAFETY: Pointer was created with `Box::into_raw` in `MouseHook::new`
+    // and we are the unique owner in this wrapper. This converts it
+    // back and drops.
+    unsafe {
+      // let _ = Box::from_raw(*self.ptr.cast::<Box<HookCallback>>());
+    }
+    println!("CallbackUserData dropped");
+  }
+}
+
+impl fmt::Debug for CallbackUserData {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CallbackUserData").finish_non_exhaustive()
+  }
+}
+
 /// macOS-specific mouse hook that listens for configured mouse events and
 /// executes a provided callback for each notification.
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct MouseHook {
   /// Mach port for the created `CGEventTap`.
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
-
-  /// Opaque pointer to the boxed callback state passed to the C callback.
-  user_data: Option<*mut c_void>,
+  // /// Opaque pointer to the boxed callback state passed to the C
+  // callback. user_data: Option<CallbackUserData>,
+  // _test: Box<HookCallback>,
+  // callback_ptr: *mut c_void,
+  // _callback_ptr: CallbackPtr,
+  // callback: Box<HookCallback>,
+  // callback_ptr: *mut c_void,
 }
+
+#[derive(Clone)]
+struct CallbackPtr(*mut c_void);
+impl CallbackPtr {
+  fn as_ptr(&self) -> *mut c_void {
+    self.0
+  }
+}
+
+unsafe impl Send for CallbackPtr {}
+
+// struct CallbackPtr(*mut c_void);
+// unsafe impl Send for CallbackPtr {}
 
 impl MouseHook {
   /// Creates a new mouse hook with the specified enabled mouse event
   /// kinds and callback.
   ///
   /// The callback is executed for every received mouse notification.
-  pub fn new(
+  pub fn new<F>(
     dispatcher: &Dispatcher,
     enabled_events: &[crate::mouse_listener::MouseEventType],
-    callback: Box<HookCallback>,
-  ) -> crate::Result<Self> {
+    callback: F,
+  ) -> crate::Result<Self>
+  where
+    F: Fn(MouseEventNotification) + Send + Sync + 'static,
+  {
+    // let callback: Box<HookCallback> = Box::new(callback);
     // Box the callback and pass the raw pointer as user data to the C
     // callback.
-    let callback_ptr = Box::into_raw(callback).cast::<c_void>();
+    // let callback_ptr = Box::into_raw(callback).cast::<c_void>();
+    // let wrapped_callback_ptr = CallbackPtr(callback_ptr);
 
+    // Wrap pointer in a Send + Sync owner that will free it on drop.
+    // let user_data = CallbackUserData::new(callback_ptr);
+    // let test = Box::new(callback);
+    // let user_data = CallbackUserData::new(&raw const test as *mut
+    // c_void);
+
+    // let tap_port = match dispatcher.dispatch_sync(move || {
+    //   Self::create_event_tap::<F>(
+    //     dispatcher,
+    //     enabled_events,
+    //     user_data.as_ptr(),
+    //   )
+    // }) {
+    //   Ok(Ok(port)) => port,
+    //   Ok(Err(err)) | Err(err) => {
+    //     // `user_data` drops here and frees the boxed callback.
+    //     return Err(err);
+    //   }
+    // };
+
+    // Box the callback and convert to raw pointer - this keeps it alive
+    // let callback_ptr = Box::into_raw(Box::new(callback)) as *mut c_void;
+    // let callback: Box<HookCallback> = Box::new(callback);
+    // let callback: Box<HookCallback> = Box::new(callback);
+    // let callback: Box<HookCallback> = Box::new(Box::new(callback));
+    // let callback_ptr = Box::into_raw(callback).cast::<c_void>();
+
+    // // let callback_ptr_clone = callback_ptr.clone();
+    // let xx = CallbackPtr(callback_ptr);
     let tap_port = match dispatcher.dispatch_sync(|| {
-      Self::create_event_tap(dispatcher, enabled_events, callback_ptr)
+      Self::create_event_tap::<F>(
+        dispatcher,
+        enabled_events,
+        // Box::new(callback),
+        Box::new(callback),
+      )
     }) {
       Ok(Ok(port)) => port,
       Ok(Err(err)) | Err(err) => {
-        // Clean up the boxed state if event tap creation fails.
-        // SAFETY: We just created the Box above.
-        let _ = unsafe {
-          Box::from_raw(callback_ptr.cast::<Box<HookCallback>>())
-        };
+        // Clean up the callback on error
+        // unsafe {
+        //   let _ = Box::from_raw(callback_ptr as *mut F);
+        // }
         return Err(err);
       }
     };
 
     Ok(Self {
       tap_port: Some(tap_port),
-      user_data: Some(callback_ptr),
+      // user_data: Some(user_data),
+      // _test: test,
+      // _callback_ptr: callback_ptr,
+      // callback,
+      // callback_ptr,
     })
   }
 
   /// Creates and registers a `CGEventTap` for mouse events on the run
   /// loop.
-  fn create_event_tap(
+  fn create_event_tap<F>(
     dispatcher: &Dispatcher,
     enabled_events: &[crate::mouse_listener::MouseEventType],
-    user_data_ptr: *mut c_void,
-  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
+    callback: Box<F>,
+  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>>
+  where
+    F: Fn(MouseEventNotification) + Send + Sync + 'static,
+  {
     let mask = Self::event_mask_from_enabled(enabled_events);
+    let user_data_ptr = Box::into_raw(callback).cast::<c_void>();
 
     let tap_port = unsafe {
       CGEvent::tap_create(
@@ -146,8 +284,9 @@ impl MouseHook {
         CGEventTapPlacement::HeadInsertEventTap,
         CGEventTapOptions::Default,
         mask,
-        Some(Self::mouse_event_callback),
+        Some(Self::mouse_event_callback::<F>),
         user_data_ptr,
+        // Box::into_raw(user_data_ptr.ptr).cast::<c_void>(),
       )
       .ok_or_else(|| {
         Error::Platform(
@@ -193,16 +332,10 @@ impl MouseHook {
       let _ = tap.with(|tap| CFMachPort::invalidate(tap));
     }
 
-    if let Some(user_data) = self.user_data.take() {
-      // SAFETY: `user_data` was allocated via `Box::into_raw` in `new`.
-      let _ =
-        unsafe { Box::from_raw(user_data.cast::<Box<HookCallback>>()) };
-    }
-
     Ok(())
   }
 
-  /// Converts enabled high-level mouse events into a CGEvent mask.
+  /// Converts enabled high-level mouse events into a `CGEvent` mask.
   fn event_mask_from_enabled(
     enabled_events: &[crate::mouse_listener::MouseEventType],
   ) -> CGEventMask {
@@ -234,12 +367,15 @@ impl MouseHook {
   }
 
   /// Callback for mouse `CGEventTap`.
-  extern "C-unwind" fn mouse_event_callback(
+  extern "C-unwind" fn mouse_event_callback<F>(
     _proxy: CGEventTapProxy,
     event_type: CGEventType,
     mut event: NonNull<CGEvent>,
     user_info: *mut c_void,
-  ) -> *mut CGEvent {
+  ) -> *mut CGEvent
+  where
+    F: Fn(MouseEventNotification) + Send + Sync + 'static,
+  {
     if user_info.is_null() {
       tracing::error!("Null pointer passed to mouse event callback.");
       return unsafe { event.as_mut() };
@@ -254,8 +390,14 @@ impl MouseHook {
       });
 
     // SAFETY: `user_info` points to a boxed `HookCallback`.
-    let callback = unsafe { &*(user_info as *const Box<HookCallback>) };
+    // let callback = unsafe { &*(user_info as *mut c_void) };
+    // let callback = unsafe { &*(user_info as *const Box<HookCallback>) };
+
+    println!("user_info1");
+    let callback = unsafe { &*(user_info as *const F) };
+    println!("user_info2");
     (callback)(notification);
+    println!("user_info3");
 
     unsafe { event.as_mut() }
   }
