@@ -247,8 +247,7 @@ pub struct BorderEffectConfig {
   pub color: Color,
 
   /// Conditions controlling to which windows to apply this effect.
-  #[serde(rename = "match")]
-  pub match_window: Vec<WindowMatchConfig>,
+  pub window_filter: WindowFilter,
 }
 
 impl Default for BorderEffectConfig {
@@ -261,7 +260,10 @@ impl Default for BorderEffectConfig {
         b: 255,
         a: 255,
       },
-      match_window: Vec::new(),
+      window_filter: WindowFilter {
+        filter_type: WindowFilterType::Any,
+        match_window: Vec::new(),
+      },
     }
   }
 }
@@ -273,8 +275,7 @@ pub struct HideTitleBarEffectConfig {
   pub enabled: bool,
 
   /// Conditions controlling to which windows to apply this effect.
-  #[serde(rename = "match")]
-  pub match_window: Vec<WindowMatchConfig>,
+  pub window_filter: WindowFilter,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -287,8 +288,7 @@ pub struct CornerEffectConfig {
   pub style: CornerStyle,
 
   /// Conditions controlling to which windows to apply this effect.
-  #[serde(rename = "match")]
-  pub match_window: Vec<WindowMatchConfig>,
+  pub window_filter: WindowFilter,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -311,6 +311,23 @@ pub struct TransparencyEffectConfig {
   pub opacity: OpacityValue,
 
   /// Conditions controlling to which windows to apply this effect.
+  pub window_filter: WindowFilter,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowFilterType {
+  #[default]
+  Any,
+  All,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WindowFilter {
+  #[serde(rename = "type")]
+  pub filter_type: WindowFilterType,
+
   #[serde(rename = "match")]
   pub match_window: Vec<WindowMatchConfig>,
 }
@@ -402,11 +419,12 @@ pub struct WorkspaceConfig {
 #[must_use]
 pub fn does_window_match(
   match_window: &[WindowMatchConfig],
+  filter_type: &WindowFilterType,
   window_title: &str,
   window_class: &str,
   window_process: &str,
 ) -> bool {
-  match_window.iter().any(|match_config| {
+  let match_config_fun = |match_config: &WindowMatchConfig| {
     let is_process_match = match_config
       .window_process
       .as_ref()
@@ -423,7 +441,14 @@ pub fn does_window_match(
       .is_none_or(|match_type| match_type.is_match(window_title));
 
     is_process_match && is_class_match && is_title_match
-  })
+  };
+
+  if *filter_type == WindowFilterType::Any {
+    match_window.iter().any(match_config_fun)
+  }
+  else {
+    match_window.iter().all(match_config_fun)
+  }
 }
 
 /// Helper function for setting a default value for a boolean field.

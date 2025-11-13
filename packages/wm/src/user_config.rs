@@ -2,8 +2,7 @@ use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use wm_common::{
-  does_window_match, InvokeCommand, MatchType, ParsedConfig,
-  WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
+  does_window_match, InvokeCommand, MatchType, ParsedConfig, WindowFilterType, WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig
 };
 
 use crate::{
@@ -241,6 +240,7 @@ impl UserConfig {
 
         does_window_match(
           &rule.match_window,
+          &WindowFilterType::Any,
           &window_title,
           &window_class,
           &window_process,

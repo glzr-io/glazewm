@@ -5,8 +5,8 @@ use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
   does_window_match, CornerStyle, CursorJumpTrigger, DisplayState,
-  HideMethod, OpacityValue, UniqueExt, WindowEffectConfig,
-  WindowMatchConfig, WindowState, WmEvent,
+  HideMethod, OpacityValue, UniqueExt, WindowEffectConfig, WindowFilter,
+  WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -399,7 +399,7 @@ fn apply_border_effect(
   effect_config: &WindowEffectConfig,
 ) {
   let border_color = if effect_config.border.enabled
-    && does_match(window, &effect_config.border.match_window)
+    && does_match(window, &effect_config.border.window_filter)
   {
     Some(&effect_config.border.color)
   } else {
@@ -424,7 +424,7 @@ fn apply_hide_title_bar_effect(
   effect_config: &WindowEffectConfig,
 ) {
   _ = window.native().set_title_bar_visibility(
-    !does_match(window, &effect_config.hide_title_bar.match_window)
+    !does_match(window, &effect_config.hide_title_bar.window_filter)
       || !effect_config.hide_title_bar.enabled,
   );
 }
@@ -434,7 +434,7 @@ fn apply_corner_effect(
   effect_config: &WindowEffectConfig,
 ) {
   let corner_style = if effect_config.corner_style.enabled
-    && does_match(window, &effect_config.corner_style.match_window)
+    && does_match(window, &effect_config.corner_style.window_filter)
   {
     &effect_config.corner_style.style
   } else {
@@ -449,7 +449,7 @@ fn apply_transparency_effect(
   effect_config: &WindowEffectConfig,
 ) {
   let transparency = if effect_config.transparency.enabled
-    && does_match(window, &effect_config.transparency.match_window)
+    && does_match(window, &effect_config.transparency.window_filter)
   {
     &effect_config.transparency.opacity
   } else {
@@ -462,9 +462,9 @@ fn apply_transparency_effect(
 
 fn does_match(
   window: &WindowContainer,
-  match_window: &[WindowMatchConfig],
+  window_filter: &WindowFilter,
 ) -> bool {
-  if match_window.is_empty() {
+  if window_filter.match_window.is_empty() {
     return true;
   }
 
@@ -473,7 +473,8 @@ fn does_match(
   let window_process = window.native().process_name().unwrap_or_default();
 
   does_window_match(
-    match_window,
+    &window_filter.match_window,
+    &window_filter.filter_type,
     &window_title,
     &window_class,
     &window_process,
