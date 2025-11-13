@@ -279,25 +279,60 @@ window_rules:
 
 ### Config: Window effects
 
-Visual effects can be applied to windows via the `window_effects` option. Currently, colored borders are the only effect available with more to come in the future.
-
-> Note: Window effects are exclusive to Windows 11.
+Visual effects can be applied to windows via the `window_effects` option. The effects can be separately configured for the currently focused window, and for all the other windows.
 
 ```yaml
 window_effects:
-  # Visual effects to apply to the focused window.
+  focused_window:
+    # Visual effects to apply to the focused window.
+    ...
+
+  other_windows:
+    # Visual effects to apply to non-focused windows.
+    ...
+```
+
+This example shows the currently supported effects.
+
+```yaml
+window_effects:
   focused_window:
     # Highlight the window with a colored border.
     border:
       enabled: true
       color: "#0000ff"
 
-  # Visual effects to apply to non-focused windows.
-  other_windows:
-    border:
-      enabled: false
-      color: "#d3d3d3"
+    # Remove the title bar from the window's frame.
+    hide_title_bar:
+      enabled: true
+
+    # Change the corner style of the window's frame.
+    corner_style:
+      enabled: true
+      # Allowed values: 'square', 'rounded', 'small_rounded'.
+      style: 'square'
+
+    # Change the transparency of the window.
+    transparency:
+      enabled: true
+      opacity: '90%'
 ```
+
+It can be controlled which windows an effect is applied to by using a window filter, the same way as with window rules.
+For example if we want the transparency effect to only apply to terminal windows, we can use the following config.
+
+```yaml
+    transparency:
+      enabled: true
+      opacity: '90%'
+      window_filter:
+        type: 'any'
+        match:
+          # Only apply to terminal windows.
+          - window_process: { equals: 'WindowsTerminal' }
+```
+
+> Note: Window effects are exclusive to Windows 11.
 
 ### Config: Window behavior
 
