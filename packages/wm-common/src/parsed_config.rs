@@ -414,43 +414,6 @@ pub struct WorkspaceConfig {
   pub keep_alive: bool,
 }
 
-/// Helper function for checking if a window matches any of the match
-/// rules.
-#[must_use]
-pub fn does_window_match(
-  match_window: &[WindowMatchConfig],
-  filter_type: &WindowFilterType,
-  window_title: &str,
-  window_class: &str,
-  window_process: &str,
-) -> bool {
-  let match_config_fun = |match_config: &WindowMatchConfig| {
-    let is_process_match = match_config
-      .window_process
-      .as_ref()
-      .is_none_or(|match_type| match_type.is_match(window_process));
-
-    let is_class_match = match_config
-      .window_class
-      .as_ref()
-      .is_none_or(|match_type| match_type.is_match(window_class));
-
-    let is_title_match = match_config
-      .window_title
-      .as_ref()
-      .is_none_or(|match_type| match_type.is_match(window_title));
-
-    is_process_match && is_class_match && is_title_match
-  };
-
-  if *filter_type == WindowFilterType::Any {
-    match_window.iter().any(match_config_fun)
-  }
-  else {
-    match_window.iter().all(match_config_fun)
-  }
-}
-
 /// Helper function for setting a default value for a boolean field.
 const fn default_bool<const V: bool>() -> bool {
   V

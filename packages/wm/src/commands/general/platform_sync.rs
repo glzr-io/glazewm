@@ -4,9 +4,8 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  does_window_match, CornerStyle, CursorJumpTrigger, DisplayState,
-  HideMethod, OpacityValue, UniqueExt, WindowEffectConfig, WindowFilter,
-  WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
+  UniqueExt, WindowEffectConfig, WindowFilter, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -472,7 +471,7 @@ fn does_match(
   let window_class = window.native().class_name().unwrap_or_default();
   let window_process = window.native().process_name().unwrap_or_default();
 
-  does_window_match(
+  UserConfig::does_window_match(
     &window_filter.match_window,
     &window_filter.filter_type,
     &window_title,
