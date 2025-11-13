@@ -39,6 +39,7 @@ pub fn platform_sync(
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
+  #[cfg(target_os = "windows")]
   if state.pending_sync.needs_focused_effect_update()
     || state.pending_sync.needs_all_effects_update()
   {
@@ -82,27 +83,24 @@ fn sync_focus(
 ) -> anyhow::Result<()> {
   let native_window = focused_container.as_window_container().ok();
 
-  if let Err(err) = if let Some(window) = native_window {
-    window.native().focus_with_raise()
+  // Sets focus to the appropriate target:
+  // - If the container is a window, focuses that window.
+  // - If the container is a workspace, resets focus by focusing the
+  //   desktop window.
+  //
+  // In either case, a `PlatformEvent::WindowFocused` event is subsequently
+  // triggered.
+  let result = if let Some(window) = native_window {
+    tracing::info!("Setting focus to window: {window}");
+    window.native().focus()
   } else {
+    tracing::info!("Setting focus to the desktop window.");
     state.dispatcher.reset_focus()
-  } {
+  };
+
+  if let Err(err) = result {
     warn!("Failed to set focus: {}", err);
   }
-
-  // Set focus to the given window handle. If the container is a normal
-  // window, then this will trigger a `PlatformEvent::WindowFocused` event.
-  // if Platform::foreground_window() != native_window {
-  //   if let Ok(window) = focused_container.as_window_container() {
-  //     info!("Setting focus to window: {window}");
-  //   } else {
-  //     info!("Setting focus to the desktop window.");
-  //   }
-
-  //   if let Err(err) = native_window.set_foreground() {
-  //     warn!("Failed to set foreground window: {}", err);
-  //   }
-  // }
 
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
@@ -359,6 +357,7 @@ fn jump_cursor(
   Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn apply_window_effects(
   window: &WindowContainer,
   is_focused: bool,
@@ -373,28 +372,24 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
     apply_border_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.corner_style.enabled
     || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.transparency.enabled
     || window_effects.other_windows.transparency.enabled
   {

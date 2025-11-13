@@ -41,7 +41,7 @@ pub fn handle_window_moved_or_resized_end(
   if let Some(window) = found_window {
     info!("Window move/resize ended: {window}");
 
-    let old_rect = window.native_properties().frame;
+    let old_rect = window.to_rect()?;
     let new_rect = try_warn!(window.native().frame());
 
     let width_delta = new_rect.width() - old_rect.width();

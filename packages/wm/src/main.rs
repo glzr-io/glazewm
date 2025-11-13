@@ -110,8 +110,14 @@ async fn start_wm(
   start_watcher_process()?;
 
   // Start listening for platform events after populating initial state.
-  let mut mouse_listener =
-    MouseListener::new(&dispatcher, vec![MouseEventType::Move])?;
+  let mut mouse_listener = MouseListener::new(
+    &dispatcher,
+    if config.value.general.focus_follows_cursor {
+      vec![MouseEventType::Move, MouseEventType::LeftClickUp]
+    } else {
+      vec![MouseEventType::LeftClickUp]
+    },
+  )?;
   let mut window_listener = WindowListener::new(&dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
     &dispatcher,

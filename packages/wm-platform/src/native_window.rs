@@ -152,8 +152,9 @@ impl NativeWindow {
     self.inner.is_desktop_window()
   }
 
-  pub fn focus_with_raise(&self) -> crate::Result<()> {
-    self.inner.focus_with_raise()
+  /// Sets focus to the window and raises it to the top of the z-order.
+  pub fn focus(&self) -> crate::Result<()> {
+    self.inner.focus()
   }
 }
 

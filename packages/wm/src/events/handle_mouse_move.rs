@@ -2,8 +2,11 @@ use anyhow::Context;
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
-  commands::container::set_focused_descendant, traits::CommonGetters,
-  user_config::UserConfig, wm_state::WmState,
+  commands::container::set_focused_descendant,
+  events::handle_window_moved_or_resized_end,
+  traits::{CommonGetters, WindowGetters},
+  user_config::UserConfig,
+  wm_state::WmState,
 };
 
 pub fn handle_mouse_move(
@@ -11,6 +14,23 @@ pub fn handle_mouse_move(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  if let MouseEvent::MouseButtonUp { button, .. } = event {
+    if *button == MouseButton::Left {
+      let active_drag_windows = state
+        .windows()
+        .into_iter()
+        .filter(|w| w.active_drag().is_some())
+        .collect::<Vec<_>>();
+
+      for window in active_drag_windows {
+        let native_window = window.native().clone();
+        handle_window_moved_or_resized_end(&native_window, state, config)?;
+      }
+    }
+
+    return Ok(());
+  }
+
   if let MouseEvent::MouseMove {
     pressed_buttons,
     notification,

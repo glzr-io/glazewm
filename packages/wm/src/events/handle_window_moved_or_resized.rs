@@ -35,9 +35,16 @@ pub fn handle_window_moved_or_resized(
   if let Some(window) = found_window {
     let is_left_click = state.dispatcher.is_mouse_down(&MouseButton::Left);
 
-    if is_interactive_start || is_left_click {
-      handle_window_moved_or_resized_start(native_window, state);
-      return Ok(());
+    if is_interactive_start
+      || (is_left_click && window.active_drag().is_none())
+    {
+      let window_under_cursor = state
+        .dispatcher
+        .window_from_point(&state.dispatcher.cursor_position()?)?;
+
+      if window_under_cursor.is_some_and(|w| w == *native_window) {
+        handle_window_moved_or_resized_start(native_window, state);
+      }
     } else if is_interactive_end
       || (!is_left_click && window.active_drag().is_some())
     {

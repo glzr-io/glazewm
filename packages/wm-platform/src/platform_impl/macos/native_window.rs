@@ -320,7 +320,7 @@ impl NativeWindow {
     )
   }
 
-  pub(crate) fn focus_with_raise(&self) -> crate::Result<()> {
+  pub(crate) fn focus(&self) -> crate::Result<()> {
     let psn = self.application.psn()?;
     self.set_front_process(&psn)?;
     self.set_key_window(&psn)?;
@@ -414,10 +414,7 @@ impl From<NativeWindow> for crate::NativeWindow {
   }
 }
 
-/// Gets all visible windows from all running applications.
-///
-/// Returns a vector of `NativeWindow` instances for windows that are
-/// currently visible on the current space.
+/// macOS-specific implementation of [`Dispatcher::visible_windows`].
 pub(crate) fn visible_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {

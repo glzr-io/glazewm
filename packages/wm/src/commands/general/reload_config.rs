@@ -17,6 +17,7 @@ pub fn reload_config(
   info!("Config reloaded.");
 
   // Keep reference to old config for comparison.
+  #[cfg(target_os = "windows")]
   let old_config = config.value.clone();
 
   // Re-evaluate user config file and set its values in state.
@@ -32,27 +33,27 @@ pub fn reload_config(
 
   update_container_gaps(state, config);
 
+  #[cfg(target_os = "windows")]
   update_window_effects(&old_config, state, config)?;
 
   // Ensure all windows are shown when hide method is changed.
+  #[cfg(target_os = "windows")]
   if old_config.general.hide_method != config.value.general.hide_method
     && config.value.general.hide_method == HideMethod::Cloak
   {
     for window in state.windows() {
-      // TODO: Implement this for macOS.
-      #[cfg(target_os = "windows")]
       let _ = window.native().show();
     }
   }
 
   // Ensure all windows are shown in taskbar when `show_all_in_taskbar` is
   // changed.
+  #[cfg(target_os = "windows")]
   if old_config.general.show_all_in_taskbar
     != config.value.general.show_all_in_taskbar
     && config.value.general.show_all_in_taskbar
   {
     for window in state.windows() {
-      #[cfg(target_os = "windows")]
       let _ = window.native().set_taskbar_visibility(true);
     }
   }
@@ -150,6 +151,7 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
   }
 }
 
+#[cfg(target_os = "windows")]
 fn update_window_effects(
   old_config: &ParsedConfig,
   state: &mut WmState,
@@ -164,7 +166,6 @@ fn update_window_effects(
   // Window border effects are left at system defaults if disabled in the
   // config. However, when transitioning from colored borders to having
   // them disabled, it's best to reset to the system defaults.
-  #[cfg(target_os = "windows")]
   if !window_effects.focused_window.border.enabled
     && old_window_effects.focused_window.border.enabled
   {
@@ -173,7 +174,6 @@ fn update_window_effects(
     }
   }
 
-  #[cfg(target_os = "windows")]
   if !window_effects.other_windows.border.enabled
     && old_window_effects.other_windows.border.enabled
   {
