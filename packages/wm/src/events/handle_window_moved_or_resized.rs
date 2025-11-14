@@ -4,7 +4,9 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
   FullscreenStateConfig, WindowState,
 };
-use wm_platform::{MouseButton, NativeWindow, Rect};
+use wm_platform::{
+  LengthValue, MouseButton, NativeWindow, Point, Rect, RectDelta,
+};
 
 use crate::{
   commands::{
@@ -38,12 +40,24 @@ pub fn handle_window_moved_or_resized(
     if is_interactive_start
       || (is_left_click && window.active_drag().is_none())
     {
-      let window_under_cursor = state
-        .dispatcher
-        .window_from_point(&state.dispatcher.cursor_position()?)?;
+      // *** TODO: Figure out why window is being redrawn in transition to
+      // from tiling to floating when `active_drag` is set.
 
-      if window_under_cursor.is_some_and(|w| w == *native_window) {
+      // Check if cursor is within 20px margin around the window's frame.
+      let cursor_position = state.dispatcher.cursor_position()?;
+      let frame = window.native_properties().frame.apply_delta(
+        &RectDelta::new(
+          LengthValue::from_px(20),
+          LengthValue::from_px(20),
+          LengthValue::from_px(20),
+          LengthValue::from_px(20),
+        ),
+        None,
+      );
+
+      if frame.contains_point(&cursor_position) {
         handle_window_moved_or_resized_start(native_window, state);
+        return Ok(());
       }
     } else if is_interactive_end
       || (!is_left_click && window.active_drag().is_some())
