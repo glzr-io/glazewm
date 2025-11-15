@@ -5,7 +5,7 @@ use wm_common::{
   FullscreenStateConfig, WindowState,
 };
 use wm_platform::{
-  LengthValue, MouseButton, NativeWindow, Point, Rect, RectDelta,
+  LengthValue, MouseButton, NativeWindow, Rect, RectDelta,
 };
 
 use crate::{
@@ -13,12 +13,9 @@ use crate::{
     container::{flatten_split_container, move_container_within_tree},
     window::update_window_state,
   },
-  events::{
-    handle_window_moved_or_resized_end,
-    handle_window_moved_or_resized_start,
-  },
+  events::handle_window_moved_or_resized_end,
   models::{TilingWindow, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -33,44 +30,83 @@ pub fn handle_window_moved_or_resized(
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(native_window);
 
-  // Update the window's state to be fullscreen or toggled from fullscreen.
   if let Some(window) = found_window {
-    let is_left_click = state.dispatcher.is_mouse_down(&MouseButton::Left);
-
-    if is_interactive_start
-      || (is_left_click && window.active_drag().is_none())
-    {
-      // *** TODO: Figure out why window is being redrawn in transition to
-      // from tiling to floating when `active_drag` is set.
-
-      // Check if cursor is within 20px margin around the window's frame.
-      let cursor_position = state.dispatcher.cursor_position()?;
-      let frame = window.native_properties().frame.apply_delta(
-        &RectDelta::new(
-          LengthValue::from_px(20),
-          LengthValue::from_px(20),
-          LengthValue::from_px(20),
-          LengthValue::from_px(20),
-        ),
-        None,
-      );
-
-      if frame.contains_point(&cursor_position) {
-        handle_window_moved_or_resized_start(native_window, state);
-        return Ok(());
-      }
-    } else if is_interactive_end
-      || (!is_left_click && window.active_drag().is_some())
-    {
-      return handle_window_moved_or_resized_end(
-        native_window,
-        state,
-        config,
-      );
-    }
-
     let old_frame_position = window.native_properties().frame;
     let frame_position = try_warn!(window.native().frame());
+
+    // Handle windows that are being actively being dragged.
+    if let Some(active_drag) = window.active_drag() {
+      if active_drag.operation.is_some() {
+        // Check if the drag operation has ended.
+        // - On Windows, the drag operation has ended on the
+        //   `EVENT_SYSTEM_MOVESIZEEND` event (`is_interactive_end` is
+        //   `true`).
+        // - On macOS, the drag operation ends when the cursor is released.
+        let is_drag_end = if is_interactive_end {
+          true
+        } else {
+          // TODO: Can likely remove this check and rely on the mouse
+          // listener.
+          !state.dispatcher.is_mouse_down(&MouseButton::Left)
+        };
+
+        if is_drag_end {
+          return handle_window_moved_or_resized_end(
+            native_window,
+            state,
+            config,
+          );
+        }
+      }
+
+      if let Some(tiling_window) = window.as_tiling_window() {
+        update_drag_state(
+          tiling_window,
+          &frame_position,
+          &old_frame_position,
+          state,
+          config,
+        )?;
+      }
+
+      return Ok(());
+    }
+
+    // Detect whether the window is starting to be interactively moved or
+    // resized by the user (e.g. via the window's drag handles).
+    let is_drag_start = if is_interactive_start {
+      true
+    } else {
+      let is_left_click =
+        state.dispatcher.is_mouse_down(&MouseButton::Left);
+
+      if is_left_click {
+        // Check if cursor is within 20px margin around the window's frame.
+        let frame = window.native_properties().frame.apply_delta(
+          &RectDelta::new(
+            LengthValue::from_px(20),
+            LengthValue::from_px(20),
+            LengthValue::from_px(20),
+            LengthValue::from_px(20),
+          ),
+          None,
+        );
+
+        let cursor_position = state.dispatcher.cursor_position()?;
+        frame.contains_point(&cursor_position)
+      } else {
+        false
+      }
+    };
+
+    if is_drag_start {
+      window.set_active_drag(Some(ActiveDrag {
+        operation: None,
+        is_from_tiling: window.is_tiling_window(),
+      }));
+
+      return Ok(());
+    }
 
     let old_is_maximized = window.native_properties().is_maximized;
     let is_maximized = try_warn!(window.native().is_maximized());
@@ -103,16 +139,6 @@ pub fn handle_window_moved_or_resized(
       .context("Failed to get workspace of nearest monitor.")?;
 
     // TODO: Include this as part of the `match` statement below.
-    if let Some(tiling_window) = window.as_tiling_window() {
-      update_drag_state(
-        tiling_window,
-        &frame_position,
-        &old_frame_position,
-        state,
-        config,
-      )?;
-    }
-
     let nearest_workspace = nearest_monitor
       .displayed_workspace()
       .context("No Workspace")?;
@@ -221,62 +247,71 @@ fn update_drag_state(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  if let Some(active_drag) = window.active_drag() {
-    let should_ignore = active_drag.operation.is_some()
-      || frame_position == old_frame_position;
+  let Some(active_drag) = window.active_drag() else {
+    return Ok(());
+  };
 
-    if should_ignore {
-      return Ok(());
-    }
+  // Ignore if the window position has not changed yet or if it's already
+  // been determined whether it's being moved/resized.
+  if frame_position == old_frame_position
+    || active_drag.operation.is_some()
+  {
+    return Ok(());
+  }
 
-    let is_move = frame_position.height() == old_frame_position.height()
-      && frame_position.width() == old_frame_position.width();
+  let is_move = frame_position.height() == old_frame_position.height()
+    && frame_position.width() == old_frame_position.width();
 
-    let operation = if is_move {
-      ActiveDragOperation::Moving
-    } else {
-      ActiveDragOperation::Resizing
-    };
+  let operation = if is_move {
+    ActiveDragOperation::Moving
+  } else {
+    ActiveDragOperation::Resizing
+  };
 
-    window.set_active_drag(Some(ActiveDrag {
-      operation: Some(operation),
-      ..active_drag
-    }));
+  window.set_active_drag(Some(ActiveDrag {
+    operation: Some(operation),
+    ..active_drag
+  }));
 
-    // Transition window to be floating while it's being dragged.
-    if is_move {
-      let parent = window.parent().context("No parent")?;
+  // Transition window to be floating while it's being dragged.
+  if is_move {
+    let parent = window.parent().context("No parent")?;
 
-      let window = update_window_state(
-        window.clone().into(),
-        WindowState::Floating(FloatingStateConfig {
-          centered: false,
-          ..config.value.window_behavior.state_defaults.floating
-        }),
-        state,
-        config,
-      )?;
+    let window = update_window_state(
+      window.clone().into(),
+      WindowState::Floating(FloatingStateConfig {
+        centered: false,
+        ..config.value.window_behavior.state_defaults.floating
+      }),
+      state,
+      config,
+    )?;
 
-      // Windows are added for redraw on state changes, so here we need to
-      // remove the window from the pending redraw.
-      state
-        .pending_sync
-        .dequeue_container_from_redraw(window.clone());
+    // Windows are added for redraw on state changes, so here we need to
+    // remove the window from the pending redraw.
+    state
+      .pending_sync
+      .dequeue_container_from_redraw(window.clone());
 
-      // Flatten the parent split container if it only contains the window.
-      if let Some(split_parent) = parent.as_split() {
-        if split_parent.child_count() == 1 {
-          flatten_split_container(split_parent.clone())?;
+    // Flatten the parent split container if it only contains the window.
+    if let Some(split_parent) = parent.as_split() {
+      if split_parent.child_count() == 1 {
+        flatten_split_container(split_parent.clone())?;
 
-          // Hacky fix to redraw siblings after flattening. The parent is
-          // queued for redraw from the state change, which gets detached
-          // on flatten.
-          state
-            .pending_sync
-            .queue_containers_to_redraw(window.tiling_siblings());
-        }
+        // Hacky fix to redraw siblings after flattening. The parent is
+        // queued for redraw from the state change, which gets detached
+        // on flatten.
+        state
+          .pending_sync
+          .queue_containers_to_redraw(window.tiling_siblings());
       }
     }
+
+    // TODO: Investigate why window is being redrawn in transition
+    // from tiling to floating when `active_drag` is set. The below works
+    // but then it doesn't redraw the sibling windows.
+    state.pending_sync.clear();
+    println!("window moved: pending_sync: {:?}", state.pending_sync);
   }
 
   Ok(())

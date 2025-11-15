@@ -28,13 +28,15 @@ pub struct WindowEventNotificationInner {
 
 unsafe impl Send for WindowEventNotificationInner {}
 
+/// macOS-specific implementation of [`WindowListener`].
 #[derive(Debug)]
-pub struct WindowListener {
-  pub event_rx: mpsc::UnboundedReceiver<WindowEvent>,
+pub(crate) struct WindowListener {
+  pub(crate) event_rx: mpsc::UnboundedReceiver<WindowEvent>,
 }
 
 impl WindowListener {
-  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+  /// macOS-specific implementation of [`WindowListener::new`].
+  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let (events_tx, event_rx) = mpsc::unbounded_channel();
 
     dispatcher
@@ -127,6 +129,8 @@ impl WindowListener {
         .map(|observer| (observer.pid, observer))
         .collect();
 
+    // TODO: Need to abort this loop when the window listener is
+    // terminated.
     while let Some(event) = events_rx.blocking_recv() {
       tracing::debug!("Received workspace event: {event:?}");
 
@@ -232,8 +236,14 @@ impl WindowListener {
     app_observer_res
   }
 
-  /// Returns the next event from the `WindowListener`.
-  pub async fn next_event(&mut self) -> Option<WindowEvent> {
+  /// macOS-specific implementation of [`WindowListener::terminate`].
+  pub(crate) fn terminate(&mut self) {
+    // TODO: Implement this.
+    todo!()
+  }
+
+  /// macOS-specific implementation of [`WindowListener::next_event`].
+  pub(crate) async fn next_event(&mut self) -> Option<WindowEvent> {
     self.event_rx.recv().await
   }
 }

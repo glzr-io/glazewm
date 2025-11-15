@@ -85,7 +85,7 @@ fn sync_focus(
 
   // Sets focus to the appropriate target:
   // - If the container is a window, focuses that window.
-  // - If the container is a workspace, resets focus by focusing the
+  // - If the container is a workspace, "resets" focus by focusing the
   //   desktop window.
   //
   // In either case, a `PlatformEvent::WindowFocused` event is subsequently
@@ -264,8 +264,9 @@ fn redraw_containers(
       },
     );
 
-    let rect = window.to_rect()?;
-    // .apply_delta(&window.total_border_delta()?, None);
+    let rect = window
+      .to_rect()?
+      .apply_delta(&window.total_border_delta()?, None);
 
     let is_visible = matches!(
       window.display_state(),

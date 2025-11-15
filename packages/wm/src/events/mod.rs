@@ -7,7 +7,6 @@ mod handle_window_minimize_ended;
 mod handle_window_minimized;
 mod handle_window_moved_or_resized;
 mod handle_window_moved_or_resized_end;
-mod handle_window_moved_or_resized_start;
 mod handle_window_shown;
 mod handle_window_title_changed;
 
@@ -20,6 +19,5 @@ pub use handle_window_minimize_ended::*;
 pub use handle_window_minimized::*;
 pub use handle_window_moved_or_resized::*;
 pub use handle_window_moved_or_resized_end::*;
-pub use handle_window_moved_or_resized_start::*;
 pub use handle_window_shown::*;
 pub use handle_window_title_changed::*;

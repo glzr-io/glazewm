@@ -18,4 +18,9 @@ impl WindowListener {
   pub async fn next_event(&mut self) -> Option<WindowEvent> {
     self.inner.next_event().await
   }
+
+  /// Terminates the window listener.
+  pub fn terminate(&mut self) {
+    self.inner.terminate();
+  }
 }
