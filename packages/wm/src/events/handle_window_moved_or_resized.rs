@@ -35,28 +35,35 @@ pub fn handle_window_moved_or_resized(
     let frame_position = try_warn!(window.native().frame());
 
     // Handle windows that are being actively being dragged.
-    if let Some(active_drag) = window.active_drag() {
-      if active_drag.operation.is_some() {
-        // Check if the drag operation has ended.
-        // - On Windows, the drag operation has ended on the
-        //   `EVENT_SYSTEM_MOVESIZEEND` event (`is_interactive_end` is
-        //   `true`).
-        // - On macOS, the drag operation ends when the cursor is released.
-        let is_drag_end = if is_interactive_end {
-          true
-        } else {
-          // TODO: Can likely remove this check and rely on the mouse
-          // listener.
-          !state.dispatcher.is_mouse_down(&MouseButton::Left)
-        };
-
-        if is_drag_end {
-          return handle_window_moved_or_resized_end(
-            native_window,
-            state,
-            config,
-          );
+    if window.active_drag().is_some() {
+      // Check if the drag operation has ended.
+      let is_drag_end = {
+        // On Windows, the drag operation is ended when
+        // `is_interactive_end` is `true`. This corresponds to a
+        // `EVENT_SYSTEM_MOVESIZEEND` event, which is unavailable on macOS.
+        #[cfg(target_os = "windows")]
+        {
+          is_interactive_end
         }
+        // On macOS, the drag operation is ended when the mouse button is
+        // no longer down. This is a fallback mechanism since for macOS,
+        // `is_interactive_end` is always `false`. The `MouseEvent` handler
+        // also catches `MouseButtonUp` events, but this provides
+        // additional safety.
+        // TODO: Can likely remove this check and rely 100% on the mouse
+        // event handler.
+        #[cfg(target_os = "macos")]
+        {
+          !state.dispatcher.is_mouse_down(&MouseButton::Left)
+        }
+      };
+
+      if is_drag_end {
+        return handle_window_moved_or_resized_end(
+          native_window,
+          state,
+          config,
+        );
       }
 
       if let Some(tiling_window) = window.as_tiling_window() {
@@ -68,28 +75,35 @@ pub fn handle_window_moved_or_resized(
 
     // Detect whether the window is starting to be interactively moved or
     // resized by the user (e.g. via the window's drag handles).
-    let is_drag_start = if is_interactive_start {
-      true
-    } else {
-      let is_left_click =
-        state.dispatcher.is_mouse_down(&MouseButton::Left);
+    let is_drag_start = {
+      #[cfg(target_os = "windows")]
+      {
+        is_interactive_start
+      }
+      #[cfg(target_os = "macos")]
+      {
+        let is_left_click =
+          state.dispatcher.is_mouse_down(&MouseButton::Left);
 
-      if is_left_click {
-        // Check if cursor is within 20px margin around the window's frame.
-        let frame = window.native_properties().frame.apply_delta(
-          &RectDelta::new(
-            LengthValue::from_px(20),
-            LengthValue::from_px(20),
-            LengthValue::from_px(20),
-            LengthValue::from_px(20),
-          ),
-          None,
-        );
+        // Only consider the window to be being dragged if the left-click
+        // is down and the cursor is within 40px margin around the window's
+        // frame.
+        if is_left_click {
+          let frame = window.native_properties().frame.apply_delta(
+            &RectDelta::new(
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+            ),
+            None,
+          );
 
-        let cursor_position = state.dispatcher.cursor_position()?;
-        frame.contains_point(&cursor_position)
-      } else {
-        false
+          let cursor_position = state.dispatcher.cursor_position()?;
+          frame.contains_point(&cursor_position)
+        } else {
+          false
+        }
       }
     };
 
@@ -252,16 +266,16 @@ fn update_drag_state(
 
   // Determine the drag operation if not already set.
   let is_move = if let Some(operation) = active_drag.operation {
-    matches!(operation, ActiveDragOperation::Moving)
+    matches!(operation, ActiveDragOperation::Move)
   } else {
-    let is_move = frame_position.height()
-      == active_drag.initial_position.height()
+    let is_move = *frame_position != active_drag.initial_position
+      && frame_position.height() == active_drag.initial_position.height()
       && frame_position.width() == active_drag.initial_position.width();
 
     let operation = if is_move {
-      ActiveDragOperation::Moving
+      ActiveDragOperation::Move
     } else {
-      ActiveDragOperation::Resizing
+      ActiveDragOperation::Resize
     };
 
     window.set_active_drag(Some(ActiveDrag {

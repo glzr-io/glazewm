@@ -16,6 +16,9 @@ pub fn handle_mouse_move(
 ) -> anyhow::Result<()> {
   if let MouseEvent::MouseButtonUp { button, .. } = event {
     if *button == MouseButton::Left {
+      // On macOS, this is the main way to detect when a window drag
+      // operation has ended, since `is_interactive_end` is always false on
+      // `WindowEvent::MovedOrResized`.
       let active_drag_windows = state
         .windows()
         .into_iter()

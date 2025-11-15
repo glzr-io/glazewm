@@ -39,6 +39,10 @@ pub fn handle_window_moved_or_resized_end(
   let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
+    let Some(active_drag) = window.active_drag() else {
+      return Ok(());
+    };
+
     info!("Window move/resize ended: {window}");
 
     let old_rect = window.to_rect()?;
@@ -53,14 +57,12 @@ pub fn handle_window_moved_or_resized_end(
 
     match &window {
       WindowContainer::NonTilingWindow(window) => {
-        if let Some(active_drag) = window.active_drag() {
-          if active_drag.is_from_tiling
-            && active_drag.operation == Some(ActiveDragOperation::Moving)
-          {
-            // Window is a temporary floating window that should be
-            // reverted back to tiling.
-            drop_as_tiling_window(window, state, config)?;
-          }
+        if active_drag.is_from_tiling
+          && active_drag.operation == Some(ActiveDragOperation::Move)
+        {
+          // Window is a temporary floating window that should be
+          // reverted back to tiling.
+          drop_as_tiling_window(window, state, config)?;
         }
       }
       WindowContainer::TilingWindow(window) => {
@@ -70,15 +72,14 @@ pub fn handle_window_moved_or_resized_end(
         // the workspace.
         if parent.is_workspace() && window.tiling_siblings().count() == 0 {
           state.pending_sync.queue_container_to_redraw(window.clone());
-          return Ok(());
+        } else {
+          resize_window(
+            &window.clone().into(),
+            Some(LengthValue::from_px(width_delta)),
+            Some(LengthValue::from_px(height_delta)),
+            state,
+          )?;
         }
-
-        resize_window(
-          &window.clone().into(),
-          Some(LengthValue::from_px(width_delta)),
-          Some(LengthValue::from_px(height_delta)),
-          state,
-        )?;
       }
     }
 

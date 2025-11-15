@@ -56,7 +56,7 @@ pub fn resize_window(
           .container_to_resize(false)?
           .and_then(|container| container.parent())
           .and_then(|parent| {
-            parent.to_rect().ok().map(|rect| rect.width())
+            parent.to_rect().ok().map(|rect| rect.height())
           })
           .and_then(|parent_height| {
             let (_, vertical_gap) = tiling_window.inner_gaps().ok()?;
@@ -72,7 +72,7 @@ pub fn resize_window(
             )
           }),
         _ => window.parent().and_then(|parent| {
-          parent.to_rect().ok().map(|rect| rect.width())
+          parent.to_rect().ok().map(|rect| rect.height())
         }),
       };
 
