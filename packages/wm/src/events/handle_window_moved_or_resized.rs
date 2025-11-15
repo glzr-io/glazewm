@@ -10,7 +10,8 @@ use wm_platform::{
 
 use crate::{
   commands::{
-    container::move_container_within_tree, window::update_window_state,
+    container::{flatten_split_container, move_container_within_tree},
+    window::update_window_state,
   },
   events::handle_window_moved_or_resized_end,
   models::{TilingWindow, WindowContainer},
@@ -59,13 +60,7 @@ pub fn handle_window_moved_or_resized(
       }
 
       if let Some(tiling_window) = window.as_tiling_window() {
-        update_drag_state(
-          tiling_window,
-          &frame_position,
-          &old_frame_position,
-          state,
-          config,
-        )?;
+        update_drag_state(tiling_window, &frame_position, state, config)?;
       }
 
       return Ok(());
@@ -102,6 +97,7 @@ pub fn handle_window_moved_or_resized(
       window.set_active_drag(Some(ActiveDrag {
         operation: None,
         is_from_tiling: window.is_tiling_window(),
+        initial_position: old_frame_position.clone(),
       }));
 
       return Ok(());
@@ -242,7 +238,6 @@ pub fn handle_window_moved_or_resized(
 fn update_drag_state(
   window: &TilingWindow,
   frame_position: &Rect,
-  old_frame_position: &Rect,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -250,39 +245,72 @@ fn update_drag_state(
     return Ok(());
   };
 
-  // Ignore if the window position has not changed yet or if it's already
-  // been determined whether it's being moved/resized.
-  if frame_position == old_frame_position
-    || active_drag.operation.is_some()
-  {
+  // Ignore if the window position has not changed yet.
+  if *frame_position == active_drag.initial_position {
     return Ok(());
   }
 
-  let is_move = frame_position.height() == old_frame_position.height()
-    && frame_position.width() == old_frame_position.width();
-
-  let operation = if is_move {
-    ActiveDragOperation::Moving
+  // Determine the drag operation if not already set.
+  let is_move = if let Some(operation) = active_drag.operation {
+    matches!(operation, ActiveDragOperation::Moving)
   } else {
-    ActiveDragOperation::Resizing
+    let is_move = frame_position.height()
+      == active_drag.initial_position.height()
+      && frame_position.width() == active_drag.initial_position.width();
+
+    let operation = if is_move {
+      ActiveDragOperation::Moving
+    } else {
+      ActiveDragOperation::Resizing
+    };
+
+    window.set_active_drag(Some(ActiveDrag {
+      operation: Some(operation),
+      ..active_drag.clone()
+    }));
+
+    is_move
   };
 
-  window.set_active_drag(Some(ActiveDrag {
-    operation: Some(operation),
-    ..active_drag
-  }));
-
-  // Transition window to be floating while it's being dragged.
+  // Transition window to be floating while it's being dragged, but only
+  // after it has been moved at least 20px from its initial position. The
+  // 20px threshold is in case the user accidentally grabs the window
+  // frame.
   if is_move {
-    update_window_state(
-      window.clone().into(),
-      WindowState::Floating(FloatingStateConfig {
-        centered: false,
-        ..config.value.window_behavior.state_defaults.floating
-      }),
-      state,
-      config,
-    )?;
+    let move_distance = frame_position
+      .center_point()
+      .distance_between(&active_drag.initial_position.center_point());
+
+    if move_distance >= 20.0 {
+      let parent = window.parent().context("No parent")?;
+
+      let window = update_window_state(
+        window.clone().into(),
+        WindowState::Floating(FloatingStateConfig {
+          centered: false,
+          ..config.value.window_behavior.state_defaults.floating
+        }),
+        state,
+        config,
+      )?;
+
+      // Flatten the parent split container if it only contains the window.
+      // TODO: Consider doing this in `update_window_state` and
+      // `move_window_in_direction` as well, so that the behavior is
+      // consistent.
+      if let Some(split_parent) = parent.as_split() {
+        if split_parent.child_count() == 1 {
+          flatten_split_container(split_parent.clone())?;
+
+          // Hacky fix to redraw siblings after flattening. The parent is
+          // queued for redraw from the state change, which gets detached
+          // on flatten.
+          state
+            .pending_sync
+            .queue_containers_to_redraw(window.tiling_siblings());
+        }
+      }
+    }
   }
 
   Ok(())
