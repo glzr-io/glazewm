@@ -462,6 +462,10 @@ impl WmState {
   /// When redrawing after a command that changes a window's type (e.g.
   /// tiling -> floating), the original detached window might still be
   /// queued for a redraw and should be filtered out.
+  ///
+  /// Windows with `active_drag` set are also filtered out since they're
+  /// being manually moved/resized by the user and shouldn't be redrawn
+  /// during the drag operation.
   pub fn windows_to_redraw(&self) -> Vec<WindowContainer> {
     self
       .pending_sync
@@ -470,6 +474,7 @@ impl WmState {
       .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
+      .filter(|window: &WindowContainer| window.active_drag().is_none())
       .collect()
   }
 

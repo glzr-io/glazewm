@@ -10,8 +10,7 @@ use wm_platform::{
 
 use crate::{
   commands::{
-    container::{flatten_split_container, move_container_within_tree},
-    window::update_window_state,
+    container::move_container_within_tree, window::update_window_state,
   },
   events::handle_window_moved_or_resized_end,
   models::{TilingWindow, WindowContainer},
@@ -275,9 +274,7 @@ fn update_drag_state(
 
   // Transition window to be floating while it's being dragged.
   if is_move {
-    let parent = window.parent().context("No parent")?;
-
-    let window = update_window_state(
+    update_window_state(
       window.clone().into(),
       WindowState::Floating(FloatingStateConfig {
         centered: false,
@@ -286,32 +283,6 @@ fn update_drag_state(
       state,
       config,
     )?;
-
-    // Windows are added for redraw on state changes, so here we need to
-    // remove the window from the pending redraw.
-    state
-      .pending_sync
-      .dequeue_container_from_redraw(window.clone());
-
-    // Flatten the parent split container if it only contains the window.
-    if let Some(split_parent) = parent.as_split() {
-      if split_parent.child_count() == 1 {
-        flatten_split_container(split_parent.clone())?;
-
-        // Hacky fix to redraw siblings after flattening. The parent is
-        // queued for redraw from the state change, which gets detached
-        // on flatten.
-        state
-          .pending_sync
-          .queue_containers_to_redraw(window.tiling_siblings());
-      }
-    }
-
-    // TODO: Investigate why window is being redrawn in transition
-    // from tiling to floating when `active_drag` is set. The below works
-    // but then it doesn't redraw the sibling windows.
-    state.pending_sync.clear();
-    println!("window moved: pending_sync: {:?}", state.pending_sync);
   }
 
   Ok(())
