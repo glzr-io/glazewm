@@ -35,103 +35,96 @@ pub fn handle_window_moved_or_resized(
     let old_frame_position = window.native_properties().frame;
     let frame_position = try_warn!(window.native().frame());
 
-    // Handle drag start/update/end if the WM is not paused.
-    if !state.is_paused {
-      // Handle windows that are being actively being dragged.
-      if window.active_drag().is_some() {
-        // Check if the drag operation has ended.
-        let is_drag_end = {
-          // On Windows, the drag operation is ended when
-          // `is_interactive_end` is `true`. This corresponds to a
-          // `EVENT_SYSTEM_MOVESIZEEND` event, which is unavailable on
-          // macOS.
-          #[cfg(target_os = "windows")]
-          {
-            is_interactive_end
-          }
-          // On macOS, the drag operation is ended when the mouse button is
-          // no longer down. This is a fallback mechanism since for macOS,
-          // `is_interactive_end` is always `false`. The `MouseEvent`
-          // handler also catches `MouseButtonUp` events, but this provides
-          // additional safety.
-          // TODO: Can likely remove this check and rely 100% on the mouse
-          // event handler.
-          #[cfg(target_os = "macos")]
-          {
-            !state.dispatcher.is_mouse_down(&MouseButton::Left)
-          }
-        };
-
-        if is_drag_end {
-          return handle_window_moved_or_resized_end(
-            &window, state, config,
-          );
-        }
-
-        if let Some(tiling_window) = window.as_tiling_window() {
-          update_drag_state(
-            tiling_window,
-            &frame_position,
-            state,
-            config,
-          )?;
-        }
-
-        return Ok(());
-      }
-
-      // Detect whether the window is starting to be interactively moved or
-      // resized by the user (e.g. via the window's drag handles).
-      let is_drag_start = {
+    // Handle windows that are being actively being dragged.
+    if !state.is_paused && window.active_drag().is_some() {
+      // Check if the drag operation has ended.
+      let is_drag_end = {
+        // On Windows, the drag operation is ended when
+        // `is_interactive_end` is `true`. This corresponds to a
+        // `EVENT_SYSTEM_MOVESIZEEND` event, which is unavailable on macOS.
         #[cfg(target_os = "windows")]
         {
-          is_interactive_start
+          is_interactive_end
         }
+        // On macOS, the drag operation is ended when the mouse button is
+        // no longer down. This is a fallback mechanism since for macOS,
+        // `is_interactive_end` is always `false`. The `MouseEvent` handler
+        // also catches `MouseButtonUp` events, but this provides
+        // additional safety.
+        // TODO: Can likely remove this check and rely 100% on the mouse
+        // event handler.
         #[cfg(target_os = "macos")]
         {
-          let is_left_click =
-            state.dispatcher.is_mouse_down(&MouseButton::Left);
-
-          // Only consider the window to be being dragged if the left-click
-          // is down and the cursor is within 40px margin around the
-          // window's frame.
-          if is_left_click {
-            let frame = window.native_properties().frame.apply_delta(
-              &RectDelta::new(
-                LengthValue::from_px(40),
-                LengthValue::from_px(40),
-                LengthValue::from_px(40),
-                LengthValue::from_px(40),
-              ),
-              None,
-            );
-
-            let cursor_position = state.dispatcher.cursor_position()?;
-            frame.contains_point(&cursor_position)
-          } else {
-            false
-          }
+          !state.dispatcher.is_mouse_down(&MouseButton::Left)
         }
       };
 
-      if is_drag_start {
-        window.set_active_drag(Some(ActiveDrag {
-          operation: None,
-          is_from_tiling: window.is_tiling_window(),
-          #[cfg(target_os = "windows")]
-          initial_position: old_frame_position.clone(),
-          // `frame_position` is deliberately used here instead of
-          // `old_frame_position` due to a quirk on macOS. When we resize
-          // an AXUIElement to a value outside the allowed min/max width &
-          // height, macOS doesn't actually apply that size. However, it
-          // still reports the value we attempted to set until a subsequent
-          // `WindowEvent::MovedOrResized` event.
-          #[cfg(target_os = "macos")]
-          initial_position: frame_position.clone(),
-        }));
-
-        return Ok(());
+      if is_drag_end {
+        return handle_window_moved_or_resized_end(&window, state, config);
       }
+
+      if let Some(tiling_window) = window.as_tiling_window() {
+        update_drag_state(tiling_window, &frame_position, state, config)?;
+      }
+
+      return Ok(());
+    }
+
+    // Detect whether the window is starting to be interactively moved or
+    // resized by the user (e.g. via the window's drag handles).
+    let is_drag_start = !state.is_paused && {
+      #[cfg(target_os = "windows")]
+      {
+        is_interactive_start
+      }
+      #[cfg(target_os = "macos")]
+      {
+        let is_dragging_other_window =
+          state.windows().iter().any(|w| w.active_drag().is_some());
+
+        let is_left_click =
+          state.dispatcher.is_mouse_down(&MouseButton::Left);
+
+        // Only consider the window to be dragging if:
+        //  1. No other window is being dragged.
+        //  2. Left-click is down.
+        //  3. The cursor is within 40px margin around the window's frame.
+        if !is_dragging_other_window && is_left_click {
+          let frame = window.native_properties().frame.apply_delta(
+            &RectDelta::new(
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+              LengthValue::from_px(40),
+            ),
+            None,
+          );
+
+          let cursor_position = state.dispatcher.cursor_position()?;
+          frame.contains_point(&cursor_position)
+        } else {
+          false
+        }
+      }
+    };
+
+    if is_drag_start {
+      window.set_active_drag(Some(ActiveDrag {
+        operation: None,
+        is_from_tiling: window.is_tiling_window(),
+        #[cfg(target_os = "windows")]
+        initial_position: old_frame_position.clone(),
+        // The updated frame position is used here instead of the previous
+        // frame position due to a quirk on macOS. When we resize an
+        // AXUIElement to a value outside the allowed min/max width &
+        // height, macOS doesn't actually apply that size. However, it
+        // still reports the value we attempted to set until a subsequent
+        // `WindowEvent::MovedOrResized` event.
+        #[cfg(target_os = "macos")]
+        initial_position: frame_position.clone(),
+      }));
+
+      return Ok(());
     }
 
     let old_is_maximized = window.native_properties().is_maximized;
@@ -326,9 +319,8 @@ fn update_drag_state(
       )?;
 
       // Flatten the parent split container if it only contains the window.
-      // TODO: Consider doing this in `update_window_state` and
-      // `move_window_in_direction` as well, so that the behavior is
-      // consistent.
+      // TODO: Consider doing this in `move_container_within_tree`, so that
+      // the behavior is consistent.
       if let Some(split_parent) = parent.as_split() {
         if split_parent.child_count() == 1 {
           flatten_split_container(split_parent.clone())?;

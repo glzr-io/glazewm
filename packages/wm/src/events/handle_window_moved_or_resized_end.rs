@@ -8,7 +8,7 @@ use wm_platform::{LengthValue, Point, Rect};
 use crate::{
   commands::{
     container::{move_container_within_tree, wrap_in_split_container},
-    window::{resize_window, update_window_state},
+    window::{set_window_size, update_window_state},
   },
   models::{
     DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
@@ -40,14 +40,10 @@ pub fn handle_window_moved_or_resized_end(
 
   info!("Window move/resize ended: {window}");
 
-  let old_rect = window.to_rect()?;
   let new_rect = try_warn!(window.native().frame());
 
-  let width_delta = new_rect.width() - old_rect.width();
-  let height_delta = new_rect.height() - old_rect.height();
-
   window.update_native_properties(|properties| {
-    properties.frame = new_rect;
+    properties.frame = new_rect.clone();
   });
 
   match &window {
@@ -61,23 +57,27 @@ pub fn handle_window_moved_or_resized_end(
       }
     }
     WindowContainer::TilingWindow(window) => {
-      resize_window(
-        &window.clone().into(),
-        Some(LengthValue::from_px(width_delta)),
-        Some(LengthValue::from_px(height_delta)),
+      // Update the window's size based on the new frame position. This
+      // means we use the actual window dimensions as the source of truth.
+      set_window_size(
+        window.clone().into(),
+        Some(LengthValue::from_px(new_rect.width())),
+        Some(LengthValue::from_px(new_rect.height())),
         state,
       )?;
 
       // Force a redraw of the window to snap it back to its original
-      // position. This happens when:
+      // position. This is necessary when:
       // - The window is the only tiling window in the workspace.
       // - The window is not past the movement threshold for transitioning
       //   to floating while being dragged.
+      // - Resizing in a direction that doesn't change the window's tiling
+      //   size.
       state.pending_sync.queue_container_to_redraw(window.clone());
+
+      window.set_active_drag(None);
     }
   }
-
-  window.set_active_drag(None);
 
   Ok(())
 }
@@ -118,13 +118,14 @@ fn drop_as_tiling_window(
   // If the target parent has no children (i.e. an empty workspace), then
   // add the window directly.
   if target_parent.tiling_children().count() == 0 {
-    update_window_state(
+    let window = update_window_state(
       moved_window.clone().into(),
       WindowState::Tiling,
       state,
       config,
     )?;
 
+    window.set_active_drag(None);
     return Ok(());
   }
 
@@ -153,6 +154,8 @@ fn drop_as_tiling_window(
     state,
     config,
   )?;
+
+  moved_window.set_active_drag(None);
 
   let should_split = nearest_container.is_tiling_window()
     && match tiling_direction {
