@@ -14,6 +14,13 @@ pub fn handle_mouse_move(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Ignore mouse move events if the WM is paused. The mouse listener
+  // should anyways be disabled when the WM is paused, but this is just in
+  // case any events slipped through while disabling.
+  if state.is_paused {
+    return Ok(());
+  }
+
   if let MouseEvent::MouseButtonUp { button, .. } = event {
     if *button == MouseButton::Left {
       // On macOS, this is the main way to detect when a window drag
@@ -26,8 +33,7 @@ pub fn handle_mouse_move(
         .collect::<Vec<_>>();
 
       for window in active_drag_windows {
-        let native_window = window.native().clone();
-        handle_window_moved_or_resized_end(&native_window, state, config)?;
+        handle_window_moved_or_resized_end(&window, state, config)?;
       }
     }
 

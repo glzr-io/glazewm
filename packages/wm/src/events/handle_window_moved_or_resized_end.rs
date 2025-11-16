@@ -3,7 +3,7 @@ use tracing::info;
 use wm_common::{
   try_warn, ActiveDragOperation, TilingDirection, WindowState,
 };
-use wm_platform::{LengthValue, NativeWindow, Point, Rect};
+use wm_platform::{LengthValue, Point, Rect};
 
 use crate::{
   commands::{
@@ -26,62 +26,58 @@ use crate::{
 ///
 /// This resizes the window if it's a tiling window and attach a dragged
 /// floating window.
+///
+/// TODO: Move this to a better location - maybe a new `active_drag_ext`
+/// mod.
 pub fn handle_window_moved_or_resized_end(
-  native_window: &NativeWindow,
+  window: &WindowContainer,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // Don't update state on resize events if the WM is paused.
-  if state.is_paused {
+  let Some(active_drag) = window.active_drag() else {
     return Ok(());
-  }
+  };
 
-  let found_window = state.window_from_native(native_window);
+  info!("Window move/resize ended: {window}");
 
-  if let Some(window) = found_window {
-    let Some(active_drag) = window.active_drag() else {
-      return Ok(());
-    };
+  let old_rect = window.to_rect()?;
+  let new_rect = try_warn!(window.native().frame());
 
-    info!("Window move/resize ended: {window}");
+  let width_delta = new_rect.width() - old_rect.width();
+  let height_delta = new_rect.height() - old_rect.height();
 
-    let old_rect = window.to_rect()?;
-    let new_rect = try_warn!(window.native().frame());
+  window.update_native_properties(|properties| {
+    properties.frame = new_rect;
+  });
 
-    let width_delta = new_rect.width() - old_rect.width();
-    let height_delta = new_rect.height() - old_rect.height();
-
-    window.update_native_properties(|properties| {
-      properties.frame = new_rect;
-    });
-
-    match &window {
-      WindowContainer::NonTilingWindow(window) => {
-        if active_drag.is_from_tiling
-          && active_drag.operation == Some(ActiveDragOperation::Move)
-        {
-          // Window is a temporary floating window that should be
-          // reverted back to tiling.
-          drop_as_tiling_window(window, state, config)?;
-        }
-      }
-      WindowContainer::TilingWindow(window) => {
-        resize_window(
-          &window.clone().into(),
-          Some(LengthValue::from_px(width_delta)),
-          Some(LengthValue::from_px(height_delta)),
-          state,
-        )?;
-
-        // Snap the window back to its original position if it's the only
-        // window in the workspace or if it's not past the movement
-        // threshold for transition to floating.
-        state.pending_sync.queue_container_to_redraw(window.clone());
+  match &window {
+    WindowContainer::NonTilingWindow(window) => {
+      if active_drag.is_from_tiling
+        && active_drag.operation == Some(ActiveDragOperation::Move)
+      {
+        // Window is a temporary floating window that should be
+        // reverted back to tiling.
+        drop_as_tiling_window(window, state, config)?;
       }
     }
+    WindowContainer::TilingWindow(window) => {
+      resize_window(
+        &window.clone().into(),
+        Some(LengthValue::from_px(width_delta)),
+        Some(LengthValue::from_px(height_delta)),
+        state,
+      )?;
 
-    window.set_active_drag(None);
+      // Force a redraw of the window to snap it back to its original
+      // position. This happens when:
+      // - The window is the only tiling window in the workspace.
+      // - The window is not past the movement threshold for transitioning
+      //   to floating while being dragged.
+      state.pending_sync.queue_container_to_redraw(window.clone());
+    }
   }
+
+  window.set_active_drag(None);
 
   Ok(())
 }
