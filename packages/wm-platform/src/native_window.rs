@@ -74,6 +74,15 @@ impl NativeWindow {
     self.inner.process_name()
   }
 
+  /// Gets a rectangle of the window's size and position.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Includes the window's shadow borders.
+  /// - **macOS**: If the window was previously resized to a value outside
+  ///   of the window's allowed min/max width & height (e.g. via calling
+  ///   `set_frame`), this can return those invalid values and might not
+  ///   reflect the actual window size.
   pub fn frame(&self) -> crate::Result<Rect> {
     self.inner.frame()
   }

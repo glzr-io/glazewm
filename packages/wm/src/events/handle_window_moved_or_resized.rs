@@ -111,7 +111,14 @@ pub fn handle_window_moved_or_resized(
       window.set_active_drag(Some(ActiveDrag {
         operation: None,
         is_from_tiling: window.is_tiling_window(),
-        initial_position: old_frame_position.clone(),
+        // `frame_position` is deliberately used here instead of
+        // `old_frame_position` due to a quirk on macOS. When we resize an
+        // AXUIElement to a value outside the allowed min/max width &
+        // height, macOS doesn't actually apply that size, but our stored
+        // frame (updated from an earlier `WindowEvent::MovedOrResized`
+        // event) may still reflect the value we attempted to set rather
+        // than the actual clamped value.
+        initial_position: frame_position.clone(),
       }));
 
       return Ok(());
@@ -287,15 +294,15 @@ fn update_drag_state(
   };
 
   // Transition window to be floating while it's being dragged, but only
-  // after it has been moved at least 20px from its initial position. The
-  // 20px threshold is in case the user accidentally grabs the window
-  // frame.
+  // after it has been moved at least 10px from its initial position. The
+  // 10px threshold is to account for small movements that may be
+  // accidental.
   if is_move {
     let move_distance = frame_position
       .center_point()
       .distance_between(&active_drag.initial_position.center_point());
 
-    if move_distance >= 20.0 {
+    if move_distance >= 10.0 {
       let parent = window.parent().context("No parent")?;
 
       let window = update_window_state(

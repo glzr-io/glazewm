@@ -51,7 +51,15 @@ impl MouseEventNotificationInner {
       CGEventType::LeftMouseUp => MouseEventType::LeftClickUp,
       CGEventType::RightMouseDown => MouseEventType::RightClickDown,
       CGEventType::RightMouseUp => MouseEventType::RightClickUp,
-      _ => unreachable!(),
+      _ => {
+        // TODO: This arm is somehow being hit (very rarely).
+        tracing::error!(
+          "Unhandled mouse event type: {:?} {:?}",
+          self.event_type,
+          unsafe { self.event.as_ref() }
+        );
+        unreachable!();
+      }
     }
   }
 

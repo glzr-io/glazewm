@@ -66,20 +66,17 @@ pub fn handle_window_moved_or_resized_end(
         }
       }
       WindowContainer::TilingWindow(window) => {
-        let parent = window.parent().context("No parent.")?;
+        resize_window(
+          &window.clone().into(),
+          Some(LengthValue::from_px(width_delta)),
+          Some(LengthValue::from_px(height_delta)),
+          state,
+        )?;
 
-        // Snap window to its original position if it's the only window in
-        // the workspace.
-        if parent.is_workspace() && window.tiling_siblings().count() == 0 {
-          state.pending_sync.queue_container_to_redraw(window.clone());
-        } else {
-          resize_window(
-            &window.clone().into(),
-            Some(LengthValue::from_px(width_delta)),
-            Some(LengthValue::from_px(height_delta)),
-            state,
-          )?;
-        }
+        // Snap the window back to its original position if it's the only
+        // window in the workspace or if it's not past the movement
+        // threshold for transition to floating.
+        state.pending_sync.queue_container_to_redraw(window.clone());
       }
     }
 
