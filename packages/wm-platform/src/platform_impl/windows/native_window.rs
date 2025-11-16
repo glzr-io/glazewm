@@ -44,8 +44,12 @@ use windows::{
 use super::COM_INIT;
 use crate::{
   Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
-  Rect, RectDelta, WindowState,
+  Rect, RectDelta, WindowState, ZOrder,
 };
+
+/// Magic number used to identify programmatic mouse inputs from our own
+/// process.
+pub(crate) const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
 pub trait NativeWindowWindowsExt {
   fn class_name(&self) -> crate::Result<String>;
@@ -72,18 +76,6 @@ pub trait NativeWindowWindowsExt {
 
 impl NativeWindowWindowsExt for NativeWindow {}
 
-/// Magic number used to identify programmatic mouse inputs from our own
-/// process.
-pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ZOrder {
-  Normal,
-  AfterWindow(isize),
-  Top,
-  TopMost,
-}
-
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
   pub handle: isize,
@@ -99,7 +91,7 @@ pub struct NativeWindow {
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
   #[must_use]
-  pub fn new(handle: isize) -> Self {
+  pub(crate) fn new(handle: isize) -> Self {
     Self {
       handle,
       title: Memo::new(),
@@ -116,12 +108,12 @@ impl NativeWindow {
   /// string.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn title(&self) -> crate::Result<String> {
+  pub(crate) fn title(&self) -> crate::Result<String> {
     self.title.get_or_init(Self::updated_title, self)
   }
 
   /// Updates the cached window title.
-  pub fn invalidate_title(&self) -> crate::Result<String> {
+  pub(crate) fn invalidate_title(&self) -> crate::Result<String> {
     self.title.update(Self::updated_title, self)
   }
 
@@ -143,7 +135,7 @@ impl NativeWindow {
   /// Gets the process name associated with the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn process_name(&self) -> crate::Result<String> {
+  pub(crate) fn process_name(&self) -> crate::Result<String> {
     self
       .process_name
       .get_or_init(Self::updated_process_name, self)
@@ -190,7 +182,7 @@ impl NativeWindow {
   /// Gets the class name of the window.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn class_name(&self) -> crate::Result<String> {
+  pub(crate) fn class_name(&self) -> crate::Result<String> {
     self.class_name.get_or_init(Self::updated_class_name, self)
   }
 
@@ -209,7 +201,7 @@ impl NativeWindow {
   }
 
   /// Whether the window is actually visible.
-  pub fn is_visible(&self) -> crate::Result<bool> {
+  pub(crate) fn is_visible(&self) -> crate::Result<bool> {
     let is_visible =
       unsafe { IsWindowVisible(HWND(self.handle)) }.as_bool();
 
@@ -236,7 +228,8 @@ impl NativeWindow {
     Ok(cloaked != 0)
   }
 
-  pub fn is_manageable(&self) -> crate::Result<bool> {
+  // TODO: Should probably be removed and have its logic called explicitly.
+  pub(crate) fn is_manageable(&self) -> crate::Result<bool> {
     // Ignore windows that are hidden.
     if !self.is_visible()? {
       return Ok(false);
@@ -280,14 +273,14 @@ impl NativeWindow {
   /// Whether the window is minimized.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn is_minimized(&self) -> crate::Result<bool> {
+  pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     self
       .is_minimized
       .get_or_init(Self::updated_is_minimized, self)
   }
 
   /// Updates the cached minimized status.
-  pub fn invalidate_is_minimized(&self) -> crate::Result<bool> {
+  pub(crate) fn invalidate_is_minimized(&self) -> crate::Result<bool> {
     self.is_minimized.update(Self::updated_is_minimized, self)
   }
 
@@ -300,14 +293,14 @@ impl NativeWindow {
   /// Whether the window is maximized.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn is_maximized(&self) -> crate::Result<bool> {
+  pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
     self
       .is_maximized
       .get_or_init(Self::updated_is_maximized, self)
   }
 
   /// Updates the cached maximized status.
-  pub fn invalidate_is_maximized(&self) -> crate::Result<bool> {
+  pub(crate) fn invalidate_is_maximized(&self) -> crate::Result<bool> {
     self.is_maximized.update(Self::updated_is_maximized, self)
   }
 
@@ -319,30 +312,32 @@ impl NativeWindow {
 
   /// Whether the window has resize handles.
   #[must_use]
-  pub fn is_resizable(&self) -> bool {
+  pub(crate) fn is_resizable(&self) -> bool {
     self.has_window_style(WS_THICKFRAME)
   }
 
-  /// Whether the window is fullscreen.
-  ///
-  /// Returns `false` if the window is maximized.
-  pub fn is_fullscreen(&self, monitor_rect: &Rect) -> crate::Result<bool> {
+  /// Windows-specific implementation of [`NativeWindow::is_fullscreen`].
+  pub(crate) fn is_fullscreen(
+    &self,
+    display_rect: &Rect,
+  ) -> crate::Result<bool> {
     if self.is_maximized()? {
       return Ok(false);
     }
 
     let position = self.frame()?;
 
-    // Allow for 1px of leeway around edges of monitor.
+    // Allow for 1px of leeway around edges of the display.
     Ok(
-      position.left <= monitor_rect.left + 1
-        && position.top <= monitor_rect.top + 1
-        && position.right >= monitor_rect.right - 1
-        && position.bottom >= monitor_rect.bottom - 1,
+      position.left <= display_rect.left + 1
+        && position.top <= display_rect.top + 1
+        && position.right >= display_rect.right - 1
+        && position.bottom >= display_rect.bottom - 1,
     )
   }
 
-  pub fn set_foreground(&self) -> crate::Result<()> {
+  /// Windows-specific implementation of [`NativeWindow::focus`].
+  pub(crate) fn focus(&self) -> crate::Result<()> {
     let input = [INPUT {
       r#type: INPUT_MOUSE,
       Anonymous: INPUT_0 {
@@ -366,7 +361,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_border_color(
+  pub(crate) fn set_border_color(
     &self,
     color: Option<&Color>,
   ) -> crate::Result<()> {
@@ -388,7 +383,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_corner_style(
+  pub(crate) fn set_corner_style(
     &self,
     corner_style: &CornerStyle,
   ) -> crate::Result<()> {
@@ -412,7 +407,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_title_bar_visibility(
+  pub(crate) fn set_title_bar_visibility(
     &self,
     visible: bool,
   ) -> crate::Result<()> {
@@ -465,7 +460,7 @@ impl NativeWindow {
     }
   }
 
-  pub fn adjust_transparency(
+  pub(crate) fn adjust_transparency(
     &self,
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()> {
@@ -496,7 +491,7 @@ impl NativeWindow {
     self.set_transparency(&OpacityValue::from_alpha(target_alpha))
   }
 
-  pub fn set_transparency(
+  pub(crate) fn set_transparency(
     &self,
     opacity_value: &OpacityValue,
   ) -> crate::Result<()> {
@@ -519,14 +514,14 @@ impl NativeWindow {
   /// the window's shadow borders.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn frame_position(&self) -> crate::Result<Rect> {
+  pub(crate) fn frame_position(&self) -> crate::Result<Rect> {
     self
       .frame_position
       .get_or_init(Self::updated_frame_position, self)
   }
 
   /// Updates the cached frame position.
-  pub fn invalidate_frame_position(&self) -> crate::Result<Rect> {
+  pub(crate) fn invalidate_frame_position(&self) -> crate::Result<Rect> {
     _ = self.invalidate_border_position()?;
 
     self
@@ -566,14 +561,14 @@ impl NativeWindow {
   /// shadow borders.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
-  pub fn border_position(&self) -> crate::Result<Rect> {
+  pub(crate) fn border_position(&self) -> crate::Result<Rect> {
     self
       .border_position
       .get_or_init(Self::updated_border_position, self)
   }
 
   /// Updates the cached border position.
-  pub fn invalidate_border_position(&self) -> crate::Result<Rect> {
+  pub(crate) fn invalidate_border_position(&self) -> crate::Result<Rect> {
     self
       .border_position
       .update(Self::updated_border_position, self)
@@ -601,7 +596,7 @@ impl NativeWindow {
 
   /// Gets the delta between the window's frame and the window's border.
   /// This represents the size of a window's shadow borders.
-  pub fn shadow_border_delta(&self) -> crate::Result<RectDelta> {
+  pub(crate) fn shadow_border_delta(&self) -> crate::Result<RectDelta> {
     let border_pos = self.border_position()?;
     let frame_pos = self.frame()?;
 
@@ -631,7 +626,10 @@ impl NativeWindow {
     (current_style & style) != 0
   }
 
-  pub fn restore_to_position(&self, rect: &Rect) -> crate::Result<()> {
+  pub(crate) fn restore_to_position(
+    &self,
+    rect: &Rect,
+  ) -> crate::Result<()> {
     let placement = WINDOWPLACEMENT {
       #[allow(clippy::cast_possible_truncation)]
       length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
@@ -653,17 +651,17 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn maximize(&self) -> crate::Result<()> {
+  pub(crate) fn maximize(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(HWND(self.handle), SW_MAXIMIZE).ok() }?;
     Ok(())
   }
 
-  pub fn minimize(&self) -> crate::Result<()> {
+  pub(crate) fn minimize(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(HWND(self.handle), SW_MINIMIZE).ok() }?;
     Ok(())
   }
 
-  pub fn close(&self) -> crate::Result<()> {
+  pub(crate) fn close(&self) -> crate::Result<()> {
     unsafe {
       SendNotifyMessageW(HWND(self.handle), WM_CLOSE, None, None)
     }?;
@@ -671,7 +669,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn set_visible(
+  pub(crate) fn set_visible(
     &self,
     visible: bool,
     hide_method: &HideMethod,
@@ -688,17 +686,17 @@ impl NativeWindow {
     }
   }
 
-  pub fn show(&self) -> crate::Result<()> {
+  pub(crate) fn show(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
     Ok(())
   }
 
-  pub fn hide(&self) -> crate::Result<()> {
+  pub(crate) fn hide(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
     Ok(())
   }
 
-  pub fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
+  pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
     COM_INIT.with(|com_init| -> crate::Result<()> {
       let view_collection = com_init.application_view_collection()?;
 
@@ -723,7 +721,7 @@ impl NativeWindow {
   /// Hidden windows (`SW_HIDE`) cannot be forced to be shown in the
   /// taskbar. Cloaked windows are normally always shown in the taskbar,
   /// but can be manually toggled.
-  pub fn set_taskbar_visibility(
+  pub(crate) fn set_taskbar_visibility(
     &self,
     visible: bool,
   ) -> crate::Result<()> {
@@ -740,7 +738,8 @@ impl NativeWindow {
     })
   }
 
-  pub fn set_position(
+  // TODO: Should probably be removed and have its logic called explicitly.
+  pub(crate) fn set_position(
     &self,
     state: &WindowState,
     rect: &Rect,
@@ -853,7 +852,10 @@ impl NativeWindow {
   ///
   /// Causes the native Windows taskbar to be moved to the bottom of the
   /// z-order when this window is active.
-  pub fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()> {
+  pub(crate) fn mark_fullscreen(
+    &self,
+    fullscreen: bool,
+  ) -> crate::Result<()> {
     COM_INIT.with(|com_init| -> crate::Result<()> {
       let taskbar_list = com_init.taskbar_list()?;
 
@@ -865,7 +867,7 @@ impl NativeWindow {
     })
   }
 
-  pub fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
+  pub(crate) fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
     let z_order = match z_order {
       ZOrder::TopMost => HWND_TOPMOST,
       ZOrder::Top => HWND_TOP,
@@ -917,7 +919,8 @@ impl NativeWindow {
     Ok(())
   }
 
-  pub fn cleanup(&self) {
+  // TODO: Should probably be removed and have its logic called explicitly.
+  pub(crate) fn cleanup(&self) {
     if let Err(err) = self.show() {
       warn!("Failed to show window: {:?}", err);
     }
@@ -936,24 +939,35 @@ impl PartialEq for NativeWindow {
 
 impl Eq for NativeWindow {}
 
-pub fn available_windows() -> crate::Result<Vec<NativeWindow>> {
-  available_window_handles()?
-    .into_iter()
-    .map(|handle| Ok(NativeWindow::new(handle)))
-    .collect()
-}
-
-pub fn available_window_handles() -> crate::Result<Vec<isize>> {
+/// Windows-specific implementation of [`Dispatcher::visible_windows`].
+pub(crate) fn visible_windows(
+  _: &Dispatcher,
+) -> crate::Result<Vec<NativeWindow>> {
   let mut handles: Vec<isize> = Vec::new();
+
+  extern "system" fn visible_windows_proc(
+    handle: HWND,
+    data: LPARAM,
+  ) -> BOOL {
+    let handles = data.0 as *mut Vec<isize>;
+    unsafe { (*handles).push(handle.0) };
+    true.into()
+  }
 
   unsafe {
     EnumWindows(
-      Some(available_window_handles_proc),
+      Some(visible_windows_proc),
       LPARAM(std::ptr::from_mut(&mut handles) as _),
     )
   }?;
 
-  Ok(handles)
+  Ok(
+    handles
+      .into_iter()
+      .map(|handle| NativeWindow::new(handle))
+      .filter(|window| window.is_visible().unwrap_or(false))
+      .collect(),
+  )
 }
 
 /// Windows-specific implementation of [`Dispatcher::focused_window`].
@@ -962,13 +976,4 @@ pub(crate) fn focused_window(
 ) -> crate::Result<crate::NativeWindow> {
   let handle = unsafe { GetForegroundWindow() };
   Ok(NativeWindow::new(handle.0).into())
-}
-
-extern "system" fn available_window_handles_proc(
-  handle: HWND,
-  data: LPARAM,
-) -> BOOL {
-  let handles = data.0 as *mut Vec<isize>;
-  unsafe { (*handles).push(handle.0) };
-  true.into()
 }

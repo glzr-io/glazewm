@@ -278,7 +278,7 @@ fn handle_input_msg(
 
   // Ignore if data is invalid or not a mouse event. Inputs from our own
   // process are ignored, which would cause issues since
-  // `NativeWindow::set_foreground` simulates a mouse input.
+  // `NativeWindow::focus` simulates a mouse input.
   if res_size == 0
     || raw_input_size == u32::MAX
     || raw_input.header.dwType != RIM_TYPEMOUSE.0

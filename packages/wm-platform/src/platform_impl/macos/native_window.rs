@@ -108,7 +108,7 @@ pub struct NativeWindow {
 }
 
 impl NativeWindow {
-  /// Creates a new `NativeWindow` instance with the given window handle.
+  /// macOS-specific implementation of [`NativeWindow::new`].
   #[must_use]
   pub(crate) fn new(
     id: WindowId,
@@ -122,10 +122,12 @@ impl NativeWindow {
     }
   }
 
+  /// macOS-specific implementation of [`NativeWindow::id`].
   pub(crate) fn id(&self) -> WindowId {
     self.id
   }
 
+  /// macOS-specific implementation of [`NativeWindow::title`].
   pub(crate) fn title(&self) -> crate::Result<String> {
     self.element.with(|el| {
       el.get_attribute::<CFString>("AXTitle")
@@ -133,6 +135,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::process_name`].
   pub(crate) fn process_name(&self) -> crate::Result<String> {
     self
       .application
@@ -142,11 +145,13 @@ impl NativeWindow {
       ))
   }
 
+  /// macOS-specific implementation of [`NativeWindow::is_visible`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_visible(&self) -> crate::Result<bool> {
     Ok(!self.application.is_hidden())
   }
 
+  /// macOS-specific implementation of [`NativeWindow::size`].
   pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
     self.element.with(move |el| {
       el.get_attribute::<AXValue>("AXSize")
@@ -155,6 +160,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::position`].
   pub(crate) fn position(&self) -> crate::Result<(f64, f64)> {
     self.element.with(move |el| {
       el.get_attribute::<AXValue>("AXPosition")
@@ -163,6 +169,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::frame`].
   pub(crate) fn frame(&self) -> crate::Result<Rect> {
     // TODO: Consider refactoring this to use a single dispatch.
     // TODO: Would `AXFrame` work instead?
@@ -225,6 +232,7 @@ impl NativeWindow {
     })??
   }
 
+  /// macOS-specific implementation of [`NativeWindow::resize`].
   pub(crate) fn resize(
     &self,
     width: f64,
@@ -237,6 +245,7 @@ impl NativeWindow {
     })
   }
 
+  /// macOS-specific implementation of [`NativeWindow::reposition`].
   pub(crate) fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_point = CGPoint::new(x, y);
@@ -245,6 +254,7 @@ impl NativeWindow {
     })
   }
 
+  /// macOS-specific implementation of [`NativeWindow::set_frame`].
   pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     // TODO: Consider adding a separate `set_frame_async` method which
     // spawns a thread. Calling blocking AXUIElement methods from different
@@ -264,7 +274,7 @@ impl NativeWindow {
     })
   }
 
-  /// Whether the window is minimized.
+  /// macOS-specific implementation of [`NativeWindow::is_minimized`].
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     self.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXMinimized")
@@ -272,6 +282,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::minimize`].
   pub(crate) fn minimize(&self) -> crate::Result<()> {
     self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
@@ -279,6 +290,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::is_maximized`].
   pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
     self.element.with(|el| {
       el.get_attribute::<CFBoolean>("AXFullScreen")
@@ -286,6 +298,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::maximize`].
   pub(crate) fn maximize(&self) -> crate::Result<()> {
     self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
@@ -293,6 +306,7 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::close`].
   pub(crate) fn close(&self) -> crate::Result<()> {
     self.element.with(|el| -> crate::Result<()> {
       let close_button =
@@ -314,12 +328,14 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::is_desktop_window`].
   pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
     Ok(
       self.application.bundle_id() == Some("com.apple.finder".to_string()),
     )
   }
 
+  /// macOS-specific implementation of [`NativeWindow::focus`].
   pub(crate) fn focus(&self) -> crate::Result<()> {
     let psn = self.application.psn()?;
     self.set_front_process(&psn)?;
@@ -405,6 +421,26 @@ impl NativeWindow {
     }
 
     Ok(())
+  }
+
+  /// macOS-specific implementation of [`NativeWindow::is_fullscreen`].
+  pub(crate) fn is_fullscreen(
+    &self,
+    display_rect: &Rect,
+  ) -> Result<bool, crate::Error> {
+    if self.is_maximized()? {
+      return Ok(false);
+    }
+
+    let position = self.frame()?;
+
+    // Allow for 1px of leeway around edges of monitor.
+    Ok(
+      position.left <= display_rect.left + 1
+        && position.top <= display_rect.top + 1
+        && position.right >= display_rect.right - 1
+        && position.bottom >= display_rect.bottom - 1,
+    )
   }
 }
 
