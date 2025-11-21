@@ -261,7 +261,7 @@ impl Default for BorderEffectConfig {
         a: 255,
       },
       window_filter: WindowFilter {
-        filter_type: WindowFilterType::Any,
+        filter_combination: WindowFilterCombination::Any,
         match_window: Vec::new(),
       },
     }
@@ -316,7 +316,7 @@ pub struct TransparencyEffectConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WindowFilterType {
+pub enum WindowFilterCombination {
   #[default]
   Any,
   All,
@@ -325,8 +325,8 @@ pub enum WindowFilterType {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowFilter {
-  #[serde(rename = "type")]
-  pub filter_type: WindowFilterType,
+  #[serde(rename = "combination")]
+  pub filter_combination: WindowFilterCombination,
 
   #[serde(rename = "match")]
   pub match_window: Vec<WindowMatchConfig>,

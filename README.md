@@ -326,7 +326,7 @@ For example if we want the transparency effect to only apply to terminal windows
       enabled: true
       opacity: '90%'
       window_filter:
-        type: 'any'
+        combination: 'any'
         match:
           # Only apply to terminal windows.
           - window_process: { equals: 'WindowsTerminal' }

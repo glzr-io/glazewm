@@ -473,7 +473,7 @@ fn does_match(
 
   UserConfig::does_window_match(
     &window_filter.match_window,
-    &window_filter.filter_type,
+    &window_filter.filter_combination,
     &window_title,
     &window_class,
     &window_process,

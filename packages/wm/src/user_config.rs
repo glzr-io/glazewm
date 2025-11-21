@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, fs, path::PathBuf};
 use anyhow::{Context, Result};
 use tracing_subscriber::filter;
 use wm_common::{
-  InvokeCommand, MatchType, ParsedConfig, WindowFilterType,
+  InvokeCommand, MatchType, ParsedConfig, WindowFilterCombination,
   WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
 };
 
@@ -242,7 +242,7 @@ impl UserConfig {
 
         UserConfig::does_window_match(
           &rule.match_window,
-          &WindowFilterType::Any,
+          &WindowFilterCombination::Any,
           &window_title,
           &window_class,
           &window_process,
@@ -259,7 +259,7 @@ impl UserConfig {
   #[must_use]
   pub fn does_window_match(
     match_window: &[WindowMatchConfig],
-    filter_type: &WindowFilterType,
+    filter_combination: &WindowFilterCombination,
     window_title: &str,
     window_class: &str,
     window_process: &str,
@@ -283,9 +283,9 @@ impl UserConfig {
       is_process_match && is_class_match && is_title_match
     };
 
-    match *filter_type {
-      WindowFilterType::Any => match_window.iter().any(match_one_config),
-      WindowFilterType::All => match_window.iter().all(match_one_config),
+    match *filter_combination {
+      WindowFilterCombination::Any => match_window.iter().any(match_one_config),
+      WindowFilterCombination::All => match_window.iter().all(match_one_config),
     }
   }
 
