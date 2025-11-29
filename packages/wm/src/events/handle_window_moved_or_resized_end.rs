@@ -1,22 +1,18 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, ActiveDragOperation, LengthValue, Point, Rect,
-  TilingDirection, WindowState,
+  try_warn, ActiveDragOperation, LengthValue, Point, Rect, WindowState,
 };
 use wm_platform::{NativeWindow, Platform};
 
 use crate::{
   commands::{
-    container::{move_container_within_tree, wrap_in_split_container},
-    window::{resize_window, update_window_state},
+    window::{manage_window::rebuild_spiral_layout, resize_window},
+    window::update_window_state,
   },
-  models::{
-    DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
-    WindowContainer,
-  },
+  models::{NonTilingWindow, TilingWindow, WindowContainer},
   traits::{
-    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+    CommonGetters, PositionGetters, WindowGetters,
   },
   user_config::UserConfig,
   wm_state::WmState,
@@ -61,7 +57,14 @@ pub fn handle_window_moved_or_resized_end(
         }
       }
       WindowContainer::TilingWindow(window) => {
-        let parent = window.parent().context("No parent.")?;
+        let parent = match window.parent() {
+          Some(parent) => parent,
+          None => {
+            // Window is detached, just redraw it and return
+            state.pending_sync.queue_container_to_redraw(window.clone());
+            return Ok(());
+          }
+        };
 
         // Snap window to its original position if it's the only window in
         // the workspace.
@@ -100,56 +103,14 @@ fn drop_as_tiling_window(
   let mouse_pos = Platform::mouse_position()?;
   let workspace = moved_window.workspace().context("No workspace.")?;
 
-  // Get the workspace, split containers, and other windows under the
-  // dragged window.
-  let containers_at_pos = state
+  // Find the tiling window under the cursor to use as a reference for reordering
+  let target_window: Option<TilingWindow> = state
     .containers_at_point(&workspace.clone().into(), &mouse_pos)
     .into_iter()
-    .filter(|container| container.id() != moved_window.id());
+    .find_map(|c| c.as_tiling_window().cloned());
 
-  // Get the deepest direction container under the dragged window.
-  let target_parent: DirectionContainer = containers_at_pos
-    .filter_map(|container| container.as_direction_container().ok())
-    .fold(workspace.into(), |acc, container| {
-      if container.ancestors().count() > acc.ancestors().count() {
-        container
-      } else {
-        acc
-      }
-    });
-
-  // If the target parent has no children (i.e. an empty workspace), then
-  // add the window directly.
-  if target_parent.tiling_children().count() == 0 {
-    update_window_state(
-      moved_window.clone().into(),
-      WindowState::Tiling,
-      state,
-      config,
-    )?;
-
-    return Ok(());
-  }
-
-  let nearest_container = target_parent
-    .children()
-    .into_iter()
-    .filter_map(|container| container.as_tiling_container().ok())
-    .try_fold(None, |acc: Option<TilingContainer>, container| match acc {
-      Some(acc) => {
-        let is_nearer = acc.to_rect()?.distance_to_point(&mouse_pos)
-          < container.to_rect()?.distance_to_point(&mouse_pos);
-
-        anyhow::Ok(Some(if is_nearer { acc } else { container }))
-      }
-      None => Ok(Some(container)),
-    })?
-    .context("No nearest container.")?;
-
-  let tiling_direction = target_parent.tiling_direction();
-  let drop_position =
-    drop_position(&mouse_pos, &nearest_container.to_rect()?);
-
+  // Transition the moved window back to tiling state.
+  // This will initially append it to the workspace and rebuild the spiral.
   let moved_window = update_window_state(
     moved_window.clone().into(),
     WindowState::Tiling,
@@ -157,56 +118,68 @@ fn drop_as_tiling_window(
     config,
   )?;
 
-  let should_split = nearest_container.is_tiling_window()
-    && match tiling_direction {
-      TilingDirection::Horizontal => {
-        drop_position == DropPosition::Top
-          || drop_position == DropPosition::Bottom
+  // If we dropped onto another window, we need to reorder the spiral list
+  if let Some(target_window) = target_window {
+    if target_window.id() != moved_window.id() {
+      let drop_position =
+        drop_position(&mouse_pos, &target_window.to_rect()?);
+
+      let insert_after = matches!(
+        drop_position,
+        DropPosition::Bottom | DropPosition::Right
+      );
+
+      // Get all tiling windows in their current spiral order
+      let mut windows: Vec<TilingWindow> = workspace
+        .descendants()
+        .filter_map(|c| c.try_into().ok())
+        .collect();
+
+      // Remove the moved window (which is likely at the end due to update_window_state)
+      if let Some(pos) =
+        windows.iter().position(|w| w.id() == moved_window.id())
+      {
+        windows.remove(pos);
       }
-      TilingDirection::Vertical => {
-        drop_position == DropPosition::Left
-          || drop_position == DropPosition::Right
+
+      // Find the target window's index
+      if let Some(target_idx) =
+        windows.iter().position(|w| w.id() == target_window.id())
+      {
+        let insert_idx = if insert_after {
+          target_idx + 1
+        } else {
+          target_idx
+        };
+
+        // Insert the moved window at the new position
+        if insert_idx <= windows.len() {
+          windows.insert(
+            insert_idx,
+            moved_window
+              .as_tiling_window()
+              .context("Moved window is not tiling")?
+              .clone(),
+          );
+        } else {
+          windows.push(
+            moved_window
+              .as_tiling_window()
+              .context("Moved window is not tiling")?
+              .clone(),
+          );
+        }
+
+        // Rebuild the spiral with the new order
+        rebuild_spiral_layout(&workspace, &windows)?;
+
+        // Queue redraws
+        state
+          .pending_sync
+          .queue_containers_to_redraw(workspace.tiling_children());
       }
-    };
-
-  if should_split {
-    let split_container = SplitContainer::new(
-      tiling_direction.inverse(),
-      config.value.gaps.clone(),
-    );
-
-    wrap_in_split_container(
-      &split_container,
-      &target_parent.clone().into(),
-      &[nearest_container],
-    )?;
-
-    let target_index = match drop_position {
-      DropPosition::Top | DropPosition::Left => 0,
-      _ => 1,
-    };
-
-    move_container_within_tree(
-      &moved_window.clone().into(),
-      &split_container.into(),
-      target_index,
-      state,
-    )?;
-  } else {
-    let target_index = match drop_position {
-      DropPosition::Top | DropPosition::Left => nearest_container.index(),
-      _ => nearest_container.index() + 1,
-    };
-
-    move_container_within_tree(
-      &moved_window.clone().into(),
-      &target_parent.clone().into(),
-      target_index,
-      state,
-    )?;
+    }
   }
-
-  state.pending_sync.queue_container_to_redraw(target_parent);
 
   Ok(())
 }

@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
-use anyhow::Context;
-
+// Removed `anyhow::Context` import as we handle it manually now
 use crate::{
   models::SplitContainer,
   traits::{CommonGetters, TilingSizeGetters},
@@ -15,7 +14,13 @@ use crate::{
 pub fn flatten_split_container(
   split_container: SplitContainer,
 ) -> anyhow::Result<()> {
-  let parent = split_container.parent().context("No parent.")?;
+  // FIX: Gracefully handle missing parent.
+  // Instead of crashing with `context("No parent.")?`, we exit early.
+  // This prevents crashes during complex moves where the tree is temporarily dirty.
+  let parent = match split_container.parent() {
+      Some(p) => p,
+      None => return Ok(()),
+  };
 
   let updated_children =
     split_container.children().into_iter().inspect(|child| {

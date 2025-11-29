@@ -1,19 +1,26 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  try_warn, LengthValue, RectDelta, TilingDirection, WindowRuleEvent, WindowState, WmEvent,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, Platform}; // <--- Import Platform
 
 use crate::{
   commands::{
-    container::{attach_container, set_focused_descendant},
+    container::{
+      attach_container, detach_container, set_focused_descendant,
+      wrap_in_split_container,
+    },
     window::run_window_rules,
   },
   models::{
-    Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    Container, Monitor, NonTilingWindow, SplitContainer, TilingContainer,
+    TilingWindow, WindowContainer, Workspace,
   },
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, TilingSizeGetters,
+    WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -80,27 +87,53 @@ fn create_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
-  let nearest_monitor = state
-    .nearest_monitor(&native_window)
-    .context("No nearest monitor.")?;
+  // --- CHANGE: Use mouse_position() to find the correct monitor ---
+  let nearest_monitor = if let Ok(mouse_pos) = Platform::mouse_position() {
+    state.monitor_at_point(&mouse_pos)
+  } else {
+    None
+  }
+  .or_else(|| state.nearest_monitor(&native_window))
+  .context("No nearest monitor.")?;
 
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
   let gaps_config = config.value.gaps.clone();
+  
+  // Note: We use the cursor-based monitor here to determine window state
   let window_state =
     window_state_to_create(&native_window, &nearest_monitor, config)?;
+  let is_tiling = window_state == WindowState::Tiling;
 
-  // Attach the new window as the first child of the target parent (if
-  // provided), otherwise, add as a sibling of the focused container.
-  let (target_parent, target_index) = match target_parent {
-    Some(parent) => (parent, 0),
-    None => insertion_target(&window_state, state)?,
+  // --- CHANGE: Force target workspace to be the one under cursor ---
+  let target_workspace = match &target_parent {
+      Some(parent) => parent.workspace().context("No target workspace.")?,
+      None => nearest_workspace.clone(),
   };
 
-  let target_workspace =
-    target_parent.workspace().context("No target workspace.")?;
+  // Determine insertion. 
+  // If floating, we check if the standard insertion logic (which uses focus)
+  // matches our target monitor. If not, we force it to the target monitor.
+  let (target_parent, target_index) = if !is_tiling {
+    match target_parent {
+      Some(parent) => (parent, 0),
+      None => {
+        let (focused_target, focused_idx) = insertion_target(&window_state, state)?;
+        // If focus is on the same workspace as the cursor, use the smart insertion logic.
+        // Otherwise, just append to the cursor's workspace.
+        if focused_target.workspace().map(|w| w.id()) == Some(target_workspace.id()) {
+            (focused_target, focused_idx)
+        } else {
+            (target_workspace.clone().into(), target_workspace.child_count())
+        }
+      },
+    }
+  } else {
+    // For spiral tiling, we start with the workspace root
+    (target_workspace.clone().into(), 0)
+  };
 
   let prefers_centered = config
     .value
@@ -109,9 +142,7 @@ fn create_window(
     .floating
     .centered;
 
-  // Calculate where window should be placed when floating is enabled. Use
-  // the original width/height of the window and optionally position it in
-  // the center of the workspace.
+  // Calculate where window should be placed when floating is enabled.
   let is_same_workspace = nearest_workspace.id() == target_workspace.id();
   let floating_placement = {
     let placement = if !is_same_workspace || prefers_centered {
@@ -130,8 +161,6 @@ fn create_window(
     )
   };
 
-  // Window has no border delta unless it's later changed via the
-  // `adjust_borders` command.
   let border_delta = RectDelta::new(
     LengthValue::from_px(0),
     LengthValue::from_px(0),
@@ -147,7 +176,7 @@ fn create_window(
       border_delta,
       floating_placement,
       false,
-      gaps_config,
+      gaps_config.clone(),
       Vec::new(),
       None,
     )
@@ -167,14 +196,57 @@ fn create_window(
     .into(),
   };
 
+  // Implement BSWM spiral tiling with cursor awareness
+  let (final_target_parent, final_target_index) = if is_tiling {
+    // We use the target_workspace (derived from cursor) to find the spiral split
+    let tiling_children_count = target_workspace.tiling_children().count();
+
+    if tiling_children_count == 0 {
+      (target_workspace.clone().into(), 0)
+    } else {
+      if let Some((parent_to_split, child_to_wrap)) =
+        find_last_tiling_window_to_split(&target_workspace.clone().into())
+      {
+        let split_direction = match child_to_wrap.to_rect() {
+          Ok(rect) => {
+            if rect.width() > rect.height() {
+              TilingDirection::Horizontal 
+            } else {
+              TilingDirection::Vertical 
+            }
+          }
+          Err(_) => {
+            if let Ok(direction_parent) = parent_to_split.as_direction_container() {
+              direction_parent.tiling_direction().inverse()
+            } else {
+              TilingDirection::Horizontal
+            }
+          }
+        };
+
+        let split_container = SplitContainer::new(split_direction, gaps_config);
+
+        wrap_in_split_container(
+          &split_container,
+          &parent_to_split,
+          &[child_to_wrap],
+        )?;
+
+        (split_container.into(), 1)
+      } else {
+        (target_workspace.clone().into(), target_workspace.child_count())
+      }
+    }
+  } else {
+    (target_parent, target_index)
+  };
+
   attach_container(
     &window_container.clone().into(),
-    &target_parent,
-    Some(target_index),
+    &final_target_parent,
+    Some(final_target_index),
   )?;
 
-  // The OS might spawn the window on a different monitor to the target
-  // parent, so adjustments might need to be made because of DPI.
   if nearest_monitor
     .has_dpi_difference(&window_container.clone().into())?
   {
@@ -184,9 +256,103 @@ fn create_window(
   Ok(window_container)
 }
 
-/// Gets the initial state for a window based on its native state.
-///
-/// Note that maximized windows are initialized as tiling.
+pub fn find_last_tiling_window_to_split(
+  container: &Container,
+) -> Option<(Container, TilingContainer)> {
+  if let Ok(direction_container) = container.as_direction_container() {
+    let tiling_children: Vec<TilingContainer> =
+      direction_container.tiling_children().collect();
+
+    if !tiling_children.is_empty() {
+      let last_child = tiling_children[tiling_children.len() - 1].clone();
+
+      if let Some(split) = last_child.as_split() {
+        if let Some(result) =
+          find_last_tiling_window_to_split(&split.clone().into())
+        {
+          return Some(result);
+        }
+      }
+
+      return Some((container.clone(), last_child));
+    }
+  }
+  None
+}
+
+pub fn rebuild_spiral_layout(
+  workspace: &Workspace,
+  windows: &[TilingWindow],
+) -> anyhow::Result<()> {
+  for win in windows {
+    let _ = detach_container(win.clone().into());
+  }
+
+  let children_to_remove: Vec<Container> = workspace
+    .children()
+    .into_iter()
+    .filter(|c| c.is_split())
+    .collect();
+
+  for child in children_to_remove {
+    let _ = detach_container(child);
+  }
+
+  if let Some(first) = windows.first() {
+    attach_container(
+      &first.clone().into(),
+      &workspace.clone().into(),
+      None,
+    )?;
+  }
+
+  for win in windows.iter().skip(1) {
+    if let Some((parent_to_split, child_to_wrap)) =
+      find_last_tiling_window_to_split(&workspace.clone().into())
+    {
+      let split_direction = match child_to_wrap.to_rect() {
+        Ok(rect) => {
+          if rect.width() > rect.height() {
+            TilingDirection::Horizontal
+          } else {
+            TilingDirection::Vertical
+          }
+        }
+        Err(_) => {
+          if let Ok(direction_parent) = parent_to_split.as_direction_container() {
+            direction_parent.tiling_direction().inverse()
+          } else {
+            TilingDirection::Horizontal
+          }
+        }
+      };
+
+      let gaps_config = (*win.gaps_config()).clone();
+      let split_container = SplitContainer::new(split_direction, gaps_config);
+
+      wrap_in_split_container(
+        &split_container,
+        &parent_to_split,
+        &[child_to_wrap],
+      )?;
+
+      attach_container(
+        &win.clone().into(),
+        &split_container.into(),
+        Some(1),
+      )?;
+    } else {
+      attach_container(
+        &win.clone().into(),
+        &workspace.clone().into(),
+        None,
+      )?;
+    }
+  }
+
+  Ok(())
+}
+
 fn window_state_to_create(
   native_window: &NativeWindow,
   nearest_monitor: &Monitor,
@@ -220,7 +386,6 @@ fn window_state_to_create(
     ));
   }
 
-  // Initialize windows that can't be resized as floating.
   if !native_window.is_resizable() {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
@@ -230,17 +395,6 @@ fn window_state_to_create(
   Ok(WindowState::default_from_config(&config.value))
 }
 
-/// Gets where to insert a new window in the container tree.
-///
-/// Rules:
-/// - For non-tiling windows: Always append to the workspace.
-/// - For tiling windows:
-///   1. Try to insert after the focused tiling window if one exists.
-///   2. If a non-tiling window is focused, try to insert after the first
-///      tiling window found.
-///   3. If no tiling windows exist, append to the workspace.
-///
-/// Returns tuple of (parent container, insertion index).
 fn insertion_target(
   window_state: &WindowState,
   state: &WmState,
@@ -251,8 +405,6 @@ fn insertion_target(
   let focused_workspace =
     focused_container.workspace().context("No workspace.")?;
 
-  // For tiling windows, try to find a suitable tiling window to insert
-  // next to.
   if *window_state == WindowState::Tiling {
     let sibling = match focused_container {
       Container::TilingWindow(_) => Some(focused_container),
@@ -262,14 +414,18 @@ fn insertion_target(
     };
 
     if let Some(sibling) = sibling {
-      return Ok((
-        sibling.parent().context("No parent.")?,
-        sibling.index() + 1,
-      ));
+      return match sibling.parent() {
+        Some(parent) => Ok((parent, sibling.index() + 1)),
+        None => {
+          Ok((
+            focused_workspace.clone().into(),
+            focused_workspace.child_count(),
+          ))
+        }
+      };
     }
   }
 
-  // Default to appending to workspace.
   Ok((
     focused_workspace.clone().into(),
     focused_workspace.child_count(),
