@@ -504,7 +504,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Removes transparency from the window by removing the WS_EX_LAYERED style.
+  /// Removes transparency from the window by removing the `WS_EX_LAYERED` style.
   /// This completely disables transparency effects for the window, which can fix
   /// rendering issues with certain applications that don't work properly with
   /// layered windows.

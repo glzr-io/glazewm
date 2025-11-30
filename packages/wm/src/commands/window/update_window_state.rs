@@ -199,7 +199,7 @@ fn set_non_tiling(
 ///
 /// This excludes the window from having transparency effects applied to it.
 pub fn set_transparency_exclusion(
-  window: WindowContainer,
+  window: &WindowContainer,
   state: &mut WmState,
   _config: &UserConfig,
 ) {
