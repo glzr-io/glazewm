@@ -114,6 +114,13 @@ impl WindowManager {
       }
     }?;
 
+    // Periodically clean up invalid/ghost windows
+    if !state.is_paused {
+      if let Err(err) = state.cleanup_invalid_windows() {
+        tracing::warn!("Failed to clean up invalid windows: {}", err);
+      }
+    }
+
     if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }

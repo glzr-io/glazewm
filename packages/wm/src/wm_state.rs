@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -48,6 +48,9 @@ pub struct WmState {
   /// Used to decide whether to override incoming focus events.
   pub unmanaged_or_minimized_timestamp: Option<Instant>,
 
+  /// Timestamp of last window validation cleanup.
+  pub last_window_cleanup: Option<Instant>,
+
   /// Configs of currently enabled binding modes.
   pub binding_modes: Vec<BindingModeConfig>,
 
@@ -82,6 +85,7 @@ impl WmState {
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
+      last_window_cleanup: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
       is_paused: false,
@@ -577,6 +581,59 @@ impl WmState {
           .unwrap_or(false)
       })
       .cloned()
+  }
+
+  /// Cleans up invalid window handles that may have become stale.
+  ///
+  /// This addresses the "ghost window" issue where applications terminate
+  /// without properly sending window destroy events, leaving invalid
+  /// window references in GlazeWM's state.
+  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
+    use crate::{
+      commands::window::unmanage_window, traits::CommonGetters,
+    };
+
+    let now = Instant::now();
+
+    // Only run cleanup every 5 seconds to avoid performance issues
+    if let Some(last_cleanup) = self.last_window_cleanup {
+      if now.duration_since(last_cleanup) < Duration::from_secs(5) {
+        return Ok(());
+      }
+    }
+
+    self.last_window_cleanup = Some(now);
+
+    // Collect invalid windows first to avoid borrowing issues
+    let invalid_windows: Vec<_> = self
+      .windows()
+      .into_iter()
+      .filter(|window| !window.native().is_valid())
+      .collect();
+
+    if invalid_windows.is_empty() {
+      return Ok(());
+    }
+
+    tracing::info!(
+      "Cleaning up {} invalid windows",
+      invalid_windows.len()
+    );
+
+    // Remove each invalid window from the window tree
+    for window in invalid_windows {
+      tracing::debug!(
+        "Removing invalid window: {} (handle: {})",
+        window.display_name(),
+        window.native().handle
+      );
+
+      if let Err(err) = unmanage_window(window, self) {
+        tracing::warn!("Failed to unmanage invalid window: {}", err);
+      }
+    }
+
+    Ok(())
   }
 }
 

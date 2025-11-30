@@ -16,6 +16,11 @@ pub fn reload_config(
 ) -> anyhow::Result<()> {
   info!("Config reloaded.");
 
+  // Clean up any invalid/ghost windows before reloading config
+  if let Err(err) = state.cleanup_invalid_windows() {
+    warn!("Failed to clean up invalid windows during config reload: {}", err);
+  }
+
   // Keep reference to old config for comparison.
   let old_config = config.value.clone();
 
