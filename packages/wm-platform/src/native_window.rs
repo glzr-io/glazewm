@@ -147,14 +147,6 @@ impl NativeWindow {
     self.inner.close()
   }
 
-  /// Whether the window is fullscreen.
-  ///
-  /// Returns `true` if the window covers the entire monitor. `false` is
-  /// returned if the window is maximized.
-  pub fn is_fullscreen(&self, display_rect: &Rect) -> crate::Result<bool> {
-    self.inner.is_fullscreen(display_rect)
-  }
-
   pub fn is_resizable(&self) -> crate::Result<bool> {
     // TODO: Implement this.
     Ok(true)

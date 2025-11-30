@@ -422,26 +422,6 @@ impl NativeWindow {
 
     Ok(())
   }
-
-  /// macOS-specific implementation of [`NativeWindow::is_fullscreen`].
-  pub(crate) fn is_fullscreen(
-    &self,
-    display_rect: &Rect,
-  ) -> Result<bool, crate::Error> {
-    if self.is_maximized()? {
-      return Ok(false);
-    }
-
-    let position = self.frame()?;
-
-    // Allow for 1px of leeway around edges of monitor.
-    Ok(
-      position.left <= display_rect.left + 1
-        && position.top <= display_rect.top + 1
-        && position.right >= display_rect.right - 1
-        && position.bottom >= display_rect.bottom - 1,
-    )
-  }
 }
 
 impl From<NativeWindow> for crate::NativeWindow {

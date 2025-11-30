@@ -96,6 +96,59 @@ impl Workspace {
     gaps.clone()
   }
 
+  /// Gets whether the given window frame is considered fullscreen for this
+  /// workspace.
+  ///
+  /// A window frame is fullscreen if every side exceeds the maximum
+  /// possible workspace dimensions. The max dimensions are derived from
+  /// both the `outer_gap` and `single_window_outer_gap` config values and
+  /// taking the largest bounds on each side.
+  pub fn is_frame_fullscreen(&self, frame: &Rect) -> anyhow::Result<bool> {
+    let monitor =
+      self.monitor().context("Workspace has no parent monitor.")?;
+
+    let gaps_config = &self.0.borrow().gaps_config;
+    let scale_factor = match &gaps_config.scale_with_dpi {
+      true => monitor.native_properties().scale_factor,
+      false => 1.,
+    };
+
+    // Get the delta between the monitor's bounds and its working area.
+    let monitor_bounds = monitor.native_properties().bounds;
+    let working_area_delta = monitor
+      .native_properties()
+      .working_area
+      .delta(&monitor_bounds);
+
+    // Workspace rect using `outer_gap`.
+    let default_rect = monitor_bounds
+      .apply_delta(&gaps_config.outer_gap.inverse(), Some(scale_factor))
+      .apply_delta(&working_area_delta, None);
+
+    // Workspace rect using `single_window_outer_gap` (if it exists).
+    let single_window_rect = match &gaps_config.single_window_outer_gap {
+      Some(single_gap) => monitor_bounds
+        .apply_delta(&single_gap.inverse(), Some(scale_factor))
+        .apply_delta(&working_area_delta, None),
+      None => default_rect.clone(),
+    };
+
+    // Use the largest bounds on each side to get the max workspace rect.
+    let max_workspace_rect = Rect::from_ltrb(
+      default_rect.left.min(single_window_rect.left),
+      default_rect.top.min(single_window_rect.top),
+      default_rect.right.max(single_window_rect.right),
+      default_rect.bottom.max(single_window_rect.bottom),
+    );
+
+    Ok(
+      frame.left <= max_workspace_rect.left
+        && frame.top <= max_workspace_rect.top
+        && frame.right >= max_workspace_rect.right
+        && frame.bottom >= max_workspace_rect.bottom,
+    )
+  }
+
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let config = self.config();
@@ -139,8 +192,8 @@ impl PositionGetters for Workspace {
       false => 1.,
     };
 
-    // Get delta between monitor bounds and its working area.
-    let working_delta = monitor
+    // Get the delta between the monitor's bounds and its working area.
+    let working_area_delta = monitor
       .native_properties()
       .working_area
       .delta(&monitor.native_properties().bounds);
@@ -149,9 +202,12 @@ impl PositionGetters for Workspace {
       monitor
         .native_properties()
         .bounds
-        // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(&self.outer_gaps(), Some(scale_factor))
-        .apply_delta(&working_delta, None),
+        // Scale the gaps if `scale_with_dpi` is enabled. Outer gap config
+        // values can be a percentage (relative to the monitor bounds), so
+        // the outer gap delta needs to be applied prior to the working
+        // area delta.
+        .apply_delta(&self.outer_gaps().inverse(), Some(scale_factor))
+        .apply_delta(&working_area_delta, None),
     )
   }
 }

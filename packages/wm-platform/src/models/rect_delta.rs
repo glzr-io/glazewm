@@ -53,4 +53,29 @@ impl RectDelta {
       LengthValue::from_px(0),
     )
   }
+
+  /// Gets the inverse of this delta by negating all values.
+  ///
+  /// Returns a new `RectDelta` instance.
+  #[must_use]
+  pub fn inverse(&self) -> Self {
+    RectDelta::new(
+      LengthValue {
+        amount: -self.left.amount,
+        unit: self.left.unit.clone(),
+      },
+      LengthValue {
+        amount: -self.top.amount,
+        unit: self.top.unit.clone(),
+      },
+      LengthValue {
+        amount: -self.right.amount,
+        unit: self.right.unit.clone(),
+      },
+      LengthValue {
+        amount: -self.bottom.amount,
+        unit: self.bottom.unit.clone(),
+      },
+    )
+  }
 }

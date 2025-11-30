@@ -4,7 +4,10 @@ use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
 use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
-use crate::{models::NativeWindowProperties, user_config::UserConfig};
+use crate::{
+  models::{NativeWindowProperties, Workspace},
+  user_config::UserConfig,
+};
 
 #[delegatable_trait]
 pub trait WindowGetters {
@@ -91,6 +94,12 @@ pub trait WindowGetters {
           + shadow_border_delta.bottom.to_px(0, None),
       ),
     })
+  }
+
+  fn is_fullscreen(&self, workspace: &Workspace) -> anyhow::Result<bool> {
+    // TODO: Return `false` if the window is tiling and is along the edge
+    // of the max workspace dimensions.
+    workspace.is_frame_fullscreen(&self.native_properties().frame)
   }
 
   fn display_state(&self) -> DisplayState;

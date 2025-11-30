@@ -316,26 +316,6 @@ impl NativeWindow {
     self.has_window_style(WS_THICKFRAME)
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_fullscreen`].
-  pub(crate) fn is_fullscreen(
-    &self,
-    display_rect: &Rect,
-  ) -> crate::Result<bool> {
-    if self.is_maximized()? {
-      return Ok(false);
-    }
-
-    let position = self.frame()?;
-
-    // Allow for 1px of leeway around edges of the display.
-    Ok(
-      position.left <= display_rect.left + 1
-        && position.top <= display_rect.top + 1
-        && position.right >= display_rect.right - 1
-        && position.bottom >= display_rect.bottom - 1,
-    )
-  }
-
   /// Windows-specific implementation of [`NativeWindow::focus`].
   pub(crate) fn focus(&self) -> crate::Result<()> {
     let input = [INPUT {

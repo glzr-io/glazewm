@@ -64,20 +64,11 @@ pub fn handle_window_moved_or_resized_end(
         .nearest_monitor(&window.native())
         .context("Failed to get workspace of nearest monitor.")?;
 
-      let is_fullscreen = {
-        let nearest_workspace = nearest_monitor
+      let is_fullscreen = window.is_fullscreen(
+        &nearest_monitor
           .displayed_workspace()
-          .context("No workspace.")?;
-
-        let monitor_rect =
-          if nearest_workspace.outer_gaps().is_significant() {
-            nearest_monitor.native_properties().working_area
-          } else {
-            nearest_monitor.native_properties().bounds
-          };
-
-        window.native().is_fullscreen(&monitor_rect)?
-      };
+          .context("No workspace.")?,
+      )?;
 
       if is_fullscreen {
         update_window_state(

@@ -130,12 +130,8 @@ fn create_window(
     .context("No nearest workspace.")?;
 
   let gaps_config = config.value.gaps.clone();
-  let window_state = window_state_to_create(
-    &native_window,
-    &native_properties,
-    &nearest_monitor,
-    config,
-  )?;
+  let window_state =
+    window_state_to_create(&native_properties, &nearest_monitor, config)?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -230,7 +226,6 @@ fn create_window(
 ///
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
-  native_window: &NativeWindow,
   native_properties: &NativeWindowProperties,
   nearest_monitor: &Monitor,
   config: &UserConfig,
@@ -243,13 +238,9 @@ fn window_state_to_create(
     .displayed_workspace()
     .context("No workspace.")?;
 
-  let monitor_rect = if nearest_workspace.outer_gaps().is_significant() {
-    nearest_monitor.native_properties().working_area
-  } else {
-    nearest_monitor.native_properties().bounds
-  };
-
-  if native_window.is_fullscreen(&monitor_rect)? {
+  if nearest_workspace.is_frame_fullscreen(&native_properties.frame)?
+    && !native_properties.is_maximized
+  {
     return Ok(WindowState::Fullscreen(
       config
         .value
