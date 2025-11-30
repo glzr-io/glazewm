@@ -96,9 +96,32 @@ pub trait WindowGetters {
     })
   }
 
-  fn is_fullscreen(&self, workspace: &Workspace) -> anyhow::Result<bool> {
-    // TODO: Return `false` if the window is tiling and is along the edge
-    // of the max workspace dimensions.
+  /// Gets whether the window should be fullscreen for the given workspace.
+  ///
+  /// - If the window is tiling, the frame needs to be larger than the
+  ///   maximum workspace bounds.
+  /// - Otherwise, the frame needs to be the same size or larger than the
+  ///   maximum workspace bounds.
+  fn should_fullscreen(
+    &self,
+    workspace: &Workspace,
+  ) -> anyhow::Result<bool> {
+    if self.state() == WindowState::Tiling {
+      let max_workspace_rect = workspace.max_workspace_rect()?;
+      let frame = self.native_properties().frame;
+
+      // Check if the window frame exactly matches the maximum workspace
+      // bounds. Unlike `is_frame_fullscreen`, this checks for an exact
+      // match rather than exceeding bounds.
+      if frame.left == max_workspace_rect.left
+        && frame.top == max_workspace_rect.top
+        && frame.right == max_workspace_rect.right
+        && frame.bottom == max_workspace_rect.bottom
+      {
+        return Ok(false);
+      }
+    }
+
     workspace.is_frame_fullscreen(&self.native_properties().frame)
   }
 

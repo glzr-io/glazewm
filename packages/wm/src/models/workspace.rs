@@ -96,14 +96,12 @@ impl Workspace {
     gaps.clone()
   }
 
-  /// Gets whether the given window frame is considered fullscreen for this
-  /// workspace.
+  /// Gets the maximum workspace rect considering both gap configurations.
   ///
-  /// A window frame is fullscreen if every side exceeds the maximum
-  /// possible workspace dimensions. The max dimensions are derived from
-  /// both the `outer_gap` and `single_window_outer_gap` config values and
-  /// taking the largest bounds on each side.
-  pub fn is_frame_fullscreen(&self, frame: &Rect) -> anyhow::Result<bool> {
+  /// Returns the largest possible workspace bounds by comparing the
+  /// `outer_gap` and `single_window_outer_gap` configurations and taking
+  /// the maximum bounds on each side.
+  pub fn max_workspace_rect(&self) -> anyhow::Result<Rect> {
     let monitor =
       self.monitor().context("Workspace has no parent monitor.")?;
 
@@ -134,12 +132,23 @@ impl Workspace {
     };
 
     // Use the largest bounds on each side to get the max workspace rect.
-    let max_workspace_rect = Rect::from_ltrb(
+    Ok(Rect::from_ltrb(
       default_rect.left.min(single_window_rect.left),
       default_rect.top.min(single_window_rect.top),
       default_rect.right.max(single_window_rect.right),
       default_rect.bottom.max(single_window_rect.bottom),
-    );
+    ))
+  }
+
+  /// Gets whether the given window frame is considered fullscreen for this
+  /// workspace.
+  ///
+  /// A window frame is fullscreen if every side exceeds or equals the
+  /// maximum possible workspace dimensions. The max dimensions are derived
+  /// from both the `outer_gap` and `single_window_outer_gap` config values
+  /// and taking the largest bounds on each side.
+  pub fn is_frame_fullscreen(&self, frame: &Rect) -> anyhow::Result<bool> {
+    let max_workspace_rect = self.max_workspace_rect()?;
 
     Ok(
       frame.left <= max_workspace_rect.left

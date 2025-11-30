@@ -180,14 +180,14 @@ pub fn handle_window_moved_or_resized(
       .nearest_monitor(&window.native())
       .context("Failed to get workspace of nearest monitor.")?;
 
-    let is_fullscreen = window.is_fullscreen(
+    let should_fullscreen = window.should_fullscreen(
       &nearest_monitor
         .displayed_workspace()
         .context("No workspace.")?,
     )?;
 
     // Handle a window being maximized or entering fullscreen.
-    if is_maximized || is_fullscreen {
+    if is_maximized || should_fullscreen {
       let fullscreen_state = if let WindowState::Fullscreen(
         fullscreen_state,
       ) = window.state()
