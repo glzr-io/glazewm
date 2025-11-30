@@ -1,0 +1,15 @@
+# Transparency Compatibility Rules
+#
+# Copy these rules into your config's 'window_rules' section to exclude
+# problematic applications from transparency effects.
+
+# Known applications with transparency compatibility issues:
+- commands: ["set-transparency-exclusion"]
+  match:
+    # Aseprite exclusions
+    - window_process: { equals: "aseprite" }
+    - window_class: { regex: ".*[Aa]seprite.*" }
+
+    # Unity exclusions
+    - window_process: { equals: "Unity" }
+    - window_class: { equals: "UnityContainerWndClass" }

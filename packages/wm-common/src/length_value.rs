@@ -74,7 +74,7 @@ impl FromStr for LengthValue {
 
     let captures = units_regex
       .captures(unparsed)
-      .context(err_msg.to_string())?;
+      .context(err_msg.clone())?;
 
     let unit_str = captures.get(2).map_or("", |m| m.as_str());
     let unit = match unit_str {
@@ -91,7 +91,7 @@ impl FromStr for LengthValue {
         LengthUnit::Pixel => amount,
         LengthUnit::Percentage => amount / 100.0,
       })
-      .context(err_msg.to_string())?;
+      .context(err_msg.clone())?;
 
     Ok(LengthValue { amount, unit })
   }

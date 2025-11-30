@@ -200,6 +200,7 @@ pub enum InvokeCommand {
     visibility: TitleBarVisibility,
   },
   SetTransparency(SetTransparencyCommand),
+  SetTransparencyExclusion,
   ShellExec {
     #[clap(long, action)]
     hide_window: bool,

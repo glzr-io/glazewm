@@ -440,6 +440,20 @@ impl NativeWindow {
     }
   }
 
+  fn remove_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    let current_style =
+      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    if current_style & style.0 as isize != 0 {
+      let new_style = current_style & !style.0 as isize;
+
+      unsafe {
+        SetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE, new_style)
+      };
+    }
+  }
+
   pub fn adjust_transparency(
     &self,
     opacity_delta: &Delta<OpacityValue>,
@@ -487,6 +501,15 @@ impl NativeWindow {
       )?;
     }
 
+    Ok(())
+  }
+
+  /// Removes transparency from the window by removing the `WS_EX_LAYERED` style.
+  /// This completely disables transparency effects for the window, which can fix
+  /// rendering issues with certain applications that don't work properly with
+  /// layered windows.
+  pub fn remove_transparency(&self) -> anyhow::Result<()> {
+    self.remove_window_style_ex(WS_EX_LAYERED);
     Ok(())
   }
 
