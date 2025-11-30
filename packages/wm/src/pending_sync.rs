@@ -77,6 +77,17 @@ impl PendingSync {
     self
   }
 
+  pub fn dequeue_container_from_redraw<T>(
+    &mut self,
+    container: T,
+  ) -> &mut Self
+  where
+    T: Into<Container>,
+  {
+    self.containers_to_redraw.remove(&container.into().id());
+    self
+  }
+
   pub fn queue_workspace_to_reorder(
     &mut self,
     workspace: Workspace,

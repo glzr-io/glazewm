@@ -235,20 +235,20 @@ impl NativeWindow {
   /// macOS-specific implementation of [`NativeWindow::resize`].
   pub(crate) fn resize(
     &self,
-    width: f64,
-    height: f64,
+    width: i32,
+    height: i32,
   ) -> crate::Result<()> {
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
-      let ax_size = CGSize::new(width, height);
+      let ax_size = CGSize::new(width.into(), height.into());
       let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
     })
   }
 
   /// macOS-specific implementation of [`NativeWindow::reposition`].
-  pub(crate) fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
+  pub(crate) fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
-      let ax_point = CGPoint::new(x, y);
+      let ax_point = CGPoint::new(x.into(), y.into());
       let ax_value = AXValue::new_strict(&ax_point)?;
       el.set_attribute("AXPosition", &ax_value)
     })

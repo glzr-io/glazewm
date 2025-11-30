@@ -125,11 +125,14 @@ fn set_non_tiling(
 ) -> anyhow::Result<WindowContainer> {
   // A window can only be updated to a minimized state if it is
   // natively minimized.
+  // TODO: Consider doing the same for maximized and fullscreen states.
   if target_state == WindowState::Minimized
     && !window.native_properties().is_minimized
   {
     info!("No window state update. Minimizing window.");
 
+    // TODO: Instead of doing the platform call directly here, instead add
+    // a `queue_state_change` method to `PendingSync`.
     if let Err(err) = window.native().minimize() {
       warn!("Failed to minimize window: {}", err);
     }

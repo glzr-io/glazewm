@@ -237,7 +237,7 @@ fn window_state_to_create(
 
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
-    .context("No Workspace.")?;
+    .context("No workspace.")?;
 
   let monitor_rect = if nearest_workspace.outer_gaps().is_significant() {
     nearest_monitor.native_properties().working_area

@@ -1,7 +1,6 @@
 use anyhow::Context;
-use tracing::info;
 use wm_common::{
-  try_warn, ActiveDragOperation, TilingDirection, WindowState,
+  try_warn, FullscreenStateConfig, TilingDirection, WindowState,
 };
 use wm_platform::{LengthValue, Point, Rect};
 
@@ -10,6 +9,7 @@ use crate::{
     container::{move_container_within_tree, wrap_in_split_container},
     window::{set_window_size, update_window_state},
   },
+  events::update_floating_window_position,
   models::{
     DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
     WindowContainer,
@@ -38,31 +38,89 @@ pub fn handle_window_moved_or_resized_end(
     return Ok(());
   };
 
-  info!("Window move/resize ended: {window}");
-
-  let new_rect = try_warn!(window.native().frame());
-
-  window.update_native_properties(|properties| {
-    properties.frame = new_rect.clone();
-  });
-
   match &window {
     WindowContainer::NonTilingWindow(window) => {
-      if active_drag.is_from_tiling
-        && active_drag.operation == Some(ActiveDragOperation::Move)
-      {
+      let is_maximized = try_warn!(window.native().is_maximized());
+
+      window.update_native_properties(|properties| {
+        properties.is_maximized = is_maximized;
+      });
+
+      if is_maximized {
+        update_window_state(
+          window.clone().into(),
+          WindowState::Fullscreen(FullscreenStateConfig {
+            maximized: true,
+            ..config.value.window_behavior.state_defaults.fullscreen
+          }),
+          state,
+          config,
+        )?;
+        window.set_active_drag(None);
+        return Ok(());
+      }
+
+      let nearest_monitor = state
+        .nearest_monitor(&window.native())
+        .context("Failed to get workspace of nearest monitor.")?;
+
+      let is_fullscreen = {
+        let nearest_workspace = nearest_monitor
+          .displayed_workspace()
+          .context("No workspace.")?;
+
+        let monitor_rect =
+          if nearest_workspace.outer_gaps().is_significant() {
+            nearest_monitor.native_properties().working_area
+          } else {
+            nearest_monitor.native_properties().bounds
+          };
+
+        window.native().is_fullscreen(&monitor_rect)?
+      };
+
+      if is_fullscreen {
+        update_window_state(
+          window.clone().into(),
+          WindowState::Fullscreen(FullscreenStateConfig {
+            maximized: false,
+            ..config.value.window_behavior.state_defaults.fullscreen
+          }),
+          state,
+          config,
+        )?;
+        window.set_active_drag(None);
+        return Ok(());
+      }
+
+      if active_drag.is_from_floating {
+        update_floating_window_position(
+          window,
+          window.native_properties().frame,
+          &nearest_monitor,
+          state,
+        )?;
+        window.set_active_drag(None);
+      } else {
         // Window is a temporary floating window that should be
         // reverted back to tiling.
         drop_as_tiling_window(window, state, config)?;
       }
     }
     WindowContainer::TilingWindow(window) => {
+      tracing::info!(
+        "Tiling window move/resize ended: {}",
+        window.as_window_container()?
+      );
+
+      let frame_position = window.native_properties().frame;
+
       // Update the window's size based on the new frame position. This
       // means we use the actual window dimensions as the source of truth.
       set_window_size(
         window.clone().into(),
-        Some(LengthValue::from_px(new_rect.width())),
-        Some(LengthValue::from_px(new_rect.height())),
+        Some(LengthValue::from_px(frame_position.width())),
+        Some(LengthValue::from_px(frame_position.height())),
         state,
       )?;
 
@@ -89,7 +147,7 @@ fn drop_as_tiling_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!(
+  tracing::info!(
     "Tiling window drag ended: {}",
     moved_window.as_window_container()?
   );

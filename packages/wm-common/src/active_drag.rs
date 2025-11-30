@@ -6,11 +6,15 @@ pub struct ActiveDrag {
   /// Whether the drag is a move or resize.
   pub operation: Option<ActiveDragOperation>,
 
-  /// Whether the drag is from a tiling window.
-  pub is_from_tiling: bool,
+  /// Whether the drag is from a floating window.
+  ///
+  /// If `true`, it means we shouldn't drop the window as a tiling window
+  /// on drag end.
+  pub is_from_floating: bool,
 
-  /// Initial position when the drag started. Used to calculate movement
-  /// distance.
+  /// Initial position when the drag started.
+  ///
+  /// Used to calculate movement distance.
   pub initial_position: Rect,
 }
 

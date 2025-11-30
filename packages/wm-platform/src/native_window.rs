@@ -111,11 +111,11 @@ impl NativeWindow {
   }
 
   /// Resize the window to the specified size.
-  pub fn resize(&self, width: f64, height: f64) -> crate::Result<()> {
+  pub fn resize(&self, width: i32, height: i32) -> crate::Result<()> {
     self.inner.resize(width, height)
   }
 
-  pub fn reposition(&self, x: f64, y: f64) -> crate::Result<()> {
+  pub fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
     self.inner.reposition(x, y)
   }
 

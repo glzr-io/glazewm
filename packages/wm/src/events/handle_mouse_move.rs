@@ -1,4 +1,5 @@
 use anyhow::Context;
+use wm_common::try_warn;
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
@@ -29,10 +30,17 @@ pub fn handle_mouse_move(
       let active_drag_windows = state
         .windows()
         .into_iter()
-        .filter(|w| w.active_drag().is_some())
-        .collect::<Vec<_>>();
+        .filter(|window| window.active_drag().is_some());
 
+      // Only one window should ever be actively dragged at a time, but
+      // just in case, iterate over all active drag windows.
       for window in active_drag_windows {
+        let new_rect = try_warn!(window.native().frame());
+
+        window.update_native_properties(|properties| {
+          properties.frame = new_rect;
+        });
+
         handle_window_moved_or_resized_end(&window, state, config)?;
       }
     }

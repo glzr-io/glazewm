@@ -276,9 +276,13 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    info!("Updating window position: {window}, rect: {rect:?}");
+    let result = if window.active_drag().is_some() {
+      window.native().resize(rect.width(), rect.height())
+    } else {
+      window.native().set_frame(&rect)
+    };
 
-    if let Err(err) = window.native().set_frame(&rect) {
+    if let Err(err) = result {
       warn!("Failed to set window position: {}", err);
     }
 
