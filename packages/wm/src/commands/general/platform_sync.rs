@@ -31,10 +31,10 @@ pub fn platform_sync(
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     // Clean up any invalid/ghost windows before redrawing
-    if let Err(err) = state.cleanup_invalid_windows() {
+    if let Err(err) = state.cleanup_invalid_windows(config.value.general.window_cleanup_interval) {
       warn!("Failed to clean up invalid windows during redraw: {}", err);
     }
-    
+
     redraw_containers(&focused_container, state, config)?;
   }
 

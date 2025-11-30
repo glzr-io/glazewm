@@ -17,7 +17,7 @@ pub fn reload_config(
   info!("Config reloaded.");
 
   // Clean up any invalid/ghost windows before reloading config
-  if let Err(err) = state.cleanup_invalid_windows() {
+  if let Err(err) = state.cleanup_invalid_windows(config.value.general.window_cleanup_interval) {
     warn!("Failed to clean up invalid windows during config reload: {}", err);
   }
 

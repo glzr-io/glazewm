@@ -588,16 +588,24 @@ impl WmState {
   /// This addresses the "ghost window" issue where applications terminate
   /// without properly sending window destroy events, leaving invalid
   /// window references in GlazeWM's state.
-  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
+  pub fn cleanup_invalid_windows(
+    &mut self,
+    cleanup_interval: u64,
+  ) -> anyhow::Result<()> {
     use crate::{
       commands::window::unmanage_window, traits::CommonGetters,
     };
 
+    // Skip cleanup if disabled (interval = 0)
+    if cleanup_interval == 0 {
+      return Ok(());
+    }
+
     let now = Instant::now();
 
-    // Only run cleanup every 5 seconds to avoid performance issues
+    // Only run cleanup at the configured interval to avoid performance issues
     if let Some(last_cleanup) = self.last_window_cleanup {
-      if now.duration_since(last_cleanup) < Duration::from_secs(5) {
+      if now.duration_since(last_cleanup) < Duration::from_secs(cleanup_interval) {
         return Ok(());
       }
     }

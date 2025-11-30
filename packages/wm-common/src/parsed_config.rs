@@ -93,6 +93,10 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Interval in seconds for cleaning up invalid/ghost windows.
+  /// Set to 0 to disable automatic cleanup.
+  pub window_cleanup_interval: u64,
 }
 
 impl Default for GeneralConfig {
@@ -106,6 +110,7 @@ impl Default for GeneralConfig {
       config_reload_commands: vec![],
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
+      window_cleanup_interval: 5,
     }
   }
 }
