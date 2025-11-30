@@ -289,20 +289,22 @@ fn redraw_containers(
     // Whether the window is either transitioning to or from fullscreen.
     // TODO: This check can be improved since `prev_state` can be
     // fullscreen without it needing to be marked as not fullscreen.
-    let is_transitioning_fullscreen =
-      match (window.prev_state(), window.state()) {
-        (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
-        (Some(WindowState::Fullscreen(_)), _) => true,
-        _ => false,
-      };
+    #[cfg(target_os = "windows")]
+    {
+      let is_transitioning_fullscreen =
+        match (window.prev_state(), window.state()) {
+          (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
+          (Some(WindowState::Fullscreen(_)), _) => true,
+          _ => false,
+        };
 
-    if is_transitioning_fullscreen {
-      #[cfg(target_os = "windows")]
-      if let Err(err) = window.native().mark_fullscreen(matches!(
-        window.state(),
-        WindowState::Fullscreen(_)
-      )) {
-        warn!("Failed to mark window as fullscreen: {}", err);
+      if is_transitioning_fullscreen {
+        if let Err(err) = window.native().mark_fullscreen(matches!(
+          window.state(),
+          WindowState::Fullscreen(_)
+        )) {
+          warn!("Failed to mark window as fullscreen: {}", err);
+        }
       }
     }
 

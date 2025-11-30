@@ -195,65 +195,59 @@ pub fn handle_window_moved_or_resized(
       window.native().is_fullscreen(&monitor_rect)?
     };
 
+    // Handle a window being maximized or entering fullscreen.
+    if is_maximized || is_fullscreen {
+      let fullscreen_state = if let WindowState::Fullscreen(
+        fullscreen_state,
+      ) = window.state()
+      {
+        fullscreen_state
+      } else {
+        config
+          .value
+          .window_behavior
+          .state_defaults
+          .fullscreen
+          .clone()
+      };
+
+      update_window_state(
+        window.clone(),
+        WindowState::Fullscreen(FullscreenStateConfig {
+          maximized: is_maximized,
+          ..fullscreen_state
+        }),
+        state,
+        config,
+      )?;
+
+      return Ok(());
+    }
+
     match window.state() {
-      WindowState::Fullscreen(fullscreen_state) => {
-        // Restore the window if it's no longer fullscreen *or* for the
-        // edge case of fullscreen -> maximized -> restore from maximized.
-        if (fullscreen_state.maximized || !is_fullscreen) && !is_maximized
-        {
-          tracing::info!("Window restored from fullscreen: {window}");
+      WindowState::Fullscreen(_) => {
+        // Window is no longer maximized/fullscreen and should be restored.
+        tracing::info!("Restoring window from fullscreen: {window}");
 
-          // TODO: Only restore to prev state if it's a floating/tiling
-          // state.
-          let target_state = window
-            .prev_state()
-            .unwrap_or(WindowState::default_from_config(&config.value));
+        // TODO: Only restore to prev state if it's a floating/tiling
+        // state.
+        let target_state = window
+          .prev_state()
+          .unwrap_or(WindowState::default_from_config(&config.value));
 
-          update_window_state(
-            window.clone(),
-            target_state,
+        update_window_state(window.clone(), target_state, state, config)?;
+      }
+      WindowState::Floating(_) => {
+        if let WindowContainer::NonTilingWindow(window) = window {
+          update_floating_window_position(
+            &window,
+            frame_position,
+            &nearest_monitor,
             state,
-            config,
-          )?;
-        } else if is_maximized && !fullscreen_state.maximized {
-          tracing::info!(
-            "Updating state from fullscreen -> maximized: {window}"
-          );
-
-          update_window_state(
-            window.clone(),
-            WindowState::Fullscreen(FullscreenStateConfig {
-              maximized: is_maximized,
-              ..fullscreen_state
-            }),
-            state,
-            config,
           )?;
         }
       }
-      _ => {
-        if is_maximized || is_fullscreen {
-          // Update the window to be fullscreen.
-          update_window_state(
-            window,
-            WindowState::Fullscreen(FullscreenStateConfig {
-              maximized: is_maximized,
-              ..config.value.window_behavior.state_defaults.fullscreen
-            }),
-            state,
-            config,
-          )?;
-        } else if let WindowContainer::NonTilingWindow(window) = &window {
-          if matches!(window.state(), WindowState::Floating(_)) {
-            update_floating_window_position(
-              window,
-              frame_position,
-              &nearest_monitor,
-              state,
-            )?;
-          }
-        }
-      }
+      _ => {}
     }
   }
 
