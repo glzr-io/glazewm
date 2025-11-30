@@ -42,4 +42,15 @@ impl RectDelta {
       || self.left.amount > 1.0
       || self.right.amount > 1.0
   }
+
+  /// Creates a new `RectDelta` with all sides set to 0px.
+  #[must_use]
+  pub fn zero() -> Self {
+    Self::new(
+      LengthValue::from_px(0),
+      LengthValue::from_px(0),
+      LengthValue::from_px(0),
+      LengthValue::from_px(0),
+    )
+  }
 }

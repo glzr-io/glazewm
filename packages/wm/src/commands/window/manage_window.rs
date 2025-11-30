@@ -1,7 +1,7 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
-use wm_platform::{LengthValue, NativeWindow, RectDelta};
+use wm_platform::{NativeWindow, RectDelta};
 
 use crate::{
   commands::{
@@ -169,12 +169,7 @@ fn create_window(
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
-  let border_delta = RectDelta::new(
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-  );
+  let border_delta = RectDelta::zero();
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(

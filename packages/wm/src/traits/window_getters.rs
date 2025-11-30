@@ -60,25 +60,35 @@ pub trait WindowGetters {
 
   fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_delta = self.border_delta();
-    // let shadow_border_delta = self.native().shadow_border_delta()?;
+
+    let shadow_border_delta = {
+      #[cfg(target_os = "windows")]
+      {
+        self.native().shadow_borders()?;
+      }
+      #[cfg(not(target_os = "windows"))]
+      {
+        RectDelta::zero()
+      }
+    };
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
       left: LengthValue::from_px(
-        border_delta.left.to_px(0, None), /* + shadow_border_delta.
-                                           *   left.to_px(0, None), */
+        border_delta.left.to_px(0, None)
+          + shadow_border_delta.left.to_px(0, None),
       ),
       right: LengthValue::from_px(
-        border_delta.right.to_px(0, None), /* + shadow_border_delta.
-                                            *   right.to_px(0, None), */
+        border_delta.right.to_px(0, None)
+          + shadow_border_delta.right.to_px(0, None),
       ),
       top: LengthValue::from_px(
-        border_delta.top.to_px(0, None), /* + shadow_border_delta.top.
-                                          *   to_px(0, None), */
+        border_delta.top.to_px(0, None)
+          + shadow_border_delta.top.to_px(0, None),
       ),
       bottom: LengthValue::from_px(
-        border_delta.bottom.to_px(0, None), /* + shadow_border_delta.
-                                             *   bottom.to_px(0, None), */
+        border_delta.bottom.to_px(0, None)
+          + shadow_border_delta.bottom.to_px(0, None),
       ),
     })
   }
