@@ -157,10 +157,9 @@ window_rules:
   # Exclude apps from transparency effects.
   - commands: ['set-transparency-exclusion']
     match:
-      - window_process: { equals: 'Unity.exe' }
-      - window_process: { equals: 'Unity Hub.exe' }
-      - window_class: { regex: 'UnityContainerWndClass' }
-      - window_title: { regex: 'Unity' }
+      # Exclusion example - Unity exclusions to avoid compatibility issues.
+      - window_process: { equals: "Unity" }
+      - window_class: { equals: "UnityContainerWndClass" }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.

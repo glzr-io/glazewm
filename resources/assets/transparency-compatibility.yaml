@@ -7,12 +7,9 @@
 - commands: ["set-transparency-exclusion"]
   match:
     # Aseprite exclusions
-    - window_process: { equals: "aseprite.exe" }
+    - window_process: { equals: "aseprite" }
     - window_class: { regex: ".*[Aa]seprite.*" }
-    - window_title: { regex: ".*[Aa]seprite.*" }
 
     # Unity exclusions
-    - window_process: { equals: "Unity Hub.exe" }
-    - window_process: { equals: "Unity.exe" }
-    - window_title: { regex: "Unity" }
-    - window_class: { regex: "UnityContainerWndClass" }
+    - window_process: { equals: "Unity" }
+    - window_class: { equals: "UnityContainerWndClass" }
