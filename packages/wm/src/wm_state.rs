@@ -592,9 +592,7 @@ impl WmState {
     &mut self,
     cleanup_interval: u64,
   ) -> anyhow::Result<()> {
-    use crate::{
-      commands::window::unmanage_window, traits::CommonGetters,
-    };
+    use crate::commands::window::unmanage_window;
 
     // Skip cleanup if disabled (interval = 0)
     if cleanup_interval == 0 {
@@ -632,7 +630,7 @@ impl WmState {
     for window in invalid_windows {
       tracing::debug!(
         "Removing invalid window: {} (handle: {})",
-        window.display_name(),
+        window,
         window.native().handle
       );
 
