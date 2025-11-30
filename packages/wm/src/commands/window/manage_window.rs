@@ -23,17 +23,21 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  let is_manageable =
-    is_window_manageable(&native_window).unwrap_or(false);
-
-  if !is_manageable {
+  let Some(native_properties) =
+    check_is_manageable(&native_window).unwrap_or(None)
+  else {
     return Ok(());
-  }
+  };
 
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
-  let window =
-    try_warn!(create_window(native_window, target_parent, state, config));
+  let window = try_warn!(create_window(
+    native_window,
+    native_properties,
+    target_parent,
+    state,
+    config
+  ));
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
@@ -80,14 +84,17 @@ pub fn manage_window(
   Ok(())
 }
 
-// TODO: Add comprehensive `is_manageable` check here.
-fn is_window_manageable(
+/// Checks if a window is manageable and retrieves its native properties.
+///
+/// Returns `Ok(Some(properties))` if the window is manageable and its
+/// properties were retrieved successfully.
+fn check_is_manageable(
   native_window: &NativeWindow,
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<Option<NativeWindowProperties>> {
   let is_visible = native_window.is_visible()?;
 
   if !is_visible {
-    return Ok(false);
+    return Ok(None);
   }
 
   #[cfg(target_os = "macos")]
@@ -98,15 +105,18 @@ fn is_window_manageable(
       && native_window.subrole()? == "AXStandardWindow";
 
     if !is_standard_window {
-      return Ok(false);
+      return Ok(None);
     }
   }
 
-  Ok(true)
+  let native_properties = NativeWindowProperties::try_from(native_window)?;
+
+  Ok(Some(native_properties))
 }
 
 fn create_window(
   native_window: NativeWindow,
+  native_properties: NativeWindowProperties,
   target_parent: Option<Container>,
   state: &mut WmState,
   config: &UserConfig,
@@ -119,15 +129,13 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
-  let native_properties =
-    NativeWindowProperties::try_from(&native_window, &nearest_workspace)
-      .map_err(|err| {
-      anyhow::anyhow!("Failed to get native properties for window: {err}")
-    })?;
-
   let gaps_config = config.value.gaps.clone();
-  let window_state =
-    window_state_to_create(&native_window, &nearest_monitor, config)?;
+  let window_state = window_state_to_create(
+    &native_window,
+    &native_properties,
+    &nearest_monitor,
+    config,
+  )?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -152,11 +160,11 @@ fn create_window(
   let is_same_workspace = nearest_workspace.id() == target_workspace.id();
   let floating_placement = {
     let placement = if !is_same_workspace || prefers_centered {
-      native_window
-        .frame()?
+      native_properties
+        .frame
         .translate_to_center(&target_workspace.to_rect()?)
     } else {
-      native_window.frame()?
+      native_properties.frame.clone()
     };
 
     // Clamp the window size to 90% of the workspace size.
@@ -223,10 +231,11 @@ fn create_window(
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
   native_window: &NativeWindow,
+  native_properties: &NativeWindowProperties,
   nearest_monitor: &Monitor,
   config: &UserConfig,
 ) -> anyhow::Result<WindowState> {
-  if native_window.is_minimized()? {
+  if native_properties.is_minimized {
     return Ok(WindowState::Minimized);
   }
 
@@ -252,7 +261,7 @@ fn window_state_to_create(
   }
 
   // Initialize windows that can't be resized as floating.
-  if !native_window.is_resizable()? {
+  if !native_properties.is_resizable {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
     ));
