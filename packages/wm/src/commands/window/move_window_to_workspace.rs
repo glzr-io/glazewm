@@ -5,9 +5,10 @@ use wm_common::WindowState;
 use crate::{
   commands::{
     container::{move_container_within_tree, set_focused_descendant},
+    window::manage_window::rebuild_spiral_layout,
     workspace::activate_workspace,
   },
-  models::{WindowContainer, WorkspaceTarget},
+  models::{TilingWindow, WindowContainer, WorkspaceTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -91,12 +92,25 @@ pub fn move_window_to_workspace(
     match (window.is_tiling_window(), insertion_sibling.is_some()) {
       (true, true) => {
         if let Some(insertion_sibling) = insertion_sibling {
-          move_container_within_tree(
-            &window.clone().into(),
-            &insertion_sibling.clone().parent().context("No parent.")?,
-            insertion_sibling.index() + 1,
-            state,
-          )?;
+          match insertion_sibling.parent() {
+            Some(parent) => {
+              move_container_within_tree(
+                &window.clone().into(),
+                &parent,
+                insertion_sibling.index() + 1,
+                state,
+              )?;
+            }
+            None => {
+              // Insertion sibling is detached, fallback to workspace
+              move_container_within_tree(
+                &window.clone().into(),
+                &target_workspace.clone().into(),
+                target_workspace.child_count(),
+                state,
+              )?;
+            }
+          }
         }
       }
       _ => {
@@ -132,6 +146,24 @@ pub fn move_window_to_workspace(
         state.pending_sync.queue_container_to_redraw(window);
       }
       WindowContainer::TilingWindow(_) => {
+        // Heal source workspace
+        let source_windows: Vec<TilingWindow> = current_workspace
+          .descendants()
+          .filter_map(|c| c.try_into().ok())
+          .collect();
+        if !source_windows.is_empty() {
+          rebuild_spiral_layout(&current_workspace, &source_windows)?;
+        }
+
+        // Rebuild target workspace
+        let target_windows: Vec<TilingWindow> = target_workspace
+          .descendants()
+          .filter_map(|c| c.try_into().ok())
+          .collect();
+        if !target_windows.is_empty() {
+          rebuild_spiral_layout(&target_workspace, &target_windows)?;
+        }
+
         state
           .pending_sync
           .queue_containers_to_redraw(current_workspace.tiling_children())

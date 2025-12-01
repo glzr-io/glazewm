@@ -1,5 +1,5 @@
 mod ignore_window;
-mod manage_window;
+pub mod manage_window;
 mod move_window_in_direction;
 mod move_window_to_workspace;
 mod resize_window;

@@ -2,11 +2,14 @@ use anyhow::Context;
 use wm_common::{WindowState, WmEvent};
 
 use crate::{
-  commands::container::{
-    detach_container, flatten_child_split_containers,
-    set_focused_descendant,
+  commands::{
+    container::{
+      detach_container, flatten_child_split_containers,
+      set_focused_descendant,
+    },
+    window::manage_window::rebuild_spiral_layout,
   },
-  models::WindowContainer,
+  models::{TilingWindow, WindowContainer},
   traits::{CommonGetters, WindowGetters},
   wm_state::WmState,
 };
@@ -16,6 +19,8 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  let workspace = window.workspace();
+
   // Create iterator of parent, grandparent, and great-grandparent.
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
@@ -29,6 +34,27 @@ pub fn unmanage_window(
   // become V[H[2]], this will then need to be flattened to V[2].
   for ancestor in ancestors.iter().rev() {
     flatten_child_split_containers(ancestor)?;
+  }
+
+  // Rebuild Spiral Layout
+  // This ensures that when a window is closed, the remaining windows "heal"
+  // into a correct spiral structure by re-running the spiral layout logic.
+  if let Some(workspace) = workspace {
+    // Get all remaining tiling windows in BFS order (Spiral order)
+    let remaining_windows: Vec<TilingWindow> = workspace
+      .descendants()
+      .filter_map(|c| c.try_into().ok())
+      .collect();
+
+    // Only rebuild if there are remaining tiling windows
+    if !remaining_windows.is_empty() {
+      rebuild_spiral_layout(&workspace, &remaining_windows)?;
+
+      // Queue redraw for the workspace since the layout changed
+      state
+        .pending_sync
+        .queue_container_to_redraw(workspace.clone());
+    }
   }
 
   state.emit_event(WmEvent::WindowUnmanaged {
