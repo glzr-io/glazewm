@@ -17,7 +17,14 @@ pub fn flatten_child_split_containers(
     if tiling_children.len() == 1 {
       if let Some(split_child) = tiling_children[0].as_split() {
         flatten_split_container(split_child.clone())?;
-        parent.set_tiling_direction(parent.tiling_direction().inverse());
+        
+        // --- DELETED LINE ---
+        // parent.set_tiling_direction(parent.tiling_direction().inverse());
+        // --------------------
+        // REASON: In a Spiral layout, direction is determined by 
+        // geometry (Rect width vs height) in 'rebuild_spiral_layout'.
+        // We should NOT blindly flip the workspace direction here, 
+        // or it creates an alternating bug (Works -> Fails -> Works).
       }
     } else {
       let split_children = tiling_children
@@ -29,7 +36,6 @@ pub fn flatten_child_split_containers(
         split_child.tiling_direction() == parent.tiling_direction()
       }) {
         if split_child.child_count() == 1 {
-            // FIX: Check if children exist before accessing index 0
             if !split_child.children().is_empty() {
                 if let Some(split_grandchild) = split_child.children()[0].as_split() {
                     flatten_split_container(split_grandchild.clone())?;
