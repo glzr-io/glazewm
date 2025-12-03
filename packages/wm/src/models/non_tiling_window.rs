@@ -141,7 +141,18 @@ impl PositionGetters for NonTilingWindow {
   fn to_rect(&self) -> anyhow::Result<Rect> {
     match self.state() {
       WindowState::Fullscreen(_) => {
-        self.monitor().context("No monitor.")?.to_rect()
+        let monitor = self.monitor().context("No monitor.")?;
+
+        #[cfg(target_os = "windows")]
+        {
+          monitor.to_rect()
+        }
+        #[cfg(target_os = "macos")]
+        {
+          // On macOS, the public APIs only allow window placement within
+          // the display's working area.
+          Ok(monitor.native_properties().working_area)
+        }
       }
       _ => Ok(self.floating_placement()),
     }

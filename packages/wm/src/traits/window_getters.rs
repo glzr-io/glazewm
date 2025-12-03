@@ -6,11 +6,12 @@ use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::{
   models::{NativeWindowProperties, Workspace},
+  traits::CommonGetters,
   user_config::UserConfig,
 };
 
 #[delegatable_trait]
-pub trait WindowGetters {
+pub trait WindowGetters: CommonGetters {
   fn state(&self) -> WindowState;
 
   fn set_state(&self, state: WindowState);
@@ -98,31 +99,29 @@ pub trait WindowGetters {
 
   /// Gets whether the window should be fullscreen for the given workspace.
   ///
-  /// - If the window is tiling, the frame needs to be larger than the
-  ///   maximum workspace bounds.
-  /// - Otherwise, the frame needs to be the same size or larger than the
-  ///   maximum workspace bounds.
+  /// A window is considered fullscreen if its frame covers or exceeds the
+  /// workspace bounds, meaning all sides extend within the outer gaps.
+  ///
+  /// NOTE: The OS can be off by up to 1px when positioning windows, so we
+  /// need to allow for some margin of error.
   fn should_fullscreen(
     &self,
     workspace: &Workspace,
   ) -> anyhow::Result<bool> {
-    if self.state() == WindowState::Tiling {
-      let max_workspace_rect = workspace.max_workspace_rect()?;
-      let frame = self.native_properties().frame;
+    let frame = self.native_properties().frame;
+    let workspace_rect = workspace.max_workspace_rect()?;
 
-      // Check if the window frame exactly matches the maximum workspace
-      // bounds. Unlike `is_frame_fullscreen`, this checks for an exact
-      // match rather than exceeding bounds.
-      if frame.left == max_workspace_rect.left
-        && frame.top == max_workspace_rect.top
-        && frame.right == max_workspace_rect.right
-        && frame.bottom == max_workspace_rect.bottom
-      {
-        return Ok(false);
-      }
-    }
+    // Check if the window frame covers the workspace bounds with +1px
+    // tolerance.
+    let is_covering = frame.is_covering(&workspace_rect, 1);
 
-    workspace.is_frame_fullscreen(&self.native_properties().frame)
+    // A single tiling window will also cover the workspace bounds, so
+    // ensure that's not the case.
+    let is_single_tiling_window = self.state() == WindowState::Tiling
+      && self.tiling_siblings().count() == 0
+      && workspace_rect.is_covering(&frame, 1);
+
+    Ok(is_covering && !is_single_tiling_window)
   }
 
   fn display_state(&self) -> DisplayState;

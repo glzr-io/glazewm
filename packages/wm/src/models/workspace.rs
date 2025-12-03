@@ -96,19 +96,19 @@ impl Workspace {
     gaps.clone()
   }
 
-  /// Gets the maximum workspace rect considering both gap configurations.
-  ///
-  /// Returns the largest possible workspace bounds by comparing the
-  /// `outer_gap` and `single_window_outer_gap` configurations and taking
-  /// the maximum bounds on each side.
-  pub fn max_workspace_rect(&self) -> anyhow::Result<Rect> {
+  /// Gets the bounds of a workspace with the given outer gap config.
+  fn workspace_rect_with_gap_config(
+    &self,
+    outer_gaps: &RectDelta,
+  ) -> anyhow::Result<Rect> {
     let monitor =
       self.monitor().context("Workspace has no parent monitor.")?;
 
     let gaps_config = &self.0.borrow().gaps_config;
-    let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native_properties().scale_factor,
-      false => 1.,
+    let scale_factor = if gaps_config.scale_with_dpi {
+      monitor.native_properties().scale_factor
+    } else {
+      1.
     };
 
     // Get the delta between the monitor's bounds and its working area.
@@ -118,44 +118,35 @@ impl Workspace {
       .working_area
       .delta(&monitor_bounds);
 
-    // Workspace rect using `outer_gap`.
-    let default_rect = monitor_bounds
-      .apply_delta(&gaps_config.outer_gap.inverse(), Some(scale_factor))
-      .apply_delta(&working_area_delta, None);
-
-    // Workspace rect using `single_window_outer_gap` (if it exists).
-    let single_window_rect = match &gaps_config.single_window_outer_gap {
-      Some(single_gap) => monitor_bounds
-        .apply_delta(&single_gap.inverse(), Some(scale_factor))
+    Ok(
+      monitor_bounds
+        // Scale the gaps if `scale_with_dpi` is enabled. Outer gap config
+        // values can be a percentage (relative to the monitor bounds), so
+        // the outer gap delta needs to be applied prior to the working
+        // area delta.
+        .apply_delta(&outer_gaps.inverse(), Some(scale_factor))
         .apply_delta(&working_area_delta, None),
-      None => default_rect.clone(),
-    };
-
-    // Use the largest bounds on each side to get the max workspace rect.
-    Ok(Rect::from_ltrb(
-      default_rect.left.min(single_window_rect.left),
-      default_rect.top.min(single_window_rect.top),
-      default_rect.right.max(single_window_rect.right),
-      default_rect.bottom.max(single_window_rect.bottom),
-    ))
+    )
   }
 
-  /// Gets whether the given window frame is considered fullscreen for this
-  /// workspace.
-  ///
-  /// A window frame is fullscreen if every side exceeds or equals the
-  /// maximum possible workspace dimensions. The max dimensions are derived
-  /// from both the `outer_gap` and `single_window_outer_gap` config values
-  /// and taking the largest bounds on each side.
-  pub fn is_frame_fullscreen(&self, frame: &Rect) -> anyhow::Result<bool> {
-    let max_workspace_rect = self.max_workspace_rect()?;
+  /// Gets the maximum bounds of a workspace considering both `outer_gap`
+  /// and `single_window_outer_gap` config values.
+  pub fn max_workspace_rect(&self) -> anyhow::Result<Rect> {
+    let gaps_config = &self.0.borrow().gaps_config;
 
-    Ok(
-      frame.left <= max_workspace_rect.left
-        && frame.top <= max_workspace_rect.top
-        && frame.right >= max_workspace_rect.right
-        && frame.bottom >= max_workspace_rect.bottom,
-    )
+    // Get the workspace rect using `outer_gap`.
+    let multi_window_rect =
+      self.workspace_rect_with_gap_config(&gaps_config.outer_gap)?;
+
+    let Some(single_gap) = &gaps_config.single_window_outer_gap else {
+      return Ok(multi_window_rect);
+    };
+
+    // Get the workspace rect using `single_window_outer_gap`.
+    let single_window_rect =
+      self.workspace_rect_with_gap_config(single_gap)?;
+
+    Ok(multi_window_rect.union(&single_window_rect))
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
@@ -192,32 +183,7 @@ impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
   fn to_rect(&self) -> anyhow::Result<Rect> {
-    let monitor =
-      self.monitor().context("Workspace has no parent monitor.")?;
-
-    let gaps_config = &self.0.borrow().gaps_config;
-    let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native_properties().scale_factor,
-      false => 1.,
-    };
-
-    // Get the delta between the monitor's bounds and its working area.
-    let working_area_delta = monitor
-      .native_properties()
-      .working_area
-      .delta(&monitor.native_properties().bounds);
-
-    Ok(
-      monitor
-        .native_properties()
-        .bounds
-        // Scale the gaps if `scale_with_dpi` is enabled. Outer gap config
-        // values can be a percentage (relative to the monitor bounds), so
-        // the outer gap delta needs to be applied prior to the working
-        // area delta.
-        .apply_delta(&self.outer_gaps().inverse(), Some(scale_factor))
-        .apply_delta(&working_area_delta, None),
-    )
+    self.workspace_rect_with_gap_config(&self.outer_gaps())
   }
 }
 

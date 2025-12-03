@@ -212,6 +212,13 @@ pub fn handle_window_moved_or_resized(
         config,
       )?;
 
+      // TODO: Consider dequeuing the window from redraw, since the window
+      // is already in the correct state. Games are especially sensitive to
+      // redraws and are pretty likely to be fullscreen.
+
+      // TODO: Handle a fullscreen window being moved from one monitor to
+      // another.
+
       return Ok(());
     }
 

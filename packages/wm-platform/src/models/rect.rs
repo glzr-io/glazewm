@@ -188,4 +188,31 @@ impl Rect {
     #[allow(clippy::cast_precision_loss)]
     ((dx * dx + dy * dy) as f32).sqrt()
   }
+
+  /// Returns the union of this rect and another rect.
+  ///
+  /// The union is the smallest rect that contains both rects, taking the
+  /// minimum left/top and maximum right/bottom coordinates.
+  #[must_use]
+  pub fn union(&self, other: &Rect) -> Self {
+    Self::from_ltrb(
+      self.left.min(other.left),
+      self.top.min(other.top),
+      self.right.max(other.right),
+      self.bottom.max(other.bottom),
+    )
+  }
+
+  /// Gets whether this rect fully encloses another rect.
+  ///
+  /// The `tolerance_px` parameter specifies a positive or negative number
+  /// of pixels of leeway allowed. A tolerance of `1` allows for 1px of
+  /// leeway on each side, whereas `-1` is less lenient.
+  #[must_use]
+  pub fn is_covering(&self, other: &Rect, tolerance_px: i32) -> bool {
+    self.left <= other.left + tolerance_px
+      && self.top <= other.top + tolerance_px
+      && self.right >= other.right - tolerance_px
+      && self.bottom >= other.bottom - tolerance_px
+  }
 }
