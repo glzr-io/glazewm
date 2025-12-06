@@ -238,17 +238,18 @@ fn window_state_to_create(
     .displayed_workspace()
     .context("No workspace.")?;
 
-  // Only initialize as fullscreen if the window *exceeds* the max
-  // workspace rect (due to the -1px tolerance on each side).
+  // Only initialize as fullscreen if the window *exceeds* the workspace
+  // bounds (due to the 1px inset).
   //
   // For example, with 0px outer gaps and a window that covers the entire
-  // workspace, it would still not be initialized as fullscreen. Only if
-  // the window exceeds the max workspace rect by at least 1px on each
-  // side would it be initialized as fullscreen.
+  // workspace, it would still not be initialized as fullscreen. The window
+  // needs to be within the workspace's outer gaps by at least 1px on each
+  // side.
   if !native_properties.is_maximized
     && native_properties
       .frame
-      .is_covering(&nearest_workspace.max_workspace_rect()?, -1)
+      .inset(1)
+      .contains_rect(&nearest_workspace.max_workspace_rect()?)
   {
     return Ok(WindowState::Fullscreen(
       config

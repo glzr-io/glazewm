@@ -100,10 +100,9 @@ pub trait WindowGetters: CommonGetters {
   /// Gets whether the window should be fullscreen for the given workspace.
   ///
   /// A window is considered fullscreen if its frame covers or exceeds the
-  /// workspace bounds, meaning all sides extend within the outer gaps.
+  /// workspace bounds, meaning all sides extend into the outer gaps.
   ///
-  /// NOTE: The OS can be off by up to 1px when positioning windows, so we
-  /// need to allow for some margin of error.
+  /// NOTE: The OS can be off by up to 1px when positioning windows.
   fn should_fullscreen(
     &self,
     workspace: &Workspace,
@@ -111,15 +110,15 @@ pub trait WindowGetters: CommonGetters {
     let frame = self.native_properties().frame;
     let workspace_rect = workspace.max_workspace_rect()?;
 
-    // Check if the window frame covers the workspace bounds with +1px
-    // tolerance.
-    let is_covering = frame.is_covering(&workspace_rect, 1);
+    // Check if the window frame covers the workspace bounds (with 1px of
+    // leeway).
+    let is_covering = frame.contains_rect(&workspace_rect.inset(1));
 
-    // A single tiling window will also cover the workspace bounds, so
-    // ensure that's not the case.
+    // A workspace with one tiling window will have that window cover the
+    // workspace bounds, but it should not be considered fullscreen.
     let is_single_tiling_window = self.state() == WindowState::Tiling
       && self.tiling_siblings().count() == 0
-      && workspace_rect.is_covering(&frame, 1);
+      && workspace_rect.inset(-1).contains_rect(&frame);
 
     Ok(is_covering && !is_single_tiling_window)
   }

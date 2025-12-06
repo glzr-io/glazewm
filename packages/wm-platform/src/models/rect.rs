@@ -175,6 +175,30 @@ impl Rect {
     is_in_x && is_in_y
   }
 
+  /// Gets whether this rect fully encloses another rect.
+  #[must_use]
+  pub fn contains_rect(&self, other: &Rect) -> bool {
+    self.left <= other.left
+      && self.top <= other.top
+      && self.right >= other.right
+      && self.bottom >= other.bottom
+  }
+
+  /// Creates a new rect that is inset by the given amount of pixels on all
+  /// sides.
+  ///
+  /// The `inset_px` can be a positive number to create a smaller rect
+  /// (inset), or a negative number to create a larger rect (outset).
+  #[must_use]
+  pub fn inset(&self, inset_px: i32) -> Self {
+    Self::from_ltrb(
+      self.left + inset_px,
+      self.top + inset_px,
+      self.right - inset_px,
+      self.bottom - inset_px,
+    )
+  }
+
   #[must_use]
   pub fn distance_to_point(&self, point: &Point) -> f32 {
     let dx = (self.x() - point.x)
@@ -201,18 +225,5 @@ impl Rect {
       self.right.max(other.right),
       self.bottom.max(other.bottom),
     )
-  }
-
-  /// Gets whether this rect fully encloses another rect.
-  ///
-  /// The `tolerance_px` parameter specifies a positive or negative number
-  /// of pixels of leeway allowed. A tolerance of `1` allows for 1px of
-  /// leeway on each side, whereas `-1` is less lenient.
-  #[must_use]
-  pub fn is_covering(&self, other: &Rect, tolerance_px: i32) -> bool {
-    self.left <= other.left + tolerance_px
-      && self.top <= other.top + tolerance_px
-      && self.right >= other.right - tolerance_px
-      && self.bottom >= other.bottom - tolerance_px
   }
 }

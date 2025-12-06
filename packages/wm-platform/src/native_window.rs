@@ -110,15 +110,24 @@ impl NativeWindow {
     self.inner.is_maximized()
   }
 
-  /// Resize the window to the specified size.
+  /// Resizes the window to the specified size.
   pub fn resize(&self, width: i32, height: i32) -> crate::Result<()> {
     self.inner.resize(width, height)
   }
 
+  /// Repositions the window to the specified position.
   pub fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
     self.inner.reposition(x, y)
   }
 
+  /// Repositions and resizes the window to the specified rectangle.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Automatically adjusts the `rect` prior to calling [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos)
+  ///   to include the window's shadow borders. To set the window's frame
+  ///   without the shadow borders, use
+  ///   [`Self::set_frame_without_shadow_borders`].
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     self.inner.set_frame(rect)
   }

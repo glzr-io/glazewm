@@ -128,7 +128,7 @@ pub fn handle_window_moved_or_resized(
         if is_valid_state && !is_dragging_other_window && is_left_click {
           // The window frame can lag behind the cursor when moving or
           // resizing quickly, so allow for a bit of leeway.
-          let frame = window.native_properties().frame.apply_delta(
+          let frame_to_check = frame_position.apply_delta(
             &RectDelta::new(
               LengthValue::from_px(40),
               LengthValue::from_px(40),
@@ -142,7 +142,7 @@ pub fn handle_window_moved_or_resized(
           // the cursor (i.e. via `dispatcher.window_from_point`) is not a
           // different window.
           let cursor_position = state.dispatcher.cursor_position()?;
-          frame.contains_point(&cursor_position)
+          frame_to_check.contains_point(&cursor_position)
         } else {
           false
         }

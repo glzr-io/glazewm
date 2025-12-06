@@ -104,14 +104,14 @@ pub fn handle_window_moved_or_resized_end(
         window.as_window_container()?
       );
 
-      let frame_position = window.native_properties().frame;
+      let frame = window.native_properties().frame;
 
       // Update the window's size based on the new frame position. This
       // means we use the actual window dimensions as the source of truth.
       set_window_size(
         window.clone().into(),
-        Some(LengthValue::from_px(frame_position.width())),
-        Some(LengthValue::from_px(frame_position.height())),
+        Some(LengthValue::from_px(frame.width())),
+        Some(LengthValue::from_px(frame.height())),
         state,
       )?;
 
