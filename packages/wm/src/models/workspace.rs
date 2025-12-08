@@ -17,7 +17,9 @@ use crate::{
   models::{
     Container, DirectionContainer, TilingContainer, WindowContainer,
   },
-  traits::{CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+  },
 };
 
 #[derive(Clone)]
@@ -32,6 +34,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  window_icons_enabled: bool,
 }
 
 impl Workspace {
@@ -39,6 +42,7 @@ impl Workspace {
     config: WorkspaceConfig,
     gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
+    window_icons_enabled: bool,
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
@@ -48,6 +52,7 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      window_icons_enabled,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -75,7 +80,13 @@ impl Workspace {
     self.0.borrow_mut().gaps_config = gaps_config;
   }
 
+  pub fn set_window_icons_enabled(&self, enabled: bool) {
+    self.0.borrow_mut().window_icons_enabled = enabled;
+  }
+
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let include_window_icons = self.0.borrow().window_icons_enabled;
+
     let rect = self.to_rect()?;
     let config = self.config();
 
@@ -85,27 +96,31 @@ impl Workspace {
       .map(CommonGetters::to_dto)
       .try_collect()?;
 
-    // Collect all windows in this workspace
-    let windows = self
-      .descendants()
-      .filter_map(|container| container.as_window_container().ok())
-      .filter_map(|window| {
-        let native = window.native();
-        // Extract process name, title, and icon. If process_name or title fails,
-        // skip this window by returning None.
-        match (native.process_name(), native.title()) {
-          (Ok(process_name), Ok(title)) => {
-            let icon = native.icon_as_data_url();
-            Some(WorkspaceWindowDto {
-              process_name,
-              title,
-              icon,
-            })
-          },
-          _ => None,
-        }
-      })
-      .collect();
+    // Collect all windows in this workspace if window_icons are enabled.
+    let windows = if include_window_icons {
+      self
+        .descendants()
+        .filter_map(|container| container.as_window_container().ok())
+        .filter_map(|window| {
+          let native = window.native();
+          // Extract process name, title, and icon. If process_name or
+          // title fails, skip this window by returning None.
+          match (native.process_name(), native.title()) {
+            (Ok(process_name), Ok(title)) => {
+              let icon = native.icon_as_data_url();
+              Some(WorkspaceWindowDto {
+                process_name,
+                title,
+                icon,
+              })
+            }
+            _ => None,
+          }
+        })
+        .collect()
+    } else {
+      vec![]
+    };
 
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
