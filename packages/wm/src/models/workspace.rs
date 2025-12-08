@@ -8,7 +8,7 @@ use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
   ContainerDto, GapsConfig, Rect, TilingDirection, WorkspaceConfig,
-  WorkspaceDto,
+  WorkspaceDto, WorkspaceWindowDto,
 };
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
   models::{
     Container, DirectionContainer, TilingContainer, WindowContainer,
   },
-  traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
+  traits::{CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters},
 };
 
 #[derive(Clone)]
@@ -85,6 +85,28 @@ impl Workspace {
       .map(CommonGetters::to_dto)
       .try_collect()?;
 
+    // Collect all windows in this workspace
+    let windows = self
+      .descendants()
+      .filter_map(|container| container.as_window_container().ok())
+      .filter_map(|window| {
+        let native = window.native();
+        // Extract process name, title, and icon. If process_name or title fails,
+        // skip this window by returning None.
+        match (native.process_name(), native.title()) {
+          (Ok(process_name), Ok(title)) => {
+            let icon = native.icon_as_data_url();
+            Some(WorkspaceWindowDto {
+              process_name,
+              title,
+              icon,
+            })
+          },
+          _ => None,
+        }
+      })
+      .collect();
+
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
       name: config.name,
@@ -99,6 +121,7 @@ impl Workspace {
       x: rect.x(),
       y: rect.y(),
       tiling_direction: self.tiling_direction(),
+      windows,
     }))
   }
 }
