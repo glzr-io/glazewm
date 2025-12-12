@@ -331,9 +331,22 @@ impl NativeWindow {
       return Ok(None);
     }
 
-    // Convert BGRA to RGBA
+    // Convert BGRA to RGBA and apply grayscale
     for i in (0..bitmap_data.len()).step_by(4) {
-      bitmap_data.swap(i, i + 2); // Swap B and R
+      let b = bitmap_data[i];
+      let g = bitmap_data[i + 1];
+      let r = bitmap_data[i + 2];
+      let a = bitmap_data[i + 3];
+      
+      // Calculate grayscale value using standard luminance formula
+      #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+      let gray = (0.299 * f32::from(r) + 0.587 * f32::from(g) + 0.114 * f32::from(b)) as u8;
+      
+      // Set R, G, B to the same grayscale value (RGBA format)
+      bitmap_data[i] = gray;     // R
+      bitmap_data[i + 1] = gray; // G
+      bitmap_data[i + 2] = gray; // B
+      bitmap_data[i + 3] = a;    // A (alpha unchanged)
     }
 
     // Encode as base64
