@@ -182,10 +182,11 @@ impl NativeWindow {
     Ok(class_name)
   }
 
-  /// Extracts the window icon as a base64-encoded PNG data URL.
+  /// Extracts the window icon as a base64-encoded data URL.
   ///
   /// This tries to extract the icon from the executable file and
   /// convert it to a base64 data URL for display in web contexts.
+  /// The format is a custom raw bitmap format with dimensions.
   ///
   /// This value is lazily retrieved and cached after first retrieval.
   ///
@@ -208,10 +209,11 @@ impl NativeWindow {
       .flatten()
   }
 
-  /// Extracts the window icon as a base64-encoded PNG data URL.
+  /// Extracts the window icon as a base64-encoded data URL.
   ///
   /// This tries to extract the icon from the executable file and
   /// convert it to a base64 data URL for display in web contexts.
+  /// The format is a custom raw bitmap format with dimensions.
   ///
   /// Returns None if no icon could be extracted.
   #[allow(clippy::unnecessary_wraps)]
