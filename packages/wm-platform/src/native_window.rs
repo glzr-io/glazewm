@@ -70,6 +70,7 @@ pub struct NativeWindow {
   border_position: Memo<Rect>,
   is_minimized: Memo<bool>,
   is_maximized: Memo<bool>,
+  icon_data_url: Memo<Option<String>>,
 }
 
 impl NativeWindow {
@@ -85,6 +86,7 @@ impl NativeWindow {
       border_position: Memo::new(),
       is_minimized: Memo::new(),
       is_maximized: Memo::new(),
+      icon_data_url: Memo::new(),
     }
   }
 
@@ -180,14 +182,40 @@ impl NativeWindow {
     Ok(class_name)
   }
 
-  /// Extracts the window icon as a base64-encoded PNG data URL.
+  /// Extracts the window icon as a base64-encoded data URL.
   ///
   /// This tries to extract the icon from the executable file and
   /// convert it to a base64 data URL for display in web contexts.
+  /// The format is a custom raw bitmap format with dimensions.
+  ///
+  /// This value is lazily retrieved and cached after first retrieval.
   ///
   /// Returns None if no icon could be extracted.
   #[must_use]
   pub fn icon_as_data_url(&self) -> Option<String> {
+    self
+      .icon_data_url
+      .get_or_init(Self::updated_icon_as_data_url, self)
+      .ok()
+      .flatten()
+  }
+
+  /// Updates the cached icon.
+  pub fn refresh_icon(&self) -> anyhow::Result<Option<String>> {
+    self
+      .icon_data_url
+      .update(Self::updated_icon_as_data_url, self)
+  }
+
+  /// Extracts the window icon as a base64-encoded data URL.
+  ///
+  /// This tries to extract the icon from the executable file and
+  /// convert it to a base64 data URL for display in web contexts.
+  /// The format is a custom raw bitmap format with dimensions.
+  ///
+  /// Returns None if no icon could be extracted.
+  #[allow(clippy::unnecessary_wraps)]
+  fn updated_icon_as_data_url(&self) -> anyhow::Result<Option<String>> {
     use base64::{engine::general_purpose, Engine as _};
     use windows::Win32::{
       Graphics::Gdi::{
@@ -202,7 +230,11 @@ impl NativeWindow {
     };
 
     // Try to get the executable path for this window
-    let exe_path = self.exe_path().ok()?;
+    // If we can't get the path, we can't extract an icon
+    let exe_path = match self.exe_path() {
+      Ok(path) => path,
+      Err(_) => return Ok(None),
+    };
 
     // Convert to wide string for Windows API
     let wide_path: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
@@ -217,14 +249,14 @@ impl NativeWindow {
     };
 
     if icon_handle.0 <= 1 {
-      return None; // No icon or error
+      return Ok(None); // No icon or error
     }
 
     // Get icon information
     let mut icon_info = ICONINFO::default();
     if unsafe { GetIconInfo(icon_handle, std::ptr::from_mut(&mut icon_info)) }.is_err() {
       let _ = unsafe { DestroyIcon(icon_handle) };
-      return None;
+      return Ok(None);
     }
 
     // Get the color bitmap
@@ -249,7 +281,7 @@ impl NativeWindow {
         let _ = DeleteObject(icon_info.hbmMask);
         let _ = DestroyIcon(icon_handle);
       }
-      return None;
+      return Ok(None);
     }
 
     // Create bitmap info for DIB
@@ -294,27 +326,38 @@ impl NativeWindow {
     }
 
     if result == 0 {
-      return None;
+      return Ok(None);
     }
 
-    // Convert BGRA to RGBA
+    // Convert BGRA bitmap data to RGBA grayscale
     for i in (0..bitmap_data.len()).step_by(4) {
-      bitmap_data.swap(i, i + 2); // Swap B and R
+      let b = bitmap_data[i];
+      let g = bitmap_data[i + 1];
+      let r = bitmap_data[i + 2];
+      let a = bitmap_data[i + 3];
+      
+      // Calculate grayscale value using standard luminance formula
+      #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+      let gray = (0.299 * f32::from(r) + 0.587 * f32::from(g) + 0.114 * f32::from(b)) as u8;
+      
+      // Set R, G, B to the same grayscale value (RGBA format)
+      bitmap_data[i] = gray;     // R
+      bitmap_data[i + 1] = gray; // G
+      bitmap_data[i + 2] = gray; // B
+      bitmap_data[i + 3] = a;    // A (alpha unchanged)
     }
 
     // Encode as base64
-    // Create a simple PNG-like structure (simplified)
-    // For a proper PNG, we'd need to add PNG headers, but for now
-    // let's create a data URL with the raw bitmap
+    // Create a data URL with the raw bitmap data and dimensions
     let base64_data = general_purpose::STANDARD.encode(&bitmap_data);
 
     // Return as a custom data URL with dimensions
-    Some(format!(
+    Ok(Some(format!(
       "data:image/raw;base64,{}|{}x{}",
       base64_data,
       bmp.bmWidth,
       bmp.bmHeight
-    ))
+    )))
   }
 
   /// Gets the full executable path for the window's process.

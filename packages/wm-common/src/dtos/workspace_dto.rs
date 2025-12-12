@@ -10,7 +10,7 @@ use crate::TilingDirection;
 pub struct WorkspaceWindowDto {
   pub process_name: String,
   pub title: String,
-  /// Base64-encoded PNG icon data (data URL format)
+  /// Base64-encoded icon data in custom raw bitmap format (data URL format)
   #[serde(skip_serializing_if = "Option::is_none")]
   pub icon: Option<String>,
 }
