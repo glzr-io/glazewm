@@ -201,12 +201,10 @@ impl NativeWindow {
   }
 
   /// Updates the cached icon.
-  pub fn refresh_icon(&self) -> Option<String> {
+  pub fn refresh_icon(&self) -> anyhow::Result<Option<String>> {
     self
       .icon_data_url
       .update(Self::updated_icon_as_data_url, self)
-      .ok()
-      .flatten()
   }
 
   /// Extracts the window icon as a base64-encoded data URL.
@@ -331,7 +329,7 @@ impl NativeWindow {
       return Ok(None);
     }
 
-    // Convert BGRA to RGBA and apply grayscale
+    // Convert BGRA bitmap data to RGBA grayscale
     for i in (0..bitmap_data.len()).step_by(4) {
       let b = bitmap_data[i];
       let g = bitmap_data[i + 1];
