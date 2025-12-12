@@ -232,6 +232,7 @@ impl NativeWindow {
     };
 
     // Try to get the executable path for this window
+    // If we can't get the path, we can't extract an icon
     let exe_path = match self.exe_path() {
       Ok(path) => path,
       Err(_) => return Ok(None),
@@ -336,9 +337,7 @@ impl NativeWindow {
     }
 
     // Encode as base64
-    // Create a simple PNG-like structure (simplified)
-    // For a proper PNG, we'd need to add PNG headers, but for now
-    // let's create a data URL with the raw bitmap
+    // Create a data URL with the raw bitmap data and dimensions
     let base64_data = general_purpose::STANDARD.encode(&bitmap_data);
 
     // Return as a custom data URL with dimensions
