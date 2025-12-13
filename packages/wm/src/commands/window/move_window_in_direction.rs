@@ -162,7 +162,8 @@ fn move_to_sibling_container(
       state
         .pending_sync
         .queue_container_to_redraw(sibling_window)
-        .queue_container_to_redraw(window_to_move);
+        .queue_container_to_redraw(window_to_move)
+        .queue_cursor_jump();
     }
     TilingContainer::Split(sibling_split) => {
       let sibling_descendant =
@@ -197,7 +198,8 @@ fn move_to_sibling_container(
         state
           .pending_sync
           .queue_container_to_redraw(target_parent)
-          .queue_containers_to_redraw(parent.tiling_children());
+          .queue_containers_to_redraw(parent.tiling_children())
+          .queue_cursor_jump();
       }
     }
   }
