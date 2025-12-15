@@ -7,11 +7,13 @@ use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, UniqueExt,
   WindowEffectConfig, WindowState, WmEvent,
 };
-use wm_platform::{OpacityValue, ZOrder};
+use wm_platform::{OpacityValue, Rect, ZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -192,6 +194,8 @@ fn redraw_containers(
 
     // Sort the windows to update by their focus order. The most recently
     // focused window will be updated first.
+    // TODO: To reduce flicker, redraw windows that will be shown first,
+    // then redraw the ones to be hidden last.
     windows.sort_by_key(|window| {
       descendant_focus_order
         .iter()
@@ -200,6 +204,8 @@ fn redraw_containers(
 
     windows
   };
+
+  // TODO: Get monitors by their optimal hide corner.
 
   for window in windows_to_update.iter().rev() {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
@@ -276,10 +282,26 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    let result = if window.active_drag().is_some() {
-      window.native().resize(rect.width(), rect.height())
+    let result = if is_visible {
+      if window.active_drag().is_some() {
+        window.native().resize(rect.width(), rect.height())
+      } else {
+        window.native().set_frame(&rect)
+      }
     } else {
-      window.native().set_frame(&rect)
+      // TODO: Move this out to a separate function.
+      const VISIBLE_SLIVER: i32 = 1;
+
+      let monitor_rect =
+        window.monitor().context("No monitor.")?.to_rect()?;
+      let window_frame = window.native_properties().frame;
+
+      let origin_x =
+        monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER;
+      let origin_y =
+        monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER;
+
+      window.native().reposition(origin_x, origin_y)
     };
 
     if let Err(err) = result {

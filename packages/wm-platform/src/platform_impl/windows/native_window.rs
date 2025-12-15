@@ -72,6 +72,26 @@ pub trait NativeWindowWindowsExt {
   ///
   /// This method is only available on Windows.
   fn set_z_order(&self, zorder: &ZOrder) -> crate::Result<()>;
+
+  /// Restores the window (unminimizes and unmaximizes).
+  ///
+  /// If `outer_frame` is provided, the window will be restored to the
+  /// specified position. This avoids flickering compared to restoring
+  /// and then repositioning the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()>;
+
+  /// Gets the window's frame, including the window's shadow borders.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  ///
+  /// TODO: Consider renaming this to `outer_frame`.`
+  fn frame_with_shadows(&self) -> crate::Result<Rect>;
 }
 
 impl NativeWindowWindowsExt for NativeWindow {}
