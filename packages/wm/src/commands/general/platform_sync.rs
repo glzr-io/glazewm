@@ -273,38 +273,7 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
-
-    let is_visible = matches!(
-      window.display_state(),
-      DisplayState::Showing | DisplayState::Shown
-    );
-
-    let result = if is_visible {
-      if window.active_drag().is_some() {
-        window.native().resize(rect.width(), rect.height())
-      } else {
-        window.native().set_frame(&rect)
-      }
-    } else {
-      // TODO: Move this out to a separate function.
-      const VISIBLE_SLIVER: i32 = 1;
-
-      let monitor_rect =
-        window.monitor().context("No monitor.")?.to_rect()?;
-      let window_frame = window.native_properties().frame;
-
-      let origin_x =
-        monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER;
-      let origin_y =
-        monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER;
-
-      window.native().reposition(origin_x, origin_y)
-    };
-
-    if let Err(err) = result {
+    if let Err(err) = reposition_window(window, config) {
       warn!("Failed to set window position: {}", err);
     }
 
@@ -347,6 +316,51 @@ fn redraw_containers(
         warn!("Failed to set taskbar visibility: {}", err);
       }
     }
+  }
+
+  Ok(())
+}
+
+fn reposition_window(
+  window: &WindowContainer,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let rect = window
+    .to_rect()?
+    .apply_delta(&window.total_border_delta()?, None);
+
+  let is_visible = matches!(
+    window.display_state(),
+    DisplayState::Showing | DisplayState::Shown
+  );
+
+  // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
+  // to the corner of the monitor.
+  if config.value.general.hide_method == HideMethod::PlaceInCorner
+    && !is_visible
+  {
+    const VISIBLE_SLIVER: i32 = 1;
+
+    let monitor_rect = window
+      .monitor()
+      .context("No monitor.")?
+      .native_properties()
+      .working_area;
+    let window_frame = window.native_properties().frame;
+
+    let origin_x =
+      monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER;
+    let origin_y =
+      monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER;
+
+    window.native().reposition(origin_x, origin_y)?;
+    return Ok(());
+  }
+
+  if window.active_drag().is_some() {
+    window.native().resize(rect.width(), rect.height())?;
+  } else {
+    window.native().set_frame(&rect)?;
   }
 
   Ok(())

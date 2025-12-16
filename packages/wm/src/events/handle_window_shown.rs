@@ -1,5 +1,5 @@
 use tracing::info;
-use wm_common::DisplayState;
+use wm_common::{DisplayState, HideMethod};
 use wm_platform::NativeWindow;
 
 use crate::{
@@ -18,7 +18,9 @@ pub fn handle_window_shown(
     info!("Window shown: {window}");
 
     // Update display state if window is already managed.
-    if window.display_state() == DisplayState::Showing {
+    if config.value.general.hide_method != HideMethod::PlaceInCorner
+      && window.display_state() == DisplayState::Showing
+    {
       window.set_display_state(DisplayState::Shown);
     } else {
       state.pending_sync.queue_container_to_redraw(window);

@@ -1,15 +1,16 @@
 use tracing::info;
-use wm_common::DisplayState;
+use wm_common::{DisplayState, HideMethod};
 use wm_platform::NativeWindow;
 
 use crate::{
   commands::window::unmanage_window, traits::WindowGetters,
-  wm_state::WmState,
+  user_config::UserConfig, wm_state::WmState,
 };
 
 pub fn handle_window_hidden(
   native_window: &NativeWindow,
   state: &mut WmState,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(native_window);
 
@@ -17,7 +18,9 @@ pub fn handle_window_hidden(
     info!("Window hidden: {window}");
 
     // Update the display state.
-    if window.display_state() == DisplayState::Hiding {
+    if config.value.general.hide_method != HideMethod::PlaceInCorner
+      && window.display_state() == DisplayState::Hiding
+    {
       window.set_display_state(DisplayState::Hidden);
       return Ok(());
     }

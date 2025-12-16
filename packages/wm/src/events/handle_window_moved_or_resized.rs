@@ -1,7 +1,7 @@
 use anyhow::Context;
 use wm_common::{
-  try_warn, ActiveDrag, ActiveDragOperation, FloatingStateConfig,
-  FullscreenStateConfig, WindowState,
+  try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
+  FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
 use wm_platform::{
   LengthValue, MouseButton, NativeWindow, Rect, RectDelta,
@@ -14,7 +14,7 @@ use crate::{
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -178,7 +178,31 @@ pub fn handle_window_moved_or_resized(
 
     let nearest_monitor = state
       .nearest_monitor(&window.native())
-      .context("Failed to get workspace of nearest monitor.")?;
+      .context("No nearest monitor.")?;
+
+    // For `HideMethod::PlaceInCorner`, hiding/showing is implemented by
+    // repositioning the window. Since the OS won't emit real
+    // shown/hidden events in this mode, update `DisplayState` based on
+    // whether the window has been moved to the monitor's bottom corner.
+    if config.value.general.hide_method == HideMethod::PlaceInCorner {
+      let is_in_corner = is_in_corner(
+        &frame_position,
+        &nearest_monitor.native_properties().working_area,
+      );
+
+      // TODO: Consider redrawing if hidden and should be shown, or if
+      // shown and should be hidden.
+      let display_state = match (window.display_state(), is_in_corner) {
+        (DisplayState::Hiding, true) => DisplayState::Hidden,
+        (DisplayState::Showing, false) => DisplayState::Shown,
+        _ => window.display_state(),
+      };
+
+      if display_state != window.display_state() {
+        window.set_display_state(display_state);
+        return Ok(());
+      }
+    }
 
     let should_fullscreen = window.should_fullscreen(
       &nearest_monitor
@@ -214,7 +238,7 @@ pub fn handle_window_moved_or_resized(
 
       // TODO: Consider dequeuing the window from redraw, since the window
       // is already in the correct state. Games are especially sensitive to
-      // redraws and are pretty likely to be fullscreen.
+      // redraws and are often fullscreen.
 
       // TODO: Handle a fullscreen window being moved from one monitor to
       // another.
@@ -405,4 +429,53 @@ fn update_drag_state(
   }
 
   Ok(())
+}
+
+fn is_in_corner(frame: &Rect, monitor_rect: &Rect) -> bool {
+  const VISIBLE_SLIVER_PX: i32 = 1;
+  // Allow a bit of tolerance since some platforms (and DPI scaling)
+  // can report off-by-1/-2 positions for programmatic moves.
+  const TOLERANCE_PX: i32 = 2;
+
+  let expected_y =
+    monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER_PX;
+
+  let expected_right_x =
+    monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER_PX;
+
+  let expected_left_x =
+    monitor_rect.x() - frame.width() + VISIBLE_SLIVER_PX;
+
+  let close =
+    |actual: i32, expected: i32| (actual - expected).abs() <= TOLERANCE_PX;
+
+  close(frame.y(), expected_y)
+    && (close(frame.x(), expected_right_x)
+      || close(frame.x(), expected_left_x))
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_platform::Rect;
+
+  use super::is_in_corner;
+
+  #[test]
+  fn detects_bottom_right_corner() {
+    let monitor = Rect::from_xy(0, 0, 1920, 1080);
+
+    let window_right_corner = Rect::from_xy(1919, 1079, 800, 600);
+    assert!(is_in_corner(&window_right_corner, &monitor));
+
+    let window_left_corner = Rect::from_xy(-799, 1079, 800, 600);
+    assert!(is_in_corner(&window_left_corner, &monitor));
+  }
+
+  #[test]
+  fn does_not_match_non_corner_positions() {
+    let monitor = Rect::from_xy(0, 0, 1920, 1080);
+    let window = Rect::from_xy(100, 100, 800, 600);
+
+    assert!(!is_in_corner(&window, &monitor));
+  }
 }

@@ -28,9 +28,10 @@ general:
     trigger: 'monitor_focus'
 
   # How windows should be hidden when switching workspaces.
-  # - 'cloak': Recommended. Hides windows with no animation.
-  # - 'hide': Legacy method (v3.5 and earlier) that has a brief animation,
-  # but has stability issues with some apps.
+  # - 'cloak': (Windows only) Recommended option for Windows.
+  # - 'hide': (Windows only) Legacy option for Windows. Has stability issues with some apps.
+  # - 'place_in_corner': Artifically hides the window by placing it in the corner of the
+  #   monitor. On macOS, this is always used instead of cloak/hide.
   hide_method: 'cloak'
 
   # Affects which windows get shown in the native Windows taskbar. Has no
