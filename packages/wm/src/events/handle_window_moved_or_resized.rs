@@ -14,7 +14,7 @@ use crate::{
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -431,27 +431,28 @@ fn update_drag_state(
   Ok(())
 }
 
-fn is_in_corner(frame: &Rect, monitor_rect: &Rect) -> bool {
+/// Gets whether the window is in the corner of the monitor.
+fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
+  // Visible portion of the window used when positioning windows in the
+  // monitor's corner. See `platform_sync` for how hidden windows are
+  // positioned.
   const VISIBLE_SLIVER_PX: i32 = 1;
-  // Allow a bit of tolerance since some platforms (and DPI scaling)
-  // can report off-by-1/-2 positions for programmatic moves.
-  const TOLERANCE_PX: i32 = 2;
 
-  let expected_y =
-    monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER_PX;
+  // Allow 1px of leeway.
+  let is_left_corner =
+    (window_frame.x() - VISIBLE_SLIVER_PX - monitor_rect.left).abs() <= 1;
 
-  let expected_right_x =
-    monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER_PX;
+  // Allow 1px of leeway.
+  let is_right_corner =
+    (window_frame.x() + VISIBLE_SLIVER_PX - monitor_rect.right).abs() <= 1;
 
-  let expected_left_x =
-    monitor_rect.x() - frame.width() + VISIBLE_SLIVER_PX;
+  // On macOS, the window's title bar is prevented from being positioned
+  // outside of monitor's working area, so we need to allow ~50px of
+  // vertical leeway.
+  let is_bottom_of_monitor =
+    (window_frame.y() - monitor_rect.bottom).abs() <= 50;
 
-  let close =
-    |actual: i32, expected: i32| (actual - expected).abs() <= TOLERANCE_PX;
-
-  close(frame.y(), expected_y)
-    && (close(frame.x(), expected_right_x)
-      || close(frame.x(), expected_left_x))
+  (is_left_corner || is_right_corner) && is_bottom_of_monitor
 }
 
 #[cfg(test)]
@@ -461,21 +462,21 @@ mod tests {
   use super::is_in_corner;
 
   #[test]
-  fn detects_bottom_right_corner() {
+  fn matches_corner_positions() {
     let monitor = Rect::from_xy(0, 0, 1920, 1080);
 
-    let window_right_corner = Rect::from_xy(1919, 1079, 800, 600);
-    assert!(is_in_corner(&window_right_corner, &monitor));
+    let frame_in_right_corner = Rect::from_xy(1919, 1050, 600, 600);
+    assert!(is_in_corner(&frame_in_right_corner, &monitor));
 
-    let window_left_corner = Rect::from_xy(-799, 1079, 800, 600);
-    assert!(is_in_corner(&window_left_corner, &monitor));
+    let frame_in_left_corner = Rect::from_xy(1, 1050, 600, 600);
+    assert!(is_in_corner(&frame_in_left_corner, &monitor));
   }
 
   #[test]
   fn does_not_match_non_corner_positions() {
     let monitor = Rect::from_xy(0, 0, 1920, 1080);
-    let window = Rect::from_xy(100, 100, 800, 600);
+    let frame = Rect::from_xy(100, 100, 800, 600);
 
-    assert!(!is_in_corner(&window, &monitor));
+    assert!(!is_in_corner(&frame, &monitor));
   }
 }

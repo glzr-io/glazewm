@@ -346,12 +346,13 @@ fn reposition_window(
       .context("No monitor.")?
       .native_properties()
       .working_area;
+
     let window_frame = window.native_properties().frame;
 
-    let origin_x =
-      monitor_rect.x() + monitor_rect.width() - VISIBLE_SLIVER;
-    let origin_y =
-      monitor_rect.y() + monitor_rect.height() - VISIBLE_SLIVER;
+    // TODO: Position to either the left or right corner of the monitor
+    // based on optimal monitor corners.
+    let origin_x = monitor_rect.right - VISIBLE_SLIVER;
+    let origin_y = monitor_rect.bottom - VISIBLE_SLIVER;
 
     window.native().reposition(origin_x, origin_y)?;
     return Ok(());

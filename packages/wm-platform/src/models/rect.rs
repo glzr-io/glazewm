@@ -3,6 +3,14 @@ use serde::{Deserialize, Serialize};
 use crate::{Direction, LengthValue, Point, RectDelta};
 
 #[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
+pub enum Corner {
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight,
+}
+
+#[derive(Debug, Deserialize, Clone, Serialize, Eq, PartialEq)]
 pub struct Rect {
   /// X-coordinate of the left edge of the rectangle.
   pub left: i32,
@@ -124,6 +132,28 @@ impl Rect {
     Point {
       x: self.left + (self.width() / 2),
       y: self.top + (self.height() / 2),
+    }
+  }
+
+  #[must_use]
+  pub fn corner(&self, corner: &Corner) -> Point {
+    match corner {
+      Corner::TopLeft => Point {
+        x: self.left,
+        y: self.top,
+      },
+      Corner::TopRight => Point {
+        x: self.right,
+        y: self.top,
+      },
+      Corner::BottomLeft => Point {
+        x: self.left,
+        y: self.bottom,
+      },
+      Corner::BottomRight => Point {
+        x: self.right,
+        y: self.bottom,
+      },
     }
   }
 
