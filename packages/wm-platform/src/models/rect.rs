@@ -182,29 +182,23 @@ impl Rect {
     )
   }
 
-  // Gets whether the x-coordinate overlaps with the x-coordinate of the
-  // other rect.
+  // Gets the amount of overlap between the x-coordinates of the two rects.
   #[must_use]
-  pub fn has_overlap_x(&self, other: &Rect) -> bool {
-    !(self.x() + self.width() <= other.x()
-      || other.x() + other.width() <= self.x())
+  pub fn x_overlap(&self, other: &Rect) -> i32 {
+    self.right.min(other.right) - self.x().max(other.x())
   }
 
-  // Gets whether the y-coordinate overlaps with the y-coordinate of the
-  // other rect.
+  // Gets the amount of overlap between the y-coordinates of the two rects.
   #[must_use]
-  pub fn has_overlap_y(&self, other: &Rect) -> bool {
-    !(self.y() + self.height() <= other.y()
-      || other.y() + other.height() <= self.y())
+  pub fn y_overlap(&self, other: &Rect) -> i32 {
+    self.bottom.min(other.bottom) - self.y().max(other.y())
   }
 
   /// Gets the intersection area of this rect and another rect.
   #[must_use]
   pub fn intersection_area(&self, other: &Rect) -> i32 {
-    let x_overlap = self.right.min(other.right) - self.x().max(other.x());
-
-    let y_overlap =
-      self.bottom.min(other.bottom) - self.y().max(other.y());
+    let x_overlap = self.x_overlap(other);
+    let y_overlap = self.y_overlap(other);
 
     if x_overlap > 0 && y_overlap > 0 {
       x_overlap * y_overlap

@@ -4,8 +4,8 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, UniqueExt,
-  WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideCorner, HideMethod,
+  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{OpacityValue, Rect, ZOrder};
 
@@ -15,7 +15,7 @@ use crate::{
     CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
   },
   user_config::UserConfig,
-  wm_state::{HideCorner, WmState},
+  wm_state::WmState,
 };
 
 pub fn platform_sync(
