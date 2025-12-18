@@ -5,7 +5,9 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, WindowState, WmEvent};
-use wm_platform::{Direction, Dispatcher, Display, NativeWindow, Point};
+use wm_platform::{
+  Direction, Dispatcher, Display, NativeWindow, Point, Rect,
+};
 
 use crate::{
   commands::{
@@ -20,6 +22,12 @@ use crate::{
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HideCorner {
+  BottomLeft,
+  BottomRight,
+}
 
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
@@ -255,6 +263,64 @@ impl WmState {
       .map(|(monitor, _)| monitor);
 
     Ok(closest_monitor)
+  }
+
+  pub fn monitors_by_hide_corner(&self) -> Vec<(Monitor, HideCorner)> {
+    const TEST_FRAME_SIZE: i32 = 400;
+    const HIDE_OFFSET: i32 = 5;
+
+    let mut result = Vec::new();
+    let monitors = self.monitors();
+
+    for (idx, monitor) in monitors.iter().enumerate() {
+      let monitor_rect = monitor.native_properties().working_area;
+
+      // Get all other monitors.
+      let other_monitors = monitors
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i != idx)
+        .map(|(_, m)| m.native_properties().working_area)
+        .collect::<Vec<_>>();
+
+      // Test frame for bottom-left corner.
+      let left_test_frame = Rect::from_xy(
+        monitor_rect.x() - TEST_FRAME_SIZE - HIDE_OFFSET,
+        monitor_rect.y() + monitor_rect.height() - TEST_FRAME_SIZE,
+        TEST_FRAME_SIZE,
+        TEST_FRAME_SIZE,
+      );
+
+      // Test frame for bottom-right corner.
+      let right_test_frame = Rect::from_xy(
+        monitor_rect.x() + monitor_rect.width() + HIDE_OFFSET,
+        monitor_rect.y() + monitor_rect.height() - TEST_FRAME_SIZE,
+        TEST_FRAME_SIZE,
+        TEST_FRAME_SIZE,
+      );
+
+      // Calculate total overlap area for each corner.
+      let left_overlap: i32 = other_monitors
+        .iter()
+        .map(|m| left_test_frame.intersection_area(m))
+        .sum();
+
+      let right_overlap: i32 = other_monitors
+        .iter()
+        .map(|m| right_test_frame.intersection_area(m))
+        .sum();
+
+      // Choose corner with less overlap (or right if equal).
+      let corner = if left_overlap < right_overlap {
+        HideCorner::BottomLeft
+      } else {
+        HideCorner::BottomRight
+      };
+
+      result.push((monitor.clone(), corner));
+    }
+
+    result
   }
 
   /// Gets window that corresponds to the given `NativeWindow`.

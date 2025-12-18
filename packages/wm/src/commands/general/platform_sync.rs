@@ -15,7 +15,7 @@ use crate::{
     CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
   },
   user_config::UserConfig,
-  wm_state::WmState,
+  wm_state::{HideCorner, WmState},
 };
 
 pub fn platform_sync(
@@ -205,13 +205,21 @@ fn redraw_containers(
     windows
   };
 
-  // TODO: Get monitors by their optimal hide corner.
+  // Get monitors by their optimal hide corner.
+  let monitors_by_hide_corner = state.monitors_by_hide_corner();
 
   for window in windows_to_update.iter().rev() {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
 
     let workspace =
       window.workspace().context("Window has no workspace.")?;
+
+    let monitor = window.monitor().context("No monitor.")?;
+    let hide_corner = monitors_by_hide_corner
+      .iter()
+      .find(|(m, _)| m.id() == monitor.id())
+      .map(|(_, hide_corner)| hide_corner)
+      .context("Monitor not found in hide corner map.")?;
 
     // Whether the window should be shown above all other windows.
     let z_order = match window.state() {
@@ -273,7 +281,7 @@ fn redraw_containers(
       },
     );
 
-    if let Err(err) = reposition_window(window, config) {
+    if let Err(err) = reposition_window(window, *hide_corner, config) {
       warn!("Failed to set window position: {}", err);
     }
 
@@ -323,6 +331,7 @@ fn redraw_containers(
 
 fn reposition_window(
   window: &WindowContainer,
+  hide_corner: HideCorner,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let rect = window
@@ -347,14 +356,26 @@ fn reposition_window(
       .native_properties()
       .working_area;
 
-    let window_frame = window.native_properties().frame;
+    let frame = window.native_properties().frame;
 
-    // TODO: Position to either the left or right corner of the monitor
-    // based on optimal monitor corners.
-    let origin_x = monitor_rect.right - VISIBLE_SLIVER;
-    let origin_y = monitor_rect.bottom - VISIBLE_SLIVER;
+    let position_y = monitor_rect.bottom - VISIBLE_SLIVER;
+    let position_x = match hide_corner {
+      HideCorner::BottomLeft => {
+        monitor_rect.left + VISIBLE_SLIVER - frame.width()
+      }
+      HideCorner::BottomRight => monitor_rect.right - VISIBLE_SLIVER,
+    };
 
-    window.native().reposition(origin_x, origin_y)?;
+    // Even though the window size is unchanged, `NativeWindow::set_frame`
+    // is used instead of `NativeWindow::reposition` because the latter
+    // resulted in occasional incorrect positionings on macOS.
+    window.native().set_frame(&Rect::from_xy(
+      position_x,
+      position_y,
+      frame.width(),
+      frame.height(),
+    ))?;
+
     return Ok(());
   }
 

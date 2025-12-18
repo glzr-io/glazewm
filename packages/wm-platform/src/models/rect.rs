@@ -198,6 +198,21 @@ impl Rect {
       || other.y() + other.height() <= self.y())
   }
 
+  /// Gets the intersection area of this rect and another rect.
+  #[must_use]
+  pub fn intersection_area(&self, other: &Rect) -> i32 {
+    let x_overlap = self.right.min(other.right) - self.x().max(other.x());
+
+    let y_overlap =
+      self.bottom.min(other.bottom) - self.y().max(other.y());
+
+    if x_overlap > 0 && y_overlap > 0 {
+      x_overlap * y_overlap
+    } else {
+      0
+    }
+  }
+
   #[must_use]
   pub fn contains_point(&self, point: &Point) -> bool {
     let is_in_x = point.x >= self.left && point.x <= self.right;
@@ -255,5 +270,33 @@ impl Rect {
       self.right.max(other.right),
       self.bottom.max(other.bottom),
     )
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn intersection_area() {
+    // Full overlap.
+    let r1 = Rect::from_xy(0, 0, 100, 100);
+    let r2 = Rect::from_xy(0, 0, 100, 100);
+    assert_eq!(r1.intersection_area(&r2), 10000); // 100 * 100
+
+    // Partial overlap.
+    let r1 = Rect::from_xy(0, 0, 100, 100);
+    let r2 = Rect::from_xy(50, 50, 100, 100);
+    assert_eq!(r1.intersection_area(&r2), 2500); // 50 * 50
+
+    // No overlap.
+    let r1 = Rect::from_xy(0, 0, 100, 100);
+    let r2 = Rect::from_xy(200, 200, 100, 100);
+    assert_eq!(r1.intersection_area(&r2), 0);
+
+    // No overlap (edges touching).
+    let r1 = Rect::from_xy(0, 0, 100, 100);
+    let r2 = Rect::from_xy(100, 0, 100, 100);
+    assert_eq!(r1.intersection_area(&r2), 0);
   }
 }

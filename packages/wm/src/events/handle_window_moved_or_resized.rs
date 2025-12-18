@@ -192,6 +192,9 @@ pub fn handle_window_moved_or_resized(
 
       // TODO: Consider redrawing if hidden and should be shown, or if
       // shown and should be hidden.
+      // TODO: It can be valid for a floating window to be in the corner,
+      // in which case, it currently doesn't get updated to
+      // `DisplayState::Shown`.
       let display_state = match (window.display_state(), is_in_corner) {
         (DisplayState::Hiding, true) => DisplayState::Hidden,
         (DisplayState::Showing, false) => DisplayState::Shown,
@@ -440,7 +443,8 @@ fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
 
   // Allow 1px of leeway.
   let is_left_corner =
-    (window_frame.x() - VISIBLE_SLIVER_PX - monitor_rect.left).abs() <= 1;
+    (window_frame.right - VISIBLE_SLIVER_PX - monitor_rect.left).abs()
+      <= 1;
 
   // Allow 1px of leeway.
   let is_right_corner =
