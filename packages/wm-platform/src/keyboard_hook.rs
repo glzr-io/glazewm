@@ -296,8 +296,8 @@ impl KeyboardHook {
       "oem_comma" => Some(VK_OEM_COMMA.0),
       "oem_minus" => Some(VK_OEM_MINUS.0),
       "oem_period" => Some(VK_OEM_PERIOD.0),
-      "nonconvert" => Some(VK_NONCONVERT.0),
-      "convert" => Some(VK_CONVERT.0),
+      "muhenkan" => Some(VK_NONCONVERT.0),
+      "henkan" => Some(VK_CONVERT.0),
       _ => {
         // Check if the key exists on the current keyboard layout.
         let utf16_key = key.encode_utf16().next()?;
