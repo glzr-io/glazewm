@@ -22,4 +22,7 @@ jobs:
         with:
           name: build
           if-no-files-found: error
-          path: target/x86_64-pc-windows-msvc/release/glazewm.exe
+          path: |
+            target/x86_64-pc-windows-msvc/release/glazewm.exe
+            target/x86_64-pc-windows-msvc/release/glazewm-cli.exe
+            target/x86_64-pc-windows-msvc/release/glazewm-watcher.exe
