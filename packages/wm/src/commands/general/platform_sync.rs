@@ -257,9 +257,14 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
+    let scale_factor = window
+      .monitor()
+      .and_then(|monitor| monitor.native().scale_factor().ok());
+
+    let rect = window.to_rect()?.apply_delta(
+      &window.total_border_delta(scale_factor)?,
+      scale_factor,
+    );
 
     let is_visible = matches!(
       window.display_state(),

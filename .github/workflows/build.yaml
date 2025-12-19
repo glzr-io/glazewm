@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  push:
+
+jobs:
+  lint-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
+        with:
+          toolchain: nightly
+
+      - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+
+      - name: Check build
+        run: cargo build --locked --release --target x86_64-pc-windows-msvc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          if-no-files-found: error
+          path: target/x86_64-pc-windows-msvc/release/glazewm.exe
