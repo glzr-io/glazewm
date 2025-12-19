@@ -28,6 +28,7 @@ use windows::Win32::{
       VK_RWIN, VK_S, VK_SCROLL, VK_SHIFT, VK_SNAPSHOT, VK_SPACE,
       VK_SUBTRACT, VK_T, VK_TAB, VK_U, VK_UP, VK_V, VK_VOLUME_DOWN,
       VK_VOLUME_MUTE, VK_VOLUME_UP, VK_W, VK_X, VK_Y, VK_Z,
+      VK_NONCONVERT, VK_CONVERT,
     },
     WindowsAndMessaging::{
       CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
@@ -295,6 +296,8 @@ impl KeyboardHook {
       "oem_comma" => Some(VK_OEM_COMMA.0),
       "oem_minus" => Some(VK_OEM_MINUS.0),
       "oem_period" => Some(VK_OEM_PERIOD.0),
+      "muhenkan" => Some(VK_NONCONVERT.0),
+      "henkan" => Some(VK_CONVERT.0),
       _ => {
         // Check if the key exists on the current keyboard layout.
         let utf16_key = key.encode_utf16().next()?;
