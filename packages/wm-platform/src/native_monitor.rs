@@ -5,9 +5,10 @@ use windows::{
   Win32::{
     Foundation::{BOOL, HWND, LPARAM, RECT},
     Graphics::Gdi::{
-      EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW,
-      MonitorFromWindow, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, HDC,
-      HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      EnumDisplayDevicesW, EnumDisplayMonitors, EnumDisplaySettingsW,
+      GetMonitorInfoW, MonitorFromWindow, DEVMODEW, DISPLAY_DEVICEW,
+      DISPLAY_DEVICE_ACTIVE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
+      MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
     },
     UI::{
       HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
@@ -32,6 +33,7 @@ struct MonitorInfo {
   working_rect: Rect,
   dpi: u32,
   scale_factor: f32,
+  refresh_rate: u32,
 }
 
 impl NativeMonitor {
@@ -69,6 +71,10 @@ impl NativeMonitor {
 
   pub fn scale_factor(&self) -> anyhow::Result<f32> {
     self.monitor_info().map(|info| info.scale_factor)
+  }
+
+  pub fn refresh_rate(&self) -> anyhow::Result<u32> {
+    self.monitor_info().map(|info| info.refresh_rate)
   }
 
   fn monitor_info(&self) -> anyhow::Result<&MonitorInfo> {
@@ -136,6 +142,7 @@ impl NativeMonitor {
       let dpi = monitor_dpi(self.handle)?;
       #[allow(clippy::cast_precision_loss)]
       let scale_factor = dpi as f32 / 96.0;
+      let refresh_rate = monitor_refresh_rate(&monitor_info.szDevice)?;
 
       let rc_monitor = monitor_info.monitorInfo.rcMonitor;
       let rect = Rect::from_ltrb(
@@ -161,8 +168,33 @@ impl NativeMonitor {
         working_rect,
         dpi,
         scale_factor,
+        refresh_rate,
       })
     })
+  }
+}
+
+/// Gets the refresh rate of a monitor in Hz.
+fn monitor_refresh_rate(device_name: &[u16]) -> anyhow::Result<u32> {
+  let mut dev_mode = DEVMODEW {
+    #[allow(clippy::cast_possible_truncation)]
+    dmSize: std::mem::size_of::<DEVMODEW>() as u16,
+    ..Default::default()
+  };
+
+  unsafe {
+    EnumDisplaySettingsW(
+      PCWSTR(device_name.as_ptr()),
+      ENUM_CURRENT_SETTINGS,
+      &raw mut dev_mode,
+    )
+  }
+  .ok()?;
+
+  if dev_mode.dmDisplayFrequency > 0 {
+    Ok(dev_mode.dmDisplayFrequency)
+  } else {
+    anyhow::bail!("Invalid refresh rate: {}", dev_mode.dmDisplayFrequency)
   }
 }
 

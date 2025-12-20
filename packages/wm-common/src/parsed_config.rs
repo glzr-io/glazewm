@@ -7,6 +7,7 @@ use crate::{
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
+  pub animations: AnimationsConfig,
   pub binding_modes: Vec<BindingModeConfig>,
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
@@ -388,4 +389,147 @@ const fn default_bool<const V: bool>() -> bool {
 /// Helper function for setting a default value for window rule events.
 fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationsConfig {
+  pub window_move: AnimationTypeConfig,
+  pub window_open: AnimationEffectsConfig,
+  /// Maximum frame rate for animations in Hz. The animation timer will
+  /// not exceed this rate even if the monitor supports higher refresh rates.
+  /// Default: 120 Hz
+  pub max_frame_rate: u32,
+}
+
+impl Default for AnimationsConfig {
+  fn default() -> Self {
+    AnimationsConfig {
+      window_move: AnimationTypeConfig::default(),
+      window_open: AnimationEffectsConfig::default_open(),
+      max_frame_rate: 120,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationTypeConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  /// Minimum pixel distance required to trigger movement animations.
+  /// Helps prevent animations from starting on very small position changes.
+  /// Increase this value on high-DPI displays to reduce sensitivity.
+  pub threshold_px: u32,
+}
+
+impl Default for AnimationTypeConfig {
+  fn default() -> Self {
+    AnimationTypeConfig {
+      enabled: true,
+      duration_ms: 150,
+      easing: EasingFunction::EaseInOut,
+      threshold_px: 10,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationEffectsConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  /// Type of animation effects to apply.
+  /// Can be: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
+  pub animation_type: AnimationEffectType,
+}
+
+impl AnimationEffectsConfig {
+  fn default_open() -> Self {
+    AnimationEffectsConfig {
+      enabled: true,
+      duration_ms: 200,
+      easing: EasingFunction::EaseOut,
+      animation_type: AnimationEffectType::FadeSlideScale,
+    }
+  }
+}
+
+impl Default for AnimationEffectsConfig {
+  fn default() -> Self {
+    Self::default_open()
+  }
+}
+
+/// Animation effect types that can be combined.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnimationEffectType {
+  /// No animation effects.
+  None,
+  /// Fade in/out effect.
+  Fade,
+  /// Slide animation effect.
+  Slide,
+  /// Scale animation effect.
+  Scale,
+  /// Fade and slide combined.
+  FadeSlide,
+  /// Fade and scale combined.
+  FadeScale,
+  /// Slide and scale combined.
+  SlideScale,
+  /// All effects combined (fade, slide, and scale).
+  #[default]
+  FadeSlideScale,
+}
+
+impl AnimationEffectType {
+  /// Returns whether fade effect is enabled.
+  pub fn has_fade(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Fade
+        | AnimationEffectType::FadeSlide
+        | AnimationEffectType::FadeScale
+        | AnimationEffectType::FadeSlideScale
+    )
+  }
+
+  /// Returns whether slide effect is enabled.
+  pub fn has_slide(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Slide
+        | AnimationEffectType::FadeSlide
+        | AnimationEffectType::SlideScale
+        | AnimationEffectType::FadeSlideScale
+    )
+  }
+
+  /// Returns whether scale effect is enabled.
+  pub fn has_scale(&self) -> bool {
+    matches!(
+      self,
+      AnimationEffectType::Scale
+        | AnimationEffectType::FadeScale
+        | AnimationEffectType::SlideScale
+        | AnimationEffectType::FadeSlideScale
+    )
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EasingFunction {
+  Linear,
+  #[default]
+  EaseInOut,
+  EaseIn,
+  EaseOut,
+  EaseInOutCubic,
+  EaseInCubic,
+  EaseOutCubic,
 }

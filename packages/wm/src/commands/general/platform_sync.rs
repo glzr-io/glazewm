@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use anyhow::Context;
 use tokio::task;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
+  OpacityValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -243,21 +243,23 @@ fn redraw_containers(
       continue;
     }
 
+    // Capture display state before transition to detect opening windows
+    let previous_display_state = window.display_state();
+
     // Transition display state depending on whether window will be
     // shown or hidden.
-    window.set_display_state(
-      match (window.display_state(), workspace.is_displayed()) {
-        (DisplayState::Hidden | DisplayState::Hiding, true) => {
-          DisplayState::Showing
-        }
-        (DisplayState::Shown | DisplayState::Showing, false) => {
-          DisplayState::Hiding
-        }
-        _ => window.display_state(),
-      },
-    );
+    let new_display_state = match (previous_display_state.clone(), workspace.is_displayed()) {
+      (DisplayState::Hidden | DisplayState::Hiding, true) => {
+        DisplayState::Showing
+      }
+      (DisplayState::Shown | DisplayState::Showing, false) => {
+        DisplayState::Hiding
+      }
+      _ => previous_display_state,
+    };
+    window.set_display_state(new_display_state);
 
-    let rect = window
+    let target_rect = window
       .to_rect()?
       .apply_delta(&window.total_border_delta()?, None);
 
@@ -266,11 +268,48 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    info!("Updating window position: {window}");
+    // Get the previous target position before updating
+    let previous_target = state.window_target_positions.get(&window.id()).cloned();
+
+    // Determine if this window is opening for the first time
+    // A window is opening if:
+    // 1. It's showing or shown (not hidden)
+    // 2. It has no previous target position (first time being positioned)
+    // This correctly detects new windows that are being positioned for the first time.
+    // Windows transitioning from hidden to shown during workspace switches will have
+    // a previous target position, so they won't trigger opening animations.
+    let is_opening = matches!(
+      window.display_state(),
+      DisplayState::Showing | DisplayState::Shown
+    ) && previous_target.is_none();
+
+    // Update the stored target position (always do this, even if animations are skipped)
+    state.window_target_positions.insert(window.id(), target_rect.clone());
+
+    // Determine if animations should be used for this window based on type
+    let should_use_animations = !state.pending_sync.should_skip_animations() && (
+      (is_opening && config.value.animations.window_open.enabled) ||
+      (!is_opening && config.value.animations.window_move.enabled)
+    );
+
+    // Determine the rect and opacity to use
+    let (rect_to_use, opacity_override) = if should_use_animations {
+      state.animation_manager.start_animation_if_needed(
+        window.id(),
+        is_opening,
+        target_rect.clone(),
+        previous_target,
+        config,
+      )
+    } else {
+      (target_rect.clone(), None)
+    };
+
+    debug!("Updating window position: {window}");
 
     if let Err(err) = window.native().set_position(
       &window.state(),
-      &rect,
+      &rect_to_use,
       &z_order,
       is_visible,
       &config.value.general.hide_method,
@@ -279,9 +318,15 @@ fn redraw_containers(
       warn!("Failed to set window position: {}", err);
     }
 
-    // Whether the window is either transitioning to or from fullscreen.
-    // TODO: This check can be improved since `prev_state` can be
-    // fullscreen without it needing to be marked as not fullscreen.
+    // Apply opacity if there's an animation with fade
+    if let Some(opacity) = opacity_override {
+      if let Err(err) = window.native().set_transparency(&opacity) {
+        warn!("Failed to set window opacity during animation: {}", err);
+      }
+    }
+
+    // Mark fullscreen windows as fullscreen on every redraw (including during animations)
+    // to ensure browser fullscreen APIs work correctly.
     let is_transitioning_fullscreen =
       match (window.prev_state(), window.state()) {
         (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
@@ -289,12 +334,15 @@ fn redraw_containers(
         _ => false,
       };
 
-    if is_transitioning_fullscreen {
-      if let Err(err) = window.native().mark_fullscreen(matches!(
-        window.state(),
-        WindowState::Fullscreen(_)
-      )) {
+    let is_currently_fullscreen = matches!(window.state(), WindowState::Fullscreen(_));
+
+    if is_currently_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(true) {
         warn!("Failed to mark window as fullscreen: {}", err);
+      }
+    } else if is_transitioning_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(false) {
+        warn!("Failed to unmark window as fullscreen: {}", err);
       }
     }
 

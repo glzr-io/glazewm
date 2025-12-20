@@ -1,15 +1,16 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{
-  BindingModeConfig, Direction, Point, WindowState, WmEvent,
+  BindingModeConfig, Direction, Point, Rect, WindowState, WmEvent,
 };
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
+  animation::AnimationManager,
   commands::{
     container::set_focused_descendant, general::platform_sync,
     monitor::add_monitor, window::manage_window,
@@ -29,6 +30,12 @@ pub struct WmState {
   pub root_container: RootContainer,
 
   pub pending_sync: PendingSync,
+
+  /// Manager for window animations.
+  pub animation_manager: AnimationManager,
+
+  /// Tracks the target position for each window to prevent animation restart loops.
+  pub window_target_positions: HashMap<Uuid, Rect>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -75,10 +82,13 @@ impl WmState {
   pub fn new(
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
+    animation_tick_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
       pending_sync: PendingSync::default(),
+      animation_manager: AnimationManager::new(animation_tick_tx),
+      window_target_positions: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,

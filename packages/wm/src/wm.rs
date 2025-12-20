@@ -9,15 +9,15 @@ use wm_common::{
 use wm_platform::PlatformEvent;
 
 use crate::{
-  commands::{
-    container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction,
-      toggle_tiling_direction,
-    },
-    general::{
-      cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
-    },
+    commands::{
+      container::{
+        focus_container_by_id, focus_in_direction, set_tiling_direction,
+        toggle_tiling_direction,
+      },
+      general::{
+        cycle_focus, disable_binding_mode, enable_binding_mode,
+        platform_sync, reload_config, shell_exec, toggle_pause,
+      },
     monitor::focus_monitor,
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
@@ -43,6 +43,7 @@ use crate::{
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
+  pub animation_tick_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
@@ -50,13 +51,15 @@ impl WindowManager {
   pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
+    let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(event_tx, exit_tx);
+    let mut state = WmState::new(event_tx, exit_tx, animation_tick_tx.clone());
     state.populate(config)?;
 
     Ok(Self {
       event_rx,
       exit_rx,
+      animation_tick_rx,
       state,
     })
   }
@@ -118,7 +121,20 @@ impl WindowManager {
       platform_sync(state, config)?;
     }
 
+    // Start animation timer if needed
+    self.state.animation_manager.ensure_timer_running(&self.state, config);
+
     Ok(())
+  }
+
+  /// Updates all active animations and redraws windows that are animating.
+  pub fn update_animations(
+    &mut self,
+    config: &UserConfig,
+  ) -> anyhow::Result<()> {
+    use crate::animation::AnimationManager;
+    // Access animation_manager through state to avoid double borrow
+    AnimationManager::update_internal(&mut self.state, config)
   }
 
   pub fn process_commands(

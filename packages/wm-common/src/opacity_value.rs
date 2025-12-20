@@ -18,6 +18,18 @@ impl OpacityValue {
   pub fn from_alpha(alpha: u8) -> Self {
     Self(f32::from(alpha) / 255.0)
   }
+
+  /// Interpolates between this opacity value and another opacity value.
+  /// `progress` should be a value between 0.0 (this opacity) and 1.0 (other opacity).
+  #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
+  #[must_use]
+  pub fn interpolate(&self, other: &OpacityValue, progress: f32) -> Self {
+    let start_alpha = self.to_alpha() as f32;
+    let end_alpha = other.to_alpha() as f32;
+    let alpha = start_alpha + (end_alpha - start_alpha) * progress;
+
+    OpacityValue::from_alpha((alpha.round() as u32).clamp(0, 255) as u8)
+  }
 }
 
 impl Default for OpacityValue {
