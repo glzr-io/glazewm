@@ -636,12 +636,12 @@ impl WindowManager {
             &config.value.window_behavior.state_defaults.fullscreen;
 
           let target_state =
-            if matches!(window.state(), WindowState::Fullscreen(_)) { WindowState::Tiling } else { WindowState::Fullscreen(FullscreenStateConfig {
+            WindowState::Fullscreen(FullscreenStateConfig {
               maximized: maximized
                 .unwrap_or(fullscreen_defaults.maximized),
               shown_on_top: shown_on_top
                 .unwrap_or(fullscreen_defaults.shown_on_top),
-            })};
+            });
 
           update_window_state(
             window.clone(),

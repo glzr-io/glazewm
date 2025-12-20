@@ -25,7 +25,7 @@ pub trait WindowGetters {
   /// This will return the first valid state in the following order:
   /// 1. If the window is not currently in the target state, return the
   ///    target state.
-  /// 2. The previous state exists if one exists.
+  /// 2. The previous state exists if one exists (excluding minimized).
   /// 3. The state from `window_behavior.initial_state` in the user config.
   /// 4. Default to either floating/tiling depending on the current state.
   fn toggled_state(
@@ -35,7 +35,9 @@ pub trait WindowGetters {
   ) -> WindowState {
     let possible_states = [
       Some(target_state),
-      self.prev_state(),
+      self
+        .prev_state()
+        .filter(|state| state != WindowState::Minimized),
       Some(WindowState::default_from_config(&config.value)),
     ];
 
@@ -55,7 +57,7 @@ pub trait WindowGetters {
       })
   }
 
-  fn native(&self) -> Ref<NativeWindow>;
+  fn native(&self) -> Ref<'_, NativeWindow>;
 
   fn border_delta(&self) -> RectDelta;
 
@@ -145,7 +147,7 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().prev_state = Some(state);
       }
 
-      fn native(&self) -> Ref<NativeWindow> {
+      fn native(&self) -> Ref<'_, NativeWindow> {
         Ref::map(self.0.borrow(), |inner| &inner.native)
       }
 
