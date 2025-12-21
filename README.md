@@ -112,6 +112,13 @@ general:
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: false
 
+  # GlazeWM, by default, centers all floating windows when
+  # connecting/disconnecting monitors. When working with many floating windows,
+  # this could disturb your workflow. Setting this to true will try to leave
+  # floating windows at their current position at the price of having windows
+  # partly off the screen when switching to a lower resolution monitor.
+  prevent_centering_of_floating_windows: false
+
   cursor_jump:
     # Whether to automatically move the cursor on the specified trigger.
     enabled: true

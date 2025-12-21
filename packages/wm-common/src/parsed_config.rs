@@ -93,6 +93,10 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether to prevent glazewm from centering the floating placement of all
+  /// windows in case of suspected monitor change.
+  pub prevent_centering_of_floating_windows: bool,
 }
 
 impl Default for GeneralConfig {
@@ -106,6 +110,7 @@ impl Default for GeneralConfig {
       config_reload_commands: vec![],
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
+      prevent_centering_of_floating_windows: false,
     }
   }
 }
