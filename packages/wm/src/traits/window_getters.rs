@@ -37,7 +37,7 @@ pub trait WindowGetters {
       Some(target_state),
       self
         .prev_state()
-        .filter(|state| state != WindowState::Minimized),
+        .filter(|state| *state != WindowState::Minimized),
       Some(WindowState::default_from_config(&config.value)),
     ];
 
