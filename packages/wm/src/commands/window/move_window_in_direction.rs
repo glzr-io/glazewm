@@ -27,7 +27,6 @@ pub fn move_window_in_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  state.pending_sync.queue_cursor_jump();
   match window {
     WindowContainer::TilingWindow(window) => {
       move_tiling_window(window, direction, state, config)

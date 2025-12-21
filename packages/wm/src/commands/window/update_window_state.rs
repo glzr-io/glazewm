@@ -111,8 +111,7 @@ fn set_tiling(
   state
     .pending_sync
     .queue_containers_to_redraw(target_parent.tiling_children())
-    .queue_workspace_to_reorder(workspace)
-    .queue_cursor_jump();
+    .queue_workspace_to_reorder(workspace);
 
   Ok(tiling_window.into())
 }
@@ -138,7 +137,6 @@ fn set_non_tiling(
     return Ok(window);
   }
 
-  state.pending_sync.queue_cursor_jump();
   let workspace = window.workspace().context("No workspace.")?;
 
   match window {
