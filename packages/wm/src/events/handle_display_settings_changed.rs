@@ -120,19 +120,18 @@ pub fn handle_display_settings_changed(
     // disconnected or if the primary display is changed. The primary
     // display dictates the position of 0,0.
     let workspace = window.workspace().context("No workspace.")?;
-    let mut should_recenter = true;
 
-    if window.has_custom_floating_placement() {
-      // Keep the placement only if it still intersects the workspace.
-      // Because sometimes this is triggered by non-monitor changes,
-      // such as unplugging a usb device and we don't want to recentre
-      // everything in that case.
-      let wp_rect = workspace.to_rect()?;
-      let win_rect = window.floating_placement();
+    let should_recenter = if !window.has_custom_floating_placement() {
+      true
+    } else {
+      let workspace_rect = workspace.to_rect()?;
 
-      should_recenter = !win_rect.has_overlap_x(&wp_rect) ||
-                        !win_rect.has_overlap_y(&wp_rect);
-    }
+      // Keep the placement if it still intersects the workspace, since
+      // `PlatformEvent::DisplaySettingsChanged` can be triggered by
+      // non-monitor changes (e.g. unplugging a USB device).
+      !window.floating_placement().has_overlap_x(&workspace_rect)
+        || !window.floating_placement().has_overlap_y(&workspace_rect)
+    };
 
     if should_recenter {
       window.set_floating_placement(

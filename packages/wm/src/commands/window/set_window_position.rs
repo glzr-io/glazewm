@@ -36,6 +36,8 @@ pub fn set_window_position(
 
     window.set_floating_placement(new_placement);
 
+    // TODO: `has_custom_floating_placement` should be marked `true` if
+    // manually positioned to be centered (e.g. via `position --centered`).
     let is_centered = matches!(target, WindowPositionTarget::Centered);
     window.set_has_custom_floating_placement(!is_centered);
 
