@@ -11,6 +11,7 @@ pub struct ParsedConfig {
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
   pub keybindings: Vec<KeybindingConfig>,
+  pub monitors: Vec<MonitorConfig>,
   pub window_behavior: WindowBehaviorConfig,
   pub window_effects: WindowEffectsConfig,
   pub window_rules: Vec<WindowRuleConfig>,
@@ -378,6 +379,14 @@ pub struct WorkspaceConfig {
 
   #[serde(default = "default_bool::<false>")]
   pub keep_alive: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct MonitorConfig {
+  /// Machine ID to match against the monitor (extracted from device
+  /// path).
+  pub machine_id: String,
 }
 
 /// Helper function for setting a default value for a boolean field.

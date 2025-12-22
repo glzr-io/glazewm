@@ -39,6 +39,18 @@ general:
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
 
+# Monitor configuration allows you to set the order of monitors by their
+# machine ID. Monitors are assigned indices 0, 1, 2... in the
+# order they appear in this list. Unconfigured monitors are placed after
+# configured ones, sorted by physical position.
+#monitors:
+# Example: First monitor gets index 0, second gets index 1, etc.
+# - machine_id: 'MSI3CA8#5&2fdae59&0&UID4352'
+# - machine_id: 'AOC2702#5&2fdae59&0&UID4354'
+#
+# You can find the machine_id for your monitors by running:
+# glazewm query monitorsd.
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true

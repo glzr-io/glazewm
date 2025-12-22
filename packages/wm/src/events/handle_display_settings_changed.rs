@@ -4,7 +4,7 @@ use wm_platform::Platform;
 
 use crate::{
   commands::monitor::{
-    add_monitor, remove_monitor, sort_monitors, update_monitor,
+    add_monitor, remove_monitor, sort_monitors_with_config, update_monitor,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -17,7 +17,8 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  let native_monitors = Platform::sorted_monitors()?;
+  let native_monitors =
+    Platform::sorted_monitors_with_config(&config.value.monitors)?;
 
   let hardware_ids = native_monitors
     .iter()
@@ -108,8 +109,11 @@ pub fn handle_display_settings_changed(
     }
   }
 
-  // Sort monitors by position.
-  sort_monitors(&state.root_container)?;
+  // Sort monitors by position and configuration.
+  sort_monitors_with_config(
+    &state.root_container,
+    &config.value.monitors,
+  )?;
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark

@@ -4,4 +4,9 @@
   "editor.tabSize": 2,
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
+  "[yaml]": {
+    "prettier.singleQuote": true
+  },
+  "prettier.singleQuote": true,
+  "prettier.jsxSingleQuote": true
 }
