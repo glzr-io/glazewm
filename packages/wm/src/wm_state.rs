@@ -610,33 +610,21 @@ impl WmState {
 
     self.last_window_cleanup = Some(now);
 
-    // Collect invalid windows first to avoid borrowing issues
-    let invalid_windows: Vec<_> = self
+    let invalid_windows = self
       .windows()
       .into_iter()
-      .filter(|window| !window.native().is_valid())
-      .collect();
+      .filter(|window| !window.native().is_valid());
 
-    if invalid_windows.is_empty() {
-      return Ok(());
-    }
-
-    tracing::info!(
-      "Cleaning up {} invalid windows",
-      invalid_windows.len()
-    );
 
     // Remove each invalid window from the window tree
     for window in invalid_windows {
       tracing::debug!(
-        "Removing invalid window: {} (handle: {})",
+        "Removing invalid window: {}",
         window,
         window.native().handle
       );
 
-      if let Err(err) = unmanage_window(window, self) {
-        tracing::warn!("Failed to unmanage invalid window: {}", err);
-      }
+      unmanage_window(window, self)?;
     }
 
     Ok(())

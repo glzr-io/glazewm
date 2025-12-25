@@ -180,9 +180,9 @@ impl NativeWindow {
     Ok(class_name)
   }
 
-  /// Whether the window handle is still valid.
+  /// Whether the window is still valid.
   ///
-  /// This checks if the window handle refers to an existing window.
+  /// Returns `true` if the underlying window handle refers to an existing window.
   pub fn is_valid(&self) -> bool {
     unsafe { IsWindow(HWND(self.handle)) }.as_bool()
   }
