@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -9,6 +9,7 @@ use wm_common::{
 };
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
+use crate::commands::window::unmanage_window;
 use crate::{
   commands::{
     container::set_focused_descendant, general::platform_sync,
@@ -22,6 +23,10 @@ use crate::{
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
 };
+
+/// Interval in seconds for cleaning up invalid/ghost windows.
+/// Set to 5 seconds to balance between responsiveness and performance.
+pub const WINDOW_CLEANUP_INTERVAL_SECS: u64 = 5;
 
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
@@ -47,9 +52,6 @@ pub struct WmState {
   ///
   /// Used to decide whether to override incoming focus events.
   pub unmanaged_or_minimized_timestamp: Option<Instant>,
-
-  /// Timestamp of last window validation cleanup.
-  pub last_window_cleanup: Option<Instant>,
 
   /// Configs of currently enabled binding modes.
   pub binding_modes: Vec<BindingModeConfig>,
@@ -85,7 +87,6 @@ impl WmState {
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
-      last_window_cleanup: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
       is_paused: false,
@@ -588,42 +589,15 @@ impl WmState {
   /// This addresses the "ghost window" issue where applications terminate
   /// without properly sending window destroy events, leaving invalid
   /// window references in GlazeWM's state.
-  pub fn cleanup_invalid_windows(
-    &mut self,
-    cleanup_interval: u64,
-  ) -> anyhow::Result<()> {
-    use crate::commands::window::unmanage_window;
-
-    // Skip cleanup if disabled (interval = 0)
-    if cleanup_interval == 0 {
-      return Ok(());
-    }
-
-    let now = Instant::now();
-
-    // Only run cleanup at the configured interval to avoid performance issues
-    if let Some(last_cleanup) = self.last_window_cleanup {
-      if now.duration_since(last_cleanup) < Duration::from_secs(cleanup_interval) {
-        return Ok(());
-      }
-    }
-
-    self.last_window_cleanup = Some(now);
-
+  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
     let invalid_windows = self
       .windows()
       .into_iter()
       .filter(|window| !window.native().is_valid());
 
-
     // Remove each invalid window from the window tree
     for window in invalid_windows {
-      tracing::debug!(
-        "Removing invalid window: {}",
-        window,
-        window.native().handle
-      );
-
+      tracing::debug!("Removing invalid window: {}", window);
       unmanage_window(window, self)?;
     }
 
