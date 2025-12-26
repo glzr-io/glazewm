@@ -24,8 +24,77 @@ pub fn move_window_to_workspace(
   let current_monitor =
     current_workspace.monitor().context("No monitor.")?;
 
+  // NEW LOGIC: Alternating / modulo-based filtering
+  let manual_target_name = match target {
+    WorkspaceTarget::NextOnMonitor | WorkspaceTarget::PreviousOnMonitor => {
+      let monitor_id = current_monitor.id();
+      let current_ws_name = current_workspace.config().name.clone();
+
+      // 1. Determine which monitor index we are on
+      let monitors = state.monitors();
+      let monitor_idx = monitors.iter().position(|m| m.id() == monitor_id).unwrap_or(0);
+      let monitor_count = monitors.len();
+
+      // 2. Filter config: Only keep workspaces for this monitor
+      let valid_workspaces: Vec<String> = config.value.workspaces.iter()
+          .enumerate()
+          .filter(|(i, ws_config)| {
+                // Priority 1: Strict Binding
+                if let Some(bound_mon_idx) = ws_config.bind_to_monitor {
+                     return bound_mon_idx as usize == monitor_idx;
+                }
+                
+                // Priority 2: Active on this monitor?
+                if let Some(active_ws) = state.workspace_by_name(&ws_config.name) {
+                    if let Some(active_mon) = active_ws.monitor() {
+                        if active_mon.id() == monitor_id {
+                            return true;
+                        } else {
+                            return false; 
+                        }
+                    }
+                }
+
+                // Priority 3: Alternating / Modulo Heuristic
+                if monitor_count > 0 {
+                    return i % monitor_count == monitor_idx;
+                }
+                true
+          })
+          .map(|(_, c)| c.name.clone())
+          .collect();
+
+      if !valid_workspaces.is_empty() {
+        let current_idx = valid_workspaces.iter()
+            .position(|name| *name == current_ws_name)
+            .unwrap_or(0);
+
+        let target_idx = match target {
+            WorkspaceTarget::NextOnMonitor => (current_idx + 1) % valid_workspaces.len(),
+            WorkspaceTarget::PreviousOnMonitor => {
+                if current_idx == 0 { valid_workspaces.len() - 1 } else { current_idx - 1 }
+            }
+            _ => 0,
+        };
+        Some(valid_workspaces[target_idx].clone())
+      } else {
+        None
+      }
+    }
+    _ => None,
+  };
+
   let (target_workspace_name, target_workspace) =
-    state.workspace_by_target(&current_workspace, target, config)?;
+    if let Some(name) = manual_target_name {
+      // Check if the workspace is already active
+      if let Some(existing_ws) = state.workspace_by_name(&name) {
+          (None, Some(existing_ws))
+      } else {
+          (Some(name), None) 
+      }
+    } else {
+      state.workspace_by_target(&current_workspace, target, config)?
+    };
 
   // Retrieve or activate the target workspace by its name.
   let target_workspace = match target_workspace {
@@ -53,15 +122,12 @@ pub fn move_window_to_workspace(
     let target_monitor =
       target_workspace.monitor().context("No monitor.")?;
 
-    // Since target workspace could be on a different monitor, adjustments
-    // might need to be made because of DPI.
     if current_monitor
       .has_dpi_difference(&target_monitor.clone().into())?
     {
       window.set_has_pending_dpi_adjustment(true);
     }
 
-    // Update floating placement if the window has to cross monitors.
     if target_monitor.id() != current_monitor.id() {
       window.set_floating_placement(
         window
@@ -74,7 +140,6 @@ pub fn move_window_to_workspace(
       window.set_insertion_target(None);
     }
 
-    // Focus target is `None` if the window is not focused.
     let focus_target = state.focus_target_after_removal(&window);
 
     let focus_reset_target = if target_workspace.is_displayed() {
@@ -88,7 +153,6 @@ pub fn move_window_to_workspace(
       .filter_map(|descendant| descendant.as_window_container().ok())
       .find(|descendant| descendant.state() == WindowState::Tiling);
 
-    // Insert the window into the target workspace.
     match (window.is_tiling_window(), insertion_sibling.is_some()) {
       (true, true) => {
         if let Some(insertion_sibling) = insertion_sibling {
@@ -102,7 +166,6 @@ pub fn move_window_to_workspace(
               )?;
             }
             None => {
-              // Insertion sibling is detached, fallback to workspace
               move_container_within_tree(
                 &window.clone().into(),
                 &target_workspace.clone().into(),
@@ -123,11 +186,6 @@ pub fn move_window_to_workspace(
       }
     }
 
-    // When moving a focused window within the tree to another workspace,
-    // the target workspace will get displayed. If moving the window e.g.
-    // from monitor 1 -> 2, and the target workspace is hidden on that
-    // monitor, we want to reset focus to the workspace that was displayed
-    // on that monitor.
     if let Some(focus_reset_target) = focus_reset_target {
       set_focused_descendant(
         &focus_reset_target,
@@ -135,7 +193,6 @@ pub fn move_window_to_workspace(
       );
     }
 
-    // Retain focus within the workspace from where the window was moved.
     if let Some(focus_target) = focus_target {
       set_focused_descendant(&focus_target, None);
       state.pending_sync.queue_focus_change();
@@ -146,7 +203,6 @@ pub fn move_window_to_workspace(
         state.pending_sync.queue_container_to_redraw(window);
       }
       WindowContainer::TilingWindow(_) => {
-        // Heal source workspace
         let source_windows: Vec<TilingWindow> = current_workspace
           .descendants()
           .filter_map(|c| c.try_into().ok())
@@ -155,7 +211,6 @@ pub fn move_window_to_workspace(
           rebuild_spiral_layout(&current_workspace, &source_windows)?;
         }
 
-        // Rebuild target workspace
         let target_windows: Vec<TilingWindow> = target_workspace
           .descendants()
           .filter_map(|c| c.try_into().ok())

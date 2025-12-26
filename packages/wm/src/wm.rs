@@ -299,6 +299,15 @@ impl WindowManager {
           )?;
         }
 
+        // --- NEW LOGIC: Next/Prev Workspace on Monitor (Cyclic) ---
+        if args.next_workspace_on_monitor {
+          focus_workspace(WorkspaceTarget::NextOnMonitor, state, config)?;
+        }
+
+        if args.prev_workspace_on_monitor {
+          focus_workspace(WorkspaceTarget::PreviousOnMonitor, state, config)?;
+        }
+
         Ok(())
       }
       InvokeCommand::Ignore => {
@@ -393,12 +402,32 @@ impl WindowManager {
 
             if args.prev_active_workspace_on_monitor {
               move_window_to_workspace(
-                window,
+                window.clone(),
                 WorkspaceTarget::PreviousActiveInMonitor,
                 state,
                 config,
               )?;
             }
+
+            // --- NEW LOGIC: Move Window to Next/Prev Workspace on Monitor ---
+            if args.next_workspace_on_monitor {
+                move_window_to_workspace(
+                    window.clone(),
+                    WorkspaceTarget::NextOnMonitor,
+                    state,
+                    config,
+                )?;
+            }
+
+            if args.prev_workspace_on_monitor {
+                move_window_to_workspace(
+                    window,
+                    WorkspaceTarget::PreviousOnMonitor,
+                    state,
+                    config,
+                )?;
+            }
+
             Ok(())
           }
 

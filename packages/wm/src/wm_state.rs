@@ -443,6 +443,14 @@ impl WmState {
           target_workspace,
         )
       }
+
+      // --- ADDED MATCH ARMS TO FIX COMPILATION ERROR ---
+      // These are handled externally via the interceptor pattern in
+      // focus_workspace.rs and move_window_to_workspace.rs, so returning
+      // (None, None) here is safe and correct.
+      WorkspaceTarget::NextOnMonitor | WorkspaceTarget::PreviousOnMonitor => {
+        (None, None)
+      }
     };
 
     Ok((name, workspace))

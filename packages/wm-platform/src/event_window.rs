@@ -32,54 +32,41 @@ use windows::Win32::{
 };
 use wm_common::{KeybindingConfig, Point};
 
+// Import the MouseHook here
+use crate::mouse_hook::MouseHook;
+
 use super::{
   KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
   FOREGROUND_INPUT_IDENTIFIER,
 };
 
 /// Global instance of sender for platform events.
-///
-/// For use with window procedure.
 static PLATFORM_EVENT_TX: OnceLock<mpsc::UnboundedSender<PlatformEvent>> =
   OnceLock::new();
 
 /// Whether mouse hook is currently enabled.
-///
-/// For use with window procedure.
 static ENABLE_MOUSE_EVENTS: AtomicBool = AtomicBool::new(false);
 
 /// Whether the system is currently sleeping/hibernating.
-///
-/// For use with window procedure.
 static IS_SYSTEM_SUSPENDED: AtomicBool = AtomicBool::new(false);
 
 /// Whether left-click is currently pressed.
-///
-/// For use with window procedure.
 static IS_L_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 
 /// Whether right-click is currently pressed.
-///
-/// For use with window procedure.
 static IS_R_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 
 /// Timestamp of the last mouse event emission.
-///
-/// For use with window procedure.
 static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
 pub struct EventWindow {
   keyboard_hook: Arc<KeyboardHook>,
+  // mouse_hook field removed to prevent dead code warning
   window_thread: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl EventWindow {
-  /// Creates an instance of `EventWindow`. Spawns a hidden window and
-  /// emits platform events.
-  ///
-  /// Uses global state (e.g. `PLATFORM_EVENT_TX`) and should thus only
-  /// ever be instantiated once in the application's lifetime.
   pub fn new(
     event_tx: &mpsc::UnboundedSender<PlatformEvent>,
     keybindings: &Vec<KeybindingConfig>,
@@ -87,7 +74,14 @@ impl EventWindow {
   ) -> anyhow::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
     let window_event_hook = WindowEventHook::new(event_tx.clone())?;
+    
+    // Initialize MouseHook
+    let mouse_hook = MouseHook::new(event_tx.clone())?;
+
     let keyboard_hook_clone = keyboard_hook.clone();
+    
+    // Clone MouseHook for the thread
+    let mouse_hook_clone = mouse_hook.clone();
 
     // Add the sender for platform events to global state.
     PLATFORM_EVENT_TX.set(event_tx.clone()).map_err(|_| {
@@ -100,8 +94,12 @@ impl EventWindow {
       // Start hooks for listening to platform events.
       keyboard_hook_clone.start()?;
       window_event_hook.start()?;
+      
+      // Start MouseHook
+      mouse_hook_clone.start()?;
 
       // Create a hidden window with a message loop on the current thread.
+      // We must define 'handle' here because it is used below for RegisterRawInputDevices and DestroyWindow
       let handle =
         Platform::create_message_window(Some(event_window_proc))?;
 
@@ -127,12 +125,16 @@ impl EventWindow {
       unsafe { DestroyWindow(HWND(handle)) }?;
       keyboard_hook_clone.stop()?;
       window_event_hook.stop()?;
+      
+      // Stop MouseHook
+      mouse_hook_clone.stop()?;
 
       Ok(())
     });
 
     Ok(Self {
       keyboard_hook,
+      // mouse_hook is active in the thread, but we don't need to store it in the struct
       window_thread: Some(window_thread),
     })
   }
@@ -172,9 +174,6 @@ impl Drop for EventWindow {
 }
 
 /// Window procedure for the event window.
-///
-/// Handles messages for the event window, and forwards display change
-/// events through an MPSC channel for the WM to process.
 pub extern "system" fn event_window_proc(
   handle: HWND,
   message: u32,
@@ -186,11 +185,9 @@ pub extern "system" fn event_window_proc(
       WM_POWERBROADCAST => {
         #[allow(clippy::cast_possible_truncation)]
         match wparam.0 as u32 {
-          // System is resuming from sleep/hibernation.
           PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
             IS_SYSTEM_SUSPENDED.store(false, Ordering::Relaxed);
           }
-          // System is entering sleep/hibernation.
           PBT_APMSUSPEND => {
             IS_SYSTEM_SUSPENDED.store(true, Ordering::Relaxed);
           }
@@ -200,8 +197,6 @@ pub extern "system" fn event_window_proc(
         LRESULT(0)
       }
       WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-        // Ignore display change messages if the system hasn't fully
-        // resumed from sleep.
         if !IS_SYSTEM_SUSPENDED.load(Ordering::Relaxed) {
           if let Err(err) =
             handle_display_change_msg(message, wparam, event_tx)
@@ -226,8 +221,6 @@ pub extern "system" fn event_window_proc(
   LRESULT(0)
 }
 
-/// Handles display change messages and emits the corresponding platform
-/// event through an MPSC channel.
 fn handle_display_change_msg(
   message: u32,
   wparam: WPARAM,
@@ -250,8 +243,6 @@ fn handle_display_change_msg(
   Ok(())
 }
 
-/// Handles raw input messages for mouse events and emits the corresponding
-/// platform event through an MPSC channel.
 fn handle_input_msg(
   _wparam: WPARAM,
   lparam: LPARAM,
@@ -272,9 +263,6 @@ fn handle_input_msg(
     )
   };
 
-  // Ignore if data is invalid or not a mouse event. Inputs from our own
-  // process are ignored, which would cause issues since
-  // `NativeWindow::set_foreground` simulates a mouse input.
   if res_size == 0
     || raw_input_size == u32::MAX
     || raw_input.header.dwType != RIM_TYPEMOUSE.0
@@ -315,8 +303,6 @@ fn handle_input_msg(
 
   let last_event_time = LAST_MOUSE_EVENT_TIME.load(Ordering::Relaxed);
 
-  // Throttle events so that there's a minimum of 50ms between each
-  // emission. Always emit if there's a state change.
   if !has_state_change && event_time - last_event_time < 50 {
     return Ok(());
   }
@@ -340,7 +326,6 @@ fn handle_input_msg(
   Ok(())
 }
 
-/// Checks whether `state` contains all the bits of `mask`.
 #[inline]
 fn has_mouse_flag(state: u16, mask: u32) -> bool {
   u32::from(state) & mask == mask
