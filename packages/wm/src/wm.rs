@@ -643,12 +643,16 @@ impl WindowManager {
                 .unwrap_or(fullscreen_defaults.shown_on_top),
             });
 
-          update_window_state(
+          let window = update_window_state(
             window.clone(),
             window.toggled_state(target_state, config),
             state,
             config,
           )?;
+
+          if !matches!(window.state(), WindowState::Fullscreen(_)) {
+            state.pending_sync.queue_cursor_jump();
+          }
 
           Ok(())
         }
@@ -672,12 +676,16 @@ impl WindowManager {
       InvokeCommand::ToggleTiling => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            update_window_state(
+            let window = update_window_state(
               window.clone(),
               window.toggled_state(WindowState::Tiling, config),
               state,
               config,
             )?;
+
+            if !matches!(window.state(), WindowState::Fullscreen(_)) {
+              state.pending_sync.queue_cursor_jump();
+            }
 
             Ok(())
           }

@@ -26,6 +26,7 @@ pub fn handle_window_minimize_ended(
         .unwrap_or(WindowState::default_from_config(&config.value));
 
       update_window_state(window.clone(), target_state, state, config)?;
+      state.pending_sync.queue_cursor_jump();
     }
   }
 

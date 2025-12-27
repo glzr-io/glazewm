@@ -162,7 +162,8 @@ fn move_to_sibling_container(
       state
         .pending_sync
         .queue_container_to_redraw(sibling_window)
-        .queue_container_to_redraw(window_to_move);
+        .queue_container_to_redraw(window_to_move)
+        .queue_cursor_jump();
     }
     TilingContainer::Split(sibling_split) => {
       let sibling_descendant =
@@ -197,7 +198,8 @@ fn move_to_sibling_container(
         state
           .pending_sync
           .queue_container_to_redraw(target_parent)
-          .queue_containers_to_redraw(parent.tiling_children());
+          .queue_containers_to_redraw(parent.tiling_children())
+          .queue_cursor_jump();
       }
     }
   }
@@ -334,7 +336,8 @@ fn invert_workspace_tiling_direction(
 
   state
     .pending_sync
-    .queue_containers_to_redraw(workspace.tiling_children());
+    .queue_containers_to_redraw(workspace.tiling_children())
+    .queue_cursor_jump();
 
   Ok(())
 }
@@ -372,7 +375,8 @@ fn insert_into_ancestor(
 
   state
     .pending_sync
-    .queue_containers_to_redraw(target_ancestor.tiling_children());
+    .queue_containers_to_redraw(target_ancestor.tiling_children())
+    .queue_cursor_jump();
 
   Ok(())
 }
@@ -399,7 +403,10 @@ fn move_floating_window(
     }
 
     window_to_move.set_floating_placement(position_rect);
-    state.pending_sync.queue_container_to_redraw(window_to_move);
+    state
+      .pending_sync
+      .queue_container_to_redraw(window_to_move)
+      .queue_cursor_jump();
   }
 
   Ok(())
