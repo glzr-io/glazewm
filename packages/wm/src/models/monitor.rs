@@ -54,14 +54,14 @@ impl Monitor {
     self
       .child_focus_order()
       .next()
-      .and_then(|child| child.as_workspace().cloned())
+      .and_then(|child| Workspace::try_from(child).ok())
   }
 
   pub fn workspaces(&self) -> Vec<Workspace> {
     self
       .children()
       .into_iter()
-      .filter_map(|container| container.as_workspace().cloned())
+      .filter_map(|container| Workspace::try_from(container).ok())
       .collect()
   }
 

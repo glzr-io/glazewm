@@ -12,8 +12,8 @@ use crate::{
     window::{resize_window, update_window_state},
   },
   models::{
-    DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
-    WindowContainer,
+    Container, DirectionContainer, NonTilingWindow, SplitContainer,
+    TilingContainer, WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -65,7 +65,9 @@ pub fn handle_window_moved_or_resized_end(
 
         // Snap window to its original position if it's the only window in
         // the workspace.
-        if parent.is_workspace() && window.tiling_siblings().count() == 0 {
+        if matches!(parent, Container::Workspace(_))
+          && window.tiling_siblings().count() == 0
+        {
           state.pending_sync.queue_container_to_redraw(window.clone());
           return Ok(());
         }
@@ -157,17 +159,18 @@ fn drop_as_tiling_window(
     config,
   )?;
 
-  let should_split = nearest_container.is_tiling_window()
-    && match tiling_direction {
-      TilingDirection::Horizontal => {
-        drop_position == DropPosition::Top
-          || drop_position == DropPosition::Bottom
-      }
-      TilingDirection::Vertical => {
-        drop_position == DropPosition::Left
-          || drop_position == DropPosition::Right
-      }
-    };
+  let should_split =
+    matches!(nearest_container, TilingContainer::TilingWindow(_))
+      && match tiling_direction {
+        TilingDirection::Horizontal => {
+          drop_position == DropPosition::Top
+            || drop_position == DropPosition::Bottom
+        }
+        TilingDirection::Vertical => {
+          drop_position == DropPosition::Left
+            || drop_position == DropPosition::Right
+        }
+      };
 
   if should_split {
     let split_container = SplitContainer::new(

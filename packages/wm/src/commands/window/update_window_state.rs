@@ -6,7 +6,7 @@ use crate::{
   commands::container::{
     move_container_within_tree, replace_container, resize_tiling_container,
   },
-  models::{Container, InsertionTarget, WindowContainer},
+  models::{Container, InsertionTarget, NonTilingWindow, WindowContainer},
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -41,8 +41,8 @@ fn set_tiling(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<WindowContainer> {
-  let window = window
-    .as_non_tiling_window()
+  let window = <&NonTilingWindow>::try_from(window)
+    .map_err(|s| anyhow::anyhow!(s))
     .context("Invalid window state.")?
     .clone();
 
@@ -73,7 +73,7 @@ fn set_tiling(
     .or_else(|| {
       let focused_window = workspace
         .descendant_focus_order()
-        .find(Container::is_tiling_window)?;
+        .find(|c| matches!(c, Container::TilingWindow(_)))?;
 
       Some((focused_window.parent()?, focused_window.index() + 1))
     })

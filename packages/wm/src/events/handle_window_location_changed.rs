@@ -11,7 +11,7 @@ use crate::{
     container::{flatten_split_container, move_container_within_tree},
     window::update_window_state,
   },
-  models::{TilingWindow, WindowContainer},
+  models::{SplitContainer, TilingWindow, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -56,7 +56,7 @@ pub fn handle_window_location_changed(
       .context("Failed to get workspace of nearest monitor.")?;
 
     // TODO: Include this as part of the `match` statement below.
-    if let Some(tiling_window) = window.as_tiling_window() {
+    if let Ok(tiling_window) = <&TilingWindow>::try_from(&window) {
       update_drag_state(
         tiling_window,
         &frame_position,
@@ -216,7 +216,7 @@ fn update_drag_state(
         .dequeue_container_from_redraw(window.clone());
 
       // Flatten the parent split container if it only contains the window.
-      if let Some(split_parent) = parent.as_split() {
+      if let Ok(split_parent) = SplitContainer::try_from(parent) {
         if split_parent.child_count() == 1 {
           flatten_split_container(split_parent.clone())?;
 
