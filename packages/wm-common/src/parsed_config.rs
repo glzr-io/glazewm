@@ -378,6 +378,9 @@ pub struct WorkspaceConfig {
 
   #[serde(default = "default_bool::<false>")]
   pub keep_alive: bool,
+
+  #[serde(default = "default_bool::<false>")]
+  pub cycle_ignore: bool,
 }
 
 /// Helper function for setting a default value for a boolean field.
