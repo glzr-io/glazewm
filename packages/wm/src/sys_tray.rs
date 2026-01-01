@@ -42,7 +42,17 @@ impl SystemTray {
         animations_enabled,
         None,
       );
+      
+      let mut start_with_windows_enabled =
+        Platform::is_auto_launch_enabled().unwrap_or(false);
 
+      let start_with_windows_item = CheckMenuItem::new(
+        "Start with Windows",
+        true,
+        start_with_windows_enabled,
+        None,
+      );
+      
       let exit_item = MenuItem::new("Exit", true, None);
 
       let tray_menu = Menu::new();
@@ -50,6 +60,7 @@ impl SystemTray {
         &reload_config_item,
         &config_dir_item,
         &animations_item,
+        &start_with_windows_item,
         &PredefinedMenuItem::separator(),
         &exit_item,
       ])?;
@@ -76,6 +87,12 @@ impl SystemTray {
               Platform::set_window_animations_enabled(!animations_enabled);
 
             animations_enabled = !animations_enabled;
+          } else if event.id == start_with_windows_item.id() {
+            // Toggle auto-launch on Windows startup.
+            let _ = 
+              Platform::set_auto_launch_enabled(!start_with_windows_enabled);
+            
+            start_with_windows_enabled = !start_with_windows_enabled;
           } else if event.id == exit_item.id() {
             exit_tx.send(())?;
           }
