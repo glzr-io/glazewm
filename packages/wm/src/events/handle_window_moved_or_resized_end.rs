@@ -87,6 +87,7 @@ pub fn handle_window_moved_or_resized_end(
 
 /// Handles transition from temporary floating window to tiling window on
 /// drag end.
+#[allow(clippy::too_many_lines)]
 fn drop_as_tiling_window(
   moved_window: &NonTilingWindow,
   state: &mut WmState,
