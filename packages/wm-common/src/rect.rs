@@ -97,15 +97,21 @@ impl Rect {
   }
 
   /// Returns a new `Rect` that is clamped within the bounds of the given
-  /// outer rectangle. Attempts to preserve the width and height of the
-  /// original rectangle.
+  /// outer rectangle. Adjusts the position and size of the
+  /// rectangle to ensure it fits entirely within the outer rectangle.
   #[must_use]
   pub fn clamp(&self, outer_rect: &Rect) -> Self {
+    let clamped_x = self.x().max(outer_rect.x());
+    let clamped_y = self.y().max(outer_rect.y());
+
+    let max_width = outer_rect.right - clamped_x;
+    let max_height = outer_rect.bottom - clamped_y;
+
     Self::from_xy(
-      self.left.max(outer_rect.left),
-      self.top.max(outer_rect.top),
-      self.width().min(outer_rect.width()),
-      self.height().min(outer_rect.height()),
+      clamped_x,
+      clamped_y,
+      self.width().min(max_width),
+      self.height().min(max_height),
     )
   }
 
