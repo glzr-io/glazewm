@@ -126,18 +126,19 @@ pub fn platform_sync(
             Some(window_dto.title.clone()),
           );
 
-          if !existing_map.contains_key(&key) {
-            existing_map.insert(
-              key,
-              AppWorkspaceEntry {
-                handle: window_dto.handle,
-                process_name: Some(window_dto.process_name.clone()),
-                class_name: Some(window_dto.class_name.clone()),
-                title: Some(window_dto.title.clone()),
-                workspace: workspace.config().name.clone(),
-              },
-            );
-          }
+          // Always (re)insert the mapping for this window so any workspace
+          // changes are persisted. This overwrites prior entries for the
+          // same process/class/title key with the current workspace.
+          existing_map.insert(
+            key,
+            AppWorkspaceEntry {
+              handle: window_dto.handle,
+              process_name: Some(window_dto.process_name.clone()),
+              class_name: Some(window_dto.class_name.clone()),
+              title: Some(window_dto.title.clone()),
+              workspace: workspace.config().name.clone(),
+            },
+          );
         }
       }
     }
