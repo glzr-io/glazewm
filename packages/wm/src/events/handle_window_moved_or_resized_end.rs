@@ -87,6 +87,7 @@ pub fn handle_window_moved_or_resized_end(
 
 /// Handles transition from temporary floating window to tiling window on
 /// drag end.
+#[allow(clippy::too_many_lines)]
 fn drop_as_tiling_window(
   moved_window: &NonTilingWindow,
   state: &mut WmState,
@@ -98,19 +99,23 @@ fn drop_as_tiling_window(
   );
 
   let mouse_pos = Platform::mouse_position()?;
-  let workspace = moved_window.workspace().context("No workspace.")?;
+  let mouse_workspace = state
+    .monitor_at_point(&mouse_pos)
+    .and_then(|monitor| monitor.displayed_workspace())
+    .or_else(|| moved_window.workspace())
+    .context("Couldn't find workspace for window drop.")?;
 
   // Get the workspace, split containers, and other windows under the
   // dragged window.
   let containers_at_pos = state
-    .containers_at_point(&workspace.clone().into(), &mouse_pos)
+    .containers_at_point(&mouse_workspace.clone().into(), &mouse_pos)
     .into_iter()
     .filter(|container| container.id() != moved_window.id());
 
   // Get the deepest direction container under the dragged window.
   let target_parent: DirectionContainer = containers_at_pos
     .filter_map(|container| container.as_direction_container().ok())
-    .fold(workspace.into(), |acc, container| {
+    .fold(mouse_workspace.into(), |acc, container| {
       if container.ancestors().count() > acc.ancestors().count() {
         container
       } else {
@@ -121,8 +126,17 @@ fn drop_as_tiling_window(
   // If the target parent has no children (i.e. an empty workspace), then
   // add the window directly.
   if target_parent.tiling_children().count() == 0 {
+    move_container_within_tree(
+      &moved_window.clone().into(),
+      &target_parent.clone().into(),
+      0,
+      state,
+    )?;
+
+    moved_window.set_insertion_target(None);
+
     update_window_state(
-      moved_window.clone().into(),
+      moved_window.as_window_container()?,
       WindowState::Tiling,
       state,
       config,

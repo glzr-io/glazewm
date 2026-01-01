@@ -121,9 +121,7 @@ pub fn handle_display_settings_changed(
     // display dictates the position of 0,0.
     let workspace = window.workspace().context("No workspace.")?;
 
-    let should_recenter = if !window.has_custom_floating_placement() {
-      true
-    } else {
+    let should_recenter = if window.has_custom_floating_placement() {
       let workspace_rect = workspace.to_rect()?;
 
       // Keep the placement if it still intersects the workspace, since
@@ -131,6 +129,8 @@ pub fn handle_display_settings_changed(
       // non-monitor changes (e.g. unplugging a USB device).
       !window.floating_placement().has_overlap_x(&workspace_rect)
         || !window.floating_placement().has_overlap_y(&workspace_rect)
+    } else {
+      true
     };
 
     if should_recenter {
