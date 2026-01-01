@@ -93,6 +93,12 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether to extract and include window icons in workspace data.
+  /// When enabled, window icons will be extracted and included as base64
+  /// data URLs in IPC responses. This is useful for status bars that want
+  /// to display window icons.
+  pub window_icons_enabled: bool,
 }
 
 impl Default for GeneralConfig {
@@ -106,6 +112,7 @@ impl Default for GeneralConfig {
       config_reload_commands: vec![],
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
+      window_icons_enabled: false,
     }
   }
 }

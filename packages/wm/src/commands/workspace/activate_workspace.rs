@@ -61,6 +61,7 @@ pub fn activate_workspace(
     workspace_config.clone(),
     config.value.gaps.clone(),
     tiling_direction,
+    config.value.general.window_icons_enabled,
   );
 
   // Attach the created workspace to the specified monitor.
