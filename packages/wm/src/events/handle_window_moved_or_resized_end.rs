@@ -12,8 +12,8 @@ use crate::{
     window::{resize_window, update_window_state},
   },
   models::{
-    Container, DirectionContainer, NonTilingWindow, SplitContainer,
-    TilingContainer, WindowContainer,
+    DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
+    WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -135,7 +135,7 @@ fn drop_as_tiling_window(
     moved_window.set_insertion_target(None);
 
     update_window_state(
-      moved_window.into(),
+      moved_window.as_window_container()?,
       WindowState::Tiling,
       state,
       config,
