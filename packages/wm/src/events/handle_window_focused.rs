@@ -1,4 +1,7 @@
 use anyhow::Context;
+use serde::Deserialize;
+use std::fs::File;
+use std::path::PathBuf;
 use tracing::info;
 use wm_common::{DisplayState, WindowRuleEvent, WmEvent};
 use wm_platform::{NativeWindow, Platform};
@@ -6,7 +9,7 @@ use wm_platform::{NativeWindow, Platform};
 use crate::{
   commands::{
     container::set_focused_descendant, window::run_window_rules,
-    workspace::focus_workspace,
+    workspace::focus_workspace, window::move_window_to_workspace,
   },
   models::WorkspaceTarget,
   traits::{CommonGetters, WindowGetters},
@@ -67,6 +70,69 @@ pub fn handle_window_focused(
     }
 
     info!("Window manually focused: {window}");
+
+    // Check mapping file for a saved target for this window. If found,
+    // move the window to the saved workspace and remove the entry.
+    #[derive(Deserialize, serde::Serialize, Clone)]
+    struct AppWorkspaceEntry {
+      handle: isize,
+      process_name: Option<String>,
+      class_name: Option<String>,
+      title: Option<String>,
+      workspace: String,
+    }
+
+    // Resolve mapping path next to user config.
+    let mapping_path = config
+      .path
+      .parent()
+      .map(|p| p.join("glazewm_apps_workspaces.json"))
+      .unwrap_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"));
+
+    if mapping_path.exists() {
+      if let Ok(file) = File::open(&mapping_path) {
+        if let Ok(mut entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
+          // Determine identifying values for the focused window.
+          let native = window.native().clone();
+          let proc = native.process_name().ok();
+          let class = native.class_name().ok();
+          let title = native.title().ok();
+
+          if let Some(pos) = entries.iter().position(|e| {
+            e.handle == native.handle
+              || e
+                .process_name
+                .as_ref()
+                .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
+                .unwrap_or(false)
+              || e
+                .title
+                .as_ref()
+                .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
+                .unwrap_or(false)
+          }) {
+            let entry = entries.remove(pos);
+
+            // Write back remaining entries.
+            let _ = (|| -> anyhow::Result<()> {
+              let tmp = mapping_path.with_extension("tmp");
+              let file = std::fs::File::create(&tmp)?;
+              serde_json::to_writer_pretty(file, &entries)?;
+              std::fs::rename(tmp, &mapping_path)?;
+              Ok(())
+            })();
+
+            // Move the window to the saved workspace.
+            let _ = move_window_to_workspace(
+              window.clone(),
+              WorkspaceTarget::Name(entry.workspace.clone()),
+              state,
+              config,
+            );
+          }
+        }
+      }
+    }
 
     // Handle focus events from windows on hidden workspaces. For example,
     // if Discord is forcefully shown by the OS when it's on a hidden

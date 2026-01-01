@@ -91,6 +91,13 @@ async fn start_wm(
   // Start listening for platform events after populating initial state.
   let mut event_listener = Platform::start_event_listener(&config.value)?;
 
+  // Attempt to auto-restore mapped windows: manage native windows that
+  // correspond to mapping entries so they get moved to their saved
+  // workspaces automatically.
+  if let Err(err) = wm.auto_restore_mappings(&mut config) {
+    tracing::warn!("Auto-restore mappings failed: {:?}", err);
+  }
+
   // Run startup commands.
   let startup_commands = config.value.general.startup_commands.clone();
   wm.process_commands(&startup_commands, None, &mut config)?;
@@ -248,6 +255,7 @@ fn run_cleanup(
       warn!("{:?}", err);
     }
   }
+  // No persisted snapshot cleanup.
 
   Ok(())
 }

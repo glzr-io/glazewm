@@ -2327,6 +2327,8 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "futures-util",
+ "home",
+ "serde",
  "serde_json",
  "tauri-winres",
  "tokio",
@@ -2334,6 +2336,7 @@ dependencies = [
  "uuid",
  "wm-common",
  "wm-ipc-client",
+ "wm-platform",
 ]
 
 [[package]]

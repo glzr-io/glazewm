@@ -22,3 +22,6 @@ tokio-tungstenite = { workspace = true }
 uuid = { workspace = true }
 wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
+serde = { workspace = true, features = ["derive"] }
+home = { workspace = true }
+wm-platform = { path = "../wm-platform" }

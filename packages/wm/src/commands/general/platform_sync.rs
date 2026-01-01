@@ -8,6 +8,8 @@ use wm_common::{
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
+use serde::{Deserialize, Serialize};
+use std::{fs::File, path::{Path, PathBuf}};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -72,6 +74,90 @@ pub fn platform_sync(
   }
 
   state.pending_sync.clear();
+
+  // Write a minimal JSON mapping of open applications to their workspace
+  // number/name. Merge with any existing mapping file so existing entries
+  // are not overwritten (best-effort). Format: array of
+  // { handle, process_name, class_name, title, workspace }.
+  #[derive(Serialize, Deserialize, Clone)]
+  struct AppWorkspaceEntry {
+    handle: isize,
+    process_name: Option<String>,
+    class_name: Option<String>,
+    title: Option<String>,
+    workspace: String,
+  }
+
+  // Load existing mapping if present.
+  let config_parent = config
+    .path
+    .parent()
+    .map(|p| p.to_path_buf())
+    .unwrap_or_else(|| Path::new(".").to_path_buf());
+
+  let mut mapping_path = config_parent.clone();
+  mapping_path.push("glazewm_apps_workspaces.json");
+
+  let mut existing_map: std::collections::HashMap<(
+    Option<String>,
+    Option<String>,
+    Option<String>,
+  ), AppWorkspaceEntry> = std::collections::HashMap::new();
+
+  if mapping_path.exists() {
+    if let Ok(file) = File::open(&mapping_path) {
+      if let Ok(entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
+        for e in entries.into_iter() {
+          let key = (e.process_name.clone(), e.class_name.clone(), e.title.clone());
+          existing_map.insert(key, e);
+        }
+      }
+    }
+  }
+
+  // Populate entries for windows that are not yet present in existing_map.
+  for window in state.windows() {
+    if let Ok(container_dto) = window.to_dto() {
+      if let wm_common::ContainerDto::Window(window_dto) = container_dto {
+        if let Some(workspace) = window.workspace() {
+          let key = (
+            Some(window_dto.process_name.clone()),
+            Some(window_dto.class_name.clone()),
+            Some(window_dto.title.clone()),
+          );
+
+          if !existing_map.contains_key(&key) {
+            existing_map.insert(
+              key,
+              AppWorkspaceEntry {
+                handle: window_dto.handle,
+                process_name: Some(window_dto.process_name.clone()),
+                class_name: Some(window_dto.class_name.clone()),
+                title: Some(window_dto.title.clone()),
+                workspace: workspace.config().name.clone(),
+              },
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // Write merged map back to file.
+  if !existing_map.is_empty() {
+    if let Err(err) = (|| -> anyhow::Result<()> {
+      let tmp = mapping_path.with_extension("tmp");
+      let file = File::create(&tmp)?;
+      let mut out: Vec<AppWorkspaceEntry> = existing_map.values().cloned().collect();
+      // Keep deterministic ordering for readability.
+      out.sort_by(|a, b| a.title.cmp(&b.title));
+      serde_json::to_writer_pretty(file, &out)?;
+      std::fs::rename(tmp, mapping_path)?;
+      Ok(())
+    })() {
+      warn!("Failed to write apps->workspaces mapping: {:?}", err);
+    }
+  }
 
   Ok(())
 }

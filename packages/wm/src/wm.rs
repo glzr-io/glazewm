@@ -1,6 +1,6 @@
 use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
-use tracing::warn;
+use tracing::{info, warn};
 use uuid::Uuid;
 use wm_common::{
   FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
@@ -40,12 +40,16 @@ use crate::{
   wm_state::WmState,
 };
 
+// No restore/persistence in this file.
+
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
+// persistence removed
+// end persistence removal
 impl WindowManager {
   pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
@@ -59,6 +63,109 @@ impl WindowManager {
       exit_rx,
       state,
     })
+  }
+
+  /// Attempts to auto-manage native windows based on saved mapping file.
+  /// This runs at startup to handle windows that exist but are not yet
+  /// managed by the WM. It will call `manage_window` for matching native
+  /// windows so the existing manage-time mapping logic can move them and
+  /// remove entries from the mapping file.
+  pub fn auto_restore_mappings(
+    &mut self,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    #[derive(serde::Deserialize, serde::Serialize, Clone)]
+    struct AppWorkspaceEntry {
+      handle: isize,
+      process_name: Option<String>,
+      class_name: Option<String>,
+      title: Option<String>,
+      workspace: String,
+    }
+
+    let mapping_path = config
+      .path
+      .parent()
+      .map(|p| p.join("glazewm_apps_workspaces.json"))
+      .unwrap_or_else(|| std::path::PathBuf::from("glazewm_apps_workspaces.json"));
+
+    if !mapping_path.exists() {
+      return Ok(());
+    }
+
+    let file = std::fs::File::open(&mapping_path)?;
+    let entries: Vec<AppWorkspaceEntry> = serde_json::from_reader(file)?;
+
+    if entries.is_empty() {
+      return Ok(());
+    }
+
+    // For each mapping entry, if it's not managed, try to find a native
+    // manageable window that matches and call manage_window on it.
+    let native_windows = wm_platform::Platform::manageable_windows()?;
+
+    for entry in entries.into_iter() {
+      // Skip if already managed.
+      let already_managed = self
+        .state
+        .windows()
+        .into_iter()
+        .any(|w| {
+          if let Ok(dto) = w.to_dto() {
+            if let wm_common::ContainerDto::Window(wdto) = dto {
+              return wdto.handle == entry.handle
+                || entry
+                  .process_name
+                  .as_ref()
+                  .map(|p| &wdto.process_name == p)
+                  .unwrap_or(false)
+                || entry
+                  .title
+                  .as_ref()
+                  .map(|t| wdto.title.contains(t))
+                  .unwrap_or(false);
+            }
+          }
+
+          false
+        });
+
+      if already_managed {
+        continue;
+      }
+
+      // Try to find native window match.
+      for nw in native_windows.iter() {
+        let proc = nw.process_name().ok();
+        let title = nw.title().ok();
+
+        let proc_match = entry
+          .process_name
+          .as_ref()
+          .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
+          .unwrap_or(false);
+
+        let title_match = entry
+          .title
+          .as_ref()
+          .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
+          .unwrap_or(false);
+
+        if entry.handle == nw.handle || proc_match || title_match {
+          // Call manage_window to let WM adopt this window and handle
+          // mapping removal via existing logic.
+          let _ = crate::commands::window::manage_window(
+            nw.clone(),
+            None,
+            &mut self.state,
+            config,
+          );
+          break;
+        }
+      }
+    }
+
+    Ok(())
   }
 
   pub fn process_event(
