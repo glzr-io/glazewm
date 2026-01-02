@@ -7,6 +7,7 @@ use wm_common::{
   RectDelta, TitleBarVisibility, WindowState, WmEvent,
 };
 use wm_platform::PlatformEvent;
+use crate::commands::general::toggle_transparency;
 
 use crate::{
   commands::{
@@ -728,6 +729,11 @@ impl WindowManager {
         toggle_pause(state);
         Ok(())
       }
+      InvokeCommand::WmToggleTransparency => {
+        toggle_transparency(state, config)?;
+        Ok(())
+      }
+
     }
   }
 }

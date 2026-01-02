@@ -255,6 +255,7 @@ pub enum InvokeCommand {
   WmRedraw,
   WmReloadConfig,
   WmTogglePause,
+  WmToggleTransparency,
 }
 
 impl<'de> Deserialize<'de> for InvokeCommand {
