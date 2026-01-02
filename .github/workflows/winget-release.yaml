@@ -14,3 +14,4 @@ jobs:
           identifier: glzr-io.glazewm
           installers-regex: 'glazewm-v[0-9.]+\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
+          fork-user: glzr-io
