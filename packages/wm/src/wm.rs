@@ -1,10 +1,10 @@
 use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
-use tracing::{info, warn};
+use tracing::warn;
 use uuid::Uuid;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
-  RectDelta, TitleBarVisibility, WindowState, WmEvent,
+  AppWorkspaceEntry, FloatingStateConfig, FullscreenStateConfig, InvokeCommand,
+  LengthValue, RectDelta, TitleBarVisibility, WindowState, WmEvent,
 };
 use wm_platform::PlatformEvent;
 
@@ -78,20 +78,11 @@ impl WindowManager {
     if !config.value.general.persists_process_location {
       return Ok(());
     }
-    #[derive(serde::Deserialize, serde::Serialize, Clone)]
-    struct AppWorkspaceEntry {
-      handle: isize,
-      process_name: Option<String>,
-      class_name: Option<String>,
-      title: Option<String>,
-      workspace: String,
-    }
+    // Use shared `AppWorkspaceEntry` from `wm-common`.
 
     let mapping_path = config
       .path
-      .parent()
-      .map(|p| p.join("glazewm_apps_workspaces.json"))
-      .unwrap_or_else(|| std::path::PathBuf::from("glazewm_apps_workspaces.json"));
+      .parent().map_or_else(|| std::path::PathBuf::from("glazewm_apps_workspaces.json"), |p| p.join("glazewm_apps_workspaces.json"));
 
     if !mapping_path.exists() {
       return Ok(());
@@ -108,27 +99,23 @@ impl WindowManager {
     // manageable window that matches and call manage_window on it.
     let native_windows = wm_platform::Platform::manageable_windows()?;
 
-    for entry in entries.into_iter() {
+    for entry in entries {
       // Skip if already managed.
       let already_managed = self
         .state
         .windows()
         .into_iter()
         .any(|w| {
-          if let Ok(dto) = w.to_dto() {
-            if let wm_common::ContainerDto::Window(wdto) = dto {
-              return wdto.handle == entry.handle
-                || entry
-                  .process_name
-                  .as_ref()
-                  .map(|p| &wdto.process_name == p)
-                  .unwrap_or(false)
-                || entry
-                  .title
-                  .as_ref()
-                  .map(|t| wdto.title.contains(t))
-                  .unwrap_or(false);
-            }
+          if let Ok(wm_common::ContainerDto::Window(wdto)) = w.to_dto() {
+            return wdto.handle == entry.handle
+              || entry
+                .process_name
+                .as_ref()
+                .is_some_and(|p| &wdto.process_name == p)
+              || entry
+                .title
+                .as_ref()
+                .is_some_and(|t| wdto.title.contains(t));
           }
 
           false
@@ -139,21 +126,19 @@ impl WindowManager {
       }
 
       // Try to find native window match.
-      for nw in native_windows.iter() {
+      for nw in &native_windows {
         let proc = nw.process_name().ok();
         let title = nw.title().ok();
 
         let proc_match = entry
           .process_name
           .as_ref()
-          .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
-          .unwrap_or(false);
+          .is_some_and(|p| proc.as_ref().is_some_and(|s| s == p));
 
         let title_match = entry
           .title
           .as_ref()
-          .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
-          .unwrap_or(false);
+          .is_some_and(|t| title.as_ref().is_some_and(|s| s.contains(t)));
 
         if entry.handle == nw.handle || proc_match || title_match {
           // Call manage_window to let WM adopt this window and handle

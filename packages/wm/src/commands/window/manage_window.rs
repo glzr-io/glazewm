@@ -1,9 +1,9 @@
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
 use std::{fs::File, path::PathBuf};
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  AppWorkspaceEntry, try_warn, LengthValue, RectDelta, WindowRuleEvent,
+  WindowState, WmEvent,
 };
 use wm_platform::NativeWindow;
 
@@ -77,20 +77,11 @@ pub fn manage_window(
     // a mapping exists. Remove the mapping entry afterwards. Only do
     // this if the user enabled `persists_process_location` in config.
     if config.value.general.persists_process_location {
-    #[derive(Deserialize, Serialize, Clone)]
-    struct AppWorkspaceEntry {
-      handle: isize,
-      process_name: Option<String>,
-      class_name: Option<String>,
-      title: Option<String>,
-      workspace: String,
-    }
+    // Use shared `AppWorkspaceEntry` from `wm-common`.
 
     let mapping_path = config
       .path
-      .parent()
-      .map(|p| p.join("glazewm_apps_workspaces.json"))
-      .unwrap_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"));
+      .parent().map_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"), |p| p.join("glazewm_apps_workspaces.json"));
 
     if mapping_path.exists() {
       if let Ok(file) = File::open(&mapping_path) {

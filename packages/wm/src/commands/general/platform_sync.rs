@@ -4,12 +4,11 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  AppWorkspaceEntry, CornerStyle, CursorJumpTrigger, DisplayState, HideMethod,
+  OpacityValue, UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
-use serde::{Deserialize, Serialize};
-use std::{fs::File, path::{Path, PathBuf}};
+use std::{fs::File, path::Path};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -87,25 +86,17 @@ pub fn platform_sync(
   // number/name. Merge with any existing mapping file so existing entries
   // are not overwritten (best-effort). Format: array of
   // { handle, process_name, class_name, title, workspace }.
-  #[derive(Serialize, Deserialize, Clone)]
-  struct AppWorkspaceEntry {
-    handle: isize,
-    process_name: Option<String>,
-    class_name: Option<String>,
-    title: Option<String>,
-    workspace: String,
-  }
+  // Use shared `AppWorkspaceEntry` from `wm-common`.
 
   // Load existing mapping if present.
   let config_parent = config
     .path
-    .parent()
-    .map(|p| p.to_path_buf())
-    .unwrap_or_else(|| Path::new(".").to_path_buf());
+    .parent().map_or_else(|| Path::new(".").to_path_buf(), std::path::Path::to_path_buf);
 
   let mut mapping_path = config_parent.clone();
   mapping_path.push("glazewm_apps_workspaces.json");
 
+  #[allow(clippy::type_complexity)]
   let mut existing_map: std::collections::HashMap<(
     Option<String>,
     Option<String>,
@@ -115,7 +106,7 @@ pub fn platform_sync(
   if mapping_path.exists() {
     if let Ok(file) = File::open(&mapping_path) {
       if let Ok(entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
-        for e in entries.into_iter() {
+        for e in entries {
           let key = (e.process_name.clone(), e.class_name.clone(), e.title.clone());
           existing_map.insert(key, e);
         }
@@ -125,9 +116,8 @@ pub fn platform_sync(
 
   // Populate entries for windows that are not yet present in existing_map.
   for window in state.windows() {
-    if let Ok(container_dto) = window.to_dto() {
-      if let wm_common::ContainerDto::Window(window_dto) = container_dto {
-        if let Some(workspace) = window.workspace() {
+    if let Ok(wm_common::ContainerDto::Window(window_dto)) = window.to_dto() {
+      if let Some(workspace) = window.workspace() {
           let key = (
             Some(window_dto.process_name.clone()),
             Some(window_dto.class_name.clone()),
@@ -150,7 +140,6 @@ pub fn platform_sync(
         }
       }
     }
-  }
 
   // Write merged map back to file.
   if !existing_map.is_empty() {

@@ -10,10 +10,9 @@
 
 use anyhow::{bail, Context};
 use tracing::info;
-use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
+use wm_common::{AppWorkspaceEntry, ClientResponseData, ContainerDto, WindowDto, WmEvent};
 use wm_ipc_client::IpcClient;
 use wm_platform::NativeWindow;
-use serde::{Deserialize, Serialize};
 use std::{fs::File, path::PathBuf};
 
 #[tokio::main]
@@ -134,7 +133,7 @@ async fn watch_managed_handles(
 
         let config_file_path = env_path
           .as_ref()
-          .map(|s| PathBuf::from(s))
+          .map(PathBuf::from)
           .or(default_config_path.clone());
 
         let mut persistence_enabled = false;
@@ -158,14 +157,6 @@ async fn watch_managed_handles(
         // mapping path the same way `UserConfig` does so we modify the
         // same file WM writes to. Fallback to looking in the executable
         // directory if the config path can't be determined.
-        #[derive(Deserialize, Serialize, Clone)]
-        struct AppWorkspaceEntry {
-          handle: isize,
-          process_name: Option<String>,
-          class_name: Option<String>,
-          title: Option<String>,
-          workspace: String,
-        }
 
         let mapping_name = "glazewm_apps_workspaces.json";
 
@@ -177,9 +168,9 @@ async fn watch_managed_handles(
 
         let config_path = env_path
           .as_ref()
-          .map(|s| PathBuf::from(s))
+          .map(PathBuf::from)
           .or(default_config_path)
-          .or_else(|| std::env::current_exe().ok().and_then(|exe| exe.parent().map(|p| p.to_path_buf())));
+          .or_else(|| std::env::current_exe().ok().and_then(|exe| exe.parent().map(std::path::Path::to_path_buf)));
 
         if let Some(cfg) = config_path {
           if let Some(parent) = cfg.parent() {

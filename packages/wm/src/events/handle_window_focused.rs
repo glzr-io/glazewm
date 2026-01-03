@@ -1,9 +1,8 @@
 use anyhow::Context;
-use serde::Deserialize;
 use std::fs::File;
 use std::path::PathBuf;
 use tracing::info;
-use wm_common::{DisplayState, WindowRuleEvent, WmEvent};
+use wm_common::{AppWorkspaceEntry, DisplayState, WindowRuleEvent, WmEvent};
 use wm_platform::{NativeWindow, Platform};
 
 use crate::{
@@ -73,22 +72,12 @@ pub fn handle_window_focused(
 
     // Check mapping file for a saved target for this window. If found,
     // move the window to the saved workspace and remove the entry.
-    #[derive(Deserialize, serde::Serialize, Clone)]
-    struct AppWorkspaceEntry {
-      handle: isize,
-      process_name: Option<String>,
-      class_name: Option<String>,
-      title: Option<String>,
-      workspace: String,
-    }
 
         // Only consult mapping if persistence is enabled.
         if config.value.general.persists_process_location {
           let mapping_path = config
             .path
-            .parent()
-            .map(|p| p.join("glazewm_apps_workspaces.json"))
-            .unwrap_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"));
+            .parent().map_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"), |p| p.join("glazewm_apps_workspaces.json"));
 
           if mapping_path.exists() {
             if let Ok(file) = File::open(&mapping_path) {
@@ -96,7 +85,7 @@ pub fn handle_window_focused(
                 // Determine identifying values for the focused window.
                 let native = window.native().clone();
                 let proc = native.process_name().ok();
-                let class = native.class_name().ok();
+                let _class = native.class_name().ok();
                 let title = native.title().ok();
 
                 if let Some(pos) = entries.iter().position(|e| {
@@ -104,13 +93,11 @@ pub fn handle_window_focused(
                     || e
                       .process_name
                       .as_ref()
-                      .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
-                      .unwrap_or(false)
+                      .is_some_and(|p| proc.as_ref().is_some_and(|s| s == p))
                     || e
                       .title
                       .as_ref()
-                      .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
-                      .unwrap_or(false)
+                      .is_some_and(|t| title.as_ref().is_some_and(|s| s.contains(t)))
                 }) {
                   let entry = entries.remove(pos);
 

@@ -2,21 +2,12 @@ use std::{env, process::Command, fs::File, path::PathBuf};
 
 use anyhow::{Context, Error};
 use wm_cli::start;
-use wm_common::{AppCommand, ClientResponseData, ContainerDto, WindowDto};
-use serde::Deserialize;
+use wm_common::{AppCommand, ClientResponseData, ContainerDto, AppWorkspaceEntry};
 use wm_ipc_client::IpcClient;
 use wm_platform::Platform;
 use std::time::Duration;
 use tokio::time::sleep;
 
-#[derive(Deserialize)]
-struct AppWorkspaceEntry {
-  handle: isize,
-  process_name: Option<String>,
-  class_name: Option<String>,
-  title: Option<String>,
-  workspace: String,
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
