@@ -74,7 +74,9 @@ pub fn manage_window(
     );
 
     // Check mapping file for this new window by handle and move it if
-    // a mapping exists. Remove the mapping entry afterwards.
+    // a mapping exists. Remove the mapping entry afterwards. Only do
+    // this if the user enabled `persists_process_location` in config.
+    if config.value.general.persists_process_location {
     #[derive(Deserialize, Serialize, Clone)]
     struct AppWorkspaceEntry {
       handle: isize,
@@ -121,6 +123,7 @@ pub fn manage_window(
           }
         }
       }
+    }
     }
   }
 

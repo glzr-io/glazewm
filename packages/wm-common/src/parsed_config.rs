@@ -93,6 +93,9 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+  /// Whether to persist application->workspace mappings to disk.
+  /// When true, the WM will write/read glazewm_apps_workspaces.json.
+  pub persists_process_location: bool,
 }
 
 impl Default for GeneralConfig {
@@ -106,6 +109,7 @@ impl Default for GeneralConfig {
       config_reload_commands: vec![],
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
+      persists_process_location: false,
     }
   }
 }

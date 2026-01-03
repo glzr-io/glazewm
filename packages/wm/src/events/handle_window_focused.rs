@@ -82,57 +82,59 @@ pub fn handle_window_focused(
       workspace: String,
     }
 
-    // Resolve mapping path next to user config.
-    let mapping_path = config
-      .path
-      .parent()
-      .map(|p| p.join("glazewm_apps_workspaces.json"))
-      .unwrap_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"));
+        // Only consult mapping if persistence is enabled.
+        if config.value.general.persists_process_location {
+          let mapping_path = config
+            .path
+            .parent()
+            .map(|p| p.join("glazewm_apps_workspaces.json"))
+            .unwrap_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"));
 
-    if mapping_path.exists() {
-      if let Ok(file) = File::open(&mapping_path) {
-        if let Ok(mut entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
-          // Determine identifying values for the focused window.
-          let native = window.native().clone();
-          let proc = native.process_name().ok();
-          let class = native.class_name().ok();
-          let title = native.title().ok();
+          if mapping_path.exists() {
+            if let Ok(file) = File::open(&mapping_path) {
+              if let Ok(mut entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
+                // Determine identifying values for the focused window.
+                let native = window.native().clone();
+                let proc = native.process_name().ok();
+                let class = native.class_name().ok();
+                let title = native.title().ok();
 
-          if let Some(pos) = entries.iter().position(|e| {
-            e.handle == native.handle
-              || e
-                .process_name
-                .as_ref()
-                .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
-                .unwrap_or(false)
-              || e
-                .title
-                .as_ref()
-                .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
-                .unwrap_or(false)
-          }) {
-            let entry = entries.remove(pos);
+                if let Some(pos) = entries.iter().position(|e| {
+                  e.handle == native.handle
+                    || e
+                      .process_name
+                      .as_ref()
+                      .map(|p| proc.as_ref().map(|s| s == p).unwrap_or(false))
+                      .unwrap_or(false)
+                    || e
+                      .title
+                      .as_ref()
+                      .map(|t| title.as_ref().map(|s| s.contains(t)).unwrap_or(false))
+                      .unwrap_or(false)
+                }) {
+                  let entry = entries.remove(pos);
 
-            // Write back remaining entries.
-            let _ = (|| -> anyhow::Result<()> {
-              let tmp = mapping_path.with_extension("tmp");
-              let file = std::fs::File::create(&tmp)?;
-              serde_json::to_writer_pretty(file, &entries)?;
-              std::fs::rename(tmp, &mapping_path)?;
-              Ok(())
-            })();
+                  // Write back remaining entries atomically.
+                  let _ = (|| -> anyhow::Result<()> {
+                    let tmp = mapping_path.with_extension("tmp");
+                    let file = std::fs::File::create(&tmp)?;
+                    serde_json::to_writer_pretty(file, &entries)?;
+                    std::fs::rename(tmp, &mapping_path)?;
+                    Ok(())
+                  })();
 
-            // Move the window to the saved workspace.
-            let _ = move_window_to_workspace(
-              window.clone(),
-              WorkspaceTarget::Name(entry.workspace.clone()),
-              state,
-              config,
-            );
+                  // Move the window to the saved workspace.
+                  let _ = move_window_to_workspace(
+                    window.clone(),
+                    WorkspaceTarget::Name(entry.workspace.clone()),
+                    state,
+                    config,
+                  );
+                }
+              }
+            }
           }
         }
-      }
-    }
 
     // Handle focus events from windows on hidden workspaces. For example,
     // if Discord is forcefully shown by the OS when it's on a hidden

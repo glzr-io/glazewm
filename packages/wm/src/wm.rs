@@ -74,6 +74,10 @@ impl WindowManager {
     &mut self,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
+    // Respect user config: only run auto-restore if persistence is enabled.
+    if !config.value.general.persists_process_location {
+      return Ok(());
+    }
     #[derive(serde::Deserialize, serde::Serialize, Clone)]
     struct AppWorkspaceEntry {
       handle: isize,

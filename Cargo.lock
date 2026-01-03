@@ -2394,6 +2394,7 @@ dependencies = [
  "home",
  "serde",
  "serde_json",
+ "serde_yaml",
  "tauri-winres",
  "tokio",
  "tracing",

@@ -75,6 +75,14 @@ pub fn platform_sync(
 
   state.pending_sync.clear();
 
+  // Optionally write a minimal JSON mapping of open applications to their
+  // workspace number/name. This behavior is controlled by the
+  // `persists_process_location` flag in the user's config. If disabled,
+  // skip mapping persistence entirely.
+  if !config.value.general.persists_process_location {
+    return Ok(());
+  }
+
   // Write a minimal JSON mapping of open applications to their workspace
   // number/name. Merge with any existing mapping file so existing entries
   // are not overwritten (best-effort). Format: array of

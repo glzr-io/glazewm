@@ -124,6 +124,36 @@ async fn watch_managed_handles(
         info!("Watcher removed handle: {}.", unmanaged_handle);
         handles.retain(|&handle| handle != unmanaged_handle);
 
+        // Only remove mapping entries if the user has enabled persistence
+        // in their config. Read the user's config (if present) and check
+        // `general.persists_process_location`.
+        let default_config_path = home::home_dir()
+          .map(|p| p.join(".glzr/glazewm/config.yaml"));
+
+        let env_path = std::env::var("GLAZEWM_CONFIG_PATH").ok();
+
+        let config_file_path = env_path
+          .as_ref()
+          .map(|s| PathBuf::from(s))
+          .or(default_config_path.clone());
+
+        let mut persistence_enabled = false;
+
+        if let Some(cfg) = config_file_path {
+          if cfg.exists() {
+            if let Ok(s) = std::fs::read_to_string(&cfg) {
+              if let Ok(parsed) = serde_yaml::from_str::<wm_common::ParsedConfig>(&s) {
+                persistence_enabled = parsed.general.persists_process_location;
+              }
+            }
+          }
+        }
+
+        if !persistence_enabled {
+          // Nothing to do for mapping cleanup.
+          continue;
+        }
+
         // Remove mapping entries for the terminated handle. Derive the
         // mapping path the same way `UserConfig` does so we modify the
         // same file WM writes to. Fallback to looking in the executable
