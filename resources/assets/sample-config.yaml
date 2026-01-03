@@ -214,6 +214,11 @@ keybindings:
   - commands: ['wm-toggle-pause']
     bindings: ['alt+shift+p']
 
+  # Toggle transparency globally at runtime without restarting or reloading the config.
+  # Pressing the keybinding toggles transparency for all windows until pressed again.  
+  - commands: ['wm-toggle-transparency']
+    bindings: ['alt+shift+t']
+
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
   - commands: ['toggle-tiling-direction']
