@@ -17,9 +17,9 @@ pub fn toggle_transparency(
 
     if enabled {
         info!("Transparency ON");
-        // Restore transparency settings to their original config values
-        // (assuming they were enabled in the original config)
+        // Enable transparency for both focused and unfocused windows
         config.value.window_effects.other_windows.transparency.enabled = true;
+        config.value.window_effects.focused_window.transparency.enabled = true;
     } else {
         info!("Transparency OFF, forcing opaque render");
         // Disable transparency for both focused and unfocused windows
