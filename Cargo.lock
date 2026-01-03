@@ -2391,6 +2391,8 @@ name = "wm-watcher"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "home",
+ "serde",
  "serde_json",
  "tauri-winres",
  "tokio",
