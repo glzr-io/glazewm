@@ -8,7 +8,6 @@ use wm_common::{
   BindingModeConfig, Direction, Point, WindowState, WmEvent,
 };
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
-// no persistence in this file
 
 use crate::{
   commands::{
@@ -484,7 +483,6 @@ impl WmState {
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
       }
-      // no-op: persistence removed from this file
     }
   }
 
@@ -581,8 +579,6 @@ impl WmState {
       .cloned()
   }
 }
-
-// persistence removed
 
 impl Drop for WmState {
   fn drop(&mut self) {

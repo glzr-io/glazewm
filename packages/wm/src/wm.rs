@@ -40,16 +40,12 @@ use crate::{
   wm_state::WmState,
 };
 
-// No restore/persistence in this file.
-
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
-// persistence removed
-// end persistence removal
 impl WindowManager {
   pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();

@@ -255,7 +255,6 @@ fn run_cleanup(
       warn!("{:?}", err);
     }
   }
-  // No persisted snapshot cleanup.
 
   Ok(())
 }
