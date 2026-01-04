@@ -11,6 +11,9 @@ general:
   # Commands to run after the WM config is reloaded.
   config_reload_commands: []
 
+  # Whether to restore each process last located on,
+  persists_process_location: true
+
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
 
