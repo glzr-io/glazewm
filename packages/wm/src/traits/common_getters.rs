@@ -226,7 +226,7 @@ pub trait CommonGetters {
   fn workspace(&self) -> Option<Workspace> {
     self
       .self_and_ancestors()
-      .find_map(|container| container.as_workspace().cloned())
+      .find_map(|container| Workspace::try_from(container).ok())
   }
 
   /// Monitor that this container belongs to.
@@ -235,7 +235,7 @@ pub trait CommonGetters {
   fn monitor(&self) -> Option<Monitor> {
     self
       .self_and_ancestors()
-      .find_map(|container| container.as_monitor().cloned())
+      .find_map(|container| Monitor::try_from(container).ok())
   }
 
   /// Nearest direction container (i.e. split container or workspace) that

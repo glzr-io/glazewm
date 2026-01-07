@@ -3,7 +3,7 @@ use wm_common::{Direction, TilingDirection, WindowState};
 
 use super::set_focused_descendant;
 use crate::{
-  models::{Container, TilingContainer},
+  models::{Container, NonTilingWindow, TilingContainer},
   traits::{CommonGetters, TilingDirectionGetters, WindowGetters},
   wm_state::WmState,
 };
@@ -53,7 +53,7 @@ fn floating_focus_target(
   direction: &Direction,
 ) -> Option<Container> {
   let is_floating = |sibling: &Container| {
-    sibling.as_non_tiling_window().is_some_and(|window| {
+    <&NonTilingWindow>::try_from(sibling).is_ok_and(|window| {
       matches!(window.state(), WindowState::Floating(_))
     })
   };
@@ -87,7 +87,7 @@ fn tiling_focus_target(
 
   // Traverse upwards from the focused container. Stop searching when a
   // workspace is encountered.
-  while !origin_or_ancestor.is_workspace() {
+  while !matches!(origin_or_ancestor, Container::Workspace(_)) {
     let parent = origin_or_ancestor
       .parent()
       .and_then(|parent| parent.as_direction_container().ok())

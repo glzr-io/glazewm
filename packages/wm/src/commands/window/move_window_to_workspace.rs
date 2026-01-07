@@ -88,8 +88,8 @@ pub fn move_window_to_workspace(
       .find(|descendant| descendant.state() == WindowState::Tiling);
 
     // Insert the window into the target workspace.
-    match (window.is_tiling_window(), insertion_sibling.is_some()) {
-      (true, true) => {
+    match (&window, insertion_sibling.is_some()) {
+      (WindowContainer::TilingWindow(_), true) => {
         if let Some(insertion_sibling) = insertion_sibling {
           move_container_within_tree(
             &window.clone().into(),

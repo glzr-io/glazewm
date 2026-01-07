@@ -21,7 +21,6 @@ tauri-winres = { workspace = true }
 anyhow = { workspace = true }
 ambassador = "0.4"
 clap = { workspace = true }
-enum-as-inner = "0.6"
 futures-util = { workspace = true }
 home = { workspace = true }
 serde = { workspace = true }
