@@ -25,5 +25,7 @@ pub struct MonitorDto {
   pub device_name: String,
   pub device_path: Option<String>,
   pub hardware_id: Option<String>,
+  pub machine_id: Option<String>,
   pub working_rect: Rect,
+  pub index: usize,
 }

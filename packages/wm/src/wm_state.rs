@@ -103,7 +103,9 @@ impl WmState {
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_monitor in Platform::sorted_monitors()? {
+    for native_monitor in
+      Platform::sorted_monitors_with_config(&config.value.monitors)?
+    {
       add_monitor(native_monitor, self, config)?;
     }
 
