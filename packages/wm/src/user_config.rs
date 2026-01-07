@@ -26,6 +26,9 @@ pub struct UserConfig {
   /// Unparsed user config string.
   pub value_str: String,
 
+  /// Workspaces that don't have `cycle_ignore` set to `true`.
+  pub filtered_workspaces: Vec<WorkspaceConfig>,
+
   /// Hashmap of window rule event types (e.g. `WindowRuleEvent::Manage`)
   /// and the corresponding window rules of that type.
   window_rules_by_event: HashMap<WindowRuleEvent, Vec<WindowRuleConfig>>,
@@ -49,11 +52,19 @@ impl UserConfig {
 
     let window_rules_by_event = Self::window_rules_by_event(&config_value);
 
+    let filtered_workspaces = config_value
+      .workspaces
+      .iter()
+      .filter(|w| !w.cycle_ignore)
+      .cloned()
+      .collect();
+
     Ok(Self {
       path: config_path,
       value: config_value,
       value_str: config_str,
       window_rules_by_event,
+      filtered_workspaces,
     })
   }
 
@@ -98,6 +109,12 @@ impl UserConfig {
 
     self.window_rules_by_event =
       Self::window_rules_by_event(&config_value);
+    self.filtered_workspaces = config_value
+      .workspaces
+      .iter()
+      .filter(|w| !w.cycle_ignore)
+      .cloned()
+      .collect();
     self.value = config_value;
     self.value_str = config_str;
 
