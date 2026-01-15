@@ -21,7 +21,7 @@ use crate::{
     monitor::focus_monitor,
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
+      resize_window, set_hide_method, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
     workspace::{focus_workspace, move_workspace_in_direction},
@@ -559,6 +559,12 @@ impl WindowManager {
             );
             Ok(())
           }
+          _ => Ok(()),
+        }
+      }
+      InvokeCommand::SetHideMethod { hide_method } => {
+        match subject_container.as_window_container() {
+          Ok(window) => set_hide_method(window, hide_method.clone(), state),
           _ => Ok(()),
         }
       }

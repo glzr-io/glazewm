@@ -7,8 +7,8 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
-  TilingDirection, WindowDto, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, HideMethod, Rect,
+  RectDelta, TilingDirection, WindowDto, WindowRuleConfig, WindowState,
 };
 use wm_platform::NativeWindow;
 
@@ -46,6 +46,7 @@ struct TilingWindowInner {
   gaps_config: GapsConfig,
   done_window_rules: Vec<WindowRuleConfig>,
   active_drag: Option<ActiveDrag>,
+  hide_method: Option<HideMethod>,
 }
 
 impl TilingWindow {
@@ -78,6 +79,7 @@ impl TilingWindow {
       gaps_config,
       done_window_rules,
       active_drag,
+      hide_method: None,
     };
 
     Self(Rc::new(RefCell::new(window)))
