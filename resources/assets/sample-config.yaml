@@ -131,6 +131,12 @@ workspaces:
   - name: '9'
 
 window_rules:
+  # Example: Use legacy 'hide' method for Firefox to fix link opening behavior.
+  # Uncomment if Firefox opens new windows instead of new tabs when clicking links.
+  # - commands: ['set-hide-method hide']
+  #   match:
+  #     - window_process: { equals: 'firefox' }
+
   - commands: ['ignore']
     match:
       # Ignores any Zebar windows.

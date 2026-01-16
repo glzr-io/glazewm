@@ -318,6 +318,13 @@ impl NativeWindow {
   }
 
   pub fn set_foreground(&self) -> anyhow::Result<()> {
+    // Uncloak the window first if it's cloaked, otherwise SetForegroundWindow
+    // may not generate the necessary Windows events (EVENT_SYSTEM_FOREGROUND).
+    // This ensures applications like Firefox can properly activate hidden windows.
+    if self.is_cloaked()? {
+      self.set_cloaked(false)?;
+    }
+
     let input = [INPUT {
       r#type: INPUT_MOUSE,
       Anonymous: INPUT_0 {

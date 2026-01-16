@@ -6,7 +6,7 @@ use tracing::Level;
 use uuid::Uuid;
 
 use crate::{
-  Delta, Direction, LengthValue, OpacityValue, TilingDirection,
+  Delta, Direction, HideMethod, LengthValue, OpacityValue, TilingDirection,
 };
 
 const VERSION: &str = env!("VERSION_NUMBER");
@@ -198,6 +198,10 @@ pub enum InvokeCommand {
   SetTitleBarVisibility {
     #[clap(required = true, value_enum)]
     visibility: TitleBarVisibility,
+  },
+  SetHideMethod {
+    #[clap(required = true, value_enum)]
+    hide_method: HideMethod,
   },
   SetTransparency(SetTransparencyCommand),
   ShellExec {

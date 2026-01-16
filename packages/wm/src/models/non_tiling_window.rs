@@ -7,8 +7,8 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
-  WindowDto, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, HideMethod, Rect,
+  RectDelta, WindowDto, WindowRuleConfig, WindowState,
 };
 use wm_platform::NativeWindow;
 
@@ -40,6 +40,7 @@ struct NonTilingWindowInner {
   has_custom_floating_placement: bool,
   done_window_rules: Vec<WindowRuleConfig>,
   active_drag: Option<ActiveDrag>,
+  hide_method: Option<HideMethod>,
 }
 
 impl NonTilingWindow {
@@ -72,6 +73,7 @@ impl NonTilingWindow {
       has_custom_floating_placement,
       done_window_rules,
       active_drag,
+      hide_method: None,
     };
 
     Self(Rc::new(RefCell::new(window)))
