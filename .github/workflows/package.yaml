@@ -2,24 +2,42 @@ name: Package
 
 on:
   workflow_call:
+    inputs:
+      version_number:
+        type: string
+        default: 0.0.0
+        description: Version number to use for the build.
   workflow_dispatch:
+    inputs:
+      version_number:
+        type: string
+        default: 0.0.0
+        description: Version number to use for the build.
 
 jobs:
-  next-version:
-    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@3c2d88ce0390012bac0b8383059a0b67d2594dc1
-
   package:
-    needs: [next-version]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          toolchain: nightly
-          targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
+          pattern: build-*
+          path: artifacts/
 
-      - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+      - name: Prepare build artifacts
+        run: |
+          # Move artifacts from the download structure to expected locations
+          if (Test-Path "artifacts/build-x86_64-pc-windows-msvc") {
+            New-Item -ItemType Directory -Force -Path "target/x86_64-pc-windows-msvc/release"
+            Copy-Item -Path "artifacts/build-x86_64-pc-windows-msvc/x64/*" -Destination "target/x86_64-pc-windows-msvc/release/" -Force
+          }
+
+          if (Test-Path "artifacts/build-aarch64-pc-windows-msvc") {
+            New-Item -ItemType Directory -Force -Path "target/aarch64-pc-windows-msvc/release"
+            Copy-Item -Path "artifacts/build-aarch64-pc-windows-msvc/arm64/*" -Destination "target/aarch64-pc-windows-msvc/release/" -Force
+          }
 
       - name: Install WiX and its extensions
         run: |
@@ -39,7 +57,7 @@ jobs:
           AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
           RFC3161_TIMESTAMP_URL: ${{ vars.RFC3161_TIMESTAMP_URL }}
         run: |
-          ./resources/scripts/package.ps1 -VersionNumber ${{ needs.next-version.outputs.new-release-version || '3.1.0' }}
+          ./resources/scripts/package.ps1 -VersionNumber ${{ inputs.version_number }}
 
       - uses: actions/upload-artifact@v4
         with:
