@@ -442,12 +442,17 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let transparency = if effect_config.transparency.enabled {
-    &effect_config.transparency.opacity
-  } else {
-    // Reset the transparency to default.
-    &OpacityValue::from_alpha(u8::MAX)
-  };
+  let ignore_fullscreen =
+    matches!(window.state(), WindowState::Fullscreen(_))
+      && effect_config.transparency.ignore_fullscreen;
+
+  let transparency =
+    if effect_config.transparency.enabled && !ignore_fullscreen {
+      &effect_config.transparency.opacity
+    } else {
+      // Reset the transparency to default.
+      &OpacityValue::from_alpha(u8::MAX)
+    };
 
   _ = window.native().set_transparency(transparency);
 }

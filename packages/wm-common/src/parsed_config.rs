@@ -294,6 +294,9 @@ pub struct TransparencyEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
 
+  /// Whether to ignore the effect on fullscreen window.
+  pub ignore_fullscreen: bool,
+
   /// The opacity to apply.
   pub opacity: OpacityValue,
 }
