@@ -160,6 +160,8 @@ fn windows_to_bring_to_front(
         None => vec![],
       }
     })
+    // Filter out windows with invalid native handles.
+    .filter(|window| window.native().is_valid())
     .collect::<Vec<_>>();
 
   Ok(windows_to_bring_to_front)
@@ -205,30 +207,38 @@ fn redraw_containers(
       window.workspace().context("Window has no workspace.")?;
 
     // Whether the window should be shown above all other windows.
-    let z_order = match window.state() {
-      WindowState::Floating(config) if config.shown_on_top => {
-        ZOrder::TopMost
-      }
-      WindowState::Fullscreen(config) if config.shown_on_top => {
-        ZOrder::TopMost
-      }
-      _ if should_bring_to_front => {
-        let focused_descendant = workspace
-          .descendant_focus_order()
-          .next()
-          .and_then(|container| container.as_window_container().ok());
-
-        if let Some(focused_descendant) = focused_descendant {
-          if window.id() == focused_descendant.id() {
-            ZOrder::Normal
-          } else {
-            ZOrder::AfterWindow(focused_descendant.native().handle)
-          }
-        } else {
-          ZOrder::Normal
+    // Skip custom z-order for owned windows - Windows manages their
+    // z-order relative to their owner automatically.
+    let z_order = if window.native().owner().is_some() {
+      ZOrder::Normal
+    } else {
+      match window.state() {
+        WindowState::Floating(config) if config.shown_on_top => {
+          ZOrder::TopMost
         }
+        WindowState::Fullscreen(config) if config.shown_on_top => {
+          ZOrder::TopMost
+        }
+        _ if should_bring_to_front => {
+          let focused_descendant = workspace
+            .descendant_focus_order()
+            .next()
+            .and_then(|container| container.as_window_container().ok())
+            // Ensure focused_descendant's handle is still valid.
+            .filter(|w| w.native().is_valid());
+
+          if let Some(focused_descendant) = focused_descendant {
+            if window.id() == focused_descendant.id() {
+              ZOrder::Normal
+            } else {
+              ZOrder::AfterWindow(focused_descendant.native().handle)
+            }
+          } else {
+            ZOrder::Normal
+          }
+        }
+        _ => ZOrder::Normal,
       }
-      _ => ZOrder::Normal,
     };
 
     // Set the z-order of the window and skip updating it's position if the
@@ -278,6 +288,10 @@ fn redraw_containers(
     ) {
       warn!("Failed to set window position: {}", err);
     }
+
+    // Force a repaint to ensure that any "junk" bits left behind (e.g., from
+    // closed nested dialogs) are cleared.
+    _ = window.native().force_repaint();
 
     // Whether the window is either transitioning to or from fullscreen.
     // TODO: This check can be improved since `prev_state` can be

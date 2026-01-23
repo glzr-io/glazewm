@@ -13,6 +13,10 @@ use windows::{
       DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
       DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
     },
+    Graphics::Gdi::{
+      InvalidateRect, RedrawWindow, RDW_ALLCHILDREN, RDW_ERASE,
+      RDW_INVALIDATE, RDW_UPDATENOW,
+    },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
       PROCESS_QUERY_LIMITED_INFORMATION,
@@ -24,14 +28,14 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
         GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
-        SendNotifyMessageW, SetForegroundWindow,
-        SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
-        SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
+        GetWindowThreadProcessId, IsIconic, IsWindow,
+        IsWindowVisible, IsZoomed, SendNotifyMessageW,
+        SetForegroundWindow, SetLayeredWindowAttributes, SetWindowLongPtrW,
+        SetWindowPlacement, SetWindowPos, ShowWindowAsync, GWL_EXSTYLE,
+        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
         LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
         SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
+        SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
         SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
         SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
         WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
@@ -85,6 +89,28 @@ impl NativeWindow {
       border_position: Memo::new(),
       is_minimized: Memo::new(),
       is_maximized: Memo::new(),
+    }
+  }
+
+  /// Checks whether the window handle is still valid.
+  ///
+  /// A handle becomes invalid when the window is destroyed.
+  #[must_use]
+  pub fn is_valid(&self) -> bool {
+    unsafe { IsWindow(HWND(self.handle)) }.as_bool()
+  }
+
+  /// Gets the owner window, if this window has one.
+  ///
+  /// Owned windows have z-order restrictions - they must always appear
+  /// above their owner in the z-order.
+  #[must_use]
+  pub fn owner(&self) -> Option<NativeWindow> {
+    let owner_handle = unsafe { GetWindow(HWND(self.handle), GW_OWNER) };
+    if owner_handle.0 != 0 {
+      Some(NativeWindow::new(owner_handle.0))
+    } else {
+      None
     }
   }
 
@@ -416,7 +442,6 @@ impl NativeWindow {
             | SWP_NOZORDER
             | SWP_NOOWNERZORDER
             | SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
             | SWP_NOSENDCHANGING
             | SWP_ASYNCWINDOWPOS,
         )?;
@@ -747,7 +772,6 @@ impl NativeWindow {
     }
 
     let mut swp_flags = SWP_NOACTIVATE
-      | SWP_NOCOPYBITS
       | SWP_NOSENDCHANGING
       | SWP_ASYNCWINDOWPOS;
 
@@ -845,7 +869,21 @@ impl NativeWindow {
       ZOrder::TopMost => HWND_TOPMOST,
       ZOrder::Top => HWND_TOP,
       ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
+      ZOrder::AfterWindow(hwnd) => {
+        // Validate the reference window handle before using it.
+        // If the reference window is invalid (e.g., destroyed), fall back
+        // to Normal z-order to prevent E_INVALIDARG errors.
+        let ref_window = NativeWindow::new(*hwnd);
+        if ref_window.is_valid() {
+          HWND(*hwnd)
+        } else {
+          warn!(
+            "Reference window handle {} is invalid, using Normal z-order.",
+            hwnd
+          );
+          HWND_NOTOPMOST
+        }
+      }
     };
 
     unsafe {
@@ -857,7 +895,6 @@ impl NativeWindow {
         0,
         0,
         SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
           | SWP_ASYNCWINDOWPOS
           | SWP_SHOWWINDOW
           | SWP_NOMOVE
@@ -880,7 +917,6 @@ impl NativeWindow {
           0,
           0,
           SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
             | SWP_ASYNCWINDOWPOS
             | SWP_SHOWWINDOW
             | SWP_NOMOVE
@@ -888,6 +924,21 @@ impl NativeWindow {
         )
       };
     });
+
+    Ok(())
+  }
+
+  /// Forces the window and its children to be repainted.
+  pub fn force_repaint(&self) -> anyhow::Result<()> {
+    unsafe {
+      InvalidateRect(HWND(self.handle), None, BOOL::from(true));
+      RedrawWindow(
+        HWND(self.handle),
+        None,
+        None,
+        RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN,
+      );
+    }
 
     Ok(())
   }

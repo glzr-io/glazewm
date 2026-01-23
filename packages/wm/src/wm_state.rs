@@ -461,6 +461,7 @@ impl WmState {
       .flat_map(CommonGetters::self_and_descendants)
       .filter(|container| !container.is_detached())
       .filter_map(|container| container.try_into().ok())
+      .filter(|window: &WindowContainer| window.native().is_valid())
       .collect()
   }
 

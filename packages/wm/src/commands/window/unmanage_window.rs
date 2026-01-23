@@ -1,4 +1,3 @@
-use anyhow::Context;
 use wm_common::{WindowState, WmEvent};
 
 use crate::{
@@ -16,6 +15,10 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  // Ensure that the window is removed from pending redraws to prevent
+  // ghosting and E_INVALIDARG errors if its handle becomes invalid.
+  state.pending_sync.dequeue_container_from_redraw(window.clone());
+
   // Create iterator of parent, grandparent, and great-grandparent.
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
@@ -44,16 +47,18 @@ pub fn unmanage_window(
       Some(std::time::Instant::now());
   }
 
-  // Sibling containers need to be redrawn if the window was tiling.
-  if window.state() == WindowState::Tiling {
-    let ancestor_to_redraw = ancestors
-      .into_iter()
-      .find(|ancestor| !ancestor.is_detached())
-      .context("No ancestor to redraw.")?;
-
-    state
-      .pending_sync
-      .queue_containers_to_redraw(ancestor_to_redraw.tiling_children());
+  // Sibling containers need to be redrawn after the window is removed.
+  // We redraw for all window types (tiling and floating) to ensure the
+  // area previously occupied by the window is cleaned up.
+  if let Some(ancestor_to_redraw) = ancestors
+    .into_iter()
+    .find(|ancestor| !ancestor.is_detached())
+  {
+    state.pending_sync.queue_containers_to_redraw(
+      ancestor_to_redraw
+        .descendants()
+        .filter_map(|d| d.as_window_container().ok()),
+    );
   }
 
   Ok(())
