@@ -1,7 +1,5 @@
-use std::time::Duration;
 
 use anyhow::{bail, Context};
-use tokio::task;
 use tracing::warn;
 use windows::{
   core::PWSTR,
@@ -15,7 +13,7 @@ use windows::{
     },
     Graphics::Gdi::{
       InvalidateRect, RedrawWindow, RDW_ALLCHILDREN, RDW_ERASE,
-      RDW_INVALIDATE, RDW_UPDATENOW,
+      RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -34,7 +32,7 @@ use windows::{
         SetWindowPlacement, SetWindowPos, ShowWindowAsync, GWL_EXSTYLE,
         GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
         LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_FRAMECHANGED, SWP_NOACTIVATE,
         SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
         SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
         SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
@@ -58,6 +56,7 @@ pub const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ZOrder {
+  Unchanged,
   Normal,
   AfterWindow(isize),
   Top,
@@ -442,8 +441,7 @@ impl NativeWindow {
             | SWP_NOZORDER
             | SWP_NOOWNERZORDER
             | SWP_NOACTIVATE
-            | SWP_NOSENDCHANGING
-            | SWP_ASYNCWINDOWPOS,
+            | SWP_NOSENDCHANGING,
         )?;
       }
     }
@@ -771,15 +769,16 @@ impl NativeWindow {
       }
     }
 
-    let mut swp_flags = SWP_NOACTIVATE
-      | SWP_NOSENDCHANGING
-      | SWP_ASYNCWINDOWPOS;
+    let swp_flags = SWP_NOACTIVATE | SWP_NOSENDCHANGING;
 
-    let z_order = match z_order {
-      ZOrder::TopMost => HWND_TOPMOST,
-      ZOrder::Top => HWND_TOP,
-      ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
+    let (z_order, mut swp_flags) = match z_order {
+      ZOrder::Unchanged => {
+        (HWND(0), swp_flags | SWP_NOZORDER | SWP_NOOWNERZORDER)
+      }
+      ZOrder::TopMost => (HWND_TOPMOST, swp_flags),
+      ZOrder::Top => (HWND_TOP, swp_flags),
+      ZOrder::Normal => (HWND_NOTOPMOST, swp_flags),
+      ZOrder::AfterWindow(hwnd) => (HWND(*hwnd), swp_flags),
     };
 
     match state {
@@ -865,6 +864,10 @@ impl NativeWindow {
   }
 
   pub fn set_z_order(&self, z_order: &ZOrder) -> anyhow::Result<()> {
+    if matches!(z_order, ZOrder::Unchanged) {
+      return Ok(());
+    }
+
     let z_order = match z_order {
       ZOrder::TopMost => HWND_TOPMOST,
       ZOrder::Top => HWND_TOP,
@@ -884,6 +887,7 @@ impl NativeWindow {
           HWND_NOTOPMOST
         }
       }
+      ZOrder::Unchanged => unreachable!(),
     };
 
     unsafe {
@@ -895,35 +899,11 @@ impl NativeWindow {
         0,
         0,
         SWP_NOACTIVATE
-          | SWP_ASYNCWINDOWPOS
           | SWP_SHOWWINDOW
           | SWP_NOMOVE
           | SWP_NOSIZE,
       )
     }?;
-
-    let handle = self.handle;
-
-    // Z-order can sometimes still be incorrect after the above call.
-    task::spawn(async move {
-      tokio::time::sleep(Duration::from_millis(10)).await;
-
-      let _ = unsafe {
-        SetWindowPos(
-          HWND(handle),
-          z_order,
-          0,
-          0,
-          0,
-          0,
-          SWP_NOACTIVATE
-            | SWP_ASYNCWINDOWPOS
-            | SWP_SHOWWINDOW
-            | SWP_NOMOVE
-            | SWP_NOSIZE,
-        )
-      };
-    });
 
     Ok(())
   }
@@ -936,7 +916,11 @@ impl NativeWindow {
         HWND(self.handle),
         None,
         None,
-        RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN,
+        RDW_INVALIDATE
+          | RDW_UPDATENOW
+          | RDW_ERASE
+          | RDW_ALLCHILDREN
+          | RDW_FRAME,
       );
     }
 

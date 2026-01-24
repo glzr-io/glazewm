@@ -1,4 +1,4 @@
-use wm_common::{WindowState, WmEvent};
+use wm_common::WmEvent;
 
 use crate::{
   commands::container::{

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::Context;
 use tokio::task;
@@ -177,6 +177,19 @@ fn redraw_containers(
   let windows_to_bring_to_front =
     windows_to_bring_to_front(focused_container, state)?;
 
+  let handle_to_id = state
+    .windows()
+    .iter()
+    .map(|w| (w.native().handle, w.id()))
+    .collect::<HashMap<_, _>>();
+
+  let focused_descendant = state
+    .root_container
+    .descendant_focus_order()
+    .next()
+    .and_then(|c| c.as_window_container().ok())
+    .filter(|w| w.native().is_valid());
+
   let windows_to_update = {
     let mut windows = windows_to_redraw
       .iter()
@@ -189,30 +202,62 @@ fn redraw_containers(
       .descendant_focus_order()
       .collect::<Vec<_>>();
 
+
     // Sort the windows to update by their focus order. The most recently
-    // focused window will be updated first.
+    // focused window will be updated last in the rev() loop.
     windows.sort_by_key(|window| {
-      descendant_focus_order
+      let mut effective_id = window.id();
+      let mut ownership_depth = 0;
+      let mut current_native = window.native().clone();
+
+      // Inherit focus rank from the root owner to keep app stacks together.
+      while let Some(owner) = current_native.owner() {
+        ownership_depth += 1;
+        if let Some(id) = handle_to_id.get(&owner.handle) {
+          effective_id = *id;
+        }
+        current_native = owner;
+        if ownership_depth > 5 {
+          break;
+        }
+      }
+
+      let focus_pos = descendant_focus_order
         .iter()
-        .position(|order| order.id() == window.id())
+        .position(|order| order.id() == effective_id)
+        .unwrap_or(usize::MAX);
+
+      // Child windows (higher depth) get smaller keys so they are processed
+      // LATER in the rev() loop than their owners.
+      (focus_pos as i32 * 100) - ownership_depth
     });
 
     windows
   };
 
-  for window in windows_to_update.iter().rev() {
-    let should_bring_to_front = windows_to_bring_to_front.contains(window);
+    let root_focused_id = focused_descendant.as_ref().map(|focused: &WindowContainer| {
+      let mut current = focused.native().clone();
+      let mut last_id = focused.id();
+      let mut depth = 0;
+      while let Some(owner) = current.owner() {
+        if let Some(id) = handle_to_id.get(&owner.handle) {
+          last_id = *id;
+        }
+        current = owner;
+        depth += 1;
+        if depth > 5 { break; }
+      }
+      last_id
+    });
 
-    let workspace =
-      window.workspace().context("Window has no workspace.")?;
+    for window in windows_to_update.iter().rev() {
+      let should_bring_to_front = windows_to_bring_to_front.contains(window);
 
-    // Whether the window should be shown above all other windows.
-    // Skip custom z-order for owned windows - Windows manages their
-    // z-order relative to their owner automatically.
-    let z_order = if window.native().owner().is_some() {
-      ZOrder::Normal
-    } else {
-      match window.state() {
+      let workspace =
+        window.workspace().context("Window has no workspace.")?;
+
+      // Whether the window should be shown above all other windows.
+      let z_order = match window.state() {
         WindowState::Floating(config) if config.shown_on_top => {
           ZOrder::TopMost
         }
@@ -220,26 +265,36 @@ fn redraw_containers(
           ZOrder::TopMost
         }
         _ if should_bring_to_front => {
-          let focused_descendant = workspace
-            .descendant_focus_order()
-            .next()
-            .and_then(|container| container.as_window_container().ok())
-            // Ensure focused_descendant's handle is still valid.
-            .filter(|w| w.native().is_valid());
+          if let (Some(focused), Some(root_focused_id)) =
+            (focused_descendant.as_ref(), root_focused_id)
+          {
+            // Calculate this window's root owner ID to see if it's
+            // part of the focused app stack.
+            let mut current = window.native().clone();
+            let mut window_root_id = window.id();
+            let mut depth = 0;
+            while let Some(owner) = current.owner() {
+              if let Some(id) = handle_to_id.get(&owner.handle) {
+                window_root_id = *id;
+              }
+              current = owner;
+              depth += 1;
+              if depth > 5 { break; }
+            }
 
-          if let Some(focused_descendant) = focused_descendant {
-            if window.id() == focused_descendant.id() {
-              ZOrder::Normal
+            if window_root_id == root_focused_id {
+              // The entire app stack is promoted to Top. Sorting
+              // ensures they stack correctly among themselves.
+              ZOrder::Top
             } else {
-              ZOrder::AfterWindow(focused_descendant.native().handle)
+              ZOrder::AfterWindow(focused.native().handle)
             }
           } else {
-            ZOrder::Normal
+            ZOrder::Unchanged
           }
         }
-        _ => ZOrder::Normal,
-      }
-    };
+        _ => ZOrder::Unchanged,
+      };
 
     // Set the z-order of the window and skip updating it's position if the
     // window only requires a z-order change.
