@@ -19,7 +19,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       enable_ui_access: true
-      targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
+      targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
       version_number: ${{ inputs.version_number }}
 
   package:
@@ -67,7 +67,7 @@ jobs:
         run: |
           ./resources/scripts/package.ps1 -VersionNumber ${{ inputs.version_number }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: installers
           if-no-files-found: error
