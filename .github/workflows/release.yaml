@@ -15,15 +15,7 @@ concurrency:
   group: release
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yaml
-    with:
-      enable_ui_access: true
-      targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
-      version_number: ${{ inputs.version_number }}
-
   package:
-    needs: build
     uses: ./.github/workflows/package.yaml
     secrets: inherit
     with:
