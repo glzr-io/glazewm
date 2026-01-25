@@ -7,15 +7,9 @@ on:
         type: string
         default: 0.0.0
         description: Version number to use for the build.
-      draft-release:
-        type: boolean
-        default: true
-        description: Whether to publish the release as a draft.
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 concurrency:
   group: release
@@ -25,51 +19,44 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       enable_ui_access: true
-      targets: "x86_64-pc-windows-msvc,aarch64-pc-windows-msvc"
+      targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
       version_number: ${{ inputs.version_number }}
 
   package:
-    needs: [build]
+    needs: build
     uses: ./.github/workflows/package.yaml
     secrets: inherit
     with:
       version_number: ${{ inputs.version_number }}
 
   release:
-    needs: [package]
+    needs: package
     runs-on: ubuntu-latest
+    env:
+      VERSION: v${{ inputs.version_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download installers
         uses: actions/download-artifact@v4
         with:
           name: installers
-          path: out/
+          path: out
 
-      - name: Semantic release
-        uses: glzr-io/actions/semantic-release@main
-        with:
-          gh-publish: true
-          gh-draft-release: ${{ inputs.draft-release }}
-          gh-token: ${{ github.token }}
-          gh-assets: |
-            [
-              {
-                "path": "out/installer-universal.exe",
-                "name": "glazewm-${nextRelease.gitTag}.exe",
-                "label": "${nextRelease.gitTag} Installer (standard)"
-              },
-              {
-                "path": "out/installer-x64.msi",
-                "name": "standalone-glazewm-${nextRelease.gitTag}-x64.msi",
-                "label": "${nextRelease.gitTag} Standalone Installer (x64)"
-              },
-              {
-                "path": "out/installer-arm64.msi",
-                "name": "standalone-glazewm-${nextRelease.gitTag}-arm64.msi",
-                "label": "${nextRelease.gitTag} Standalone Installer (arm64)"
-              }
-            ]
+      - name: Rename installers
+        run: |
+          mv out/installer-universal.exe out/glazewm-$VERSION.exe
+          mv out/installer-arm64.msi out/standalone-glazewm-$VERSION-arm64.msi
+          mv out/installer-x64.msi out/standalone-glazewm-$VERSION-x64.msi
+
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            --draft \
+            "./out/glazewm-$VERSION.exe#$VERSION for Windows (recommended)" \
+            "./out/standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
+            "./out/standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)"
