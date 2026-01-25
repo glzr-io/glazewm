@@ -9,11 +9,11 @@ on:
         description: (Windows only) Enable UIAccess in the application manifest.
       targets:
         type: string
-        default: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
+        default: x86_64-pc-windows-msvc,aarch64-apple-darwin
         description: Comma-separated list of Rust targets to build for.
       version_number:
         type: string
-        required: false
+        default: 0.0.0-dev
         description: Version number to use for the build.
   workflow_dispatch:
     inputs:
@@ -23,22 +23,34 @@ on:
         description: (Windows only) Enable UIAccess in the application manifest.
       targets:
         type: string
-        default: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
+        default: x86_64-pc-windows-msvc,aarch64-apple-darwin
         description: Comma-separated list of Rust targets to build for.
       version_number:
         type: string
-        required: false
+        default: 0.0.0-dev
         description: Version number to use for the build.
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    if: contains(inputs.targets, 'windows')
+  build:
     strategy:
+      fail-fast: false
       matrix:
-        target:
-          - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
+        include:
+          # MacOS (Intel)
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+          # MacOS (Apple Silicon)
+          - platform: macos-latest
+            target: x86_64-apple-darwin,aarch64-apple-darwin
+          # 64-bit Windows (Intel & AMD)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          # 64-bit Windows (ARM)
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform }}
+    if: contains(inputs.targets, matrix.target)
     steps:
       - uses: actions/checkout@v4
 
@@ -49,67 +61,21 @@ jobs:
 
       - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
         with:
-          key: ${{ matrix.target }}
+          shared-key: ${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Build for ${{ matrix.target }}
         env:
-          VERSION_NUMBER: ${{ inputs.version_number || '0.0.0-dev' }}
-        run: |
-          $features = if ("${{ inputs.enable_ui_access }}" -eq "true") { "--features ui_access" } else { "" }
-          cargo build --locked --release --target ${{ matrix.target }} $features
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          FEATURES: ${{ matrix.platform == 'windows-latest' && inputs.enable_ui_access && '--features ui_access' || '' }}
+        run: cargo build --locked --release --target ${{ matrix.target }} $FEATURES
 
-      - name: Prepare artifacts
-        run: |
-          $arch = if ("${{ matrix.target }}" -eq "x86_64-pc-windows-msvc") { "x64" } else { "arm64" }
-          $outDir = "out/$arch"
-          $sourceDir = "target/${{ matrix.target }}/release"
-
-          New-Item -ItemType Directory -Force -Path $outDir
-          Copy-Item -Path "$sourceDir/glazewm.exe", "$sourceDir/glazewm-cli.exe", "$sourceDir/glazewm-watcher.exe" -Destination $outDir
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.target }}
-          if-no-files-found: error
-          path: out/
-
-  build-macos:
-    runs-on: macos-latest
-    if: contains(inputs.targets, 'darwin')
-    strategy:
-      matrix:
-        target:
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
-        with:
-          toolchain: nightly
-          targets: ${{ matrix.target }}
-
-      - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
-        with:
-          key: ${{ matrix.target }}
-
-      - name: Build for ${{ matrix.target }}
+      - uses: actions/upload-artifact@v6
+        if-no-files-found: error
         env:
-          VERSION_NUMBER: ${{ inputs.version_number || '0.0.0-dev' }}
-        run: |
-          cargo build --locked --release --target ${{ matrix.target }}
-
-      - name: Prepare artifacts
-        run: |
-          arch=$(echo "${{ matrix.target }}" | cut -d'-' -f1)
-          out_dir="out/$arch"
-          source_dir="target/${{ matrix.target }}/release"
-
-          mkdir -p "$out_dir"
-          cp "$source_dir/glazewm" "$source_dir/glazewm-cli" "$source_dir/glazewm-watcher" "$out_dir/"
-
-      - uses: actions/upload-artifact@v4
+          EXT: ${{ matrix.platform == 'windows-latest' && '.exe' || '' }}
         with:
           name: build-${{ matrix.target }}
-          if-no-files-found: error
-          path: out/
+          path: |
+            target/${{ matrix.target }}/release/glazewm${{ env.EXT }}
+            target/${{ matrix.target }}/release/glazewm-cli${{ env.EXT }}
+            target/${{ matrix.target }}/release/glazewm-watcher${{ env.EXT }}
