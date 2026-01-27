@@ -1,0 +1,277 @@
+name: Package macOS
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version number for the release"
+        required: false
+        type: string
+        default: "0.0.0"
+    secrets:
+      APPLE_CERTIFICATE:
+        description: "Base64-encoded .p12 certificate"
+        required: false
+      APPLE_CERTIFICATE_PASSWORD:
+        description: "Password for the .p12 certificate"
+        required: false
+      APPLE_SIGNING_IDENTITY:
+        description: "Signing identity (e.g., Developer ID Application: ...)"
+        required: false
+      APPLE_ID:
+        description: "Apple ID for notarization"
+        required: false
+      APPLE_ID_PASSWORD:
+        description: "App-specific password for notarization"
+        required: false
+      APPLE_TEAM_ID:
+        description: "Apple Developer Team ID"
+        required: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number for the release"
+        required: false
+        type: string
+        default: "0.0.0"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            arch: x64
+            runner: macos-13
+          - target: aarch64-apple-darwin
+            arch: arm64
+            runner: macos-14
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
+        with:
+          toolchain: nightly
+          targets: ${{ matrix.target }}
+
+      - name: Setup Rust cache
+        uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build binaries
+        env:
+          VERSION_NUMBER: ${{ inputs.version }}
+        run: |
+          cargo build --locked --release --target ${{ matrix.target }} \
+            --package wm \
+            --package wm-cli \
+            --package wm-watcher
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            target/${{ matrix.target }}/release/glazewm
+            target/${{ matrix.target }}/release/glazewm-cli
+            target/${{ matrix.target }}/release/glazewm-watcher
+
+  package:
+    needs: build
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download x64 binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-x64
+          path: binaries/x64
+
+      - name: Download arm64 binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-arm64
+          path: binaries/arm64
+
+      - name: Create universal binaries
+        run: |
+          mkdir -p binaries/universal
+          for binary in glazewm glazewm-cli glazewm-watcher; do
+            lipo -create \
+              "binaries/x64/$binary" \
+              "binaries/arm64/$binary" \
+              -output "binaries/universal/$binary"
+          done
+
+      - name: Convert icon to ICNS
+        run: |
+          mkdir -p icon.iconset
+          # Generate all required icon sizes from the source PNG.
+          sips -z 16 16     resources/assets/icon.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32     resources/assets/icon.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     resources/assets/icon.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64     resources/assets/icon.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   resources/assets/icon.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256   resources/assets/icon.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   resources/assets/icon.png --out icon.iconset/icon_256x256.png
+          sips -z 512 512   resources/assets/icon.png --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   resources/assets/icon.png --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024 resources/assets/icon.png --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o icon.icns
+
+      - name: Create app bundle
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          APP_NAME="GlazeWM.app"
+          CONTENTS_DIR="$APP_NAME/Contents"
+          MACOS_DIR="$CONTENTS_DIR/MacOS"
+          RESOURCES_DIR="$CONTENTS_DIR/Resources"
+
+          # Create bundle directory structure.
+          mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+
+          # Copy binaries.
+          cp binaries/universal/glazewm "$MACOS_DIR/"
+          cp binaries/universal/glazewm-cli "$MACOS_DIR/"
+          cp binaries/universal/glazewm-watcher "$MACOS_DIR/"
+          chmod +x "$MACOS_DIR"/*
+
+          # Copy icon.
+          cp icon.icns "$RESOURCES_DIR/icon.icns"
+
+          # Copy and process Info.plist (substitute version).
+          sed "s/\${VERSION}/$VERSION/g" resources/Info.plist > "$CONTENTS_DIR/Info.plist"
+
+          # Create PkgInfo file.
+          echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
+
+      - name: Import signing certificate
+        if: ${{ env.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain.
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the certificate.
+          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Store keychain path for later steps.
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+      - name: Sign app bundle
+        if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          # Sign all binaries and the app bundle.
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            "GlazeWM.app/Contents/MacOS/glazewm" \
+            "GlazeWM.app/Contents/MacOS/glazewm-cli" \
+            "GlazeWM.app/Contents/MacOS/glazewm-watcher"
+
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            "GlazeWM.app"
+
+          # Verify the signature.
+          codesign --verify --verbose=2 "GlazeWM.app"
+
+      - name: Create DMG
+        run: |
+          # Create a temporary directory for DMG contents.
+          mkdir -p dmg-contents
+          cp -R GlazeWM.app dmg-contents/
+
+          # Create a symbolic link to Applications folder.
+          ln -s /Applications dmg-contents/Applications
+
+          # Create the DMG.
+          hdiutil create -volname "GlazeWM" \
+            -srcfolder dmg-contents \
+            -ov -format UDZO \
+            "GlazeWM-${{ inputs.version }}-universal.dmg"
+
+      - name: Sign DMG
+        if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            "GlazeWM-${{ inputs.version }}-universal.dmg"
+
+      - name: Notarize app
+        if: ${{ env.APPLE_ID != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Submit for notarization.
+          xcrun notarytool submit "GlazeWM-${{ inputs.version }}-universal.dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Staple the notarization ticket to the DMG.
+          xcrun stapler staple "GlazeWM-${{ inputs.version }}-universal.dmg"
+
+      - name: Create ZIP archive
+        run: |
+          # Create a ZIP of the app bundle for direct download.
+          ditto -c -k --keepParent "GlazeWM.app" "GlazeWM-${{ inputs.version }}-universal.zip"
+
+      - name: Cleanup keychain
+        if: ${{ always() && env.KEYCHAIN_PATH != '' }}
+        run: |
+          security delete-keychain "$KEYCHAIN_PATH" || true
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          if-no-files-found: error
+          path: "GlazeWM-${{ inputs.version }}-universal.dmg"
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          if-no-files-found: error
+          path: "GlazeWM-${{ inputs.version }}-universal.zip"
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          if-no-files-found: error
+          path: GlazeWM.app
