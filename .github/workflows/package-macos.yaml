@@ -15,10 +15,10 @@ jobs:
         include:
           - target: x86_64-apple-darwin
             arch: x64
-            runner: macos-13
+            runner: macos-latest
           - target: aarch64-apple-darwin
             arch: arm64
-            runner: macos-14
+            runner: macos-latest
 
     runs-on: ${{ matrix.runner }}
     steps:
@@ -57,7 +57,7 @@ jobs:
 
   package:
     needs: build
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
