@@ -1,39 +1,9 @@
 name: Package macOS
 
 on:
-  workflow_call:
-    inputs:
-      version:
-        description: "Version number for the release"
-        required: false
-        type: string
-        default: "0.0.0"
-    secrets:
-      APPLE_CERTIFICATE:
-        description: "Base64-encoded .p12 certificate"
-        required: false
-      APPLE_CERTIFICATE_PASSWORD:
-        description: "Password for the .p12 certificate"
-        required: false
-      APPLE_SIGNING_IDENTITY:
-        description: "Signing identity (e.g., Developer ID Application: ...)"
-        required: false
-      APPLE_ID:
-        description: "Apple ID for notarization"
-        required: false
-      APPLE_ID_PASSWORD:
-        description: "App-specific password for notarization"
-        required: false
-      APPLE_TEAM_ID:
-        description: "Apple Developer Team ID"
-        required: false
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version number for the release"
-        required: false
-        type: string
-        default: "0.0.0"
+  push:
+    branches:
+      - feat/platform-improvements
 
 env:
   CARGO_TERM_COLOR: always
@@ -68,7 +38,7 @@ jobs:
 
       - name: Build binaries
         env:
-          VERSION_NUMBER: ${{ inputs.version }}
+          VERSION_NUMBER: ${{ inputs.version || '0.0.0' }}
         run: |
           cargo build --locked --release --target ${{ matrix.target }} \
             --package wm \
@@ -132,7 +102,7 @@ jobs:
 
       - name: Create app bundle
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version || '0.0.0' }}
         run: |
           APP_NAME="GlazeWM.app"
           CONTENTS_DIR="$APP_NAME/Contents"
@@ -157,52 +127,52 @@ jobs:
           # Create PkgInfo file.
           echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
-      - name: Import signing certificate
-        if: ${{ env.APPLE_CERTIFICATE != '' }}
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          # Create a temporary keychain.
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+      # - name: Import signing certificate
+      #   if: ${{ env.APPLE_CERTIFICATE != '' }}
+      #   env:
+      #     APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      #     APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      #   run: |
+      #     # Create a temporary keychain.
+      #     KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+      #     KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
 
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+      #     security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+      #     security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+      #     security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Import the certificate.
-          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 \
-            -P "$APPLE_CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
+      #     # Import the certificate.
+      #     echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
+      #     security import $RUNNER_TEMP/certificate.p12 \
+      #       -P "$APPLE_CERTIFICATE_PASSWORD" \
+      #       -A \
+      #       -t cert \
+      #       -f pkcs12 \
+      #       -k "$KEYCHAIN_PATH"
 
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
+      #     security list-keychain -d user -s "$KEYCHAIN_PATH"
 
-          # Store keychain path for later steps.
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+      #     # Store keychain path for later steps.
+      #     echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
 
-      - name: Sign app bundle
-        if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          # Sign all binaries and the app bundle.
-          codesign --force --options runtime --timestamp \
-            --sign "$APPLE_SIGNING_IDENTITY" \
-            "GlazeWM.app/Contents/MacOS/glazewm" \
-            "GlazeWM.app/Contents/MacOS/glazewm-cli" \
-            "GlazeWM.app/Contents/MacOS/glazewm-watcher"
+      # - name: Sign app bundle
+      #   if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
+      #   env:
+      #     APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      #   run: |
+      #     # Sign all binaries and the app bundle.
+      #     codesign --force --options runtime --timestamp \
+      #       --sign "$APPLE_SIGNING_IDENTITY" \
+      #       "GlazeWM.app/Contents/MacOS/glazewm" \
+      #       "GlazeWM.app/Contents/MacOS/glazewm-cli" \
+      #       "GlazeWM.app/Contents/MacOS/glazewm-watcher"
 
-          codesign --force --options runtime --timestamp \
-            --sign "$APPLE_SIGNING_IDENTITY" \
-            "GlazeWM.app"
+      #     codesign --force --options runtime --timestamp \
+      #       --sign "$APPLE_SIGNING_IDENTITY" \
+      #       "GlazeWM.app"
 
-          # Verify the signature.
-          codesign --verify --verbose=2 "GlazeWM.app"
+      #     # Verify the signature.
+      #     codesign --verify --verbose=2 "GlazeWM.app"
 
       - name: Create DMG
         run: |
@@ -217,38 +187,38 @@ jobs:
           hdiutil create -volname "GlazeWM" \
             -srcfolder dmg-contents \
             -ov -format UDZO \
-            "GlazeWM-${{ inputs.version }}-universal.dmg"
+            "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.dmg"
 
-      - name: Sign DMG
-        if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          codesign --force --timestamp \
-            --sign "$APPLE_SIGNING_IDENTITY" \
-            "GlazeWM-${{ inputs.version }}-universal.dmg"
+      # - name: Sign DMG
+      #   if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
+      #   env:
+      #     APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      #   run: |
+      #     codesign --force --timestamp \
+      #       --sign "$APPLE_SIGNING_IDENTITY" \
+      #       "GlazeWM-${{ inputs.version }}-universal.dmg"
 
-      - name: Notarize app
-        if: ${{ env.APPLE_ID != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          # Submit for notarization.
-          xcrun notarytool submit "GlazeWM-${{ inputs.version }}-universal.dmg" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
+      # - name: Notarize app
+      #   if: ${{ env.APPLE_ID != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
+      #   env:
+      #     APPLE_ID: ${{ secrets.APPLE_ID }}
+      #     APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      #     APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      #   run: |
+      #     # Submit for notarization.
+      #     xcrun notarytool submit "GlazeWM-${{ inputs.version }}-universal.dmg" \
+      #       --apple-id "$APPLE_ID" \
+      #       --password "$APPLE_ID_PASSWORD" \
+      #       --team-id "$APPLE_TEAM_ID" \
+      #       --wait
 
-          # Staple the notarization ticket to the DMG.
-          xcrun stapler staple "GlazeWM-${{ inputs.version }}-universal.dmg"
+      #     # Staple the notarization ticket to the DMG.
+      #     xcrun stapler staple "GlazeWM-${{ inputs.version }}-universal.dmg"
 
       - name: Create ZIP archive
         run: |
           # Create a ZIP of the app bundle for direct download.
-          ditto -c -k --keepParent "GlazeWM.app" "GlazeWM-${{ inputs.version }}-universal.zip"
+          ditto -c -k --keepParent "GlazeWM.app" "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.zip"
 
       - name: Cleanup keychain
         if: ${{ always() && env.KEYCHAIN_PATH != '' }}
@@ -260,14 +230,14 @@ jobs:
         with:
           name: macos-dmg
           if-no-files-found: error
-          path: "GlazeWM-${{ inputs.version }}-universal.dmg"
+          path: "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.dmg"
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
           name: macos-zip
           if-no-files-found: error
-          path: "GlazeWM-${{ inputs.version }}-universal.zip"
+          path: "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.zip"
 
       - name: Upload app bundle
         uses: actions/upload-artifact@v4
