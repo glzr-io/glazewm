@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
 use wm_platform::{Rect, RectDelta};
+
 use crate::{ActiveDrag, DisplayState, WindowState};
 
 /// User-friendly representation of a tiling or non-tiling window.
@@ -23,7 +23,7 @@ pub struct WindowDto {
   pub display_state: DisplayState,
   pub border_delta: RectDelta,
   pub floating_placement: Rect,
-  // pub handle: isize,
+  pub handle: isize,
   pub title: String,
   pub class_name: String,
   pub process_name: String,

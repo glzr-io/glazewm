@@ -107,7 +107,8 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
-  start_watcher_process()?;
+  // TODO: Add this back.
+  // start_watcher_process()?;
 
   // Start listening for platform events after populating initial state.
   let mut mouse_listener = MouseListener::new(

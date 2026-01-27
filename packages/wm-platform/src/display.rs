@@ -10,8 +10,8 @@ use crate::{platform_impl, Rect};
 /// - **macOS**: `u32` (`CGDirectDisplayID`)
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DisplayId(
-  #[cfg(target_os = "windows")] pub(crate) isize,
-  #[cfg(target_os = "macos")] pub(crate) u32,
+  #[cfg(target_os = "windows")] pub isize,
+  #[cfg(target_os = "macos")] pub u32,
 );
 
 /// Unique identifier for a display device.
@@ -24,8 +24,8 @@ pub struct DisplayId(
 /// - **macOS**: `u32` (CGUUID as u32)
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DisplayDeviceId(
-  #[cfg(target_os = "windows")] pub(crate) String,
-  #[cfg(target_os = "macos")] pub(crate) u32,
+  #[cfg(target_os = "windows")] pub String,
+  #[cfg(target_os = "macos")] pub u32,
 );
 
 /// Represents a logical display space where windows can be placed.

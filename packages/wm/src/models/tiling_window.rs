@@ -124,7 +124,7 @@ impl TilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
-      // handle: self.native().handle,
+      handle: self.native().id().0 as isize,
       title: self.native_properties().title,
       class_name: self.native_properties().class_name,
       process_name: self.native_properties().process_name,

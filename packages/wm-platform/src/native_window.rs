@@ -15,8 +15,8 @@ use crate::{platform_impl, Rect};
 /// - **macOS**: `u32` (`CGWindowID`)
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WindowId(
-  #[cfg(target_os = "windows")] pub(crate) isize,
-  #[cfg(target_os = "macos")] pub(crate) u32,
+  #[cfg(target_os = "windows")] pub isize,
+  #[cfg(target_os = "macos")] pub u32,
 );
 
 impl WindowId {
