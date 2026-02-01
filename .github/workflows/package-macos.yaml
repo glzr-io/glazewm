@@ -84,6 +84,52 @@ jobs:
               -output "binaries/universal/$binary"
           done
 
+      - name: Import signing certificate
+        if: ${{ env.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain.
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the certificate.
+          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Store keychain path for later steps.
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+      - name: Sign universal binaries
+        if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          # Sign binaries before they're copied into the app bundle.
+          # This avoids codesign validating the bundle context.
+          for binary in glazewm glazewm-cli glazewm-watcher; do
+            echo "=== Signing $binary ==="
+            file "binaries/universal/$binary"
+
+            codesign --force --options runtime --timestamp \
+              --sign "$APPLE_SIGNING_IDENTITY" \
+              "binaries/universal/$binary"
+
+            codesign --verify --verbose=2 "binaries/universal/$binary"
+          done
+
       - name: Convert icon to ICNS
         run: |
           mkdir -p icon.iconset
@@ -127,57 +173,13 @@ jobs:
           # Create PkgInfo file.
           echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
-      - name: Import signing certificate
-        if: ${{ env.APPLE_CERTIFICATE != '' }}
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          # Create a temporary keychain.
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Import the certificate.
-          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 \
-            -P "$APPLE_CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
-
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-
-          # Store keychain path for later steps.
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-
       - name: Sign app bundle
         if: ${{ env.APPLE_SIGNING_IDENTITY != '' }}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
-          # Sign each binary individually (clearer errors if one fails).
-          for binary in glazewm glazewm-cli glazewm-watcher; do
-            echo "=== Processing $binary ==="
-
-            # Show binary info for debugging.
-            file "GlazeWM.app/Contents/MacOS/$binary"
-            lipo -info "GlazeWM.app/Contents/MacOS/$binary"
-
-            echo "Signing $binary..."
-            codesign --force --options runtime --timestamp \
-              --sign "$APPLE_SIGNING_IDENTITY" \
-              "GlazeWM.app/Contents/MacOS/$binary"
-
-            # Verify individual binary signature.
-            codesign --verify --verbose=2 "GlazeWM.app/Contents/MacOS/$binary"
-          done
-
-          # Sign the app bundle itself.
+          # Binaries were already signed before being copied into the bundle.
+          # Now sign the app bundle itself.
           echo "Signing app bundle..."
           codesign --force --options runtime --timestamp \
             --sign "$APPLE_SIGNING_IDENTITY" \
