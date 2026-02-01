@@ -160,19 +160,32 @@ jobs:
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
-          # Sign all binaries and the app bundle.
-          codesign --force --options runtime --timestamp \
-            --sign "$APPLE_SIGNING_IDENTITY" \
-            "GlazeWM.app/Contents/MacOS/glazewm" \
-            "GlazeWM.app/Contents/MacOS/glazewm-cli" \
-            "GlazeWM.app/Contents/MacOS/glazewm-watcher"
+          # Sign each binary individually (clearer errors if one fails).
+          for binary in glazewm glazewm-cli glazewm-watcher; do
+            echo "=== Processing $binary ==="
 
+            # Show binary info for debugging.
+            file "GlazeWM.app/Contents/MacOS/$binary"
+            lipo -info "GlazeWM.app/Contents/MacOS/$binary"
+
+            echo "Signing $binary..."
+            codesign --force --options runtime --timestamp \
+              --sign "$APPLE_SIGNING_IDENTITY" \
+              "GlazeWM.app/Contents/MacOS/$binary"
+
+            # Verify individual binary signature.
+            codesign --verify --verbose=2 "GlazeWM.app/Contents/MacOS/$binary"
+          done
+
+          # Sign the app bundle itself.
+          echo "Signing app bundle..."
           codesign --force --options runtime --timestamp \
             --sign "$APPLE_SIGNING_IDENTITY" \
             "GlazeWM.app"
 
-          # Verify the signature.
-          codesign --verify --verbose=2 "GlazeWM.app"
+          # Verify the complete app bundle signature.
+          echo "Verifying app bundle signature..."
+          codesign --verify --verbose=2 --deep --strict "GlazeWM.app"
 
       - name: Create DMG
         run: |
