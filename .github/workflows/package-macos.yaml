@@ -211,7 +211,7 @@ jobs:
         run: |
           codesign --force --timestamp \
             --sign "$APPLE_SIGNING_IDENTITY" \
-            "GlazeWM-${{ inputs.version }}-universal.dmg"
+            "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.dmg"
 
       - name: Notarize app
         if: ${{ env.APPLE_ID != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_TEAM_ID != '' }}
@@ -221,14 +221,14 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # Submit for notarization.
-          xcrun notarytool submit "GlazeWM-${{ inputs.version }}-universal.dmg" \
+          xcrun notarytool submit "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.dmg" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             --wait
 
           # Staple the notarization ticket to the DMG.
-          xcrun stapler staple "GlazeWM-${{ inputs.version }}-universal.dmg"
+          xcrun stapler staple "GlazeWM-${{ inputs.version || '0.0.0' }}-universal.dmg"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
