@@ -75,7 +75,12 @@ impl Workspace {
     self.0.borrow_mut().gaps_config = gaps_config;
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+  /// Creates a DTO with the specified focused workspace ID.
+  /// Use this when you know the globally focused workspace.
+  pub fn to_dto_with_focus(
+    &self,
+    focused_workspace_id: Option<Uuid>,
+  ) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let config = self.config();
 
@@ -85,6 +90,11 @@ impl Workspace {
       .map(CommonGetters::to_dto)
       .try_collect()?;
 
+    // `is_focused_workspace` is true only if this workspace contains the
+    // globally focused container.
+    let is_focused_workspace = focused_workspace_id
+      .is_some_and(|focused_id| focused_id == self.id());
+
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
       name: config.name,
@@ -93,6 +103,7 @@ impl Workspace {
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       has_focus: self.has_focus(None),
+      is_focused_workspace,
       is_displayed: self.is_displayed(),
       width: rect.width(),
       height: rect.height(),
@@ -100,6 +111,12 @@ impl Workspace {
       y: rect.y(),
       tiling_direction: self.tiling_direction(),
     }))
+  }
+
+  /// Creates a DTO without focused workspace context.
+  /// `is_focused_workspace` will be set based on local focus chain.
+  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    self.to_dto_with_focus(None)
   }
 }
 

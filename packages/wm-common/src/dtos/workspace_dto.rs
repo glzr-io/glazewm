@@ -17,6 +17,11 @@ pub struct WorkspaceDto {
   pub children: Vec<ContainerDto>,
   pub child_focus_order: Vec<Uuid>,
   pub has_focus: bool,
+  /// Whether this workspace is THE globally focused workspace.
+  /// Unlike `has_focus` which indicates focus within a monitor's context,
+  /// this is `true` only for the single workspace that contains the
+  /// currently focused window across all monitors.
+  pub is_focused_workspace: bool,
   pub is_displayed: bool,
   pub width: i32,
   pub height: i32,

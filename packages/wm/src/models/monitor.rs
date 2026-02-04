@@ -81,12 +81,26 @@ impl Monitor {
     Ok(dpi != other_dpi)
   }
 
-  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+  /// Creates a DTO with the specified focused workspace ID.
+  /// Use this when you know the globally focused workspace.
+  pub fn to_dto_with_focus(
+    &self,
+    focused_workspace_id: Option<Uuid>,
+  ) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
-    let children = self
+
+    // Build children DTOs, passing focused_workspace_id to workspace children
+    let children: Vec<ContainerDto> = self
       .children()
       .iter()
-      .map(CommonGetters::to_dto)
+      .map(|child| {
+        // If child is a workspace, use to_dto_with_focus
+        if let Some(workspace) = child.as_workspace() {
+          workspace.to_dto_with_focus(focused_workspace_id)
+        } else {
+          child.to_dto()
+        }
+      })
       .try_collect()?;
 
     Ok(ContainerDto::Monitor(MonitorDto {
@@ -107,6 +121,11 @@ impl Monitor {
       hardware_id: self.native().hardware_id()?.cloned(),
       working_rect: self.native().working_rect()?.clone(),
     }))
+  }
+
+  /// Creates a DTO without focused workspace context.
+  pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    self.to_dto_with_focus(None)
   }
 }
 

@@ -188,22 +188,36 @@ impl IpcServer {
           })
         }
         QueryCommand::Workspaces => {
+          // Get the focused workspace ID for global highlight.
+          let focused_workspace_id = wm
+            .state
+            .focused_container()
+            .and_then(|c| c.workspace())
+            .map(|ws| ws.id());
+
           ClientResponseData::Workspaces(WorkspacesData {
             workspaces: wm
               .state
               .workspaces()
               .into_iter()
-              .map(|workspace| workspace.to_dto())
+              .map(|workspace| workspace.to_dto_with_focus(focused_workspace_id))
               .try_collect()?,
           })
         }
         QueryCommand::Monitors => {
+          // Get the focused workspace ID for global highlight in workspace children.
+          let focused_workspace_id = wm
+            .state
+            .focused_container()
+            .and_then(|c| c.workspace())
+            .map(|ws| ws.id());
+
           ClientResponseData::Monitors(MonitorsData {
             monitors: wm
               .state
               .monitors()
               .into_iter()
-              .map(|monitor| monitor.to_dto())
+              .map(|monitor| monitor.to_dto_with_focus(focused_workspace_id))
               .try_collect()?,
           })
         }
