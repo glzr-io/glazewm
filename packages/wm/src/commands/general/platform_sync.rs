@@ -245,6 +245,11 @@ fn redraw_containers(
 
     // Transition display state depending on whether window will be
     // shown or hidden.
+    let is_transitioning_to_shown = matches!(
+      window.display_state(),
+      DisplayState::Hidden | DisplayState::Hiding
+    ) && workspace.is_displayed();
+
     window.set_display_state(
       match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
@@ -256,6 +261,14 @@ fn redraw_containers(
         _ => window.display_state(),
       },
     );
+
+    // Refresh minimized/maximized state when transitioning from hidden to
+    // shown. Windows may have minimized the window during monitor
+    // disconnect, and we need the current state to properly restore it.
+    if is_transitioning_to_shown {
+      let _ = window.native().refresh_is_minimized();
+      let _ = window.native().refresh_is_maximized();
+    }
 
     let rect = window
       .to_rect()?
