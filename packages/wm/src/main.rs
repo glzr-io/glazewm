@@ -9,7 +9,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, process};
 
 use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
@@ -61,12 +61,23 @@ fn main() -> anyhow::Result<()> {
     let task_handle = std::thread::spawn(move || {
       rt.block_on(async {
         if let Err(err) =
-          start_wm(config_path, verbosity, dispatcher).await
+          start_wm(config_path, verbosity, &dispatcher).await
         {
           // If unable to start the WM, the error is fatal and a message
           // dialog is shown.
           // TODO: Show message dialog.
           tracing::error!("{:?}", err);
+
+          if let Err(err) = dispatcher.stop_event_loop() {
+            // Forcefully exit the process to ensure the event loop is
+            // stopped.
+            tracing::error!(
+              "Failed to stop event loop gracefully: {}",
+              err
+            );
+            process::exit(1);
+          }
+
           return Err(err);
         }
 
@@ -90,7 +101,7 @@ fn main() -> anyhow::Result<()> {
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
-  dispatcher: Dispatcher,
+  dispatcher: &Dispatcher,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
@@ -111,7 +122,7 @@ async fn start_wm(
   // Add application icon to system tray.
   let mut tray = SystemTray::new(&config.path, dispatcher.clone())?;
 
-  let mut wm = WindowManager::new(dispatcher.clone(), &mut config)?;
+  let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
 
   let mut ipc_server = IpcServer::start().await?;
 
@@ -121,16 +132,16 @@ async fn start_wm(
 
   // Start listening for platform events after populating initial state.
   let mut mouse_listener = MouseListener::new(
-    &dispatcher,
+    dispatcher,
     if config.value.general.focus_follows_cursor {
       vec![MouseEventType::Move, MouseEventType::LeftClickUp]
     } else {
       vec![MouseEventType::LeftClickUp]
     },
   )?;
-  let mut window_listener = WindowListener::new(&dispatcher)?;
+  let mut window_listener = WindowListener::new(dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
-    &dispatcher,
+    dispatcher,
     &config
       .active_keybinding_configs(&[], false)
       .flat_map(|kb| kb.bindings)
@@ -309,6 +320,8 @@ fn run_cleanup(
   wm.state.is_paused = false;
 
   // Run shutdown commands.
+  // TODO: This shouldn't prevent `WmEvent::ApplicationExiting` from being
+  // emitted on error.
   let shutdown_commands = config.value.general.shutdown_commands.clone();
   wm.process_commands(&shutdown_commands, None, config)?;
 
