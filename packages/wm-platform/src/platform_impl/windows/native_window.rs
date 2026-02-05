@@ -66,6 +66,13 @@ pub trait NativeWindowWindowsExt {
     opacity_value: &OpacityValue,
   ) -> crate::Result<()>;
 
+  /// Gets the window handle.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hwnd(&self) -> HWND;
+
   /// Sets the window's z-order.
   ///
   /// # Platform-specific
@@ -94,7 +101,11 @@ pub trait NativeWindowWindowsExt {
   fn frame_with_shadows(&self) -> crate::Result<Rect>;
 }
 
-impl NativeWindowWindowsExt for NativeWindow {}
+impl NativeWindowWindowsExt for NativeWindow {
+  fn hwnd(&self) -> HWND {
+    HWND(self.handle)
+  }
+}
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
@@ -141,12 +152,12 @@ impl NativeWindow {
   /// string.
   #[allow(clippy::unnecessary_wraps)]
   fn updated_title(&self) -> crate::Result<String> {
-    if !unsafe { IsWindow(HWND(self.handle)) }.as_bool() {
+    if !unsafe { IsWindow(self.hwnd()) }.as_bool() {
       return crate::Error::WindowNotFound;
     }
 
     let mut text: [u16; 512] = [0; 512];
-    let length = unsafe { GetWindowTextW(HWND(self.handle), &mut text) };
+    let length = unsafe { GetWindowTextW(self.hwnd(), &mut text) };
 
     #[allow(clippy::cast_sign_loss)]
     Ok(String::from_utf16_lossy(&text[..length as usize]))
@@ -165,10 +176,7 @@ impl NativeWindow {
   fn updated_process_name(&self) -> crate::Result<String> {
     let mut process_id = 0u32;
     unsafe {
-      GetWindowThreadProcessId(
-        HWND(self.handle),
-        Some(&raw mut process_id),
-      );
+      GetWindowThreadProcessId(self.hwnd(), Some(&raw mut process_id));
     }
 
     let process_handle = unsafe {
@@ -211,7 +219,7 @@ impl NativeWindow {
   /// Gets the class name of the window.
   fn updated_class_name(&self) -> crate::Result<String> {
     let mut buffer = [0u16; 256];
-    let result = unsafe { GetClassNameW(HWND(self.handle), &mut buffer) };
+    let result = unsafe { GetClassNameW(self.hwnd(), &mut buffer) };
 
     if result == 0 {
       return Err(windows::core::Error::from_win32().into());
@@ -224,8 +232,7 @@ impl NativeWindow {
 
   /// Whether the window is actually visible.
   pub(crate) fn is_visible(&self) -> crate::Result<bool> {
-    let is_visible =
-      unsafe { IsWindowVisible(HWND(self.handle)) }.as_bool();
+    let is_visible = unsafe { IsWindowVisible(self.hwnd()) }.as_bool();
 
     Ok(is_visible && !self.is_cloaked()?)
   }
@@ -240,7 +247,7 @@ impl NativeWindow {
     unsafe {
       #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
-        HWND(self.handle),
+        self.hwnd(),
         DWMWA_CLOAKED,
         std::ptr::from_mut::<u32>(&mut cloaked).cast(),
         std::mem::size_of::<u32>() as u32,
@@ -285,9 +292,9 @@ impl NativeWindow {
     // ignored. This includes the autocomplete popup in Notepad++ and title
     // bar menu in Keepass. Although not foolproof, these can typically be
     // identified by having an owner window and no title bar.
-    let is_menu_window =
-      unsafe { GetWindow(HWND(self.handle), GW_OWNER) }.0 != 0
-        && !self.has_window_style(WS_CAPTION);
+    let is_menu_window = unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0
+      != 0
+      && !self.has_window_style(WS_CAPTION);
 
     Ok(!is_menu_window)
   }
@@ -309,7 +316,7 @@ impl NativeWindow {
   /// Whether the window is minimized.
   #[allow(clippy::unnecessary_wraps)]
   fn updated_is_minimized(&self) -> crate::Result<bool> {
-    Ok(unsafe { IsIconic(HWND(self.handle)) }.as_bool())
+    Ok(unsafe { IsIconic(self.hwnd()) }.as_bool())
   }
 
   /// Whether the window is maximized.
@@ -329,7 +336,7 @@ impl NativeWindow {
   /// Whether the window is maximized.
   #[allow(clippy::unnecessary_wraps)]
   fn updated_is_maximized(&self) -> crate::Result<bool> {
-    Ok(unsafe { IsZoomed(HWND(self.handle)) }.as_bool())
+    Ok(unsafe { IsZoomed(self.hwnd()) }.as_bool())
   }
 
   /// Whether the window has resize handles.
@@ -358,7 +365,7 @@ impl NativeWindow {
     };
 
     // Set as the foreground window.
-    unsafe { SetForegroundWindow(HWND(self.handle)) }.ok()?;
+    unsafe { SetForegroundWindow(self.hwnd()) }.ok()?;
 
     Ok(())
   }
@@ -375,7 +382,7 @@ impl NativeWindow {
     unsafe {
       #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
-        HWND(self.handle),
+        self.hwnd(),
         DWMWA_BORDER_COLOR,
         std::ptr::from_ref(&bgr).cast(),
         std::mem::size_of::<u32>() as u32,
@@ -399,7 +406,7 @@ impl NativeWindow {
     unsafe {
       #[allow(clippy::cast_possible_truncation)]
       DwmSetWindowAttribute(
-        HWND(self.handle),
+        self.hwnd(),
         DWMWA_WINDOW_CORNER_PREFERENCE,
         std::ptr::from_ref(&(corner_preference.0)).cast(),
         std::mem::size_of::<i32>() as u32,
@@ -413,7 +420,7 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> crate::Result<()> {
-    let style = unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
+    let style = unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
 
     #[allow(clippy::cast_possible_wrap)]
     let new_style = if visible {
@@ -424,9 +431,9 @@ impl NativeWindow {
 
     if new_style != style {
       unsafe {
-        SetWindowLongPtrW(HWND(self.handle), GWL_STYLE, new_style);
+        SetWindowLongPtrW(self.hwnd(), GWL_STYLE, new_style);
         SetWindowPos(
-          HWND(self.handle),
+          self.hwnd(),
           HWND_NOTOPMOST,
           0,
           0,
@@ -450,15 +457,13 @@ impl NativeWindow {
 
   fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
     let current_style =
-      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
 
     #[allow(clippy::cast_possible_wrap)]
     if current_style & style.0 as isize == 0 {
       let new_style = current_style | style.0 as isize;
 
-      unsafe {
-        SetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE, new_style)
-      };
+      unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
     }
   }
 
@@ -471,7 +476,7 @@ impl NativeWindow {
 
     unsafe {
       GetLayeredWindowAttributes(
-        HWND(self.handle),
+        self.hwnd(),
         None,
         Some(&raw mut alpha),
         Some(&raw mut flag),
@@ -503,7 +508,7 @@ impl NativeWindow {
 
     unsafe {
       SetLayeredWindowAttributes(
-        HWND(self.handle),
+        self.hwnd(),
         None,
         opacity_value.to_alpha(),
         LWA_ALPHA,
@@ -540,7 +545,7 @@ impl NativeWindow {
     let dwm_res = unsafe {
       #[allow(clippy::cast_possible_truncation)]
       DwmGetWindowAttribute(
-        HWND(self.handle),
+        self.hwnd(),
         DWMWA_EXTENDED_FRAME_BOUNDS,
         std::ptr::from_mut(&mut rect).cast(),
         std::mem::size_of::<RECT>() as u32,
@@ -583,10 +588,7 @@ impl NativeWindow {
     let mut rect = RECT::default();
 
     unsafe {
-      GetWindowRect(
-        HWND(self.handle),
-        std::ptr::from_mut(&mut rect).cast(),
-      )
+      GetWindowRect(self.hwnd(), std::ptr::from_mut(&mut rect).cast())
     }?;
 
     Ok(Rect::from_ltrb(
@@ -615,7 +617,7 @@ impl NativeWindow {
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
     let current_style =
-      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_STYLE) };
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
 
     #[allow(clippy::cast_possible_wrap)]
     let style = style.0 as isize;
@@ -624,7 +626,7 @@ impl NativeWindow {
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
     let current_style =
-      unsafe { GetWindowLongPtrW(HWND(self.handle), GWL_EXSTYLE) };
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
 
     #[allow(clippy::cast_possible_wrap)]
     let style = style.0 as isize;
@@ -649,27 +651,23 @@ impl NativeWindow {
       ..Default::default()
     };
 
-    unsafe {
-      SetWindowPlacement(HWND(self.handle), &raw const placement)
-    }?;
+    unsafe { SetWindowPlacement(self.hwnd(), &raw const placement) }?;
 
     Ok(())
   }
 
   pub(crate) fn maximize(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_MAXIMIZE).ok() }?;
+    unsafe { ShowWindowAsync(self.hwnd(), SW_MAXIMIZE).ok() }?;
     Ok(())
   }
 
   pub(crate) fn minimize(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_MINIMIZE).ok() }?;
+    unsafe { ShowWindowAsync(self.hwnd(), SW_MINIMIZE).ok() }?;
     Ok(())
   }
 
   pub(crate) fn close(&self) -> crate::Result<()> {
-    unsafe {
-      SendNotifyMessageW(HWND(self.handle), WM_CLOSE, None, None)
-    }?;
+    unsafe { SendNotifyMessageW(self.hwnd(), WM_CLOSE, None, None) }?;
 
     Ok(())
   }
@@ -692,12 +690,12 @@ impl NativeWindow {
   }
 
   pub(crate) fn show(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_SHOWNA) }.ok()?;
+    unsafe { ShowWindowAsync(self.hwnd(), SW_SHOWNA) }.ok()?;
     Ok(())
   }
 
   pub(crate) fn hide(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(HWND(self.handle), SW_HIDE) }.ok()?;
+    unsafe { ShowWindowAsync(self.hwnd(), SW_HIDE) }.ok()?;
     Ok(())
   }
 
@@ -739,9 +737,9 @@ impl NativeWindow {
       let taskbar_list = com_init.taskbar_list()?;
 
       if visible {
-        unsafe { taskbar_list.AddTab(HWND(self.handle))? };
+        unsafe { taskbar_list.AddTab(self.hwnd())? };
       } else {
-        unsafe { taskbar_list.DeleteTab(HWND(self.handle))? };
+        unsafe { taskbar_list.DeleteTab(self.hwnd())? };
       }
 
       Ok(())
@@ -807,7 +805,7 @@ impl NativeWindow {
 
         unsafe {
           SetWindowPos(
-            HWND(self.handle),
+            self.hwnd(),
             z_order,
             rect.x(),
             rect.y(),
@@ -822,7 +820,7 @@ impl NativeWindow {
 
         unsafe {
           SetWindowPos(
-            HWND(self.handle),
+            self.hwnd(),
             z_order,
             rect.x(),
             rect.y(),
@@ -839,7 +837,7 @@ impl NativeWindow {
         if has_pending_dpi_adjustment {
           unsafe {
             SetWindowPos(
-              HWND(self.handle),
+              self.hwnd(),
               z_order,
               rect.x(),
               rect.y(),
@@ -870,7 +868,7 @@ impl NativeWindow {
       let taskbar_list = com_init.taskbar_list()?;
 
       unsafe {
-        taskbar_list.MarkFullscreenWindow(HWND(self.handle), fullscreen)
+        taskbar_list.MarkFullscreenWindow(self.hwnd(), fullscreen)
       }?;
 
       Ok(())
@@ -887,7 +885,7 @@ impl NativeWindow {
 
     unsafe {
       SetWindowPos(
-        HWND(self.handle),
+        self.hwnd(),
         z_order,
         0,
         0,
