@@ -60,28 +60,24 @@ fn main() -> anyhow::Result<()> {
 
     let task_handle = std::thread::spawn(move || {
       rt.block_on(async {
-        if let Err(err) =
-          start_wm(config_path, verbosity, &dispatcher).await
-        {
+        let start_res =
+          start_wm(config_path, verbosity, &dispatcher).await;
+
+        if let Err(err) = &start_res {
           // If unable to start the WM, the error is fatal and a message
           // dialog is shown.
           // TODO: Show message dialog.
           tracing::error!("{:?}", err);
-
-          if let Err(err) = dispatcher.stop_event_loop() {
-            // Forcefully exit the process to ensure the event loop is
-            // stopped.
-            tracing::error!(
-              "Failed to stop event loop gracefully: {}",
-              err
-            );
-            process::exit(1);
-          }
-
-          return Err(err);
         }
 
-        Ok(())
+        if let Err(err) = dispatcher.stop_event_loop() {
+          // Forcefully exit the process to ensure the event loop is
+          // stopped.
+          tracing::error!("Failed to stop event loop gracefully: {}", err);
+          process::exit(1);
+        }
+
+        start_res
       })
     });
 
@@ -251,10 +247,7 @@ async fn start_wm(
     tracing::warn!("Failed to stop keybinding listener: {}", err);
   }
 
-  run_cleanup(&mut wm, &mut config, &mut ipc_server);
-
-  // Now shutdown the platform event loop.
-  dispatcher.stop_event_loop()?;
+  wm.cleanup(&mut config, &mut ipc_server);
 
   Ok(())
 }
@@ -307,37 +300,4 @@ fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
   Command::new(&watcher_path)
     .spawn()
     .context("Failed to start watcher process.")
-}
-
-/// Runs cleanup tasks when the WM is exiting.
-fn run_cleanup(
-  wm: &mut WindowManager,
-  config: &mut UserConfig,
-  ipc_server: &mut IpcServer,
-) -> anyhow::Result<()> {
-  // Ensure that the WM is unpaused, otherwise, shutdown commands won't get
-  // executed.
-  wm.state.is_paused = false;
-
-  // Run shutdown commands.
-  // TODO: This shouldn't prevent `WmEvent::ApplicationExiting` from being
-  // emitted on error.
-  let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(&shutdown_commands, None, config)?;
-
-  wm.state.emit_event(WmEvent::ApplicationExiting);
-
-  // Emit remaining WM events before exiting.
-  while let Ok(wm_event) = wm.event_rx.try_recv() {
-    tracing::info!(
-      "Emitting WM event before shutting down: {:?}",
-      wm_event
-    );
-
-    if let Err(err) = ipc_server.process_event(wm_event) {
-      tracing::warn!("{:?}", err);
-    }
-  }
-
-  Ok(())
 }

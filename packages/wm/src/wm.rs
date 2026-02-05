@@ -41,6 +41,7 @@ use crate::{
     handle_window_shown,
     handle_window_title_changed,
   },
+  ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
@@ -55,8 +56,8 @@ pub struct WindowManager {
 
 impl WindowManager {
   pub fn new(
-    dispatcher: Dispatcher,
     config: &mut UserConfig,
+    dispatcher: Dispatcher,
   ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
@@ -760,6 +761,40 @@ impl WindowManager {
         Ok(())
       }
       _ => Ok(()),
+    }
+  }
+
+  /// Runs cleanup tasks when the WM is exiting.
+  pub(crate) fn cleanup(
+    &mut self,
+    config: &mut UserConfig,
+    ipc_server: &mut IpcServer,
+  ) {
+    self.state.emit_event(WmEvent::ApplicationExiting);
+
+    // Ensure that the WM is unpaused, otherwise, shutdown commands won't
+    // get executed.
+    self.state.is_paused = false;
+
+    // Run shutdown commands.
+    if let Err(err) = self.process_commands(
+      &config.value.general.shutdown_commands.clone(),
+      None,
+      config,
+    ) {
+      tracing::warn!("Failed to run shutdown commands: {:?}", err);
+    }
+
+    // Emit remaining WM events before exiting.
+    while let Ok(wm_event) = self.event_rx.try_recv() {
+      tracing::info!(
+        "Emitting WM event before shutting down: {:?}",
+        wm_event
+      );
+
+      if let Err(err) = ipc_server.process_event(wm_event) {
+        tracing::warn!("{:?}", err);
+      }
     }
   }
 }
