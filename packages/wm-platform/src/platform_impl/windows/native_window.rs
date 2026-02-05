@@ -196,7 +196,9 @@ impl NativeWindow {
       .map(|file_name| {
         file_name.split('.').next().unwrap_or(file_name).to_string()
       })
-      .context("Failed to parse process name.")
+      .ok_or_else(|| {
+        crate::Error::Platform("Failed to parse process name.".to_string())
+      })
   }
 
   /// Gets the class name of the window.
@@ -477,9 +479,10 @@ impl NativeWindow {
     }
 
     if flag.contains(LWA_COLORKEY) {
-      bail!(
+      return Err(crate::Error::Platform(
         "Window uses color key for its transparency and cannot be adjusted."
-      );
+          .to_string(),
+      ));
     }
 
     let target_alpha = if opacity_delta.is_negative {
@@ -708,13 +711,18 @@ impl NativeWindow {
       }
       .ok()?;
 
-      let view = view
-        .context("Unable to get application view by window handle.")?;
+      let view = view.ok_or_else(|| {
+        crate::Error::Platform(
+          "Unable to get application view by window handle.".to_string(),
+        )
+      })?;
 
       // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
       unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
         .ok()
-        .context("Failed to cloak window.")
+        .ok_or_else(|| {
+          crate::Error::Platform("Failed to cloak window.".to_string())
+        })
     })
   }
 
@@ -941,6 +949,12 @@ impl PartialEq for NativeWindow {
 
 impl Eq for NativeWindow {}
 
+impl From<NativeWindow> for crate::NativeWindow {
+  fn from(window: NativeWindow) -> Self {
+    crate::NativeWindow { inner: window }
+  }
+}
+
 /// Windows-specific implementation of [`Dispatcher::visible_windows`].
 pub(crate) fn visible_windows(
   _: &Dispatcher,
@@ -966,8 +980,9 @@ pub(crate) fn visible_windows(
   Ok(
     handles
       .into_iter()
-      .map(|handle| NativeWindow::new(handle))
+      .map(NativeWindow::new)
       .filter(|window| window.is_visible().unwrap_or(false))
+      .map(Into::into)
       .collect(),
   )
 }
@@ -978,4 +993,43 @@ pub(crate) fn focused_window(
 ) -> crate::Result<crate::NativeWindow> {
   let handle = unsafe { GetForegroundWindow() };
   Ok(NativeWindow::new(handle.0).into())
+}
+
+/// Windows-specific implementation of [`Dispatcher::window_from_point`].
+pub(crate) fn window_from_point(
+  point: &crate::Point,
+  _: &Dispatcher,
+) -> crate::Result<Option<crate::NativeWindow>> {
+  let point = POINT {
+    x: point.x,
+    y: point.y,
+  };
+
+  let handle = unsafe { WindowFromPoint(point) };
+
+  if handle.0 == 0 {
+    return Ok(None);
+  }
+
+  Ok(Some(NativeWindow::new(handle.0).into()))
+}
+
+/// Windows-specific implementation of [`Dispatcher::reset_focus`].
+pub(crate) fn reset_focus(_dispatcher: &Dispatcher) -> crate::Result<()> {
+  desktop_window().focus()
+}
+
+/// Gets the `NativeWindow` instance of the desktop window.
+///
+/// This is the explorer.exe wallpaper window (i.e. "Progman"). If
+/// explorer.exe isn't running, then default to the desktop window below
+/// the wallpaper window.
+#[must_use]
+fn desktop_window() -> NativeWindow {
+  let handle = match unsafe { GetShellWindow() } {
+    HWND(0) => unsafe { GetDesktopWindow() },
+    handle => handle,
+  };
+
+  NativeWindow::new(handle.0)
 }

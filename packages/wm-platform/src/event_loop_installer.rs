@@ -32,8 +32,7 @@ impl EventLoopInstaller {
     todo!();
   }
 
-  /// Install on an existing event loop via window subclassing (Windows
-  /// only).
+  /// Install on an existing event loop via window subclassing.
   ///
   /// This method integrates with an existing Windows message loop by
   /// subclassing the specified window.
@@ -42,7 +41,11 @@ impl EventLoopInstaller {
   ///
   /// This method is only available on Windows.
   #[cfg(target_os = "windows")]
-  pub fn install_with_subclass(self, hwnd: HWND) -> crate::Result<()> {
-    self.inner.install_with_subclass(hwnd)
+  pub fn install_with_subclass(
+    self,
+    _hwnd: windows::Win32::Foundation::HWND,
+  ) -> crate::Result<()> {
+    // TODO: Implement window subclassing.
+    todo!("install_with_subclass is not yet implemented")
   }
 }

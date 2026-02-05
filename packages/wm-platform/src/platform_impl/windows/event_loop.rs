@@ -176,9 +176,9 @@ impl EventLoop {
     if let Some(thread_handle) = self.thread_handle.take() {
       Platform::kill_message_loop(&thread_handle)?;
 
-      thread_handle
-        .join()
-        .map_err(|_| anyhow::anyhow!("Thread join failed."))??;
+      thread_handle.join().map_err(|_| {
+        crate::Error::Thread("Thread join failed.".to_string())
+      })??;
     }
 
     Ok(())

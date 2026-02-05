@@ -14,14 +14,13 @@ use windows::{
     },
   },
 };
-use crate::{Point, Rect};
 
 use crate::{
   display::{
     ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
     OutputTechnology,
   },
-  Result,
+  Point, Rect, Result,
 };
 
 /// Windows-specific extensions for `Display`.
@@ -143,7 +142,7 @@ impl Display {
   }
 
   /// Gets the display devices for this display.
-  pub fn devices(&self) -> Result<Vec<crate::display::DisplayDevice>> {
+  pub fn devices(&self) -> Result<Vec<crate::DisplayDevice>> {
     let device_name = self.device_name()?;
     let all_devices = all_display_devices()?;
 
@@ -158,22 +157,20 @@ impl Display {
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(
-    &self,
-  ) -> Result<Option<crate::display::DisplayDevice>> {
+  pub fn main_device(&self) -> Result<crate::DisplayDevice> {
     let devices = self.devices()?;
 
-    // Find first device that is not mirroring
+    // Find first device that is not mirroring.
     for device in devices {
       let mirroring_state = device.mirroring_state()?;
       if mirroring_state.is_none()
         || mirroring_state == Some(MirroringState::Source)
       {
-        return Ok(Some(device));
+        return Ok(device);
       }
     }
 
-    Ok(None)
+    Err(crate::Error::DisplayDeviceNotFound)
   }
 
   /// Gets the monitor info structure from Windows API.
@@ -207,6 +204,20 @@ impl Display {
     )
   }
 }
+
+impl From<Display> for crate::Display {
+  fn from(display: Display) -> Self {
+    crate::Display { inner: display }
+  }
+}
+
+impl PartialEq for Display {
+  fn eq(&self, other: &Self) -> bool {
+    self.monitor_handle == other.monitor_handle
+  }
+}
+
+impl Eq for Display {}
 
 /// Windows-specific display device implementation.
 #[derive(Clone, Debug)]
@@ -396,8 +407,16 @@ impl DisplayDevice {
   }
 }
 
-/// Gets all active displays on Windows.
-pub fn all_displays() -> Result<Vec<Display>> {
+impl From<DisplayDevice> for crate::DisplayDevice {
+  fn from(device: DisplayDevice) -> Self {
+    crate::DisplayDevice { inner: device }
+  }
+}
+
+/// Windows-specific implementation of [`Dispatcher::displays`].
+pub fn all_displays(
+  _: &crate::Dispatcher,
+) -> crate::Result<Vec<crate::Display>> {
   let mut monitor_handles: Vec<isize> = Vec::new();
 
   // Callback for `EnumDisplayMonitors` to collect monitor handles.
@@ -422,11 +441,18 @@ pub fn all_displays() -> Result<Vec<Display>> {
   }
   .ok()?;
 
-  Ok(monitor_handles.into_iter().map(Display::new).collect())
+  Ok(
+    monitor_handles
+      .into_iter()
+      .map(|handle| Display::new(handle).into())
+      .collect(),
+  )
 }
 
-/// Gets all display devices on Windows.
-pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
+/// Windows-specific implementation of [`Dispatcher::display_devices`].
+pub fn all_display_devices(
+  _dispatcher: &crate::Dispatcher,
+) -> crate::Result<Vec<crate::DisplayDevice>> {
   let mut devices = Vec::new();
   let mut device_index = 0u32;
 
@@ -456,7 +482,7 @@ pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
       .trim_end_matches('\0')
       .to_string();
 
-    devices.push(DisplayDevice::new(device_name, device_id));
+    devices.push(DisplayDevice::new(device_name, device_id).into());
 
     device_index += 1;
   }
@@ -464,29 +490,38 @@ pub fn all_display_devices() -> Result<Vec<DisplayDevice>> {
   Ok(devices)
 }
 
-/// Gets display from point on Windows.
-pub fn display_from_point(point: Point) -> Result<Display> {
-  let displays = all_displays()?;
+/// Windows-specific implementation of [`Dispatcher::display_from_point`].
+pub fn display_from_point(
+  dispatcher: &crate::Dispatcher,
+  point: crate::Point,
+) -> crate::Result<crate::Display> {
+  let displays = all_displays(dispatcher)?;
 
-  for display in &displays {
+  for display in displays {
     let bounds = display.bounds()?;
     if bounds.contains_point(&point) {
-      return Ok(display.clone());
+      return Ok(display);
     }
   }
 
   Err(crate::Error::DisplayNotFound)
 }
 
-/// Gets primary display on Windows.
-pub fn primary_display() -> Result<Display> {
-  let displays = all_displays()?;
+/// Windows-specific implementation of [`Dispatcher::primary_display`].
+pub fn primary_display(
+  _: &crate::Dispatcher,
+) -> crate::Result<crate::Display> {
+  let monitor_handle = unsafe {
+    MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY)
+  };
 
-  for display in displays {
-    if display.is_primary()? {
-      return Ok(display);
-    }
-  }
+  Ok(Display::new(monitor_handle).into())
+}
 
-  Err(crate::Error::PrimaryDisplayNotFound)
+/// Windows-specific implementation of [`Dispatcher::nearest_display`].
+pub fn nearest_display(
+  native_window: &crate::NativeWindow,
+  dispatcher: &crate::Dispatcher,
+) -> crate::Result<crate::Display> {
+  todo!()
 }

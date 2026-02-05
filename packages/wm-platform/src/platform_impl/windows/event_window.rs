@@ -95,7 +95,7 @@ impl EventWindow {
 
     // Add the sender for platform events to global state.
     PLATFORM_EVENT_TX.set(event_tx.clone()).map_err(|_| {
-      anyhow::anyhow!("Platform event sender already set.")
+      crate::Error::Platform("Platform event sender already set.".to_string())
     })?;
 
     ENABLE_MOUSE_EVENTS.store(enable_mouse_events, Ordering::Relaxed);
@@ -160,7 +160,7 @@ impl EventWindow {
 
       window_thread
         .join()
-        .map_err(|_| anyhow::anyhow!("Thread join failed."))??;
+        .map_err(|_| crate::Error::Thread("Thread join failed.".to_string()))??;
     }
 
     Ok(())

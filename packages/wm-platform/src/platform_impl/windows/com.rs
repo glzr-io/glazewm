@@ -1,4 +1,3 @@
-use anyhow::Context;
 use windows::{
   core::{ComInterface, IUnknown, IUnknown_Vtbl, GUID, HRESULT},
   Win32::{
@@ -64,27 +63,32 @@ impl ComInit {
 
   /// Returns an instance of `IServiceProvider`.
   pub fn service_provider(&self) -> crate::Result<&IServiceProvider> {
-    self
-      .service_provider
-      .as_ref()
-      .context("Unable to create `IServiceProvider` instance.")
+    self.service_provider.as_ref().ok_or_else(|| {
+      crate::Error::Platform(
+        "Unable to create `IServiceProvider` instance.".to_string(),
+      )
+    })
   }
 
   /// Returns an instance of `IApplicationViewCollection`.
   pub fn application_view_collection(
     &self,
   ) -> crate::Result<&IApplicationViewCollection> {
-    self.application_view_collection.as_ref().context(
-      "Failed to query for `IApplicationViewCollection` instance.",
-    )
+    self.application_view_collection.as_ref().ok_or_else(|| {
+      crate::Error::Platform(
+        "Failed to query for `IApplicationViewCollection` instance."
+          .to_string(),
+      )
+    })
   }
 
   /// Returns an instance of `ITaskbarList2`.
   pub fn taskbar_list(&self) -> crate::Result<&ITaskbarList2> {
-    self
-      .taskbar_list
-      .as_ref()
-      .context("Unable to create `ITaskbarList2` instance.")
+    self.taskbar_list.as_ref().ok_or_else(|| {
+      crate::Error::Platform(
+        "Unable to create `ITaskbarList2` instance.".to_string(),
+      )
+    })
   }
 }
 

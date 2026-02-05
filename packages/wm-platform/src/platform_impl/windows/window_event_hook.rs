@@ -46,7 +46,7 @@ impl WindowEventHook {
     });
 
     WIN_EVENT_HOOK.set(win_event_hook.clone()).map_err(|_| {
-      anyhow::anyhow!("Window event hook already running.")
+      crate::Error::Platform("Window event hook already running.".to_string())
     })?;
 
     Ok(win_event_hook)
@@ -106,7 +106,9 @@ impl WindowEventHook {
     };
 
     if hook_handle.is_invalid() {
-      Err(anyhow::anyhow!("Failed to set window event hook."))
+      Err(crate::Error::Platform(
+        "Failed to set window event hook.".to_string(),
+      ))
     } else {
       Ok(hook_handle)
     }

@@ -243,8 +243,7 @@ impl Dispatcher {
   /// Gets the nearest display to a window.
   ///
   /// Returns the display that contains the largest area of the window's
-  /// frame. If the window is completely off-screen, returns the primary
-  /// display.
+  /// frame. Defaults to the primary display if no overlap is found.
   pub fn nearest_display(
     &self,
     native_window: &NativeWindow,
@@ -279,6 +278,20 @@ impl Dispatcher {
       Ok(Point {
         x: point.x as i32,
         y: point.y as i32,
+      })
+    }
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::{
+        Foundation::POINT, UI::WindowsAndMessaging::GetCursorPos,
+      };
+
+      let mut point = POINT { x: 0, y: 0 };
+      unsafe { GetCursorPos(&raw mut point) }?;
+
+      Ok(Point {
+        x: point.x,
+        y: point.y,
       })
     }
   }
@@ -340,6 +353,12 @@ impl Dispatcher {
           "Failed to set cursor position.".to_string(),
         ));
       }
+    }
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
+
+      unsafe { SetCursorPos(point.x, point.y) }?;
     }
 
     Ok(())

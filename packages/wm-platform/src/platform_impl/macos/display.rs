@@ -348,9 +348,7 @@ impl From<DisplayDevice> for crate::DisplayDevice {
   }
 }
 
-/// Gets all active displays on macOS.
-///
-/// Must be called on the main thread.
+/// macOS-specific implementation of [`Dispatcher::displays`].
 pub fn all_displays(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::Display>> {
@@ -369,9 +367,9 @@ pub fn all_displays(
   })?
 }
 
-/// Gets all display devices on macOS.
+/// macOS-specific implementation of [`Dispatcher::display_devices`].
 pub fn all_display_devices(
-  _dispatcher: &Dispatcher,
+  _: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
   let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
@@ -429,7 +427,7 @@ pub fn active_display_devices(
   )
 }
 
-/// Gets display from point.
+/// macOS-specific implementation of [`Dispatcher::display_from_point`].
 pub fn display_from_point(
   dispatcher: &Dispatcher,
   point: Point,
@@ -446,7 +444,7 @@ pub fn display_from_point(
   Err(crate::Error::DisplayNotFound)
 }
 
-/// Gets primary display on macOS.
+/// macOS-specific implementation of [`Dispatcher::primary_display`].
 pub fn primary_display(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -463,16 +461,12 @@ pub fn primary_display(
   })?
 }
 
-/// Gets the nearest display to a window on macOS.
-///
-/// Returns the display that contains the largest area of the window's
-/// frame. If the window is completely off-screen, returns the main
-/// display.
+/// macOS-specific implementation of [`Dispatcher::nearest_display`].
 ///
 /// NOTE: This was benchmarked to be 400-600µs on initial retrieval and
-/// 150-300µs on subsequent retrievals. Instead using
-/// `CGGetDisplaysWithRect` (and getting the corresponding `NSScreen`)
-/// was found to be slightly slower (700-800µs and 200-300µs respectively).
+/// 150-300µs on subsequent retrievals. Using `CGGetDisplaysWithRect` and
+/// getting the corresponding `NSScreen` was found to be slightly slower
+/// (700-800µs and then 200-300µs on subsequent retrievals).
 pub fn nearest_display(
   native_window: &crate::NativeWindow,
   dispatcher: &Dispatcher,
