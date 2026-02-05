@@ -84,7 +84,7 @@ pub fn move_workspace_in_direction(
     sort_workspaces(&target_monitor, config)?;
 
     state.emit_event(WmEvent::WorkspaceUpdated {
-      updated_workspace: workspace.to_dto_with_focus(Some(workspace.id()))?,
+      updated_workspace: workspace.to_dto()?,
     });
   }
 

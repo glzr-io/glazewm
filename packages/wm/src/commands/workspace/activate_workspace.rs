@@ -75,7 +75,7 @@ pub fn activate_workspace(
   info!("Activating workspace: {workspace}");
 
   state.emit_event(WmEvent::WorkspaceActivated {
-    activated_workspace: workspace.to_dto_with_focus(Some(workspace.id()))?,
+    activated_workspace: workspace.to_dto()?,
   });
 
   Ok(())
