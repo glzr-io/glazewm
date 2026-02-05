@@ -5,7 +5,10 @@ use wm_platform::NativeMonitor;
 
 use crate::{
   commands::{
-    container::{attach_container, move_container_within_tree},
+    container::{
+      attach_container, move_container_within_tree, set_focused_descendant,
+    },
+    monitor::sort_monitors,
     workspace::{activate_workspace, sort_workspaces},
   },
   models::{Monitor, Workspace},
@@ -19,6 +22,9 @@ pub fn add_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Preserve the currently focused container to restore after workspace moves.
+  let originally_focused = state.focused_container();
+
   // Create `Monitor` instance. This uses the working area of the monitor
   // instead of the bounds of the display. The working area excludes
   // taskbars and other reserved display space.
@@ -35,6 +41,10 @@ pub fn add_monitor(
   state.emit_event(WmEvent::MonitorAdded {
     added_monitor: monitor.to_dto()?,
   });
+
+  // Sort monitors by position before checking bind_to_monitor indices.
+  // This ensures the monitor index corresponds to the physical position.
+  sort_monitors(&state.root_container)?;
 
   let bound_workspace_configs = config
     .value
@@ -77,6 +87,13 @@ pub fn add_monitor(
     activate_workspace(None, Some(monitor), state, config)?;
   }
 
+  // Restore focus to the originally focused container. This prevents focus
+  // from unexpectedly shifting to the reconnected monitor.
+  if let Some(focused) = originally_focused {
+    set_focused_descendant(&focused, None);
+    state.pending_sync.queue_focus_change();
+  }
+
   Ok(())
 }
 
@@ -111,10 +128,12 @@ pub fn move_workspace_to_monitor(
     );
   }
 
-  // Get currently displayed workspace on the target monitor.
+  // Get currently displayed workspace on the target monitor. The moved
+  // workspace becomes the displayed workspace if it's the only one or the
+  // most recently focused.
   let displayed_workspace = target_monitor
     .displayed_workspace()
-    .context("No displayed workspace.")?;
+    .unwrap_or_else(|| workspace.clone());
 
   state
     .pending_sync
@@ -128,11 +147,11 @@ pub fn move_workspace_to_monitor(
     }
     _ => {
       // Redraw the workspace on the origin monitor.
-      state.pending_sync.queue_container_to_redraw(
-        origin_monitor
-          .displayed_workspace()
-          .context("No displayed workspace.")?,
-      );
+      if let Some(origin_displayed) = origin_monitor.displayed_workspace() {
+        state
+          .pending_sync
+          .queue_container_to_redraw(origin_displayed);
+      }
     }
   }
 
