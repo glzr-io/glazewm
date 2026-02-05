@@ -19,6 +19,8 @@ use tracing_subscriber::{
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+#[cfg(target_os = "macos")]
+use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
   Dispatcher, EventLoop, KeybindingListener, MouseEventType,
   MouseListener, PlatformEvent, WindowListener,
@@ -95,6 +97,13 @@ async fn start_wm(
   // Ensure that only one instance of the WM is running.
   // TODO: Implement this for macOS.
   // let _single_instance = SingleInstance::new()?;
+
+  #[cfg(target_os = "macos")]
+  {
+    if !dispatcher.has_ax_permission(true) {
+      anyhow::bail!("Accessibility permissions are not granted. In System Preferences, navigate to Privacy & Security > Accessibility and enable GlazeWM.");
+    }
+  }
 
   // Parse and validate user config.
   let mut config = UserConfig::new(config_path)?;

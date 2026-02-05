@@ -25,12 +25,36 @@ pub trait DispatcherExtMacOs {
   ///
   /// This method is only available on macOS.
   fn all_applications(&self) -> crate::Result<Vec<Application>>;
+
+  /// Checks whether accessibility permissions are granted.
+  ///
+  /// If `prompt` is `true`, a dialog will be shown to the user to request
+  /// accessibility permissions.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn has_ax_permission(&self, prompt: bool) -> bool;
 }
 
 #[cfg(target_os = "macos")]
 impl DispatcherExtMacOs for Dispatcher {
   fn all_applications(&self) -> crate::Result<Vec<Application>> {
     platform_impl::all_applications(self)
+  }
+
+  fn has_ax_permission(&self, prompt: bool) -> bool {
+    use objc2_application_services::{
+      kAXTrustedCheckOptionPrompt, AXIsProcessTrustedWithOptions,
+    };
+    use objc2_core_foundation::{CFBoolean, CFDictionary};
+
+    let options = CFDictionary::from_slices(
+      &[unsafe { kAXTrustedCheckOptionPrompt }],
+      &[CFBoolean::new(prompt)],
+    );
+
+    unsafe { AXIsProcessTrustedWithOptions(Some(options.as_ref())) }
   }
 }
 
