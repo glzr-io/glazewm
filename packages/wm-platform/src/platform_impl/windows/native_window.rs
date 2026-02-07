@@ -43,8 +43,8 @@ use windows::{
 
 use super::COM_INIT;
 use crate::{
-  Color, CornerStyle, Delta, HideMethod, LengthValue, Memo, OpacityValue,
-  Rect, RectDelta, WindowState, ZOrder,
+  Color, CornerStyle, Delta, HideMethod, LengthValue, OpacityValue, Rect,
+  RectDelta, WindowState, ZOrder,
 };
 
 /// Magic number used to identify programmatic mouse inputs from our own
@@ -109,49 +109,19 @@ impl NativeWindowWindowsExt for NativeWindow {
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  pub handle: isize,
-  title: Memo<String>,
-  process_name: Memo<String>,
-  class_name: Memo<String>,
-  frame_position: Memo<Rect>,
-  border_position: Memo<Rect>,
-  is_minimized: Memo<bool>,
-  is_maximized: Memo<bool>,
+  handle: isize,
 }
 
 impl NativeWindow {
   /// Creates a new `NativeWindow` instance with the given window handle.
   #[must_use]
   pub(crate) fn new(handle: isize) -> Self {
-    Self {
-      handle,
-      title: Memo::new(),
-      process_name: Memo::new(),
-      class_name: Memo::new(),
-      frame_position: Memo::new(),
-      border_position: Memo::new(),
-      is_minimized: Memo::new(),
-      is_maximized: Memo::new(),
-    }
+    Self { handle }
   }
 
-  /// Gets the window's title. If the window is invalid, returns an empty
-  /// string.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
+  /// Gets the window's title. If the window is invalid, returns an
+  /// empty string.
   pub(crate) fn title(&self) -> crate::Result<String> {
-    self.title.get_or_init(Self::updated_title, self)
-  }
-
-  /// Updates the cached window title.
-  pub(crate) fn invalidate_title(&self) -> crate::Result<String> {
-    self.title.update(Self::updated_title, self)
-  }
-
-  /// Gets the window's title. If the window is invalid, returns an empty
-  /// string.
-  #[allow(clippy::unnecessary_wraps)]
-  fn updated_title(&self) -> crate::Result<String> {
     if !unsafe { IsWindow(self.hwnd()) }.as_bool() {
       return crate::Error::WindowNotFound;
     }
@@ -164,16 +134,7 @@ impl NativeWindow {
   }
 
   /// Gets the process name associated with the window.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn process_name(&self) -> crate::Result<String> {
-    self
-      .process_name
-      .get_or_init(Self::updated_process_name, self)
-  }
-
-  /// Gets the process name associated with the window.
-  fn updated_process_name(&self) -> crate::Result<String> {
     let mut process_id = 0u32;
     unsafe {
       GetWindowThreadProcessId(self.hwnd(), Some(&raw mut process_id));
@@ -210,14 +171,7 @@ impl NativeWindow {
   }
 
   /// Gets the class name of the window.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn class_name(&self) -> crate::Result<String> {
-    self.class_name.get_or_init(Self::updated_class_name, self)
-  }
-
-  /// Gets the class name of the window.
-  fn updated_class_name(&self) -> crate::Result<String> {
     let mut buffer = [0u16; 256];
     let result = unsafe { GetClassNameW(self.hwnd(), &mut buffer) };
 
@@ -300,42 +254,12 @@ impl NativeWindow {
   }
 
   /// Whether the window is minimized.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
-    self
-      .is_minimized
-      .get_or_init(Self::updated_is_minimized, self)
-  }
-
-  /// Updates the cached minimized status.
-  pub(crate) fn invalidate_is_minimized(&self) -> crate::Result<bool> {
-    self.is_minimized.update(Self::updated_is_minimized, self)
-  }
-
-  /// Whether the window is minimized.
-  #[allow(clippy::unnecessary_wraps)]
-  fn updated_is_minimized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsIconic(self.hwnd()) }.as_bool())
   }
 
   /// Whether the window is maximized.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
-    self
-      .is_maximized
-      .get_or_init(Self::updated_is_maximized, self)
-  }
-
-  /// Updates the cached maximized status.
-  pub(crate) fn invalidate_is_maximized(&self) -> crate::Result<bool> {
-    self.is_maximized.update(Self::updated_is_maximized, self)
-  }
-
-  /// Whether the window is maximized.
-  #[allow(clippy::unnecessary_wraps)]
-  fn updated_is_maximized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsZoomed(self.hwnd()) }.as_bool())
   }
 
@@ -520,26 +444,7 @@ impl NativeWindow {
 
   /// Gets the window's position, including the window's frame. Excludes
   /// the window's shadow borders.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn frame_position(&self) -> crate::Result<Rect> {
-    self
-      .frame_position
-      .get_or_init(Self::updated_frame_position, self)
-  }
-
-  /// Updates the cached frame position.
-  pub(crate) fn invalidate_frame_position(&self) -> crate::Result<Rect> {
-    _ = self.invalidate_border_position()?;
-
-    self
-      .frame_position
-      .update(Self::updated_frame_position, self)
-  }
-
-  /// Gets the window's position, including the window's frame. Excludes
-  /// the window's shadow borders.
-  fn updated_frame_position(&self) -> crate::Result<Rect> {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
@@ -567,24 +472,7 @@ impl NativeWindow {
 
   /// Gets the window's position, including the window's frame and
   /// shadow borders.
-  ///
-  /// This value is lazily retrieved and cached after first retrieval.
   pub(crate) fn border_position(&self) -> crate::Result<Rect> {
-    self
-      .border_position
-      .get_or_init(Self::updated_border_position, self)
-  }
-
-  /// Updates the cached border position.
-  pub(crate) fn invalidate_border_position(&self) -> crate::Result<Rect> {
-    self
-      .border_position
-      .update(Self::updated_border_position, self)
-  }
-
-  /// Gets the window's position, including the window's frame and
-  /// shadow borders.
-  fn updated_border_position(&self) -> crate::Result<Rect> {
     let mut rect = RECT::default();
 
     unsafe {
