@@ -1,12 +1,13 @@
 use windows::{
   core::PCWSTR,
   Win32::{
-    Foundation::{BOOL, LPARAM, RECT},
+    Foundation::{BOOL, HWND, LPARAM, RECT},
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, EnumDisplaySettingsW,
-      GetMonitorInfoW, DEVMODEW, DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE,
-      DISPLAY_DEVICE_MIRRORING_DRIVER, HDC, HMONITOR, MONITORINFO,
-      MONITORINFOEXW,
+      GetMonitorInfoW, MonitorFromWindow, DEVMODEW, DISPLAY_DEVICEW,
+      DISPLAY_DEVICE_ACTIVE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
+      MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      MONITOR_DEFAULTTOPRIMARY,
     },
     UI::{
       HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
@@ -45,7 +46,7 @@ pub trait DisplayDeviceExtWindows {
 
 impl DisplayExtWindows for crate::Display {
   fn hmonitor(&self) -> HMONITOR {
-    HMONITOR(self.inner.hmonitor())
+    self.inner.hmonitor()
   }
 }
 
@@ -55,7 +56,7 @@ impl DisplayDeviceExtWindows for crate::DisplayDevice {
   }
 }
 
-/// Windows-specific display implementation.
+/// Windows-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
 pub struct Display {
   pub(crate) monitor_handle: isize,
@@ -80,35 +81,23 @@ impl Display {
 
   /// Gets the display name.
   pub fn name(&self) -> Result<String> {
-    let monitor_info = self.monitor_info()?;
-    let device_name = String::from_utf16_lossy(&monitor_info.szDevice)
-      .trim_end_matches('\0')
-      .to_string();
-    Ok(device_name)
+    Ok(
+      String::from_utf16_lossy(&self.monitor_info_ex()?.szDevice)
+        .trim_end_matches('\0')
+        .to_string(),
+    )
   }
 
   /// Gets the full bounds rectangle of the display.
   pub fn bounds(&self) -> Result<Rect> {
-    let monitor_info = self.monitor_info()?;
-    let rc_monitor = monitor_info.monitorInfo.rcMonitor;
-    Ok(Rect::from_ltrb(
-      rc_monitor.left,
-      rc_monitor.top,
-      rc_monitor.right,
-      rc_monitor.bottom,
-    ))
+    let rc = self.monitor_info_ex()?.monitorInfo.rcMonitor;
+    Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
   /// Gets the working area rectangle (excluding system UI).
   pub fn working_area(&self) -> Result<Rect> {
-    let monitor_info = self.monitor_info()?;
-    let rc_work = monitor_info.monitorInfo.rcWork;
-    Ok(Rect::from_ltrb(
-      rc_work.left,
-      rc_work.top,
-      rc_work.right,
-      rc_work.bottom,
-    ))
+    let rc = self.monitor_info_ex()?.monitorInfo.rcWork;
+    Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
   /// Gets the scale factor for the display.
@@ -137,47 +126,88 @@ impl Display {
 
   /// Returns whether this is the primary display.
   pub fn is_primary(&self) -> Result<bool> {
-    let monitor_info = self.monitor_info()?;
-    Ok(monitor_info.monitorInfo.dwFlags & 0x1 != 0) // MONITORINFOF_PRIMARY
+    // Check for `MONITORINFOF_PRIMARY` flag (`0x1`).
+    Ok(self.monitor_info_ex()?.monitorInfo.dwFlags & 0x1 != 0)
   }
 
   /// Gets the display devices for this display.
+  ///
+  /// Enumerates monitor devices attached to the adapter associated with
+  /// this display.
   pub fn devices(&self) -> Result<Vec<crate::DisplayDevice>> {
-    let device_name = self.device_name()?;
-    let all_devices = all_display_devices()?;
+    let monitor_info = self.monitor_info_ex()?;
 
-    // Filter devices that match this display's device name.
-    Ok(
-      all_devices
-        .into_iter()
-        .filter(|device| device.device_name == device_name)
-        .map(crate::display::DisplayDevice::from_platform_impl)
-        .collect(),
-    )
+    let adapter_name = String::from_utf16_lossy(&monitor_info.szDevice)
+      .trim_end_matches('\0')
+      .to_string();
+
+    // Get the display devices associated with the monitor's adapter.
+    let devices = (0u32..)
+      .map_while(|index| {
+        #[allow(clippy::cast_possible_truncation)]
+        let mut device = DISPLAY_DEVICEW {
+          cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
+          ..Default::default()
+        };
+
+        // When passing the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the
+        // returned `DISPLAY_DEVICEW` will contain the DOS device path in
+        // the `DeviceID` field.
+        unsafe {
+          EnumDisplayDevicesW(
+            PCWSTR(monitor_info.szDevice.as_ptr()),
+            index,
+            &raw mut device,
+            EDD_GET_DEVICE_INTERFACE_NAME,
+          )
+        }
+        .as_bool()
+        .then_some(device)
+      })
+      // Filter out any devices that are not active.
+      .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0)
+      .map(|device| {
+        let dos_device_path = String::from_utf16_lossy(&device.DeviceID)
+          .trim_end_matches('\0')
+          .to_string();
+
+        let hardware_id = dos_device_path
+          .split('#')
+          .nth(1)
+          .map_or_else(String::new, ToString::to_string);
+
+        DisplayDevice {
+          adapter_name: adapter_name.clone(),
+          hardware_id,
+          monitor_state_flags: device.StateFlags,
+        }
+        .into()
+      })
+      .collect();
+
+    Ok(devices)
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
   pub fn main_device(&self) -> Result<crate::DisplayDevice> {
-    let devices = self.devices()?;
-
-    // Find first device that is not mirroring.
-    for device in devices {
-      let mirroring_state = device.mirroring_state()?;
-      if mirroring_state.is_none()
-        || mirroring_state == Some(MirroringState::Source)
-      {
-        return Ok(device);
-      }
-    }
-
-    Err(crate::Error::DisplayDeviceNotFound)
+    self
+      .devices()?
+      .into_iter()
+      .find(|device| {
+        matches!(
+          device.mirroring_state(),
+          Ok(None | Some(MirroringState::Source))
+        )
+      })
+      .ok_or(crate::Error::DisplayDeviceNotFound)
   }
 
-  /// Gets the monitor info structure from Windows API.
-  fn monitor_info(&self) -> Result<MONITORINFOEXW> {
+  /// Ref: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfow
+  fn monitor_info_ex(&self) -> Result<MONITORINFOEXW> {
     let mut monitor_info = MONITORINFOEXW {
       monitorInfo: MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFOEXW>().try_into()?,
+        #[allow(clippy::cast_possible_truncation)]
+        cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
         ..Default::default()
       },
       ..Default::default()
@@ -192,16 +222,6 @@ impl Display {
     .ok()?;
 
     Ok(monitor_info)
-  }
-
-  /// Gets the device name for this display.
-  fn device_name(&self) -> Result<String> {
-    let monitor_info = self.monitor_info()?;
-    Ok(
-      String::from_utf16_lossy(&monitor_info.szDevice)
-        .trim_end_matches('\0')
-        .to_string(),
-    )
   }
 }
 
@@ -220,19 +240,32 @@ impl PartialEq for Display {
 impl Eq for Display {}
 
 /// Windows-specific display device implementation.
+///
+/// Represents a physical monitor device attached to a display adapter.
 #[derive(Clone, Debug)]
 pub struct DisplayDevice {
-  pub(crate) device_name: String,
+  /// The adapter name (e.g., `\\.\DISPLAY1`).
+  pub(crate) adapter_name: String,
+
+  /// The monitor hardware ID (e.g., `DEL4042`).
   pub(crate) hardware_id: String,
+
+  /// Monitor-level state flags from `EnumDisplayDevicesW`.
+  pub(crate) monitor_state_flags: u32,
 }
 
 impl DisplayDevice {
   /// Creates a new Windows display device.
   #[must_use]
-  pub fn new(device_name: String, hardware_id: String) -> Self {
+  pub fn new(
+    adapter_name: String,
+    hardware_id: String,
+    monitor_state_flags: u32,
+  ) -> Self {
     Self {
-      device_name,
+      adapter_name,
       hardware_id,
+      monitor_state_flags,
     }
   }
 
@@ -243,8 +276,7 @@ impl DisplayDevice {
 
   /// Gets the rotation of the device in degrees.
   pub fn rotation(&self) -> Result<f32> {
-    let device_mode = self.current_device_mode()?;
-    let orientation = device_mode.dmDisplayOrientation;
+    let orientation = self.current_device_mode()?.dmDisplayOrientation;
 
     Ok(match orientation {
       0 => 0.0,
@@ -257,30 +289,22 @@ impl DisplayDevice {
 
   /// Gets the output technology.
   pub fn output_technology(&self) -> Result<Option<OutputTechnology>> {
-    // TODO: Use DisplayConfigGetDeviceInfo to get actual output technology
+    // TODO: Use `DisplayConfigGetDeviceInfo` to get the
+    // actual output technology.
     Ok(Some(OutputTechnology::Unknown))
   }
 
   /// Returns whether this is a built-in device.
   pub fn is_builtin(&self) -> Result<bool> {
-    // Check if this is an internal/laptop display
-    // This is a heuristic - internal displays typically have certain
-    // characteristics
-    let device_string = self.device_string()?;
-
-    // Look for common internal display indicators
-    let is_internal = device_string.to_lowercase().contains("internal")
-      || device_string.to_lowercase().contains("laptop")
-      || device_string.to_lowercase().contains("built-in");
-
-    Ok(is_internal)
+    // TODO: Use `DisplayConfigGetDeviceInfo` to determine
+    // whether the output technology is internal.
+    Ok(false)
   }
 
   /// Gets the connection state of the device.
   pub fn connection_state(&self) -> Result<ConnectionState> {
-    let state_flags = self.state_flags()?;
-    // TODO: Get whether disconnected.
-    if state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
+    // TODO: Detect disconnected state.
+    if self.monitor_state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
       Ok(ConnectionState::Active)
     } else {
       Ok(ConnectionState::Inactive)
@@ -289,115 +313,35 @@ impl DisplayDevice {
 
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
-    let state_flags = self.state_flags()?;
-
-    // TODO: Implement this properly.
-    if state_flags & DISPLAY_DEVICE_MIRRORING_DRIVER != 0 {
-      Ok(Some(MirroringState::Target))
-    } else {
-      Ok(None)
-    }
+    // TODO: Implement proper mirroring detection using
+    // `DisplayConfigGetDeviceInfo`.
+    Ok(None)
   }
 
   /// Gets the refresh rate of the device in Hz.
   pub fn refresh_rate(&self) -> Result<f32> {
-    let device_mode = self.current_device_mode()?;
-    Ok(device_mode.dmDisplayFrequency as f32)
+    #[allow(clippy::cast_possible_truncation)]
+    Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
   }
 
-  /// Gets the device string from Windows API.
-  fn device_string(&self) -> Result<String> {
-    let mut display_device = DISPLAY_DEVICEW {
-      cb: std::mem::size_of::<DISPLAY_DEVICEW>().try_into()?,
-      ..Default::default()
-    };
-
-    // Find the device by device name
-    let mut device_index = 0u32;
-    loop {
-      let result = unsafe {
-        EnumDisplayDevicesW(
-          PCWSTR::null(),
-          device_index,
-          &raw mut display_device,
-          0,
-        )
-      };
-
-      if !result.as_bool() {
-        break;
-      }
-
-      let current_device_name =
-        String::from_utf16_lossy(&display_device.DeviceName)
-          .trim_end_matches('\0')
-          .to_string();
-
-      if current_device_name == self.device_name {
-        return Ok(
-          String::from_utf16_lossy(&display_device.DeviceString)
-            .trim_end_matches('\0')
-            .to_string(),
-        );
-      }
-
-      device_index += 1;
-    }
-
-    Ok("Unknown Device".to_string())
-  }
-
-  /// Gets the state flags from Windows API.
-  fn state_flags(&self) -> Result<u32> {
-    let mut display_device = DISPLAY_DEVICEW {
-      cb: std::mem::size_of::<DISPLAY_DEVICEW>().try_into()?,
-      ..Default::default()
-    };
-
-    // Find the device by device name
-    let mut device_index = 0u32;
-    loop {
-      let result = unsafe {
-        EnumDisplayDevicesW(
-          PCWSTR::null(),
-          device_index,
-          &raw mut display_device,
-          0,
-        )
-      };
-
-      if !result.as_bool() {
-        break;
-      }
-
-      let current_device_name =
-        String::from_utf16_lossy(&display_device.DeviceName)
-          .trim_end_matches('\0')
-          .to_string();
-
-      if current_device_name == self.device_name {
-        return Ok(display_device.StateFlags);
-      }
-
-      device_index += 1;
-    }
-
-    Ok(0)
-  }
-
-  /// Gets the current device mode from Windows API.
+  /// Gets the current device mode.
   fn current_device_mode(&self) -> Result<DEVMODEW> {
+    #[allow(clippy::cast_possible_truncation)]
     let mut device_mode = DEVMODEW {
-      dmSize: std::mem::size_of::<DEVMODEW>().try_into()?,
+      dmSize: std::mem::size_of::<DEVMODEW>() as u32,
       ..Default::default()
     };
+
+    let wide_name: Vec<u16> = self
+      .adapter_name
+      .encode_utf16()
+      .chain(std::iter::once(0))
+      .collect();
 
     unsafe {
       EnumDisplaySettingsW(
-        PCWSTR(
-          self.device_name.encode_utf16().collect::<Vec<_>>().as_ptr(),
-        ),
-        u32::MAX, // ENUM_CURRENT_SETTINGS
+        PCWSTR(wide_name.as_ptr()),
+        ENUM_CURRENT_SETTINGS,
         &raw mut device_mode,
       )
     }
@@ -427,6 +371,9 @@ pub fn all_displays(
     data: LPARAM,
   ) -> BOOL {
     let handles = data.0 as *mut Vec<isize>;
+
+    // SAFETY: `data` is a valid pointer to the `monitor_handles` vec,
+    // which outlives this callback.
     unsafe { (*handles).push(handle.0) };
     true.into()
   }
@@ -450,41 +397,89 @@ pub fn all_displays(
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_devices`].
+///
+/// Enumerates all active monitor devices across all display adapters.
 pub fn all_display_devices(
-  _dispatcher: &crate::Dispatcher,
+  _: &crate::Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
   let mut devices = Vec::new();
-  let mut device_index = 0u32;
 
-  loop {
-    let mut display_device = DISPLAY_DEVICEW {
-      cb: std::mem::size_of::<DISPLAY_DEVICEW>().try_into()?,
+  // Enumerate display adapters (level 1).
+  for adapter_index in 0u32.. {
+    #[allow(clippy::cast_possible_truncation)]
+    let mut adapter = DISPLAY_DEVICEW {
+      cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
       ..Default::default()
     };
 
-    let result = unsafe {
+    let found = unsafe {
       EnumDisplayDevicesW(
         PCWSTR::null(),
-        device_index,
-        &raw mut display_device,
-        EDD_GET_DEVICE_INTERFACE_NAME,
+        adapter_index,
+        &raw mut adapter,
+        0,
       )
     };
 
-    if !result.as_bool() {
+    if !found.as_bool() {
       break;
     }
 
-    let device_name = String::from_utf16_lossy(&display_device.DeviceName)
-      .trim_end_matches('\0')
-      .to_string();
-    let device_id = String::from_utf16_lossy(&display_device.DeviceID)
+    // Skip inactive adapters.
+    if adapter.StateFlags & DISPLAY_DEVICE_ACTIVE == 0 {
+      continue;
+    }
+
+    let adapter_name = String::from_utf16_lossy(&adapter.DeviceName)
       .trim_end_matches('\0')
       .to_string();
 
-    devices.push(DisplayDevice::new(device_name, device_id).into());
+    // Enumerate child monitor devices (level 2).
+    for monitor_index in 0u32.. {
+      #[allow(clippy::cast_possible_truncation)]
+      let mut monitor = DISPLAY_DEVICEW {
+        cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
+        ..Default::default()
+      };
 
-    device_index += 1;
+      // Due to `EDD_GET_DEVICE_INTERFACE_NAME`, the
+      // `DeviceID` field contains the DOS device path.
+      let found = unsafe {
+        EnumDisplayDevicesW(
+          PCWSTR(adapter.DeviceName.as_ptr()),
+          monitor_index,
+          &raw mut monitor,
+          EDD_GET_DEVICE_INTERFACE_NAME,
+        )
+      };
+
+      if !found.as_bool() {
+        break;
+      }
+
+      // Skip inactive monitors.
+      if monitor.StateFlags & DISPLAY_DEVICE_ACTIVE == 0 {
+        continue;
+      }
+
+      let device_path = String::from_utf16_lossy(&monitor.DeviceID)
+        .trim_end_matches('\0')
+        .to_string();
+
+      let hardware_id = device_path
+        .split('#')
+        .nth(1)
+        .map_or_else(String::new, ToString::to_string);
+
+      devices.push(
+        DisplayDevice::new(
+          adapter_name.clone(),
+          hardware_id,
+          monitor.StateFlags,
+        )
+        .into(),
+      );
+    }
   }
 
   Ok(devices)
@@ -492,36 +487,41 @@ pub fn all_display_devices(
 
 /// Windows-specific implementation of [`Dispatcher::display_from_point`].
 pub fn display_from_point(
-  dispatcher: &crate::Dispatcher,
-  point: crate::Point,
+  point: Point,
+  _: &crate::Dispatcher,
 ) -> crate::Result<crate::Display> {
-  let displays = all_displays(dispatcher)?;
+  let handle = unsafe {
+    MonitorFromPoint(
+      POINT {
+        x: point.x,
+        y: point.y,
+      },
+      MONITOR_DEFAULTTOPRIMARY,
+    )
+  };
 
-  for display in displays {
-    let bounds = display.bounds()?;
-    if bounds.contains_point(&point) {
-      return Ok(display);
-    }
-  }
-
-  Err(crate::Error::DisplayNotFound)
+  Ok(Display::new(handle.0).into())
 }
 
 /// Windows-specific implementation of [`Dispatcher::primary_display`].
 pub fn primary_display(
   _: &crate::Dispatcher,
 ) -> crate::Result<crate::Display> {
-  let monitor_handle = unsafe {
+  let handle = unsafe {
     MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY)
   };
 
-  Ok(Display::new(monitor_handle).into())
+  Ok(Display::new(handle.0).into())
 }
 
 /// Windows-specific implementation of [`Dispatcher::nearest_display`].
 pub fn nearest_display(
   native_window: &crate::NativeWindow,
-  dispatcher: &crate::Dispatcher,
+  _: &crate::Dispatcher,
 ) -> crate::Result<crate::Display> {
-  todo!()
+  let handle = unsafe {
+    MonitorFromWindow(native_window.hwnd(), MONITOR_DEFAULTTONEAREST)
+  };
+
+  Ok(Display::new(handle.0).into())
 }
