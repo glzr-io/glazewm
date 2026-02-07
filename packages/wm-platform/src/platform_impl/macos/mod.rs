@@ -7,7 +7,7 @@ mod display;
 mod event_loop;
 pub(crate) mod ffi;
 mod keyboard_hook;
-mod mouse_listener;
+mod mouse_hook;
 mod native_window;
 mod window_listener;
 
@@ -18,6 +18,6 @@ pub use ax_value::*;
 pub use display::*;
 pub(crate) use event_loop::*;
 pub use keyboard_hook::*;
-pub use mouse_listener::*;
+pub use mouse_hook::*;
 pub use native_window::*;
 pub use window_listener::*;
