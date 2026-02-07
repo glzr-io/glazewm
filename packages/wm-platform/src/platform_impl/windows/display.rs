@@ -21,7 +21,7 @@ use crate::{
     ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
     OutputTechnology,
   },
-  Dispatcher, NativeWindow, Point, Rect, Result,
+  Dispatcher, NativeWindow, Point, Rect,
 };
 
 /// Windows-specific extensions for `Display`.
@@ -64,7 +64,7 @@ pub trait DisplayDeviceExtWindows {
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  fn output_technology(&self) -> Result<Option<OutputTechnology>>;
+  fn output_technology(&self) -> crate::Result<Option<OutputTechnology>>;
 }
 
 impl DisplayExtWindows for crate::Display {
@@ -86,7 +86,7 @@ impl DisplayDeviceExtWindows for crate::DisplayDevice {
       .map(ToString::to_string)
   }
 
-  fn output_technology(&self) -> Result<Option<OutputTechnology>> {
+  fn output_technology(&self) -> crate::Result<Option<OutputTechnology>> {
     self.inner.output_technology()
   }
 }
@@ -110,7 +110,7 @@ impl Display {
   }
 
   /// Gets the display name.
-  pub fn name(&self) -> Result<String> {
+  pub fn name(&self) -> crate::Result<String> {
     Ok(
       String::from_utf16_lossy(&self.monitor_info_ex()?.szDevice)
         .trim_end_matches('\0')
@@ -119,26 +119,26 @@ impl Display {
   }
 
   /// Gets the full bounds rectangle of the display.
-  pub fn bounds(&self) -> Result<Rect> {
+  pub fn bounds(&self) -> crate::Result<Rect> {
     let rc = self.monitor_info_ex()?.monitorInfo.rcMonitor;
     Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
   /// Gets the working area rectangle (excluding system UI).
-  pub fn working_area(&self) -> Result<Rect> {
+  pub fn working_area(&self) -> crate::Result<Rect> {
     let rc = self.monitor_info_ex()?.monitorInfo.rcWork;
     Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
   /// Gets the scale factor for the display.
-  pub fn scale_factor(&self) -> Result<f32> {
+  pub fn scale_factor(&self) -> crate::Result<f32> {
     let dpi = self.dpi()?;
     #[allow(clippy::cast_precision_loss)]
     Ok(dpi as f32 / 96.0)
   }
 
   /// Gets the DPI for the display.
-  pub fn dpi(&self) -> Result<u32> {
+  pub fn dpi(&self) -> crate::Result<u32> {
     let mut dpi_x = u32::default();
     let mut dpi_y = u32::default();
 
@@ -156,7 +156,7 @@ impl Display {
   }
 
   /// Returns whether this is the primary display.
-  pub fn is_primary(&self) -> Result<bool> {
+  pub fn is_primary(&self) -> crate::Result<bool> {
     // Check for `MONITORINFOF_PRIMARY` flag (`0x1`).
     Ok(self.monitor_info_ex()?.monitorInfo.dwFlags & 0x1 != 0)
   }
@@ -165,7 +165,7 @@ impl Display {
   ///
   /// Enumerates monitor devices attached to the adapter associated with
   /// this display.
-  pub fn devices(&self) -> Result<Vec<crate::DisplayDevice>> {
+  pub fn devices(&self) -> crate::Result<Vec<crate::DisplayDevice>> {
     let monitor_info = self.monitor_info_ex()?;
 
     let adapter_name = String::from_utf16_lossy(&monitor_info.szDevice)
@@ -213,7 +213,7 @@ impl Display {
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(&self) -> Result<crate::DisplayDevice> {
+  pub fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
     self
       .devices()?
       .into_iter()
@@ -227,7 +227,7 @@ impl Display {
   }
 
   /// Ref: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfow
-  fn monitor_info_ex(&self) -> Result<MONITORINFOEXW> {
+  fn monitor_info_ex(&self) -> crate::Result<MONITORINFOEXW> {
     let mut monitor_info = MONITORINFOEXW {
       monitorInfo: MONITORINFO {
         #[allow(clippy::cast_possible_truncation)]
@@ -294,7 +294,7 @@ impl DisplayDevice {
   }
 
   /// Gets the rotation of the device in degrees.
-  pub fn rotation(&self) -> Result<f32> {
+  pub fn rotation(&self) -> crate::Result<f32> {
     let orientation = self.current_device_mode()?.dmDisplayOrientation;
 
     Ok(match orientation {
@@ -307,39 +307,41 @@ impl DisplayDevice {
   }
 
   /// Gets the output technology.
-  pub fn output_technology(&self) -> Result<Option<OutputTechnology>> {
+  pub fn output_technology(
+    &self,
+  ) -> crate::Result<Option<OutputTechnology>> {
     // TODO: Use `DisplayConfigGetDeviceInfo` to get the output technology.
     Ok(Some(OutputTechnology::Unknown))
   }
 
   /// Returns whether this is a built-in device.
-  pub fn is_builtin(&self) -> Result<bool> {
+  pub fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Use `DisplayConfigGetDeviceInfo` to determine whether the
     // output technology is internal.
     Ok(false)
   }
 
   /// Gets the connection state of the device.
-  pub fn connection_state(&self) -> Result<ConnectionState> {
+  pub fn connection_state(&self) -> crate::Result<ConnectionState> {
     // TODO: Detect disconnected state.
     Ok(ConnectionState::Active)
   }
 
   /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
+  pub fn mirroring_state(&self) -> crate::Result<Option<MirroringState>> {
     // TODO: Implement mirroring detection using
     // `DisplayConfigGetDeviceInfo`.
     Ok(None)
   }
 
   /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> Result<f32> {
+  pub fn refresh_rate(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
   }
 
   /// Gets the current device mode.
-  fn current_device_mode(&self) -> Result<DEVMODEW> {
+  fn current_device_mode(&self) -> crate::Result<DEVMODEW> {
     #[allow(clippy::cast_possible_truncation)]
     let mut device_mode = DEVMODEW {
       dmSize: std::mem::size_of::<DEVMODEW>() as u32,

@@ -18,7 +18,6 @@ use windows::Win32::{
 };
 
 use super::{NativeWindow, PlatformEvent};
-use crate::Result;
 
 /// Global instance of `WindowEventHook`.
 ///
@@ -68,7 +67,7 @@ impl WindowEventHook {
   }
 
   /// Creates several window event hooks via `SetWinEventHook`.
-  fn hook_win_events() -> Result<Vec<HWINEVENTHOOK>> {
+  fn hook_win_events() -> crate::Result<Vec<HWINEVENTHOOK>> {
     let event_ranges = [
       (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
       (EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE),
@@ -96,7 +95,7 @@ impl WindowEventHook {
   fn hook_win_event(
     event_min: u32,
     event_max: u32,
-  ) -> Result<HWINEVENTHOOK> {
+  ) -> crate::Result<HWINEVENTHOOK> {
     let hook_handle = unsafe {
       SetWinEventHook(
         event_min,
