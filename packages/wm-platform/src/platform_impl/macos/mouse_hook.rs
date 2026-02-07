@@ -108,18 +108,18 @@ impl MouseHook {
   ///
   /// The callback is executed for every received mouse notification.
   pub fn new<F>(
-    dispatcher: &Dispatcher,
     enabled_events: &[crate::mouse_listener::MouseEventType],
     callback: F,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where
     F: Fn(MouseEventNotification) + Send + Sync + 'static,
   {
     let tap_port = dispatcher.dispatch_sync(|| {
       Self::create_event_tap(
-        dispatcher,
         enabled_events,
         Box::new(callback),
+        dispatcher,
       )
     })??;
 
@@ -131,9 +131,9 @@ impl MouseHook {
   /// Creates and registers a `CGEventTap` for mouse events on the run
   /// loop.
   fn create_event_tap(
-    dispatcher: &Dispatcher,
     enabled_events: &[crate::mouse_listener::MouseEventType],
     callback: Box<HookCallback>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
     let mask = Self::event_mask_from_enabled(enabled_events);
 

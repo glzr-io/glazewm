@@ -79,8 +79,8 @@ pub struct KeybindingListener {
 impl KeybindingListener {
   /// Creates an instance of `KeybindingListener`.
   pub fn new(
-    dispatcher: &Dispatcher,
     keybindings: &[Keybinding],
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
@@ -90,10 +90,10 @@ impl KeybindingListener {
     let enabled = Arc::new(AtomicBool::new(true));
 
     let keyboard_hook = Self::create_keyboard_hook(
-      dispatcher,
       keybinding_map.clone(),
       enabled.clone(),
       event_tx,
+      dispatcher,
     )?;
 
     Ok(Self {
@@ -106,13 +106,12 @@ impl KeybindingListener {
 
   /// Creates and starts the keyboard hook with the given callback.
   fn create_keyboard_hook(
-    dispatcher: &Dispatcher,
     keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
     enabled: Arc<AtomicBool>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<platform_impl::KeyboardHook> {
     platform_impl::KeyboardHook::new(
-      dispatcher,
       move |event: platform_impl::KeyEvent| -> bool {
         if !enabled.load(Ordering::Relaxed) || !event.is_keypress {
           return false;
@@ -187,6 +186,7 @@ impl KeybindingListener {
 
         false
       },
+      dispatcher,
     )
   }
 

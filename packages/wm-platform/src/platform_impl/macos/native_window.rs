@@ -505,7 +505,7 @@ pub(crate) fn focused_window(
       // Get the frontmost (active) application.
       let frontmost_app = NSWorkspace::sharedWorkspace()
         .frontmostApplication()
-        .map(|app| Application::new(dispatcher.clone(), app));
+        .map(|app| Application::new(app, dispatcher.clone()));
 
       // Query the focused window of the frontmost application.
       frontmost_app.and_then(|app| app.focused_window().ok().flatten())
@@ -517,8 +517,8 @@ pub(crate) fn focused_window(
 // TODO: Move this to a better-suited module.
 pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
   let Some(application) = platform_impl::application_for_bundle_id(
-    dispatcher,
     "com.apple.finder",
+    dispatcher,
   )?
   else {
     return Err(crate::Error::Platform(

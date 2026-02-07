@@ -139,7 +139,7 @@ impl WindowListener {
           let events_tx = events_tx.clone();
 
           let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(|| {
-            let app = Application::new(dispatcher.clone(), running_app);
+            let app = Application::new(running_app, dispatcher.clone());
             if !app.should_observe() {
               return Err(crate::Error::Platform(format!(
                 "Skipped observer registration for PID {} (should ignore).",
@@ -181,7 +181,7 @@ impl WindowListener {
         ) => {
           let Ok(Ok(Some(focused_window))) =
             dispatcher.dispatch_sync(|| {
-              let app = Application::new(dispatcher.clone(), running_app);
+              let app = Application::new(running_app, dispatcher.clone());
               app.focused_window()
             })
           else {

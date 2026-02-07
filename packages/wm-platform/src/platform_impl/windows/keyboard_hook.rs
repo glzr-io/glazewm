@@ -115,8 +115,8 @@ impl KeyboardHook {
   /// Panics when attempting to register multiple hooks on the dispatcher's
   /// thread.
   pub fn new<F>(
-    dispatcher: &Dispatcher,
     callback: F,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,

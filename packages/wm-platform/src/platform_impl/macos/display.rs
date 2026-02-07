@@ -429,8 +429,8 @@ pub fn active_display_devices(
 
 /// macOS-specific implementation of [`Dispatcher::display_from_point`].
 pub fn display_from_point(
-  dispatcher: &Dispatcher,
   point: Point,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 

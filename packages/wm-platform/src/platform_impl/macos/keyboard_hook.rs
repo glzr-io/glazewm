@@ -80,14 +80,14 @@ impl KeyboardHook {
   /// The callback is called for every keyboard event and returns
   /// `true` if the event should be intercepted.
   pub fn new<F>(
-    dispatcher: &Dispatcher,
     callback: F,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
     let tap_port = dispatcher
-      .dispatch_sync(|| Self::create_event_tap(dispatcher, callback))??;
+      .dispatch_sync(|| Self::create_event_tap(callback, dispatcher))??;
 
     Ok(Self {
       tap_port: Some(tap_port),
@@ -96,8 +96,8 @@ impl KeyboardHook {
 
   /// Creates a `CGEventTap` object.
   pub fn create_event_tap<F>(
-    dispatcher: &Dispatcher,
     callback: F,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>>
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,

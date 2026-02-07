@@ -128,20 +128,20 @@ async fn start_wm(
 
   // Start listening for platform events after populating initial state.
   let mut mouse_listener = MouseListener::new(
-    dispatcher,
     if config.value.general.focus_follows_cursor {
       vec![MouseEventType::Move, MouseEventType::LeftClickUp]
     } else {
       vec![MouseEventType::LeftClickUp]
     },
+    dispatcher,
   )?;
   let mut window_listener = WindowListener::new(dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
-    dispatcher,
     &config
       .active_keybinding_configs(&[], false)
       .flat_map(|kb| kb.bindings)
       .collect::<Vec<_>>(),
+    dispatcher,
   )?;
 
   // Run startup commands.

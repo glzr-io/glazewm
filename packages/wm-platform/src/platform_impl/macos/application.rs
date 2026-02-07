@@ -25,8 +25,8 @@ pub struct Application {
 
 impl Application {
   pub(crate) fn new(
-    dispatcher: Dispatcher,
     ns_app: Retained<NSRunningApplication>,
+    dispatcher: Dispatcher,
   ) -> Self {
     let pid = unsafe { ns_app.processIdentifier() };
     let ax_element = Arc::new(ThreadBound::new(
@@ -148,14 +148,14 @@ pub(crate) fn all_applications(
 
     running_apps
       .iter()
-      .map(|app| Application::new(dispatcher.clone(), app))
+      .map(|app| Application::new(app, dispatcher.clone()))
       .collect()
   })
 }
 
 pub(crate) fn application_for_bundle_id(
-  dispatcher: &Dispatcher,
   bundle_id: &str,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<Option<Application>> {
   let bundle_id = bundle_id.to_owned();
   dispatcher.dispatch_sync(|| {
@@ -168,6 +168,6 @@ pub(crate) fn application_for_bundle_id(
     apps
       .into_iter()
       .next()
-      .map(|app| Application::new(dispatcher.clone(), app))
+      .map(|app| Application::new(app, dispatcher.clone()))
   })
 }

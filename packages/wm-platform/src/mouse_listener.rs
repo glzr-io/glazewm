@@ -35,15 +35,15 @@ pub struct MouseListener {
 impl MouseListener {
   /// Creates a new mouse listener with the specified enabled events.
   pub fn new(
-    dispatcher: &Dispatcher,
     enabled_events: Vec<MouseEventType>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
 
     let mouse_hook = Self::create_mouse_hook(
-      dispatcher,
       &enabled_events,
       event_tx.clone(),
+      dispatcher,
     )?;
 
     Ok(Self {
@@ -83,9 +83,9 @@ impl MouseListener {
     }
 
     let updated_hook = Self::create_mouse_hook(
-      &self.dispatcher,
       &enabled_events,
       self.event_tx.clone(),
+      &self.dispatcher,
     )?;
 
     self.enabled_events = enabled_events;
@@ -95,12 +95,11 @@ impl MouseListener {
 
   /// Creates and starts the mouse hook with the given callback.
   fn create_mouse_hook(
-    dispatcher: &Dispatcher,
     enabled_events: &[MouseEventType],
     event_tx: mpsc::UnboundedSender<MouseEvent>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<platform_impl::MouseHook> {
     platform_impl::MouseHook::new(
-      dispatcher,
       enabled_events,
       move |notification: MouseEventNotification| {
         let event_type = notification.0.event_type();
@@ -140,6 +139,7 @@ impl MouseListener {
           }
         }
       },
+      dispatcher,
     )
   }
 }

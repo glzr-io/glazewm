@@ -228,7 +228,7 @@ impl Dispatcher {
     &self,
     point: Point,
   ) -> crate::Result<Display> {
-    platform_impl::display_from_point(self, point)
+    platform_impl::display_from_point(point, self)
   }
 
   /// Gets the primary display.
