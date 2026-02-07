@@ -144,6 +144,7 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
 
   for workspace in state.workspaces() {
     workspace.set_gaps_config(config.value.gaps.clone());
+    workspace.set_max_window_width(config.value.general.max_window_width.clone());
   }
 }
 

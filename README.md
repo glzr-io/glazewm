@@ -120,6 +120,12 @@ general:
     # - 'monitor_focus': Jump when focus changes between monitors.
     # - 'window_focus': Jump when focus changes between windows.
     trigger: "monitor_focus"
+
+  # Maximum width for tiling windows. When set, windows will not exceed this
+  # width and will be centered in the available space. Useful for ultra-wide
+  # monitors where you don't want windows to span the entire width.
+  # Example: max_window_width: "1400px" or "80%"
+  # max_window_width: null
 ```
 
 ### Config: Keybindings

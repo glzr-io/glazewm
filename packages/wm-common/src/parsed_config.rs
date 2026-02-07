@@ -93,6 +93,11 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Maximum width for tiling windows. When set, windows will not exceed
+  /// this width and will be centered in the available space. Useful for
+  /// ultra-wide monitors.
+  pub max_window_width: Option<LengthValue>,
 }
 
 impl Default for GeneralConfig {
@@ -106,6 +111,7 @@ impl Default for GeneralConfig {
       config_reload_commands: vec![],
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
+      max_window_width: None,
     }
   }
 }

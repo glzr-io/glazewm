@@ -39,6 +39,12 @@ general:
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
 
+  # Maximum width for tiling windows. When set, windows will not exceed this
+  # width and will be centered in the available space. Useful for ultra-wide
+  # monitors where you don't want windows to span the entire width.
+  # Example: max_window_width: '1400px'
+  # max_window_width: null
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true
