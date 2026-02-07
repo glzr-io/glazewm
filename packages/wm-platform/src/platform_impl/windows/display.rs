@@ -21,7 +21,7 @@ use crate::{
     ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
     OutputTechnology,
   },
-  Point, Rect, Result,
+  Dispatcher, NativeWindow, Point, Rect, Result,
 };
 
 /// Windows-specific extensions for `Display`.
@@ -36,6 +36,29 @@ pub trait DisplayExtWindows {
 
 /// Windows-specific extensions for `DisplayDevice`.
 pub trait DisplayDeviceExtWindows {
+  /// Gets the device interface path.
+  ///
+  /// This can be an empty string for virtual display devices.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn device_interface_path(&self) -> &str;
+
+  /// Gets the hardware ID from the device interface path.
+  ///
+  /// # Example usage
+  ///
+  /// ```rust,no_run
+  /// device.device_interface_path(); // "\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
+  /// device.hardware_id(); // Some("DEL40A3")
+  /// ```
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hardware_id(&self) -> Option<String>;
+
   /// Gets the output technology.
   ///
   /// # Platform-specific
@@ -46,11 +69,23 @@ pub trait DisplayDeviceExtWindows {
 
 impl DisplayExtWindows for crate::Display {
   fn hmonitor(&self) -> HMONITOR {
-    self.inner.hmonitor()
+    HMONITOR(self.monitor_handle)
   }
 }
 
 impl DisplayDeviceExtWindows for crate::DisplayDevice {
+  fn device_interface_path(&self) -> &str {
+    &self.device_interface_path
+  }
+
+  fn hardware_id(&self) -> Option<String> {
+    self
+      .device_interface_path
+      .split('#')
+      .nth(1)
+      .map(ToString::to_string)
+  }
+
   fn output_technology(&self) -> Result<Option<OutputTechnology>> {
     self.inner.output_technology()
   }
@@ -72,11 +107,6 @@ impl Display {
   /// Gets the unique identifier for this display.
   pub fn id(&self) -> DisplayId {
     DisplayId(self.monitor_handle)
-  }
-
-  /// Gets the Windows monitor handle.
-  pub fn hmonitor(&self) -> HMONITOR {
-    HMONITOR(self.monitor_handle)
   }
 
   /// Gets the display name.
@@ -121,6 +151,7 @@ impl Display {
       )
     }?;
 
+    // Arbitrarily choose the Y DPI.
     Ok(dpi_y)
   }
 
@@ -141,7 +172,7 @@ impl Display {
       .trim_end_matches('\0')
       .to_string();
 
-    // Get the display devices associated with the monitor's adapter.
+    // Get the display devices associated with the display's adapter.
     let devices = (0u32..)
       .map_while(|index| {
         #[allow(clippy::cast_possible_truncation)]
@@ -151,8 +182,8 @@ impl Display {
         };
 
         // When passing the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the
-        // returned `DISPLAY_DEVICEW` will contain the DOS device path in
-        // the `DeviceID` field.
+        // returned `DISPLAY_DEVICEW` will contain the device interface
+        // path in the `DeviceID` field.
         unsafe {
           EnumDisplayDevicesW(
             PCWSTR(monitor_info.szDevice.as_ptr()),
@@ -167,21 +198,14 @@ impl Display {
       // Filter out any devices that are not active.
       .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0)
       .map(|device| {
-        let dos_device_path = String::from_utf16_lossy(&device.DeviceID)
-          .trim_end_matches('\0')
-          .to_string();
+        // NOTE: This may be an empty string for virtual display devices.
+        let device_interface_path =
+          String::from_utf16_lossy(&device.DeviceID)
+            .trim_end_matches('\0')
+            .to_string();
 
-        let hardware_id = dos_device_path
-          .split('#')
-          .nth(1)
-          .map_or_else(String::new, ToString::to_string);
-
-        DisplayDevice {
-          adapter_name: adapter_name.clone(),
-          hardware_id,
-          monitor_state_flags: device.StateFlags,
-        }
-        .into()
+        DisplayDevice::new(adapter_name.clone(), device_interface_path)
+          .into()
       })
       .collect();
 
@@ -239,39 +263,34 @@ impl PartialEq for Display {
 
 impl Eq for Display {}
 
-/// Windows-specific display device implementation.
-///
-/// Represents a physical monitor device attached to a display adapter.
+/// Windows-specific implementation of [`DisplayDevice`].
 #[derive(Clone, Debug)]
 pub struct DisplayDevice {
-  /// The adapter name (e.g., `\\.\DISPLAY1`).
-  pub(crate) adapter_name: String,
+  /// Display adapter name (e.g. `\\.\DISPLAY1`).
+  adapter_name: String,
 
-  /// The monitor hardware ID (e.g., `DEL4042`).
-  pub(crate) hardware_id: String,
-
-  /// Monitor-level state flags from `EnumDisplayDevicesW`.
-  pub(crate) monitor_state_flags: u32,
+  /// Device interface path (e.g.
+  /// `\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#
+  /// {e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}`).
+  device_interface_path: String,
 }
 
 impl DisplayDevice {
   /// Creates a new Windows display device.
   #[must_use]
-  pub fn new(
-    adapter_name: String,
-    hardware_id: String,
-    monitor_state_flags: u32,
-  ) -> Self {
+  pub fn new(adapter_name: String, device_interface_path: String) -> Self {
     Self {
       adapter_name,
-      hardware_id,
-      monitor_state_flags,
+      device_interface_path,
     }
   }
 
   /// Gets the unique identifier for this display device.
   pub fn id(&self) -> DisplayDeviceId {
-    DisplayDeviceId(self.hardware_id.clone())
+    // TODO: Display adapter name might not be unique.
+    DisplayDeviceId(
+      self.hardware_id().unwrap_or_else(|| self.adapter_name),
+    )
   }
 
   /// Gets the rotation of the device in degrees.
@@ -289,31 +308,26 @@ impl DisplayDevice {
 
   /// Gets the output technology.
   pub fn output_technology(&self) -> Result<Option<OutputTechnology>> {
-    // TODO: Use `DisplayConfigGetDeviceInfo` to get the
-    // actual output technology.
+    // TODO: Use `DisplayConfigGetDeviceInfo` to get the output technology.
     Ok(Some(OutputTechnology::Unknown))
   }
 
   /// Returns whether this is a built-in device.
   pub fn is_builtin(&self) -> Result<bool> {
-    // TODO: Use `DisplayConfigGetDeviceInfo` to determine
-    // whether the output technology is internal.
+    // TODO: Use `DisplayConfigGetDeviceInfo` to determine whether the
+    // output technology is internal.
     Ok(false)
   }
 
   /// Gets the connection state of the device.
   pub fn connection_state(&self) -> Result<ConnectionState> {
     // TODO: Detect disconnected state.
-    if self.monitor_state_flags & DISPLAY_DEVICE_ACTIVE != 0 {
-      Ok(ConnectionState::Active)
-    } else {
-      Ok(ConnectionState::Inactive)
-    }
+    Ok(ConnectionState::Active)
   }
 
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> Result<Option<MirroringState>> {
-    // TODO: Implement proper mirroring detection using
+    // TODO: Implement mirroring detection using
     // `DisplayConfigGetDeviceInfo`.
     Ok(None)
   }
@@ -332,15 +346,15 @@ impl DisplayDevice {
       ..Default::default()
     };
 
-    let wide_name: Vec<u16> = self
+    let wide_adapter_name = self
       .adapter_name
       .encode_utf16()
       .chain(std::iter::once(0))
-      .collect();
+      .collect::<Vec<_>>();
 
     unsafe {
       EnumDisplaySettingsW(
-        PCWSTR(wide_name.as_ptr()),
+        PCWSTR(wide_adapter_name.as_ptr()),
         ENUM_CURRENT_SETTINGS,
         &raw mut device_mode,
       )
@@ -358,9 +372,7 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 }
 
 /// Windows-specific implementation of [`Dispatcher::displays`].
-pub fn all_displays(
-  _: &crate::Dispatcher,
-) -> crate::Result<Vec<crate::Display>> {
+pub fn all_displays(_: &Dispatcher) -> crate::Result<Vec<crate::Display>> {
   let mut monitor_handles: Vec<isize> = Vec::new();
 
   // Callback for `EnumDisplayMonitors` to collect monitor handles.
@@ -397,98 +409,20 @@ pub fn all_displays(
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_devices`].
-///
-/// Enumerates all active monitor devices across all display adapters.
 pub fn all_display_devices(
-  _: &crate::Dispatcher,
+  dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
-  let mut devices = Vec::new();
-
-  // Enumerate display adapters (level 1).
-  for adapter_index in 0u32.. {
-    #[allow(clippy::cast_possible_truncation)]
-    let mut adapter = DISPLAY_DEVICEW {
-      cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
-      ..Default::default()
-    };
-
-    let found = unsafe {
-      EnumDisplayDevicesW(
-        PCWSTR::null(),
-        adapter_index,
-        &raw mut adapter,
-        0,
-      )
-    };
-
-    if !found.as_bool() {
-      break;
-    }
-
-    // Skip inactive adapters.
-    if adapter.StateFlags & DISPLAY_DEVICE_ACTIVE == 0 {
-      continue;
-    }
-
-    let adapter_name = String::from_utf16_lossy(&adapter.DeviceName)
-      .trim_end_matches('\0')
-      .to_string();
-
-    // Enumerate child monitor devices (level 2).
-    for monitor_index in 0u32.. {
-      #[allow(clippy::cast_possible_truncation)]
-      let mut monitor = DISPLAY_DEVICEW {
-        cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
-        ..Default::default()
-      };
-
-      // Due to `EDD_GET_DEVICE_INTERFACE_NAME`, the
-      // `DeviceID` field contains the DOS device path.
-      let found = unsafe {
-        EnumDisplayDevicesW(
-          PCWSTR(adapter.DeviceName.as_ptr()),
-          monitor_index,
-          &raw mut monitor,
-          EDD_GET_DEVICE_INTERFACE_NAME,
-        )
-      };
-
-      if !found.as_bool() {
-        break;
-      }
-
-      // Skip inactive monitors.
-      if monitor.StateFlags & DISPLAY_DEVICE_ACTIVE == 0 {
-        continue;
-      }
-
-      let device_path = String::from_utf16_lossy(&monitor.DeviceID)
-        .trim_end_matches('\0')
-        .to_string();
-
-      let hardware_id = device_path
-        .split('#')
-        .nth(1)
-        .map_or_else(String::new, ToString::to_string);
-
-      devices.push(
-        DisplayDevice::new(
-          adapter_name.clone(),
-          hardware_id,
-          monitor.StateFlags,
-        )
-        .into(),
-      );
-    }
-  }
-
-  Ok(devices)
+  all_displays(dispatcher)?
+    .into_iter()
+    .map(|display| display.devices())
+    .collect::<crate::Result<Vec<_>>>()
+    .map(|vecs| vecs.into_iter().flatten().collect())
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_from_point`].
 pub fn display_from_point(
   point: Point,
-  _: &crate::Dispatcher,
+  _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let handle = unsafe {
     MonitorFromPoint(
@@ -504,9 +438,7 @@ pub fn display_from_point(
 }
 
 /// Windows-specific implementation of [`Dispatcher::primary_display`].
-pub fn primary_display(
-  _: &crate::Dispatcher,
-) -> crate::Result<crate::Display> {
+pub fn primary_display(_: &Dispatcher) -> crate::Result<crate::Display> {
   let handle = unsafe {
     MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY)
   };
@@ -516,8 +448,8 @@ pub fn primary_display(
 
 /// Windows-specific implementation of [`Dispatcher::nearest_display`].
 pub fn nearest_display(
-  native_window: &crate::NativeWindow,
-  _: &crate::Dispatcher,
+  native_window: &NativeWindow,
+  _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let handle = unsafe {
     MonitorFromWindow(native_window.hwnd(), MONITOR_DEFAULTTONEAREST)

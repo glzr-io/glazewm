@@ -23,6 +23,8 @@ use crate::Result;
 /// Global instance of `WindowEventHook`.
 ///
 /// For use with hook procedure.
+///
+/// TODO: Change this be thread-local.
 static WIN_EVENT_HOOK: OnceLock<Arc<WindowEventHook>> = OnceLock::new();
 
 /// Windows-specific window event notification.
@@ -46,7 +48,9 @@ impl WindowEventHook {
     });
 
     WIN_EVENT_HOOK.set(win_event_hook.clone()).map_err(|_| {
-      crate::Error::Platform("Window event hook already running.".to_string())
+      crate::Error::Platform(
+        "Window event hook already running.".to_string(),
+      )
     })?;
 
     Ok(win_event_hook)
