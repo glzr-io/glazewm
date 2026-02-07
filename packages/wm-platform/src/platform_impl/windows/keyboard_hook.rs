@@ -34,7 +34,7 @@ thread_local! {
   ///
   /// The hook callback is called for every keyboard event and returns
   /// `true` if the event should be intercepted.
-  static HOOK: Cell<Option<Box<dyn FnMut(KeyEvent) -> bool>>> = Cell::default();
+  static HOOK: Cell<Option<Box<dyn Fn(KeyEvent) -> bool>>> = Cell::default();
 }
 
 /// Windows-specific keyboard event.
@@ -101,40 +101,50 @@ impl KeyEvent {
 #[derive(Debug)]
 pub struct KeyboardHook {
   handle: HHOOK,
+  dispatcher: Dispatcher,
 }
 
 impl KeyboardHook {
-  /// Creates a new low-level keyboard hook for the main thread.
+  /// Creates a new low-level keyboard hook for the dispatcher's thread.
+  ///
+  /// The callback is called for every keyboard event and returns `true` if
+  /// the event should be intercepted.
   ///
   /// # Panics
   ///
-  /// Panics when attempting to register multiple hooks.
-  #[must_use]
-  pub fn new<F>(dispatcher: Dispatcher, callback: F) -> crate::Result<Self>
+  /// Panics when attempting to register multiple hooks on the dispatcher's
+  /// thread.
+  pub fn new<F>(
+    dispatcher: &Dispatcher,
+    callback: F,
+  ) -> crate::Result<Self>
   where
-    F: FnMut(KeyEvent) -> bool + 'static,
+    F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
-    let handle = dispatcher.dispatch_sync(|| {
+    let handle = dispatcher.dispatch_sync(move || {
       HOOK.with(|state| {
         assert!(
           state.take().is_none(),
-          "Only one keyboard hook can be registered on the main thread."
+          "Only one keyboard hook can be registered on the dispatcher's thread."
         );
 
         state.set(Some(Box::new(callback)));
+      });
 
-        unsafe {
-          SetWindowsHookExW(
-            WH_KEYBOARD_LL,
-            Some(Self::hook_proc),
-            ptr::null_mut(),
-            0,
-          )
-        }
-      })??;
+      unsafe {
+        SetWindowsHookExW(
+          WH_KEYBOARD_LL,
+          Some(Self::hook_proc),
+          ptr::null_mut(),
+          0,
+        )
+      }
+    })??;
 
-      Ok(KeyboardHook { handle })
-    });
+    Ok(Self {
+      handle,
+      dispatcher: dispatcher.clone(),
+    })
   }
 
   /// Hook procedure for keyboard events.
@@ -162,7 +172,7 @@ impl KeyboardHook {
       KeyEvent::new(Key::from(key_code), key_code, is_keydown);
 
     let should_intercept = HOOK.with(|state| {
-      if let Some(mut callback) = state.take() {
+      if let Some(callback) = state.take() {
         let result = callback(key_event);
         state.set(Some(callback));
         result
@@ -178,16 +188,24 @@ impl KeyboardHook {
     unsafe { CallNextHookEx(None, code, wparam, lparam) }
   }
 
-  /// Stops the keyboard hook by unregistering it.
-  pub fn stop(&mut self) -> crate::Result<()> {
+  /// Terminates the keyboard hook by unregistering it.
+  pub fn terminate(&mut self) -> crate::Result<()> {
     unsafe { UnhookWindowsHookEx(self.handle) }?;
-    HOOK.with(|state| state.take());
+
+    // Dispatch cleanup to the event loop thread since the callback
+    // is stored in a thread-local on that thread.
+    let _ = self.dispatcher.dispatch_async(|| {
+      HOOK.with(|state| {
+        state.take();
+      });
+    });
+
     Ok(())
   }
 }
 
 impl Drop for KeyboardHook {
   fn drop(&mut self) {
-    let _ = self.stop();
+    let _ = self.terminate();
   }
 }

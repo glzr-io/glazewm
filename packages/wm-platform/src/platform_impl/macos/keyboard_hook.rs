@@ -200,14 +200,6 @@ impl KeyboardHook {
     }
   }
 
-  /// Enables or disables the event tap.
-  pub fn enable(&mut self, enabled: bool) {
-    if let Some(tap_port) = &self.tap_port {
-      let _ =
-        tap_port.with(|tap| unsafe { CGEvent::tap_enable(tap, enabled) });
-    }
-  }
-
   /// Terminates the keyboard hook by invalidating the event tap.
   #[allow(clippy::unnecessary_wraps)]
   pub fn terminate(&mut self) -> crate::Result<()> {

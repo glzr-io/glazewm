@@ -1,6 +1,9 @@
 use std::{
   collections::HashMap,
-  sync::{Arc, Mutex},
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+  },
 };
 
 use tokio::sync::mpsc;
@@ -66,6 +69,9 @@ pub struct KeybindingListener {
   /// trigger key.
   keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
 
+  /// Whether the listener is currently enabled.
+  enabled: Arc<AtomicBool>,
+
   /// The underlying keyboard hook used to listen for key events.
   keyboard_hook: platform_impl::KeyboardHook,
 }
@@ -81,15 +87,19 @@ impl KeybindingListener {
     let keybinding_map =
       Arc::new(Mutex::new(Self::create_keybinding_map(keybindings)));
 
+    let enabled = Arc::new(AtomicBool::new(true));
+
     let keyboard_hook = Self::create_keyboard_hook(
       dispatcher,
       keybinding_map.clone(),
+      enabled.clone(),
       event_tx,
     )?;
 
     Ok(Self {
       event_rx,
       keybinding_map,
+      enabled,
       keyboard_hook,
     })
   }
@@ -98,12 +108,13 @@ impl KeybindingListener {
   fn create_keyboard_hook(
     dispatcher: &Dispatcher,
     keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
+    enabled: Arc<AtomicBool>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
   ) -> crate::Result<platform_impl::KeyboardHook> {
     platform_impl::KeyboardHook::new(
       dispatcher,
       move |event: platform_impl::KeyEvent| -> bool {
-        if !event.is_keypress {
+        if !enabled.load(Ordering::Relaxed) || !event.is_keypress {
           return false;
         }
 
@@ -226,7 +237,7 @@ impl KeybindingListener {
 
   /// Enables or disables the keybinding listener.
   pub fn enable(&mut self, enabled: bool) {
-    self.keyboard_hook.enable(enabled);
+    self.enabled.store(enabled, Ordering::Relaxed);
   }
 
   /// Terminates the keybinding listener.
