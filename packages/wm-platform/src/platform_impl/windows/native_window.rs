@@ -5,7 +5,7 @@ use tracing::warn;
 use windows::{
   core::PWSTR,
   Win32::{
-    Foundation::{CloseHandle, BOOL, HWND, LPARAM, RECT},
+    Foundation::{CloseHandle, BOOL, HWND, LPARAM, POINT, RECT},
     Graphics::Dwm::{
       DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
       DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
@@ -21,13 +21,14 @@ use windows::{
         SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
       },
       WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
+        EnumWindows, GetClassNameW, GetDesktopWindow, GetForegroundWindow,
+        GetLayeredWindowAttributes, GetShellWindow, GetWindow,
         GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
-        SendNotifyMessageW, SetForegroundWindow,
+        GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible,
+        IsZoomed, SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
-        SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
-        HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
+        SetWindowPos, ShowWindowAsync, WindowFromPoint, GWL_EXSTYLE,
+        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
         LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
         SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
         SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
@@ -43,8 +44,8 @@ use windows::{
 
 use super::COM_INIT;
 use crate::{
-  Color, CornerStyle, Delta, HideMethod, LengthValue, OpacityValue, Rect,
-  RectDelta, WindowState, ZOrder,
+  Color, CornerStyle, Delta, Dispatcher, HideMethod, LengthValue,
+  OpacityValue, Point, Rect, RectDelta, WindowId, WindowState, ZOrder,
 };
 
 /// Magic number used to identify programmatic mouse inputs from our own
@@ -52,8 +53,14 @@ use crate::{
 pub(crate) const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
 pub trait NativeWindowWindowsExt {
+  /// Gets the window handle.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hwnd(&self) -> HWND;
+
   fn class_name(&self) -> crate::Result<String>;
-  fn process_name(&self) -> crate::Result<String>;
   fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()>;
   fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()>;
   fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
@@ -65,13 +72,6 @@ pub trait NativeWindowWindowsExt {
     &self,
     opacity_value: &OpacityValue,
   ) -> crate::Result<()>;
-
-  /// Gets the window handle.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn hwnd(&self) -> HWND;
 
   /// Sets the window's z-order.
   ///
@@ -109,7 +109,7 @@ impl NativeWindowWindowsExt for NativeWindow {
 
 #[derive(Clone, Debug)]
 pub struct NativeWindow {
-  handle: isize,
+  pub(crate) handle: isize,
 }
 
 impl NativeWindow {
@@ -119,13 +119,15 @@ impl NativeWindow {
     Self { handle }
   }
 
+  /// Gets the unique identifier for this window.
+  #[must_use]
+  pub(crate) fn id(&self) -> WindowId {
+    WindowId(self.handle)
+  }
+
   /// Gets the window's title. If the window is invalid, returns an
   /// empty string.
   pub(crate) fn title(&self) -> crate::Result<String> {
-    if !unsafe { IsWindow(self.hwnd()) }.as_bool() {
-      return crate::Error::WindowNotFound;
-    }
-
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(self.hwnd(), &mut text) };
 
@@ -240,7 +242,7 @@ impl NativeWindow {
     }
 
     // Ensure window position is accessible.
-    self.invalidate_frame_position()?;
+    let _ = self.frame()?;
 
     // Some applications spawn top-level windows for menus that should be
     // ignored. This includes the autocomplete popup in Notepad++ and title
@@ -265,8 +267,13 @@ impl NativeWindow {
 
   /// Whether the window has resize handles.
   #[must_use]
-  pub(crate) fn is_resizable(&self) -> bool {
-    self.has_window_style(WS_THICKFRAME)
+  pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
+    Ok(self.has_window_style(WS_THICKFRAME))
+  }
+
+  /// Whether the window is the desktop window.
+  pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
+    Ok(*self == desktop_window())
   }
 
   /// Windows-specific implementation of [`NativeWindow::focus`].
@@ -444,7 +451,7 @@ impl NativeWindow {
 
   /// Gets the window's position, including the window's frame. Excludes
   /// the window's shadow borders.
-  pub(crate) fn frame_position(&self) -> crate::Result<Rect> {
+  pub(crate) fn frame(&self) -> crate::Result<Rect> {
     let mut rect = RECT::default();
 
     let dwm_res = unsafe {
@@ -487,6 +494,18 @@ impl NativeWindow {
     ))
   }
 
+  /// Gets the window's position as (x, y) coordinates.
+  pub(crate) fn position(&self) -> crate::Result<(f64, f64)> {
+    let frame = self.frame()?;
+    Ok((f64::from(frame.left), f64::from(frame.top)))
+  }
+
+  /// Gets the window's size as (width, height).
+  pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
+    let frame = self.frame()?;
+    Ok((f64::from(frame.width()), f64::from(frame.height())))
+  }
+
   /// Gets the delta between the window's frame and the window's border.
   /// This represents the size of a window's shadow borders.
   // TODO: Return tuple of (left, top, right, bottom) instead of
@@ -501,6 +520,78 @@ impl NativeWindow {
       LengthValue::from_px(border_pos.right - frame_pos.right),
       LengthValue::from_px(border_pos.bottom - frame_pos.bottom),
     ))
+  }
+
+  /// Resizes the window to the specified size.
+  pub(crate) fn resize(
+    &self,
+    width: i32,
+    height: i32,
+  ) -> crate::Result<()> {
+    unsafe {
+      SetWindowPos(
+        self.hwnd(),
+        HWND_TOP,
+        0,
+        0,
+        width,
+        height,
+        SWP_NOACTIVATE
+          | SWP_NOZORDER
+          | SWP_NOMOVE
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_ASYNCWINDOWPOS
+          | SWP_FRAMECHANGED,
+      )
+    }?;
+
+    Ok(())
+  }
+
+  /// Repositions the window to the specified position.
+  pub(crate) fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
+    unsafe {
+      SetWindowPos(
+        self.hwnd(),
+        HWND_TOP,
+        x,
+        y,
+        0,
+        0,
+        SWP_NOACTIVATE
+          | SWP_NOZORDER
+          | SWP_NOSIZE
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_ASYNCWINDOWPOS
+          | SWP_FRAMECHANGED,
+      )
+    }?;
+
+    Ok(())
+  }
+
+  /// Repositions and resizes the window to the specified rectangle.
+  pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
+    unsafe {
+      SetWindowPos(
+        self.hwnd(),
+        HWND_TOP,
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        SWP_NOACTIVATE
+          | SWP_NOZORDER
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_ASYNCWINDOWPOS
+          | SWP_FRAMECHANGED,
+      )
+    }?;
+
+    Ok(())
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
@@ -521,27 +612,39 @@ impl NativeWindow {
     (current_style & style) != 0
   }
 
-  pub(crate) fn restore_to_position(
+  /// Restores the window (unminimizes and unmaximizes).
+  ///
+  /// If `outer_frame` is provided, the window will be restored to the
+  /// specified position. This avoids flickering compared to restoring
+  /// and then repositioning the window.
+  pub(crate) fn restore(
     &self,
-    rect: &Rect,
+    outer_frame: Option<&Rect>,
   ) -> crate::Result<()> {
-    let placement = WINDOWPLACEMENT {
-      #[allow(clippy::cast_possible_truncation)]
-      length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
-      flags: WPF_ASYNCWINDOWPLACEMENT,
-      showCmd: SW_RESTORE.0 as u32,
-      rcNormalPosition: RECT {
-        left: rect.left,
-        top: rect.top,
-        right: rect.right,
-        bottom: rect.bottom,
-      },
-      ..Default::default()
-    };
+    match outer_frame {
+      None => {
+        unsafe { ShowWindowAsync(self.hwnd(), SW_RESTORE) }.ok()?;
+        Ok(())
+      }
+      Some(rect) => {
+        let placement = WINDOWPLACEMENT {
+          #[allow(clippy::cast_possible_truncation)]
+          length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
+          flags: WPF_ASYNCWINDOWPLACEMENT,
+          showCmd: SW_RESTORE.0 as u32,
+          rcNormalPosition: RECT {
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+          },
+          ..Default::default()
+        };
 
-    unsafe { SetWindowPlacement(self.hwnd(), &raw const placement) }?;
-
-    Ok(())
+        unsafe { SetWindowPlacement(self.hwnd(), &raw const placement) }?;
+        Ok(())
+      }
+    }
   }
 
   pub(crate) fn maximize(&self) -> crate::Result<()> {
@@ -821,9 +924,19 @@ impl NativeWindow {
       warn!("Failed to show window: {:?}", err);
     }
 
-    _ = self.set_taskbar_visibility(true);
-    _ = self.set_border_color(None);
-    _ = self.set_transparency(&OpacityValue::from_alpha(u8::MAX));
+    if let Err(err) = self.set_taskbar_visibility(true) {
+      warn!("Failed to restore taskbar visibility: {:?}", err);
+    }
+
+    if let Err(err) = self.set_border_color(None) {
+      warn!("Failed to reset border color: {:?}", err);
+    }
+
+    if let Err(err) =
+      self.set_transparency(&OpacityValue::from_alpha(u8::MAX))
+    {
+      warn!("Failed to reset transparency: {:?}", err);
+    }
   }
 }
 
@@ -844,7 +957,7 @@ impl From<NativeWindow> for crate::NativeWindow {
 /// Windows-specific implementation of [`Dispatcher::visible_windows`].
 pub(crate) fn visible_windows(
   _: &Dispatcher,
-) -> crate::Result<Vec<NativeWindow>> {
+) -> crate::Result<Vec<crate::NativeWindow>> {
   let mut handles: Vec<isize> = Vec::new();
 
   extern "system" fn visible_windows_proc(
@@ -883,7 +996,7 @@ pub(crate) fn focused_window(
 
 /// Windows-specific implementation of [`Dispatcher::window_from_point`].
 pub(crate) fn window_from_point(
-  point: &crate::Point,
+  point: &Point,
   _: &Dispatcher,
 ) -> crate::Result<Option<crate::NativeWindow>> {
   let point = POINT {
