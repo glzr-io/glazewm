@@ -37,3 +37,8 @@ pub use platform_impl::{
 };
 pub use thread_bound::*;
 pub use window_listener::*;
+#[cfg(target_os = "windows")]
+pub use windows::Win32::UI::WindowsAndMessaging::{
+  WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+  WS_EX_TOOLWINDOW,
+};

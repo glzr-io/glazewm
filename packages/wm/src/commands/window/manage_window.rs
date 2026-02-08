@@ -91,9 +91,7 @@ pub fn manage_window(
 fn check_is_manageable(
   native_window: &NativeWindow,
 ) -> anyhow::Result<Option<NativeWindowProperties>> {
-  let is_visible = native_window.is_visible()?;
-
-  if !is_visible {
+  if !native_window.is_visible()? {
     return Ok(None);
   }
 
@@ -109,7 +107,45 @@ fn check_is_manageable(
     }
   }
 
+  // Ensure window has a valid process name, title, etc.
   let native_properties = NativeWindowProperties::try_from(native_window)?;
+
+  #[cfg(target_os = "windows")]
+  {
+    use wm_platform::{
+      NativeWindowWindowsExt, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+      WS_EX_TOOLWINDOW,
+    };
+
+    // TODO: Temporary fix for managing Flow Launcher until a force manage
+    // command is added.
+    let is_flow_launcher = native_properties.process_name
+      == "Flow.Launcher"
+      && native_properties.title == "Flow.Launcher";
+
+    if !is_flow_launcher {
+      // Ensure window is top-level (i.e. not a child window). Ignore
+      // windows that cannot be focused or if they're unavailable in
+      // task switcher (alt+tab menu).
+      if native_window.has_window_style(WS_CHILD)
+        || native_window
+          .has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW)
+      {
+        return Ok(None);
+      }
+
+      // Some applications spawn top-level windows for menus that
+      // should be ignored. This includes the autocomplete popup in
+      // Notepad++ and title bar menu in Keepass. Although not
+      // foolproof, these can typically be identified by having an
+      // owner window and no title bar.
+      if native_window.has_owner_window()
+        && !native_window.has_window_style(WS_CAPTION)
+      {
+        return Ok(None);
+      }
+    }
+  }
 
   Ok(Some(native_properties))
 }

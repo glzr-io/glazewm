@@ -137,11 +137,39 @@ pub trait NativeWindowWindowsExt {
   ///
   /// TODO: Consider renaming this to `outer_frame`.`
   fn frame_with_shadows(&self) -> crate::Result<Rect>;
+
+  /// Whether the window has an owner window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_owner_window(&self) -> bool;
+
+  /// Whether the window has the given window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool;
+
+  /// Whether the window has the given extended window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool;
+
+  /// Adds the given extended window style flag(s) to the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE);
 }
 
-impl NativeWindowWindowsExt for NativeWindow {
+impl NativeWindowWindowsExt for crate::NativeWindow {
   fn hwnd(&self) -> HWND {
-    HWND(self.handle)
+    HWND(self.inner.handle)
   }
 
   fn class_name(&self) -> crate::Result<String> {
@@ -292,7 +320,7 @@ impl NativeWindowWindowsExt for NativeWindow {
       )
     }?;
 
-    let handle = self.handle;
+    let handle = self.inner.handle;
 
     // Z-order can sometimes still be incorrect after the
     // above call.
@@ -347,10 +375,42 @@ impl NativeWindowWindowsExt for NativeWindow {
     }
   }
 
-  /// Gets the window's frame, including the window's shadow
-  /// borders.
   fn frame_with_shadows(&self) -> crate::Result<Rect> {
-    self.border_position()
+    self.inner.border_position()
+  }
+
+  fn has_owner_window(&self) -> bool {
+    unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0 != 0
+  }
+
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
+    let current_style =
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
+  }
+
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
+    let current_style =
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
+  }
+
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    let current_style =
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    if current_style & style.0 as isize == 0 {
+      let new_style = current_style | style.0 as isize;
+
+      unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
+    }
   }
 }
 
@@ -450,46 +510,9 @@ impl NativeWindow {
     Ok(cloaked != 0)
   }
 
-  // TODO: Should probably be removed and have its logic called explicitly.
-  pub(crate) fn is_manageable(&self) -> crate::Result<bool> {
-    // Ignore windows that are hidden.
-    if !self.is_visible()? {
-      return Ok(false);
-    }
-
-    // Ensure window has a valid process name, title, and class name.
-    let process_name = self.process_name()?;
-    let title = self.title()?;
-    let _ = self.class_name()?;
-
-    // TODO: Temporary fix for managing Flow Launcher until a force manage
-    // command is added.
-    if process_name == "Flow.Launcher" && title == "Flow.Launcher" {
-      return Ok(true);
-    }
-
-    // Ensure window is top-level (i.e. not a child window). Ignore windows
-    // that cannot be focused or if they're unavailable in task switcher
-    // (alt+tab menu).
-    let is_application_window = !self.has_window_style(WS_CHILD)
-      && !self.has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
-
-    if !is_application_window {
-      return Ok(false);
-    }
-
-    // Ensure window position is accessible.
-    let _ = self.frame()?;
-
-    // Some applications spawn top-level windows for menus that should be
-    // ignored. This includes the autocomplete popup in Notepad++ and title
-    // bar menu in Keepass. Although not foolproof, these can typically be
-    // identified by having an owner window and no title bar.
-    let is_menu_window = unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0
-      != 0
-      && !self.has_window_style(WS_CAPTION);
-
-    Ok(!is_menu_window)
+  /// Whether the window has an owner window.
+  pub(crate) fn has_owner_window(&self) -> bool {
+    unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0 != 0
   }
 
   /// Whether the window is minimized.
@@ -535,18 +558,6 @@ impl NativeWindow {
     unsafe { SetForegroundWindow(self.hwnd()) }.ok()?;
 
     Ok(())
-  }
-
-  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
-    let current_style =
-      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    if current_style & style.0 as isize == 0 {
-      let new_style = current_style | style.0 as isize;
-
-      unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
-    }
   }
 
   pub(crate) fn adjust_transparency(
@@ -724,24 +735,6 @@ impl NativeWindow {
     }?;
 
     Ok(())
-  }
-
-  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
-    let current_style =
-      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let style = style.0 as isize;
-    (current_style & style) != 0
-  }
-
-  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
-    let current_style =
-      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let style = style.0 as isize;
-    (current_style & style) != 0
   }
 
   pub(crate) fn maximize(&self) -> crate::Result<()> {
