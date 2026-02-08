@@ -596,7 +596,16 @@ fn apply_corner_effect(
     &CornerStyle::Default
   };
 
-  _ = window.native().set_corner_style(corner_style);
+  // Convert from config type to platform type.
+  // TODO: This is a hack.
+  let platform_corner_style = match corner_style {
+    CornerStyle::Default => wm_platform::CornerStyle::Default,
+    CornerStyle::Square => wm_platform::CornerStyle::Square,
+    CornerStyle::Rounded => wm_platform::CornerStyle::Rounded,
+    CornerStyle::SmallRounded => wm_platform::CornerStyle::SmallRounded,
+  };
+
+  _ = window.native().set_corner_style(&platform_corner_style);
 }
 
 #[cfg(target_os = "windows")]

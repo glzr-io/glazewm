@@ -70,21 +70,17 @@ pub trait DisplayDeviceExtWindows {
 
 impl DisplayExtWindows for crate::Display {
   fn hmonitor(&self) -> HMONITOR {
-    HMONITOR(self.monitor_handle)
+    HMONITOR(self.inner.monitor_handle)
   }
 }
 
 impl DisplayDeviceExtWindows for crate::DisplayDevice {
   fn device_interface_path(&self) -> &str {
-    &self.device_interface_path
+    &self.inner.device_interface_path
   }
 
   fn hardware_id(&self) -> Option<String> {
-    self
-      .device_interface_path
-      .split('#')
-      .nth(1)
-      .map(ToString::to_string)
+    self.inner.hardware_id()
   }
 
   fn output_technology(&self) -> crate::Result<Option<OutputTechnology>> {
@@ -284,6 +280,15 @@ impl DisplayDevice {
       adapter_name,
       device_interface_path,
     }
+  }
+
+  /// Gets the hardware ID from the device interface path.
+  fn hardware_id(&self) -> Option<String> {
+    self
+      .device_interface_path
+      .split('#')
+      .nth(1)
+      .map(ToString::to_string)
   }
 
   /// Gets the unique identifier for this display device.

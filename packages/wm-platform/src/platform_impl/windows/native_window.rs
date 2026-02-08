@@ -209,11 +209,29 @@ pub trait NativeWindowWindowsExt {
   ///
   /// This method is only available on Windows.
   fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()>;
+
+  /// Gets the delta between the window's frame and its border position
+  /// (including shadow borders).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn shadow_borders(&self) -> crate::Result<RectDelta>;
+
+  /// Adjusts the window's transparency by a relative delta.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn adjust_transparency(
+    &self,
+    opacity_delta: &Delta<OpacityValue>,
+  ) -> crate::Result<()>;
 }
 
 impl NativeWindowWindowsExt for crate::NativeWindow {
   fn hwnd(&self) -> HWND {
-    HWND(self.inner.handle)
+    self.inner.hwnd()
   }
 
   fn class_name(&self) -> crate::Result<String> {
@@ -324,19 +342,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     &self,
     opacity_value: &OpacityValue,
   ) -> crate::Result<()> {
-    // Make the window layered if it isn't already.
-    self.add_window_style_ex(WS_EX_LAYERED);
-
-    unsafe {
-      SetLayeredWindowAttributes(
-        self.hwnd(),
-        None,
-        opacity_value.to_alpha(),
-        LWA_ALPHA,
-      )?;
-    }
-
-    Ok(())
+    self.inner.set_transparency(opacity_value)
   }
 
   fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
@@ -405,12 +411,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
-    let current_style =
-      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let style = style.0 as isize;
-    (current_style & style) != 0
+    self.inner.has_window_style(style)
   }
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
@@ -423,15 +424,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
   }
 
   fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
-    let current_style =
-      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    if current_style & style.0 as isize == 0 {
-      let new_style = current_style | style.0 as isize;
-
-      unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
-    }
+    self.inner.add_window_style_ex(style);
   }
 
   fn set_window_pos(
@@ -510,6 +503,17 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
       Ok(())
     })
   }
+
+  fn shadow_borders(&self) -> crate::Result<RectDelta> {
+    self.inner.shadow_borders()
+  }
+
+  fn adjust_transparency(
+    &self,
+    opacity_delta: &Delta<OpacityValue>,
+  ) -> crate::Result<()> {
+    self.inner.adjust_transparency(opacity_delta)
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -522,6 +526,54 @@ impl NativeWindow {
   #[must_use]
   pub(crate) fn new(handle: isize) -> Self {
     Self { handle }
+  }
+
+  /// Gets the window handle.
+  fn hwnd(&self) -> HWND {
+    HWND(self.handle)
+  }
+
+  /// Whether the window has the given window style flag(s) set.
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
+    let current_style =
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    let style = style.0 as isize;
+    (current_style & style) != 0
+  }
+
+  /// Adds the given extended window style flag(s) to the window.
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    let current_style =
+      unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    if current_style & style.0 as isize == 0 {
+      let new_style = current_style | style.0 as isize;
+
+      unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
+    }
+  }
+
+  /// Sets the transparency of the window.
+  fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> crate::Result<()> {
+    // Make the window layered if it isn't already.
+    self.add_window_style_ex(WS_EX_LAYERED);
+
+    unsafe {
+      SetLayeredWindowAttributes(
+        self.hwnd(),
+        None,
+        opacity_value.to_alpha(),
+        LWA_ALPHA,
+      )?;
+    }
+
+    Ok(())
   }
 
   /// Gets the unique identifier for this window.

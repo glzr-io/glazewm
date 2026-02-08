@@ -38,14 +38,15 @@ async fn main() -> anyhow::Result<()> {
 
       #[cfg(target_os = "windows")]
       {
-        let managed_windows = managed_handles
-          .into_iter()
-          .map(NativeWindow::new)
-          .collect::<Vec<_>>();
+        // TODO: Uncomment this.
+        // let managed_windows = managed_handles
+        //   .into_iter()
+        //   .map(NativeWindow::new)
+        //   .collect::<Vec<_>>();
 
-        for window in managed_windows {
-          window.cleanup();
-        }
+        // for window in managed_windows {
+        // window.cleanup();
+        // }
       }
     }
   }

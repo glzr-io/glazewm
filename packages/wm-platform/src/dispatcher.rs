@@ -66,7 +66,7 @@ pub trait DispatcherExtWindows {
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  fn message_window_handle(&self) -> crate::WindowHandle;
+  fn message_window_handle(&self) -> crate::WindowId;
 
   /// Registers a callback to pre-process messages in the event loop's
   /// window procedure.
@@ -92,7 +92,7 @@ pub trait DispatcherExtWindows {
 
 #[cfg(target_os = "windows")]
 impl DispatcherExtWindows for Dispatcher {
-  fn message_window_handle(&self) -> crate::WindowHandle {
+  fn message_window_handle(&self) -> crate::WindowId {
     self.source.as_ref().unwrap().message_window_handle
   }
 
