@@ -33,7 +33,8 @@ pub use platform_impl::{
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{
-  DisplayDeviceExtWindows, DisplayExtWindows, NativeWindowWindowsExt,
+  DisplayDeviceExtWindows, DisplayExtWindows, DisplayListener,
+  NativeWindowWindowsExt,
 };
 pub use thread_bound::*;
 pub use window_listener::*;

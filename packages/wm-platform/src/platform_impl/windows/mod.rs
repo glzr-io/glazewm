@@ -1,5 +1,6 @@
 mod com;
 mod display;
+mod display_listener;
 mod event_loop;
 mod event_window;
 mod keyboard_hook;
@@ -10,6 +11,7 @@ mod window_listener;
 
 pub use com::*;
 pub use display::*;
+pub use display_listener::*;
 pub use event_loop::*;
 pub use event_window::*;
 pub use keyboard_hook::*;
