@@ -1,24 +1,11 @@
-use std::{cell::Cell, ptr};
+use std::cell::Cell;
 
 use windows::Win32::{
-  Foundation::{LPARAM, LRESULT, WPARAM},
+  Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM},
   UI::{
     Input::KeyboardAndMouse::{
-      GetKeyState, VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_6,
-      VK_7, VK_8, VK_9, VK_A, VK_ADD, VK_B, VK_BACK, VK_C, VK_D,
-      VK_DECIMAL, VK_DELETE, VK_DIVIDE, VK_DOWN, VK_E, VK_END, VK_ESCAPE,
-      VK_F, VK_F1, VK_F10, VK_F11, VK_F12, VK_F13, VK_F14, VK_F15, VK_F16,
-      VK_F17, VK_F18, VK_F19, VK_F2, VK_F20, VK_F21, VK_F22, VK_F23,
-      VK_F24, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F8, VK_F9, VK_G, VK_H,
-      VK_HOME, VK_I, VK_INSERT, VK_J, VK_K, VK_L, VK_LCONTROL, VK_LEFT,
-      VK_LMENU, VK_LSHIFT, VK_LWIN, VK_M, VK_MULTIPLY, VK_N, VK_NEXT,
-      VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD3, VK_NUMPAD4,
-      VK_NUMPAD5, VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD8, VK_NUMPAD9, VK_O,
-      VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6,
-      VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS,
-      VK_P, VK_PRIOR, VK_Q, VK_R, VK_RCONTROL, VK_RETURN, VK_RIGHT,
-      VK_RMENU, VK_RSHIFT, VK_RWIN, VK_S, VK_SPACE, VK_SUBTRACT, VK_T,
-      VK_TAB, VK_U, VK_UP, VK_V, VK_W, VK_X, VK_Y, VK_Z,
+      GetKeyState, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL,
+      VK_RMENU, VK_RSHIFT, VK_RWIN,
     },
     WindowsAndMessaging::{
       CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
@@ -84,8 +71,11 @@ impl KeyEvent {
           || Self::is_key_down_raw(VK_RSHIFT.0)
       }
       _ => {
-        let key_code = KeyCode::from(key);
-        Self::is_key_down_raw(key_code.0)
+        if let Ok(key_code) = KeyCode::try_from(key) {
+          Self::is_key_down_raw(key_code.0)
+        } else {
+          false
+        }
       }
     }
   }
@@ -135,7 +125,7 @@ impl KeyboardHook {
         SetWindowsHookExW(
           WH_KEYBOARD_LL,
           Some(Self::hook_proc),
-          ptr::null_mut(),
+          HINSTANCE::default(),
           0,
         )
       }
@@ -168,8 +158,11 @@ impl KeyboardHook {
     let is_keydown =
       wparam.0 as u32 == WM_KEYDOWN || wparam.0 as u32 == WM_SYSKEYDOWN;
 
-    let key_event =
-      KeyEvent::new(Key::from(key_code), key_code, is_keydown);
+    let Ok(key) = Key::try_from(key_code) else {
+      return unsafe { CallNextHookEx(None, code, wparam, lparam) };
+    };
+
+    let key_event = KeyEvent::new(key, key_code, is_keydown);
 
     let should_intercept = HOOK.with(|state| {
       if let Some(callback) = state.take() {

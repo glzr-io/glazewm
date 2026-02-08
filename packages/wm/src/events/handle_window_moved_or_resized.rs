@@ -171,7 +171,7 @@ pub fn handle_window_moved_or_resized(
       }));
 
       #[cfg(target_os = "windows")]
-      update_drag_state(window, &frame_position, state, config)?;
+      update_drag_state(&window, &frame_position, state, config)?;
 
       return Ok(());
     }

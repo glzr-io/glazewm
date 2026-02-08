@@ -40,9 +40,11 @@ impl DisplayListener {
           WM_POWERBROADCAST => {
             #[allow(clippy::cast_possible_truncation)]
             match wparam.0 as u32 {
+              // System is resuming from sleep/hibernation.
               PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
                 is_system_suspended.store(false, Ordering::Relaxed);
               }
+              // System is entering sleep/hibernation.
               PBT_APMSUSPEND => {
                 is_system_suspended.store(true, Ordering::Relaxed);
               }
@@ -52,6 +54,8 @@ impl DisplayListener {
             Some(LRESULT(0))
           }
           WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
+            // Ignore display change messages if the system hasn't fully
+            // resumed from sleep.
             if !is_system_suspended.load(Ordering::Relaxed) {
               #[allow(clippy::cast_possible_truncation)]
               let should_emit = match message {

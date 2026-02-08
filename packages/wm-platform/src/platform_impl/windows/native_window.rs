@@ -24,8 +24,8 @@ use windows::{
         EnumWindows, GetClassNameW, GetDesktopWindow, GetForegroundWindow,
         GetLayeredWindowAttributes, GetShellWindow, GetWindow,
         GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible,
-        IsZoomed, SendNotifyMessageW, SetForegroundWindow,
+        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
+        SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GWL_EXSTYLE,
         GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
@@ -35,8 +35,8 @@ use windows::{
         SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
         SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
         WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
-        WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_THICKFRAME,
+        WPF_ASYNCWINDOWPLACEMENT, WS_DLGFRAME, WS_EX_LAYERED,
+        WS_THICKFRAME,
       },
     },
   },
@@ -279,7 +279,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
 
   fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
     let bgr = match color {
-      Some(color) => color.to_bgr()?,
+      Some(color) => color.to_bgr(),
       None => DWMWA_COLOR_NONE,
     };
 
@@ -361,8 +361,9 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     let handle = self.inner.handle;
     task::spawn(async move {
       tokio::time::sleep(Duration::from_millis(10)).await;
-      let _ =
-        unsafe { SetWindowPos(handle, z_order_hwnd, 0, 0, 0, 0, flags) };
+      let _ = unsafe {
+        SetWindowPos(HWND(handle), z_order_hwnd, 0, 0, 0, 0, flags)
+      };
     });
 
     Ok(())
@@ -436,10 +437,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
   fn set_window_pos(
     &self,
     z_order: &ZOrder,
-    x: i32,
-    y: i32,
-    cx: i32,
-    cy: i32,
+    rect: &Rect,
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()> {
     let z_order_hwnd = match z_order {
@@ -450,7 +448,15 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     };
 
     unsafe {
-      SetWindowPos(self.hwnd(), z_order_hwnd, x, y, cx, cy, flags)
+      SetWindowPos(
+        self.hwnd(),
+        z_order_hwnd,
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        flags,
+      )
     }?;
 
     Ok(())
@@ -485,7 +491,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
       // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
       unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
         .ok()
-        .ok_or_else(|| {
+        .map_err(|_| {
           crate::Error::Platform("Failed to cloak window.".to_string())
         })
     })

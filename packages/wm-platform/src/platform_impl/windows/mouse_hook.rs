@@ -5,7 +5,7 @@ use windows::Win32::{
   Devices::HumanInterfaceDevice::{
     HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC,
   },
-  Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM},
+  Foundation::{HWND, LPARAM, LRESULT, POINT},
   UI::{
     Input::{
       GetRawInputData,
@@ -24,7 +24,7 @@ use windows::Win32::{
 use super::FOREGROUND_INPUT_IDENTIFIER;
 use crate::{
   mouse_listener::MouseEventType, platform_event::MouseEventNotification,
-  Dispatcher, DispatcherExtWindows, MouseButton, Point,
+  Dispatcher, DispatcherExtWindows, MouseButton, Point, WindowId,
 };
 
 /// Windows-specific mouse event notification.
@@ -90,7 +90,7 @@ impl MouseHook {
         }
 
         if let Err(err) =
-          Self::handle_wm_input(lparam, &enabled_events, &callback)
+          Self::handle_wm_input(lparam, &enabled_events, &*callback)
         {
           warn!("Failed to handle WM_INPUT message: {}", err);
         }
@@ -157,11 +157,12 @@ impl MouseHook {
     // Ignore if data is invalid or not a mouse event. Inputs from our own
     // process are filtered, since `NativeWindow::focus` simulates mouse
     // input.
+    #[allow(clippy::cast_possible_truncation)]
     if res_size == 0
       || raw_input_size == u32::MAX
       || raw_input.header.dwType != RIM_TYPEMOUSE.0
-      || unsafe { raw_input.data.mouse.ulExtraInformation }
-        == FOREGROUND_INPUT_IDENTIFIER as usize
+      || unsafe { raw_input.data.mouse.ulExtraInformation } as u32
+        == FOREGROUND_INPUT_IDENTIFIER
     {
       return Ok(());
     }
@@ -239,19 +240,20 @@ impl MouseHook {
   }
 
   /// Enables or disables the mouse hook.
-  pub fn enable(&mut self, enabled: bool) {
-    if let Some(id) = self.callback_id {
+  pub fn enable(&mut self, enabled: bool) -> crate::Result<()> {
+    if self.callback_id.is_some() {
       let handle = self.dispatcher.message_window_handle();
       self.dispatcher.dispatch_sync(move || {
         Self::register_raw_input(handle, enabled)
-      })?;
+      })??;
     }
+    Ok(())
   }
 
   /// Registers or deregisters the raw input device for mouse events with
   /// `RIDEV_INPUTSINK` or `RIDEV_REMOVE`.
   fn register_raw_input(
-    target_handle: WindowHandle,
+    target_handle: WindowId,
     enabled: bool,
   ) -> crate::Result<()> {
     let mode_flag = if enabled {
@@ -261,7 +263,7 @@ impl MouseHook {
     };
 
     let target_hwnd = if enabled {
-      HWND(target_handle)
+      HWND(target_handle.0)
     } else {
       HWND::default()
     };

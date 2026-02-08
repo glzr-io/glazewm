@@ -24,6 +24,12 @@ pub enum Error {
   #[error(transparent)]
   ChannelRecv(#[from] std::sync::mpsc::RecvTimeoutError),
 
+  #[error("Channel receive error")]
+  OneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
+
+  #[error(transparent)]
+  IntConversion(#[from] std::num::TryFromIntError),
+
   #[error("Channel send error: {0}")]
   ChannelSend(String),
 

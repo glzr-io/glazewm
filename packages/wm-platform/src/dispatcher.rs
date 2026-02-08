@@ -79,7 +79,7 @@ pub trait DispatcherExtWindows {
   /// This method is only available on Windows.
   fn register_wndproc_callback(
     &self,
-    callback: Box<WndProcCallback>,
+    callback: Box<crate::WndProcCallback>,
   ) -> crate::Result<usize>;
 
   /// Removes a previously registered window procedure callback by its ID.
@@ -98,7 +98,7 @@ impl DispatcherExtWindows for Dispatcher {
 
   fn register_wndproc_callback(
     &self,
-    callback: Box<WndProcCallback>,
+    callback: Box<crate::WndProcCallback>,
   ) -> crate::Result<usize> {
     self
       .source
@@ -375,13 +375,13 @@ impl Dispatcher {
       };
 
       // Virtual-key codes for mouse buttons.
-      let vk_code: i32 = match button {
-        MouseButton::Left => VK_LBUTTON,
-        MouseButton::Right => VK_RBUTTON,
+      let vk_code = match button {
+        MouseButton::Left => VK_LBUTTON.0,
+        MouseButton::Right => VK_RBUTTON.0,
       };
 
       // High-order bit set indicates the key is currently down.
-      let state = unsafe { GetAsyncKeyState(vk_code) };
+      let state = unsafe { GetAsyncKeyState(vk_code.into()) };
       (state as u16 & 0x8000) != 0
     }
   }

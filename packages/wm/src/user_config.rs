@@ -252,7 +252,7 @@ impl UserConfig {
             {
               match_config.window_class.as_ref().is_none_or(
                 |match_type| match_type.is_match(&window_class),
-              );
+              )
             }
             #[cfg(not(target_os = "windows"))]
             {

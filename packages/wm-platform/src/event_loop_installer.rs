@@ -1,6 +1,8 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-use crate::{platform_impl, Dispatcher};
+#[cfg(target_os = "macos")]
+use crate::platform_impl;
+use crate::Dispatcher;
 
 /// An installer for integrating [`Dispatcher`] with an existing
 /// event loop.

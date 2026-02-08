@@ -7,7 +7,7 @@ use std::{
 use windows::{
   core::{w, PCWSTR},
   Win32::{
-    Foundation::{HANDLE, HWND, LPARAM, POINT, WPARAM},
+    Foundation::{HANDLE, HWND, LPARAM, WPARAM},
     System::{
       Environment::ExpandEnvironmentStringsW, Threading::GetThreadId,
     },
@@ -17,11 +17,9 @@ use windows::{
         SHELLEXECUTEINFOW,
       },
       WindowsAndMessaging::{
-        CreateWindowExW, DispatchMessageW, GetAncestor, GetCursorPos,
-        GetDesktopWindow, GetForegroundWindow, GetMessageW,
-        GetShellWindow, MessageBoxW, PeekMessageW, PostThreadMessageW,
-        RegisterClassW, SetCursorPos, SystemParametersInfoW,
-        TranslateMessage, WindowFromPoint, ANIMATIONINFO, CS_HREDRAW,
+        CreateWindowExW, DispatchMessageW, GetAncestor, GetMessageW,
+        MessageBoxW, PeekMessageW, PostThreadMessageW, RegisterClassW,
+        SystemParametersInfoW, TranslateMessage, ANIMATIONINFO, CS_HREDRAW,
         CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
         MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
         SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
@@ -32,8 +30,7 @@ use windows::{
   },
 };
 
-use super::{NativeWindow, SingleInstance};
-use crate::Point;
+use super::NativeWindow;
 
 pub type WindowProcedure = WNDPROC;
 

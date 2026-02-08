@@ -419,7 +419,7 @@ fn reposition_window(
       if should_restore {
         // Restoring to position has the same effect as `ShowWindow` with
         // `SW_RESTORE`, but doesn't cause a flicker.
-        window.native().restore(Some(rect))?;
+        window.native().restore(Some(&rect))?;
       }
 
       let mut swp_flags = SWP_NOACTIVATE
@@ -441,19 +441,19 @@ fn reposition_window(
             window.native().maximize()?;
           }
 
-          window.native().set_window_pos(z_order, rect, swp_flags)?;
+          window.native().set_window_pos(z_order, &rect, swp_flags)?;
         }
         _ => {
           swp_flags |= SWP_FRAMECHANGED;
 
-          window.native().set_window_pos(z_order, rect, swp_flags)?;
+          window.native().set_window_pos(z_order, &rect, swp_flags)?;
 
           // When there's a mismatch between the DPI of the monitor and the
           // window, the window might be sized incorrectly after the first
           // move. If we set the position twice, inconsistencies after the
           // first move are resolved.
           if window.has_pending_dpi_adjustment() {
-            window.native().set_window_pos(z_order, rect, swp_flags)?;
+            window.native().set_window_pos(z_order, &rect, swp_flags)?;
           }
         }
       }

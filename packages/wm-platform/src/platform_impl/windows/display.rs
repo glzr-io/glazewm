@@ -1,12 +1,12 @@
 use windows::{
   core::PCWSTR,
   Win32::{
-    Foundation::{BOOL, HWND, LPARAM, RECT},
+    Foundation::{BOOL, LPARAM, POINT, RECT},
     Graphics::Gdi::{
       EnumDisplayDevicesW, EnumDisplayMonitors, EnumDisplaySettingsW,
-      GetMonitorInfoW, MonitorFromWindow, DEVMODEW, DISPLAY_DEVICEW,
-      DISPLAY_DEVICE_ACTIVE, ENUM_CURRENT_SETTINGS, HDC, HMONITOR,
-      MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+      GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, DEVMODEW,
+      DISPLAY_DEVICEW, DISPLAY_DEVICE_ACTIVE, ENUM_CURRENT_SETTINGS, HDC,
+      HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
       MONITOR_DEFAULTTOPRIMARY,
     },
     UI::{
@@ -21,6 +21,7 @@ use crate::{
     ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
     OutputTechnology,
   },
+  platform_impl::NativeWindowWindowsExt,
   Dispatcher, NativeWindow, Point, Rect,
 };
 
@@ -289,16 +290,23 @@ impl DisplayDevice {
   pub fn id(&self) -> DisplayDeviceId {
     // TODO: Display adapter name might not be unique.
     DisplayDeviceId(
-      self.hardware_id().unwrap_or_else(|| self.adapter_name),
+      self
+        .hardware_id()
+        .unwrap_or_else(|| self.adapter_name.clone()),
     )
   }
 
   /// Gets the rotation of the device in degrees.
   pub fn rotation(&self) -> crate::Result<f32> {
-    let orientation = self.current_device_mode()?.dmDisplayOrientation;
+    let orientation = unsafe {
+      self
+        .current_device_mode()?
+        .Anonymous1
+        .Anonymous2
+        .dmDisplayOrientation
+    };
 
-    Ok(match orientation {
-      0 => 0.0,
+    Ok(match orientation.0 {
       1 => 90.0,
       2 => 180.0,
       3 => 270.0,
@@ -344,7 +352,7 @@ impl DisplayDevice {
   fn current_device_mode(&self) -> crate::Result<DEVMODEW> {
     #[allow(clippy::cast_possible_truncation)]
     let mut device_mode = DEVMODEW {
-      dmSize: std::mem::size_of::<DEVMODEW>() as u32,
+      dmSize: std::mem::size_of::<DEVMODEW>() as u16,
       ..Default::default()
     };
 

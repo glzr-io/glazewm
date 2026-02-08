@@ -6,7 +6,7 @@ use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
 #[cfg(target_os = "windows")]
-use wm_platform::OpacityValue;
+use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };

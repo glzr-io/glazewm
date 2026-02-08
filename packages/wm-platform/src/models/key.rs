@@ -216,11 +216,15 @@ impl Key {
     #[cfg(target_os = "windows")]
     {
       use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetKeyState, GetKeyboardLayout, VkKeyScanExW,
+        GetKeyboardLayout, VkKeyScanExW,
       };
 
       // Check if the key exists on the current keyboard layout.
-      let utf16_key = key_str.encode_utf16().next()?;
+      let utf16_key = key_str
+        .encode_utf16()
+        .next()
+        .ok_or_else(|| KeyParseError::UnknownKey(key_str.to_string()))?;
+
       let layout = unsafe { GetKeyboardLayout(0) };
       let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
 
@@ -234,7 +238,8 @@ impl Key {
 
       // Key is valid if it doesn't require shift or alt to be pressed.
       match high_order {
-        0 => Ok(Key::Raw(KeyCode(u16::from(low_order)))),
+        0 => Key::try_from(KeyCode(u16::from(low_order)))
+          .map_err(|_| KeyParseError::UnknownKey(key_str.to_string())),
         _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
       }
     }

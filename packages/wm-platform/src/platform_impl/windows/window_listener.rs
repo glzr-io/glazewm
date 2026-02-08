@@ -1,5 +1,6 @@
+use std::sync::OnceLock;
+
 use tokio::sync::mpsc;
-use tracing::warn;
 use windows::Win32::{
   Foundation::HWND,
   UI::{
@@ -16,7 +17,7 @@ use windows::Win32::{
 };
 
 use super::NativeWindow;
-use crate::{Dispatcher, WindowEvent, WindowEventNotification, WindowId};
+use crate::{Dispatcher, WindowEvent, WindowId};
 
 thread_local! {
   /// Sender for window events. For use with hook procedure.
@@ -43,11 +44,13 @@ impl WindowListener {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let hook_handles = dispatcher.dispatch_sync(move || {
-      EVENT_TX.set(event_tx).map_err(|_| {
-        crate::Error::Platform(
-          "Window event sender already set.".to_string(),
-        )
-      })?;
+      EVENT_TX
+        .with(|lock| lock.set(event_tx))
+        .map_err(|_| {
+          crate::Error::Platform(
+            "Window event sender already set.".to_string(),
+          )
+        })?;
 
       Self::hook_win_events()
     })??;
@@ -121,7 +124,7 @@ impl WindowListener {
       return;
     }
 
-    let Some(event_tx) = EVENT_TX.get() else {
+    let Some(event_tx) = EVENT_TX.with(|lock| lock.get().cloned()) else {
       return;
     };
 
@@ -129,49 +132,49 @@ impl WindowListener {
 
     let event = match event_type {
       EVENT_OBJECT_DESTROY => WindowEvent::Destroyed {
-        window_id: WindowId(handle),
+        window_id: WindowId(handle.0),
         notification,
       },
       EVENT_SYSTEM_FOREGROUND => WindowEvent::Focused {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => WindowEvent::Hidden {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       EVENT_OBJECT_LOCATIONCHANGE => WindowEvent::MovedOrResized {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         is_interactive_start: false,
         is_interactive_end: false,
         notification,
       },
       EVENT_SYSTEM_MINIMIZESTART => WindowEvent::Minimized {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       EVENT_SYSTEM_MINIMIZEEND => WindowEvent::MinimizeEnded {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       EVENT_SYSTEM_MOVESIZESTART => WindowEvent::MovedOrResized {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         is_interactive_start: true,
         is_interactive_end: false,
         notification,
       },
       EVENT_SYSTEM_MOVESIZEEND => WindowEvent::MovedOrResized {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         is_interactive_start: false,
         is_interactive_end: true,
         notification,
       },
       EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => WindowEvent::Shown {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       EVENT_OBJECT_NAMECHANGE => WindowEvent::TitleChanged {
-        window: NativeWindow::new(handle),
+        window: NativeWindow::new(handle.0).into(),
         notification,
       },
       _ => return,
@@ -184,7 +187,7 @@ impl WindowListener {
 
   /// Unhooks from all window events.
   pub(crate) fn terminate(&mut self) {
-    for handle in self.hook_handles {
+    for handle in self.hook_handles.drain(..) {
       let _ = unsafe { UnhookWinEvent(handle) };
     }
   }

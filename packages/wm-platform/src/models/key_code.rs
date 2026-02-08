@@ -26,8 +26,8 @@ pub enum KeyConversionError {
   UnknownKeyCode(KeyCode),
 }
 
-/// Generates `From` and `TryFrom` implementations for converting between
-/// `Key` and `KeyCode`.
+/// Generates `TryFrom` implementations for converting between `Key` and
+/// `KeyCode`.
 ///
 /// For Windows, the key code is assumed to be a `VK_*` constant (accessed
 /// via .0).
@@ -54,12 +54,9 @@ macro_rules! impl_key_code_conversion {
       type Error = KeyConversionError;
 
       fn try_from(key_code: KeyCode) -> Result<Self, Self::Error> {
-        // LINT: Allow unreachable patterns since modifier keys are
-        // duplicated (e.g. `LShift` and `Shift`).
-        match VIRTUAL_KEY(key_code.0) {
-          $($($win_code => Ok(Key::$variant),)?)*
-          _ => Err(KeyConversionError::UnknownKeyCode(key_code)),
-        }
+        let vk = VIRTUAL_KEY(key_code.0);
+        $($(if vk == $win_code { return Ok(Key::$variant); })?)*
+        Err(KeyConversionError::UnknownKeyCode(key_code))
       }
     }
 
@@ -68,13 +65,8 @@ macro_rules! impl_key_code_conversion {
       type Error = KeyConversionError;
 
       fn try_from(key_code: KeyCode) -> Result<Self, Self::Error> {
-        // LINT: Allow unreachable patterns since modifier keys are
-        // duplicated (e.g. `LShift` and `Shift`).
-        #[allow(unreachable_patterns)]
-        match key_code.0 {
-          $($($mac_code => Ok(Key::$variant),)?)*
-          _ => Err(KeyConversionError::UnknownKeyCode(key_code)),
-        }
+        $($(if key_code.0 == $mac_code { return Ok(Key::$variant); })?)*
+        Err(KeyConversionError::UnknownKeyCode(key_code))
       }
     }
 
