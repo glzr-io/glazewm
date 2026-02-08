@@ -68,10 +68,6 @@ static IS_R_MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 /// For use with window procedure.
 static LAST_MOUSE_EVENT_TIME: AtomicU64 = AtomicU64::new(0);
 
-/// Windows-specific mouse event notification.
-#[derive(Clone, Debug)]
-pub struct MouseEventNotificationInner;
-
 #[derive(Debug)]
 pub struct EventWindow {
   keyboard_hook: Arc<KeyboardHook>,

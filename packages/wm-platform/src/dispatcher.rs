@@ -61,6 +61,13 @@ impl DispatcherExtMacOs for Dispatcher {
 /// Windows-specific extensions for `Dispatcher`.
 #[cfg(target_os = "windows")]
 pub trait DispatcherExtWindows {
+  /// Returns the handle of the event loop's message window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn message_window_handle(&self) -> crate::WindowHandle;
+
   /// Registers a callback to pre-process messages in the event loop's
   /// window procedure.
   ///
@@ -85,6 +92,10 @@ pub trait DispatcherExtWindows {
 
 #[cfg(target_os = "windows")]
 impl DispatcherExtWindows for Dispatcher {
+  fn message_window_handle(&self) -> crate::WindowHandle {
+    self.source.as_ref().unwrap().message_window_handle
+  }
+
   fn register_wndproc_callback(
     &self,
     callback: Box<WndProcCallback>,

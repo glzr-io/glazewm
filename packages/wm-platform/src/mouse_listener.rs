@@ -62,13 +62,6 @@ impl MouseListener {
     self.event_rx.recv().await
   }
 
-  /// Enables or disables the underlying mouse hook.
-  pub fn enable(&mut self, enabled: bool) {
-    if let Some(hook) = &mut self.hook {
-      hook.enable(enabled);
-    }
-  }
-
   /// Updates the set of enabled mouse events at runtime.
   ///
   /// This will terminate the existing hook and create a new one with the

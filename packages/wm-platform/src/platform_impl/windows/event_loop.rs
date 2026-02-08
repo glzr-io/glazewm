@@ -57,7 +57,7 @@ thread_local! {
 
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
-  message_window_handle: crate::WindowHandle,
+  pub(crate) message_window_handle: crate::WindowHandle,
   thread_id: u32,
   next_callback_id: Arc<AtomicUsize>,
 }
