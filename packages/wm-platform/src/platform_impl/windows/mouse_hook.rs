@@ -238,6 +238,16 @@ impl MouseHook {
     pressed
   }
 
+  /// Enables or disables the mouse hook.
+  pub fn enable(&mut self, enabled: bool) {
+    if let Some(id) = self.callback_id {
+      let handle = self.dispatcher.message_window_handle();
+      self.dispatcher.dispatch_sync(move || {
+        Self::register_raw_input(handle, enabled)
+      })?;
+    }
+  }
+
   /// Registers or deregisters the raw input device for mouse events with
   /// `RIDEV_INPUTSINK` or `RIDEV_REMOVE`.
   fn register_raw_input(
