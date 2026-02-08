@@ -942,27 +942,6 @@ impl NativeWindow {
 
     Ok(())
   }
-
-  // TODO: Should probably be removed and have its logic called explicitly.
-  pub(crate) fn cleanup(&self) {
-    if let Err(err) = self.show() {
-      warn!("Failed to show window: {:?}", err);
-    }
-
-    if let Err(err) = self.set_taskbar_visibility(true) {
-      warn!("Failed to restore taskbar visibility: {:?}", err);
-    }
-
-    if let Err(err) = self.set_border_color(None) {
-      warn!("Failed to reset border color: {:?}", err);
-    }
-
-    if let Err(err) =
-      self.set_transparency(&OpacityValue::from_alpha(u8::MAX))
-    {
-      warn!("Failed to reset transparency: {:?}", err);
-    }
-  }
 }
 
 impl PartialEq for NativeWindow {

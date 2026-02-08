@@ -5,6 +5,8 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
+#[cfg(target_os = "windows")]
+use wm_platform::OpacityValue;
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
@@ -655,15 +657,35 @@ impl WmState {
 
 impl Drop for WmState {
   fn drop(&mut self) {
-    let managed_windows = self
-      .windows()
-      .into_iter()
-      .map(|window| window.native().clone())
-      .collect::<Vec<_>>();
+    let managed_windows = self.windows();
 
-    for window in managed_windows {
-      // TODO: Implement this.
-      // window.cleanup();
+    for window in &managed_windows {
+      // Redraw windows to their intended positions. On macOS, this will
+      // unhide windows that are on other workspaces.
+      if let Ok(rect) = window.to_rect() {
+        if let Err(err) = window.native().set_frame(&rect) {
+          warn!("Failed to redraw window on cleanup: {:?}", err);
+        }
+      }
+
+      // Reset any effects on Windows.
+      #[cfg(target_os = "windows")]
+      {
+        if let Err(err) = window.native().show() {
+          warn!("Failed to show window on cleanup: {:?}", err);
+        }
+
+        if let Err(err) = window.native().set_border_color(None) {
+          warn!("Failed to reset border color: {:?}", err);
+        }
+
+        if let Err(err) = window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX))
+        {
+          warn!("Failed to reset transparency: {:?}", err);
+        }
+      }
     }
   }
 }
