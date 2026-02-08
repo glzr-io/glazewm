@@ -30,13 +30,13 @@ use windows::{
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GWL_EXSTYLE,
         GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
         LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
-        SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
-        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
-        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
-        WS_CAPTION, WS_CHILD, WS_DLGFRAME, WS_EX_LAYERED,
-        WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX, WS_THICKFRAME,
+        SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
+        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
+        SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
+        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
+        WPF_ASYNCWINDOWPLACEMENT, WS_CAPTION, WS_CHILD, WS_DLGFRAME,
+        WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_THICKFRAME,
       },
     },
   },
@@ -44,8 +44,8 @@ use windows::{
 
 use super::COM_INIT;
 use crate::{
-  Color, CornerStyle, Delta, Dispatcher, HideMethod, LengthValue,
-  OpacityValue, Point, Rect, RectDelta, WindowId, WindowState, ZOrder,
+  Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
+  Rect, RectDelta, WindowId, ZOrder,
 };
 
 /// Magic number used to identify programmatic mouse inputs from our own
@@ -165,6 +165,50 @@ pub trait NativeWindowWindowsExt {
   ///
   /// This method is only available on Windows.
   fn add_window_style_ex(&self, style: WINDOW_EX_STYLE);
+
+  /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_window_pos(
+    &self,
+    z_order: &ZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()>;
+
+  /// Shows the window asynchronously.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn show(&self) -> crate::Result<()>;
+
+  /// Hides the window asynchronously.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hide(&self) -> crate::Result<()>;
+
+  /// Cloaks or uncloaks the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()>;
+
+  /// Adds or removes the window from the native taskbar.
+  ///
+  /// Cloaked windows are normally always shown in the taskbar, but can be
+  /// manually toggled. Hidden windows (`SW_HIDE`) can never be shown in
+  /// the taskbar.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()>;
 }
 
 impl NativeWindowWindowsExt for crate::NativeWindow {
@@ -303,46 +347,22 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
       ZOrder::AfterWindow(window_id) => HWND(window_id.0),
     };
 
-    unsafe {
-      SetWindowPos(
-        self.hwnd(),
-        z_order_hwnd,
-        0,
-        0,
-        0,
-        0,
-        SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
-          | SWP_ASYNCWINDOWPOS
-          | SWP_SHOWWINDOW
-          | SWP_NOMOVE
-          | SWP_NOSIZE,
-      )
-    }?;
+    let flags = SWP_NOACTIVATE
+      | SWP_NOCOPYBITS
+      | SWP_ASYNCWINDOWPOS
+      | SWP_SHOWWINDOW
+      | SWP_NOMOVE
+      | SWP_NOSIZE;
 
-    let handle = self.inner.handle;
+    unsafe { SetWindowPos(self.hwnd(), z_order_hwnd, 0, 0, 0, 0, flags) }?;
 
     // Z-order can sometimes still be incorrect after the
     // above call.
+    let handle = self.inner.handle;
     task::spawn(async move {
       tokio::time::sleep(Duration::from_millis(10)).await;
-
-      let _ = unsafe {
-        SetWindowPos(
-          HWND(handle),
-          z_order_hwnd,
-          0,
-          0,
-          0,
-          0,
-          SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
-            | SWP_ASYNCWINDOWPOS
-            | SWP_SHOWWINDOW
-            | SWP_NOMOVE
-            | SWP_NOSIZE,
-        )
-      };
+      let _ =
+        unsafe { SetWindowPos(handle, z_order_hwnd, 0, 0, 0, 0, flags) };
     });
 
     Ok(())
@@ -411,6 +431,78 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
 
       unsafe { SetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE, new_style) };
     }
+  }
+
+  fn set_window_pos(
+    &self,
+    z_order: &ZOrder,
+    x: i32,
+    y: i32,
+    cx: i32,
+    cy: i32,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()> {
+    let z_order_hwnd = match z_order {
+      ZOrder::TopMost => HWND_TOPMOST,
+      ZOrder::Top => HWND_TOP,
+      ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(window_id) => HWND(window_id.0),
+    };
+
+    unsafe {
+      SetWindowPos(self.hwnd(), z_order_hwnd, x, y, cx, cy, flags)
+    }?;
+
+    Ok(())
+  }
+
+  fn show(&self) -> crate::Result<()> {
+    unsafe { ShowWindowAsync(self.hwnd(), SW_SHOWNA) }.ok()?;
+    Ok(())
+  }
+
+  fn hide(&self) -> crate::Result<()> {
+    unsafe { ShowWindowAsync(self.hwnd(), SW_HIDE) }.ok()?;
+    Ok(())
+  }
+
+  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
+      let view_collection = com_init.application_view_collection()?;
+
+      let mut view = None;
+      unsafe {
+        view_collection.get_view_for_hwnd(self.hwnd().0, &raw mut view)
+      }
+      .ok()?;
+
+      let view = view.ok_or_else(|| {
+        crate::Error::Platform(
+          "Unable to get application view by window handle.".to_string(),
+        )
+      })?;
+
+      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
+      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
+        .ok()
+        .ok_or_else(|| {
+          crate::Error::Platform("Failed to cloak window.".to_string())
+        })
+    })
+  }
+
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
+      let taskbar_list = com_init.taskbar_list()?;
+
+      if visible {
+        unsafe { taskbar_list.AddTab(self.hwnd())? };
+      } else {
+        unsafe { taskbar_list.DeleteTab(self.hwnd())? };
+      }
+
+      Ok(())
+    })
   }
 }
 
@@ -749,190 +841,6 @@ impl NativeWindow {
 
   pub(crate) fn close(&self) -> crate::Result<()> {
     unsafe { SendNotifyMessageW(self.hwnd(), WM_CLOSE, None, None) }?;
-    Ok(())
-  }
-
-  pub(crate) fn set_visible(
-    &self,
-    visible: bool,
-    hide_method: &HideMethod,
-  ) -> crate::Result<()> {
-    match hide_method {
-      HideMethod::Hide => {
-        if visible {
-          self.show()
-        } else {
-          self.hide()
-        }
-      }
-      HideMethod::Cloak => self.set_cloaked(!visible),
-    }
-  }
-
-  pub(crate) fn show(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(self.hwnd(), SW_SHOWNA) }.ok()?;
-    Ok(())
-  }
-
-  pub(crate) fn hide(&self) -> crate::Result<()> {
-    unsafe { ShowWindowAsync(self.hwnd(), SW_HIDE) }.ok()?;
-    Ok(())
-  }
-
-  pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
-      let view_collection = com_init.application_view_collection()?;
-
-      let mut view = None;
-      unsafe {
-        view_collection.get_view_for_hwnd(self.handle, &raw mut view)
-      }
-      .ok()?;
-
-      let view = view.ok_or_else(|| {
-        crate::Error::Platform(
-          "Unable to get application view by window handle.".to_string(),
-        )
-      })?;
-
-      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
-      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
-        .ok()
-        .ok_or_else(|| {
-          crate::Error::Platform("Failed to cloak window.".to_string())
-        })
-    })
-  }
-
-  /// Adds or removes the window from the native taskbar.
-  ///
-  /// Hidden windows (`SW_HIDE`) cannot be forced to be shown in the
-  /// taskbar. Cloaked windows are normally always shown in the taskbar,
-  /// but can be manually toggled.
-  pub(crate) fn set_taskbar_visibility(
-    &self,
-    visible: bool,
-  ) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
-
-      if visible {
-        unsafe { taskbar_list.AddTab(self.hwnd())? };
-      } else {
-        unsafe { taskbar_list.DeleteTab(self.hwnd())? };
-      }
-
-      Ok(())
-    })
-  }
-
-  // TODO: Should probably be removed and have its logic called explicitly.
-  pub(crate) fn set_position(
-    &self,
-    state: &WindowState,
-    rect: &Rect,
-    z_order: &ZOrder,
-    is_visible: bool,
-    hide_method: &HideMethod,
-    has_pending_dpi_adjustment: bool,
-  ) -> crate::Result<()> {
-    // Restore window if it's minimized/maximized and shouldn't be. This is
-    // needed to be able to move and resize it.
-    match state {
-      // Need to restore window if transitioning from maximized fullscreen
-      // to non-maximized fullscreen.
-      WindowState::Fullscreen(config) => {
-        if !config.maximized && self.is_maximized()? {
-          // Restoring to position has the same effect as `ShowWindow` with
-          // `SW_RESTORE`, but doesn't cause a flicker.
-          self.restore_to_position(rect)?;
-        }
-      }
-      // No need to restore window if it'll be minimized. Transitioning
-      // from maximized to minimized works without having to restore.
-      WindowState::Minimized => {}
-      _ => {
-        if self.is_minimized()? || self.is_maximized()? {
-          self.restore_to_position(rect)?;
-        }
-      }
-    }
-
-    let mut swp_flags = SWP_NOACTIVATE
-      | SWP_NOCOPYBITS
-      | SWP_NOSENDCHANGING
-      | SWP_ASYNCWINDOWPOS;
-
-    let z_order = match z_order {
-      ZOrder::TopMost => HWND_TOPMOST,
-      ZOrder::Top => HWND_TOP,
-      ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
-    };
-
-    match state {
-      WindowState::Minimized => {
-        if !self.is_minimized()? {
-          self.minimize()?;
-        }
-      }
-      WindowState::Fullscreen(config)
-        if config.maximized && self.has_window_style(WS_MAXIMIZEBOX) =>
-      {
-        if !self.is_maximized()? {
-          self.maximize()?;
-        }
-
-        unsafe {
-          SetWindowPos(
-            self.hwnd(),
-            z_order,
-            rect.x(),
-            rect.y(),
-            rect.width(),
-            rect.height(),
-            swp_flags,
-          )
-        }?;
-      }
-      _ => {
-        swp_flags |= SWP_FRAMECHANGED;
-
-        unsafe {
-          SetWindowPos(
-            self.hwnd(),
-            z_order,
-            rect.x(),
-            rect.y(),
-            rect.width(),
-            rect.height(),
-            swp_flags,
-          )
-        }?;
-
-        // When there's a mismatch between the DPI of the monitor and the
-        // window, the window might be sized incorrectly after the first
-        // move. If we set the position twice, inconsistencies after the
-        // first move are resolved.
-        if has_pending_dpi_adjustment {
-          unsafe {
-            SetWindowPos(
-              self.hwnd(),
-              z_order,
-              rect.x(),
-              rect.y(),
-              rect.width(),
-              rect.height(),
-              swp_flags,
-            )
-          }?;
-        }
-      }
-    }
-
-    // Whether to hide or show the window.
-    self.set_visible(is_visible, hide_method)?;
-
     Ok(())
   }
 }

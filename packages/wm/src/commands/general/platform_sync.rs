@@ -7,6 +7,8 @@ use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideCorner, HideMethod,
   UniqueExt, WindowEffectConfig, WindowState, WmEvent,
 };
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{OpacityValue, Rect, ZOrder};
 
 use crate::{
@@ -281,7 +283,14 @@ fn redraw_containers(
       },
     );
 
-    if let Err(err) = reposition_window(window, *hide_corner, config) {
+    let is_visible = matches!(
+      window.display_state(),
+      DisplayState::Showing | DisplayState::Shown
+    );
+
+    if let Err(err) =
+      reposition_window(window, *hide_corner, &z_order, is_visible, config)
+    {
       warn!("Failed to set window position: {}", err);
     }
 
@@ -332,16 +341,13 @@ fn redraw_containers(
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
+  z_order: &ZOrder,
+  is_visible: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let rect = window
     .to_rect()?
     .apply_delta(&window.total_border_delta()?, None);
-
-  let is_visible = matches!(
-    window.display_state(),
-    DisplayState::Showing | DisplayState::Shown
-  );
 
   // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
   // to the corner of the monitor.
@@ -382,7 +388,87 @@ fn reposition_window(
   if window.active_drag().is_some() {
     window.native().resize(rect.width(), rect.height())?;
   } else {
+    #[cfg(target_os = "macos")]
     window.native().set_frame(&rect)?;
+
+    #[cfg(target_os = "windows")]
+    {
+      use wm_platform::{
+        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
+      };
+
+      // Restore window if it's minimized/maximized and shouldn't be. This
+      // is needed to be able to move and resize it.
+      let should_restore = match &window.state() {
+        // Need to restore window if transitioning from maximized
+        // fullscreen to non-maximized fullscreen.
+        WindowState::Fullscreen(fs_config) => {
+          !fs_config.maximized && window.native().is_maximized()?
+        }
+        // No need to restore window if it'll be minimized. Transitioning
+        // from maximized to minimized works without having to
+        // restore.
+        WindowState::Minimized => false,
+        _ => {
+          window.native().is_minimized()?
+            || window.native().is_maximized()?
+        }
+      };
+
+      if should_restore {
+        // Restoring to position has the same effect as `ShowWindow` with
+        // `SW_RESTORE`, but doesn't cause a flicker.
+        window.native().restore(Some(rect))?;
+      }
+
+      let mut swp_flags = SWP_NOACTIVATE
+        | SWP_NOCOPYBITS
+        | SWP_NOSENDCHANGING
+        | SWP_ASYNCWINDOWPOS;
+
+      match &window.state() {
+        WindowState::Minimized => {
+          if !window.native().is_minimized()? {
+            window.native().minimize()?;
+          }
+        }
+        WindowState::Fullscreen(fs_config)
+          if fs_config.maximized
+            && window.native().has_window_style(WS_MAXIMIZEBOX) =>
+        {
+          if !window.native().is_maximized()? {
+            window.native().maximize()?;
+          }
+
+          window.native().set_window_pos(z_order, rect, swp_flags)?;
+        }
+        _ => {
+          swp_flags |= SWP_FRAMECHANGED;
+
+          window.native().set_window_pos(z_order, rect, swp_flags)?;
+
+          // When there's a mismatch between the DPI of the monitor and the
+          // window, the window might be sized incorrectly after the first
+          // move. If we set the position twice, inconsistencies after the
+          // first move are resolved.
+          if window.has_pending_dpi_adjustment() {
+            window.native().set_window_pos(z_order, rect, swp_flags)?;
+          }
+        }
+      }
+
+      // Set visibility based on the hide method.
+      if config.value.general.hide_method == HideMethod::Cloak {
+        window.native().set_cloaked(!is_visible)?;
+      } else {
+        if is_visible {
+          window.native().show()?;
+        } else {
+          window.native().hide()?;
+        }
+      }
+    }
   }
 
   Ok(())
