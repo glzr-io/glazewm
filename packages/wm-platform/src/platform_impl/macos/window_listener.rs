@@ -30,19 +30,18 @@ unsafe impl Send for WindowEventNotificationInner {}
 
 /// macOS-specific implementation of [`WindowListener`].
 #[derive(Debug)]
-pub(crate) struct WindowListener {
-  pub(crate) event_rx: mpsc::UnboundedReceiver<WindowEvent>,
-}
+pub(crate) struct WindowListener;
 
 impl WindowListener {
   /// macOS-specific implementation of [`WindowListener::new`].
-  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    let (events_tx, event_rx) = mpsc::unbounded_channel();
-
+  pub(crate) fn new(
+    events_tx: mpsc::UnboundedSender<WindowEvent>,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<Self> {
     dispatcher
       .dispatch_sync(|| Self::init(events_tx, dispatcher.clone()))??;
 
-    Ok(Self { event_rx })
+    Ok(Self)
   }
 
   fn init(
@@ -240,10 +239,5 @@ impl WindowListener {
   pub(crate) fn terminate(&mut self) {
     // TODO: Implement this.
     todo!()
-  }
-
-  /// macOS-specific implementation of [`WindowListener::next_event`].
-  pub(crate) async fn next_event(&mut self) -> Option<WindowEvent> {
-    self.event_rx.recv().await
   }
 }

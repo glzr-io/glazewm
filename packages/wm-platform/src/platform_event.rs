@@ -97,6 +97,7 @@ impl WindowEvent {
   }
 
   /// Returns the platform-specific window event notification.
+  #[must_use]
   pub fn notification(&self) -> &WindowEventNotification {
     match self {
       Self::Focused { notification, .. }
@@ -105,8 +106,8 @@ impl WindowEvent {
       | Self::Minimized { notification, .. }
       | Self::MinimizeEnded { notification, .. }
       | Self::Shown { notification, .. }
-      | Self::TitleChanged { notification, .. } => notification,
-      Self::Destroyed { notification, .. } => notification,
+      | Self::TitleChanged { notification, .. }
+      | Self::Destroyed { notification, .. } => notification,
     }
   }
 }

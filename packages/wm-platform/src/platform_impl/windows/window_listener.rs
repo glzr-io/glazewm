@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex, OnceLock};
-
 use tokio::sync::mpsc;
 use tracing::warn;
 use windows::Win32::{
@@ -17,178 +15,183 @@ use windows::Win32::{
   },
 };
 
-use super::{NativeWindow, PlatformEvent};
+use super::NativeWindow;
+use crate::{Dispatcher, WindowEvent, WindowEventNotification, WindowId};
 
-/// Global instance of `WindowListener`.
-///
-/// For use with hook procedure.
-///
-/// TODO: Change this be thread-local.
-static WIN_EVENT_HOOK: OnceLock<Arc<WindowListener>> = OnceLock::new();
+thread_local! {
+  /// Sender for window events. For use with hook procedure.
+  static EVENT_TX: OnceLock<mpsc::UnboundedSender<WindowEvent>> = OnceLock::new();
+}
 
 /// Windows-specific window event notification.
 #[derive(Clone, Debug)]
 pub struct WindowEventNotificationInner;
 
+/// Windows-specific implementation of [`WindowListener`].
 #[derive(Debug)]
-pub struct WindowListener {
-  event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  hook_handles: Arc<Mutex<Vec<HWINEVENTHOOK>>>,
+pub(crate) struct WindowListener {
+  dispatcher: Dispatcher,
+  hook_handles: Vec<HWINEVENTHOOK>,
 }
 
 impl WindowListener {
-  /// Creates an instance of `WindowListener`.
-  pub fn new(
-    event_tx: mpsc::UnboundedSender<PlatformEvent>,
-  ) -> crate::Result<Arc<Self>> {
-    let win_event_hook = Arc::new(Self {
-      event_tx,
-      hook_handles: Arc::new(Mutex::new(Vec::new())),
-    });
-
-    WIN_EVENT_HOOK.set(win_event_hook.clone()).map_err(|_| {
-      crate::Error::Platform(
-        "Window event hook already running.".to_string(),
-      )
-    })?;
-
-    Ok(win_event_hook)
-  }
-
-  /// Starts a window event hook on the current thread. This assumes that a
-  /// message loop is currently running.
+  /// Creates a new `WindowListener`.
   ///
-  /// # Panics
-  ///
-  /// If the internal mutex is poisoned.
-  pub fn start(&self) -> crate::Result<()> {
-    *self.hook_handles.lock().unwrap() = Self::hook_win_events()?;
-    Ok(())
+  /// Hooks into window events on the event loop thread.
+  pub(crate) fn new(
+    event_tx: mpsc::UnboundedSender<WindowEvent>,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<Self> {
+    let hook_handles = dispatcher.dispatch_sync(move || {
+      EVENT_TX.set(event_tx).map_err(|_| {
+        crate::Error::Platform(
+          "Window event sender already set.".to_string(),
+        )
+      })?;
+
+      Self::hook_win_events()
+    })??;
+
+    Ok(Self {
+      hook_handles,
+      dispatcher: dispatcher.clone(),
+    })
   }
 
   /// Creates several window event hooks via `SetWinEventHook`.
+  ///
+  /// Separate hooks are created per event range, which is more performant
+  /// than a single hook covering all events.
   fn hook_win_events() -> crate::Result<Vec<HWINEVENTHOOK>> {
     let event_ranges = [
-      (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
       (EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE),
       (EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND),
-      (EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZEEND),
-      (EVENT_SYSTEM_MOVESIZESTART, EVENT_SYSTEM_MOVESIZESTART),
+      (EVENT_SYSTEM_MOVESIZESTART, EVENT_SYSTEM_MOVESIZEEND),
       (EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND),
       (EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_NAMECHANGE),
       (EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED),
     ];
 
-    // Create separate hooks for each event range. This is more performant
-    // than creating a single hook for all events and filtering them.
     event_ranges
       .iter()
-      .try_fold(Vec::new(), |mut handles, event_range| {
-        let hook_handle =
-          Self::hook_win_event(event_range.0, event_range.1)?;
+      .try_fold(Vec::new(), |mut handles, (min, max)| {
+        // Create a window hook for the event range.
+        let hook_handle = unsafe {
+          SetWinEventHook(
+            *min,
+            *max,
+            None,
+            Some(Self::window_event_proc),
+            0,
+            0,
+            WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
+          )
+        };
+
+        if hook_handle.is_invalid() {
+          return Err(crate::Error::Platform(
+            "Failed to set window event hook.".to_string(),
+          ));
+        }
+
         handles.push(hook_handle);
         Ok(handles)
       })
   }
 
-  /// Creates a window hook for the specified event range.
-  fn hook_win_event(
-    event_min: u32,
-    event_max: u32,
-  ) -> crate::Result<HWINEVENTHOOK> {
-    let hook_handle = unsafe {
-      SetWinEventHook(
-        event_min,
-        event_max,
-        None,
-        Some(window_event_hook_proc),
-        0,
-        0,
-        WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
-      )
+  /// Callback passed to `SetWinEventHook`.
+  ///
+  /// This function is called on selected window events, and forwards them
+  /// through an MPSC channel.
+  extern "system" fn window_event_proc(
+    _hook: HWINEVENTHOOK,
+    event_type: u32,
+    handle: HWND,
+    id_object: i32,
+    id_child: i32,
+    _event_thread: u32,
+    _event_time: u32,
+  ) {
+    // Check whether the event is associated with a window object rather
+    // than a UI control.
+    let is_window_event =
+      id_object == OBJID_WINDOW.0 && id_child == 0 && handle != HWND(0);
+
+    if !is_window_event {
+      return;
+    }
+
+    let Some(event_tx) = EVENT_TX.get() else {
+      return;
     };
 
-    if hook_handle.is_invalid() {
-      Err(crate::Error::Platform(
-        "Failed to set window event hook.".to_string(),
-      ))
-    } else {
-      Ok(hook_handle)
-    }
-  }
+    let notification = crate::WindowEventNotification(None);
 
-  /// Invoked by the hook procedure when a window event is received.
-  fn handle_event(&self, event_type: u32, handle: isize) {
-    let window = NativeWindow::new(handle);
-
-    let platform_event = match event_type {
-      EVENT_OBJECT_DESTROY => PlatformEvent::WindowDestroyed(window),
-      EVENT_SYSTEM_FOREGROUND => PlatformEvent::WindowFocused(window),
-      EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => {
-        PlatformEvent::WindowHidden(window)
-      }
-      EVENT_OBJECT_LOCATIONCHANGE => {
-        PlatformEvent::WindowLocationChanged(window)
-      }
-      EVENT_SYSTEM_MINIMIZESTART => PlatformEvent::WindowMinimized(window),
-      EVENT_SYSTEM_MINIMIZEEND => {
-        PlatformEvent::WindowMinimizeEnded(window)
-      }
-      EVENT_SYSTEM_MOVESIZEEND => {
-        PlatformEvent::WindowMovedOrResizedEnd(window)
-      }
-      EVENT_SYSTEM_MOVESIZESTART => {
-        PlatformEvent::WindowMovedOrResizedStart(window)
-      }
-      EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => {
-        PlatformEvent::WindowShown(window)
-      }
-      EVENT_OBJECT_NAMECHANGE => PlatformEvent::WindowTitleChanged(window),
+    let event = match event_type {
+      EVENT_OBJECT_DESTROY => WindowEvent::Destroyed {
+        window_id: WindowId(handle),
+        notification,
+      },
+      EVENT_SYSTEM_FOREGROUND => WindowEvent::Focused {
+        window: NativeWindow::new(handle),
+        notification,
+      },
+      EVENT_OBJECT_HIDE | EVENT_OBJECT_CLOAKED => WindowEvent::Hidden {
+        window: NativeWindow::new(handle),
+        notification,
+      },
+      EVENT_OBJECT_LOCATIONCHANGE => WindowEvent::MovedOrResized {
+        window: NativeWindow::new(handle),
+        is_interactive_start: false,
+        is_interactive_end: false,
+        notification,
+      },
+      EVENT_SYSTEM_MINIMIZESTART => WindowEvent::Minimized {
+        window: NativeWindow::new(handle),
+        notification,
+      },
+      EVENT_SYSTEM_MINIMIZEEND => WindowEvent::MinimizeEnded {
+        window: NativeWindow::new(handle),
+        notification,
+      },
+      EVENT_SYSTEM_MOVESIZESTART => WindowEvent::MovedOrResized {
+        window: NativeWindow::new(handle),
+        is_interactive_start: true,
+        is_interactive_end: false,
+        notification,
+      },
+      EVENT_SYSTEM_MOVESIZEEND => WindowEvent::MovedOrResized {
+        window: NativeWindow::new(handle),
+        is_interactive_start: false,
+        is_interactive_end: true,
+        notification,
+      },
+      EVENT_OBJECT_SHOW | EVENT_OBJECT_UNCLOAKED => WindowEvent::Shown {
+        window: NativeWindow::new(handle),
+        notification,
+      },
+      EVENT_OBJECT_NAMECHANGE => WindowEvent::TitleChanged {
+        window: NativeWindow::new(handle),
+        notification,
+      },
       _ => return,
     };
 
-    if let Err(err) = self.event_tx.send(platform_event) {
-      warn!("Failed to send platform event '{}'.", err);
+    if let Err(err) = event_tx.send(event) {
+      tracing::warn!("Failed to send window event: {}.", err);
     }
   }
 
-  /// Stops the window event hook and unhooks from all window events.
-  ///
-  /// # Panics
-  ///
-  /// If the internal mutex is poisoned.
-  pub fn stop(&self) -> crate::Result<()> {
-    for hook_handle in self.hook_handles.lock().unwrap().drain(..) {
-      unsafe { UnhookWinEvent(hook_handle) }.ok()?;
+  /// Unhooks from all window events.
+  pub(crate) fn terminate(&mut self) {
+    for handle in self.hook_handles {
+      let _ = unsafe { UnhookWinEvent(handle) };
     }
-
-    Ok(())
   }
 }
 
-/// Callback passed to `SetWinEventHook` to handle window events.
-///
-/// This function is called on selected window events, and forwards them
-/// through an MPSC channel for the WM to process.
-extern "system" fn window_event_hook_proc(
-  _hook: HWINEVENTHOOK,
-  event_type: u32,
-  handle: HWND,
-  id_object: i32,
-  id_child: i32,
-  _event_thread: u32,
-  _event_time: u32,
-) {
-  let is_window_event =
-    id_object == OBJID_WINDOW.0 && id_child == 0 && handle != HWND(0);
-
-  // Check whether the event is associated with a window object instead
-  // of a UI control.
-  if !is_window_event {
-    return;
-  }
-
-  if let Some(hook) = WIN_EVENT_HOOK.get() {
-    hook.handle_event(event_type, handle.0);
+impl Drop for WindowListener {
+  fn drop(&mut self) {
+    self.terminate();
   }
 }
