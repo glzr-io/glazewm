@@ -60,14 +60,52 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn hwnd(&self) -> HWND;
 
+  /// Gets the class name of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn class_name(&self) -> crate::Result<String>;
+
+  /// Marks the window as fullscreen.
+  ///
+  /// Causes the native Windows taskbar to be moved to the bottom of the
+  /// z-order when this window is active.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()>;
+
+  /// Sets the visibility of the window's title bar.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()>;
+
+  /// Sets the color of the window's border.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
+
+  /// Sets the corner style of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn set_corner_style(
     &self,
     corner_style: &CornerStyle,
   ) -> crate::Result<()>;
+
+  /// Sets the transparency of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
   fn set_transparency(
     &self,
     opacity_value: &OpacityValue,
@@ -104,6 +142,215 @@ pub trait NativeWindowWindowsExt {
 impl NativeWindowWindowsExt for NativeWindow {
   fn hwnd(&self) -> HWND {
     HWND(self.handle)
+  }
+
+  fn class_name(&self) -> crate::Result<String> {
+    let mut buffer = [0u16; 256];
+    let result = unsafe { GetClassNameW(self.hwnd(), &mut buffer) };
+
+    if result == 0 {
+      return Err(windows::core::Error::from_win32().into());
+    }
+
+    #[allow(clippy::cast_sign_loss)]
+    let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
+    Ok(class_name)
+  }
+
+  fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
+      let taskbar_list = com_init.taskbar_list()?;
+
+      unsafe {
+        taskbar_list.MarkFullscreenWindow(self.hwnd(), fullscreen)
+      }?;
+
+      Ok(())
+    })
+  }
+
+  fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()> {
+    let style = unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
+
+    #[allow(clippy::cast_possible_wrap)]
+    let new_style = if visible {
+      style | (WS_DLGFRAME.0 as isize)
+    } else {
+      style & !(WS_DLGFRAME.0 as isize)
+    };
+
+    if new_style != style {
+      unsafe {
+        SetWindowLongPtrW(self.hwnd(), GWL_STYLE, new_style);
+        SetWindowPos(
+          self.hwnd(),
+          HWND_NOTOPMOST,
+          0,
+          0,
+          0,
+          0,
+          SWP_FRAMECHANGED
+            | SWP_NOMOVE
+            | SWP_NOSIZE
+            | SWP_NOZORDER
+            | SWP_NOOWNERZORDER
+            | SWP_NOACTIVATE
+            | SWP_NOCOPYBITS
+            | SWP_NOSENDCHANGING
+            | SWP_ASYNCWINDOWPOS,
+        )?;
+      }
+    }
+
+    Ok(())
+  }
+
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
+    let bgr = match color {
+      Some(color) => color.to_bgr()?,
+      None => DWMWA_COLOR_NONE,
+    };
+
+    unsafe {
+      #[allow(clippy::cast_possible_truncation)]
+      DwmSetWindowAttribute(
+        self.hwnd(),
+        DWMWA_BORDER_COLOR,
+        std::ptr::from_ref(&bgr).cast(),
+        std::mem::size_of::<u32>() as u32,
+      )?;
+    }
+
+    Ok(())
+  }
+
+  fn set_corner_style(
+    &self,
+    corner_style: &CornerStyle,
+  ) -> crate::Result<()> {
+    let corner_preference = match corner_style {
+      CornerStyle::Default => DWMWCP_DEFAULT,
+      CornerStyle::Square => DWMWCP_DONOTROUND,
+      CornerStyle::Rounded => DWMWCP_ROUND,
+      CornerStyle::SmallRounded => DWMWCP_ROUNDSMALL,
+    };
+
+    unsafe {
+      #[allow(clippy::cast_possible_truncation)]
+      DwmSetWindowAttribute(
+        self.hwnd(),
+        DWMWA_WINDOW_CORNER_PREFERENCE,
+        std::ptr::from_ref(&(corner_preference.0)).cast(),
+        std::mem::size_of::<i32>() as u32,
+      )?;
+    }
+
+    Ok(())
+  }
+
+  fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> crate::Result<()> {
+    // Make the window layered if it isn't already.
+    self.add_window_style_ex(WS_EX_LAYERED);
+
+    unsafe {
+      SetLayeredWindowAttributes(
+        self.hwnd(),
+        None,
+        opacity_value.to_alpha(),
+        LWA_ALPHA,
+      )?;
+    }
+
+    Ok(())
+  }
+
+  fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
+    let z_order_hwnd = match z_order {
+      ZOrder::TopMost => HWND_TOPMOST,
+      ZOrder::Top => HWND_TOP,
+      ZOrder::Normal => HWND_NOTOPMOST,
+      ZOrder::AfterWindow(window_id) => HWND(window_id.0),
+    };
+
+    unsafe {
+      SetWindowPos(
+        self.hwnd(),
+        z_order_hwnd,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_ASYNCWINDOWPOS
+          | SWP_SHOWWINDOW
+          | SWP_NOMOVE
+          | SWP_NOSIZE,
+      )
+    }?;
+
+    let handle = self.handle;
+
+    // Z-order can sometimes still be incorrect after the
+    // above call.
+    task::spawn(async move {
+      tokio::time::sleep(Duration::from_millis(10)).await;
+
+      let _ = unsafe {
+        SetWindowPos(
+          HWND(handle),
+          z_order_hwnd,
+          0,
+          0,
+          0,
+          0,
+          SWP_NOACTIVATE
+            | SWP_NOCOPYBITS
+            | SWP_ASYNCWINDOWPOS
+            | SWP_SHOWWINDOW
+            | SWP_NOMOVE
+            | SWP_NOSIZE,
+        )
+      };
+    });
+
+    Ok(())
+  }
+
+  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()> {
+    match outer_frame {
+      None => {
+        unsafe { ShowWindowAsync(self.hwnd(), SW_RESTORE) }.ok()?;
+        Ok(())
+      }
+      Some(rect) => {
+        let placement = WINDOWPLACEMENT {
+          #[allow(clippy::cast_possible_truncation)]
+          length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
+          flags: WPF_ASYNCWINDOWPLACEMENT,
+          showCmd: SW_RESTORE.0 as u32,
+          rcNormalPosition: RECT {
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+          },
+          ..Default::default()
+        };
+
+        unsafe { SetWindowPlacement(self.hwnd(), &raw const placement) }?;
+        Ok(())
+      }
+    }
+  }
+
+  /// Gets the window's frame, including the window's shadow
+  /// borders.
+  fn frame_with_shadows(&self) -> crate::Result<Rect> {
+    self.border_position()
   }
 }
 
@@ -148,16 +395,20 @@ impl NativeWindow {
 
     let mut buffer = [0u16; 256];
     let mut length = u32::try_from(buffer.len())?;
+
     unsafe {
-      QueryFullProcessImageNameW(
+      let query_res = QueryFullProcessImageNameW(
         process_handle,
         PROCESS_NAME_WIN32,
         PWSTR(buffer.as_mut_ptr()),
         &raw mut length,
-      )?;
+      );
 
+      // Always close the process handle regardless of the query result.
       CloseHandle(process_handle)?;
-    };
+
+      query_res
+    }?;
 
     let exe_path = String::from_utf16_lossy(&buffer[..length as usize]);
 
@@ -170,20 +421,6 @@ impl NativeWindow {
       .ok_or_else(|| {
         crate::Error::Platform("Failed to parse process name.".to_string())
       })
-  }
-
-  /// Gets the class name of the window.
-  pub(crate) fn class_name(&self) -> crate::Result<String> {
-    let mut buffer = [0u16; 256];
-    let result = unsafe { GetClassNameW(self.hwnd(), &mut buffer) };
-
-    if result == 0 {
-      return Err(windows::core::Error::from_win32().into());
-    }
-
-    #[allow(clippy::cast_sign_loss)]
-    let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
-    Ok(class_name)
   }
 
   /// Whether the window is actually visible.
@@ -266,7 +503,6 @@ impl NativeWindow {
   }
 
   /// Whether the window has resize handles.
-  #[must_use]
   pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
     Ok(self.has_window_style(WS_THICKFRAME))
   }
@@ -297,91 +533,6 @@ impl NativeWindow {
 
     // Set as the foreground window.
     unsafe { SetForegroundWindow(self.hwnd()) }.ok()?;
-
-    Ok(())
-  }
-
-  pub(crate) fn set_border_color(
-    &self,
-    color: Option<&Color>,
-  ) -> crate::Result<()> {
-    let bgr = match color {
-      Some(color) => color.to_bgr()?,
-      None => DWMWA_COLOR_NONE,
-    };
-
-    unsafe {
-      #[allow(clippy::cast_possible_truncation)]
-      DwmSetWindowAttribute(
-        self.hwnd(),
-        DWMWA_BORDER_COLOR,
-        std::ptr::from_ref(&bgr).cast(),
-        std::mem::size_of::<u32>() as u32,
-      )?;
-    }
-
-    Ok(())
-  }
-
-  pub(crate) fn set_corner_style(
-    &self,
-    corner_style: &CornerStyle,
-  ) -> crate::Result<()> {
-    let corner_preference = match corner_style {
-      CornerStyle::Default => DWMWCP_DEFAULT,
-      CornerStyle::Square => DWMWCP_DONOTROUND,
-      CornerStyle::Rounded => DWMWCP_ROUND,
-      CornerStyle::SmallRounded => DWMWCP_ROUNDSMALL,
-    };
-
-    unsafe {
-      #[allow(clippy::cast_possible_truncation)]
-      DwmSetWindowAttribute(
-        self.hwnd(),
-        DWMWA_WINDOW_CORNER_PREFERENCE,
-        std::ptr::from_ref(&(corner_preference.0)).cast(),
-        std::mem::size_of::<i32>() as u32,
-      )?;
-    }
-
-    Ok(())
-  }
-
-  pub(crate) fn set_title_bar_visibility(
-    &self,
-    visible: bool,
-  ) -> crate::Result<()> {
-    let style = unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let new_style = if visible {
-      style | (WS_DLGFRAME.0 as isize)
-    } else {
-      style & !(WS_DLGFRAME.0 as isize)
-    };
-
-    if new_style != style {
-      unsafe {
-        SetWindowLongPtrW(self.hwnd(), GWL_STYLE, new_style);
-        SetWindowPos(
-          self.hwnd(),
-          HWND_NOTOPMOST,
-          0,
-          0,
-          0,
-          0,
-          SWP_FRAMECHANGED
-            | SWP_NOMOVE
-            | SWP_NOSIZE
-            | SWP_NOZORDER
-            | SWP_NOOWNERZORDER
-            | SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
-            | SWP_NOSENDCHANGING
-            | SWP_ASYNCWINDOWPOS,
-        )?;
-      }
-    }
 
     Ok(())
   }
@@ -428,25 +579,6 @@ impl NativeWindow {
     };
 
     self.set_transparency(&OpacityValue::from_alpha(target_alpha))
-  }
-
-  pub(crate) fn set_transparency(
-    &self,
-    opacity_value: &OpacityValue,
-  ) -> crate::Result<()> {
-    // Make the window layered if it isn't already.
-    self.add_window_style_ex(WS_EX_LAYERED);
-
-    unsafe {
-      SetLayeredWindowAttributes(
-        self.hwnd(),
-        None,
-        opacity_value.to_alpha(),
-        LWA_ALPHA,
-      )?;
-    }
-
-    Ok(())
   }
 
   /// Gets the window's position, including the window's frame. Excludes
@@ -531,7 +663,7 @@ impl NativeWindow {
     unsafe {
       SetWindowPos(
         self.hwnd(),
-        HWND_TOP,
+        HWND_NOTOPMOST,
         0,
         0,
         width,
@@ -554,7 +686,7 @@ impl NativeWindow {
     unsafe {
       SetWindowPos(
         self.hwnd(),
-        HWND_TOP,
+        HWND_NOTOPMOST,
         x,
         y,
         0,
@@ -577,7 +709,7 @@ impl NativeWindow {
     unsafe {
       SetWindowPos(
         self.hwnd(),
-        HWND_TOP,
+        HWND_NOTOPMOST,
         rect.x(),
         rect.y(),
         rect.width(),
@@ -612,41 +744,6 @@ impl NativeWindow {
     (current_style & style) != 0
   }
 
-  /// Restores the window (unminimizes and unmaximizes).
-  ///
-  /// If `outer_frame` is provided, the window will be restored to the
-  /// specified position. This avoids flickering compared to restoring
-  /// and then repositioning the window.
-  pub(crate) fn restore(
-    &self,
-    outer_frame: Option<&Rect>,
-  ) -> crate::Result<()> {
-    match outer_frame {
-      None => {
-        unsafe { ShowWindowAsync(self.hwnd(), SW_RESTORE) }.ok()?;
-        Ok(())
-      }
-      Some(rect) => {
-        let placement = WINDOWPLACEMENT {
-          #[allow(clippy::cast_possible_truncation)]
-          length: std::mem::size_of::<WINDOWPLACEMENT>() as u32,
-          flags: WPF_ASYNCWINDOWPLACEMENT,
-          showCmd: SW_RESTORE.0 as u32,
-          rcNormalPosition: RECT {
-            left: rect.left,
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-          },
-          ..Default::default()
-        };
-
-        unsafe { SetWindowPlacement(self.hwnd(), &raw const placement) }?;
-        Ok(())
-      }
-    }
-  }
-
   pub(crate) fn maximize(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(self.hwnd(), SW_MAXIMIZE).ok() }?;
     Ok(())
@@ -659,7 +756,6 @@ impl NativeWindow {
 
   pub(crate) fn close(&self) -> crate::Result<()> {
     unsafe { SendNotifyMessageW(self.hwnd(), WM_CLOSE, None, None) }?;
-
     Ok(())
   }
 
@@ -843,77 +939,6 @@ impl NativeWindow {
 
     // Whether to hide or show the window.
     self.set_visible(is_visible, hide_method)?;
-
-    Ok(())
-  }
-
-  /// Marks the window as fullscreen.
-  ///
-  /// Causes the native Windows taskbar to be moved to the bottom of the
-  /// z-order when this window is active.
-  pub(crate) fn mark_fullscreen(
-    &self,
-    fullscreen: bool,
-  ) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
-
-      unsafe {
-        taskbar_list.MarkFullscreenWindow(self.hwnd(), fullscreen)
-      }?;
-
-      Ok(())
-    })
-  }
-
-  pub(crate) fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
-    let z_order = match z_order {
-      ZOrder::TopMost => HWND_TOPMOST,
-      ZOrder::Top => HWND_TOP,
-      ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(hwnd) => HWND(*hwnd),
-    };
-
-    unsafe {
-      SetWindowPos(
-        self.hwnd(),
-        z_order,
-        0,
-        0,
-        0,
-        0,
-        SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
-          | SWP_ASYNCWINDOWPOS
-          | SWP_SHOWWINDOW
-          | SWP_NOMOVE
-          | SWP_NOSIZE,
-      )
-    }?;
-
-    let handle = self.handle;
-
-    // Z-order can sometimes still be incorrect after the above call.
-    task::spawn(async move {
-      tokio::time::sleep(Duration::from_millis(10)).await;
-
-      let _ = unsafe {
-        SetWindowPos(
-          HWND(handle),
-          z_order,
-          0,
-          0,
-          0,
-          0,
-          SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
-            | SWP_ASYNCWINDOWPOS
-            | SWP_SHOWWINDOW
-            | SWP_NOMOVE
-            | SWP_NOSIZE,
-        )
-      };
-    });
 
     Ok(())
   }

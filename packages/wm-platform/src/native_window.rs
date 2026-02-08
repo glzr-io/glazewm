@@ -147,18 +147,12 @@ impl NativeWindow {
   /// - **Windows**: This sends a `WM_CLOSE` message to the window.
   /// - **macOS**: This simulates pressing the close button on the window's
   ///   title bar.
-  ///
-  /// # Errors
-  ///
-  /// Returns `crate::Error::WindowNotFound` if the window is invalid or
-  /// cannot be closed.
   pub fn close(&self) -> crate::Result<()> {
     self.inner.close()
   }
 
   pub fn is_resizable(&self) -> crate::Result<bool> {
-    // TODO: Implement this.
-    Ok(true)
+    self.inner.is_resizable()
   }
 
   pub fn is_desktop_window(&self) -> crate::Result<bool> {

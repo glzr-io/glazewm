@@ -298,6 +298,13 @@ impl NativeWindow {
     })?
   }
 
+  /// macOS-specific implementation of [`NativeWindow::is_resizable`].
+  #[allow(clippy::unnecessary_wraps)]
+  pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
+    // TODO: Not sure if this is even available via the AX API.
+    Ok(true)
+  }
+
   /// macOS-specific implementation of [`NativeWindow::maximize`].
   pub(crate) fn maximize(&self) -> crate::Result<()> {
     self.element.with(move |el| -> crate::Result<()> {
