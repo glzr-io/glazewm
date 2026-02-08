@@ -120,9 +120,8 @@ impl NativeWindow {
   /// # Platform-specific
   ///
   /// - **Windows**: Automatically adjusts the `rect` prior to calling [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos)
-  ///   to include the window's shadow borders. To set the window's frame
-  ///   without the shadow borders, use
-  ///   [`Self::set_frame_without_shadow_borders`].
+  ///   to include the window's shadow borders. To set the window's
+  ///   position directly, use [`NativeWindowWindowsExt::set_window_pos`].
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     self.inner.set_frame(rect)
   }

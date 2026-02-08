@@ -1,7 +1,8 @@
 use std::{
   cell::RefCell,
+  collections::HashMap,
   sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc, LazyLock,
   },
   thread::{self, JoinHandle},
@@ -15,7 +16,7 @@ use windows::{
     System::Threading::GetCurrentThreadId,
     UI::WindowsAndMessaging::{
       DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-      PostMessageW, PostThreadMessageW, RegisterWindowMessageA,
+      PostMessageW, PostThreadMessageW, RegisterWindowMessageW,
       TranslateMessage, MSG, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND,
       PBT_APMSUSPEND, WM_DEVICECHANGE, WM_DISPLAYCHANGE, WM_INPUT,
       WM_POWERBROADCAST, WM_QUIT, WM_SETTINGCHANGE,
@@ -37,17 +38,38 @@ thread_local! {
   static WM_DISPATCH_CALLBACK: u32 = RegisterWindowMessageW(w!("GlazeWM:Dispatch"));
 }
 
+/// A callback that pre-processes Windows messages received by the event
+/// loop's hidden message window.
+///
+/// Returns `Some(LRESULT)` if the message was handled, or `None` to pass
+/// the message to subsequent callbacks or the default handler.
+pub type WndProcCallback =
+  dyn Fn(HWND, u32, WPARAM, LPARAM) -> Option<LRESULT> + Send + 'static;
+
+thread_local! {
+  /// Registered callbacks that pre-process messages in the event
+  /// loop's window procedure.
+  ///
+  /// Keyed by a unique callback ID for later deregistration.
+  static WNDPROC_CALLBACKS: RefCell<HashMap<usize, Box<WndProcCallback>>> =
+    RefCell::new(HashMap::new());
+}
+
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
   message_window_handle: crate::WindowHandle,
   thread_id: u32,
+  next_callback_id: Arc<AtomicUsize>,
 }
 
 impl EventLoopSource {
-  pub fn send_dispatch(
+  pub(crate) fn send_dispatch<F>(
     &self,
-    dispatch_fn: DispatchFn,
-  ) -> crate::Result<()> {
+    dispatch_fn: F,
+  ) -> crate::Result<()>
+  where
+    F: FnOnce() + Send + 'static,
+  {
     // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
     // Windows. Ref Tao's implementation: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
     let dispatch_fn: DispatchFn = Box::new(Box::new(dispatch_fn));
@@ -58,7 +80,7 @@ impl EventLoopSource {
     unsafe {
       if PostMessageW(
         HWND(self.message_window_handle),
-        *WM_DISPATCH_CALLBACK,
+        WM_DISPATCH_CALLBACK.with(|v| *v),
         WPARAM(callback_ptr as _),
         LPARAM(0),
       )
@@ -75,7 +97,7 @@ impl EventLoopSource {
     }
   }
 
-  pub fn send_stop(&self) -> crate::Result<()> {
+  pub(crate) fn send_stop(&self) -> crate::Result<()> {
     unsafe {
       PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0))
     }
@@ -84,6 +106,33 @@ impl EventLoopSource {
       crate::Error::WindowMessage(
         "Failed to post quit message".to_string(),
       )
+    })
+  }
+
+  pub(crate) fn register_wndproc_callback(
+    &self,
+    callback: Box<WndProcCallback>,
+  ) -> crate::Result<usize> {
+    let id = self.next_callback_id.fetch_add(1, Ordering::Relaxed);
+
+    // The callback is installed asynchronously on the event loop thread.
+    self.send_dispatch(move || {
+      WNDPROC_CALLBACKS.with(|cbs| {
+        cbs.borrow_mut().insert(id, callback);
+      });
+    })?;
+
+    Ok(id)
+  }
+
+  pub(crate) fn deregister_wndproc_callback(
+    &self,
+    id: usize,
+  ) -> crate::Result<()> {
+    self.send_dispatch(move || {
+      WNDPROC_CALLBACKS.with(|cbs| {
+        cbs.borrow_mut().remove(&id);
+      });
     })
   }
 }
@@ -139,6 +188,7 @@ impl EventLoop {
     let event_loop_source = EventLoopSource {
       message_window_handle: window_handle,
       thread_id,
+      next_callback_id: Arc::new(AtomicUsize::new(0)),
     };
 
     let stopped = Arc::new(AtomicBool::new(false));
@@ -213,19 +263,34 @@ impl EventLoop {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> LRESULT {
-    // TODO: Allow listeners to pre-process messages.
-    match msg {
-      WM_DISPATCH_CALLBACK => {
-        // Convert the `WPARAM` fn pointer back to a double boxed function.
-        let dispatch_fn: DispatchFn = Box::from_raw(wparam.0 as *mut _);
-        dispatch_fn();
-        LRESULT(0)
-      }
+    let dispatch_msg = WM_DISPATCH_CALLBACK.with(|v| *v);
 
-      // `WM_QUIT` is handled for us by the message loop and should be
-      // forwarded along with other messages we don't care about.
-      _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+    // Handle dispatch callbacks first.
+    if msg == dispatch_msg {
+      // Convert the `WPARAM` fn pointer back to a double-boxed function.
+      let dispatch_fn: Box<Box<dyn FnOnce() + Send>> =
+        Box::from_raw(wparam.0 as *mut _);
+      dispatch_fn();
+      return LRESULT(0);
     }
+
+    // Let registered callbacks pre-process the message.
+    let handled = WNDPROC_CALLBACKS.with(|cbs| {
+      for callback in cbs.borrow().values() {
+        if let Some(result) = callback(hwnd, msg, wparam, lparam) {
+          return Some(result);
+        }
+      }
+      None
+    });
+
+    if let Some(result) = handled {
+      return result;
+    }
+
+    // `WM_QUIT` is handled by the message loop and should be forwarded
+    // along with other messages.
+    DefWindowProcW(hwnd, msg, wparam, lparam)
   }
 
   /// Starts a message loop on the current thread.

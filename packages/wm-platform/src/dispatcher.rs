@@ -58,6 +58,53 @@ impl DispatcherExtMacOs for Dispatcher {
   }
 }
 
+/// Windows-specific extensions for `Dispatcher`.
+#[cfg(target_os = "windows")]
+pub trait DispatcherExtWindows {
+  /// Registers a callback to pre-process messages in the event loop's
+  /// window procedure.
+  ///
+  /// Returns a unique ID that can be passed to
+  /// `deregister_wndproc_callback` to remove the callback.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn register_wndproc_callback(
+    &self,
+    callback: Box<WndProcCallback>,
+  ) -> crate::Result<usize>;
+
+  /// Removes a previously registered window procedure callback by its ID.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn deregister_wndproc_callback(&self, id: usize) -> crate::Result<()>;
+}
+
+#[cfg(target_os = "windows")]
+impl DispatcherExtWindows for Dispatcher {
+  fn register_wndproc_callback(
+    &self,
+    callback: Box<WndProcCallback>,
+  ) -> crate::Result<usize> {
+    self
+      .source
+      .as_ref()
+      .unwrap()
+      .register_wndproc_callback(callback)
+  }
+
+  fn deregister_wndproc_callback(&self, id: usize) -> crate::Result<()> {
+    self
+      .source
+      .as_ref()
+      .unwrap()
+      .deregister_wndproc_callback(id)
+  }
+}
+
 /// A thread-safe dispatcher for various cross-platform operations.
 ///
 /// On macOS, operations are automatically dispatched to the main thread
@@ -157,9 +204,8 @@ impl Dispatcher {
   /// Synchronously executes a closure on the event loop thread.
   ///
   /// If the current thread is the event loop thread, the function is
-  /// executed directly. Otherwise, this method synchronously executes
-  /// the closure, blocking the calling thread until the closure finishes
-  /// executing.
+  /// executed directly. Otherwise, this method synchronously dispatches
+  /// and executes the closure.
   ///
   /// Returns a result with the closure's return value.
   pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
