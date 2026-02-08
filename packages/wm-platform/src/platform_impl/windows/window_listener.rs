@@ -19,25 +19,25 @@ use windows::Win32::{
 
 use super::{NativeWindow, PlatformEvent};
 
-/// Global instance of `WindowEventHook`.
+/// Global instance of `WindowListener`.
 ///
 /// For use with hook procedure.
 ///
 /// TODO: Change this be thread-local.
-static WIN_EVENT_HOOK: OnceLock<Arc<WindowEventHook>> = OnceLock::new();
+static WIN_EVENT_HOOK: OnceLock<Arc<WindowListener>> = OnceLock::new();
 
 /// Windows-specific window event notification.
 #[derive(Clone, Debug)]
 pub struct WindowEventNotificationInner;
 
 #[derive(Debug)]
-pub struct WindowEventHook {
+pub struct WindowListener {
   event_tx: mpsc::UnboundedSender<PlatformEvent>,
   hook_handles: Arc<Mutex<Vec<HWINEVENTHOOK>>>,
 }
 
-impl WindowEventHook {
-  /// Creates an instance of `WindowEventHook`.
+impl WindowListener {
+  /// Creates an instance of `WindowListener`.
   pub fn new(
     event_tx: mpsc::UnboundedSender<PlatformEvent>,
   ) -> crate::Result<Arc<Self>> {

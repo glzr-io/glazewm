@@ -6,7 +6,7 @@ mod keyboard_hook;
 mod native_window;
 mod platform;
 mod single_instance;
-mod window_event_hook;
+mod window_listener;
 
 pub use com::*;
 pub use display::*;
@@ -16,4 +16,4 @@ pub use keyboard_hook::*;
 pub use native_window::*;
 pub use platform::*;
 pub use single_instance::*;
-pub use window_event_hook::*;
+pub use window_listener::*;

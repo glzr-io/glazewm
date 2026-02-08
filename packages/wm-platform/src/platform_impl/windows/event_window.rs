@@ -32,7 +32,7 @@ use windows::Win32::{
 };
 
 use super::{
-  KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowEventHook,
+  KeyboardHook, MouseMoveEvent, Platform, PlatformEvent, WindowListener,
   FOREGROUND_INPUT_IDENTIFIER,
 };
 use crate::{KeybindingConfig, Point};
@@ -90,12 +90,14 @@ impl EventWindow {
     enable_mouse_events: bool,
   ) -> crate::Result<Self> {
     let keyboard_hook = KeyboardHook::new(keybindings, event_tx.clone())?;
-    let window_event_hook = WindowEventHook::new(event_tx.clone())?;
+    let window_event_hook = WindowListener::new(event_tx.clone())?;
     let keyboard_hook_clone = keyboard_hook.clone();
 
     // Add the sender for platform events to global state.
     PLATFORM_EVENT_TX.set(event_tx.clone()).map_err(|_| {
-      crate::Error::Platform("Platform event sender already set.".to_string())
+      crate::Error::Platform(
+        "Platform event sender already set.".to_string(),
+      )
     })?;
 
     ENABLE_MOUSE_EVENTS.store(enable_mouse_events, Ordering::Relaxed);
@@ -158,9 +160,9 @@ impl EventWindow {
     if let Some(window_thread) = self.window_thread.take() {
       Platform::kill_message_loop(&window_thread)?;
 
-      window_thread
-        .join()
-        .map_err(|_| crate::Error::Thread("Thread join failed.".to_string()))??;
+      window_thread.join().map_err(|_| {
+        crate::Error::Thread("Thread join failed.".to_string())
+      })??;
     }
 
     Ok(())
