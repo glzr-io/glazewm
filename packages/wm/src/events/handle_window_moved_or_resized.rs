@@ -77,6 +77,7 @@ pub fn handle_window_moved_or_resized(
     // trigger as many as 4 identical events on Windows.
     if old_frame_position == frame_position
       && old_is_maximized == is_maximized
+      && !is_interactive_start
     {
       return Ok(());
     }
