@@ -126,6 +126,7 @@ impl NonTilingWindow {
       floating_placement: self.floating_placement(),
       handle: self.native().id().0 as isize,
       title: self.native_properties().title,
+      #[cfg(target_os = "windows")]
       class_name: self.native_properties().class_name,
       process_name: self.native_properties().process_name,
       active_drag: self.active_drag(),

@@ -215,26 +215,40 @@ impl Eq for WindowContainer {}
 
 impl std::fmt::Display for WindowContainer {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let title = self.native_properties().title;
-    let class = self.native_properties().class_name;
-    let process = self.native_properties().process_name;
-
     // Truncate title if longer than 20 chars. Need to use `chars()`
     // instead of byte slices to handle invalid byte indices.
-    let title = if title.len() > 20 {
-      format!("{}...", &title.chars().take(17).collect::<String>())
-    } else {
-      title
+    let title = {
+      let title = self.native_properties().title;
+      if title.len() > 20 {
+        format!("{}...", title.chars().take(17).collect::<String>())
+      } else {
+        title
+      }
     };
+
+    let class = {
+      #[cfg(target_os = "windows")]
+      {
+        self.native_properties().class_name
+      }
+      #[cfg(not(target_os = "windows"))]
+      {
+        String::new()
+      }
+    };
+
+    let process = self.native_properties().process_name;
 
     write!(
       f,
-      "Window(hwnd={:?}, process={}, class={}, title={})",
+      "Window(id={:?}, process={}, class={}, title={})",
       self.native().id(),
       process,
       class,
       title,
-    )
+    )?;
+
+    Ok(())
   }
 }
 

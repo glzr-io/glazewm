@@ -25,6 +25,7 @@ pub struct WindowDto {
   pub floating_placement: Rect,
   pub handle: isize,
   pub title: String,
+  #[cfg(target_os = "windows")]
   pub class_name: String,
   pub process_name: String,
   pub active_drag: Option<ActiveDrag>,

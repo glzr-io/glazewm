@@ -225,6 +225,7 @@ impl UserConfig {
     event: &WindowRuleEvent,
   ) -> anyhow::Result<Vec<WindowRuleConfig>> {
     let window_title = window.native_properties().title;
+    #[cfg(target_os = "windows")]
     let window_class = window.native_properties().class_name;
     let window_process = window.native_properties().process_name;
 
@@ -246,10 +247,18 @@ impl UserConfig {
             .as_ref()
             .is_none_or(|match_type| match_type.is_match(&window_process));
 
-          let is_class_match = match_config
-            .window_class
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_class));
+          let is_class_match = {
+            #[cfg(target_os = "windows")]
+            {
+              match_config.window_class.as_ref().is_none_or(
+                |match_type| match_type.is_match(&window_class),
+              );
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+              match_config.window_class.is_none()
+            }
+          };
 
           let is_title_match = match_config
             .window_title
@@ -331,8 +340,6 @@ impl UserConfig {
       self.workspace_config_index(&workspace.config().name)
     });
   }
-
-
 
   /// Keybinding configs that should be active for the current binding mode
   /// and pause state.

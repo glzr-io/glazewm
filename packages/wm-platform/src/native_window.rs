@@ -65,11 +65,6 @@ impl NativeWindow {
     self.inner.title()
   }
 
-  // TODO: Remove this (should only be on `NativeWindowWindowsExt`).
-  pub fn class_name(&self) -> crate::Result<String> {
-    Ok("test".to_string())
-  }
-
   pub fn process_name(&self) -> crate::Result<String> {
     self.inner.process_name()
   }
