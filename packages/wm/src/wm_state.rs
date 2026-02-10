@@ -562,8 +562,7 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .collect()
   }
@@ -576,8 +575,7 @@ impl WmState {
       .find(|monitor| {
         monitor
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .cloned()
   }

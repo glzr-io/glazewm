@@ -341,13 +341,13 @@ impl MatchType {
     match self {
       MatchType::Equals { equals } => value == equals,
       MatchType::Includes { includes } => value.contains(includes),
-      MatchType::Regex { regex } => regex::Regex::new(regex)
-        .map(|re| re.is_match(value))
-        .unwrap_or(false),
+      MatchType::Regex { regex } => {
+        regex::Regex::new(regex).is_ok_and(|re| re.is_match(value))
+      }
       MatchType::NotEquals { not_equals } => value != not_equals,
-      MatchType::NotRegex { not_regex } => regex::Regex::new(not_regex)
-        .map(|re| !re.is_match(value))
-        .unwrap_or(false),
+      MatchType::NotRegex { not_regex } => {
+        regex::Regex::new(not_regex).is_ok_and(|re| !re.is_match(value))
+      }
     }
   }
 }
