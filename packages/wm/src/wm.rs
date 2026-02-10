@@ -271,6 +271,14 @@ impl WindowManager {
           focus_workspace(WorkspaceTarget::PreviousActive, state, config)?;
         }
 
+        if args.next_populated_workspace {
+          focus_workspace(WorkspaceTarget::NextPopulated, state, config)?;
+        }
+
+        if args.prev_populated_workspace {
+          focus_workspace(WorkspaceTarget::PreviousPopulated, state, config)?;
+        }
+
         if args.next_workspace {
           focus_workspace(WorkspaceTarget::Next, state, config)?;
         }

@@ -3,7 +3,10 @@ use tracing::{info, warn};
 use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
 
 use crate::{
-  commands::{window::run_window_rules, workspace::sort_workspaces},
+  commands::{
+    window::run_window_rules,
+    workspace::{activate_keep_alive_workspaces, sort_workspaces},
+  },
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm::WindowManager,
@@ -29,6 +32,12 @@ pub fn reload_config(
   }
 
   update_workspace_configs(state, config)?;
+
+  let fallback_monitor = state
+    .focused_container()
+    .and_then(|focused| focused.monitor());
+
+  activate_keep_alive_workspaces(state, config, fallback_monitor)?;
 
   update_container_gaps(state, config);
 

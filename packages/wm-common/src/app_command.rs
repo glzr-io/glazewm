@@ -128,7 +128,11 @@ pub enum QueryCommand {
   /// Outputs all windows.
   Windows,
   /// Outputs all active workspaces.
-  Workspaces,
+  Workspaces {
+    /// Include empty workspaces with `keep_alive: true`.
+    #[clap(long, action)]
+    include_empty: bool,
+  },
   /// Outputs whether the window manager is paused.
   Paused,
 }
@@ -326,6 +330,12 @@ pub struct InvokeFocusCommand {
   pub prev_active_workspace: bool,
 
   #[clap(long)]
+  pub next_populated_workspace: bool,
+
+  #[clap(long)]
+  pub prev_populated_workspace: bool,
+
+  #[clap(long)]
   pub next_workspace: bool,
 
   #[clap(long)]
@@ -410,4 +420,87 @@ pub struct InvokePositionCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   pub y_pos: Option<i32>,
+}
+
+#[cfg(test)]
+mod tests {
+  use clap::Parser;
+  use super::{AppCommand, QueryCommand};
+
+  #[test]
+  fn parse_query_workspaces_include_empty() {
+    let command = AppCommand::try_parse_from([
+      "glazewm",
+      "query",
+      "workspaces",
+      "--include-empty",
+    ])
+    .expect("Failed to parse query workspaces with include-empty");
+
+    assert!(matches!(
+      command,
+      AppCommand::Query {
+        command: QueryCommand::Workspaces { include_empty: true }
+      }
+    ));
+  }
+
+  #[test]
+  fn parse_query_workspaces_default() {
+    let command = AppCommand::try_parse_from([
+      "glazewm",
+      "query",
+      "workspaces",
+    ])
+    .expect("Failed to parse query workspaces");
+
+    assert!(matches!(
+      command,
+      AppCommand::Query {
+        command: QueryCommand::Workspaces { include_empty: false }
+      }
+    ));
+  }
+
+  #[test]
+  fn parse_focus_next_populated_workspace() {
+    let command = AppCommand::try_parse_from([
+      "glazewm",
+      "command",
+      "focus",
+      "--next-populated-workspace",
+    ])
+    .expect("Failed to parse focus next populated workspace");
+
+    let AppCommand::Command { command, .. } = command else {
+      panic!("Expected focus command");
+    };
+
+    let super::InvokeCommand::Focus(args) = command else {
+      panic!("Expected focus args");
+    };
+
+    assert!(args.next_populated_workspace);
+  }
+
+  #[test]
+  fn parse_focus_prev_populated_workspace() {
+    let command = AppCommand::try_parse_from([
+      "glazewm",
+      "command",
+      "focus",
+      "--prev-populated-workspace",
+    ])
+    .expect("Failed to parse focus prev populated workspace");
+
+    let AppCommand::Command { command, .. } = command else {
+      panic!("Expected focus command");
+    };
+
+    let super::InvokeCommand::Focus(args) = command else {
+      panic!("Expected focus args");
+    };
+
+    assert!(args.prev_populated_workspace);
+  }
 }

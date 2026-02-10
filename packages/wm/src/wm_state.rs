@@ -13,6 +13,7 @@ use crate::{
   commands::{
     container::set_focused_descendant, general::platform_sync,
     monitor::add_monitor, window::manage_window,
+    workspace::activate_keep_alive_workspaces,
   },
   models::{
     Container, Monitor, RootContainer, WindowContainer, Workspace,
@@ -106,6 +107,9 @@ impl WmState {
     for native_monitor in Platform::sorted_monitors()? {
       add_monitor(native_monitor, self, config)?;
     }
+
+    let fallback_monitor = self.monitors().first().cloned();
+    activate_keep_alive_workspaces(self, config, fallback_monitor)?;
 
     // Manage windows in reverse z-order (bottom to top). This helps to
     // preserve the original stacking order.
@@ -335,6 +339,59 @@ impl WmState {
         (
           prev_active_workspace.map(|workspace| workspace.config().name),
           prev_active_workspace.cloned(),
+        )
+      }
+      WorkspaceTarget::NextPopulated => {
+        let populated_workspaces = self
+          .sorted_workspaces(config)
+          .into_iter()
+          .filter(|workspace| workspace.has_children())
+          .collect::<Vec<_>>();
+
+        if populated_workspaces.is_empty() {
+          return Ok((None, None));
+        }
+
+        let origin_index = populated_workspaces
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id());
+
+        let next_populated_workspace = origin_index
+          .and_then(|index| populated_workspaces.get(index + 1))
+          .or_else(|| populated_workspaces.first());
+
+        (
+          next_populated_workspace.map(|workspace| workspace.config().name),
+          next_populated_workspace.cloned(),
+        )
+      }
+      WorkspaceTarget::PreviousPopulated => {
+        let populated_workspaces = self
+          .sorted_workspaces(config)
+          .into_iter()
+          .filter(|workspace| workspace.has_children())
+          .collect::<Vec<_>>();
+
+        if populated_workspaces.is_empty() {
+          return Ok((None, None));
+        }
+
+        let origin_index = populated_workspaces
+          .iter()
+          .position(|workspace| workspace.id() == origin_workspace.id());
+
+        let prev_populated_workspace = match origin_index {
+          Some(index) => populated_workspaces.get(
+            index
+              .checked_sub(1)
+              .unwrap_or(populated_workspaces.len() - 1),
+          ),
+          None => populated_workspaces.last(),
+        };
+
+        (
+          prev_populated_workspace.map(|workspace| workspace.config().name),
+          prev_populated_workspace.cloned(),
         )
       }
       WorkspaceTarget::NextActiveInMonitor => {

@@ -1,4 +1,4 @@
-use std::{iter, net::SocketAddr};
+use std::{collections::HashSet, iter, net::SocketAddr};
 
 use anyhow::{bail, Context};
 use clap::Parser;
@@ -13,14 +13,16 @@ use tracing::{info, warn};
 use uuid::Uuid;
 use wm_common::{
   AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
-  ClientResponseMessage, CommandData, EventSubscribeData,
-  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
-  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
-  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
+  ClientResponseMessage, CommandData, ContainerDto, EventSubscribeData,
+  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand, Rect,
+  ServerMessage, SubscribableEvent, TilingDirection, TilingDirectionData,
+  WindowsData, WmEvent, WorkspaceConfig, WorkspaceDto, WorkspacesData,
+  DEFAULT_IPC_PORT,
 };
 
 use crate::{
-  traits::{CommonGetters, TilingDirectionGetters},
+  models::Monitor,
+  traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
   user_config::UserConfig,
   wm::WindowManager,
 };
@@ -187,14 +189,44 @@ impl IpcServer {
               .try_collect()?,
           })
         }
-        QueryCommand::Workspaces => {
+        QueryCommand::Workspaces { include_empty } => {
+          let workspaces = wm.state.workspaces();
+          let mut workspace_dtos = workspaces
+            .iter()
+            .map(|workspace| workspace.to_dto())
+            .try_collect::<Vec<_>>()?;
+
+          if include_empty {
+            let existing_names = workspaces
+              .iter()
+              .map(|workspace| workspace.config().name)
+              .collect::<HashSet<_>>();
+
+            let monitors = wm.state.monitors();
+
+            for workspace_config in config
+              .value
+              .workspaces
+              .iter()
+              .filter(|workspace_config| workspace_config.keep_alive)
+            {
+              if existing_names.contains(&workspace_config.name) {
+                continue;
+              }
+
+              let monitor = workspace_config
+                .bind_to_monitor
+                .and_then(|index| monitors.get(index as usize));
+
+              workspace_dtos.push(config_workspace_to_dto(
+                workspace_config,
+                monitor,
+              )?);
+            }
+          }
+
           ClientResponseData::Workspaces(WorkspacesData {
-            workspaces: wm
-              .state
-              .workspaces()
-              .into_iter()
-              .map(|workspace| workspace.to_dto())
-              .try_collect()?,
+            workspaces: workspace_dtos,
           })
         }
         QueryCommand::Monitors => {
@@ -403,4 +435,63 @@ impl Drop for IpcServer {
   fn drop(&mut self) {
     self.stop();
   }
+}
+
+fn config_workspace_to_dto(
+  workspace_config: &WorkspaceConfig,
+  monitor: Option<&Monitor>,
+) -> anyhow::Result<ContainerDto> {
+  let (parent_id, rect, tiling_direction) = match monitor {
+    Some(monitor) => {
+      let rect = monitor.to_rect()?;
+      let tiling_direction = if rect.height() > rect.width() {
+        TilingDirection::Vertical
+      } else {
+        TilingDirection::Horizontal
+      };
+
+      (Some(monitor.id()), rect, tiling_direction)
+    }
+    None => (
+      None,
+      Rect::from_xy(0, 0, 0, 0),
+      TilingDirection::Horizontal,
+    ),
+  };
+
+  Ok(ContainerDto::Workspace(WorkspaceDto {
+    id: config_workspace_id(workspace_config),
+    name: workspace_config.name.clone(),
+    display_name: workspace_config.display_name.clone(),
+    keep_alive: workspace_config.keep_alive,
+    bind_to_monitor: workspace_config.bind_to_monitor,
+    parent_id,
+    children: Vec::new(),
+    child_focus_order: Vec::new(),
+    has_focus: false,
+    is_displayed: false,
+    width: rect.width(),
+    height: rect.height(),
+    x: rect.x(),
+    y: rect.y(),
+    tiling_direction,
+  }))
+}
+
+fn config_workspace_id(workspace_config: &WorkspaceConfig) -> Uuid {
+  Uuid::from_u128(fnv1a_128(workspace_config.name.as_bytes()))
+}
+
+fn fnv1a_128(input: &[u8]) -> u128 {
+  const FNV_OFFSET_BASIS: u128 = 0x6c62272e07bb014262b821756295c58d;
+  const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
+
+  let mut hash = FNV_OFFSET_BASIS;
+
+  for byte in input {
+    hash ^= u128::from(*byte);
+    hash = hash.wrapping_mul(FNV_PRIME);
+  }
+
+  hash
 }

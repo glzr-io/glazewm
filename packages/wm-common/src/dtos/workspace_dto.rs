@@ -13,6 +13,8 @@ pub struct WorkspaceDto {
   pub id: Uuid,
   pub name: String,
   pub display_name: Option<String>,
+  pub keep_alive: bool,
+  pub bind_to_monitor: Option<u32>,
   pub parent_id: Option<Uuid>,
   pub children: Vec<ContainerDto>,
   pub child_focus_order: Vec<Uuid>,

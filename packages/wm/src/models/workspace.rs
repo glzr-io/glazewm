@@ -89,6 +89,8 @@ impl Workspace {
       id: self.id(),
       name: config.name,
       display_name: config.display_name,
+      keep_alive: config.keep_alive,
+      bind_to_monitor: config.bind_to_monitor,
       parent_id: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),

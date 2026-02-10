@@ -5,6 +5,8 @@ pub enum WorkspaceTarget {
   Recent,
   NextActive,
   PreviousActive,
+  NextPopulated,
+  PreviousPopulated,
   NextActiveInMonitor,
   PreviousActiveInMonitor,
   Next,
