@@ -105,6 +105,16 @@ impl NativeWindow {
     self.inner.is_maximized()
   }
 
+  /// Whether the window can be resized.
+  pub fn is_resizable(&self) -> crate::Result<bool> {
+    self.inner.is_resizable()
+  }
+
+  /// Whether the window is the OS's desktop window.
+  pub fn is_desktop_window(&self) -> crate::Result<bool> {
+    self.inner.is_desktop_window()
+  }
+
   /// Resizes the window to the specified size.
   pub fn resize(&self, width: i32, height: i32) -> crate::Result<()> {
     self.inner.resize(width, height)
@@ -143,14 +153,6 @@ impl NativeWindow {
   ///   title bar.
   pub fn close(&self) -> crate::Result<()> {
     self.inner.close()
-  }
-
-  pub fn is_resizable(&self) -> crate::Result<bool> {
-    self.inner.is_resizable()
-  }
-
-  pub fn is_desktop_window(&self) -> crate::Result<bool> {
-    self.inner.is_desktop_window()
   }
 
   /// Sets focus to the window and raises it to the top of the z-order.

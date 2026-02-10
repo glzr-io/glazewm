@@ -1,4 +1,4 @@
-mod com;
+pub(crate) mod com;
 mod display;
 mod display_listener;
 mod event_loop;
@@ -9,7 +9,7 @@ mod platform;
 mod single_instance;
 mod window_listener;
 
-pub use com::*;
+pub(crate) use com::*;
 pub use display::*;
 pub use display_listener::*;
 pub use event_loop::*;

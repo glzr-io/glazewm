@@ -23,7 +23,7 @@ use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
   Dispatcher, EventLoop, KeybindingListener, MouseEventType,
-  MouseListener, PlatformEvent, WindowListener,
+  MouseListener, PlatformEvent, SingleInstance, WindowListener,
 };
 
 use crate::{
@@ -102,8 +102,7 @@ async fn start_wm(
   setup_logging(&verbosity)?;
 
   // Ensure that only one instance of the WM is running.
-  // TODO: Implement this for macOS.
-  // let _single_instance = SingleInstance::new()?;
+  let _single_instance = SingleInstance::new()?;
 
   #[cfg(target_os = "macos")]
   {

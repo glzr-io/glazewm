@@ -4,8 +4,8 @@ use std::sync::{atomic::AtomicBool, Arc};
 use crate::platform_impl;
 use crate::Dispatcher;
 
-/// An installer for integrating [`Dispatcher`] with an existing
-/// event loop.
+/// An installer for integrating [`Dispatcher`] with an existing event
+/// loop.
 pub struct EventLoopInstaller;
 
 impl EventLoopInstaller {
@@ -17,8 +17,7 @@ impl EventLoopInstaller {
     Ok((Self, dispatcher))
   }
 
-  /// Install on an existing event loop running on the main thread (macOS
-  /// only).
+  /// Install on an existing event loop running on the main thread.
   ///
   /// This method integrates with the existing `CFRunLoop` on the main
   /// thread.
@@ -43,10 +42,7 @@ impl EventLoopInstaller {
   ///
   /// This method is only available on Windows.
   #[cfg(target_os = "windows")]
-  pub fn install_with_subclass(
-    self,
-    _hwnd: windows::Win32::Foundation::HWND,
-  ) -> crate::Result<()> {
+  pub fn install_with_subclass(self, _hwnd: isize) -> crate::Result<()> {
     // TODO: Implement window subclassing.
     todo!("install_with_subclass is not yet implemented")
   }

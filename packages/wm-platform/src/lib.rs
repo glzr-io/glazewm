@@ -36,6 +36,7 @@ pub use platform_impl::{
   DisplayDeviceExtWindows, DisplayExtWindows, DisplayListener,
   NativeWindowWindowsExt,
 };
+pub use platform_impl::SingleInstance;
 pub use thread_bound::*;
 pub use window_listener::*;
 

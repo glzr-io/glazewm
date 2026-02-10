@@ -9,6 +9,7 @@ pub(crate) mod ffi;
 mod keyboard_hook;
 mod mouse_hook;
 mod native_window;
+mod single_instance;
 mod window_listener;
 
 pub use application::*;
@@ -20,4 +21,5 @@ pub(crate) use event_loop::*;
 pub use keyboard_hook::*;
 pub use mouse_hook::*;
 pub use native_window::*;
+pub use single_instance::*;
 pub use window_listener::*;

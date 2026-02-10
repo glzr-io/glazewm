@@ -11,17 +11,17 @@ use windows::{
 
 /// COM class identifier (CLSID) for the Windows Shell that implements the
 /// `IServiceProvider` interface.
-pub const CLSID_IMMERSIVE_SHELL: GUID =
+const CLSID_IMMERSIVE_SHELL: GUID =
   GUID::from_u128(0xC2F03A33_21F5_47FA_B4BB_156362A2F239);
 
 thread_local! {
   /// Manages per-thread COM initialization. COM must be initialized on each
   /// thread that uses it, so we store this in thread-local storage to handle
   /// the setup and cleanup automatically.
-  pub static COM_INIT: ComInit = ComInit::new();
+  pub(crate) static COM_INIT: ComInit = ComInit::new();
 }
 
-pub struct ComInit {
+pub(crate) struct ComInit {
   service_provider: Option<IServiceProvider>,
   application_view_collection: Option<IApplicationViewCollection>,
   taskbar_list: Option<ITaskbarList2>,

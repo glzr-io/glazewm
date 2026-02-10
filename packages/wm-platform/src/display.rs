@@ -138,13 +138,11 @@ pub enum OutputTechnology {
   Unknown,
 }
 
-/// Represents a display adapter/device (physical or virtual).
+/// Represents a display device (physical or virtual).
 ///
 /// This is typically a physical display device, such as a monitor or
 /// built-in laptop screen.
-///
-/// TODO: Add `PartialEq` and `Eq`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DisplayDevice {
   pub(crate) inner: platform_impl::DisplayDevice,
 }
