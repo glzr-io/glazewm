@@ -194,3 +194,20 @@ fn set_non_tiling(
     }
   }
 }
+
+/// Sets transparency exclusion for a window.
+///
+/// This excludes the window from having transparency effects applied to it.
+pub fn set_transparency_exclusion(
+  window: &WindowContainer,
+  state: &mut WmState,
+  _config: &UserConfig,
+) {
+  info!("Setting transparency exclusion for window.");
+
+  // Update window's transparency exclusion state
+  window.set_transparency_exclusion(true);
+
+  // Queue effect update to apply changes to all windows
+  state.pending_sync.queue_all_effects_update();
+}

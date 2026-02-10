@@ -120,6 +120,10 @@ pub trait WindowGetters {
   fn active_drag(&self) -> Option<ActiveDrag>;
 
   fn set_active_drag(&self, active_drag: Option<ActiveDrag>);
+
+  fn transparency_exclusion(&self) -> bool;
+
+  fn set_transparency_exclusion(&self, exclusion: bool);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -216,6 +220,14 @@ macro_rules! impl_window_getters {
 
       fn set_active_drag(&self, active_drag: Option<ActiveDrag>) {
         self.0.borrow_mut().active_drag = active_drag;
+      }
+
+      fn transparency_exclusion(&self) -> bool {
+        self.0.borrow().transparency_exclusion
+      }
+
+      fn set_transparency_exclusion(&self, exclusion: bool) {
+        self.0.borrow_mut().transparency_exclusion = exclusion;
       }
     }
   };

@@ -578,6 +578,19 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      InvokeCommand::SetTransparencyExclusion => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            crate::commands::window::set_transparency_exclusion(
+              &window,
+              state,
+              config,
+            );
+            Ok(())
+          }
+          _ => Ok(()),
+        }
+      }
       InvokeCommand::ShellExec {
         hide_window,
         command,

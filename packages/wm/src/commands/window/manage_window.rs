@@ -74,6 +74,23 @@ pub fn manage_window(
   Ok(())
 }
 
+/// Checks if the window should be excluded from transparency based on existing windows.
+/// This helps preserve transparency exclusion across window recreation events.
+fn should_exclude_transparency(
+  native_window: &NativeWindow,
+  state: &WmState,
+) -> bool {
+  // Check if any existing windows with the same process/class are excluded from transparency
+  state.windows().iter().any(|existing_window| {
+    existing_window.transparency_exclusion() && (
+      // Same process name
+      existing_window.native().process_name().ok() == native_window.process_name().ok() ||
+      // Same window class
+      existing_window.native().class_name().ok() == native_window.class_name().ok()
+    )
+  })
+}
+
 fn create_window(
   native_window: NativeWindow,
   target_parent: Option<Container>,
@@ -139,6 +156,8 @@ fn create_window(
     LengthValue::from_px(0),
   );
 
+  let should_exclude_transparency = should_exclude_transparency(&native_window, state);
+
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
       None,
@@ -149,6 +168,7 @@ fn create_window(
       false,
       gaps_config,
       Vec::new(),
+      should_exclude_transparency,
       None,
     )
     .into(),
@@ -162,6 +182,7 @@ fn create_window(
       floating_placement,
       false,
       Vec::new(),
+      should_exclude_transparency,
       None,
     )
     .into(),
@@ -179,6 +200,12 @@ fn create_window(
     .has_dpi_difference(&window_container.clone().into())?
   {
     window_container.set_has_pending_dpi_adjustment(true);
+  }
+
+  // If the window was detected as needing transparency exclusion,
+  // trigger an immediate effect update to ensure exclusion is applied.
+  if should_exclude_transparency {
+    state.pending_sync.queue_all_effects_update();
   }
 
   Ok(window_container)

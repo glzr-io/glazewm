@@ -45,6 +45,7 @@ struct TilingWindowInner {
   has_custom_floating_placement: bool,
   gaps_config: GapsConfig,
   done_window_rules: Vec<WindowRuleConfig>,
+  transparency_exclusion: bool,
   active_drag: Option<ActiveDrag>,
 }
 
@@ -59,6 +60,7 @@ impl TilingWindow {
     has_custom_floating_placement: bool,
     gaps_config: GapsConfig,
     done_window_rules: Vec<WindowRuleConfig>,
+    transparency_exclusion: bool,
     active_drag: Option<ActiveDrag>,
   ) -> Self {
     let window = TilingWindowInner {
@@ -77,6 +79,7 @@ impl TilingWindow {
       has_custom_floating_placement,
       gaps_config,
       done_window_rules,
+      transparency_exclusion,
       active_drag,
     };
 
@@ -98,6 +101,7 @@ impl TilingWindow {
       self.floating_placement(),
       self.has_custom_floating_placement(),
       self.done_window_rules(),
+      self.transparency_exclusion(),
       self.active_drag(),
     )
   }
