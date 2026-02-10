@@ -4,8 +4,10 @@ use wm_platform::Platform;
 
 use crate::{
   commands::monitor::{
-    add_monitor, remove_monitor, sort_monitors, update_monitor,
+    add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
+    sort_monitors, update_monitor,
   },
+  models::Monitor,
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -84,14 +86,16 @@ pub fn handle_display_settings_changed(
     }
   }
 
+  let mut new_monitors: Vec<Monitor> = Vec::new();
+
   for native_monitor in new_native_monitors {
-    match pending_monitors.first() {
-      Some(_) => {
-        let monitor = pending_monitors.remove(0);
-        update_monitor(&monitor, native_monitor, state)
-      }
-      // Add monitor if it doesn't exist in state.
-      None => add_monitor(native_monitor, state, config),
+    if pending_monitors.is_empty() {
+      let monitor = add_monitor(native_monitor, state)?;
+      new_monitors.push(monitor);
+      Ok(())
+    } else {
+      let monitor = pending_monitors.remove(0);
+      update_monitor(&monitor, native_monitor, state)
     }?;
   }
 
@@ -110,6 +114,10 @@ pub fn handle_display_settings_changed(
 
   // Sort monitors by position.
   sort_monitors(&state.root_container)?;
+
+  for new_monitor in new_monitors {
+    move_bounded_workspaces_to_new_monitor(&new_monitor, state, config)?;
+  }
 
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark
