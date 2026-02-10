@@ -89,13 +89,9 @@ pub fn handle_window_location_changed(
         {
           info!("Window restored from fullscreen: {window}");
 
-          let target_state = window
-            .prev_state()
-            .unwrap_or(WindowState::default_from_config(&config.value));
-
           update_window_state(
             window.clone(),
-            target_state,
+            window.toggled_state(window.state(), config),
             state,
             config,
           )?;

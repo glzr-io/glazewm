@@ -90,11 +90,6 @@ pub fn move_workspace_to_monitor(
 ) -> anyhow::Result<()> {
   let origin_monitor = workspace.monitor().context("No monitor.")?;
 
-  // Get currently displayed workspace on the target monitor.
-  let displayed_workspace = target_monitor
-    .displayed_workspace()
-    .context("No displayed workspace.")?;
-
   move_container_within_tree(
     &workspace.clone().into(),
     &target_monitor.clone().into(),
@@ -115,6 +110,11 @@ pub fn move_workspace_to_monitor(
         .translate_to_center(&workspace.to_rect()?),
     );
   }
+
+  // Get currently displayed workspace on the target monitor.
+  let displayed_workspace = target_monitor
+    .displayed_workspace()
+    .context("No displayed workspace.")?;
 
   state
     .pending_sync

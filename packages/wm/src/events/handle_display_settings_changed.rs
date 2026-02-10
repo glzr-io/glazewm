@@ -120,11 +120,26 @@ pub fn handle_display_settings_changed(
     // disconnected or if the primary display is changed. The primary
     // display dictates the position of 0,0.
     let workspace = window.workspace().context("No workspace.")?;
-    window.set_floating_placement(
-      window
-        .floating_placement()
-        .translate_to_center(&workspace.to_rect()?),
-    );
+
+    let should_recenter = if window.has_custom_floating_placement() {
+      let workspace_rect = workspace.to_rect()?;
+
+      // Keep the placement if it still intersects the workspace, since
+      // `PlatformEvent::DisplaySettingsChanged` can be triggered by
+      // non-monitor changes (e.g. unplugging a USB device).
+      !window.floating_placement().has_overlap_x(&workspace_rect)
+        || !window.floating_placement().has_overlap_y(&workspace_rect)
+    } else {
+      true
+    };
+
+    if should_recenter {
+      window.set_floating_placement(
+        window
+          .floating_placement()
+          .translate_to_center(&workspace.to_rect()?),
+      );
+    }
   }
 
   // Redraw full container tree.

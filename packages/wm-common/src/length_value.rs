@@ -72,9 +72,8 @@ impl FromStr for LengthValue {
       "Not a valid length value '{unparsed}'. Must be of format '10px' or '10%'."
     );
 
-    let captures = units_regex
-      .captures(unparsed)
-      .context(err_msg.clone())?;
+    let captures =
+      units_regex.captures(unparsed).context(err_msg.clone())?;
 
     let unit_str = captures.get(2).map_or("", |m| m.as_str());
     let unit = match unit_str {
