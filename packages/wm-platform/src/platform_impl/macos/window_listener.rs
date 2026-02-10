@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use objc2_app_kit::{NSApplication, NSWorkspace};
-use objc2_foundation::MainThreadMarker;
+use objc2_app_kit::NSWorkspace;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -51,11 +50,8 @@ impl WindowListener {
     let (observer, events_rx) = NotificationObserver::new();
 
     let workspace = unsafe { NSWorkspace::sharedWorkspace() };
-    let shared_app =
-      NSApplication::sharedApplication(MainThreadMarker::new().unwrap());
 
     let mut workspace_center = NotificationCenter::workspace_center();
-    let mut default_center = NotificationCenter::default_center();
 
     for notification in [
       NotificationName::WorkspaceActiveSpaceDidChange,
@@ -73,14 +69,6 @@ impl WindowListener {
           Some(&workspace),
         );
       }
-    }
-
-    unsafe {
-      default_center.add_observer(
-        NotificationName::ApplicationDidChangeScreenParameters,
-        &observer,
-        Some(&shared_app),
-      );
     }
 
     let running_apps = platform_impl::all_applications(&dispatcher)?;
@@ -110,7 +98,6 @@ impl WindowListener {
     // TODO: Hack to prevent the handler from being deregistered.
     std::mem::forget(observer);
     std::mem::forget(workspace_center);
-    std::mem::forget(default_center);
 
     Ok(())
   }

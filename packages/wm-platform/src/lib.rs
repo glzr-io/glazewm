@@ -29,7 +29,8 @@ pub use native_window::*;
 pub use platform_event::*;
 #[cfg(target_os = "macos")]
 pub use platform_impl::{
-  DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
+  DisplayDeviceExtMacOs, DisplayExtMacOs, DisplayListener,
+  NativeWindowExtMacOs,
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{
