@@ -24,7 +24,7 @@ use windows::{
       WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetLayeredWindowAttributes, GetWindow,
         GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
+        GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible, IsZoomed,
         SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, GWL_EXSTYLE, GWL_STYLE, GW_OWNER,
@@ -178,6 +178,13 @@ impl NativeWindow {
     #[allow(clippy::cast_sign_loss)]
     let class_name = String::from_utf16_lossy(&buffer[..result as usize]);
     Ok(class_name)
+  }
+
+  /// Whether the window is still valid.
+  ///
+  /// Returns `true` if the underlying window handle refers to an existing window.
+  pub fn is_valid(&self) -> bool {
+    unsafe { IsWindow(HWND(self.handle)) }.as_bool()
   }
 
   /// Whether the window is actually visible.
