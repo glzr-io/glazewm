@@ -85,9 +85,9 @@ pub fn activate_workspace(
 
 /// Activates all `keep_alive` workspaces that are currently inactive.
 ///
-/// If a workspace is bound to a monitor that exists, it will be activated on
-/// that monitor. Otherwise, it will be activated on the provided fallback
-/// monitor.
+/// If a workspace is bound to a monitor that exists, it will be activated
+/// on that monitor. Otherwise, it will be activated on the provided
+/// fallback monitor.
 pub fn activate_keep_alive_workspaces(
   state: &mut WmState,
   config: &UserConfig,
@@ -101,8 +101,11 @@ pub fn activate_keep_alive_workspaces(
 
   let monitors = state.monitors();
 
-  for workspace_config in
-    config.value.workspaces.iter().filter(|config| config.keep_alive)
+  for workspace_config in config
+    .value
+    .workspaces
+    .iter()
+    .filter(|config| config.keep_alive)
   {
     if active_names.contains(&workspace_config.name) {
       continue;
@@ -117,7 +120,8 @@ pub fn activate_keep_alive_workspaces(
       })
       .cloned();
 
-    let target_monitor = bound_monitor.or_else(|| fallback_monitor.clone());
+    let target_monitor =
+      bound_monitor.or_else(|| fallback_monitor.clone());
 
     if let Some(target_monitor) = target_monitor {
       activate_workspace(

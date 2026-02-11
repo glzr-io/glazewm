@@ -14,8 +14,8 @@ use crate::{
     container::set_focused_descendant,
     general::platform_sync,
     monitor::{add_monitor, move_bounded_workspaces_to_new_monitor},
-    workspace::activate_keep_alive_workspaces,
     window::manage_window,
+    workspace::activate_keep_alive_workspaces,
   },
   models::{
     Container, Monitor, RootContainer, WindowContainer, Workspace,
