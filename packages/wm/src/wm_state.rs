@@ -307,15 +307,19 @@ impl WmState {
           .and_then(|name| self.workspace_by_name(name)),
       ),
       WorkspaceTarget::NextActive => {
-        let active_workspaces = self.sorted_workspaces(config);
+        let mut active_workspaces = self.sorted_workspaces(config);
+        active_workspaces.retain(|w| !w.config().cycle_ignore);
+
         let origin_index = active_workspaces
           .iter()
-          .position(|workspace| workspace.id() == origin_workspace.id())
-          .context("Failed to get index of given workspace.")?;
+          .position(|workspace| workspace.id() == origin_workspace.id());
 
-        let next_active_workspace = active_workspaces
-          .get(origin_index + 1)
-          .or_else(|| active_workspaces.first());
+        let next_active_workspace = match origin_index {
+          Some(idx) => active_workspaces
+            .get(idx + 1)
+            .or_else(|| active_workspaces.first()),
+          None => active_workspaces.first(),
+        };
 
         (
           next_active_workspace.map(|workspace| workspace.config().name),
@@ -323,17 +327,19 @@ impl WmState {
         )
       }
       WorkspaceTarget::PreviousActive => {
-        let active_workspaces = self.sorted_workspaces(config);
+        let mut active_workspaces = self.sorted_workspaces(config);
+        active_workspaces.retain(|w| !w.config().cycle_ignore);
+
         let origin_index = active_workspaces
           .iter()
-          .position(|workspace| workspace.id() == origin_workspace.id())
-          .context("Failed to get index of given workspace.")?;
+          .position(|workspace| workspace.id() == origin_workspace.id());
 
-        let prev_active_workspace = active_workspaces.get(
-          origin_index
-            .checked_sub(1)
-            .unwrap_or(active_workspaces.len() - 1),
-        );
+        let prev_active_workspace = match origin_index {
+          Some(idx) => active_workspaces.get(
+            idx.checked_sub(1).unwrap_or(active_workspaces.len() - 1),
+          ),
+          None => active_workspaces.last(),
+        };
 
         (
           prev_active_workspace.map(|workspace| workspace.config().name),
@@ -389,16 +395,19 @@ impl WmState {
         )
       }
       WorkspaceTarget::Next => {
-        let workspaces = &config.value.workspaces;
+        let workspaces = &config.filtered_workspaces;
+
         let origin_name = origin_workspace.config().name.clone();
         let origin_index = workspaces
           .iter()
-          .position(|workspace| workspace.name == origin_name)
-          .context("Failed to get index of given workspace.")?;
+          .position(|workspace| workspace.name == origin_name);
 
-        let next_workspace_config = workspaces
-          .get(origin_index + 1)
-          .or_else(|| workspaces.first());
+        let next_workspace_config = match origin_index {
+          Some(idx) => {
+            workspaces.get(idx + 1).or_else(|| workspaces.first())
+          }
+          None => workspaces.first(),
+        };
 
         let next_workspace_name =
           next_workspace_config.map(|config| config.name.clone());
@@ -409,17 +418,20 @@ impl WmState {
 
         (next_workspace_name, next_workspace)
       }
+
       WorkspaceTarget::Previous => {
-        let workspaces = &config.value.workspaces;
+        let workspaces = &config.filtered_workspaces;
+
         let origin_name = origin_workspace.config().name.clone();
         let origin_index = workspaces
           .iter()
-          .position(|workspace| workspace.name == origin_name)
-          .context("Failed to get index of given workspace.")?;
+          .position(|workspace| workspace.name == origin_name);
 
-        let previous_workspace_config = workspaces.get(
-          origin_index.checked_sub(1).unwrap_or(workspaces.len() - 1),
-        );
+        let previous_workspace_config = match origin_index {
+          Some(idx) => workspaces
+            .get(idx.checked_sub(1).unwrap_or(workspaces.len() - 1)),
+          None => workspaces.last(),
+        };
 
         let previous_workspace_name =
           previous_workspace_config.map(|config| config.name.clone());
