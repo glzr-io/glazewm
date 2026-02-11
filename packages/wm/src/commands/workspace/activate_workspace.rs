@@ -91,7 +91,7 @@ pub fn activate_workspace(
 pub fn activate_keep_alive_workspaces(
   state: &mut WmState,
   config: &UserConfig,
-  fallback_monitor: Option<Monitor>,
+  fallback_monitor: Option<&Monitor>,
 ) -> anyhow::Result<()> {
   let active_names = state
     .workspaces()
@@ -121,7 +121,7 @@ pub fn activate_keep_alive_workspaces(
       .cloned();
 
     let target_monitor =
-      bound_monitor.or_else(|| fallback_monitor.clone());
+      bound_monitor.or_else(|| fallback_monitor.cloned());
 
     if let Some(target_monitor) = target_monitor {
       activate_workspace(

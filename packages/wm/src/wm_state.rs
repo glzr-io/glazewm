@@ -111,7 +111,8 @@ impl WmState {
       move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
     }
 
-    let fallback_monitor = self.monitors().first().cloned();
+    let monitors = self.monitors();
+    let fallback_monitor = monitors.first();
     activate_keep_alive_workspaces(self, config, fallback_monitor)?;
 
     // Manage windows in reverse z-order (bottom to top). This helps to

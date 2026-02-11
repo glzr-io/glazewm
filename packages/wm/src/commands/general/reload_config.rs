@@ -33,10 +33,13 @@ pub fn reload_config(
 
   update_workspace_configs(state, config)?;
 
-  let fallback_monitor = state
+  let focused_monitor = state
     .focused_container()
-    .and_then(|focused| focused.monitor())
-    .or_else(|| state.monitors().first().cloned());
+    .and_then(|focused| focused.monitor());
+
+  let monitors = state.monitors();
+  let fallback_monitor =
+    focused_monitor.as_ref().or_else(|| monitors.first());
 
   activate_keep_alive_workspaces(state, config, fallback_monitor)?;
 
