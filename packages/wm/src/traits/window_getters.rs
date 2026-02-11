@@ -120,6 +120,10 @@ pub trait WindowGetters {
   fn active_drag(&self) -> Option<ActiveDrag>;
 
   fn set_active_drag(&self, active_drag: Option<ActiveDrag>);
+
+  fn hide_method(&self) -> Option<wm_common::HideMethod>;
+
+  fn set_hide_method(&self, hide_method: Option<wm_common::HideMethod>);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -216,6 +220,14 @@ macro_rules! impl_window_getters {
 
       fn set_active_drag(&self, active_drag: Option<ActiveDrag>) {
         self.0.borrow_mut().active_drag = active_drag;
+      }
+
+      fn hide_method(&self) -> Option<wm_common::HideMethod> {
+        self.0.borrow().hide_method.clone()
+      }
+
+      fn set_hide_method(&self, hide_method: Option<wm_common::HideMethod>) {
+        self.0.borrow_mut().hide_method = hide_method;
       }
     }
   };

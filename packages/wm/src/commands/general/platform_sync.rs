@@ -266,6 +266,12 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
+    // Use the window's hide method if set, otherwise fall back to global config.
+    let window_hide_method = window.hide_method();
+    let hide_method = window_hide_method
+      .as_ref()
+      .unwrap_or(&config.value.general.hide_method);
+
     info!("Updating window position: {window}");
 
     if let Err(err) = window.native().set_position(
@@ -273,7 +279,7 @@ fn redraw_containers(
       &rect,
       &z_order,
       is_visible,
-      &config.value.general.hide_method,
+      hide_method,
       window.has_pending_dpi_adjustment(),
     ) {
       warn!("Failed to set window position: {}", err);
@@ -302,7 +308,7 @@ fn redraw_containers(
     // effect). Since cloaked windows are normally always visible in the
     // taskbar, we only need to set visibility if `show_all_in_taskbar` is
     // `false`.
-    if config.value.general.hide_method == HideMethod::Cloak
+    if *hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
       && matches!(
         window.display_state(),
