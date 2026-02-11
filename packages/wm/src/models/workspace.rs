@@ -7,8 +7,8 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, TilingDirection, WorkspaceConfig,
-  WorkspaceDto,
+  ContainerDto, GapsConfig, LengthValue, Rect, TilingDirection,
+  WorkspaceConfig, WorkspaceDto,
 };
 
 use crate::{
@@ -32,6 +32,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  max_window_width: Option<LengthValue>,
 }
 
 impl Workspace {
@@ -39,6 +40,7 @@ impl Workspace {
     config: WorkspaceConfig,
     gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
+    max_window_width: Option<LengthValue>,
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
@@ -48,6 +50,7 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      max_window_width,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -73,6 +76,14 @@ impl Workspace {
 
   pub fn set_gaps_config(&self, gaps_config: GapsConfig) {
     self.0.borrow_mut().gaps_config = gaps_config;
+  }
+
+  pub fn max_window_width(&self) -> Option<LengthValue> {
+    self.0.borrow().max_window_width.clone()
+  }
+
+  pub fn set_max_window_width(&self, max_window_width: Option<LengthValue>) {
+    self.0.borrow_mut().max_window_width = max_window_width;
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
