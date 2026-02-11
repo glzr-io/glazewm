@@ -10,9 +10,10 @@
 
 use anyhow::{bail, Context};
 use tracing::info;
-use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
+use wm_common::{AppWorkspaceEntry, ClientResponseData, ContainerDto, WindowDto, WmEvent};
 use wm_ipc_client::IpcClient;
 use wm_platform::NativeWindow;
+use std::{fs::File, path::PathBuf};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -121,6 +122,78 @@ async fn watch_managed_handles(
       }) => {
         info!("Watcher removed handle: {}.", unmanaged_handle);
         handles.retain(|&handle| handle != unmanaged_handle);
+
+        // Only remove mapping entries if the user has enabled persistence
+        // in their config. Read the user's config (if present) and check
+        // `general.persists_process_location`.
+        let default_config_path = home::home_dir()
+          .map(|p| p.join(".glzr/glazewm/config.yaml"));
+
+        let env_path = std::env::var("GLAZEWM_CONFIG_PATH").ok();
+
+        let config_file_path = env_path
+          .as_ref()
+          .map(PathBuf::from)
+          .or(default_config_path.clone());
+
+        let mut persistence_enabled = false;
+
+        if let Some(cfg) = config_file_path {
+          if cfg.exists() {
+            if let Ok(s) = std::fs::read_to_string(&cfg) {
+              if let Ok(parsed) = serde_yaml::from_str::<wm_common::ParsedConfig>(&s) {
+                persistence_enabled = parsed.general.persists_process_location;
+              }
+            }
+          }
+        }
+
+        if !persistence_enabled {
+          // Nothing to do for mapping cleanup.
+          continue;
+        }
+
+        // Remove mapping entries for the terminated handle. Derive the
+        // mapping path the same way `UserConfig` does so we modify the
+        // same file WM writes to. Fallback to looking in the executable
+        // directory if the config path can't be determined.
+
+        let mapping_name = "glazewm_apps_workspaces.json";
+
+        // Determine config path similar to `UserConfig::new`.
+        let default_config_path = home::home_dir()
+          .map(|p| p.join(".glzr/glazewm/config.yaml"));
+
+        let env_path = std::env::var("GLAZEWM_CONFIG_PATH").ok();
+
+        let config_path = env_path
+          .as_ref()
+          .map(PathBuf::from)
+          .or(default_config_path)
+          .or_else(|| std::env::current_exe().ok().and_then(|exe| exe.parent().map(std::path::Path::to_path_buf)));
+
+        if let Some(cfg) = config_path {
+          if let Some(parent) = cfg.parent() {
+            let mapping_path = parent.join(mapping_name);
+            if mapping_path.exists() {
+              if let Ok(file) = File::open(&mapping_path) {
+                if let Ok(mut entries) = serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file) {
+                  let original_len = entries.len();
+                  entries.retain(|e| e.handle != unmanaged_handle);
+                  if entries.len() != original_len {
+                    let _ = (|| -> anyhow::Result<()> {
+                      let tmp = mapping_path.with_extension("tmp");
+                      let file = std::fs::File::create(&tmp)?;
+                      serde_json::to_writer_pretty(file, &entries)?;
+                      std::fs::rename(tmp, &mapping_path)?;
+                      Ok(())
+                    })();
+                  }
+                }
+              }
+            }
+          }
+        }
       }
       Some(WmEvent::ApplicationExiting) => {
         return Ok(());

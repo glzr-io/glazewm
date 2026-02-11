@@ -1,17 +1,20 @@
 use anyhow::Context;
+use std::{fs::File, path::PathBuf};
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  AppWorkspaceEntry, try_warn, LengthValue, RectDelta, WindowRuleEvent,
+  WindowState, WmEvent,
 };
 use wm_platform::NativeWindow;
 
 use crate::{
   commands::{
     container::{attach_container, set_focused_descendant},
-    window::run_window_rules,
+    window::{run_window_rules, move_window_to_workspace},
   },
   models::{
     Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    WorkspaceTarget,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -66,9 +69,53 @@ pub fn manage_window(
       if window.state() == WindowState::Tiling {
         window.parent().context("No parent.")?
       } else {
-        window.into()
+        window.clone().into()
       },
     );
+
+    // Check mapping file for this new window by handle and move it if
+    // a mapping exists. Remove the mapping entry afterwards. Only do
+    // this if the user enabled `persists_process_location` in config.
+    if config.value.general.persists_process_location {
+    // Use shared `AppWorkspaceEntry` from `wm-common`.
+
+    let mapping_path = config
+      .path
+      .parent().map_or_else(|| PathBuf::from("glazewm_apps_workspaces.json"), |p| p.join("glazewm_apps_workspaces.json"));
+
+    if mapping_path.exists() {
+      if let Ok(file) = File::open(&mapping_path) {
+        if let Ok(mut entries) =
+          serde_json::from_reader::<_, Vec<AppWorkspaceEntry>>(file)
+        {
+          if let Some(pos) = entries.iter().position(|e| e.handle == window.native().handle) {
+            let entry = entries.remove(pos);
+
+            // Write back remaining entries atomically.
+            let _ = (|| -> anyhow::Result<()> {
+              let tmp = mapping_path.with_extension("tmp");
+              let file = std::fs::File::create(&tmp)?;
+              serde_json::to_writer_pretty(file, &entries)?;
+              std::fs::rename(tmp, &mapping_path)?;
+              Ok(())
+            })();
+
+            // Move the window to the saved workspace.
+            if let Err(err) = move_window_to_workspace(
+              window.clone(),
+              WorkspaceTarget::Name(entry.workspace.clone()),
+              state,
+              config,
+            ) {
+              tracing::warn!("Failed to move newly managed window: {:?}", err);
+            } else {
+              info!("Moved newly managed window to saved workspace: {}", entry.workspace);
+            }
+          }
+        }
+      }
+    }
+    }
   }
 
   Ok(())
