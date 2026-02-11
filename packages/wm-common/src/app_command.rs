@@ -167,6 +167,12 @@ pub enum InvokeCommand {
   },
   Position(InvokePositionCommand),
   Resize(InvokeResizeCommand),
+  UpdateWorkspaceConfig {
+    #[clap(long, allow_hyphen_values = true)]
+    workspace: Option<String>,
+    #[clap(flatten)]
+    new_config: InvokeUpdateWorkspaceConfig,
+  },
   SetFloating {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     shown_on_top: Option<bool>,
@@ -410,4 +416,27 @@ pub struct InvokePositionCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   pub y_pos: Option<i32>,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+#[group(required = true, multiple = true)]
+pub struct InvokeUpdateWorkspaceConfig {
+  #[clap(long, allow_hyphen_values = true)]
+  pub name: Option<String>,
+
+  #[clap(
+    long,
+    allow_hyphen_values = true,
+    conflicts_with = "no_display_name"
+  )]
+  pub display_name: Option<String>,
+
+  #[clap(long, conflicts_with = "display_name")]
+  pub no_display_name: bool,
+
+  #[clap(long)]
+  pub bind_to_monitor: Option<u32>,
+
+  #[clap(long)]
+  pub keep_alive: Option<bool>,
 }
