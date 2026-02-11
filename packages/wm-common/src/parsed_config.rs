@@ -245,6 +245,9 @@ pub struct BorderEffectConfig {
 
   /// Color of the window border.
   pub color: Color,
+
+  /// Conditions controlling to which windows to apply this effect.
+  pub window_filter: WindowFilter,
 }
 
 impl Default for BorderEffectConfig {
@@ -257,6 +260,10 @@ impl Default for BorderEffectConfig {
         b: 255,
         a: 255,
       },
+      window_filter: WindowFilter {
+        filter_combination: WindowFilterCombination::Any,
+        match_window: Vec::new(),
+      },
     }
   }
 }
@@ -266,6 +273,9 @@ impl Default for BorderEffectConfig {
 pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
+
+  /// Conditions controlling to which windows to apply this effect.
+  pub window_filter: WindowFilter,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -276,6 +286,9 @@ pub struct CornerEffectConfig {
 
   /// Style of the window corners.
   pub style: CornerStyle,
+
+  /// Conditions controlling to which windows to apply this effect.
+  pub window_filter: WindowFilter,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -296,6 +309,27 @@ pub struct TransparencyEffectConfig {
 
   /// The opacity to apply.
   pub opacity: OpacityValue,
+
+  /// Conditions controlling to which windows to apply this effect.
+  pub window_filter: WindowFilter,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowFilterCombination {
+  #[default]
+  Any,
+  All,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WindowFilter {
+  #[serde(rename = "combination")]
+  pub filter_combination: WindowFilterCombination,
+
+  #[serde(rename = "match")]
+  pub match_window: Vec<WindowMatchConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
