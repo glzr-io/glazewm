@@ -1,4 +1,4 @@
-// mod handle_display_settings_changed;
+mod handle_display_settings_changed;
 mod handle_mouse_move;
 mod handle_window_destroyed;
 mod handle_window_focused;
@@ -10,7 +10,7 @@ mod handle_window_moved_or_resized_end;
 mod handle_window_shown;
 mod handle_window_title_changed;
 
-// pub use handle_display_settings_changed::*;
+pub use handle_display_settings_changed::*;
 pub use handle_mouse_move::*;
 pub use handle_window_destroyed::*;
 pub use handle_window_focused::*;

@@ -32,15 +32,10 @@ use crate::{
     workspace::{focus_workspace, move_workspace_in_direction},
   },
   events::{
-    // handle_display_settings_changed,
-    handle_mouse_move,
-    handle_window_destroyed,
-    handle_window_focused,
-    handle_window_hidden,
-    handle_window_minimize_ended,
-    handle_window_minimized,
-    handle_window_moved_or_resized,
-    handle_window_shown,
+    handle_display_settings_changed, handle_mouse_move,
+    handle_window_destroyed, handle_window_focused, handle_window_hidden,
+    handle_window_minimize_ended, handle_window_minimized,
+    handle_window_moved_or_resized, handle_window_shown,
     handle_window_title_changed,
   },
   ipc_server::IpcServer,
@@ -83,8 +78,7 @@ impl WindowManager {
 
     match event {
       PlatformEvent::DisplaySettingsChanged => {
-        // handle_display_settings_changed(state, config)
-        Ok(())
+        handle_display_settings_changed(state, config)
       }
       PlatformEvent::Keybinding(keybinding_event) => {
         // Find the keybinding config that matches this keybinding.

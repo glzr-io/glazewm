@@ -1,11 +1,13 @@
 use anyhow::Context;
 use tracing::info;
-use wm_platform::Platform;
+#[cfg(target_os = "windows")]
+use wm_platform::{DisplayDeviceExtWindows, DisplayExtWindows};
 
 use crate::{
   commands::monitor::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,
   },
+  models::NativeMonitorProperties,
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -17,58 +19,51 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   info!("Display settings changed.");
 
-  let native_displays = Platform::sorted_monitors()?;
-
-  let hardware_ids = native_displays
-    .iter()
-    .filter_map(|m| m.hardware_id().ok())
-    .flatten()
-    .cloned()
-    .collect::<Vec<_>>();
+  let displays = state.dispatcher.displays()?;
 
   let mut pending_monitors = state.monitors();
   let mut new_native_displays = Vec::new();
 
-  for native_display in native_displays {
+  for display in displays {
+    let properties = NativeMonitorProperties::try_from(&display)?;
+
     // Get the corresponding `Monitor` instance by either its handle,
     // device path, or hardware ID. Monitor handles and device paths
     // *should* be unique, but can both change over time. The hardware ID
     // is not guaranteed to be unique, so we match against that last.
     let found_monitor = pending_monitors
       .iter()
-      .find_map(|monitor| {
-        if monitor.native().handle == native_display.handle {
-          return Some(monitor);
-        }
+      .find(|monitor| {
+        let monitor_properties = monitor.native_properties();
 
-        if monitor.native().device_path().ok()??
-          == native_display.device_path().ok()??
+        #[cfg(target_os = "macos")]
         {
-          return Some(monitor);
+          monitor_properties.id == properties.id
         }
-
-        let hardware_id = monitor.native().hardware_id().ok()??.clone();
-
-        // Check that there aren't multiple monitors with the same
-        // hardware ID.
-        let is_unique =
-          hardware_ids.iter().filter(|&id| *id == hardware_id).count()
-            == 1;
-
-        if is_unique
-          && hardware_id == *native_display.hardware_id().ok()??
+        #[cfg(target_os = "windows")]
         {
-          Some(monitor)
-        } else {
-          None
+          monitor_properties.handle == properties.handle
+            || monitor_properties
+              .device_path
+              .is_some_and(|p| p == properties.device_path())
+            || monitor_properties.hardware_id.is_some_and(|p| {
+              // Check that there aren't multiple monitors with the same
+              // hardware ID.
+              let is_unique = pending_monitors
+                .iter()
+                .filter(|o| o.native_properties().hardware_id == p)
+                .count()
+                == 1;
+
+              is_unique && p == properties.hardware_id
+            })
         }
       })
       .cloned();
 
     match found_monitor {
       Some(found_monitor) => {
-        // Remove the monitor from the pending list so that we don't
-        // consider it again in the next iteration.
+        // Remove from pending so it's not considered again.
         if let Some(index) = pending_monitors
           .iter()
           .position(|m| m.id() == found_monitor.id())
@@ -76,14 +71,15 @@ pub fn handle_display_settings_changed(
           pending_monitors.remove(index);
         }
 
-        update_monitor(&found_monitor, native_display, state)?;
+        update_monitor(&found_monitor, display, state)?;
       }
       None => {
-        new_native_displays.push(native_display);
+        new_native_displays.push(display);
       }
     }
   }
 
+  // Pair unmatched displays with unmatched monitors, or add new ones.
   for native_display in new_native_displays {
     match pending_monitors.first() {
       Some(_) => {
@@ -91,7 +87,11 @@ pub fn handle_display_settings_changed(
         update_monitor(&monitor, native_display, state)
       }
       // Add monitor if it doesn't exist in state.
-      None => add_monitor(native_display, state, config),
+      None => {
+        let native_properties =
+          NativeMonitorProperties::try_from(&native_display)?;
+        add_monitor(native_display, native_properties, state, config)
+      }
     }?;
   }
 

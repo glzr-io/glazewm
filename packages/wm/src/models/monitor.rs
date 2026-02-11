@@ -59,6 +59,13 @@ impl Monitor {
     self.0.borrow().native_properties.clone()
   }
 
+  pub fn set_native_properties(
+    &self,
+    native_properties: NativeMonitorProperties,
+  ) {
+    self.0.borrow_mut().native_properties = native_properties;
+  }
+
   pub fn displayed_workspace(&self) -> Option<Workspace> {
     self
       .child_focus_order()

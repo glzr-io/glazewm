@@ -24,8 +24,8 @@ impl DisplayListener {
   /// notifications.
   pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let dispatcher_clone = dispatcher.clone();
-    let (observer, events_rx) =
-      dispatcher.dispatch_sync(move || Self::init(dispatcher_clone))??;
+    let (observer, events_rx) = dispatcher
+      .dispatch_sync(move || Self::add_observer(dispatcher_clone))??;
 
     Ok(Self {
       events_rx,
@@ -34,7 +34,7 @@ impl DisplayListener {
   }
 
   /// Registers the notification observer on the main thread.
-  fn init(
+  fn add_observer(
     dispatcher: Dispatcher,
   ) -> crate::Result<(
     ThreadBound<Retained<NotificationObserver>>,
@@ -72,30 +72,27 @@ impl DisplayListener {
 
   /// Deregisters the display change observer from `NSNotificationCenter`.
   pub fn terminate(&mut self) -> crate::Result<()> {
-    if let Some(observer) = self.observer.take() {
-      observer.with(|observer| {
-        let Some(mtm) = MainThreadMarker::new() else {
-          tracing::error!(
-            "DisplayListener::terminate must run on the main thread."
-          );
-          return;
-        };
+    let Some(observer) = self.observer.take() else {
+      return Ok(());
+    };
 
-        let shared_app = NSApplication::sharedApplication(mtm);
-        let mut default_center = NotificationCenter::default_center();
+    observer.with(|observer| {
+      let mtm =
+        MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
-        // SAFETY: `shared_app` is a valid object on the main thread.
-        unsafe {
-          default_center.remove_observer(
-            NotificationName::ApplicationDidChangeScreenParameters,
-            observer,
-            Some(&shared_app),
-          );
-        }
-      })?;
-    }
+      let shared_app = NSApplication::sharedApplication(mtm);
+      let mut default_center = NotificationCenter::default_center();
 
-    Ok(())
+      unsafe {
+        default_center.remove_observer(
+          NotificationName::ApplicationDidChangeScreenParameters,
+          observer,
+          Some(&shared_app),
+        );
+      }
+
+      crate::Result::Ok(())
+    })?
   }
 }
 
