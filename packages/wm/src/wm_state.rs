@@ -57,6 +57,9 @@ pub struct WmState {
   /// `ignore` command.
   pub ignored_windows: Vec<NativeWindow>,
 
+  /// Whether window transparency is currently enabled.
+  pub transparency_enabled: bool,
+
   /// Whether the WM is paused.
   pub is_paused: bool,
 
@@ -86,6 +89,7 @@ impl WmState {
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
+      transparency_enabled: true,
       is_paused: false,
       is_focus_synced: false,
       has_initialized: false,
