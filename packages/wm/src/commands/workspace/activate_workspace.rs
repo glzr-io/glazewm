@@ -1,5 +1,7 @@
+use std::collections::HashSet;
+
 use anyhow::Context;
-use tracing::info;
+use tracing::{info, warn};
 use wm_common::{TilingDirection, WmEvent, WorkspaceConfig};
 
 use super::sort_workspaces;
@@ -77,6 +79,60 @@ pub fn activate_workspace(
   state.emit_event(WmEvent::WorkspaceActivated {
     activated_workspace: workspace.to_dto()?,
   });
+
+  Ok(())
+}
+
+/// Activates all `keep_alive` workspaces that are currently inactive.
+///
+/// If a workspace is bound to a monitor that exists, it will be activated on
+/// that monitor. Otherwise, it will be activated on the provided fallback
+/// monitor.
+pub fn activate_keep_alive_workspaces(
+  state: &mut WmState,
+  config: &UserConfig,
+  fallback_monitor: Option<Monitor>,
+) -> anyhow::Result<()> {
+  let active_names = state
+    .workspaces()
+    .iter()
+    .map(|workspace| workspace.config().name)
+    .collect::<HashSet<_>>();
+
+  let monitors = state.monitors();
+
+  for workspace_config in
+    config.value.workspaces.iter().filter(|config| config.keep_alive)
+  {
+    if active_names.contains(&workspace_config.name) {
+      continue;
+    }
+
+    let bound_monitor = workspace_config
+      .bind_to_monitor
+      .and_then(|index| {
+        monitors
+          .iter()
+          .find(|monitor| monitor.index() == index as usize)
+      })
+      .cloned();
+
+    let target_monitor = bound_monitor.or_else(|| fallback_monitor.clone());
+
+    if let Some(target_monitor) = target_monitor {
+      activate_workspace(
+        Some(&workspace_config.name),
+        Some(target_monitor),
+        state,
+        config,
+      )?;
+    } else {
+      warn!(
+        "Failed to activate keep_alive workspace '{}' (no monitor available).",
+        workspace_config.name
+      );
+    }
+  }
 
   Ok(())
 }
