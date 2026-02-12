@@ -22,8 +22,9 @@ use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
-  Dispatcher, EventLoop, KeybindingListener, MouseEventType,
-  MouseListener, PlatformEvent, SingleInstance, WindowListener,
+  Dispatcher, DisplayListener, EventLoop, KeybindingListener,
+  MouseEventType, MouseListener, PlatformEvent, SingleInstance,
+  WindowListener,
 };
 
 use crate::{
@@ -135,6 +136,7 @@ async fn start_wm(
     dispatcher,
   )?;
   let mut window_listener = WindowListener::new(dispatcher)?;
+  let mut display_listener = DisplayListener::new(dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
     &config
       .active_keybinding_configs(&[], false)
@@ -161,13 +163,17 @@ async fn start_wm(
         tracing::info!("Exiting through system tray.");
         break;
       },
-      Some(event) = window_listener.next_event() => {
-        tracing::debug!("Received platform event: {:?}", event);
-        wm.process_event(PlatformEvent::Window(event), &mut config)
-      },
       Some(event) = mouse_listener.next_event() => {
         tracing::debug!("Received mouse event: {:?}", event);
         wm.process_event(PlatformEvent::Mouse(event), &mut config)
+      },
+      Some(event) = window_listener.next_event() => {
+        tracing::debug!("Received window event: {:?}", event);
+        wm.process_event(PlatformEvent::Window(event), &mut config)
+      },
+      Some(()) = display_listener.next_event() => {
+        tracing::debug!("Received display settings changed event.");
+        wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
       },
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);

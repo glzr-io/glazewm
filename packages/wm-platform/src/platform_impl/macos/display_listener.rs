@@ -1,8 +1,5 @@
 use objc2::rc::Retained;
-use objc2_app_kit::NSApplication;
-use objc2_foundation::MainThreadMarker;
 use tokio::sync::mpsc;
-use tracing::warn;
 
 use crate::{
   platform_impl::classes::{
@@ -25,7 +22,7 @@ impl DisplayListener {
   pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let dispatcher_clone = dispatcher.clone();
     let (observer, events_rx) = dispatcher
-      .dispatch_sync(move || Self::add_observer(dispatcher_clone))??;
+      .dispatch_sync(move || Self::add_observer(dispatcher_clone))?;
 
     Ok(Self {
       events_rx,
@@ -36,16 +33,11 @@ impl DisplayListener {
   /// Registers the notification observer on the main thread.
   fn add_observer(
     dispatcher: Dispatcher,
-  ) -> crate::Result<(
+  ) -> (
     ThreadBound<Retained<NotificationObserver>>,
     mpsc::UnboundedReceiver<NotificationEvent>,
-  )> {
-    let mtm =
-      MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
-
+  ) {
     let (observer, events_rx) = NotificationObserver::new();
-    let shared_app = NSApplication::sharedApplication(mtm);
-
     let mut default_center = NotificationCenter::default_center();
 
     // Add observer which will fire when displays are connected and
@@ -54,13 +46,12 @@ impl DisplayListener {
       default_center.add_observer(
         NotificationName::ApplicationDidChangeScreenParameters,
         &observer,
-        Some(&shared_app),
+        None,
       );
     }
 
     let observer = ThreadBound::new(observer, dispatcher);
-
-    Ok((observer, events_rx))
+    (observer, events_rx)
   }
 
   /// Returns when the next display settings change is detected.
@@ -77,29 +68,23 @@ impl DisplayListener {
     };
 
     observer.with(|observer| {
-      let mtm =
-        MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
-
-      let shared_app = NSApplication::sharedApplication(mtm);
       let mut default_center = NotificationCenter::default_center();
 
       unsafe {
         default_center.remove_observer(
           NotificationName::ApplicationDidChangeScreenParameters,
           observer,
-          Some(&shared_app),
+          None,
         );
       }
-
-      crate::Result::Ok(())
-    })?
+    })
   }
 }
 
 impl Drop for DisplayListener {
   fn drop(&mut self) {
     if let Err(err) = self.terminate() {
-      warn!("Failed to terminate display listener: {}", err);
+      tracing::warn!("Failed to terminate display listener: {}", err);
     }
   }
 }

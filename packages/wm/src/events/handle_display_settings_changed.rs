@@ -1,5 +1,4 @@
 use anyhow::Context;
-use tracing::info;
 #[cfg(target_os = "windows")]
 use wm_platform::{DisplayDeviceExtWindows, DisplayExtWindows};
 
@@ -7,7 +6,7 @@ use crate::{
   commands::monitor::{
     add_monitor, remove_monitor, sort_monitors, update_monitor,
   },
-  models::NativeMonitorProperties,
+  models::{Monitor, NativeMonitorProperties},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -17,94 +16,48 @@ pub fn handle_display_settings_changed(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  info!("Display settings changed.");
+  tracing::info!("Display settings changed.");
 
   let displays = state.dispatcher.displays()?;
-
   let mut pending_monitors = state.monitors();
-  let mut new_native_displays = Vec::new();
+  let mut unmatched_displays = Vec::new();
 
+  // Match each display to an existing monitor and update it.
   for display in displays {
+    // TODO: Create `NativeMonitorProperties` instances for displays just
+    // once (created in loop below and in `update_monitor`).
     let properties = NativeMonitorProperties::try_from(&display)?;
 
-    // Get the corresponding `Monitor` instance by either its handle,
-    // device path, or hardware ID. Monitor handles and device paths
-    // *should* be unique, but can both change over time. The hardware ID
-    // is not guaranteed to be unique, so we match against that last.
-    let found_monitor = pending_monitors
-      .iter()
-      .find(|monitor| {
-        let monitor_properties = monitor.native_properties();
-
-        #[cfg(target_os = "macos")]
-        {
-          monitor_properties.id == properties.id
-        }
-        #[cfg(target_os = "windows")]
-        {
-          monitor_properties.handle == properties.handle
-            || monitor_properties
-              .device_path
-              .is_some_and(|p| p == properties.device_path())
-            || monitor_properties.hardware_id.is_some_and(|p| {
-              // Check that there aren't multiple monitors with the same
-              // hardware ID.
-              let is_unique = pending_monitors
-                .iter()
-                .filter(|o| o.native_properties().hardware_id == p)
-                .count()
-                == 1;
-
-              is_unique && p == properties.hardware_id
-            })
-        }
-      })
-      .cloned();
-
-    match found_monitor {
-      Some(found_monitor) => {
-        // Remove from pending so it's not considered again.
-        if let Some(index) = pending_monitors
-          .iter()
-          .position(|m| m.id() == found_monitor.id())
-        {
-          pending_monitors.remove(index);
-        }
-
-        update_monitor(&found_monitor, display, state)?;
+    match find_matching_monitor(&pending_monitors, &properties) {
+      Some((monitor, index)) => {
+        update_monitor(monitor, display, state)?;
+        pending_monitors.remove(index);
       }
-      None => {
-        new_native_displays.push(display);
-      }
+      None => unmatched_displays.push(display),
     }
   }
 
   // Pair unmatched displays with unmatched monitors, or add new ones.
-  for native_display in new_native_displays {
-    match pending_monitors.first() {
-      Some(_) => {
-        let monitor = pending_monitors.remove(0);
-        update_monitor(&monitor, native_display, state)
-      }
-      // Add monitor if it doesn't exist in state.
-      None => {
-        let native_properties =
-          NativeMonitorProperties::try_from(&native_display)?;
-        add_monitor(native_display, native_properties, state, config)
-      }
-    }?;
+  for display in unmatched_displays {
+    if pending_monitors.is_empty() {
+      let properties = NativeMonitorProperties::try_from(&display)?;
+      add_monitor(display, properties, state, config)?;
+    } else {
+      let monitor = pending_monitors.remove(0);
+      update_monitor(&monitor, display, state)?;
+    }
   }
 
-  // Remove any monitors that no longer exist and move their workspaces
-  // to other monitors.
+  // Remove monitors that no longer have a corresponding display and move
+  // their workspaces to other monitors.
   //
   // Prevent removal of the last monitor (i.e. for when all monitors are
-  // disconnected). This will cause the WM's monitors to mismatch the OS
-  // monitor state, however, it'll be updated correctly when a new monitor
-  // is connected again.
-  for pending_monitor in pending_monitors {
-    if state.monitors().len() != 1 {
-      remove_monitor(pending_monitor, state, config)?;
+  // disconnected). This will cause the WM's monitors to temporarily
+  // mismatch the OS monitor state, however, it'll be updated correctly
+  // when a new monitor is connected again.
+  for monitor in pending_monitors {
+    if state.monitors().len() > 1 {
+      remove_monitor(monitor, state, config)?;
     }
   }
 
@@ -133,4 +86,53 @@ pub fn handle_display_settings_changed(
     .queue_container_to_redraw(state.root_container.clone());
 
   Ok(())
+}
+
+/// Finds the monitor matching the given display properties.
+///
+/// Returns the monitor and its index within the list of monitors.
+fn find_matching_monitor<'a>(
+  monitors: &'a [Monitor],
+  properties: &NativeMonitorProperties,
+) -> Option<(&'a Monitor, usize)> {
+  monitors.iter().enumerate().find_map(|(index, monitor)| {
+    let existing = monitor.native_properties();
+
+    let is_match = {
+      #[cfg(target_os = "macos")]
+      {
+        existing.id == properties.id
+      }
+
+      // On Windows, match the monitor by:
+      // 1. Its handle
+      // 2. Its device path
+      // 3. Its hardware ID (if unique)
+      //
+      // Monitor handles and device paths are unique, but can change over
+      // time. The hardware ID is not guaranteed to be unique, so we
+      // match against that last.
+      #[cfg(target_os = "windows")]
+      {
+        existing.handle == properties.handle
+          || existing.device_path.is_some_and(|device_path| {
+            device_path == properties.device_path()
+          })
+          || existing.hardware_id.is_some_and(|hardware_id| {
+            let is_unique = monitors
+              .iter()
+              .filter(|other_monitor| {
+                other_monitor.native_properties().hardware_id
+                  == hardware_id
+              })
+              .count()
+              == 1;
+
+            is_unique && hardware_id == properties.hardware_id
+          })
+      }
+    };
+
+    is_match.then_some((monitor, index))
+  })
 }
