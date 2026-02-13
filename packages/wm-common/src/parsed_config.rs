@@ -74,6 +74,10 @@ pub struct GeneralConfig {
   /// Whether to automatically focus windows underneath the cursor.
   pub focus_follows_cursor: bool,
 
+  /// Whether to change workspaces when an off-screen window is focused.
+  /// When set to false, workspace switches will only occur when explicitly triggered.
+  pub switch_workspace_on_focus: bool,
+
   /// Whether to switch back and forth between the previously focused
   /// workspace when focusing the current workspace.
   pub toggle_workspace_on_refocus: bool,
@@ -100,6 +104,7 @@ impl Default for GeneralConfig {
     GeneralConfig {
       cursor_jump: CursorJumpConfig::default(),
       focus_follows_cursor: false,
+      switch_workspace_on_focus: true,
       toggle_workspace_on_refocus: true,
       startup_commands: vec![],
       shutdown_commands: vec![],

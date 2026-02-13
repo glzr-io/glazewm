@@ -14,6 +14,10 @@ general:
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
 
+  # Whether to change workspaces when an off-screen window is focused.
+  # When set to false, workspace switches will only occur when explicitly triggered.
+  switch_workspace_on_focus: true
+
   # Whether to switch back and forth between the previously focused
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: false
