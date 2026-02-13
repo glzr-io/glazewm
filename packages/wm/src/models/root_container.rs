@@ -50,7 +50,7 @@ impl RootContainer {
     self
       .children()
       .into_iter()
-      .filter_map(|container| container.as_monitor().cloned())
+      .filter_map(|container| Monitor::try_from(container).ok())
       .collect()
   }
 
