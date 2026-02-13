@@ -356,7 +356,7 @@ binding_modes:
 
 **Q: How do I run GlazeWM on startup?**
 
-Create a shortcut for the executable by right-clicking on the GlazeWM executable -> `Create shortcut`. Put the shortcut in your startup folder, which you can get to by entering `shell:startup` in the top bar in File Explorer.
+Right-click the GlazeWM icon in the system tray and select "Start with Windows". 
 
 **Q: How can I create `<insert layout>`?**
 
