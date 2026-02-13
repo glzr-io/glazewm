@@ -298,6 +298,9 @@ pub struct InvokeAdjustBordersCommand {
 
   #[clap(long, allow_hyphen_values = true)]
   pub left: Option<LengthValue>,
+
+  #[clap(long, allow_hyphen_values = true)]
+  pub class_name: Option<String>,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]

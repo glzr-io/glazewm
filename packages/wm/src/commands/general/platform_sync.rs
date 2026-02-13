@@ -204,6 +204,8 @@ fn redraw_containers(
     let workspace =
       window.workspace().context("Window has no workspace.")?;
 
+    let monitor = window.monitor().context("Window has no monitor.")?;
+
     // Whether the window should be shown above all other windows.
     let z_order = match window.state() {
       WindowState::Floating(config) if config.shown_on_top => {
@@ -257,9 +259,20 @@ fn redraw_containers(
       },
     );
 
-    let rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
+    let rect = {
+      let adjusted_rect = window
+        .to_rect()?
+        .apply_delta(&window.total_border_delta()?, None);
+
+      // Clamp tiling windows within the bounds of the monitor to handle
+      // excessive shadow borders.
+      match window.state() {
+        WindowState::Tiling => {
+          adjusted_rect.clamp(monitor.native().working_rect()?)
+        }
+        _ => adjusted_rect,
+      }
+    };
 
     let is_visible = matches!(
       window.display_state(),
