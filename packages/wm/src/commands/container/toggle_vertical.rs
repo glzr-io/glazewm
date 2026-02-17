@@ -79,6 +79,34 @@ pub fn toggle_vertical(
       
       return Ok(());
     }
+
+    if split_parent.tiling_direction() == TilingDirection::Vertical
+      && split_parent.child_count() > 2
+    {
+      // Parent is vertical with 3+ children — move this window out
+      // to the grandparent so it becomes a horizontal sibling.
+      info!(
+        "Parent is vertical with {} children, moving window out to grandparent",
+        split_parent.child_count()
+      );
+
+      let grandparent =
+        split_parent.parent().context("No grandparent.")?;
+      let target_index = split_parent.index() + 1;
+
+      move_container_within_tree(
+        &tiling_window.clone().into(),
+        &grandparent,
+        target_index,
+        state,
+      )?;
+
+      state
+        .pending_sync
+        .queue_containers_to_redraw(grandparent.tiling_children());
+
+      return Ok(());
+    }
   }
 
   // Get the neighbor window (prefer left, fallback to right)
