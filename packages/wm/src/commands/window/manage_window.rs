@@ -171,6 +171,7 @@ fn create_window(
     &window_container.clone().into(),
     &target_parent,
     Some(target_index),
+    &config.value.general.tiling_strategy,
   )?;
 
   // The OS might spawn the window on a different monitor to the target

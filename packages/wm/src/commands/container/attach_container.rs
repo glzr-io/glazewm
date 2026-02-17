@@ -5,6 +5,7 @@ use crate::{
   models::Container,
   traits::{CommonGetters, TilingSizeGetters},
 };
+use wm_common::TilingStrategy;
 
 /// Inserts a child container at the specified index.
 ///
@@ -13,6 +14,7 @@ pub fn attach_container(
   child: &Container,
   target_parent: &Container,
   target_index: Option<usize>,
+  tiling_strategy: &TilingStrategy,
 ) -> anyhow::Result<()> {
   if !child.is_detached() {
     bail!("Cannot attach an already attached container.");
@@ -48,9 +50,39 @@ pub fn attach_container(
     // Set initial tiling size to 0, and then size up the container
     // to the target size.
     #[allow(clippy::cast_precision_loss)]
-    let target_size = 1.0 / (tiling_siblings.len() + 1) as f32;
+    let target_size = match tiling_strategy {
+      TilingStrategy::MasterStack => {
+        // Total children = siblings + this new child.
+        let total = (tiling_siblings.len() + 1) as f32;
+        if total == 2.0 {
+          // Second window: each gets 50%.
+          0.5
+        } else {
+          // 3+ windows: first child (master) keeps 50%, the rest
+          // share the other 50% equally.
+          // The new window is never the master (it's being added),
+          // so it gets 0.5 / (total - 1).
+          0.5 / (total - 1.0)
+        }
+      }
+      TilingStrategy::Equal => 1.0 / (tiling_siblings.len() + 1) as f32,
+    };
     child.set_tiling_size(0.0);
     resize_tiling_container(&child, target_size);
+
+    // For master-stack, ensure the first child always holds 50%.
+    if *tiling_strategy == TilingStrategy::MasterStack
+      && tiling_siblings.len() + 1 >= 3
+    {
+      let all_tiling: Vec<_> =
+        target_parent.tiling_children().collect();
+      if let Some(first) = all_tiling.first() {
+        let current = first.tiling_size();
+        if (current - 0.5).abs() > 0.001 {
+          resize_tiling_container(first, 0.5);
+        }
+      }
+    }
   }
 
   Ok(())

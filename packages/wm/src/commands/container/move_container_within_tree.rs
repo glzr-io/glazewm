@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_common::{VecDequeExt, WmEvent};
+use wm_common::{TilingStrategy, VecDequeExt, WmEvent};
 
 use super::{
   attach_container, detach_container, flatten_child_split_containers,
@@ -99,6 +99,7 @@ pub fn move_container_within_tree(
     &container_to_move.clone(),
     &target_parent.clone(),
     Some(target_index),
+    &TilingStrategy::Equal,
   )?;
 
   // Set `container_to_move` as focused descendant within target subtree if
@@ -158,6 +159,7 @@ fn move_to_lowest_common_ancestor(
     &container_to_move.clone(),
     &lowest_common_ancestor.clone(),
     Some(target_index),
+    &TilingStrategy::Equal,
   )?;
 
   lowest_common_ancestor

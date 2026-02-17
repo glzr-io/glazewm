@@ -1,5 +1,5 @@
 use anyhow::{bail, Context};
-use wm_common::VecDequeExt;
+use wm_common::{TilingStrategy, VecDequeExt};
 
 use super::{attach_container, detach_container, resize_tiling_container};
 use crate::{
@@ -42,6 +42,7 @@ pub fn replace_container(
     replacement_container,
     target_parent,
     Some(target_index),
+    &TilingStrategy::Equal,
   )?;
 
   // Shift to the correct focus index.

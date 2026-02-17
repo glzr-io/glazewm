@@ -99,6 +99,9 @@ pub struct GeneralConfig {
   /// data URLs in IPC responses. This is useful for status bars that want
   /// to display window icons.
   pub window_icons_enabled: bool,
+
+  /// How tiling windows should be sized when added to a workspace.
+  pub tiling_strategy: TilingStrategy,
 }
 
 impl Default for GeneralConfig {
@@ -113,6 +116,7 @@ impl Default for GeneralConfig {
       hide_method: HideMethod::Cloak,
       show_all_in_taskbar: false,
       window_icons_enabled: false,
+      tiling_strategy: TilingStrategy::default(),
     }
   }
 }
@@ -141,6 +145,18 @@ pub enum HideMethod {
   Hide,
   #[default]
   Cloak,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TilingStrategy {
+  /// The first window (master) takes 50% of the space, and the
+  /// remaining windows split the other 50% equally.
+  #[default]
+  MasterStack,
+
+  /// All windows share the space equally.
+  Equal,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

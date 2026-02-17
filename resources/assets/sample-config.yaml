@@ -42,6 +42,12 @@ general:
   # Whether to display Window icons in the top status bar.
   window_icons_enabled: false
 
+  # How tiling windows should be sized when added to a workspace.
+  # - 'master_stack': The first window takes 50% of the space, and
+  #   subsequent windows split the remaining 50% equally.
+  # - 'equal': All windows share the space equally.
+  tiling_strategy: 'master_stack'
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true
