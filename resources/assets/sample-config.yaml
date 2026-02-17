@@ -48,6 +48,12 @@ general:
   # - 'equal': All windows share the space equally.
   tiling_strategy: 'master_stack'
 
+  # Whether to automatically set the tiling direction based on the
+  # dimensions of the space. When enabled, new windows will split
+  # horizontally if the space is wider than tall, and vertically if
+  # it is taller than wide. This maximizes screen space usage.
+  auto_tiling_direction: true
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true

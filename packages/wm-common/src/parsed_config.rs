@@ -102,6 +102,12 @@ pub struct GeneralConfig {
 
   /// How tiling windows should be sized when added to a workspace.
   pub tiling_strategy: TilingStrategy,
+
+  /// Whether to automatically set the tiling direction based on the
+  /// dimensions of the parent container. When enabled, new windows will
+  /// split horizontally if the space is wider than tall, and vertically
+  /// if it is taller than wide.
+  pub auto_tiling_direction: bool,
 }
 
 impl Default for GeneralConfig {
@@ -117,6 +123,7 @@ impl Default for GeneralConfig {
       show_all_in_taskbar: false,
       window_icons_enabled: false,
       tiling_strategy: TilingStrategy::default(),
+      auto_tiling_direction: true,
     }
   }
 }

@@ -1,19 +1,25 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  try_warn, LengthValue, RectDelta, TilingDirection, WindowRuleEvent,
+  WindowState, WmEvent,
 };
 use wm_platform::NativeWindow;
 
 use crate::{
   commands::{
-    container::{attach_container, set_focused_descendant},
+    container::{
+      attach_container, set_focused_descendant, wrap_in_split_container,
+    },
     window::run_window_rules,
   },
   models::{
-    Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    Container, Monitor, NonTilingWindow, SplitContainer, TilingWindow,
+    WindowContainer,
   },
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -98,6 +104,19 @@ fn create_window(
     Some(parent) => (parent, 0),
     None => insertion_target(&window_state, state)?,
   };
+
+  let (target_parent, target_index) =
+    if window_state == WindowState::Tiling
+      && config.value.general.auto_tiling_direction
+    {
+      auto_adjust_direction(
+        target_parent,
+        target_index,
+        config,
+      )?
+    } else {
+      (target_parent, target_index)
+    };
 
   let target_workspace =
     target_parent.workspace().context("No target workspace.")?;
@@ -275,4 +294,75 @@ fn insertion_target(
     focused_workspace.clone().into(),
     focused_workspace.child_count(),
   ))
+}
+
+/// Checks the sibling window at `target_index - 1` in the parent. If its
+/// rect is taller than wide and the parent splits horizontally (or vice
+/// versa), wraps the sibling in a new split container with the optimal
+/// direction and returns that split as the new parent.
+fn auto_adjust_direction(
+  target_parent: Container,
+  target_index: usize,
+  config: &UserConfig,
+) -> anyhow::Result<(Container, usize)> {
+  // The sibling we're inserting next to is at target_index - 1.
+  let sibling = if target_index > 0 {
+    target_parent.children().get(target_index - 1).cloned()
+  } else {
+    target_parent.children().get(0).cloned()
+  };
+
+  let sibling = match sibling {
+    Some(s) => s,
+    None => {
+      info!("Auto direction: no sibling found, using parent as-is");
+      return Ok((target_parent, target_index));
+    }
+  };
+
+  // Only act on tiling containers (tiling windows or splits).
+  let tiling = match sibling.as_tiling_container() {
+    Ok(t) => t,
+    Err(_) => {
+      info!("Auto direction: sibling is not a tiling container");
+      return Ok((target_parent, target_index));
+    }
+  };
+
+  let rect = match tiling.to_rect() {
+    Ok(r) => r,
+    Err(e) => {
+      info!("Auto direction: failed to get sibling rect: {}", e);
+      return Ok((target_parent, target_index));
+    }
+  };
+
+  let parent_dir = target_parent
+    .as_direction_container()
+    .map(|d| d.tiling_direction())
+    .unwrap_or(TilingDirection::Horizontal);
+
+  let optimal = if rect.width() >= rect.height() {
+    TilingDirection::Horizontal
+  } else {
+    TilingDirection::Vertical
+  };
+
+  if optimal == parent_dir {
+    // Direction already matches — insert normally.
+    return Ok((target_parent, target_index));
+  }
+
+  let split_container =
+    SplitContainer::new(optimal, config.value.gaps.clone());
+
+  wrap_in_split_container(
+    &split_container,
+    &target_parent,
+    &[tiling],
+  )?;
+
+  // New window should be inserted at index 1 inside the new split
+  // (sibling is at index 0).
+  Ok((split_container.into(), 1))
 }
