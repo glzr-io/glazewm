@@ -222,6 +222,11 @@ keybindings:
   - commands: ['toggle-tiling-direction']
     bindings: ['alt+v']
 
+  # Toggle vertical layout with neighbor window. Groups the focused window
+  # vertically with its left neighbor (or right if no left neighbor exists).
+  - commands: ['toggle-vertical']
+    bindings: ['alt+shift+v']
+
   # Change focus from tiling windows -> floating -> fullscreen.
   - commands: ['wm-cycle-focus']
     bindings: ['alt+space']
