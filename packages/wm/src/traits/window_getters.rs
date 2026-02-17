@@ -25,7 +25,7 @@ pub trait WindowGetters {
   /// This will return the first valid state in the following order:
   /// 1. If the window is not currently in the target state, return the
   ///    target state.
-  /// 2. The previous state exists if one exists.
+  /// 2. The previous state exists if one exists (excluding minimized).
   /// 3. The state from `window_behavior.initial_state` in the user config.
   /// 4. Default to either floating/tiling depending on the current state.
   fn toggled_state(
@@ -35,7 +35,9 @@ pub trait WindowGetters {
   ) -> WindowState {
     let possible_states = [
       Some(target_state),
-      self.prev_state(),
+      self
+        .prev_state()
+        .filter(|state| *state != WindowState::Minimized),
       Some(WindowState::default_from_config(&config.value)),
     ];
 

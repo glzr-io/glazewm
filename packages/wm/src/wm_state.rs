@@ -11,8 +11,10 @@ use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
 use crate::{
   commands::{
-    container::set_focused_descendant, general::platform_sync,
-    monitor::add_monitor, window::manage_window,
+    container::set_focused_descendant,
+    general::platform_sync,
+    monitor::{add_monitor, move_bounded_workspaces_to_new_monitor},
+    window::manage_window,
   },
   models::{
     Container, Monitor, RootContainer, WindowContainer, Workspace,
@@ -104,7 +106,8 @@ impl WmState {
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
     for native_monitor in Platform::sorted_monitors()? {
-      add_monitor(native_monitor, self, config)?;
+      let monitor = add_monitor(native_monitor, self)?;
+      move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
     }
 
     // Manage windows in reverse z-order (bottom to top). This helps to
@@ -559,8 +562,7 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .collect()
   }
@@ -573,8 +575,7 @@ impl WmState {
       .find(|monitor| {
         monitor
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .cloned()
   }

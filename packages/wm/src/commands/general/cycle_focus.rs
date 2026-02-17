@@ -63,7 +63,7 @@ pub fn cycle_focus(
 
       if let Some(window) = window_of_type {
         set_focused_descendant(&window.into(), None);
-        state.pending_sync.queue_focus_change();
+        state.pending_sync.queue_focus_change().queue_cursor_jump();
         break;
       }
 

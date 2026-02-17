@@ -17,8 +17,7 @@ use crate::{
 pub fn add_monitor(
   native_monitor: NativeMonitor,
   state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Monitor> {
   // Create `Monitor` instance. This uses the working area of the monitor
   // instead of the bounds of the display. The working area excludes
   // taskbars and other reserved display space.
@@ -36,6 +35,14 @@ pub fn add_monitor(
     added_monitor: monitor.to_dto()?,
   });
 
+  Ok(monitor)
+}
+
+pub fn move_bounded_workspaces_to_new_monitor(
+  monitor: &Monitor,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
   let bound_workspace_configs = config
     .value
     .workspaces
@@ -55,7 +62,7 @@ pub fn add_monitor(
       // Move workspaces that should be bound to the newly added monitor.
       move_workspace_to_monitor(
         &existing_workspace,
-        &monitor,
+        monitor,
         state,
         config,
       )?;
@@ -74,7 +81,7 @@ pub fn add_monitor(
   // automatically prioritize bound workspace configs and fall back to the
   // first available one if needed.
   if monitor.child_count() == 0 {
-    activate_workspace(None, Some(monitor), state, config)?;
+    activate_workspace(None, Some(monitor.clone()), state, config)?;
   }
 
   Ok(())
@@ -89,11 +96,6 @@ pub fn move_workspace_to_monitor(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let origin_monitor = workspace.monitor().context("No monitor.")?;
-
-  // Get currently displayed workspace on the target monitor.
-  let displayed_workspace = target_monitor
-    .displayed_workspace()
-    .context("No displayed workspace.")?;
 
   move_container_within_tree(
     &workspace.clone().into(),
@@ -115,6 +117,11 @@ pub fn move_workspace_to_monitor(
         .translate_to_center(&workspace.to_rect()?),
     );
   }
+
+  // Get currently displayed workspace on the target monitor.
+  let displayed_workspace = target_monitor
+    .displayed_workspace()
+    .context("No displayed workspace.")?;
 
   state
     .pending_sync

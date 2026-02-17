@@ -206,6 +206,8 @@ keybindings:
 | `oem_comma`           | The `,`/`<` key on a US standard keyboard (varies by keyboard)     |
 | `oem_minus`           | The `-`/`_` key on a US standard keyboard (varies by keyboard)     |
 | `oem_period`          | The `.`/`>` key on a US standard keyboard (varies by keyboard)     |
+| `muhenkan`            | The 無変換 (non-convert) key for Japanese keyboard layouts         |
+| `henkan`              | The 変換 (convert) key for Japanese keyboard layouts               |
 
 </details>
 
