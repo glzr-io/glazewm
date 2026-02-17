@@ -47,42 +47,40 @@ pub fn attach_container(
       return Ok(());
     }
 
-    // Set initial tiling size to 0, and then size up the container
-    // to the target size.
     #[allow(clippy::cast_precision_loss)]
-    let target_size = match tiling_strategy {
+    match tiling_strategy {
       TilingStrategy::MasterStack => {
-        // Total children = siblings + this new child.
         let total = (tiling_siblings.len() + 1) as f32;
+
         if total == 2.0 {
           // Second window: each gets 50%.
-          0.5
+          child.set_tiling_size(0.0);
+          resize_tiling_container(&child, 0.5);
         } else {
-          // 3+ windows: first child (master) keeps 50%, the rest
-          // share the other 50% equally.
-          // The new window is never the master (it's being added),
-          // so it gets 0.5 / (total - 1).
-          0.5 / (total - 1.0)
-        }
-      }
-      TilingStrategy::Equal => 1.0 / (tiling_siblings.len() + 1) as f32,
-    };
-    child.set_tiling_size(0.0);
-    resize_tiling_container(&child, target_size);
+          // 3+ windows: first child keeps 50%, the rest (including
+          // the new one) share the other 50% equally.
+          let stack_size = 0.5 / (total - 1.0);
 
-    // For master-stack, ensure the first child always holds 50%.
-    if *tiling_strategy == TilingStrategy::MasterStack
-      && tiling_siblings.len() + 1 >= 3
-    {
-      let all_tiling: Vec<_> =
-        target_parent.tiling_children().collect();
-      if let Some(first) = all_tiling.first() {
-        let current = first.tiling_size();
-        if (current - 0.5).abs() > 0.001 {
-          resize_tiling_container(first, 0.5);
+          // Collect all tiling children and set sizes directly.
+          let all_tiling: Vec<_> =
+            target_parent.tiling_children().collect();
+
+          for (i, tc) in all_tiling.iter().enumerate() {
+            if i == 0 {
+              tc.set_tiling_size(0.5);
+            } else {
+              tc.set_tiling_size(stack_size);
+            }
+          }
         }
       }
-    }
+      TilingStrategy::Equal => {
+        let target_size =
+          1.0 / (tiling_siblings.len() + 1) as f32;
+        child.set_tiling_size(0.0);
+        resize_tiling_container(&child, target_size);
+      }
+    };
   }
 
   Ok(())
