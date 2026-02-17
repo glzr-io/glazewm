@@ -9,6 +9,7 @@ mod replace_container;
 mod resize_tiling_container;
 mod set_focused_descendant;
 mod toggle_tiling_direction;
+mod toggle_vertical;
 mod wrap_in_split_container;
 
 pub use attach_container::*;
@@ -22,4 +23,5 @@ pub use replace_container::*;
 pub use resize_tiling_container::*;
 pub use set_focused_descendant::*;
 pub use toggle_tiling_direction::*;
+pub use toggle_vertical::*;
 pub use wrap_in_split_container::*;
