@@ -101,7 +101,7 @@ fn find_matching_monitor<'a>(
     let is_match = {
       #[cfg(target_os = "macos")]
       {
-        existing.id == properties.id
+        existing.device_uuid == properties.device_uuid
       }
 
       // On Windows, match the monitor by:

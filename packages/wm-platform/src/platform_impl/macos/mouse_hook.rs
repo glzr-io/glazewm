@@ -210,7 +210,7 @@ impl MouseHook {
       match event {
         crate::mouse_listener::MouseEventType::Move => {
           // NOTE: `MouseMoved` doesn't get triggered when clicking and
-          // dragging. Therefore, we also need to listen for
+          // dragging. Therefore, we need to also listen for
           // `LeftMouseDragged` and `RightMouseDragged` events.
           mask |= 1u64 << u64::from(CGEventType::MouseMoved.0);
           mask |= 1u64 << u64::from(CGEventType::LeftMouseDragged.0);

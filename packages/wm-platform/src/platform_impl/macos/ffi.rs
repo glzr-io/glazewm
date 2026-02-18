@@ -1,7 +1,8 @@
 use std::{ffi::c_void, ptr::NonNull};
 
 use objc2_application_services::{AXError, AXUIElement};
-use objc2_core_graphics::{CGError, CGWindowID};
+use objc2_core_foundation::CFUUID;
+use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
 
@@ -33,7 +34,7 @@ pub(crate) struct ProcessInfo {
 pub const CPS_USER_GENERATED: u32 = 0x200;
 
 #[link(name = "ApplicationServices", kind = "framework")]
-extern "C" {
+unsafe extern "C" {
   // Deprecated in macOS 10.9 in late 2014, but still works fine.
   pub(crate) fn GetProcessForPID(
     pid: ProcessId,
@@ -45,6 +46,12 @@ extern "C" {
     psn: *const ProcessSerialNumber,
     process_info: *mut ProcessInfo,
   ) -> u32;
+
+  // `CGDisplayCreateUUIDFromDisplayID` comes from the `ColorSync`
+  // framework, which is a subframework of `ApplicationServices`.
+  pub(crate) fn CGDisplayCreateUUIDFromDisplayID(
+    display: CGDirectDisplayID,
+  ) -> Option<NonNull<CFUUID>>;
 }
 
 unsafe extern "C" {

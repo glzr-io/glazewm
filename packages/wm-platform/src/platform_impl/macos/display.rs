@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use objc2::{rc::Retained, MainThreadMarker};
 use objc2_app_kit::NSScreen;
+use objc2_core_foundation::{CFRetained, CFUUID};
 use objc2_core_graphics::{
   CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode,
   CGDisplayMirrorsDisplay, CGDisplayMode, CGDisplayRotation, CGError,
@@ -10,8 +11,8 @@ use objc2_core_graphics::{
 use objc2_foundation::{ns_string, NSNumber, NSRect};
 
 use crate::{
-  ConnectionState, Dispatcher, DisplayDeviceId, DisplayId, MirroringState,
-  Point, Rect, ThreadBound,
+  platform_impl::ffi, ConnectionState, Dispatcher, DisplayDeviceId,
+  DisplayId, MirroringState, Point, Rect, ThreadBound,
 };
 
 /// macOS-specific extensions for [`Display`].
@@ -20,9 +21,6 @@ pub trait DisplayExtMacOs {
   fn cg_display_id(&self) -> CGDirectDisplayID;
 
   /// Gets the `NSScreen` instance for this display.
-  ///
-  /// `NSScreen` is always available for active displays. This method
-  /// provides thread-safe access to the `NSScreen`.
   ///
   /// # Platform-specific
   ///
@@ -58,15 +56,14 @@ impl DisplayDeviceExtMacOs for crate::DisplayDevice {
 
 /// macOS-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
-pub struct Display {
+pub(crate) struct Display {
   cg_display_id: CGDirectDisplayID,
   ns_screen: Arc<ThreadBound<Retained<NSScreen>>>,
 }
 
 impl Display {
   /// macOS-specific implementation of [`Display::new`].
-  #[must_use]
-  pub fn new(
+  pub(crate) fn new(
     ns_screen: ThreadBound<Retained<NSScreen>>,
   ) -> crate::Result<Self> {
     let cg_display_id = ns_screen
@@ -88,22 +85,22 @@ impl Display {
   }
 
   /// Gets the [`crate::Display`] ID.
-  pub fn id(&self) -> DisplayId {
+  pub(crate) fn id(&self) -> DisplayId {
     DisplayId(self.cg_display_id)
   }
 
   /// Gets the Core Graphics display ID.
-  pub fn cg_display_id(&self) -> CGDirectDisplayID {
+  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
     self.cg_display_id
   }
 
   /// Gets the `NSScreen` instance for this display.
-  pub fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
+  pub(crate) fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
     &self.ns_screen
   }
 
   /// Gets the display name.
-  pub fn name(&self) -> crate::Result<String> {
+  pub(crate) fn name(&self) -> crate::Result<String> {
     self.ns_screen.with(|screen| {
       let name = unsafe { screen.localizedName() };
       Ok(name.to_string())
@@ -111,7 +108,7 @@ impl Display {
   }
 
   /// Gets the full bounds rectangle of the display.
-  pub fn bounds(&self) -> crate::Result<Rect> {
+  pub(crate) fn bounds(&self) -> crate::Result<Rect> {
     let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
 
     #[allow(clippy::cast_possible_truncation)]
@@ -124,7 +121,7 @@ impl Display {
   }
 
   /// Gets the working area rectangle (excludes dock and menu bar).
-  pub fn working_area(&self) -> crate::Result<Rect> {
+  pub(crate) fn working_area(&self) -> crate::Result<Rect> {
     let primary_display_bounds = {
       let bounds = unsafe { CGDisplayBounds(CGMainDisplayID()) };
 
@@ -148,7 +145,7 @@ impl Display {
   }
 
   /// Gets the scale factor for the display.
-  pub fn scale_factor(&self) -> crate::Result<f32> {
+  pub(crate) fn scale_factor(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     self
       .ns_screen
@@ -156,7 +153,7 @@ impl Display {
   }
 
   /// Gets the DPI for the display.
-  pub fn dpi(&self) -> crate::Result<u32> {
+  pub(crate) fn dpi(&self) -> crate::Result<u32> {
     let scale_factor = self.scale_factor()?;
 
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -164,21 +161,26 @@ impl Display {
   }
 
   /// Returns whether this is the primary display.
-  pub fn is_primary(&self) -> crate::Result<bool> {
+  pub(crate) fn is_primary(&self) -> crate::Result<bool> {
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }
 
   /// Gets the display devices for this display.
-  pub fn devices(&self) -> crate::Result<Vec<crate::DisplayDevice>> {
-    // TODO: Get main device as well as any devices that are mirroring this
-    // display.
-    let device = DisplayDevice::new(self.cg_display_id);
-    Ok(vec![device.into()])
+  pub(crate) fn devices(
+    &self,
+  ) -> crate::Result<Vec<crate::DisplayDevice>> {
+    let main_device = DisplayDevice::new(
+      self.cg_display_id,
+      cg_display_uuid(self.cg_display_id)?,
+    );
+
+    // TODO: Get devices that are mirroring this display as well.
+    Ok(vec![main_device.into()])
   }
 
   /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
+  pub(crate) fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
     self
       .devices()?
       .into_iter()
@@ -197,12 +199,8 @@ impl Display {
 ///
 /// AppKit has (0,0) at the bottom-left corner of the primary display,
 /// whereas Core Graphics has it at the top-left corner. So we can convert
-/// between the two by offsetting the Y-axis by the primary display height.
-///
-/// # Arguments
-/// * `appkit_rect` - The rectangle in AppKit coordinate space.
-/// * `primary_display_bounds` - The bounds of the primary display in CG
-///   space.
+/// between the two by offsetting the Y-axis by the primary display's
+/// height.
 fn appkit_rect_to_cg_rect(
   appkit_rect: NSRect,
   primary_display_bounds: &Rect,
@@ -235,38 +233,48 @@ impl Eq for Display {}
 
 /// macOS-specific implementation of [`DisplayDevice`].
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DisplayDevice {
-  pub(crate) cg_display_id: CGDirectDisplayID,
+pub(crate) struct DisplayDevice {
+  cg_display_id: CGDirectDisplayID,
+  uuid: CFRetained<CFUUID>,
 }
 
 impl DisplayDevice {
   /// macOS-specific implementation of [`DisplayDevice::new`].
   #[must_use]
-  pub fn new(cg_display_id: CGDirectDisplayID) -> Self {
-    Self { cg_display_id }
+  pub(crate) fn new(
+    cg_display_id: CGDirectDisplayID,
+    uuid: CFRetained<CFUUID>,
+  ) -> Self {
+    Self {
+      cg_display_id,
+      uuid,
+    }
   }
 
   /// Gets the unique identifier for this display device.
-  pub fn id(&self) -> DisplayDeviceId {
-    // For now, use CGDirectDisplayID directly as a u32
-    // TODO: Implement proper CFUUID support using
-    // CGDisplayCreateUUIDFromDisplayID
-    DisplayDeviceId(self.cg_display_id)
+  pub(crate) fn id(&self) -> DisplayDeviceId {
+    // SAFETY: Can assume that the `CFUUID` is valid regardless of whether
+    // the underlying display device is still alive.
+    let uuid_string = CFUUID::new_string(None, Some(&self.uuid))
+      .unwrap()
+      .to_string();
+
+    DisplayDeviceId(uuid_string)
   }
 
   /// Gets the Core Graphics display ID.
-  pub fn cg_display_id(&self) -> CGDirectDisplayID {
+  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
     self.cg_display_id
   }
 
   /// Gets the rotation of the device in degrees.
-  pub fn rotation(&self) -> crate::Result<f32> {
+  pub(crate) fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
   }
 
   /// Gets the connection state of the device.
-  pub fn connection_state(&self) -> crate::Result<ConnectionState> {
+  pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
     let display_mode =
       unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
 
@@ -279,9 +287,9 @@ impl DisplayDevice {
   }
 
   /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> crate::Result<f32> {
-    // Calling `CGDisplayModeRelease` on the display mode is not needed as
-    // it's functionally equivalent to `CFRelease`.
+  pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
+    // NOTE: Calling `CGDisplayModeRelease` on cleanup is not needed, since
+    // it's equivalent to `CFRelease` in this case. Ref: https://developer.apple.com/documentation/coregraphics/cgdisplaymoderelease
     let display_mode =
       unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) }
         .ok_or(crate::Error::DisplayModeNotFound)?;
@@ -294,17 +302,20 @@ impl DisplayDevice {
   }
 
   /// Returns whether this is a built-in device.
-  pub fn is_builtin(&self) -> crate::Result<bool> {
+  pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }
 
   /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> crate::Result<Option<MirroringState>> {
+  pub(crate) fn mirroring_state(
+    &self,
+  ) -> crate::Result<Option<MirroringState>> {
     let mirrored_display =
       unsafe { CGDisplayMirrorsDisplay(self.cg_display_id) };
 
+    // TODO: Clean this up.
     if mirrored_display == 0 {
       // This display is not mirroring another display
       // Check if another display is mirroring this one by querying active
@@ -348,8 +359,24 @@ impl From<DisplayDevice> for crate::DisplayDevice {
   }
 }
 
+/// Gets the UUID for a display device from its `CGDirectDisplayID`.
+///
+/// This UUID is stable across reboots, whereas `CGDirectDisplayID` is not.
+fn cg_display_uuid(
+  cg_display_id: CGDirectDisplayID,
+) -> crate::Result<CFRetained<CFUUID>> {
+  let ptr =
+    unsafe { ffi::CGDisplayCreateUUIDFromDisplayID(cg_display_id) };
+
+  ptr.map(|ptr| unsafe { CFRetained::from_raw(ptr) }).ok_or(
+    crate::Error::InvalidPointer(
+      "Failed to create UUID for display device".to_string(),
+    ),
+  )
+}
+
 /// macOS-specific implementation of [`Dispatcher::displays`].
-pub fn all_displays(
+pub(crate) fn all_displays(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::Display>> {
   dispatcher.dispatch_sync(|| {
@@ -368,16 +395,16 @@ pub fn all_displays(
 }
 
 /// macOS-specific implementation of [`Dispatcher::display_devices`].
-pub fn all_display_devices(
+pub(crate) fn all_display_devices(
   _: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
-  let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
+  let mut cg_display_ids: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
 
   let result = unsafe {
     CGGetOnlineDisplayList(
-      displays.len() as u32,
-      displays.as_mut_ptr(),
+      cg_display_ids.len() as u32,
+      cg_display_ids.as_mut_ptr(),
       &raw mut display_count,
     )
   };
@@ -386,29 +413,31 @@ pub fn all_display_devices(
     return Err(crate::Error::DisplayEnumerationFailed);
   }
 
-  displays.truncate(display_count as usize);
+  cg_display_ids.truncate(display_count as usize);
 
-  Ok(
-    displays
-      .into_iter()
-      .map(DisplayDevice::new)
-      .map(Into::into)
-      .collect(),
-  )
+  cg_display_ids
+    .into_iter()
+    .map(|cg_display_id| {
+      Ok(
+        DisplayDevice::new(cg_display_id, cg_display_uuid(cg_display_id)?)
+          .into(),
+      )
+    })
+    .collect()
 }
 
 /// Gets active display devices on macOS.
-pub fn active_display_devices(
+pub(crate) fn active_display_devices(
   _dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
-  let mut displays: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
+  let mut cg_display_ids: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
 
   let result = unsafe {
     CGGetActiveDisplayList(
-      displays.len() as u32,
-      displays.as_mut_ptr(),
-      &mut display_count,
+      cg_display_ids.len() as u32,
+      cg_display_ids.as_mut_ptr(),
+      &raw mut display_count,
     )
   };
 
@@ -416,19 +445,21 @@ pub fn active_display_devices(
     return Err(crate::Error::DisplayEnumerationFailed);
   }
 
-  displays.truncate(display_count as usize);
+  cg_display_ids.truncate(display_count as usize);
 
-  Ok(
-    displays
-      .into_iter()
-      .map(DisplayDevice::new)
-      .map(Into::into)
-      .collect(),
-  )
+  cg_display_ids
+    .into_iter()
+    .map(|cg_display_id| {
+      Ok(
+        DisplayDevice::new(cg_display_id, cg_display_uuid(cg_display_id)?)
+          .into(),
+      )
+    })
+    .collect()
 }
 
 /// macOS-specific implementation of [`Dispatcher::display_from_point`].
-pub fn display_from_point(
+pub(crate) fn display_from_point(
   point: Point,
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -445,7 +476,7 @@ pub fn display_from_point(
 }
 
 /// macOS-specific implementation of [`Dispatcher::primary_display`].
-pub fn primary_display(
+pub(crate) fn primary_display(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   dispatcher.dispatch_sync(|| {
@@ -467,7 +498,7 @@ pub fn primary_display(
 /// 150-300µs on subsequent retrievals. Using `CGGetDisplaysWithRect` and
 /// getting the corresponding `NSScreen` was found to be slightly slower
 /// (700-800µs and then 200-300µs on subsequent retrievals).
-pub fn nearest_display(
+pub(crate) fn nearest_display(
   native_window: &crate::NativeWindow,
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -479,6 +510,7 @@ pub fn nearest_display(
     let mut best_screen = None;
     let mut max_intersection_area = 0;
 
+    // TODO: Clean this up.
     // Iterate through all screens to find the one with the largest
     // intersection with the window.
     for screen in screens {

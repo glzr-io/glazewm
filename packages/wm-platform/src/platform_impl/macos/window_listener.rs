@@ -50,7 +50,6 @@ impl WindowListener {
     let (observer, events_rx) = NotificationObserver::new();
 
     let workspace = unsafe { NSWorkspace::sharedWorkspace() };
-
     let mut workspace_center = NotificationCenter::workspace_center();
 
     for notification in [

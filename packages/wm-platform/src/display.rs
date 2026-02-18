@@ -20,13 +20,10 @@ pub struct DisplayId(
 ///
 /// # Platform-specific
 ///
-/// - **Windows**: Hardware ID string
-/// - **macOS**: `u32` (CGUUID as u32)
+/// - **Windows**: Hardware ID string with fallback to adapter name.
+/// - **macOS**: UUID string from `CGDisplayCreateUUIDFromDisplayID`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DisplayDeviceId(
-  #[cfg(target_os = "windows")] pub String,
-  #[cfg(target_os = "macos")] pub u32,
-);
+pub struct DisplayDeviceId(pub String);
 
 /// Represents a logical display space where windows can be placed.
 ///
