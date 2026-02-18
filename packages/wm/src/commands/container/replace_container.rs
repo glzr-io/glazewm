@@ -36,7 +36,7 @@ pub fn replace_container(
   // container to flatten. Currently, that scenario shouldn't be possible.
   // We also can't attach first before detaching, because detaching
   // removes child based on ID and both containers might have the same ID.
-  detach_container(container_to_replace)?;
+  detach_container(container_to_replace, &TilingStrategy::Equal)?;
 
   attach_container(
     replacement_container,

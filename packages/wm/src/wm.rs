@@ -82,13 +82,13 @@ impl WindowManager {
         handle_mouse_move(&event, state, config)
       }
       PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(&window, state)
+        handle_window_destroyed(&window, state, &config.value.general.tiling_strategy)
       }
       PlatformEvent::WindowFocused(window) => {
         handle_window_focused(&window, state, config)
       }
       PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(&window, state)
+        handle_window_hidden(&window, state, &config.value.general.tiling_strategy)
       }
       PlatformEvent::WindowLocationChanged(window) => {
         handle_window_location_changed(&window, state, config)
@@ -303,7 +303,7 @@ impl WindowManager {
       }
       InvokeCommand::Ignore => {
         match subject_container.as_window_container() {
-          Ok(window) => ignore_window(window, state),
+          Ok(window) => ignore_window(window, state, &config.value.general.tiling_strategy),
           _ => Ok(()),
         }
       }

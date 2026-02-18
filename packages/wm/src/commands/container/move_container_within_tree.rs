@@ -94,7 +94,7 @@ pub fn move_container_within_tree(
   let is_subtree_focused =
     original_focus_index < target_parent_ancestor.focus_index();
 
-  detach_container(container_to_move.clone())?;
+  detach_container(container_to_move.clone(), &TilingStrategy::Equal)?;
   attach_container(
     &container_to_move.clone(),
     &target_parent.clone(),
@@ -153,7 +153,7 @@ fn move_to_lowest_common_ancestor(
     .map(|ancestor| ancestor.focus_index())
     .context("Failed to get focus index of container's ancestor.")?;
 
-  detach_container(container_to_move.clone())?;
+  detach_container(container_to_move.clone(), &TilingStrategy::Equal)?;
 
   attach_container(
     &container_to_move.clone(),
