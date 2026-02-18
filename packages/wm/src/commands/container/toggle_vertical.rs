@@ -124,29 +124,19 @@ pub fn toggle_vertical(
     config.value.gaps.clone(),
   );
 
-  // First, wrap the neighbor in the vertical split
-  info!("Wrapping neighbor {} in vertical split", neighbor.id());
+  // Wrap both windows together in the vertical split.
+  // Order: left/top window first, right/bottom window second.
+  let children = if neighbor_on_left {
+    vec![neighbor.into(), tiling_window.clone().into()]
+  } else {
+    vec![tiling_window.clone().into(), neighbor.into()]
+  };
+
+  info!("Wrapping both windows in vertical split");
   wrap_in_split_container(
     &split_container,
     &parent,
-    &[neighbor.into()],
-  )?;
-
-  // Then move the focused window into the split container
-  // If neighbor is on left, focused window goes to index 1 (bottom)
-  // If neighbor is on right, focused window goes to index 0 (top)
-  let target_index = if neighbor_on_left { 1 } else { 0 };
-  
-  info!(
-    "Moving focused window {} to index {} in split container",
-    tiling_window.id(),
-    target_index
-  );
-  move_container_within_tree(
-    &tiling_window.clone().into(),
-    &split_container.clone().into(),
-    target_index,
-    state,
+    &children,
   )?;
 
   // Queue the parent workspace/container for redraw so the layout updates
