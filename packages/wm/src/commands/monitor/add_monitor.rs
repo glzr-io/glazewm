@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::WmEvent;
+use wm_common::{TilingStrategy, WmEvent};
 use wm_platform::NativeMonitor;
 
 use crate::{
@@ -27,6 +27,7 @@ pub fn add_monitor(
     &monitor.clone().into(),
     &state.root_container.clone().into(),
     None,
+    &TilingStrategy::Equal,
   )?;
 
   info!("Monitor added: {monitor}");

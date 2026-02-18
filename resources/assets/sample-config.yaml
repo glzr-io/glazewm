@@ -39,6 +39,21 @@ general:
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
 
+  # Whether to display Window icons in the top status bar.
+  window_icons_enabled: false
+
+  # How tiling windows should be sized when added to a workspace.
+  # - 'master_stack': The first window takes 50% of the space, and
+  #   subsequent windows split the remaining 50% equally.
+  # - 'equal': All windows share the space equally.
+  tiling_strategy: 'master_stack'
+
+  # Whether to automatically set the tiling direction based on the
+  # dimensions of the space. When enabled, new windows will split
+  # horizontally if the space is wider than tall, and vertically if
+  # it is taller than wide. This maximizes screen space usage.
+  auto_tiling_direction: true
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true
@@ -218,6 +233,11 @@ keybindings:
   # be inserted.
   - commands: ['toggle-tiling-direction']
     bindings: ['alt+v']
+
+  # Toggle vertical layout with neighbor window. Groups the focused window
+  # vertically with its left neighbor (or right if no left neighbor exists).
+  - commands: ['toggle-vertical']
+    bindings: ['alt+shift+v']
 
   # Change focus from tiling windows -> floating -> fullscreen.
   - commands: ['wm-cycle-focus']
