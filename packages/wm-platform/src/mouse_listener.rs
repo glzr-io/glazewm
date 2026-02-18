@@ -1,3 +1,8 @@
+use std::{
+  sync::Mutex,
+  time::{Duration, Instant},
+};
+
 use tokio::sync::mpsc;
 
 use crate::{
@@ -99,6 +104,9 @@ impl MouseListener {
     event_tx: mpsc::UnboundedSender<MouseEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<platform_impl::MouseHook> {
+    // Timestamp of the last mouse move event emission.
+    let last_move_emission = Mutex::new(None::<Instant>);
+
     platform_impl::MouseHook::new(
       enabled_events,
       move |notification: MouseEventNotification| {
@@ -106,11 +114,42 @@ impl MouseListener {
 
         match event_type {
           MouseEventType::Move => {
-            let _ = event_tx.send(MouseEvent::MouseMove {
-              position: notification.0.position(),
-              pressed_buttons: notification.0.pressed_buttons(),
-              notification,
-            });
+            let mut last_move_emission = last_move_emission
+              .lock()
+              .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+            // Throttle mouse move events so that there's a minimum of 50ms
+            // between each emission. State change events (button down/up)
+            // always get emitted.
+            let has_elapsed_throttle =
+              last_move_emission.is_none_or(|timestamp| {
+                timestamp.elapsed() >= Duration::from_millis(50)
+              });
+
+            let should_emit = {
+              #[cfg(target_os = "windows")]
+              {
+                has_elapsed_throttle
+              }
+              #[cfg(target_os = "macos")]
+              {
+                // TODO: This is a hack to let through mouse move events
+                // when they contain a window ID. macOS sporadically
+                // includes the window ID on mouse events.
+                has_elapsed_throttle
+                  || notification.0.below_window_id().is_some()
+              }
+            };
+
+            if should_emit {
+              let _ = event_tx.send(MouseEvent::MouseMove {
+                position: notification.0.position(),
+                pressed_buttons: notification.0.pressed_buttons(),
+                notification,
+              });
+
+              *last_move_emission = Some(Instant::now());
+            }
           }
           MouseEventType::LeftClickDown
           | MouseEventType::RightClickDown => {
