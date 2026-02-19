@@ -4,6 +4,7 @@
 
 mod dispatcher;
 mod display;
+mod display_listener;
 mod error;
 mod event_loop;
 mod event_loop_installer;
@@ -19,6 +20,7 @@ mod window_listener;
 
 pub use dispatcher::*;
 pub use display::*;
+pub use display_listener::*;
 pub use error::*;
 pub use event_loop::*;
 pub use event_loop_installer::*;
@@ -29,13 +31,11 @@ pub use native_window::*;
 pub use platform_event::*;
 #[cfg(target_os = "macos")]
 pub use platform_impl::{
-  DisplayDeviceExtMacOs, DisplayExtMacOs, DisplayListener,
-  NativeWindowExtMacOs,
+  DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
 };
 #[cfg(target_os = "windows")]
 pub use platform_impl::{
-  DisplayDeviceExtWindows, DisplayExtWindows, DisplayListener,
-  NativeWindowWindowsExt,
+  DisplayDeviceExtWindows, DisplayExtWindows, NativeWindowWindowsExt,
 };
 pub use single_instance::*;
 pub use thread_bound::*;

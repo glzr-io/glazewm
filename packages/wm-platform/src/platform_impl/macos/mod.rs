@@ -18,7 +18,7 @@ pub(crate) use application_observer::*;
 pub(crate) use ax_ui_element::*;
 pub(crate) use ax_value::*;
 pub use display::*;
-pub use display_listener::*;
+pub(crate) use display_listener::*;
 pub(crate) use event_loop::*;
 pub(crate) use keyboard_hook::*;
 pub(crate) use mouse_listener::*;

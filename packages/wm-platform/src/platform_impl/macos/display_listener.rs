@@ -3,41 +3,39 @@ use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::classes::{
-    NotificationCenter, NotificationEvent, NotificationName,
-    NotificationObserver,
+    NotificationCenter, NotificationName, NotificationObserver,
   },
   Dispatcher, ThreadBound,
 };
 
-/// Listens for display configuration changes on macOS.
-pub struct DisplayListener {
-  events_rx: mpsc::UnboundedReceiver<NotificationEvent>,
+/// macOS-specific implementation of [`DisplayListener`].
+pub(crate) struct DisplayListener {
   /// Notification observer bound to the main thread.
   observer: Option<ThreadBound<Retained<NotificationObserver>>>,
 }
 
 impl DisplayListener {
-  /// Creates a new `DisplayListener` and registers for display change
-  /// notifications.
-  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+  /// macOS-specific implementation of [`DisplayListener::new`].
+  pub(crate) fn new(
+    event_tx: mpsc::UnboundedSender<()>,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<Self> {
     let dispatcher_clone = dispatcher.clone();
-    let (observer, events_rx) = dispatcher
-      .dispatch_sync(move || Self::add_observer(dispatcher_clone))?;
+    let observer = dispatcher.dispatch_sync(move || {
+      Self::add_observer(event_tx, dispatcher_clone)
+    })?;
 
     Ok(Self {
-      events_rx,
       observer: Some(observer),
     })
   }
 
   /// Registers the notification observer on the main thread.
   fn add_observer(
+    event_tx: mpsc::UnboundedSender<()>,
     dispatcher: Dispatcher,
-  ) -> (
-    ThreadBound<Retained<NotificationObserver>>,
-    mpsc::UnboundedReceiver<NotificationEvent>,
-  ) {
-    let (observer, events_rx) = NotificationObserver::new();
+  ) -> ThreadBound<Retained<NotificationObserver>> {
+    let (observer, mut events_rx) = NotificationObserver::new();
     let mut default_center = NotificationCenter::default_center();
 
     // Add observer which will fire when displays are connected and
@@ -50,19 +48,20 @@ impl DisplayListener {
       );
     }
 
-    let observer = ThreadBound::new(observer, dispatcher);
-    (observer, events_rx)
+    std::thread::spawn(move || {
+      while events_rx.blocking_recv().is_some() {
+        if let Err(err) = event_tx.send(()) {
+          tracing::warn!("Failed to send display change event: {}", err);
+          break;
+        }
+      }
+    });
+
+    ThreadBound::new(observer, dispatcher)
   }
 
-  /// Returns when the next display settings change is detected.
-  ///
-  /// Returns `None` if the channel has been closed.
-  pub async fn next_event(&mut self) -> Option<()> {
-    self.events_rx.recv().await.map(|_| ())
-  }
-
-  /// Deregisters the display change observer from `NSNotificationCenter`.
-  pub fn terminate(&mut self) -> crate::Result<()> {
+  /// macOS-specific implementation of [`DisplayListener::terminate`].
+  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     let Some(observer) = self.observer.take() else {
       return Ok(());
     };

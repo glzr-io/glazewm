@@ -17,17 +17,18 @@ use windows::Win32::{
 
 use crate::{Dispatcher, DispatcherExtWindows};
 
-/// Listens for display changes via the event loop's message window.
-pub struct DisplayListener {
-  event_rx: mpsc::UnboundedReceiver<()>,
+/// Windows-specific implementation of [`DisplayListener`].
+pub(crate) struct DisplayListener {
   callback_id: Option<usize>,
   dispatcher: Dispatcher,
 }
 
 impl DisplayListener {
-  /// Creates a new `DisplayListener` instance.
-  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    let (event_tx, event_rx) = mpsc::unbounded_channel();
+  /// Windows-specific implementation of [`DisplayListener::new`].
+  pub(crate) fn new(
+    event_tx: mpsc::UnboundedSender<()>,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<Self> {
     let is_system_suspended = Arc::new(AtomicBool::new(false));
 
     let callback_id = dispatcher.register_wndproc_callback(Box::new(
@@ -94,21 +95,13 @@ impl DisplayListener {
     ))?;
 
     Ok(Self {
-      event_rx,
       callback_id: Some(callback_id),
       dispatcher: dispatcher.clone(),
     })
   }
 
-  /// Returns when the next display settings change is detected.
-  ///
-  /// Returns `None` if the channel has been closed.
-  pub async fn next_event(&mut self) -> Option<()> {
-    self.event_rx.recv().await
-  }
-
-  /// Deregisters the window procedure callback.
-  pub fn terminate(&mut self) -> crate::Result<()> {
+  /// Windows-specific implementation of [`DisplayListener::terminate`].
+  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     if let Some(id) = self.callback_id.take() {
       self.dispatcher.deregister_wndproc_callback(id)?;
     }
