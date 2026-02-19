@@ -1,7 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::missing_errors_doc)]
 #![feature(iterator_try_collect)]
-#![feature(once_cell_try)]
 
 mod dispatcher;
 mod display;
@@ -14,6 +13,7 @@ mod mouse_listener;
 mod native_window;
 mod platform_event;
 mod platform_impl;
+mod single_instance;
 mod thread_bound;
 mod window_listener;
 
@@ -37,7 +37,7 @@ pub use platform_impl::{
   DisplayDeviceExtWindows, DisplayExtWindows, DisplayListener,
   NativeWindowWindowsExt,
 };
-pub use platform_impl::SingleInstance;
+pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;
 

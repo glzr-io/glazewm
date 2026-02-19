@@ -31,7 +31,7 @@ impl Keybinding {
   ///
   /// # Errors
   ///
-  /// Returns an error if the keybinding is empty.
+  /// Returns [`Error::InvalidKeybinding`] if the keybinding is empty.
   pub fn new(keys: Vec<Key>) -> crate::Result<Self> {
     if keys.is_empty() {
       return Err(crate::Error::InvalidKeybinding);

@@ -1,3 +1,3 @@
 # TODO: Would ideally move this to `Cargo.toml`, but it's not supported yet.
 # Ref: https://github.com/rust-lang/cargo/issues/12917#issuecomment-1795069197
-doc-valid-idents = ["AppKit", ".."]
+doc-valid-idents = ["AppKit", "DisplayPort", ".."]

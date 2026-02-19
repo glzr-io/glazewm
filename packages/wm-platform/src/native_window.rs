@@ -60,7 +60,7 @@ impl NativeWindow {
   ///
   /// # Errors
   ///
-  /// Returns `crate::Error::WindowNotFound` if the window is invalid.
+  /// Returns [`Error::WindowNotFound`] if the window is invalid.
   pub fn title(&self) -> crate::Result<String> {
     self.inner.title()
   }

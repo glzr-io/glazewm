@@ -3,26 +3,18 @@ use std::{
   path::PathBuf,
 };
 
-/// Ensures only one instance of the application is running.
-///
-/// Uses a file lock on
-/// `~/Library/Application Support/glzr.io/glazewm.lock` via
-/// `File::try_lock()`.
-pub struct SingleInstance {
+/// macOS-specific implementation of [`SingleInstance`].
+pub(crate) struct SingleInstance {
   /// File that holds the lock.
   ///
-  /// The lock is automatically released when the `File` is dropped.
+  /// The lock is automatically released when the [`File`] is dropped.
   _file: File,
 }
 
 impl SingleInstance {
-  /// Creates a new `SingleInstance` by acquiring an exclusive lock
-  /// on the lock file.
-  ///
-  /// Returns a `Platform` error if another instance already holds
-  /// the lock.
-  pub fn new() -> crate::Result<Self> {
-    let path = lock_file_path()?;
+  /// macOS-specific implementation of [`SingleInstance::new`].
+  pub(crate) fn new() -> crate::Result<Self> {
+    let path = Self::lock_file_path()?;
 
     if let Some(parent) = path.parent() {
       fs::create_dir_all(parent).map_err(crate::Error::Io)?;
@@ -42,15 +34,12 @@ impl SingleInstance {
     Ok(Self { _file: file })
   }
 
-  /// Returns whether another instance of the application is currently
-  /// running.
+  /// macOS-specific implementation of [`SingleInstance::is_running`].
   #[must_use]
-  pub fn is_running() -> bool {
-    let Ok(path) = lock_file_path() else {
-      return false;
-    };
-
-    let Ok(file) = File::open(&path) else {
+  pub(crate) fn is_running() -> bool {
+    let Ok(file) = Self::lock_file_path()
+      .and_then(|path| File::open(&path).map_err(crate::Error::Io))
+    else {
       return false;
     };
 
@@ -60,16 +49,16 @@ impl SingleInstance {
       .try_lock()
       .is_err_and(|err| matches!(err, TryLockError::WouldBlock))
   }
-}
 
-/// Returns the path to the lock file:
-/// `~/Library/Application Support/glzr.io/glazewm.lock`.
-fn lock_file_path() -> crate::Result<PathBuf> {
-  let home = home::home_dir().ok_or_else(|| {
-    crate::Error::Platform(
-      "Unable to determine home directory.".to_string(),
-    )
-  })?;
+  /// Returns the path to the lock file:
+  /// `~/Library/Application Support/glazewm/.lock`.
+  fn lock_file_path() -> crate::Result<PathBuf> {
+    let home = home::home_dir().ok_or_else(|| {
+      crate::Error::Platform(
+        "Unable to determine home directory.".to_string(),
+      )
+    })?;
 
-  Ok(home.join("Library/Application Support/glzr.io/glazewm.lock"))
+    Ok(home.join("Library/Application Support/glazewm/.lock"))
+  }
 }
