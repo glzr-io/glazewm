@@ -22,7 +22,7 @@ pub fn handle_mouse_move(
     return Ok(());
   }
 
-  if let MouseEvent::MouseButtonUp { button, .. } = event {
+  if let MouseEvent::ButtonUp { button, .. } = event {
     if *button == MouseButton::Left {
       // On macOS, this is the main way to detect when a window drag
       // operation has ended, since `is_interactive_end` is always false on
@@ -48,9 +48,9 @@ pub fn handle_mouse_move(
     return Ok(());
   }
 
-  if let MouseEvent::MouseMove {
+  if let MouseEvent::Move {
     pressed_buttons,
-    notification,
+    window_below_cursor,
     position,
     ..
   } = event
@@ -70,7 +70,7 @@ pub fn handle_mouse_move(
     let window_under_cursor = {
       #[cfg(target_os = "macos")]
       {
-        notification.0.below_window_id().and_then(|window_id| {
+        window_below_cursor.and_then(|window_id| {
           use crate::traits::WindowGetters;
 
           state

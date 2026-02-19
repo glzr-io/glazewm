@@ -23,41 +23,15 @@ use windows::Win32::{
 
 use super::FOREGROUND_INPUT_IDENTIFIER;
 use crate::{
-  mouse_listener::MouseEventType, platform_event::MouseEventNotification,
-  Dispatcher, DispatcherExtWindows, MouseButton, Point, WindowId,
+  mouse_listener::MouseEventKind, platform_event::PressedButtons,
+  Dispatcher, DispatcherExtWindows, Point, WindowId,
 };
 
-/// Windows-specific mouse event notification.
-#[derive(Clone, Debug)]
-pub struct MouseEventNotificationInner {
-  event_type: MouseEventType,
-  position: Point,
-  pressed_buttons: Vec<MouseButton>,
-}
-
-impl MouseEventNotificationInner {
-  /// Returns the type of mouse event.
-  #[must_use]
-  pub fn event_type(&self) -> MouseEventType {
-    self.event_type.clone()
-  }
-
-  /// Returns the cursor position at the time of the event.
-  #[must_use]
-  pub fn position(&self) -> Point {
-    self.position.clone()
-  }
-
-  /// Returns the mouse buttons that were pressed at the time of the
-  /// event.
-  #[must_use]
-  pub fn pressed_buttons(&self) -> Vec<MouseButton> {
-    self.pressed_buttons.clone()
-  }
-}
-
 /// A callback invoked for every mouse notification received.
-type HookCallback = dyn Fn(MouseEventNotification) + Send + Sync + 'static;
+type HookCallback = dyn Fn(MouseEventKind, Point, PressedButtons, Option<WindowId>)
+  + Send
+  + Sync
+  + 'static;
 
 /// Windows-specific mouse hook that listens for configured mouse events.
 pub struct MouseHook {
@@ -70,14 +44,17 @@ impl MouseHook {
   /// kinds and callback.
   ///
   /// The callback is executed for every received mouse notification
-  /// whose event type is in `enabled_events`.
+  /// whose event kind is in `enabled_events`.
   pub fn new<F>(
-    enabled_events: &[MouseEventType],
+    enabled_events: &[MouseEventKind],
     callback: F,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where
-    F: Fn(MouseEventNotification) + Send + Sync + 'static,
+    F: Fn(MouseEventKind, Point, PressedButtons, Option<WindowId>)
+      + Send
+      + Sync
+      + 'static,
   {
     let callback = Arc::new(callback);
     let enabled_events =
@@ -104,7 +81,7 @@ impl MouseHook {
     // Register raw input devices on the event loop thread so that
     // `WM_INPUT` messages are delivered to the message window.
     dispatcher.dispatch_sync(move || {
-      if let Err(err) = Self::register_raw_input(handle, true) {
+      if let Err(err) = Self::enable_raw_input(handle, true) {
         warn!("Failed to register raw input devices: {}", err);
       }
     })?;
@@ -123,7 +100,7 @@ impl MouseHook {
       // Deregister raw input on the event loop thread.
       let handle = self.dispatcher.message_window_handle();
       self.dispatcher.dispatch_sync(|| {
-        if let Err(err) = Self::register_raw_input(handle, false) {
+        if let Err(err) = Self::enable_raw_input(handle, false) {
           warn!("Failed to deregister raw input devices: {}", err);
         }
       })?;
@@ -132,11 +109,11 @@ impl MouseHook {
     Ok(())
   }
 
-  /// Processes a single `WM_INPUT` message, extracting the raw input
-  /// data and invoking the user callback if the event type is enabled.
+  /// Processes a `WM_INPUT` message, extracting the raw input data and
+  /// invoking the user callback if the event kind is enabled.
   fn handle_wm_input(
     lparam: LPARAM,
-    enabled_events: &[MouseEventType],
+    enabled_events: &[MouseEventKind],
     callback: &HookCallback,
   ) -> crate::Result<()> {
     let mut raw_input: RAWINPUT = unsafe { std::mem::zeroed() };
@@ -170,10 +147,10 @@ impl MouseHook {
     let button_flags =
       unsafe { raw_input.data.mouse.Anonymous.Anonymous.usButtonFlags };
 
-    let event_type = Self::event_type_from_flags(button_flags);
+    let event_kind = Self::event_kind_from_flags(button_flags);
 
-    // Only invoke the callback if the event type is enabled.
-    if !enabled_events.contains(&event_type) {
+    // Only invoke the callback if the event kind is enabled.
+    if !enabled_events.contains(&event_kind) {
       return Ok(());
     }
 
@@ -188,55 +165,41 @@ impl MouseHook {
 
     let pressed_buttons = Self::current_pressed_buttons();
 
-    let notification =
-      MouseEventNotification(MouseEventNotificationInner {
-        event_type,
-        position,
-        pressed_buttons,
-      });
-
-    callback(notification);
+    callback(event_kind, position, pressed_buttons, None);
 
     Ok(())
   }
 
-  /// Maps raw input button flags to a `MouseEventType`.
+  /// Maps raw input button flags to a `MouseEventKind`.
   ///
   /// Returns `Move` when no button state change is present.
-  fn event_type_from_flags(flags: u16) -> MouseEventType {
+  fn event_kind_from_flags(flags: u16) -> MouseEventKind {
     let flags_u32 = u32::from(flags);
 
     if flags_u32 & RI_MOUSE_LEFT_BUTTON_DOWN != 0 {
-      MouseEventType::LeftClickDown
+      MouseEventKind::LeftButtonDown
     } else if flags_u32 & RI_MOUSE_LEFT_BUTTON_UP != 0 {
-      MouseEventType::LeftClickUp
+      MouseEventKind::LeftButtonUp
     } else if flags_u32 & RI_MOUSE_RIGHT_BUTTON_DOWN != 0 {
-      MouseEventType::RightClickDown
+      MouseEventKind::RightButtonDown
     } else if flags_u32 & RI_MOUSE_RIGHT_BUTTON_UP != 0 {
-      MouseEventType::RightClickUp
+      MouseEventKind::RightButtonUp
     } else {
-      MouseEventType::Move
+      MouseEventKind::Move
     }
   }
 
   /// Queries the current pressed mouse buttons via `GetAsyncKeyState`.
-  fn current_pressed_buttons() -> Vec<MouseButton> {
-    let mut pressed = Vec::new();
-
-    // High-order bit set indicates the key is currently down.
-    if (unsafe { GetAsyncKeyState(VK_LBUTTON.0.into()) } as u16 & 0x8000)
-      != 0
-    {
-      pressed.push(MouseButton::Left);
+  fn current_pressed_buttons() -> PressedButtons {
+    PressedButtons {
+      // High-order bit set indicates the key is currently down.
+      left: (unsafe { GetAsyncKeyState(VK_LBUTTON.0.into()) } as u16
+        & 0x8000)
+        != 0,
+      right: (unsafe { GetAsyncKeyState(VK_RBUTTON.0.into()) } as u16
+        & 0x8000)
+        != 0,
     }
-
-    if (unsafe { GetAsyncKeyState(VK_RBUTTON.0.into()) } as u16 & 0x8000)
-      != 0
-    {
-      pressed.push(MouseButton::Right);
-    }
-
-    pressed
   }
 
   /// Enables or disables the mouse hook.
@@ -244,15 +207,14 @@ impl MouseHook {
     if self.callback_id.is_some() {
       let handle = self.dispatcher.message_window_handle();
       self.dispatcher.dispatch_sync(move || {
-        Self::register_raw_input(handle, enabled)
+        Self::enable_raw_input(handle, enabled)
       })??;
     }
     Ok(())
   }
 
-  /// Registers or deregisters the raw input device for mouse events with
-  /// `RIDEV_INPUTSINK` or `RIDEV_REMOVE`.
-  fn register_raw_input(
+  /// Registers or deregisters the raw input device for mouse events.
+  fn enable_raw_input(
     target_handle: WindowId,
     enabled: bool,
   ) -> crate::Result<()> {

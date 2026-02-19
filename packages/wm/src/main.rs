@@ -23,7 +23,7 @@ use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
   Dispatcher, DisplayListener, EventLoop, KeybindingListener,
-  MouseEventType, MouseListener, PlatformEvent, SingleInstance,
+  MouseEventKind, MouseListener, PlatformEvent, SingleInstance,
   WindowListener,
 };
 
@@ -129,9 +129,9 @@ async fn start_wm(
   // Start listening for platform events after populating initial state.
   let mut mouse_listener = MouseListener::new(
     if config.value.general.focus_follows_cursor {
-      vec![MouseEventType::Move, MouseEventType::LeftClickUp]
+      vec![MouseEventKind::Move, MouseEventKind::LeftButtonUp]
     } else {
-      vec![MouseEventType::LeftClickUp]
+      vec![MouseEventKind::LeftButtonUp]
     },
     dispatcher,
   )?;

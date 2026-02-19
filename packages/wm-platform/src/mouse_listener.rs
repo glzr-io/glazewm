@@ -6,18 +6,18 @@ use std::{
 use tokio::sync::mpsc;
 
 use crate::{
-  platform_event::MouseEvent, platform_impl, Dispatcher, MouseButton,
-  MouseEventNotification,
+  platform_event::{MouseEvent, PressedButtons},
+  platform_impl, Dispatcher, MouseButton, Point, WindowId,
 };
 
-/// Enabled mouse event kinds for configuring the listener.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MouseEventType {
+/// Available mouse events that [`MouseListener`] can listen for.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum MouseEventKind {
   Move,
-  LeftClickDown,
-  LeftClickUp,
-  RightClickDown,
-  RightClickUp,
+  LeftButtonDown,
+  LeftButtonUp,
+  RightButtonDown,
+  RightButtonUp,
 }
 
 /// A listener for system-wide mouse events.
@@ -32,7 +32,7 @@ pub struct MouseListener {
   hook: Option<platform_impl::MouseHook>,
 
   /// Currently enabled mouse event kinds.
-  enabled_events: Vec<MouseEventType>,
+  enabled_events: Vec<MouseEventKind>,
 
   dispatcher: Dispatcher,
 }
@@ -40,7 +40,7 @@ pub struct MouseListener {
 impl MouseListener {
   /// Creates a new mouse listener with the specified enabled events.
   pub fn new(
-    enabled_events: Vec<MouseEventType>,
+    enabled_events: Vec<MouseEventKind>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
@@ -80,7 +80,7 @@ impl MouseListener {
   /// new enabled events.
   pub fn set_enabled_events(
     &mut self,
-    enabled_events: Vec<MouseEventType>,
+    enabled_events: Vec<MouseEventKind>,
   ) -> crate::Result<()> {
     // Dispose the existing hook (if any).
     if let Some(mut hook) = self.hook.take() {
@@ -100,7 +100,7 @@ impl MouseListener {
 
   /// Creates and starts the mouse hook with the given callback.
   fn create_mouse_hook(
-    enabled_events: &[MouseEventType],
+    enabled_events: &[MouseEventKind],
     event_tx: mpsc::UnboundedSender<MouseEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<platform_impl::MouseHook> {
@@ -109,11 +109,12 @@ impl MouseListener {
 
     platform_impl::MouseHook::new(
       enabled_events,
-      move |notification: MouseEventNotification| {
-        let event_type = notification.0.event_type();
-
-        match event_type {
-          MouseEventType::Move => {
+      move |event_kind: MouseEventKind,
+            position: Point,
+            pressed_buttons: PressedButtons,
+            window_below_cursor: Option<WindowId>| {
+        match event_kind {
+          MouseEventKind::Move => {
             let mut last_move_emission = last_move_emission
               .lock()
               .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -136,44 +137,41 @@ impl MouseListener {
                 // TODO: This is a hack to let through mouse move events
                 // when they contain a window ID. macOS sporadically
                 // includes the window ID on mouse events.
-                has_elapsed_throttle
-                  || notification.0.below_window_id().is_some()
+                has_elapsed_throttle || window_below_cursor.is_some()
               }
             };
 
             if should_emit {
-              let _ = event_tx.send(MouseEvent::MouseMove {
-                position: notification.0.position(),
-                pressed_buttons: notification.0.pressed_buttons(),
-                notification,
+              let _ = event_tx.send(MouseEvent::Move {
+                position,
+                pressed_buttons,
+                window_below_cursor,
               });
 
               *last_move_emission = Some(Instant::now());
             }
           }
-          MouseEventType::LeftClickDown
-          | MouseEventType::RightClickDown => {
-            let _ = event_tx.send(MouseEvent::MouseButtonDown {
-              position: notification.0.position(),
-              button: if event_type == MouseEventType::LeftClickDown {
+          MouseEventKind::LeftButtonDown
+          | MouseEventKind::RightButtonDown => {
+            let _ = event_tx.send(MouseEvent::ButtonDown {
+              position,
+              button: if event_kind == MouseEventKind::LeftButtonDown {
                 MouseButton::Left
               } else {
                 MouseButton::Right
               },
-              pressed_buttons: notification.0.pressed_buttons(),
-              notification,
+              pressed_buttons,
             });
           }
-          MouseEventType::LeftClickUp | MouseEventType::RightClickUp => {
-            let _ = event_tx.send(MouseEvent::MouseButtonUp {
-              position: notification.0.position(),
-              button: if event_type == MouseEventType::LeftClickUp {
+          MouseEventKind::LeftButtonUp | MouseEventKind::RightButtonUp => {
+            let _ = event_tx.send(MouseEvent::ButtonUp {
+              position,
+              button: if event_kind == MouseEventKind::LeftButtonUp {
                 MouseButton::Left
               } else {
                 MouseButton::Right
               },
-              pressed_buttons: notification.0.pressed_buttons(),
-              notification,
+              pressed_buttons,
             });
           }
         }

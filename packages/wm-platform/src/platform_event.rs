@@ -1,9 +1,6 @@
 use super::NativeWindow;
 use crate::{
-  platform_impl::{
-    MouseEventNotificationInner, WindowEventNotificationInner,
-  },
-  Keybinding, Point, WindowId,
+  platform_impl::WindowEventNotificationInner, Keybinding, Point, WindowId,
 };
 
 #[derive(Clone, Debug)]
@@ -134,64 +131,81 @@ pub enum MouseButton {
   Right,
 }
 
+/// Tracks which mouse buttons are currently pressed.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PressedButtons {
+  pub left: bool,
+  pub right: bool,
+}
+
+impl PressedButtons {
+  /// Returns whether the given button is currently pressed.
+  #[must_use]
+  pub fn contains(&self, button: &MouseButton) -> bool {
+    match button {
+      MouseButton::Left => self.left,
+      MouseButton::Right => self.right,
+    }
+  }
+}
+
 #[derive(Clone, Debug)]
 pub enum MouseEvent {
-  MouseMove {
+  /// Mouse cursor moved.
+  Move {
     position: Point,
-    pressed_buttons: Vec<MouseButton>,
-    notification: MouseEventNotification,
+    pressed_buttons: PressedButtons,
+    /// Window under cursor.
+    ///
+    /// # Platform-specific
+    ///
+    /// - **macOS**: Sourced from the `CGEvent` field. Unreliable; often
+    ///   `None`, with the real window ID appearing sporadically.
+    /// - **Windows**: Always `None`.
+    window_below_cursor: Option<WindowId>,
   },
-  MouseButtonDown {
+
+  /// A mouse button was pressed.
+  ButtonDown {
     position: Point,
     button: MouseButton,
-    pressed_buttons: Vec<MouseButton>,
-    notification: MouseEventNotification,
+    pressed_buttons: PressedButtons,
   },
-  MouseButtonUp {
+
+  /// A mouse button was released.
+  ButtonUp {
     position: Point,
     button: MouseButton,
-    pressed_buttons: Vec<MouseButton>,
-    notification: MouseEventNotification,
+    pressed_buttons: PressedButtons,
   },
 }
 
-// impl MouseEvent {
-//   /// Returns the position of the mouse.
-//   ///
-//   /// `0,0` is the top-left corner of the primary monitor.
-//   pub fn position(&self) -> &Point {
-//     match self {
-//       MouseEvent::MouseMove { position, .. } => position,
-//       MouseEvent::MouseButtonDown { position, .. } => position,
-//       MouseEvent::MouseButtonUp { position, .. } => position,
-//     }
-//   }
+impl MouseEvent {
+  /// Returns the cursor position at the time of the event.
+  ///
+  /// `0,0` is the top-left corner of the primary monitor.
+  #[must_use]
+  pub fn position(&self) -> &Point {
+    match self {
+      Self::Move { position, .. }
+      | Self::ButtonDown { position, .. }
+      | Self::ButtonUp { position, .. } => position,
+    }
+  }
 
-//   /// Returns the buttons that are currently pressed.
-//   pub fn pressed_buttons(&self) -> &[MouseButton] {
-//     match self {
-//       MouseEvent::MouseMove {
-//         pressed_buttons, ..
-//       } => pressed_buttons,
-//       MouseEvent::MouseButtonDown {
-//         pressed_buttons, ..
-//       } => pressed_buttons,
-//       MouseEvent::MouseButtonUp {
-//         pressed_buttons, ..
-//       } => pressed_buttons,
-//     }
-//   }
-
-//   /// Returns the platform-specific mouse event notification.
-//   pub fn notification(&self) -> &MouseEventNotification {
-//     match self {
-//       MouseEvent::MouseMove { notification, .. } => notification,
-//       MouseEvent::MouseButtonDown { notification, .. } => notification,
-//       MouseEvent::MouseButtonUp { notification, .. } => notification,
-//     }
-//   }
-// }
-
-/// Platform-specific mouse event notification.
-#[derive(Clone, Debug)]
-pub struct MouseEventNotification(pub MouseEventNotificationInner);
+  /// Returns which mouse buttons were pressed at the time of the event.
+  #[must_use]
+  pub fn pressed_buttons(&self) -> &PressedButtons {
+    match self {
+      Self::Move {
+        pressed_buttons, ..
+      }
+      | Self::ButtonDown {
+        pressed_buttons, ..
+      }
+      | Self::ButtonUp {
+        pressed_buttons, ..
+      } => pressed_buttons,
+    }
+  }
+}

@@ -40,7 +40,6 @@ pub fn handle_window_moved_or_resized(
 
     // Handle windows that are actively being dragged.
     if !state.is_paused && window.active_drag().is_some() {
-      // Check if the drag operation has ended.
       let is_drag_end = {
         // On Windows, the drag operation has ended when
         // `is_interactive_end` is `true`. This corresponds to a
