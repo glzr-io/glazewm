@@ -54,22 +54,36 @@ impl DisplayListener {
             Some(LRESULT(0))
           }
           WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-            // Ignore display change messages if the system hasn't fully
-            // resumed from sleep.
-            if !is_system_suspended.load(Ordering::Relaxed) {
-              #[allow(clippy::cast_possible_truncation)]
-              let should_emit = match message {
-                WM_SETTINGCHANGE => {
-                  wparam.0 as u32 == SPI_SETWORKAREA.0
-                    || wparam.0 as u32 == SPI_ICONVERTICALSPACING.0
+            let should_emit = {
+              // Ignore display change messages if the system hasn't fully
+              // resumed from sleep.
+              if is_system_suspended.load(Ordering::Relaxed) {
+                false
+              } else {
+                #[allow(clippy::cast_possible_truncation)]
+                match message {
+                  // Received when displays are connected and disconnected,
+                  // resolution changes, or arrangement changes.
+                  WM_DISPLAYCHANGE => true,
+                  // Received when the working area has changed. Fires when
+                  // the Windows taskbar is changed or an appbar is
+                  // registered or changed. 3rd-party apps like
+                  // ButteryTaskbar can trigger this message by calling
+                  // `SystemParametersInfo(SPI_SETWORKAREA, ...)`.
+                  WM_SETTINGCHANGE => wparam.0 as u32 == SPI_SETWORKAREA.0,
+                  // Received when any device is connected or disconnected
+                  // (including non-display devices).
+                  // TODO: Check if this is actually needed. Previous C#
+                  // implementation did not use this.
+                  WM_DEVICECHANGE => {
+                    wparam.0 as u32 == DBT_DEVNODES_CHANGED
+                  }
                 }
-                WM_DEVICECHANGE => wparam.0 as u32 == DBT_DEVNODES_CHANGED,
-                _ => true,
-              };
-
-              if should_emit {
-                let _ = event_tx.send(());
               }
+            };
+
+            if should_emit {
+              let _ = event_tx.send(());
             }
 
             Some(LRESULT(0))
