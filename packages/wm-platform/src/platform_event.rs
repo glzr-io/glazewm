@@ -1,6 +1,7 @@
 use super::NativeWindow;
 use crate::{
-  platform_impl::WindowEventNotificationInner, Keybinding, Point, WindowId,
+  platform_impl::WindowEventNotificationInner, Keybinding, MouseEventKind,
+  Point, WindowId,
 };
 
 #[derive(Clone, Debug)]
@@ -134,8 +135,8 @@ pub enum MouseButton {
 /// Tracks which mouse buttons are currently pressed.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PressedButtons {
-  pub left: bool,
-  pub right: bool,
+  left: bool,
+  right: bool,
 }
 
 impl PressedButtons {
@@ -145,6 +146,17 @@ impl PressedButtons {
     match button {
       MouseButton::Left => self.left,
       MouseButton::Right => self.right,
+    }
+  }
+
+  /// Updates button state based on a mouse event.
+  pub(crate) fn update(&mut self, event: MouseEventKind) {
+    match event {
+      MouseEventKind::LeftButtonDown => self.left = true,
+      MouseEventKind::LeftButtonUp => self.left = false,
+      MouseEventKind::RightButtonDown => self.right = true,
+      MouseEventKind::RightButtonUp => self.right = false,
+      MouseEventKind::Move => {}
     }
   }
 }

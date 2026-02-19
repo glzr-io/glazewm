@@ -129,9 +129,9 @@ async fn start_wm(
   // Start listening for platform events after populating initial state.
   let mut mouse_listener = MouseListener::new(
     if config.value.general.focus_follows_cursor {
-      vec![MouseEventKind::Move, MouseEventKind::LeftButtonUp]
+      &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
     } else {
-      vec![MouseEventKind::LeftButtonUp]
+      &[MouseEventKind::LeftButtonUp]
     },
     dispatcher,
   )?;
@@ -207,7 +207,7 @@ async fn start_wm(
           keybinding_listener.enable(!is_paused);
         }
 
-        // Update keybinding listener when keybindings change.
+        // Update keybinding and mouse listeners on config changes.
         if matches!(
           wm_event,
           WmEvent::UserConfigChanged { .. }
@@ -219,6 +219,14 @@ async fn start_wm(
               .flat_map(|kb| kb.bindings)
               .collect::<Vec<_>>(),
           );
+
+          mouse_listener.set_enabled_events(
+            if config.value.general.focus_follows_cursor {
+              &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
+            } else {
+              &[MouseEventKind::LeftButtonUp]
+            },
+          )?;
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {
@@ -244,14 +252,6 @@ async fn start_wm(
   }
 
   tracing::info!("Window manager shutting down.");
-
-  // Shutdown listeners first to ensure clean exit.
-  // TODO: This should be handled automatically in the `stop_event_loop`
-  // method.
-  if let Err(err) = keybinding_listener.terminate() {
-    tracing::warn!("Failed to stop keybinding listener: {}", err);
-  }
-
   wm.cleanup(&mut config, &mut ipc_server);
 
   Ok(())
