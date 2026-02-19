@@ -24,6 +24,7 @@ clap = { workspace = true }
 enum-as-inner = "0.6"
 futures-util = { workspace = true }
 home = { workspace = true }
+regex = "1.10.2"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
