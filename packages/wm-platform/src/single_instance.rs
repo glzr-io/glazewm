@@ -7,7 +7,7 @@ use crate::platform_impl;
 /// - **Windows**: Uses a named system-wide mutex.
 /// - **macOS**: Uses an exclusive file lock.
 pub struct SingleInstance {
-  /// Inner platform-specific implementation of [`SingleInstance`].
+  /// Inner platform-specific single instance implementation.
   _inner: platform_impl::SingleInstance,
 }
 

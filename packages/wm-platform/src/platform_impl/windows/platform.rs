@@ -19,9 +19,9 @@ use windows::{
       WindowsAndMessaging::{
         CreateWindowExW, DispatchMessageW, GetAncestor, GetMessageW,
         MessageBoxW, PeekMessageW, PostThreadMessageW, RegisterClassW,
-        SystemParametersInfoW, TranslateMessage, ANIMATIONINFO, CS_HREDRAW,
-        CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR, MB_OK,
-        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
+        SystemParametersInfoW, TranslateMessage, ANIMATIONINFO,
+        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR,
+        MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
         SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
         SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WINDOW_EX_STYLE,
         WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
@@ -32,8 +32,6 @@ use windows::{
 
 use super::NativeWindow;
 
-pub type WindowProcedure = WNDPROC;
-
 pub struct Platform;
 
 impl Platform {
@@ -43,112 +41,6 @@ impl Platform {
   ) -> crate::Result<NativeWindow> {
     let handle = unsafe { GetAncestor(HWND(window.handle), GA_ROOT) };
     Ok(NativeWindow::new(handle.0))
-  }
-
-  /// Creates a hidden message window.
-  ///
-  /// Returns a handle to the created window.
-  pub fn create_message_window(
-    window_procedure: WindowProcedure,
-  ) -> crate::Result<isize> {
-    let wnd_class = WNDCLASSW {
-      lpszClassName: w!("MessageWindow"),
-      style: CS_HREDRAW | CS_VREDRAW,
-      lpfnWndProc: window_procedure,
-      ..Default::default()
-    };
-
-    unsafe { RegisterClassW(&raw const wnd_class) };
-
-    let handle = unsafe {
-      CreateWindowExW(
-        WINDOW_EX_STYLE::default(),
-        w!("MessageWindow"),
-        w!("MessageWindow"),
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        None,
-        None,
-        wnd_class.hInstance,
-        None,
-      )
-    };
-
-    if handle.0 == 0 {
-      return Err(crate::Error::Platform(
-        "Creation of message window failed.".to_string(),
-      ));
-    }
-
-    Ok(handle.0)
-  }
-
-  /// Starts a message loop on the current thread.
-  ///
-  /// This function will block until the message loop is killed. Use
-  /// `Platform::kill_message_loop` to terminate the message loop.
-  pub fn run_message_loop() {
-    let mut msg = MSG::default();
-
-    loop {
-      if unsafe { GetMessageW(&raw mut msg, None, 0, 0) }.as_bool() {
-        unsafe {
-          TranslateMessage(&raw const msg);
-          DispatchMessageW(&raw const msg);
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  /// Runs a single cycle of a message loop on the current thread.
-  ///
-  /// Is non-blocking and returns immediately if there are no messages.
-  pub fn run_message_cycle() -> crate::Result<()> {
-    let mut msg = MSG::default();
-
-    let has_message =
-      unsafe { PeekMessageW(&raw mut msg, None, 0, 0, PM_REMOVE) }
-        .as_bool();
-
-    if has_message {
-      if msg.message == WM_QUIT {
-        return Err(crate::Error::Platform(
-          "Received WM_QUIT message.".to_string(),
-        ));
-      }
-
-      unsafe {
-        TranslateMessage(&raw const msg);
-        DispatchMessageW(&raw const msg);
-      }
-    }
-
-    Ok(())
-  }
-
-  /// Gracefully terminates the message loop on the given thread.
-  pub fn kill_message_loop<T>(
-    thread: &JoinHandle<T>,
-  ) -> crate::Result<()> {
-    let handle = thread.as_raw_handle();
-    let handle = HANDLE(handle as isize);
-    let thread_id = unsafe { GetThreadId(handle) };
-
-    unsafe {
-      PostThreadMessageW(
-        thread_id,
-        WM_QUIT,
-        WPARAM::default(),
-        LPARAM::default(),
-      )
-    }?;
-
-    Ok(())
   }
 
   /// Gets whether window transition animations are currently enabled.
@@ -191,17 +83,6 @@ impl Platform {
         SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
-
-    Ok(())
-  }
-
-  /// Opens File Explorer at the specified path.
-  pub fn open_file_explorer(path: &PathBuf) -> crate::Result<()> {
-    let normalized_path = std::fs::canonicalize(path)?;
-
-    std::process::Command::new("explorer")
-      .arg(normalized_path)
-      .spawn()?;
 
     Ok(())
   }

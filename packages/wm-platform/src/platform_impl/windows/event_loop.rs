@@ -16,7 +16,7 @@ use windows::{
     UI::WindowsAndMessaging::{
       DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
       PostMessageW, PostThreadMessageW, RegisterWindowMessageW,
-      SendMessageW, TranslateMessage, MSG, WM_QUIT,
+      SendMessageW, TranslateMessage, MSG, WM_QUIT, WNDPROC,
     },
   },
 };
@@ -56,7 +56,7 @@ thread_local! {
 pub(crate) struct EventLoopSource {
   pub(crate) message_window_handle: WindowId,
   pub(crate) thread_id: ThreadId,
-  win32_thread_id: u32,
+  os_thread_id: u32,
   next_callback_id: Arc<AtomicUsize>,
 }
 
@@ -68,10 +68,10 @@ impl EventLoopSource {
   where
     F: FnOnce() + Send + 'static,
   {
-    // Double box the callback to get a thin raw pointer and to avoid
-    // `STATUS_ACCESS_VIOLATION` on Windows.
-    // Ref: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
-    let dispatch_fn: Box<Box<DispatchFn>> = Box::new(Box::new(dispatch_fn));
+    // Double box the callback to avoid `STATUS_ACCESS_VIOLATION` on
+    // Windows. Ref: https://github.com/tauri-apps/tao/blob/dev/src/platform_impl/windows/event_loop.rs#L596
+    let dispatch_fn: Box<Box<DispatchFn>> =
+      Box::new(Box::new(dispatch_fn));
 
     // Leak to a raw pointer to then be passed as `WPARAM` in the message.
     let callback_ptr = Box::into_raw(dispatch_fn);
@@ -136,12 +136,7 @@ impl EventLoopSource {
 
   pub(crate) fn send_stop(&self) -> crate::Result<()> {
     unsafe {
-      PostThreadMessageW(
-        self.win32_thread_id,
-        WM_QUIT,
-        WPARAM(0),
-        LPARAM(0),
-      )
+      PostThreadMessageW(self.os_thread_id, WM_QUIT, WPARAM(0), LPARAM(0))
     }
     .map_err(|_| {
       crate::Error::WindowMessage(
@@ -180,127 +175,99 @@ impl EventLoopSource {
 
 /// Windows-specific implementation of [`EventLoop`].
 pub(crate) struct EventLoop {
-  message_window_handle: WindowId,
-  thread_handle: Option<JoinHandle<crate::Result<()>>>,
-  win32_thread_id: u32,
+  source: EventLoopSource,
 }
 
 impl EventLoop {
-  pub fn new() -> crate::Result<(Self, Dispatcher)> {
-    let (sender, receiver) =
-      tokio::sync::oneshot::channel::<(WindowId, u32, ThreadId)>();
+  /// Windows-specific implementation of [`EventLoop::new`].
+  pub(crate) fn new() -> crate::Result<(Self, Dispatcher)> {
+    // Create a hidden message window on the current thread.
+    let window_handle =
+      super::Platform::create_message_window(Some(Self::window_proc))?;
 
-    let thread_handle = thread::spawn(move || -> crate::Result<()> {
-      // Create a hidden message window on the current thread.
-      let window_handle =
-        super::Platform::create_message_window(Some(Self::window_proc))?;
-
-      let win32_thread_id = unsafe { GetCurrentThreadId() };
-      let rust_thread_id = thread::current().id();
-
-      // Send the window handle and thread ID back to the main thread. Will
-      // only fail if the receiver was closed, which would be due to the
-      // main thread erroring.
-      if sender
-        .send((WindowId(window_handle), win32_thread_id, rust_thread_id))
-        .is_err()
-      {
-        unsafe { DestroyWindow(HWND(window_handle)) }?;
-        return Err(crate::Error::Platform(
-          "Failed to send window handle back to main thread, channel was closed.".to_string(),
-        ));
-      }
-
-      // Run the message loop. This will block until `WM_QUIT` is
-      // dispatched.
-      Self::run_message_loop();
-
-      tracing::info!("Event loop thread exiting.");
-      unsafe { DestroyWindow(HWND(window_handle)) }?;
-
-      Ok(())
-    });
-
-    // Wait for the window handle and thread ID.
-    let (window_handle, win32_thread_id, rust_thread_id) =
-      receiver.blocking_recv()?;
-
-    let event_loop = EventLoop {
+    let source = EventLoopSource {
       message_window_handle: window_handle,
-      thread_handle: Some(thread_handle),
-      win32_thread_id,
-    };
-
-    let event_loop_source = EventLoopSource {
-      message_window_handle: window_handle,
-      thread_id: rust_thread_id,
-      win32_thread_id,
+      thread_id: thread::current().id(),
+      os_thread_id: unsafe { GetCurrentThreadId() },
       next_callback_id: Arc::new(AtomicUsize::new(0)),
     };
 
     let stopped = Arc::new(AtomicBool::new(false));
-    let dispatcher = Dispatcher::new(Some(event_loop_source), stopped);
+    let dispatcher = Dispatcher::new(Some(source.clone()), stopped);
 
-    Ok((event_loop, dispatcher))
+    Ok((Self { source }, dispatcher))
   }
 
-  /// Runs the event loop, blocking until shutdown.
-  ///
-  /// This will block the current thread until the event loop is
-  /// stopped.
-  pub fn run(mut self) -> crate::Result<()> {
-    tracing::info!("Starting Windows event loop.");
+  /// Windows-specific implementation of [`EventLoop::run`].
+  pub(crate) fn run(mut self) -> crate::Result<()> {
+    tracing::info!("Starting event loop.");
+    let mut msg = MSG::default();
 
-    // Join the thread to wait for completion
-    if let Some(thread_handle) = self.thread_handle.take() {
-      thread_handle
-        .join()
-        .map_err(|_| {
-          crate::Error::Thread("Event loop thread panicked".to_string())
-        })?
-        .map_err(|e| crate::Error::Platform(e.to_string()))?;
+    // Start the message loop. Blocks until `WM_QUIT` is received.
+    loop {
+      if unsafe { GetMessageW(&raw mut msg, None, 0, 0) }.as_bool() {
+        unsafe {
+          TranslateMessage(&raw const msg);
+          DispatchMessageW(&raw const msg);
+        }
+      } else {
+        break;
+      }
     }
 
-    tracing::info!("Windows event loop exiting.");
+    tracing::info!("Event loop thread exiting.");
+    unsafe { DestroyWindow(HWND(self.source.message_window_handle.0)) }?;
+
     Ok(())
   }
 
   /// Shuts down the event loop gracefully.
-  pub fn shutdown(&mut self) -> crate::Result<()> {
+  pub(crate) fn shutdown(&mut self) -> crate::Result<()> {
     tracing::info!("Shutting down event loop.");
-
-    // Wait for the spawned thread to finish.
-    if let Some(thread_handle) = self.thread_handle.take() {
-      super::Platform::kill_message_loop(&thread_handle)?;
-
-      thread_handle.join().map_err(|_| {
-        crate::Error::Thread("Thread join failed.".to_string())
-      })??;
-    }
+    self.source.send_stop()?;
 
     Ok(())
   }
 
-  /// Returns whether the event loop is still running.
-  #[must_use]
-  pub fn is_running(&self) -> bool {
-    if let Some(ref handle) = self.thread_handle {
-      !handle.is_finished()
-    } else {
-      false
+  /// Creates a hidden message window.
+  ///
+  /// Returns a handle to the created window.
+  fn create_message_window(
+    window_procedure: WNDPROC,
+  ) -> crate::Result<isize> {
+    let wnd_class = WNDCLASSW {
+      lpszClassName: w!("MessageWindow"),
+      style: CS_HREDRAW | CS_VREDRAW,
+      lpfnWndProc: window_procedure,
+      ..Default::default()
+    };
+
+    unsafe { RegisterClassW(&raw const wnd_class) };
+
+    let handle = unsafe {
+      CreateWindowExW(
+        WINDOW_EX_STYLE::default(),
+        w!("MessageWindow"),
+        w!("MessageWindow"),
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        None,
+        None,
+        wnd_class.hInstance,
+        None,
+      )
+    };
+
+    if handle.0 == 0 {
+      return Err(crate::Error::Platform(
+        "Creation of message window failed.".to_string(),
+      ));
     }
-  }
 
-  /// Returns the thread ID of the message loop thread.
-  #[must_use]
-  pub fn thread_id(&self) -> u32 {
-    self.win32_thread_id
-  }
-
-  /// Returns the window handle of the message loop.
-  #[must_use]
-  pub fn message_window_handle(&self) -> WindowId {
-    self.message_window_handle
+    Ok(handle.0)
   }
 
   /// Window procedure for handling messages.
@@ -310,10 +277,8 @@ impl EventLoop {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> LRESULT {
-    let dispatch_msg = WM_DISPATCH_CALLBACK.with(|v| *v);
-
     // Handle dispatch callbacks first.
-    if msg == dispatch_msg {
+    if msg == WM_DISPATCH_CALLBACK.with(|v| *v) {
       // Convert the `WPARAM` fn pointer back to a double-boxed function.
       let dispatch_fn: Box<Box<dyn FnOnce() + Send>> =
         Box::from_raw(wparam.0 as *mut _);
@@ -338,25 +303,6 @@ impl EventLoop {
     // `WM_QUIT` is handled by the message loop and should be forwarded
     // along with other messages.
     DefWindowProcW(hwnd, msg, wparam, lparam)
-  }
-
-  /// Starts a message loop on the current thread.
-  ///
-  /// This function will block until the message loop is killed. Use
-  /// `Platform::kill_message_loop` to terminate the message loop.
-  fn run_message_loop() {
-    let mut msg = MSG::default();
-
-    loop {
-      if unsafe { GetMessageW(&raw mut msg, None, 0, 0) }.as_bool() {
-        unsafe {
-          TranslateMessage(&raw const msg);
-          DispatchMessageW(&raw const msg);
-        }
-      } else {
-        break;
-      }
-    }
   }
 }
 

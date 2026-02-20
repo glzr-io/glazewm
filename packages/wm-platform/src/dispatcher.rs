@@ -116,7 +116,8 @@ impl DispatcherExtWindows for Dispatcher {
   }
 }
 
-/// A thread-safe dispatcher for various cross-platform operations.
+/// A thread-safe dispatcher for cross-platform window management
+/// operations.
 ///
 /// On macOS, operations are automatically dispatched to the main thread
 /// whenever necessary.
@@ -163,8 +164,8 @@ impl Dispatcher {
 
   /// Stops the event loop gracefully from any thread.
   ///
-  /// After calling this method, all subsequent `dispatch()` and
-  /// `dispatch_sync()` calls will return `Error::EventLoopStopped`.
+  /// After calling this method, all subsequent calls to `dispatch_async()`
+  /// and `dispatch_sync()` will return `Error::EventLoopStopped`.
   pub fn stop_event_loop(&self) -> crate::Result<()> {
     // Set stopped flag to prevent new dispatches.
     self.stopped.store(true, Ordering::SeqCst);
@@ -180,8 +181,7 @@ impl Dispatcher {
   /// Asynchronously executes a closure on the event loop thread.
   ///
   /// If the current thread is the event loop thread, the function is
-  /// executed directly. Otherwise, this is a fire-and-forget operation
-  /// that schedules the closure to run asynchronously.
+  /// executed directly (synchronously).
   ///
   /// Returns `Ok(())` if the closure was successfully queued. No result is
   /// returned.
@@ -215,10 +215,9 @@ impl Dispatcher {
   /// Synchronously executes a closure on the event loop thread.
   ///
   /// If the current thread is the event loop thread, the function is
-  /// executed directly. Otherwise, this method synchronously dispatches
-  /// and executes the closure.
+  /// executed directly.
   ///
-  /// Returns a result with the closure's return value.
+  /// Returns a `Result` with the closure's return value.
   pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
@@ -323,6 +322,7 @@ impl Dispatcher {
     platform_impl::focused_window(self)
   }
 
+  /// Gets the current cursor position.
   pub fn cursor_position(&self) -> crate::Result<Point> {
     #[cfg(target_os = "macos")]
     {
@@ -353,6 +353,7 @@ impl Dispatcher {
     }
   }
 
+  /// Gets whether the given mouse button is currently pressed.
   #[must_use]
   pub fn is_mouse_down(&self, button: &MouseButton) -> bool {
     #[cfg(target_os = "macos")]
@@ -432,7 +433,7 @@ impl Dispatcher {
     platform_impl::reset_focus(self)
   }
 
-  /// Opens the OS-specific file explorer at the specified path.
+  /// Opens the operating system's file explorer at the given path.
   ///
   /// # Platform-specific
   ///
@@ -441,9 +442,11 @@ impl Dispatcher {
   pub fn open_file_explorer(&self, path: &Path) -> crate::Result<()> {
     #[cfg(target_os = "windows")]
     {
-      std::process::Command::new("explorer").arg(path).spawn()?;
+      let normalized_path = std::fs::canonicalize(path)?;
+      std::process::Command::new("explorer")
+        .arg(normalized_path)
+        .spawn()?;
     }
-
     #[cfg(target_os = "macos")]
     {
       std::process::Command::new("open")
