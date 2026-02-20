@@ -4,12 +4,12 @@ use anyhow::Context;
 use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
-  CornerStyle, CursorJumpTrigger, DisplayState, HideCorner, HideMethod,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
+  WindowEffectConfig, WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
-use wm_platform::{OpacityValue, Rect, ZOrder};
+use wm_platform::{CornerStyle, OpacityValue, Rect, ZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -596,16 +596,7 @@ fn apply_corner_effect(
     &CornerStyle::Default
   };
 
-  // Convert from config type to platform type.
-  // TODO: This is a hack.
-  let platform_corner_style = match corner_style {
-    CornerStyle::Default => wm_platform::CornerStyle::Default,
-    CornerStyle::Square => wm_platform::CornerStyle::Square,
-    CornerStyle::Rounded => wm_platform::CornerStyle::Rounded,
-    CornerStyle::SmallRounded => wm_platform::CornerStyle::SmallRounded,
-  };
-
-  _ = window.native().set_corner_style(&platform_corner_style);
+  _ = window.native().set_corner_style(corner_style);
 }
 
 #[cfg(target_os = "windows")]

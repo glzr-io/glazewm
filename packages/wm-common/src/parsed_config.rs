@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use wm_platform::{
-  Color, Key, Keybinding, LengthValue, OpacityValue, RectDelta,
+  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
+  RectDelta,
 };
 
 use crate::app_command::InvokeCommand;
@@ -292,16 +293,6 @@ pub struct CornerEffectConfig {
 
   /// Style of the window corners.
   pub style: CornerStyle,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CornerStyle {
-  #[default]
-  Default,
-  Square,
-  Rounded,
-  SmallRounded,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

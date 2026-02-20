@@ -41,20 +41,6 @@ pub use platform_impl::{
 pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;
-
-/// Window corner style.
-///
-/// # Platform-specific
-///
-/// Only has visible effect on Windows 11 and later.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CornerStyle {
-  Default,
-  Square,
-  Rounded,
-  SmallRounded,
-}
-
 #[cfg(target_os = "windows")]
 pub use windows::Win32::UI::WindowsAndMessaging::{
   SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,

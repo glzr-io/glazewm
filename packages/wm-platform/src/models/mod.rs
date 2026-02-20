@@ -1,15 +1,17 @@
-pub mod color;
-pub mod delta;
-pub mod direction;
-pub mod key;
-pub mod key_code;
-pub mod length_value;
-pub mod opacity_value;
-pub mod point;
-pub mod rect;
-pub mod rect_delta;
+mod color;
+mod corner_style;
+mod delta;
+mod direction;
+mod key;
+mod key_code;
+mod length_value;
+mod opacity_value;
+mod point;
+mod rect;
+mod rect_delta;
 
 pub use color::*;
+pub use corner_style::*;
 pub use delta::*;
 pub use direction::*;
 pub use key::*;
