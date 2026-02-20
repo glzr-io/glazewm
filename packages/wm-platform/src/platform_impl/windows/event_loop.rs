@@ -21,7 +21,7 @@ use windows::{
   },
 };
 
-use crate::{DispatchFn, Dispatcher, WindowId};
+use crate::{DispatchFn, Dispatcher};
 
 thread_local! {
   /// Custom message ID for dispatching closures to be run on the event
@@ -33,28 +33,28 @@ thread_local! {
   /// This message is sent using `PostMessageW` and handled in
   /// [`EventLoop::window_proc`].
   static WM_DISPATCH_CALLBACK: u32 = unsafe { RegisterWindowMessageW(w!("GlazeWM:Dispatch")) };
-}
 
-/// A callback that pre-processes Windows messages received by the event
-/// loop's hidden message window.
-///
-/// Returns `Some(LRESULT)` if the message was handled, or `None` to pass
-/// the message to subsequent callbacks or the default handler.
-pub type WndProcCallback =
-  dyn Fn(HWND, u32, WPARAM, LPARAM) -> Option<LRESULT> + Send + 'static;
-
-thread_local! {
-  /// Registered callbacks that pre-process messages in the event
-  /// loop's window procedure.
+  /// Registered callbacks that pre-process messages in the event loop's
+  /// window procedure.
   ///
   /// Keyed by a unique callback ID for later deregistration.
   static WNDPROC_CALLBACKS: RefCell<HashMap<usize, Box<WndProcCallback>>> =
     RefCell::new(HashMap::new());
 }
 
+/// A callback that pre-processes window procedure messages received by the
+/// event loop.
+///
+/// Mirrors the Win32 [`WNDPROC`] signature. Returns `Some(lresult)` if
+/// the message was handled, or `None` to pass it along.
+///
+/// [`WNDPROC`]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-wndproc
+pub type WndProcCallback =
+  dyn Fn(isize, u32, usize, isize) -> Option<isize> + Send + 'static;
+
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
-  pub(crate) message_window_handle: WindowId,
+  pub(crate) message_window_handle: isize,
   pub(crate) thread_id: ThreadId,
   os_thread_id: u32,
   next_callback_id: Arc<AtomicUsize>,
@@ -78,7 +78,7 @@ impl EventLoopSource {
 
     unsafe {
       if PostMessageW(
-        HWND(self.message_window_handle.0),
+        HWND(self.message_window_handle),
         WM_DISPATCH_CALLBACK.with(|v| *v),
         WPARAM(callback_ptr as _),
         LPARAM(0),
@@ -96,17 +96,6 @@ impl EventLoopSource {
     }
   }
 
-  /// Synchronously dispatches a closure to the event loop thread.
-  ///
-  /// Uses `SendMessageW`, which blocks the calling thread until the
-  /// event loop thread's window procedure processes the message and
-  /// calls the closure.
-  ///
-  /// # Safety invariant
-  ///
-  /// Because `SendMessageW` blocks until the closure completes, closures
-  /// with non-`'static` captures are safe: the caller's stack frame is
-  /// guaranteed to outlive the closure execution.
   pub(crate) fn send_dispatch_sync<F>(
     &self,
     dispatch_fn: F,
@@ -118,13 +107,12 @@ impl EventLoopSource {
       Box::new(Box::new(dispatch_fn));
     let callback_ptr = Box::into_raw(dispatch_fn);
 
-    // SAFETY: `SendMessageW` blocks the calling thread until the window
-    // procedure on the event loop thread processes the message and calls
-    // the closure. This guarantees the closure's captures remain alive
-    // for the entire duration, even with non-'static lifetimes.
+    // `SendMessageW` blocks the calling thread until the window procedure
+    // processes the message and executes the closure. This guarantees the
+    // closure's lifetime remains valid.
     unsafe {
       SendMessageW(
-        HWND(self.message_window_handle.0),
+        HWND(self.message_window_handle),
         WM_DISPATCH_CALLBACK.with(|v| *v),
         WPARAM(callback_ptr as _),
         LPARAM(0),
@@ -289,8 +277,8 @@ impl EventLoop {
     // Let registered callbacks pre-process the message.
     let handled = WNDPROC_CALLBACKS.with(|cbs| {
       for callback in cbs.borrow().values() {
-        if let Some(result) = callback(hwnd, msg, wparam, lparam) {
-          return Some(result);
+        if let Some(result) = callback(hwnd.0, msg, wparam.0, lparam.0) {
+          return Some(LRESULT(result));
         }
       }
       None

@@ -5,14 +5,10 @@ use std::sync::{
 
 use tokio::sync::mpsc;
 use tracing::warn;
-use windows::Win32::{
-  Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-  UI::WindowsAndMessaging::{
-    DBT_DEVNODES_CHANGED, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND,
-    PBT_APMSUSPEND, SPI_ICONVERTICALSPACING, SPI_SETWORKAREA,
-    WM_DEVICECHANGE, WM_DISPLAYCHANGE, WM_POWERBROADCAST,
-    WM_SETTINGCHANGE,
-  },
+use windows::Win32::UI::WindowsAndMessaging::{
+  DBT_DEVNODES_CHANGED, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND,
+  PBT_APMSUSPEND, SPI_SETWORKAREA, WM_DEVICECHANGE, WM_DISPLAYCHANGE,
+  WM_POWERBROADCAST, WM_SETTINGCHANGE,
 };
 
 use crate::{Dispatcher, DispatcherExtWindows};
@@ -32,15 +28,11 @@ impl DisplayListener {
     let is_system_suspended = Arc::new(AtomicBool::new(false));
 
     let callback_id = dispatcher.register_wndproc_callback(Box::new(
-      move |_hwnd: HWND,
-            message: u32,
-            wparam: WPARAM,
-            _lparam: LPARAM|
-            -> Option<LRESULT> {
+      move |_hwnd, message, wparam, _lparam| {
         match message {
           WM_POWERBROADCAST => {
             #[allow(clippy::cast_possible_truncation)]
-            match wparam.0 as u32 {
+            match wparam as u32 {
               // System is resuming from sleep/hibernation.
               PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
                 is_system_suspended.store(false, Ordering::Relaxed);
@@ -52,7 +44,7 @@ impl DisplayListener {
               _ => {}
             }
 
-            Some(LRESULT(0))
+            Some(0)
           }
           WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
             let should_emit = {
@@ -71,13 +63,13 @@ impl DisplayListener {
                   // registered or changed. 3rd-party apps like
                   // ButteryTaskbar can trigger this message by calling
                   // `SystemParametersInfo(SPI_SETWORKAREA, ...)`.
-                  WM_SETTINGCHANGE => wparam.0 as u32 == SPI_SETWORKAREA.0,
+                  WM_SETTINGCHANGE => wparam as u32 == SPI_SETWORKAREA.0,
                   // Received when any device is connected or disconnected
                   // (including non-display devices).
                   // TODO: Check if this is actually needed. Previous C#
                   // implementation did not use this.
                   WM_DEVICECHANGE => {
-                    wparam.0 as u32 == DBT_DEVNODES_CHANGED
+                    wparam as u32 == DBT_DEVNODES_CHANGED
                   }
                 }
               }
@@ -87,7 +79,7 @@ impl DisplayListener {
               let _ = event_tx.send(());
             }
 
-            Some(LRESULT(0))
+            Some(0)
           }
           _ => None,
         }

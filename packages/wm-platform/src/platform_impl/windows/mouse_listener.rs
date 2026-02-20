@@ -7,7 +7,7 @@ use windows::Win32::{
   Devices::HumanInterfaceDevice::{
     HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC,
   },
-  Foundation::{HWND, LPARAM, LRESULT, POINT},
+  Foundation::{HWND, POINT},
   UI::{
     Input::{
       GetRawInputData, RegisterRawInputDevices, HRAWINPUT, RAWINPUT,
@@ -25,7 +25,7 @@ use super::FOREGROUND_INPUT_IDENTIFIER;
 use crate::{
   mouse_listener::MouseEventKind,
   platform_event::{MouseButton, MouseEvent, PressedButtons},
-  Dispatcher, DispatcherExtWindows, Point, WindowId,
+  Dispatcher, DispatcherExtWindows, Point,
 };
 
 /// Data shared with the window procedure callback.
@@ -102,7 +102,7 @@ impl MouseListener {
           tracing::warn!("Failed to handle WM_INPUT message: {}", err);
         }
 
-        Some(LRESULT(0))
+        Some(0)
       },
     ))?;
 
@@ -160,7 +160,7 @@ impl MouseListener {
   /// Processes a `WM_INPUT` message, extracting raw input data and
   /// sending the appropriate [`MouseEvent`] on the channel.
   fn handle_wm_input(
-    lparam: LPARAM,
+    lparam: isize,
     enabled_events: &[MouseEventKind],
     callback_data: &mut CallbackData,
   ) -> crate::Result<()> {
@@ -171,7 +171,7 @@ impl MouseListener {
     let res_size = unsafe {
       #[allow(clippy::cast_possible_truncation)]
       GetRawInputData(
-        HRAWINPUT(lparam.0),
+        HRAWINPUT(lparam),
         RID_INPUT,
         Some(std::ptr::from_mut(&mut raw_input).cast()),
         &raw mut raw_input_size,
@@ -284,7 +284,7 @@ impl MouseListener {
 
   /// Registers or deregisters the raw input device for mouse events.
   fn enable_raw_input(
-    target_handle: WindowId,
+    target_handle: isize,
     enabled: bool,
   ) -> crate::Result<()> {
     let mode_flag = if enabled {
@@ -294,7 +294,7 @@ impl MouseListener {
     };
 
     let target_hwnd = if enabled {
-      HWND(target_handle.0)
+      HWND(target_handle)
     } else {
       HWND::default()
     };
