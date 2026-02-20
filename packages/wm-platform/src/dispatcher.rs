@@ -264,12 +264,52 @@ impl Dispatcher {
 
   /// Gets all active displays.
   ///
+  /// NOTE: Does not guarantee a specific, consistent order.
+  ///
   /// Returns all displays that are currently active and available for use.
   pub fn displays(&self) -> crate::Result<Vec<Display>> {
     platform_impl::all_displays(self)
   }
 
+  /// Gets all active displays sorted left-to-right, top-to-bottom.
+  ///
+  /// Returns all displays that are currently active and available for
+  /// use, sorted by their X coordinate (left edge), with ties broken
+  /// by Y coordinate (top edge).
+  ///
+  /// TODO: Remove this. Instead, call `sort_monitors` after populating WM
+  /// state. Need to assign workspaces after sorting monitors because of
+  /// `bind_to_monitor`.
+  pub fn sorted_displays(&self) -> crate::Result<Vec<Display>> {
+    let displays = platform_impl::all_displays(self)?;
+
+    let mut displays_with_bounds = displays
+      .into_iter()
+      .map(|display| {
+        let bounds = display.bounds()?;
+        crate::Result::Ok((display, bounds))
+      })
+      .try_collect::<Vec<_>>()?;
+
+    displays_with_bounds.sort_by(|(_, bounds_a), (_, bounds_b)| {
+      if bounds_a.x() == bounds_b.x() {
+        bounds_a.y().cmp(&bounds_b.y())
+      } else {
+        bounds_a.x().cmp(&bounds_b.x())
+      }
+    });
+
+    Ok(
+      displays_with_bounds
+        .into_iter()
+        .map(|(display, _)| display)
+        .collect(),
+    )
+  }
+
   /// Gets all display devices.
+  ///
+  /// NOTE: Does not guarantee a specific, consistent order.
   ///
   /// Returns all display devices including active, inactive, and
   /// disconnected ones.
@@ -288,10 +328,6 @@ impl Dispatcher {
   }
 
   /// Gets the primary display.
-  ///
-  /// # Platform-specific
-  ///
-  /// - **macOS**: Returns the display containing the menu bar.
   pub fn primary_display(&self) -> crate::Result<Display> {
     platform_impl::primary_display(self)
   }
@@ -308,6 +344,8 @@ impl Dispatcher {
   }
 
   /// Gets all visible windows from all running applications.
+  ///
+  /// NOTE: Does not guarantee a specific, consistent order.
   ///
   /// Returns a vector of `NativeWindow` instances for windows that are
   /// not hidden and on the current virtual desktop.
@@ -387,6 +425,7 @@ impl Dispatcher {
     }
   }
 
+  /// Gets the window at the specified point.
   pub fn window_from_point(
     &self,
     point: &Point,
@@ -423,12 +462,6 @@ impl Dispatcher {
   }
 
   /// Removes focus from the current window and focuses the desktop.
-  ///
-  /// # Platform-specific
-  ///
-  /// - **macOS**: Uses
-  ///   `NSApplicationActivationOptions::ActivateAllWindows` to activate
-  ///   the desktop application.
   pub fn reset_focus(&self) -> crate::Result<()> {
     platform_impl::reset_focus(self)
   }

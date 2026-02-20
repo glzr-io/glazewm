@@ -1,3 +1,5 @@
+#![feature(iterator_try_collect)]
+
 #[macro_use]
 extern crate libtest_mimic_collect;
 

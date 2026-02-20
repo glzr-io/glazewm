@@ -5,11 +5,11 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
-#[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
+#[cfg(target_os = "windows")]
+use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
   commands::{
@@ -109,7 +109,7 @@ impl WmState {
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_display in self.dispatcher.displays()? {
+    for native_display in self.dispatcher.sorted_displays()? {
       if let Ok(native_properties) =
         NativeMonitorProperties::try_from(&native_display)
       {
