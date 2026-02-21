@@ -98,6 +98,23 @@ pub trait DispatcherExtWindows {
   ///
   /// This method is only available on Windows.
   fn deregister_wndproc_callback(&self, id: usize) -> crate::Result<()>;
+
+  /// Gets whether system-wide window transition animations are enabled.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn window_animations_enabled(&self) -> crate::Result<bool>;
+
+  /// Enables or disables system-wide window transition animations.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_window_animations_enabled(
+    &self,
+    enable: bool,
+  ) -> crate::Result<()>;
 }
 
 #[cfg(target_os = "windows")]
@@ -123,6 +140,47 @@ impl DispatcherExtWindows for Dispatcher {
       .as_ref()
       .unwrap()
       .deregister_wndproc_callback(id)
+  }
+
+  fn window_animations_enabled(&self) -> crate::Result<bool> {
+    let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
+      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
+      iMinAnimate: 0,
+    };
+
+    unsafe {
+      SystemParametersInfoW(
+        SPI_GETANIMATION,
+        animation_info.cbSize,
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+      )
+    }?;
+
+    Ok(animation_info.iMinAnimate != 0)
+  }
+
+  fn set_window_animations_enabled(
+    &self,
+    enable: bool,
+  ) -> crate::Result<()> {
+    let mut animation_info = ANIMATIONINFO {
+      #[allow(clippy::cast_possible_truncation)]
+      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
+      iMinAnimate: i32::from(enable),
+    };
+
+    unsafe {
+      SystemParametersInfoW(
+        SPI_SETANIMATION,
+        animation_info.cbSize,
+        Some(std::ptr::from_mut(&mut animation_info).cast()),
+        SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+      )
+    }?;
+
+    Ok(())
   }
 }
 

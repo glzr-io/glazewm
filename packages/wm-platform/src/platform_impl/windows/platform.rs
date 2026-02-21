@@ -43,50 +43,6 @@ impl Platform {
     Ok(NativeWindow::new(handle.0))
   }
 
-  /// Gets whether window transition animations are currently enabled.
-  ///
-  /// Note that this is a global system setting.
-  pub fn window_animations_enabled() -> crate::Result<bool> {
-    let mut animation_info = ANIMATIONINFO {
-      #[allow(clippy::cast_possible_truncation)]
-      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
-      iMinAnimate: 0,
-    };
-
-    unsafe {
-      SystemParametersInfoW(
-        SPI_GETANIMATION,
-        animation_info.cbSize,
-        Some(std::ptr::from_mut(&mut animation_info).cast()),
-        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
-      )
-    }?;
-
-    Ok(animation_info.iMinAnimate != 0)
-  }
-
-  /// Enables or disables window transition animations.
-  ///
-  /// Note that this is a global system setting.
-  pub fn set_window_animations_enabled(enable: bool) -> crate::Result<()> {
-    let mut animation_info = ANIMATIONINFO {
-      #[allow(clippy::cast_possible_truncation)]
-      cbSize: std::mem::size_of::<ANIMATIONINFO>() as u32,
-      iMinAnimate: i32::from(enable),
-    };
-
-    unsafe {
-      SystemParametersInfoW(
-        SPI_SETANIMATION,
-        animation_info.cbSize,
-        Some(std::ptr::from_mut(&mut animation_info).cast()),
-        SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
-      )
-    }?;
-
-    Ok(())
-  }
-
   /// Parses a command string into a program name/path and arguments. This
   /// also expands any environment variables found in the command string if
   /// they are wrapped in `%` characters. If the command string is a path,

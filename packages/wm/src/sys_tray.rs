@@ -2,20 +2,27 @@ use std::{
   fmt::{self, Display},
   path::Path,
   str::FromStr,
+  sync::{Arc, Mutex},
 };
 
 use anyhow::Context;
 use tokio::sync::mpsc;
+#[cfg(target_os = "windows")]
+use tray_icon::menu::CheckMenuItem;
 use tray_icon::{
   menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIcon, TrayIconBuilder,
 };
+#[cfg(target_os = "windows")]
+use wm_platform::DispatcherExtWindows;
 use wm_platform::{Dispatcher, ThreadBound};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum TrayMenuId {
   ReloadConfig,
   ShowConfigFolder,
+  #[cfg(target_os = "windows")]
+  ToggleWindowAnimations,
   Exit,
 }
 
@@ -24,6 +31,10 @@ impl Display for TrayMenuId {
     match self {
       TrayMenuId::ReloadConfig => write!(f, "reload_config"),
       TrayMenuId::ShowConfigFolder => write!(f, "show_config_folder"),
+      #[cfg(target_os = "windows")]
+      TrayMenuId::ToggleWindowAnimations => {
+        write!(f, "toggle_window_animations")
+      }
       TrayMenuId::Exit => write!(f, "exit"),
     }
   }
@@ -36,6 +47,8 @@ impl FromStr for TrayMenuId {
     match event {
       "show_config_folder" => Ok(Self::ShowConfigFolder),
       "reload_config" => Ok(Self::ReloadConfig),
+      #[cfg(target_os = "windows")]
+      "toggle_window_animations" => Ok(Self::ToggleWindowAnimations),
       "exit" => Ok(Self::Exit),
       _ => anyhow::bail!("Invalid tray menu event: {}", event),
     }
@@ -58,8 +71,21 @@ impl SystemTray {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (config_reload_tx, config_reload_rx) = mpsc::unbounded_channel();
 
+    let animations_enabled = Arc::new(Mutex::new({
+      #[cfg(target_os = "windows")]
+      {
+        dispatcher.window_animations_enabled().unwrap_or(false)
+      }
+      #[cfg(not(target_os = "windows"))]
+      {
+        false
+      }
+    }));
+
     let tray_icon = dispatcher.dispatch_sync(|| {
-      let tray_icon = Self::create_tray_icon().unwrap();
+      let tray_icon =
+        Self::create_tray_icon(*animations_enabled.lock().unwrap())
+          .unwrap();
       ThreadBound::new(tray_icon, dispatcher.clone())
     })?;
 
@@ -76,6 +102,7 @@ impl SystemTray {
             &config_path,
             &config_reload_tx,
             &exit_tx,
+            &animations_enabled,
           ) {
             tracing::warn!("Failed to handle tray menu event: {}", err);
           }
@@ -91,7 +118,10 @@ impl SystemTray {
     })
   }
 
-  fn create_tray_icon() -> anyhow::Result<TrayIcon> {
+  fn create_tray_icon(
+    // LINT: Required for Windows.
+    #[allow(unused_variables)] animations_enabled: bool,
+  ) -> anyhow::Result<TrayIcon> {
     let reload_config_item = MenuItem::with_id(
       TrayMenuId::ReloadConfig,
       "Reload config",
@@ -106,6 +136,15 @@ impl SystemTray {
       None,
     );
 
+    #[cfg(target_os = "windows")]
+    let toggle_animations_item = CheckMenuItem::with_id(
+      TrayMenuId::ToggleWindowAnimations,
+      "Window animations",
+      true,
+      animations_enabled,
+      None,
+    );
+
     let exit_item =
       MenuItem::with_id(TrayMenuId::Exit, "Exit", true, None);
 
@@ -113,6 +152,8 @@ impl SystemTray {
     tray_menu.append_items(&[
       &reload_config_item,
       &config_dir_item,
+      #[cfg(target_os = "windows")]
+      &toggle_animations_item,
       &PredefinedMenuItem::separator(),
       &exit_item,
     ])?;
@@ -154,6 +195,8 @@ impl SystemTray {
     config_path: &Path,
     config_reload_tx: &mpsc::UnboundedSender<()>,
     exit_tx: &mpsc::UnboundedSender<()>,
+    // LINT: Required for Windows.
+    #[allow(unused_variables)] animations_enabled: &Arc<Mutex<bool>>,
   ) -> anyhow::Result<()> {
     tracing::info!("Processing tray menu event: {:?}", menu_id);
 
@@ -166,28 +209,17 @@ impl SystemTray {
         config_reload_tx.send(())?;
         Ok(())
       }
+      #[cfg(target_os = "windows")]
+      TrayMenuId::ToggleWindowAnimations => {
+        let mut animations_enabled = animations_enabled.lock().unwrap();
+        dispatcher.set_window_animations_enabled(!*animations_enabled)?;
+        *animations_enabled = !*animations_enabled;
+        Ok(())
+      }
       TrayMenuId::Exit => {
         exit_tx.send(())?;
         Ok(())
       }
-    }
-  }
-
-  /// Destroys the system tray icon and stops its associated message loop.
-  pub fn destroy(&mut self) -> anyhow::Result<()> {
-    tracing::info!("Shutting down system tray.");
-    // Tray icon and event thread will be cleaned up when the app exits
-    Ok(())
-  }
-}
-
-impl Drop for SystemTray {
-  fn drop(&mut self) {
-    if let Err(err) = self.destroy() {
-      tracing::warn!(
-        "Failed to gracefully shut down system tray: {}",
-        err
-      );
     }
   }
 }
