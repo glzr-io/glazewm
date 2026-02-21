@@ -53,6 +53,7 @@ windows-interface = { version = "0.52" }
 objc2-core-graphics = "0.3.1"
 objc2 = "0.6.1"
 objc2-app-kit = { version = "0.3.1", default-features = false, features = [
+  "NSAlert",
   "NSApplication",
   "NSEvent",
   "NSGraphics",

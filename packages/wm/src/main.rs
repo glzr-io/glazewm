@@ -67,8 +67,8 @@ fn main() -> anyhow::Result<()> {
         if let Err(err) = &start_res {
           // If unable to start the WM, the error is fatal and a message
           // dialog is shown.
-          // TODO: Show message dialog.
           tracing::error!("{:?}", err);
+          dispatcher.show_error_dialog("Fatal error", &err.to_string());
         }
 
         if let Err(err) = dispatcher.stop_event_loop() {
@@ -203,7 +203,7 @@ async fn start_wm(
 
         // Disable mouse and keybinding listeners when the WM is paused.
         if let WmEvent::PauseChanged { is_paused } = wm_event {
-          mouse_listener.enable(!is_paused);
+          let _ = mouse_listener.enable(!is_paused);
           keybinding_listener.enable(!is_paused);
         }
 
@@ -246,8 +246,7 @@ async fn start_wm(
 
     if let Err(err) = res {
       tracing::error!("{:?}", err);
-      // TODO: Show message dialog.
-      // Platform::show_error_dialog("Non-fatal error", &err.to_string());
+      dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 

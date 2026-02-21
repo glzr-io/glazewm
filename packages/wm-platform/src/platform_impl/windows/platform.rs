@@ -186,20 +186,6 @@ impl Platform {
     unsafe { ShellExecuteExW(&raw mut exec_info) }?;
     Ok(())
   }
-
-  pub fn show_error_dialog(title: &str, message: &str) {
-    let title_wide = to_wide(title);
-    let message_wide = to_wide(message);
-
-    unsafe {
-      MessageBoxW(
-        None,
-        PCWSTR(message_wide.as_ptr()),
-        PCWSTR(title_wide.as_ptr()),
-        MB_ICONERROR | MB_OK | MB_SYSTEMMODAL,
-      );
-    }
-  }
 }
 
 /// Utility function to convert a string to a null-terminated wide string.

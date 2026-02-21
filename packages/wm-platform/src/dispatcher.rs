@@ -313,7 +313,7 @@ impl Dispatcher {
     })?;
 
     result_rx
-      .recv_timeout(std::time::Duration::from_millis(3000))
+      .recv_timeout(std::time::Duration::from_millis(5000))
       .map_err(crate::Error::ChannelRecv)
   }
 
@@ -557,6 +557,55 @@ impl Dispatcher {
     }
 
     Ok(())
+  }
+
+  /// Shows a modal error dialog with the given title and message.
+  ///
+  /// Blocks the current thread until the user dismisses the dialog.
+  pub fn show_error_dialog(&self, title: &str, message: &str) {
+    #[cfg(target_os = "windows")]
+    {
+      use windows::Win32::{
+        Foundation::PCWSTR,
+        UI::WindowsAndMessaging::{
+          MessageBoxW, MB_ICONERROR, MB_OK, MB_SYSTEMMODAL,
+        },
+      };
+
+      let title_wide =
+        title.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+      let message_wide =
+        message.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+
+      unsafe {
+        MessageBoxW(
+          None,
+          PCWSTR(message_wide.as_ptr()),
+          PCWSTR(title_wide.as_ptr()),
+          MB_ICONERROR | MB_OK | MB_SYSTEMMODAL,
+        );
+      }
+    }
+    #[cfg(target_os = "macos")]
+    {
+      use objc2::MainThreadMarker;
+      use objc2_app_kit::{NSAlert, NSAlertStyle};
+      use objc2_foundation::NSString;
+
+      // TODO: This should block indefinitely. Currently, it gets timed out
+      // after 5 seconds.
+      let _ = self.dispatch_sync(|| {
+        let mtm = MainThreadMarker::new().unwrap();
+
+        unsafe {
+          let alert = NSAlert::new(mtm);
+          alert.setMessageText(&NSString::from_str(title));
+          alert.setInformativeText(&NSString::from_str(message));
+          alert.setAlertStyle(NSAlertStyle::Critical);
+          alert.runModal();
+        };
+      });
+    }
   }
 }
 
