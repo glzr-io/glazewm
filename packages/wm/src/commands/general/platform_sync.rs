@@ -47,7 +47,7 @@ pub fn platform_sync(
     let prev_effects_window = state.prev_effects_window.clone();
 
     if let Ok(window) = focused_container.as_window_container() {
-      apply_window_effects(&window, true, config);
+      apply_window_effects(&window, true, config, state);
       state.prev_effects_window = Some(window.clone());
     } else {
       state.prev_effects_window = None;
@@ -67,7 +67,7 @@ pub fn platform_sync(
       .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
-      apply_window_effects(&window, false, config);
+      apply_window_effects(&window, false, config, state);
     }
   }
 
@@ -358,7 +358,20 @@ fn apply_window_effects(
   window: &WindowContainer,
   is_focused: bool,
   config: &UserConfig,
+  state: &WmState,
 ) {
+  // Skip effects for ignored windows (e.g. games in borderless windowed
+  // mode) and fullscreen windows.
+  let is_ignored = state
+    .ignored_windows
+    .iter()
+    .any(|ignored| ignored == &*window.native());
+  let is_fullscreen =
+    matches!(window.state(), WindowState::Fullscreen(_));
+
+  if is_ignored || is_fullscreen {
+    return;
+  }
   let window_effects = &config.value.window_effects;
 
   let effect_config = if is_focused {
