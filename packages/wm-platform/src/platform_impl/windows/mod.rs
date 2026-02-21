@@ -9,7 +9,6 @@ mod platform;
 mod single_instance;
 mod window_listener;
 
-pub(crate) use com::*;
 pub use display::*;
 pub(crate) use display_listener::*;
 pub use event_loop::*;

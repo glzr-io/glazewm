@@ -49,6 +49,7 @@ pub struct NativeWindow {
 }
 
 impl NativeWindow {
+  /// Gets the unique identifier for this window.
   #[must_use]
   pub fn id(&self) -> WindowId {
     self.inner.id()
@@ -82,10 +83,12 @@ impl NativeWindow {
     self.inner.frame()
   }
 
+  /// Gets the window's position as (x, y) coordinates.
   pub fn position(&self) -> crate::Result<(f64, f64)> {
     self.inner.position()
   }
 
+  /// Gets the window's size as (width, height).
   pub fn size(&self) -> crate::Result<(f64, f64)> {
     self.inner.size()
   }

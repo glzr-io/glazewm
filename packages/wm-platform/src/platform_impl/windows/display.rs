@@ -70,7 +70,7 @@ pub trait DisplayDeviceExtWindows {
 
 impl DisplayExtWindows for crate::Display {
   fn hmonitor(&self) -> HMONITOR {
-    HMONITOR(self.inner.monitor_handle)
+    self.inner.hmonitor()
   }
 }
 
@@ -90,24 +90,30 @@ impl DisplayDeviceExtWindows for crate::DisplayDevice {
 
 /// Windows-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
-pub struct Display {
+pub(crate) struct Display {
   pub(crate) monitor_handle: isize,
 }
 
 impl Display {
-  /// Creates a new Windows display from monitor handle.
+  /// Windows-specific implementation of [`Display::new`].
   #[must_use]
-  pub fn new(monitor_handle: isize) -> Self {
+  pub(crate) fn new(monitor_handle: isize) -> Self {
     Self { monitor_handle }
   }
 
-  /// Gets the unique identifier for this display.
-  pub fn id(&self) -> DisplayId {
+  /// Windows-specific implementation of
+  /// [`DisplayExtWindows::hmonitor`].
+  pub(crate) fn hmonitor(&self) -> HMONITOR {
+    HMONITOR(self.monitor_handle)
+  }
+
+  /// Windows-specific implementation of [`Display::id`].
+  pub(crate) fn id(&self) -> DisplayId {
     DisplayId(self.monitor_handle)
   }
 
-  /// Gets the display name.
-  pub fn name(&self) -> crate::Result<String> {
+  /// Windows-specific implementation of [`Display::name`].
+  pub(crate) fn name(&self) -> crate::Result<String> {
     Ok(
       String::from_utf16_lossy(&self.monitor_info_ex()?.szDevice)
         .trim_end_matches('\0')
@@ -115,27 +121,27 @@ impl Display {
     )
   }
 
-  /// Gets the full bounds rectangle of the display.
-  pub fn bounds(&self) -> crate::Result<Rect> {
+  /// Windows-specific implementation of [`Display::bounds`].
+  pub(crate) fn bounds(&self) -> crate::Result<Rect> {
     let rc = self.monitor_info_ex()?.monitorInfo.rcMonitor;
     Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
-  /// Gets the working area rectangle (excluding system UI).
-  pub fn working_area(&self) -> crate::Result<Rect> {
+  /// Windows-specific implementation of [`Display::working_area`].
+  pub(crate) fn working_area(&self) -> crate::Result<Rect> {
     let rc = self.monitor_info_ex()?.monitorInfo.rcWork;
     Ok(Rect::from_ltrb(rc.left, rc.top, rc.right, rc.bottom))
   }
 
-  /// Gets the scale factor for the display.
-  pub fn scale_factor(&self) -> crate::Result<f32> {
+  /// Windows-specific implementation of [`Display::scale_factor`].
+  pub(crate) fn scale_factor(&self) -> crate::Result<f32> {
     let dpi = self.dpi()?;
     #[allow(clippy::cast_precision_loss)]
     Ok(dpi as f32 / 96.0)
   }
 
-  /// Gets the DPI for the display.
-  pub fn dpi(&self) -> crate::Result<u32> {
+  /// Windows-specific implementation of [`Display::dpi`].
+  pub(crate) fn dpi(&self) -> crate::Result<u32> {
     let mut dpi_x = u32::default();
     let mut dpi_y = u32::default();
 
@@ -152,17 +158,16 @@ impl Display {
     Ok(dpi_y)
   }
 
-  /// Returns whether this is the primary display.
-  pub fn is_primary(&self) -> crate::Result<bool> {
+  /// Windows-specific implementation of [`Display::is_primary`].
+  pub(crate) fn is_primary(&self) -> crate::Result<bool> {
     // Check for `MONITORINFOF_PRIMARY` flag (`0x1`).
     Ok(self.monitor_info_ex()?.monitorInfo.dwFlags & 0x1 != 0)
   }
 
-  /// Gets the display devices for this display.
-  ///
-  /// Enumerates monitor devices attached to the adapter associated with
-  /// this display.
-  pub fn devices(&self) -> crate::Result<Vec<crate::DisplayDevice>> {
+  /// Windows-specific implementation of [`Display::devices`].
+  pub(crate) fn devices(
+    &self,
+  ) -> crate::Result<Vec<crate::DisplayDevice>> {
     let monitor_info = self.monitor_info_ex()?;
 
     let adapter_name = String::from_utf16_lossy(&monitor_info.szDevice)
@@ -209,8 +214,8 @@ impl Display {
     Ok(devices)
   }
 
-  /// Gets the main device (first non-mirroring device) for this display.
-  pub fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
+  /// Windows-specific implementation of [`Display::main_device`].
+  pub(crate) fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
     self
       .devices()?
       .into_iter()
@@ -262,7 +267,7 @@ impl Eq for Display {}
 
 /// Windows-specific implementation of [`DisplayDevice`].
 #[derive(Clone, Debug)]
-pub struct DisplayDevice {
+pub(crate) struct DisplayDevice {
   /// Display adapter name (e.g. `\\.\DISPLAY1`).
   adapter_name: String,
 
@@ -273,26 +278,20 @@ pub struct DisplayDevice {
 }
 
 impl DisplayDevice {
-  /// Creates a new Windows display device.
+  /// Windows-specific implementation of [`DisplayDevice::new`].
   #[must_use]
-  pub fn new(adapter_name: String, device_interface_path: String) -> Self {
+  pub(crate) fn new(
+    adapter_name: String,
+    device_interface_path: String,
+  ) -> Self {
     Self {
       adapter_name,
       device_interface_path,
     }
   }
 
-  /// Gets the hardware ID from the device interface path.
-  fn hardware_id(&self) -> Option<String> {
-    self
-      .device_interface_path
-      .split('#')
-      .nth(1)
-      .map(ToString::to_string)
-  }
-
-  /// Gets the unique identifier for this display device.
-  pub fn id(&self) -> DisplayDeviceId {
+  /// Windows-specific implementation of [`DisplayDevice::id`].
+  pub(crate) fn id(&self) -> DisplayDeviceId {
     // TODO: Display adapter name might not be unique.
     DisplayDeviceId(
       self
@@ -301,8 +300,18 @@ impl DisplayDevice {
     )
   }
 
-  /// Gets the rotation of the device in degrees.
-  pub fn rotation(&self) -> crate::Result<f32> {
+  /// Windows-specific implementation of
+  /// [`DisplayDeviceExtWindows::hardware_id`].
+  fn hardware_id(&self) -> Option<String> {
+    self
+      .device_interface_path
+      .split('#')
+      .nth(1)
+      .map(ToString::to_string)
+  }
+
+  /// Windows-specific implementation of [`DisplayDevice::rotation`].
+  pub(crate) fn rotation(&self) -> crate::Result<f32> {
     let orientation = unsafe {
       self
         .current_device_mode()?
@@ -319,36 +328,41 @@ impl DisplayDevice {
     })
   }
 
-  /// Gets the output technology.
-  pub fn output_technology(
+  /// Windows-specific implementation of
+  /// [`DisplayDeviceExtWindows::output_technology`].
+  pub(crate) fn output_technology(
     &self,
   ) -> crate::Result<Option<OutputTechnology>> {
     // TODO: Use `DisplayConfigGetDeviceInfo` to get the output technology.
     Ok(Some(OutputTechnology::Unknown))
   }
 
-  /// Returns whether this is a built-in device.
-  pub fn is_builtin(&self) -> crate::Result<bool> {
+  /// Windows-specific implementation of [`DisplayDevice::is_builtin`].
+  pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Use `DisplayConfigGetDeviceInfo` to determine whether the
     // output technology is internal.
     Ok(false)
   }
 
-  /// Gets the connection state of the device.
-  pub fn connection_state(&self) -> crate::Result<ConnectionState> {
+  /// Windows-specific implementation of
+  /// [`DisplayDevice::connection_state`].
+  pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
     // TODO: Detect disconnected state.
     Ok(ConnectionState::Active)
   }
 
-  /// Gets the mirroring state of the device.
-  pub fn mirroring_state(&self) -> crate::Result<Option<MirroringState>> {
+  /// Windows-specific implementation of
+  /// [`DisplayDevice::mirroring_state`].
+  pub(crate) fn mirroring_state(
+    &self,
+  ) -> crate::Result<Option<MirroringState>> {
     // TODO: Implement mirroring detection using
     // `DisplayConfigGetDeviceInfo`.
     Ok(None)
   }
 
-  /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> crate::Result<f32> {
+  /// Windows-specific implementation of [`DisplayDevice::refresh_rate`].
+  pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
   }
@@ -387,7 +401,9 @@ impl From<DisplayDevice> for crate::DisplayDevice {
 }
 
 /// Windows-specific implementation of [`Dispatcher::displays`].
-pub fn all_displays(_: &Dispatcher) -> crate::Result<Vec<crate::Display>> {
+pub(crate) fn all_displays(
+  _: &Dispatcher,
+) -> crate::Result<Vec<crate::Display>> {
   let mut monitor_handles: Vec<isize> = Vec::new();
 
   // Callback for `EnumDisplayMonitors` to collect monitor handles.
@@ -424,7 +440,7 @@ pub fn all_displays(_: &Dispatcher) -> crate::Result<Vec<crate::Display>> {
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_devices`].
-pub fn all_display_devices(
+pub(crate) fn all_display_devices(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
   all_displays(dispatcher)?
@@ -435,7 +451,7 @@ pub fn all_display_devices(
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_from_point`].
-pub fn display_from_point(
+pub(crate) fn display_from_point(
   point: Point,
   _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -453,7 +469,9 @@ pub fn display_from_point(
 }
 
 /// Windows-specific implementation of [`Dispatcher::primary_display`].
-pub fn primary_display(_: &Dispatcher) -> crate::Result<crate::Display> {
+pub(crate) fn primary_display(
+  _: &Dispatcher,
+) -> crate::Result<crate::Display> {
   let handle = unsafe {
     MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY)
   };
@@ -462,7 +480,7 @@ pub fn primary_display(_: &Dispatcher) -> crate::Result<crate::Display> {
 }
 
 /// Windows-specific implementation of [`Dispatcher::nearest_display`].
-pub fn nearest_display(
+pub(crate) fn nearest_display(
   native_window: &NativeWindow,
   _: &Dispatcher,
 ) -> crate::Result<crate::Display> {

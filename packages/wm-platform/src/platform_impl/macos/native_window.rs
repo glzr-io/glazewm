@@ -498,7 +498,6 @@ pub(crate) fn window_from_point(
     return Ok(None);
   }
 
-  // Find the corresponding `NativeWindow`.
   window_by_id(window_id, dispatcher)
     .map_err(|_| crate::Error::WindowNotFound)
 }
@@ -514,7 +513,7 @@ pub(crate) fn focused_window(
         .frontmostApplication()
         .map(|app| Application::new(app, dispatcher.clone()));
 
-      // Query the focused window of the frontmost application.
+      // Get the focused window of the frontmost application.
       frontmost_app.and_then(|app| app.focused_window().ok().flatten())
     })?
     .ok_or(crate::Error::WindowNotFound)

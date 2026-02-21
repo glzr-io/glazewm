@@ -5,6 +5,8 @@ use crate::{platform_impl, Dispatcher, WindowEvent};
 /// A listener for system-wide window events.
 pub struct WindowListener {
   event_rx: mpsc::UnboundedReceiver<WindowEvent>,
+
+  /// Inner platform-specific window listener.
   inner: platform_impl::WindowListener,
 }
 
