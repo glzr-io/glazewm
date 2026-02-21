@@ -5,12 +5,8 @@ use tokio::sync::mpsc;
 
 use crate::{
   platform_impl::{
-    self,
-    classes::{
-      NotificationCenter, NotificationEvent, NotificationName,
-      NotificationObserver,
-    },
-    Application, ApplicationObserver, ProcessId,
+    self, Application, ApplicationObserver, NotificationCenter,
+    NotificationEvent, NotificationName, NotificationObserver, ProcessId,
   },
   Dispatcher, WindowEvent,
 };

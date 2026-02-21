@@ -2,7 +2,7 @@ use objc2::rc::Retained;
 use tokio::sync::mpsc;
 
 use crate::{
-  platform_impl::classes::{
+  platform_impl::{
     NotificationCenter, NotificationName, NotificationObserver,
   },
   Dispatcher, ThreadBound,
