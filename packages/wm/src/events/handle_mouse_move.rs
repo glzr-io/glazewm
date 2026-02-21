@@ -1,5 +1,7 @@
 use anyhow::Context;
 use wm_common::try_warn;
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
@@ -84,6 +86,8 @@ pub fn handle_mouse_move(
         state
           .dispatcher
           .window_from_point(position)?
+          .map(|native| native.root_window())
+          .ok()
           .and_then(|native| state.window_from_native(&native))
       }
     };

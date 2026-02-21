@@ -7,7 +7,7 @@ use std::{
 use windows::{
   core::{w, PCWSTR},
   Win32::{
-    Foundation::{HANDLE, HWND, LPARAM, WPARAM},
+    Foundation::{HANDLE, LPARAM, WPARAM},
     System::{
       Environment::ExpandEnvironmentStringsW, Threading::GetThreadId,
     },
@@ -17,11 +17,11 @@ use windows::{
         SHELLEXECUTEINFOW,
       },
       WindowsAndMessaging::{
-        CreateWindowExW, DispatchMessageW, GetAncestor, GetMessageW,
-        MessageBoxW, PeekMessageW, PostThreadMessageW, RegisterClassW,
+        CreateWindowExW, DispatchMessageW, GetMessageW, MessageBoxW,
+        PeekMessageW, PostThreadMessageW, RegisterClassW,
         SystemParametersInfoW, TranslateMessage, ANIMATIONINFO,
-        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GA_ROOT, MB_ICONERROR,
-        MB_OK, MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
+        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MB_ICONERROR, MB_OK,
+        MB_SYSTEMMODAL, MSG, PM_REMOVE, SPIF_SENDCHANGE,
         SPIF_UPDATEINIFILE, SPI_GETANIMATION, SPI_SETANIMATION, SW_HIDE,
         SW_NORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WINDOW_EX_STYLE,
         WM_QUIT, WNDCLASSW, WNDPROC, WS_OVERLAPPEDWINDOW,
@@ -30,19 +30,9 @@ use windows::{
   },
 };
 
-use super::NativeWindow;
-
 pub struct Platform;
 
 impl Platform {
-  // Gets the root window of the specified window.
-  pub fn root_ancestor(
-    window: &NativeWindow,
-  ) -> crate::Result<NativeWindow> {
-    let handle = unsafe { GetAncestor(HWND(window.handle), GA_ROOT) };
-    Ok(NativeWindow::new(handle.0))
-  }
-
   /// Parses a command string into a program name/path and arguments. This
   /// also expands any environment variables found in the command string if
   /// they are wrapped in `%` characters. If the command string is a path,

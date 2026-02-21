@@ -21,21 +21,21 @@ use windows::{
         SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
       },
       WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetDesktopWindow, GetForegroundWindow,
-        GetLayeredWindowAttributes, GetShellWindow, GetWindow,
-        GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
+        EnumWindows, GetAncestor, GetClassNameW, GetDesktopWindow,
+        GetForegroundWindow, GetLayeredWindowAttributes, GetShellWindow,
+        GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
         GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
         SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
-        SetWindowPos, ShowWindowAsync, WindowFromPoint, GWL_EXSTYLE,
-        GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
-        LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA, LWA_COLORKEY,
-        SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-        SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-        SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
-        SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SW_SHOWNA,
-        WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE,
-        WPF_ASYNCWINDOWPLACEMENT, WS_DLGFRAME, WS_EX_LAYERED,
+        SetWindowPos, ShowWindowAsync, WindowFromPoint, GA_ROOT,
+        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP,
+        HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA,
+        LWA_COLORKEY, SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS,
+        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
+        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
+        SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
+        WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_DLGFRAME, WS_EX_LAYERED,
         WS_THICKFRAME,
       },
     },
@@ -227,6 +227,13 @@ pub trait NativeWindowWindowsExt {
     &self,
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()>;
+
+  /// Gets the root ancestor (top-level) window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn root_window(&self) -> crate::Result<crate::NativeWindow>;
 }
 
 impl NativeWindowWindowsExt for crate::NativeWindow {
@@ -326,6 +333,18 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()> {
     self.inner.adjust_transparency(opacity_delta)
+  }
+
+  fn root_window(&self) -> crate::Result<crate::NativeWindow> {
+    let handle = unsafe { GetAncestor(self.inner.hwnd(), GA_ROOT) };
+
+    if handle.0 == 0 {
+      return Err(crate::Error::Platform(
+        "Failed to get root ancestor window.".to_string(),
+      ));
+    }
+
+    Ok(NativeWindow::new(handle.0).into())
   }
 }
 
