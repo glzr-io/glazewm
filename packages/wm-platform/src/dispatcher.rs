@@ -16,6 +16,16 @@ use crate::{
 /// Type alias for a closure to be executed by the event loop.
 pub type DispatchFn = dyn FnOnce() + Send + 'static;
 
+/// A callback that pre-processes window procedure messages received by the
+/// event loop.
+///
+/// Mirrors the Win32 [`WNDPROC`] signature. Returns `Some(lresult)` if
+/// the message was handled, or `None` to pass it along.
+///
+/// [`WNDPROC`]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-wndproc
+pub type WndProcCallback =
+  dyn Fn(isize, u32, usize, isize) -> Option<isize> + Send + 'static;
+
 /// macOS-specific extensions for `Dispatcher`.
 #[cfg(target_os = "macos")]
 pub trait DispatcherExtMacOs {

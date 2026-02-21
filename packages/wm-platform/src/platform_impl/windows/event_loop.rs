@@ -21,7 +21,7 @@ use windows::{
   },
 };
 
-use crate::{DispatchFn, Dispatcher};
+use crate::{DispatchFn, Dispatcher, WndProcCallback};
 
 thread_local! {
   /// Custom message ID for dispatching closures to be run on the event
@@ -41,16 +41,6 @@ thread_local! {
   static WNDPROC_CALLBACKS: RefCell<HashMap<usize, Box<WndProcCallback>>> =
     RefCell::new(HashMap::new());
 }
-
-/// A callback that pre-processes window procedure messages received by the
-/// event loop.
-///
-/// Mirrors the Win32 [`WNDPROC`] signature. Returns `Some(lresult)` if
-/// the message was handled, or `None` to pass it along.
-///
-/// [`WNDPROC`]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-wndproc
-pub type WndProcCallback =
-  dyn Fn(isize, u32, usize, isize) -> Option<isize> + Send + 'static;
 
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {

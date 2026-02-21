@@ -11,7 +11,7 @@ mod window_listener;
 
 pub use display::*;
 pub(crate) use display_listener::*;
-pub use event_loop::*;
+pub(crate) use event_loop::*;
 pub(crate) use keyboard_hook::*;
 pub(crate) use mouse_listener::*;
 pub use native_window::*;
