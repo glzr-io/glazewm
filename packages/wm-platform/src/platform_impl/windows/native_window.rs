@@ -227,13 +227,6 @@ pub trait NativeWindowWindowsExt {
     &self,
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()>;
-
-  /// Gets the root ancestor (top-level) window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn root_window(&self) -> crate::Result<crate::NativeWindow>;
 }
 
 impl NativeWindowWindowsExt for crate::NativeWindow {
@@ -333,18 +326,6 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()> {
     self.inner.adjust_transparency(opacity_delta)
-  }
-
-  fn root_window(&self) -> crate::Result<crate::NativeWindow> {
-    let handle = unsafe { GetAncestor(self.inner.hwnd(), GA_ROOT) };
-
-    if handle.0 == 0 {
-      return Err(crate::Error::Platform(
-        "Failed to get root ancestor window.".to_string(),
-      ));
-    }
-
-    Ok(NativeWindow::new(handle.0).into())
   }
 }
 
@@ -1096,12 +1077,16 @@ pub(crate) fn window_from_point(
   };
 
   let handle = unsafe { WindowFromPoint(point) };
-
   if handle.0 == 0 {
     return Ok(None);
   }
 
-  Ok(Some(NativeWindow::new(handle.0).into()))
+  let root = unsafe { GetAncestor(handle, GA_ROOT) };
+  if root.0 == 0 {
+    return Ok(None);
+  }
+
+  Ok(Some(NativeWindow::new(root.0).into()))
 }
 
 /// Windows-specific implementation of [`Dispatcher::reset_focus`].

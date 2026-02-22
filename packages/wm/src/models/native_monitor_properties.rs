@@ -1,4 +1,6 @@
 use wm_platform::{Display, Rect};
+#[cfg(target_os = "windows")]
+use wm_platform::{DisplayDeviceExtWindows, DisplayExtWindows};
 
 #[derive(Debug, Clone)]
 pub struct NativeMonitorProperties {

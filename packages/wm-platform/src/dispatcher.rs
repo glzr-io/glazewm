@@ -509,7 +509,7 @@ impl Dispatcher {
     }
   }
 
-  /// Gets the window at the specified point.
+  /// Gets the top-level window at the specified point.
   pub fn window_from_point(
     &self,
     point: &Point,

@@ -1,6 +1,4 @@
 use anyhow::Context;
-#[cfg(target_os = "windows")]
-use wm_platform::{DisplayDeviceExtWindows, DisplayExtWindows};
 
 use crate::{
   commands::monitor::{
@@ -115,20 +113,21 @@ fn find_matching_monitor<'a>(
       #[cfg(target_os = "windows")]
       {
         existing.handle == properties.handle
-          || existing.device_path.is_some_and(|device_path| {
-            device_path == properties.device_path()
+          || existing.device_path.as_deref().is_some_and(|device_path| {
+            properties.device_path.as_deref() == Some(device_path)
           })
-          || existing.hardware_id.is_some_and(|hardware_id| {
+          || existing.hardware_id.as_deref().is_some_and(|hardware_id| {
             let is_unique = monitors
               .iter()
               .filter(|other_monitor| {
-                other_monitor.native_properties().hardware_id
-                  == hardware_id
+                other_monitor.native_properties().hardware_id.as_deref()
+                  == Some(hardware_id)
               })
               .count()
               == 1;
 
-            is_unique && hardware_id == properties.hardware_id
+            is_unique
+              && properties.hardware_id.as_deref() == Some(hardware_id)
           })
       }
     };

@@ -37,21 +37,21 @@ pub trait DisplayExtWindows {
 
 /// Windows-specific extensions for `DisplayDevice`.
 pub trait DisplayDeviceExtWindows {
-  /// Gets the device interface path.
+  /// Gets the device path.
   ///
   /// This can be an empty string for virtual display devices.
   ///
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  fn device_interface_path(&self) -> &str;
+  fn device_path(&self) -> Option<String>;
 
-  /// Gets the hardware ID from the device interface path.
+  /// Gets the hardware ID from the device path.
   ///
   /// # Example usage
   ///
   /// ```rust,no_run
-  /// device.device_interface_path(); // "\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
+  /// device.device_path(); // "\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
   /// device.hardware_id(); // Some("DEL40A3")
   /// ```
   ///
@@ -75,8 +75,8 @@ impl DisplayExtWindows for crate::Display {
 }
 
 impl DisplayDeviceExtWindows for crate::DisplayDevice {
-  fn device_interface_path(&self) -> &str {
-    &self.inner.device_interface_path
+  fn device_path(&self) -> Option<String> {
+    self.inner.device_path.clone()
   }
 
   fn hardware_id(&self) -> Option<String> {
@@ -184,8 +184,8 @@ impl Display {
         };
 
         // When passing the `EDD_GET_DEVICE_INTERFACE_NAME` flag, the
-        // returned `DISPLAY_DEVICEW` will contain the device interface
-        // path in the `DeviceID` field.
+        // returned `DISPLAY_DEVICEW` will contain the device path in the
+        // `DeviceID` field.
         unsafe {
           EnumDisplayDevicesW(
             PCWSTR(monitor_info.szDevice.as_ptr()),
@@ -200,14 +200,7 @@ impl Display {
       // Filter out any devices that are not active.
       .filter(|device| device.StateFlags & DISPLAY_DEVICE_ACTIVE != 0)
       .map(|device| {
-        // NOTE: This may be an empty string for virtual display devices.
-        let device_interface_path =
-          String::from_utf16_lossy(&device.DeviceID)
-            .trim_end_matches('\0')
-            .to_string();
-
-        DisplayDevice::new(adapter_name.clone(), device_interface_path)
-          .into()
+        DisplayDevice::new(adapter_name.clone(), &device.DeviceID).into()
       })
       .collect();
 
@@ -274,19 +267,25 @@ pub(crate) struct DisplayDevice {
   /// Device interface path (e.g.
   /// `\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#
   /// {e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}`).
-  device_interface_path: String,
+  device_path: Option<String>,
 }
 
 impl DisplayDevice {
   /// Windows-specific implementation of [`DisplayDevice::new`].
   #[must_use]
-  pub(crate) fn new(
-    adapter_name: String,
-    device_interface_path: String,
-  ) -> Self {
+  pub(crate) fn new(adapter_name: String, device_path: &[u16]) -> Self {
+    // NOTE: This may be an empty string for virtual display devices.
+    let device_path = String::from_utf16_lossy(device_path)
+      .trim_end_matches('\0')
+      .to_string();
+
+    // Check that the device path is valid. If not, set it to `None`.
+    let device_path =
+      (device_path.split('#').count() >= 4).then_some(device_path);
+
     Self {
       adapter_name,
-      device_interface_path,
+      device_path,
     }
   }
 
@@ -304,7 +303,8 @@ impl DisplayDevice {
   /// [`DisplayDeviceExtWindows::hardware_id`].
   fn hardware_id(&self) -> Option<String> {
     self
-      .device_interface_path
+      .device_path
+      .as_deref()?
       .split('#')
       .nth(1)
       .map(ToString::to_string)

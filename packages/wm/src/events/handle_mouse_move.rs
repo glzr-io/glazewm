@@ -86,8 +86,6 @@ pub fn handle_mouse_move(
         state
           .dispatcher
           .window_from_point(position)?
-          .map(|native| native.root_window())
-          .ok()
           .and_then(|native| state.window_from_native(&native))
       }
     };
