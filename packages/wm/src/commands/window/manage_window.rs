@@ -199,11 +199,12 @@ fn create_window(
       native_properties.frame.clone()
     };
 
-    // Clamp the window size to 90% of the workspace size.
-    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+    // Clamp the window size to be within the workspace's outer gaps. 10px
+    // is arbitrary - helps differentiate from tiling windows.
+    let max_workspace_rect = target_workspace.max_workspace_rect()?;
     placement.clamp_size(
-      (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
-      (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
+      max_workspace_rect.width() - 10,
+      max_workspace_rect.height() - 10,
     )
   };
 
