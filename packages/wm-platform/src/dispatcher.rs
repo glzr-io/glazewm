@@ -8,6 +8,39 @@ use std::{
 };
 
 #[cfg(target_os = "macos")]
+use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSAlert, NSAlertStyle, NSEvent};
+#[cfg(target_os = "macos")]
+use objc2_application_services::{
+  kAXTrustedCheckOptionPrompt, AXIsProcessTrustedWithOptions,
+};
+#[cfg(target_os = "macos")]
+use objc2_core_foundation::{CFBoolean, CFDictionary, CGPoint};
+#[cfg(target_os = "macos")]
+use objc2_core_graphics::{CGError, CGEvent, CGWarpMouseCursorPosition};
+#[cfg(target_os = "macos")]
+use objc2_foundation::NSString;
+#[cfg(target_os = "windows")]
+use windows::{
+  core::PCWSTR,
+  Win32::{
+    Foundation::POINT,
+    UI::{
+      Input::KeyboardAndMouse::{
+        GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
+      },
+      WindowsAndMessaging::{
+        GetCursorPos, MessageBoxW, SetCursorPos, SystemParametersInfoW,
+        ANIMATIONINFO, MB_ICONERROR, MB_OK, MB_SYSTEMMODAL,
+        SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SPI_GETANIMATION,
+        SPI_SETANIMATION, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+      },
+    },
+  },
+};
+
+#[cfg(target_os = "macos")]
 use crate::platform_impl::Application;
 use crate::{
   platform_impl, Display, DisplayDevice, MouseButton, NativeWindow, Point,
@@ -54,11 +87,6 @@ impl DispatcherExtMacOs for Dispatcher {
   }
 
   fn has_ax_permission(&self, prompt: bool) -> bool {
-    use objc2_application_services::{
-      kAXTrustedCheckOptionPrompt, AXIsProcessTrustedWithOptions,
-    };
-    use objc2_core_foundation::{CFBoolean, CFDictionary};
-
     let options = CFDictionary::from_slices(
       &[unsafe { kAXTrustedCheckOptionPrompt }],
       &[CFBoolean::new(prompt)],
@@ -432,8 +460,6 @@ impl Dispatcher {
   pub fn cursor_position(&self) -> crate::Result<Point> {
     #[cfg(target_os = "macos")]
     {
-      use objc2_core_graphics::CGEvent;
-
       let event = unsafe { CGEvent::new(None) };
       let point = unsafe { CGEvent::location(event.as_deref()) };
 
@@ -445,10 +471,6 @@ impl Dispatcher {
     }
     #[cfg(target_os = "windows")]
     {
-      use windows::Win32::{
-        Foundation::POINT, UI::WindowsAndMessaging::GetCursorPos,
-      };
-
       let mut point = POINT { x: 0, y: 0 };
       unsafe { GetCursorPos(&raw mut point) }?;
 
@@ -464,8 +486,6 @@ impl Dispatcher {
   pub fn is_mouse_down(&self, button: &MouseButton) -> bool {
     #[cfg(target_os = "macos")]
     {
-      use objc2_app_kit::NSEvent;
-
       let bit_index = match button {
         MouseButton::Left => 0usize,
         MouseButton::Right => 1usize,
@@ -477,10 +497,6 @@ impl Dispatcher {
     }
     #[cfg(target_os = "windows")]
     {
-      use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
-      };
-
       // Virtual-key codes for mouse buttons.
       let vk_code = match button {
         MouseButton::Left => VK_LBUTTON.0,
@@ -505,9 +521,6 @@ impl Dispatcher {
   pub fn set_cursor_position(&self, point: &Point) -> crate::Result<()> {
     #[cfg(target_os = "macos")]
     {
-      use objc2_core_foundation::CGPoint;
-      use objc2_core_graphics::{CGError, CGWarpMouseCursorPosition};
-
       let point = CGPoint {
         x: f64::from(point.x),
         y: f64::from(point.y),
@@ -521,8 +534,6 @@ impl Dispatcher {
     }
     #[cfg(target_os = "windows")]
     {
-      use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
-
       unsafe { SetCursorPos(point.x, point.y) }?;
     }
 
@@ -565,13 +576,6 @@ impl Dispatcher {
   pub fn show_error_dialog(&self, title: &str, message: &str) {
     #[cfg(target_os = "windows")]
     {
-      use windows::Win32::{
-        Foundation::PCWSTR,
-        UI::WindowsAndMessaging::{
-          MessageBoxW, MB_ICONERROR, MB_OK, MB_SYSTEMMODAL,
-        },
-      };
-
       let title_wide =
         title.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
       let message_wide =
@@ -588,10 +592,6 @@ impl Dispatcher {
     }
     #[cfg(target_os = "macos")]
     {
-      use objc2::MainThreadMarker;
-      use objc2_app_kit::{NSAlert, NSAlertStyle};
-      use objc2_foundation::NSString;
-
       // TODO: This should block indefinitely. Currently, it gets timed out
       // after 5 seconds.
       let _ = self.dispatch_sync(|| {

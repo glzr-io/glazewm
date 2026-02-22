@@ -71,6 +71,7 @@ impl DisplayListener {
                   WM_DEVICECHANGE => {
                     wparam as u32 == DBT_DEVNODES_CHANGED
                   }
+                  _ => unreachable!(),
                 }
               }
             };

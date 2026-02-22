@@ -266,7 +266,7 @@ impl PartialEq for Display {
 impl Eq for Display {}
 
 /// Windows-specific implementation of [`DisplayDevice`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DisplayDevice {
   /// Display adapter name (e.g. `\\.\DISPLAY1`).
   adapter_name: String,

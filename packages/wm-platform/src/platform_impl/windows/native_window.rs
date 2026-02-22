@@ -42,7 +42,7 @@ use windows::{
   },
 };
 
-use super::COM_INIT;
+use super::com::{ComInit, IApplicationView, COM_INIT};
 use crate::{
   Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
   Rect, RectDelta, WindowId, ZOrder,
@@ -438,7 +438,7 @@ impl NativeWindow {
     &self,
     fullscreen: bool,
   ) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
+    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
       let taskbar_list = com_init.taskbar_list()?;
 
       unsafe {
@@ -662,10 +662,10 @@ impl NativeWindow {
   /// Windows-specific implementation of
   /// [`NativeWindowWindowsExt::set_cloaked`].
   pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
+    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
       let view_collection = com_init.application_view_collection()?;
 
-      let mut view = None;
+      let mut view: Option<IApplicationView> = None;
       unsafe {
         view_collection.get_view_for_hwnd(self.hwnd().0, &raw mut view)
       }
@@ -692,7 +692,7 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> crate::Result<()> {
-    COM_INIT.with(|com_init| -> crate::Result<()> {
+    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
       let taskbar_list = com_init.taskbar_list()?;
 
       if visible {

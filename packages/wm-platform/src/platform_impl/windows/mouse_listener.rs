@@ -96,9 +96,11 @@ impl MouseListener {
           .lock()
           .unwrap_or_else(std::sync::PoisonError::into_inner);
 
-        if let Err(err) =
-          Self::handle_wm_input(lparam, enabled_events, &mut callback_data)
-        {
+        if let Err(err) = Self::handle_wm_input(
+          lparam,
+          &enabled_events,
+          &mut callback_data,
+        ) {
           tracing::warn!("Failed to handle WM_INPUT message: {}", err);
         }
 
@@ -142,12 +144,12 @@ impl MouseListener {
   /// [`MouseListener::set_enabled_events`].
   pub(crate) fn set_enabled_events(
     &mut self,
-    enabled_events: Vec<MouseEventKind>,
+    enabled_events: &[MouseEventKind],
   ) -> crate::Result<()> {
     let _ = self.terminate();
 
     let callback_id = Self::register_callback(
-      &enabled_events,
+      enabled_events,
       Arc::clone(&self.callback_data),
       &self.dispatcher,
     )?;

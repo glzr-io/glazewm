@@ -14,9 +14,11 @@ use windows::{
     Foundation::{HWND, LPARAM, LRESULT, WPARAM},
     System::Threading::GetCurrentThreadId,
     UI::WindowsAndMessaging::{
-      DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-      PostMessageW, PostThreadMessageW, RegisterWindowMessageW,
-      SendMessageW, TranslateMessage, MSG, WM_QUIT, WNDPROC,
+      CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
+      GetMessageW, PostMessageW, PostThreadMessageW, RegisterClassW,
+      RegisterWindowMessageW, SendMessageW, TranslateMessage, CS_HREDRAW,
+      CS_VREDRAW, CW_USEDEFAULT, MSG, WM_QUIT, WINDOW_EX_STYLE, WNDCLASSW,
+      WNDPROC, WS_OVERLAPPEDWINDOW,
     },
   },
 };
@@ -161,7 +163,7 @@ impl EventLoop {
   pub(crate) fn new() -> crate::Result<(Self, Dispatcher)> {
     // Create a hidden message window on the current thread.
     let window_handle =
-      super::Platform::create_message_window(Some(Self::window_proc))?;
+      Self::create_message_window(Some(Self::window_proc))?;
 
     let source = EventLoopSource {
       message_window_handle: window_handle,
@@ -194,7 +196,7 @@ impl EventLoop {
     }
 
     tracing::info!("Event loop thread exiting.");
-    unsafe { DestroyWindow(HWND(self.source.message_window_handle.0)) }?;
+    unsafe { DestroyWindow(HWND(self.source.message_window_handle)) }?;
 
     Ok(())
   }
