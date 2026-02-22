@@ -2,9 +2,9 @@ use std::cell::Ref;
 
 use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
-use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
+use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::{
   models::{NativeWindowProperties, Workspace},
@@ -70,6 +70,7 @@ pub trait WindowGetters: CommonGetters {
     let shadow_border_delta = {
       #[cfg(target_os = "windows")]
       {
+        // TODO: Avoid re-querying for shadow borders.
         self.native().shadow_borders()?
       }
       #[cfg(not(target_os = "windows"))]

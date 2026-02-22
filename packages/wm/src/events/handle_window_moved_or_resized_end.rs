@@ -46,20 +46,6 @@ pub fn handle_window_moved_or_resized_end(
         properties.is_maximized = is_maximized;
       });
 
-      if is_maximized {
-        update_window_state(
-          window.clone().into(),
-          WindowState::Fullscreen(FullscreenStateConfig {
-            maximized: true,
-            ..config.value.window_behavior.state_defaults.fullscreen
-          }),
-          state,
-          config,
-        )?;
-        window.set_active_drag(None);
-        return Ok(());
-      }
-
       let nearest_monitor = state
         .nearest_monitor(&window.native())
         .context("Failed to get workspace of nearest monitor.")?;
@@ -70,17 +56,45 @@ pub fn handle_window_moved_or_resized_end(
           .context("No workspace.")?,
       )?;
 
-      if should_fullscreen {
-        update_window_state(
+      if is_maximized || should_fullscreen {
+        let fullscreen_state = if let WindowState::Fullscreen(
+          fullscreen_state,
+        ) = window.state()
+        {
+          fullscreen_state
+        } else {
+          config
+            .value
+            .window_behavior
+            .state_defaults
+            .fullscreen
+            .clone()
+        };
+
+        let window = update_window_state(
           window.clone().into(),
           WindowState::Fullscreen(FullscreenStateConfig {
-            maximized: false,
-            ..config.value.window_behavior.state_defaults.fullscreen
+            maximized: is_maximized,
+            ..fullscreen_state
           }),
           state,
           config,
         )?;
+
         window.set_active_drag(None);
+
+        if is_maximized {
+          // Dequeue the window from redraw if it's maximized, since the
+          // window is already in the correct state.
+          state
+            .pending_sync
+            .dequeue_container_from_redraw(window.clone());
+        } else {
+          // Force a redraw to snap the window to the monitor edges.
+          // TODO: Skip redraw if it's already matches fullscreen frame.
+          state.pending_sync.queue_container_to_redraw(window.clone());
+        }
+
         return Ok(());
       }
 
@@ -95,7 +109,8 @@ pub fn handle_window_moved_or_resized_end(
       } else {
         // Window is a temporary floating window that should be
         // reverted back to tiling.
-        drop_as_tiling_window(window, state, config)?;
+        let window = drop_as_tiling_window(window, state, config)?;
+        window.set_active_drag(None);
       }
     }
     WindowContainer::TilingWindow(window) => {
@@ -115,6 +130,8 @@ pub fn handle_window_moved_or_resized_end(
         state,
       )?;
 
+      window.set_active_drag(None);
+
       // Force a redraw of the window to snap it back to its original
       // position. This is necessary when:
       // - The window is the only tiling window in the workspace.
@@ -123,8 +140,6 @@ pub fn handle_window_moved_or_resized_end(
       // - Resizing in a direction that doesn't change the window's tiling
       //   size.
       state.pending_sync.queue_container_to_redraw(window.clone());
-
-      window.set_active_drag(None);
     }
   }
 
@@ -137,7 +152,7 @@ fn drop_as_tiling_window(
   moved_window: &NonTilingWindow,
   state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<WindowContainer> {
   tracing::info!(
     "Tiling window drag ended: {}",
     moved_window.as_window_container()?
@@ -167,15 +182,12 @@ fn drop_as_tiling_window(
   // If the target parent has no children (i.e. an empty workspace), then
   // add the window directly.
   if target_parent.tiling_children().count() == 0 {
-    let window = update_window_state(
+    return update_window_state(
       moved_window.clone().into(),
       WindowState::Tiling,
       state,
       config,
-    )?;
-
-    window.set_active_drag(None);
-    return Ok(());
+    );
   }
 
   let nearest_container = target_parent
@@ -203,8 +215,6 @@ fn drop_as_tiling_window(
     state,
     config,
   )?;
-
-  moved_window.set_active_drag(None);
 
   let should_split = nearest_container.is_tiling_window()
     && match tiling_direction {
@@ -257,7 +267,7 @@ fn drop_as_tiling_window(
 
   state.pending_sync.queue_container_to_redraw(target_parent);
 
-  Ok(())
+  Ok(moved_window)
 }
 
 /// Represents where the window was dropped over another.

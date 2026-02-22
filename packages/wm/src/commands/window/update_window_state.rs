@@ -147,7 +147,11 @@ fn set_non_tiling(
       let current_state = window.state();
 
       // Update the window's previous state if the discriminant changes.
-      if !current_state.is_same_state(&target_state) {
+      // TODO: Move out handling of active drag. Can then simplify calls to
+      // `set_active_drag` in `handle_window_moved_or_resized_end`.
+      if !current_state.is_same_state(&target_state)
+        && window.active_drag().is_none()
+      {
         window.set_prev_state(current_state);
         state.pending_sync.queue_workspace_to_reorder(workspace);
       }

@@ -93,11 +93,17 @@ impl NonTilingWindow {
   }
 
   pub fn to_tiling(&self, gaps_config: GapsConfig) -> TilingWindow {
+    let prev_state = if self.active_drag().is_some() {
+      self.prev_state()
+    } else {
+      Some(self.state())
+    };
+
     TilingWindow::new(
       Some(self.id()),
       self.native().clone(),
       self.native_properties().clone(),
-      Some(self.state()),
+      prev_state,
       self.border_delta(),
       self.floating_placement(),
       self.has_custom_floating_placement(),

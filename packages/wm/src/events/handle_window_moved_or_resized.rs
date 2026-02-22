@@ -239,9 +239,17 @@ pub fn handle_window_moved_or_resized(
         config,
       )?;
 
-      // TODO: Consider dequeuing the window from redraw, since the window
-      // is already in the correct state. Games are especially sensitive to
-      // redraws and are often fullscreen.
+      if is_maximized {
+        // Dequeue the window from redraw if it's maximized, since the
+        // window is already in the correct state.
+        state
+          .pending_sync
+          .dequeue_container_from_redraw(window.clone());
+      } else {
+        // Force a redraw to snap the window to the monitor edges.
+        // TODO: Skip redraw if it's already matches fullscreen frame.
+        state.pending_sync.queue_container_to_redraw(window.clone());
+      }
 
       // TODO: Handle a fullscreen window being moved from one monitor to
       // another.

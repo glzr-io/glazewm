@@ -1,15 +1,15 @@
 use anyhow::Context;
+#[cfg(target_os = "macos")]
 use wm_common::try_warn;
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
-  commands::container::set_focused_descendant,
-  events::handle_window_moved_or_resized_end,
-  traits::{CommonGetters, WindowGetters},
-  user_config::UserConfig,
-  wm_state::WmState,
+  commands::container::set_focused_descendant, traits::CommonGetters,
+  user_config::UserConfig, wm_state::WmState,
+};
+#[cfg(target_os = "macos")]
+use crate::{
+  events::handle_window_moved_or_resized_end, traits::WindowGetters,
 };
 
 pub fn handle_mouse_move(
@@ -24,11 +24,16 @@ pub fn handle_mouse_move(
     return Ok(());
   }
 
+  // On macOS, detect when a window drag operation has ended by listening
+  // to the release of left click.
+  //
+  // This cannot be used for Windows, since it leads to race conditions
+  // where the mouse event comes in before the `MovedOrResized` event with
+  // `is_interactive_end`. For example, if the user drags to maximize a
+  // window, the WS_MAXIMIZED state is sometimes set after the mouse event.
+  #[cfg(target_os = "macos")]
   if let MouseEvent::ButtonUp { button, .. } = event {
     if *button == MouseButton::Left {
-      // On macOS, this is the main way to detect when a window drag
-      // operation has ended, since `is_interactive_end` is always false on
-      // `WindowEvent::MovedOrResized`.
       let active_drag_windows = state
         .windows()
         .into_iter()
