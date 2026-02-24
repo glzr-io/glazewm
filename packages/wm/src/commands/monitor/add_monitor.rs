@@ -8,7 +8,7 @@ use crate::{
     container::{attach_container, move_container_within_tree},
     workspace::{activate_workspace, sort_workspaces},
   },
-  models::{Monitor, NativeMonitorProperties, Workspace},
+  models::{Container, Monitor, NativeMonitorProperties, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -75,6 +75,46 @@ pub fn move_bounded_workspaces_to_new_monitor(
         state,
         config,
       )?;
+    }
+  }
+
+  // Restore workspaces from a disconnected monitor record if available.
+  let ghost =
+    state.take_disconnected_monitor(&monitor.native_properties());
+
+  if let Some(ghost) = ghost {
+    // Track the displayed workspace name (first in focus order) so we
+    // can restore it after moving all workspaces back.
+    let displayed_name = ghost.workspace_names.first().cloned();
+
+    for ws_name in &ghost.workspace_names {
+      if let Some(workspace) = state.workspace_by_name(ws_name) {
+        // Skip if already on this monitor (e.g. moved by bind_to_monitor
+        // logic above).
+        let already_here = workspace
+          .monitor()
+          .is_some_and(|m| m.id() == monitor.id());
+
+        if !already_here {
+          move_workspace_to_monitor(
+            &workspace, monitor, state, config,
+          )?;
+        }
+      }
+    }
+
+    // Restore the previously displayed workspace by bringing it to the
+    // front of the focus order.
+    if let Some(name) = displayed_name {
+      if let Some(ws) = state.workspace_by_name(&name) {
+        if ws.monitor().is_some_and(|m| m.id() == monitor.id()) {
+          let ws_container: Container = ws.into();
+          crate::commands::container::set_focused_descendant(
+            &ws_container,
+            None,
+          );
+        }
+      }
     }
   }
 

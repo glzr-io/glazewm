@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
-use tracing::warn;
+use tracing::{info, warn};
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
 use wm_platform::{
@@ -10,6 +10,18 @@ use wm_platform::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, OpacityValue};
+
+/// Record of a monitor that was disconnected, used to restore its
+/// workspaces when the same physical monitor reconnects.
+pub struct DisconnectedMonitor {
+  pub device_path: Option<String>,
+  pub hardware_id: Option<String>,
+  pub device_name: String,
+  /// Workspace names that were on this monitor, ordered by focus
+  /// (first = displayed).
+  pub workspace_names: Vec<String>,
+  pub disconnected_at: Instant,
+}
 
 use crate::{
   commands::{
@@ -67,6 +79,10 @@ pub struct WmState {
   /// Whether the OS focused window is the same as the WM focused window.
   pub is_focus_synced: bool,
 
+  /// Records of monitors that were disconnected, used to restore
+  /// workspaces when they reconnect.
+  pub disconnected_monitors: Vec<DisconnectedMonitor>,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -94,6 +110,7 @@ impl WmState {
       ignored_windows: Vec::new(),
       is_paused: false,
       is_focus_synced: false,
+      disconnected_monitors: Vec::new(),
       has_initialized: false,
       event_tx,
       exit_tx,
@@ -675,6 +692,69 @@ impl WmState {
     }
 
     Ok(())
+  }
+
+  /// Takes a disconnected monitor record matching the given native
+  /// monitor, removing it from the registry. Matches by `device_path`
+  /// first, then by unique `hardware_id`.
+  pub fn take_disconnected_monitor(
+    &mut self,
+    native: &NativeMonitorProperties,
+  ) -> Option<DisconnectedMonitor> {
+    let device_path = native.device_path.as_ref();
+    let hardware_id = native.hardware_id.as_ref();
+
+    // Try matching by device_path first.
+    let index = device_path.and_then(|path| {
+      self
+        .disconnected_monitors
+        .iter()
+        .position(|dm| dm.device_path.as_deref() == Some(path.as_str()))
+    });
+
+    // Fall back to matching by hardware_id, but only if it's unique
+    // across both connected and disconnected monitors.
+    let index = index.or_else(|| {
+      let hw_id = hardware_id?;
+
+      let connected_count = self
+        .monitors()
+        .iter()
+        .filter(|m| {
+          m.native_properties()
+            .hardware_id
+            .as_ref()
+            .is_some_and(|id| id == hw_id)
+        })
+        .count();
+
+      let disconnected_count = self
+        .disconnected_monitors
+        .iter()
+        .filter(|dm| dm.hardware_id.as_ref() == Some(hw_id))
+        .count();
+
+      if connected_count + disconnected_count == 1 {
+        self
+          .disconnected_monitors
+          .iter()
+          .position(|dm| dm.hardware_id.as_ref() == Some(hw_id))
+      } else {
+        None
+      }
+    });
+
+    if let Some(idx) = index {
+      let dm = self.disconnected_monitors.remove(idx);
+      info!(
+        "Found disconnected monitor record for '{}' with {} workspaces.",
+        dm.device_name,
+        dm.workspace_names.len()
+      );
+      Some(dm)
+    } else {
+      None
+    }
   }
 }
 
