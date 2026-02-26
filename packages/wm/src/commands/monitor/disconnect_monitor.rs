@@ -37,13 +37,15 @@ pub fn disconnect_monitor(
     device_name, workspace_names
   );
 
-  // Remove any existing ghost with same device_path to prevent
-  // duplicates.
-  if let Some(ref path) = device_path {
-    state
-      .disconnected_monitors
-      .retain(|dm| dm.device_path.as_ref() != Some(path));
-  }
+  // Remove any existing ghost with same device_path or hardware_id to
+  // prevent duplicates (handles the case where device_path is None).
+  state.disconnected_monitors.retain(|dm| {
+    let path_match = device_path.is_some()
+      && dm.device_path.as_ref() == device_path.as_ref();
+    let hw_match = hardware_id.is_some()
+      && dm.hardware_id.as_ref() == hardware_id.as_ref();
+    !path_match && !hw_match
+  });
 
   // Prune ghosts older than the TTL.
   let now = Instant::now();

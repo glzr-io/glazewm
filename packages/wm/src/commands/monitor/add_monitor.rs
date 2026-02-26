@@ -6,7 +6,7 @@ use wm_platform::Display;
 use crate::{
   commands::{
     container::{attach_container, move_container_within_tree},
-    workspace::{activate_workspace, sort_workspaces},
+    workspace::{activate_workspace, deactivate_workspace, sort_workspaces},
   },
   models::{Container, Monitor, NativeMonitorProperties, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -87,6 +87,11 @@ pub fn move_bounded_workspaces_to_new_monitor(
     // can restore it after moving all workspaces back.
     let displayed_name = ghost.workspace_names.first().cloned();
 
+    // Collect the workspace names from the ghost so we can identify
+    // which workspaces belong to this monitor vs. which were
+    // auto-created as backfill during the moves.
+    let ghost_names: Vec<String> = ghost.workspace_names.clone();
+
     for ws_name in &ghost.workspace_names {
       if let Some(workspace) = state.workspace_by_name(ws_name) {
         // Skip if already on this monitor (e.g. moved by bind_to_monitor
@@ -100,6 +105,38 @@ pub fn move_bounded_workspaces_to_new_monitor(
             &workspace, monitor, state, config,
           )?;
         }
+      }
+    }
+
+    // Clean up empty workspaces that were auto-created as backfill on
+    // other monitors when we moved ghost workspaces away. Without this,
+    // orphaned empty workspaces accumulate across sleep/wake cycles.
+    let all_workspaces = state.workspaces();
+    for workspace in all_workspaces {
+      let is_on_this_monitor = workspace
+        .monitor()
+        .is_some_and(|m| m.id() == monitor.id());
+
+      if is_on_this_monitor {
+        continue;
+      }
+
+      let is_ghost_workspace =
+        ghost_names.contains(&workspace.config().name);
+      let is_empty = !workspace.has_children();
+      let is_keep_alive = workspace.config().keep_alive;
+
+      // Only clean up empty, non-keep-alive workspaces that weren't
+      // part of the ghost (i.e. were auto-created as backfill), and
+      // only if their monitor has other workspaces.
+      if is_empty
+        && !is_keep_alive
+        && !is_ghost_workspace
+        && workspace
+          .monitor()
+          .is_some_and(|m| m.child_count() > 1)
+      {
+        deactivate_workspace(workspace, state)?;
       }
     }
 
