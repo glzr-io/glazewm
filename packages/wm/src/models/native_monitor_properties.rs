@@ -12,6 +12,7 @@ pub struct NativeMonitorProperties {
   pub hardware_id: Option<String>,
   #[cfg(target_os = "windows")]
   pub device_path: Option<String>,
+  pub device_name: String,
   pub working_area: Rect,
   pub bounds: Rect,
   pub dpi: u32,
@@ -31,6 +32,7 @@ impl NativeMonitorProperties {
       hardware_id: display_device.hardware_id(),
       #[cfg(target_os = "windows")]
       device_path: display_device.device_path(),
+      device_name: native_display.name()?,
       working_area: native_display.working_area()?,
       bounds: native_display.bounds()?,
       dpi: native_display.dpi()?,

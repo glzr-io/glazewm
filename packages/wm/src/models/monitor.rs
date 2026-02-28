@@ -117,11 +117,20 @@ impl Monitor {
       y: rect.y(),
       dpi: self.native_properties().dpi,
       scale_factor: self.native_properties().scale_factor,
-      // handle: self.native().id().0,
-      // device_name: self.native_properties().device_name,
-      // device_path: self.native_properties().device_path,
-      // hardware_id: self.native_properties().hardware_id,
-      working_rect: self.native_properties().working_area.clone(),
+      #[cfg(target_os = "windows")]
+      handle: Some(self.native_properties().handle),
+      #[cfg(not(target_os = "windows"))]
+      handle: None,
+      device_name: self.native_properties().device_name,
+      #[cfg(target_os = "windows")]
+      device_path: self.native_properties().device_path,
+      #[cfg(not(target_os = "windows"))]
+      device_path: None,
+      #[cfg(target_os = "windows")]
+      hardware_id: self.native_properties().hardware_id,
+      #[cfg(not(target_os = "windows"))]
+      hardware_id: None,
+      working_rect: self.native_properties().working_area,
     }))
   }
 }
@@ -137,18 +146,10 @@ impl PositionGetters for Monitor {
 
 impl std::fmt::Display for Monitor {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let native = self.native();
-    // let device_name = native
-    //   .device_name()
-    //   .map_or_else(|_| "Unknown".to_string(), String::to_string);
-    // let device_path = native.device_path().unwrap_or_default();
-    // let hardware_id = native.hardware_id().unwrap_or_default();
-
-    // write!(
-    //   f,
-    //   "Monitor(handle={}, device_name={}, device_path={:?},
-    // hardware_id={:?})",   native.id(), device_name, device_path,
-    // hardware_id, )
-    write!(f, "Monitor(handle={:?})", native.id(),)
+    write!(
+      f,
+      "Monitor(device_name={})",
+      self.native_properties().device_name,
+    )
   }
 }
