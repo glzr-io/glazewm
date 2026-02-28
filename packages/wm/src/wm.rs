@@ -1,6 +1,8 @@
+use std::panic::{self, AssertUnwindSafe};
+
 use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
-use tracing::warn;
+use tracing::{error, warn};
 use uuid::Uuid;
 #[cfg(target_os = "windows")]
 use wm_common::TitleBarVisibility;
@@ -74,6 +76,35 @@ impl WindowManager {
   }
 
   pub fn process_event(
+    &mut self,
+    event: PlatformEvent,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    // Wrap event handling in `catch_unwind` to prevent panics (e.g.
+    // `RefCell` double-borrow during sleep/wake monitor changes) from
+    // aborting the entire process. The WM can recover from a single
+    // failed event.
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+      self.process_event_inner(event, config)
+    }));
+
+    match result {
+      Ok(inner_result) => inner_result,
+      Err(panic_info) => {
+        let msg = if let Some(s) = panic_info.downcast_ref::<&str>() {
+          (*s).to_string()
+        } else if let Some(s) = panic_info.downcast_ref::<String>() {
+          s.clone()
+        } else {
+          "unknown panic".to_string()
+        };
+        error!("Caught panic in event handler: {}", msg);
+        Err(anyhow::anyhow!("Panic in event handler: {}", msg))
+      }
+    }
+  }
+
+  fn process_event_inner(
     &mut self,
     event: PlatformEvent,
     config: &mut UserConfig,
