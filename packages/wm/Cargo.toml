@@ -28,6 +28,7 @@ image = "0.25"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
+shell-util = "0.0"
 tokio = { workspace = true }
 tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }

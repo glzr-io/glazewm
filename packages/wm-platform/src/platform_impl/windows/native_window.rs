@@ -76,6 +76,8 @@ pub trait NativeWindowWindowsExt {
 
   /// Shows the window asynchronously.
   ///
+  /// NOTE: Cloaked windows do not get shown until uncloaked.
+  ///
   /// # Platform-specific
   ///
   /// This method is only available on Windows.

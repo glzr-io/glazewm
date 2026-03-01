@@ -26,15 +26,21 @@ use windows::{
   core::PCWSTR,
   Win32::{
     Foundation::POINT,
+    System::Environment::ExpandEnvironmentStringsW,
     UI::{
       Input::KeyboardAndMouse::{
         GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
+      },
+      Shell::{
+        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS,
+        SHELLEXECUTEINFOW,
       },
       WindowsAndMessaging::{
         GetCursorPos, MessageBoxW, SetCursorPos, SystemParametersInfoW,
         ANIMATIONINFO, MB_ICONERROR, MB_OK, MB_SYSTEMMODAL,
         SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SPI_GETANIMATION,
-        SPI_SETANIMATION, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+        SPI_SETANIMATION, SW_HIDE, SW_NORMAL,
+        SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
       },
     },
   },
@@ -143,6 +149,35 @@ pub trait DispatcherExtWindows {
     &self,
     enable: bool,
   ) -> crate::Result<()>;
+
+  /// Expands `%VAR%` environment variable references in `input`.
+  ///
+  /// Returns the expanded string.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  ///
+  /// TODO: Remove this. Handle environment variable expansion in a
+  /// unified, cross-platform way.
+  fn expand_env_strings(&self, input: &str) -> crate::Result<String>;
+
+  /// Runs the specified program using `ShellExecuteExW`.
+  ///
+  /// If `hide_window` is `true`, the spawned process window is hidden.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  ///
+  /// TODO: Remove this. Use `shell_util::Shell::spawn` instead.
+  fn shell_execute_ex(
+    &self,
+    program: &str,
+    args: &str,
+    directory: &Path,
+    hide_window: bool,
+  ) -> crate::Result<()>;
 }
 
 #[cfg(target_os = "windows")]
@@ -209,6 +244,63 @@ impl DispatcherExtWindows for Dispatcher {
     }?;
 
     Ok(())
+  }
+
+  fn expand_env_strings(&self, input: &str) -> crate::Result<String> {
+    let wide_input =
+      input.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+
+    let size = unsafe {
+      ExpandEnvironmentStringsW(PCWSTR(wide_input.as_ptr()), None)
+    };
+
+    if size == 0 {
+      return Err(crate::Error::Platform(format!(
+        "Failed to expand environment strings in '{input}'.",
+      )));
+    }
+
+    let mut buffer = vec![0u16; size as usize];
+    let size = unsafe {
+      ExpandEnvironmentStringsW(
+        PCWSTR(wide_input.as_ptr()),
+        Some(&mut buffer),
+      )
+    };
+
+    // The size includes the null terminator, so subtract one.
+    Ok(String::from_utf16_lossy(&buffer[..(size - 1) as usize]))
+  }
+
+  fn shell_execute_ex(
+    &self,
+    program: &str,
+    args: &str,
+    directory: &Path,
+    hide_window: bool,
+  ) -> crate::Result<()> {
+    let program_wide =
+      program.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+    let args_wide = args.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+    let directory_wide = directory
+      .to_string_lossy()
+      .encode_utf16()
+      .chain(Some(0))
+      .collect::<Vec<_>>();
+
+    let mut exec_info = SHELLEXECUTEINFOW {
+      #[allow(clippy::cast_possible_truncation)]
+      cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+      lpFile: PCWSTR(program_wide.as_ptr()),
+      lpParameters: PCWSTR(args_wide.as_ptr()),
+      lpDirectory: PCWSTR(directory_wide.as_ptr()),
+      nShow: if hide_window { SW_HIDE } else { SW_NORMAL }.0 as _,
+      fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
+      ..Default::default()
+    };
+
+    unsafe { ShellExecuteExW(&raw mut exec_info) }
+      .map_err(crate::Error::from)
   }
 }
 
