@@ -49,41 +49,36 @@ impl DisplayListener {
     }
 
     std::thread::spawn(move || {
+      // Loop exits when the sender is dropped in `Self::terminate`.
       while events_rx.blocking_recv().is_some() {
         if let Err(err) = event_tx.send(()) {
           tracing::warn!("Failed to send display change event: {}", err);
           break;
         }
       }
+
+      tracing::debug!("Display listener thread exited.");
     });
 
     ThreadBound::new(observer, dispatcher)
   }
 
   /// macOS-specific implementation of [`DisplayListener::terminate`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
-    let Some(observer) = self.observer.take() else {
-      return Ok(());
-    };
-
-    observer.with(|observer| {
-      let mut default_center = NotificationCenter::default_center();
-
-      unsafe {
-        default_center.remove_observer(
-          NotificationName::ApplicationDidChangeScreenParameters,
-          observer,
-          None,
-        );
-      }
-    })
+    // On macOS 10.11+, observer subscriptions are cleaned up automatically
+    // without calling `removeObserver`.
+    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
+    //
+    // Dropping the `NotificationObserver` also drops its channel sender,
+    // causing the listener thread to exit.
+    self.observer.take();
+    Ok(())
   }
 }
 
 impl Drop for DisplayListener {
   fn drop(&mut self) {
-    if let Err(err) = self.terminate() {
-      tracing::warn!("Failed to terminate display listener: {}", err);
-    }
+    let _ = self.terminate();
   }
 }

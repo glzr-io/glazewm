@@ -381,34 +381,8 @@ impl ApplicationObserver {
 
 impl Drop for ApplicationObserver {
   fn drop(&mut self) {
-    tracing::debug!("Cleaning up AppWindowObserver for PID {}", self.pid);
-
-    // TODO: **** The following needs to be run on the thread in which the
-    // observer was created.
-
-    // Remove all notifications.
-    // for notification in AX_APP_NOTIFICATIONS {
-    //   unsafe {
-    //     let notification_cfstr =
-    // CFString::from_static_str(notification);     self
-    //       .observer
-    //       .remove_notification(&self.app_element, &notification_cfstr);
-    //   }
-    // }
-
-    // Remove from run loop.
-    unsafe {
-      if let Some(runloop) = CFRunLoop::current() {
-        runloop.remove_source(
-          Some(&self.observer_source),
-          kCFRunLoopDefaultMode,
-        );
-      }
-    }
-
-    tracing::debug!(
-      "AppWindowObserver cleanup completed for PID {}",
-      self.pid
-    );
+    // Invalidate the runloop source. This is thread-safe and is OK to call
+    // after the run loop is stopped.
+    self.observer_source.invalidate();
   }
 }

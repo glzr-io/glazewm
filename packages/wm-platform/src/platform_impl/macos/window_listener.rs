@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use objc2::rc::Retained;
 use objc2_app_kit::NSWorkspace;
 use tokio::sync::mpsc;
 
@@ -8,7 +9,7 @@ use crate::{
     self, Application, ApplicationObserver, NotificationCenter,
     NotificationEvent, NotificationName, NotificationObserver, ProcessId,
   },
-  Dispatcher, WindowEvent,
+  Dispatcher, ThreadBound, WindowEvent,
 };
 
 /// macOS-specific window event notification.
@@ -25,7 +26,10 @@ unsafe impl Send for WindowEventNotificationInner {}
 
 /// macOS-specific implementation of [`WindowListener`].
 #[derive(Debug)]
-pub(crate) struct WindowListener;
+pub(crate) struct WindowListener {
+  /// Workspace notification observer, bound to the main thread.
+  observer: Option<ThreadBound<Retained<NotificationObserver>>>,
+}
 
 impl WindowListener {
   /// macOS-specific implementation of [`WindowListener::new`].
@@ -33,16 +37,18 @@ impl WindowListener {
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
-    dispatcher
+    let observer = dispatcher
       .dispatch_sync(|| Self::init(events_tx, dispatcher.clone()))??;
 
-    Ok(Self)
+    Ok(Self {
+      observer: Some(observer),
+    })
   }
 
   fn init(
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: Dispatcher,
-  ) -> crate::Result<()> {
+  ) -> crate::Result<ThreadBound<Retained<NotificationObserver>>> {
     let (observer, events_rx) = NotificationObserver::new();
 
     let workspace = unsafe { NSWorkspace::sharedWorkspace() };
@@ -81,20 +87,17 @@ impl WindowListener {
       app_observers.len()
     );
 
+    let dispatcher_clone = dispatcher.clone();
     std::thread::spawn(move || {
       Self::listen_workspace_events(
         app_observers,
         events_rx,
         &events_tx,
-        &dispatcher,
+        &dispatcher_clone,
       );
     });
 
-    // TODO: Hack to prevent the handler from being deregistered.
-    std::mem::forget(observer);
-    std::mem::forget(workspace_center);
-
-    Ok(())
+    Ok(ThreadBound::new(observer, dispatcher))
   }
 
   fn listen_workspace_events(
@@ -110,8 +113,7 @@ impl WindowListener {
         .map(|observer| (observer.pid, observer))
         .collect();
 
-    // TODO: Need to abort this loop when the window listener is
-    // terminated.
+    // Loop exits when the sender is dropped in `Self::terminate`.
     while let Some(event) = events_rx.blocking_recv() {
       tracing::debug!("Received workspace event: {event:?}");
 
@@ -191,6 +193,8 @@ impl WindowListener {
         _ => {}
       }
     }
+
+    tracing::debug!("Window listener thread exited.");
   }
 
   fn create_app_observer(
@@ -219,7 +223,18 @@ impl WindowListener {
 
   /// macOS-specific implementation of [`WindowListener::terminate`].
   pub(crate) fn terminate(&mut self) {
-    // TODO: Implement this.
-    todo!()
+    // On macOS 10.11+, observer subscriptions are cleaned up automatically
+    // without calling `removeObserver`.
+    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
+    //
+    // Dropping the `NotificationObserver` also drops its channel sender,
+    // causing the listener thread to exit.
+    self.observer.take();
+  }
+}
+
+impl Drop for WindowListener {
+  fn drop(&mut self) {
+    self.terminate();
   }
 }

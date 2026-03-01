@@ -260,20 +260,6 @@ impl NotificationCenter {
     );
   }
 
-  pub unsafe fn remove_observer(
-    &mut self,
-    notification_name: NotificationName,
-    observer: &NotificationObserver,
-    object: Option<&AnyObject>,
-  ) {
-    tracing::info!("Removing observer for {notification_name:?}.");
-
-    self.inner.removeObserver_name_object(
-      observer,
-      Some(notification_name.into()),
-      object,
-    );
-  }
 }
 
 pub unsafe fn get_app_from_notification(
