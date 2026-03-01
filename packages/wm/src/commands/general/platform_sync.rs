@@ -9,7 +9,7 @@ use wm_common::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
-use wm_platform::{CornerStyle, OpacityValue, Rect, ZOrder};
+use wm_platform::{CornerStyle, OpacityValue, Rect, WindowZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -226,10 +226,10 @@ fn redraw_containers(
     // Whether the window should be shown above all other windows.
     let z_order = match window.state() {
       WindowState::Floating(config) if config.shown_on_top => {
-        ZOrder::TopMost
+        WindowZOrder::TopMost
       }
       WindowState::Fullscreen(config) if config.shown_on_top => {
-        ZOrder::TopMost
+        WindowZOrder::TopMost
       }
       _ if should_bring_to_front => {
         let focused_descendant = workspace
@@ -239,15 +239,15 @@ fn redraw_containers(
 
         if let Some(focused_descendant) = focused_descendant {
           if window.id() == focused_descendant.id() {
-            ZOrder::Normal
+            WindowZOrder::Normal
           } else {
-            ZOrder::AfterWindow(focused_descendant.native().id())
+            WindowZOrder::AfterWindow(focused_descendant.native().id())
           }
         } else {
-          ZOrder::Normal
+          WindowZOrder::Normal
         }
       }
-      _ => ZOrder::Normal,
+      _ => WindowZOrder::Normal,
     };
 
     // Set the z-order of the window.
@@ -341,7 +341,7 @@ fn redraw_containers(
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
-  z_order: &ZOrder,
+  z_order: &WindowZOrder,
   is_visible: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {

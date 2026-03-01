@@ -45,7 +45,7 @@ use windows::{
 use super::com::{ComInit, IApplicationView, COM_INIT};
 use crate::{
   Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
-  Rect, RectDelta, WindowId, ZOrder,
+  Rect, RectDelta, WindowId, WindowZOrder,
 };
 
 /// Magic number used to identify programmatic mouse inputs from our own
@@ -141,7 +141,7 @@ pub trait NativeWindowWindowsExt {
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  fn set_z_order(&self, zorder: &ZOrder) -> crate::Result<()>;
+  fn set_z_order(&self, zorder: &WindowZOrder) -> crate::Result<()>;
 
   /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
   ///
@@ -150,7 +150,7 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn set_window_pos(
     &self,
-    z_order: &ZOrder,
+    z_order: &WindowZOrder,
     rect: &Rect,
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()>;
@@ -275,7 +275,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
     self.inner.set_transparency(opacity_value)
   }
 
-  fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
+  fn set_z_order(&self, z_order: &WindowZOrder) -> crate::Result<()> {
     self.inner.set_z_order(z_order)
   }
 
@@ -305,7 +305,7 @@ impl NativeWindowWindowsExt for crate::NativeWindow {
 
   fn set_window_pos(
     &self,
-    z_order: &ZOrder,
+    z_order: &WindowZOrder,
     rect: &Rect,
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()> {
@@ -534,12 +534,15 @@ impl NativeWindow {
 
   /// Windows-specific implementation of
   /// [`NativeWindowWindowsExt::set_z_order`].
-  pub(crate) fn set_z_order(&self, z_order: &ZOrder) -> crate::Result<()> {
+  pub(crate) fn set_z_order(
+    &self,
+    z_order: &WindowZOrder,
+  ) -> crate::Result<()> {
     let z_order_hwnd = match z_order {
-      ZOrder::TopMost => HWND_TOPMOST,
-      ZOrder::Top => HWND_TOP,
-      ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(window_id) => HWND(window_id.0),
+      WindowZOrder::TopMost => HWND_TOPMOST,
+      WindowZOrder::Top => HWND_TOP,
+      WindowZOrder::Normal => HWND_NOTOPMOST,
+      WindowZOrder::AfterWindow(window_id) => HWND(window_id.0),
     };
 
     let flags = SWP_NOACTIVATE
@@ -613,15 +616,15 @@ impl NativeWindow {
   /// [`NativeWindowWindowsExt::set_window_pos`].
   pub(crate) fn set_window_pos(
     &self,
-    z_order: &ZOrder,
+    z_order: &WindowZOrder,
     rect: &Rect,
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()> {
     let z_order_hwnd = match z_order {
-      ZOrder::TopMost => HWND_TOPMOST,
-      ZOrder::Top => HWND_TOP,
-      ZOrder::Normal => HWND_NOTOPMOST,
-      ZOrder::AfterWindow(window_id) => HWND(window_id.0),
+      WindowZOrder::TopMost => HWND_TOPMOST,
+      WindowZOrder::Top => HWND_TOP,
+      WindowZOrder::Normal => HWND_NOTOPMOST,
+      WindowZOrder::AfterWindow(window_id) => HWND(window_id.0),
     };
 
     unsafe {
