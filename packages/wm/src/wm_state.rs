@@ -672,19 +672,14 @@ impl Drop for WmState {
       #[cfg(target_os = "windows")]
       {
         if let Err(err) = window.native().show() {
-          warn!("Failed to show window on cleanup: {:?}", err);
+          warn!("Failed to show window: {:?}", err);
         }
 
-        if let Err(err) = window.native().set_border_color(None) {
-          warn!("Failed to reset border color: {:?}", err);
-        }
-
-        if let Err(err) = window
+        let _ = window.native().set_taskbar_visibility(true);
+        let _ = window.native().set_border_color(None);
+        let _ = window
           .native()
-          .set_transparency(&OpacityValue::from_alpha(u8::MAX))
-        {
-          warn!("Failed to reset transparency: {:?}", err);
-        }
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
       }
     }
   }

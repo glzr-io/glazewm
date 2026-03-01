@@ -108,7 +108,10 @@ async fn start_wm(
   #[cfg(target_os = "macos")]
   {
     if !dispatcher.has_ax_permission(true) {
-      anyhow::bail!("Accessibility permissions are not granted. In System Preferences, navigate to Privacy & Security > Accessibility and enable GlazeWM.");
+      anyhow::bail!(
+        "Accessibility permissions are not granted. In System Preferences, \
+         go to Privacy & Security > Accessibility and enable GlazeWM."
+      );
     }
   }
 
@@ -123,10 +126,20 @@ async fn start_wm(
   let mut ipc_server = IpcServer::start().await?;
 
   // Start watcher process for restoring hidden windows on crash.
-  // TODO: Add this back.
-  // start_watcher_process()?;
+  // Windows-only, since macOS' hidden windows remain accessible.
+  #[cfg(target_os = "windows")]
+  if let Err(err) = start_watcher_process() {
+    tracing::warn!(
+      "Failed to start watcher process: {err}{}",
+      cfg!(debug_assertions)
+        .then_some(".\n Run `cargo build -p wm-watcher` to build it.")
+        .unwrap_or_default()
+    );
+  }
 
   // Start listening for platform events after populating initial state.
+  let mut window_listener = WindowListener::new(dispatcher)?;
+  let mut display_listener = DisplayListener::new(dispatcher)?;
   let mut mouse_listener = MouseListener::new(
     if config.value.general.focus_follows_cursor {
       &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
@@ -135,8 +148,6 @@ async fn start_wm(
     },
     dispatcher,
   )?;
-  let mut window_listener = WindowListener::new(dispatcher)?;
-  let mut display_listener = DisplayListener::new(dispatcher)?;
   let mut keybinding_listener = KeybindingListener::new(
     &config
       .active_keybinding_configs(&[], false)
@@ -145,9 +156,12 @@ async fn start_wm(
     dispatcher,
   )?;
 
-  // Run startup commands.
-  let startup_commands = config.value.general.startup_commands.clone();
-  wm.process_commands(&startup_commands, None, &mut config)?;
+  // Run user's startup commands.
+  wm.process_commands(
+    &config.value.general.startup_commands.clone(),
+    None,
+    &mut config,
+  )?;
 
   loop {
     let res = tokio::select! {
@@ -289,11 +303,13 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   Ok(())
 }
 
-/// Launches watcher binary. This is a separate process that is responsible
-/// for restoring hidden windows in case the main WM process crashes.
+/// Launches watcher binary (Windows-only). This is a separate process that
+/// is responsible for restoring hidden windows in case the main WM process
+/// crashes.
 ///
 /// This assumes the watcher binary exists in the same directory as the
 /// WM binary.
+#[allow(unused)]
 fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
 {
   let watcher_path = env::current_exe()?

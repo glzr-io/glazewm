@@ -772,7 +772,7 @@ impl WindowManager {
     // get executed.
     self.state.is_paused = false;
 
-    // Run shutdown commands.
+    // Run user's shutdown commands.
     if let Err(err) = self.process_commands(
       &config.value.general.shutdown_commands.clone(),
       None,

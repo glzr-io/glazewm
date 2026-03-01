@@ -53,6 +53,13 @@ use crate::{
 pub(crate) const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
 pub trait NativeWindowWindowsExt {
+  /// Creates a `NativeWindow` from a window handle.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn from_handle(handle: isize) -> crate::NativeWindow;
+
   /// Gets the window handle.
   ///
   /// # Platform-specific
@@ -230,6 +237,10 @@ pub trait NativeWindowWindowsExt {
 }
 
 impl NativeWindowWindowsExt for crate::NativeWindow {
+  fn from_handle(handle: isize) -> Self {
+    NativeWindow::new(handle).into()
+  }
+
   fn hwnd(&self) -> HWND {
     self.inner.hwnd()
   }

@@ -2,17 +2,13 @@
 // whether a console window is spawned on launch, if not already ran
 // through a console. The following prevents this additional console window
 // in release mode.
-#![cfg_attr(
-  all(not(debug_assertions), target_os = "windows"),
-  windows_subsystem = "windows"
-)]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![warn(clippy::all, clippy::pedantic)]
 
-use anyhow::{bail, Context};
-use tracing::info;
+use anyhow::Context;
 use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
 use wm_ipc_client::IpcClient;
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, NativeWindowWindowsExt};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,21 +28,28 @@ async fn main() -> anyhow::Result<()> {
     watch_managed_handles(&mut client, &mut managed_handles).await;
 
   match subscribe_res {
-    Ok(()) => info!("WM exited successfully. Skipping watcher cleanup."),
+    Ok(()) => {
+      tracing::info!("WM exited successfully. Skipping watcher cleanup.")
+    }
     Err(err) => {
-      info!("Running watcher cleanup. WM exited unexpectedly: {}", err);
+      tracing::info!(
+        "Running watcher cleanup. WM exited unexpectedly: {}",
+        err
+      );
 
-      #[cfg(target_os = "windows")]
-      {
-        // TODO: Uncomment this.
-        // let managed_windows = managed_handles
-        //   .into_iter()
-        //   .map(NativeWindow::new)
-        //   .collect::<Vec<_>>();
+      let managed_windows =
+        managed_handles.into_iter().map(NativeWindow::from_handle);
 
-        // for window in managed_windows {
-        // window.cleanup();
-        // }
+      for window in managed_windows {
+        if let Err(err) = window.native().show() {
+          tracing::warn!("Failed to show window: {:?}", err);
+        }
+
+        let _ = window.native().set_taskbar_visibility(true);
+        let _ = window.native().set_border_color(None);
+        let _ = window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
       }
     }
   }
@@ -116,14 +119,14 @@ async fn watch_managed_handles(
     match event_data {
       Some(WmEvent::WindowManaged { managed_window }) => {
         if let ContainerDto::Window(window) = managed_window {
-          info!("Watcher added handle: {}.", window.handle);
+          tracing::info!("Watcher added handle: {}.", window.handle);
           handles.push(window.handle);
         }
       }
       Some(WmEvent::WindowUnmanaged {
         unmanaged_handle, ..
       }) => {
-        info!("Watcher removed handle: {}.", unmanaged_handle);
+        tracing::info!("Watcher removed handle: {}.", unmanaged_handle);
         handles.retain(|&handle| handle != unmanaged_handle);
       }
       Some(WmEvent::ApplicationExiting) => {
@@ -131,7 +134,7 @@ async fn watch_managed_handles(
       }
       Some(_) => unreachable!(),
       None => {
-        bail!("IPC connection closed unexpectedly.")
+        anyhow::bail!("IPC connection closed unexpectedly.")
       }
     }
   }
