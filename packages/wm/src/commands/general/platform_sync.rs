@@ -459,10 +459,10 @@ fn reposition_window(
       }
 
       // Set visibility based on the hide method.
-      if is_visible {
-        window.native().show()?;
-      } else if config.value.general.hide_method == HideMethod::Cloak {
+      if config.value.general.hide_method == HideMethod::Cloak {
         window.native().set_cloaked(!is_visible)?;
+      } else if is_visible {
+        window.native().show()?;
       } else {
         window.native().hide()?;
       }
