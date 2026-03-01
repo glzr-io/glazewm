@@ -403,8 +403,8 @@ fn reposition_window(
       let should_restore = match &window.state() {
         // Need to restore window if transitioning from maximized
         // fullscreen to non-maximized fullscreen.
-        WindowState::Fullscreen(fs_config) => {
-          !fs_config.maximized && window.native().is_maximized()?
+        WindowState::Fullscreen(fullscreen) => {
+          !fullscreen.maximized && window.native().is_maximized()?
         }
         // No need to restore window if it'll be minimized. Transitioning
         // from maximized to minimized works without having to
@@ -433,8 +433,8 @@ fn reposition_window(
             window.native().minimize()?;
           }
         }
-        WindowState::Fullscreen(fs_config)
-          if fs_config.maximized
+        WindowState::Fullscreen(fullscreen)
+          if fullscreen.maximized
             && window.native().has_window_style(WS_MAXIMIZEBOX) =>
         {
           if !window.native().is_maximized()? {

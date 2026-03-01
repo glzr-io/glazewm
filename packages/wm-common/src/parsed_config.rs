@@ -399,8 +399,7 @@ fn default_window_rule_on() -> Vec<WindowRuleEvent> {
 
 /// Helper function for serializing a vector of keybindings.
 ///
-/// Causes the keybindings to be serialized to a vector of strings like
-/// "cmd+shift+a" and "ctrl+shift+b".
+/// Returns a vector of strings (e.g. `["cmd+shift+a", "ctrl+shift+b"]`).
 fn serialize_bindings<S>(
   bindings: &[Keybinding],
   serializer: S,
@@ -421,6 +420,31 @@ where
     .collect();
 
   binding_strings.serialize(serializer)
+}
+
+/// Helper function for deserializing a vector of strings into keybindings.
+///
+/// Returns a vector of [`Keybinding`].
+fn deserialize_bindings<'de, D>(
+  deserializer: D,
+) -> Result<Vec<Keybinding>, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  let s: Vec<&str> = serde::de::Deserialize::deserialize(deserializer)?;
+  s.iter()
+    .map(|keybinding_str| {
+      let keys: Vec<Key> = keybinding_str
+        .split('+')
+        .map(|key| {
+          key.trim().parse().or_else(|_| Key::try_from_literal(key))
+        })
+        .collect::<Result<Vec<Key>, _>>()
+        .map_err(serde::de::Error::custom)?;
+
+      Keybinding::new(keys).map_err(serde::de::Error::custom)
+    })
+    .collect()
 }
 
 /// Helper function for deserializing [`HideMethod`].
@@ -447,30 +471,4 @@ where
   {
     Ok(method)
   }
-}
-
-/// Helper function for deserializing a vector of [`Keybinding`].
-///
-/// Causes the keybindings to be deserialized from a vector of strings like
-/// "cmd+shift+a" and "ctrl+shift+b".
-fn deserialize_bindings<'de, D>(
-  deserializer: D,
-) -> Result<Vec<Keybinding>, D::Error>
-where
-  D: serde::de::Deserializer<'de>,
-{
-  let s: Vec<&str> = serde::de::Deserialize::deserialize(deserializer)?;
-  s.iter()
-    .map(|keybinding_str| {
-      let keys: Vec<Key> = keybinding_str
-        .split('+')
-        .map(|key| {
-          key.trim().parse().or_else(|_| Key::try_from_literal(key))
-        })
-        .collect::<Result<Vec<Key>, _>>()
-        .map_err(serde::de::Error::custom)?;
-
-      Keybinding::new(keys).map_err(serde::de::Error::custom)
-    })
-    .collect()
 }

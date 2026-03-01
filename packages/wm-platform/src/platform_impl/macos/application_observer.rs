@@ -48,7 +48,6 @@ pub(crate) struct ApplicationObserver {
   observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
   app_element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
-  // context: Box<ApplicationEventContext>,
 }
 
 // TODO: Remove this.
@@ -64,11 +63,6 @@ impl ApplicationObserver {
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     is_startup: bool,
   ) -> crate::Result<Self> {
-    // Creation of `AXUIElement` for an application does not fail even if
-    // the PID is invalid. Instead, subsequent operations on the returned
-    // `AXUIElement` will error.
-    // let app_element = unsafe { AXUIElement::new_application(pid) };
-
     let observer = unsafe {
       let mut observer = std::ptr::null_mut();
 
@@ -147,7 +141,6 @@ impl ApplicationObserver {
       observer,
       observer_source,
       app_element: app.ax_element.clone(),
-      // context,
     })
   }
 

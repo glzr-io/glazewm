@@ -30,6 +30,9 @@ impl Application {
   ) -> Self {
     let pid = unsafe { ns_app.processIdentifier() };
     let ax_element = Arc::new(ThreadBound::new(
+      // Creation of `AXUIElement` for an application does not fail even
+      // if the PID is invalid. Instead, subsequent operations on
+      // the returned `AXUIElement` will error.
       unsafe { AXUIElement::new_application(pid) },
       dispatcher.clone(),
     ));
@@ -100,8 +103,10 @@ impl Application {
 
   /// Whether the application is an XPC service.
   ///
-  /// Some of Apple's own XPC services have window capabilities. These
-  /// windows are non-standard and unmanageable.
+  /// Windows from XPC services are non-standard and cannot be managed.
+  /// Though XPC services are not intended to accept UI interaction, some
+  /// of Apple's own services have windows (e.g. `QuickLookUIService`,
+  /// used for Finder previews).
   pub fn is_xpc(&self) -> crate::Result<bool> {
     let psn = self.psn()?;
 

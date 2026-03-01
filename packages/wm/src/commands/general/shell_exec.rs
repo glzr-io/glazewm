@@ -38,6 +38,10 @@ pub fn shell_exec(
     let home_dir =
       home::home_dir().context("Unable to get home directory.")?;
 
+    // TODO: Use `Shell::spawn` instead. `ShellExecuteExW` is still used to
+    // be able to launch programs from the App Paths registry
+    // (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths`), like
+    // `chrome` without it being in $PATH.
     state.dispatcher.shell_execute_ex(
       &program,
       &args,
