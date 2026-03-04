@@ -67,11 +67,19 @@ impl KeyEvent {
   }
 }
 
+/// Data shared with the `CGEventTap` callback.
+struct CallbackData {
+  callback: Box<dyn Fn(KeyEvent) -> bool + Send + Sync + 'static>,
+}
+
 /// macOS-specific keyboard hook.
 #[derive(Debug)]
 pub struct KeyboardHook {
   /// Mach port for the created `CGEventTap`.
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
+
+  /// Pointer to [`CallbackData`], used by the `CGEventTap` callback.
+  callback_ptr: Option<usize>,
 }
 
 impl KeyboardHook {
@@ -86,28 +94,35 @@ impl KeyboardHook {
   where
     F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
   {
+    let callback_ptr = {
+      let data = Box::new(CallbackData {
+        callback: Box::new(callback),
+      });
+      Box::into_raw(data) as usize
+    };
+
     let tap_port = dispatcher
-      .dispatch_sync(|| Self::create_event_tap(callback, dispatcher))??;
+      .dispatch_sync(|| Self::create_event_tap(callback_ptr, dispatcher))
+      .flatten()
+      .inspect_err(|_| {
+        // Clean up the callback data if event tap creation fails.
+        let _ =
+          unsafe { Box::from_raw(callback_ptr as *mut CallbackData) };
+      })?;
 
     Ok(Self {
       tap_port: Some(tap_port),
+      callback_ptr: Some(callback_ptr),
     })
   }
 
   /// Creates a `CGEventTap` object.
-  pub fn create_event_tap<F>(
-    callback: F,
+  fn create_event_tap(
+    callback_ptr: usize,
     dispatcher: &Dispatcher,
-  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>>
-  where
-    F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
-  {
+  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
     let mask: CGEventMask = (1u64 << u64::from(CGEventType::KeyDown.0))
       | (1u64 << u64::from(CGEventType::KeyUp.0));
-
-    // Box the callback and convert it to a raw pointer.
-    let callback_box = Box::new(callback);
-    let callback_ptr = Box::into_raw(callback_box).cast::<c_void>();
 
     let tap_port = unsafe {
       CGEvent::tap_create(
@@ -115,15 +130,12 @@ impl KeyboardHook {
         CGEventTapPlacement::HeadInsertEventTap,
         CGEventTapOptions::Default,
         mask,
-        Some(Self::keyboard_event_callback::<F>),
-        callback_ptr,
+        Some(Self::keyboard_event_callback),
+        callback_ptr as *mut c_void,
       )
       .ok_or_else(|| {
-        // Cleanup callback if event tap creation fails.
-        let _ = Box::from_raw(callback_ptr.cast::<F>());
-
         Error::Platform(
-          "Failed to create CGEventTap. Accessibility permissions may be required."
+          "Failed to create `CGEventTap`. Accessibility permissions may be required."
             .to_string(),
         )
       })
@@ -150,15 +162,12 @@ impl KeyboardHook {
   /// Callback function for keyboard events.
   ///
   /// For use with `CGEventTap`.
-  extern "C-unwind" fn keyboard_event_callback<F>(
+  extern "C-unwind" fn keyboard_event_callback(
     _proxy: CGEventTapProxy,
     event_type: CGEventType,
     mut event: NonNull<CGEvent>,
     user_info: *mut c_void,
-  ) -> *mut CGEvent
-  where
-    F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
-  {
+  ) -> *mut CGEvent {
     if user_info.is_null() {
       tracing::error!("Null pointer passed to keyboard event callback.");
       return unsafe { event.as_mut() };
@@ -177,21 +186,17 @@ impl KeyboardHook {
       return unsafe { event.as_mut() };
     };
 
-    let is_keypress = event_type == CGEventType::KeyDown;
     let event_flags = unsafe { CGEvent::flags(Some(event.as_ref())) };
-
-    tracing::debug!(
-      "Key event: code={}, flags={:?}, is_keypress={}",
+    let key_event = KeyEvent::new(
+      key,
       key_code,
+      event_type == CGEventType::KeyDown,
       event_flags,
-      is_keypress
     );
 
-    let key_event = KeyEvent::new(key, key_code, is_keypress, event_flags);
-
     // Get callback from user data and invoke it.
-    let callback = unsafe { &*(user_info as *const F) };
-    let should_intercept = callback(key_event);
+    let data = unsafe { &*(user_info as *const CallbackData) };
+    let should_intercept = (data.callback)(key_event);
 
     if should_intercept {
       std::ptr::null_mut()
@@ -208,6 +213,11 @@ impl KeyboardHook {
       // also invalidates the run loop source.
       // See: https://developer.apple.com/documentation/corefoundation/cfmachportinvalidate(_:)
       let _ = tap.with(|tap| CFMachPort::invalidate(tap));
+    }
+
+    // Clean up the callback data if it exists.
+    if let Some(ptr) = self.callback_ptr.take() {
+      let _ = unsafe { Box::from_raw(ptr as *mut CallbackData) };
     }
 
     Ok(())

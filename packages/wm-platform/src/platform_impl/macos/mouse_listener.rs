@@ -50,7 +50,7 @@ pub(crate) struct MouseListener {
   tap_port: Option<ThreadBound<CFRetained<CFMachPort>>>,
 
   /// Pointer to [`CallbackData`], used by the `CGEventTap` callback.
-  callback_data_ptr: usize,
+  callback_data_ptr: Option<usize>,
 }
 
 impl MouseListener {
@@ -82,7 +82,7 @@ impl MouseListener {
 
     Ok(Self {
       tap_port: Some(tap_port),
-      callback_data_ptr,
+      callback_data_ptr: Some(callback_data_ptr),
       dispatcher: dispatcher.clone(),
       event_tx,
     })
@@ -168,7 +168,7 @@ impl MouseListener {
           unsafe { Box::from_raw(callback_data_ptr as *mut CallbackData) };
       })?;
 
-    self.callback_data_ptr = callback_data_ptr;
+    self.callback_data_ptr = Some(callback_data_ptr);
     self.tap_port = Some(tap_port);
 
     Ok(())
@@ -184,11 +184,8 @@ impl MouseListener {
     }
 
     // Clean up the callback data if it exists.
-    if self.callback_data_ptr != 0 {
-      let _ = unsafe {
-        Box::from_raw(self.callback_data_ptr as *mut CallbackData)
-      };
-      self.callback_data_ptr = 0;
+    if let Some(ptr) = self.callback_data_ptr.take() {
+      let _ = unsafe { Box::from_raw(ptr as *mut CallbackData) };
     }
 
     Ok(())
