@@ -175,6 +175,7 @@ impl NativeWindow {
     // TODO: Would `AXFrame` work instead?
     let size = self.size()?;
     let position = self.position()?;
+    #[allow(clippy::cast_possible_truncation)]
     Ok(Rect::from_xy(
       position.0 as i32,
       position.1 as i32,
@@ -299,7 +300,7 @@ impl NativeWindow {
   }
 
   /// macOS-specific implementation of [`NativeWindow::is_resizable`].
-  #[allow(clippy::unnecessary_wraps)]
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
     // TODO: Not sure if this is even available via the AX API.
     Ok(true)
@@ -336,6 +337,7 @@ impl NativeWindow {
   }
 
   /// macOS-specific implementation of [`NativeWindow::is_desktop_window`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
     Ok(
       self.application.bundle_id() == Some("com.apple.finder".to_string()),

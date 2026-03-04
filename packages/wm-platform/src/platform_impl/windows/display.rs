@@ -452,7 +452,7 @@ pub(crate) fn all_display_devices(
 
 /// Windows-specific implementation of [`Dispatcher::display_from_point`].
 pub(crate) fn display_from_point(
-  point: Point,
+  point: &Point,
   _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let handle = unsafe {

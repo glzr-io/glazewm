@@ -108,6 +108,7 @@ impl Display {
   }
 
   /// Gets the full bounds rectangle of the display.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn bounds(&self) -> crate::Result<Rect> {
     let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
 
@@ -161,6 +162,7 @@ impl Display {
   }
 
   /// Returns whether this is the primary display.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_primary(&self) -> crate::Result<bool> {
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
@@ -268,12 +270,14 @@ impl DisplayDevice {
   }
 
   /// Gets the rotation of the device in degrees.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
   }
 
   /// Gets the connection state of the device.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
     let display_mode =
       unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
@@ -302,6 +306,7 @@ impl DisplayDevice {
   }
 
   /// Returns whether this is a built-in device.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
     let main_display_id = unsafe { CGMainDisplayID() };
@@ -309,6 +314,7 @@ impl DisplayDevice {
   }
 
   /// Gets the mirroring state of the device.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn mirroring_state(
     &self,
   ) -> crate::Result<Option<MirroringState>> {
@@ -323,11 +329,12 @@ impl DisplayDevice {
       let mut displays: Vec<CGDirectDisplayID> = vec![0; 32];
       let mut display_count: u32 = 0;
 
+      #[allow(clippy::cast_possible_truncation)]
       let result = unsafe {
         CGGetActiveDisplayList(
           displays.len() as u32,
           displays.as_mut_ptr(),
-          &mut display_count,
+          &raw mut display_count,
         )
       };
 
@@ -401,6 +408,7 @@ pub(crate) fn all_display_devices(
   let mut cg_display_ids: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
   let mut display_count: u32 = 0;
 
+  #[allow(clippy::cast_possible_truncation)]
   let result = unsafe {
     CGGetOnlineDisplayList(
       cg_display_ids.len() as u32,
@@ -426,48 +434,16 @@ pub(crate) fn all_display_devices(
     .collect()
 }
 
-/// Gets active display devices on macOS.
-pub(crate) fn active_display_devices(
-  _dispatcher: &Dispatcher,
-) -> crate::Result<Vec<crate::DisplayDevice>> {
-  let mut cg_display_ids: Vec<CGDirectDisplayID> = vec![0; 32]; // Max 32 displays
-  let mut display_count: u32 = 0;
-
-  let result = unsafe {
-    CGGetActiveDisplayList(
-      cg_display_ids.len() as u32,
-      cg_display_ids.as_mut_ptr(),
-      &raw mut display_count,
-    )
-  };
-
-  if result != CGError::Success {
-    return Err(crate::Error::DisplayEnumerationFailed);
-  }
-
-  cg_display_ids.truncate(display_count as usize);
-
-  cg_display_ids
-    .into_iter()
-    .map(|cg_display_id| {
-      Ok(
-        DisplayDevice::new(cg_display_id, cg_display_uuid(cg_display_id)?)
-          .into(),
-      )
-    })
-    .collect()
-}
-
 /// macOS-specific implementation of [`Dispatcher::display_from_point`].
 pub(crate) fn display_from_point(
-  point: Point,
+  point: &Point,
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let displays = all_displays(dispatcher)?;
 
   for display in displays {
     let bounds = display.bounds()?;
-    if bounds.contains_point(&point) {
+    if bounds.contains_point(point) {
       return Ok(display);
     }
   }

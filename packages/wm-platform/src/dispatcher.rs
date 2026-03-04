@@ -510,7 +510,7 @@ impl Dispatcher {
   /// If no display contains the point, returns the primary display.
   pub fn display_from_point(
     &self,
-    point: Point,
+    point: &Point,
   ) -> crate::Result<Display> {
     platform_impl::display_from_point(point, self)
   }

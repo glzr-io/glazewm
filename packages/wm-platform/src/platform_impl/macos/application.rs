@@ -110,18 +110,23 @@ impl Application {
   pub fn is_xpc(&self) -> crate::Result<bool> {
     let psn = self.psn()?;
 
-    let mut info = ffi::ProcessInfo::default();
-    info.info_length = std::mem::size_of::<ffi::ProcessInfo>() as u32;
+    #[allow(clippy::cast_possible_truncation)]
+    let mut process_info = {
+      let mut info = ffi::ProcessInfo::default();
+      info.info_length = std::mem::size_of::<ffi::ProcessInfo>() as u32;
+      info
+    };
 
-    if unsafe { ffi::GetProcessInformation(&raw const psn, &raw mut info) }
-      != 0
+    if unsafe {
+      ffi::GetProcessInformation(&raw const psn, &raw mut process_info)
+    } != 0
     {
       return Err(crate::Error::Platform(
         "Failed to get process information.".to_string(),
       ));
     }
 
-    Ok(info.r#type.to_be_bytes() == *b"XPC!")
+    Ok(process_info.r#type.to_be_bytes() == *b"XPC!")
   }
 
   pub fn activation_policy(&self) -> NSApplicationActivationPolicy {
