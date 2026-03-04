@@ -45,9 +45,8 @@ pub(crate) struct ApplicationObserver {
   pub(crate) pid: ProcessId,
   app_windows: Arc<Mutex<Vec<crate::NativeWindow>>>,
   events_tx: mpsc::UnboundedSender<WindowEvent>,
-  observer: CFRetained<AXObserver>,
+  _observer: CFRetained<AXObserver>,
   observer_source: CFRetained<CFRunLoopSource>,
-  app_element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
 }
 
 // TODO: Remove this.
@@ -138,9 +137,8 @@ impl ApplicationObserver {
       pid: app.pid,
       app_windows,
       events_tx,
-      observer,
+      _observer: observer,
       observer_source,
-      app_element: app.ax_element.clone(),
     })
   }
 

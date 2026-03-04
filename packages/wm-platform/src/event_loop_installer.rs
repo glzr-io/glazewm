@@ -19,7 +19,7 @@ impl EventLoopInstaller {
 
   /// Install on an existing event loop running on the main thread.
   ///
-  /// This method integrates with the existing `CFRunLoop` on the main
+  /// This method hooks into the existing `CFRunLoop` on the main
   /// thread.
   ///
   /// # Platform-specific
@@ -28,14 +28,13 @@ impl EventLoopInstaller {
   #[cfg(target_os = "macos")]
   pub fn install(self) -> crate::Result<()> {
     let _source = platform_impl::EventLoop::add_dispatch_source()?;
-
     // TODO: Need to send the source to the dispatcher.
     todo!();
   }
 
   /// Install on an existing event loop via window subclassing.
   ///
-  /// This method integrates with an existing Windows message loop by
+  /// This method hooks into an existing Windows message loop by
   /// subclassing the specified window.
   ///
   /// # Platform-specific

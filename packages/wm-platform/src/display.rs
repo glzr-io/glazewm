@@ -95,7 +95,7 @@ pub enum ConnectionState {
   /// Device is connected and part of the desktop coordinate space.
   Active,
 
-  /// Device is connected but inactive (e.g. on standby or in sleep mode).
+  /// Device is connected but inactive (i.e. on standby or in sleep mode).
   Inactive,
 
   /// Device is disconnected.

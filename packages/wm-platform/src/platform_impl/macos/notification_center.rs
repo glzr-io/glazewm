@@ -7,7 +7,6 @@ use objc2_app_kit::{
   NSRunningApplication, NSWorkspace,
   NSWorkspaceActiveSpaceDidChangeNotification,
   NSWorkspaceDidActivateApplicationNotification,
-  NSWorkspaceDidDeactivateApplicationNotification,
   NSWorkspaceDidHideApplicationNotification,
   NSWorkspaceDidLaunchApplicationNotification,
   NSWorkspaceDidTerminateApplicationNotification,
@@ -23,7 +22,6 @@ use tokio::sync::mpsc;
 pub(crate) enum NotificationName {
   WorkspaceActiveSpaceDidChange,
   WorkspaceDidActivateApplication,
-  WorkspaceDidDeactivateApplication,
   WorkspaceDidLaunchApplication,
   WorkspaceDidTerminateApplication,
   WorkspaceDidHideApplication,
@@ -39,10 +37,6 @@ impl From<&NSNotificationName> for NotificationName {
       == unsafe { NSWorkspaceDidActivateApplicationNotification }
     {
       Self::WorkspaceDidActivateApplication
-    } else if name
-      == unsafe { NSWorkspaceDidDeactivateApplicationNotification }
-    {
-      Self::WorkspaceDidDeactivateApplication
     } else if name
       == unsafe { NSWorkspaceDidTerminateApplicationNotification }
     {
@@ -77,9 +71,6 @@ impl From<NotificationName> for &NSString {
       NotificationName::WorkspaceDidActivateApplication => unsafe {
         NSWorkspaceDidActivateApplicationNotification
       },
-      NotificationName::WorkspaceDidDeactivateApplication => unsafe {
-        NSWorkspaceDidDeactivateApplicationNotification
-      },
       NotificationName::WorkspaceDidLaunchApplication => unsafe {
         NSWorkspaceDidLaunchApplicationNotification
       },
@@ -103,7 +94,6 @@ impl From<NotificationName> for &NSString {
 pub(crate) enum NotificationEvent {
   WorkspaceActiveSpaceDidChange,
   WorkspaceDidActivateApplication(Retained<NSRunningApplication>),
-  WorkspaceDidDeactivateApplication(Retained<NSRunningApplication>),
   WorkspaceDidLaunchApplication(Retained<NSRunningApplication>),
   WorkspaceDidTerminateApplication(Retained<NSRunningApplication>),
   WorkspaceDidHideApplication(Retained<NSRunningApplication>),
@@ -117,14 +107,14 @@ pub(crate) struct NotificationObserverIvars {
 }
 
 define_class! {
-  // Safety:
+  // SAFETY:
   // - The superclass `NSObject` does not have any subclassing requirements.
   // - `NotificationObserver` does not implement `Drop`.
   #[unsafe(super(NSObject))]
   #[ivars = Box<NotificationObserverIvars>]
   pub(crate) struct NotificationObserver;
 
-  // Safety: Each of these method signatures must match their invocations.
+  // SAFETY: Each of these method signatures must match their invocations.
   impl NotificationObserver {
     #[unsafe(method(onEvent:))]
     fn on_event(&self, notif: &NSNotification) {
@@ -141,19 +131,19 @@ impl NotificationObserver {
     let instance = Self::alloc()
       .set_ivars(Box::new(NotificationObserverIvars { events_tx }));
 
-    // Safety: The signature of `NSObject`'s `init` method is correct.
+    // SAFETY: The signature of `NSObject`'s `init` method is correct.
     (unsafe { msg_send![super(instance), init] }, events_rx)
   }
 
   fn handle_event(&self, notif: &NSNotification) {
-    tracing::info!("Received notification: {notif:#?}");
+    tracing::debug!("Received notification: {notif:#?}");
 
     match NotificationName::from(unsafe { &*notif.name() }) {
       NotificationName::WorkspaceActiveSpaceDidChange => {
         self.emit_event(NotificationEvent::WorkspaceActiveSpaceDidChange);
       }
       NotificationName::WorkspaceDidActivateApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+        if let Some(app) = unsafe { app_from_notification(notif) } {
           self.emit_event(
             NotificationEvent::WorkspaceDidActivateApplication(app),
           );
@@ -163,19 +153,8 @@ impl NotificationObserver {
           );
         }
       }
-      NotificationName::WorkspaceDidDeactivateApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
-          self.emit_event(
-            NotificationEvent::WorkspaceDidDeactivateApplication(app),
-          );
-        } else {
-          tracing::warn!(
-            "Failed to extract application from deactivate notification"
-          );
-        }
-      }
       NotificationName::WorkspaceDidLaunchApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+        if let Some(app) = unsafe { app_from_notification(notif) } {
           self.emit_event(
             NotificationEvent::WorkspaceDidLaunchApplication(app),
           );
@@ -186,7 +165,7 @@ impl NotificationObserver {
         }
       }
       NotificationName::WorkspaceDidTerminateApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+        if let Some(app) = unsafe { app_from_notification(notif) } {
           self.emit_event(
             NotificationEvent::WorkspaceDidTerminateApplication(app),
           );
@@ -197,14 +176,14 @@ impl NotificationObserver {
         }
       }
       NotificationName::WorkspaceDidHideApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+        if let Some(app) = unsafe { app_from_notification(notif) } {
           self.emit_event(NotificationEvent::WorkspaceDidHideApplication(
             app,
           ));
         }
       }
       NotificationName::WorkspaceDidUnhideApplication => {
-        if let Some(app) = unsafe { get_app_from_notification(notif) } {
+        if let Some(app) = unsafe { app_from_notification(notif) } {
           self.emit_event(
             NotificationEvent::WorkspaceDidUnhideApplication(app),
           );
@@ -259,14 +238,13 @@ impl NotificationCenter {
       object,
     );
   }
-
 }
 
-pub unsafe fn get_app_from_notification(
+pub unsafe fn app_from_notification(
   notification: &NSNotification,
 ) -> Option<Retained<NSRunningApplication>> {
-  let user_info = notification.userInfo()?;
-  let bundle_id_str = ns_string!("NSWorkspaceApplicationKey");
-  let app = user_info.objectForKey(bundle_id_str);
-  app.map(|app| Retained::<AnyObject>::cast(app))
+  notification
+    .userInfo()?
+    .objectForKey(ns_string!("NSWorkspaceApplicationKey"))
+    .map(|app| Retained::<AnyObject>::cast_unchecked(app))
 }

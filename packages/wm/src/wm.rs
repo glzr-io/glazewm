@@ -140,7 +140,6 @@ impl WindowManager {
     }?;
 
     if !state.is_paused && state.pending_sync.has_changes() {
-      println!("platform_sync");
       platform_sync(state, config)?;
     }
 

@@ -34,11 +34,14 @@ impl EventLoopSource {
       return Ok(());
     }
 
-    self.dispatch_tx.send(Box::new(dispatch_fn)).unwrap();
+    self
+      .dispatch_tx
+      .send(Box::new(dispatch_fn))
+      .map_err(|_| crate::Error::ChannelSend)?;
 
     // Signal the run loop source, which schedules the `perform` callback
-    // to be invoked. If signaled multiple times in a short period,
-    // this gets coalesced into a single signal.
+    // to be invoked. If signaled multiple times in a short period, this
+    // gets coalesced into a single signal.
     self.source.signal();
 
     // Wake up the run loop to process the signal.
@@ -53,10 +56,9 @@ impl EventLoopSource {
   where
     F: FnOnce() + Send,
   {
-    // SAFETY: This function is guaranteed to be used in a synchronous
+    // SAFETY: Usage of this function needs to be in a synchronous
     // context where the dispatch function will be executed before the
-    // caller's stack frame is dropped. We transmute the lifetime to
-    // satisfy the channel's `'static` requirement.
+    // caller's stack frame is dropped.
     let dispatch_fn_static = unsafe {
       std::mem::transmute::<
         Box<dyn FnOnce() + Send>,
@@ -90,9 +92,8 @@ impl EventLoopSource {
   }
 }
 
-// SAFETY: `CFRunLoop` and `CFRunLoopSource` are thread-safe Core
-// Foundation types. The `objc2` bindings don't implement `Send + Sync`,
-// but the underlying CF types are safe to send between threads.
+// SAFETY: `CFRunLoop` and `CFRunLoopSource` are thread-safe types. The
+// `objc2` bindings don't implement `Send + Sync`.
 unsafe impl Send for EventLoopSource {}
 unsafe impl Sync for EventLoopSource {}
 

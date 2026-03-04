@@ -31,10 +31,11 @@ pub fn unmanage_window(
     flatten_child_split_containers(ancestor)?;
   }
 
-  // state.emit_event(WmEvent::WindowUnmanaged {
-  //   unmanaged_id: window.id(),
-  //   unmanaged_handle: window.native().handle,
-  // });
+  state.emit_event(WmEvent::WindowUnmanaged {
+    unmanaged_id: window.id(),
+    #[allow(clippy::cast_possible_wrap)]
+    unmanaged_handle: window.native().id().0 as isize,
+  });
 
   // Reassign focus to suitable target.
   if let Some(focus_target) = focus_target {

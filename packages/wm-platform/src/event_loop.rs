@@ -1,7 +1,7 @@
 use crate::{platform_impl, Dispatcher};
 
-/// A basic cross-platform event loop that allows for remote dispatching
-/// via [`Dispatcher`].
+/// A cross-platform event loop that allows for remote dispatching via
+/// [`Dispatcher`].
 ///
 /// Does not start pumping events until [`EventLoop::run`] is called.
 ///

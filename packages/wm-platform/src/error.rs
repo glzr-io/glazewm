@@ -30,8 +30,8 @@ pub enum Error {
   #[error(transparent)]
   IntConversion(#[from] std::num::TryFromIntError),
 
-  #[error("Channel send error: {0}")]
-  ChannelSend(String),
+  #[error("Channel send error")]
+  ChannelSend,
 
   #[error("Display enumeration failed")]
   DisplayEnumerationFailed,

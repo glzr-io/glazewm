@@ -58,7 +58,6 @@ impl WindowListener {
       NotificationName::WorkspaceActiveSpaceDidChange,
       NotificationName::WorkspaceDidLaunchApplication,
       NotificationName::WorkspaceDidActivateApplication,
-      NotificationName::WorkspaceDidDeactivateApplication,
       NotificationName::WorkspaceDidTerminateApplication,
       NotificationName::WorkspaceDidHideApplication,
       NotificationName::WorkspaceDidUnhideApplication,
