@@ -105,8 +105,8 @@ impl WmState {
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_monitor in Platform::sorted_monitors()? {
-      let monitor = add_monitor(native_monitor, self)?;
+    for native_monitor in Platform::sorted_monitors_with_config(&config.value.monitors)?? {
+      let monitor = add_monitor(native_monitor, self, config)?;
       move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
     }
 
