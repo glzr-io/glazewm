@@ -15,45 +15,6 @@ use crate::{
   DisplayId, MirroringState, Point, Rect, ThreadBound,
 };
 
-/// macOS-specific extensions for [`Display`].
-pub trait DisplayExtMacOs {
-  /// Gets the Core Graphics display ID.
-  fn cg_display_id(&self) -> CGDirectDisplayID;
-
-  /// Gets the `NSScreen` instance for this display.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>>;
-}
-
-impl DisplayExtMacOs for crate::Display {
-  fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.inner.cg_display_id()
-  }
-
-  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
-    self.inner.ns_screen()
-  }
-}
-
-/// macOS-specific extensions for [`DisplayDevice`].
-pub trait DisplayDeviceExtMacOs {
-  /// Gets the Core Graphics display ID.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn cg_display_id(&self) -> CGDirectDisplayID;
-}
-
-impl DisplayDeviceExtMacOs for crate::DisplayDevice {
-  fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.inner.cg_display_id()
-  }
-}
-
 /// macOS-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
 pub(crate) struct Display {

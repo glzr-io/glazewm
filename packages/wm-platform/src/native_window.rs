@@ -1,9 +1,20 @@
 #[cfg(target_os = "macos")]
 use objc2_application_services::AXUIElement;
 #[cfg(target_os = "macos")]
-use objc2_core_foundation::CFRetained;
+use objc2_core_foundation::{CFBoolean, CFRetained, CFString};
+#[cfg(target_os = "windows")]
+use windows::Win32::{
+  Foundation::HWND,
+  UI::WindowsAndMessaging::{
+    SET_WINDOW_POS_FLAGS, WINDOW_EX_STYLE, WINDOW_STYLE,
+  },
+};
 
 use crate::{platform_impl, Rect};
+#[cfg(target_os = "macos")]
+use crate::{platform_impl::AXUIElementExt, ThreadBound};
+#[cfg(target_os = "windows")]
+use crate::{Color, CornerStyle, Delta, OpacityValue, RectDelta};
 
 /// Unique identifier of a window.
 ///
@@ -41,6 +52,384 @@ pub enum WindowZOrder {
   AfterWindow(WindowId),
   Top,
   TopMost,
+}
+
+/// macOS-specific extensions for [`NativeWindow`].
+#[cfg(target_os = "macos")]
+pub trait NativeWindowExtMacOs {
+  /// Gets the `AXUIElement` instance for this window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>>;
+
+  /// Gets the bundle ID of the application that owns the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn bundle_id(&self) -> Option<String>;
+
+  /// Gets the role of the window (e.g. `AXWindow`).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn role(&self) -> crate::Result<String>;
+
+  /// Gets the sub-role of the window (e.g. `AXStandardWindow`).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn subrole(&self) -> crate::Result<String>;
+
+  /// Whether the window is modal.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn is_modal(&self) -> crate::Result<bool>;
+
+  /// Whether the window is the main window for its application.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn is_main(&self) -> crate::Result<bool>;
+}
+
+#[cfg(target_os = "macos")]
+impl NativeWindowExtMacOs for NativeWindow {
+  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>> {
+    &self.inner.element
+  }
+
+  fn bundle_id(&self) -> Option<String> {
+    self.inner.application.bundle_id()
+  }
+
+  fn role(&self) -> crate::Result<String> {
+    self.inner.element.with(|el| {
+      el.get_attribute::<CFString>("AXRole")
+        .map(|cf_string| cf_string.to_string())
+    })?
+  }
+
+  fn subrole(&self) -> crate::Result<String> {
+    self.inner.element.with(|el| {
+      el.get_attribute::<CFString>("AXSubrole")
+        .map(|cf_string| cf_string.to_string())
+    })?
+  }
+
+  fn is_modal(&self) -> crate::Result<bool> {
+    self.inner.element.with(|el| {
+      el.get_attribute::<CFBoolean>("AXModal")
+        .map(|cf_bool| cf_bool.value())
+    })?
+  }
+
+  fn is_main(&self) -> crate::Result<bool> {
+    self.inner.element.with(|el| {
+      el.get_attribute::<CFBoolean>("AXMain")
+        .map(|cf_bool| cf_bool.value())
+    })?
+  }
+}
+
+/// Windows-specific extensions for [`NativeWindow`].
+#[cfg(target_os = "windows")]
+pub trait NativeWindowWindowsExt {
+  /// Creates a [`NativeWindow`] from a window handle.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn from_handle(handle: isize) -> NativeWindow;
+
+  /// Gets the window handle.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hwnd(&self) -> HWND;
+
+  /// Gets the class name of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn class_name(&self) -> crate::Result<String>;
+
+  /// Shows the window asynchronously.
+  ///
+  /// NOTE: Cloaked windows do not get shown until uncloaked.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn show(&self) -> crate::Result<()>;
+
+  /// Hides the window asynchronously.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn hide(&self) -> crate::Result<()>;
+
+  /// Restores the window (unminimizes and unmaximizes).
+  ///
+  /// If `outer_frame` is provided, the window will be restored to the
+  /// specified position. This avoids flickering compared to restoring
+  /// and then repositioning the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()>;
+
+  /// Gets the window's frame, including the window's shadow borders.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  ///
+  /// TODO: Consider renaming this to `outer_frame`.`
+  fn frame_with_shadows(&self) -> crate::Result<Rect>;
+
+  /// Whether the window has an owner window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_owner_window(&self) -> bool;
+
+  /// Whether the window has the given window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool;
+
+  /// Whether the window has the given extended window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool;
+
+  /// Adds the given extended window style flag(s) to the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE);
+
+  /// Sets the window's z-order.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_z_order(&self, zorder: &WindowZOrder) -> crate::Result<()>;
+
+  /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_window_pos(
+    &self,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()>;
+
+  /// Cloaks or uncloaks the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()>;
+
+  /// Marks the window as fullscreen.
+  ///
+  /// Causes the native Windows taskbar to be moved to the bottom of the
+  /// z-order when this window is active.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()>;
+
+  /// Sets the visibility of the window's title bar.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()>;
+
+  /// Sets the color of the window's border.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
+
+  /// Sets the corner style of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_corner_style(
+    &self,
+    corner_style: &CornerStyle,
+  ) -> crate::Result<()>;
+
+  /// Sets the transparency of the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> crate::Result<()>;
+
+  /// Adds or removes the window from the native taskbar.
+  ///
+  /// Cloaked windows are normally always shown in the taskbar, but can be
+  /// manually toggled. Hidden windows (`SW_HIDE`) can never be shown in
+  /// the taskbar.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()>;
+
+  /// Gets the delta between the window's frame and the window's border.
+  /// This represents the size of a window's shadow borders.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn shadow_borders(&self) -> crate::Result<RectDelta>;
+
+  /// Adjusts the window's transparency by a relative delta.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn adjust_transparency(
+    &self,
+    opacity_delta: &Delta<OpacityValue>,
+  ) -> crate::Result<()>;
+}
+
+#[cfg(target_os = "windows")]
+impl NativeWindowWindowsExt for NativeWindow {
+  fn from_handle(handle: isize) -> Self {
+    platform_impl::NativeWindow::new(handle).into()
+  }
+
+  fn hwnd(&self) -> HWND {
+    self.inner.hwnd()
+  }
+
+  fn class_name(&self) -> crate::Result<String> {
+    self.inner.class_name()
+  }
+
+  fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()> {
+    self.inner.mark_fullscreen(fullscreen)
+  }
+
+  fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()> {
+    self.inner.set_title_bar_visibility(visible)
+  }
+
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
+    self.inner.set_border_color(color)
+  }
+
+  fn set_corner_style(
+    &self,
+    corner_style: &CornerStyle,
+  ) -> crate::Result<()> {
+    self.inner.set_corner_style(corner_style)
+  }
+
+  fn set_transparency(
+    &self,
+    opacity_value: &OpacityValue,
+  ) -> crate::Result<()> {
+    self.inner.set_transparency(opacity_value)
+  }
+
+  fn set_z_order(&self, z_order: &WindowZOrder) -> crate::Result<()> {
+    self.inner.set_z_order(z_order)
+  }
+
+  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()> {
+    self.inner.restore(outer_frame)
+  }
+
+  fn frame_with_shadows(&self) -> crate::Result<Rect> {
+    self.inner.frame_with_shadows()
+  }
+
+  fn has_owner_window(&self) -> bool {
+    self.inner.has_owner_window()
+  }
+
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
+    self.inner.has_window_style(style)
+  }
+
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
+    self.inner.has_window_style_ex(style)
+  }
+
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    self.inner.add_window_style_ex(style);
+  }
+
+  fn set_window_pos(
+    &self,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()> {
+    self.inner.set_window_pos(z_order, rect, flags)
+  }
+
+  fn show(&self) -> crate::Result<()> {
+    self.inner.show()
+  }
+
+  fn hide(&self) -> crate::Result<()> {
+    self.inner.hide()
+  }
+
+  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
+    self.inner.set_cloaked(cloaked)
+  }
+
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()> {
+    self.inner.set_taskbar_visibility(visible)
+  }
+
+  fn shadow_borders(&self) -> crate::Result<RectDelta> {
+    self.inner.shadow_borders()
+  }
+
+  fn adjust_transparency(
+    &self,
+    opacity_delta: &Delta<OpacityValue>,
+  ) -> crate::Result<()> {
+    self.inner.adjust_transparency(opacity_delta)
+  }
 }
 
 #[derive(Clone, Debug)]

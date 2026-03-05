@@ -17,94 +17,11 @@ use crate::{
   Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
 
-/// macOS-specific extensions for `NativeWindow`.
-pub trait NativeWindowExtMacOs {
-  /// Gets the `AXUIElement` instance for this window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>>;
-
-  /// Gets the bundle ID of the application that owns the window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn bundle_id(&self) -> Option<String>;
-
-  /// Gets the role of the window (e.g. `AXWindow`).
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn role(&self) -> crate::Result<String>;
-
-  /// Gets the sub-role of the window (e.g. `AXStandardWindow`).
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn subrole(&self) -> crate::Result<String>;
-
-  /// Whether the window is modal.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn is_modal(&self) -> crate::Result<bool>;
-
-  /// Whether the window is the main window for its application.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn is_main(&self) -> crate::Result<bool>;
-}
-
-impl NativeWindowExtMacOs for crate::NativeWindow {
-  fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>> {
-    &self.inner.element
-  }
-
-  fn bundle_id(&self) -> Option<String> {
-    self.inner.application.bundle_id()
-  }
-
-  fn role(&self) -> crate::Result<String> {
-    self.inner.element.with(|el| {
-      el.get_attribute::<CFString>("AXRole")
-        .map(|cf_string| cf_string.to_string())
-    })?
-  }
-
-  fn subrole(&self) -> crate::Result<String> {
-    self.inner.element.with(|el| {
-      el.get_attribute::<CFString>("AXSubrole")
-        .map(|cf_string| cf_string.to_string())
-    })?
-  }
-
-  fn is_modal(&self) -> crate::Result<bool> {
-    self.inner.element.with(|el| {
-      el.get_attribute::<CFBoolean>("AXModal")
-        .map(|cf_bool| cf_bool.value())
-    })?
-  }
-
-  fn is_main(&self) -> crate::Result<bool> {
-    self.inner.element.with(|el| {
-      el.get_attribute::<CFBoolean>("AXMain")
-        .map(|cf_bool| cf_bool.value())
-    })?
-  }
-}
-
 #[derive(Clone, Debug)]
-pub struct NativeWindow {
-  id: WindowId,
-  element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
-  application: Application,
+pub(crate) struct NativeWindow {
+  pub(crate) id: WindowId,
+  pub(crate) element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
+  pub(crate) application: Application,
 }
 
 impl NativeWindow {

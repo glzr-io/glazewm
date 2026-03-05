@@ -29,14 +29,6 @@ pub use models::*;
 pub use mouse_listener::*;
 pub use native_window::*;
 pub use platform_event::*;
-#[cfg(target_os = "macos")]
-pub use platform_impl::{
-  DisplayDeviceExtMacOs, DisplayExtMacOs, NativeWindowExtMacOs,
-};
-#[cfg(target_os = "windows")]
-pub use platform_impl::{
-  DisplayDeviceExtWindows, DisplayExtWindows, NativeWindowWindowsExt,
-};
 pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;

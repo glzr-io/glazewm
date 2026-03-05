@@ -5,7 +5,7 @@ mod platform;
 #[path = "macos/mod.rs"]
 mod platform;
 
-pub use platform::*;
+pub(crate) use platform::*;
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos"),))]
 compile_error!("The platform you're compiling for is not supported.");

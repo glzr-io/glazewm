@@ -21,72 +21,8 @@ use crate::{
     ConnectionState, DisplayDeviceId, DisplayId, MirroringState,
     OutputTechnology,
   },
-  platform_impl::NativeWindowWindowsExt,
   Dispatcher, NativeWindow, Point, Rect,
 };
-
-/// Windows-specific extensions for `Display`.
-pub trait DisplayExtWindows {
-  /// Gets the monitor handle.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn hmonitor(&self) -> HMONITOR;
-}
-
-/// Windows-specific extensions for `DisplayDevice`.
-pub trait DisplayDeviceExtWindows {
-  /// Gets the device path.
-  ///
-  /// This can be an empty string for virtual display devices.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn device_path(&self) -> Option<String>;
-
-  /// Gets the hardware ID from the device path.
-  ///
-  /// # Example usage
-  ///
-  /// ```rust,no_run
-  /// device.device_path(); // "\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
-  /// device.hardware_id(); // Some("DEL40A3")
-  /// ```
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn hardware_id(&self) -> Option<String>;
-
-  /// Gets the output technology.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn output_technology(&self) -> crate::Result<Option<OutputTechnology>>;
-}
-
-impl DisplayExtWindows for crate::Display {
-  fn hmonitor(&self) -> HMONITOR {
-    self.inner.hmonitor()
-  }
-}
-
-impl DisplayDeviceExtWindows for crate::DisplayDevice {
-  fn device_path(&self) -> Option<String> {
-    self.inner.device_path.clone()
-  }
-
-  fn hardware_id(&self) -> Option<String> {
-    self.inner.hardware_id()
-  }
-
-  fn output_technology(&self) -> crate::Result<Option<OutputTechnology>> {
-    self.inner.output_technology()
-  }
-}
 
 /// Windows-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
@@ -267,7 +203,7 @@ pub(crate) struct DisplayDevice {
   /// Device interface path (e.g.
   /// `\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#
   /// {e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}`).
-  device_path: Option<String>,
+  pub(crate) device_path: Option<String>,
 }
 
 impl DisplayDevice {
@@ -301,7 +237,7 @@ impl DisplayDevice {
 
   /// Windows-specific implementation of
   /// [`DisplayDeviceExtWindows::hardware_id`].
-  fn hardware_id(&self) -> Option<String> {
+  pub(crate) fn hardware_id(&self) -> Option<String> {
     self
       .device_path
       .as_deref()?
