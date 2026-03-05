@@ -674,22 +674,24 @@ impl NativeWindow {
   }
 
   pub fn set_cloaked(&self, cloaked: bool) -> anyhow::Result<()> {
-    COM_INIT.with(|com_init| -> anyhow::Result<()> {
-      let view_collection = com_init.application_view_collection()?;
+    COM_INIT.with(|com_init| {
+      com_init.borrow_mut().with_retry(|c| {
+        let view_collection = c.application_view_collection()?;
 
-      let mut view = None;
-      unsafe {
-        view_collection.get_view_for_hwnd(self.handle, &raw mut view)
-      }
-      .ok()?;
+        let mut view = None;
+        unsafe {
+          view_collection.get_view_for_hwnd(self.handle, &raw mut view)
+        }
+        .ok()?;
 
-      let view = view
-        .context("Unable to get application view by window handle.")?;
+        let view = view
+          .context("Unable to get application view by window handle.")?;
 
-      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
-      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
-        .ok()
-        .context("Failed to cloak window.")
+        // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
+        unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
+          .ok()
+          .context("Failed to cloak window.")
+      })
     })
   }
 
@@ -702,16 +704,18 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> anyhow::Result<()> {
-    COM_INIT.with(|com_init| -> anyhow::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
+    COM_INIT.with(|com_init| {
+      com_init.borrow_mut().with_retry(|c| {
+        let taskbar_list = c.taskbar_list()?;
 
-      if visible {
-        unsafe { taskbar_list.AddTab(HWND(self.handle))? };
-      } else {
-        unsafe { taskbar_list.DeleteTab(HWND(self.handle))? };
-      }
+        if visible {
+          unsafe { taskbar_list.AddTab(HWND(self.handle))? };
+        } else {
+          unsafe { taskbar_list.DeleteTab(HWND(self.handle))? };
+        }
 
-      Ok(())
+        Ok(())
+      })
     })
   }
 
@@ -829,14 +833,16 @@ impl NativeWindow {
   /// Causes the native Windows taskbar to be moved to the bottom of the
   /// z-order when this window is active.
   pub fn mark_fullscreen(&self, fullscreen: bool) -> anyhow::Result<()> {
-    COM_INIT.with(|com_init| -> anyhow::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
+    COM_INIT.with(|com_init| {
+      com_init.borrow_mut().with_retry(|c| {
+        let taskbar_list = c.taskbar_list()?;
 
-      unsafe {
-        taskbar_list.MarkFullscreenWindow(HWND(self.handle), fullscreen)
-      }?;
+        unsafe {
+          taskbar_list.MarkFullscreenWindow(HWND(self.handle), fullscreen)
+        }?;
 
-      Ok(())
+        Ok(())
+      })
     })
   }
 

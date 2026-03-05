@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use anyhow::Context;
 use windows::{
   core::{ComInterface, IUnknown, IUnknown_Vtbl, GUID, HRESULT},
@@ -19,7 +21,9 @@ thread_local! {
   /// Manages per-thread COM initialization. COM must be initialized on each
   /// thread that uses it, so we store this in thread-local storage to handle
   /// the setup and cleanup automatically.
-  pub static COM_INIT: ComInit = ComInit::new();
+  ///
+  /// Wrapped in `RefCell` to allow mutation via `COM_INIT.borrow_mut()`.
+  pub static COM_INIT: RefCell<ComInit> = RefCell::new(ComInit::new());
 }
 
 pub struct ComInit {
@@ -85,6 +89,45 @@ impl ComInit {
       .taskbar_list
       .as_ref()
       .context("Unable to create `ITaskbarList2` instance.")
+  }
+
+  /// Refreshes cached COM interfaces.
+  ///
+  /// Called automatically by `with_retry` when COM operations fail due to
+  /// stale interface pointers (e.g., after Explorer restarts).
+  pub fn refresh(&mut self) {
+    // Re-create the service provider.
+    self.service_provider = unsafe {
+      CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL)
+    }
+    .ok();
+
+    // Re-create the application view collection.
+    self.application_view_collection = self
+      .service_provider
+      .as_ref()
+      .and_then(|provider: &IServiceProvider| unsafe {
+        provider.QueryService(&IApplicationViewCollection::IID).ok()
+      });
+
+    // Re-create the taskbar list.
+    self.taskbar_list =
+      unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_SERVER) }.ok();
+  }
+
+  /// Executes a COM operation, refreshing interfaces on failure and
+  /// retrying once. Use this for operations that may fail due to stale
+  /// COM interfaces.
+  pub fn with_retry<T, F>(&mut self, op: F) -> anyhow::Result<T>
+  where
+    F: Fn(&Self) -> anyhow::Result<T>,
+  {
+    if let Ok(result) = op(self) {
+      Ok(result)
+    } else {
+      self.refresh();
+      op(self)
+    }
   }
 }
 
