@@ -83,8 +83,13 @@ impl SystemTray {
       }
     }));
 
-    let run_on_startup_enabled =
-      Arc::new(Mutex::new({ is_auto_launch_enabled().unwrap_or(false) }));
+    let run_on_startup_enabled = Arc::new(Mutex::new(
+      auto_launch_instance()
+        .and_then(|auto_launch| {
+          auto_launch.is_enabled().map_err(Into::into)
+        })
+        .unwrap_or(false),
+    ));
 
     let tray_icon = dispatcher.dispatch_sync(|| {
       let tray_icon = Self::create_tray_icon(
@@ -153,7 +158,8 @@ impl SystemTray {
       None,
     );
 
-    let run_on_startup_item = CheckMenuItem::new(
+    let run_on_startup_item = CheckMenuItem::with_id(
+      TrayMenuId::RunOnStartup,
       "Run on system startup",
       true,
       run_on_startup_enabled,
@@ -236,7 +242,13 @@ impl SystemTray {
       TrayMenuId::RunOnStartup => {
         let mut run_on_startup_enabled =
           run_on_startup_enabled.lock().unwrap();
-        set_auto_launch_enabled(!*run_on_startup_enabled)?;
+
+        if *run_on_startup_enabled {
+          auto_launch_instance()?.disable()?;
+        } else {
+          auto_launch_instance()?.enable()?;
+        }
+
         *run_on_startup_enabled = !*run_on_startup_enabled;
         Ok(())
       }
@@ -248,40 +260,20 @@ impl SystemTray {
   }
 }
 
-/// Gets the `AutoLaunch` instance for the GlazeWM application.
-fn get_auto_launch() -> anyhow::Result<AutoLaunch> {
-  let exe_path = std::env::current_exe()?;
-  let quoted_exe_str = format!("\"{}\"", exe_path.to_str().unwrap());
-  let args = &[] as &[&str];
+/// Creates a new [`AutoLaunch`] instance for managing auto-launch at
+/// system startup.
+fn auto_launch_instance() -> anyhow::Result<AutoLaunch> {
+  // TODO: Is wrapping the exe path in quotes necessary?
+  let formatted_exe_path =
+    format!("\"{}\"", std::env::current_exe()?.to_string_lossy());
+  let args: [&str; 0] = [];
+
   #[cfg(target_os = "windows")]
-  {
-    Ok(AutoLaunch::new("GlazeWM", &quoted_exe_str, args))
-  }
+  let instance = AutoLaunch::new("GlazeWM", &formatted_exe_path, &args);
+
   #[cfg(target_os = "macos")]
-  {
-    Ok(AutoLaunch::new("GlazeWM", &quoted_exe_str, false, args))
-  }
-}
+  let instance =
+    AutoLaunch::new("GlazeWM", &formatted_exe_path, false, &args);
 
-/// Checks if auto-launch at system startup is enabled.
-fn is_auto_launch_enabled() -> anyhow::Result<bool> {
-  let auto_launch = get_auto_launch()?;
-
-  match auto_launch.is_enabled() {
-    Ok(enabled) => Ok(enabled),
-    Err(e) => Err(e.into()),
-  }
-}
-
-/// Enables or disables auto-launch at system startup.
-fn set_auto_launch_enabled(enable: bool) -> anyhow::Result<()> {
-  let auto_launch = get_auto_launch()?;
-
-  if enable {
-    auto_launch.enable()?;
-  } else {
-    auto_launch.disable()?;
-  }
-
-  Ok(())
+  Ok(instance)
 }
