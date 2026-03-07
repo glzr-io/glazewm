@@ -194,8 +194,16 @@ impl NativeWindow {
 
   /// macOS-specific implementation of [`NativeWindow::is_valid`].
   pub(crate) fn is_valid(&self) -> bool {
-    // TODO: Implement this.
-    true
+    // Query `AXRole`, which is present on all valid `AXUIElement`s.
+    self
+      .element
+      .with(|el| match el.get_attribute::<CFString>("AXRole") {
+        Err(crate::Error::Accessibility(_, code)) => {
+          code != AXError::InvalidUIElement.0
+        }
+        _ => true,
+      })
+      .unwrap_or(false)
   }
 
   /// macOS-specific implementation of [`NativeWindow::is_minimized`].
