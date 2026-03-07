@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
+use auto_launch::AutoLaunch;
 use windows::{
   core::{w, PCWSTR},
   Win32::{
@@ -315,6 +316,38 @@ impl Platform {
         SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
       )
     }?;
+
+    Ok(())
+  }
+
+  /// Gets the `AutoLaunch` instance for the GlazeWM application.
+  fn get_auto_launch() -> anyhow::Result<AutoLaunch> {
+    let exe_path = std::env::current_exe()?;
+    let quoted_exe_str = format!("\"{}\"", exe_path.to_str().unwrap());
+    Ok(AutoLaunch::new("GlazeWM", &quoted_exe_str, &[] as &[&str]))
+  }
+
+  /// Checks if auto-launch at system startup is enabled.
+  pub fn is_auto_launch_enabled() -> anyhow::Result<bool> {
+    let auto_launch = Self::get_auto_launch()?;
+
+    match auto_launch.is_enabled() {
+      Ok(enabled) => Ok(enabled),
+      Err(e) => {
+        Err(e.into())
+      }
+    }
+  }
+
+  /// Enables or disables auto-launch at system startup.
+  pub fn set_auto_launch_enabled(enable: bool) -> anyhow::Result<()> {
+    let auto_launch = Self::get_auto_launch()?;
+
+    if enable {
+      auto_launch.enable()?;
+    } else {
+      auto_launch.disable()?;
+    }
 
     Ok(())
   }
