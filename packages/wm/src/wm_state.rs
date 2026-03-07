@@ -9,6 +9,7 @@ use wm_common::{
 };
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
+use crate::commands::window::unmanage_window;
 use crate::{
   commands::{
     container::set_focused_descendant,
@@ -24,6 +25,10 @@ use crate::{
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
 };
+
+/// Interval in seconds for cleaning up invalid/ghost windows.
+/// Set to 5 seconds to balance between responsiveness and performance.
+pub const WINDOW_CLEANUP_INTERVAL_SECS: u64 = 5;
 
 pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
@@ -578,6 +583,26 @@ impl WmState {
           .is_ok_and(|rect| rect.contains_point(point))
       })
       .cloned()
+  }
+
+  /// Cleans up invalid window handles that may have become stale.
+  ///
+  /// This addresses the "ghost window" issue where applications terminate
+  /// without properly sending window destroy events, leaving invalid
+  /// window references in GlazeWM's state.
+  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
+    let invalid_windows = self
+      .windows()
+      .into_iter()
+      .filter(|window| !window.native().is_valid());
+
+    // Remove each invalid window from the window tree
+    for window in invalid_windows {
+      tracing::debug!("Removing invalid window: {}", window);
+      unmanage_window(window, self)?;
+    }
+
+    Ok(())
   }
 }
 

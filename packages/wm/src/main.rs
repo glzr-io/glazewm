@@ -9,10 +9,10 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, time::Duration};
 
 use anyhow::{Context, Error};
-use tokio::{process::Command, signal};
+use tokio::{process::Command, signal, time};
 use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
@@ -23,7 +23,7 @@ use wm_platform::Platform;
 
 use crate::{
   ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
-  wm::WindowManager,
+  wm::WindowManager, wm_state::WINDOW_CLEANUP_INTERVAL_SECS,
 };
 
 mod commands;
@@ -95,6 +95,9 @@ async fn start_wm(
   let startup_commands = config.value.general.startup_commands.clone();
   wm.process_commands(&startup_commands, None, &mut config)?;
 
+  // Create an interval for cleaning up invalid/ghost windows.
+  let mut cleanup_interval = time::interval(Duration::from_secs(WINDOW_CLEANUP_INTERVAL_SECS));
+
   loop {
     let res = tokio::select! {
       Some(()) = tray.exit_rx.recv() => {
@@ -108,6 +111,15 @@ async fn start_wm(
       _ = signal::ctrl_c() => {
         info!("Received SIGINT signal.");
         break;
+      },
+      _ = cleanup_interval.tick() => {
+        // Clean up invalid/ghost windows periodically.
+        if !wm.state.is_paused {
+          if let Err(err) = wm.state.cleanup_invalid_windows() {
+            warn!("Failed to clean up invalid windows: {}", err);
+          }
+        }
+        Ok(())
       },
       Some(event) = event_listener.event_rx.recv() => {
         debug!("Received platform event: {:?}", event);
