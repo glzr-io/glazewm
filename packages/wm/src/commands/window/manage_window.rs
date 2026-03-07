@@ -258,7 +258,7 @@ fn insertion_target(
       Container::TilingWindow(_) => Some(focused_container),
       _ => focused_workspace
         .descendant_focus_order()
-        .find(Container::is_tiling_window),
+        .find(|c| matches!(c, Container::TilingWindow(_))),
     };
 
     if let Some(sibling) = sibling {
