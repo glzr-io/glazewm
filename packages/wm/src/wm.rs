@@ -29,7 +29,10 @@ use crate::{
       resize_window, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
-    workspace::{focus_workspace, move_workspace_in_direction},
+    workspace::{
+      focus_workspace, move_workspace_in_direction,
+      update_workspace_config,
+    },
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
@@ -278,7 +281,7 @@ impl WindowManager {
 
         if let Some(name) = &args.workspace {
           focus_workspace(
-            WorkspaceTarget::Name(name.to_string()),
+            WorkspaceTarget::Name(name.clone()),
             state,
             config,
           )?;
@@ -356,7 +359,7 @@ impl WindowManager {
             if let Some(name) = &args.workspace {
               move_window_to_workspace(
                 window.clone(),
-                WorkspaceTarget::Name(name.to_string()),
+                WorkspaceTarget::Name(name.clone()),
                 state,
                 config,
               )?;
@@ -455,6 +458,19 @@ impl WindowManager {
           }
           _ => Ok(()),
         }
+      }
+      InvokeCommand::UpdateWorkspaceConfig {
+        workspace,
+        new_config,
+      } => {
+        let workspace = if let Some(workspace_name) = workspace {
+          state
+            .workspace_by_name(workspace_name)
+            .context("Workspace doesn't exist.")?
+        } else {
+          subject_container.workspace().context("No workspace.")?
+        };
+        update_workspace_config(&workspace, state, config, new_config)
       }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {

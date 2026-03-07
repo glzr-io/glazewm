@@ -19,6 +19,7 @@ tauri-winres = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
+auto-launch = "0.5"
 ambassador = "0.4"
 clap = { workspace = true }
 enum-as-inner = "0.6"
@@ -36,7 +37,8 @@ tracing-appender = "0.2"
 tracing-subscriber = { workspace = true }
 tray-icon = "0.21"
 uuid = { workspace = true }
-wm-common = { path = "../wm-common" }
 wm-cli = { path = "../wm-cli" }
-wm-platform = { path = "../wm-platform" }
+wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
+wm-macros = { workspace = true }
+wm-platform = { path = "../wm-platform" }

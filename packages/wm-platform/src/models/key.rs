@@ -182,6 +182,10 @@ pub enum Key {
   MediaPlayPause,
   PrintScreen,
 
+  // Language-specific keys
+  Muhenkan,
+  Henkan,
+
   // OEM keys
   OemSemicolon,
   OemQuestion,
@@ -404,6 +408,10 @@ impl_key_parsing! {
   OemComma => ["oem_comma"],
   OemMinus => ["oem_minus"],
   OemPeriod => ["oem_period"],
+
+  // Language-specific keys
+  Muhenkan => ["muhenkan"],
+  Henkan => ["henkan"],
 }
 
 #[cfg(test)]

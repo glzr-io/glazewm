@@ -1,7 +1,7 @@
 use anyhow::Context;
 use wm_common::{
-  try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
-  FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
+  ActiveDrag, ActiveDragOperation, DisplayState, FloatingStateConfig,
+  FullscreenStateConfig, HideMethod, WindowState, try_warn,
 };
 use wm_platform::{
   LengthValue, MouseButton, NativeWindow, Rect, RectDelta,
@@ -262,13 +262,12 @@ pub fn handle_window_moved_or_resized(
         // Window is no longer maximized/fullscreen and should be restored.
         tracing::info!("Restoring window from fullscreen: {window}");
 
-        // TODO: Only restore to prev state if it's a floating/tiling
-        // state.
-        let target_state = window
-          .prev_state()
-          .unwrap_or(WindowState::default_from_config(&config.value));
-
-        update_window_state(window.clone(), target_state, state, config)?;
+        update_window_state(
+          window.clone(),
+          window.toggled_state(window.state(), config),
+          state,
+          config,
+        )?;
       }
       WindowState::Floating(_) => {
         if let WindowContainer::NonTilingWindow(window) = window {

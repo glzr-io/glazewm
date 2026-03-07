@@ -9,7 +9,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 
-use std::{env, path::PathBuf, process};
+use std::{env, path::PathBuf, process, time::Duration};
 
 use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
@@ -163,6 +163,9 @@ async fn start_wm(
     &mut config,
   )?;
 
+  // Create an interval for cleaning up invalid/ghost windows.
+  let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
+
   loop {
     let res = tokio::select! {
       _ = signal::ctrl_c() => {
@@ -192,6 +195,14 @@ async fn start_wm(
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);
         wm.process_event(PlatformEvent::Keybinding(event), &mut config)
+      }
+      _ = cleanup_interval.tick() => {
+        // Clean up invalid/ghost windows periodically.
+        if wm.state.is_paused {
+          Ok(())
+        } else {
+          wm.state.cleanup_invalid_windows()
+        }
       },
       Some((
         message,

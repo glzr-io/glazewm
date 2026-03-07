@@ -6,11 +6,10 @@ use std::{
 };
 
 use anyhow::Context;
+use auto_launch::AutoLaunch;
 use tokio::sync::mpsc;
-#[cfg(target_os = "windows")]
-use tray_icon::menu::CheckMenuItem;
 use tray_icon::{
-  menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
+  menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIcon, TrayIconBuilder,
 };
 #[cfg(target_os = "windows")]
@@ -23,6 +22,7 @@ enum TrayMenuId {
   ShowConfigFolder,
   #[cfg(target_os = "windows")]
   ToggleWindowAnimations,
+  RunOnStartup,
   Exit,
 }
 
@@ -35,6 +35,7 @@ impl Display for TrayMenuId {
       TrayMenuId::ToggleWindowAnimations => {
         write!(f, "toggle_window_animations")
       }
+      TrayMenuId::RunOnStartup => write!(f, "run_on_startup"),
       TrayMenuId::Exit => write!(f, "exit"),
     }
   }
@@ -82,10 +83,15 @@ impl SystemTray {
       }
     }));
 
+    let run_on_startup_enabled =
+      Arc::new(Mutex::new({ is_auto_launch_enabled().unwrap_or(false) }));
+
     let tray_icon = dispatcher.dispatch_sync(|| {
-      let tray_icon =
-        Self::create_tray_icon(*animations_enabled.lock().unwrap())
-          .unwrap();
+      let tray_icon = Self::create_tray_icon(
+        *animations_enabled.lock().unwrap(),
+        *run_on_startup_enabled.lock().unwrap(),
+      )
+      .unwrap();
       ThreadBound::new(tray_icon, dispatcher.clone())
     })?;
 
@@ -103,6 +109,7 @@ impl SystemTray {
             &config_reload_tx,
             &exit_tx,
             &animations_enabled,
+            &run_on_startup_enabled,
           ) {
             tracing::warn!("Failed to handle tray menu event: {}", err);
           }
@@ -121,6 +128,7 @@ impl SystemTray {
   fn create_tray_icon(
     // LINT: Required for Windows.
     #[allow(unused_variables)] animations_enabled: bool,
+    run_on_startup_enabled: bool,
   ) -> anyhow::Result<TrayIcon> {
     let reload_config_item = MenuItem::with_id(
       TrayMenuId::ReloadConfig,
@@ -145,6 +153,13 @@ impl SystemTray {
       None,
     );
 
+    let run_on_startup_item = CheckMenuItem::new(
+      "Run on system startup",
+      true,
+      run_on_startup_enabled,
+      None,
+    );
+
     let exit_item =
       MenuItem::with_id(TrayMenuId::Exit, "Exit", true, None);
 
@@ -154,6 +169,7 @@ impl SystemTray {
       &config_dir_item,
       #[cfg(target_os = "windows")]
       &toggle_animations_item,
+      &run_on_startup_item,
       &PredefinedMenuItem::separator(),
       &exit_item,
     ])?;
@@ -197,6 +213,7 @@ impl SystemTray {
     exit_tx: &mpsc::UnboundedSender<()>,
     // LINT: Required for Windows.
     #[allow(unused_variables)] animations_enabled: &Arc<Mutex<bool>>,
+    run_on_startup_enabled: &Arc<Mutex<bool>>,
   ) -> anyhow::Result<()> {
     tracing::info!("Processing tray menu event: {:?}", menu_id);
 
@@ -216,10 +233,55 @@ impl SystemTray {
         *animations_enabled = !*animations_enabled;
         Ok(())
       }
+      TrayMenuId::RunOnStartup => {
+        let mut run_on_startup_enabled =
+          run_on_startup_enabled.lock().unwrap();
+        set_auto_launch_enabled(!*run_on_startup_enabled)?;
+        *run_on_startup_enabled = !*run_on_startup_enabled;
+        Ok(())
+      }
       TrayMenuId::Exit => {
         exit_tx.send(())?;
         Ok(())
       }
     }
   }
+}
+
+/// Gets the `AutoLaunch` instance for the GlazeWM application.
+fn get_auto_launch() -> anyhow::Result<AutoLaunch> {
+  let exe_path = std::env::current_exe()?;
+  let quoted_exe_str = format!("\"{}\"", exe_path.to_str().unwrap());
+  let args = &[] as &[&str];
+  #[cfg(target_os = "windows")]
+  {
+    Ok(AutoLaunch::new("GlazeWM", &quoted_exe_str, args))
+  }
+  #[cfg(target_os = "macos")]
+  {
+    Ok(AutoLaunch::new("GlazeWM", &quoted_exe_str, false, args))
+  }
+}
+
+/// Checks if auto-launch at system startup is enabled.
+fn is_auto_launch_enabled() -> anyhow::Result<bool> {
+  let auto_launch = get_auto_launch()?;
+
+  match auto_launch.is_enabled() {
+    Ok(enabled) => Ok(enabled),
+    Err(e) => Err(e.into()),
+  }
+}
+
+/// Enables or disables auto-launch at system startup.
+fn set_auto_launch_enabled(enable: bool) -> anyhow::Result<()> {
+  let auto_launch = get_auto_launch()?;
+
+  if enable {
+    auto_launch.enable()?;
+  } else {
+    auto_launch.disable()?;
+  }
+
+  Ok(())
 }

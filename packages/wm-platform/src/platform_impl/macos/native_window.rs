@@ -192,6 +192,12 @@ impl NativeWindow {
     })
   }
 
+  /// macOS-specific implementation of [`NativeWindow::is_valid`].
+  pub(crate) fn is_valid(&self) -> bool {
+    // TODO: Implement this.
+    true
+  }
+
   /// macOS-specific implementation of [`NativeWindow::is_minimized`].
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     self.element.with(|el| {

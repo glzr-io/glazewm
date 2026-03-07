@@ -482,6 +482,13 @@ impl NativeWindow {
     self.inner.size()
   }
 
+  /// Whether the window is still valid.
+  ///
+  /// Returns `true` if the underlying window is still alive.
+  pub fn is_valid(&self) -> bool {
+    self.inner.is_valid()
+  }
+
   /// Whether the window is actually visible.
   pub fn is_visible(&self) -> crate::Result<bool> {
     self.inner.is_visible()

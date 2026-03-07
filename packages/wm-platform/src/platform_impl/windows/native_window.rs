@@ -143,13 +143,15 @@ impl NativeWindow {
     fullscreen: bool,
   ) -> crate::Result<()> {
     COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
+      com_init.borrow_mut().with_retry(|com| {
+        let taskbar_list = com.taskbar_list()?;
 
-      unsafe {
-        taskbar_list.MarkFullscreenWindow(self.hwnd(), fullscreen)
-      }?;
+        unsafe {
+          taskbar_list.MarkFullscreenWindow(self.hwnd(), fullscreen)
+        }?;
 
-      Ok(())
+        Ok(())
+      })
     })
   }
 
@@ -370,26 +372,28 @@ impl NativeWindow {
   /// [`NativeWindowWindowsExt::set_cloaked`].
   pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
     COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
-      let view_collection = com_init.application_view_collection()?;
+      com_init.borrow_mut().with_retry(|com| {
+        let view_collection = com.application_view_collection()?;
 
-      let mut view: Option<IApplicationView> = None;
-      unsafe {
-        view_collection.get_view_for_hwnd(self.hwnd().0, &raw mut view)
-      }
-      .ok()?;
+        let mut view: Option<IApplicationView> = None;
+        unsafe {
+          view_collection.get_view_for_hwnd(self.hwnd().0, &raw mut view)
+        }
+        .ok()?;
 
-      let view = view.ok_or_else(|| {
-        crate::Error::Platform(
-          "Unable to get application view by window handle.".to_string(),
-        )
-      })?;
+        let view = view.ok_or_else(|| {
+          crate::Error::Platform(
+            "Unable to get application view by window handle.".to_string(),
+          )
+        })?;
 
-      // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
-      unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
-        .ok()
-        .map_err(|_| {
-          crate::Error::Platform("Failed to cloak window.".to_string())
-        })
+        // Ref: https://github.com/Ciantic/AltTabAccessor/issues/1#issuecomment-1426877843
+        unsafe { view.set_cloak(1, if cloaked { 2 } else { 0 }) }
+          .ok()
+          .map_err(|_| {
+            crate::Error::Platform("Failed to cloak window.".to_string())
+          })
+      })
     })
   }
 
@@ -400,15 +404,17 @@ impl NativeWindow {
     visible: bool,
   ) -> crate::Result<()> {
     COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
-      let taskbar_list = com_init.taskbar_list()?;
+      com_init.borrow_mut().with_retry(|com| {
+        let taskbar_list = com.taskbar_list()?;
 
-      if visible {
-        unsafe { taskbar_list.AddTab(self.hwnd())? };
-      } else {
-        unsafe { taskbar_list.DeleteTab(self.hwnd())? };
-      }
+        if visible {
+          unsafe { taskbar_list.AddTab(self.hwnd())? };
+        } else {
+          unsafe { taskbar_list.DeleteTab(self.hwnd())? };
+        }
 
-      Ok(())
+        Ok(())
+      })
     })
   }
 
@@ -493,6 +499,11 @@ impl NativeWindow {
   /// [`NativeWindowWindowsExt::has_owner_window`].
   pub(crate) fn has_owner_window(&self) -> bool {
     unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0 != 0
+  }
+
+  /// Windows-specific implementation of [`NativeWindow::is_valid`].
+  pub(crate) fn is_valid(&self) -> bool {
+    unsafe { IsWindow(self.hwnd()) }.as_bool()
   }
 
   /// Windows-specific implementation of [`NativeWindow::is_minimized`].

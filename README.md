@@ -206,6 +206,8 @@ keybindings:
 | `oem_comma`           | The `,`/`<` key on a US standard keyboard (varies by keyboard)     |
 | `oem_minus`           | The `-`/`_` key on a US standard keyboard (varies by keyboard)     |
 | `oem_period`          | The `.`/`>` key on a US standard keyboard (varies by keyboard)     |
+| `muhenkan`            | The 無変換 (non-convert) key for Japanese keyboard layouts         |
+| `henkan`              | The 変換 (convert) key for Japanese keyboard layouts               |
 
 </details>
 
@@ -354,7 +356,7 @@ binding_modes:
 
 **Q: How do I run GlazeWM on startup?**
 
-Create a shortcut for the executable by right-clicking on the GlazeWM executable -> `Create shortcut`. Put the shortcut in your startup folder, which you can get to by entering `shell:startup` in the top bar in File Explorer.
+Right-click the GlazeWM icon in the system tray and select "Run on system startup".
 
 **Q: How can I create `<insert layout>`?**
 

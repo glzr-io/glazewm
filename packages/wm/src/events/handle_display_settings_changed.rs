@@ -2,7 +2,8 @@ use anyhow::Context;
 
 use crate::{
   commands::monitor::{
-    add_monitor, remove_monitor, sort_monitors, update_monitor,
+    add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
+    sort_monitors, update_monitor,
   },
   models::{Monitor, NativeMonitorProperties},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -35,11 +36,14 @@ pub fn handle_display_settings_changed(
     }
   }
 
+  let mut new_monitors: Vec<Monitor> = Vec::new();
+
   // Pair unmatched displays with unmatched monitors, or add new ones.
   for display in unmatched_displays {
     if pending_monitors.is_empty() {
       let properties = NativeMonitorProperties::try_from(&display)?;
-      add_monitor(display, properties, state, config)?;
+      let monitor = add_monitor(display, properties, state)?;
+      new_monitors.push(monitor);
     } else {
       let monitor = pending_monitors.remove(0);
       update_monitor(&monitor, display, state)?;
@@ -62,6 +66,10 @@ pub fn handle_display_settings_changed(
   // Sort monitors by position.
   sort_monitors(&state.root_container)?;
 
+  for new_monitor in new_monitors {
+    move_bounded_workspaces_to_new_monitor(&new_monitor, state, config)?;
+  }
+
   for window in state.windows() {
     // Display setting changes can spread windows out sporadically, so mark
     // all windows as needing a DPI adjustment (just in case).
@@ -71,11 +79,28 @@ pub fn handle_display_settings_changed(
     // disconnected or if the primary display is changed. The primary
     // display dictates the position of 0,0.
     let workspace = window.workspace().context("No workspace.")?;
-    window.set_floating_placement(
+
+    let should_recenter = if window.has_custom_floating_placement() {
+      let workspace_rect = workspace.to_rect()?;
+
+      // Keep the placement if it still intersects the workspace, since
+      // `PlatformEvent::DisplaySettingsChanged` can be triggered by
+      // non-monitor changes (e.g. unplugging a USB device).
       window
         .floating_placement()
-        .translate_to_center(&workspace.to_rect()?),
-    );
+        .intersection_area(&workspace_rect)
+        == 0
+    } else {
+      true
+    };
+
+    if should_recenter {
+      window.set_floating_placement(
+        window
+          .floating_placement()
+          .translate_to_center(&workspace.to_rect()?),
+      );
+    }
   }
 
   // Redraw full container tree.

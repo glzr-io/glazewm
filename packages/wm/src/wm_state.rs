@@ -13,8 +13,10 @@ use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
   commands::{
-    container::set_focused_descendant, general::platform_sync,
-    monitor::add_monitor, window::manage_window,
+    container::set_focused_descendant,
+    general::platform_sync,
+    monitor::{add_monitor, move_bounded_workspaces_to_new_monitor},
+    window::{manage_window, unmanage_window},
   },
   models::{
     Container, Monitor, NativeMonitorProperties, RootContainer,
@@ -113,7 +115,9 @@ impl WmState {
       if let Ok(native_properties) =
         NativeMonitorProperties::try_from(&native_display)
       {
-        add_monitor(native_display, native_properties, self, config)?;
+        let monitor =
+          add_monitor(native_display, native_properties, self)?;
+        move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
       }
     }
 
@@ -634,8 +638,7 @@ impl WmState {
       .filter(|descendant| {
         descendant
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .collect()
   }
@@ -648,10 +651,29 @@ impl WmState {
       .find(|monitor| {
         monitor
           .to_rect()
-          .map(|rect| rect.contains_point(point))
-          .unwrap_or(false)
+          .is_ok_and(|rect| rect.contains_point(point))
       })
       .cloned()
+  }
+
+  /// Cleans up invalid window handles that may have become stale.
+  ///
+  /// This addresses the "ghost window" issue where applications terminate
+  /// without properly sending window destroy events, leaving invalid
+  /// window references in GlazeWM's state.
+  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
+    let invalid_windows = self
+      .windows()
+      .into_iter()
+      .filter(|window| !window.native().is_valid());
+
+    // Remove each invalid window from the window tree
+    for window in invalid_windows {
+      tracing::debug!("Removing invalid window: {}", window);
+      unmanage_window(window, self)?;
+    }
+
+    Ok(())
   }
 }
 
