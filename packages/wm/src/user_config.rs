@@ -1,9 +1,10 @@
 use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
+use tracing_subscriber::filter;
 use wm_common::{
-  InvokeCommand, MatchType, ParsedConfig, WindowMatchConfig,
-  WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
+  InvokeCommand, MatchType, ParsedConfig, WindowFilterCombination,
+  WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
 };
 
 use crate::{
@@ -239,30 +240,53 @@ impl UserConfig {
           return false;
         }
 
-        // Check if the window matches the rule.
-        rule.match_window.iter().any(|match_config| {
-          let is_process_match = match_config
-            .window_process
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_process));
-
-          let is_class_match = match_config
-            .window_class
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_class));
-
-          let is_title_match = match_config
-            .window_title
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_title));
-
-          is_process_match && is_class_match && is_title_match
-        })
+        UserConfig::does_window_match(
+          &rule.match_window,
+          &WindowFilterCombination::Any,
+          &window_title,
+          &window_class,
+          &window_process,
+        )
       })
       .cloned()
       .collect::<Vec<_>>();
 
     Ok(pending_window_rules)
+  }
+
+  /// Helper function for checking if a window matches any of the match
+  /// rules.
+  #[must_use]
+  pub fn does_window_match(
+    match_window: &[WindowMatchConfig],
+    filter_combination: &WindowFilterCombination,
+    window_title: &str,
+    window_class: &str,
+    window_process: &str,
+  ) -> bool {
+    let match_one_config = |match_config: &WindowMatchConfig| {
+      let is_process_match = match_config
+        .window_process
+        .as_ref()
+        .is_none_or(|match_type| match_type.is_match(window_process));
+
+      let is_class_match = match_config
+        .window_class
+        .as_ref()
+        .is_none_or(|match_type| match_type.is_match(window_class));
+
+      let is_title_match = match_config
+        .window_title
+        .as_ref()
+        .is_none_or(|match_type| match_type.is_match(window_title));
+
+      is_process_match && is_class_match && is_title_match
+    };
+
+    match *filter_combination {
+      WindowFilterCombination::Any => match_window.iter().any(match_one_config),
+      WindowFilterCombination::All => match_window.iter().all(match_one_config),
+    }
   }
 
   pub fn inactive_workspace_configs(

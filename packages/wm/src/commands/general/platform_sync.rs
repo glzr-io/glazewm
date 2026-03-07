@@ -5,7 +5,7 @@ use tokio::task;
 use tracing::{info, warn};
 use wm_common::{
   CornerStyle, CursorJumpTrigger, DisplayState, HideMethod, OpacityValue,
-  UniqueExt, WindowEffectConfig, WindowState, WmEvent,
+  UniqueExt, WindowEffectConfig, WindowFilter, WindowState, WmEvent,
 };
 use wm_platform::{Platform, ZOrder};
 
@@ -397,7 +397,9 @@ fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let border_color = if effect_config.border.enabled {
+  let border_color = if effect_config.border.enabled
+    && does_match(window, &effect_config.border.window_filter)
+  {
     Some(&effect_config.border.color)
   } else {
     None
@@ -420,16 +422,19 @@ fn apply_hide_title_bar_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
+  _ = window.native().set_title_bar_visibility(
+    !does_match(window, &effect_config.hide_title_bar.window_filter)
+      || !effect_config.hide_title_bar.enabled,
+  );
 }
 
 fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let corner_style = if effect_config.corner_style.enabled {
+  let corner_style = if effect_config.corner_style.enabled
+    && does_match(window, &effect_config.corner_style.window_filter)
+  {
     &effect_config.corner_style.style
   } else {
     &CornerStyle::Default
@@ -442,7 +447,9 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let transparency = if effect_config.transparency.enabled {
+  let transparency = if effect_config.transparency.enabled
+    && does_match(window, &effect_config.transparency.window_filter)
+  {
     &effect_config.transparency.opacity
   } else {
     // Reset the transparency to default.
@@ -450,4 +457,25 @@ fn apply_transparency_effect(
   };
 
   _ = window.native().set_transparency(transparency);
+}
+
+fn does_match(
+  window: &WindowContainer,
+  window_filter: &WindowFilter,
+) -> bool {
+  if window_filter.match_window.is_empty() {
+    return true;
+  }
+
+  let window_title = window.native().title().unwrap_or_default();
+  let window_class = window.native().class_name().unwrap_or_default();
+  let window_process = window.native().process_name().unwrap_or_default();
+
+  UserConfig::does_window_match(
+    &window_filter.match_window,
+    &window_filter.filter_combination,
+    &window_title,
+    &window_class,
+    &window_process,
+  )
 }
