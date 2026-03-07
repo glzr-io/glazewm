@@ -281,7 +281,7 @@ window_rules:
 
 ### Config: Window effects
 
-Visual effects can be applied to windows via the `window_effects` option. Currently, colored borders are the only effect available with more to come in the future.
+Visual effects can be applied to windows via the `window_effects` option. Currently, colored borders and transparency are the main effects available with more to come in the future.
 
 > Note: Window effects are exclusive to Windows 11.
 
@@ -294,11 +294,57 @@ window_effects:
       enabled: true
       color: "#0000ff"
 
+    # Change the transparency of the window.
+    transparency:
+      enabled: true
+      # Can be something like '95%' or '0.95' for slightly transparent windows.
+      # '0' or '0%' is fully transparent (and, by consequence, unfocusable).
+      opacity: '95%'
+
   # Visual effects to apply to non-focused windows.
   other_windows:
     border:
       enabled: false
       color: "#d3d3d3"
+    transparency:
+      enabled: true
+      opacity: '90%'
+```
+
+**You can also use keybinding to toggle transparency on the focused window:**
+```yaml
+keybindings:
+  # Toggle transparency of current focused window.
+  - commands: ["set-transparency --opacity 100%"]
+    bindings: ["alt+shift+t"]
+```
+
+#### Transparency Exclusion
+
+Some applications have compatibility issues with Windows transparency effects. The transparency exclusion command allows you to completely remove transparency effects from specific windows while maintaining full tiling functionality.
+
+**Usage with window rules:**
+
+```yaml
+window_rules:
+  # Exclude Unity applications from transparency (common compatibility issue)
+  - commands: ["set-transparency-exclusion"]
+    match:
+      - window_process: { equals: "Unity.exe" }
+      - window_process: { equals: "Unity Hub.exe" }
+      - window_class: { regex: "UnityContainerWndClass" }
+      - window_title: { regex: "Unity" }
+
+  # Exclude other applications with transparency issues
+  - commands: ["set-transparency-exclusion"]
+    match:
+      - window_process: { equals: "aseprite.exe" }
+      - window_title: { regex: ".*[Aa]seprite.*" }
+
+  # Combine with other commands
+  - commands: ["set-floating", "set-transparency-exclusion"]
+    match:
+      - window_process: { equals: "taskmgr.exe" }
 ```
 
 ### Config: Window behavior

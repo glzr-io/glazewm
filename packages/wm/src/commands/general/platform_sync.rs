@@ -442,6 +442,13 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
+  // Skip if window is excluded from transparency
+  if window.transparency_exclusion() {
+    // Remove transparency completely (remove WS_EX_LAYERED style)
+    _ = window.native().remove_transparency();
+    return;
+  }
+
   let transparency = if effect_config.transparency.enabled {
     &effect_config.transparency.opacity
   } else {
