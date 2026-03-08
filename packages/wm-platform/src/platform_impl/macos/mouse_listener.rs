@@ -40,7 +40,7 @@ impl CallbackData {
   }
 }
 
-/// macOS-specific implementation of [`MouseListener`].
+/// Platform-specific implementation of [`MouseListener`].
 #[derive(Debug)]
 pub(crate) struct MouseListener {
   dispatcher: Dispatcher,
@@ -54,7 +54,7 @@ pub(crate) struct MouseListener {
 }
 
 impl MouseListener {
-  /// macOS-specific implementation of [`MouseListener::new`].
+  /// Implements [`MouseListener::new`].
   pub(crate) fn new(
     enabled_events: &[MouseEventKind],
     event_tx: mpsc::UnboundedSender<MouseEvent>,
@@ -130,7 +130,7 @@ impl MouseListener {
     Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
 
-  /// macOS-specific implementation of [`MouseListener::enable`].
+  /// Implements [`MouseListener::enable`].
   pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
     if let Some(tap_port) = &self.tap_port {
       tap_port.with(|tap| unsafe { CGEvent::tap_enable(tap, enabled) })?;
@@ -139,8 +139,7 @@ impl MouseListener {
     Ok(())
   }
 
-  /// macOS-specific implementation of
-  /// [`MouseListener::set_enabled_events`].
+  /// Implements [`MouseListener::set_enabled_events`].
   pub(crate) fn set_enabled_events(
     &mut self,
     enabled_events: &[MouseEventKind],
@@ -174,7 +173,7 @@ impl MouseListener {
     Ok(())
   }
 
-  /// macOS-specific implementation of [`MouseListener::terminate`].
+  /// Implements [`MouseListener::terminate`].
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     if let Some(tap) = self.tap_port.take() {
       // Invalidate the tap to stop it from receiving events. This also

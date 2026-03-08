@@ -52,31 +52,31 @@ use crate::{
 /// process.
 pub(crate) const FOREGROUND_INPUT_IDENTIFIER: u32 = 6379;
 
+/// Platform-specific implementation of [`NativeWindow`].
 #[derive(Clone, Debug)]
 pub(crate) struct NativeWindow {
   pub(crate) handle: isize,
 }
 
 impl NativeWindow {
-  /// Windows-specific implementation of [`NativeWindow::new`].
+  /// Implements [`NativeWindow::new`].
   #[must_use]
   pub(crate) fn new(handle: isize) -> Self {
     Self { handle }
   }
 
-  /// Windows-specific implementation of [`NativeWindow::id`].
+  /// Implements [`NativeWindow::id`].
   #[must_use]
   pub(crate) fn id(&self) -> WindowId {
     WindowId(self.handle)
   }
 
-  /// Windows-specific implementation of [`NativeWindowWindowsExt::hwnd`].
+  /// Implements [`NativeWindowWindowsExt::hwnd`].
   pub(crate) fn hwnd(&self) -> HWND {
     HWND(self.handle)
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::has_window_style`].
+  /// Implements [`NativeWindowWindowsExt::has_window_style`].
   pub(crate) fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
     let current_style =
       unsafe { GetWindowLongPtrW(self.hwnd(), GWL_STYLE) };
@@ -86,8 +86,7 @@ impl NativeWindow {
     (current_style & style) != 0
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::add_window_style_ex`].
+  /// Implements [`NativeWindowWindowsExt::add_window_style_ex`].
   pub(crate) fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
     let current_style =
       unsafe { GetWindowLongPtrW(self.hwnd(), GWL_EXSTYLE) };
@@ -100,8 +99,7 @@ impl NativeWindow {
     }
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_transparency`].
+  /// Implements [`NativeWindowWindowsExt::set_transparency`].
   pub(crate) fn set_transparency(
     &self,
     opacity_value: &OpacityValue,
@@ -121,8 +119,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::class_name`].
+  /// Implements [`NativeWindowWindowsExt::class_name`].
   pub(crate) fn class_name(&self) -> crate::Result<String> {
     let mut buffer = [0u16; 256];
     let result = unsafe { GetClassNameW(self.hwnd(), &mut buffer) };
@@ -136,8 +133,7 @@ impl NativeWindow {
     Ok(class_name)
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::mark_fullscreen`].
+  /// Implements [`NativeWindowWindowsExt::mark_fullscreen`].
   pub(crate) fn mark_fullscreen(
     &self,
     fullscreen: bool,
@@ -155,8 +151,7 @@ impl NativeWindow {
     })
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_title_bar_visibility`].
+  /// Implements [`NativeWindowWindowsExt::set_title_bar_visibility`].
   pub(crate) fn set_title_bar_visibility(
     &self,
     visible: bool,
@@ -196,8 +191,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_border_color`].
+  /// Implements [`NativeWindowWindowsExt::set_border_color`].
   pub(crate) fn set_border_color(
     &self,
     color: Option<&Color>,
@@ -220,8 +214,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_corner_style`].
+  /// Implements [`NativeWindowWindowsExt::set_corner_style`].
   pub(crate) fn set_corner_style(
     &self,
     corner_style: &CornerStyle,
@@ -246,8 +239,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_z_order`].
+  /// Implements [`NativeWindowWindowsExt::set_z_order`].
   pub(crate) fn set_z_order(
     &self,
     z_order: &WindowZOrder,
@@ -280,8 +272,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::restore`].
+  /// Implements [`NativeWindowWindowsExt::restore`].
   pub(crate) fn restore(
     &self,
     outer_frame: Option<&Rect>,
@@ -312,8 +303,7 @@ impl NativeWindow {
     }
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::has_window_style_ex`].
+  /// Implements [`NativeWindowWindowsExt::has_window_style_ex`].
   pub(crate) fn has_window_style_ex(
     &self,
     style: WINDOW_EX_STYLE,
@@ -326,8 +316,7 @@ impl NativeWindow {
     (current_style & style) != 0
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_window_pos`].
+  /// Implements [`NativeWindowWindowsExt::set_window_pos`].
   pub(crate) fn set_window_pos(
     &self,
     z_order: &WindowZOrder,
@@ -356,20 +345,19 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindowWindowsExt::show`].
+  /// Implements [`NativeWindowWindowsExt::show`].
   pub(crate) fn show(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(self.hwnd(), SW_SHOWNA) }.ok()?;
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindowWindowsExt::hide`].
+  /// Implements [`NativeWindowWindowsExt::hide`].
   pub(crate) fn hide(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(self.hwnd(), SW_HIDE) }.ok()?;
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_cloaked`].
+  /// Implements [`NativeWindowWindowsExt::set_cloaked`].
   pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
     COM_INIT.with(|com_init| -> crate::Result<()> {
       com_init.borrow_mut().with_retry(|com| {
@@ -397,8 +385,7 @@ impl NativeWindow {
     })
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::set_taskbar_visibility`].
+  /// Implements [`NativeWindowWindowsExt::set_taskbar_visibility`].
   pub(crate) fn set_taskbar_visibility(
     &self,
     visible: bool,
@@ -418,7 +405,7 @@ impl NativeWindow {
     })
   }
 
-  /// Windows-specific implementation of [`NativeWindow::title`].
+  /// Implements [`NativeWindow::title`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn title(&self) -> crate::Result<String> {
     let mut text: [u16; 512] = [0; 512];
@@ -428,7 +415,7 @@ impl NativeWindow {
     Ok(String::from_utf16_lossy(&text[..length as usize]))
   }
 
-  /// Windows-specific implementation of [`NativeWindow::process_name`].
+  /// Implements [`NativeWindow::process_name`].
   pub(crate) fn process_name(&self) -> crate::Result<String> {
     let mut process_id = 0u32;
     unsafe {
@@ -469,7 +456,7 @@ impl NativeWindow {
       })
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_visible`].
+  /// Implements [`NativeWindow::is_visible`].
   pub(crate) fn is_visible(&self) -> crate::Result<bool> {
     let is_visible = unsafe { IsWindowVisible(self.hwnd()) }.as_bool();
 
@@ -496,43 +483,41 @@ impl NativeWindow {
     Ok(cloaked != 0)
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::has_owner_window`].
+  /// Implements [`NativeWindowWindowsExt::has_owner_window`].
   pub(crate) fn has_owner_window(&self) -> bool {
     unsafe { GetWindow(self.hwnd(), GW_OWNER) }.0 != 0
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_valid`].
+  /// Implements [`NativeWindow::is_valid`].
   pub(crate) fn is_valid(&self) -> bool {
     unsafe { IsWindow(self.hwnd()) }.as_bool()
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_minimized`].
+  /// Implements [`NativeWindow::is_minimized`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsIconic(self.hwnd()) }.as_bool())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_maximized`].
+  /// Implements [`NativeWindow::is_maximized`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsZoomed(self.hwnd()) }.as_bool())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::is_resizable`].
+  /// Implements [`NativeWindow::is_resizable`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
     Ok(self.has_window_style(WS_THICKFRAME))
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindow::is_desktop_window`].
+  /// Implements [`NativeWindow::is_desktop_window`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
     Ok(*self == desktop_window())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::focus`].
+  /// Implements [`NativeWindow::focus`].
   pub(crate) fn focus(&self) -> crate::Result<()> {
     let input = [INPUT {
       r#type: INPUT_MOUSE,
@@ -557,8 +542,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::adjust_transparency`].
+  /// Implements [`NativeWindowWindowsExt::adjust_transparency`].
   pub(crate) fn adjust_transparency(
     &self,
     opacity_delta: &Delta<OpacityValue>,
@@ -591,7 +575,7 @@ impl NativeWindow {
     self.set_transparency(&OpacityValue::from_alpha(target_alpha))
   }
 
-  /// Windows-specific implementation of [`NativeWindow::frame`].
+  /// Implements [`NativeWindow::frame`].
   pub(crate) fn frame(&self) -> crate::Result<Rect> {
     let mut rect = RECT::default();
 
@@ -618,8 +602,7 @@ impl NativeWindow {
     }
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindow::frame_with_shadows`].
+  /// Implements [`NativeWindow::frame_with_shadows`].
   pub(crate) fn frame_with_shadows(&self) -> crate::Result<Rect> {
     let mut rect = RECT::default();
 
@@ -635,20 +618,19 @@ impl NativeWindow {
     ))
   }
 
-  /// Windows-specific implementation of [`NativeWindow::position`].
+  /// Implements [`NativeWindow::position`].
   pub(crate) fn position(&self) -> crate::Result<(f64, f64)> {
     let frame = self.frame()?;
     Ok((f64::from(frame.left), f64::from(frame.top)))
   }
 
-  /// Windows-specific implementation of [`NativeWindow::size`].
+  /// Implements [`NativeWindow::size`].
   pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
     let frame = self.frame()?;
     Ok((f64::from(frame.width()), f64::from(frame.height())))
   }
 
-  /// Windows-specific implementation of
-  /// [`NativeWindowWindowsExt::shadow_borders`].
+  /// Implements [`NativeWindowWindowsExt::shadow_borders`].
   // TODO: Return tuple of (left, top, right, bottom) instead of
   // `RectDelta`.
   pub(crate) fn shadow_borders(&self) -> crate::Result<RectDelta> {
@@ -663,7 +645,7 @@ impl NativeWindow {
     ))
   }
 
-  /// Windows-specific implementation of [`NativeWindow::resize`].
+  /// Implements [`NativeWindow::resize`].
   pub(crate) fn resize(
     &self,
     width: i32,
@@ -690,7 +672,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::reposition`].
+  /// Implements [`NativeWindow::reposition`].
   pub(crate) fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
     unsafe {
       SetWindowPos(
@@ -713,7 +695,7 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::set_frame`].
+  /// Implements [`NativeWindow::set_frame`].
   pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     unsafe {
       SetWindowPos(
@@ -735,19 +717,19 @@ impl NativeWindow {
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::maximize`].
+  /// Implements [`NativeWindow::maximize`].
   pub(crate) fn maximize(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(self.hwnd(), SW_MAXIMIZE).ok() }?;
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::minimize`].
+  /// Implements [`NativeWindow::minimize`].
   pub(crate) fn minimize(&self) -> crate::Result<()> {
     unsafe { ShowWindowAsync(self.hwnd(), SW_MINIMIZE).ok() }?;
     Ok(())
   }
 
-  /// Windows-specific implementation of [`NativeWindow::close`].
+  /// Implements [`NativeWindow::close`].
   pub(crate) fn close(&self) -> crate::Result<()> {
     unsafe { SendNotifyMessageW(self.hwnd(), WM_CLOSE, None, None) }?;
     Ok(())
@@ -768,7 +750,7 @@ impl From<NativeWindow> for crate::NativeWindow {
   }
 }
 
-/// Windows-specific implementation of [`Dispatcher::visible_windows`].
+/// Implements [`Dispatcher::visible_windows`].
 pub(crate) fn visible_windows(
   _: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
@@ -801,7 +783,7 @@ pub(crate) fn visible_windows(
   )
 }
 
-/// Windows-specific implementation of [`Dispatcher::focused_window`].
+/// Implements [`Dispatcher::focused_window`].
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn focused_window(
   _: &Dispatcher,
@@ -810,7 +792,7 @@ pub(crate) fn focused_window(
   Ok(NativeWindow::new(handle.0).into())
 }
 
-/// Windows-specific implementation of [`Dispatcher::window_from_point`].
+/// Implements [`Dispatcher::window_from_point`].
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn window_from_point(
   point: &Point,
@@ -834,7 +816,7 @@ pub(crate) fn window_from_point(
   Ok(Some(NativeWindow::new(root.0).into()))
 }
 
-/// Windows-specific implementation of [`Dispatcher::reset_focus`].
+/// Implements [`Dispatcher::reset_focus`].
 pub(crate) fn reset_focus(_dispatcher: &Dispatcher) -> crate::Result<()> {
   desktop_window().focus()
 }

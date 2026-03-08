@@ -12,6 +12,7 @@ use objc2_core_foundation::{
 
 use crate::{DispatchFn, Dispatcher};
 
+/// Platform-specific implementation of [`EventLoopSource`].
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
   dispatch_tx: mpsc::Sender<Box<DispatchFn>>,
@@ -97,14 +98,14 @@ impl EventLoopSource {
 unsafe impl Send for EventLoopSource {}
 unsafe impl Sync for EventLoopSource {}
 
-/// macOS-specific implementation of [`EventLoop`].
+/// Platform-specific implementation of [`EventLoop`].
 pub(crate) struct EventLoop {
   source: EventLoopSource,
   stopped: Arc<AtomicBool>,
 }
 
 impl EventLoop {
-  /// macOS-specific implementation of [`EventLoop::new`].
+  /// Implements [`EventLoop::new`].
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
     // Add a new run loop source that allows dispatching from any thread.
     let source = Self::add_dispatch_source()?;
@@ -122,7 +123,7 @@ impl EventLoop {
     ))
   }
 
-  /// macOS-specific implementation of [`EventLoop::run`].
+  /// Implements [`EventLoop::run`].
   #[allow(clippy::unused_self)]
   pub fn run(self) -> crate::Result<()> {
     let mtm =

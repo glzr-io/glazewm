@@ -27,7 +27,7 @@ thread_local! {
   static HOOK: Cell<Option<HookCallback>> = Cell::default();
 }
 
-/// Windows-specific keyboard event.
+/// Platform-specific implementation of [`KeyEvent`].
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
   /// The key that was pressed or released.
@@ -79,7 +79,7 @@ impl KeyEvent {
   }
 }
 
-/// Wrapper for the low-level keyboard hook API.
+/// Platform-specific implementation of [`KeyboardHook`].
 #[derive(Debug)]
 pub struct KeyboardHook {
   handle: HHOOK,

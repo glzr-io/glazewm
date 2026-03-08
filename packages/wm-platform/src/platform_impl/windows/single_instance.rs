@@ -12,17 +12,17 @@ use windows::{
   },
 };
 
-/// Windows-specific implementation of [`SingleInstance`].
-pub struct SingleInstance {
-  handle: HANDLE,
-}
-
 /// Arbitrary GUID to uniquely identify the application.
 const APP_GUID: PCWSTR =
   w!("Global\\325d0ed7-7f60-4925-8d1b-aa287b26b218");
 
+/// Platform-specific implementation of [`SingleInstance`].
+pub struct SingleInstance {
+  handle: HANDLE,
+}
+
 impl SingleInstance {
-  /// Windows-specific implementation of [`SingleInstance::new`].
+  /// Implements [`SingleInstance::new`].
   pub(crate) fn new() -> crate::Result<Self> {
     // Create a named system-wide mutex.
     let handle = unsafe { CreateMutexW(None, true, APP_GUID) }?;
@@ -39,7 +39,7 @@ impl SingleInstance {
     Ok(Self { handle })
   }
 
-  /// Windows-specific implementation of [`SingleInstance::is_running`].
+  /// Implements [`SingleInstance::is_running`].
   #[must_use]
   pub(crate) fn is_running() -> bool {
     let res = unsafe {

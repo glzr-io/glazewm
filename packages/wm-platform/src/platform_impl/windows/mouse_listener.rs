@@ -40,7 +40,7 @@ struct CallbackData {
   last_move_emission: Option<Instant>,
 }
 
-/// Windows-specific implementation of [`MouseListener`].
+/// Platform-specific implementation of [`MouseListener`].
 pub(crate) struct MouseListener {
   callback_id: Option<usize>,
   callback_data: Arc<Mutex<CallbackData>>,
@@ -48,7 +48,7 @@ pub(crate) struct MouseListener {
 }
 
 impl MouseListener {
-  /// Windows-specific implementation of [`MouseListener::new`].
+  /// Implements [`MouseListener::new`].
   pub(crate) fn new(
     enabled_events: &[MouseEventKind],
     event_tx: mpsc::UnboundedSender<MouseEvent>,
@@ -116,7 +116,7 @@ impl MouseListener {
     Ok(callback_id)
   }
 
-  /// Windows-specific implementation of [`MouseListener::terminate`].
+  /// Implements [`MouseListener::terminate`].
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     self.enable(false)?;
 
@@ -127,7 +127,7 @@ impl MouseListener {
     Ok(())
   }
 
-  /// Windows-specific implementation of [`MouseListener::enable`].
+  /// Implements [`MouseListener::enable`].
   pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
     if self.callback_id.is_some() {
       let handle = self.dispatcher.message_window_handle();
@@ -139,8 +139,7 @@ impl MouseListener {
     Ok(())
   }
 
-  /// Windows-specific implementation of
-  /// [`MouseListener::set_enabled_events`].
+  /// Implements [`MouseListener::set_enabled_events`].
   pub(crate) fn set_enabled_events(
     &mut self,
     enabled_events: &[MouseEventKind],

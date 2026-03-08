@@ -8,14 +8,14 @@ use crate::{
   Dispatcher, ThreadBound,
 };
 
-/// macOS-specific implementation of [`DisplayListener`].
+/// Platform-specific implementation of [`DisplayListener`].
 pub(crate) struct DisplayListener {
   /// Notification observer bound to the main thread.
   observer: Option<ThreadBound<Retained<NotificationObserver>>>,
 }
 
 impl DisplayListener {
-  /// macOS-specific implementation of [`DisplayListener::new`].
+  /// Implements [`DisplayListener::new`].
   pub(crate) fn new(
     event_tx: mpsc::UnboundedSender<()>,
     dispatcher: &Dispatcher,
@@ -63,7 +63,7 @@ impl DisplayListener {
     ThreadBound::new(observer, dispatcher)
   }
 
-  /// macOS-specific implementation of [`DisplayListener::terminate`].
+  /// Implements [`DisplayListener::terminate`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     // On macOS 10.11+, observer subscriptions are cleaned up automatically

@@ -28,7 +28,7 @@ thread_local! {
 #[derive(Clone, Debug)]
 pub struct WindowEventNotificationInner;
 
-/// Windows-specific implementation of [`WindowListener`].
+/// Platform-specific implementation of [`WindowListener`].
 #[derive(Debug)]
 pub(crate) struct WindowListener {
   hook_handles: Vec<HWINEVENTHOOK>,

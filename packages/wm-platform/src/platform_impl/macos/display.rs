@@ -15,7 +15,7 @@ use crate::{
   DisplayId, MirroringState, Point, Rect, ThreadBound,
 };
 
-/// macOS-specific implementation of [`Display`].
+/// Platform-specific implementation of [`Display`].
 #[derive(Clone, Debug)]
 pub(crate) struct Display {
   cg_display_id: CGDirectDisplayID,
@@ -23,7 +23,7 @@ pub(crate) struct Display {
 }
 
 impl Display {
-  /// macOS-specific implementation of [`Display::new`].
+  /// Implements [`Display::new`].
   pub(crate) fn new(
     ns_screen: ThreadBound<Retained<NSScreen>>,
   ) -> crate::Result<Self> {
@@ -194,7 +194,7 @@ impl PartialEq for Display {
 
 impl Eq for Display {}
 
-/// macOS-specific implementation of [`DisplayDevice`].
+/// Platform-specific implementation of [`DisplayDevice`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DisplayDevice {
   cg_display_id: CGDirectDisplayID,
@@ -202,7 +202,7 @@ pub(crate) struct DisplayDevice {
 }
 
 impl DisplayDevice {
-  /// macOS-specific implementation of [`DisplayDevice::new`].
+  /// Implements [`DisplayDevice::new`].
   #[must_use]
   pub(crate) fn new(
     cg_display_id: CGDirectDisplayID,
@@ -343,7 +343,7 @@ fn cg_display_uuid(
   )
 }
 
-/// macOS-specific implementation of [`Dispatcher::displays`].
+/// Implements [`Dispatcher::displays`].
 pub(crate) fn all_displays(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::Display>> {
@@ -362,7 +362,7 @@ pub(crate) fn all_displays(
   })?
 }
 
-/// macOS-specific implementation of [`Dispatcher::display_devices`].
+/// Implements [`Dispatcher::display_devices`].
 pub(crate) fn all_display_devices(
   _: &Dispatcher,
 ) -> crate::Result<Vec<crate::DisplayDevice>> {
@@ -395,7 +395,7 @@ pub(crate) fn all_display_devices(
     .collect()
 }
 
-/// macOS-specific implementation of [`Dispatcher::display_from_point`].
+/// Implements [`Dispatcher::display_from_point`].
 pub(crate) fn display_from_point(
   point: &Point,
   dispatcher: &Dispatcher,
@@ -412,7 +412,7 @@ pub(crate) fn display_from_point(
   Err(crate::Error::DisplayNotFound)
 }
 
-/// macOS-specific implementation of [`Dispatcher::primary_display`].
+/// Implements [`Dispatcher::primary_display`].
 pub(crate) fn primary_display(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -429,7 +429,7 @@ pub(crate) fn primary_display(
   })?
 }
 
-/// macOS-specific implementation of [`Dispatcher::nearest_display`].
+/// Implements [`Dispatcher::nearest_display`].
 ///
 /// NOTE: This was benchmarked to be 400-600µs on initial retrieval and
 /// 150-300µs on subsequent retrievals. Using `CGGetDisplaysWithRect` and

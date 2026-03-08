@@ -13,14 +13,14 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use crate::{Dispatcher, DispatcherExtWindows};
 
-/// Windows-specific implementation of [`DisplayListener`].
+/// Platform-specific implementation of [`DisplayListener`].
 pub(crate) struct DisplayListener {
   callback_id: Option<usize>,
   dispatcher: Dispatcher,
 }
 
 impl DisplayListener {
-  /// Windows-specific implementation of [`DisplayListener::new`].
+  /// Implements [`DisplayListener::new`].
   pub(crate) fn new(
     event_tx: mpsc::UnboundedSender<()>,
     dispatcher: &Dispatcher,
@@ -91,7 +91,7 @@ impl DisplayListener {
     })
   }
 
-  /// Windows-specific implementation of [`DisplayListener::terminate`].
+  /// Implements [`DisplayListener::terminate`].
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
     if let Some(id) = self.callback_id.take() {
       self.dispatcher.deregister_wndproc_callback(id)?;

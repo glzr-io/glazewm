@@ -44,6 +44,7 @@ thread_local! {
     RefCell::new(HashMap::new());
 }
 
+/// Platform-specific implementation of [`EventLoopSource`].
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
   pub(crate) message_window_handle: isize,
@@ -154,13 +155,13 @@ impl EventLoopSource {
   }
 }
 
-/// Windows-specific implementation of [`EventLoop`].
+/// Platform-specific implementation of [`EventLoop`].
 pub(crate) struct EventLoop {
   source: EventLoopSource,
 }
 
 impl EventLoop {
-  /// Windows-specific implementation of [`EventLoop::new`].
+  /// Implements [`EventLoop::new`].
   pub(crate) fn new() -> crate::Result<(Self, Dispatcher)> {
     // Create a hidden message window on the current thread.
     let window_handle =
@@ -179,7 +180,7 @@ impl EventLoop {
     Ok((Self { source }, dispatcher))
   }
 
-  /// Windows-specific implementation of [`EventLoop::run`].
+  /// Implements [`EventLoop::run`].
   pub(crate) fn run(&self) -> crate::Result<()> {
     tracing::info!("Starting event loop.");
     let mut msg = MSG::default();

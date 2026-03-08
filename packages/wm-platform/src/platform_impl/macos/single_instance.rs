@@ -3,7 +3,7 @@ use std::{
   path::PathBuf,
 };
 
-/// macOS-specific implementation of [`SingleInstance`].
+/// Platform-specific implementation of [`SingleInstance`].
 pub(crate) struct SingleInstance {
   /// File that holds the lock.
   ///
@@ -12,7 +12,7 @@ pub(crate) struct SingleInstance {
 }
 
 impl SingleInstance {
-  /// macOS-specific implementation of [`SingleInstance::new`].
+  /// Implements [`SingleInstance::new`].
   pub(crate) fn new() -> crate::Result<Self> {
     let path = Self::lock_file_path()?;
 
@@ -34,7 +34,7 @@ impl SingleInstance {
     Ok(Self { _file: file })
   }
 
-  /// macOS-specific implementation of [`SingleInstance::is_running`].
+  /// Implements [`SingleInstance::is_running`].
   #[must_use]
   pub(crate) fn is_running() -> bool {
     let Ok(file) = Self::lock_file_path()

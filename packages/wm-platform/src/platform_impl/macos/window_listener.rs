@@ -24,7 +24,7 @@ pub struct WindowEventNotificationInner {
 
 unsafe impl Send for WindowEventNotificationInner {}
 
-/// macOS-specific implementation of [`WindowListener`].
+/// Platform-specific implementation of [`WindowListener`].
 #[derive(Debug)]
 pub(crate) struct WindowListener {
   /// Workspace notification observer, bound to the main thread.
@@ -32,7 +32,7 @@ pub(crate) struct WindowListener {
 }
 
 impl WindowListener {
-  /// macOS-specific implementation of [`WindowListener::new`].
+  /// Implements [`WindowListener::new`].
   pub(crate) fn new(
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
@@ -220,7 +220,7 @@ impl WindowListener {
     app_observer_res
   }
 
-  /// macOS-specific implementation of [`WindowListener::terminate`].
+  /// Implements [`WindowListener::terminate`].
   pub(crate) fn terminate(&mut self) {
     // On macOS 10.11+, observer subscriptions are cleaned up automatically
     // without calling `removeObserver`.

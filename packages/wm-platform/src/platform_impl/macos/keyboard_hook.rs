@@ -10,7 +10,7 @@ use objc2_core_graphics::{
 
 use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
-/// macOS-specific keyboard event.
+/// Platform-specific implementation of [`KeyEvent`].
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
   /// The key that was pressed or released.
@@ -59,7 +59,7 @@ struct CallbackData {
   callback: Box<dyn Fn(KeyEvent) -> bool + Send + Sync + 'static>,
 }
 
-/// macOS-specific keyboard hook.
+/// Platform-specific implementation of [`KeyboardHook`].
 #[derive(Debug)]
 pub struct KeyboardHook {
   /// Mach port for the created `CGEventTap`.
