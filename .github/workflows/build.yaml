@@ -57,22 +57,24 @@ jobs:
       - name: Build for ${{ matrix.target }}
         env:
           VERSION_NUMBER: ${{ inputs.version_number }}
+          # Conditionally enable UIAccess feature for Windows.
           FEATURES: ${{ matrix.platform == 'windows-latest' && inputs.enable_ui_access && '--features ui_access' || '' }}
-        run: cargo build --locked --release --target ${{ matrix.target }} $FEATURES
+          # Include `wm-watcher` when building for Windows.
+          SCOPE: ${{ matrix.platform == 'windows-latest' && '--workspace' || '' }}
+        shell: bash
+        run: cargo build --locked --release --target ${{ matrix.target }} $SCOPE $FEATURES
 
       - name: Create upload directory
-        env:
-          EXT: ${{ matrix.platform == 'windows-latest' && '.exe' || '' }}
         shell: bash
         run: |
-          UPLOAD_DIR="temp/target/${{ matrix.target }}/release"
+          SOURCE_DIR="target/${{ matrix.target }}/release"
+          UPLOAD_DIR="temp/$SOURCE_DIR"
           mkdir -p "$UPLOAD_DIR"
 
-          # Move the build artifacts to the upload directory.
-          for bin in glazewm glazewm-cli glazewm-watcher; do
-            SRC="target/${{ matrix.target }}/release/${bin}${EXT}"
-            [ -f "$SRC" ] && mv "$SRC" "$UPLOAD_DIR/"
-          done
+          # Move build artifacts. Suppress errors for missing platform-specific binaries.
+          mv "$SOURCE_DIR"/glazewm{,-cli} \
+            "$SOURCE_DIR"/glazewm{,-cli,-watcher}.exe \
+            "$UPLOAD_DIR/" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v6
         with:
