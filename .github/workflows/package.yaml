@@ -20,7 +20,6 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       enable_ui_access: true
-      targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
       version_number: ${{ inputs.version_number || '3.10.0' }}
 
   package-windows:

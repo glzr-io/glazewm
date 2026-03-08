@@ -7,10 +7,6 @@ on:
         type: boolean
         default: false
         description: (Windows only) Enable UIAccess in the application manifest.
-      targets:
-        type: string
-        default: x86_64-pc-windows-msvc,aarch64-apple-darwin
-        description: Comma-separated list of Rust targets to build for.
       version_number:
         type: string
         default: 0.0.0-dev
@@ -21,10 +17,6 @@ on:
         type: boolean
         default: false
         description: (Windows only) Enable UIAccess in the application manifest.
-      targets:
-        type: string
-        default: x86_64-pc-windows-msvc,aarch64-apple-darwin
-        description: Comma-separated list of Rust targets to build for.
       version_number:
         type: string
         default: 0.0.0-dev
@@ -50,7 +42,6 @@ jobs:
             target: aarch64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}
-    if: contains(inputs.targets, matrix.target)
     steps:
       - uses: actions/checkout@v4
 
