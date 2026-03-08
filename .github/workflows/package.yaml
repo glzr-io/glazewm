@@ -5,14 +5,15 @@ on:
     inputs:
       version_number:
         type: string
-        default: 0.0.0
-        description: Version number to use for the build.
+        description: Version number to use for the build (e.g. `1.0.0`).
   workflow_dispatch:
     inputs:
       version_number:
         type: string
-        default: 0.0.0
-        description: Version number to use for the build.
+        description: Version number to use for the build (e.g. `1.0.0`).
+
+env:
+  VERSION: ${{ inputs.version_number }}
 
 jobs:
   build:
@@ -22,30 +23,17 @@ jobs:
       targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
       version_number: ${{ inputs.version_number }}
 
-  package:
+  package-windows:
     needs: build
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: build-*
-          path: artifacts/
-
-      - name: Prepare build artifacts
-        run: |
-          # Move artifacts from the download structure to expected locations
-          if (Test-Path "artifacts/build-x86_64-pc-windows-msvc") {
-            New-Item -ItemType Directory -Force -Path "target/x86_64-pc-windows-msvc/release"
-            Copy-Item -Path "artifacts/build-x86_64-pc-windows-msvc/x64/*" -Destination "target/x86_64-pc-windows-msvc/release/" -Force
-          }
-
-          if (Test-Path "artifacts/build-aarch64-pc-windows-msvc") {
-            New-Item -ItemType Directory -Force -Path "target/aarch64-pc-windows-msvc/release"
-            Copy-Item -Path "artifacts/build-aarch64-pc-windows-msvc/arm64/*" -Destination "target/aarch64-pc-windows-msvc/release/" -Force
-          }
+          merge-multiple: true
 
       - name: Install WiX and its extensions
         run: |
@@ -65,10 +53,163 @@ jobs:
           AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
           RFC3161_TIMESTAMP_URL: ${{ vars.RFC3161_TIMESTAMP_URL }}
         run: |
-          ./resources/scripts/package.ps1 -VersionNumber ${{ inputs.version_number }}
+          ./resources/scripts/package.ps1 -VersionNumber $VERSION
 
       - uses: actions/upload-artifact@v6
         with:
-          name: installers
+          name: packages-windows
           if-no-files-found: error
           path: out/installer-*
+
+  package-macos:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: build-*
+          merge-multiple: true
+
+      - name: Create universal binaries
+        run: |
+          mkdir -p temp
+          for binary in glazewm glazewm-cli; do
+            lipo -create \
+              "target/x86_64-apple-darwin/release/$binary" \
+              "target/aarch64-apple-darwin/release/$binary" \
+              -output "temp/$binary"
+            chmod +x "temp/$binary"
+          done
+
+      - name: Import signing certificate
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain.
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the certificate.
+          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Store the keychain path for later steps.
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+      # Make sure to sign the binaries before they're copied into the app bundle.
+      - name: Sign universal binaries
+        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          for binary in glazewm glazewm-cli; do
+            codesign --force --options runtime --timestamp \
+              --sign "$APPLE_SIGNING_IDENTITY" \
+              "temp/$binary"
+            codesign --verify --verbose=2 "temp/$binary"
+          done
+
+      - name: Convert icon to ICNS
+        run: |
+          ICONSET_DIR="temp/icon.iconset"
+          mkdir -p $ICONSET_DIR
+          sips -z 16 16     resources/assets/icon.png --out $ICONSET_DIR/icon_16x16.png
+          sips -z 32 32     resources/assets/icon.png --out $ICONSET_DIR/icon_16x16@2x.png
+          sips -z 32 32     resources/assets/icon.png --out $ICONSET_DIR/icon_32x32.png
+          sips -z 64 64     resources/assets/icon.png --out $ICONSET_DIR/icon_32x32@2x.png
+          sips -z 128 128   resources/assets/icon.png --out $ICONSET_DIR/icon_128x128.png
+          sips -z 256 256   resources/assets/icon.png --out $ICONSET_DIR/icon_128x128@2x.png
+          sips -z 256 256   resources/assets/icon.png --out $ICONSET_DIR/icon_256x256.png
+          sips -z 512 512   resources/assets/icon.png --out $ICONSET_DIR/icon_256x256@2x.png
+          sips -z 512 512   resources/assets/icon.png --out $ICONSET_DIR/icon_512x512.png
+          sips -z 1024 1024 resources/assets/icon.png --out $ICONSET_DIR/icon_512x512@2x.png
+          iconutil -c icns $ICONSET_DIR -o temp/icon.icns
+
+      - name: Create app bundle
+        run: |
+          CONTENTS_DIR="temp/GlazeWM.app/Contents"
+          mkdir -p "$CONTENTS_DIR/MacOS" "$CONTENTS_DIR/Resources"
+
+          cp temp/glazewm "$CONTENTS_DIR/MacOS/"
+          cp temp/glazewm-cli "$CONTENTS_DIR/MacOS/"
+          cp temp/icon.icns "$CONTENTS_DIR/Resources/icon.icns"
+          chmod +x "$CONTENTS_DIR/MacOS"/*
+
+          # Substitute version placeholder in Info.plist.
+          sed "s/\${VERSION}/$VERSION/g" resources/Info.plist > "$CONTENTS_DIR/Info.plist"
+
+          echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
+
+      - name: Sign app bundle
+        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            temp/GlazeWM.app
+          codesign --verify --verbose=2 --deep --strict temp/GlazeWM.app
+
+      - name: Create DMG
+        run: |
+          DMG_DIR="temp/dmg-contents"
+          mkdir -p $DMG_DIR
+          cp -R temp/GlazeWM.app $DMG_DIR/
+
+          # Create a symbolic link to `/Applications` folder.
+          ln -s /Applications $DMG_DIR/Applications
+
+          # Create the DMG.
+          hdiutil create -volname GlazeWM \
+            -srcfolder $DMG_DIR \
+            -ov -format UDZO \
+            installer-universal.dmg
+
+      - name: Sign DMG
+        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --force --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            installer-universal.dmg
+
+      - name: Notarize DMG
+        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_ID_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Submit for notarization.
+          xcrun notarytool submit installer-universal.dmg \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Staple the notarization ticket to the DMG.
+          xcrun stapler staple installer-universal.dmg
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v6
+        with:
+          name: packages-macos
+          if-no-files-found: error
+          path: installer-universal.dmg

@@ -23,31 +23,37 @@ jobs:
   release:
     needs: package
     runs-on: ubuntu-latest
-    env:
-      VERSION: v${{ inputs.version_number }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Download installers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: installers
-          path: out
+          name: packages-*
+          merge-multiple: true
 
       - name: Rename installers
+        env:
+          # Add a `v` prefix to the version number.
+          VERSION: v${{ inputs.version_number }}
         run: |
-          mv out/installer-universal.exe out/glazewm-$VERSION.exe
-          mv out/installer-arm64.msi out/standalone-glazewm-$VERSION-arm64.msi
-          mv out/installer-x64.msi out/standalone-glazewm-$VERSION-x64.msi
+          # TODO: Need to update these paths.
+          mv out/installer-universal.exe "out/glazewm-$VERSION.exe"
+          mv out/installer-arm64.msi "out/standalone-glazewm-$VERSION-arm64.msi"
+          mv out/installer-x64.msi "out/standalone-glazewm-$VERSION-x64.msi"
+          mv "out/installer-universal.dmg" "out/glazewm-$VERSION.dmg"
 
       - name: Create draft release
         env:
+          # Add a `v` prefix to the version number.
+          VERSION: v${{ inputs.version_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$VERSION" \
             --title "$VERSION" \
             --generate-notes \
             --draft \
-            "./out/glazewm-$VERSION.exe#$VERSION for Windows (recommended)" \
+            "./out/glazewm-$VERSION.exe#$VERSION for Windows (standard)" \
             "./out/standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
-            "./out/standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)"
+            "./out/standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)" \
+            "./out/glazewm-$VERSION-universal.dmg#$VERSION for macOS"
