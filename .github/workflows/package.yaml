@@ -15,20 +15,19 @@ on:
         type: string
         description: Version number to use for the build (e.g. `1.0.0`).
 
-env:
-  VERSION: ${{ inputs.version_number || '3.10.0' }}
-
 jobs:
   build:
     uses: ./.github/workflows/build.yaml
     with:
       enable_ui_access: true
       targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
-      version_number: ${{ env.VERSION }}
+      version_number: ${{ inputs.version_number || '3.10.0' }}
 
   package-windows:
     needs: build
     runs-on: windows-latest
+    env:
+      VERSION: ${{ inputs.version_number || '3.10.0' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,6 +66,8 @@ jobs:
   package-macos:
     needs: build
     runs-on: macos-latest
+    env:
+      VERSION: ${{ inputs.version_number || '3.10.0' }}
     steps:
       - uses: actions/checkout@v4
 
