@@ -593,18 +593,22 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTitleBarVisibility { visibility } => {
-        match subject_container.as_window_container() {
-          #[cfg(target_os = "windows")]
-          Ok(window) => {
-            _ = window.native().set_title_bar_visibility(
-              *visibility == TitleBarVisibility::Shown,
-            );
-            Ok(())
-          }
-          _ => Ok(()),
+      InvokeCommand::SetTitleBarVisibility {
+        // LINT: `visibility` is only used on Windows.
+        #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+        visibility,
+      } => match subject_container.as_window_container() {
+        #[cfg(target_os = "windows")]
+        Ok(window) => {
+          _ = window.native().set_title_bar_visibility(
+            *visibility == TitleBarVisibility::Shown,
+          );
+          Ok(())
         }
-      }
+        _ => Ok(()),
+      },
+      // LINT: `args` is only used on Windows.
+      #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
       InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
           #[cfg(target_os = "windows")]
