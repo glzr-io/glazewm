@@ -102,6 +102,13 @@ async fn start_wm(
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
+  // On macOS, when launched from Spotlight or Finder the process inherits
+  // a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`). Enrich it once at
+  // startup so that spawned processes (e.g. `shell-exec zebar`) resolve
+  // binaries installed by Homebrew, nvm, etc.
+  #[cfg(target_os = "macos")]
+  enrich_path_from_login_shell();
+
   // Ensure that only one instance of the WM is running.
   let _single_instance = SingleInstance::new()?;
 
@@ -311,6 +318,45 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   );
 
   Ok(())
+}
+
+/// Enriches the process `PATH` by querying the user's login shell.
+///
+/// When launched from Spotlight or Finder, the inherited `PATH` is minimal
+/// (`/usr/bin:/bin:/usr/sbin:/sbin`). This runs `$SHELL -l -c 'printf "%s"
+/// "$PATH"'` once at startup to capture the full user `PATH` (Homebrew,
+/// pyenv, nvm, etc.) and writes it back to the process environment. All
+/// subsequent `Shell::spawn` calls then inherit the enriched `PATH`.
+/// Failures are logged and silently ignored, leaving the existing `PATH`
+/// unchanged.
+#[cfg(target_os = "macos")]
+fn enrich_path_from_login_shell() {
+  let shell =
+    std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+
+  match std::process::Command::new(&shell)
+    .args(["-l", "-c", "printf '%s' \"$PATH\""])
+    .output()
+  {
+    Ok(output) if output.status.success() => {
+      match String::from_utf8(output.stdout) {
+        Ok(path) if !path.is_empty() => {
+          tracing::debug!("Enriched PATH from login shell: {path}");
+          std::env::set_var("PATH", path);
+        }
+        _ => tracing::debug!(
+          "Login shell returned an empty PATH; keeping existing PATH."
+        ),
+      }
+    }
+    Ok(output) => tracing::debug!(
+      "Login shell exited with status {}; keeping existing PATH.",
+      output.status
+    ),
+    Err(err) => tracing::debug!(
+      "Failed to query login shell for PATH: {err}; keeping existing PATH."
+    ),
+  }
 }
 
 /// Launches watcher binary (Windows-only). This is a separate process that
