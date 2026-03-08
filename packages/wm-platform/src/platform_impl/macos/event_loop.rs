@@ -12,7 +12,7 @@ use objc2_core_foundation::{
 
 use crate::{DispatchFn, Dispatcher};
 
-/// Platform-specific implementation of [`EventLoopSource`].
+/// Source for dispatching callbacks onto the event loop thread.
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
   dispatch_tx: mpsc::Sender<Box<DispatchFn>>,

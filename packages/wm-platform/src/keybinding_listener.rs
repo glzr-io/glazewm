@@ -104,6 +104,33 @@ impl KeybindingListener {
     })
   }
 
+  /// Returns the next keybinding event from the listener.
+  ///
+  /// This will block until a keybinding event is available.
+  pub async fn next_event(&mut self) -> Option<KeybindingEvent> {
+    self.event_rx.recv().await
+  }
+
+  /// Updates the keybindings for the keybinding listener.
+  ///
+  /// # Panics
+  ///
+  /// If the internal mutex is poisoned.
+  pub fn update(&self, keybindings: &[Keybinding]) {
+    *self.keybinding_map.lock().unwrap() =
+      Self::create_keybinding_map(keybindings);
+  }
+
+  /// Enables or disables the keybinding listener.
+  pub fn enable(&mut self, enabled: bool) {
+    self.enabled.store(enabled, Ordering::Relaxed);
+  }
+
+  /// Terminates the keybinding listener.
+  pub fn terminate(&mut self) -> crate::Result<()> {
+    self.keyboard_hook.terminate()
+  }
+
   /// Creates and starts the keyboard hook with the given callback.
   fn create_keyboard_hook(
     keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
@@ -216,33 +243,6 @@ impl KeybindingListener {
       // TODO: Not ideal, shouldn't panic if used incorrectly.
       _ => unreachable!(),
     }
-  }
-
-  /// Returns the next keybinding event from the listener.
-  ///
-  /// This will block until a keybinding event is available.
-  pub async fn next_event(&mut self) -> Option<KeybindingEvent> {
-    self.event_rx.recv().await
-  }
-
-  /// Updates the keybindings for the keybinding listener.
-  ///
-  /// # Panics
-  ///
-  /// If the internal mutex is poisoned.
-  pub fn update(&self, keybindings: &[Keybinding]) {
-    *self.keybinding_map.lock().unwrap() =
-      Self::create_keybinding_map(keybindings);
-  }
-
-  /// Enables or disables the keybinding listener.
-  pub fn enable(&mut self, enabled: bool) {
-    self.enabled.store(enabled, Ordering::Relaxed);
-  }
-
-  /// Terminates the keybinding listener.
-  pub fn terminate(&mut self) -> crate::Result<()> {
-    self.keyboard_hook.terminate()
   }
 }
 

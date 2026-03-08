@@ -5,7 +5,7 @@ use objc2_core_foundation::{CFRetained, CFString, CFType};
 
 use crate::Error;
 
-/// Extension trait for `AXUIElement`.
+/// Extension trait for [`AXUIElement`].
 pub trait AXUIElementExt {
   /// Retrieves the value of an accessibility attribute.
   ///

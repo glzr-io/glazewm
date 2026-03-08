@@ -23,7 +23,7 @@ pub(crate) struct Display {
 }
 
 impl Display {
-  /// Implements [`Display::new`].
+  /// Creates an instance of `Display`.
   pub(crate) fn new(
     ns_screen: ThreadBound<Retained<NSScreen>>,
   ) -> crate::Result<Self> {
@@ -45,12 +45,12 @@ impl Display {
     })
   }
 
-  /// Gets the [`crate::Display`] ID.
+  /// Implements [`Display::id`].
   pub(crate) fn id(&self) -> DisplayId {
     DisplayId(self.cg_display_id)
   }
 
-  /// Gets the display name.
+  /// Implements [`Display::name`].
   pub(crate) fn name(&self) -> crate::Result<String> {
     self.ns_screen.with(|screen| {
       let name = unsafe { screen.localizedName() };
@@ -58,7 +58,7 @@ impl Display {
     })?
   }
 
-  /// Gets the full bounds rectangle of the display.
+  /// Implements [`Display::bounds`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn bounds(&self) -> crate::Result<Rect> {
     let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
@@ -72,7 +72,7 @@ impl Display {
     ))
   }
 
-  /// Gets the working area rectangle (excludes dock and menu bar).
+  /// Implements [`Display::working_area`].
   pub(crate) fn working_area(&self) -> crate::Result<Rect> {
     let primary_display_bounds = {
       let bounds = unsafe { CGDisplayBounds(CGMainDisplayID()) };
@@ -96,7 +96,7 @@ impl Display {
     })?
   }
 
-  /// Gets the scale factor for the display.
+  /// Implements [`Display::scale_factor`].
   pub(crate) fn scale_factor(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     self
@@ -104,7 +104,7 @@ impl Display {
       .with(|screen| screen.backingScaleFactor() as f32)
   }
 
-  /// Gets the DPI for the display.
+  /// Implements [`Display::dpi`].
   pub(crate) fn dpi(&self) -> crate::Result<u32> {
     let scale_factor = self.scale_factor()?;
 
@@ -112,14 +112,14 @@ impl Display {
     Ok((72.0 * scale_factor) as u32)
   }
 
-  /// Returns whether this is the primary display.
+  /// Implements [`Display::is_primary`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_primary(&self) -> crate::Result<bool> {
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
   }
 
-  /// Gets the display devices for this display.
+  /// Implements [`Display::devices`].
   pub(crate) fn devices(
     &self,
   ) -> crate::Result<Vec<crate::DisplayDevice>> {
@@ -132,7 +132,7 @@ impl Display {
     Ok(vec![main_device.into()])
   }
 
-  /// Gets the main device (first non-mirroring device) for this display.
+  /// Implements [`Display::main_device`].
   pub(crate) fn main_device(&self) -> crate::Result<crate::DisplayDevice> {
     self
       .devices()?
@@ -146,12 +146,12 @@ impl Display {
       .ok_or(crate::Error::DisplayNotFound)
   }
 
-  /// Gets the Core Graphics display ID.
+  /// Implements [`DisplayExtMacOs::cg_display_id`].
   pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
     self.cg_display_id
   }
 
-  /// Gets the `NSScreen` instance for this display.
+  /// Implements [`DisplayExtMacOs::ns_screen`].
   pub(crate) fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
     &self.ns_screen
   }
@@ -202,7 +202,7 @@ pub(crate) struct DisplayDevice {
 }
 
 impl DisplayDevice {
-  /// Implements [`DisplayDevice::new`].
+  /// Creates an instance of `DisplayDevice`.
   #[must_use]
   pub(crate) fn new(
     cg_display_id: CGDirectDisplayID,
@@ -214,7 +214,7 @@ impl DisplayDevice {
     }
   }
 
-  /// Gets the unique identifier for this display device.
+  /// Implements [`DisplayDevice::id`].
   pub(crate) fn id(&self) -> DisplayDeviceId {
     // SAFETY: Can assume that the `CFUUID` is valid regardless of whether
     // the underlying display device is still alive.
@@ -225,14 +225,14 @@ impl DisplayDevice {
     DisplayDeviceId(uuid_string)
   }
 
-  /// Gets the rotation of the device in degrees.
+  /// Implements [`DisplayDevice::rotation`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
   }
 
-  /// Gets the refresh rate of the device in Hz.
+  /// Implements [`DisplayDevice::refresh_rate`].
   pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
     // NOTE: Calling `CGDisplayModeRelease` on cleanup is not needed, since
     // it's equivalent to `CFRelease` in this case. Ref: https://developer.apple.com/documentation/coregraphics/cgdisplaymoderelease
@@ -247,7 +247,7 @@ impl DisplayDevice {
     Ok(refresh_rate as f32)
   }
 
-  /// Returns whether this is a built-in device.
+  /// Implements [`DisplayDevice::is_builtin`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
@@ -255,7 +255,7 @@ impl DisplayDevice {
     Ok(self.cg_display_id == main_display_id)
   }
 
-  /// Gets the connection state of the device.
+  /// Implements [`DisplayDevice::connection_state`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
     let display_mode =
@@ -269,7 +269,7 @@ impl DisplayDevice {
     }
   }
 
-  /// Gets the mirroring state of the device.
+  /// Implements [`DisplayDevice::mirroring_state`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn mirroring_state(
     &self,
@@ -315,7 +315,7 @@ impl DisplayDevice {
     }
   }
 
-  /// Gets the Core Graphics display ID.
+  /// Implements [`DisplayDeviceExtMacOs::cg_display_id`].
   pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
     self.cg_display_id
   }

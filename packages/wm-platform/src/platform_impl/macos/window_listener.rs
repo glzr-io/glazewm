@@ -12,7 +12,7 @@ use crate::{
   Dispatcher, ThreadBound, WindowEvent,
 };
 
-/// macOS-specific window event notification.
+/// Platform-specific implementation of [`WindowEventNotification`].
 #[derive(Clone, Debug)]
 pub struct WindowEventNotificationInner {
   /// Name of the notification (e.g. `AXWindowMoved`).
@@ -230,7 +230,6 @@ impl WindowListener {
 
     app_observer_res
   }
-
 }
 
 impl Drop for WindowListener {

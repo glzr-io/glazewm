@@ -73,6 +73,47 @@ impl MouseListener {
     })
   }
 
+  /// Implements [`MouseListener::enable`].
+  pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
+    if self.callback_id.is_some() {
+      let handle = self.dispatcher.message_window_handle();
+      self.dispatcher.dispatch_sync(move || {
+        Self::enable_raw_input(handle, enabled)
+      })??;
+    }
+
+    Ok(())
+  }
+
+  /// Implements [`MouseListener::set_enabled_events`].
+  pub(crate) fn set_enabled_events(
+    &mut self,
+    enabled_events: &[MouseEventKind],
+  ) -> crate::Result<()> {
+    let _ = self.terminate();
+
+    let callback_id = Self::register_callback(
+      enabled_events,
+      Arc::clone(&self.callback_data),
+      &self.dispatcher,
+    )?;
+
+    self.callback_id = Some(callback_id);
+
+    Ok(())
+  }
+
+  /// Implements [`MouseListener::terminate`].
+  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
+    self.enable(false)?;
+
+    if let Some(id) = self.callback_id.take() {
+      self.dispatcher.deregister_wndproc_callback(id)?;
+    }
+
+    Ok(())
+  }
+
   /// Registers a window procedure callback for `WM_INPUT` and enables raw
   /// input.
   ///
@@ -114,47 +155,6 @@ impl MouseListener {
       .dispatch_sync(move || Self::enable_raw_input(handle, true))??;
 
     Ok(callback_id)
-  }
-
-  /// Implements [`MouseListener::terminate`].
-  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
-    self.enable(false)?;
-
-    if let Some(id) = self.callback_id.take() {
-      self.dispatcher.deregister_wndproc_callback(id)?;
-    }
-
-    Ok(())
-  }
-
-  /// Implements [`MouseListener::enable`].
-  pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
-    if self.callback_id.is_some() {
-      let handle = self.dispatcher.message_window_handle();
-      self.dispatcher.dispatch_sync(move || {
-        Self::enable_raw_input(handle, enabled)
-      })??;
-    }
-
-    Ok(())
-  }
-
-  /// Implements [`MouseListener::set_enabled_events`].
-  pub(crate) fn set_enabled_events(
-    &mut self,
-    enabled_events: &[MouseEventKind],
-  ) -> crate::Result<()> {
-    let _ = self.terminate();
-
-    let callback_id = Self::register_callback(
-      enabled_events,
-      Arc::clone(&self.callback_data),
-      &self.dispatcher,
-    )?;
-
-    self.callback_id = Some(callback_id);
-
-    Ok(())
   }
 
   /// Processes a `WM_INPUT` message, extracting raw input data and

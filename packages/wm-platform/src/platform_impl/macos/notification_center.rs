@@ -18,6 +18,7 @@ use objc2_foundation::{
 };
 use tokio::sync::mpsc;
 
+/// Notification names for observing macOS workspace and screen events.
 #[derive(Debug)]
 pub(crate) enum NotificationName {
   WorkspaceActiveSpaceDidChange,
@@ -90,6 +91,7 @@ impl From<NotificationName> for &NSString {
   }
 }
 
+/// Events received from macOS notification center observers.
 #[derive(Debug)]
 pub(crate) enum NotificationEvent {
   WorkspaceActiveSpaceDidChange,
@@ -101,6 +103,7 @@ pub(crate) enum NotificationEvent {
   ApplicationDidChangeScreenParameters,
 }
 
+/// Instance variables for `NotificationObserver`.
 #[repr(C)]
 pub(crate) struct NotificationObserverIvars {
   events_tx: mpsc::UnboundedSender<NotificationEvent>,
@@ -204,6 +207,7 @@ impl NotificationObserver {
   }
 }
 
+/// Wrapper around `NSNotificationCenter` for registering event observers.
 #[derive(Debug)]
 pub(crate) struct NotificationCenter {
   inner: Retained<NSNotificationCenter>,

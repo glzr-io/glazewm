@@ -15,7 +15,7 @@ pub(crate) struct DisplayListener {
 }
 
 impl DisplayListener {
-  /// Implements [`DisplayListener::new`].
+  /// Creates an instance of `DisplayListener`.
   pub(crate) fn new(
     event_tx: mpsc::UnboundedSender<()>,
     dispatcher: &Dispatcher,
@@ -28,6 +28,19 @@ impl DisplayListener {
     Ok(Self {
       observer: Some(observer),
     })
+  }
+
+  /// Implements [`DisplayListener::terminate`].
+  #[allow(clippy::unnecessary_wraps)]
+  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
+    // On macOS 10.11+, observer subscriptions are cleaned up automatically
+    // without calling `removeObserver`.
+    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
+    //
+    // Dropping the `NotificationObserver` also drops its channel sender,
+    // causing the listener thread to exit.
+    self.observer.take();
+    Ok(())
   }
 
   /// Registers the notification observer on the main thread.
@@ -61,19 +74,6 @@ impl DisplayListener {
     });
 
     ThreadBound::new(observer, dispatcher)
-  }
-
-  /// Implements [`DisplayListener::terminate`].
-  #[allow(clippy::unnecessary_wraps)]
-  pub(crate) fn terminate(&mut self) -> crate::Result<()> {
-    // On macOS 10.11+, observer subscriptions are cleaned up automatically
-    // without calling `removeObserver`.
-    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
-    //
-    // Dropping the `NotificationObserver` also drops its channel sender,
-    // causing the listener thread to exit.
-    self.observer.take();
-    Ok(())
   }
 }
 

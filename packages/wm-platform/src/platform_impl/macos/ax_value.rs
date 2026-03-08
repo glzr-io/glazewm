@@ -27,7 +27,7 @@ impl AXValueTypeMarker for CFRange {
   const AX_TYPE: AXValueType = AXValueType::CFRange;
 }
 
-/// Extension trait for `AXValue`.
+/// Extension trait for [`AXValue`].
 pub trait AXValueExt {
   /// Creates a new `AXValue` from the given value.
   ///

@@ -15,6 +15,7 @@ use crate::{
 
 pub type ProcessId = i32;
 
+/// Represents a running macOS application.
 #[derive(Clone, Debug)]
 pub struct Application {
   pub(crate) pid: ProcessId,
@@ -24,6 +25,7 @@ pub struct Application {
 }
 
 impl Application {
+  /// Creates an instance of `Application`.
   pub(crate) fn new(
     ns_app: Retained<NSRunningApplication>,
     dispatcher: Dispatcher,

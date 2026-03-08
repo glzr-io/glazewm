@@ -44,7 +44,7 @@ thread_local! {
     RefCell::new(HashMap::new());
 }
 
-/// Platform-specific implementation of [`EventLoopSource`].
+/// Source for dispatching callbacks onto the event loop thread.
 #[derive(Clone)]
 pub(crate) struct EventLoopSource {
   pub(crate) message_window_handle: isize,

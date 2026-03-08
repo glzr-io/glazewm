@@ -26,7 +26,7 @@ pub(crate) struct NativeWindow {
 }
 
 impl NativeWindow {
-  /// Implements [`NativeWindow::new`].
+  /// Creates an instance of `NativeWindow`.
   #[must_use]
   pub(crate) fn new(
     id: WindowId,

@@ -10,7 +10,7 @@ use objc2_core_graphics::{
 
 use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
-/// Platform-specific implementation of [`KeyEvent`].
+/// A key event received from the keyboard hook.
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
   /// The key that was pressed or released.
@@ -59,7 +59,7 @@ struct CallbackData {
   callback: Box<dyn Fn(KeyEvent) -> bool + Send + Sync + 'static>,
 }
 
-/// Platform-specific implementation of [`KeyboardHook`].
+/// A system-wide low-level keyboard hook.
 #[derive(Debug)]
 pub struct KeyboardHook {
   /// Mach port for the created `CGEventTap`.
@@ -72,8 +72,8 @@ pub struct KeyboardHook {
 impl KeyboardHook {
   /// Creates an instance of `KeyboardHook`.
   ///
-  /// The callback is called for every keyboard event and returns
-  /// `true` if the event should be intercepted.
+  /// The callback is called for every keyboard event and returns `true` if
+  /// the event should be intercepted.
   pub fn new<F>(
     callback: F,
     dispatcher: &Dispatcher,
@@ -101,6 +101,24 @@ impl KeyboardHook {
       tap_port: Some(tap_port),
       callback_ptr: Some(callback_ptr),
     })
+  }
+
+  /// Terminates the keyboard hook by invalidating the event tap.
+  #[allow(clippy::unnecessary_wraps)]
+  pub fn terminate(&mut self) -> crate::Result<()> {
+    if let Some(tap) = self.tap_port.take() {
+      // Invalidate the event tap to stop it from receiving events. This
+      // also invalidates the run loop source.
+      // See: https://developer.apple.com/documentation/corefoundation/cfmachportinvalidate(_:)
+      let _ = tap.with(|tap| CFMachPort::invalidate(tap));
+    }
+
+    // Clean up the callback data if it exists.
+    if let Some(ptr) = self.callback_ptr.take() {
+      let _ = unsafe { Box::from_raw(ptr as *mut CallbackData) };
+    }
+
+    Ok(())
   }
 
   /// Creates a `CGEventTap` object.
@@ -190,24 +208,6 @@ impl KeyboardHook {
     } else {
       unsafe { event.as_mut() }
     }
-  }
-
-  /// Terminates the keyboard hook by invalidating the event tap.
-  #[allow(clippy::unnecessary_wraps)]
-  pub fn terminate(&mut self) -> crate::Result<()> {
-    if let Some(tap) = self.tap_port.take() {
-      // Invalidate the event tap to stop it from receiving events. This
-      // also invalidates the run loop source.
-      // See: https://developer.apple.com/documentation/corefoundation/cfmachportinvalidate(_:)
-      let _ = tap.with(|tap| CFMachPort::invalidate(tap));
-    }
-
-    // Clean up the callback data if it exists.
-    if let Some(ptr) = self.callback_ptr.take() {
-      let _ = unsafe { Box::from_raw(ptr as *mut CallbackData) };
-    }
-
-    Ok(())
   }
 }
 

@@ -54,7 +54,7 @@ pub enum WindowZOrder {
   TopMost,
 }
 
-/// macOS-specific extensions for [`NativeWindow`].
+/// macOS-specific extension trait for [`NativeWindow`].
 #[cfg(target_os = "macos")]
 pub trait NativeWindowExtMacOs {
   /// Gets the `AXUIElement` instance for this window.

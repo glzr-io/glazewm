@@ -31,7 +31,7 @@ pub(crate) struct Display {
 }
 
 impl Display {
-  /// Implements [`Display::new`].
+  /// Creates an instance of `Display`.
   #[must_use]
   pub(crate) fn new(monitor_handle: isize) -> Self {
     Self { monitor_handle }
@@ -206,7 +206,7 @@ pub(crate) struct DisplayDevice {
 }
 
 impl DisplayDevice {
-  /// Implements [`DisplayDevice::new`].
+  /// Creates an instance of `DisplayDevice`.
   #[must_use]
   pub(crate) fn new(adapter_name: String, device_path: &[u16]) -> Self {
     // NOTE: This may be an empty string for virtual display devices.

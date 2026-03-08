@@ -24,7 +24,7 @@ thread_local! {
   static EVENT_TX: OnceLock<mpsc::UnboundedSender<WindowEvent>> = const { OnceLock::new() };
 }
 
-/// Windows-specific window event notification.
+/// Platform-specific implementation of [`WindowEventNotification`].
 #[derive(Clone, Debug)]
 pub struct WindowEventNotificationInner;
 

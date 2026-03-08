@@ -36,7 +36,7 @@ pub struct DisplayId(
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DisplayDeviceId(pub String);
 
-/// macOS-specific extensions for [`Display`].
+/// macOS-specific extension trait for [`Display`].
 #[cfg(target_os = "macos")]
 pub trait DisplayExtMacOs {
   /// Gets the Core Graphics display ID.
@@ -189,7 +189,7 @@ pub enum OutputTechnology {
   Unknown,
 }
 
-/// macOS-specific extensions for [`DisplayDevice`].
+/// macOS-specific extension trait for [`DisplayDevice`].
 #[cfg(target_os = "macos")]
 pub trait DisplayDeviceExtMacOs {
   /// Gets the Core Graphics display ID.

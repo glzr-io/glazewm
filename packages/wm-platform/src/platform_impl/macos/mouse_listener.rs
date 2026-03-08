@@ -88,48 +88,6 @@ impl MouseListener {
     })
   }
 
-  /// Creates and registers a `CGEventTap` for mouse events.
-  fn create_event_tap(
-    enabled_events: &[MouseEventKind],
-    callback_data_ptr: usize,
-    dispatcher: &Dispatcher,
-  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
-    let mask = Self::event_mask_from_enabled(enabled_events);
-
-    let tap_port = unsafe {
-      CGEvent::tap_create(
-        CGEventTapLocation::AnnotatedSessionEventTap,
-        CGEventTapPlacement::HeadInsertEventTap,
-        CGEventTapOptions::Default,
-        mask,
-        Some(Self::mouse_event_callback),
-        callback_data_ptr as *mut c_void,
-      )
-      .ok_or_else(|| {
-        Error::Platform(
-          "Failed to create `CGEventTap`. Accessibility permissions may be required.".to_string(),
-        )
-      })
-    }?;
-
-    let loop_source =
-      CFMachPort::new_run_loop_source(None, Some(&tap_port), 0)
-        .ok_or_else(|| {
-          Error::Platform("Failed to create loop source".to_string())
-        })?;
-
-    let current_loop = CFRunLoop::current().ok_or_else(|| {
-      Error::Platform("Failed to get current run loop".to_string())
-    })?;
-
-    current_loop
-      .add_source(Some(&loop_source), unsafe { kCFRunLoopCommonModes });
-
-    unsafe { CGEvent::tap_enable(&tap_port, true) };
-
-    Ok(ThreadBound::new(tap_port, dispatcher.clone()))
-  }
-
   /// Implements [`MouseListener::enable`].
   pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
     if let Some(tap_port) = &self.tap_port {
@@ -188,6 +146,48 @@ impl MouseListener {
     }
 
     Ok(())
+  }
+
+  /// Creates and registers a `CGEventTap` for mouse events.
+  fn create_event_tap(
+    enabled_events: &[MouseEventKind],
+    callback_data_ptr: usize,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<ThreadBound<CFRetained<CFMachPort>>> {
+    let mask = Self::event_mask_from_enabled(enabled_events);
+
+    let tap_port = unsafe {
+      CGEvent::tap_create(
+        CGEventTapLocation::AnnotatedSessionEventTap,
+        CGEventTapPlacement::HeadInsertEventTap,
+        CGEventTapOptions::Default,
+        mask,
+        Some(Self::mouse_event_callback),
+        callback_data_ptr as *mut c_void,
+      )
+      .ok_or_else(|| {
+        Error::Platform(
+          "Failed to create `CGEventTap`. Accessibility permissions may be required.".to_string(),
+        )
+      })
+    }?;
+
+    let loop_source =
+      CFMachPort::new_run_loop_source(None, Some(&tap_port), 0)
+        .ok_or_else(|| {
+          Error::Platform("Failed to create loop source".to_string())
+        })?;
+
+    let current_loop = CFRunLoop::current().ok_or_else(|| {
+      Error::Platform("Failed to get current run loop".to_string())
+    })?;
+
+    current_loop
+      .add_source(Some(&loop_source), unsafe { kCFRunLoopCommonModes });
+
+    unsafe { CGEvent::tap_enable(&tap_port, true) };
+
+    Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
 
   /// Gets the `CGEvent` mask for the enabled mouse events.

@@ -27,7 +27,7 @@ thread_local! {
   static HOOK: Cell<Option<HookCallback>> = Cell::default();
 }
 
-/// Platform-specific implementation of [`KeyEvent`].
+/// A key event received from the keyboard hook.
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
   /// The key that was pressed or released.
@@ -79,7 +79,7 @@ impl KeyEvent {
   }
 }
 
-/// Platform-specific implementation of [`KeyboardHook`].
+/// A system-wide low-level keyboard hook.
 #[derive(Debug)]
 pub struct KeyboardHook {
   handle: HHOOK,
@@ -87,7 +87,7 @@ pub struct KeyboardHook {
 }
 
 impl KeyboardHook {
-  /// Creates a new low-level keyboard hook for the dispatcher's thread.
+  /// Creates an instance of `KeyboardHook`.
   ///
   /// The callback is called for every keyboard event and returns `true` if
   /// the event should be intercepted.
@@ -127,6 +127,21 @@ impl KeyboardHook {
       handle,
       dispatcher: dispatcher.clone(),
     })
+  }
+
+  /// Terminates the keyboard hook by unregistering it.
+  pub fn terminate(&mut self) -> crate::Result<()> {
+    unsafe { UnhookWindowsHookEx(self.handle) }?;
+
+    // Dispatch cleanup to the event loop thread since the callback
+    // is stored in a thread-local on that thread.
+    let _ = self.dispatcher.dispatch_async(|| {
+      HOOK.with(|state| {
+        state.take();
+      });
+    });
+
+    Ok(())
   }
 
   /// Hook procedure for keyboard events.
@@ -177,21 +192,6 @@ impl KeyboardHook {
     }
 
     unsafe { CallNextHookEx(None, code, wparam, lparam) }
-  }
-
-  /// Terminates the keyboard hook by unregistering it.
-  pub fn terminate(&mut self) -> crate::Result<()> {
-    unsafe { UnhookWindowsHookEx(self.handle) }?;
-
-    // Dispatch cleanup to the event loop thread since the callback
-    // is stored in a thread-local on that thread.
-    let _ = self.dispatcher.dispatch_async(|| {
-      HOOK.with(|state| {
-        state.take();
-      });
-    });
-
-    Ok(())
   }
 }
 

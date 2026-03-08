@@ -65,7 +65,7 @@ pub type DispatchFn = dyn FnOnce() + Send + 'static;
 pub type WndProcCallback =
   dyn Fn(isize, u32, usize, isize) -> Option<isize> + Send + 'static;
 
-/// macOS-specific extensions for `Dispatcher`.
+/// macOS-specific extension trait for [`Dispatcher`].
 #[cfg(target_os = "macos")]
 pub trait DispatcherExtMacOs {
   /// Gets all running applications.
