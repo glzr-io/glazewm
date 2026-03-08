@@ -1,5 +1,6 @@
 use anyhow::Context;
-use wm_common::{LengthValue, Rect, WindowState};
+use wm_common::WindowState;
+use wm_platform::{LengthValue, Rect};
 
 use crate::{
   commands::container::resize_tiling_container,

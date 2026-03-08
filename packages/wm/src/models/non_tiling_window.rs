@@ -7,16 +7,17 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
-  WindowDto, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, WindowDto,
+  WindowRuleConfig, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, Rect, RectDelta};
 
 use crate::{
   impl_common_getters, impl_container_debug, impl_window_getters,
   models::{
-    Container, DirectionContainer, InsertionTarget, TilingContainer,
-    TilingWindow, WindowContainer,
+    Container, DirectionContainer, InsertionTarget,
+    NativeWindowProperties, TilingContainer, TilingWindow,
+    WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
 };
@@ -30,6 +31,7 @@ struct NonTilingWindowInner {
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
   native: NativeWindow,
+  native_properties: NativeWindowProperties,
   state: WindowState,
   prev_state: Option<WindowState>,
   insertion_target: Option<InsertionTarget>,
@@ -47,6 +49,7 @@ impl NonTilingWindow {
   pub fn new(
     id: Option<Uuid>,
     native: NativeWindow,
+    properties: NativeWindowProperties,
     state: WindowState,
     prev_state: Option<WindowState>,
     border_delta: RectDelta,
@@ -62,6 +65,7 @@ impl NonTilingWindow {
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
       native,
+      native_properties: properties,
       state,
       prev_state,
       insertion_target,
@@ -89,10 +93,17 @@ impl NonTilingWindow {
   }
 
   pub fn to_tiling(&self, gaps_config: GapsConfig) -> TilingWindow {
+    let prev_state = if self.active_drag().is_some() {
+      self.prev_state()
+    } else {
+      Some(self.state())
+    };
+
     TilingWindow::new(
       Some(self.id()),
       self.native().clone(),
-      Some(self.state()),
+      self.native_properties().clone(),
+      prev_state,
       self.border_delta(),
       self.floating_placement(),
       self.has_custom_floating_placement(),
@@ -119,10 +130,12 @@ impl NonTilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
-      handle: self.native().handle,
-      title: self.native().title()?,
-      class_name: self.native().class_name()?,
-      process_name: self.native().process_name()?,
+      #[allow(clippy::cast_possible_wrap, clippy::unnecessary_cast)]
+      handle: self.native().id().0 as isize,
+      title: self.native_properties().title,
+      #[cfg(target_os = "windows")]
+      class_name: self.native_properties().class_name,
+      process_name: self.native_properties().process_name,
       active_drag: self.active_drag(),
     }))
   }
@@ -136,7 +149,18 @@ impl PositionGetters for NonTilingWindow {
   fn to_rect(&self) -> anyhow::Result<Rect> {
     match self.state() {
       WindowState::Fullscreen(_) => {
-        self.monitor().context("No monitor.")?.to_rect()
+        let monitor = self.monitor().context("No monitor.")?;
+
+        #[cfg(target_os = "windows")]
+        {
+          monitor.to_rect()
+        }
+        #[cfg(target_os = "macos")]
+        {
+          // On macOS, the public APIs only allow window placement within
+          // the display's working area.
+          Ok(monitor.native_properties().working_area)
+        }
       }
       _ => Ok(self.floating_placement()),
     }

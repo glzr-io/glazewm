@@ -1,27 +1,28 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::WmEvent;
-use wm_platform::NativeMonitor;
+use wm_platform::Display;
 
 use crate::{
   commands::{
     container::{attach_container, move_container_within_tree},
     workspace::{activate_workspace, sort_workspaces},
   },
-  models::{Monitor, Workspace},
+  models::{Monitor, NativeMonitorProperties, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
 
 pub fn add_monitor(
-  native_monitor: NativeMonitor,
+  native_display: Display,
+  native_properties: NativeMonitorProperties,
   state: &mut WmState,
 ) -> anyhow::Result<Monitor> {
   // Create `Monitor` instance. This uses the working area of the monitor
   // instead of the bounds of the display. The working area excludes
   // taskbars and other reserved display space.
-  let monitor = Monitor::new(native_monitor);
+  let monitor = Monitor::new(native_display, native_properties);
 
   attach_container(
     &monitor.clone().into(),

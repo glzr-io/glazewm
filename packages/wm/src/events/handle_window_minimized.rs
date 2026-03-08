@@ -20,7 +20,11 @@ pub fn handle_window_minimized(
 
   // Update the window's state to be minimized.
   if let Some(window) = found_window {
-    let is_minimized = try_warn!(window.native().refresh_is_minimized());
+    let is_minimized = try_warn!(window.native().is_minimized());
+
+    window.update_native_properties(|properties| {
+      properties.is_minimized = is_minimized;
+    });
 
     if is_minimized && window.state() != WindowState::Minimized {
       info!("Window minimized: {window}");
@@ -31,6 +35,12 @@ pub fn handle_window_minimized(
         state,
         config,
       )?;
+
+      // Clear the drag state, as a window can be minimized while
+      // being dragged (e.g. via `toggle-minimized`).
+      // TODO: Investigate other code paths where the drag state should be
+      // cleared (e.g. most commands that call `update_window_state`).
+      window.set_active_drag(None);
 
       // Focus should be reassigned after a window has been minimized.
       if let Some(focus_target) = state.focus_target_after_removal(&window)

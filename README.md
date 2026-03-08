@@ -356,7 +356,7 @@ binding_modes:
 
 **Q: How do I run GlazeWM on startup?**
 
-Right-click the GlazeWM icon in the system tray and select "Start with Windows". 
+Right-click the GlazeWM icon in the system tray and select "Run on system startup".
 
 **Q: How can I create `<insert layout>`?**
 

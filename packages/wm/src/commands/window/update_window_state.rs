@@ -125,11 +125,14 @@ fn set_non_tiling(
 ) -> anyhow::Result<WindowContainer> {
   // A window can only be updated to a minimized state if it is
   // natively minimized.
+  // TODO: Consider doing the same for maximized and fullscreen states.
   if target_state == WindowState::Minimized
-    && !window.native().is_minimized()?
+    && !window.native_properties().is_minimized
   {
     info!("No window state update. Minimizing window.");
 
+    // TODO: Instead of doing the platform call directly here, instead add
+    // a `queue_state_change` method to `PendingSync`.
     if let Err(err) = window.native().minimize() {
       warn!("Failed to minimize window: {}", err);
     }
@@ -144,7 +147,11 @@ fn set_non_tiling(
       let current_state = window.state();
 
       // Update the window's previous state if the discriminant changes.
-      if !current_state.is_same_state(&target_state) {
+      // TODO: Move out handling of active drag. Can then simplify calls to
+      // `set_active_drag` in `handle_window_moved_or_resized_end`.
+      if !current_state.is_same_state(&target_state)
+        && window.active_drag().is_none()
+      {
         window.set_prev_state(current_state);
         state.pending_sync.queue_workspace_to_reorder(workspace);
       }

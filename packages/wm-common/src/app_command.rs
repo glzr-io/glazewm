@@ -4,10 +4,9 @@ use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
+use wm_platform::{Delta, Direction, LengthValue, OpacityValue};
 
-use crate::{
-  Delta, Direction, LengthValue, OpacityValue, TilingDirection,
-};
+use crate::TilingDirection;
 
 const VERSION: &str = env!("VERSION_NUMBER");
 

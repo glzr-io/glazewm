@@ -1,6 +1,8 @@
 mod container;
 mod insertion_target;
 mod monitor;
+mod native_monitor_properties;
+mod native_window_properties;
 mod non_tiling_window;
 mod root_container;
 mod split_container;
@@ -11,6 +13,8 @@ mod workspace_target;
 pub use container::*;
 pub use insertion_target::*;
 pub use monitor::*;
+pub use native_monitor_properties::*;
+pub use native_window_properties::*;
 pub use non_tiling_window::*;
 pub use root_container::*;
 pub use split_container::*;

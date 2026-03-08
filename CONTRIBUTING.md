@@ -58,7 +58,7 @@ GlazeWM is organized into several Rust crates:
   - Gets installed to `C:\Program Files\glzr.io\cli\glazewm.exe`. This is added to `$PATH` by default.
 - `wm-common` (lib): Shared types, utilities, and constants used across other crates.
 - `wm-ipc-client` (lib): WebSocket client library for IPC with the main application.
-- `wm-platform` (lib): Wrappers over Windows APIs - other crates don't interact directly with the Windows APIs.
+- `wm-platform` (lib): Wrappers over platform-specific API's - other crates don't interact directly with the Windows and macOS API's.
 - `wm-watcher` (bin): Watchdog process that ensures proper cleanup when the main application exits.
   - Gets installed to `C:\Program Files\glzr.io\glazewm-watcher.exe`.
 
