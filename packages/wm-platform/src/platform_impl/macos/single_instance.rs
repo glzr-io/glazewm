@@ -17,10 +17,18 @@ impl SingleInstance {
     let path = Self::lock_file_path()?;
 
     if let Some(parent) = path.parent() {
-      fs::create_dir_all(parent).map_err(crate::Error::Io)?;
+      fs::create_dir_all(parent).map_err(|err| {
+        crate::Error::Platform(format!(
+          "Failed to create directory: {err} path: {path:?} parent:{parent:?}"
+        ))
+      })?;
     }
 
-    let file = File::create(&path).map_err(crate::Error::Io)?;
+    let file = File::create(&path).map_err(|err| {
+      crate::Error::Platform(format!(
+        "Failed to create file: {err} path: {path:?}"
+      ))
+    })?;
 
     // Acquire exclusive file lock.
     file.try_lock().map_err(|err| match err {
