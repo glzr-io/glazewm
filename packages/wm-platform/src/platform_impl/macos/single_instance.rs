@@ -36,7 +36,9 @@ impl SingleInstance {
         "Another instance of the application is already running."
           .to_string(),
       ),
-      TryLockError::Error(io_err) => crate::Error::Io(io_err),
+      TryLockError::Error(io_err) => crate::Error::Platform(format!(
+        "Failed to lock file: {io_err} path: {path:?}"
+      )),
     })?;
 
     Ok(Self { _file: file })
