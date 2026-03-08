@@ -6,7 +6,8 @@ use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
 
-/// Carbon process serial number (PSN), used to uniquely identify a process.
+/// Carbon process serial number (PSN), used to uniquely identify a
+/// process.
 #[derive(Clone, Debug, Default)]
 #[repr(C)]
 pub struct ProcessSerialNumber {
