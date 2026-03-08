@@ -157,7 +157,7 @@ impl Display {
       .ok_or(crate::Error::DisplayDeviceNotFound)
   }
 
-  /// Ref: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfow
+  /// Ref: <https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfow>
   fn monitor_info_ex(&self) -> crate::Result<MONITORINFOEXW> {
     let mut monitor_info = MONITORINFOEXW {
       monitorInfo: MONITORINFO {
@@ -266,6 +266,7 @@ impl DisplayDevice {
 
   /// Windows-specific implementation of
   /// [`DisplayDeviceExtWindows::output_technology`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub(crate) fn output_technology(
     &self,
   ) -> crate::Result<Option<OutputTechnology>> {
@@ -274,6 +275,7 @@ impl DisplayDevice {
   }
 
   /// Windows-specific implementation of [`DisplayDevice::is_builtin`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Use `DisplayConfigGetDeviceInfo` to determine whether the
     // output technology is internal.
@@ -282,6 +284,7 @@ impl DisplayDevice {
 
   /// Windows-specific implementation of
   /// [`DisplayDevice::connection_state`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
     // TODO: Detect disconnected state.
     Ok(ConnectionState::Active)
@@ -289,6 +292,7 @@ impl DisplayDevice {
 
   /// Windows-specific implementation of
   /// [`DisplayDevice::mirroring_state`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
   pub(crate) fn mirroring_state(
     &self,
   ) -> crate::Result<Option<MirroringState>> {
@@ -298,8 +302,9 @@ impl DisplayDevice {
   }
 
   /// Windows-specific implementation of [`DisplayDevice::refresh_rate`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
-    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_precision_loss)]
     Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
   }
 
@@ -343,6 +348,7 @@ pub(crate) fn all_displays(
   let mut monitor_handles: Vec<isize> = Vec::new();
 
   // Callback for `EnumDisplayMonitors` to collect monitor handles.
+  #[allow(clippy::items_after_statements)]
   extern "system" fn monitor_enum_proc(
     handle: HMONITOR,
     _hdc: HDC,
@@ -387,6 +393,7 @@ pub(crate) fn all_display_devices(
 }
 
 /// Windows-specific implementation of [`Dispatcher::display_from_point`].
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn display_from_point(
   point: &Point,
   _: &Dispatcher,
@@ -405,6 +412,7 @@ pub(crate) fn display_from_point(
 }
 
 /// Windows-specific implementation of [`Dispatcher::primary_display`].
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn primary_display(
   _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
@@ -416,12 +424,13 @@ pub(crate) fn primary_display(
 }
 
 /// Windows-specific implementation of [`Dispatcher::nearest_display`].
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn nearest_display(
   native_window: &NativeWindow,
   _: &Dispatcher,
 ) -> crate::Result<crate::Display> {
   let handle = unsafe {
-    MonitorFromWindow(native_window.hwnd(), MONITOR_DEFAULTTONEAREST)
+    MonitorFromWindow(native_window.inner.hwnd(), MONITOR_DEFAULTTONEAREST)
   };
 
   Ok(Display::new(handle.0).into())

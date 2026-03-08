@@ -195,8 +195,6 @@ pub trait NativeWindowWindowsExt {
   /// # Platform-specific
   ///
   /// This method is only available on Windows.
-  ///
-  /// TODO: Consider renaming this to `outer_frame`.`
   fn frame_with_shadows(&self) -> crate::Result<Rect>;
 
   /// Whether the window has an owner window.

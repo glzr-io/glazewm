@@ -3,9 +3,9 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
   FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
-use wm_platform::{
-  LengthValue, MouseButton, NativeWindow, Rect, RectDelta,
-};
+#[cfg(target_os = "macos")]
+use wm_platform::{LengthValue, MouseButton, RectDelta};
+use wm_platform::{NativeWindow, Rect};
 
 use crate::{
   commands::{
@@ -19,13 +19,14 @@ use crate::{
   wm_state::WmState,
 };
 
-// LINT: `is_interactive_start` and `is_interactive_end` are only used on
-// Windows.
-#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 #[allow(clippy::too_many_lines)]
 pub fn handle_window_moved_or_resized(
   native_window: &NativeWindow,
+  // LINT: `is_interactive_start` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   is_interactive_start: bool,
+  // LINT: `is_interactive_end` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   is_interactive_end: bool,
   state: &mut WmState,
   config: &UserConfig,

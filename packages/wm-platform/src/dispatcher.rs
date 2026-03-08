@@ -434,7 +434,7 @@ impl Dispatcher {
     })?;
 
     result_rx
-      .recv_timeout(std::time::Duration::from_millis(5000))
+      .recv_timeout(std::time::Duration::from_secs(5))
       .map_err(crate::Error::ChannelRecv)
   }
 
@@ -599,7 +599,7 @@ impl Dispatcher {
 
       // High-order bit set indicates the key is currently down.
       let state = unsafe { GetAsyncKeyState(vk_code.into()) };
-      (state as u16 & 0x8000) != 0
+      (state.cast_unsigned() & 0x8000u16) != 0
     }
   }
 

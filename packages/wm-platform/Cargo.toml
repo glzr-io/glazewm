@@ -13,7 +13,6 @@ harness = false
 path = "src/test.rs"
 
 [dependencies]
-anyhow = { workspace = true }
 home = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

@@ -40,7 +40,7 @@ pub fn update_workspace_config(
     },
     bind_to_monitor: new_config
       .bind_to_monitor
-      .or(current_config.bind_to_monitor.clone()),
+      .or(current_config.bind_to_monitor),
     keep_alive: new_config.keep_alive.unwrap_or(current_config.keep_alive),
   };
 

@@ -5,7 +5,7 @@ use std::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc,
   },
-  thread::{self, JoinHandle, ThreadId},
+  thread::{self, ThreadId},
 };
 
 use windows::{
@@ -88,6 +88,7 @@ impl EventLoopSource {
     }
   }
 
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn send_dispatch_sync<F>(
     &self,
     dispatch_fn: F,
@@ -179,7 +180,7 @@ impl EventLoop {
   }
 
   /// Windows-specific implementation of [`EventLoop::run`].
-  pub(crate) fn run(mut self) -> crate::Result<()> {
+  pub(crate) fn run(&self) -> crate::Result<()> {
     tracing::info!("Starting event loop.");
     let mut msg = MSG::default();
 

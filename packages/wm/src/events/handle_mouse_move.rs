@@ -57,6 +57,8 @@ pub fn handle_mouse_move(
 
   if let MouseEvent::Move {
     pressed_buttons,
+    // LINT: `window_below_cursor` is only used on macOS.
+    #[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
     window_below_cursor,
     position,
     ..

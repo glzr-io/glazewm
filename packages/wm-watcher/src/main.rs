@@ -8,7 +8,7 @@
 use anyhow::Context;
 use wm_common::{ClientResponseData, ContainerDto, WindowDto, WmEvent};
 use wm_ipc_client::IpcClient;
-use wm_platform::{NativeWindow, NativeWindowWindowsExt};
+use wm_platform::{NativeWindow, NativeWindowWindowsExt, OpacityValue};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
 
   match subscribe_res {
     Ok(()) => {
-      tracing::info!("WM exited successfully. Skipping watcher cleanup.")
+      tracing::info!("WM exited successfully. Skipping watcher cleanup.");
     }
     Err(err) => {
       tracing::info!(
@@ -41,15 +41,14 @@ async fn main() -> anyhow::Result<()> {
         managed_handles.into_iter().map(NativeWindow::from_handle);
 
       for window in managed_windows {
-        if let Err(err) = window.native().show() {
+        if let Err(err) = window.show() {
           tracing::warn!("Failed to show window: {:?}", err);
         }
 
-        let _ = window.native().set_taskbar_visibility(true);
-        let _ = window.native().set_border_color(None);
-        let _ = window
-          .native()
-          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
+        let _ = window.set_taskbar_visibility(true);
+        let _ = window.set_border_color(None);
+        let _ =
+          window.set_transparency(&OpacityValue::from_alpha(u8::MAX));
       }
     }
   }

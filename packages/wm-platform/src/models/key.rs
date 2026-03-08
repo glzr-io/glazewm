@@ -41,6 +41,7 @@ pub enum KeyParseError {
 }
 
 /// Cross-platform key representation.
+#[allow(clippy::unsafe_derive_deserialize)]
 #[derive(
   Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize,
 )]

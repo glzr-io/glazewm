@@ -593,9 +593,9 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      #[cfg(target_os = "windows")]
       InvokeCommand::SetTitleBarVisibility { visibility } => {
         match subject_container.as_window_container() {
+          #[cfg(target_os = "windows")]
           Ok(window) => {
             _ = window.native().set_title_bar_visibility(
               *visibility == TitleBarVisibility::Shown,
@@ -605,9 +605,9 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      #[cfg(target_os = "windows")]
       InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
+          #[cfg(target_os = "windows")]
           Ok(window) => {
             if let Some(opacity) = &args.opacity {
               _ = window.native().set_transparency(opacity);
@@ -772,7 +772,6 @@ impl WindowManager {
         toggle_pause(state);
         Ok(())
       }
-      _ => Ok(()),
     }
   }
 

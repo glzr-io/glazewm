@@ -21,7 +21,7 @@ use crate::{Dispatcher, WindowEvent, WindowId};
 
 thread_local! {
   /// Sender for window events. For use with hook procedure.
-  static EVENT_TX: OnceLock<mpsc::UnboundedSender<WindowEvent>> = OnceLock::new();
+  static EVENT_TX: OnceLock<mpsc::UnboundedSender<WindowEvent>> = const { OnceLock::new() };
 }
 
 /// Windows-specific window event notification.
@@ -31,7 +31,6 @@ pub struct WindowEventNotificationInner;
 /// Windows-specific implementation of [`WindowListener`].
 #[derive(Debug)]
 pub(crate) struct WindowListener {
-  dispatcher: Dispatcher,
   hook_handles: Vec<HWINEVENTHOOK>,
 }
 
@@ -53,10 +52,7 @@ impl WindowListener {
       Self::hook_win_events()
     })??;
 
-    Ok(Self {
-      hook_handles,
-      dispatcher: dispatcher.clone(),
-    })
+    Ok(Self { hook_handles })
   }
 
   /// Creates several window event hooks via `SetWinEventHook`.

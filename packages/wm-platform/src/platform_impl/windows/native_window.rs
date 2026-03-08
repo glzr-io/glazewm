@@ -24,8 +24,8 @@ use windows::{
         EnumWindows, GetAncestor, GetClassNameW, GetDesktopWindow,
         GetForegroundWindow, GetLayeredWindowAttributes, GetShellWindow,
         GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
-        GetWindowThreadProcessId, IsIconic, IsWindowVisible, IsZoomed,
-        SendNotifyMessageW, SetForegroundWindow,
+        GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible,
+        IsZoomed, SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GA_ROOT,
         GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP,
@@ -42,7 +42,7 @@ use windows::{
   },
 };
 
-use super::com::{ComInit, IApplicationView, COM_INIT};
+use super::com::{IApplicationView, COM_INIT};
 use crate::{
   Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
   Rect, RectDelta, WindowId, WindowZOrder,
@@ -102,7 +102,7 @@ impl NativeWindow {
 
   /// Windows-specific implementation of
   /// [`NativeWindowWindowsExt::set_transparency`].
-  fn set_transparency(
+  pub(crate) fn set_transparency(
     &self,
     opacity_value: &OpacityValue,
   ) -> crate::Result<()> {
@@ -142,7 +142,7 @@ impl NativeWindow {
     &self,
     fullscreen: bool,
   ) -> crate::Result<()> {
-    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
       com_init.borrow_mut().with_retry(|com| {
         let taskbar_list = com.taskbar_list()?;
 
@@ -371,7 +371,7 @@ impl NativeWindow {
   /// Windows-specific implementation of
   /// [`NativeWindowWindowsExt::set_cloaked`].
   pub(crate) fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
-    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
       com_init.borrow_mut().with_retry(|com| {
         let view_collection = com.application_view_collection()?;
 
@@ -403,7 +403,7 @@ impl NativeWindow {
     &self,
     visible: bool,
   ) -> crate::Result<()> {
-    COM_INIT.with(|com_init: &ComInit| -> crate::Result<()> {
+    COM_INIT.with(|com_init| -> crate::Result<()> {
       com_init.borrow_mut().with_retry(|com| {
         let taskbar_list = com.taskbar_list()?;
 
@@ -419,6 +419,7 @@ impl NativeWindow {
   }
 
   /// Windows-specific implementation of [`NativeWindow::title`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn title(&self) -> crate::Result<String> {
     let mut text: [u16; 512] = [0; 512];
     let length = unsafe { GetWindowTextW(self.hwnd(), &mut text) };
@@ -507,22 +508,26 @@ impl NativeWindow {
   }
 
   /// Windows-specific implementation of [`NativeWindow::is_minimized`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_minimized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsIconic(self.hwnd()) }.as_bool())
   }
 
   /// Windows-specific implementation of [`NativeWindow::is_maximized`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_maximized(&self) -> crate::Result<bool> {
     Ok(unsafe { IsZoomed(self.hwnd()) }.as_bool())
   }
 
   /// Windows-specific implementation of [`NativeWindow::is_resizable`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_resizable(&self) -> crate::Result<bool> {
     Ok(self.has_window_style(WS_THICKFRAME))
   }
 
   /// Windows-specific implementation of
   /// [`NativeWindow::is_desktop_window`].
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_desktop_window(&self) -> crate::Result<bool> {
     Ok(*self == desktop_window())
   }
@@ -769,6 +774,7 @@ pub(crate) fn visible_windows(
 ) -> crate::Result<Vec<crate::NativeWindow>> {
   let mut handles: Vec<isize> = Vec::new();
 
+  #[allow(clippy::items_after_statements)]
   extern "system" fn visible_windows_proc(
     handle: HWND,
     data: LPARAM,
@@ -796,6 +802,7 @@ pub(crate) fn visible_windows(
 }
 
 /// Windows-specific implementation of [`Dispatcher::focused_window`].
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn focused_window(
   _: &Dispatcher,
 ) -> crate::Result<crate::NativeWindow> {
@@ -804,6 +811,7 @@ pub(crate) fn focused_window(
 }
 
 /// Windows-specific implementation of [`Dispatcher::window_from_point`].
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn window_from_point(
   point: &Point,
   _: &Dispatcher,

@@ -130,9 +130,9 @@ impl SystemTray {
     })
   }
 
-  // LINT: `animations_enabled` is only used on Windows.
-  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   fn create_tray_icon(
+    // LINT: `animations_enabled` is only used on Windows.
+    #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
     animations_enabled: bool,
     run_on_startup_enabled: bool,
   ) -> anyhow::Result<TrayIcon> {
@@ -212,14 +212,14 @@ impl SystemTray {
     )?)
   }
 
-  // LINT: `animations_enabled` is only used on Windows.
-  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   fn handle_menu_event(
     menu_id: &TrayMenuId,
     dispatcher: &Dispatcher,
     config_path: &Path,
     config_reload_tx: &mpsc::UnboundedSender<()>,
     exit_tx: &mpsc::UnboundedSender<()>,
+    // LINT: `animations_enabled` is only used on Windows.
+    #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
     animations_enabled: &Arc<Mutex<bool>>,
     run_on_startup_enabled: &Arc<Mutex<bool>>,
   ) -> anyhow::Result<()> {

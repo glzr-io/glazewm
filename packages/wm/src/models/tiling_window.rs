@@ -124,7 +124,7 @@ impl TilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
-      #[allow(clippy::cast_possible_wrap)]
+      #[allow(clippy::cast_possible_wrap, clippy::unnecessary_cast)]
       handle: self.native().id().0 as isize,
       title: self.native_properties().title,
       #[cfg(target_os = "windows")]

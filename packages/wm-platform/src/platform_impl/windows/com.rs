@@ -22,7 +22,7 @@ thread_local! {
   /// the setup and cleanup automatically.
   ///
   /// Wrapped in `RefCell` to allow mutation via `COM_INIT.borrow_mut()`.
-  pub static COM_INIT: RefCell<ComInit> = RefCell::new(ComInit::new());
+  pub(crate) static COM_INIT: RefCell<ComInit> = RefCell::new(ComInit::new());
 }
 
 pub(crate) struct ComInit {
@@ -40,7 +40,7 @@ impl ComInit {
   /// Panics if COM initialization fails. This is typically only possible
   /// if COM is already initialized with an incompatible threading model.
   #[must_use]
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }
       .expect("Unable to initialize COM.");
 
@@ -65,17 +65,8 @@ impl ComInit {
     }
   }
 
-  /// Returns an instance of `IServiceProvider`.
-  pub fn service_provider(&self) -> crate::Result<&IServiceProvider> {
-    self.service_provider.as_ref().ok_or_else(|| {
-      crate::Error::Platform(
-        "Unable to create `IServiceProvider` instance.".to_string(),
-      )
-    })
-  }
-
   /// Returns an instance of `IApplicationViewCollection`.
-  pub fn application_view_collection(
+  pub(crate) fn application_view_collection(
     &self,
   ) -> crate::Result<&IApplicationViewCollection> {
     self.application_view_collection.as_ref().ok_or_else(|| {
@@ -87,7 +78,7 @@ impl ComInit {
   }
 
   /// Returns an instance of `ITaskbarList2`.
-  pub fn taskbar_list(&self) -> crate::Result<&ITaskbarList2> {
+  pub(crate) fn taskbar_list(&self) -> crate::Result<&ITaskbarList2> {
     self.taskbar_list.as_ref().ok_or_else(|| {
       crate::Error::Platform(
         "Unable to create `ITaskbarList2` instance.".to_string(),
@@ -99,7 +90,7 @@ impl ComInit {
   ///
   /// Called automatically by `with_retry` when COM operations fail due to
   /// stale interface pointers (e.g. after Explorer restarts).
-  pub fn refresh(&mut self) {
+  pub(crate) fn refresh(&mut self) {
     // Re-create the service provider.
     self.service_provider = unsafe {
       CoCreateInstance(&CLSID_IMMERSIVE_SHELL, None, CLSCTX_ALL)
@@ -122,9 +113,9 @@ impl ComInit {
   /// Executes a COM operation, refreshing interfaces on failure and
   /// retrying once. Use this for operations that may fail due to stale
   /// COM interfaces.
-  pub fn with_retry<T, F>(&mut self, op: F) -> anyhow::Result<T>
+  pub fn with_retry<T, F>(&mut self, op: F) -> crate::Result<T>
   where
-    F: Fn(&Self) -> anyhow::Result<T>,
+    F: Fn(&Self) -> crate::Result<T>,
   {
     if let Ok(result) = op(self) {
       Ok(result)

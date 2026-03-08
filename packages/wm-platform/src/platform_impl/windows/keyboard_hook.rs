@@ -16,12 +16,15 @@ use windows::Win32::{
 
 use crate::{Dispatcher, Key, KeyCode};
 
+/// Callback stored in [`HOOK`] for intercepting keyboard events.
+type HookCallback = Box<dyn Fn(KeyEvent) -> bool>;
+
 thread_local! {
   /// Stores the hook callback for the current thread.
   ///
   /// The hook callback is called for every keyboard event and returns
   /// `true` if the event should be intercepted.
-  static HOOK: Cell<Option<Box<dyn Fn(KeyEvent) -> bool>>> = Cell::default();
+  static HOOK: Cell<Option<HookCallback>> = Cell::default();
 }
 
 /// Windows-specific keyboard event.
@@ -31,6 +34,7 @@ pub struct KeyEvent {
   pub key: Key,
 
   /// Key code that generated this event.
+  #[allow(dead_code)]
   pub key_code: KeyCode,
 
   /// Whether the event is for a key press or release.
@@ -38,20 +42,8 @@ pub struct KeyEvent {
 }
 
 impl KeyEvent {
-  /// Creates an instance of `KeyEvent`.
-  pub(crate) fn new(
-    key: Key,
-    key_code: KeyCode,
-    is_keypress: bool,
-  ) -> Self {
-    Self {
-      is_keypress,
-      key_code,
-      key,
-    }
-  }
-
   /// Gets whether the specified key is currently pressed.
+  #[allow(clippy::unused_self)]
   pub fn is_key_down(&self, key: Key) -> bool {
     match key {
       Key::Cmd | Key::Win => {
@@ -154,15 +146,21 @@ impl KeyboardHook {
     // Get struct with the keyboard input event.
     let input = unsafe { *(lparam.0 as *const KBDLLHOOKSTRUCT) };
 
+    #[allow(clippy::cast_possible_truncation)]
     let key_code = KeyCode(input.vkCode as u16);
-    let is_keydown =
+    #[allow(clippy::cast_possible_truncation)]
+    let is_keypress =
       wparam.0 as u32 == WM_KEYDOWN || wparam.0 as u32 == WM_SYSKEYDOWN;
 
     let Ok(key) = Key::try_from(key_code) else {
       return unsafe { CallNextHookEx(None, code, wparam, lparam) };
     };
 
-    let key_event = KeyEvent::new(key, key_code, is_keydown);
+    let key_event = KeyEvent {
+      key,
+      key_code,
+      is_keypress,
+    };
 
     let should_intercept = HOOK.with(|state| {
       if let Some(callback) = state.take() {

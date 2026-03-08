@@ -28,20 +28,6 @@ pub struct KeyEvent {
 }
 
 impl KeyEvent {
-  pub(crate) fn new(
-    key: Key,
-    key_code: KeyCode,
-    is_keypress: bool,
-    event_flags: CGEventFlags,
-  ) -> Self {
-    Self {
-      key,
-      key_code,
-      is_keypress,
-      event_flags,
-    }
-  }
-
   /// Gets whether the specified key is currently pressed.
   pub fn is_key_down(&self, key: Key) -> bool {
     match key {
@@ -188,12 +174,12 @@ impl KeyboardHook {
     };
 
     let event_flags = unsafe { CGEvent::flags(Some(event.as_ref())) };
-    let key_event = KeyEvent::new(
+    let key_event = KeyEvent {
       key,
       key_code,
-      event_type == CGEventType::KeyDown,
+      is_keypress: event_type == CGEventType::KeyDown,
       event_flags,
-    );
+    };
 
     // Get callback from user data and invoke it.
     let data = unsafe { &*(user_info as *const CallbackData) };

@@ -335,11 +335,11 @@ fn redraw_containers(
   Ok(())
 }
 
-// LINT: `z_order` is only used on Windows.
-#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
+  // LINT: `z_order` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   z_order: &WindowZOrder,
   is_visible: bool,
   config: &UserConfig,
@@ -508,15 +508,17 @@ fn jump_cursor(
   Ok(())
 }
 
-// LINT: `window` is only used on Windows.
-#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 fn apply_window_effects(
+  // LINT: `window` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   window: &WindowContainer,
   is_focused: bool,
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
 
+  // LINT: `effect_config` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   let effect_config = if is_focused {
     &window_effects.focused_window
   } else {

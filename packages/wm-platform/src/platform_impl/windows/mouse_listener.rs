@@ -3,6 +3,7 @@ use std::{
   time::{Duration, Instant},
 };
 
+use tokio::sync::mpsc;
 use windows::Win32::{
   Devices::HumanInterfaceDevice::{
     HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC,
@@ -30,7 +31,7 @@ use crate::{
 
 /// Data shared with the window procedure callback.
 struct CallbackData {
-  event_tx: tokio::sync::mpsc::UnboundedSender<MouseEvent>,
+  event_tx: mpsc::UnboundedSender<MouseEvent>,
 
   /// Pressed button state tracked from events.
   pressed: PressedButtons,
@@ -44,18 +45,17 @@ pub(crate) struct MouseListener {
   callback_id: Option<usize>,
   callback_data: Arc<Mutex<CallbackData>>,
   dispatcher: Dispatcher,
-  event_tx: tokio::sync::mpsc::UnboundedSender<MouseEvent>,
 }
 
 impl MouseListener {
   /// Windows-specific implementation of [`MouseListener::new`].
   pub(crate) fn new(
     enabled_events: &[MouseEventKind],
-    event_tx: tokio::sync::mpsc::UnboundedSender<MouseEvent>,
+    event_tx: mpsc::UnboundedSender<MouseEvent>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let callback_data = Arc::new(Mutex::new(CallbackData {
-      event_tx: event_tx.clone(),
+      event_tx,
       pressed: PressedButtons::default(),
       last_move_emission: None,
     }));
@@ -69,7 +69,6 @@ impl MouseListener {
     Ok(Self {
       callback_id: Some(callback_id),
       dispatcher: dispatcher.clone(),
-      event_tx,
       callback_data,
     })
   }
