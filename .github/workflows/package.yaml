@@ -2,7 +2,8 @@ name: Package
 
 on:
   push:
-    branches: [ci/cross-platform-build]
+    branches:
+      - ci/cross-platform-build
   workflow_call:
     inputs:
       version_number:

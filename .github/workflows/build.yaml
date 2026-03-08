@@ -57,6 +57,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
           targets: ${{ matrix.target }}
+          toolchain: nightly
 
       - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
         with:
