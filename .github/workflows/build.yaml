@@ -60,13 +60,22 @@ jobs:
           FEATURES: ${{ matrix.platform == 'windows-latest' && inputs.enable_ui_access && '--features ui_access' || '' }}
         run: cargo build --locked --release --target ${{ matrix.target }} $FEATURES
 
-      - uses: actions/upload-artifact@v6
+      - name: Create upload directory
         env:
           EXT: ${{ matrix.platform == 'windows-latest' && '.exe' || '' }}
+        shell: bash
+        run: |
+          UPLOAD_DIR="temp/target/${{ matrix.target }}/release"
+          mkdir -p "$UPLOAD_DIR"
+
+          # Move the build artifacts to the upload directory.
+          for bin in glazewm glazewm-cli glazewm-watcher; do
+            SRC="target/${{ matrix.target }}/release/${bin}${EXT}"
+            [ -f "$SRC" ] && mv "$SRC" "$UPLOAD_DIR/"
+          done
+
+      - uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
           name: build-${{ matrix.target }}
-          path: |
-            target/${{ matrix.target }}/release/glazewm${{ env.EXT }}
-            target/${{ matrix.target }}/release/glazewm-cli${{ env.EXT }}
-            target/${{ matrix.target }}/release/glazewm-watcher${{ env.EXT }}
+          path: temp

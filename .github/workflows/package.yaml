@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/upload-artifact@v6
         with:
-          name: packages-windows
+          name: package-windows
           if-no-files-found: error
           path: out/installer-*
 
@@ -78,7 +78,7 @@ jobs:
 
       - name: Create universal binaries
         run: |
-          mkdir -p temp
+          mkdir temp
           for binary in glazewm glazewm-cli; do
             lipo -create \
               "target/x86_64-apple-darwin/release/$binary" \
@@ -208,6 +208,6 @@ jobs:
       - name: Upload DMG
         uses: actions/upload-artifact@v6
         with:
-          name: packages-macos
+          name: package-macos
           if-no-files-found: error
           path: installer-universal.dmg

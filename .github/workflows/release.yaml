@@ -29,7 +29,7 @@ jobs:
       - name: Download installers
         uses: actions/download-artifact@v8
         with:
-          name: packages-*
+          name: package-*
           merge-multiple: true
 
       - name: Rename installers
@@ -37,11 +37,10 @@ jobs:
           # Add a `v` prefix to the version number.
           VERSION: v${{ inputs.version_number }}
         run: |
-          # TODO: Need to update these paths.
-          mv out/installer-universal.exe "out/glazewm-$VERSION.exe"
-          mv out/installer-arm64.msi "out/standalone-glazewm-$VERSION-arm64.msi"
-          mv out/installer-x64.msi "out/standalone-glazewm-$VERSION-x64.msi"
-          mv "out/installer-universal.dmg" "out/glazewm-$VERSION.dmg"
+          mv installer-universal.exe "glazewm-$VERSION.exe"
+          mv installer-arm64.msi "standalone-glazewm-$VERSION-arm64.msi"
+          mv installer-x64.msi "standalone-glazewm-$VERSION-x64.msi"
+          mv installer-universal.dmg "glazewm-$VERSION.dmg"
 
       - name: Create draft release
         env:
@@ -53,7 +52,7 @@ jobs:
             --title "$VERSION" \
             --generate-notes \
             --draft \
-            "./out/glazewm-$VERSION.exe#$VERSION for Windows (standard)" \
-            "./out/standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
-            "./out/standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)" \
-            "./out/glazewm-$VERSION-universal.dmg#$VERSION for macOS"
+            "./glazewm-$VERSION.exe#$VERSION for Windows (standard)" \
+            "./standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
+            "./standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)" \
+            "./glazewm-$VERSION.dmg#$VERSION for macOS"
