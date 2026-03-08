@@ -70,10 +70,10 @@ jobs:
         run: cargo build --locked --release --target ${{ matrix.target }} $FEATURES
 
       - uses: actions/upload-artifact@v6
-        if-no-files-found: error
         env:
           EXT: ${{ matrix.platform == 'windows-latest' && '.exe' || '' }}
         with:
+          if-no-files-found: error
           name: build-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/glazewm${{ env.EXT }}
