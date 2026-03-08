@@ -5,8 +5,7 @@ on:
     inputs:
       version_number:
         type: string
-        default: 0.0.0
-        description: Version number to use for the build.
+        description: Version number to use for the build (e.g. `1.0.0`).
 
 permissions:
   contents: write
