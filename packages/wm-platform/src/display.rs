@@ -277,6 +277,11 @@ impl DisplayDevice {
     self.inner.rotation()
   }
 
+  /// Gets the refresh rate of the device in Hz.
+  pub fn refresh_rate(&self) -> crate::Result<f32> {
+    self.inner.refresh_rate()
+  }
+
   /// Gets whether this is a built-in display.
   ///
   /// Returns `true` for embedded displays (like laptop screens).
@@ -292,11 +297,6 @@ impl DisplayDevice {
   /// Gets the mirroring state of the device.
   pub fn mirroring_state(&self) -> crate::Result<Option<MirroringState>> {
     self.inner.mirroring_state()
-  }
-
-  /// Gets the refresh rate of the device in Hz.
-  pub fn refresh_rate(&self) -> crate::Result<f32> {
-    self.inner.refresh_rate()
   }
 }
 

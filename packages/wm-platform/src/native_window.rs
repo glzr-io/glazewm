@@ -163,6 +163,54 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn class_name(&self) -> crate::Result<String>;
 
+  /// Gets the window's frame, including the window's shadow borders.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn frame_with_shadows(&self) -> crate::Result<Rect>;
+
+  /// Gets the delta between the window's frame and the window's border.
+  /// This represents the size of a window's shadow borders.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn shadow_borders(&self) -> crate::Result<RectDelta>;
+
+  /// Whether the window has an owner window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_owner_window(&self) -> bool;
+
+  /// Whether the window has the given window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool;
+
+  /// Whether the window has the given extended window style flag(s) set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool;
+
+  /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_window_pos(
+    &self,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()>;
+
   /// Shows the window asynchronously.
   ///
   /// NOTE: Cloaked windows do not get shown until uncloaked.
@@ -190,60 +238,6 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()>;
 
-  /// Gets the window's frame, including the window's shadow borders.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn frame_with_shadows(&self) -> crate::Result<Rect>;
-
-  /// Whether the window has an owner window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn has_owner_window(&self) -> bool;
-
-  /// Whether the window has the given window style flag(s) set.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn has_window_style(&self, style: WINDOW_STYLE) -> bool;
-
-  /// Whether the window has the given extended window style flag(s) set.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool;
-
-  /// Adds the given extended window style flag(s) to the window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE);
-
-  /// Sets the window's z-order.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn set_z_order(&self, zorder: &WindowZOrder) -> crate::Result<()>;
-
-  /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn set_window_pos(
-    &self,
-    z_order: &WindowZOrder,
-    rect: &Rect,
-    flags: SET_WINDOW_POS_FLAGS,
-  ) -> crate::Result<()>;
-
   /// Cloaks or uncloaks the window.
   ///
   /// # Platform-specific
@@ -260,6 +254,31 @@ pub trait NativeWindowWindowsExt {
   ///
   /// This method is only available on Windows.
   fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()>;
+
+  /// Adds or removes the window from the native taskbar.
+  ///
+  /// Cloaked windows are normally always shown in the taskbar, but can be
+  /// manually toggled. Hidden windows (`SW_HIDE`) can never be shown in
+  /// the taskbar.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()>;
+
+  /// Adds the given extended window style flag(s) to the window.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE);
+
+  /// Sets the window's z-order.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn set_z_order(&self, zorder: &WindowZOrder) -> crate::Result<()>;
 
   /// Sets the visibility of the window's title bar.
   ///
@@ -295,25 +314,6 @@ pub trait NativeWindowWindowsExt {
     opacity_value: &OpacityValue,
   ) -> crate::Result<()>;
 
-  /// Adds or removes the window from the native taskbar.
-  ///
-  /// Cloaked windows are normally always shown in the taskbar, but can be
-  /// manually toggled. Hidden windows (`SW_HIDE`) can never be shown in
-  /// the taskbar.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()>;
-
-  /// Gets the delta between the window's frame and the window's border.
-  /// This represents the size of a window's shadow borders.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn shadow_borders(&self) -> crate::Result<RectDelta>;
-
   /// Adjusts the window's transparency by a relative delta.
   ///
   /// # Platform-specific
@@ -339,8 +339,65 @@ impl NativeWindowWindowsExt for NativeWindow {
     self.inner.class_name()
   }
 
+  fn frame_with_shadows(&self) -> crate::Result<Rect> {
+    self.inner.frame_with_shadows()
+  }
+
+  fn shadow_borders(&self) -> crate::Result<RectDelta> {
+    self.inner.shadow_borders()
+  }
+
+  fn has_owner_window(&self) -> bool {
+    self.inner.has_owner_window()
+  }
+
+  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
+    self.inner.has_window_style(style)
+  }
+
+  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
+    self.inner.has_window_style_ex(style)
+  }
+
+  fn set_window_pos(
+    &self,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()> {
+    self.inner.set_window_pos(z_order, rect, flags)
+  }
+
+  fn show(&self) -> crate::Result<()> {
+    self.inner.show()
+  }
+
+  fn hide(&self) -> crate::Result<()> {
+    self.inner.hide()
+  }
+
+  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()> {
+    self.inner.restore(outer_frame)
+  }
+
+  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
+    self.inner.set_cloaked(cloaked)
+  }
+
   fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()> {
     self.inner.mark_fullscreen(fullscreen)
+  }
+
+  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()> {
+    self.inner.set_taskbar_visibility(visible)
+  }
+
+  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
+    self.inner.add_window_style_ex(style);
+  }
+
+  fn set_z_order(&self, z_order: &WindowZOrder) -> crate::Result<()> {
+    self.inner.set_z_order(z_order)
   }
 
   fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()> {
@@ -363,63 +420,6 @@ impl NativeWindowWindowsExt for NativeWindow {
     opacity_value: &OpacityValue,
   ) -> crate::Result<()> {
     self.inner.set_transparency(opacity_value)
-  }
-
-  fn set_z_order(&self, z_order: &WindowZOrder) -> crate::Result<()> {
-    self.inner.set_z_order(z_order)
-  }
-
-  fn restore(&self, outer_frame: Option<&Rect>) -> crate::Result<()> {
-    self.inner.restore(outer_frame)
-  }
-
-  fn frame_with_shadows(&self) -> crate::Result<Rect> {
-    self.inner.frame_with_shadows()
-  }
-
-  fn has_owner_window(&self) -> bool {
-    self.inner.has_owner_window()
-  }
-
-  fn has_window_style(&self, style: WINDOW_STYLE) -> bool {
-    self.inner.has_window_style(style)
-  }
-
-  fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
-    self.inner.has_window_style_ex(style)
-  }
-
-  fn add_window_style_ex(&self, style: WINDOW_EX_STYLE) {
-    self.inner.add_window_style_ex(style);
-  }
-
-  fn set_window_pos(
-    &self,
-    z_order: &WindowZOrder,
-    rect: &Rect,
-    flags: SET_WINDOW_POS_FLAGS,
-  ) -> crate::Result<()> {
-    self.inner.set_window_pos(z_order, rect, flags)
-  }
-
-  fn show(&self) -> crate::Result<()> {
-    self.inner.show()
-  }
-
-  fn hide(&self) -> crate::Result<()> {
-    self.inner.hide()
-  }
-
-  fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
-    self.inner.set_cloaked(cloaked)
-  }
-
-  fn set_taskbar_visibility(&self, visible: bool) -> crate::Result<()> {
-    self.inner.set_taskbar_visibility(visible)
-  }
-
-  fn shadow_borders(&self) -> crate::Result<RectDelta> {
-    self.inner.shadow_borders()
   }
 
   fn adjust_transparency(
@@ -513,16 +513,6 @@ impl NativeWindow {
     self.inner.is_desktop_window()
   }
 
-  /// Resizes the window to the specified size.
-  pub fn resize(&self, width: i32, height: i32) -> crate::Result<()> {
-    self.inner.resize(width, height)
-  }
-
-  /// Repositions the window to the specified position.
-  pub fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
-    self.inner.reposition(x, y)
-  }
-
   /// Repositions and resizes the window to the specified rectangle.
   ///
   /// # Platform-specific
@@ -534,12 +524,27 @@ impl NativeWindow {
     self.inner.set_frame(rect)
   }
 
+  /// Resizes the window to the specified size.
+  pub fn resize(&self, width: i32, height: i32) -> crate::Result<()> {
+    self.inner.resize(width, height)
+  }
+
+  /// Repositions the window to the specified position.
+  pub fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
+    self.inner.reposition(x, y)
+  }
+
   pub fn minimize(&self) -> crate::Result<()> {
     self.inner.minimize()
   }
 
   pub fn maximize(&self) -> crate::Result<()> {
     self.inner.maximize()
+  }
+
+  /// Sets focus to the window and raises it to the top of the z-order.
+  pub fn focus(&self) -> crate::Result<()> {
+    self.inner.focus()
   }
 
   /// Closes the window.
@@ -551,11 +556,6 @@ impl NativeWindow {
   ///   title bar.
   pub fn close(&self) -> crate::Result<()> {
     self.inner.close()
-  }
-
-  /// Sets focus to the window and raises it to the top of the z-order.
-  pub fn focus(&self) -> crate::Result<()> {
-    self.inner.focus()
   }
 }
 

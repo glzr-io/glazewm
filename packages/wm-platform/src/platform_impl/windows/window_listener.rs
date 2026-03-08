@@ -35,9 +35,7 @@ pub(crate) struct WindowListener {
 }
 
 impl WindowListener {
-  /// Creates a new `WindowListener`.
-  ///
-  /// Hooks into window events on the event loop thread.
+  /// Implements [`WindowListener::new`].
   pub(crate) fn new(
     event_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: &Dispatcher,
@@ -179,7 +177,7 @@ impl WindowListener {
     }
   }
 
-  /// Unhooks from all window events.
+  /// Implements [`WindowListener::terminate`].
   pub(crate) fn terminate(&mut self) {
     for handle in self.hook_handles.drain(..) {
       let _ = unsafe { UnhookWinEvent(handle) };
