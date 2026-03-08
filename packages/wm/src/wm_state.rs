@@ -4,22 +4,24 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
-use wm_common::{
-  BindingModeConfig, Direction, Point, WindowState, WmEvent,
+use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
+use wm_platform::{
+  Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
-use wm_platform::{NativeMonitor, NativeWindow, Platform};
+#[cfg(target_os = "windows")]
+use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
   commands::{
     container::set_focused_descendant,
     general::platform_sync,
     monitor::{add_monitor, move_bounded_workspaces_to_new_monitor},
-    window::manage_window,
+    window::{manage_window, unmanage_window},
     workspace::activate_keep_alive_workspaces,
   },
   models::{
-    Container, Monitor, RootContainer, WindowContainer, Workspace,
-    WorkspaceTarget,
+    Container, Monitor, NativeMonitorProperties, RootContainer,
+    WindowContainer, Workspace, WorkspaceTarget,
   },
   pending_sync::PendingSync,
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -30,6 +32,8 @@ pub struct WmState {
   /// Root node of the container tree. Monitors are the children of the
   /// root node, followed by workspaces, then split containers/windows.
   pub root_container: RootContainer,
+
+  pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
 
@@ -76,11 +80,13 @@ pub struct WmState {
 
 impl WmState {
   pub fn new(
+    dispatcher: Dispatcher,
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
+      dispatcher,
       pending_sync: PendingSync::default(),
       prev_effects_window: None,
       recent_workspace_name: None,
@@ -102,13 +108,18 @@ impl WmState {
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     // Get the originally focused window when the WM was started.
-    let foreground_window = Platform::foreground_window();
+    let focused_window = self.dispatcher.focused_window().ok();
 
     // Create a monitor, and consequently a workspace, for each detected
     // native monitor.
-    for native_monitor in Platform::sorted_monitors()? {
-      let monitor = add_monitor(native_monitor, self)?;
-      move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
+    for native_display in self.dispatcher.sorted_displays()? {
+      if let Ok(native_properties) =
+        NativeMonitorProperties::try_from(&native_display)
+      {
+        let monitor =
+          add_monitor(native_display, native_properties, self)?;
+        move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
+      }
     }
 
     let monitors = self.monitors();
@@ -117,7 +128,8 @@ impl WmState {
 
     // Manage windows in reverse z-order (bottom to top). This helps to
     // preserve the original stacking order.
-    for native_window in Platform::manageable_windows()?.into_iter().rev()
+    for native_window in
+      self.dispatcher.visible_windows()?.into_iter().rev()
     {
       let nearest_workspace = self
         .nearest_monitor(&native_window)
@@ -133,11 +145,12 @@ impl WmState {
       }
     }
 
-    let container_to_focus = self
-      .window_from_native(&foreground_window)
-      .map(|c| c.as_container())
-      .or(self.windows().pop().map(Into::into))
-      .or(self.workspaces().pop().map(Into::into))
+    let container_to_focus = focused_window
+      .and_then(|focused_window| {
+        self.window_from_native(&focused_window).map(Into::into)
+      })
+      .or_else(|| self.windows().pop().map(Into::into))
+      .or_else(|| self.workspaces().pop().map(Into::into))
       .context("Failed to get container to focus.")?;
 
     set_focused_descendant(&container_to_focus, None);
@@ -194,19 +207,21 @@ impl WmState {
     native_window: &NativeWindow,
   ) -> Option<Monitor> {
     self
-      .monitor_from_native(&Platform::nearest_monitor(native_window))
+      .monitor_from_native(
+        &self.dispatcher.nearest_display(native_window).ok()?,
+      )
       .or(self.monitors().first().cloned())
   }
 
-  /// Gets monitor that corresponds to the given `NativeMonitor`.
+  /// Gets monitor that corresponds to the given `Display`.
   pub fn monitor_from_native(
     &self,
-    native_monitor: &NativeMonitor,
+    native_display: &Display,
   ) -> Option<Monitor> {
     self
       .monitors()
       .into_iter()
-      .find(|monitor| monitor.native() == *native_monitor)
+      .find(|monitor| monitor.native() == *native_display)
   }
 
   /// Gets the closest monitor in a given direction.
@@ -217,14 +232,14 @@ impl WmState {
     origin_monitor: &Monitor,
     direction: &Direction,
   ) -> anyhow::Result<Option<Monitor>> {
-    let origin_rect = origin_monitor.native().rect()?.clone();
+    let origin_rect = origin_monitor.native_properties().bounds;
 
     // Create a tuple of monitors and their rect.
     let monitors_with_rect = self
       .monitors()
       .into_iter()
       .map(|monitor| {
-        let rect = monitor.native().rect()?.clone();
+        let rect = monitor.native_properties().bounds;
         anyhow::Ok((monitor, rect))
       })
       .try_collect::<Vec<_>>()?;
@@ -233,16 +248,16 @@ impl WmState {
       .into_iter()
       .filter(|(_, rect)| match direction {
         Direction::Right => {
-          rect.x() > origin_rect.x() && rect.has_overlap_y(&origin_rect)
+          rect.x() > origin_rect.x() && rect.y_overlap(&origin_rect) > 0
         }
         Direction::Left => {
-          rect.x() < origin_rect.x() && rect.has_overlap_y(&origin_rect)
+          rect.x() < origin_rect.x() && rect.y_overlap(&origin_rect) > 0
         }
         Direction::Down => {
-          rect.y() > origin_rect.y() && rect.has_overlap_x(&origin_rect)
+          rect.y() > origin_rect.y() && rect.x_overlap(&origin_rect) > 0
         }
         Direction::Up => {
-          rect.y() < origin_rect.y() && rect.has_overlap_x(&origin_rect)
+          rect.y() < origin_rect.y() && rect.x_overlap(&origin_rect) > 0
         }
       })
       .min_by(|(_, rect_a), (_, rect_b)| match direction {
@@ -254,6 +269,67 @@ impl WmState {
       .map(|(monitor, _)| monitor);
 
     Ok(closest_monitor)
+  }
+
+  /// Determines the preferred hide corner for each monitor. Used for
+  /// [`HideMethod::PlaceInCorner`].
+  ///
+  /// The corner is chosen by simulating a 400x400 window frame in the
+  /// bottom-left and bottom-right of the monitor's working area, then
+  /// picking the side that overlaps the least with other monitors'
+  /// working areas (ties favor bottom-right).
+  pub fn monitors_by_hide_corner(&self) -> Vec<(Monitor, HideCorner)> {
+    const TEST_FRAME_SIZE: i32 = 400;
+    const VISIBLE_SLIVER: i32 = 1;
+
+    let monitors = self.monitors();
+    let working_areas = monitors
+      .iter()
+      .map(|monitor| monitor.native_properties().working_area)
+      .collect::<Vec<_>>();
+
+    monitors
+      .into_iter()
+      .enumerate()
+      .map(|(idx, monitor)| {
+        let monitor_rect = &working_areas[idx];
+        let test_frame_y = monitor_rect.bottom - TEST_FRAME_SIZE;
+
+        let left_test_frame = Rect::from_xy(
+          monitor_rect.left - TEST_FRAME_SIZE + VISIBLE_SLIVER,
+          test_frame_y,
+          TEST_FRAME_SIZE,
+          TEST_FRAME_SIZE,
+        );
+
+        let right_test_frame = Rect::from_xy(
+          monitor_rect.right - VISIBLE_SLIVER,
+          test_frame_y,
+          TEST_FRAME_SIZE,
+          TEST_FRAME_SIZE,
+        );
+
+        let overlap_area = |test_frame: &Rect| -> i32 {
+          working_areas
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != idx)
+            .map(|(_, rect)| test_frame.intersection_area(rect))
+            .sum()
+        };
+
+        let left_overlap = overlap_area(&left_test_frame);
+        let right_overlap = overlap_area(&right_test_frame);
+
+        let corner = if left_overlap < right_overlap {
+          HideCorner::BottomLeft
+        } else {
+          HideCorner::BottomRight
+        };
+
+        (monitor, corner)
+      })
+      .collect()
   }
 
   /// Gets window that corresponds to the given `NativeWindow`.
@@ -584,18 +660,55 @@ impl WmState {
       })
       .cloned()
   }
+
+  /// Cleans up windows that are no longer alive.
+  ///
+  /// This addresses the "ghost window" issue where applications may
+  /// terminate without sending window destroy events, leaving invalid
+  /// windows in WM state.
+  ///
+  /// See: <https://github.com/glzr-io/glazewm/issues/1219>
+  pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
+    let invalid_windows = self
+      .windows()
+      .into_iter()
+      .filter(|window| !window.native().is_valid());
+
+    for window in invalid_windows {
+      tracing::info!("Removing invalid window: {}", window);
+      unmanage_window(window, self)?;
+    }
+
+    Ok(())
+  }
 }
 
 impl Drop for WmState {
   fn drop(&mut self) {
-    let managed_windows = self
-      .windows()
-      .into_iter()
-      .map(|window| window.native().clone())
-      .collect::<Vec<_>>();
+    let managed_windows = self.windows();
 
-    for window in managed_windows {
-      window.cleanup();
+    for window in &managed_windows {
+      // Redraw windows to their intended positions. On macOS, this will
+      // unhide windows that are on other workspaces.
+      if let Ok(rect) = window.to_rect() {
+        if let Err(err) = window.native().set_frame(&rect) {
+          warn!("Failed to redraw window on cleanup: {:?}", err);
+        }
+      }
+
+      // Reset any effects on Windows.
+      #[cfg(target_os = "windows")]
+      {
+        if let Err(err) = window.native().show() {
+          warn!("Failed to show window: {:?}", err);
+        }
+
+        let _ = window.native().set_taskbar_visibility(true);
+        let _ = window.native().set_border_color(None);
+        let _ = window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
+      }
     }
   }
 }

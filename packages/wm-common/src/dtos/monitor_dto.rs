@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use wm_platform::Rect;
 
 use super::ContainerDto;
-use crate::Rect;
 
 /// User-friendly representation of a monitor.
 ///
@@ -21,7 +21,7 @@ pub struct MonitorDto {
   pub y: i32,
   pub dpi: u32,
   pub scale_factor: f32,
-  pub handle: isize,
+  pub handle: Option<isize>,
   pub device_name: String,
   pub device_path: Option<String>,
   pub hardware_id: Option<String>,

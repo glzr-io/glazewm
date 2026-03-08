@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["packages/*"]
-default-members = ["packages/wm", "packages/wm-cli", "packages/wm-watcher"]
+default-members = ["packages/wm", "packages/wm-cli"]
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
@@ -11,10 +11,16 @@ home = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 tauri-winres = "0.1"
+thiserror = "2"
+regex = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.26"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-
 wm-macros = { path = "packages/wm-macros" }
+
+[workspace.lints]
+clippy.all = { level = "warn", priority = -1 }
+clippy.pedantic = { level = "warn", priority = -1 }
+clippy.missing_errors_doc = "allow"

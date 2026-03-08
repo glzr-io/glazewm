@@ -6,14 +6,14 @@ use std::{
 
 use anyhow::Context;
 use uuid::Uuid;
-use wm_common::{ContainerDto, MonitorDto, Rect};
-use wm_platform::NativeMonitor;
+use wm_common::{ContainerDto, MonitorDto};
+use wm_platform::{Display, Rect};
 
 use crate::{
   impl_common_getters, impl_container_debug,
   models::{
-    Container, DirectionContainer, TilingContainer, WindowContainer,
-    Workspace,
+    Container, DirectionContainer, NativeMonitorProperties,
+    TilingContainer, WindowContainer, Workspace,
   },
   traits::{CommonGetters, PositionGetters},
 };
@@ -26,28 +26,44 @@ struct MonitorInner {
   parent: Option<Container>,
   children: VecDeque<Container>,
   child_focus_order: VecDeque<Uuid>,
-  native: NativeMonitor,
+  native: Display,
+  native_properties: NativeMonitorProperties,
 }
 
 impl Monitor {
-  pub fn new(native_monitor: NativeMonitor) -> Self {
+  pub fn new(
+    native_display: Display,
+    native_properties: NativeMonitorProperties,
+  ) -> Self {
     let monitor = MonitorInner {
       id: Uuid::new_v4(),
       parent: None,
       children: VecDeque::new(),
       child_focus_order: VecDeque::new(),
-      native: native_monitor,
+      native: native_display,
+      native_properties,
     };
 
     Self(Rc::new(RefCell::new(monitor)))
   }
 
-  pub fn native(&self) -> NativeMonitor {
+  pub fn native(&self) -> Display {
     self.0.borrow().native.clone()
   }
 
-  pub fn set_native(&self, native: NativeMonitor) {
+  pub fn set_native(&self, native: Display) {
     self.0.borrow_mut().native = native;
+  }
+
+  pub fn native_properties(&self) -> NativeMonitorProperties {
+    self.0.borrow().native_properties.clone()
+  }
+
+  pub fn set_native_properties(
+    &self,
+    native_properties: NativeMonitorProperties,
+  ) {
+    self.0.borrow_mut().native_properties = native_properties;
   }
 
   pub fn displayed_workspace(&self) -> Option<Workspace> {
@@ -71,11 +87,11 @@ impl Monitor {
     &self,
     other: &Container,
   ) -> anyhow::Result<bool> {
-    let dpi = self.native().dpi()?;
+    let dpi = self.native_properties().dpi;
 
     let other_dpi = other
       .monitor()
-      .and_then(|monitor| monitor.native().dpi().ok())
+      .map(|monitor| monitor.native_properties().dpi)
       .context("Failed to get DPI of other monitor.")?;
 
     Ok(dpi != other_dpi)
@@ -99,13 +115,22 @@ impl Monitor {
       height: rect.height(),
       x: rect.x(),
       y: rect.y(),
-      dpi: self.native().dpi()?,
-      scale_factor: self.native().scale_factor()?,
-      handle: self.native().handle,
-      device_name: self.native().device_name()?.clone(),
-      device_path: self.native().device_path()?.cloned(),
-      hardware_id: self.native().hardware_id()?.cloned(),
-      working_rect: self.native().working_rect()?.clone(),
+      dpi: self.native_properties().dpi,
+      scale_factor: self.native_properties().scale_factor,
+      #[cfg(target_os = "windows")]
+      handle: Some(self.native_properties().handle),
+      #[cfg(not(target_os = "windows"))]
+      handle: None,
+      device_name: self.native_properties().device_name,
+      #[cfg(target_os = "windows")]
+      device_path: self.native_properties().device_path,
+      #[cfg(not(target_os = "windows"))]
+      device_path: None,
+      #[cfg(target_os = "windows")]
+      hardware_id: self.native_properties().hardware_id,
+      #[cfg(not(target_os = "windows"))]
+      hardware_id: None,
+      working_rect: self.native_properties().working_area,
     }))
   }
 }
@@ -115,23 +140,16 @@ impl_common_getters!(Monitor);
 
 impl PositionGetters for Monitor {
   fn to_rect(&self) -> anyhow::Result<Rect> {
-    self.0.borrow().native.rect().cloned()
+    Ok(self.0.borrow().native_properties.bounds.clone())
   }
 }
 
 impl std::fmt::Display for Monitor {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let native = self.native();
-    let device_name = native
-      .device_name()
-      .map_or_else(|_| "Unknown".to_string(), String::to_string);
-    let device_path = native.device_path().unwrap_or_default();
-    let hardware_id = native.hardware_id().unwrap_or_default();
-
     write!(
       f,
-      "Monitor(handle={}, device_name={}, device_path={:?}, hardware_id={:?})",
-      native.handle, device_name, device_path, hardware_id,
+      "Monitor(device_name={})",
+      self.native_properties().device_name,
     )
   }
 }

@@ -1,24 +1,40 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::missing_errors_doc)]
 #![feature(iterator_try_collect)]
-#![feature(once_cell_try)]
 
-mod com;
-mod event_listener;
-mod event_window;
-mod keyboard_hook;
-mod native_monitor;
+mod dispatcher;
+mod display;
+mod display_listener;
+mod error;
+mod event_loop;
+mod keybinding_listener;
+mod models;
+mod mouse_listener;
 mod native_window;
-mod platform;
+mod platform_event;
+mod platform_impl;
 mod single_instance;
-mod window_event_hook;
+mod thread_bound;
+mod window_listener;
 
-pub use com::*;
-pub use event_listener::*;
-pub use event_window::*;
-pub use keyboard_hook::*;
-pub use native_monitor::*;
+pub use dispatcher::*;
+pub use display::*;
+pub use display_listener::*;
+pub use error::*;
+pub use event_loop::*;
+pub use keybinding_listener::*;
+pub use models::*;
+pub use mouse_listener::*;
 pub use native_window::*;
-pub use platform::*;
+pub use platform_event::*;
 pub use single_instance::*;
-pub use window_event_hook::*;
+pub use thread_bound::*;
+pub use window_listener::*;
+// TODO: Avoid exposing `windows` crate types in the public API.
+#[cfg(target_os = "windows")]
+pub use windows::Win32::UI::WindowsAndMessaging::{
+  SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
+  SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WINDOW_EX_STYLE,
+  WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+  WS_MAXIMIZEBOX,
+};

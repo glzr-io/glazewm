@@ -1,5 +1,6 @@
 use anyhow::Context;
-use wm_common::{Rect, WindowState};
+use wm_common::WindowState;
+use wm_platform::Rect;
 
 use crate::{
   models::WindowContainer,

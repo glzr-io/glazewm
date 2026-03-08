@@ -19,23 +19,26 @@ tauri-winres = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
+auto-launch = "0.5"
 ambassador = "0.4"
 clap = { workspace = true }
 enum-as-inner = "0.6"
 futures-util = { workspace = true }
 home = { workspace = true }
+image = "0.25"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
+shell-util = "0.0"
 tokio = { workspace = true }
 tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tracing-appender = "0.2"
 tracing-subscriber = { workspace = true }
-tray-icon = "0.20"
+tray-icon = "0.21"
 uuid = { workspace = true }
-wm-common = { path = "../wm-common" }
 wm-cli = { path = "../wm-cli" }
-wm-platform = { path = "../wm-platform" }
+wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
-wm-macros.workspace = true
+wm-macros = { workspace = true }
+wm-platform = { path = "../wm-platform" }

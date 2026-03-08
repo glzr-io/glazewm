@@ -53,7 +53,7 @@ pub fn remove_monitor(
 
   state.emit_event(WmEvent::MonitorRemoved {
     removed_id: monitor.id(),
-    removed_device_name: monitor.native().device_name()?.clone(),
+    removed_device_name: monitor.native_properties().device_name,
   });
 
   Ok(())

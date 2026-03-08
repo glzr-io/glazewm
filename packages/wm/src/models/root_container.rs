@@ -6,7 +6,8 @@ use std::{
 
 use anyhow::bail;
 use uuid::Uuid;
-use wm_common::{ContainerDto, Rect, RootContainerDto};
+use wm_common::{ContainerDto, RootContainerDto};
+use wm_platform::Rect;
 
 use crate::{
   impl_common_getters, impl_container_debug,

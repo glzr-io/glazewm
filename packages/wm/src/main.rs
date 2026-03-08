@@ -9,17 +9,23 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, process, time::Duration};
 
 use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
-use tracing::{debug, error, info, warn, Level};
+use tracing::Level;
 use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
-use wm_platform::Platform;
+#[cfg(target_os = "macos")]
+use wm_platform::DispatcherExtMacOs;
+use wm_platform::{
+  Dispatcher, DisplayListener, EventLoop, KeybindingListener,
+  MouseEventKind, MouseListener, PlatformEvent, SingleInstance,
+  WindowListener,
+};
 
 use crate::{
   ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
@@ -41,84 +47,168 @@ mod wm_state;
 ///
 /// Conditionally starts the WM or runs a CLI command based on the given
 /// subcommand.
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
   let args = std::env::args().collect::<Vec<_>>();
   let app_command = AppCommand::parse_with_default(&args);
 
-  match app_command {
-    AppCommand::Start {
-      config_path,
-      verbosity,
-    } => {
-      let res = start_wm(config_path, verbosity).await;
+  if let AppCommand::Start {
+    config_path,
+    verbosity,
+  } = app_command
+  {
+    let rt = tokio::runtime::Runtime::new()?;
+    let (event_loop, dispatcher) = EventLoop::new()?;
 
-      // If unable to start the WM, the error is fatal and a message dialog
-      // is shown.
-      if let Err(err) = &res {
-        error!("{:?}", err);
-        Platform::show_error_dialog("Fatal error", &err.to_string());
-      }
+    let task_handle = std::thread::spawn(move || {
+      rt.block_on(async {
+        let start_res =
+          start_wm(config_path, verbosity, &dispatcher).await;
 
-      res
-    }
-    _ => wm_cli::start(args).await,
+        if let Err(err) = &start_res {
+          // If unable to start the WM, the error is fatal and a message
+          // dialog is shown.
+          tracing::error!("{:?}", err);
+          dispatcher.show_error_dialog("Fatal error", &err.to_string());
+        }
+
+        if let Err(err) = dispatcher.stop_event_loop() {
+          // Forcefully exit the process to ensure the event loop is
+          // stopped.
+          tracing::error!("Failed to stop event loop gracefully: {}", err);
+          process::exit(1);
+        }
+
+        start_res
+      })
+    });
+
+    // Run event loop (blocks until shutdown). This must be on the main
+    // thread for macOS compatibility.
+    event_loop.run()?;
+
+    // Wait for clean exit of the WM.
+    task_handle.join().unwrap()
+  } else {
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(wm_cli::start(args))
   }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn start_wm(
   config_path: Option<PathBuf>,
   verbosity: Verbosity,
+  dispatcher: &Dispatcher,
 ) -> anyhow::Result<()> {
   setup_logging(&verbosity)?;
 
   // Ensure that only one instance of the WM is running.
-  let _single_instance = Platform::new_single_instance()?;
+  let _single_instance = SingleInstance::new()?;
+
+  #[cfg(target_os = "macos")]
+  {
+    if !dispatcher.has_ax_permission(true) {
+      anyhow::bail!(
+        "Accessibility permissions are not granted. In System Preferences, \
+         go to Privacy & Security > Accessibility and enable GlazeWM."
+      );
+    }
+  }
 
   // Parse and validate user config.
   let mut config = UserConfig::new(config_path)?;
 
-  // Start watcher process for restoring hidden windows on crash.
-  start_watcher_process()?;
-
   // Add application icon to system tray.
-  let mut tray = SystemTray::new(&config.path)?;
+  let mut tray = SystemTray::new(&config.path, dispatcher.clone())?;
 
-  let mut wm = WindowManager::new(&mut config)?;
+  let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
 
   let mut ipc_server = IpcServer::start().await?;
 
-  // Start listening for platform events after populating initial state.
-  let mut event_listener = Platform::start_event_listener(&config.value)?;
+  // Start watcher process for restoring hidden windows on crash.
+  // Windows-only, since macOS' hidden windows remain accessible.
+  #[cfg(target_os = "windows")]
+  if let Err(err) = start_watcher_process() {
+    tracing::warn!(
+      "Failed to start watcher process: {err}{}",
+      cfg!(debug_assertions)
+        .then_some(".\n Run `cargo build -p wm-watcher` to build it.")
+        .unwrap_or_default()
+    );
+  }
 
-  // Run startup commands.
-  let startup_commands = config.value.general.startup_commands.clone();
-  wm.process_commands(&startup_commands, None, &mut config)?;
+  // Start listening for platform events after populating initial state.
+  let mut window_listener = WindowListener::new(dispatcher)?;
+  let mut display_listener = DisplayListener::new(dispatcher)?;
+  let mut mouse_listener = MouseListener::new(
+    if config.value.general.focus_follows_cursor {
+      &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
+    } else {
+      &[MouseEventKind::LeftButtonUp]
+    },
+    dispatcher,
+  )?;
+  let mut keybinding_listener = KeybindingListener::new(
+    &config
+      .active_keybinding_configs(&[], false)
+      .flat_map(|kb| kb.bindings)
+      .collect::<Vec<_>>(),
+    dispatcher,
+  )?;
+
+  // Run user's startup commands.
+  wm.process_commands(
+    &config.value.general.startup_commands.clone(),
+    None,
+    &mut config,
+  )?;
+
+  // Create an interval for periodically cleaning up invalid windows.
+  let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
 
   loop {
     let res = tokio::select! {
-      Some(()) = tray.exit_rx.recv() => {
-        info!("Exiting through system tray.");
+      _ = signal::ctrl_c() => {
+        tracing::info!("Received SIGINT signal.");
         break;
       },
       Some(()) = wm.exit_rx.recv() => {
-        info!("Exiting through WM command.");
+        tracing::info!("Exiting through WM command.");
         break;
       },
-      _ = signal::ctrl_c() => {
-        info!("Received SIGINT signal.");
+      Some(()) = tray.exit_rx.recv() => {
+        tracing::info!("Exiting through system tray.");
         break;
       },
-      Some(event) = event_listener.event_rx.recv() => {
-        debug!("Received platform event: {:?}", event);
-        wm.process_event(event, &mut config)
+      Some(event) = mouse_listener.next_event() => {
+        tracing::debug!("Received mouse event: {:?}", event);
+        wm.process_event(PlatformEvent::Mouse(event), &mut config)
+      },
+      Some(event) = window_listener.next_event() => {
+        tracing::debug!("Received window event: {:?}", event);
+        wm.process_event(PlatformEvent::Window(event), &mut config)
+      },
+      Some(()) = display_listener.next_event() => {
+        tracing::debug!("Received display settings changed event.");
+        wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+      },
+      Some(event) = keybinding_listener.next_event() => {
+        tracing::debug!("Received keyboard event: {:?}", event);
+        wm.process_event(PlatformEvent::Keybinding(event), &mut config)
+      }
+      _ = cleanup_interval.tick() => {
+        if wm.state.is_paused {
+          Ok(())
+        } else {
+          wm.state.cleanup_invalid_windows()
+        }
       },
       Some((
         message,
         response_tx,
         disconnection_tx
       )) = ipc_server.message_rx.recv() => {
-        info!("Received IPC message: {:?}", message);
+        tracing::info!("Received IPC message: {:?}", message);
 
         if let Err(err) = ipc_server.process_message(
           message,
@@ -127,31 +217,44 @@ async fn start_wm(
           &mut wm,
           &mut config,
         ) {
-          error!("{:?}", err);
+          tracing::error!("{:?}", err);
         }
 
         Ok(())
       },
       Some(wm_event) = wm.event_rx.recv() => {
-        debug!("Received WM event: {:?}", wm_event);
+        tracing::debug!("Received WM event: {:?}", wm_event);
 
-        // Update event listener when keyboard or mouse listener needs to
-        // be changed.
+        // Disable mouse and keybinding listeners when the WM is paused.
+        if let WmEvent::PauseChanged { is_paused } = wm_event {
+          let _ = mouse_listener.enable(!is_paused);
+          keybinding_listener.enable(!is_paused);
+        }
+
+        // Update keybinding and mouse listeners on config changes.
         if matches!(
           wm_event,
           WmEvent::UserConfigChanged { .. }
             | WmEvent::BindingModesChanged { .. }
-            | WmEvent::PauseChanged { .. }
         ) {
-          event_listener.update(
-            &config.value,
-            &wm.state.binding_modes,
-            wm.state.is_paused,
+          keybinding_listener.update(
+            &config
+              .active_keybinding_configs(&wm.state.binding_modes, false)
+              .flat_map(|kb| kb.bindings)
+              .collect::<Vec<_>>(),
           );
+
+          mouse_listener.set_enabled_events(
+            if config.value.general.focus_follows_cursor {
+              &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
+            } else {
+              &[MouseEventKind::LeftButtonUp]
+            },
+          )?;
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {
-          error!("{:?}", err);
+          tracing::error!("{:?}", err);
         }
 
         Ok(())
@@ -166,12 +269,15 @@ async fn start_wm(
     };
 
     if let Err(err) = res {
-      error!("{:?}", err);
-      Platform::show_error_dialog("Non-fatal error", &err.to_string());
+      tracing::error!("{:?}", err);
+      dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 
-  run_cleanup(&mut wm, &mut config, &mut ipc_server)
+  tracing::info!("Window manager shutting down.");
+  wm.cleanup(&mut config, &mut ipc_server);
+
+  Ok(())
 }
 
 /// Initialize logging with the specified verbosity level.
@@ -199,7 +305,7 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
 
   tracing::subscriber::set_global_default(subscriber)?;
 
-  info!(
+  tracing::info!(
     "Starting WM with log level {:?}.",
     verbosity.level().to_string()
   );
@@ -207,11 +313,13 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   Ok(())
 }
 
-/// Launches watcher binary. This is a separate process that is responsible
-/// for restoring hidden windows in case the main WM process crashes.
+/// Launches watcher binary (Windows-only). This is a separate process that
+/// is responsible for restoring hidden windows in case the main WM process
+/// crashes.
 ///
-/// This assumes the watcher binary exists in the same directory as the WM
-/// binary.
+/// This assumes the watcher binary exists in the same directory as the
+/// WM binary.
+#[allow(unused)]
 fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
 {
   let watcher_path = env::current_exe()?
@@ -222,32 +330,4 @@ fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
   Command::new(&watcher_path)
     .spawn()
     .context("Failed to start watcher process.")
-}
-
-/// Runs cleanup tasks when the WM is exiting.
-fn run_cleanup(
-  wm: &mut WindowManager,
-  config: &mut UserConfig,
-  ipc_server: &mut IpcServer,
-) -> anyhow::Result<()> {
-  // Ensure that the WM is unpaused, otherwise, shutdown commands won't get
-  // executed.
-  wm.state.is_paused = false;
-
-  // Run shutdown commands.
-  let shutdown_commands = config.value.general.shutdown_commands.clone();
-  wm.process_commands(&shutdown_commands, None, config)?;
-
-  wm.state.emit_event(WmEvent::ApplicationExiting);
-
-  // Emit remaining WM events before exiting.
-  while let Ok(wm_event) = wm.event_rx.try_recv() {
-    info!("Emitting WM event before shutting down: {:?}", wm_event);
-
-    if let Err(err) = ipc_server.process_event(wm_event) {
-      warn!("{:?}", err);
-    }
-  }
-
-  Ok(())
 }

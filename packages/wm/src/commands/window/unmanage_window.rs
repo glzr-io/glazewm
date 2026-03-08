@@ -33,7 +33,8 @@ pub fn unmanage_window(
 
   state.emit_event(WmEvent::WindowUnmanaged {
     unmanaged_id: window.id(),
-    unmanaged_handle: window.native().handle,
+    #[allow(clippy::cast_possible_wrap, clippy::unnecessary_cast)]
+    unmanaged_handle: window.native().id().0 as isize,
   });
 
   // Reassign focus to suitable target.

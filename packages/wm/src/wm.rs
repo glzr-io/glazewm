@@ -2,11 +2,17 @@ use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
+#[cfg(target_os = "windows")]
+use wm_common::TitleBarVisibility;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, LengthValue,
-  RectDelta, TitleBarVisibility, WindowState, WmEvent,
+  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, WindowState,
+  WmEvent,
 };
-use wm_platform::PlatformEvent;
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
+use wm_platform::{
+  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
+};
 
 use crate::{
   commands::{
@@ -24,16 +30,19 @@ use crate::{
       resize_window, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
-    workspace::{focus_workspace, move_workspace_in_direction},
+    workspace::{
+      focus_workspace, move_workspace_in_direction,
+      update_workspace_config,
+    },
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
     handle_window_destroyed, handle_window_focused, handle_window_hidden,
-    handle_window_location_changed, handle_window_minimize_ended,
-    handle_window_minimized, handle_window_moved_or_resized_end,
-    handle_window_moved_or_resized_start, handle_window_shown,
+    handle_window_minimize_ended, handle_window_minimized,
+    handle_window_moved_or_resized, handle_window_shown,
     handle_window_title_changed,
   },
+  ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
@@ -47,11 +56,14 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-  pub fn new(config: &mut UserConfig) -> anyhow::Result<Self> {
+  pub fn new(
+    config: &mut UserConfig,
+    dispatcher: Dispatcher,
+  ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(event_tx, exit_tx);
+    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
     state.populate(config)?;
 
     Ok(Self {
@@ -72,46 +84,63 @@ impl WindowManager {
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
       }
-      PlatformEvent::KeybindingTriggered(kb_config) => {
-        self.process_commands(&kb_config.commands, None, config)?;
+      PlatformEvent::Keybinding(keybinding_event) => {
+        // Find the keybinding config that matches this keybinding.
+        let commands = config
+          .active_keybinding_configs(
+            &self.state.binding_modes,
+            self.state.is_paused,
+          )
+          .find(|kb_config| {
+            kb_config.bindings.contains(&keybinding_event.0)
+          })
+          .map(|kb_config| kb_config.commands.clone());
+
+        if let Some(commands) = commands {
+          self.process_commands(&commands, None, config)?;
+        }
 
         // Return early since we don't want to redraw twice.
         return Ok(());
       }
-      PlatformEvent::MouseMove(event) => {
+      PlatformEvent::Mouse(event) => {
         handle_mouse_move(&event, state, config)
       }
-      PlatformEvent::WindowDestroyed(window) => {
-        handle_window_destroyed(&window, state)
-      }
-      PlatformEvent::WindowFocused(window) => {
-        handle_window_focused(&window, state, config)
-      }
-      PlatformEvent::WindowHidden(window) => {
-        handle_window_hidden(&window, state)
-      }
-      PlatformEvent::WindowLocationChanged(window) => {
-        handle_window_location_changed(&window, state, config)
-      }
-      PlatformEvent::WindowMinimized(window) => {
-        handle_window_minimized(&window, state, config)
-      }
-      PlatformEvent::WindowMinimizeEnded(window) => {
-        handle_window_minimize_ended(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedEnd(window) => {
-        handle_window_moved_or_resized_end(&window, state, config)
-      }
-      PlatformEvent::WindowMovedOrResizedStart(window) => {
-        handle_window_moved_or_resized_start(&window, state);
-        Ok(())
-      }
-      PlatformEvent::WindowShown(window) => {
-        handle_window_shown(window, state, config)
-      }
-      PlatformEvent::WindowTitleChanged(window) => {
-        handle_window_title_changed(&window, state, config)
-      }
+      PlatformEvent::Window(window_event) => match window_event {
+        WindowEvent::Focused { window, .. } => {
+          handle_window_focused(&window, state, config)
+        }
+        WindowEvent::Shown { window, .. } => {
+          handle_window_shown(window, state, config)
+        }
+        WindowEvent::Hidden { window, .. } => {
+          handle_window_hidden(&window, state, config)
+        }
+        WindowEvent::MovedOrResized {
+          window,
+          is_interactive_start,
+          is_interactive_end,
+          ..
+        } => handle_window_moved_or_resized(
+          &window,
+          is_interactive_start,
+          is_interactive_end,
+          state,
+          config,
+        ),
+        WindowEvent::Minimized { window, .. } => {
+          handle_window_minimized(&window, state, config)
+        }
+        WindowEvent::MinimizeEnded { window, .. } => {
+          handle_window_minimize_ended(&window, state, config)
+        }
+        WindowEvent::TitleChanged { window, .. } => {
+          handle_window_title_changed(&window, state, config)
+        }
+        WindowEvent::Destroyed { window_id, .. } => {
+          handle_window_destroyed(window_id, state)
+        }
+      },
     }?;
 
     if !state.is_paused && state.pending_sync.has_changes() {
@@ -431,6 +460,19 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      InvokeCommand::UpdateWorkspaceConfig {
+        workspace,
+        new_config,
+      } => {
+        let workspace = if let Some(workspace_name) = workspace {
+          state
+            .workspace_by_name(workspace_name)
+            .context("Workspace doesn't exist.")?
+        } else {
+          subject_container.workspace().context("No workspace.")?
+        };
+        update_workspace_config(&workspace, state, config, new_config)
+      }
       InvokeCommand::Resize(args) => {
         match subject_container.as_window_container() {
           Ok(window) => resize_window(
@@ -551,19 +593,25 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTitleBarVisibility { visibility } => {
-        match subject_container.as_window_container() {
-          Ok(window) => {
-            _ = window.native().set_title_bar_visibility(
-              *visibility == TitleBarVisibility::Shown,
-            );
-            Ok(())
-          }
-          _ => Ok(()),
+      InvokeCommand::SetTitleBarVisibility {
+        // LINT: `visibility` is only used on Windows.
+        #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+        visibility,
+      } => match subject_container.as_window_container() {
+        #[cfg(target_os = "windows")]
+        Ok(window) => {
+          _ = window.native().set_title_bar_visibility(
+            *visibility == TitleBarVisibility::Shown,
+          );
+          Ok(())
         }
-      }
+        _ => Ok(()),
+      },
+      // LINT: `args` is only used on Windows.
+      #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
       InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
+          #[cfg(target_os = "windows")]
           Ok(window) => {
             if let Some(opacity) = &args.opacity {
               _ = window.native().set_transparency(opacity);
@@ -581,7 +629,7 @@ impl WindowManager {
       InvokeCommand::ShellExec {
         hide_window,
         command,
-      } => shell_exec(&command.join(" "), *hide_window),
+      } => shell_exec(&command.join(" "), *hide_window, state),
       InvokeCommand::Size(args) => {
         match subject_container.as_window_container() {
           Ok(window) => set_window_size(
@@ -727,6 +775,40 @@ impl WindowManager {
       InvokeCommand::WmTogglePause => {
         toggle_pause(state);
         Ok(())
+      }
+    }
+  }
+
+  /// Runs cleanup tasks when the WM is exiting.
+  pub(crate) fn cleanup(
+    &mut self,
+    config: &mut UserConfig,
+    ipc_server: &mut IpcServer,
+  ) {
+    self.state.emit_event(WmEvent::ApplicationExiting);
+
+    // Ensure that the WM is unpaused, otherwise, shutdown commands won't
+    // get executed.
+    self.state.is_paused = false;
+
+    // Run user's shutdown commands.
+    if let Err(err) = self.process_commands(
+      &config.value.general.shutdown_commands.clone(),
+      None,
+      config,
+    ) {
+      tracing::warn!("Failed to run shutdown commands: {:?}", err);
+    }
+
+    // Emit remaining WM events before exiting.
+    while let Ok(wm_event) = self.event_rx.try_recv() {
+      tracing::info!(
+        "Emitting WM event before shutting down: {:?}",
+        wm_event
+      );
+
+      if let Err(err) = ipc_server.process_event(wm_event) {
+        tracing::warn!("{:?}", err);
       }
     }
   }

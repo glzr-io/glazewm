@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
-
-use crate::{
-  app_command::InvokeCommand, Color, LengthValue, OpacityValue, RectDelta,
+use wm_platform::{
+  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
+  RectDelta,
 };
+
+use crate::app_command::InvokeCommand;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
@@ -89,6 +91,7 @@ pub struct GeneralConfig {
   pub config_reload_commands: Vec<InvokeCommand>,
 
   /// How windows should be hidden when switching workspaces.
+  #[serde(deserialize_with = "deserialize_hide_method")]
   pub hide_method: HideMethod,
 
   /// Affects which windows get shown in the native Windows taskbar.
@@ -104,7 +107,16 @@ impl Default for GeneralConfig {
       startup_commands: vec![],
       shutdown_commands: vec![],
       config_reload_commands: vec![],
-      hide_method: HideMethod::Cloak,
+      hide_method: {
+        #[cfg(target_os = "macos")]
+        {
+          HideMethod::PlaceInCorner
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+          HideMethod::Cloak
+        }
+      },
       show_all_in_taskbar: false,
     }
   }
@@ -134,13 +146,18 @@ pub enum HideMethod {
   Hide,
   #[default]
   Cloak,
+  PlaceInCorner,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
-  pub bindings: Vec<String>,
+  #[serde(
+    deserialize_with = "deserialize_bindings",
+    serialize_with = "serialize_bindings"
+  )]
+  pub bindings: Vec<Keybinding>,
 
   /// WM commands to run when the keybinding is triggered.
   pub commands: Vec<InvokeCommand>,
@@ -278,16 +295,6 @@ pub struct CornerEffectConfig {
   pub style: CornerStyle,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CornerStyle {
-  #[default]
-  Default,
-  Square,
-  Rounded,
-  SmallRounded,
-}
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct TransparencyEffectConfig {
@@ -388,4 +395,80 @@ const fn default_bool<const V: bool>() -> bool {
 /// Helper function for setting a default value for window rule events.
 fn default_window_rule_on() -> Vec<WindowRuleEvent> {
   vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+/// Helper function for serializing a vector of keybindings.
+///
+/// Returns a vector of strings (e.g. `["cmd+shift+a", "ctrl+shift+b"]`).
+fn serialize_bindings<S>(
+  bindings: &[Keybinding],
+  serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+  S: serde::Serializer,
+{
+  let binding_strings: Vec<String> = bindings
+    .iter()
+    .map(|binding| {
+      binding
+        .keys()
+        .iter()
+        .map(|key| key.to_string().to_lowercase())
+        .collect::<Vec<_>>()
+        .join("+")
+    })
+    .collect();
+
+  binding_strings.serialize(serializer)
+}
+
+/// Helper function for deserializing a vector of strings into keybindings.
+///
+/// Returns a vector of [`Keybinding`].
+fn deserialize_bindings<'de, D>(
+  deserializer: D,
+) -> Result<Vec<Keybinding>, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  let s: Vec<&str> = serde::de::Deserialize::deserialize(deserializer)?;
+  s.iter()
+    .map(|keybinding_str| {
+      let keys: Vec<Key> = keybinding_str
+        .split('+')
+        .map(|key| {
+          key.trim().parse().or_else(|_| Key::try_from_literal(key))
+        })
+        .collect::<Result<Vec<Key>, _>>()
+        .map_err(serde::de::Error::custom)?;
+
+      Keybinding::new(keys).map_err(serde::de::Error::custom)
+    })
+    .collect()
+}
+
+/// Helper function for deserializing [`HideMethod`].
+///
+/// On macOS, [`HideMethod::Hide`] and [`HideMethod::Cloak`] are not valid
+/// and are automatically converted to [`HideMethod::PlaceInCorner`].
+fn deserialize_hide_method<'de, D>(
+  deserializer: D,
+) -> Result<HideMethod, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  // LINT: The deserialized value is ignored on macOS, but we still want
+  // to produce an error for invalid values.
+  #[allow(unused_variables)]
+  let method = HideMethod::deserialize(deserializer)?;
+
+  #[cfg(target_os = "macos")]
+  {
+    Ok(HideMethod::PlaceInCorner)
+  }
+
+  #[cfg(not(target_os = "macos"))]
+  {
+    Ok(method)
+  }
 }

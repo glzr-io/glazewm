@@ -1,7 +1,7 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{DisplayState, WindowRuleEvent, WmEvent};
-use wm_platform::{NativeWindow, Platform};
+use wm_platform::NativeWindow;
 
 use crate::{
   commands::{
@@ -27,7 +27,7 @@ pub fn handle_window_focused(
   // the WM's focused container, then the focus is not synced.
   state.is_focus_synced = match focused_container.as_window_container() {
     Ok(window) => *window.native() == *native_window,
-    _ => Platform::desktop_window() == *native_window,
+    _ => native_window.is_desktop_window().unwrap_or(false),
   };
 
   // Handle overriding focus on close/minimize. After a window is closed
@@ -49,11 +49,11 @@ pub fn handle_window_focused(
   }
 
   // Focus effect should be updated for any change in focus that shouldn't
-  // be overwritten. Focus here is either:
-  //  1. WM's focus container (window).
-  //  2. WM's focus container (workspace - i.e. the desktop window).
-  //  3. An ignored window.
-  //  4. A window that received manual focus.
+  // be overwritten. The incoming focus event at this point is either:
+  //  1. WM's focus container (window or workspace). This is the desktop
+  //     window in the case of a workspace.
+  //  2. An ignored window.
+  //  3. A window that received manual focus.
   state.pending_sync.queue_focused_effect_update();
 
   if let Some(window) = found_window {
