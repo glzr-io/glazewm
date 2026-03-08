@@ -59,8 +59,8 @@ impl FromStr for TrayMenuId {
 pub struct SystemTray {
   pub config_reload_rx: mpsc::UnboundedReceiver<()>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
-  icon_thread: Option<std::thread::JoinHandle<()>>,
-  tray_icon: ThreadBound<TrayIcon>,
+  _icon_thread: Option<std::thread::JoinHandle<()>>,
+  _tray_icon: ThreadBound<TrayIcon>,
 }
 
 impl SystemTray {
@@ -125,14 +125,15 @@ impl SystemTray {
     Ok(Self {
       config_reload_rx,
       exit_rx,
-      icon_thread: Some(icon_thread),
-      tray_icon,
+      _icon_thread: Some(icon_thread),
+      _tray_icon: tray_icon,
     })
   }
 
+  // LINT: `animations_enabled` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   fn create_tray_icon(
-    // LINT: Required for Windows.
-    #[allow(unused_variables)] animations_enabled: bool,
+    animations_enabled: bool,
     run_on_startup_enabled: bool,
   ) -> anyhow::Result<TrayIcon> {
     let reload_config_item = MenuItem::with_id(
@@ -211,14 +212,15 @@ impl SystemTray {
     )?)
   }
 
+  // LINT: `animations_enabled` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   fn handle_menu_event(
     menu_id: &TrayMenuId,
     dispatcher: &Dispatcher,
     config_path: &Path,
     config_reload_tx: &mpsc::UnboundedSender<()>,
     exit_tx: &mpsc::UnboundedSender<()>,
-    // LINT: Required for Windows.
-    #[allow(unused_variables)] animations_enabled: &Arc<Mutex<bool>>,
+    animations_enabled: &Arc<Mutex<bool>>,
     run_on_startup_enabled: &Arc<Mutex<bool>>,
   ) -> anyhow::Result<()> {
     tracing::info!("Processing tray menu event: {:?}", menu_id);

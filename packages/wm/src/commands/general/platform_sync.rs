@@ -1,21 +1,19 @@
-use std::time::Duration;
-
 use anyhow::Context;
-use tokio::task;
-use tracing::{info, warn};
+#[cfg(target_os = "windows")]
+use wm_common::WindowEffectConfig;
 use wm_common::{
   CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
-  WindowEffectConfig, WindowState, WmEvent,
+  WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
-use wm_platform::{CornerStyle, OpacityValue, Rect, WindowZOrder};
+#[cfg(target_os = "windows")]
+use wm_platform::{CornerStyle, OpacityValue};
+use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
-  traits::{
-    CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
-  },
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -43,7 +41,6 @@ pub fn platform_sync(
     jump_cursor(focused_container.clone(), state, config)?;
   }
 
-  #[cfg(target_os = "windows")]
   if state.pending_sync.needs_focused_effect_update()
     || state.pending_sync.needs_all_effects_update()
   {
@@ -103,7 +100,7 @@ fn sync_focus(
   };
 
   if let Err(err) = result {
-    warn!("Failed to set focus: {}", err);
+    tracing::warn!("Failed to set focus: {}", err);
   }
 
   state.emit_event(WmEvent::FocusChanged {
@@ -256,10 +253,10 @@ fn redraw_containers(
     // of a window. See `NativeWindow::raise` for more details.
     #[cfg(target_os = "windows")]
     if should_bring_to_front && !windows_to_redraw.contains(window) {
-      info!("Updating window z-order: {window}");
+      tracing::info!("Updating window z-order: {window}");
 
       if let Err(err) = window.native().set_z_order(&z_order) {
-        warn!("Failed to set window z-order: {}", err);
+        tracing::warn!("Failed to set window z-order: {}", err);
       }
     }
 
@@ -291,7 +288,7 @@ fn redraw_containers(
     if let Err(err) =
       reposition_window(window, *hide_corner, &z_order, is_visible, config)
     {
-      warn!("Failed to set window position: {}", err);
+      tracing::warn!("Failed to set window position: {}", err);
     }
 
     // Whether the window is either transitioning to or from fullscreen.
@@ -311,7 +308,7 @@ fn redraw_containers(
           window.state(),
           WindowState::Fullscreen(_)
         )) {
-          warn!("Failed to mark window as fullscreen: {}", err);
+          tracing::warn!("Failed to mark window as fullscreen: {}", err);
         }
       }
     }
@@ -330,7 +327,7 @@ fn redraw_containers(
     {
       if let Err(err) = window.native().set_taskbar_visibility(is_visible)
       {
-        warn!("Failed to set taskbar visibility: {}", err);
+        tracing::warn!("Failed to set taskbar visibility: {}", err);
       }
     }
   }
@@ -338,6 +335,8 @@ fn redraw_containers(
   Ok(())
 }
 
+// LINT: `z_order` is only used on Windows.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
@@ -502,14 +501,15 @@ fn jump_cursor(
     let center = jump_target.to_rect()?.center_point();
 
     if let Err(err) = state.dispatcher.set_cursor_position(&center) {
-      warn!("Failed to set cursor position: {}", err);
+      tracing::warn!("Failed to set cursor position: {}", err);
     }
   }
 
   Ok(())
 }
 
-#[cfg(target_os = "windows")]
+// LINT: `window` is only used on Windows.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 fn apply_window_effects(
   window: &WindowContainer,
   is_focused: bool,
@@ -524,24 +524,28 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
     apply_border_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.corner_style.enabled
     || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(window, effect_config);
   }
 
+  #[cfg(target_os = "windows")]
   if window_effects.focused_window.transparency.enabled
     || window_effects.other_windows.transparency.enabled
   {
@@ -567,8 +571,8 @@ fn apply_border_effect(
 
   // Re-apply border color after a short delay to better handle
   // windows that change it themselves.
-  task::spawn(async move {
-    tokio::time::sleep(Duration::from_millis(50)).await;
+  tokio::task::spawn(async move {
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     _ = native.set_border_color(border_color.as_ref());
   });
 }

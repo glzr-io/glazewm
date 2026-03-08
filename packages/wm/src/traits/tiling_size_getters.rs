@@ -4,7 +4,7 @@ use ambassador::delegatable_trait;
 use anyhow::Context;
 use wm_common::{GapsConfig, TilingDirection};
 
-use super::{CommonGetters, PositionGetters, TilingDirectionGetters};
+use super::{CommonGetters, TilingDirectionGetters};
 use crate::models::{Container, DirectionContainer, TilingContainer};
 
 pub const MIN_TILING_SIZE: f32 = 0.01;

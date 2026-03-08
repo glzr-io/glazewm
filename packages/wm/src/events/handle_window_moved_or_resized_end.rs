@@ -201,7 +201,7 @@ fn drop_as_tiling_window(
       WindowState::Tiling,
       state,
       config,
-    );
+    )?;
   }
 
   let nearest_container = target_parent

@@ -29,7 +29,7 @@ pub fn handle_display_settings_changed(
 
     match find_matching_monitor(&pending_monitors, &properties) {
       Some((monitor, index)) => {
-        update_monitor(monitor, display, state)?;
+        update_monitor(monitor, &display, state)?;
         pending_monitors.remove(index);
       }
       None => unmatched_displays.push(display),
@@ -46,7 +46,7 @@ pub fn handle_display_settings_changed(
       new_monitors.push(monitor);
     } else {
       let monitor = pending_monitors.remove(0);
-      update_monitor(&monitor, display, state)?;
+      update_monitor(&monitor, &display, state)?;
     }
   }
 

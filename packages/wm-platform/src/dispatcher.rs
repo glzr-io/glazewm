@@ -406,6 +406,7 @@ impl Dispatcher {
   /// executed directly.
   ///
   /// Returns a `Result` with the closure's return value.
+  #[allow(clippy::missing_panics_doc)]
   pub fn dispatch_sync<F, R>(&self, dispatch_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
@@ -438,6 +439,7 @@ impl Dispatcher {
   }
 
   /// Gets the thread ID of the event loop thread.
+  #[allow(clippy::missing_panics_doc)]
   #[must_use]
   pub fn thread_id(&self) -> ThreadId {
     // TODO: Block until event loop source is set.
@@ -665,6 +667,7 @@ impl Dispatcher {
   /// Shows a modal error dialog with the given title and message.
   ///
   /// Blocks the current thread until the user dismisses the dialog.
+  #[allow(clippy::missing_panics_doc)]
   pub fn show_error_dialog(&self, title: &str, message: &str) {
     #[cfg(target_os = "windows")]
     {

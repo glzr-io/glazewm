@@ -44,13 +44,11 @@ impl WindowListener {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let hook_handles = dispatcher.dispatch_sync(move || {
-      EVENT_TX
-        .with(|lock| lock.set(event_tx))
-        .map_err(|_| {
-          crate::Error::Platform(
-            "Window event sender already set.".to_string(),
-          )
-        })?;
+      EVENT_TX.with(|lock| lock.set(event_tx)).map_err(|_| {
+        crate::Error::Platform(
+          "Window event sender already set.".to_string(),
+        )
+      })?;
 
       Self::hook_win_events()
     })??;

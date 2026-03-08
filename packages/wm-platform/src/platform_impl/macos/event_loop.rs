@@ -123,7 +123,8 @@ impl EventLoop {
   }
 
   /// macOS-specific implementation of [`EventLoop::run`].
-  pub fn run(&self) -> crate::Result<()> {
+  #[allow(clippy::unused_self)]
+  pub fn run(self) -> crate::Result<()> {
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 

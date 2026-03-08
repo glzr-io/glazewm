@@ -9,14 +9,14 @@ use crate::{
 
 pub fn update_monitor(
   monitor: &Monitor,
-  native_display: Display,
+  native_display: &Display,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   monitor.set_native(native_display.clone());
 
   // TODO: Move this out.
   if let Ok(native_properties) =
-    NativeMonitorProperties::try_from(&native_display)
+    NativeMonitorProperties::try_from(native_display)
   {
     monitor.set_native_properties(native_properties);
   }

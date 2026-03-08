@@ -17,6 +17,7 @@ pub struct KeyEvent {
   pub key: Key,
 
   /// Key code that generated this event.
+  #[allow(dead_code)]
   pub key_code: KeyCode,
 
   /// Whether the event is for a key press or release.

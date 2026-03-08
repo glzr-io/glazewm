@@ -9,6 +9,8 @@ use wm_platform::DispatcherExtWindows;
 
 use crate::wm_state::WmState;
 
+// LINT: `hide_window` is only used on Windows.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 pub fn shell_exec(
   command: &str,
   hide_window: bool,
@@ -78,6 +80,8 @@ pub fn shell_exec(
 /// assert_eq!(prog, r#"C:\Program Files\Git\git-bash"#);
 /// assert_eq!(args, r#"--cd=C:\Users\larsb\.glaze-wm"#);
 /// ```
+// LINT: `state` is only used on Windows.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 fn parse_command(
   command: &str,
   state: &WmState,

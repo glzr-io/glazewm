@@ -485,6 +485,7 @@ impl NativeWindow {
   /// Whether the window is still valid.
   ///
   /// Returns `true` if the underlying window is still alive.
+  #[must_use]
   pub fn is_valid(&self) -> bool {
     self.inner.is_valid()
   }

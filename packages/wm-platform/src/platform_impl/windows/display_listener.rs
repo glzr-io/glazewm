@@ -68,9 +68,7 @@ impl DisplayListener {
                   // (including non-display devices).
                   // TODO: Check if this is actually needed. Previous C#
                   // implementation did not use this.
-                  WM_DEVICECHANGE => {
-                    wparam as u32 == DBT_DEVNODES_CHANGED
-                  }
+                  WM_DEVICECHANGE => wparam as u32 == DBT_DEVNODES_CHANGED,
                   _ => unreachable!(),
                 }
               }

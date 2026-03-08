@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_platform::{NativeWindow, WindowId};
+use wm_platform::WindowId;
 
 use crate::{
   commands::{window::unmanage_window, workspace::deactivate_workspace},

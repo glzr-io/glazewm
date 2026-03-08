@@ -1,7 +1,7 @@
 use anyhow::Context;
 use wm_common::{
-  ActiveDrag, ActiveDragOperation, DisplayState, FloatingStateConfig,
-  FullscreenStateConfig, HideMethod, WindowState, try_warn,
+  try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
+  FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
 use wm_platform::{
   LengthValue, MouseButton, NativeWindow, Rect, RectDelta,
@@ -19,12 +19,14 @@ use crate::{
   wm_state::WmState,
 };
 
+// LINT: `is_interactive_start` and `is_interactive_end` are only used on
+// Windows.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
 #[allow(clippy::too_many_lines)]
 pub fn handle_window_moved_or_resized(
   native_window: &NativeWindow,
-  // LINT: Arguments are unused for macOS, but required for Windows.
-  #[allow(unused)] is_interactive_start: bool,
-  #[allow(unused)] is_interactive_end: bool,
+  is_interactive_start: bool,
+  is_interactive_end: bool,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {

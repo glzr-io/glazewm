@@ -656,20 +656,21 @@ impl WmState {
       .cloned()
   }
 
-  /// Cleans up invalid window handles that may have become stale.
+  /// Cleans up windows that are no longer alive.
   ///
-  /// This addresses the "ghost window" issue where applications terminate
-  /// without properly sending window destroy events, leaving invalid
-  /// window references in GlazeWM's state.
+  /// This addresses the "ghost window" issue where applications may
+  /// terminate without sending window destroy events, leaving invalid
+  /// windows in WM state.
+  ///
+  /// See: <https://github.com/glzr-io/glazewm/issues/1219>
   pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
     let invalid_windows = self
       .windows()
       .into_iter()
       .filter(|window| !window.native().is_valid());
 
-    // Remove each invalid window from the window tree
     for window in invalid_windows {
-      tracing::debug!("Removing invalid window: {}", window);
+      tracing::info!("Removing invalid window: {}", window);
       unmanage_window(window, self)?;
     }
 

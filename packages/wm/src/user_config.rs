@@ -223,7 +223,7 @@ impl UserConfig {
     &self,
     window: &WindowContainer,
     event: &WindowRuleEvent,
-  ) -> anyhow::Result<Vec<WindowRuleConfig>> {
+  ) -> Vec<WindowRuleConfig> {
     let window_title = window.native_properties().title;
     #[cfg(target_os = "windows")]
     let window_class = window.native_properties().class_name;
@@ -250,9 +250,9 @@ impl UserConfig {
           let is_class_match = {
             #[cfg(target_os = "windows")]
             {
-              match_config.window_class.as_ref().is_none_or(
-                |match_type| match_type.is_match(&window_class),
-              )
+              match_config.window_class.as_ref().is_none_or(|match_type| {
+                match_type.is_match(&window_class)
+              })
             }
             #[cfg(not(target_os = "windows"))]
             {
@@ -271,7 +271,7 @@ impl UserConfig {
       .cloned()
       .collect::<Vec<_>>();
 
-    Ok(pending_window_rules)
+    pending_window_rules
   }
 
   pub fn inactive_workspace_configs(

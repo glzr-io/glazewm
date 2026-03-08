@@ -1,6 +1,8 @@
 use anyhow::Context;
 use tracing::{info, warn};
-use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
+#[cfg(target_os = "windows")]
+use wm_common::{HideMethod, ParsedConfig};
+use wm_common::{WindowRuleEvent, WmEvent};
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 

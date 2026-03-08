@@ -163,7 +163,7 @@ async fn start_wm(
     &mut config,
   )?;
 
-  // Create an interval for cleaning up invalid/ghost windows.
+  // Create an interval for periodically cleaning up invalid windows.
   let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
 
   loop {
@@ -197,7 +197,6 @@ async fn start_wm(
         wm.process_event(PlatformEvent::Keybinding(event), &mut config)
       }
       _ = cleanup_interval.tick() => {
-        // Clean up invalid/ghost windows periodically.
         if wm.state.is_paused {
           Ok(())
         } else {

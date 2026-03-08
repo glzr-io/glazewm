@@ -2,15 +2,16 @@ use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
+#[cfg(target_os = "windows")]
+use wm_common::TitleBarVisibility;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand,
-  TitleBarVisibility, WindowState, WmEvent,
+  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, WindowState,
+  WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{
-  Dispatcher, LengthValue, MouseButton, PlatformEvent, RectDelta,
-  WindowEvent,
+  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
 };
 
 use crate::{
