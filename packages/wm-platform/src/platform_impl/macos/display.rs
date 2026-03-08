@@ -50,16 +50,6 @@ impl Display {
     DisplayId(self.cg_display_id)
   }
 
-  /// Gets the Core Graphics display ID.
-  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.cg_display_id
-  }
-
-  /// Gets the `NSScreen` instance for this display.
-  pub(crate) fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
-    &self.ns_screen
-  }
-
   /// Gets the display name.
   pub(crate) fn name(&self) -> crate::Result<String> {
     self.ns_screen.with(|screen| {
@@ -155,6 +145,16 @@ impl Display {
       })
       .ok_or(crate::Error::DisplayNotFound)
   }
+
+  /// Gets the Core Graphics display ID.
+  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
+    self.cg_display_id
+  }
+
+  /// Gets the `NSScreen` instance for this display.
+  pub(crate) fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
+    &self.ns_screen
+  }
 }
 
 /// Transforms an AppKit screen rectangle (e.g. `NSScreen.visibleFrame`)
@@ -225,30 +225,11 @@ impl DisplayDevice {
     DisplayDeviceId(uuid_string)
   }
 
-  /// Gets the Core Graphics display ID.
-  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.cg_display_id
-  }
-
   /// Gets the rotation of the device in degrees.
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
     Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
-  }
-
-  /// Gets the connection state of the device.
-  #[allow(clippy::unnecessary_wraps)]
-  pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
-    let display_mode =
-      unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
-
-    // TODO: Implement this properly.
-    if display_mode.is_none() {
-      Ok(ConnectionState::Disconnected)
-    } else {
-      Ok(ConnectionState::Active)
-    }
   }
 
   /// Gets the refresh rate of the device in Hz.
@@ -272,6 +253,20 @@ impl DisplayDevice {
     // TODO: Implement this properly.
     let main_display_id = unsafe { CGMainDisplayID() };
     Ok(self.cg_display_id == main_display_id)
+  }
+
+  /// Gets the connection state of the device.
+  #[allow(clippy::unnecessary_wraps)]
+  pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
+    let display_mode =
+      unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
+
+    // TODO: Implement this properly.
+    if display_mode.is_none() {
+      Ok(ConnectionState::Disconnected)
+    } else {
+      Ok(ConnectionState::Active)
+    }
   }
 
   /// Gets the mirroring state of the device.
@@ -318,6 +313,11 @@ impl DisplayDevice {
       // This display is mirroring another display, so it's a target
       Ok(Some(MirroringState::Target))
     }
+  }
+
+  /// Gets the Core Graphics display ID.
+  pub(crate) fn cg_display_id(&self) -> CGDirectDisplayID {
+    self.cg_display_id
   }
 }
 

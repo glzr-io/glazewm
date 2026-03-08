@@ -53,6 +53,13 @@ impl WindowListener {
     Ok(Self { hook_handles })
   }
 
+  /// Implements [`WindowListener::terminate`].
+  pub(crate) fn terminate(&mut self) {
+    for handle in self.hook_handles.drain(..) {
+      let _ = unsafe { UnhookWinEvent(handle) };
+    }
+  }
+
   /// Creates several window event hooks via `SetWinEventHook`.
   ///
   /// Separate hooks are created per event range, which is more performant
@@ -174,13 +181,6 @@ impl WindowListener {
 
     if let Err(err) = event_tx.send(event) {
       tracing::warn!("Failed to send window event: {}.", err);
-    }
-  }
-
-  /// Implements [`WindowListener::terminate`].
-  pub(crate) fn terminate(&mut self) {
-    for handle in self.hook_handles.drain(..) {
-      let _ = unsafe { UnhookWinEvent(handle) };
     }
   }
 }

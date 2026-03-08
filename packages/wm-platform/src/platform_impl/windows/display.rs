@@ -37,11 +37,6 @@ impl Display {
     Self { monitor_handle }
   }
 
-  /// Implements [`DisplayExtWindows::hmonitor`].
-  pub(crate) fn hmonitor(&self) -> HMONITOR {
-    HMONITOR(self.monitor_handle)
-  }
-
   /// Implements [`Display::id`].
   pub(crate) fn id(&self) -> DisplayId {
     DisplayId(self.monitor_handle)
@@ -156,6 +151,11 @@ impl Display {
       .ok_or(crate::Error::DisplayDeviceNotFound)
   }
 
+  /// Implements [`DisplayExtWindows::hmonitor`].
+  pub(crate) fn hmonitor(&self) -> HMONITOR {
+    HMONITOR(self.monitor_handle)
+  }
+
   /// Ref: <https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmonitorinfow>
   fn monitor_info_ex(&self) -> crate::Result<MONITORINFOEXW> {
     let mut monitor_info = MONITORINFOEXW {
@@ -234,16 +234,6 @@ impl DisplayDevice {
     )
   }
 
-  /// Implements [`DisplayDeviceExtWindows::hardware_id`].
-  pub(crate) fn hardware_id(&self) -> Option<String> {
-    self
-      .device_path
-      .as_deref()?
-      .split('#')
-      .nth(1)
-      .map(ToString::to_string)
-  }
-
   /// Implements [`DisplayDevice::rotation`].
   pub(crate) fn rotation(&self) -> crate::Result<f32> {
     let orientation = unsafe {
@@ -262,13 +252,11 @@ impl DisplayDevice {
     })
   }
 
-  /// Implements [`DisplayDeviceExtWindows::output_technology`].
-  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-  pub(crate) fn output_technology(
-    &self,
-  ) -> crate::Result<Option<OutputTechnology>> {
-    // TODO: Use `DisplayConfigGetDeviceInfo` to get the output technology.
-    Ok(Some(OutputTechnology::Unknown))
+  /// Implements [`DisplayDevice::refresh_rate`].
+  #[allow(clippy::unnecessary_wraps)]
+  pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
+    #[allow(clippy::cast_precision_loss)]
+    Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
   }
 
   /// Implements [`DisplayDevice::is_builtin`].
@@ -296,11 +284,23 @@ impl DisplayDevice {
     Ok(None)
   }
 
-  /// Implements [`DisplayDevice::refresh_rate`].
-  #[allow(clippy::unnecessary_wraps)]
-  pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
-    #[allow(clippy::cast_precision_loss)]
-    Ok(self.current_device_mode()?.dmDisplayFrequency as f32)
+  /// Implements [`DisplayDeviceExtWindows::hardware_id`].
+  pub(crate) fn hardware_id(&self) -> Option<String> {
+    self
+      .device_path
+      .as_deref()?
+      .split('#')
+      .nth(1)
+      .map(ToString::to_string)
+  }
+
+  /// Implements [`DisplayDeviceExtWindows::output_technology`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+  pub(crate) fn output_technology(
+    &self,
+  ) -> crate::Result<Option<OutputTechnology>> {
+    // TODO: Use `DisplayConfigGetDeviceInfo` to get the output technology.
+    Ok(Some(OutputTechnology::Unknown))
   }
 
   /// Gets the current device mode.

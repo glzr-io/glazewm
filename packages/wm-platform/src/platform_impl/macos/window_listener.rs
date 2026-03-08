@@ -45,6 +45,17 @@ impl WindowListener {
     })
   }
 
+  /// Implements [`WindowListener::terminate`].
+  pub(crate) fn terminate(&mut self) {
+    // On macOS 10.11+, observer subscriptions are cleaned up automatically
+    // without calling `removeObserver`.
+    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
+    //
+    // Dropping the `NotificationObserver` also drops its channel sender,
+    // causing the listener thread to exit.
+    self.observer.take();
+  }
+
   fn init(
     events_tx: mpsc::UnboundedSender<WindowEvent>,
     dispatcher: Dispatcher,
@@ -220,16 +231,6 @@ impl WindowListener {
     app_observer_res
   }
 
-  /// Implements [`WindowListener::terminate`].
-  pub(crate) fn terminate(&mut self) {
-    // On macOS 10.11+, observer subscriptions are cleaned up automatically
-    // without calling `removeObserver`.
-    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
-    //
-    // Dropping the `NotificationObserver` also drops its channel sender,
-    // causing the listener thread to exit.
-    self.observer.take();
-  }
 }
 
 impl Drop for WindowListener {
