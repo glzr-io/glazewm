@@ -1,6 +1,8 @@
 name: Package
 
 on:
+  push:
+    branches: [ci/cross-platform-build]
   workflow_call:
     inputs:
       version_number:
@@ -13,7 +15,7 @@ on:
         description: Version number to use for the build (e.g. `1.0.0`).
 
 env:
-  VERSION: ${{ inputs.version_number }}
+  VERSION: ${{ inputs.version_number || '3.10.0' }}
 
 jobs:
   build:
@@ -21,7 +23,7 @@ jobs:
     with:
       enable_ui_access: true
       targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc,x86_64-apple-darwin,aarch64-apple-darwin
-      version_number: ${{ inputs.version_number }}
+      version_number: ${{ env.VERSION }}
 
   package-windows:
     needs: build
