@@ -88,7 +88,6 @@ jobs:
           done
 
       - name: Import signing certificate
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -117,7 +116,6 @@ jobs:
 
       # Make sure to sign the binaries before they're copied into the app bundle.
       - name: Sign universal binaries
-        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
@@ -160,7 +158,6 @@ jobs:
           echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
       - name: Sign app bundle
-        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
@@ -185,7 +182,6 @@ jobs:
             installer-universal.dmg
 
       - name: Sign DMG
-        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
@@ -194,7 +190,6 @@ jobs:
             installer-universal.dmg
 
       - name: Notarize DMG
-        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_ID_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
