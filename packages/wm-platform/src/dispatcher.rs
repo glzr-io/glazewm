@@ -342,7 +342,7 @@ pub struct Dispatcher {
 
 impl Dispatcher {
   // TODO: Allow for source to be resolved after creation when used via
-  // `EventLoopInstaller`.
+  // `EventLoopInstaller` (to be added).
   pub(crate) fn new(
     source: Option<platform_impl::EventLoopSource>,
     stopped: Arc<AtomicBool>,
