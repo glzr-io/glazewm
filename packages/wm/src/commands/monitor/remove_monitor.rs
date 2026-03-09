@@ -49,6 +49,13 @@ pub fn remove_monitor(
     });
   }
 
+  // Detach any remaining empty workspaces before detaching the monitor.
+  // Without this, the monitor and its orphaned workspace children form
+  // Rc reference cycles (Monitor ↔ Workspace) that can never be freed.
+  for workspace in monitor.workspaces() {
+    detach_container(workspace.into())?;
+  }
+
   detach_container(monitor.clone().into())?;
 
   state.emit_event(WmEvent::MonitorRemoved {
