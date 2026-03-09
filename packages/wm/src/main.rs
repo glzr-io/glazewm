@@ -157,11 +157,14 @@ async fn start_wm(
   )?;
 
   // Run user's startup commands.
-  wm.process_commands(
+  if let Err(err) = wm.process_commands(
     &config.value.general.startup_commands.clone(),
     None,
     &mut config,
-  )?;
+  ) {
+    tracing::error!("{:?}", err);
+    dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
+  }
 
   // Create an interval for periodically cleaning up invalid windows.
   let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
