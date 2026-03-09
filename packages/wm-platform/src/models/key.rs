@@ -268,10 +268,10 @@ macro_rules! impl_key_parsing {
     impl FromStr for Key {
       type Err = KeyParseError;
 
-      fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+      fn from_str(key_str: &str) -> Result<Self, Self::Err> {
+        match key_str.to_ascii_lowercase().as_str() {
           $($($str_name)|+ => Ok(Key::$variant),)*
-          _ => Err(KeyParseError::UnknownKey(s.to_string())),
+          _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
         }
       }
     }
@@ -427,6 +427,11 @@ mod tests {
     assert_eq!("space".parse::<Key>().unwrap(), Key::Space);
     assert_eq!("enter".parse::<Key>().unwrap(), Key::Enter);
     assert_eq!("return".parse::<Key>().unwrap(), Key::Enter);
+
+    // Should be case-insensitive.
+    assert_eq!("Shift".parse::<Key>().unwrap(), Key::Shift);
+    assert_eq!("CTRL".parse::<Key>().unwrap(), Key::Ctrl);
+    assert_eq!("F1".parse::<Key>().unwrap(), Key::F1);
 
     // Should fail for unknown keys.
     assert!("invalid".parse::<Key>().is_err());
