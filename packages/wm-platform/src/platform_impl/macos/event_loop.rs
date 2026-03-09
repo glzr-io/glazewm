@@ -88,7 +88,7 @@ impl EventLoopSource {
     })?;
 
     result_rx
-      .recv_timeout(std::time::Duration::from_millis(3000))
+      .recv_timeout(std::time::Duration::from_secs(3))
       .map_err(crate::Error::ChannelRecv)
   }
 }
