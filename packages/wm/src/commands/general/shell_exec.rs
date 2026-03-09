@@ -27,30 +27,39 @@ pub fn shell_exec(
   // launches the program as a subprocess. This prevents cleanup of handles
   // held by our process (e.g. the IPC server port) until the subprocess
   // exits.
-  #[cfg(target_os = "macos")]
-  {
-    Shell::spawn(
-      &program,
-      args.split_whitespace(),
-      &CommandOptions::default(),
-    )?;
-  }
-  #[cfg(target_os = "windows")]
-  {
-    let home_dir =
-      home::home_dir().context("Unable to get home directory.")?;
+  let result = {
+    #[cfg(target_os = "macos")]
+    {
+      Shell::spawn(
+        &program,
+        args.split_whitespace(),
+        &CommandOptions::default(),
+      )
+    }
+    #[cfg(target_os = "windows")]
+    {
+      let home_dir =
+        home::home_dir().context("Unable to get home directory.")?;
 
-    // TODO: Use `Shell::spawn` instead. `ShellExecuteExW` is still used to
-    // be able to launch programs from the App Paths registry
-    // (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths`), like
-    // `chrome` without it being in $PATH.
-    state.dispatcher.shell_execute_ex(
-      &program,
-      &args,
-      &home_dir,
-      hide_window,
-    )?;
-  }
+      // TODO: Use `Shell::spawn` instead. `ShellExecuteExW` is still used
+      // to be able to launch programs from the App Paths registry
+      // (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths`), like
+      // `chrome` without it being in $PATH.
+      state.dispatcher.shell_execute_ex(
+        &program,
+        &args,
+        &home_dir,
+        hide_window,
+      )
+    }
+  };
+
+  result.map_err(|err| {
+    anyhow::anyhow!(
+      "Shell exec failed for '{command}'. Make sure the program exists and is \
+      accessible from your shell. Error: {err}",
+    )
+  })?;
 
   Ok(())
 }
@@ -109,7 +118,7 @@ fn parse_command(
     let (closing_index, _) =
       expanded_command.match_indices('"').nth(2).ok_or_else(|| {
         anyhow::anyhow!(
-          "Command doesn't have an ending `\"`: '{expanded_command}'."
+          "Shell exec failed for '{command}': command doesn't have an ending `\"`."
         )
       })?;
 
@@ -143,6 +152,6 @@ fn parse_command(
   }
 
   anyhow::bail!(
-    "Program path is not valid for command '{expanded_command}'."
+    "Shell exec failed for '{command}': program path is not valid."
   )
 }
