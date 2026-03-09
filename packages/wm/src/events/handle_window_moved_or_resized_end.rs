@@ -196,12 +196,12 @@ fn drop_as_tiling_window(
 
     moved_window.set_insertion_target(None);
 
-    update_window_state(
+    return update_window_state(
       moved_window.as_window_container()?,
       WindowState::Tiling,
       state,
       config,
-    )?;
+    );
   }
 
   let nearest_container = target_parent
