@@ -30,14 +30,10 @@ pub fn update_workspace_config(
       .name
       .clone()
       .unwrap_or(current_config.name.clone()),
-    display_name: if new_config.no_display_name {
-      None
-    } else {
-      new_config
-        .display_name
-        .clone()
-        .or(current_config.display_name.clone())
-    },
+    display_name: new_config
+      .display_name
+      .clone()
+      .or(current_config.display_name.clone()),
     bind_to_monitor: new_config
       .bind_to_monitor
       .or(current_config.bind_to_monitor),

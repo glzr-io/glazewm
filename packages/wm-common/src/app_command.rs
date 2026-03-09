@@ -423,15 +423,8 @@ pub struct InvokeUpdateWorkspaceConfig {
   #[clap(long, allow_hyphen_values = true)]
   pub name: Option<String>,
 
-  #[clap(
-    long,
-    allow_hyphen_values = true,
-    conflicts_with = "no_display_name"
-  )]
+  #[clap(long, allow_hyphen_values = true)]
   pub display_name: Option<String>,
-
-  #[clap(long, conflicts_with = "display_name")]
-  pub no_display_name: bool,
 
   #[clap(long)]
   pub bind_to_monitor: Option<u32>,
