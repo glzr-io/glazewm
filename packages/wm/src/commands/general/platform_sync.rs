@@ -5,6 +5,8 @@ use wm_common::{
   CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
   WindowState, WmEvent,
 };
+#[cfg(target_os = "macos")]
+use wm_platform::DispatcherExtMacOs;
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "windows")]
@@ -32,7 +34,16 @@ pub fn platform_sync(
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
-    redraw_containers(&focused_container, state, config)?;
+    #[cfg(target_os = "macos")]
+    state.dispatcher.disable_screen_updates();
+
+    let redraw_result =
+      redraw_containers(&focused_container, state, config);
+
+    #[cfg(target_os = "macos")]
+    state.dispatcher.reenable_screen_updates();
+
+    redraw_result?;
   }
 
   if state.pending_sync.needs_cursor_jump()

@@ -64,6 +64,9 @@ unsafe extern "C" {
   ) -> AXError;
 }
 
+/// Connection ID type used by CGS (CoreGraphics Services) private APIs.
+pub(crate) type CGSConnectionID = i32;
+
 #[link(name = "SkyLight", kind = "framework")]
 unsafe extern "C" {
   pub(crate) fn _SLPSSetFrontProcessWithOptions(
@@ -76,4 +79,16 @@ unsafe extern "C" {
     psn: &ProcessSerialNumber,
     event: *const c_void,
   ) -> CGError;
+
+  /// Returns the connection ID for the calling process's main CGS
+  /// connection.
+  pub(crate) fn CGSMainConnectionID() -> CGSConnectionID;
+
+  /// Disables screen updates on the given CGS connection, batching all
+  /// subsequent visual changes until `SLSReenableUpdate` is called.
+  pub(crate) fn SLSDisableUpdate(cid: CGSConnectionID);
+
+  /// Re-enables screen updates on the given CGS connection, flushing all
+  /// batched visual changes at once.
+  pub(crate) fn SLSReenableUpdate(cid: CGSConnectionID);
 }

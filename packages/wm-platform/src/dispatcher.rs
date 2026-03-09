@@ -84,6 +84,22 @@ pub trait DispatcherExtMacOs {
   ///
   /// This method is only available on macOS.
   fn has_ax_permission(&self, prompt: bool) -> bool;
+
+  /// Disables screen updates on the main CGS connection, batching all
+  /// subsequent visual changes until `reenable_screen_updates` is called.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn disable_screen_updates(&self);
+
+  /// Re-enables screen updates on the main CGS connection, flushing all
+  /// batched visual changes at once.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn reenable_screen_updates(&self);
 }
 
 #[cfg(target_os = "macos")]
@@ -99,6 +115,16 @@ impl DispatcherExtMacOs for Dispatcher {
     );
 
     unsafe { AXIsProcessTrustedWithOptions(Some(options.as_ref())) }
+  }
+
+  fn disable_screen_updates(&self) {
+    let cid = unsafe { platform_impl::ffi::CGSMainConnectionID() };
+    unsafe { platform_impl::ffi::SLSDisableUpdate(cid) };
+  }
+
+  fn reenable_screen_updates(&self) {
+    let cid = unsafe { platform_impl::ffi::CGSMainConnectionID() };
+    unsafe { platform_impl::ffi::SLSReenableUpdate(cid) };
   }
 }
 
