@@ -1,18 +1,17 @@
 name: Package
 
 on:
-  push:
-    branches:
-      - ci/cross-platform-build
   workflow_call:
     inputs:
       version_number:
         type: string
+        default: 0.0.0
         description: Version number to use for the build (e.g. `1.0.0`).
   workflow_dispatch:
     inputs:
       version_number:
         type: string
+        default: 0.0.0
         description: Version number to use for the build (e.g. `1.0.0`).
 
 jobs:
@@ -20,13 +19,13 @@ jobs:
     uses: ./.github/workflows/build.yaml
     with:
       enable_ui_access: true
-      version_number: ${{ inputs.version_number || '3.10.0' }}
+      version_number: ${{ inputs.version_number }}
 
   package-windows:
     needs: build
     runs-on: windows-latest
     env:
-      VERSION: ${{ inputs.version_number || '3.10.0' }}
+      VERSION: ${{ inputs.version_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -66,7 +65,7 @@ jobs:
     needs: build
     runs-on: macos-latest
     env:
-      VERSION: ${{ inputs.version_number || '3.10.0' }}
+      VERSION: ${{ inputs.version_number }}
     steps:
       - uses: actions/checkout@v4
 

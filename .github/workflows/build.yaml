@@ -9,17 +9,7 @@ on:
         description: (Windows only) Enable UIAccess in the application manifest.
       version_number:
         type: string
-        default: 0.0.0-dev
-        description: Version number to use for the build.
-  workflow_dispatch:
-    inputs:
-      enable_ui_access:
-        type: boolean
-        default: false
-        description: (Windows only) Enable UIAccess in the application manifest.
-      version_number:
-        type: string
-        default: 0.0.0-dev
+        default: 0.0.0
         description: Version number to use for the build.
 
 jobs:
