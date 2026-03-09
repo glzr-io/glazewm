@@ -256,8 +256,7 @@ impl NativeWindow {
       // Get whether enhanced UI is currently enabled.
       let was_enabled = app_el
         .get_attribute::<CFBoolean>("AXEnhancedUserInterface")
-        .map(|cf_bool| cf_bool.value())
-        .unwrap_or(false);
+        .is_ok_and(|cf_bool| cf_bool.value());
 
       // Disable enhanced UI if it was enabled.
       if was_enabled {
