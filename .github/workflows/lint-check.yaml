@@ -7,22 +7,34 @@ on:
 
 jobs:
   lint-check:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # MacOS (Apple Silicon)
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          # Windows (x64)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
-          toolchain: nightly
           components: clippy, rustfmt
+          targets: ${{ matrix.target }}
+          toolchain: nightly
 
       - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        with:
+          shared-key: ${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Check formatting (rustfmt)
         run: cargo fmt --check
 
+      # Clippy itself runs `cargo check`, so this will also check for compilation errors.
       - name: Check linting (clippy)
         run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Check build
-        run: cargo build --locked

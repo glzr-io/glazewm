@@ -3,15 +3,12 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      draft-release:
-        type: boolean
-        default: true
-        description: Whether to publish the release as a draft.
+      version_number:
+        type: string
+        description: Version number to use for the build (e.g. `1.0.0`).
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 concurrency:
   group: release
@@ -20,42 +17,42 @@ jobs:
   package:
     uses: ./.github/workflows/package.yaml
     secrets: inherit
+    with:
+      version_number: ${{ inputs.version_number }}
 
   release:
-    needs: [package]
+    needs: package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download installers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: installers
-          path: out/
+          name: package-*
+          merge-multiple: true
 
-      - name: Semantic release
-        uses: glzr-io/actions/semantic-release@main
-        with:
-          gh-publish: true
-          gh-draft-release: ${{ inputs.draft-release }}
-          gh-token: ${{ github.token }}
-          gh-assets: |
-            [
-              {
-                "path": "out/installer-universal.exe",
-                "name": "glazewm-${nextRelease.gitTag}.exe",
-                "label": "${nextRelease.gitTag} Installer (standard)"
-              },
-              {
-                "path": "out/installer-x64.msi",
-                "name": "standalone-glazewm-${nextRelease.gitTag}-x64.msi",
-                "label": "${nextRelease.gitTag} Standalone Installer (x64)"
-              },
-              {
-                "path": "out/installer-arm64.msi",
-                "name": "standalone-glazewm-${nextRelease.gitTag}-arm64.msi",
-                "label": "${nextRelease.gitTag} Standalone Installer (arm64)"
-              }
-            ]
+      - name: Rename installers
+        env:
+          # Add a `v` prefix to the version number.
+          VERSION: v${{ inputs.version_number }}
+        run: |
+          mv installer-universal.exe "glazewm-$VERSION.exe"
+          mv installer-arm64.msi "standalone-glazewm-$VERSION-arm64.msi"
+          mv installer-x64.msi "standalone-glazewm-$VERSION-x64.msi"
+          mv installer-universal.dmg "glazewm-$VERSION.dmg"
+
+      - name: Create draft release
+        env:
+          # Add a `v` prefix to the version number.
+          VERSION: v${{ inputs.version_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            --draft \
+            "./glazewm-$VERSION.exe#$VERSION for Windows (standard)" \
+            "./standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
+            "./standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)" \
+            "./glazewm-$VERSION.dmg#$VERSION for macOS"
