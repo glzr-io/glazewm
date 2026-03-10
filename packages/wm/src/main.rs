@@ -9,7 +9,9 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![feature(iterator_try_collect)]
 
-use std::{env, io::IsTerminal, path::PathBuf, process, time::Duration};
+#[cfg(target_os = "macos")]
+use std::io::IsTerminal;
+use std::{env, path::PathBuf, process, time::Duration};
 
 use anyhow::{Context, Error};
 use tokio::{process::Command, signal};
