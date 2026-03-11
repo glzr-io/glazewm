@@ -120,12 +120,17 @@ pub trait WindowGetters: CommonGetters {
     let is_covering = frame.contains_rect(&workspace_rect.inset(1));
 
     // A workspace with one tiling window will have that window cover the
-    // workspace bounds, but it should not be considered fullscreen.
-    let is_single_tiling_window = self.state() == WindowState::Tiling
-      && self.tiling_siblings().count() == 0
-      && workspace_rect.inset(-1).contains_rect(&frame);
+    // workspace bounds, but it should not be considered fullscreen. This
+    // check is also valid for fullscreen windows that have just been
+    // restored.
+    let is_single_window_occupying_workspace =
+      matches!(
+        self.state(),
+        WindowState::Tiling | WindowState::Fullscreen(_)
+      ) && self.tiling_siblings().count() == 0
+        && workspace_rect.inset(-1).contains_rect(&frame);
 
-    Ok(is_covering && !is_single_tiling_window)
+    Ok(is_covering && !is_single_window_occupying_workspace)
   }
 
   fn display_state(&self) -> DisplayState;
