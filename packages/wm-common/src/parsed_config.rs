@@ -96,6 +96,11 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether the tray icon should reflect the WM pause state and current
+  /// tiling direction.
+  #[serde(alias = "tray-icon-state")]
+  pub tray_icon_state: bool,
 }
 
 impl Default for GeneralConfig {
@@ -118,6 +123,7 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
+      tray_icon_state: false,
     }
   }
 }
