@@ -108,20 +108,30 @@ pub trait WindowGetters: CommonGetters {
 
     // Check if the window frame covers the workspace bounds (with 1px of
     // leeway).
-    let is_covering = frame.contains_rect(&workspace_rect.inset(1));
+    // let is_covering = frame.contains_rect(&workspace_rect.inset(1));
 
     // A workspace with one tiling window will have that window cover the
-    // workspace bounds, but it should not be considered fullscreen. This
-    // check is also valid for fullscreen windows that have just been
-    // restored.
-    let is_single_window_occupying_workspace =
-      matches!(
-        self.state(),
-        WindowState::Tiling | WindowState::Fullscreen(_)
-      ) && self.tiling_siblings().count() == 0
-        && workspace_rect.inset(-1).contains_rect(&frame);
-
-    Ok(is_covering && !is_single_window_occupying_workspace)
+    // workspace bounds, but it should not be considered fullscreen.
+    // What is the rule?
+    // - If the window is tiling, it shouldn't be fullscreen if it
+    //   perfectly covers the workspace bounds.
+    //   - Do we need the check for whether it's a single tiling window?
+    // - Basically always restore to tiling/floating
+    // - If the window is not fullscreen, , it should be fullscreen if it
+    //   covers the workspace bounds.
+    // Ok(if self.tiling_siblings().count() > 0 {
+    //   is_covering
+    // } else {
+    //   is_covering && workspace_rect.inset(-1).contains_rect(&frame)
+    // })
+    Ok(match self.state() {
+      // Keep as fullscreen if the frame covers the workspace bounds.
+      WindowState::Fullscreen(s) if !s.maximized => {
+        workspace_rect.inset(-1).contains_rect(&frame)
+      }
+      // Change to fullscreen if the frame *exceeds* the workspace bounds.
+      _ => frame.contains_rect(&workspace_rect.inset(1)),
+    })
   }
 
   fn display_state(&self) -> DisplayState;

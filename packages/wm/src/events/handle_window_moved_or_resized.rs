@@ -233,6 +233,27 @@ pub fn handle_window_moved_or_resized(
 
     // Handle a window being maximized or entering fullscreen.
     if is_maximized || should_fullscreen {
+      let is_same_state = is_maximized
+        && matches!(
+          window.state(),
+          WindowState::Fullscreen(FullscreenStateConfig {
+            maximized: true,
+            ..
+          })
+        )
+        || should_fullscreen
+          && matches!(
+            window.state(),
+            WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: false,
+              ..
+            })
+          );
+
+      if is_same_state {
+        return Ok(());
+      }
+
       let fullscreen_state = if let WindowState::Fullscreen(
         fullscreen_state,
       ) = window.state()
@@ -247,7 +268,7 @@ pub fn handle_window_moved_or_resized(
           .clone()
       };
 
-      update_window_state(
+      let window = update_window_state(
         window.clone(),
         WindowState::Fullscreen(FullscreenStateConfig {
           maximized: is_maximized,
