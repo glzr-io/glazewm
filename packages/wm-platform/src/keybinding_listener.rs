@@ -126,6 +126,14 @@ impl KeybindingListener {
     self.enabled.store(enabled, Ordering::Relaxed);
   }
 
+  /// Re-registers the underlying keyboard hook.
+  ///
+  /// Call after system events that may silently unregister
+  /// `WH_KEYBOARD_LL` hooks (e.g. sleep/wake, display changes).
+  pub fn rehook(&mut self) -> crate::Result<()> {
+    self.keyboard_hook.rehook()
+  }
+
   /// Terminates the keybinding listener.
   pub fn terminate(&mut self) -> crate::Result<()> {
     self.keyboard_hook.terminate()

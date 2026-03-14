@@ -144,6 +144,30 @@ impl KeyboardHook {
     Ok(())
   }
 
+  /// Re-registers the keyboard hook with the existing callback.
+  ///
+  /// Windows can silently unregister `WH_KEYBOARD_LL` hooks after
+  /// system events (sleep/wake, lock screen, UAC). This method
+  /// unhooks the old handle and installs a fresh one, reusing the
+  /// callback already stored in the thread-local.
+  pub fn rehook(&mut self) -> crate::Result<()> {
+    // Unhook the (possibly dead) old handle; ignore errors since
+    // it may already be invalid.
+    let _ = unsafe { UnhookWindowsHookEx(self.handle) };
+
+    let new_handle = self.dispatcher.dispatch_sync(|| unsafe {
+      SetWindowsHookExW(
+        WH_KEYBOARD_LL,
+        Some(Self::hook_proc),
+        HINSTANCE::default(),
+        0,
+      )
+    })??;
+
+    self.handle = new_handle;
+    Ok(())
+  }
+
   /// Hook procedure for keyboard events.
   ///
   /// For use with `SetWindowsHookExW`.

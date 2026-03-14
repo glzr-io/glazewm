@@ -210,6 +210,13 @@ async fn start_wm(
         wm.process_event(PlatformEvent::Keybinding(event), &mut config)
       }
       _ = cleanup_interval.tick() => {
+        // Re-register keyboard hook — Windows silently drops
+        // WH_KEYBOARD_LL hooks after system events (sleep/wake,
+        // lock screen, UAC, display changes, hook timeout).
+        if let Err(err) = keybinding_listener.rehook() {
+          tracing::warn!("Failed to re-register keyboard hook: {}", err);
+        }
+
         if wm.state.is_paused {
           Ok(())
         } else {

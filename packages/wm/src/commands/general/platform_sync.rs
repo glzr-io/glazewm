@@ -453,6 +453,7 @@ fn reposition_window(
           // first move are resolved.
           if window.has_pending_dpi_adjustment() {
             window.native().set_window_pos(z_order, &rect, swp_flags)?;
+            window.set_has_pending_dpi_adjustment(false);
           }
         }
       }
