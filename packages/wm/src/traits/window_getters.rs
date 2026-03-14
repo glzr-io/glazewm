@@ -121,18 +121,6 @@ pub trait WindowGetters: CommonGetters {
       _ => frame.inset(1).contains_rect(&workspace_rect),
     };
 
-    tracing::info!(
-      "should_fullscreen: {should_fullscreen}, covers: {:?}, exceeded: {:?}",
-      frame.contains_rect(&workspace_rect.inset(1)),
-        frame.contains_rect(&workspace_rect.inset(1))
-          && !workspace_rect.inset(-1).contains_rect(&frame),
-    );
-    tracing::info!(
-      "workspace_rect: {:?} frame: {:?}",
-      workspace_rect,
-      frame
-    );
-
     Ok(should_fullscreen)
   }
 
