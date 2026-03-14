@@ -98,7 +98,7 @@ pub(crate) fn sync_focused_window_border(
   };
 
   let tracked_window = window.native().clone();
-  let frame = window.native_properties().frame;
+  let frame = current_focused_window_border_frame(&window);
   let color = &config.value.window_effects.focused_window.border.color;
 
   if border.tracked_window_id() == Some(tracked_window.id()) {
@@ -108,6 +108,24 @@ pub(crate) fn sync_focused_window_border(
   }
 
   Ok(())
+}
+
+/// Gets the current frame to use for the focused-window border overlay.
+///
+/// Prefers the live native frame because cached native properties can lag
+/// behind the initial tiling redraw during startup.
+#[cfg(target_os = "windows")]
+fn current_focused_window_border_frame(window: &WindowContainer) -> Rect {
+  match window.native().frame() {
+    Ok(frame) => frame,
+    Err(err) => {
+      tracing::warn!(
+        "Failed to get live frame for focused-window border: {}",
+        err
+      );
+      window.native_properties().frame
+    }
+  }
 }
 
 fn sync_focus(
