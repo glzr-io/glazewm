@@ -109,36 +109,16 @@ pub trait WindowGetters: CommonGetters {
       .frame
       .apply_delta(&self.border_delta().inverse(), None);
 
-    // Check if the window frame covers the workspace bounds (with 1px of
-    // leeway).
-    // let is_covering = frame.contains_rect(&workspace_rect.inset(1));
-
-    // A workspace with one tiling window will have that window cover the
-    // workspace bounds, but it should not be considered fullscreen.
-    // What is the rule?
-    // - If the window is tiling, it shouldn't be fullscreen if it
-    //   perfectly covers the workspace bounds.
-    //   - Do we need the check for whether it's a single tiling window?
-    // - Basically always restore to tiling/floating
-    // - If the window is not fullscreen, , it should be fullscreen if it
-    //   covers the workspace bounds.
-    // Ok(if self.tiling_siblings().count() > 0 {
-    //   is_covering
-    // } else {
-    //   is_covering && workspace_rect.inset(-1).contains_rect(&frame)
-    // })
     let should_fullscreen = match self.state() {
       // Keep as fullscreen if the frame covers the workspace bounds.
-      WindowState::Fullscreen(s) if !s.maximized => {
+      WindowState::Fullscreen(fullscreen) if !fullscreen.maximized => {
         frame.contains_rect(&workspace_rect.inset(1))
       }
+
       // Change to fullscreen if the frame *exceeds* the workspace bounds.
-      // _ => workspace_rect.inset(-1).contains_rect(&frame),
-      // _ => frame.contains_rect(&workspace_rect.inset(-1)),
-      _ => {
-        frame.contains_rect(&workspace_rect.inset(1))
-          && !workspace_rect.inset(-1).contains_rect(&frame)
-      }
+      // NOTE: This is never possible with 0px outer gaps; the window has
+      // to be made fullscreen via the `set-fullscreen` command.
+      _ => frame.inset(1).contains_rect(&workspace_rect),
     };
 
     tracing::info!(
@@ -146,6 +126,11 @@ pub trait WindowGetters: CommonGetters {
       frame.contains_rect(&workspace_rect.inset(1)),
         frame.contains_rect(&workspace_rect.inset(1))
           && !workspace_rect.inset(-1).contains_rect(&frame),
+    );
+    tracing::info!(
+      "workspace_rect: {:?} frame: {:?}",
+      workspace_rect,
+      frame
     );
 
     Ok(should_fullscreen)
