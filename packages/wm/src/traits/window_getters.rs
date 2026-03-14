@@ -103,8 +103,11 @@ pub trait WindowGetters: CommonGetters {
     &self,
     workspace: &Workspace,
   ) -> anyhow::Result<bool> {
-    let frame = self.native_properties().frame;
     let workspace_rect = workspace.max_workspace_rect()?;
+    let frame = self
+      .native_properties()
+      .frame
+      .apply_delta(&self.border_delta().inverse(), None);
 
     // Check if the window frame covers the workspace bounds (with 1px of
     // leeway).
@@ -124,14 +127,28 @@ pub trait WindowGetters: CommonGetters {
     // } else {
     //   is_covering && workspace_rect.inset(-1).contains_rect(&frame)
     // })
-    Ok(match self.state() {
+    let should_fullscreen = match self.state() {
       // Keep as fullscreen if the frame covers the workspace bounds.
       WindowState::Fullscreen(s) if !s.maximized => {
-        workspace_rect.inset(-1).contains_rect(&frame)
+        frame.contains_rect(&workspace_rect.inset(1))
       }
       // Change to fullscreen if the frame *exceeds* the workspace bounds.
-      _ => frame.contains_rect(&workspace_rect.inset(1)),
-    })
+      // _ => workspace_rect.inset(-1).contains_rect(&frame),
+      // _ => frame.contains_rect(&workspace_rect.inset(-1)),
+      _ => {
+        frame.contains_rect(&workspace_rect.inset(1))
+          && !workspace_rect.inset(-1).contains_rect(&frame)
+      }
+    };
+
+    tracing::info!(
+      "should_fullscreen: {should_fullscreen}, covers: {:?}, exceeded: {:?}",
+      frame.contains_rect(&workspace_rect.inset(1)),
+        frame.contains_rect(&workspace_rect.inset(1))
+          && !workspace_rect.inset(-1).contains_rect(&frame),
+    );
+
+    Ok(should_fullscreen)
   }
 
   fn display_state(&self) -> DisplayState;
