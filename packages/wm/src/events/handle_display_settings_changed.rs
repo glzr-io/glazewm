@@ -1,4 +1,5 @@
 use anyhow::Context;
+use wm_common::try_warn;
 
 use crate::{
   commands::monitor::{
@@ -17,7 +18,8 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   tracing::info!("Display settings changed.");
 
-  let displays = state.dispatcher.sorted_displays()?;
+  // Ignore the event if retrieval of the displays fails.
+  let displays = try_warn!(state.dispatcher.sorted_displays());
   let mut pending_monitors = state.monitors();
   let mut unmatched_displays = Vec::new();
 
