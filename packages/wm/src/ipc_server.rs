@@ -282,13 +282,20 @@ impl IpcServer {
                 if events.contains(&event_type)
                   || events.contains(&SubscribableEvent::All)
                 {
-                  let res = Self::to_event_subscription_msg(
+                  // Break on either serialization failure or send failure
+                  // (send fails when the WebSocket connection has closed and
+                  // `response_rx` has been dropped).
+                  let send_result = Self::to_event_subscription_msg(
                     subscription_id,
                     event,
                   )
-                  .map(|event_msg| response_tx.send(event_msg));
+                  .and_then(|event_msg| {
+                    response_tx
+                      .send(event_msg)
+                      .map_err(|err| anyhow::anyhow!("{err}"))
+                  });
 
-                  if let Err(err) = res {
+                  if let Err(err) = send_result {
                     warn!("Error emitting WM event: {}", err);
                     break;
                   }
