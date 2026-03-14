@@ -3,6 +3,8 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
   FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
 use wm_platform::{LengthValue, MouseButton, RectDelta};
 use wm_platform::{NativeWindow, Rect};
@@ -87,6 +89,19 @@ pub fn handle_window_moved_or_resized(
     window.update_native_properties(|properties| {
       properties.is_maximized = is_maximized;
     });
+
+    // If the window is not maximized, update its cached shadow borders.
+    // Maximized windows temporarily have 0 shadow borders, in which case
+    // we should use its previous value for redraws.
+    #[cfg(target_os = "windows")]
+    {
+      let shadow_borders = try_warn!(window.native().shadow_borders());
+      if !is_maximized {
+        window.update_native_properties(|properties| {
+          properties.shadow_borders = shadow_borders;
+        });
+      }
+    }
 
     let is_minimized = try_warn!(window.native().is_minimized());
 

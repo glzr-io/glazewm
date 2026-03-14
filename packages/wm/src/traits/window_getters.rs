@@ -2,8 +2,6 @@ use std::cell::Ref;
 
 use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::{
@@ -69,17 +67,10 @@ pub trait WindowGetters: CommonGetters {
   fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_delta = self.border_delta();
 
-    let shadow_border_delta = {
-      #[cfg(target_os = "windows")]
-      {
-        // TODO: Avoid re-querying for shadow borders.
-        self.native().shadow_borders()?
-      }
-      #[cfg(not(target_os = "windows"))]
-      {
-        RectDelta::zero()
-      }
-    };
+    #[cfg(target_os = "windows")]
+    let shadow_border_delta = self.native_properties().shadow_borders;
+    #[cfg(not(target_os = "windows"))]
+    let shadow_border_delta = RectDelta::zero();
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
