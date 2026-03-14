@@ -58,10 +58,14 @@ window_effects:
   # Visual effects to apply to the focused window.
   focused_window:
     # Highlight the window with a colored border.
-    # ** Exclusive to Windows 11 due to API limitations.
+    # Uses the native border on Windows 11.
+    # On Windows 10, set `win10_highlight` to use an overlay highlight.
     border:
       enabled: true
       color: '#8dbcff'
+
+    # Enable the focused-window overlay highlight on Windows 10.
+    win10_highlight: false
 
     # Remove the title bar from the window's frame. Note that this can
     # cause rendering issues for some applications.
@@ -84,6 +88,7 @@ window_effects:
 
   # Visual effects to apply to non-focused windows.
   other_windows:
+    # Windows 10 does not support the overlay highlight for unfocused windows.
     border:
       enabled: true
       color: '#a1a1a1'

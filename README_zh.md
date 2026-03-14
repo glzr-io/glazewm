@@ -277,7 +277,7 @@ window_rules:
 
 可以通过 `window_effects` 选项对窗口应用视觉效果。目前，彩色边框是唯一可用的效果，未来会有更多效果。
 
-> 注意：窗口效果仅适用于 Windows 11。
+> 注意：原生窗口边框效果需要 Windows 11。在 Windows 10 上，可以使用 `win10_highlight` 叠加高亮来突出当前聚焦窗口。
 
 ```yaml
 window_effects:
@@ -287,6 +287,9 @@ window_effects:
     border:
       enabled: true
       color: "#0000ff"
+
+    # 在 Windows 10 上使用叠加高亮。
+    win10_highlight: false
 
   # 应用于非聚焦窗口的视觉效果。
   other_windows:

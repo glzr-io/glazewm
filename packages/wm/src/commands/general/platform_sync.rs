@@ -49,7 +49,7 @@ pub fn platform_sync(
     let prev_effects_window = state.prev_effects_window.clone();
 
     if let Ok(window) = focused_container.as_window_container() {
-      apply_window_effects(&window, true, config);
+      apply_window_effects(&window, true, state, config);
       state.prev_effects_window = Some(window.clone());
     } else {
       state.prev_effects_window = None;
@@ -69,11 +69,43 @@ pub fn platform_sync(
       .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
-      apply_window_effects(&window, false, config);
+      apply_window_effects(&window, false, state, config);
     }
   }
 
+  #[cfg(target_os = "windows")]
+  sync_focused_window_border(state, config)?;
+
   state.pending_sync.clear();
+
+  Ok(())
+}
+
+/// Syncs the Win10-focused border overlay with the WM focus state.
+#[cfg(target_os = "windows")]
+pub(crate) fn sync_focused_window_border(
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let target_window = win10_highlight_target(state, config);
+  let Some(border) = state.focused_window_border.as_mut() else {
+    return Ok(());
+  };
+
+  let Some(window) = target_window else {
+    border.hide()?;
+    return Ok(());
+  };
+
+  let tracked_window = window.native().clone();
+  let frame = window.native_properties().frame;
+  let color = &config.value.window_effects.focused_window.border.color;
+
+  if border.tracked_window_id() == Some(tracked_window.id()) {
+    border.update_position(&tracked_window, &frame, color)?;
+  } else {
+    border.show(&tracked_window, &frame, color)?;
+  }
 
   Ok(())
 }
@@ -513,6 +545,9 @@ fn apply_window_effects(
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   window: &WindowContainer,
   is_focused: bool,
+  // LINT: `state` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+  state: &WmState,
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
@@ -530,7 +565,11 @@ fn apply_window_effects(
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
-    apply_border_effect(window, effect_config);
+    apply_border_effect(
+      window,
+      effect_config,
+      is_native_border_effect_enabled(state, effect_config),
+    );
   }
 
   #[cfg(target_os = "windows")]
@@ -559,7 +598,12 @@ fn apply_window_effects(
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
+  should_apply_native_border: bool,
 ) {
+  if !should_apply_native_border {
+    return;
+  }
+
   let border_color = if effect_config.border.enabled {
     Some(&effect_config.border.color)
   } else {
@@ -577,6 +621,77 @@ fn apply_border_effect(
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     _ = native.set_border_color(border_color.as_ref());
   });
+}
+
+/// Gets the focused window eligible for the Win10 highlight overlay.
+#[cfg(target_os = "windows")]
+fn win10_highlight_target(
+  state: &WmState,
+  config: &UserConfig,
+) -> Option<WindowContainer> {
+  let focused_window =
+    state.focused_container()?.as_window_container().ok()?;
+  let workspace = focused_window.workspace()?;
+
+  should_show_win10_highlight(
+    &config.value.window_effects.focused_window,
+    state.is_windows_11_or_greater,
+    state.is_paused,
+    &focused_window.state(),
+    focused_window.display_state(),
+    workspace.is_displayed(),
+    focused_window.native_properties().is_maximized,
+    focused_window.native_properties().is_minimized,
+  )
+  .then_some(focused_window)
+}
+
+/// Gets whether the focused Win10 highlight overlay should be shown.
+#[cfg(target_os = "windows")]
+fn should_show_win10_highlight(
+  effect_config: &WindowEffectConfig,
+  is_windows_11_or_greater: bool,
+  is_paused: bool,
+  window_state: &WindowState,
+  display_state: DisplayState,
+  is_workspace_displayed: bool,
+  is_maximized: bool,
+  is_minimized: bool,
+) -> bool {
+  should_use_win10_highlight_overlay(
+    effect_config,
+    is_windows_11_or_greater,
+  ) && !is_paused
+    && *window_state == WindowState::Tiling
+    && matches!(display_state, DisplayState::Shown | DisplayState::Showing)
+    && is_workspace_displayed
+    && !is_maximized
+    && !is_minimized
+}
+
+/// Gets whether focused borders should use the Win10 overlay backend.
+#[cfg(target_os = "windows")]
+fn should_use_win10_highlight_overlay(
+  effect_config: &WindowEffectConfig,
+  is_windows_11_or_greater: bool,
+) -> bool {
+  !is_windows_11_or_greater
+    && effect_config.border.enabled
+    && effect_config.win10_highlight
+}
+
+/// Gets whether the native DWM border effect should be used.
+#[cfg(target_os = "windows")]
+fn is_native_border_effect_enabled(
+  state: &WmState,
+  effect_config: &WindowEffectConfig,
+) -> bool {
+  state.is_windows_11_or_greater
+    && effect_config.border.enabled
+    && !should_use_win10_highlight_overlay(
+      effect_config,
+      state.is_windows_11_or_greater,
+    )
 }
 
 #[cfg(target_os = "windows")]
@@ -616,4 +731,125 @@ fn apply_transparency_effect(
   };
 
   _ = window.native().set_transparency(transparency);
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_common::{
+    DisplayState, FloatingStateConfig, FullscreenStateConfig,
+    WindowEffectConfig, WindowState,
+  };
+
+  use super::{
+    should_show_win10_highlight, should_use_win10_highlight_overlay,
+  };
+
+  #[test]
+  fn uses_overlay_only_for_opted_in_windows_10_borders() {
+    let mut effect_config = WindowEffectConfig::default();
+    effect_config.border.enabled = true;
+
+    assert!(!should_use_win10_highlight_overlay(&effect_config, false));
+
+    effect_config.win10_highlight = true;
+
+    assert!(should_use_win10_highlight_overlay(&effect_config, false));
+    assert!(!should_use_win10_highlight_overlay(&effect_config, true));
+  }
+
+  #[test]
+  fn focused_tiling_window_is_eligible_for_win10_highlight() {
+    let mut effect_config = WindowEffectConfig::default();
+    effect_config.border.enabled = true;
+    effect_config.win10_highlight = true;
+
+    assert!(should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Tiling,
+      DisplayState::Shown,
+      true,
+      false,
+      false,
+    ));
+  }
+
+  #[test]
+  fn win10_highlight_hides_for_non_tiling_or_non_visible_cases() {
+    let mut effect_config = WindowEffectConfig::default();
+    effect_config.border.enabled = true;
+    effect_config.win10_highlight = true;
+
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Floating(FloatingStateConfig::default()),
+      DisplayState::Shown,
+      true,
+      false,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Fullscreen(FullscreenStateConfig::default()),
+      DisplayState::Shown,
+      true,
+      false,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Tiling,
+      DisplayState::Hidden,
+      true,
+      false,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Tiling,
+      DisplayState::Shown,
+      false,
+      false,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      true,
+      &WindowState::Tiling,
+      DisplayState::Shown,
+      true,
+      false,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Tiling,
+      DisplayState::Shown,
+      true,
+      true,
+      false,
+    ));
+    assert!(!should_show_win10_highlight(
+      &effect_config,
+      false,
+      false,
+      &WindowState::Tiling,
+      DisplayState::Shown,
+      true,
+      false,
+      true,
+    ));
+  }
 }

@@ -5,11 +5,14 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
+#[cfg(target_os = "windows")]
+use wm_platform::{
+  is_windows_11_or_greater, FocusedWindowBorder, NativeWindowWindowsExt,
+  OpacityValue,
+};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
-#[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
   commands::{
@@ -67,6 +70,14 @@ pub struct WmState {
   /// Whether the OS focused window is the same as the WM focused window.
   pub is_focus_synced: bool,
 
+  /// Whether native DWM border effects are supported.
+  #[cfg(target_os = "windows")]
+  pub is_windows_11_or_greater: bool,
+
+  /// Optional Win10-focused border overlay.
+  #[cfg(target_os = "windows")]
+  pub focused_window_border: Option<FocusedWindowBorder>,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -83,6 +94,29 @@ impl WmState {
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
+    #[cfg(target_os = "windows")]
+    let is_windows_11_or_greater = is_windows_11_or_greater()
+      .unwrap_or_else(|err| {
+        warn!(
+          "Failed to detect Windows version for focus highlight: {}",
+          err
+        );
+        true
+      });
+
+    #[cfg(target_os = "windows")]
+    let focused_window_border = if is_windows_11_or_greater {
+      None
+    } else {
+      match FocusedWindowBorder::new(dispatcher.clone()) {
+        Ok(border) => Some(border),
+        Err(err) => {
+          warn!("Failed to initialize Win10 focus highlight: {}", err);
+          None
+        }
+      }
+    };
+
     Self {
       root_container: RootContainer::new(),
       dispatcher,
@@ -94,6 +128,10 @@ impl WmState {
       ignored_windows: Vec::new(),
       is_paused: false,
       is_focus_synced: false,
+      #[cfg(target_os = "windows")]
+      is_windows_11_or_greater,
+      #[cfg(target_os = "windows")]
+      focused_window_border,
       has_initialized: false,
       event_tx,
       exit_tx,
@@ -680,6 +718,11 @@ impl WmState {
 
 impl Drop for WmState {
   fn drop(&mut self) {
+    #[cfg(target_os = "windows")]
+    if let Some(border) = &mut self.focused_window_border {
+      let _ = border.shutdown();
+    }
+
     let managed_windows = self.windows();
 
     for window in &managed_windows {

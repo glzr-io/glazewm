@@ -22,7 +22,8 @@ use crate::{
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
+      platform_sync, reload_config, shell_exec,
+      sync_focused_window_border, toggle_pause,
     },
     monitor::focus_monitor,
     window::{
@@ -79,6 +80,7 @@ impl WindowManager {
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     let state = &mut self.state;
+    let is_window_event = matches!(&event, PlatformEvent::Window(_));
 
     match event {
       PlatformEvent::DisplaySettingsChanged => {
@@ -142,6 +144,11 @@ impl WindowManager {
         }
       },
     }?;
+
+    #[cfg(target_os = "windows")]
+    if is_window_event && !state.pending_sync.has_changes() {
+      sync_focused_window_border(state, config)?;
+    }
 
     if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
@@ -773,7 +780,11 @@ impl WindowManager {
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
       InvokeCommand::WmTogglePause => {
-        toggle_pause(state);
+        toggle_pause(
+          state,
+          #[cfg(target_os = "windows")]
+          config,
+        );
         Ok(())
       }
     }

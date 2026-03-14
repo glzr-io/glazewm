@@ -368,3 +368,28 @@ impl UserConfig {
     })
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use wm_common::ParsedConfig;
+
+  #[test]
+  fn win10_highlight_defaults_to_false() {
+    let config = serde_yaml::from_str::<ParsedConfig>(
+      "window_effects:\n  focused_window:\n    border:\n      enabled: true\n",
+    )
+    .expect("config should parse");
+
+    assert!(!config.window_effects.focused_window.win10_highlight);
+  }
+
+  #[test]
+  fn win10_highlight_parses_when_enabled() {
+    let config = serde_yaml::from_str::<ParsedConfig>(
+      "window_effects:\n  focused_window:\n    win10_highlight: true\n",
+    )
+    .expect("config should parse");
+
+    assert!(config.window_effects.focused_window.win10_highlight);
+  }
+}
