@@ -103,25 +103,25 @@ pub trait WindowGetters: CommonGetters {
     &self,
     workspace: &Workspace,
   ) -> anyhow::Result<bool> {
-    let frame = self.native_properties().frame;
     let workspace_rect = workspace.max_workspace_rect()?;
+    let frame = self
+      .native_properties()
+      .frame
+      .apply_delta(&self.border_delta().inverse(), None);
 
-    // Check if the window frame covers the workspace bounds (with 1px of
-    // leeway).
-    let is_covering = frame.contains_rect(&workspace_rect.inset(1));
+    let should_fullscreen = match self.state() {
+      // Keep as fullscreen if the frame covers the workspace bounds.
+      WindowState::Fullscreen(fullscreen) if !fullscreen.maximized => {
+        frame.contains_rect(&workspace_rect.inset(1))
+      }
 
-    // A workspace with one tiling window will have that window cover the
-    // workspace bounds, but it should not be considered fullscreen. This
-    // check is also valid for fullscreen windows that have just been
-    // restored.
-    let is_single_window_occupying_workspace =
-      matches!(
-        self.state(),
-        WindowState::Tiling | WindowState::Fullscreen(_)
-      ) && self.tiling_siblings().count() == 0
-        && workspace_rect.inset(-1).contains_rect(&frame);
+      // Change to fullscreen if the frame *exceeds* the workspace bounds.
+      // NOTE: This is never possible with 0px outer gaps; the window has
+      // to be made fullscreen via the `set-fullscreen` command.
+      _ => frame.inset(1).contains_rect(&workspace_rect),
+    };
 
-    Ok(is_covering && !is_single_window_occupying_workspace)
+    Ok(should_fullscreen)
   }
 
   fn display_state(&self) -> DisplayState;
