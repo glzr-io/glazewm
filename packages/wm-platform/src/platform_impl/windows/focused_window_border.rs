@@ -24,7 +24,8 @@ use windows::{
       },
       Dxgi::Common::DXGI_FORMAT_UNKNOWN,
       Gdi::{
-        BeginPaint, CreateRectRgn, EndPaint, InvalidateRect, PAINTSTRUCT,
+        BeginPaint, CombineRgn, CreateRectRgn, DeleteObject, EndPaint,
+        InvalidateRect, PAINTSTRUCT, RGN_DIFF, RGN_ERROR, SetWindowRgn,
       },
     },
     UI::WindowsAndMessaging::{
@@ -35,8 +36,7 @@ use windows::{
       SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
       SWP_SHOWWINDOW, SW_HIDE, WM_CREATE, WM_DESTROY, WM_ERASEBKGND,
       WM_NCCREATE, WM_NCDESTROY, WM_NCHITTEST, WM_PAINT, WNDCLASSW,
-      WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
-      WS_POPUP,
+      WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
     },
   },
 };
@@ -240,6 +240,8 @@ impl OverlayState {
       )?;
     }
 
+    update_window_region(HWND(hwnd), &overlay_rect)?;
+
     Ok(())
   }
 
@@ -397,8 +399,11 @@ fn create_overlay_window() -> crate::Result<isize> {
   let overlay_state_ptr = Box::into_raw(overlay_state);
 
   let hwnd = unsafe {
+    // `ID2D1HwndRenderTarget` does not render reliably on Win10 layered
+    // popup windows, so transparency is provided via DWM blur-behind
+    // instead of `WS_EX_LAYERED`.
     CreateWindowExW(
-      WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+      WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
       OVERLAY_CLASS_NAME,
       OVERLAY_CLASS_NAME,
       WS_POPUP,
@@ -553,6 +558,44 @@ fn client_rect(hwnd: HWND) -> crate::Result<RECT> {
   }
 
   Ok(rect)
+}
+
+/// Updates the overlay window region so only the border ring is hit-testable.
+fn update_window_region(hwnd: HWND, overlay_rect: &Rect) -> crate::Result<()> {
+  let outer_region = unsafe {
+    CreateRectRgn(0, 0, overlay_rect.width(), overlay_rect.height())
+  };
+  let inset = BORDER_OFFSET + BORDER_WIDTH;
+  let inner_region = unsafe {
+    CreateRectRgn(
+      inset,
+      inset,
+      overlay_rect.width() - inset,
+      overlay_rect.height() - inset,
+    )
+  };
+
+  unsafe {
+    let combine_result =
+      CombineRgn(outer_region, outer_region, inner_region, RGN_DIFF);
+    let _ = DeleteObject(inner_region);
+
+    if combine_result == RGN_ERROR {
+      let _ = DeleteObject(outer_region);
+      return Err(crate::Error::Platform(
+        "Failed to update focused-window border region.".to_string(),
+      ));
+    }
+
+    if SetWindowRgn(hwnd, outer_region, true) == 0 {
+      let _ = DeleteObject(outer_region);
+      return Err(crate::Error::Platform(
+        "Failed to apply focused-window border region.".to_string(),
+      ));
+    }
+  }
+
+  Ok(())
 }
 
 /// Converts a `Color` to a Direct2D color.
