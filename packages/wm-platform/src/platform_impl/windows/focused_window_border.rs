@@ -562,19 +562,33 @@ fn client_rect(hwnd: HWND) -> crate::Result<RECT> {
 
 /// Updates the overlay window region so only the border ring is hit-testable.
 fn update_window_region(hwnd: HWND, overlay_rect: &Rect) -> crate::Result<()> {
-  let outer_region = unsafe {
-    CreateRectRgn(0, 0, overlay_rect.width(), overlay_rect.height())
-  };
+  let outer_width = overlay_rect.width().max(0);
+  let outer_height = overlay_rect.height().max(0);
   let inset = BORDER_OFFSET + BORDER_WIDTH;
+  let inner_left = inset.min(outer_width);
+  let inner_top = inset.min(outer_height);
+  let inner_right = (outer_width - inset).max(inner_left);
+  let inner_bottom = (outer_height - inset).max(inner_top);
+
+  // SAFETY: Region handles are created for the current thread and are either
+  // released with `DeleteObject` on failure paths or transferred to Windows
+  // with `SetWindowRgn` on success.
+  let outer_region = unsafe {
+    CreateRectRgn(0, 0, outer_width, outer_height)
+  };
+  // SAFETY: The inner rectangle is clamped to the outer rectangle bounds,
+  // so the region coordinates remain valid even for very small windows.
   let inner_region = unsafe {
     CreateRectRgn(
-      inset,
-      inset,
-      overlay_rect.width() - inset,
-      overlay_rect.height() - inset,
+      inner_left,
+      inner_top,
+      inner_right,
+      inner_bottom,
     )
   };
 
+  // SAFETY: The region handles are valid when created above. Ownership of
+  // `outer_region` transfers to the OS on `SetWindowRgn` success.
   unsafe {
     let combine_result =
       CombineRgn(outer_region, outer_region, inner_region, RGN_DIFF);
