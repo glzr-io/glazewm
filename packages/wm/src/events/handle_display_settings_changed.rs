@@ -27,7 +27,19 @@ pub fn handle_display_settings_changed(
   for display in displays {
     // TODO: Create `NativeMonitorProperties` instances for displays just
     // once (created in loop below and in `update_monitor`).
-    let properties = NativeMonitorProperties::try_from(&display)?;
+    //
+    // Skip displays whose device info is temporarily unavailable (e.g.
+    // during sleep/wake while the display driver is being reinstated).
+    let properties = match NativeMonitorProperties::try_from(&display) {
+      Ok(props) => props,
+      Err(err) => {
+        tracing::warn!(
+          "Skipping display with unavailable device info: {}",
+          err
+        );
+        continue;
+      }
+    };
 
     match find_matching_monitor(&pending_monitors, &properties) {
       Some((monitor, index)) => {
@@ -43,7 +55,16 @@ pub fn handle_display_settings_changed(
   // Pair unmatched displays with unmatched monitors, or add new ones.
   for display in unmatched_displays {
     if pending_monitors.is_empty() {
-      let properties = NativeMonitorProperties::try_from(&display)?;
+      let properties = match NativeMonitorProperties::try_from(&display) {
+        Ok(props) => props,
+        Err(err) => {
+          tracing::warn!(
+            "Skipping new display with unavailable device info: {}",
+            err
+          );
+          continue;
+        }
+      };
       let monitor = add_monitor(display, properties, state)?;
       new_monitors.push(monitor);
     } else {

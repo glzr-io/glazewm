@@ -283,7 +283,6 @@ async fn start_wm(
 
     if let Err(err) = res {
       tracing::error!("{:?}", err);
-      dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
     }
   }
 
