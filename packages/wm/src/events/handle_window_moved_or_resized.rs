@@ -529,10 +529,12 @@ fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
     (window_frame.x() + VISIBLE_SLIVER_PX - monitor_rect.right).abs() <= 1;
 
   // On macOS, the window's title bar is prevented from being positioned
-  // outside of monitor's working area, so we need to allow ~50px of
-  // vertical leeway.
+  // outside of monitor's working area, so we need to allow ~55px of
+  // vertical leeway. Title bar height varies, but can be up to 52px.
+  // TODO: See if possible to make this dynamic based on the window's title
+  // bar height.
   let is_bottom_of_monitor =
-    (window_frame.y() - monitor_rect.bottom).abs() <= 50;
+    (window_frame.y() - monitor_rect.bottom).abs() <= 55;
 
   (is_left_corner || is_right_corner) && is_bottom_of_monitor
 }
