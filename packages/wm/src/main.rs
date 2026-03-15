@@ -238,10 +238,9 @@ async fn start_wm(
       Some(wm_event) = wm.event_rx.recv() => {
         tracing::debug!("Received WM event: {:?}", wm_event);
 
-        // Disable mouse and keybinding listeners when the WM is paused.
+        // Disable mouse listener when the WM is paused.
         if let WmEvent::PauseChanged { is_paused } = wm_event {
           let _ = mouse_listener.enable(!is_paused);
-          keybinding_listener.enable(!is_paused);
         }
 
         // Update keybinding and mouse listeners on config changes.
@@ -249,6 +248,7 @@ async fn start_wm(
           wm_event,
           WmEvent::UserConfigChanged { .. }
             | WmEvent::BindingModesChanged { .. }
+            | WmEvent::PauseChanged { .. }
         ) {
           keybinding_listener.update(
             &config
