@@ -25,8 +25,8 @@ pub fn handle_window_shown(
     } else {
       state.pending_sync.queue_container_to_redraw(window);
     }
-  } else {
-    // If the window is not managed, manage it.
+  } else if !state.is_ignored_window(&native_window) {
+    // If the window is not managed and not explicitly ignored, manage it.
     manage_window(native_window, None, state, config)?;
   }
 
