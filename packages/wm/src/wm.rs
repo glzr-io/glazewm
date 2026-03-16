@@ -339,10 +339,10 @@ impl WindowManager {
       InvokeCommand::Move(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            if let Some(direction) = &args.direction {
+            if let Some(direction_distance) = &args.direction {
               move_window_in_direction(
                 window.clone(),
-                direction,
+                &direction_distance.direction,
                 state,
                 config,
               )?;

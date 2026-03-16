@@ -101,6 +101,9 @@ pub enum ParseError {
 
   #[error("Invalid direction '{0}': must be one of 'left', 'right', 'up', or 'down'.")]
   Direction(String),
+
+  #[error("Invalid direction distance '{0}': must be of format 'right', 'right,10px', or 'right,2%'.")]
+  DirectionWithDistance(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
