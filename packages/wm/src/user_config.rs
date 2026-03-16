@@ -245,7 +245,17 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_process));
+            .is_none_or(|match_type| {
+              // TODO: Temp fix for matching Zebar on both platforms with
+              // the same process name. Consider using lowercase for every
+              // `equals` match type.
+              if window_process == "Zebar" {
+                match_type.is_match("Zebar")
+                  || match_type.is_match("zebar")
+              } else {
+                match_type.is_match(&window_process)
+              }
+            });
 
           let is_class_match = {
             #[cfg(target_os = "windows")]
