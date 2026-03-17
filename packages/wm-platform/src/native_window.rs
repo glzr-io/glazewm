@@ -10,6 +10,8 @@ use windows::Win32::{
   },
 };
 
+#[cfg(target_os = "macos")]
+use crate::Color;
 use crate::{platform_impl, Rect};
 #[cfg(target_os = "macos")]
 use crate::{platform_impl::AXUIElementExt, ThreadBound};
@@ -98,6 +100,13 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
+
+  /// Sets the color of the window's border.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +145,10 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
+  }
+
+  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
+    self.inner.set_border_color(color)
   }
 }
 

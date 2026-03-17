@@ -13,8 +13,9 @@ use objc2_core_graphics::CGError;
 use crate::{
   platform_impl::{
     self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
+    BORDER_OVERLAY_MANAGER,
   },
-  Dispatcher, Point, Rect, ThreadBound, WindowId,
+  Color, Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
 
 /// Platform-specific implementation of [`NativeWindow`].
@@ -235,6 +236,21 @@ impl NativeWindow {
     })?
   }
 
+  /// Implements [`NativeWindowExtMacOs::set_border_color`].
+  pub(crate) fn set_border_color(
+    &self,
+    color: Option<&Color>,
+  ) -> crate::Result<()> {
+    let frame = self.frame()?;
+    let window_id = self.id();
+    let mut manager = BORDER_OVERLAY_MANAGER.lock().map_err(|_| {
+      crate::Error::Platform(
+        "Border overlay manager lock poisoned.".to_string(),
+      )
+    })?;
+    manager.set_border_color(window_id, &frame, color)
+  }
+
   /// Executes a callback with the `AXEnhancedUserInterface` attribute
   /// temporarily disabled on the application `AXUIElement`.
   ///
@@ -374,9 +390,13 @@ impl From<NativeWindow> for crate::NativeWindow {
 pub(crate) fn visible_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
+  // Self-filtering: exclude GlazeWM's own overlay windows.
+  let own_pid = std::process::id().cast_signed();
+
   Ok(
     platform_impl::all_applications(dispatcher)?
       .iter()
+      .filter(|app| app.pid != own_pid)
       .filter_map(|app| app.windows().ok())
       .flat_map(std::iter::IntoIterator::into_iter)
       .collect(),
