@@ -343,6 +343,7 @@ impl WindowManager {
               move_window_in_direction(
                 window.clone(),
                 &direction_distance.direction,
+                direction_distance.distance.as_ref(),
                 state,
                 config,
               )?;
