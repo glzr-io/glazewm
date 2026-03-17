@@ -281,6 +281,10 @@ async fn start_wm(
       },
     };
 
+    // Errors from event handlers are non-fatal and only logged. A blocking
+    // system modal (`show_error_dialog`) is not appropriate here because
+    // it would freeze the tokio runtime, preventing all other event
+    // processing until dismissed.
     if let Err(err) = res {
       tracing::error!("{:?}", err);
     }
