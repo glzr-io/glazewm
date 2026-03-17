@@ -50,41 +50,49 @@ pub struct GapsConfig {
   /// in the workspace.
   pub single_window_outer_gap: Option<RectDelta>,
 
-  /// Per-monitor overrides for `outer_gap` (and optionally
-  /// `single_window_outer_gap`). Monitors can be matched by index
-  /// (0-based, left-to-right) or device name.
+  /// Per-monitor gap overrides. Each entry can selectively override
+  /// `inner_gap`, `outer_gap`, and/or `single_window_outer_gap`.
+  /// Monitors are matched by index (0-based, left-to-right) or device
+  /// name.
   #[serde(default)]
-  pub monitor_outer_gap: Vec<MonitorOuterGapConfig>,
+  pub monitor_overrides: Vec<MonitorGapOverride>,
 }
 
 impl GapsConfig {
-  /// Returns a `GapsConfig` with outer gaps resolved for the given
-  /// monitor. If a matching `monitor_outer_gap` entry exists, its values
-  /// override the global `outer_gap` and `single_window_outer_gap`.
+  /// Returns a `GapsConfig` with gaps resolved for the given monitor.
+  /// If a matching `monitor_overrides` entry exists, its values override
+  /// the corresponding global gap settings.
+  #[must_use]
   pub fn for_monitor(
     &self,
     monitor_index: usize,
     device_name: &str,
   ) -> Self {
-    let override_config =
+    let override_entry =
       self
-        .monitor_outer_gap
+        .monitor_overrides
         .iter()
         .find(|entry| match &entry.monitor {
           MonitorSelector::Index(idx) => *idx as usize == monitor_index,
           MonitorSelector::Name(name) => name == device_name,
         });
 
-    match override_config {
+    match override_entry {
       Some(entry) => GapsConfig {
         scale_with_dpi: self.scale_with_dpi,
-        inner_gap: self.inner_gap.clone(),
-        outer_gap: entry.outer_gap.clone(),
+        inner_gap: entry
+          .inner_gap
+          .clone()
+          .unwrap_or_else(|| self.inner_gap.clone()),
+        outer_gap: entry
+          .outer_gap
+          .clone()
+          .unwrap_or_else(|| self.outer_gap.clone()),
         single_window_outer_gap: entry
           .single_window_outer_gap
           .clone()
           .or_else(|| self.single_window_outer_gap.clone()),
-        monitor_outer_gap: vec![],
+        monitor_overrides: vec![],
       },
       None => self.clone(),
     }
@@ -103,7 +111,7 @@ impl Default for GapsConfig {
         LengthValue::from_px(0),
       ),
       single_window_outer_gap: None,
-      monitor_outer_gap: vec![],
+      monitor_overrides: vec![],
     }
   }
 }
@@ -116,18 +124,24 @@ pub enum MonitorSelector {
   Name(String),
 }
 
-/// Per-monitor override for outer gap configuration.
+/// Per-monitor gap override. All gap fields are optional and fall back
+/// to the corresponding global value when omitted.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct MonitorOuterGapConfig {
-  /// Monitor to apply the override to, either by index (0-based,
-  /// left-to-right) or by device name string.
+pub struct MonitorGapOverride {
+  /// Monitor to match, either by index (0-based, left-to-right) or
+  /// by device name string.
   pub monitor: MonitorSelector,
 
-  /// Gap between windows and the screen edge for this monitor.
-  pub outer_gap: RectDelta,
+  /// Override for the gap between adjacent windows.
+  #[serde(default)]
+  pub inner_gap: Option<LengthValue>,
 
-  /// Override for single-window outer gap on this monitor.
+  /// Override for the gap between windows and the screen edge.
+  #[serde(default)]
+  pub outer_gap: Option<RectDelta>,
+
+  /// Override for the single-window outer gap.
   #[serde(default)]
   pub single_window_outer_gap: Option<RectDelta>,
 }
