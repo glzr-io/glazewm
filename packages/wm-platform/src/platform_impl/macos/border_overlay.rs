@@ -17,7 +17,7 @@ use crate::{
 };
 
 const BORDER_WIDTH: f64 = 1.0;
-const BORDER_RADIUS: f64 = 18.0;
+const BORDER_RADIUS: f64 = 17.0;
 
 unsafe extern "C" {
   /// Creates a `CGPath` with rounded corners matching macOS native
