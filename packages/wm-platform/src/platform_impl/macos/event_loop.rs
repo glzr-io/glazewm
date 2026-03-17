@@ -82,7 +82,7 @@ impl EventLoopSource {
 
       // `stop()` only takes effect after processing a subsequent UI event.
       // Post a dummy event so the application actually exits.
-      unsafe { ns_app.abortModal() };
+      ns_app.abortModal();
 
       let _ = result_tx.send(());
     })?;

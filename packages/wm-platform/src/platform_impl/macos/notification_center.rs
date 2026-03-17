@@ -141,7 +141,7 @@ impl NotificationObserver {
   fn handle_event(&self, notif: &NSNotification) {
     tracing::debug!("Received notification: {notif:#?}");
 
-    match NotificationName::from(unsafe { &*notif.name() }) {
+    match NotificationName::from(&*notif.name()) {
       NotificationName::WorkspaceActiveSpaceDidChange => {
         self.emit_event(NotificationEvent::WorkspaceActiveSpaceDidChange);
       }
@@ -215,14 +215,13 @@ pub(crate) struct NotificationCenter {
 
 impl NotificationCenter {
   pub fn workspace_center() -> Self {
-    let center =
-      unsafe { NSWorkspace::sharedWorkspace().notificationCenter() };
+    let center = NSWorkspace::sharedWorkspace().notificationCenter();
 
     Self { inner: center }
   }
 
   pub fn default_center() -> Self {
-    let center = unsafe { NSNotificationCenter::defaultCenter() };
+    let center = NSNotificationCenter::defaultCenter();
 
     Self { inner: center }
   }

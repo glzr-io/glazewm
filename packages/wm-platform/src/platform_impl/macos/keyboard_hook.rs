@@ -159,7 +159,7 @@ impl KeyboardHook {
     current_loop
       .add_source(Some(&loop_source), unsafe { kCFRunLoopCommonModes });
 
-    unsafe { CGEvent::tap_enable(&tap_port, true) };
+    CGEvent::tap_enable(&tap_port, true);
 
     Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
