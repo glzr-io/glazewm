@@ -241,14 +241,20 @@ impl NativeWindow {
     &self,
     color: Option<&Color>,
   ) -> crate::Result<()> {
-    let frame = self.frame()?;
     let window_id = self.id();
     let mut manager = BORDER_OVERLAY_MANAGER.lock().map_err(|_| {
       crate::Error::Platform(
         "Border overlay manager lock poisoned.".to_string(),
       )
     })?;
-    manager.set_border_color(window_id, &frame, color)
+
+    let Some(color) = color else {
+      manager.remove(window_id);
+      return Ok(());
+    };
+
+    let frame = self.frame()?;
+    manager.set_border_color(window_id, &frame, Some(color))
   }
 
   /// Executes a callback with the `AXEnhancedUserInterface` attribute

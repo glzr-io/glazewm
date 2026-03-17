@@ -16,8 +16,8 @@ use crate::{
   Color, Rect, WindowId,
 };
 
-const BORDER_WIDTH: f64 = 2.0;
-const BORDER_RADIUS: f64 = 9.0;
+const BORDER_WIDTH: f64 = 1.0;
+const BORDER_RADIUS: f64 = 18.0;
 
 unsafe extern "C" {
   /// Creates a `CGPath` with rounded corners matching macOS native
@@ -349,12 +349,18 @@ impl BorderOverlay {
 
 impl Drop for BorderOverlay {
   fn drop(&mut self) {
-    // SAFETY: Best-effort cleanup for a window created by this instance.
-    let _ = unsafe { SLSReleaseWindow(self.connection, self.wid) };
+    // SAFETY: Order the overlay window out (mode 0) before releasing.
+    // `SLSReleaseWindow` alone only decrements the reference count and
+    // may leave the window visible.
+    unsafe {
+      SLSOrderWindow(self.connection, self.wid, 0, 0);
+      SLSReleaseWindow(self.connection, self.wid);
+    }
   }
 }
 
-/// Returns `Ok(())` if the `SkyLight` status code is 0, otherwise an error.
+/// Returns `Ok(())` if the `SkyLight` status code is 0, otherwise an
+/// error.
 fn ensure_sls_success(
   function_name: &str,
   code: i32,

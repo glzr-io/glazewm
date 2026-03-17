@@ -10,13 +10,11 @@ use windows::Win32::{
   },
 };
 
-#[cfg(target_os = "macos")]
-use crate::Color;
-use crate::{platform_impl, Rect};
+use crate::{platform_impl, Color, Rect};
 #[cfg(target_os = "macos")]
 use crate::{platform_impl::AXUIElementExt, ThreadBound};
 #[cfg(target_os = "windows")]
-use crate::{Color, CornerStyle, Delta, OpacityValue, RectDelta};
+use crate::{CornerStyle, Delta, OpacityValue, RectDelta};
 
 /// Unique identifier of a window.
 ///
@@ -100,13 +98,6 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
-
-  /// Sets the color of the window's border.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
 }
 
 #[cfg(target_os = "macos")]
@@ -145,10 +136,6 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
-  }
-
-  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
-    self.inner.set_border_color(color)
   }
 }
 
@@ -300,13 +287,6 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()>;
 
-  /// Sets the color of the window's border.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()>;
-
   /// Sets the corner style of the window.
   ///
   /// # Platform-specific
@@ -415,10 +395,6 @@ impl NativeWindowWindowsExt for NativeWindow {
 
   fn set_title_bar_visibility(&self, visible: bool) -> crate::Result<()> {
     self.inner.set_title_bar_visibility(visible)
-  }
-
-  fn set_border_color(&self, color: Option<&Color>) -> crate::Result<()> {
-    self.inner.set_border_color(color)
   }
 
   fn set_corner_style(
@@ -569,6 +545,19 @@ impl NativeWindow {
   ///   title bar.
   pub fn close(&self) -> crate::Result<()> {
     self.inner.close()
+  }
+
+  /// Sets the color of the window's border, or removes it if `None`.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Uses `DwmSetWindowAttribute(DWMWA_BORDER_COLOR)`.
+  /// - **macOS**: Creates/removes a SkyLight overlay window.
+  pub fn set_border_color(
+    &self,
+    color: Option<&Color>,
+  ) -> crate::Result<()> {
+    self.inner.set_border_color(color)
   }
 }
 

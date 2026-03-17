@@ -1,14 +1,10 @@
 use anyhow::Context;
-#[cfg(target_os = "windows")]
-use wm_common::WindowEffectConfig;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 use wm_common::WindowEffectConfig;
 use wm_common::{
   CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
   WindowState, WmEvent,
 };
-#[cfg(target_os = "macos")]
-use wm_platform::NativeWindowExtMacOs;
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
@@ -586,14 +582,7 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
-  #[cfg(target_os = "windows")]
-  if window_effects.focused_window.border.enabled
-    || window_effects.other_windows.border.enabled
-  {
-    apply_border_effect(window, effect_config);
-  }
-
-  #[cfg(target_os = "macos")]
+  #[cfg(any(target_os = "windows", target_os = "macos"))]
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
@@ -694,7 +683,7 @@ fn apply_border_effect(
   let is_visible = matches!(
     window.display_state(),
     DisplayState::Showing | DisplayState::Shown
-  );
+  ) && !matches!(window.state(), WindowState::Minimized);
 
   let border_color = if effect_config.border.enabled && is_visible {
     Some(&effect_config.border.color)
