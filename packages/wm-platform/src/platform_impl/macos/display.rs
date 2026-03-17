@@ -53,7 +53,7 @@ impl Display {
   /// Implements [`Display::name`].
   pub(crate) fn name(&self) -> crate::Result<String> {
     self.ns_screen.with(|screen| {
-      let name = unsafe { screen.localizedName() };
+      let name = screen.localizedName();
       Ok(name.to_string())
     })?
   }
@@ -61,7 +61,7 @@ impl Display {
   /// Implements [`Display::bounds`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn bounds(&self) -> crate::Result<Rect> {
-    let cg_rect = unsafe { CGDisplayBounds(self.cg_display_id) };
+    let cg_rect = CGDisplayBounds(self.cg_display_id);
 
     #[allow(clippy::cast_possible_truncation)]
     Ok(Rect::from_xy(
@@ -75,7 +75,7 @@ impl Display {
   /// Implements [`Display::working_area`].
   pub(crate) fn working_area(&self) -> crate::Result<Rect> {
     let primary_display_bounds = {
-      let bounds = unsafe { CGDisplayBounds(CGMainDisplayID()) };
+      let bounds = CGDisplayBounds(CGMainDisplayID());
 
       #[allow(clippy::cast_possible_truncation)]
       Rect::from_xy(
@@ -115,7 +115,7 @@ impl Display {
   /// Implements [`Display::is_primary`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_primary(&self) -> crate::Result<bool> {
-    let main_display_id = unsafe { CGMainDisplayID() };
+    let main_display_id = CGMainDisplayID();
     Ok(self.cg_display_id == main_display_id)
   }
 
@@ -229,19 +229,17 @@ impl DisplayDevice {
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn rotation(&self) -> crate::Result<f32> {
     #[allow(clippy::cast_possible_truncation)]
-    Ok(unsafe { CGDisplayRotation(self.cg_display_id) } as f32)
+    Ok(CGDisplayRotation(self.cg_display_id) as f32)
   }
 
   /// Implements [`DisplayDevice::refresh_rate`].
   pub(crate) fn refresh_rate(&self) -> crate::Result<f32> {
     // NOTE: Calling `CGDisplayModeRelease` on cleanup is not needed, since
     // it's equivalent to `CFRelease` in this case. Ref: https://developer.apple.com/documentation/coregraphics/cgdisplaymoderelease
-    let display_mode =
-      unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) }
-        .ok_or(crate::Error::DisplayModeNotFound)?;
+    let display_mode = CGDisplayCopyDisplayMode(self.cg_display_id)
+      .ok_or(crate::Error::DisplayModeNotFound)?;
 
-    let refresh_rate =
-      unsafe { CGDisplayMode::refresh_rate(Some(&display_mode)) };
+    let refresh_rate = CGDisplayMode::refresh_rate(Some(&display_mode));
 
     #[allow(clippy::cast_possible_truncation)]
     Ok(refresh_rate as f32)
@@ -251,15 +249,14 @@ impl DisplayDevice {
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_builtin(&self) -> crate::Result<bool> {
     // TODO: Implement this properly.
-    let main_display_id = unsafe { CGMainDisplayID() };
+    let main_display_id = CGMainDisplayID();
     Ok(self.cg_display_id == main_display_id)
   }
 
   /// Implements [`DisplayDevice::connection_state`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn connection_state(&self) -> crate::Result<ConnectionState> {
-    let display_mode =
-      unsafe { CGDisplayCopyDisplayMode(self.cg_display_id) };
+    let display_mode = CGDisplayCopyDisplayMode(self.cg_display_id);
 
     // TODO: Implement this properly.
     if display_mode.is_none() {
@@ -274,8 +271,7 @@ impl DisplayDevice {
   pub(crate) fn mirroring_state(
     &self,
   ) -> crate::Result<Option<MirroringState>> {
-    let mirrored_display =
-      unsafe { CGDisplayMirrorsDisplay(self.cg_display_id) };
+    let mirrored_display = CGDisplayMirrorsDisplay(self.cg_display_id);
 
     // TODO: Clean this up.
     if mirrored_display == 0 {
@@ -300,8 +296,7 @@ impl DisplayDevice {
           if display_id == self.cg_display_id {
             continue; // Skip self
           }
-          let other_mirrored =
-            unsafe { CGDisplayMirrorsDisplay(display_id) };
+          let other_mirrored = CGDisplayMirrorsDisplay(display_id);
           if other_mirrored == self.cg_display_id {
             // Another display is mirroring this one, so this is the source
             return Ok(Some(MirroringState::Source));

@@ -62,7 +62,7 @@ impl WindowListener {
   ) -> crate::Result<ThreadBound<Retained<NotificationObserver>>> {
     let (observer, events_rx) = NotificationObserver::new();
 
-    let workspace = unsafe { NSWorkspace::sharedWorkspace() };
+    let workspace = NSWorkspace::sharedWorkspace();
     let mut workspace_center = NotificationCenter::workspace_center();
 
     for notification in [
@@ -158,7 +158,7 @@ impl WindowListener {
         NotificationEvent::WorkspaceDidTerminateApplication(
           running_app,
         ) => {
-          let pid = unsafe { running_app.processIdentifier() };
+          let pid = running_app.processIdentifier();
 
           if let Some(observer) = app_observers.remove(&pid) {
             tracing::info!(
@@ -188,14 +188,14 @@ impl WindowListener {
         }
         NotificationEvent::WorkspaceDidHideApplication(running_app) => {
           if let Some(app_observer) =
-            app_observers.get(unsafe { &running_app.processIdentifier() })
+            app_observers.get(&running_app.processIdentifier())
           {
             app_observer.emit_all_windows_hidden();
           }
         }
         NotificationEvent::WorkspaceDidUnhideApplication(running_app) => {
           if let Some(app_observer) =
-            app_observers.get(unsafe { &running_app.processIdentifier() })
+            app_observers.get(&running_app.processIdentifier())
           {
             app_observer.emit_all_windows_shown();
           }
