@@ -118,7 +118,6 @@ pub enum Key {
   Ctrl,
   Alt,
   Shift,
-  Win,
   LCmd,
   RCmd,
   LCtrl,
@@ -127,8 +126,6 @@ pub enum Key {
   RAlt,
   LShift,
   RShift,
-  LWin,
-  RWin,
 
   // Special keys
   Space,
@@ -328,21 +325,18 @@ impl_key_parsing! {
   F23 => ["f23"], F24 => ["f24"],
 
   // Modifier keys
-  Cmd => ["cmd"],
+  Cmd => ["cmd", "win"],
   Ctrl => ["ctrl", "control"],
   Alt => ["alt", "menu"],
   Shift => ["shift"],
-  Win => ["win"],
-  LCmd => ["lcmd"],
-  RCmd => ["rcmd"],
+  LCmd => ["lcmd", "lwin"],
+  RCmd => ["rcmd", "rwin"],
   LCtrl => ["lctrl"],
   RCtrl => ["rctrl"],
   LAlt => ["lalt", "lmenu"],
   RAlt => ["ralt", "rmenu"],
   LShift => ["lshift"],
   RShift => ["rshift"],
-  LWin => ["lwin"],
-  RWin => ["rwin"],
 
   // Special keys
   Space => ["space"],

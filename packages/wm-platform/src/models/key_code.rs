@@ -173,10 +173,6 @@ impl_key_code_conversion! {
   Ctrl => { windows: VK_LCONTROL, macos: 0x3B, },
   Alt => { windows: VK_LMENU, macos: 0x3A, },
   Cmd => { windows: VK_LWIN, macos: 0x37, },
-  Win => { windows: VK_LWIN, macos: 0x37, },
-  // Platform-specific key mappings (aliases)
-  LWin => { windows: VK_LWIN, macos: 0x37, },
-  RWin => { windows: VK_RWIN, macos: 0x36, },
   LCmd => { windows: VK_LWIN, macos: 0x37, },
   RCmd => { windows: VK_RWIN, macos: 0x36, },
   // Special keys
