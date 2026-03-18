@@ -160,7 +160,10 @@ impl NativeWindow {
       el.set_attribute("AXSize", &ax_value)?;
       let ax_point = CGPoint::new(rect.x().into(), rect.y().into());
       let ax_value = AXValue::new_strict(&ax_point)?;
-      el.set_attribute("AXPosition", &ax_value)
+      el.set_attribute("AXPosition", &ax_value)?;
+      let ax_size = CGSize::new(rect.width().into(), rect.height().into());
+      let ax_value = AXValue::new_strict(&ax_size)?;
+      el.set_attribute("AXSize", &ax_value)
     })
   }
 

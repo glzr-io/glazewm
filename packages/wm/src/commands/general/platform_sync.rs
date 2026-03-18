@@ -393,16 +393,9 @@ fn reposition_window(
 
       // When there's a mismatch between the DPI of the monitor and the
       // window, the window might be sized incorrectly after the first
-      // move. Re-apply the frame after a short delay to allow macOS to
-      // commit the screen association change.
+      // move. Setting the frame twice resolves this.
       if window.has_pending_dpi_adjustment() {
-        let native = window.native().clone();
-        let rect = rect.clone();
-
-        tokio::task::spawn(async move {
-          tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-          _ = native.set_frame(&rect);
-        });
+        window.native().set_frame(&rect)?;
       }
     }
 
