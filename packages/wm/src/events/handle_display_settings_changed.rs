@@ -2,9 +2,12 @@ use anyhow::Context;
 use wm_common::try_warn;
 
 use crate::{
-  commands::monitor::{
-    add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
-    sort_monitors, update_monitor,
+  commands::{
+    monitor::{
+      add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
+      sort_monitors, update_monitor,
+    },
+    window::manage_window,
   },
   models::{Monitor, NativeMonitorProperties},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -12,9 +15,15 @@ use crate::{
   wm_state::WmState,
 };
 
+/// Handles changes to the display configuration (e.g. monitor
+/// connect/disconnect, resolution changes, lid close/reopen).
+///
+/// Updates the monitor and workspace topology to match the new display
+/// layout, re-discovers any unmanaged windows, and redraws the full
+/// container tree.
 pub fn handle_display_settings_changed(
   state: &mut WmState,
-  config: &UserConfig,
+  config: &mut UserConfig,
 ) -> anyhow::Result<()> {
   tracing::info!("Display settings changed.");
 
@@ -70,6 +79,38 @@ pub fn handle_display_settings_changed(
 
   for new_monitor in new_monitors {
     move_bounded_workspaces_to_new_monitor(&new_monitor, state, config)?;
+  }
+
+  // Re-enumerate visible windows and manage any that are not already
+  // tracked. This handles cases where windows fall out of the managed
+  // state during display changes (e.g. laptop lid close/reopen cycles).
+  match state.dispatcher.visible_windows() {
+    Ok(visible_windows) => {
+      for native_window in visible_windows.into_iter().rev() {
+        if state.window_from_native(&native_window).is_none() {
+          let nearest_workspace = state
+            .nearest_monitor(&native_window)
+            .and_then(|m| m.displayed_workspace());
+
+          if let Some(workspace) = nearest_workspace {
+            if let Err(err) = manage_window(
+              native_window,
+              Some(workspace.into()),
+              state,
+              config,
+            ) {
+              tracing::warn!(
+                "Failed to manage window during re-sync: {:?}",
+                err
+              );
+            }
+          }
+        }
+      }
+    }
+    Err(err) => {
+      tracing::warn!("Failed to re-enumerate visible windows: {:?}", err);
+    }
   }
 
   for window in state.windows() {
