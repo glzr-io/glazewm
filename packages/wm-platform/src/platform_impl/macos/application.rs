@@ -30,7 +30,7 @@ impl Application {
     ns_app: Retained<NSRunningApplication>,
     dispatcher: Dispatcher,
   ) -> Self {
-    let pid = unsafe { ns_app.processIdentifier() };
+    let pid = ns_app.processIdentifier();
     let ax_element = Arc::new(ThreadBound::new(
       // Creation of `AXUIElement` for an application does not fail even
       // if the PID is invalid. Instead, subsequent operations on
@@ -94,12 +94,16 @@ impl Application {
   }
 
   pub fn bundle_id(&self) -> Option<String> {
-    unsafe { self.ns_app.bundleIdentifier() }
+    self
+      .ns_app
+      .bundleIdentifier()
       .map(|ns_string| ns_string.to_string())
   }
 
   pub fn process_name(&self) -> Option<String> {
-    unsafe { self.ns_app.localizedName() }
+    self
+      .ns_app
+      .localizedName()
       .map(|ns_string| ns_string.to_string())
   }
 
@@ -132,7 +136,7 @@ impl Application {
   }
 
   pub fn activation_policy(&self) -> NSApplicationActivationPolicy {
-    unsafe { self.ns_app.activationPolicy() }
+    self.ns_app.activationPolicy()
   }
 
   /// Whether the application should be observed.
@@ -147,7 +151,7 @@ impl Application {
   }
 
   pub(crate) fn is_hidden(&self) -> bool {
-    unsafe { self.ns_app.isHidden() }
+    self.ns_app.isHidden()
   }
 }
 
@@ -156,7 +160,7 @@ pub(crate) fn all_applications(
 ) -> crate::Result<Vec<Application>> {
   dispatcher.dispatch_sync(|| {
     let running_apps =
-      unsafe { NSWorkspace::sharedWorkspace().runningApplications() };
+      NSWorkspace::sharedWorkspace().runningApplications();
 
     running_apps
       .iter()
@@ -171,11 +175,10 @@ pub(crate) fn application_for_bundle_id(
 ) -> crate::Result<Option<Application>> {
   let bundle_id = bundle_id.to_owned();
   dispatcher.dispatch_sync(|| {
-    let apps = unsafe {
+    let apps =
       NSRunningApplication::runningApplicationsWithBundleIdentifier(
         &NSString::from_str(&bundle_id),
-      )
-    };
+      );
 
     apps
       .into_iter()

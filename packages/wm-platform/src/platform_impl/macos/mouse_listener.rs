@@ -91,7 +91,7 @@ impl MouseListener {
   /// Implements [`MouseListener::enable`].
   pub(crate) fn enable(&mut self, enabled: bool) -> crate::Result<()> {
     if let Some(tap_port) = &self.tap_port {
-      tap_port.with(|tap| unsafe { CGEvent::tap_enable(tap, enabled) })?;
+      tap_port.with(|tap| CGEvent::tap_enable(tap, enabled))?;
     }
 
     Ok(())
@@ -185,7 +185,7 @@ impl MouseListener {
     current_loop
       .add_source(Some(&loop_source), unsafe { kCFRunLoopCommonModes });
 
-    unsafe { CGEvent::tap_enable(&tap_port, true) };
+    CGEvent::tap_enable(&tap_port, true);
 
     Ok(ThreadBound::new(tap_port, dispatcher.clone()))
   }
@@ -250,7 +250,7 @@ impl MouseListener {
     // Extract the cursor position from the `CGEvent`.
     let cg_event_ref = unsafe { cg_event.as_ref() };
     let position = {
-      let cg_point = unsafe { CGEvent::location(Some(cg_event_ref)) };
+      let cg_point = CGEvent::location(Some(cg_event_ref));
 
       #[allow(clippy::cast_possible_truncation)]
       Point {
@@ -263,12 +263,10 @@ impl MouseListener {
     // the real window ID interspersed every so often. Often a 100–200ms
     // delay before the real window ID is returned.
     let window_below_cursor = {
-      let window_id = unsafe {
-        CGEvent::integer_value_field(
-          Some(cg_event_ref),
-          CGEventField::MouseEventWindowUnderMousePointer,
-        )
-      };
+      let window_id = CGEvent::integer_value_field(
+        Some(cg_event_ref),
+        CGEventField::MouseEventWindowUnderMousePointer,
+      );
 
       if window_id == 0 {
         None
