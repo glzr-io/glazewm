@@ -552,7 +552,7 @@ impl NativeWindow {
   /// # Platform-specific
   ///
   /// - **Windows**: Uses `DwmSetWindowAttribute(DWMWA_BORDER_COLOR)`.
-  /// - **macOS**: Creates/removes a SkyLight overlay window.
+  /// - **macOS**: Creates/removes a `SkyLight` overlay window.
   pub fn set_border_color(
     &self,
     color: Option<&Color>,
