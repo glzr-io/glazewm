@@ -46,7 +46,7 @@ impl KeyEvent {
   #[allow(clippy::unused_self)]
   pub fn is_key_down(&self, key: Key) -> bool {
     match key {
-      Key::Cmd => {
+      Key::Cmd | Key::Win => {
         Self::is_key_down_raw(VK_LWIN.0)
           || Self::is_key_down_raw(VK_RWIN.0)
       }

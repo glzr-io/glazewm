@@ -172,9 +172,13 @@ impl_key_code_conversion! {
   Shift => { windows: VK_LSHIFT, macos: 0x38, },
   Ctrl => { windows: VK_LCONTROL, macos: 0x3B, },
   Alt => { windows: VK_LMENU, macos: 0x3A, },
-  Cmd => { windows: VK_LWIN, macos: 0x37, },
-  LCmd => { windows: VK_LWIN, macos: 0x37, },
-  RCmd => { windows: VK_RWIN, macos: 0x36, },
+  Cmd => { macos: 0x37, },
+  Win => { windows: VK_LWIN, },
+  // Platform-specific key mappings (aliases)
+  LWin => { windows: VK_LWIN, },
+  RWin => { windows: VK_RWIN, },
+  LCmd => { macos: 0x37, },
+  RCmd => { macos: 0x36, },
   // Special keys
   Space => { windows: VK_SPACE, macos: 0x31, },
   Tab => { windows: VK_TAB, macos: 0x30, },
@@ -269,6 +273,25 @@ mod tests {
       let code: KeyCode = key.try_into().unwrap();
       let key2: Key = code.try_into().unwrap();
       assert_eq!(key, key2, "Roundtrip failed for key: {key:?}");
+    }
+  }
+
+  #[test]
+  fn test_platform_specific_key_code() {
+    #[cfg(target_os = "windows")]
+    {
+      let code = KeyCode::try_from(Key::Win);
+      assert!(code.is_ok());
+      let code2 = KeyCode::try_from(Key::Cmd);
+      assert!(code2.is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+      let code = KeyCode::try_from(Key::Win);
+      assert!(code.is_err());
+      let code2 = KeyCode::try_from(Key::Cmd);
+      assert!(code2.is_ok());
     }
   }
 }
