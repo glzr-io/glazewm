@@ -400,7 +400,7 @@ fn reposition_window(
         let rect = rect.clone();
 
         tokio::task::spawn(async move {
-          tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+          tokio::time::sleep(std::time::Duration::from_millis(100)).await;
           _ = native.set_frame(&rect);
         });
       }
