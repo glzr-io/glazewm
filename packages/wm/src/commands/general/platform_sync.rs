@@ -388,7 +388,16 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
   } else {
     #[cfg(target_os = "macos")]
-    window.native().set_frame(&rect)?;
+    {
+      window.native().set_frame(&rect)?;
+
+      // When there's a mismatch between the DPI of the monitor and the
+      // window, the window might be sized incorrectly after the first
+      // move. Setting the frame twice resolves this.
+      if window.has_pending_dpi_adjustment() {
+        window.native().set_frame(&rect)?;
+      }
+    }
 
     #[cfg(target_os = "windows")]
     {
