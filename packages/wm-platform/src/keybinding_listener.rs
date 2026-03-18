@@ -12,7 +12,7 @@ use crate::{
   platform_event::KeybindingEvent, platform_impl, Dispatcher, Key,
 };
 
-const MODIFIER_KEYS: [Key; 8] = [
+const MODIFIER_KEYS: [Key; 10] = [
   Key::LShift,
   Key::RShift,
   Key::LCtrl,
@@ -21,6 +21,8 @@ const MODIFIER_KEYS: [Key; 8] = [
   Key::RAlt,
   Key::LCmd,
   Key::RCmd,
+  Key::LWin,
+  Key::RWin,
 ];
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -150,68 +152,55 @@ impl KeybindingListener {
         };
 
         // Find keybinding candidates whose trigger key is the pressed key.
-        // TODO: This can probably be simplified.
-        if let Some(candidates) = keybinding_map.get(&event.key) {
-          let mut cached_key_states = HashMap::new();
+        let Some(candidates) = keybinding_map.get(&event.key) else {
+          return false;
+        };
 
-          // Find the matching keybindings based on the pressed keys.
-          let matched_keybindings =
-            candidates.iter().filter(|keybinding| {
-              keybinding.keys().iter().all(|&key| {
-                if key == event.key {
-                  return true;
-                }
+        let mut cached_key_states = HashMap::new();
 
-                if let Some(&is_key_down) = cached_key_states.get(&key) {
-                  return is_key_down;
-                }
+        // Find the matching keybindings based on the pressed keys.
+        let matched_keybindings = candidates.iter().filter(|keybinding| {
+          keybinding.keys().iter().all(|&key| {
+            if key == event.key {
+              return true;
+            }
 
-                let is_key_down = event.is_key_down(key);
-                cached_key_states.insert(key, is_key_down);
-                is_key_down
-              })
-            });
+            if let Some(&is_key_down) = cached_key_states.get(&key) {
+              return is_key_down;
+            }
 
-          // Find the longest matching keybinding.
-          let Some(longest_keybinding) = matched_keybindings
-            .max_by_key(|keybinding| keybinding.keys().len())
-          else {
-            return false;
-          };
+            let is_key_down = event.is_key_down(key);
+            cached_key_states.insert(key, is_key_down);
+            is_key_down
+          })
+        });
 
-          // Get the modifier keys to reject based on the longest matching
-          // keybinding.
-          let mut modifier_keys_to_reject =
-            MODIFIER_KEYS.iter().filter(|&&modifier_key| {
-              !longest_keybinding.keys().contains(&modifier_key)
-                && !longest_keybinding
-                  .keys()
-                  .contains(&Self::generic_modifier_key(modifier_key))
-            });
+        // Find the longest matching keybinding.
+        let Some(longest_keybinding) = matched_keybindings
+          .max_by_key(|keybinding| keybinding.keys().len())
+        else {
+          return false;
+        };
 
-          // Check if any modifier keys to reject are currently down.
-          let has_modifier_keys_to_reject =
-            modifier_keys_to_reject.any(|&modifier_key| {
-              if let Some(&is_key_down) =
-                cached_key_states.get(&modifier_key)
-              {
-                is_key_down
-              } else {
-                event.is_key_down(modifier_key)
-              }
-            });
+        // Reject if any modifier key not in the keybinding is held.
+        let has_extra_modifiers = MODIFIER_KEYS.iter().any(|&mk| {
+          !longest_keybinding.keys().contains(&mk)
+            && !longest_keybinding
+              .keys()
+              .contains(&Self::generic_modifier_key(mk))
+            && cached_key_states
+              .get(&mk)
+              .copied()
+              .unwrap_or_else(|| event.is_key_down(mk))
+        });
 
-          if has_modifier_keys_to_reject {
-            return false;
-          }
-
-          let _ =
-            event_tx.send(KeybindingEvent(longest_keybinding.clone()));
-
-          return true;
+        if has_extra_modifiers {
+          return false;
         }
 
-        false
+        let _ = event_tx.send(KeybindingEvent(longest_keybinding.clone()));
+
+        true
       },
       dispatcher,
     )
@@ -237,6 +226,7 @@ impl KeybindingListener {
   fn generic_modifier_key(key: Key) -> Key {
     match key {
       Key::LCmd | Key::RCmd => Key::Cmd,
+      Key::LWin | Key::RWin => Key::Win,
       Key::LCtrl | Key::RCtrl => Key::Ctrl,
       Key::LAlt | Key::RAlt => Key::Alt,
       Key::LShift | Key::RShift => Key::Shift,
