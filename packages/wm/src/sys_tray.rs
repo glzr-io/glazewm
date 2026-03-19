@@ -484,6 +484,10 @@ fn target_displayed_icon(
   tiling_direction: Option<&TilingDirection>,
   workspace_index: Option<usize>,
 ) -> DisplayedTrayIcon {
+  if !tray_icon_state_enabled {
+    return DisplayedTrayIcon::Status(TrayIconState::Static);
+  }
+
   match tray_icon_mode {
     TrayIconMode::Status => DisplayedTrayIcon::Status(target_icon_state(
       tray_icon_state_enabled,
@@ -774,8 +778,8 @@ mod tests {
   fn target_displayed_icon_uses_workspace_icon_in_workspace_mode() {
     let state = target_displayed_icon(
       TrayIconMode::Workspace,
-      false,
       true,
+      false,
       Some(&TilingDirection::Vertical),
       Some(7),
     );
@@ -791,6 +795,19 @@ mod tests {
       false,
       None,
       None,
+    );
+
+    assert_eq!(state, DisplayedTrayIcon::Status(TrayIconState::Static));
+  }
+
+  #[test]
+  fn target_displayed_icon_uses_static_icon_when_feature_disabled() {
+    let state = target_displayed_icon(
+      TrayIconMode::Workspace,
+      false,
+      false,
+      Some(&TilingDirection::Vertical),
+      Some(7),
     );
 
     assert_eq!(state, DisplayedTrayIcon::Status(TrayIconState::Static));
