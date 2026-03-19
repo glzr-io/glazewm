@@ -14,7 +14,11 @@ use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 /// Record of a monitor that was disconnected, used to restore its
 /// workspaces when the same physical monitor reconnects.
 pub struct DisconnectedMonitor {
+  #[cfg(target_os = "macos")]
+  pub device_uuid: String,
+  #[cfg(target_os = "windows")]
   pub device_path: Option<String>,
+  #[cfg(target_os = "windows")]
   pub hardware_id: Option<String>,
   pub device_name: String,
   /// Workspace names that were on this monitor, ordered by focus
@@ -695,54 +699,70 @@ impl WmState {
   }
 
   /// Takes a disconnected monitor record matching the given native
-  /// monitor, removing it from the registry. Matches by `device_path`
-  /// first, then by unique `hardware_id`.
+  /// monitor, removing it from the registry.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: Matches by stable `device_uuid`.
+  /// - **Windows**: Matches by `device_path` first, then by unique
+  ///   `hardware_id`.
   pub fn take_disconnected_monitor(
     &mut self,
     native: &NativeMonitorProperties,
   ) -> Option<DisconnectedMonitor> {
-    let device_path = native.device_path.as_ref();
-    let hardware_id = native.hardware_id.as_ref();
+    // On macOS, match by the stable device UUID.
+    #[cfg(target_os = "macos")]
+    let index = self
+      .disconnected_monitors
+      .iter()
+      .position(|dm| dm.device_uuid == native.device_uuid);
 
-    // Try matching by device_path first.
-    let index = device_path.and_then(|path| {
-      self
-        .disconnected_monitors
-        .iter()
-        .position(|dm| dm.device_path.as_deref() == Some(path.as_str()))
-    });
+    // On Windows, match by device_path first, then by unique hardware_id.
+    #[cfg(target_os = "windows")]
+    let index = {
+      let device_path = native.device_path.as_ref();
+      let hardware_id = native.hardware_id.as_ref();
 
-    // Fall back to matching by hardware_id, but only if it's unique
-    // across both connected and disconnected monitors.
-    let index = index.or_else(|| {
-      let hw_id = hardware_id?;
-
-      let connected_count = self
-        .monitors()
-        .iter()
-        .filter(|m| {
-          m.native_properties()
-            .hardware_id
-            .as_ref()
-            .is_some_and(|id| id == hw_id)
-        })
-        .count();
-
-      let disconnected_count = self
-        .disconnected_monitors
-        .iter()
-        .filter(|dm| dm.hardware_id.as_ref() == Some(hw_id))
-        .count();
-
-      if connected_count + disconnected_count == 1 {
+      // Try matching by device_path first.
+      let index = device_path.and_then(|path| {
         self
           .disconnected_monitors
           .iter()
-          .position(|dm| dm.hardware_id.as_ref() == Some(hw_id))
-      } else {
-        None
-      }
-    });
+          .position(|dm| dm.device_path.as_deref() == Some(path.as_str()))
+      });
+
+      // Fall back to matching by hardware_id, but only if it's unique
+      // across both connected and disconnected monitors.
+      index.or_else(|| {
+        let hw_id = hardware_id?;
+
+        let connected_count = self
+          .monitors()
+          .iter()
+          .filter(|m| {
+            m.native_properties()
+              .hardware_id
+              .as_ref()
+              .is_some_and(|id| id == hw_id)
+          })
+          .count();
+
+        let disconnected_count = self
+          .disconnected_monitors
+          .iter()
+          .filter(|dm| dm.hardware_id.as_ref() == Some(hw_id))
+          .count();
+
+        if connected_count + disconnected_count == 1 {
+          self
+            .disconnected_monitors
+            .iter()
+            .position(|dm| dm.hardware_id.as_ref() == Some(hw_id))
+        } else {
+          None
+        }
+      })
+    };
 
     if let Some(idx) = index {
       let dm = self.disconnected_monitors.remove(idx);

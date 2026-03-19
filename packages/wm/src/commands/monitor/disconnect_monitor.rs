@@ -10,7 +10,7 @@ use crate::{
   wm_state::{DisconnectedMonitor, WmState},
 };
 
-const GHOST_TTL: Duration = Duration::from_secs(3600);
+const GHOST_TTL: Duration = Duration::from_hours(1);
 
 /// Records a monitor's identity and workspaces before removing it from
 /// the container tree. This allows workspace restoration when the same
@@ -21,7 +21,11 @@ pub fn disconnect_monitor(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let props = monitor.native_properties();
+  #[cfg(target_os = "macos")]
+  let device_uuid = props.device_uuid.clone();
+  #[cfg(target_os = "windows")]
   let device_path = props.device_path.clone();
+  #[cfg(target_os = "windows")]
   let hardware_id = props.hardware_id.clone();
   let device_name = props.device_name.clone();
 
@@ -37,14 +41,21 @@ pub fn disconnect_monitor(
     device_name, workspace_names
   );
 
-  // Remove any existing ghost with same device_path or hardware_id to
-  // prevent duplicates (handles the case where device_path is None).
+  // Remove any existing ghost for the same physical monitor to prevent
+  // duplicates.
   state.disconnected_monitors.retain(|dm| {
-    let path_match = device_path.is_some()
-      && dm.device_path.as_ref() == device_path.as_ref();
-    let hw_match = hardware_id.is_some()
-      && dm.hardware_id.as_ref() == hardware_id.as_ref();
-    !path_match && !hw_match
+    #[cfg(target_os = "macos")]
+    {
+      dm.device_uuid != device_uuid
+    }
+    #[cfg(target_os = "windows")]
+    {
+      let path_match = device_path.is_some()
+        && dm.device_path.as_ref() == device_path.as_ref();
+      let hw_match = hardware_id.is_some()
+        && dm.hardware_id.as_ref() == hardware_id.as_ref();
+      !path_match && !hw_match
+    }
   });
 
   // Prune ghosts older than the TTL.
@@ -55,7 +66,11 @@ pub fn disconnect_monitor(
 
   // Push new ghost record.
   state.disconnected_monitors.push(DisconnectedMonitor {
+    #[cfg(target_os = "macos")]
+    device_uuid,
+    #[cfg(target_os = "windows")]
     device_path,
+    #[cfg(target_os = "windows")]
     hardware_id,
     device_name,
     workspace_names,
