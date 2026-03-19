@@ -11,12 +11,12 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
   VK_MEDIA_PREV_TRACK, VK_MEDIA_STOP, VK_MULTIPLY, VK_N, VK_NEXT,
   VK_NONCONVERT, VK_NUMLOCK, VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2,
   VK_NUMPAD3, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD8,
-  VK_NUMPAD9, VK_O, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5,
-  VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD,
-  VK_OEM_PLUS, VK_P, VK_PRIOR, VK_Q, VK_R, VK_RCONTROL, VK_RETURN,
-  VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_S, VK_SCROLL, VK_SNAPSHOT,
-  VK_SPACE, VK_SUBTRACT, VK_T, VK_TAB, VK_U, VK_UP, VK_V, VK_VOLUME_DOWN,
-  VK_VOLUME_MUTE, VK_VOLUME_UP, VK_W, VK_X, VK_Y, VK_Z,
+  VK_NUMPAD9, VK_O, VK_OEM_1, VK_OEM_102, VK_OEM_2, VK_OEM_3, VK_OEM_4,
+  VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_8, VK_OEM_COMMA, VK_OEM_MINUS,
+  VK_OEM_PERIOD, VK_OEM_PLUS, VK_P, VK_PRIOR, VK_Q, VK_R, VK_RCONTROL,
+  VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_S, VK_SCROLL,
+  VK_SNAPSHOT, VK_SPACE, VK_SUBTRACT, VK_T, VK_TAB, VK_U, VK_UP, VK_V,
+  VK_VOLUME_DOWN, VK_VOLUME_MUTE, VK_VOLUME_UP, VK_W, VK_X, VK_Y, VK_Z,
 };
 
 use crate::{Key, KeyCode};
@@ -172,13 +172,13 @@ impl_key_code_conversion! {
   Shift => { windows: VK_LSHIFT, macos: 0x38, },
   Ctrl => { windows: VK_LCONTROL, macos: 0x3B, },
   Alt => { windows: VK_LMENU, macos: 0x3A, },
-  Cmd => { windows: VK_LWIN, macos: 0x37, },
-  Win => { windows: VK_LWIN, macos: 0x37, },
+  Cmd => { macos: 0x37, },
+  Win => { windows: VK_LWIN, },
   // Platform-specific key mappings (aliases)
-  LWin => { windows: VK_LWIN, macos: 0x37, },
-  RWin => { windows: VK_RWIN, macos: 0x36, },
-  LCmd => { windows: VK_LWIN, macos: 0x37, },
-  RCmd => { windows: VK_RWIN, macos: 0x36, },
+  LWin => { windows: VK_LWIN, },
+  RWin => { windows: VK_RWIN, },
+  LCmd => { macos: 0x37, },
+  RCmd => { macos: 0x36, },
   // Special keys
   Space => { windows: VK_SPACE, macos: 0x31, },
   Tab => { windows: VK_TAB, macos: 0x30, },
@@ -206,6 +206,8 @@ impl_key_code_conversion! {
   OemPipe => { windows: VK_OEM_5, macos: 0x2A, },
   OemCloseBrackets => { windows: VK_OEM_6, macos: 0x1E, },
   OemQuotes => { windows: VK_OEM_7, macos: 0x27, },
+  Oem8 => { windows: VK_OEM_8, },
+  Oem102 => { windows: VK_OEM_102, },
   OemPlus => { windows: VK_OEM_PLUS, macos: 0x18, },
   OemComma => { windows: VK_OEM_COMMA, macos: 0x2B, },
   OemMinus => { windows: VK_OEM_MINUS, macos: 0x1B, },
@@ -273,6 +275,25 @@ mod tests {
       let code: KeyCode = key.try_into().unwrap();
       let key2: Key = code.try_into().unwrap();
       assert_eq!(key, key2, "Roundtrip failed for key: {key:?}");
+    }
+  }
+
+  #[test]
+  fn test_platform_specific_key_code() {
+    #[cfg(target_os = "windows")]
+    {
+      let code = KeyCode::try_from(Key::Win);
+      assert!(code.is_ok());
+      let code2 = KeyCode::try_from(Key::Cmd);
+      assert!(code2.is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+      let code = KeyCode::try_from(Key::Win);
+      assert!(code.is_err());
+      let code2 = KeyCode::try_from(Key::Cmd);
+      assert!(code2.is_ok());
     }
   }
 }

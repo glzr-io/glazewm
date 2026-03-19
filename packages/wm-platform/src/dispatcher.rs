@@ -554,8 +554,8 @@ impl Dispatcher {
   pub fn cursor_position(&self) -> crate::Result<Point> {
     #[cfg(target_os = "macos")]
     {
-      let event = unsafe { CGEvent::new(None) };
-      let point = unsafe { CGEvent::location(event.as_deref()) };
+      let event = CGEvent::new(None);
+      let point = CGEvent::location(event.as_deref());
 
       #[allow(clippy::cast_possible_truncation)]
       Ok(Point {
@@ -586,7 +586,7 @@ impl Dispatcher {
       };
 
       // Check if bit at corresponding index is set in the bitmask.
-      let pressed_mask = unsafe { NSEvent::pressedMouseButtons() };
+      let pressed_mask = NSEvent::pressedMouseButtons();
       (pressed_mask & (1usize << bit_index)) != 0
     }
     #[cfg(target_os = "windows")]
@@ -620,7 +620,7 @@ impl Dispatcher {
         y: f64::from(point.y),
       };
 
-      if unsafe { CGWarpMouseCursorPosition(point) } != CGError::Success {
+      if CGWarpMouseCursorPosition(point) != CGError::Success {
         return Err(crate::Error::Platform(
           "Failed to set cursor position.".to_string(),
         ));
@@ -692,13 +692,11 @@ impl Dispatcher {
       let _ = self.dispatch_sync(|| {
         let mtm = MainThreadMarker::new().unwrap();
 
-        unsafe {
-          let alert = NSAlert::new(mtm);
-          alert.setMessageText(&NSString::from_str(title));
-          alert.setInformativeText(&NSString::from_str(message));
-          alert.setAlertStyle(NSAlertStyle::Critical);
-          alert.runModal();
-        };
+        let alert = NSAlert::new(mtm);
+        alert.setMessageText(&NSString::from_str(title));
+        alert.setInformativeText(&NSString::from_str(message));
+        alert.setAlertStyle(NSAlertStyle::Critical);
+        alert.runModal();
       });
     }
   }

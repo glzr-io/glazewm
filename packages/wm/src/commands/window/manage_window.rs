@@ -235,7 +235,7 @@ fn create_window(
       border_delta,
       None,
       floating_placement,
-      false,
+      !prefers_centered,
       Vec::new(),
       None,
     )

@@ -1,6 +1,6 @@
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{NativeWindow, Rect};
+#[cfg(target_os = "windows")]
+use wm_platform::{NativeWindowWindowsExt, RectDelta};
 
 #[derive(Debug, Clone)]
 pub struct NativeWindowProperties {
@@ -12,6 +12,8 @@ pub struct NativeWindowProperties {
   pub is_minimized: bool,
   pub is_maximized: bool,
   pub is_resizable: bool,
+  #[cfg(target_os = "windows")]
+  pub shadow_borders: RectDelta,
 }
 
 impl TryFrom<&NativeWindow> for NativeWindowProperties {
@@ -27,6 +29,8 @@ impl TryFrom<&NativeWindow> for NativeWindowProperties {
       is_minimized: native_window.is_minimized()?,
       is_maximized: native_window.is_maximized()?,
       is_resizable: native_window.is_resizable()?,
+      #[cfg(target_os = "windows")]
+      shadow_borders: native_window.shadow_borders()?,
     })
   }
 }

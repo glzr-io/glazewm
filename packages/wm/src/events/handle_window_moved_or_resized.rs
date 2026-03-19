@@ -3,6 +3,8 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
   FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
 use wm_platform::{LengthValue, MouseButton, RectDelta};
 use wm_platform::{NativeWindow, Rect};
@@ -87,6 +89,19 @@ pub fn handle_window_moved_or_resized(
     window.update_native_properties(|properties| {
       properties.is_maximized = is_maximized;
     });
+
+    // If the window is not maximized, update its cached shadow borders.
+    // Maximized windows temporarily have 0 shadow borders, in which case
+    // we should use its previous value for redraws.
+    #[cfg(target_os = "windows")]
+    {
+      let shadow_borders = try_warn!(window.native().shadow_borders());
+      if !is_maximized {
+        window.update_native_properties(|properties| {
+          properties.shadow_borders = shadow_borders;
+        });
+      }
+    }
 
     let is_minimized = try_warn!(window.native().is_minimized());
 
@@ -210,14 +225,71 @@ pub fn handle_window_moved_or_resized(
       }
     }
 
-    let should_fullscreen = window.should_fullscreen(
-      &nearest_monitor
+    let should_fullscreen = {
+      let workspace = nearest_monitor
         .displayed_workspace()
-        .context("No workspace.")?,
-    )?;
+        .context("No workspace.")?;
+
+      let should_fullscreen = window.should_fullscreen(&workspace)?;
+
+      match window.state() {
+        // Override the fullscreen check for when an app self-exits
+        // fullscreen (e.g. Chrome via F11) and restores its window to
+        // a position that exactly covers the workspace rect.
+        WindowState::Fullscreen(fullscreen)
+          if !fullscreen.maximized && should_fullscreen =>
+        {
+          let workspace_rect = workspace.max_workspace_rect()?;
+
+          let old_frame = old_frame_position
+            .apply_delta(&window.border_delta().inverse(), None);
+          let new_frame = frame_position
+            .apply_delta(&window.border_delta().inverse(), None);
+
+          let old_exceeded =
+            old_frame.inset(1).contains_rect(&workspace_rect);
+          let new_exceeds =
+            new_frame.inset(1).contains_rect(&workspace_rect);
+
+          // The window should no longer be fullscreen if the old frame
+          // exceeded the workspace bounds (app was in OS fullscreen), but
+          // the new frame no longer does. Configs with 0px outer gaps
+          // always use the `should_fullscreen` check, since the old frame
+          // will never exceed the workspace bounds.
+          if old_exceeded && !new_exceeds {
+            false
+          } else {
+            should_fullscreen
+          }
+        }
+        _ => should_fullscreen,
+      }
+    };
 
     // Handle a window being maximized or entering fullscreen.
     if is_maximized || should_fullscreen {
+      let is_same_state = is_maximized
+        && matches!(
+          window.state(),
+          WindowState::Fullscreen(FullscreenStateConfig {
+            maximized: true,
+            ..
+          })
+        )
+        || should_fullscreen
+          && matches!(
+            window.state(),
+            WindowState::Fullscreen(FullscreenStateConfig {
+              maximized: false,
+              ..
+            })
+          );
+
+      // Ignore if there's no state change.
+      if is_same_state {
+        return Ok(());
+      }
+
       let fullscreen_state = if let WindowState::Fullscreen(
         fullscreen_state,
       ) = window.state()
@@ -232,7 +304,7 @@ pub fn handle_window_moved_or_resized(
           .clone()
       };
 
-      update_window_state(
+      let window = update_window_state(
         window.clone(),
         WindowState::Fullscreen(FullscreenStateConfig {
           maximized: is_maximized,
@@ -248,10 +320,6 @@ pub fn handle_window_moved_or_resized(
         state
           .pending_sync
           .dequeue_container_from_redraw(window.clone());
-      } else {
-        // Force a redraw to snap the window to the monitor edges.
-        // TODO: Skip redraw if it's already matches fullscreen frame.
-        state.pending_sync.queue_container_to_redraw(window.clone());
       }
 
       // TODO: Handle a fullscreen window being moved from one monitor to
@@ -461,10 +529,12 @@ fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
     (window_frame.x() + VISIBLE_SLIVER_PX - monitor_rect.right).abs() <= 1;
 
   // On macOS, the window's title bar is prevented from being positioned
-  // outside of monitor's working area, so we need to allow ~50px of
-  // vertical leeway.
+  // outside of monitor's working area, so we need to allow ~55px of
+  // vertical leeway. Title bar height varies, but can be up to 52px.
+  // TODO: See if possible to make this dynamic based on the window's title
+  // bar height.
   let is_bottom_of_monitor =
-    (window_frame.y() - monitor_rect.bottom).abs() <= 50;
+    (window_frame.y() - monitor_rect.bottom).abs() <= 55;
 
   (is_left_corner || is_right_corner) && is_bottom_of_monitor
 }

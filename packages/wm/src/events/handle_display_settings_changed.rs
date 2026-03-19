@@ -1,4 +1,5 @@
 use anyhow::Context;
+use wm_common::try_warn;
 
 use crate::{
   commands::monitor::{
@@ -17,36 +18,46 @@ pub fn handle_display_settings_changed(
 ) -> anyhow::Result<()> {
   tracing::info!("Display settings changed.");
 
-  let displays = state.dispatcher.sorted_displays()?;
+  // Ignore the event if retrieval of the displays or their properties
+  // fails (can happen transiently during sleep/wake).
+  let displays = try_warn!(state
+    .dispatcher
+    .sorted_displays()
+    .map_err(anyhow::Error::from)
+    .and_then(|displays| {
+      displays
+        .into_iter()
+        .map(|display| {
+          let properties = NativeMonitorProperties::try_from(&display)?;
+          Ok((display, properties))
+        })
+        .try_collect::<Vec<_>>()
+    }));
+
   let mut pending_monitors = state.monitors();
   let mut unmatched_displays = Vec::new();
 
   // Match each display to an existing monitor and update it.
-  for display in displays {
-    // TODO: Create `NativeMonitorProperties` instances for displays just
-    // once (created in loop below and in `update_monitor`).
-    let properties = NativeMonitorProperties::try_from(&display)?;
-
+  for (display, properties) in displays {
     match find_matching_monitor(&pending_monitors, &properties) {
       Some((monitor, index)) => {
-        update_monitor(monitor, &display, state)?;
+        update_monitor(monitor, &display, properties, state)?;
         pending_monitors.remove(index);
       }
-      None => unmatched_displays.push(display),
+      None => unmatched_displays.push((display, properties)),
     }
   }
 
   let mut new_monitors: Vec<Monitor> = Vec::new();
 
   // Pair unmatched displays with unmatched monitors, or add new ones.
-  for display in unmatched_displays {
+  for (display, properties) in unmatched_displays {
     if pending_monitors.is_empty() {
-      let properties = NativeMonitorProperties::try_from(&display)?;
       let monitor = add_monitor(display, properties, state)?;
       new_monitors.push(monitor);
     } else {
       let monitor = pending_monitors.remove(0);
-      update_monitor(&monitor, &display, state)?;
+      update_monitor(&monitor, &display, properties, state)?;
     }
   }
 

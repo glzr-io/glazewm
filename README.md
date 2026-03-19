@@ -147,67 +147,69 @@ keybindings:
 <details>
 <summary>Keys list</summary>
 
-| Key                   | Description                                                        |
-| --------------------- | ------------------------------------------------------------------ |
-| `a` - `z`             | Alphabetical letter keys                                           |
-| `0` - `9`             | Number keys                                                        |
-| `numpad0` - `numpad9` | Numerical keypad keys                                              |
-| `f1` - `f24`          | Function keys                                                      |
-| `shift`               | Either left or right SHIFT key                                     |
-| `lshift`              | The left SHIFT key                                                 |
-| `rshift`              | The right SHIFT key                                                |
-| `control`             | Either left or right CTRL key                                      |
-| `lctrl`               | The left CTRL key                                                  |
-| `rctrl`               | The right CTRL key                                                 |
-| `alt`                 | Either left or right ALT key                                       |
-| `lalt`                | The left ALT key                                                   |
-| `ralt`                | The right ALT key                                                  |
-| `lwin`                | The left ⊞ Windows logo key                                        |
-| `rwin`                | The right ⊞ Windows logo key                                       |
-| `space`               | The spacebar key                                                   |
-| `escape`              | The ESCAPE key                                                     |
-| `back`                | The BACKSPACE key                                                  |
-| `tab`                 | The TAB key                                                        |
-| `enter`               | The ENTER key                                                      |
-| `left`                | The ← arrow key                                                    |
-| `right`               | The → arrow key                                                    |
-| `up`                  | The ↑ arrow key                                                    |
-| `down`                | The ↓ arrow key                                                    |
-| `num_lock`            | The NUM LOCK key                                                   |
-| `scroll_lock`         | The SCROLL LOCK key                                                |
-| `caps_lock`           | The CAPS LOCK key                                                  |
-| `page_up`             | The PAGE UP key                                                    |
-| `page_down`           | The PAGE DOWN key                                                  |
-| `insert`              | The INSERT key                                                     |
-| `delete`              | The DELETE key                                                     |
-| `end`                 | The END key                                                        |
-| `home`                | The HOME key                                                       |
-| `print_screen`        | The PRINT SCREEN key                                               |
-| `multiply`            | The `*` key (only on numpad)                                       |
-| `add`                 | The `+` key (only on numpad)                                       |
-| `subtract`            | The `-` key (only on numpad)                                       |
-| `decimal`             | The DEL key (only on numpad)                                       |
-| `divide`              | The `/` key (only on numpad)                                       |
-| `volume_up`           | The volume up key                                                  |
-| `volume_down`         | The volume down key                                                |
-| `volume_mute`         | The volume mute key                                                |
-| `media_next_track`    | The media next track key                                           |
-| `media_prev_track`    | The media prev track key                                           |
-| `media_stop`          | The media stop key                                                 |
-| `media_play_pause`    | The media play/pause key                                           |
-| `oem_semicolon`       | The `;`/`:` key on a US standard keyboard (varies by keyboard)     |
-| `oem_question`        | The `/`/`?` key on a US standard keyboard (varies by keyboard)     |
-| `oem_tilde`           | The `` ` ``/`~` key on a US standard keyboard (varies by keyboard) |
-| `oem_open_brackets`   | The `[`/`{` key on a US standard keyboard (varies by keyboard)     |
-| `oem_pipe`            | The `\`/`\|` key on a US standard keyboard (varies by keyboard)    |
-| `oem_close_brackets`  | The `]`/`}` key on a US standard keyboard (varies by keyboard)     |
-| `oem_quotes`          | The `'`/`"` key on a US standard keyboard (varies by keyboard)     |
-| `oem_plus`            | The `=`/`+` key on a US standard keyboard (varies by keyboard)     |
-| `oem_comma`           | The `,`/`<` key on a US standard keyboard (varies by keyboard)     |
-| `oem_minus`           | The `-`/`_` key on a US standard keyboard (varies by keyboard)     |
-| `oem_period`          | The `.`/`>` key on a US standard keyboard (varies by keyboard)     |
-| `muhenkan`            | The 無変換 (non-convert) key for Japanese keyboard layouts         |
-| `henkan`              | The 変換 (convert) key for Japanese keyboard layouts               |
+| Key                   | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `a` - `z`             | Alphabetical letter keys                                                  |
+| `0` - `9`             | Number keys                                                               |
+| `numpad0` - `numpad9` | Numerical keypad keys                                                     |
+| `f1` - `f24`          | Function keys                                                             |
+| `shift`               | Either left or right SHIFT key                                            |
+| `lshift`              | The left SHIFT key                                                        |
+| `rshift`              | The right SHIFT key                                                       |
+| `control`             | Either left or right CTRL key                                             |
+| `lctrl`               | The left CTRL key                                                         |
+| `rctrl`               | The right CTRL key                                                        |
+| `alt`                 | Either left or right ALT key                                              |
+| `lalt`                | The left ALT key                                                          |
+| `ralt`                | The right ALT key                                                         |
+| `lwin`                | The left ⊞ Windows logo key                                               |
+| `rwin`                | The right ⊞ Windows logo key                                              |
+| `space`               | The spacebar key                                                          |
+| `escape`              | The ESCAPE key                                                            |
+| `back`                | The BACKSPACE key                                                         |
+| `tab`                 | The TAB key                                                               |
+| `enter`               | The ENTER key                                                             |
+| `left`                | The ← arrow key                                                           |
+| `right`               | The → arrow key                                                           |
+| `up`                  | The ↑ arrow key                                                           |
+| `down`                | The ↓ arrow key                                                           |
+| `num_lock`            | The NUM LOCK key                                                          |
+| `scroll_lock`         | The SCROLL LOCK key                                                       |
+| `caps_lock`           | The CAPS LOCK key                                                         |
+| `page_up`             | The PAGE UP key                                                           |
+| `page_down`           | The PAGE DOWN key                                                         |
+| `insert`              | The INSERT key                                                            |
+| `delete`              | The DELETE key                                                            |
+| `end`                 | The END key                                                               |
+| `home`                | The HOME key                                                              |
+| `print_screen`        | The PRINT SCREEN key                                                      |
+| `multiply`            | The `*` key (only on numpad)                                              |
+| `add`                 | The `+` key (only on numpad)                                              |
+| `subtract`            | The `-` key (only on numpad)                                              |
+| `decimal`             | The DEL key (only on numpad)                                              |
+| `divide`              | The `/` key (only on numpad)                                              |
+| `volume_up`           | The volume up key                                                         |
+| `volume_down`         | The volume down key                                                       |
+| `volume_mute`         | The volume mute key                                                       |
+| `media_next_track`    | The media next track key                                                  |
+| `media_prev_track`    | The media prev track key                                                  |
+| `media_stop`          | The media stop key                                                        |
+| `media_play_pause`    | The media play/pause key                                                  |
+| `oem_semicolon`       | The `;`/`:` key on a US standard keyboard (varies by keyboard)            |
+| `oem_question`        | The `/`/`?` key on a US standard keyboard (varies by keyboard)            |
+| `oem_tilde`           | The `` ` ``/`~` key on a US standard keyboard (varies by keyboard)        |
+| `oem_open_brackets`   | The `[`/`{` key on a US standard keyboard (varies by keyboard)            |
+| `oem_pipe`            | The `\`/`\|` key on a US standard keyboard (varies by keyboard)           |
+| `oem_close_brackets`  | The `]`/`}` key on a US standard keyboard (varies by keyboard)            |
+| `oem_quotes`          | The `'`/`"` key on a US standard keyboard (varies by keyboard)            |
+| `oem_8`               | The `` ` ``/`¬` key on a UK keyboard (varies by keyboard)                 |
+| `oem_102`             | The `\`/`\|` key next to left Shift on ISO keyboards (varies by keyboard) |
+| `oem_plus`            | The `=`/`+` key on a US standard keyboard (varies by keyboard)            |
+| `oem_comma`           | The `,`/`<` key on a US standard keyboard (varies by keyboard)            |
+| `oem_minus`           | The `-`/`_` key on a US standard keyboard (varies by keyboard)            |
+| `oem_period`          | The `.`/`>` key on a US standard keyboard (varies by keyboard)            |
+| `muhenkan`            | The 無変換 (non-convert) key for Japanese keyboard layouts                |
+| `henkan`              | The 変換 (convert) key for Japanese keyboard layouts                      |
 
 </details>
 

@@ -440,7 +440,7 @@ pub(crate) fn focused_window(
   dispatcher: &Dispatcher,
 ) -> crate::Result<crate::NativeWindow> {
   dispatcher
-    .dispatch_sync(|| unsafe {
+    .dispatch_sync(|| {
       // Get the frontmost (active) application.
       let frontmost_app = NSWorkspace::sharedWorkspace()
         .frontmostApplication()
@@ -465,11 +465,9 @@ pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
     ));
   };
 
-  let success = unsafe {
-    application.ns_app.activateWithOptions(
-      NSApplicationActivationOptions::ActivateAllWindows,
-    )
-  };
+  let success = application.ns_app.activateWithOptions(
+    NSApplicationActivationOptions::ActivateAllWindows,
+  );
 
   if !success {
     return Err(crate::Error::Platform(

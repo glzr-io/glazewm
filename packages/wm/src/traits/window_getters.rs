@@ -2,8 +2,6 @@ use std::cell::Ref;
 
 use ambassador::delegatable_trait;
 use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::{
@@ -69,17 +67,10 @@ pub trait WindowGetters: CommonGetters {
   fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_delta = self.border_delta();
 
-    let shadow_border_delta = {
-      #[cfg(target_os = "windows")]
-      {
-        // TODO: Avoid re-querying for shadow borders.
-        self.native().shadow_borders()?
-      }
-      #[cfg(not(target_os = "windows"))]
-      {
-        RectDelta::zero()
-      }
-    };
+    #[cfg(target_os = "windows")]
+    let shadow_border_delta = self.native_properties().shadow_borders;
+    #[cfg(not(target_os = "windows"))]
+    let shadow_border_delta = RectDelta::zero();
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
@@ -112,20 +103,25 @@ pub trait WindowGetters: CommonGetters {
     &self,
     workspace: &Workspace,
   ) -> anyhow::Result<bool> {
-    let frame = self.native_properties().frame;
     let workspace_rect = workspace.max_workspace_rect()?;
+    let frame = self
+      .native_properties()
+      .frame
+      .apply_delta(&self.border_delta().inverse(), None);
 
-    // Check if the window frame covers the workspace bounds (with 1px of
-    // leeway).
-    let is_covering = frame.contains_rect(&workspace_rect.inset(1));
+    let should_fullscreen = match self.state() {
+      // Keep as fullscreen if the frame covers the workspace bounds.
+      WindowState::Fullscreen(fullscreen) if !fullscreen.maximized => {
+        frame.contains_rect(&workspace_rect.inset(1))
+      }
 
-    // A workspace with one tiling window will have that window cover the
-    // workspace bounds, but it should not be considered fullscreen.
-    let is_single_tiling_window = self.state() == WindowState::Tiling
-      && self.tiling_siblings().count() == 0
-      && workspace_rect.inset(-1).contains_rect(&frame);
+      // Change to fullscreen if the frame *exceeds* the workspace bounds.
+      // NOTE: This is never possible with 0px outer gaps; the window has
+      // to be made fullscreen via the `set-fullscreen` command.
+      _ => frame.inset(1).contains_rect(&workspace_rect),
+    };
 
-    Ok(is_covering && !is_single_tiling_window)
+    Ok(should_fullscreen)
   }
 
   fn display_state(&self) -> DisplayState;
