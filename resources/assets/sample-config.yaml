@@ -221,6 +221,10 @@ keybindings:
   - commands: ['wm-toggle-pause']
     bindings: ['alt+shift+p']
 
+  # Toggle the tray icon between WM status and current workspace number.
+  - commands: ['wm-toggle-tray-icon-mode']
+    bindings: ['alt+w']
+
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
   - commands: ['toggle-tiling-direction']

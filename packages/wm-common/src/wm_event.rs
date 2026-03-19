@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
   dtos::ContainerDto,
   parsed_config::{BindingModeConfig, ParsedConfig},
-  TilingDirection,
+  TilingDirection, TrayIconMode,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -62,5 +62,8 @@ pub enum WmEvent {
   },
   PauseChanged {
     is_paused: bool,
+  },
+  TrayIconModeChanged {
+    mode: TrayIconMode,
   },
 }

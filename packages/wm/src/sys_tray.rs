@@ -1,4 +1,5 @@
 use std::{
+  collections::HashMap,
   fmt::{self, Display},
   path::Path,
   str::FromStr,
@@ -7,12 +8,13 @@ use std::{
 
 use anyhow::Context;
 use auto_launch::AutoLaunch;
+use image::{Rgba, RgbaImage};
 use tokio::sync::mpsc;
 use tray_icon::{
   menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
   Icon, TrayIcon, TrayIconBuilder,
 };
-use wm_common::TilingDirection;
+use wm_common::{TilingDirection, TrayIconMode};
 #[cfg(target_os = "windows")]
 use wm_platform::DispatcherExtWindows;
 use wm_platform::{Dispatcher, ThreadBound};
@@ -66,7 +68,14 @@ enum TrayIconState {
   Vertical,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DisplayedTrayIcon {
+  Status(TrayIconState),
+  Workspace(u8),
+}
+
 struct TrayIconSet {
+  static_icon_image: RgbaImage,
   static_icon: Icon,
   disabled_icon: Icon,
   horizontal_icon: Icon,
@@ -76,10 +85,13 @@ struct TrayIconSet {
 impl TrayIconSet {
   /// Creates the full set of tray icons from bundled resources.
   fn new() -> anyhow::Result<Self> {
+    let static_icon_image = SystemTray::load_icon_image(include_bytes!(
+      "../../../resources/assets/icon.png"
+    ))?;
+
     Ok(Self {
-      static_icon: SystemTray::load_icon(include_bytes!(
-        "../../../resources/assets/icon.png"
-      ))?,
+      static_icon: SystemTray::icon_from_image(&static_icon_image)?,
+      static_icon_image,
       disabled_icon: SystemTray::load_icon(include_bytes!(
         "../../../resources/assets/icon_disabled.png"
       ))?,
@@ -103,17 +115,65 @@ impl TrayIconSet {
   }
 }
 
+struct WorkspaceIconCache {
+  icons: HashMap<u8, Icon>,
+}
+
+impl WorkspaceIconCache {
+  /// Creates a new workspace tray icon cache.
+  fn new() -> Self {
+    Self {
+      icons: HashMap::new(),
+    }
+  }
+
+  /// Gets a cached workspace icon, creating it if necessary.
+  fn icon(
+    &mut self,
+    static_icon_image: &RgbaImage,
+    workspace_index: usize,
+  ) -> anyhow::Result<Icon> {
+    let workspace_index = clamp_workspace_index(workspace_index);
+
+    if let Some(icon) = self.icons.get(&workspace_index) {
+      return Ok(icon.clone());
+    }
+
+    let icon_image =
+      render_workspace_icon_image(static_icon_image, workspace_index);
+    let icon = SystemTray::icon_from_image(&icon_image)?;
+
+    self.icons.insert(workspace_index, icon.clone());
+
+    Ok(icon)
+  }
+}
+
 struct TrayIconHandle {
   tray_icon: TrayIcon,
   icons: TrayIconSet,
+  workspace_icons: Mutex<WorkspaceIconCache>,
 }
 
 impl TrayIconHandle {
   /// Updates the currently shown tray icon.
-  fn set_icon_state(&self, state: TrayIconState) -> anyhow::Result<()> {
-    self
-      .tray_icon
-      .set_icon(Some(self.icons.icon(state).clone()))?;
+  fn set_icon_state(
+    &self,
+    state: DisplayedTrayIcon,
+  ) -> anyhow::Result<()> {
+    let icon = match state {
+      DisplayedTrayIcon::Status(state) => self.icons.icon(state).clone(),
+      DisplayedTrayIcon::Workspace(workspace_index) => self
+        .workspace_icons
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .icon(
+          &self.icons.static_icon_image,
+          usize::from(workspace_index),
+        )?,
+    };
+
+    self.tray_icon.set_icon(Some(icon))?;
     Ok(())
   }
 }
@@ -123,7 +183,7 @@ pub struct SystemTray {
   pub exit_rx: mpsc::UnboundedReceiver<()>,
   _icon_thread: Option<std::thread::JoinHandle<()>>,
   tray_icon: ThreadBound<TrayIconHandle>,
-  current_icon_state: TrayIconState,
+  current_icon_state: DisplayedTrayIcon,
 }
 
 impl SystemTray {
@@ -171,6 +231,7 @@ impl SystemTray {
           TrayIconHandle {
             tray_icon,
             icons: tray_icons,
+            workspace_icons: Mutex::new(WorkspaceIconCache::new()),
           },
           dispatcher.clone(),
         ))
@@ -203,21 +264,25 @@ impl SystemTray {
       exit_rx,
       _icon_thread: Some(icon_thread),
       tray_icon,
-      current_icon_state: TrayIconState::Static,
+      current_icon_state: DisplayedTrayIcon::Status(TrayIconState::Static),
     })
   }
 
   /// Synchronizes the tray icon with the current WM status.
   pub fn sync_status(
     &mut self,
+    tray_icon_mode: TrayIconMode,
     tray_icon_state_enabled: bool,
     is_paused: bool,
     tiling_direction: Option<&TilingDirection>,
+    workspace_index: Option<usize>,
   ) -> anyhow::Result<()> {
-    let target_state = target_icon_state(
+    let target_state = target_displayed_icon(
+      tray_icon_mode,
       tray_icon_state_enabled,
       is_paused,
       tiling_direction,
+      workspace_index,
     );
 
     if target_state == self.current_icon_state {
@@ -294,14 +359,28 @@ impl SystemTray {
     Ok(tray_icon)
   }
 
+  /// Loads a tray icon image from bundled bytes.
+  fn load_icon_image(bytes: &[u8]) -> anyhow::Result<RgbaImage> {
+    image::load_from_memory(bytes)
+      .context("Failed to create tray icon image from resource.")
+      .map(|image| image.into_rgba8())
+  }
+
   /// Loads a tray icon from bundled bytes.
   fn load_icon(bytes: &[u8]) -> anyhow::Result<Icon> {
-    let image = image::load_from_memory(bytes)
-      .context("Failed to create tray icon image from resource.")?
-      .into_rgba8();
-    let (width, height) = image.dimensions();
+    let image = Self::load_icon_image(bytes)?;
 
-    Ok(tray_icon::Icon::from_rgba(image.into_raw(), width, height)?)
+    Self::icon_from_image(&image)
+  }
+
+  /// Creates a tray icon from an RGBA image.
+  fn icon_from_image(image: &RgbaImage) -> anyhow::Result<Icon> {
+    let (width, height) = image.dimensions();
+    Ok(tray_icon::Icon::from_rgba(
+      image.as_raw().clone(),
+      width,
+      height,
+    )?)
   }
 
   /// Handles a tray menu event.
@@ -397,11 +476,241 @@ fn target_icon_state(
   }
 }
 
+/// Determines which tray icon should be shown for the current WM state.
+fn target_displayed_icon(
+  tray_icon_mode: TrayIconMode,
+  tray_icon_state_enabled: bool,
+  is_paused: bool,
+  tiling_direction: Option<&TilingDirection>,
+  workspace_index: Option<usize>,
+) -> DisplayedTrayIcon {
+  match tray_icon_mode {
+    TrayIconMode::Status => DisplayedTrayIcon::Status(target_icon_state(
+      tray_icon_state_enabled,
+      is_paused,
+      tiling_direction,
+    )),
+    TrayIconMode::Workspace => workspace_index
+      .map(clamp_workspace_index)
+      .map(DisplayedTrayIcon::Workspace)
+      .unwrap_or(DisplayedTrayIcon::Status(TrayIconState::Static)),
+  }
+}
+
+/// Clamps a workspace index to the supported badge range.
+fn clamp_workspace_index(workspace_index: usize) -> u8 {
+  if workspace_index > 99 {
+    99
+  } else {
+    workspace_index as u8
+  }
+}
+
+/// Renders a workspace badge on top of the base tray icon.
+fn render_workspace_icon_image(
+  static_icon_image: &RgbaImage,
+  workspace_index: u8,
+) -> RgbaImage {
+  let digits = workspace_digits(workspace_index);
+
+  let (digit_width, digit_height, segment_width, digit_gap, padding_x) =
+    match digits.len() {
+      1 => (78, 132, 16, 0, 20),
+      _ => (56, 108, 14, 12, 18),
+    };
+
+  let padding_y = 16;
+  let badge_width =
+    padding_x * 2 + digit_width * digits.len() as u32 + digit_gap;
+  let badge_height = padding_y * 2 + digit_height;
+  let badge_left = (static_icon_image.width() - badge_width) / 2;
+  let badge_top = 110;
+
+  let mut image = static_icon_image.clone();
+
+  draw_rect(
+    &mut image,
+    badge_left,
+    badge_top,
+    badge_width,
+    badge_height,
+    Rgba([0, 0, 0, 255]),
+  );
+  draw_rect(
+    &mut image,
+    badge_left + 8,
+    badge_top + 8,
+    badge_width - 16,
+    badge_height - 16,
+    Rgba([245, 245, 245, 255]),
+  );
+
+  let digits_width = digit_width * digits.len() as u32
+    + digit_gap * digits.len().saturating_sub(1) as u32;
+  let digit_top = badge_top + padding_y;
+  let mut digit_left = badge_left + (badge_width - digits_width) / 2;
+
+  for digit in digits {
+    draw_workspace_digit(
+      &mut image,
+      digit,
+      digit_left,
+      digit_top,
+      digit_width,
+      digit_height,
+      segment_width,
+      Rgba([0, 0, 0, 255]),
+    );
+    digit_left += digit_width + digit_gap;
+  }
+
+  image
+}
+
+/// Converts a workspace index into one or two display digits.
+fn workspace_digits(workspace_index: u8) -> Vec<u8> {
+  if workspace_index >= 10 {
+    vec![workspace_index / 10, workspace_index % 10]
+  } else {
+    vec![workspace_index]
+  }
+}
+
+/// Draws a single workspace digit.
+fn draw_workspace_digit(
+  image: &mut RgbaImage,
+  digit: u8,
+  left: u32,
+  top: u32,
+  width: u32,
+  height: u32,
+  segment_width: u32,
+  color: Rgba<u8>,
+) {
+  let mid_y = top + height / 2 - segment_width / 2;
+  let upper_height = height / 2 - segment_width;
+  let lower_height = height / 2 - segment_width;
+  let horizontal_width = width.saturating_sub(segment_width * 2);
+
+  let segments = digit_segments(digit);
+
+  if segments[0] {
+    draw_rect(
+      image,
+      left + segment_width,
+      top,
+      horizontal_width,
+      segment_width,
+      color,
+    );
+  }
+  if segments[1] {
+    draw_rect(
+      image,
+      left + width - segment_width,
+      top + segment_width,
+      segment_width,
+      upper_height,
+      color,
+    );
+  }
+  if segments[2] {
+    draw_rect(
+      image,
+      left + width - segment_width,
+      mid_y + segment_width,
+      segment_width,
+      lower_height,
+      color,
+    );
+  }
+  if segments[3] {
+    draw_rect(
+      image,
+      left + segment_width,
+      top + height - segment_width,
+      horizontal_width,
+      segment_width,
+      color,
+    );
+  }
+  if segments[4] {
+    draw_rect(
+      image,
+      left,
+      mid_y + segment_width,
+      segment_width,
+      lower_height,
+      color,
+    );
+  }
+  if segments[5] {
+    draw_rect(
+      image,
+      left,
+      top + segment_width,
+      segment_width,
+      upper_height,
+      color,
+    );
+  }
+  if segments[6] {
+    draw_rect(
+      image,
+      left + segment_width,
+      mid_y,
+      horizontal_width,
+      segment_width,
+      color,
+    );
+  }
+}
+
+/// Gets the active seven-segment mask for a digit.
+fn digit_segments(digit: u8) -> [bool; 7] {
+  match digit {
+    0 => [true, true, true, true, true, true, false],
+    1 => [false, true, true, false, false, false, false],
+    2 => [true, true, false, true, true, false, true],
+    3 => [true, true, true, true, false, false, true],
+    4 => [false, true, true, false, false, true, true],
+    5 => [true, false, true, true, false, true, true],
+    6 => [true, false, true, true, true, true, true],
+    7 => [true, true, true, false, false, false, false],
+    8 => [true, true, true, true, true, true, true],
+    9 => [true, true, true, true, false, true, true],
+    _ => [false; 7],
+  }
+}
+
+/// Draws a filled rectangle.
+fn draw_rect(
+  image: &mut RgbaImage,
+  left: u32,
+  top: u32,
+  width: u32,
+  height: u32,
+  color: Rgba<u8>,
+) {
+  let right = (left + width).min(image.width());
+  let bottom = (top + height).min(image.height());
+
+  for y in top..bottom {
+    for x in left..right {
+      image.put_pixel(x, y, color);
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use wm_common::TilingDirection;
+  use wm_common::{TilingDirection, TrayIconMode};
 
-  use super::{target_icon_state, TrayIconState};
+  use super::{
+    clamp_workspace_index, render_workspace_icon_image,
+    target_displayed_icon, target_icon_state, DisplayedTrayIcon,
+    TrayIconState, WorkspaceIconCache,
+  };
 
   #[test]
   fn target_icon_state_uses_static_icon_when_feature_disabled() {
@@ -440,5 +749,87 @@ mod tests {
     let state = target_icon_state(true, false, None);
 
     assert_eq!(state, TrayIconState::Static);
+  }
+
+  #[test]
+  fn target_displayed_icon_uses_status_mode_mapping() {
+    let state = target_displayed_icon(
+      TrayIconMode::Status,
+      true,
+      false,
+      Some(&TilingDirection::Horizontal),
+      Some(7),
+    );
+
+    assert_eq!(
+      state,
+      DisplayedTrayIcon::Status(TrayIconState::Horizontal)
+    );
+  }
+
+  #[test]
+  fn target_displayed_icon_uses_workspace_icon_in_workspace_mode() {
+    let state = target_displayed_icon(
+      TrayIconMode::Workspace,
+      false,
+      true,
+      Some(&TilingDirection::Vertical),
+      Some(7),
+    );
+
+    assert_eq!(state, DisplayedTrayIcon::Workspace(7));
+  }
+
+  #[test]
+  fn target_displayed_icon_falls_back_without_workspace_index() {
+    let state = target_displayed_icon(
+      TrayIconMode::Workspace,
+      true,
+      false,
+      None,
+      None,
+    );
+
+    assert_eq!(state, DisplayedTrayIcon::Status(TrayIconState::Static));
+  }
+
+  #[test]
+  fn clamp_workspace_index_caps_values_at_99() {
+    assert_eq!(clamp_workspace_index(7), 7);
+    assert_eq!(clamp_workspace_index(99), 99);
+    assert_eq!(clamp_workspace_index(100), 99);
+  }
+
+  #[test]
+  fn render_workspace_icon_image_supports_single_and_double_digits() {
+    let base_icon = super::SystemTray::load_icon_image(include_bytes!(
+      "../../../resources/assets/icon.png"
+    ))
+    .expect("Failed to load tray icon image.");
+
+    let single_digit = render_workspace_icon_image(&base_icon, 7);
+    let double_digit = render_workspace_icon_image(&base_icon, 12);
+
+    assert_eq!(single_digit.dimensions(), (256, 256));
+    assert_eq!(double_digit.dimensions(), (256, 256));
+    assert_ne!(single_digit.as_raw(), double_digit.as_raw());
+  }
+
+  #[test]
+  fn workspace_icon_cache_reuses_clamped_entries() {
+    let base_icon = super::SystemTray::load_icon_image(include_bytes!(
+      "../../../resources/assets/icon.png"
+    ))
+    .expect("Failed to load tray icon image.");
+    let mut cache = WorkspaceIconCache::new();
+
+    let _ = cache
+      .icon(&base_icon, 100)
+      .expect("Failed to render first workspace icon.");
+    let _ = cache
+      .icon(&base_icon, 99)
+      .expect("Failed to render second workspace icon.");
+
+    assert_eq!(cache.icons.len(), 1);
   }
 }

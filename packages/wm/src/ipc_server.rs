@@ -383,6 +383,9 @@ impl IpcServer {
         SubscribableEvent::WorkspaceUpdated
       }
       WmEvent::PauseChanged { .. } => SubscribableEvent::PauseChanged,
+      WmEvent::TrayIconModeChanged { .. } => {
+        SubscribableEvent::TrayIconModeChanged
+      }
     };
 
     self

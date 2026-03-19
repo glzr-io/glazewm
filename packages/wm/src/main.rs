@@ -22,6 +22,7 @@ use tracing_subscriber::{
 };
 use wm_common::{
   AppCommand, InvokeCommand, TilingDirection, Verbosity, WmEvent,
+  WorkspaceConfig,
 };
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
@@ -271,6 +272,10 @@ async fn start_wm(
             | WmEvent::FocusChanged { .. }
             | WmEvent::FocusedContainerMoved { .. }
             | WmEvent::TilingDirectionChanged { .. }
+            | WmEvent::WorkspaceActivated { .. }
+            | WmEvent::WorkspaceDeactivated { .. }
+            | WmEvent::WorkspaceUpdated { .. }
+            | WmEvent::TrayIconModeChanged { .. }
             | WmEvent::UserConfigChanged { .. }
         ) {
           sync_tray_icon(&mut tray, &wm, &config)?;
@@ -340,9 +345,11 @@ fn sync_tray_icon(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   tray.sync_status(
+    wm.state.tray_icon_mode,
     config.value.general.tray_icon_state,
     wm.state.is_paused,
     current_tiling_direction(wm).as_ref(),
+    current_workspace_index(wm, config),
   )
 }
 
@@ -355,6 +362,62 @@ fn current_tiling_direction(
     .focused_container()
     .and_then(|focused| focused.direction_container())
     .map(|direction_container| direction_container.tiling_direction())
+}
+
+/// Gets the 1-based config index of the currently focused workspace.
+fn current_workspace_index(
+  wm: &WindowManager,
+  config: &UserConfig,
+) -> Option<usize> {
+  wm.state
+    .focused_container()
+    .and_then(|focused| focused.workspace())
+    .and_then(|workspace| {
+      workspace_display_index(
+        &workspace.config().name,
+        &config.value.workspaces,
+      )
+    })
+}
+
+/// Gets the 1-based display index of a workspace from config order.
+fn workspace_display_index(
+  workspace_name: &str,
+  workspace_configs: &[WorkspaceConfig],
+) -> Option<usize> {
+  workspace_configs
+    .iter()
+    .position(|workspace| workspace.name == workspace_name)
+    .map(|index| index + 1)
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_common::WorkspaceConfig;
+
+  use super::workspace_display_index;
+
+  #[test]
+  fn workspace_display_index_uses_config_order() {
+    let workspaces = vec![
+      WorkspaceConfig {
+        name: "2".to_string(),
+        display_name: None,
+        bind_to_monitor: None,
+        keep_alive: false,
+      },
+      WorkspaceConfig {
+        name: "1".to_string(),
+        display_name: None,
+        bind_to_monitor: None,
+        keep_alive: false,
+      },
+    ];
+
+    assert_eq!(workspace_display_index("2", &workspaces), Some(1));
+    assert_eq!(workspace_display_index("1", &workspaces), Some(2));
+    assert_eq!(workspace_display_index("3", &workspaces), None);
+  }
 }
 
 /// Initialize logging with the specified verbosity level.

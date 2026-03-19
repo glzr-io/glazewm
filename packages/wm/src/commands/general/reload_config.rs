@@ -2,7 +2,7 @@ use anyhow::Context;
 use tracing::{info, warn};
 #[cfg(target_os = "windows")]
 use wm_common::{HideMethod, ParsedConfig};
-use wm_common::{WindowRuleEvent, WmEvent};
+use wm_common::{TrayIconMode, WindowRuleEvent, WmEvent};
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 
@@ -64,6 +64,7 @@ pub fn reload_config(
 
   // Clear active binding modes.
   state.binding_modes = Vec::new();
+  let _ = state.set_tray_icon_mode(TrayIconMode::Status);
 
   // Redraw full container tree.
   state
