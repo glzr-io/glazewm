@@ -173,13 +173,9 @@ impl KeybindingListener {
               return true;
             }
 
-            if let Some(&is_key_down) = cached_key_states.get(&key) {
-              return is_key_down;
-            }
-
-            let is_key_down = event.is_key_down(key);
-            cached_key_states.insert(key, is_key_down);
-            is_key_down
+            *cached_key_states
+              .entry(key)
+              .or_insert_with(|| event.is_key_down(key))
           })
         });
 
