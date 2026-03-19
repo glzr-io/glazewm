@@ -513,42 +513,21 @@ fn render_workspace_icon_image(
 ) -> RgbaImage {
   let digits = workspace_digits(workspace_index);
 
-  let (digit_width, digit_height, segment_width, digit_gap, padding_x) =
+  let (digit_width, digit_height, segment_width, digit_gap, _padding_x) =
     match digits.len() {
-      1 => (78, 132, 16, 0, 20),
-      _ => (56, 108, 14, 12, 18),
+      1 => (126, 224, 24, 0, 22),
+      _ => (92, 208, 20, 12, 18),
     };
 
-  let padding_y = 16;
-  let badge_width =
-    padding_x * 2 + digit_width * digits.len() as u32 + digit_gap;
-  let badge_height = padding_y * 2 + digit_height;
-  let badge_left = (static_icon_image.width() - badge_width) / 2;
-  let badge_top = 110;
-
   let mut image = static_icon_image.clone();
-
-  draw_rect(
-    &mut image,
-    badge_left,
-    badge_top,
-    badge_width,
-    badge_height,
-    Rgba([0, 0, 0, 255]),
-  );
-  draw_rect(
-    &mut image,
-    badge_left + 8,
-    badge_top + 8,
-    badge_width - 16,
-    badge_height - 16,
-    Rgba([245, 245, 245, 255]),
-  );
-
+  let image_width = image.width();
+  let image_height = image.height();
   let digits_width = digit_width * digits.len() as u32
     + digit_gap * digits.len().saturating_sub(1) as u32;
-  let digit_top = badge_top + padding_y;
-  let mut digit_left = badge_left + (badge_width - digits_width) / 2;
+  let digit_top = (static_icon_image.height() - digit_height) / 2;
+  let mut digit_left = (static_icon_image.width() - digits_width) / 2;
+
+  darken_rect(&mut image, 0, 0, image_width, image_height, 3, 5);
 
   for digit in digits {
     draw_workspace_digit(
@@ -559,7 +538,7 @@ fn render_workspace_icon_image(
       digit_width,
       digit_height,
       segment_width,
-      Rgba([0, 0, 0, 255]),
+      Rgba([255, 255, 255, 255]),
     );
     digit_left += digit_width + digit_gap;
   }
@@ -698,6 +677,30 @@ fn draw_rect(
   for y in top..bottom {
     for x in left..right {
       image.put_pixel(x, y, color);
+    }
+  }
+}
+
+/// Darkens a rectangular region by a fixed ratio.
+fn darken_rect(
+  image: &mut RgbaImage,
+  left: u32,
+  top: u32,
+  width: u32,
+  height: u32,
+  numerator: u16,
+  denominator: u16,
+) {
+  let right = (left + width).min(image.width());
+  let bottom = (top + height).min(image.height());
+
+  for y in top..bottom {
+    for x in left..right {
+      let pixel = image.get_pixel_mut(x, y);
+
+      for channel in &mut pixel.0[..3] {
+        *channel = ((u16::from(*channel) * numerator) / denominator) as u8;
+      }
     }
   }
 }
