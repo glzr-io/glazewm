@@ -335,6 +335,7 @@ fn redraw_containers(
   Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
@@ -389,13 +390,22 @@ fn reposition_window(
   } else {
     #[cfg(target_os = "macos")]
     {
-      window.native().set_frame(&rect)?;
+      let first_result = window.native().set_frame(&rect);
 
       // When there's a mismatch between the DPI of the monitor and the
-      // window, the window might be sized incorrectly after the first
-      // move. Setting the frame twice resolves this.
+      // window, the first `set_frame` often fails or mis-sizes during
+      // cross-DPI transitions. Re-apply after a short delay to allow
+      // macOS to commit the screen association change.
       if window.has_pending_dpi_adjustment() {
-        window.native().set_frame(&rect)?;
+        let native = window.native().clone();
+        let rect = rect.clone();
+
+        tokio::task::spawn(async move {
+          tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+          _ = native.set_frame(&rect);
+        });
+      } else {
+        first_result?;
       }
     }
 
