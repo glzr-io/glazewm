@@ -8,7 +8,7 @@ use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFBoolean, CFRetained, CFString, CGPoint, CGSize,
 };
-use objc2_core_graphics::CGError;
+use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
 
 use crate::{
   platform_impl::{
@@ -102,8 +102,28 @@ impl NativeWindow {
     self
       .element
       .with(|el| match el.get_attribute::<CFString>("AXRole") {
-        Err(crate::Error::Accessibility(_, code)) => {
-          code != AXError::InvalidUIElement.0
+        Err(crate::Error::Accessibility(_, code))
+          if code == AXError::InvalidUIElement.0 =>
+        {
+          let has_login_window = NSWorkspace::sharedWorkspace()
+            .frontmostApplication()
+            .and_then(|app| app.bundleIdentifier())
+            .is_some_and(|id| id.to_string() == "com.apple.loginwindow");
+
+          // AX calls transiently fail with `InvalidUIElement` during
+          // sleep/wake. The window should still be considered valid.
+          //
+          // Events during sleep:
+          //   1. Display goes asleep.
+          //   2. AX calls fail with `InvalidUIElement`.
+          //   3. Login window activates.
+          //
+          // Events during wake:
+          //   1. Display wakes up.
+          //   2. Login window deactivates and AX calls succeed again.
+          //
+          // Perf: `CGDisplayIsAsleep` ~1-5µs, login window check ~1-2ms.
+          CGDisplayIsAsleep(0) || has_login_window
         }
         _ => true,
       })
