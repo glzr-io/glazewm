@@ -1,4 +1,5 @@
 use objc2::rc::Retained;
+use objc2_app_kit::NSWorkspace;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -58,6 +59,18 @@ impl DisplayListener {
         NotificationName::ApplicationDidChangeScreenParameters,
         &observer,
         None,
+      );
+    }
+
+    // Also listen for system wake to trigger display re-enumeration, as
+    // AX observers and window state can become stale after sleep.
+    let workspace = NSWorkspace::sharedWorkspace();
+    let mut workspace_center = NotificationCenter::workspace_center();
+    unsafe {
+      workspace_center.add_observer(
+        NotificationName::WorkspaceDidWake,
+        &observer,
+        Some(&workspace),
       );
     }
 

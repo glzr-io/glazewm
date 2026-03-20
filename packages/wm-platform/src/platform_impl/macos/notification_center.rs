@@ -11,6 +11,7 @@ use objc2_app_kit::{
   NSWorkspaceDidLaunchApplicationNotification,
   NSWorkspaceDidTerminateApplicationNotification,
   NSWorkspaceDidUnhideApplicationNotification,
+  NSWorkspaceDidWakeNotification,
 };
 use objc2_foundation::{
   ns_string, NSNotification, NSNotificationCenter, NSNotificationName,
@@ -27,6 +28,7 @@ pub(crate) enum NotificationName {
   WorkspaceDidTerminateApplication,
   WorkspaceDidHideApplication,
   WorkspaceDidUnhideApplication,
+  WorkspaceDidWake,
   ApplicationDidChangeScreenParameters,
 }
 
@@ -53,6 +55,8 @@ impl From<&NSNotificationName> for NotificationName {
       == unsafe { NSWorkspaceDidUnhideApplicationNotification }
     {
       Self::WorkspaceDidUnhideApplication
+    } else if name == unsafe { NSWorkspaceDidWakeNotification } {
+      Self::WorkspaceDidWake
     } else if name
       == unsafe { NSApplicationDidChangeScreenParametersNotification }
     {
@@ -84,6 +88,9 @@ impl From<NotificationName> for &NSString {
       NotificationName::WorkspaceDidUnhideApplication => unsafe {
         NSWorkspaceDidUnhideApplicationNotification
       },
+      NotificationName::WorkspaceDidWake => unsafe {
+        NSWorkspaceDidWakeNotification
+      },
       NotificationName::ApplicationDidChangeScreenParameters => unsafe {
         NSApplicationDidChangeScreenParametersNotification
       },
@@ -100,6 +107,7 @@ pub(crate) enum NotificationEvent {
   WorkspaceDidTerminateApplication(Retained<NSRunningApplication>),
   WorkspaceDidHideApplication(Retained<NSRunningApplication>),
   WorkspaceDidUnhideApplication(Retained<NSRunningApplication>),
+  WorkspaceDidWake,
   ApplicationDidChangeScreenParameters,
 }
 
@@ -191,6 +199,9 @@ impl NotificationObserver {
             NotificationEvent::WorkspaceDidUnhideApplication(app),
           );
         }
+      }
+      NotificationName::WorkspaceDidWake => {
+        self.emit_event(NotificationEvent::WorkspaceDidWake);
       }
       NotificationName::ApplicationDidChangeScreenParameters => {
         self.emit_event(
