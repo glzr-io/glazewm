@@ -50,6 +50,7 @@ impl FromStr for TrayMenuId {
       "reload_config" => Ok(Self::ReloadConfig),
       #[cfg(target_os = "windows")]
       "toggle_window_animations" => Ok(Self::ToggleWindowAnimations),
+      "run_on_startup" => Ok(Self::RunOnStartup),
       "exit" => Ok(Self::Exit),
       _ => anyhow::bail!("Invalid tray menu event: {}", event),
     }
@@ -277,17 +278,14 @@ impl SystemTray {
 /// Creates a new [`AutoLaunch`] instance for managing auto-launch at
 /// system startup.
 fn auto_launch_instance() -> anyhow::Result<AutoLaunch> {
-  // TODO: Is wrapping the exe path in quotes necessary?
-  let formatted_exe_path =
-    format!("\"{}\"", std::env::current_exe()?.to_string_lossy());
+  let exe_path = std::env::current_exe()?.to_string_lossy().to_string();
   let args: [&str; 0] = [];
 
   #[cfg(target_os = "windows")]
-  let instance = AutoLaunch::new("GlazeWM", &formatted_exe_path, &args);
+  let instance = AutoLaunch::new("GlazeWM", &exe_path, &args);
 
   #[cfg(target_os = "macos")]
-  let instance =
-    AutoLaunch::new("GlazeWM", &formatted_exe_path, false, &args);
+  let instance = AutoLaunch::new("GlazeWM", &exe_path, false, &args);
 
   Ok(instance)
 }
