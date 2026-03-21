@@ -193,8 +193,7 @@ async fn start_wm(
   // The sentinel value (24 hours) is used to keep the future armed but
   // effectively never-firing when no event is pending. The `if` guard
   // prevents it from being selected until `pending_display_change` is set.
-  let display_debounce =
-    tokio::time::sleep(Duration::from_secs(60 * 60 * 24));
+  let display_debounce = tokio::time::sleep(Duration::from_hours(24));
   tokio::pin!(display_debounce);
   let mut pending_display_change = false;
 
@@ -233,7 +232,7 @@ async fn start_wm(
         pending_display_change = false;
         display_debounce
           .as_mut()
-          .reset(tokio::time::Instant::now() + Duration::from_secs(60 * 60 * 24));
+          .reset(tokio::time::Instant::now() + Duration::from_hours(24));
         wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
       },
       Some(event) = keybinding_listener.next_event() => {
