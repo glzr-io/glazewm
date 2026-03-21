@@ -31,19 +31,24 @@ impl KeyEvent {
   /// Gets whether the specified key is currently pressed.
   pub fn is_key_down(&self, key: Key) -> bool {
     match key {
-      Key::Cmd => {
+      Key::Cmd
+      | Key::LCmd
+      | Key::RCmd
+      | Key::Win
+      | Key::LWin
+      | Key::RWin => {
         self.event_flags & CGEventFlags::MaskCommand
           != CGEventFlags::empty()
       }
-      Key::Alt => {
+      Key::Alt | Key::LAlt | Key::RAlt => {
         self.event_flags & CGEventFlags::MaskAlternate
           != CGEventFlags::empty()
       }
-      Key::Ctrl => {
+      Key::Ctrl | Key::LCtrl | Key::RCtrl => {
         self.event_flags & CGEventFlags::MaskControl
           != CGEventFlags::empty()
       }
-      Key::Shift => {
+      Key::Shift | Key::LShift | Key::RShift => {
         self.event_flags & CGEventFlags::MaskShift != CGEventFlags::empty()
       }
       _ => {

@@ -399,7 +399,19 @@ impl SystemTray {
 
     match menu_id {
       TrayMenuId::ShowConfigFolder => {
-        dispatcher.open_file_explorer(config_path)?;
+        dispatcher.open_file_explorer({
+          #[cfg(target_os = "windows")]
+          {
+            config_path.parent().context("Invalid config path.")?
+          }
+          #[cfg(target_os = "macos")]
+          {
+            // On macOS, pass the file path directly since Finder
+            // navigates one level too high with the parent directory.
+            config_path
+          }
+        })?;
+
         Ok(())
       }
       TrayMenuId::ReloadConfig => {
@@ -440,17 +452,14 @@ impl SystemTray {
 /// Creates a new [`AutoLaunch`] instance for managing auto-launch at
 /// system startup.
 fn auto_launch_instance() -> anyhow::Result<AutoLaunch> {
-  // TODO: Is wrapping the exe path in quotes necessary?
-  let formatted_exe_path =
-    format!("\"{}\"", std::env::current_exe()?.to_string_lossy());
+  let exe_path = std::env::current_exe()?.to_string_lossy().to_string();
   let args: [&str; 0] = [];
 
   #[cfg(target_os = "windows")]
-  let instance = AutoLaunch::new("GlazeWM", &formatted_exe_path, &args);
+  let instance = AutoLaunch::new("GlazeWM", &exe_path, &args);
 
   #[cfg(target_os = "macos")]
-  let instance =
-    AutoLaunch::new("GlazeWM", &formatted_exe_path, false, &args);
+  let instance = AutoLaunch::new("GlazeWM", &exe_path, false, &args);
 
   Ok(instance)
 }

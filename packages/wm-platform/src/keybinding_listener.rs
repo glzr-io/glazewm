@@ -12,15 +12,25 @@ use crate::{
   platform_event::KeybindingEvent, platform_impl, Dispatcher, Key,
 };
 
-const MODIFIER_KEYS: [Key; 8] = [
-  Key::LShift,
-  Key::RShift,
-  Key::LCtrl,
-  Key::RCtrl,
-  Key::LAlt,
-  Key::RAlt,
-  Key::LCmd,
-  Key::RCmd,
+/// Modifier key groups, where each entry maps a generic key (e.g.
+/// `Key::Shift`) to all its variants (e.g. `Key::LShift`, `Key::RShift`).
+///
+/// `Cmd` and `Win` are treated as aliases within the same group.
+const MODIFIER_GROUPS: &[(Key, &[Key])] = &[
+  (Key::Shift, &[Key::Shift, Key::LShift, Key::RShift]),
+  (Key::Ctrl, &[Key::Ctrl, Key::LCtrl, Key::RCtrl]),
+  (Key::Alt, &[Key::Alt, Key::LAlt, Key::RAlt]),
+  (
+    Key::Win,
+    &[
+      Key::Win,
+      Key::LWin,
+      Key::RWin,
+      Key::Cmd,
+      Key::LCmd,
+      Key::RCmd,
+    ],
+  ),
 ];
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -64,8 +74,8 @@ pub struct KeybindingListener {
 
   /// A map of keybindings to their trigger key.
   ///
-  /// The trigger key is the final key in a keybinding. For example,
-  /// in the keybinding `[Key::Cmd, Key::Shift, Key::A]`, `Key::A` is the
+  /// The trigger key is the final key in a keybinding. For example, in
+  /// the keybinding `[Key::Cmd, Key::Shift, Key::A]`, `Key::A` is the
   /// trigger key.
   keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
 
@@ -150,68 +160,58 @@ impl KeybindingListener {
         };
 
         // Find keybinding candidates whose trigger key is the pressed key.
-        // TODO: This can probably be simplified.
-        if let Some(candidates) = keybinding_map.get(&event.key) {
-          let mut cached_key_states = HashMap::new();
+        let Some(candidates) = keybinding_map.get(&event.key) else {
+          return false;
+        };
 
-          // Find the matching keybindings based on the pressed keys.
-          let matched_keybindings =
-            candidates.iter().filter(|keybinding| {
-              keybinding.keys().iter().all(|&key| {
-                if key == event.key {
-                  return true;
-                }
+        let mut cached_key_states = HashMap::new();
 
-                if let Some(&is_key_down) = cached_key_states.get(&key) {
-                  return is_key_down;
-                }
+        // Find the matching keybindings based on the pressed keys.
+        let matched_keybindings = candidates.iter().filter(|keybinding| {
+          keybinding.keys().iter().all(|&key| {
+            if key == event.key {
+              return true;
+            }
 
-                let is_key_down = event.is_key_down(key);
-                cached_key_states.insert(key, is_key_down);
-                is_key_down
-              })
-            });
+            *cached_key_states
+              .entry(key)
+              .or_insert_with(|| event.is_key_down(key))
+          })
+        });
 
-          // Find the longest matching keybinding.
-          let Some(longest_keybinding) = matched_keybindings
-            .max_by_key(|keybinding| keybinding.keys().len())
-          else {
-            return false;
-          };
+        // Find the longest matching keybinding.
+        let Some(longest_keybinding) = matched_keybindings
+          .max_by_key(|keybinding| keybinding.keys().len())
+        else {
+          return false;
+        };
 
-          // Get the modifier keys to reject based on the longest matching
-          // keybinding.
-          let mut modifier_keys_to_reject =
-            MODIFIER_KEYS.iter().filter(|&&modifier_key| {
-              !longest_keybinding.keys().contains(&modifier_key)
-                && !longest_keybinding
-                  .keys()
-                  .contains(&Self::generic_modifier_key(modifier_key))
-            });
+        // Reject if any modifier keys not in the keybinding are held.
+        let has_extra_modifiers = MODIFIER_GROUPS
+          .iter()
+          // Filter out modifier groups that have keys in the keybinding.
+          .filter(|(_, group_keys)| {
+            !group_keys
+              .iter()
+              .any(|key| longest_keybinding.keys().contains(key))
+          })
+          // Use the group's "generic" key (e.g. `Key::Shift`) to check if
+          // the modifier is held. This avoids lookups for `Key::LShift`
+          // and `Key::RShift`.
+          .any(|(generic_key, _)| {
+            cached_key_states
+              .get(generic_key)
+              .copied()
+              .unwrap_or_else(|| event.is_key_down(*generic_key))
+          });
 
-          // Check if any modifier keys to reject are currently down.
-          let has_modifier_keys_to_reject =
-            modifier_keys_to_reject.any(|&modifier_key| {
-              if let Some(&is_key_down) =
-                cached_key_states.get(&modifier_key)
-              {
-                is_key_down
-              } else {
-                event.is_key_down(modifier_key)
-              }
-            });
-
-          if has_modifier_keys_to_reject {
-            return false;
-          }
-
-          let _ =
-            event_tx.send(KeybindingEvent(longest_keybinding.clone()));
-
-          return true;
+        if has_extra_modifiers {
+          return false;
         }
 
-        false
+        let _ = event_tx.send(KeybindingEvent(longest_keybinding.clone()));
+
+        true
       },
       dispatcher,
     )
@@ -231,18 +231,6 @@ impl KeybindingListener {
     }
 
     keybinding_map
-  }
-
-  /// Gets the generic modifier key for a given key.
-  fn generic_modifier_key(key: Key) -> Key {
-    match key {
-      Key::LCmd | Key::RCmd => Key::Cmd,
-      Key::LCtrl | Key::RCtrl => Key::Ctrl,
-      Key::LAlt | Key::RAlt => Key::Alt,
-      Key::LShift | Key::RShift => Key::Shift,
-      // TODO: Not ideal, shouldn't panic if used incorrectly.
-      _ => unreachable!(),
-    }
   }
 }
 
