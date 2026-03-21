@@ -488,6 +488,10 @@ fn target_displayed_icon(
     return DisplayedTrayIcon::Status(TrayIconState::Static);
   }
 
+  if is_paused {
+    return DisplayedTrayIcon::Status(TrayIconState::Disabled);
+  }
+
   match tray_icon_mode {
     TrayIconMode::Status => DisplayedTrayIcon::Status(target_icon_state(
       tray_icon_state_enabled,
@@ -785,6 +789,19 @@ mod tests {
     );
 
     assert_eq!(state, DisplayedTrayIcon::Workspace(7));
+  }
+
+  #[test]
+  fn target_displayed_icon_uses_disabled_icon_when_paused_in_workspace_mode() {
+    let state = target_displayed_icon(
+      TrayIconMode::Workspace,
+      true,
+      true,
+      Some(&TilingDirection::Vertical),
+      Some(7),
+    );
+
+    assert_eq!(state, DisplayedTrayIcon::Status(TrayIconState::Disabled));
   }
 
   #[test]
