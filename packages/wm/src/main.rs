@@ -187,8 +187,8 @@ async fn start_wm(
   // spike. Processing the event immediately risks an OOM abort in the
   // allocations inside `handle_display_settings_changed` (building monitor
   // structs, `Vec`s, etc.). The 1-second delay lets the commit charge
-  // stabilize. As a bonus, multiple events fired in rapid succession during
-  // a wake cycle are collapsed into a single handler invocation.
+  // stabilize. As a bonus, multiple events fired in rapid succession
+  // during a wake cycle are collapsed into a single handler invocation.
   //
   // The sentinel value (24 hours) is used to keep the future armed but
   // effectively never-firing when no event is pending. The `if` guard
