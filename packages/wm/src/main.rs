@@ -181,6 +181,23 @@ async fn start_wm(
   cleanup_interval
     .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
+  // Debounce `DisplaySettingsChanged` to delay processing until 1 second
+  // after the last received event. On wake from sleep, Windows pages in
+  // suspended processes, causing a transient system-wide commit charge
+  // spike. Processing the event immediately risks an OOM abort in the
+  // allocations inside `handle_display_settings_changed` (building monitor
+  // structs, `Vec`s, etc.). The 1-second delay lets the commit charge
+  // stabilize. As a bonus, multiple events fired in rapid succession during
+  // a wake cycle are collapsed into a single handler invocation.
+  //
+  // The sentinel value (24 hours) is used to keep the future armed but
+  // effectively never-firing when no event is pending. The `if` guard
+  // prevents it from being selected until `pending_display_change` is set.
+  let display_debounce =
+    tokio::time::sleep(Duration::from_secs(60 * 60 * 24));
+  tokio::pin!(display_debounce);
+  let mut pending_display_change = false;
+
   loop {
     let res = tokio::select! {
       _ = signal::ctrl_c() => {
@@ -204,7 +221,19 @@ async fn start_wm(
         wm.process_event(PlatformEvent::Window(event), &mut config)
       },
       Some(()) = display_listener.next_event() => {
-        tracing::debug!("Received display settings changed event.");
+        tracing::debug!("Received display settings changed event; debouncing.");
+        pending_display_change = true;
+        display_debounce
+          .as_mut()
+          .reset(tokio::time::Instant::now() + Duration::from_secs(1));
+        Ok(())
+      },
+      () = &mut display_debounce, if pending_display_change => {
+        tracing::debug!("Processing debounced display settings changed.");
+        pending_display_change = false;
+        display_debounce
+          .as_mut()
+          .reset(tokio::time::Instant::now() + Duration::from_secs(60 * 60 * 24));
         wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
       },
       Some(event) = keybinding_listener.next_event() => {
