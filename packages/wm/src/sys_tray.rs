@@ -227,7 +227,19 @@ impl SystemTray {
 
     match menu_id {
       TrayMenuId::ShowConfigFolder => {
-        dispatcher.open_file_explorer(config_path)?;
+        dispatcher.open_file_explorer({
+          #[cfg(target_os = "windows")]
+          {
+            config_path.parent().context("Invalid config path.")?
+          }
+          #[cfg(target_os = "macos")]
+          {
+            // On macOS, pass the file path directly since Finder
+            // navigates one level too high with the parent directory.
+            config_path
+          }
+        })?;
+
         Ok(())
       }
       TrayMenuId::ReloadConfig => {
