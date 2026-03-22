@@ -11,6 +11,7 @@ mod keybinding_listener;
 mod models;
 mod mouse_listener;
 mod native_window;
+mod overlay_window;
 mod platform_event;
 mod platform_impl;
 mod single_instance;
@@ -26,15 +27,11 @@ pub use keybinding_listener::*;
 pub use models::*;
 pub use mouse_listener::*;
 pub use native_window::*;
+pub use overlay_window::*;
 pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;
-
-#[cfg(target_os = "macos")]
-mod overlay_window;
-#[cfg(target_os = "macos")]
-pub use overlay_window::*;
 // TODO: Avoid exposing `windows` crate types in the public API.
 #[cfg(target_os = "windows")]
 pub use windows::Win32::UI::WindowsAndMessaging::{

@@ -27,8 +27,6 @@ pub fn unmanage_window(
   // Clean up animation tracking data.
   state.window_target_positions.remove(&window.id());
   state.animation_manager.remove_animation(&window.id());
-
-  #[cfg(target_os = "macos")]
   state.animation_manager.cancel_overlay(&window.id());
 
   // After detaching the container, flatten any redundant split containers.

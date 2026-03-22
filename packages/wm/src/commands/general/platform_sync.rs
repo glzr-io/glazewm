@@ -329,9 +329,7 @@ fn redraw_containers(
         target_rect.clone(),
         previous_target,
         config,
-        #[cfg(target_os = "macos")]
         window.native().id(),
-        #[cfg(target_os = "macos")]
         &state.dispatcher,
       )
     } else {
@@ -342,37 +340,20 @@ fn redraw_containers(
       }
     };
 
-    // On macOS, if an overlay is handling the animation, hide the real
-    // window by treating it as not visible (will go to corner).
-    #[cfg(target_os = "macos")]
-    let is_visible = if anim_result.has_overlay {
-      false
-    } else {
-      is_visible
-    };
-
     tracing::debug!("Updating window position: {window}");
 
+    // When an overlay is handling the animation, hide the real window so
+    // the overlay is the only visible representation.
     if let Err(err) = reposition_window(
       window,
       &anim_result.rect,
       *hide_corner,
       &z_order,
+      anim_result.has_overlay,
       is_visible,
       config,
     ) {
       tracing::warn!("Failed to set window position: {}", err);
-    }
-
-    // Apply opacity if there's an animation with fade.
-    #[cfg(target_os = "windows")]
-    if let Some(opacity) = anim_result.opacity {
-      if let Err(err) = window.native().set_transparency(&opacity) {
-        tracing::warn!(
-          "Failed to set window opacity during animation: {}",
-          err
-        );
-      }
     }
 
     // Whether the window is either transitioning to or from fullscreen.
@@ -433,13 +414,14 @@ fn reposition_window(
   // LINT: `z_order` is only used on Windows.
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   z_order: &WindowZOrder,
+  is_animation_start: bool,
   is_visible: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
   // to the corner of the monitor.
   if config.value.general.hide_method == HideMethod::PlaceInCorner
-    && !is_visible
+    && (!is_visible || is_animation_start)
   {
     const VISIBLE_SLIVER: i32 = 1;
 
@@ -546,10 +528,20 @@ fn reposition_window(
       }
 
       // Set visibility based on the hide method.
-      if config.value.general.hide_method == HideMethod::Cloak {
+      if is_animation_start {
+        window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(0))?;
+      } else if config.value.general.hide_method == HideMethod::Cloak {
         window.native().set_cloaked(!is_visible)?;
+        window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX))?;
       } else if is_visible {
         window.native().show()?;
+        window
+          .native()
+          .set_transparency(&OpacityValue::from_alpha(u8::MAX))?;
       } else {
         window.native().hide()?;
       }
