@@ -9,7 +9,9 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-regex = "1"
+regex = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
+
+wm-platform = { path = "../wm-platform" }

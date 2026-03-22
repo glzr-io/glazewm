@@ -7,9 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, TilingDirection, WorkspaceConfig,
-  WorkspaceDto,
+  ContainerDto, GapsConfig, TilingDirection, WorkspaceConfig, WorkspaceDto,
 };
+use wm_platform::{Rect, RectDelta};
 
 use crate::{
   impl_common_getters, impl_container_debug,
@@ -75,6 +75,80 @@ impl Workspace {
     self.0.borrow_mut().gaps_config = gaps_config;
   }
 
+  /// Effective outer gaps for this workspace.
+  ///
+  /// Uses `single_window_outer_gap` when the workspace has a single tiling
+  /// window, otherwise falls back to `outer_gap`.
+  pub fn outer_gaps(&self) -> RectDelta {
+    let is_single_window = self.tiling_children().nth(1).is_none();
+
+    let gaps_config = &self.0.borrow().gaps_config;
+    let gaps = if is_single_window {
+      gaps_config
+        .single_window_outer_gap
+        .as_ref()
+        .unwrap_or(&gaps_config.outer_gap)
+    } else {
+      &gaps_config.outer_gap
+    };
+
+    // TODO: Should this be scaled by the monitor's DPI?
+    gaps.clone()
+  }
+
+  /// Gets the bounds of a workspace with the given outer gap config.
+  fn workspace_rect_with_gap_config(
+    &self,
+    outer_gaps: &RectDelta,
+  ) -> anyhow::Result<Rect> {
+    let monitor =
+      self.monitor().context("Workspace has no parent monitor.")?;
+
+    let gaps_config = &self.0.borrow().gaps_config;
+    let scale_factor = if gaps_config.scale_with_dpi {
+      monitor.native_properties().scale_factor
+    } else {
+      1.
+    };
+
+    // Get the delta between the monitor's bounds and its working area.
+    let monitor_bounds = monitor.native_properties().bounds;
+    let working_area_delta = monitor
+      .native_properties()
+      .working_area
+      .delta(&monitor_bounds);
+
+    Ok(
+      monitor_bounds
+        // Scale the gaps if `scale_with_dpi` is enabled. Outer gap config
+        // values can be a percentage (relative to the monitor bounds), so
+        // the outer gap delta needs to be applied prior to the working
+        // area delta.
+        .apply_delta(&outer_gaps.inverse(), Some(scale_factor))
+        .apply_delta(&working_area_delta, None),
+    )
+  }
+
+  /// Gets the maximum bounds of a workspace considering both `outer_gap`
+  /// and `single_window_outer_gap` config values.
+  pub fn max_workspace_rect(&self) -> anyhow::Result<Rect> {
+    let gaps_config = &self.0.borrow().gaps_config;
+
+    // Get the workspace rect using `outer_gap`.
+    let multi_window_rect =
+      self.workspace_rect_with_gap_config(&gaps_config.outer_gap)?;
+
+    let Some(single_gap) = &gaps_config.single_window_outer_gap else {
+      return Ok(multi_window_rect);
+    };
+
+    // Get the workspace rect using `single_window_outer_gap`.
+    let single_window_rect =
+      self.workspace_rect_with_gap_config(single_gap)?;
+
+    Ok(multi_window_rect.union(&single_window_rect))
+  }
+
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
     let rect = self.to_rect()?;
     let config = self.config();
@@ -109,40 +183,7 @@ impl_tiling_direction_getters!(Workspace);
 
 impl PositionGetters for Workspace {
   fn to_rect(&self) -> anyhow::Result<Rect> {
-    let monitor =
-      self.monitor().context("Workspace has no parent monitor.")?;
-
-    let gaps_config = &self.0.borrow().gaps_config;
-    let scale_factor = match &gaps_config.scale_with_dpi {
-      true => monitor.native().scale_factor()?,
-      false => 1.,
-    };
-
-    // Get delta between monitor bounds and its working area.
-    let working_delta = monitor
-      .native()
-      .working_rect()
-      .context("Failed to get working area of parent monitor.")?
-      .delta(&monitor.to_rect()?);
-
-    let is_single_window = self.tiling_children().nth(1).is_none();
-
-    let gaps = if is_single_window {
-      gaps_config
-        .single_window_outer_gap
-        .as_ref()
-        .unwrap_or(&gaps_config.outer_gap)
-    } else {
-      &gaps_config.outer_gap
-    };
-
-    Ok(
-      monitor
-        .to_rect()?
-        // Scale the gaps if `scale_with_dpi` is enabled.
-        .apply_inverse_delta(gaps, Some(scale_factor))
-        .apply_delta(&working_delta, None),
-    )
+    self.workspace_rect_with_gap_config(&self.outer_gaps())
   }
 }
 

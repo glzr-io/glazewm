@@ -1,11 +1,10 @@
 use std::time::{Duration, Instant};
-use wm_common::{EasingFunction, Rect};
+
+use wm_common::EasingFunction;
+use wm_platform::Rect;
 
 /// Calculates the current progress of an animation (0.0 to 1.0).
-pub fn animation_progress(
-  start_time: Instant,
-  duration: Duration,
-) -> f32 {
+pub fn animation_progress(start_time: Instant, duration: Duration) -> f32 {
   let elapsed = start_time.elapsed();
 
   if elapsed >= duration {
@@ -67,7 +66,6 @@ fn ease_in_cubic(t: f32) -> f32 {
 fn ease_out_cubic(t: f32) -> f32 {
   1.0 - (1.0 - t).powi(3)
 }
-
 
 /// Interpolates a value with an easing function applied.
 pub fn interpolate_with_easing<T>(
@@ -132,4 +130,3 @@ mod tests {
     assert_eq!(scaled.y(), 150);
   }
 }
-

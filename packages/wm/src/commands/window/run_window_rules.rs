@@ -18,7 +18,7 @@ pub fn run_window_rules(
   config: &mut UserConfig,
 ) -> anyhow::Result<Option<WindowContainer>> {
   let pending_window_rules =
-    config.pending_window_rules(&window, event_type)?;
+    config.pending_window_rules(&window, event_type);
 
   let mut subject_window = window;
 

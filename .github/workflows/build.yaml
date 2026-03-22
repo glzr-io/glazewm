@@ -1,0 +1,73 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      enable_ui_access:
+        type: boolean
+        default: false
+        description: (Windows only) Enable UIAccess in the application manifest.
+      version_number:
+        type: string
+        default: 0.0.0
+        description: Version number to use for the build.
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # MacOS (Intel)
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+          # MacOS (Apple Silicon)
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          # 64-bit Windows (Intel & AMD)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          # 64-bit Windows (ARM)
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: nightly
+
+      - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        with:
+          shared-key: ${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build for ${{ matrix.target }}
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          # Conditionally enable UIAccess feature for Windows.
+          FEATURES: ${{ matrix.platform == 'windows-latest' && inputs.enable_ui_access && '--features ui_access' || '' }}
+          # Include `wm-watcher` when building for Windows.
+          SCOPE: ${{ matrix.platform == 'windows-latest' && '--workspace' || '' }}
+        shell: bash
+        run: cargo build --locked --release --target ${{ matrix.target }} $SCOPE $FEATURES
+
+      - name: Create upload directory
+        shell: bash
+        run: |
+          SOURCE_DIR="target/${{ matrix.target }}/release"
+          UPLOAD_DIR="temp/$SOURCE_DIR"
+          mkdir -p "$UPLOAD_DIR"
+
+          # Move build artifacts. Suppress errors for missing platform-specific binaries.
+          mv "$SOURCE_DIR"/glazewm{,-cli} \
+            "$SOURCE_DIR"/glazewm{,-cli,-watcher}.exe \
+            "$UPLOAD_DIR/" 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: build-${{ matrix.target }}
+          path: temp

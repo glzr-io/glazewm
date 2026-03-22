@@ -7,8 +7,9 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, SplitContainerDto, TilingDirection,
+  ContainerDto, GapsConfig, SplitContainerDto, TilingDirection,
 };
+use wm_platform::Rect;
 
 use crate::{
   impl_common_getters, impl_container_debug,

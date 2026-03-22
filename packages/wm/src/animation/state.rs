@@ -1,8 +1,9 @@
 use std::time::{Duration, Instant};
+
 use wm_common::{
-  AnimationEffectsConfig, AnimationTypeConfig, EasingFunction, OpacityValue,
-  Rect,
+  AnimationEffectsConfig, AnimationTypeConfig, EasingFunction,
 };
+use wm_platform::{OpacityValue, Rect};
 
 use crate::animation::engine::{
   animation_progress, interpolate_with_easing, scale_rect_from_center,
@@ -122,7 +123,8 @@ impl WindowAnimationState {
 
   /// Gets the interpolated opacity at the current animation progress.
   pub fn current_opacity(&self) -> Option<OpacityValue> {
-    if let (Some(start), Some(end)) = (&self.start_opacity, &self.target_opacity)
+    if let (Some(start), Some(end)) =
+      (&self.start_opacity, &self.target_opacity)
     {
       let progress = self.progress();
       Some(interpolate_with_easing(
@@ -130,11 +132,12 @@ impl WindowAnimationState {
         end,
         progress,
         &self.easing,
-        |start, end, eased_progress| start.interpolate(end, eased_progress),
+        |start, end, eased_progress| {
+          start.interpolate(end, eased_progress)
+        },
       ))
     } else {
       None
     }
   }
 }
-

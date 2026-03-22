@@ -1,9 +1,7 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
-};
-use wm_platform::NativeWindow;
+use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
+use wm_platform::{NativeWindow, RectDelta};
 
 use crate::{
   commands::{
@@ -11,7 +9,8 @@ use crate::{
     window::run_window_rules,
   },
   models::{
-    Container, Monitor, NonTilingWindow, TilingWindow, WindowContainer,
+    Container, Monitor, NativeWindowProperties, NonTilingWindow,
+    TilingWindow, WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -24,10 +23,21 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
+  let Some(native_properties) =
+    check_is_manageable(&native_window).unwrap_or(None)
+  else {
+    return Ok(());
+  };
+
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
-  let window =
-    try_warn!(create_window(native_window, target_parent, state, config));
+  let window = try_warn!(create_window(
+    native_window,
+    native_properties,
+    target_parent,
+    state,
+    config
+  ));
 
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
@@ -74,8 +84,75 @@ pub fn manage_window(
   Ok(())
 }
 
+/// Checks if a window is manageable and retrieves its native properties.
+///
+/// Returns `Ok(Some(properties))` if the window is manageable and its
+/// properties were retrieved successfully.
+fn check_is_manageable(
+  native_window: &NativeWindow,
+) -> anyhow::Result<Option<NativeWindowProperties>> {
+  if !native_window.is_visible()? {
+    return Ok(None);
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    use wm_platform::NativeWindowExtMacOs;
+
+    let is_standard_window = native_window.role()? == "AXWindow"
+      && native_window.subrole()? == "AXStandardWindow";
+
+    if !is_standard_window {
+      return Ok(None);
+    }
+  }
+
+  // Ensure window has a valid process name, title, etc.
+  let native_properties = NativeWindowProperties::try_from(native_window)?;
+
+  #[cfg(target_os = "windows")]
+  {
+    use wm_platform::{
+      NativeWindowWindowsExt, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+      WS_EX_TOOLWINDOW,
+    };
+
+    // TODO: Temporary fix for managing Flow Launcher until a force manage
+    // command is added.
+    let is_flow_launcher = native_properties.process_name
+      == "Flow.Launcher"
+      && native_properties.title == "Flow.Launcher";
+
+    if !is_flow_launcher {
+      // Ensure window is top-level (i.e. not a child window). Ignore
+      // windows that cannot be focused or if they're unavailable in
+      // task switcher (alt+tab menu).
+      if native_window.has_window_style(WS_CHILD)
+        || native_window
+          .has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW)
+      {
+        return Ok(None);
+      }
+
+      // Some applications spawn top-level windows for menus that
+      // should be ignored. This includes the autocomplete popup in
+      // Notepad++ and title bar menu in Keepass. Although not
+      // foolproof, these can typically be identified by having an
+      // owner window and no title bar.
+      if native_window.has_owner_window()
+        && !native_window.has_window_style(WS_CAPTION)
+      {
+        return Ok(None);
+      }
+    }
+  }
+
+  Ok(Some(native_properties))
+}
+
 fn create_window(
   native_window: NativeWindow,
+  native_properties: NativeWindowProperties,
   target_parent: Option<Container>,
   state: &mut WmState,
   config: &UserConfig,
@@ -90,7 +167,7 @@ fn create_window(
 
   let gaps_config = config.value.gaps.clone();
   let window_state =
-    window_state_to_create(&native_window, &nearest_monitor, config)?;
+    window_state_to_create(&native_properties, &nearest_monitor, config)?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -115,34 +192,31 @@ fn create_window(
   let is_same_workspace = nearest_workspace.id() == target_workspace.id();
   let floating_placement = {
     let placement = if !is_same_workspace || prefers_centered {
-      native_window
-        .frame_position()?
+      native_properties
+        .frame
         .translate_to_center(&target_workspace.to_rect()?)
     } else {
-      native_window.frame_position()?
+      native_properties.frame.clone()
     };
 
-    // Clamp the window size to 90% of the workspace size.
-    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+    // Clamp the window size to be within the workspace's outer gaps. 10px
+    // is arbitrary - helps differentiate from tiling windows.
+    let max_workspace_rect = target_workspace.max_workspace_rect()?;
     placement.clamp_size(
-      (target_workspace.to_rect()?.width() as f32 * 0.9) as i32,
-      (target_workspace.to_rect()?.height() as f32 * 0.9) as i32,
+      max_workspace_rect.width() - 10,
+      max_workspace_rect.height() - 10,
     )
   };
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
-  let border_delta = RectDelta::new(
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-  );
+  let border_delta = RectDelta::zero();
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
       None,
       native_window,
+      native_properties,
       None,
       border_delta,
       floating_placement,
@@ -155,12 +229,13 @@ fn create_window(
     _ => NonTilingWindow::new(
       None,
       native_window,
+      native_properties,
       window_state,
       None,
       border_delta,
       None,
       floating_placement,
-      false,
+      !prefers_centered,
       Vec::new(),
       None,
     )
@@ -188,28 +263,31 @@ fn create_window(
 ///
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
-  native_window: &NativeWindow,
+  native_properties: &NativeWindowProperties,
   nearest_monitor: &Monitor,
   config: &UserConfig,
 ) -> anyhow::Result<WindowState> {
-  if native_window.is_minimized()? {
+  if native_properties.is_minimized {
     return Ok(WindowState::Minimized);
   }
 
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
-    .context("No Workspace.")?;
+    .context("No workspace.")?;
 
-  let monitor_rect = if config
-    .outer_gaps_for_workspace(&nearest_workspace)
-    .is_significant()
+  // Only initialize as fullscreen if the window *exceeds* the workspace
+  // bounds (due to the 1px inset).
+  //
+  // For example, with 0px outer gaps and a window that covers the entire
+  // workspace, it would still not be initialized as fullscreen. The window
+  // needs to be within the workspace's outer gaps by at least 1px on each
+  // side.
+  if !native_properties.is_maximized
+    && native_properties
+      .frame
+      .inset(1)
+      .contains_rect(&nearest_workspace.max_workspace_rect()?)
   {
-    nearest_monitor.native().working_rect()?.clone()
-  } else {
-    nearest_monitor.to_rect()?
-  };
-
-  if native_window.is_fullscreen(&monitor_rect)? {
     return Ok(WindowState::Fullscreen(
       config
         .value
@@ -221,7 +299,7 @@ fn window_state_to_create(
   }
 
   // Initialize windows that can't be resized as floating.
-  if !native_window.is_resizable() {
+  if !native_properties.is_resizable {
     return Ok(WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
     ));

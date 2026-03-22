@@ -1,16 +1,17 @@
 use std::cell::Ref;
 
 use ambassador::delegatable_trait;
-use wm_common::{
-  ActiveDrag, DisplayState, LengthValue, Rect, RectDelta,
-  WindowRuleConfig, WindowState,
-};
-use wm_platform::NativeWindow;
+use wm_common::{ActiveDrag, DisplayState, WindowRuleConfig, WindowState};
+use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
-use crate::user_config::UserConfig;
+use crate::{
+  models::{NativeWindowProperties, Workspace},
+  traits::CommonGetters,
+  user_config::UserConfig,
+};
 
 #[delegatable_trait]
-pub trait WindowGetters {
+pub trait WindowGetters: CommonGetters {
   fn state(&self) -> WindowState;
 
   fn set_state(&self, state: WindowState);
@@ -25,7 +26,7 @@ pub trait WindowGetters {
   /// This will return the first valid state in the following order:
   /// 1. If the window is not currently in the target state, return the
   ///    target state.
-  /// 2. The previous state exists if one exists.
+  /// 2. The previous state exists if one exists (excluding minimized).
   /// 3. The state from `window_behavior.initial_state` in the user config.
   /// 4. Default to either floating/tiling depending on the current state.
   fn toggled_state(
@@ -35,7 +36,9 @@ pub trait WindowGetters {
   ) -> WindowState {
     let possible_states = [
       Some(target_state),
-      self.prev_state(),
+      self
+        .prev_state()
+        .filter(|state| *state != WindowState::Minimized),
       Some(WindowState::default_from_config(&config.value)),
     ];
 
@@ -63,7 +66,11 @@ pub trait WindowGetters {
 
   fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_delta = self.border_delta();
-    let shadow_border_delta = self.native().shadow_border_delta()?;
+
+    #[cfg(target_os = "windows")]
+    let shadow_border_delta = self.native_properties().shadow_borders;
+    #[cfg(not(target_os = "windows"))]
+    let shadow_border_delta = RectDelta::zero();
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
@@ -86,10 +93,43 @@ pub trait WindowGetters {
     })
   }
 
+  /// Gets whether the window should be fullscreen for the given workspace.
+  ///
+  /// A window is considered fullscreen if its frame covers or exceeds the
+  /// workspace bounds, meaning all sides extend into the outer gaps.
+  ///
+  /// NOTE: The OS can be off by up to 1px when positioning windows.
+  fn should_fullscreen(
+    &self,
+    workspace: &Workspace,
+  ) -> anyhow::Result<bool> {
+    let workspace_rect = workspace.max_workspace_rect()?;
+    let frame = self
+      .native_properties()
+      .frame
+      .apply_delta(&self.border_delta().inverse(), None);
+
+    let should_fullscreen = match self.state() {
+      // Keep as fullscreen if the frame covers the workspace bounds.
+      WindowState::Fullscreen(fullscreen) if !fullscreen.maximized => {
+        frame.contains_rect(&workspace_rect.inset(1))
+      }
+
+      // Change to fullscreen if the frame *exceeds* the workspace bounds.
+      // NOTE: This is never possible with 0px outer gaps; the window has
+      // to be made fullscreen via the `set-fullscreen` command.
+      _ => frame.inset(1).contains_rect(&workspace_rect),
+    };
+
+    Ok(should_fullscreen)
+  }
+
   fn display_state(&self) -> DisplayState;
 
   fn set_display_state(&self, display_state: DisplayState);
 
+  // LINT: `has_pending_dpi_adjustment` is only used on Windows.
+  #[allow(unused)]
   fn has_pending_dpi_adjustment(&self) -> bool;
 
   fn set_has_pending_dpi_adjustment(
@@ -118,6 +158,14 @@ pub trait WindowGetters {
   fn active_drag(&self) -> Option<ActiveDrag>;
 
   fn set_active_drag(&self, active_drag: Option<ActiveDrag>);
+
+  /// Gets the cached native window properties.
+  fn native_properties(&self) -> NativeWindowProperties;
+
+  /// Updates the cached native window properties using a closure.
+  fn update_native_properties<F>(&self, updater: F)
+  where
+    F: FnOnce(&mut NativeWindowProperties);
 }
 
 /// Implements the `WindowGetters` trait for a given struct.
@@ -165,6 +213,8 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().display_state = display_state;
       }
 
+      // LINT: `has_pending_dpi_adjustment` is only used on Windows.
+      #[allow(unused)]
       fn has_pending_dpi_adjustment(&self) -> bool {
         self.0.borrow().has_pending_dpi_adjustment
       }
@@ -214,6 +264,17 @@ macro_rules! impl_window_getters {
 
       fn set_active_drag(&self, active_drag: Option<ActiveDrag>) {
         self.0.borrow_mut().active_drag = active_drag;
+      }
+
+      fn native_properties(&self) -> NativeWindowProperties {
+        self.0.borrow().native_properties.clone()
+      }
+
+      fn update_native_properties<F>(&self, updater: F)
+      where
+        F: FnOnce(&mut NativeWindowProperties),
+      {
+        updater(&mut self.0.borrow_mut().native_properties);
       }
     }
   };

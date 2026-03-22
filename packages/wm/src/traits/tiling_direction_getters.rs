@@ -1,5 +1,6 @@
 use ambassador::delegatable_trait;
-use wm_common::{Direction, TilingDirection};
+use wm_common::TilingDirection;
+use wm_platform::Direction;
 
 use super::CommonGetters;
 use crate::models::{TilingContainer, TilingWindow};

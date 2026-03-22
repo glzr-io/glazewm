@@ -7,7 +7,7 @@ use crate::{
   traits::CommonGetters,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PendingSync {
   /// Containers (and their descendants) that have a pending redraw.
@@ -31,7 +31,8 @@ pub struct PendingSync {
   /// user config).
   needs_cursor_jump: bool,
 
-  /// Whether to skip animations for the current sync (e.g., during workspace switches).
+  /// Whether to skip animations for the current sync (e.g., during
+  /// workspace switches).
   skip_animations: bool,
 }
 

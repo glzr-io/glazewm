@@ -1,19 +1,19 @@
 use std::{
   collections::HashMap,
-  sync::{atomic::AtomicBool, atomic::Ordering, Arc},
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::OpacityValue;
-use wm_common::Rect;
+use wm_platform::{OpacityValue, Rect};
 
 use crate::{
   animation::state::WindowAnimationState,
-  commands::general::platform_sync,
-  traits::CommonGetters,
-  user_config::UserConfig,
-  wm_state::WmState,
+  commands::general::platform_sync, traits::CommonGetters,
+  user_config::UserConfig, wm_state::WmState,
 };
 
 /// Manages animations for all windows.
@@ -45,7 +45,10 @@ impl AnimationManager {
   }
 
   /// Gets the current state of a window's animation.
-  pub fn get_animation(&self, window_id: &Uuid) -> Option<&WindowAnimationState> {
+  pub fn get_animation(
+    &self,
+    window_id: &Uuid,
+  ) -> Option<&WindowAnimationState> {
     self.animations.get(window_id)
   }
 
@@ -88,45 +91,51 @@ impl AnimationManager {
     self.animations.clear();
   }
 
-  /// Ensures the animation timer is running if there are active animations.
+  /// Ensures the animation timer is running if there are active
+  /// animations.
   pub fn ensure_timer_running(
     &self,
     state: &crate::wm_state::WmState,
     config: &UserConfig,
   ) {
     if self.has_active_animations()
-      && !self.animation_timer_running.load(Ordering::Relaxed) {
-
+      && !self.animation_timer_running.load(Ordering::Relaxed)
+    {
       self.animation_timer_running.store(true, Ordering::Relaxed);
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
 
-      // Calculate frame time based on monitor refresh rate, capped by config max_frame_rate
-      // Default to 60 FPS if refresh rate cannot be determined
+      // Calculate frame time based on monitor refresh rate, capped by
+      // config max_frame_rate Default to 60 FPS if refresh rate
+      // cannot be determined
       let mut frame_time_ms = 16u32;
 
       if let Some(container) = state.focused_container() {
         if let Some(monitor) = CommonGetters::monitor(&container) {
           // Default to 60Hz if refresh rate cannot be determined
-          let refresh_rate = monitor.native().refresh_rate().unwrap_or(60);
+          let refresh_rate =
+            monitor.native_properties().refresh_rate.unwrap_or(60);
           // Cap refresh rate at configured max_frame_rate
-          let capped_rate = refresh_rate.min(config.value.animations.max_frame_rate);
+          let capped_rate =
+            refresh_rate.min(config.value.animations.max_frame_rate);
           // Cap at 60 Hz minimum for safety
           let final_rate = capped_rate.max(60);
           // Convert refresh rate to milliseconds per frame
           frame_time_ms = 1000 / final_rate;
         }
       } else {
-        // If no monitor found, use max_frame_rate from config (capped at 60Hz minimum)
+        // If no monitor found, use max_frame_rate from config (capped at
+        // 60Hz minimum)
         let final_rate = config.value.animations.max_frame_rate.max(60);
         frame_time_ms = 1000 / final_rate;
       }
 
       tokio::spawn(async move {
         let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(frame_time_ms as u64)
+          tokio::time::Duration::from_millis(frame_time_ms as u64),
         );
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        interval
+          .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
           interval.tick().await;
@@ -160,11 +169,13 @@ impl AnimationManager {
     }
 
     // Get windows that have INCOMPLETE animations only
-    let active_window_ids: Vec<_> = state.animation_manager
+    let active_window_ids: Vec<_> = state
+      .animation_manager
       .active_window_ids()
       .into_iter()
       .filter(|id| {
-        state.animation_manager
+        state
+          .animation_manager
           .get_animation(id)
           .map(|anim| !anim.is_complete())
           .unwrap_or(false)
@@ -180,7 +191,8 @@ impl AnimationManager {
     }
 
     // Remove completed animations and get their IDs
-    let completed_ids = state.animation_manager.remove_completed_animations();
+    let completed_ids =
+      state.animation_manager.remove_completed_animations();
 
     // Queue completed animations for final redraw
     for window_id in &completed_ids {
@@ -218,24 +230,28 @@ impl AnimationManager {
       existing_animation.is_none()
     } else if !is_opening && config.value.animations.window_move.enabled {
       if let Some(anim) = existing_animation {
-        // Don't restart animations that are completing or already at target
+        // Don't restart animations that are completing or already at
+        // target
         if anim.is_complete() {
           false
         } else {
-          // Check if target has changed significantly from the animation's current target
-          // Use a reasonable threshold to avoid creating animations for every tiny change
-          let target_distance = (anim.target_rect.x() - target_rect.x()).abs() +
-                               (anim.target_rect.y() - target_rect.y()).abs() +
-                               (anim.target_rect.width() - target_rect.width()).abs() +
-                               (anim.target_rect.height() - target_rect.height()).abs();
+          // Check if target has changed significantly from the animation's
+          // current target Use a reasonable threshold to avoid
+          // creating animations for every tiny change
+          let target_distance = (anim.target_rect.x() - target_rect.x())
+            .abs()
+            + (anim.target_rect.y() - target_rect.y()).abs()
+            + (anim.target_rect.width() - target_rect.width()).abs()
+            + (anim.target_rect.height() - target_rect.height()).abs();
           target_distance > threshold
         }
       } else if let Some(prev_target) = previous_target {
-        // Compare PREVIOUS target to NEW target, not current position to target
-        let distance = (prev_target.x() - target_rect.x()).abs() +
-                       (prev_target.y() - target_rect.y()).abs() +
-                       (prev_target.width() - target_rect.width()).abs() +
-                       (prev_target.height() - target_rect.height()).abs();
+        // Compare PREVIOUS target to NEW target, not current position to
+        // target
+        let distance = (prev_target.x() - target_rect.x()).abs()
+          + (prev_target.y() - target_rect.y()).abs()
+          + (prev_target.width() - target_rect.width()).abs()
+          + (prev_target.height() - target_rect.height()).abs();
         distance > threshold
       } else {
         // First time seeing this window, no animation needed
@@ -246,8 +262,8 @@ impl AnimationManager {
     }
   }
 
-  /// Starts an animation if needed and returns the current animation state.
-  /// Returns (rect, opacity) tuple.
+  /// Starts an animation if needed and returns the current animation
+  /// state. Returns (rect, opacity) tuple.
   pub fn start_animation_if_needed(
     &mut self,
     window_id: Uuid,
@@ -256,7 +272,8 @@ impl AnimationManager {
     previous_target: Option<Rect>,
     config: &UserConfig,
   ) -> (Rect, Option<OpacityValue>) {
-    let threshold = config.value.animations.window_move.threshold_px as i32;
+    let threshold =
+      config.value.animations.window_move.threshold_px as i32;
 
     // Check if there's already an animation for this window
     let existing_animation = self.get_animation(&window_id).cloned();
@@ -281,7 +298,8 @@ impl AnimationManager {
         self.start_animation(window_id, animation);
       } else if let Some(prev_target) = previous_target {
         // Determine the start position for the new animation
-        // Cancel and replace: start from current animated position if an animation is running
+        // Cancel and replace: start from current animated position if an
+        // animation is running
         let start_rect = if let Some(existing_anim) = &existing_animation {
           existing_anim.current_rect()
         } else {
@@ -290,17 +308,21 @@ impl AnimationManager {
 
         let is_cancel_and_replace = existing_animation.is_some();
 
-        // Choose animation config based on whether this is a cancel-and-replace
+        // Choose animation config based on whether this is a
+        // cancel-and-replace
         let animation_config = if is_cancel_and_replace {
-          // Use fixed short duration for interrupted animations to ensure consistent timing
-          let movement_config = config.value.animations.window_move.clone();
+          // Use fixed short duration for interrupted animations to ensure
+          // consistent timing
+          let movement_config =
+            config.value.animations.window_move.clone();
           movement_config
         } else {
           // Use config duration directly
           config.value.animations.window_move.clone()
         };
 
-        // Create animation from current position to new target (cancel and replace)
+        // Create animation from current position to new target (cancel and
+        // replace)
         let animation = WindowAnimationState::new_movement(
           start_rect,
           target_rect.clone(),
@@ -310,7 +332,8 @@ impl AnimationManager {
       }
     }
 
-    // Get the current animation state (re-fetch after potentially starting new animation)
+    // Get the current animation state (re-fetch after potentially starting
+    // new animation)
     if let Some(animation) = self.get_animation(&window_id) {
       (animation.current_rect(), animation.current_opacity())
     } else {
@@ -318,4 +341,3 @@ impl AnimationManager {
     }
   }
 }
-

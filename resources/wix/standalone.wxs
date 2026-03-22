@@ -36,6 +36,7 @@
       <ComponentRef Id="Custom_AddDesktopShortcut" />
       <ComponentRef Id="Custom_AddStartMenuShortcut" />
       <ComponentRef Id="Custom_AddPathEnv" />
+      <ComponentRef Id="Custom_RemoveAutoLaunchRegistry" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
@@ -121,6 +122,27 @@
         Action="set"
         System="yes"
       />
+    </Component>
+
+    <!-- Remove auto-launch registry values on uninstall. -->
+    <Component Id="Custom_RemoveAutoLaunchRegistry" Guid="B1A2C3D4-E5F6-47A8-9B0C-1234567890AB">
+      <!-- `RegistryValue` with `KeyPath="yes"` is needed for component state tracking. -->
+      <RegistryValue
+        Root="HKLM"
+        Key="SOFTWARE\glzr.io\GlazeWM"
+        Name="AutoLaunchCleanup"
+        Type="integer"
+        Value="1"
+        KeyPath="yes"
+      />
+      <RemoveRegistryValue
+        Root="HKCU"
+        Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+        Name="GlazeWM" />
+      <RemoveRegistryValue
+        Root="HKCU"
+        Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+        Name="GlazeWM" />
     </Component>
   </Package>
 </Wix>

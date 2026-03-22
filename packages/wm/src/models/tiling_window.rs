@@ -7,18 +7,19 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, DisplayState, GapsConfig, Rect, RectDelta,
-  TilingDirection, WindowDto, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
+  WindowDto, WindowRuleConfig, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{NativeWindow, Rect, RectDelta};
 
 use crate::{
   impl_common_getters, impl_container_debug,
   impl_position_getters_as_resizable, impl_tiling_size_getters,
   impl_window_getters,
   models::{
-    Container, DirectionContainer, InsertionTarget, NonTilingWindow,
-    TilingContainer, WindowContainer,
+    Container, DirectionContainer, InsertionTarget,
+    NativeWindowProperties, NonTilingWindow, TilingContainer,
+    WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
@@ -36,6 +37,7 @@ struct TilingWindowInner {
   child_focus_order: VecDeque<Uuid>,
   tiling_size: f32,
   native: NativeWindow,
+  native_properties: NativeWindowProperties,
   state: WindowState,
   prev_state: Option<WindowState>,
   display_state: DisplayState,
@@ -53,6 +55,7 @@ impl TilingWindow {
   pub fn new(
     id: Option<Uuid>,
     native: NativeWindow,
+    properties: NativeWindowProperties,
     prev_state: Option<WindowState>,
     border_delta: RectDelta,
     floating_placement: Rect,
@@ -68,6 +71,7 @@ impl TilingWindow {
       child_focus_order: VecDeque::new(),
       tiling_size: 1.0,
       native,
+      native_properties: properties,
       state: WindowState::Tiling,
       prev_state,
       display_state: DisplayState::Shown,
@@ -91,6 +95,7 @@ impl TilingWindow {
     NonTilingWindow::new(
       Some(self.id()),
       self.native().clone(),
+      self.native_properties().clone(),
       state,
       Some(WindowState::Tiling),
       self.border_delta(),
@@ -119,10 +124,12 @@ impl TilingWindow {
       display_state: self.display_state(),
       border_delta: self.border_delta(),
       floating_placement: self.floating_placement(),
-      handle: self.native().handle,
-      title: self.native().title()?,
-      class_name: self.native().class_name()?,
-      process_name: self.native().process_name()?,
+      #[allow(clippy::cast_possible_wrap, clippy::unnecessary_cast)]
+      handle: self.native().id().0 as isize,
+      title: self.native_properties().title,
+      #[cfg(target_os = "windows")]
+      class_name: self.native_properties().class_name,
+      process_name: self.native_properties().process_name,
       active_drag: self.active_drag(),
     }))
   }

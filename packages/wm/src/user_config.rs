@@ -2,8 +2,8 @@ use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use anyhow::{Context, Result};
 use wm_common::{
-  InvokeCommand, MatchType, ParsedConfig, WindowMatchConfig,
-  WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
+  InvokeCommand, KeybindingConfig, MatchType, ParsedConfig,
+  WindowMatchConfig, WindowRuleConfig, WindowRuleEvent, WorkspaceConfig,
 };
 
 use crate::{
@@ -223,10 +223,11 @@ impl UserConfig {
     &self,
     window: &WindowContainer,
     event: &WindowRuleEvent,
-  ) -> anyhow::Result<Vec<WindowRuleConfig>> {
-    let window_title = window.native().title()?;
-    let window_class = window.native().class_name()?;
-    let window_process = window.native().process_name()?;
+  ) -> Vec<WindowRuleConfig> {
+    let window_title = window.native_properties().title;
+    #[cfg(target_os = "windows")]
+    let window_class = window.native_properties().class_name;
+    let window_process = window.native_properties().process_name;
 
     let pending_window_rules = self
       .window_rules_by_event
@@ -244,12 +245,30 @@ impl UserConfig {
           let is_process_match = match_config
             .window_process
             .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_process));
+            .is_none_or(|match_type| {
+              // TODO: Temp fix for matching Zebar on both platforms with
+              // the same process name. Consider using lowercase for every
+              // `equals` match type.
+              if window_process == "Zebar" {
+                match_type.is_match("Zebar")
+                  || match_type.is_match("zebar")
+              } else {
+                match_type.is_match(&window_process)
+              }
+            });
 
-          let is_class_match = match_config
-            .window_class
-            .as_ref()
-            .is_none_or(|match_type| match_type.is_match(&window_class));
+          let is_class_match = {
+            #[cfg(target_os = "windows")]
+            {
+              match_config.window_class.as_ref().is_none_or(|match_type| {
+                match_type.is_match(&window_class)
+              })
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+              match_config.window_class.is_none()
+            }
+          };
 
           let is_title_match = match_config
             .window_title
@@ -262,7 +281,7 @@ impl UserConfig {
       .cloned()
       .collect::<Vec<_>>();
 
-    Ok(pending_window_rules)
+    pending_window_rules
   }
 
   pub fn inactive_workspace_configs(
@@ -332,21 +351,30 @@ impl UserConfig {
     });
   }
 
-  pub fn outer_gaps_for_workspace(
+  /// Keybinding configs that should be active for the current binding mode
+  /// and pause state.
+  ///
+  /// When paused, only the configs with `InvokeCommand::WmTogglePause` are
+  /// returned so that unpausing remains possible.
+  pub fn active_keybinding_configs(
     &self,
-    workspace: &Workspace,
-  ) -> &wm_common::RectDelta {
-    let is_single_window = workspace.tiling_children().nth(1).is_none();
-
-    if is_single_window {
-      self
-        .value
-        .gaps
-        .single_window_outer_gap
-        .as_ref()
-        .unwrap_or(&self.value.gaps.outer_gap)
+    binding_modes: &[wm_common::BindingModeConfig],
+    is_paused: bool,
+  ) -> impl Iterator<Item = KeybindingConfig> {
+    let source_configs = if let Some(first_mode) = binding_modes.first() {
+      &first_mode.keybindings
     } else {
-      &self.value.gaps.outer_gap
+      &self.value.keybindings
     }
+    .clone();
+
+    source_configs.into_iter().filter(move |kb| {
+      if is_paused {
+        kb.commands
+          .contains(&wm_common::InvokeCommand::WmTogglePause)
+      } else {
+        true
+      }
+    })
   }
 }

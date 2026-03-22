@@ -1,5 +1,6 @@
 use anyhow::Context;
-use wm_common::{Direction, WmEvent};
+use wm_common::WmEvent;
+use wm_platform::Direction;
 
 use super::{activate_workspace, deactivate_workspace, sort_workspaces};
 use crate::{

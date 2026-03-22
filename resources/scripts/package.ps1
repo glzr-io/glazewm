@@ -81,18 +81,25 @@ function BuildExes() {
     $outDir = if ($target -eq "x86_64-pc-windows-msvc") { "out/x64" } else { "out/arm64" }
     $sourceDir = "target/$target/release"
 
-    Write-Output "Building for $target"
-    cargo build --locked --release --target $target --features ui_access
+    $requiredExes = @("glazewm.exe", "glazewm-cli.exe", "glazewm-watcher.exe")
+    $sourcePaths = $requiredExes | ForEach-Object { "$sourceDir/$_" }
 
-    Write-Output "Moving built executables to $outDir"
+    # Build for the target if the executables do not exist.
+    if (($sourcePaths | Where-Object { !(Test-Path $_) }).Count -gt 0) {
+      Write-Output "Build artifact not found for target '$target'. Building now..."
+
+      cargo build --locked --release --target $target --features ui_access
+      ExitOnError
+
+      Write-Output "Build completed successfully for target '$target'."
+    }
+
+    Write-Output "Moving built executables from $sourceDir to $outDir"
     New-Item -ItemType Directory -Force -Path $outDir
-    Move-Item -Force -Path "$sourceDir/glazewm.exe", "$sourceDir/glazewm-cli.exe", "$sourceDir/glazewm-watcher.exe" -Destination $outDir
+    Move-Item -Force -Path $sourcePaths -Destination $outDir
 
-    SignFiles @(
-      "$outDir/glazewm.exe",
-      "$outDir/glazewm-cli.exe",
-      "$outDir/glazewm-watcher.exe"
-    )
+    $outPaths = $requiredExes | ForEach-Object { "$outDir/$_" }
+    SignFiles $outPaths
   }
 }
 

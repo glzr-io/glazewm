@@ -1,6 +1,10 @@
 use tauri_winres::VersionInfo;
 
 fn main() {
+  if cfg!(not(target_os = "windows")) {
+    panic!("wm-watcher is only supported on Windows.");
+  }
+
   println!("cargo:rerun-if-env-changed=VERSION_NUMBER");
   let mut res = tauri_winres::WindowsResource::new();
 

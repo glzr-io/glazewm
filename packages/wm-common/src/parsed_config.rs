@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
-
-use crate::{
-  app_command::InvokeCommand, Color, LengthValue, OpacityValue, RectDelta,
+use wm_platform::{
+  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
+  RectDelta,
 };
+
+use crate::app_command::InvokeCommand;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
@@ -90,6 +92,7 @@ pub struct GeneralConfig {
   pub config_reload_commands: Vec<InvokeCommand>,
 
   /// How windows should be hidden when switching workspaces.
+  #[serde(deserialize_with = "deserialize_hide_method")]
   pub hide_method: HideMethod,
 
   /// Affects which windows get shown in the native Windows taskbar.
@@ -105,7 +108,16 @@ impl Default for GeneralConfig {
       startup_commands: vec![],
       shutdown_commands: vec![],
       config_reload_commands: vec![],
-      hide_method: HideMethod::Cloak,
+      hide_method: {
+        #[cfg(target_os = "macos")]
+        {
+          HideMethod::PlaceInCorner
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+          HideMethod::Cloak
+        }
+      },
       show_all_in_taskbar: false,
     }
   }
@@ -135,13 +147,18 @@ pub enum HideMethod {
   Hide,
   #[default]
   Cloak,
+  PlaceInCorner,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct KeybindingConfig {
   /// Keyboard shortcut to trigger the keybinding.
-  pub bindings: Vec<String>,
+  #[serde(
+    deserialize_with = "deserialize_bindings",
+    serialize_with = "serialize_bindings"
+  )]
+  pub bindings: Vec<Keybinding>,
 
   /// WM commands to run when the keybinding is triggered.
   pub commands: Vec<InvokeCommand>,
@@ -279,16 +296,6 @@ pub struct CornerEffectConfig {
   pub style: CornerStyle,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CornerStyle {
-  #[default]
-  Default,
-  Square,
-  Rounded,
-  SmallRounded,
-}
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct TransparencyEffectConfig {
@@ -342,13 +349,13 @@ impl MatchType {
     match self {
       MatchType::Equals { equals } => value == equals,
       MatchType::Includes { includes } => value.contains(includes),
-      MatchType::Regex { regex } => regex::Regex::new(regex)
-        .map(|re| re.is_match(value))
-        .unwrap_or(false),
+      MatchType::Regex { regex } => {
+        regex::Regex::new(regex).is_ok_and(|re| re.is_match(value))
+      }
       MatchType::NotEquals { not_equals } => value != not_equals,
-      MatchType::NotRegex { not_regex } => regex::Regex::new(not_regex)
-        .map(|re| !re.is_match(value))
-        .unwrap_or(false),
+      MatchType::NotRegex { not_regex } => {
+        regex::Regex::new(not_regex).is_ok_and(|re| !re.is_match(value))
+      }
     }
   }
 }
@@ -381,24 +388,14 @@ pub struct WorkspaceConfig {
   pub keep_alive: bool,
 }
 
-/// Helper function for setting a default value for a boolean field.
-const fn default_bool<const V: bool>() -> bool {
-  V
-}
-
-/// Helper function for setting a default value for window rule events.
-fn default_window_rule_on() -> Vec<WindowRuleEvent> {
-  vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   pub window_open: AnimationEffectsConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
-  /// not exceed this rate even if the monitor supports higher refresh rates.
-  /// Default: 120 Hz
+  /// not exceed this rate even if the monitor supports higher refresh
+  /// rates. Default: 120 Hz
   pub max_frame_rate: u32,
 }
 
@@ -419,8 +416,9 @@ pub struct AnimationTypeConfig {
   pub duration_ms: u32,
   pub easing: EasingFunction,
   /// Minimum pixel distance required to trigger movement animations.
-  /// Helps prevent animations from starting on very small position changes.
-  /// Increase this value on high-DPI displays to reduce sensitivity.
+  /// Helps prevent animations from starting on very small position
+  /// changes. Increase this value on high-DPI displays to reduce
+  /// sensitivity.
   pub threshold_px: u32,
 }
 
@@ -442,7 +440,8 @@ pub struct AnimationEffectsConfig {
   pub duration_ms: u32,
   pub easing: EasingFunction,
   /// Type of animation effects to apply.
-  /// Can be: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
+  /// Can be: "none", "fade", "slide", "scale", "fade_slide",
+  /// "fade_scale", "slide_scale", "fade_slide_scale"
   pub animation_type: AnimationEffectType,
 }
 
@@ -532,4 +531,90 @@ pub enum EasingFunction {
   EaseInOutCubic,
   EaseInCubic,
   EaseOutCubic,
+}
+
+/// Helper function for setting a default value for a boolean field.
+const fn default_bool<const V: bool>() -> bool {
+  V
+}
+
+/// Helper function for setting a default value for window rule events.
+fn default_window_rule_on() -> Vec<WindowRuleEvent> {
+  vec![WindowRuleEvent::Manage, WindowRuleEvent::TitleChange]
+}
+
+/// Helper function for serializing a vector of keybindings.
+///
+/// Returns a vector of strings (e.g. `["cmd+shift+a", "ctrl+shift+b"]`).
+fn serialize_bindings<S>(
+  bindings: &[Keybinding],
+  serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+  S: serde::Serializer,
+{
+  let binding_strings: Vec<String> = bindings
+    .iter()
+    .map(|binding| {
+      binding
+        .keys()
+        .iter()
+        .map(|key| key.to_string().to_lowercase())
+        .collect::<Vec<_>>()
+        .join("+")
+    })
+    .collect();
+
+  binding_strings.serialize(serializer)
+}
+
+/// Helper function for deserializing a vector of strings into keybindings.
+///
+/// Returns a vector of [`Keybinding`].
+fn deserialize_bindings<'de, D>(
+  deserializer: D,
+) -> Result<Vec<Keybinding>, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  let s: Vec<&str> = serde::de::Deserialize::deserialize(deserializer)?;
+  s.iter()
+    .map(|keybinding_str| {
+      let keys: Vec<Key> = keybinding_str
+        .split('+')
+        .map(|key| {
+          key.trim().parse().or_else(|_| Key::try_from_literal(key))
+        })
+        .collect::<Result<Vec<Key>, _>>()
+        .map_err(serde::de::Error::custom)?;
+
+      Keybinding::new(keys).map_err(serde::de::Error::custom)
+    })
+    .collect()
+}
+
+/// Helper function for deserializing [`HideMethod`].
+///
+/// On macOS, [`HideMethod::Hide`] and [`HideMethod::Cloak`] are not valid
+/// and are automatically converted to [`HideMethod::PlaceInCorner`].
+fn deserialize_hide_method<'de, D>(
+  deserializer: D,
+) -> Result<HideMethod, D::Error>
+where
+  D: serde::de::Deserializer<'de>,
+{
+  // LINT: The deserialized value is ignored on macOS, but we still want
+  // to produce an error for invalid values.
+  #[allow(unused_variables)]
+  let method = HideMethod::deserialize(deserializer)?;
+
+  #[cfg(target_os = "macos")]
+  {
+    Ok(HideMethod::PlaceInCorner)
+  }
+
+  #[cfg(not(target_os = "macos"))]
+  {
+    Ok(method)
+  }
 }
