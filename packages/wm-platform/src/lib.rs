@@ -30,6 +30,11 @@ pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;
+
+#[cfg(target_os = "macos")]
+mod overlay_window;
+#[cfg(target_os = "macos")]
+pub use overlay_window::*;
 // TODO: Avoid exposing `windows` crate types in the public API.
 #[cfg(target_os = "windows")]
 pub use windows::Win32::UI::WindowsAndMessaging::{

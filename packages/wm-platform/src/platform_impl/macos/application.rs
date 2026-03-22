@@ -141,6 +141,11 @@ impl Application {
 
   /// Whether the application should be observed.
   pub(crate) fn should_observe(&self) -> bool {
+    // Skip our own process.
+    if self.pid == std::process::id().cast_signed() {
+      return false;
+    }
+
     if self.activation_policy()
       == NSApplicationActivationPolicy::Prohibited
     {

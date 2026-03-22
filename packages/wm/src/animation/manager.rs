@@ -16,6 +16,21 @@ use crate::{
   user_config::UserConfig, wm_state::WmState,
 };
 
+/// Result of starting an animation, indicating how the caller should
+/// handle the real window.
+pub struct AnimationStartResult {
+  /// The rect to use for the real window. On macOS with overlays, this is
+  /// the target rect (window goes to corner). On Windows, this is the
+  /// interpolated animated rect.
+  pub rect: Rect,
+  /// Optional opacity override for the real window (Windows only).
+  #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+  pub opacity: Option<OpacityValue>,
+  /// Whether an overlay is handling the visual animation (macOS only).
+  /// When true, the caller should hide the real window.
+  pub has_overlay: bool,
+}
+
 /// Manages animations for all windows.
 pub struct AnimationManager {
   /// Active animations keyed by window ID.
@@ -24,6 +39,10 @@ pub struct AnimationManager {
   animation_tick_tx: mpsc::UnboundedSender<()>,
   /// Whether the animation timer is currently running.
   animation_timer_running: Arc<AtomicBool>,
+
+  /// Overlay windows for macOS screenshot-based animations.
+  #[cfg(target_os = "macos")]
+  overlays: HashMap<Uuid, wm_platform::OverlayWindow>,
 }
 
 impl AnimationManager {
@@ -32,6 +51,8 @@ impl AnimationManager {
       animations: HashMap::new(),
       animation_tick_tx,
       animation_timer_running: Arc::new(AtomicBool::new(false)),
+      #[cfg(target_os = "macos")]
+      overlays: HashMap::new(),
     }
   }
 
@@ -53,7 +74,6 @@ impl AnimationManager {
   }
 
   /// Removes a window's animation.
-  #[allow(dead_code)]
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
   }
@@ -132,7 +152,7 @@ impl AnimationManager {
 
       tokio::spawn(async move {
         let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(frame_time_ms as u64),
+          tokio::time::Duration::from_millis(u64::from(frame_time_ms)),
         );
         interval
           .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -150,16 +170,17 @@ impl AnimationManager {
   }
 
   /// Updates all active animations and redraws windows that are animating.
-  #[allow(dead_code)] // Public API method, may be used externally
+  #[allow(dead_code)] // Public API method, may be used externally.
   pub fn update(
-    &mut self,
     state: &mut WmState,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
     Self::update_internal(state, config)
   }
 
-  /// Internal update method that accesses animation_manager through state.
+  /// Internal update method that accesses `animation_manager` through
+  /// state.
+  #[allow(clippy::too_many_lines)]
   pub(crate) fn update_internal(
     state: &mut WmState,
     config: &UserConfig,
@@ -168,50 +189,132 @@ impl AnimationManager {
       return Ok(());
     }
 
-    // Get windows that have INCOMPLETE animations only
-    let active_window_ids: Vec<_> = state
-      .animation_manager
-      .active_window_ids()
-      .into_iter()
-      .filter(|id| {
-        state
-          .animation_manager
-          .get_animation(id)
-          .map(|anim| !anim.is_complete())
-          .unwrap_or(false)
-      })
-      .collect();
+    // On macOS, update overlay positions directly instead of queuing
+    // real windows for redraw.
+    #[cfg(target_os = "macos")]
+    {
+      let active_ids: Vec<_> = state
+        .animation_manager
+        .active_window_ids()
+        .into_iter()
+        .filter(|id| {
+          state
+            .animation_manager
+            .get_animation(id)
+            .is_some_and(|anim| !anim.is_complete())
+        })
+        .collect();
 
-    for window_id in &active_window_ids {
-      if let Some(container) = state.container_by_id(*window_id) {
-        if let Ok(window) = container.as_window_container() {
-          state.pending_sync.queue_container_to_redraw(window);
+      for window_id in &active_ids {
+        if let Some(anim) =
+          state.animation_manager.get_animation(window_id)
+        {
+          let current_rect = anim.current_rect();
+          let current_opacity = anim.current_opacity();
+
+          if let Some(overlay) =
+            state.animation_manager.overlays.get(window_id)
+          {
+            if let Err(err) = overlay.set_frame(&current_rect) {
+              tracing::warn!("Failed to update overlay frame: {}", err);
+            }
+
+            if let Some(opacity) = current_opacity {
+              if let Err(err) = overlay.set_opacity(opacity.to_f32()) {
+                tracing::warn!(
+                  "Failed to update overlay opacity: {}",
+                  err
+                );
+              }
+            }
+          }
         }
       }
-    }
 
-    // Remove completed animations and get their IDs
-    let completed_ids =
-      state.animation_manager.remove_completed_animations();
+      // Remove completed animations and destroy their overlays.
+      let completed_ids =
+        state.animation_manager.remove_completed_animations();
 
-    // Queue completed animations for final redraw
-    for window_id in &completed_ids {
-      if let Some(container) = state.container_by_id(*window_id) {
-        if let Ok(window) = container.as_window_container() {
-          state.pending_sync.queue_container_to_redraw(window);
+      for window_id in &completed_ids {
+        // Queue the real window for final redraw at target position.
+        if let Some(container) = state.container_by_id(*window_id) {
+          if let Ok(window) = container.as_window_container() {
+            state.pending_sync.queue_container_to_redraw(window);
+          }
         }
       }
+
+      // Sync platform for completed animations (final positioning).
+      if state.pending_sync.has_changes() {
+        platform_sync(state, config)?;
+      }
+
+      for window_id in &completed_ids {
+        // Destroy the overlay.
+        if let Some(overlay) =
+          state.animation_manager.overlays.remove(window_id)
+        {
+          if let Err(err) = overlay.destroy() {
+            tracing::warn!("Failed to destroy overlay: {}", err);
+          }
+        }
+      }
+
+      // Continue timer if there are still active animations.
+      state.animation_manager.ensure_timer_running(state, config);
+
+      Ok(())
     }
 
-    // Sync platform if there are changes
-    if state.pending_sync.has_changes() {
-      platform_sync(state, config)?;
+    // Windows: update by queuing real windows for redraw with
+    // interpolated positions.
+    #[cfg(not(target_os = "macos"))]
+    {
+      // Get windows that have INCOMPLETE animations only
+      let active_window_ids: Vec<_> = state
+        .animation_manager
+        .active_window_ids()
+        .into_iter()
+        .filter(|id| {
+          state
+            .animation_manager
+            .get_animation(id)
+            .map(|anim| !anim.is_complete())
+            .unwrap_or(false)
+        })
+        .collect();
+
+      for window_id in &active_window_ids {
+        if let Some(container) = state.container_by_id(*window_id) {
+          if let Ok(window) = container.as_window_container() {
+            state.pending_sync.queue_container_to_redraw(window);
+          }
+        }
+      }
+
+      // Remove completed animations and get their IDs
+      let completed_ids =
+        state.animation_manager.remove_completed_animations();
+
+      // Queue completed animations for final redraw
+      for window_id in &completed_ids {
+        if let Some(container) = state.container_by_id(*window_id) {
+          if let Ok(window) = container.as_window_container() {
+            state.pending_sync.queue_container_to_redraw(window);
+          }
+        }
+      }
+
+      // Sync platform if there are changes
+      if state.pending_sync.has_changes() {
+        platform_sync(state, config)?;
+      }
+
+      // Continue timer if there are still active animations
+      state.animation_manager.ensure_timer_running(state, config);
+
+      Ok(())
     }
-
-    // Continue timer if there are still active animations
-    state.animation_manager.ensure_timer_running(state, config);
-
-    Ok(())
   }
 
   /// Determines whether a new animation should be started for a window.
@@ -262,8 +365,9 @@ impl AnimationManager {
     }
   }
 
-  /// Starts an animation if needed and returns the current animation
-  /// state. Returns (rect, opacity) tuple.
+  /// Starts an animation if needed and returns information about how the
+  /// caller should handle the real window.
+  #[allow(clippy::too_many_arguments)]
   pub fn start_animation_if_needed(
     &mut self,
     window_id: Uuid,
@@ -271,7 +375,10 @@ impl AnimationManager {
     target_rect: Rect,
     previous_target: Option<Rect>,
     config: &UserConfig,
-  ) -> (Rect, Option<OpacityValue>) {
+    #[cfg(target_os = "macos")] native_window_id: wm_platform::WindowId,
+    #[cfg(target_os = "macos")] dispatcher: &wm_platform::Dispatcher,
+  ) -> AnimationStartResult {
+    #[allow(clippy::cast_possible_wrap)]
     let threshold =
       config.value.animations.window_move.threshold_px as i32;
 
@@ -306,20 +413,7 @@ impl AnimationManager {
           prev_target
         };
 
-        let is_cancel_and_replace = existing_animation.is_some();
-
-        // Choose animation config based on whether this is a
-        // cancel-and-replace
-        let animation_config = if is_cancel_and_replace {
-          // Use fixed short duration for interrupted animations to ensure
-          // consistent timing
-          let movement_config =
-            config.value.animations.window_move.clone();
-          movement_config
-        } else {
-          // Use config duration directly
-          config.value.animations.window_move.clone()
-        };
+        let animation_config = config.value.animations.window_move.clone();
 
         // Create animation from current position to new target (cancel and
         // replace)
@@ -330,14 +424,79 @@ impl AnimationManager {
         );
         self.start_animation(window_id, animation);
       }
+
+      // On macOS, create an overlay window for the new animation.
+      #[cfg(target_os = "macos")]
+      {
+        // Destroy any existing overlay for this window.
+        if let Some(old_overlay) = self.overlays.remove(&window_id) {
+          if let Err(err) = old_overlay.destroy() {
+            tracing::warn!("Failed to destroy old overlay: {}", err);
+          }
+        }
+
+        // Get the initial rect from the animation we just started.
+        let initial_rect = self.get_animation(&window_id).map_or_else(
+          || target_rect.clone(),
+          WindowAnimationState::current_rect,
+        );
+
+        match wm_platform::OverlayWindow::new(
+          native_window_id,
+          &initial_rect,
+          dispatcher,
+        ) {
+          Ok(overlay) => {
+            // Set initial opacity for fade animations.
+            if let Some(anim) = self.get_animation(&window_id) {
+              if let Some(opacity) = anim.current_opacity() {
+                let _ = overlay.set_opacity(opacity.to_f32());
+              }
+            }
+            self.overlays.insert(window_id, overlay);
+          }
+          Err(err) => {
+            tracing::warn!("Failed to create overlay window: {}", err);
+          }
+        }
+      }
     }
 
     // Get the current animation state (re-fetch after potentially starting
     // new animation)
     if let Some(animation) = self.get_animation(&window_id) {
-      (animation.current_rect(), animation.current_opacity())
+      #[cfg(target_os = "macos")]
+      let has_overlay = self.overlays.contains_key(&window_id);
+      #[cfg(not(target_os = "macos"))]
+      let has_overlay = false;
+
+      AnimationStartResult {
+        rect: if has_overlay {
+          // On macOS with overlay, return the target rect for the real
+          // window (it will be hidden anyway).
+          target_rect
+        } else {
+          animation.current_rect()
+        },
+        opacity: animation.current_opacity(),
+        has_overlay,
+      }
     } else {
-      (target_rect, None)
+      AnimationStartResult {
+        rect: target_rect,
+        opacity: None,
+        has_overlay: false,
+      }
+    }
+  }
+
+  /// Cancels any active overlay for the given window and destroys it.
+  #[cfg(target_os = "macos")]
+  pub fn cancel_overlay(&mut self, window_id: &Uuid) {
+    if let Some(overlay) = self.overlays.remove(window_id) {
+      if let Err(err) = overlay.destroy() {
+        tracing::warn!("Failed to destroy overlay on cancel: {}", err);
+      }
     }
   }
 }

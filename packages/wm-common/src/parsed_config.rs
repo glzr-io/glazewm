@@ -520,18 +520,7 @@ impl AnimationEffectType {
   }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EasingFunction {
-  Linear,
-  #[default]
-  EaseInOut,
-  EaseIn,
-  EaseOut,
-  EaseInOutCubic,
-  EaseInCubic,
-  EaseOutCubic,
-}
+pub use wm_platform::EasingFunction;
 
 /// Helper function for setting a default value for a boolean field.
 const fn default_bool<const V: bool>() -> bool {

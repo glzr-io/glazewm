@@ -18,6 +18,12 @@ impl OpacityValue {
     Self(f32::from(alpha) / 255.0)
   }
 
+  /// Returns the raw opacity as an `f32` in the range 0.0–1.0.
+  #[must_use]
+  pub fn to_f32(&self) -> f32 {
+    self.0
+  }
+
   /// Interpolates between this opacity value and another opacity value.
   /// `progress` should be a value between 0.0 (this opacity) and 1.0
   /// (other opacity).

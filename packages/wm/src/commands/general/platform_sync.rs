@@ -322,23 +322,40 @@ fn redraw_containers(
           || (!is_opening && config.value.animations.window_move.enabled));
 
     // Determine the rect and opacity to use
-    let (rect_to_use, opacity_override) = if should_use_animations {
+    let anim_result = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
         is_opening,
         target_rect.clone(),
         previous_target,
         config,
+        #[cfg(target_os = "macos")]
+        window.native().id(),
+        #[cfg(target_os = "macos")]
+        &state.dispatcher,
       )
     } else {
-      (target_rect.clone(), None)
+      crate::animation::AnimationStartResult {
+        rect: target_rect.clone(),
+        opacity: None,
+        has_overlay: false,
+      }
+    };
+
+    // On macOS, if an overlay is handling the animation, hide the real
+    // window by treating it as not visible (will go to corner).
+    #[cfg(target_os = "macos")]
+    let is_visible = if anim_result.has_overlay {
+      false
+    } else {
+      is_visible
     };
 
     tracing::debug!("Updating window position: {window}");
 
     if let Err(err) = reposition_window(
       window,
-      &rect_to_use,
+      &anim_result.rect,
       *hide_corner,
       &z_order,
       is_visible,
@@ -347,9 +364,9 @@ fn redraw_containers(
       tracing::warn!("Failed to set window position: {}", err);
     }
 
-    // Apply opacity if there's an animation with fade
+    // Apply opacity if there's an animation with fade.
     #[cfg(target_os = "windows")]
-    if let Some(opacity) = opacity_override {
+    if let Some(opacity) = anim_result.opacity {
       if let Err(err) = window.native().set_transparency(&opacity) {
         tracing::warn!(
           "Failed to set window opacity during animation: {}",
