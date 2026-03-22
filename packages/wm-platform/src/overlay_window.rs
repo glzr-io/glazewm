@@ -10,11 +10,15 @@ use objc2_core_foundation::{CGRect, CGSize};
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
 use objc2_core_graphics::{
-  CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
+  CGAffineTransformConcat, CGAffineTransformMakeScale,
+  CGAffineTransformMakeTranslation, CGWindowImageOption,
+  CGWindowListCreateImage, CGWindowListOption,
 };
 #[cfg(target_os = "macos")]
 use objc2_foundation::NSRect;
 
+#[cfg(target_os = "macos")]
+use crate::platform_impl::ffi;
 #[cfg(target_os = "macos")]
 use crate::{Dispatcher, Rect, ThreadBound, WindowId};
 
@@ -26,6 +30,11 @@ use crate::{Dispatcher, Rect, ThreadBound, WindowId};
 #[cfg(target_os = "macos")]
 pub struct OverlayWindow {
   ns_window: ThreadBound<objc2::rc::Retained<NSWindow>>,
+  /// CGWindowID of the overlay `NSWindow`, used by SLS transactions.
+  window_id: u32,
+  /// Initial frame the window was created at, used as the reference
+  /// point for SLS affine transforms.
+  initial_rect: Rect,
 }
 
 #[cfg(target_os = "macos")]
@@ -42,7 +51,7 @@ impl OverlayWindow {
     let rect = initial_rect.clone();
     let disp = dispatcher.clone();
 
-    let ns_window = dispatcher.dispatch_sync(move || {
+    let (ns_window, window_id) = dispatcher.dispatch_sync(move || {
       // SAFETY: `dispatch_sync` executes on the event loop (main) thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -114,30 +123,55 @@ impl OverlayWindow {
 
       window.orderFrontRegardless();
 
-      ThreadBound::new(window, disp)
+      let wid = window.windowNumber() as u32;
+
+      (ThreadBound::new(window, disp), wid)
     })?;
 
-    Ok(Self { ns_window })
+    Ok(Self {
+      ns_window,
+      window_id,
+      initial_rect: initial_rect.clone(),
+    })
   }
 
-  /// Moves the overlay to the given rect. Dispatches to main thread.
+  /// Moves and scales the overlay via an SLS affine transform relative to
+  /// the initial frame.
+  ///
+  /// The SLS transform is an inverse mapping from screen coordinates to
+  /// content coordinates: `translate(-target_x, -target_y)` shifts the
+  /// screen origin, then `scale(init_w/target_w, init_h/target_h)` maps
+  /// the target size back to the original content size.
+  ///
+  /// Uses `SLSTransactionSetWindowTransform` (SkyLight SPI) instead of
+  /// `setFrame:display:` for smoother, lower-overhead repositioning.
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
-    let rect = rect.clone();
-    self.ns_window.with(move |window| {
-      // SAFETY: We are on the main thread (guaranteed by ThreadBound).
-      let mtm = unsafe { MainThreadMarker::new_unchecked() };
-      let ns_rect = NSRect::new(
-        objc2_foundation::NSPoint {
-          x: f64::from(rect.x()),
-          y: flipped_y(&rect, mtm),
-        },
-        objc2_foundation::NSSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
-        },
-      );
-      window.setFrame_display(ns_rect, false);
-    })
+    let wid = self.window_id;
+    let init = &self.initial_rect;
+
+    // Inverse mapping: screen → content coordinates.
+    let translate = CGAffineTransformMakeTranslation(
+      -f64::from(rect.x()),
+      -f64::from(rect.y()),
+    );
+    let scale = CGAffineTransformMakeScale(
+      f64::from(init.width()) / f64::from(rect.width()),
+      f64::from(init.height()) / f64::from(rect.height()),
+    );
+    let transform = CGAffineTransformConcat(translate, scale);
+
+    // SAFETY: SkyLight SPI calls are unsafe but stable in practice.
+    unsafe {
+      let cid = ffi::SLSMainConnectionID();
+      let txn = ffi::SLSTransactionCreate(cid);
+
+      if !txn.is_null() {
+        ffi::SLSTransactionSetWindowTransform(txn, wid, 0, 0, transform);
+        ffi::SLSTransactionCommit(txn, 0);
+      }
+    }
+
+    Ok(())
   }
 
   /// Sets overlay opacity (0.0–1.0). For fade animations.

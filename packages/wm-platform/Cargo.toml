@@ -49,7 +49,7 @@ windows = { version = "0.52", features = [
 windows-interface = { version = "0.52" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-core-graphics = { version = "0.3.2", features = ["CGImage"] }
+objc2-core-graphics = { version = "0.3.2", features = ["CGAffineTransform", "CGImage"] }
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = [
   "NSAlert",

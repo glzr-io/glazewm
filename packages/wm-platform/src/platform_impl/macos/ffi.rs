@@ -1,7 +1,7 @@
 use std::{ffi::c_void, ptr::NonNull};
 
 use objc2_application_services::{AXError, AXUIElement};
-use objc2_core_foundation::CFUUID;
+use objc2_core_foundation::{CGAffineTransform, CFUUID};
 use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
@@ -75,5 +75,29 @@ unsafe extern "C" {
   pub(crate) fn SLPSPostEventRecordTo(
     psn: &ProcessSerialNumber,
     event: *const c_void,
+  ) -> CGError;
+
+  /// Returns the connection ID for the current process's SkyLight session.
+  pub(crate) fn SLSMainConnectionID() -> i32;
+
+  /// Creates a new SkyLight display transaction.
+  pub(crate) fn SLSTransactionCreate(cid: i32) -> *mut c_void;
+
+  /// Applies an affine transform to a window within a transaction.
+  pub(crate) fn SLSTransactionSetWindowTransform(
+    transaction: *mut c_void,
+    wid: u32,
+    unknown1: i32,
+    unknown2: i32,
+    transform: CGAffineTransform,
+  ) -> CGError;
+
+  /// Commits a transaction, applying all queued operations.
+  ///
+  /// `synchronous` controls whether to wait for completion (1) or
+  /// return immediately (0).
+  pub(crate) fn SLSTransactionCommit(
+    transaction: *mut c_void,
+    synchronous: i32,
   ) -> CGError;
 }
