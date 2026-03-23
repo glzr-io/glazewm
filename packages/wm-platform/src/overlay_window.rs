@@ -19,9 +19,15 @@ use objc2_core_graphics::{
   CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
 };
 #[cfg(target_os = "macos")]
-use objc2_foundation::NSRect;
+use objc2_core_image::CIFilter;
 #[cfg(target_os = "macos")]
-use objc2_quartz_core::{CALayer, CATransaction};
+use objc2_foundation::{
+  NSArray, NSNumber, NSObjectNSKeyValueCoding as _, NSRect, NSString,
+};
+#[cfg(target_os = "macos")]
+use objc2_quartz_core::{
+  kCAGravityResize, kCAGravityTopLeft, CALayer, CATransaction,
+};
 
 use crate::OpacityValue;
 #[cfg(target_os = "macos")]
@@ -35,12 +41,26 @@ use crate::{Dispatcher, Rect, ThreadBound, WindowId};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LayerId(u64);
 
+/// A group of layers for a single animation entry.
+///
+/// Contains a blurred background that stretches to fill the frame and a
+/// sharp foreground that preserves the original screenshot dimensions.
+#[cfg(target_os = "macos")]
+struct AnimationLayerGroup {
+  /// Parent layer added to the root.
+  group: Retained<CALayer>,
+  /// Sublayer with `kCAGravityResize` + Gaussian blur filter.
+  blur: Retained<CALayer>,
+  /// Sublayer with `kCAGravityTopLeft`, clipped to bounds.
+  sharp: Retained<CALayer>,
+}
+
 /// Per-surface state, bound to the event loop thread.
 #[cfg(target_os = "macos")]
 struct AnimationSurfaceInner {
   ns_window: Retained<NSWindow>,
   root_layer: Retained<CALayer>,
-  layers: HashMap<LayerId, Retained<CALayer>>,
+  layers: HashMap<LayerId, AnimationLayerGroup>,
   next_id: u64,
   /// Top-left of the container window in CG (screen) coordinates.
   cg_origin_x: f64,
@@ -193,23 +213,26 @@ impl AnimationSurface {
         CGWindowImageOption::BestResolution,
       );
 
-      let layer = CALayer::new();
-
-      // Set screenshot as layer contents.
-      if let Some(ref cg_image) = cg_image {
-        // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
-        // a toll-free-bridged Core Foundation type.
-        unsafe {
-          let img: &objc2_core_graphics::CGImage = cg_image;
+      // Shared contents pointer for both sublayers.
+      let contents_ptr: Option<*const AnyObject> =
+        cg_image.as_ref().map(|img| {
+          // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
+          // a toll-free-bridged Core Foundation type.
+          let img_ref: &objc2_core_graphics::CGImage = img;
           let ptr: *const AnyObject =
-            (img as *const objc2_core_graphics::CGImage).cast();
-          layer.setContents(Some(&*ptr));
-        }
-      }
+            (img_ref as *const objc2_core_graphics::CGImage).cast();
+          ptr
+        });
 
-      layer.setContentsScale(inner.scale_factor);
+      let bounds = CGRect::new(
+        CGPoint { x: 0.0, y: 0.0 },
+        CGSize {
+          width: f64::from(rect.width()),
+          height: f64::from(rect.height()),
+        },
+      );
 
-      // Position in layer coordinates (geometry-flipped, top-left
+      // Position in root layer coordinates (geometry-flipped, top-left
       // origin).
       let frame = CGRect::new(
         CGPoint {
@@ -221,17 +244,73 @@ impl AnimationSurface {
           height: f64::from(rect.height()),
         },
       );
-      layer.setFrame(frame);
 
-      if let Some(alpha) = opacity {
-        layer.setOpacity(alpha);
+      // --- Group layer (container) ---
+      let group = CALayer::new();
+      group.setFrame(frame);
+      group.setMasksToBounds(true);
+
+      // --- Blur sublayer (stretches to fill, blurred) ---
+      let blur = CALayer::new();
+      if let Some(ptr) = contents_ptr {
+        // SAFETY: pointer derived from a valid `CGImage` above.
+        unsafe { blur.setContents(Some(&*ptr)) };
+      }
+      blur.setContentsScale(inner.scale_factor);
+      // SAFETY: `kCAGravityResize` is a valid Core Animation constant.
+      blur.setContentsGravity(unsafe { kCAGravityResize });
+      blur.setFrame(bounds);
+
+      // Apply a Gaussian blur filter to the stretched background.
+      let blur_filter = unsafe {
+        CIFilter::filterWithName(&NSString::from_str("CIGaussianBlur"))
+      };
+      if let Some(ref filter) = blur_filter {
+        let radius = NSNumber::numberWithFloat(10.0);
+        // SAFETY: `setValue:forKey:` with `inputRadius` is the
+        // documented API for configuring `CIGaussianBlur`.
+        unsafe {
+          filter.setValue_forKey(
+            Some(&radius as &AnyObject),
+            &NSString::from_str("inputRadius"),
+          );
+        }
+        let filters = NSArray::from_retained_slice(&[filter.clone()]);
+        // SAFETY: array contains a valid `CIFilter`. Cast needed
+        // because `setFilters` expects `NSArray<AnyObject>`.
+        let filters_ref: &NSArray =
+          unsafe { &*((&*filters) as *const NSArray<CIFilter>).cast() };
+        unsafe { blur.setFilters(Some(filters_ref)) };
       }
 
-      inner.root_layer.addSublayer(&layer);
+      group.addSublayer(&blur);
+
+      // --- Sharp sublayer (original size, clipped) ---
+      let sharp = CALayer::new();
+      if let Some(ptr) = contents_ptr {
+        // SAFETY: pointer derived from a valid `CGImage` above.
+        unsafe { sharp.setContents(Some(&*ptr)) };
+      }
+      sharp.setContentsScale(inner.scale_factor);
+      // SAFETY: `kCAGravityTopLeft` is a valid Core Animation constant.
+      sharp.setContentsGravity(unsafe { kCAGravityTopLeft });
+      sharp.setFrame(bounds);
+      sharp.setMasksToBounds(true);
+
+      group.addSublayer(&sharp);
+
+      if let Some(alpha) = opacity {
+        group.setOpacity(alpha);
+      }
+
+      inner.root_layer.addSublayer(&group);
 
       let id = LayerId(inner.next_id);
       inner.next_id += 1;
-      inner.layers.insert(id, layer);
+      inner.layers.insert(
+        id,
+        AnimationLayerGroup { group, blur, sharp },
+      );
 
       id
     })
@@ -251,7 +330,7 @@ impl AnimationSurface {
       CATransaction::setDisableActions(true);
 
       for (id, rect, opacity) in &updates {
-        if let Some(layer) = inner.layers.get(id) {
+        if let Some(entry) = inner.layers.get(id) {
           let frame = CGRect::new(
             CGPoint {
               x: f64::from(rect.x()) - inner.cg_origin_x,
@@ -262,10 +341,21 @@ impl AnimationSurface {
               height: f64::from(rect.height()),
             },
           );
-          layer.setFrame(frame);
+          entry.group.setFrame(frame);
+
+          // Sublayers fill the group's bounds.
+          let bounds = CGRect::new(
+            CGPoint { x: 0.0, y: 0.0 },
+            CGSize {
+              width: f64::from(rect.width()),
+              height: f64::from(rect.height()),
+            },
+          );
+          entry.blur.setFrame(bounds);
+          entry.sharp.setFrame(bounds);
 
           if let Some(opacity) = opacity {
-            layer.setOpacity(opacity.to_f32());
+            entry.group.setOpacity(opacity.to_f32());
           }
         }
       }
@@ -277,8 +367,8 @@ impl AnimationSurface {
   /// Removes a sublayer from the surface.
   pub fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
     self.inner.with_mut(move |inner| {
-      if let Some(layer) = inner.layers.remove(&id) {
-        layer.removeFromSuperlayer();
+      if let Some(entry) = inner.layers.remove(&id) {
+        entry.group.removeFromSuperlayer();
       }
     })
   }

@@ -56,6 +56,8 @@ impl WindowAnimationState {
       easing: config.easing.clone(),
       start_rect,
       target_rect,
+      // start_opacity: Some(OpacityValue::from_alpha(0)),
+      // target_opacity: Some(OpacityValue::from_alpha(255)),
       start_opacity: None,
       target_opacity: None,
       fade_enabled: false,
