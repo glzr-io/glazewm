@@ -105,6 +105,15 @@ fn check_is_manageable(
     if !is_standard_window {
       return Ok(None);
     }
+
+    // Skip background tabs in native macOS tab groups.
+    if !native_window.is_root_window().unwrap_or(true) {
+      tracing::debug!(
+        "Window {} not manageable: background tab.",
+        native_window.id().0,
+      );
+      return Ok(None);
+    }
   }
 
   // Ensure window has a valid process name, title, etc.

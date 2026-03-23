@@ -23,7 +23,25 @@ pub fn handle_window_title_changed(
       properties.title = title;
     });
 
-    // Run window rules for title change events.
+    // Native macOS tab switches reuse the same `AXUIElement` but
+    // change the underlying `CGWindowID`. Detect this and queue a
+    // redraw so the newly active tab gets positioned correctly.
+    #[cfg(target_os = "macos")]
+    {
+      use wm_platform::NativeWindowExtMacOs;
+
+      if let Ok(current_id) = native_window.current_window_id() {
+        if current_id != native_window.id() {
+          info!(
+            "Tab switch detected for {window}: {} -> {}",
+            native_window.id().0,
+            current_id.0,
+          );
+          state.pending_sync.queue_container_to_redraw(window.clone());
+        }
+      }
+    }
+
     run_window_rules(
       window,
       &WindowRuleEvent::TitleChange,
