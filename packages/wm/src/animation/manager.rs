@@ -173,16 +173,6 @@ impl AnimationManager {
     state: &mut WmState,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
-    Self::update_internal(state, config)
-  }
-
-  /// Internal update method that accesses `animation_manager` through
-  /// state.
-  #[allow(clippy::too_many_lines)]
-  pub(crate) fn update_internal(
-    state: &mut WmState,
-    config: &UserConfig,
-  ) -> anyhow::Result<()> {
     if !state.animation_manager.has_active_animations() {
       return Ok(());
     }

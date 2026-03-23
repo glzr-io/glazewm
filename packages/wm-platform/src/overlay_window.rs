@@ -113,12 +113,13 @@ impl OverlayWindow {
         },
       );
 
+      // NOTE: `CGWindowListCreateImage` is deprecated, but functional.
+      // ScreenCaptureKit is recommended instead, see: https://developer.apple.com/documentation/screencapturekit/scwindow.
       let cg_image = CGWindowListCreateImage(
         cg_rect,
         CGWindowListOption::OptionIncludingWindow,
         wid,
-        CGWindowImageOption::BoundsIgnoreFraming
-          | CGWindowImageOption::BestResolution,
+        CGWindowImageOption::BestResolution,
       );
 
       let ns_rect = NSRect::new(
@@ -145,8 +146,7 @@ impl OverlayWindow {
 
       window.setBackgroundColor(Some(&NSColor::clearColor()));
       window.setOpaque(false);
-      window.setHasShadow(false);
-      window.setLevel(NSFloatingWindowLevel);
+
       // SAFETY: We own this window and manage its lifetime via
       // `ThreadBound` + `orderOut`.
       unsafe { window.setReleasedWhenClosed(false) };
