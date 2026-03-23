@@ -201,27 +201,21 @@ impl AnimationManager {
       })
       .collect();
 
-    for window_id in &active_ids {
-      if let Some(anim) = state.animation_manager.get_animation(window_id)
-      {
-        let current_rect = anim.current_rect();
-        let current_opacity = anim.current_opacity();
+    let updates: Vec<_> = active_ids
+      .iter()
+      .filter_map(|id| {
+        let anim = state.animation_manager.get_animation(id)?;
+        let overlay = state.animation_manager.overlays.get(id)?;
+        Some((overlay, anim.current_rect(), anim.current_opacity()))
+      })
+      .collect();
 
-        if let Some(overlay) =
-          state.animation_manager.overlays.get(window_id)
-        {
-          if let Err(err) = overlay.set_frame(&current_rect) {
-            tracing::warn!("Failed to update overlay frame: {}", err);
-          }
+    let batch: Vec<_> = updates
+      .iter()
+      .map(|(overlay, rect, opacity)| (*overlay, rect, *opacity))
+      .collect();
 
-          if let Some(opacity) = current_opacity {
-            if let Err(err) = overlay.set_opacity(opacity.to_f32()) {
-              tracing::warn!("Failed to update overlay opacity: {}", err);
-            }
-          }
-        }
-      }
-    }
+    wm_platform::move_group(&batch);
 
     // Remove completed animations and queue their windows for a final
     // redraw at the target position.

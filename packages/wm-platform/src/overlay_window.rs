@@ -19,8 +19,54 @@ use objc2_foundation::NSRect;
 
 #[cfg(target_os = "macos")]
 use crate::platform_impl::ffi;
+use crate::OpacityValue;
 #[cfg(target_os = "macos")]
 use crate::{Dispatcher, Rect, ThreadBound, WindowId};
+
+/// Batches frame and opacity updates for multiple overlays into a single
+/// SLS transaction.
+#[cfg(target_os = "macos")]
+pub fn move_group(
+  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
+) {
+  let cid = unsafe { ffi::SLSMainConnectionID() };
+  unsafe { ffi::SLSDisableUpdate(cid) };
+
+  let txn = unsafe { ffi::SLSTransactionCreate(cid) };
+
+  if txn.is_null() {
+    return;
+  }
+
+  for (overlay, rect, opacity) in overlays {
+    overlay.apply_transform(rect, txn);
+
+    if let Some(opacity) = opacity {
+      overlay.apply_alpha(opacity.to_f32(), txn);
+    }
+  }
+
+  // Single commit for the entire batch.
+  unsafe { ffi::SLSTransactionCommit(txn, 0) };
+  unsafe { ffi::SLSReenableUpdate(cid) };
+}
+
+/// Batches frame and opacity updates for multiple overlays.
+///
+/// On Windows there is no transaction API, so updates are applied
+/// individually.
+#[cfg(target_os = "windows")]
+pub fn move_group(
+  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
+) {
+  for (overlay, rect, opacity) in overlays {
+    let _ = overlay.set_frame(rect);
+
+    if let Some(opacity) = opacity {
+      let _ = overlay.set_opacity(opacity.to_f32());
+    }
+  }
+}
 
 /// A borderless overlay `NSWindow` displaying a screenshot of a real
 /// window.
@@ -138,15 +184,48 @@ impl OverlayWindow {
   /// Moves and scales the overlay via an SLS affine transform relative to
   /// the initial frame.
   ///
+  /// Creates a dedicated transaction, applies the transform, and commits.
+  /// For batched updates, use `move_group` instead.
+  pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
+    let cid = unsafe { ffi::SLSMainConnectionID() };
+    let txn = unsafe { ffi::SLSTransactionCreate(cid) };
+
+    if txn.is_null() {
+      return Ok(());
+    }
+
+    self.apply_transform(rect, txn);
+    unsafe { ffi::SLSTransactionCommit(txn, 0) };
+
+    Ok(())
+  }
+
+  /// Sets overlay opacity (0.0–1.0) via SLS transaction.
+  ///
+  /// Creates a dedicated transaction. For batched updates, use
+  /// `move_group` instead.
+  pub fn set_opacity(&self, alpha: f32) -> crate::Result<()> {
+    let cid = unsafe { ffi::SLSMainConnectionID() };
+    let txn = unsafe { ffi::SLSTransactionCreate(cid) };
+
+    if txn.is_null() {
+      return Ok(());
+    }
+
+    self.apply_alpha(alpha, txn);
+    unsafe { ffi::SLSTransactionCommit(txn, 0) };
+
+    Ok(())
+  }
+
+  /// Queues an affine transform into an existing transaction without
+  /// committing.
+  ///
   /// The SLS transform is an inverse mapping from screen coordinates to
   /// content coordinates: `translate(-target_x, -target_y)` shifts the
   /// screen origin, then `scale(init_w/target_w, init_h/target_h)` maps
   /// the target size back to the original content size.
-  ///
-  /// Uses `SLSTransactionSetWindowTransform` (SkyLight SPI) instead of
-  /// `setFrame:display:` for smoother, lower-overhead repositioning.
-  pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
-    let wid = self.window_id;
+  fn apply_transform(&self, rect: &Rect, txn: *mut c_void) {
     let init = &self.initial_rect;
 
     // Inverse mapping: screen → content coordinates.
@@ -162,24 +241,30 @@ impl OverlayWindow {
 
     // SAFETY: SkyLight SPI calls are unsafe but stable in practice.
     unsafe {
-      let cid = ffi::SLSMainConnectionID();
-      let txn = ffi::SLSTransactionCreate(cid);
-
-      if !txn.is_null() {
-        ffi::SLSTransactionSetWindowTransform(txn, wid, 0, 0, transform);
-        ffi::SLSTransactionCommit(txn, 0);
-      }
+      ffi::SLSTransactionSetWindowTransform(
+        txn,
+        self.window_id,
+        0,
+        0,
+        transform,
+      );
     }
-
-    Ok(())
   }
 
-  /// Sets overlay opacity (0.0–1.0). For fade animations.
-  pub fn set_opacity(&self, alpha: f32) -> crate::Result<()> {
-    let alpha_f64 = f64::from(alpha);
-    self.ns_window.with(move |window| {
-      window.setAlphaValue(alpha_f64);
-    })
+  /// Queues an alpha change into an existing transaction without
+  /// committing.
+  fn apply_alpha(&self, alpha: f32, txn: *mut c_void) {
+    let _ = self.ns_window.with(|window| {
+      window.setAlphaValue(f64::from(alpha));
+    });
+    // TODO: Setting alpha via SLS transaction doesn't seem to work.
+    // unsafe {
+    //   ffi::SLSTransactionSetWindowAlpha(
+    //     txn,
+    //     self.window_id,
+    //     f64::from(alpha),
+    //   );
+    // }
   }
 
   /// Destroys the overlay window by ordering it out and dropping the
@@ -215,6 +300,8 @@ impl std::fmt::Debug for OverlayWindow {
 
 #[cfg(target_os = "windows")]
 use std::cell::{Cell, RefCell};
+#[cfg(target_os = "macos")]
+use std::ffi::c_void;
 #[cfg(target_os = "windows")]
 use std::sync::OnceLock;
 

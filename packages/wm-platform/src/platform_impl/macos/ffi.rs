@@ -92,6 +92,13 @@ unsafe extern "C" {
     transform: CGAffineTransform,
   ) -> CGError;
 
+  /// Sets the alpha (opacity) of a window within a transaction.
+  pub(crate) fn SLSTransactionSetWindowAlpha(
+    transaction: *mut c_void,
+    wid: u32,
+    alpha: f64,
+  ) -> CGError;
+
   /// Commits a transaction, applying all queued operations.
   ///
   /// `synchronous` controls whether to wait for completion (1) or
@@ -100,4 +107,7 @@ unsafe extern "C" {
     transaction: *mut c_void,
     synchronous: i32,
   ) -> CGError;
+
+  pub fn SLSDisableUpdate(cid: i32) -> i32;
+  pub fn SLSReenableUpdate(cid: i32) -> i32;
 }
