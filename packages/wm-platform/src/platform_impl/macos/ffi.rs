@@ -1,7 +1,7 @@
 use std::{ffi::c_void, ptr::NonNull};
 
 use objc2_application_services::{AXError, AXUIElement};
-use objc2_core_foundation::{CGAffineTransform, CGRect, CFUUID};
+use objc2_core_foundation::CFUUID;
 use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
@@ -77,54 +77,4 @@ unsafe extern "C" {
     event: *const c_void,
   ) -> CGError;
 
-  /// Returns the connection ID for the current process's SkyLight session.
-  pub(crate) fn SLSMainConnectionID() -> i32;
-
-  /// Creates a new SkyLight display transaction.
-  pub(crate) fn SLSTransactionCreate(cid: i32) -> *mut c_void;
-
-  /// Applies an affine transform to a window within a transaction.
-  pub(crate) fn SLSTransactionSetWindowTransform(
-    transaction: *mut c_void,
-    wid: u32,
-    unknown1: i32,
-    unknown2: i32,
-    transform: CGAffineTransform,
-  ) -> CGError;
-
-  /// Sets the alpha (opacity) of a window within a transaction.
-  pub(crate) fn SLSTransactionSetWindowAlpha(
-    transaction: *mut c_void,
-    wid: u32,
-    alpha: f32,
-  ) -> CGError;
-
-  /// Commits a transaction, applying all queued operations.
-  ///
-  /// `synchronous` controls whether to wait for completion (1) or
-  /// return immediately (0).
-  pub(crate) fn SLSTransactionCommit(
-    transaction: *mut c_void,
-    synchronous: i32,
-  ) -> CGError;
-
-  pub fn SLSDisableUpdate(cid: i32) -> i32;
-  pub fn SLSReenableUpdate(cid: i32) -> i32;
-
-  pub fn SLSTransactionSetWindowLockedBounds(
-    transaction: *mut c_void,
-    wid: u32,
-    bounds: CGRect,
-  ) -> CGError;
-
-  pub fn SLSTransactionClearWindowLockedBounds(
-    transaction: *mut c_void,
-    wid: u32,
-  ) -> CGError;
-
-  pub fn SLSTransactionSetWindowSystemAlpha(
-    transaction: *mut c_void,
-    wid: u32,
-    alpha: f32,
-  ) -> CGError;
 }

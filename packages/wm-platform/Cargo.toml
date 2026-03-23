@@ -69,12 +69,14 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = [
   "libc",
   "objc2-core-foundation",
   "objc2-core-graphics",
+  "objc2-quartz-core",
 ] }
 objc2-application-services = "0.3.2"
 objc2-core-foundation = { version = "0.3.2", features = [
   "CFCGTypes",
   "CFUUID",
 ] }
+objc2-quartz-core = { version = "0.3.2", features = ["CALayer", "CATransaction", "objc2-core-graphics"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSArray",
   "NSEnumerator",

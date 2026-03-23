@@ -40,7 +40,16 @@ pub struct AnimationManager {
   /// Whether the animation timer is currently running.
   animation_timer_running: Arc<AtomicBool>,
 
+  /// Shared animation surface with one `CALayer` per animating window.
+  #[cfg(target_os = "macos")]
+  surface: Option<wm_platform::AnimationSurface>,
+
+  /// Maps window UUIDs to their `CALayer` handles within the surface.
+  #[cfg(target_os = "macos")]
+  layer_ids: HashMap<Uuid, wm_platform::LayerId>,
+
   /// Overlay windows for screenshot-based animations.
+  #[cfg(target_os = "windows")]
   overlays: HashMap<Uuid, wm_platform::OverlayWindow>,
 }
 
@@ -50,6 +59,11 @@ impl AnimationManager {
       animations: HashMap::new(),
       animation_tick_tx,
       animation_timer_running: Arc::new(AtomicBool::new(false)),
+      #[cfg(target_os = "macos")]
+      surface: None,
+      #[cfg(target_os = "macos")]
+      layer_ids: HashMap::new(),
+      #[cfg(target_os = "windows")]
       overlays: HashMap::new(),
     }
   }
@@ -167,6 +181,170 @@ impl AnimationManager {
     }
   }
 
+  // ── Platform-specific overlay helpers
+  // ──────────────────────────────────
+
+  /// Returns whether a visual overlay exists for the given window.
+  #[cfg(target_os = "macos")]
+  fn has_overlay(&self, window_id: &Uuid) -> bool {
+    self.layer_ids.contains_key(window_id)
+  }
+
+  /// Returns whether a visual overlay exists for the given window.
+  #[cfg(target_os = "windows")]
+  fn has_overlay(&self, window_id: &Uuid) -> bool {
+    self.overlays.contains_key(window_id)
+  }
+
+  /// Creates or replaces the visual overlay for a window animation.
+  #[cfg(target_os = "macos")]
+  fn create_overlay(
+    &mut self,
+    window_id: Uuid,
+    native_window_id: wm_platform::WindowId,
+    initial_rect: &Rect,
+    opacity: Option<f32>,
+    dispatcher: &wm_platform::Dispatcher,
+  ) {
+    // Remove any existing layer for this window.
+    self.destroy_overlay(&window_id);
+
+    // Lazy-create the shared animation surface.
+    if self.surface.is_none() {
+      match wm_platform::AnimationSurface::new(dispatcher) {
+        Ok(surface) => self.surface = Some(surface),
+        Err(err) => {
+          tracing::warn!("Failed to create animation surface: {}", err);
+          return;
+        }
+      }
+    }
+
+    let surface = self.surface.as_mut().expect("surface just created");
+    match surface.add_layer(native_window_id, initial_rect, opacity) {
+      Ok(layer_id) => {
+        self.layer_ids.insert(window_id, layer_id);
+      }
+      Err(err) => {
+        tracing::warn!("Failed to add animation layer: {}", err);
+      }
+    }
+  }
+
+  /// Creates or replaces the visual overlay for a window animation.
+  #[cfg(target_os = "windows")]
+  fn create_overlay(
+    &mut self,
+    window_id: Uuid,
+    native_window_id: wm_platform::WindowId,
+    initial_rect: &Rect,
+    opacity: Option<f32>,
+    dispatcher: &wm_platform::Dispatcher,
+  ) {
+    // Destroy any existing overlay for this window.
+    self.destroy_overlay(&window_id);
+
+    match wm_platform::OverlayWindow::new(
+      native_window_id,
+      initial_rect,
+      dispatcher,
+    ) {
+      Ok(overlay) => {
+        if let Some(alpha) = opacity {
+          let _ = overlay.set_opacity(alpha);
+        }
+        self.overlays.insert(window_id, overlay);
+      }
+      Err(err) => {
+        tracing::warn!("Failed to create overlay window: {}", err);
+      }
+    }
+  }
+
+  /// Removes the visual overlay for a window.
+  #[cfg(target_os = "macos")]
+  fn destroy_overlay(&mut self, window_id: &Uuid) {
+    if let Some(layer_id) = self.layer_ids.remove(window_id) {
+      if let Some(surface) = &mut self.surface {
+        if let Err(err) = surface.remove_layer(layer_id) {
+          tracing::warn!("Failed to remove animation layer: {}", err);
+        }
+      }
+    }
+  }
+
+  /// Removes the visual overlay for a window.
+  #[cfg(target_os = "windows")]
+  fn destroy_overlay(&mut self, window_id: &Uuid) {
+    if let Some(overlay) = self.overlays.remove(window_id) {
+      if let Err(err) = overlay.destroy() {
+        tracing::warn!("Failed to destroy overlay: {}", err);
+      }
+    }
+  }
+
+  /// Sends updated positions and opacities to the visual overlays for
+  /// all in-progress animations.
+  #[cfg(target_os = "macos")]
+  fn update_overlays(&self, active_ids: &[Uuid]) {
+    let updates: Vec<_> = active_ids
+      .iter()
+      .filter_map(|id| {
+        let anim = self.get_animation(id)?;
+        let layer_id = self.layer_ids.get(id)?;
+        Some((*layer_id, anim.current_rect(), anim.current_opacity()))
+      })
+      .collect();
+
+    if let Some(surface) = &self.surface {
+      if let Err(err) = surface.update_layers(updates) {
+        tracing::warn!("Failed to update animation layers: {}", err);
+      }
+    }
+  }
+
+  /// Sends updated positions and opacities to the visual overlays for
+  /// all in-progress animations.
+  #[cfg(target_os = "windows")]
+  fn update_overlays(&self, active_ids: &[Uuid]) {
+    let updates: Vec<_> = active_ids
+      .iter()
+      .filter_map(|id| {
+        let anim = self.get_animation(id)?;
+        let overlay = self.overlays.get(id)?;
+        Some((overlay, anim.current_rect(), anim.current_opacity()))
+      })
+      .collect();
+
+    let batch: Vec<_> = updates
+      .iter()
+      .map(|(overlay, rect, opacity)| (*overlay, rect, *opacity))
+      .collect();
+
+    wm_platform::move_group(&batch);
+  }
+
+  /// Tears down the shared surface when no layers remain.
+  #[cfg(target_os = "macos")]
+  fn destroy_surface_if_empty(&mut self) {
+    let is_empty = self
+      .surface
+      .as_ref()
+      .and_then(|s| s.has_layers().ok())
+      .map_or(true, |has| !has);
+
+    if is_empty {
+      if let Some(surface) = self.surface.take() {
+        if let Err(err) = surface.destroy() {
+          tracing::warn!("Failed to destroy animation surface: {}", err);
+        }
+      }
+    }
+  }
+
+  // ── Core update + animation start
+  // ──────────────────────────────────
+
   /// Updates all active animations and redraws windows that are animating.
   #[allow(dead_code)] // Public API method, may be used externally.
   pub fn update(
@@ -177,8 +355,7 @@ impl AnimationManager {
       return Ok(());
     }
 
-    // Update active overlay positions directly without moving real
-    // windows.
+    // Collect IDs of in-progress (not yet complete) animations.
     let active_ids: Vec<_> = state
       .animation_manager
       .active_window_ids()
@@ -191,21 +368,8 @@ impl AnimationManager {
       })
       .collect();
 
-    let updates: Vec<_> = active_ids
-      .iter()
-      .filter_map(|id| {
-        let anim = state.animation_manager.get_animation(id)?;
-        let overlay = state.animation_manager.overlays.get(id)?;
-        Some((overlay, anim.current_rect(), anim.current_opacity()))
-      })
-      .collect();
-
-    let batch: Vec<_> = updates
-      .iter()
-      .map(|(overlay, rect, opacity)| (*overlay, rect, *opacity))
-      .collect();
-
-    wm_platform::move_group(&batch);
+    // Update overlay positions directly without moving real windows.
+    state.animation_manager.update_overlays(&active_ids);
 
     // Remove completed animations and queue their windows for a final
     // redraw at the target position.
@@ -228,14 +392,12 @@ impl AnimationManager {
     // Destroy overlays after the real windows have been repositioned so
     // there is no visible gap.
     for window_id in &completed_ids {
-      if let Some(overlay) =
-        state.animation_manager.overlays.remove(window_id)
-      {
-        if let Err(err) = overlay.destroy() {
-          tracing::warn!("Failed to destroy overlay: {}", err);
-        }
-      }
+      state.animation_manager.destroy_overlay(window_id);
     }
+
+    // Tear down the shared surface when all layers are gone.
+    #[cfg(target_os = "macos")]
+    state.animation_manager.destroy_surface_if_empty();
 
     // Continue timer if there are still active animations.
     state.animation_manager.ensure_timer_running(state, config);
@@ -351,46 +513,30 @@ impl AnimationManager {
         self.start_animation(window_id, animation);
       }
 
-      // Create an overlay window for the new animation.
-      {
-        // Destroy any existing overlay for this window.
-        if let Some(old_overlay) = self.overlays.remove(&window_id) {
-          if let Err(err) = old_overlay.destroy() {
-            tracing::warn!("Failed to destroy old overlay: {}", err);
-          }
-        }
+      // Create a visual overlay for the new animation.
+      let initial_rect = self.get_animation(&window_id).map_or_else(
+        || target_rect.clone(),
+        WindowAnimationState::current_rect,
+      );
 
-        // Get the initial rect from the animation we just started.
-        let initial_rect = self.get_animation(&window_id).map_or_else(
-          || target_rect.clone(),
-          WindowAnimationState::current_rect,
-        );
+      let initial_opacity = self
+        .get_animation(&window_id)
+        .and_then(|a| a.current_opacity())
+        .map(|o| o.to_f32());
 
-        match wm_platform::OverlayWindow::new(
-          native_window_id,
-          &initial_rect,
-          dispatcher,
-        ) {
-          Ok(overlay) => {
-            // Set initial opacity for fade animations.
-            if let Some(anim) = self.get_animation(&window_id) {
-              if let Some(opacity) = anim.current_opacity() {
-                let _ = overlay.set_opacity(opacity.to_f32());
-              }
-            }
-            self.overlays.insert(window_id, overlay);
-          }
-          Err(err) => {
-            tracing::warn!("Failed to create overlay window: {}", err);
-          }
-        }
-      }
+      self.create_overlay(
+        window_id,
+        native_window_id,
+        &initial_rect,
+        initial_opacity,
+        dispatcher,
+      );
     }
 
     // Get the current animation state (re-fetch after potentially starting
     // new animation)
     if let Some(animation) = self.get_animation(&window_id) {
-      let has_overlay = self.overlays.contains_key(&window_id);
+      let has_overlay = self.has_overlay(&window_id);
 
       AnimationStartResult {
         rect: if has_overlay {
@@ -414,10 +560,9 @@ impl AnimationManager {
 
   /// Cancels any active overlay for the given window and destroys it.
   pub fn cancel_overlay(&mut self, window_id: &Uuid) {
-    if let Some(overlay) = self.overlays.remove(window_id) {
-      if let Err(err) = overlay.destroy() {
-        tracing::warn!("Failed to destroy overlay on cancel: {}", err);
-      }
-    }
+    self.destroy_overlay(window_id);
+
+    #[cfg(target_os = "macos")]
+    self.destroy_surface_if_empty();
   }
 }

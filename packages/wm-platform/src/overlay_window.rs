@@ -1,109 +1,180 @@
 #[cfg(target_os = "macos")]
-use objc2::{AnyThread, MainThreadMarker, MainThreadOnly};
+use std::collections::HashMap;
+
+#[cfg(target_os = "macos")]
+use objc2::rc::Retained;
+#[cfg(target_os = "macos")]
+use objc2::runtime::AnyObject;
+#[cfg(target_os = "macos")]
+use objc2::{MainThreadMarker, MainThreadOnly};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{
-  NSBackingStoreType, NSColor, NSImage, NSImageView, NSScreen, NSWindow,
-  NSWindowStyleMask,
+  NSBackingStoreType, NSColor, NSScreen, NSWindow, NSWindowStyleMask,
 };
 #[cfg(target_os = "macos")]
-use objc2_core_foundation::{CGRect, CGSize};
+use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
 use objc2_core_graphics::{
-  CGAffineTransformConcat, CGAffineTransformMakeScale,
-  CGAffineTransformMakeTranslation, CGWindowImageOption,
-  CGWindowListCreateImage, CGWindowListOption,
+  CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
 };
 #[cfg(target_os = "macos")]
 use objc2_foundation::NSRect;
-
 #[cfg(target_os = "macos")]
-use crate::platform_impl::ffi;
+use objc2_quartz_core::{CALayer, CATransaction};
+
 use crate::OpacityValue;
 #[cfg(target_os = "macos")]
 use crate::{Dispatcher, Rect, ThreadBound, WindowId};
 
-/// Batches frame and opacity updates for multiple overlays into a single
-/// SLS transaction.
+// ── macOS: AnimationSurface
+// ────────────────────────────────────────────────
+
+/// Opaque handle identifying a layer within an `AnimationSurface`.
 #[cfg(target_os = "macos")]
-pub fn move_group(
-  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
-) {
-  let cid = unsafe { ffi::SLSMainConnectionID() };
-  unsafe { ffi::SLSDisableUpdate(cid) };
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LayerId(u64);
 
-  let txn = unsafe { ffi::SLSTransactionCreate(cid) };
-
-  if txn.is_null() {
-    return;
-  }
-
-  for (overlay, rect, opacity) in overlays {
-    overlay.apply_transform(rect, txn);
-
-    if let Some(opacity) = opacity {
-      overlay.apply_alpha(opacity.to_f32(), txn);
-    }
-  }
-
-  // Single commit for the entire batch.
-  unsafe { ffi::SLSTransactionCommit(txn, 0) };
-  unsafe { ffi::SLSReenableUpdate(cid) };
+/// Per-surface state, bound to the event loop thread.
+#[cfg(target_os = "macos")]
+struct AnimationSurfaceInner {
+  ns_window: Retained<NSWindow>,
+  root_layer: Retained<CALayer>,
+  layers: HashMap<LayerId, Retained<CALayer>>,
+  next_id: u64,
+  /// Top-left of the container window in CG (screen) coordinates.
+  cg_origin_x: f64,
+  cg_origin_y: f64,
+  /// Backing scale factor for Retina content.
+  scale_factor: f64,
 }
 
-/// Batches frame and opacity updates for multiple overlays.
+/// A single transparent `NSWindow` with `CALayer` sublayers for animating
+/// window screenshots.
 ///
-/// On Windows there is no transaction API, so updates are applied
-/// individually.
-#[cfg(target_os = "windows")]
-pub fn move_group(
-  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
-) {
-  for (overlay, rect, opacity) in overlays {
-    let _ = overlay.set_frame(rect);
-
-    if let Some(opacity) = opacity {
-      let _ = overlay.set_opacity(opacity.to_f32());
-    }
-  }
-}
-
-/// A borderless overlay `NSWindow` displaying a screenshot of a real
-/// window.
-///
-/// Used for smooth animations — moving our own window is much cheaper than
-/// AX API calls on 3rd-party windows.
+/// Instead of one `NSWindow` per animating window, this uses a single
+/// container window covering all screens, with one `CALayer` per
+/// animation. Core Animation handles GPU compositing.
 #[cfg(target_os = "macos")]
-pub struct OverlayWindow {
-  ns_window: ThreadBound<objc2::rc::Retained<NSWindow>>,
-  /// CGWindowID of the overlay `NSWindow`, used by SLS transactions.
-  window_id: u32,
-  /// Initial frame the window was created at, used as the reference
-  /// point for SLS affine transforms.
-  initial_rect: Rect,
+pub struct AnimationSurface {
+  inner: ThreadBound<AnimationSurfaceInner>,
 }
 
 #[cfg(target_os = "macos")]
-impl OverlayWindow {
-  /// Screenshots the window and creates an overlay `NSWindow` at
-  /// `initial_rect`.
-  #[allow(deprecated)] // CGWindowListCreateImage is deprecated but functional.
-  pub fn new(
-    window_id: WindowId,
-    initial_rect: &Rect,
-    dispatcher: &Dispatcher,
-  ) -> crate::Result<Self> {
-    let wid = window_id.0;
-    let rect = initial_rect.clone();
+impl AnimationSurface {
+  /// Creates the container `NSWindow` spanning all screens.
+  ///
+  /// The window is transparent, ignores mouse events, and has its root
+  /// layer's geometry flipped so sublayer origins match CG screen
+  /// coordinates (top-left).
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let disp = dispatcher.clone();
 
-    let (ns_window, window_id) = dispatcher.dispatch_sync(move || {
-      // SAFETY: `dispatch_sync` executes on the event loop (main) thread.
+    let inner = dispatcher.dispatch_sync(move || {
+      // SAFETY: `dispatch_sync` runs on the event loop (main) thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
+      let screens = NSScreen::screens(mtm);
+      let primary_height =
+        screens.iter().next().map_or(0.0, |s| s.frame().size.height);
+
+      let scale_factor = screens
+        .iter()
+        .next()
+        .map_or(2.0, |s| s.backingScaleFactor());
+
+      // Compute union of all screen frames in AppKit coordinates.
+      let (mut min_x, mut min_y) = (f64::MAX, f64::MAX);
+      let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
+      for screen in &screens {
+        let f = screen.frame();
+        min_x = min_x.min(f.origin.x);
+        min_y = min_y.min(f.origin.y);
+        max_x = max_x.max(f.origin.x + f.size.width);
+        max_y = max_y.max(f.origin.y + f.size.height);
+      }
+
+      let ns_rect = NSRect::new(
+        objc2_foundation::NSPoint { x: min_x, y: min_y },
+        objc2_foundation::NSSize {
+          width: max_x - min_x,
+          height: max_y - min_y,
+        },
+      );
+
+      // Window's top-left in CG (screen) coordinates.
+      let cg_origin_x = min_x;
+      let cg_origin_y = primary_height - max_y;
+
+      // Create borderless transparent NSWindow.
+      let window = unsafe {
+        NSWindow::initWithContentRect_styleMask_backing_defer(
+          NSWindow::alloc(mtm),
+          ns_rect,
+          NSWindowStyleMask::Borderless,
+          NSBackingStoreType::Buffered,
+          false,
+        )
+      };
+
+      window.setBackgroundColor(Some(&NSColor::clearColor()));
+      window.setOpaque(false);
+      window.setIgnoresMouseEvents(true);
+      // Place above all normal windows (NSStatusWindowLevel = 25).
+      window.setLevel(25);
+      // SAFETY: We manage lifetime via `ThreadBound` + `orderOut`.
+      unsafe { window.setReleasedWhenClosed(false) };
+
+      // Enable Core Animation layer backing.
+      if let Some(content_view) = window.contentView() {
+        content_view.setWantsLayer(true);
+      }
+
+      let root_layer = window
+        .contentView()
+        .and_then(|v| v.layer())
+        .expect("layer must exist after setWantsLayer");
+
+      // Flip geometry so sublayer y=0 is at the top, matching CG
+      // screen coordinates.
+      root_layer.setGeometryFlipped(true);
+
+      window.orderFrontRegardless();
+
+      ThreadBound::new(
+        AnimationSurfaceInner {
+          ns_window: window,
+          root_layer,
+          layers: HashMap::new(),
+          next_id: 0,
+          cg_origin_x,
+          cg_origin_y,
+          scale_factor,
+        },
+        disp,
+      )
+    })?;
+
+    Ok(Self { inner })
+  }
+
+  /// Screenshots the target window and adds a `CALayer` sublayer.
+  ///
+  /// Returns a `LayerId` handle for future updates and removal.
+  #[allow(deprecated)]
+  pub fn add_layer(
+    &mut self,
+    window_id: WindowId,
+    rect: &Rect,
+    opacity: Option<f32>,
+  ) -> crate::Result<LayerId> {
+    let wid = window_id.0;
+    let rect = rect.clone();
+
+    self.inner.with_mut(move |inner| {
       // Screenshot the target window.
       let cg_rect = CGRect::new(
-        objc2_core_foundation::CGPoint {
+        CGPoint {
           x: f64::from(rect.x()),
           y: f64::from(rect.y()),
         },
@@ -122,178 +193,138 @@ impl OverlayWindow {
         CGWindowImageOption::BestResolution,
       );
 
-      let ns_rect = NSRect::new(
-        objc2_foundation::NSPoint {
-          x: f64::from(rect.x()),
-          y: flipped_y(&rect, mtm),
-        },
-        objc2_foundation::NSSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
-        },
-      );
+      let layer = CALayer::new();
 
-      // Create borderless NSWindow.
-      let window = unsafe {
-        NSWindow::initWithContentRect_styleMask_backing_defer(
-          NSWindow::alloc(mtm),
-          ns_rect,
-          NSWindowStyleMask::Borderless,
-          NSBackingStoreType::Buffered,
-          false,
-        )
-      };
-
-      window.setBackgroundColor(Some(&NSColor::clearColor()));
-      window.setOpaque(false);
-
-      // SAFETY: We own this window and manage its lifetime via
-      // `ThreadBound` + `orderOut`.
-      unsafe { window.setReleasedWhenClosed(false) };
-
-      // Build the image content from the screenshot.
-      if let Some(cg_image) = cg_image {
-        let logical_size = CGSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
-        };
-        let ns_image = NSImage::initWithCGImage_size(
-          NSImage::alloc(),
-          &cg_image,
-          logical_size,
-        );
-
-        let image_view = NSImageView::imageViewWithImage(&ns_image, mtm);
-        window.setContentView(Some(&image_view));
+      // Set screenshot as layer contents.
+      if let Some(ref cg_image) = cg_image {
+        // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
+        // a toll-free-bridged Core Foundation type.
+        unsafe {
+          let img: &objc2_core_graphics::CGImage = cg_image;
+          let ptr: *const AnyObject =
+            (img as *const objc2_core_graphics::CGImage).cast();
+          layer.setContents(Some(&*ptr));
+        }
       }
 
-      window.orderFrontRegardless();
+      layer.setContentsScale(inner.scale_factor);
 
-      let wid = window.windowNumber() as u32;
-
-      (ThreadBound::new(window, disp), wid)
-    })?;
-
-    Ok(Self {
-      ns_window,
-      window_id,
-      initial_rect: initial_rect.clone(),
-    })
-  }
-
-  /// Moves and scales the overlay via an SLS affine transform relative to
-  /// the initial frame.
-  ///
-  /// Creates a dedicated transaction, applies the transform, and commits.
-  /// For batched updates, use `move_group` instead.
-  pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
-    let cid = unsafe { ffi::SLSMainConnectionID() };
-    let txn = unsafe { ffi::SLSTransactionCreate(cid) };
-
-    if txn.is_null() {
-      return Ok(());
-    }
-
-    self.apply_transform(rect, txn);
-    unsafe { ffi::SLSTransactionCommit(txn, 0) };
-
-    Ok(())
-  }
-
-  /// Sets overlay opacity (0.0–1.0) via SLS transaction.
-  ///
-  /// Creates a dedicated transaction. For batched updates, use
-  /// `move_group` instead.
-  pub fn set_opacity(&self, alpha: f32) -> crate::Result<()> {
-    let cid = unsafe { ffi::SLSMainConnectionID() };
-    let txn = unsafe { ffi::SLSTransactionCreate(cid) };
-
-    if txn.is_null() {
-      return Ok(());
-    }
-
-    self.apply_alpha(alpha, txn);
-    unsafe { ffi::SLSTransactionCommit(txn, 0) };
-
-    Ok(())
-  }
-
-  /// Queues an affine transform into an existing transaction without
-  /// committing.
-  ///
-  /// The SLS transform is an inverse mapping from screen coordinates to
-  /// content coordinates: `translate(-target_x, -target_y)` shifts the
-  /// screen origin, then `scale(init_w/target_w, init_h/target_h)` maps
-  /// the target size back to the original content size.
-  fn apply_transform(&self, rect: &Rect, txn: *mut c_void) {
-    let init = &self.initial_rect;
-
-    // Inverse mapping: screen → content coordinates.
-    let translate = CGAffineTransformMakeTranslation(
-      -f64::from(rect.x()),
-      -f64::from(rect.y()),
-    );
-    let scale = CGAffineTransformMakeScale(
-      f64::from(init.width()) / f64::from(rect.width()),
-      f64::from(init.height()) / f64::from(rect.height()),
-    );
-    let transform = CGAffineTransformConcat(translate, scale);
-
-    // SAFETY: SkyLight SPI calls are unsafe but stable in practice.
-    unsafe {
-      ffi::SLSTransactionSetWindowTransform(
-        txn,
-        self.window_id,
-        0,
-        0,
-        transform,
+      // Position in layer coordinates (geometry-flipped, top-left
+      // origin).
+      let frame = CGRect::new(
+        CGPoint {
+          x: f64::from(rect.x()) - inner.cg_origin_x,
+          y: f64::from(rect.y()) - inner.cg_origin_y,
+        },
+        CGSize {
+          width: f64::from(rect.width()),
+          height: f64::from(rect.height()),
+        },
       );
-    }
+      layer.setFrame(frame);
+
+      if let Some(alpha) = opacity {
+        layer.setOpacity(alpha);
+      }
+
+      inner.root_layer.addSublayer(&layer);
+
+      let id = LayerId(inner.next_id);
+      inner.next_id += 1;
+      inner.layers.insert(id, layer);
+
+      id
+    })
   }
 
-  /// Queues an alpha change into an existing transaction without
-  /// committing.
-  fn apply_alpha(&self, alpha: f32, txn: *mut c_void) {
-    unsafe {
-      ffi::SLSTransactionSetWindowAlpha(txn, self.window_id, alpha);
-    }
+  /// Updates frame and opacity for active layers in a single
+  /// `CATransaction`.
+  ///
+  /// Implicit Core Animation animations are disabled so updates take
+  /// effect immediately.
+  pub fn update_layers(
+    &self,
+    updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
+  ) -> crate::Result<()> {
+    self.inner.with(move |inner| {
+      CATransaction::begin();
+      CATransaction::setDisableActions(true);
+
+      for (id, rect, opacity) in &updates {
+        if let Some(layer) = inner.layers.get(id) {
+          let frame = CGRect::new(
+            CGPoint {
+              x: f64::from(rect.x()) - inner.cg_origin_x,
+              y: f64::from(rect.y()) - inner.cg_origin_y,
+            },
+            CGSize {
+              width: f64::from(rect.width()),
+              height: f64::from(rect.height()),
+            },
+          );
+          layer.setFrame(frame);
+
+          if let Some(opacity) = opacity {
+            layer.setOpacity(opacity.to_f32());
+          }
+        }
+      }
+
+      CATransaction::commit();
+    })
   }
 
-  /// Destroys the overlay window by ordering it out and dropping the
-  /// handle.
+  /// Removes a sublayer from the surface.
+  pub fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
+    self.inner.with_mut(move |inner| {
+      if let Some(layer) = inner.layers.remove(&id) {
+        layer.removeFromSuperlayer();
+      }
+    })
+  }
+
+  /// Returns whether the surface has any active layers.
+  pub fn has_layers(&self) -> crate::Result<bool> {
+    self.inner.with(|inner| !inner.layers.is_empty())
+  }
+
+  /// Destroys the container window and all layers.
   pub fn destroy(self) -> crate::Result<()> {
-    self.ns_window.with(|window| {
-      window.orderOut(None);
+    self.inner.with(|inner| {
+      inner.ns_window.orderOut(None);
     })
   }
 }
 
-/// Converts a `Rect` top-left Y to the flipped `NSWindow` coordinate
-/// system (origin at bottom-left of primary screen).
 #[cfg(target_os = "macos")]
-fn flipped_y(rect: &Rect, mtm: MainThreadMarker) -> f64 {
-  let screen_height = NSScreen::screens(mtm)
-    .into_iter()
-    .next()
-    .map_or(0.0, |s| s.frame().size.height);
-
-  screen_height - f64::from(rect.y()) - f64::from(rect.height())
-}
-
-#[cfg(target_os = "macos")]
-impl std::fmt::Debug for OverlayWindow {
+impl std::fmt::Debug for AnimationSurface {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("OverlayWindow").finish_non_exhaustive()
+    f.debug_struct("AnimationSurface").finish_non_exhaustive()
   }
 }
 
-// ── Windows implementation
-// ────────────────────────────────────────────────────
+// ── Windows: OverlayWindow + move_group
+// ────────────────────────────────────────────────
+
+/// Batches frame and opacity updates for multiple overlays.
+///
+/// On Windows there is no transaction API, so updates are applied
+/// individually.
+#[cfg(target_os = "windows")]
+pub fn move_group(
+  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
+) {
+  for (overlay, rect, opacity) in overlays {
+    let _ = overlay.set_frame(rect);
+
+    if let Some(opacity) = opacity {
+      let _ = overlay.set_opacity(opacity.to_f32());
+    }
+  }
+}
 
 #[cfg(target_os = "windows")]
 use std::cell::{Cell, RefCell};
-#[cfg(target_os = "macos")]
-use std::ffi::c_void;
 #[cfg(target_os = "windows")]
 use std::sync::OnceLock;
 
