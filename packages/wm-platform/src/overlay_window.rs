@@ -19,15 +19,9 @@ use objc2_core_graphics::{
   CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
 };
 #[cfg(target_os = "macos")]
-use objc2_core_image::CIFilter;
+use objc2_foundation::NSRect;
 #[cfg(target_os = "macos")]
-use objc2_foundation::{
-  NSArray, NSNumber, NSObjectNSKeyValueCoding as _, NSRect, NSString,
-};
-#[cfg(target_os = "macos")]
-use objc2_quartz_core::{
-  kCAGravityResize, kCAGravityTopLeft, CALayer, CATransaction,
-};
+use objc2_quartz_core::{kCAGravityTopLeft, CALayer, CATransaction};
 
 use crate::OpacityValue;
 #[cfg(target_os = "macos")]
@@ -49,8 +43,8 @@ pub struct LayerId(u64);
 struct AnimationLayerGroup {
   /// Parent layer added to the root.
   group: Retained<CALayer>,
-  /// Sublayer with `kCAGravityResize` + Gaussian blur filter.
-  blur: Retained<CALayer>,
+  /// Dark transparent overlay sublayer.
+  dim: Retained<CALayer>,
   /// Sublayer with `kCAGravityTopLeft`, clipped to bounds.
   sharp: Retained<CALayer>,
 }
@@ -250,40 +244,14 @@ impl AnimationSurface {
       group.setFrame(frame);
       group.setMasksToBounds(true);
 
-      // --- Blur sublayer (stretches to fill, blurred) ---
-      let blur = CALayer::new();
-      if let Some(ptr) = contents_ptr {
-        // SAFETY: pointer derived from a valid `CGImage` above.
-        unsafe { blur.setContents(Some(&*ptr)) };
-      }
-      blur.setContentsScale(inner.scale_factor);
-      // SAFETY: `kCAGravityResize` is a valid Core Animation constant.
-      blur.setContentsGravity(unsafe { kCAGravityResize });
-      blur.setFrame(bounds);
+      // --- Dim sublayer (dark transparent overlay) ---
+      let dim = CALayer::new();
+      dim.setFrame(bounds);
+      dim.setBackgroundColor(Some(
+        &objc2_core_graphics::CGColor::new_generic_gray(0.0, 0.4),
+      ));
 
-      // Apply a Gaussian blur filter to the stretched background.
-      let blur_filter = unsafe {
-        CIFilter::filterWithName(&NSString::from_str("CIGaussianBlur"))
-      };
-      if let Some(ref filter) = blur_filter {
-        let radius = NSNumber::numberWithFloat(10.0);
-        // SAFETY: `setValue:forKey:` with `inputRadius` is the
-        // documented API for configuring `CIGaussianBlur`.
-        unsafe {
-          filter.setValue_forKey(
-            Some(&radius as &AnyObject),
-            &NSString::from_str("inputRadius"),
-          );
-        }
-        let filters = NSArray::from_retained_slice(&[filter.clone()]);
-        // SAFETY: array contains a valid `CIFilter`. Cast needed
-        // because `setFilters` expects `NSArray<AnyObject>`.
-        let filters_ref: &NSArray =
-          unsafe { &*((&*filters) as *const NSArray<CIFilter>).cast() };
-        unsafe { blur.setFilters(Some(filters_ref)) };
-      }
-
-      group.addSublayer(&blur);
+      group.addSublayer(&dim);
 
       // --- Sharp sublayer (original size, clipped) ---
       let sharp = CALayer::new();
@@ -309,7 +277,7 @@ impl AnimationSurface {
       inner.next_id += 1;
       inner.layers.insert(
         id,
-        AnimationLayerGroup { group, blur, sharp },
+        AnimationLayerGroup { group, dim, sharp },
       );
 
       id
@@ -351,7 +319,7 @@ impl AnimationSurface {
               height: f64::from(rect.height()),
             },
           );
-          entry.blur.setFrame(bounds);
+          entry.dim.setFrame(bounds);
           entry.sharp.setFrame(bounds);
 
           if let Some(opacity) = opacity {
