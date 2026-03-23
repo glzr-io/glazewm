@@ -330,6 +330,7 @@ fn redraw_containers(
         previous_target,
         config,
         window.native().id(),
+        &window.native(),
         &state.dispatcher,
       )
     } else {

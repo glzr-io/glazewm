@@ -252,6 +252,10 @@ impl AnimationSurface {
 
       for (id, rect, opacity) in &updates {
         if let Some(layer) = inner.layers.get(id) {
+          println!(
+            "Updating layer {:?} with opacity {:?} rect {:?}",
+            id, opacity, rect
+          );
           let frame = CGRect::new(
             CGPoint {
               x: f64::from(rect.x()) - inner.cg_origin_x,

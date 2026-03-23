@@ -11,10 +11,24 @@ use uuid::Uuid;
 use wm_platform::{OpacityValue, Rect};
 
 use crate::{
-  animation::state::WindowAnimationState,
-  commands::general::platform_sync, traits::CommonGetters,
-  user_config::UserConfig, wm_state::WmState,
+  animation::{engine::apply_easing, state::WindowAnimationState},
+  commands::general::platform_sync,
+  traits::CommonGetters,
+  user_config::UserConfig,
+  wm_state::WmState,
 };
+
+/// Layers backing a single window animation on macOS.
+#[cfg(target_os = "macos")]
+enum AnimationLayers {
+  /// Single layer (e.g. open animations).
+  Single(wm_platform::LayerId),
+  /// Two layers cross-fading during a move animation.
+  Crossfade {
+    from_layer: wm_platform::LayerId,
+    to_layer: wm_platform::LayerId,
+  },
+}
 
 /// Result of starting an animation, indicating how the caller should
 /// handle the real window.
@@ -44,9 +58,9 @@ pub struct AnimationManager {
   #[cfg(target_os = "macos")]
   surface: Option<wm_platform::AnimationSurface>,
 
-  /// Maps window UUIDs to their `CALayer` handles within the surface.
+  /// Maps window UUIDs to their `CALayer` handle(s) within the surface.
   #[cfg(target_os = "macos")]
-  layer_ids: HashMap<Uuid, wm_platform::LayerId>,
+  layer_ids: HashMap<Uuid, AnimationLayers>,
 
   /// Overlay windows for screenshot-based animations.
   #[cfg(target_os = "windows")]
@@ -197,6 +211,10 @@ impl AnimationManager {
   }
 
   /// Creates or replaces the visual overlay for a window animation.
+  ///
+  /// For move animations, takes two screenshots (before and after the
+  /// window is repositioned) and stores them as a cross-fade pair. For
+  /// open animations, takes a single screenshot.
   #[cfg(target_os = "macos")]
   fn create_overlay(
     &mut self,
@@ -204,6 +222,9 @@ impl AnimationManager {
     native_window_id: wm_platform::WindowId,
     initial_rect: &Rect,
     opacity: Option<f32>,
+    is_move: bool,
+    target_rect: Option<&Rect>,
+    native_window: Option<&wm_platform::NativeWindow>,
     dispatcher: &wm_platform::Dispatcher,
   ) {
     // Remove any existing layer for this window.
@@ -221,9 +242,66 @@ impl AnimationManager {
     }
 
     let surface = self.surface.as_mut().expect("surface just created");
+
+    // For move animations, take two screenshots and cross-fade.
+    if is_move {
+      if let (Some(target), Some(native_win)) =
+        (target_rect, native_window)
+      {
+        // Screenshot A: window at its current (start) position.
+        let from_layer = match surface.add_layer(
+          native_window_id,
+          initial_rect,
+          Some(1.0),
+        ) {
+          Ok(id) => id,
+          Err(err) => {
+            tracing::warn!("Failed to add from-layer: {}", err);
+            return;
+          }
+        };
+
+        // Move the real window to the target so we can screenshot it
+        // there.
+        if let Err(err) = native_win.set_frame(target) {
+          tracing::warn!(
+            "Failed to move window for screenshot B: {}",
+            err
+          );
+        }
+
+        // Screenshot B: window at the target position.
+        let to_layer = match surface.add_layer(
+          native_window_id,
+          initial_rect,
+          Some(0.0),
+        ) {
+          Ok(id) => id,
+          Err(err) => {
+            tracing::warn!("Failed to add to-layer: {}", err);
+            // Clean up the from-layer we already added.
+            let _ = surface.remove_layer(from_layer);
+            return;
+          }
+        };
+
+        self.layer_ids.insert(
+          window_id,
+          AnimationLayers::Crossfade {
+            from_layer,
+            to_layer,
+          },
+        );
+        return;
+      }
+    }
+
+    // Single-layer path (open animations or fallback).
     match surface.add_layer(native_window_id, initial_rect, opacity) {
       Ok(layer_id) => {
-        self.layer_ids.insert(window_id, layer_id);
+        self
+          .layer_ids
+          .insert(window_id, AnimationLayers::Single(layer_id));
       }
       Err(err) => {
         tracing::warn!("Failed to add animation layer: {}", err);
@@ -239,6 +317,9 @@ impl AnimationManager {
     native_window_id: wm_platform::WindowId,
     initial_rect: &Rect,
     opacity: Option<f32>,
+    _is_move: bool,
+    _target_rect: Option<&Rect>,
+    _native_window: Option<&wm_platform::NativeWindow>,
     dispatcher: &wm_platform::Dispatcher,
   ) {
     // Destroy any existing overlay for this window.
@@ -264,10 +345,21 @@ impl AnimationManager {
   /// Removes the visual overlay for a window.
   #[cfg(target_os = "macos")]
   fn destroy_overlay(&mut self, window_id: &Uuid) {
-    if let Some(layer_id) = self.layer_ids.remove(window_id) {
+    if let Some(layers) = self.layer_ids.remove(window_id) {
       if let Some(surface) = &mut self.surface {
-        if let Err(err) = surface.remove_layer(layer_id) {
-          tracing::warn!("Failed to remove animation layer: {}", err);
+        let ids = match layers {
+          AnimationLayers::Single(id) => vec![id],
+          AnimationLayers::Crossfade {
+            from_layer,
+            to_layer,
+          } => {
+            vec![from_layer, to_layer]
+          }
+        };
+        for id in ids {
+          if let Err(err) = surface.remove_layer(id) {
+            tracing::warn!("Failed to remove animation layer: {}", err);
+          }
         }
       }
     }
@@ -285,16 +377,45 @@ impl AnimationManager {
 
   /// Sends updated positions and opacities to the visual overlays for
   /// all in-progress animations.
+  ///
+  /// Opacity is derived purely from eased progress — animation-state
+  /// `start_opacity`/`target_opacity` are intentionally ignored so the
+  /// crossfade always works regardless of those fields.
   #[cfg(target_os = "macos")]
   fn update_overlays(&self, active_ids: &[Uuid]) {
-    let updates: Vec<_> = active_ids
-      .iter()
-      .filter_map(|id| {
-        let anim = self.get_animation(id)?;
-        let layer_id = self.layer_ids.get(id)?;
-        Some((*layer_id, anim.current_rect(), anim.current_opacity()))
-      })
-      .collect();
+    let mut updates: Vec<(
+      wm_platform::LayerId,
+      Rect,
+      Option<OpacityValue>,
+    )> = Vec::new();
+
+    for id in active_ids {
+      let Some(anim) = self.get_animation(id) else {
+        continue;
+      };
+      let Some(layers) = self.layer_ids.get(id) else {
+        continue;
+      };
+
+      let rect = anim.current_rect();
+
+      match layers {
+        AnimationLayers::Single(layer_id) => {
+          updates.push((*layer_id, rect, anim.current_opacity()));
+        }
+        AnimationLayers::Crossfade {
+          from_layer,
+          to_layer,
+        } => {
+          let eased = apply_easing(anim.progress(), &anim.easing);
+          let from_opacity = Some(OpacityValue(1.0 - eased));
+          let to_opacity = Some(OpacityValue(eased));
+
+          updates.push((*from_layer, rect.clone(), from_opacity));
+          updates.push((*to_layer, rect, to_opacity));
+        }
+      }
+    }
 
     if let Some(surface) = &self.surface {
       if let Err(err) = surface.update_layers(updates) {
@@ -464,6 +585,7 @@ impl AnimationManager {
     previous_target: Option<Rect>,
     config: &UserConfig,
     native_window_id: wm_platform::WindowId,
+    native_window: &wm_platform::NativeWindow,
     dispatcher: &wm_platform::Dispatcher,
   ) -> AnimationStartResult {
     #[allow(clippy::cast_possible_wrap)]
@@ -484,6 +606,7 @@ impl AnimationManager {
     );
 
     // Start new animation if needed
+    let is_move = !is_opening;
     if should_start {
       if is_opening {
         let animation = WindowAnimationState::new_open(
@@ -529,8 +652,17 @@ impl AnimationManager {
         native_window_id,
         &initial_rect,
         initial_opacity,
+        is_move,
+        Some(&target_rect),
+        Some(native_window),
         dispatcher,
       );
+
+      // Reset the start time so the animation begins after the overlay is
+      // ready (overlay creation may block, e.g. for screenshot capture).
+      if let Some(anim) = self.animations.get_mut(&window_id) {
+        anim.start_time = std::time::Instant::now();
+      }
     }
 
     // Get the current animation state (re-fetch after potentially starting
