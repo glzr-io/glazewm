@@ -171,7 +171,7 @@ impl WindowManager {
   ) -> anyhow::Result<()> {
     use crate::animation::AnimationManager;
     // Access animation_manager through state to avoid double borrow
-    AnimationManager::update_internal(&mut self.state, config)
+    AnimationManager::update(&mut self.state, config)
   }
 
   pub fn process_commands(

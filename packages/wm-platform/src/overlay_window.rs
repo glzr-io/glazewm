@@ -2,8 +2,8 @@
 use objc2::{AnyThread, MainThreadMarker, MainThreadOnly};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{
-  NSBackingStoreType, NSColor, NSFloatingWindowLevel, NSImage,
-  NSImageView, NSScreen, NSWindow, NSWindowStyleMask,
+  NSBackingStoreType, NSColor, NSImage, NSImageView, NSScreen, NSWindow,
+  NSWindowStyleMask,
 };
 #[cfg(target_os = "macos")]
 use objc2_core_foundation::{CGRect, CGSize};
@@ -254,17 +254,9 @@ impl OverlayWindow {
   /// Queues an alpha change into an existing transaction without
   /// committing.
   fn apply_alpha(&self, alpha: f32, txn: *mut c_void) {
-    let _ = self.ns_window.with(|window| {
-      window.setAlphaValue(f64::from(alpha));
-    });
-    // TODO: Setting alpha via SLS transaction doesn't seem to work.
-    // unsafe {
-    //   ffi::SLSTransactionSetWindowAlpha(
-    //     txn,
-    //     self.window_id,
-    //     f64::from(alpha),
-    //   );
-    // }
+    unsafe {
+      ffi::SLSTransactionSetWindowAlpha(txn, self.window_id, alpha);
+    }
   }
 
   /// Destroys the overlay window by ordering it out and dropping the
