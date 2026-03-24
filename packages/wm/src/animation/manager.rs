@@ -4,6 +4,7 @@ use std::{
     atomic::{AtomicBool, Ordering},
     Arc,
   },
+  time::Instant,
 };
 
 use tokio::sync::mpsc;
@@ -197,6 +198,9 @@ impl AnimationManager {
   }
 
   /// Creates or replaces the visual overlay for a window animation.
+  ///
+  /// Reuses the existing `AnimationSurface` if available, showing it
+  /// again if it was hidden. Only creates a new surface on first use.
   #[cfg(target_os = "macos")]
   fn create_overlay(
     &mut self,
@@ -209,8 +213,13 @@ impl AnimationManager {
     // Remove any existing layer for this window.
     self.destroy_overlay(&window_id);
 
-    // Lazy-create the shared animation surface.
-    if self.surface.is_none() {
+    // Reuse the existing surface, or create one on first use.
+    if let Some(surface) = &self.surface {
+      // Surface exists but may be hidden — show it.
+      if let Err(err) = surface.show() {
+        tracing::warn!("Failed to show animation surface: {}", err);
+      }
+    } else {
       match wm_platform::AnimationSurface::new(dispatcher) {
         Ok(surface) => self.surface = Some(surface),
         Err(err) => {
@@ -220,7 +229,7 @@ impl AnimationManager {
       }
     }
 
-    let surface = self.surface.as_mut().expect("surface just created");
+    let surface = self.surface.as_mut().expect("surface must exist");
     match surface.add_layer(native_window_id, initial_rect, opacity) {
       Ok(layer_id) => {
         self.layer_ids.insert(window_id, layer_id);
@@ -324,9 +333,12 @@ impl AnimationManager {
     wm_platform::move_group(&batch);
   }
 
-  /// Tears down the shared surface when no layers remain.
+  /// Hides the shared surface when no layers remain.
+  ///
+  /// The surface is kept alive for reuse, avoiding the overhead of
+  /// recreating the `NSWindow` and root layer on the next animation.
   #[cfg(target_os = "macos")]
-  fn destroy_surface_if_empty(&mut self) {
+  fn hide_surface_if_empty(&mut self) {
     let is_empty = self
       .surface
       .as_ref()
@@ -334,9 +346,9 @@ impl AnimationManager {
       .map_or(true, |has| !has);
 
     if is_empty {
-      if let Some(surface) = self.surface.take() {
-        if let Err(err) = surface.destroy() {
-          tracing::warn!("Failed to destroy animation surface: {}", err);
+      if let Some(surface) = &self.surface {
+        if let Err(err) = surface.hide() {
+          tracing::warn!("Failed to hide animation surface: {}", err);
         }
       }
     }
@@ -387,17 +399,22 @@ impl AnimationManager {
     // Sync platform for completed animations (final positioning).
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
-    }
 
-    // Destroy overlays after the real windows have been repositioned so
-    // there is no visible gap.
-    for window_id in &completed_ids {
-      state.animation_manager.destroy_overlay(window_id);
-    }
+      // Briefly keep overlay up to hide flicker during sync.
+      // TODO: This shouldn't block the main thread.
+      std::thread::sleep(std::time::Duration::from_millis(20));
 
-    // Tear down the shared surface when all layers are gone.
-    #[cfg(target_os = "macos")]
-    state.animation_manager.destroy_surface_if_empty();
+      // Destroy overlays after the real windows have been repositioned so
+      // there is no visible gap.
+      for window_id in &completed_ids {
+        state.animation_manager.destroy_overlay(window_id);
+      }
+
+      // Hide the shared surface when all layers are gone (kept alive for
+      // reuse).
+      #[cfg(target_os = "macos")]
+      state.animation_manager.hide_surface_if_empty();
+    }
 
     // Continue timer if there are still active animations.
     state.animation_manager.ensure_timer_running(state, config);
@@ -521,7 +538,7 @@ impl AnimationManager {
 
       let initial_opacity = self
         .get_animation(&window_id)
-        .and_then(|a| a.current_opacity())
+        .and_then(WindowAnimationState::current_opacity)
         .map(|o| o.to_f32());
 
       self.create_overlay(
@@ -531,6 +548,13 @@ impl AnimationManager {
         initial_opacity,
         dispatcher,
       );
+
+      // Start the timer after the overlay has been created.
+      // TODO: Start times for animations will differ slightly between
+      // windows within the same platform sync.
+      if let Some(animation) = self.animations.get_mut(&window_id) {
+        animation.start_time = Instant::now();
+      }
     }
 
     // Get the current animation state (re-fetch after potentially starting
@@ -563,6 +587,6 @@ impl AnimationManager {
     self.destroy_overlay(window_id);
 
     #[cfg(target_os = "macos")]
-    self.destroy_surface_if_empty();
+    self.hide_surface_if_empty();
   }
 }

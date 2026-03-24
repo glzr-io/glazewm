@@ -288,6 +288,26 @@ impl AnimationSurface {
     self.inner.with(|inner| !inner.layers.is_empty())
   }
 
+  /// Hides the container window without destroying it.
+  ///
+  /// The surface can be shown again later via `show`, avoiding the cost
+  /// of recreating the `NSWindow` and root layer.
+  pub fn hide(&self) -> crate::Result<()> {
+    self.inner.with(|inner| {
+      inner.ns_window.orderOut(None);
+    })
+  }
+
+  /// Shows the container window, bringing it to the front.
+  ///
+  /// Used to re-activate a previously hidden surface without
+  /// recreating it.
+  pub fn show(&self) -> crate::Result<()> {
+    self.inner.with(|inner| {
+      inner.ns_window.orderFrontRegardless();
+    })
+  }
+
   /// Destroys the container window and all layers.
   pub fn destroy(self) -> crate::Result<()> {
     self.inner.with(|inner| {
