@@ -103,6 +103,7 @@ impl AnimationSurface {
       );
 
       // Window's top-left in CG (screen) coordinates.
+      // TODO: Origin Y includes the height of the title bar.
       let cg_origin_x = min_x;
       let cg_origin_y = primary_height - max_y;
 
@@ -172,31 +173,35 @@ impl AnimationSurface {
     let rect = rect.clone();
 
     self.inner.with_mut(move |inner| {
-      // Screenshot the target window.
-      let cg_rect = CGRect::new(
+      // Use `CGRectNull` so the API captures the window's actual bounds
+      // rather than a manually-constructed rect that may not match
+      // exactly (shadow offsets, title bar, rounding).
+      let cg_rect_null = CGRect::new(
         CGPoint {
-          x: f64::from(rect.x()),
-          y: f64::from(rect.y()),
+          x: f64::INFINITY,
+          y: f64::INFINITY,
         },
-        CGSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
-        },
+        CGSize::ZERO,
       );
 
       // NOTE: `CGWindowListCreateImage` is deprecated, but functional.
       // ScreenCaptureKit is recommended instead, see: https://developer.apple.com/documentation/screencapturekit/scwindow.
       let cg_image = CGWindowListCreateImage(
-        cg_rect,
+        cg_rect_null,
         CGWindowListOption::OptionIncludingWindow,
         wid,
-        CGWindowImageOption::BestResolution,
+        CGWindowImageOption::BestResolution
+          .union(CGWindowImageOption::BoundsIgnoreFraming),
       );
 
       let layer = CALayer::new();
 
-      // Set screenshot as layer contents.
-      if let Some(ref cg_image) = cg_image {
+      // Set screenshot as layer contents and derive the layer size
+      // from the actual image dimensions.
+      let (img_w, img_h) = if let Some(ref cg_image) = cg_image {
+        let w = objc2_core_graphics::CGImage::width(Some(cg_image));
+        let h = objc2_core_graphics::CGImage::height(Some(cg_image));
+
         // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
         // a toll-free-bridged Core Foundation type.
         unsafe {
@@ -205,20 +210,26 @@ impl AnimationSurface {
             (img as *const objc2_core_graphics::CGImage).cast();
           layer.setContents(Some(&*ptr));
         }
-      }
 
-      layer.setContentsScale(inner.scale_factor);
+        (w as f64 / inner.scale_factor, h as f64 / inner.scale_factor)
+      } else {
+        (f64::from(rect.width()), f64::from(rect.height()))
+      };
 
-      // Position in layer coordinates (geometry-flipped, top-left
-      // origin).
+      // layer.setContentsScale(inner.scale_factor);
+
+      // Position from the WM's rect; size from the captured image to
+      // avoid a few-pixel mismatch between AX-reported and CG-actual
+      // window bounds.
       let frame = CGRect::new(
         CGPoint {
           x: f64::from(rect.x()) - inner.cg_origin_x,
-          y: f64::from(rect.y()) - inner.cg_origin_y,
+          // Offset by the height of the title bar.
+          y: f64::from(rect.y()) - inner.cg_origin_y + 25.,
         },
         CGSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
+          width: img_w,
+          height: img_h,
         },
       );
       layer.setFrame(frame);
@@ -255,7 +266,8 @@ impl AnimationSurface {
           let frame = CGRect::new(
             CGPoint {
               x: f64::from(rect.x()) - inner.cg_origin_x,
-              y: f64::from(rect.y()) - inner.cg_origin_y,
+              // Offset by the height of the title bar.
+              y: f64::from(rect.y()) - inner.cg_origin_y + 25.,
             },
             CGSize {
               width: f64::from(rect.width()),
