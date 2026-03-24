@@ -105,6 +105,13 @@ pub fn move_workspace_to_monitor(
     state,
   )?;
 
+  // Update the workspace's gap config to match the target monitor.
+  let target_gaps = config.value.gaps.for_monitor(
+    target_monitor.index(),
+    &target_monitor.native_properties().device_name,
+  );
+  workspace.set_gaps_config(target_gaps);
+
   let windows = workspace
     .descendants()
     .filter_map(|descendant| descendant.as_window_container().ok());
