@@ -1,4 +1,3 @@
-#[cfg(target_os = "macos")]
 use std::collections::HashMap;
 
 #[cfg(target_os = "macos")]
@@ -31,7 +30,6 @@ use crate::{Dispatcher, Rect, ThreadBound, WindowId};
 // ────────────────────────────────────────────────
 
 /// Opaque handle identifying a layer within an `AnimationSurface`.
-#[cfg(target_os = "macos")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LayerId(u64);
 
@@ -335,25 +333,8 @@ impl std::fmt::Debug for AnimationSurface {
   }
 }
 
-// ── Windows: OverlayWindow + move_group
+// ── Windows: OverlayWindow + AnimationSurface
 // ────────────────────────────────────────────────
-
-/// Batches frame and opacity updates for multiple overlays.
-///
-/// On Windows there is no transaction API, so updates are applied
-/// individually.
-#[cfg(target_os = "windows")]
-pub fn move_group(
-  overlays: &[(&OverlayWindow, &Rect, Option<OpacityValue>)],
-) {
-  for (overlay, rect, opacity) in overlays {
-    let _ = overlay.set_frame(rect);
-
-    if let Some(opacity) = opacity {
-      let _ = overlay.set_opacity(opacity.to_f32());
-    }
-  }
-}
 
 #[cfg(target_os = "windows")]
 use std::cell::{Cell, RefCell};
@@ -573,6 +554,22 @@ impl OverlayWindow {
     })
   }
 
+  /// Hides the overlay without destroying Win32 resources.
+  ///
+  /// The overlay can be shown again via `show`.
+  pub fn hide(&self) -> crate::Result<()> {
+    self.inner.with(|state| unsafe {
+      ShowWindow(HWND(state.hwnd), SW_HIDE);
+    })
+  }
+
+  /// Shows a previously hidden overlay without activating it.
+  pub fn show(&self) -> crate::Result<()> {
+    self.inner.with(|state| unsafe {
+      ShowWindow(HWND(state.hwnd), SW_SHOWNA);
+    })
+  }
+
   /// Hides the overlay and schedules its Win32 resources for destruction
   /// on the event loop thread.
   pub fn destroy(self) -> crate::Result<()> {
@@ -665,5 +662,132 @@ fn update_layered(state: &OverlayState, rect: &Rect) {
 impl std::fmt::Debug for OverlayWindow {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("OverlayWindow").finish_non_exhaustive()
+  }
+}
+
+// ── Windows: AnimationSurface
+// ────────────────────────────────────────────────
+
+/// A collection of layered overlay windows for animating window
+/// screenshots.
+///
+/// Mirrors the macOS `AnimationSurface` API. Internally each layer is an
+/// `OverlayWindow` (one `HWND` per layer); a single-HWND compositing
+/// approach is a future optimization.
+#[cfg(target_os = "windows")]
+pub struct AnimationSurface {
+  layers: HashMap<LayerId, OverlayWindow>,
+  next_id: u64,
+  dispatcher: Dispatcher,
+}
+
+#[cfg(target_os = "windows")]
+impl AnimationSurface {
+  /// Creates a new, empty `AnimationSurface`.
+  ///
+  /// No `HWND` is allocated until the first `add_layer` call.
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+    Ok(Self {
+      layers: HashMap::new(),
+      next_id: 0,
+      dispatcher: dispatcher.clone(),
+    })
+  }
+
+  /// Screenshots the target window and adds an `OverlayWindow` layer.
+  ///
+  /// Returns a `LayerId` handle for future updates and removal.
+  pub fn add_layer(
+    &mut self,
+    window_id: WindowId,
+    rect: &Rect,
+    opacity: Option<f32>,
+  ) -> crate::Result<LayerId> {
+    let overlay =
+      OverlayWindow::new(window_id, rect, &self.dispatcher)?;
+
+    if let Some(alpha) = opacity {
+      if let Err(err) = overlay.set_opacity(alpha) {
+        tracing::warn!("Failed to set initial overlay opacity: {}", err);
+      }
+    }
+
+    let id = LayerId(self.next_id);
+    self.next_id += 1;
+    self.layers.insert(id, overlay);
+
+    Ok(id)
+  }
+
+  /// Updates frame and opacity for a set of active layers.
+  ///
+  /// Updates are applied individually; Windows has no transaction API.
+  pub fn update_layers(
+    &self,
+    updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
+  ) -> crate::Result<()> {
+    for (id, rect, opacity) in &updates {
+      if let Some(overlay) = self.layers.get(id) {
+        if let Err(err) = overlay.set_frame(rect) {
+          tracing::warn!("Failed to update overlay frame: {}", err);
+        }
+
+        if let Some(opacity) = opacity {
+          if let Err(err) = overlay.set_opacity(opacity.to_f32()) {
+            tracing::warn!("Failed to update overlay opacity: {}", err);
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Removes a layer from the surface and destroys its `HWND`.
+  pub fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
+    if let Some(overlay) = self.layers.remove(&id) {
+      if let Err(err) = overlay.destroy() {
+        tracing::warn!("Failed to destroy overlay layer: {}", err);
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Returns whether the surface has any active layers.
+  pub fn has_layers(&self) -> crate::Result<bool> {
+    Ok(!self.layers.is_empty())
+  }
+
+  /// No-op on Windows — each layer's `HWND` is shown on creation.
+  pub fn show(&self) -> crate::Result<()> {
+    Ok(())
+  }
+
+  /// No-op on Windows — layers are destroyed individually via
+  /// `remove_layer`.
+  pub fn hide(&self) -> crate::Result<()> {
+    Ok(())
+  }
+
+  /// Destroys all layers and their associated `HWND`s.
+  pub fn destroy(mut self) -> crate::Result<()> {
+    for (_, overlay) in self.layers.drain() {
+      if let Err(err) = overlay.destroy() {
+        tracing::warn!(
+          "Failed to destroy overlay during surface teardown: {}",
+          err
+        );
+      }
+    }
+
+    Ok(())
+  }
+}
+
+#[cfg(target_os = "windows")]
+impl std::fmt::Debug for AnimationSurface {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AnimationSurface").finish_non_exhaustive()
   }
 }
