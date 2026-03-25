@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_platform::{OpacityValue, Rect};
+use wm_platform::Rect;
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -24,9 +24,7 @@ pub struct AnimationStartResult {
   /// is the target rect (real window is hidden). Otherwise it is the
   /// interpolated animated rect.
   pub rect: Rect,
-  /// Optional opacity override for the real window. Used on Windows when
-  /// no overlay is active.
-  pub opacity: Option<OpacityValue>,
+
   /// Whether an overlay is handling the visual animation. When `true`,
   /// the caller should hide the real window.
   pub has_overlay: bool,
@@ -108,12 +106,6 @@ impl AnimationManager {
     self.animations.keys().copied().collect()
   }
 
-  /// Clears all animations.
-  #[allow(dead_code)]
-  pub fn clear(&mut self) {
-    self.animations.clear();
-  }
-
   /// Ensures the animation timer is running if there are active
   /// animations.
   pub fn ensure_timer_running(
@@ -121,55 +113,43 @@ impl AnimationManager {
     state: &crate::wm_state::WmState,
     config: &UserConfig,
   ) {
-    if self.has_active_animations()
-      && !self.animation_timer_running.load(Ordering::Relaxed)
-    {
-      self.animation_timer_running.store(true, Ordering::Relaxed);
-      let tx = self.animation_tick_tx.clone();
-      let timer_flag = self.animation_timer_running.clone();
+    if self.animation_timer_running.load(Ordering::Relaxed) {
+      return;
+    }
 
-      // Calculate frame time based on monitor refresh rate, capped by
-      // config max_frame_rate Default to 60 FPS if refresh rate
-      // cannot be determined
-      let mut frame_time_ms = 16u32;
+    self.animation_timer_running.store(true, Ordering::Relaxed);
+    let tx = self.animation_tick_tx.clone();
+    let timer_flag = self.animation_timer_running.clone();
 
-      if let Some(container) = state.focused_container() {
-        if let Some(monitor) = CommonGetters::monitor(&container) {
-          // Default to 60Hz if refresh rate cannot be determined
-          let refresh_rate =
-            monitor.native_properties().refresh_rate.unwrap_or(60);
-          // Cap refresh rate at configured max_frame_rate
-          let capped_rate =
-            refresh_rate.min(config.value.animations.max_frame_rate);
-          // Cap at 60 Hz minimum for safety
-          let final_rate = capped_rate.max(60);
-          // Convert refresh rate to milliseconds per frame
-          frame_time_ms = 1000 / final_rate;
+    let refresh_rate = state
+      .focused_container()
+      .and_then(|c| CommonGetters::monitor(&c))
+      .and_then(|m| m.native_properties().refresh_rate)
+      .unwrap_or(config.value.animations.max_frame_rate);
+
+    let frame_rate = refresh_rate
+      .min(config.value.animations.max_frame_rate)
+      .max(60);
+
+    // Convert refresh rate to milliseconds per frame.
+    let frame_time_ms = 1000 / frame_rate;
+
+    tokio::spawn(async move {
+      let mut interval = tokio::time::interval(
+        tokio::time::Duration::from_millis(u64::from(frame_time_ms)),
+      );
+      interval
+        .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+      loop {
+        interval.tick().await;
+        if tx.send(()).is_err() {
+          break;
         }
-      } else {
-        // If no monitor found, use max_frame_rate from config (capped at
-        // 60Hz minimum)
-        let final_rate = config.value.animations.max_frame_rate.max(60);
-        frame_time_ms = 1000 / final_rate;
       }
 
-      tokio::spawn(async move {
-        let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(u64::from(frame_time_ms)),
-        );
-        interval
-          .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-        loop {
-          interval.tick().await;
-          if tx.send(()).is_err() {
-            break;
-          }
-        }
-
-        timer_flag.store(false, Ordering::Relaxed);
-      });
-    }
+      timer_flag.store(false, Ordering::Relaxed);
+    });
   }
 
   // ── Platform-specific overlay helpers
@@ -258,13 +238,7 @@ impl AnimationManager {
   /// The surface is kept alive for reuse. On Windows, `hide` is a no-op
   /// so this call is harmless.
   fn hide_surface_if_empty(&mut self) {
-    let is_empty = self
-      .surface
-      .as_ref()
-      .and_then(|s| s.has_layers().ok())
-      .map_or(true, |has| !has);
-
-    if is_empty {
+    if self.layer_ids.is_empty() {
       if let Some(surface) = &self.surface {
         if let Err(err) = surface.hide() {
           tracing::warn!("Failed to hide animation surface: {}", err);
@@ -277,7 +251,6 @@ impl AnimationManager {
   // ──────────────────────────────────
 
   /// Updates all active animations and redraws windows that are animating.
-  #[allow(dead_code)] // Public API method, may be used externally.
   pub fn update(
     state: &mut WmState,
     config: &UserConfig,
@@ -355,20 +328,22 @@ impl AnimationManager {
     if is_opening && config.value.animations.window_open.enabled {
       existing_animation.is_none()
     } else if !is_opening && config.value.animations.window_move.enabled {
-      if let Some(anim) = existing_animation {
+      if let Some(animation) = existing_animation {
         // Don't restart animations that are completing or already at
         // target
-        if anim.is_complete() {
+        if animation.is_complete() {
           false
         } else {
           // Check if target has changed significantly from the animation's
           // current target Use a reasonable threshold to avoid
           // creating animations for every tiny change
-          let target_distance = (anim.target_rect.x() - target_rect.x())
-            .abs()
-            + (anim.target_rect.y() - target_rect.y()).abs()
-            + (anim.target_rect.width() - target_rect.width()).abs()
-            + (anim.target_rect.height() - target_rect.height()).abs();
+          let target_distance = (animation.target_rect.x()
+            - target_rect.x())
+          .abs()
+            + (animation.target_rect.y() - target_rect.y()).abs()
+            + (animation.target_rect.width() - target_rect.width()).abs()
+            + (animation.target_rect.height() - target_rect.height())
+              .abs();
           target_distance > threshold
         }
       } else if let Some(prev_target) = previous_target {
@@ -405,10 +380,8 @@ impl AnimationManager {
     let threshold =
       config.value.animations.window_move.threshold_px as i32;
 
-    // Check if there's already an animation for this window
     let existing_animation = self.get_animation(&window_id).cloned();
 
-    // Decide whether to start a new animation
     let should_start = self.should_start_new_animation(
       &window_id,
       is_opening,
@@ -418,7 +391,6 @@ impl AnimationManager {
       config,
     );
 
-    // Start new animation if needed
     if should_start {
       if is_opening {
         let animation = WindowAnimationState::new_open(
@@ -427,28 +399,21 @@ impl AnimationManager {
         );
         self.start_animation(window_id, animation);
       } else if let Some(prev_target) = previous_target {
-        // Determine the start position for the new animation
+        // Determine the start position for the new animation.
         // Cancel and replace: start from current animated position if an
-        // animation is running
-        let start_rect = if let Some(existing_anim) = &existing_animation {
-          existing_anim.current_rect()
-        } else {
-          prev_target
-        };
+        // animation is running.
+        let start_rect = existing_animation
+          .as_ref()
+          .map_or(prev_target, WindowAnimationState::current_rect);
 
-        let animation_config = config.value.animations.window_move.clone();
-
-        // Create animation from current position to new target (cancel and
-        // replace)
         let animation = WindowAnimationState::new_movement(
           start_rect,
           target_rect.clone(),
-          &animation_config,
+          &config.value.animations.window_move,
         );
         self.start_animation(window_id, animation);
       }
 
-      // Create a visual overlay for the new animation.
       let initial_rect = self.get_animation(&window_id).map_or_else(
         || target_rect.clone(),
         WindowAnimationState::current_rect,
@@ -475,8 +440,6 @@ impl AnimationManager {
       }
     }
 
-    // Get the current animation state (re-fetch after potentially starting
-    // new animation)
     if let Some(animation) = self.get_animation(&window_id) {
       let has_overlay = self.has_overlay(&window_id);
 
@@ -488,13 +451,11 @@ impl AnimationManager {
         } else {
           animation.current_rect()
         },
-        opacity: animation.current_opacity(),
         has_overlay,
       }
     } else {
       AnimationStartResult {
         rect: target_rect,
-        opacity: None,
         has_overlay: false,
       }
     }

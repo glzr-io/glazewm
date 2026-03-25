@@ -286,6 +286,21 @@ impl Rect {
       self.bottom.max(other.bottom),
     )
   }
+
+  /// Grows or shrinks the rect around its center point.
+  #[must_use]
+  pub fn scale_from_center(&self, scale: f32) -> Self {
+    let center_x = self.x() + self.width() / 2;
+    let center_y = self.y() + self.height() / 2;
+
+    let new_width = (self.width() as f32 * scale).round() as i32;
+    let new_height = (self.height() as f32 * scale).round() as i32;
+
+    let new_x = center_x - new_width / 2;
+    let new_y = center_y - new_height / 2;
+
+    Rect::from_xy(new_x, new_y, new_width, new_height)
+  }
 }
 
 #[cfg(test)]

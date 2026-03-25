@@ -703,8 +703,7 @@ impl AnimationSurface {
     rect: &Rect,
     opacity: Option<f32>,
   ) -> crate::Result<LayerId> {
-    let overlay =
-      OverlayWindow::new(window_id, rect, &self.dispatcher)?;
+    let overlay = OverlayWindow::new(window_id, rect, &self.dispatcher)?;
 
     if let Some(alpha) = opacity {
       if let Err(err) = overlay.set_opacity(alpha) {

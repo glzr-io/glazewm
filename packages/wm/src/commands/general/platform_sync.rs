@@ -335,7 +335,6 @@ fn redraw_containers(
     } else {
       crate::animation::AnimationStartResult {
         rect: target_rect.clone(),
-        opacity: None,
         has_overlay: false,
       }
     };

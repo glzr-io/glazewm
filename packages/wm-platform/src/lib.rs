@@ -2,6 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![feature(iterator_try_collect)]
 
+mod animation_surface;
 mod dispatcher;
 mod display;
 mod display_listener;
@@ -11,13 +12,13 @@ mod keybinding_listener;
 mod models;
 mod mouse_listener;
 mod native_window;
-mod overlay_window;
 mod platform_event;
 mod platform_impl;
 mod single_instance;
 mod thread_bound;
 mod window_listener;
 
+pub use animation_surface::*;
 pub use dispatcher::*;
 pub use display::*;
 pub use display_listener::*;
@@ -27,7 +28,6 @@ pub use keybinding_listener::*;
 pub use models::*;
 pub use mouse_listener::*;
 pub use native_window::*;
-pub use overlay_window::*;
 pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;
