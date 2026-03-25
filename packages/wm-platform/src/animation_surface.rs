@@ -13,6 +13,8 @@ use objc2_app_kit::{
 #[cfg(target_os = "macos")]
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 #[cfg(target_os = "macos")]
+use objc2_core_graphics::CGImage;
+#[cfg(target_os = "macos")]
 #[allow(deprecated)]
 use objc2_core_graphics::{
   CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
@@ -25,9 +27,6 @@ use objc2_quartz_core::{CALayer, CATransaction};
 use crate::OpacityValue;
 #[cfg(target_os = "macos")]
 use crate::{Dispatcher, Rect, ThreadBound, WindowId};
-
-// ── macOS: AnimationSurface
-// ────────────────────────────────────────────────
 
 /// Opaque handle identifying a layer within an `AnimationSurface`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -69,7 +68,7 @@ impl AnimationSurface {
     let disp = dispatcher.clone();
 
     let inner = dispatcher.dispatch_sync(move || {
-      // SAFETY: `dispatch_sync` runs on the event loop (main) thread.
+      // SAFETY: `dispatch_sync` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
       let screens = NSScreen::screens(mtm);
@@ -197,24 +196,25 @@ impl AnimationSurface {
       // Set screenshot as layer contents and derive the layer size
       // from the actual image dimensions.
       let (img_w, img_h) = if let Some(ref cg_image) = cg_image {
-        let w = objc2_core_graphics::CGImage::width(Some(cg_image));
-        let h = objc2_core_graphics::CGImage::height(Some(cg_image));
+        let width = CGImage::width(Some(cg_image));
+        let height = CGImage::height(Some(cg_image));
 
         // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
         // a toll-free-bridged Core Foundation type.
         unsafe {
-          let img: &objc2_core_graphics::CGImage = cg_image;
+          let img: &CGImage = cg_image;
           let ptr: *const AnyObject =
-            (img as *const objc2_core_graphics::CGImage).cast();
+            std::ptr::from_ref::<CGImage>(img).cast();
           layer.setContents(Some(&*ptr));
         }
 
-        (w as f64 / inner.scale_factor, h as f64 / inner.scale_factor)
+        (
+          width as f64 / inner.scale_factor,
+          height as f64 / inner.scale_factor,
+        )
       } else {
         (f64::from(rect.width()), f64::from(rect.height()))
       };
-
-      // layer.setContentsScale(inner.scale_factor);
 
       // Position from the WM's rect; size from the captured image to
       // avoid a few-pixel mismatch between AX-reported and CG-actual
@@ -332,9 +332,6 @@ impl std::fmt::Debug for AnimationSurface {
     f.debug_struct("AnimationSurface").finish_non_exhaustive()
   }
 }
-
-// ── Windows: OverlayWindow + AnimationSurface
-// ────────────────────────────────────────────────
 
 #[cfg(target_os = "windows")]
 use std::cell::{Cell, RefCell};

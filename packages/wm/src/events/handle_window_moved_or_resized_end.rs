@@ -1,6 +1,7 @@
 use anyhow::Context;
 use wm_common::{
-  try_warn, FullscreenStateConfig, TilingDirection, WindowState,
+  try_warn, ActiveDragOperation, FullscreenStateConfig, TilingDirection,
+  WindowState,
 };
 use wm_platform::{LengthValue, Point, Rect};
 
@@ -130,16 +131,25 @@ pub fn handle_window_moved_or_resized_end(
         state,
       )?;
 
-      window.set_active_drag(None);
+      if window.active_drag().is_some_and(|drag| {
+        drag.operation == Some(ActiveDragOperation::Resize)
+      }) {
+        // Leave the window as-is for resize operations.
+        state
+          .pending_sync
+          .dequeue_container_from_redraw(window.clone());
+      } else {
+        // Force a redraw of the window to snap it back to its original
+        // position. This is necessary when:
+        // - The window is the only tiling window in the workspace.
+        // - The window is not past the movement threshold for
+        //   transitioning to floating while being dragged.
+        // - Resizing in a direction that doesn't change the window's
+        //   tiling size.
+        state.pending_sync.queue_container_to_redraw(window.clone());
+      }
 
-      // Force a redraw of the window to snap it back to its original
-      // position. This is necessary when:
-      // - The window is the only tiling window in the workspace.
-      // - The window is not past the movement threshold for transitioning
-      //   to floating while being dragged.
-      // - Resizing in a direction that doesn't change the window's tiling
-      //   size.
-      state.pending_sync.queue_container_to_redraw(window.clone());
+      window.set_active_drag(None);
     }
   }
 
