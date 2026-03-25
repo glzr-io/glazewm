@@ -150,7 +150,16 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
     .filter_map(|container| container.as_tiling_container().ok());
 
   for container in tiling_containers {
-    container.set_gaps_config(config.value.gaps.clone());
+    let gaps = container.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
+    );
+    container.set_gaps_config(gaps);
   }
 
   for workspace in state.workspaces() {
