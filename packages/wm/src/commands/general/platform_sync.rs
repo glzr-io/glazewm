@@ -296,48 +296,37 @@ fn redraw_containers(
     let previous_target =
       state.window_target_positions.get(&window.id()).cloned();
 
-    // Determine if this window is opening for the first time
-    // A window is opening if:
-    // 1. It's showing or shown (not hidden)
-    // 2. It has no previous target position (first time being positioned)
-    // This correctly detects new windows that are being positioned for the
-    // first time. Windows transitioning from hidden to shown during
-    // workspace switches will have a previous target position, so they
-    // won't trigger opening animations.
-    let is_opening = matches!(
-      window.display_state(),
-      DisplayState::Showing | DisplayState::Shown
-    ) && previous_target.is_none();
+    // Determine if this window is opening for the first time. A window is
+    // opening if it has no previous target position.
+    let is_opening = matches!(window.display_state(), DisplayState::Shown)
+      && previous_target.is_none();
 
-    // Update the stored target position (always do this, even if
-    // animations are skipped)
     state
       .window_target_positions
       .insert(window.id(), target_rect.clone());
 
-    // Determine if animations should be used for this window based on type
-    let should_use_animations =
+    // Determine if an animation should be started for this window.
+    let should_start_animation =
       !state.pending_sync.should_skip_animations()
-        && ((is_opening && config.value.animations.window_open.enabled)
-          || (!is_opening && config.value.animations.window_move.enabled));
+        && state.animation_manager.should_start_animation(
+          &window.id(),
+          is_opening,
+          &target_rect,
+          previous_target.as_ref(),
+          config,
+        );
 
-    // Determine the rect and opacity to use
-    let anim_result = if should_use_animations {
-      state.animation_manager.start_animation_if_needed(
+    if should_start_animation {
+      state.animation_manager.start_animation(
         window.id(),
         is_opening,
         target_rect.clone(),
-        previous_target,
-        config,
         &window.native(),
+        &window.native_properties(),
+        config,
         &state.dispatcher,
-      )
-    } else {
-      crate::animation::AnimationStartResult {
-        rect: target_rect.clone(),
-        has_overlay: false,
-      }
-    };
+      );
+    }
 
     tracing::debug!("Updating window position: {window}");
 
@@ -345,10 +334,10 @@ fn redraw_containers(
     // the overlay is the only visible representation.
     if let Err(err) = reposition_window(
       window,
-      &anim_result.rect,
+      &target_rect,
       *hide_corner,
       &z_order,
-      anim_result.has_overlay,
+      should_start_animation,
       is_visible,
       config,
     ) {

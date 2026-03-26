@@ -169,9 +169,38 @@ impl WindowManager {
     &mut self,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
-    use crate::animation::AnimationManager;
-    // Access animation_manager through state to avoid double borrow
-    AnimationManager::update(&mut self.state, config)
+    let completed_ids = self.state.animation_manager.update()?;
+
+    if !completed_ids.is_empty() {
+      // Queue windows that have completed animations for a final redraw at
+      // the target position.
+      for window_id in &completed_ids {
+        if let Some(container) = self.state.container_by_id(*window_id) {
+          if let Ok(window) = container.as_window_container() {
+            self.state.pending_sync.queue_container_to_redraw(window);
+          }
+        }
+      }
+
+      platform_sync(&mut self.state, config)?;
+
+      // Briefly keep overlay up to hide flicker during sync.
+      // TODO: This shouldn't block the thread.
+      std::thread::sleep(std::time::Duration::from_millis(20));
+
+      // Destroy overlays after the real windows have been repositioned.
+      for window_id in &completed_ids {
+        let _ = self.state.animation_manager.destroy_overlay(window_id);
+      }
+    }
+
+    // Continue timer if there are still active animations.
+    self
+      .state
+      .animation_manager
+      .ensure_timer_running(&self.state, config);
+
+    Ok(())
   }
 
   pub fn process_commands(

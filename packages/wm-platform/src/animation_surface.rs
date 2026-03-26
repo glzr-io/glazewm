@@ -260,7 +260,7 @@ impl AnimationSurface {
           layer.setFrame(frame);
 
           if let Some(opacity) = opacity {
-            layer.setOpacity(opacity.to_f32());
+            layer.setOpacity(opacity.0);
           }
         }
       }

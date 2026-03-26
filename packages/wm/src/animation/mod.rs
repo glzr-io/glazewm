@@ -1,4 +1,4 @@
 pub mod manager;
 pub mod state;
 
-pub use manager::{AnimationManager, AnimationStartResult};
+pub use manager::AnimationManager;

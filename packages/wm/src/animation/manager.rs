@@ -9,26 +9,14 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_platform::{AnimationSurface, LayerId, Rect};
-
-use crate::{
-  animation::state::WindowAnimationState,
-  commands::general::platform_sync, traits::CommonGetters,
-  user_config::UserConfig, wm_state::WmState,
+use wm_platform::{
+  AnimationSurface, Dispatcher, LayerId, NativeWindow, Rect,
 };
 
-/// Result of starting an animation, indicating how the caller should
-/// handle the real window.
-pub struct AnimationStartResult {
-  /// The rect to use for the real window. When an overlay is active this
-  /// is the target rect (real window is hidden). Otherwise it is the
-  /// interpolated animated rect.
-  pub rect: Rect,
-
-  /// Whether an overlay is handling the visual animation. When `true`,
-  /// the caller should hide the real window.
-  pub has_overlay: bool,
-}
+use crate::{
+  animation::state::WindowAnimationState, models::NativeWindowProperties,
+  traits::CommonGetters, user_config::UserConfig,
+};
 
 /// Manages animations for all windows.
 pub struct AnimationManager {
@@ -59,53 +47,9 @@ impl AnimationManager {
     }
   }
 
-  /// Starts a new animation for a window.
-  pub fn start_animation(
-    &mut self,
-    window_id: Uuid,
-    animation: WindowAnimationState,
-  ) {
-    self.animations.insert(window_id, animation);
-  }
-
-  /// Gets the current state of a window's animation.
-  pub fn get_animation(
-    &self,
-    window_id: &Uuid,
-  ) -> Option<&WindowAnimationState> {
-    self.animations.get(window_id)
-  }
-
-  /// Removes a window's animation.
+  /// Removes a window's animation state.
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
-  }
-
-  /// Removes all completed animations and returns the list of window IDs
-  /// that had animations complete.
-  pub fn remove_completed_animations(&mut self) -> Vec<Uuid> {
-    let completed_ids: Vec<Uuid> = self
-      .animations
-      .iter()
-      .filter(|(_, anim)| anim.is_complete())
-      .map(|(id, _)| *id)
-      .collect();
-
-    for id in &completed_ids {
-      self.animations.remove(id);
-    }
-
-    completed_ids
-  }
-
-  /// Whether there are any active animations.
-  pub fn has_active_animations(&self) -> bool {
-    !self.animations.is_empty()
-  }
-
-  /// Gets all active animation window IDs.
-  pub fn active_window_ids(&self) -> Vec<Uuid> {
-    self.animations.keys().copied().collect()
   }
 
   /// Ensures the animation timer is running if there are active
@@ -125,16 +69,19 @@ impl AnimationManager {
 
     let refresh_rate = state
       .focused_container()
+      // TODO: The focused monitor may not be the one with the animation.
       .and_then(|c| CommonGetters::monitor(&c))
       .and_then(|m| m.native_properties().refresh_rate)
       .unwrap_or(config.value.animations.max_frame_rate);
 
     let frame_rate =
-      refresh_rate.max(config.value.animations.max_frame_rate);
+      refresh_rate.min(config.value.animations.max_frame_rate);
 
     // Convert refresh rate to milliseconds per frame.
     let frame_time_ms = 1000 / frame_rate;
 
+    // TODO: The spawned interval always ticks, even if an animation is not
+    // active.
     tokio::spawn(async move {
       let mut interval = tokio::time::interval(
         tokio::time::Duration::from_millis(u64::from(frame_time_ms)),
@@ -153,11 +100,6 @@ impl AnimationManager {
     });
   }
 
-  /// Returns whether a visual overlay exists for the given window.
-  fn has_overlay(&self, window_id: &Uuid) -> bool {
-    self.layer_ids.contains_key(window_id)
-  }
-
   /// Creates or replaces the visual overlay for a window animation.
   ///
   /// Reuses the existing `AnimationSurface` if available, showing it
@@ -165,13 +107,13 @@ impl AnimationManager {
   fn create_overlay(
     &mut self,
     window_id: Uuid,
-    native_window: &wm_platform::NativeWindow,
+    native_window: &NativeWindow,
     initial_rect: &Rect,
     opacity: Option<f32>,
-    dispatcher: &wm_platform::Dispatcher,
+    dispatcher: &Dispatcher,
   ) {
     // Remove any existing layer for this window.
-    self.destroy_overlay(&window_id);
+    let _ = self.destroy_overlay(&window_id);
 
     // Reuse the existing surface, or create one on first use.
     if let Some(surface) = &self.surface {
@@ -202,122 +144,84 @@ impl AnimationManager {
   }
 
   /// Removes the visual overlay for a window.
-  fn destroy_overlay(&mut self, window_id: &Uuid) {
+  pub fn destroy_overlay(
+    &mut self,
+    window_id: &Uuid,
+  ) -> anyhow::Result<()> {
     if let Some(layer_id) = self.layer_ids.remove(window_id) {
       if let Some(surface) = &mut self.surface {
-        if let Err(err) = surface.remove_layer(layer_id) {
-          tracing::warn!("Failed to remove animation layer: {}", err);
-        }
+        surface.remove_layer(layer_id)?;
       }
     }
+
+    // Hide the shared surface when no layers remain. The surface is kept
+    // alive for reuse.
+    if self.layer_ids.is_empty() {
+      if let Some(surface) = &self.surface {
+        surface.hide()?;
+      }
+    }
+
+    Ok(())
   }
 
-  /// Sends updated positions and opacities to the visual overlays for
-  /// all in-progress animations.
-  fn update_overlays(&self, active_ids: &[Uuid]) {
-    let updates: Vec<_> = active_ids
+  /// Updates all active animations and returns the IDs of any that
+  /// completed during this tick.
+  pub fn update(&mut self) -> anyhow::Result<Vec<Uuid>> {
+    if self.animations.is_empty() {
+      return Ok(Vec::new());
+    }
+
+    // Update overlay positions for in-progress animations.
+    let updates: Vec<_> = self
+      .animations
       .iter()
-      .filter_map(|id| {
-        let anim = self.get_animation(id)?;
+      .filter(|(_, anim)| !anim.is_complete())
+      .filter_map(|(id, anim)| {
         let layer_id = self.layer_ids.get(id)?;
         Some((*layer_id, anim.current_rect(), anim.current_opacity()))
       })
       .collect();
 
     if let Some(surface) = &self.surface {
-      if let Err(err) = surface.update_layers(updates) {
-        tracing::warn!("Failed to update animation layers: {}", err);
-      }
-    }
-  }
-
-  /// Hides the shared surface when no layers remain.
-  ///
-  /// The surface is kept alive for reuse.
-  fn hide_surface_if_empty(&mut self) {
-    if self.layer_ids.is_empty() {
-      if let Some(surface) = &self.surface {
-        if let Err(err) = surface.hide() {
-          tracing::warn!("Failed to hide animation surface: {}", err);
-        }
-      }
-    }
-  }
-
-  /// Updates all active animations and redraws windows that are animating.
-  pub fn update(
-    state: &mut WmState,
-    config: &UserConfig,
-  ) -> anyhow::Result<()> {
-    if !state.animation_manager.has_active_animations() {
-      return Ok(());
+      surface.update_layers(updates)?;
     }
 
-    // Collect IDs of in-progress (not yet complete) animations.
-    let active_ids: Vec<_> = state
-      .animation_manager
-      .active_window_ids()
-      .into_iter()
-      .filter(|id| {
-        state
-          .animation_manager
-          .get_animation(id)
-          .is_some_and(|anim| !anim.is_complete())
-      })
+    // Remove completed animations and return their IDs.
+    let completed: Vec<Uuid> = self
+      .animations
+      .iter()
+      .filter(|(_, anim)| anim.is_complete())
+      .map(|(id, _)| *id)
       .collect();
 
-    // Update overlay positions directly without moving real windows.
-    state.animation_manager.update_overlays(&active_ids);
-
-    // Remove completed animations and queue their windows for a final
-    // redraw at the target position.
-    let completed_ids =
-      state.animation_manager.remove_completed_animations();
-
-    for window_id in &completed_ids {
-      if let Some(container) = state.container_by_id(*window_id) {
-        if let Ok(window) = container.as_window_container() {
-          state.pending_sync.queue_container_to_redraw(window);
-        }
-      }
+    for id in &completed {
+      self.animations.remove(id);
     }
 
-    // Sync platform for completed animations (final positioning).
-    if state.pending_sync.has_changes() {
-      platform_sync(state, config)?;
-
-      // Briefly keep overlay up to hide flicker during sync.
-      // TODO: This shouldn't block the main thread.
-      std::thread::sleep(std::time::Duration::from_millis(20));
-
-      // Destroy overlays after the real windows have been repositioned so
-      // there is no visible gap.
-      for window_id in &completed_ids {
-        state.animation_manager.destroy_overlay(window_id);
-      }
-
-      // Hide the shared surface when all layers are gone (kept alive for
-      // reuse).
-      state.animation_manager.hide_surface_if_empty();
-    }
-
-    // Continue timer if there are still active animations.
-    state.animation_manager.ensure_timer_running(state, config);
-
-    Ok(())
+    Ok(completed)
   }
 
   /// Determines whether a new animation should be started for a window.
-  fn should_start_new_animation(
+  pub fn should_start_animation(
     &self,
     window_id: &Uuid,
     is_opening: bool,
     target_rect: &Rect,
     previous_target: Option<&Rect>,
-    threshold: i32,
     config: &UserConfig,
   ) -> bool {
-    let existing_animation = self.get_animation(window_id);
+    if is_opening && !config.value.animations.window_open.enabled
+      || (!is_opening && !config.value.animations.window_move.enabled)
+    {
+      return false;
+    }
+
+    #[allow(clippy::cast_possible_wrap)]
+    let threshold =
+      config.value.animations.window_move.threshold_px as i32;
+
+    let existing_animation = self.animations.get(window_id);
 
     if is_opening && config.value.animations.window_open.enabled {
       existing_animation.is_none()
@@ -357,107 +261,54 @@ impl AnimationManager {
     }
   }
 
-  /// Starts an animation if needed and returns information about how the
-  /// caller should handle the real window.
+  /// Starts an animation.
   #[allow(clippy::too_many_arguments)]
-  pub fn start_animation_if_needed(
+  pub fn start_animation(
     &mut self,
     window_id: Uuid,
     is_opening: bool,
     target_rect: Rect,
-    previous_target: Option<Rect>,
+    native_window: &NativeWindow,
+    window_properties: &NativeWindowProperties,
     config: &UserConfig,
-    native_window: &wm_platform::NativeWindow,
-    dispatcher: &wm_platform::Dispatcher,
-  ) -> AnimationStartResult {
-    #[allow(clippy::cast_possible_wrap)]
-    let threshold =
-      config.value.animations.window_move.threshold_px as i32;
+    dispatcher: &Dispatcher,
+  ) {
+    let existing_animation = self.animations.get(&window_id);
 
-    let existing_animation = self.get_animation(&window_id).cloned();
-
-    let should_start = self.should_start_new_animation(
-      &window_id,
-      is_opening,
-      &target_rect,
-      previous_target.as_ref(),
-      threshold,
-      config,
-    );
-
-    if should_start {
-      if is_opening {
-        let animation = WindowAnimationState::new_open(
-          target_rect.clone(),
-          &config.value.animations.window_open,
-        );
-        self.start_animation(window_id, animation);
-      } else if let Some(prev_target) = previous_target {
-        // Determine the start position for the new animation.
-        // Cancel and replace: start from current animated position if an
-        // animation is running.
-        let start_rect = existing_animation
-          .as_ref()
-          .map_or(prev_target, WindowAnimationState::current_rect);
-
-        let animation = WindowAnimationState::new_movement(
-          start_rect,
-          target_rect.clone(),
-          &config.value.animations.window_move,
-        );
-        self.start_animation(window_id, animation);
-      }
-
-      let initial_rect = self.get_animation(&window_id).map_or_else(
-        || target_rect.clone(),
+    let animation = if is_opening {
+      WindowAnimationState::new(
+        target_rect.scale_from_center(0.9),
+        target_rect,
+        &config.value.animations.window_open,
+      )
+    } else {
+      let start_rect = existing_animation.map_or_else(
+        || window_properties.frame.clone(),
         WindowAnimationState::current_rect,
       );
 
-      let initial_opacity = self
-        .get_animation(&window_id)
-        .and_then(WindowAnimationState::current_opacity)
-        .map(|o| o.to_f32());
+      WindowAnimationState::new(
+        start_rect,
+        target_rect,
+        &config.value.animations.window_move,
+      )
+    };
 
-      self.create_overlay(
-        window_id,
-        native_window,
-        &initial_rect,
-        initial_opacity,
-        dispatcher,
-      );
+    self.animations.insert(window_id, animation.clone());
 
-      // Start the timer after the overlay has been created.
-      // TODO: Start times for animations will differ slightly between
-      // windows within the same platform sync.
-      if let Some(animation) = self.animations.get_mut(&window_id) {
-        animation.start_time = Instant::now();
-      }
+    self.create_overlay(
+      window_id,
+      native_window,
+      &animation.current_rect(),
+      animation.current_opacity().map(|opacity| opacity.0),
+      dispatcher,
+    );
+
+    // Start the timer after the overlay has been created.
+    // TODO: Start times for animations will differ slightly between
+    // windows within the same platform sync.
+    if let Some(animation) = self.animations.get_mut(&window_id) {
+      animation.start_time = Instant::now();
     }
-
-    if let Some(animation) = self.get_animation(&window_id) {
-      let has_overlay = self.has_overlay(&window_id);
-
-      AnimationStartResult {
-        rect: if has_overlay {
-          // With an overlay the real window is hidden, so move it to the
-          // target immediately.
-          target_rect
-        } else {
-          animation.current_rect()
-        },
-        has_overlay,
-      }
-    } else {
-      AnimationStartResult {
-        rect: target_rect,
-        has_overlay: false,
-      }
-    }
-  }
-
-  /// Cancels any active overlay for the given window and destroys it.
-  pub fn cancel_overlay(&mut self, window_id: &Uuid) {
-    self.destroy_overlay(window_id);
-    self.hide_surface_if_empty();
   }
 }
