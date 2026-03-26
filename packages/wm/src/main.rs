@@ -34,7 +34,7 @@ use crate::{
   wm::WindowManager,
 };
 
-mod animation;
+mod animation_manager;
 mod commands;
 mod events;
 mod ipc_server;

@@ -12,7 +12,7 @@ use wm_platform::{
 use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
-  animation::AnimationManager,
+  animation_manager::AnimationManager,
   commands::{
     container::set_focused_descendant,
     general::platform_sync,
