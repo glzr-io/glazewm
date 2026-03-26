@@ -76,9 +76,11 @@ pub fn manage_window(
       if window.state() == WindowState::Tiling {
         window.parent().context("No parent.")?
       } else {
-        window.into()
+        window.clone().into()
       },
     );
+
+    state.pending_sync.queue_open_animation_window(window);
   }
 
   Ok(())

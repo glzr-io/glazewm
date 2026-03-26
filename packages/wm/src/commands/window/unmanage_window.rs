@@ -25,7 +25,6 @@ pub fn unmanage_window(
   detach_container(window.clone().into())?;
 
   // Clean up animation tracking data.
-  state.window_target_positions.remove(&window.id());
   state.animation_manager.remove_animation(&window.id());
   state.animation_manager.destroy_layer(&window.id())?;
 

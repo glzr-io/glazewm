@@ -265,19 +265,17 @@ impl AnimationManager {
       surface.update_layers(updates)?;
     }
 
-    // Remove completed animations and return their IDs.
-    let completed: Vec<Uuid> = self
-      .animations
-      .iter()
-      .filter(|(_, anim)| anim.is_complete())
-      .map(|(id, _)| *id)
-      .collect();
-
-    for id in &completed {
-      self.animations.remove(id);
-    }
-
-    Ok(completed)
+    // Return IDs of completed animations. Removal is deferred so that
+    // `should_start_animation` can still read their `target_rect` during
+    // the final redraw.
+    Ok(
+      self
+        .animations
+        .iter()
+        .filter(|(_, anim)| anim.is_complete())
+        .map(|(id, _)| *id)
+        .collect::<Vec<_>>(),
+    )
   }
 
   /// Determines whether a new animation should be started for a window.
@@ -286,56 +284,33 @@ impl AnimationManager {
     window_id: &Uuid,
     is_opening: bool,
     target_rect: &Rect,
-    previous_target: Option<&Rect>,
+    window_properties: &NativeWindowProperties,
     config: &UserConfig,
   ) -> bool {
-    if is_opening && !config.value.animations.window_open.enabled
-      || (!is_opening && !config.value.animations.window_move.enabled)
-    {
-      return false;
-    }
-
-    #[allow(clippy::cast_possible_wrap)]
-    let threshold =
-      config.value.animations.window_move.threshold_px as i32;
-
-    let existing_animation = self.animations.get(window_id);
-
-    if is_opening && config.value.animations.window_open.enabled {
-      existing_animation.is_none()
-    } else if !is_opening && config.value.animations.window_move.enabled {
-      if let Some(animation) = existing_animation {
-        // Don't restart animations that are completing or already at
-        // target
-        if animation.is_complete() {
-          false
-        } else {
-          // Check if target has changed significantly from the animation's
-          // current target Use a reasonable threshold to avoid
-          // creating animations for every tiny change
-          let target_distance = (animation.target_rect.x()
-            - target_rect.x())
-          .abs()
-            + (animation.target_rect.y() - target_rect.y()).abs()
-            + (animation.target_rect.width() - target_rect.width()).abs()
-            + (animation.target_rect.height() - target_rect.height())
-              .abs();
-          target_distance > threshold
-        }
-      } else if let Some(prev_target) = previous_target {
-        // Compare previous target to new target, not current position to
-        // target.
-        let distance = (prev_target.x() - target_rect.x()).abs()
-          + (prev_target.y() - target_rect.y()).abs()
-          + (prev_target.width() - target_rect.width()).abs()
-          + (prev_target.height() - target_rect.height()).abs();
-        distance > threshold
-      } else {
-        // First time seeing this window, no animation needed.
-        false
+    match is_opening {
+      true if config.value.animations.window_open.enabled => {
+        !self.animations.contains_key(window_id)
       }
-    } else {
-      false
+      false if config.value.animations.window_move.enabled => {
+        // If the window is mid-animation, compare the previous animation
+        // target to the new target.
+        let prev_rect = self
+          .animations
+          .get(window_id)
+          .map_or(&window_properties.frame, |anim| &anim.target_rect);
+
+        let distance = (prev_rect.x() - target_rect.x()).abs()
+          + (prev_rect.y() - target_rect.y()).abs()
+          + (prev_rect.width() - target_rect.width()).abs()
+          + (prev_rect.height() - target_rect.height()).abs();
+
+        #[allow(clippy::cast_possible_wrap)]
+        let threshold_px =
+          config.value.animations.window_move.threshold_px as i32;
+
+        distance > threshold_px
+      }
+      _ => false,
     }
   }
 

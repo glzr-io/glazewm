@@ -292,18 +292,9 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    // Get the previous target position before updating
-    let previous_target =
-      state.window_target_positions.get(&window.id()).cloned();
-
-    // Determine if this window is opening for the first time. A window is
-    // opening if it has no previous target position.
-    let is_opening = matches!(window.display_state(), DisplayState::Shown)
-      && previous_target.is_none();
-
-    state
-      .window_target_positions
-      .insert(window.id(), target_rect.clone());
+    // Determine if this window should have an opening animation.
+    let is_opening = is_visible
+      && state.pending_sync.open_animation_windows().contains(window);
 
     // Determine if an animation should be started for this window.
     let should_start_animation =
@@ -312,7 +303,7 @@ fn redraw_containers(
           &window.id(),
           is_opening,
           &target_rect,
-          previous_target.as_ref(),
+          &window.native_properties(),
           config,
         );
 
@@ -441,7 +432,7 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
   } else {
     #[cfg(target_os = "macos")]
-    window.native().set_frame(&rect)?;
+    window.native().set_frame(rect)?;
 
     #[cfg(target_os = "windows")]
     {
