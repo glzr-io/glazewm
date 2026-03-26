@@ -358,16 +358,12 @@ fn redraw_containers(
           _ => false,
         };
 
-      let is_currently_fullscreen =
-        matches!(window.state(), WindowState::Fullscreen(_));
-
-      if is_currently_fullscreen {
-        if let Err(err) = window.native().mark_fullscreen(true) {
+      if is_transitioning_fullscreen {
+        if let Err(err) = window.native().mark_fullscreen(matches!(
+          window.state(),
+          WindowState::Fullscreen(_)
+        )) {
           tracing::warn!("Failed to mark window as fullscreen: {}", err);
-        }
-      } else if is_transitioning_fullscreen {
-        if let Err(err) = window.native().mark_fullscreen(false) {
-          tracing::warn!("Failed to unmark window as fullscreen: {}", err);
         }
       }
     }
