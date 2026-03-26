@@ -15,46 +15,36 @@ use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 #[cfg(target_os = "macos")]
 use objc2_core_graphics::CGImage;
 #[cfg(target_os = "macos")]
-#[allow(deprecated)]
-use objc2_core_graphics::{
-  CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
-};
-#[cfg(target_os = "macos")]
 use objc2_foundation::NSRect;
 #[cfg(target_os = "macos")]
 use objc2_quartz_core::{CALayer, CATransaction};
 
 use crate::OpacityValue;
 #[cfg(target_os = "macos")]
-use crate::{Dispatcher, Rect, ThreadBound, WindowId};
+use crate::{
+  Dispatcher, NativeWindow, NativeWindowExtMacOs, Rect, ThreadBound,
+};
 
-/// Opaque handle identifying a layer within an `AnimationSurface`.
+/// Identifier for a layer within an `AnimationSurface`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LayerId(u64);
 
-/// Per-surface state, bound to the event loop thread.
+/// A transparent `NSWindow` with `CALayer` sublayers for animating window
+/// screenshots.
+///
+/// This uses a single container window covering all screens, with one
+/// `CALayer` per animation. Core Animation handles GPU compositing.
 #[cfg(target_os = "macos")]
-struct AnimationSurfaceInner {
-  ns_window: Retained<NSWindow>,
-  root_layer: Retained<CALayer>,
-  layers: HashMap<LayerId, Retained<CALayer>>,
+pub struct AnimationSurface {
+  ns_window: ThreadBound<Retained<NSWindow>>,
+  root_layer: ThreadBound<Retained<CALayer>>,
+  layers: ThreadBound<HashMap<LayerId, Retained<CALayer>>>,
   next_id: u64,
   /// Top-left of the container window in CG (screen) coordinates.
   cg_origin_x: f64,
   cg_origin_y: f64,
   /// Backing scale factor for Retina content.
   scale_factor: f64,
-}
-
-/// A single transparent `NSWindow` with `CALayer` sublayers for animating
-/// window screenshots.
-///
-/// Instead of one `NSWindow` per animating window, this uses a single
-/// container window covering all screens, with one `CALayer` per
-/// animation. Core Animation handles GPU compositing.
-#[cfg(target_os = "macos")]
-pub struct AnimationSurface {
-  inner: ThreadBound<AnimationSurfaceInner>,
 }
 
 #[cfg(target_os = "macos")]
@@ -64,10 +54,18 @@ impl AnimationSurface {
   /// The window is transparent, ignores mouse events, and has its root
   /// layer's geometry flipped so sublayer origins match CG screen
   /// coordinates (top-left).
+  #[allow(clippy::missing_panics_doc)]
   pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    let disp = dispatcher.clone();
+    let dispatcher_clone = dispatcher.clone();
 
-    let inner = dispatcher.dispatch_sync(move || {
+    let (
+      ns_window,
+      root_layer,
+      layers,
+      cg_origin_x,
+      cg_origin_y,
+      scale_factor,
+    ) = dispatcher.dispatch_sync(move || {
       // SAFETY: `dispatch_sync` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -133,117 +131,100 @@ impl AnimationSurface {
         .and_then(|v| v.layer())
         .expect("layer must exist after setWantsLayer");
 
-      // Flip geometry so sublayer y=0 is at the top, matching CG
-      // screen coordinates.
+      // Flip the y-axis, so that layers can use CG screen coordinates.
       root_layer.setGeometryFlipped(true);
 
       window.orderFrontRegardless();
 
-      ThreadBound::new(
-        AnimationSurfaceInner {
-          ns_window: window,
-          root_layer,
-          layers: HashMap::new(),
-          next_id: 0,
-          cg_origin_x,
-          cg_origin_y,
-          scale_factor,
-        },
-        disp,
+      (
+        ThreadBound::new(window, dispatcher_clone.clone()),
+        ThreadBound::new(root_layer, dispatcher_clone.clone()),
+        ThreadBound::new(HashMap::new(), dispatcher_clone),
+        cg_origin_x,
+        cg_origin_y,
+        scale_factor,
       )
     })?;
 
-    Ok(Self { inner })
+    Ok(Self {
+      ns_window,
+      root_layer,
+      layers,
+      next_id: 0,
+      cg_origin_x,
+      cg_origin_y,
+      scale_factor,
+    })
   }
 
   /// Screenshots the target window and adds a `CALayer` sublayer.
   ///
   /// Returns a `LayerId` handle for future updates and removal.
-  #[allow(deprecated)]
   pub fn add_layer(
     &mut self,
-    window_id: WindowId,
+    window: &NativeWindow,
     rect: &Rect,
     opacity: Option<f32>,
   ) -> crate::Result<LayerId> {
-    let wid = window_id.0;
     let rect = rect.clone();
+    let cg_image = window.screen_capture()?;
 
-    self.inner.with_mut(move |inner| {
-      // Use `CGRectNull` so the API captures the window's actual bounds
-      // rather than a manually-constructed rect that may not match
-      // exactly (shadow offsets, title bar, rounding).
-      let cg_rect_null = CGRect::new(
-        CGPoint {
-          x: f64::INFINITY,
-          y: f64::INFINITY,
-        },
-        CGSize::ZERO,
-      );
+    let scale_factor = self.scale_factor;
+    let cg_origin_x = self.cg_origin_x;
+    let cg_origin_y = self.cg_origin_y;
+    let root_layer = &self.root_layer;
 
-      // NOTE: `CGWindowListCreateImage` is deprecated, but functional.
-      // ScreenCaptureKit is recommended instead, see: https://developer.apple.com/documentation/screencapturekit/scwindow.
-      let cg_image = CGWindowListCreateImage(
-        cg_rect_null,
-        CGWindowListOption::OptionIncludingWindow,
-        wid,
-        CGWindowImageOption::BestResolution
-          .union(CGWindowImageOption::BoundsIgnoreFraming),
-      );
+    let id = LayerId(self.next_id);
+    self.next_id += 1;
 
-      let layer = CALayer::new();
+    self
+      .layers
+      .with_mut(move |layers| -> crate::Result<LayerId> {
+        let layer = CALayer::new();
 
-      // Set screenshot as layer contents and derive the layer size
-      // from the actual image dimensions.
-      let (img_w, img_h) = if let Some(ref cg_image) = cg_image {
-        let width = CGImage::width(Some(cg_image));
-        let height = CGImage::height(Some(cg_image));
-
-        // SAFETY: `CGImageRef` is accepted by `CALayer.contents` as
-        // a toll-free-bridged Core Foundation type.
+        // Set screenshot as layer contents.
+        // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
         unsafe {
-          let img: &CGImage = cg_image;
-          let ptr: *const AnyObject =
-            std::ptr::from_ref::<CGImage>(img).cast();
-          layer.setContents(Some(&*ptr));
+          layer.setContents(Some(
+            &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
+          ));
+        };
+
+        // Get frame using the size of the captured image.
+        let frame = {
+          #[allow(clippy::cast_precision_loss)]
+          let image_width =
+            CGImage::width(Some(&cg_image)) as f64 / scale_factor;
+
+          #[allow(clippy::cast_precision_loss)]
+          let image_height =
+            CGImage::height(Some(&cg_image)) as f64 / scale_factor;
+
+          CGRect::new(
+            CGPoint {
+              x: f64::from(rect.x()) - cg_origin_x,
+              // Offset by the height of the title bar.
+              y: f64::from(rect.y()) - cg_origin_y + 25.,
+            },
+            CGSize {
+              width: image_width,
+              height: image_height,
+            },
+          )
+        };
+
+        layer.setFrame(frame);
+
+        if let Some(alpha) = opacity {
+          layer.setOpacity(alpha);
         }
 
-        (
-          width as f64 / inner.scale_factor,
-          height as f64 / inner.scale_factor,
-        )
-      } else {
-        (f64::from(rect.width()), f64::from(rect.height()))
-      };
+        let root_layer = root_layer.get_ref()?;
+        root_layer.addSublayer(&layer);
+        layers.insert(id, layer);
 
-      // Position from the WM's rect; size from the captured image to
-      // avoid a few-pixel mismatch between AX-reported and CG-actual
-      // window bounds.
-      let frame = CGRect::new(
-        CGPoint {
-          x: f64::from(rect.x()) - inner.cg_origin_x,
-          // Offset by the height of the title bar.
-          y: f64::from(rect.y()) - inner.cg_origin_y + 25.,
-        },
-        CGSize {
-          width: img_w,
-          height: img_h,
-        },
-      );
-      layer.setFrame(frame);
-
-      if let Some(alpha) = opacity {
-        layer.setOpacity(alpha);
-      }
-
-      inner.root_layer.addSublayer(&layer);
-
-      let id = LayerId(inner.next_id);
-      inner.next_id += 1;
-      inner.layers.insert(id, layer);
-
-      id
-    })
+        Ok(id)
+      })?
   }
 
   /// Updates frame and opacity for active layers in a single
@@ -255,23 +236,27 @@ impl AnimationSurface {
     &self,
     updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
   ) -> crate::Result<()> {
-    self.inner.with(move |inner| {
+    let cg_origin_x = self.cg_origin_x;
+    let cg_origin_y = self.cg_origin_y;
+
+    self.layers.with(move |layers| -> crate::Result<()> {
       CATransaction::begin();
       CATransaction::setDisableActions(true);
 
       for (id, rect, opacity) in &updates {
-        if let Some(layer) = inner.layers.get(id) {
+        if let Some(layer) = layers.get(id) {
           let frame = CGRect::new(
             CGPoint {
-              x: f64::from(rect.x()) - inner.cg_origin_x,
+              x: f64::from(rect.x()) - cg_origin_x,
               // Offset by the height of the title bar.
-              y: f64::from(rect.y()) - inner.cg_origin_y + 25.,
+              y: f64::from(rect.y()) - cg_origin_y + 25.,
             },
             CGSize {
               width: f64::from(rect.width()),
               height: f64::from(rect.height()),
             },
           );
+
           layer.setFrame(frame);
 
           if let Some(opacity) = opacity {
@@ -281,13 +266,14 @@ impl AnimationSurface {
       }
 
       CATransaction::commit();
-    })
+      Ok(())
+    })?
   }
 
   /// Removes a sublayer from the surface.
   pub fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
-    self.inner.with_mut(move |inner| {
-      if let Some(layer) = inner.layers.remove(&id) {
+    self.layers.with_mut(move |layers| {
+      if let Some(layer) = layers.remove(&id) {
         layer.removeFromSuperlayer();
       }
     })
@@ -295,7 +281,7 @@ impl AnimationSurface {
 
   /// Returns whether the surface has any active layers.
   pub fn has_layers(&self) -> crate::Result<bool> {
-    self.inner.with(|inner| !inner.layers.is_empty())
+    self.layers.with(|layers| !layers.is_empty())
   }
 
   /// Hides the container window without destroying it.
@@ -303,9 +289,7 @@ impl AnimationSurface {
   /// The surface can be shown again later via `show`, avoiding the cost
   /// of recreating the `NSWindow` and root layer.
   pub fn hide(&self) -> crate::Result<()> {
-    self.inner.with(|inner| {
-      inner.ns_window.orderOut(None);
-    })
+    self.ns_window.with(|w| w.orderOut(None))
   }
 
   /// Shows the container window, bringing it to the front.
@@ -313,23 +297,12 @@ impl AnimationSurface {
   /// Used to re-activate a previously hidden surface without
   /// recreating it.
   pub fn show(&self) -> crate::Result<()> {
-    self.inner.with(|inner| {
-      inner.ns_window.orderFrontRegardless();
-    })
+    self.ns_window.with(|w| w.orderFrontRegardless())
   }
 
   /// Destroys the container window and all layers.
   pub fn destroy(self) -> crate::Result<()> {
-    self.inner.with(|inner| {
-      inner.ns_window.orderOut(None);
-    })
-  }
-}
-
-#[cfg(target_os = "macos")]
-impl std::fmt::Debug for AnimationSurface {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("AnimationSurface").finish_non_exhaustive()
+    self.ns_window.with(|w| w.orderOut(None))
   }
 }
 
@@ -358,42 +331,13 @@ use windows::{
 };
 
 #[cfg(target_os = "windows")]
-use crate::{Dispatcher, Rect, ThreadBound, WindowId};
-
-// Raw declaration for `PrintWindow`, which is absent from windows-rs 0.52
-// bindings. Provided by `user32.dll` (already linked via the windows
-// crate).
-#[cfg(target_os = "windows")]
-extern "system" {
-  fn PrintWindow(hwnd: HWND, hdcblt: HDC, nflags: u32) -> i32;
-}
-
-/// `PW_RENDERFULLCONTENT` — instructs `PrintWindow` to capture
-/// DWM-composited content such as DirectX surfaces.
-#[cfg(target_os = "windows")]
-const PW_RENDERFULLCONTENT: u32 = 2;
-
-/// Default window procedure wrapper for the overlay class.
-///
-/// Required because `DefWindowProcW` in windows-rs 0.52 is a generic
-/// function and cannot be used as a bare function pointer.
-#[cfg(target_os = "windows")]
-unsafe extern "system" fn overlay_wnd_proc(
-  hwnd: HWND,
-  msg: u32,
-  wparam: WPARAM,
-  lparam: LPARAM,
-) -> LRESULT {
-  DefWindowProcW(hwnd, msg, wparam, lparam)
-}
+use crate::{Dispatcher, NativeWindow, NativeWindowWindowsExt, Rect};
 
 /// Guard ensuring the overlay window class is registered at most once per
 /// process.
 #[cfg(target_os = "windows")]
 static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
 
-/// Per-overlay Win32 resources, bound to the event loop thread via
-/// `ThreadBound`.
 #[cfg(target_os = "windows")]
 struct OverlayState {
   /// Overlay `HWND` stored as `isize` (`HWND` is `!Send`).
@@ -416,8 +360,6 @@ struct OverlayState {
 
 #[cfg(target_os = "windows")]
 impl Drop for OverlayState {
-  /// Destroys Win32 resources. Runs on the event loop thread, guaranteed
-  /// by `ThreadBound::drop`.
   fn drop(&mut self) {
     unsafe {
       let _ = DestroyWindow(HWND(self.hwnd));
@@ -429,103 +371,78 @@ impl Drop for OverlayState {
 
 /// A borderless layered overlay window displaying a screenshot of a real
 /// window.
-///
-/// Used for smooth animations — animating our own layered window with
-/// `UpdateLayeredWindow` is cheaper than re-positioning third-party
-/// windows on every frame.
 #[cfg(target_os = "windows")]
 pub struct OverlayWindow {
-  inner: ThreadBound<OverlayState>,
+  inner: OverlayState,
 }
 
 #[cfg(target_os = "windows")]
+unsafe impl Send for OverlayWindow {}
+#[cfg(target_os = "windows")]
+unsafe impl Sync for OverlayWindow {}
+
+#[cfg(target_os = "windows")]
 impl OverlayWindow {
-  /// Screenshots the source window and creates a layered overlay `HWND`
-  /// at `initial_rect`.
-  ///
-  /// If `PrintWindow` fails the overlay is still created; the window will
-  /// appear fully transparent until destroyed.
+  /// Creates a layered overlay `HWND` at `initial_rect` using
+  /// pre-captured GDI handles `(hdc_mem, hbitmap)`.
   pub fn new(
-    window_id: WindowId,
+    capture: (HDC, HGDIOBJ),
     initial_rect: &Rect,
-    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
-    let src_hwnd = window_id.0;
     let rect = initial_rect.clone();
-    let disp = dispatcher.clone();
 
-    let inner = dispatcher.dispatch_sync(move || {
-      // Register the overlay window class once per process.
-      OVERLAY_CLASS.get_or_init(|| {
-        let wnd_class = WNDCLASSW {
-          lpszClassName: w!("GlazeWMOverlay"),
-          lpfnWndProc: Some(overlay_wnd_proc),
-          ..Default::default()
-        };
-        unsafe { RegisterClassW(&raw const wnd_class) };
-      });
-
-      // Create the layered, always-on-top, non-activating overlay HWND.
-      let hwnd = unsafe {
-        CreateWindowExW(
-          WS_EX_LAYERED
-            | WS_EX_TOPMOST
-            | WS_EX_NOACTIVATE
-            | WS_EX_TRANSPARENT,
-          w!("GlazeWMOverlay"),
-          w!(""),
-          WS_POPUP,
-          rect.x(),
-          rect.y(),
-          rect.width(),
-          rect.height(),
-          None,
-          None,
-          None,
-          None,
-        )
+    // Register the overlay window class once per process.
+    OVERLAY_CLASS.get_or_init(|| {
+      let wnd_class = WNDCLASSW {
+        lpszClassName: w!("GlazeWMOverlay"),
+        lpfnWndProc: Some(Self::overlay_wnd_proc),
+        ..Default::default()
       };
+      unsafe { RegisterClassW(&raw const wnd_class) };
+    });
 
-      if hwnd.0 == 0 {
-        return Err(crate::Error::Platform(
-          "Failed to create overlay window.".to_string(),
-        ));
-      }
+    // Create the layered, always-on-top, non-activating overlay HWND.
+    let hwnd = unsafe {
+      CreateWindowExW(
+        WS_EX_LAYERED
+          | WS_EX_TOPMOST
+          | WS_EX_NOACTIVATE
+          | WS_EX_TRANSPARENT,
+        w!("GlazeWMOverlay"),
+        w!(""),
+        WS_POPUP,
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        None,
+        None,
+        None,
+        None,
+      )
+    };
 
-      // Capture the source window content into an off-screen DC + bitmap.
-      let (hdc_mem, hbitmap) = unsafe {
-        let screen_dc = GetDC(HWND(0));
-        let hdc = CreateCompatibleDC(screen_dc);
-        let bmp =
-          CreateCompatibleBitmap(screen_dc, rect.width(), rect.height());
+    if hwnd.0 == 0 {
+      return Err(crate::Error::Platform(
+        "Failed to create overlay window.".to_string(),
+      ));
+    }
 
-        // Select the bitmap into the DC before rendering into it.
-        SelectObject(hdc, HGDIOBJ(bmp.0));
+    let (hdc_mem, hbitmap) = capture;
 
-        // Capture DWM-composited window content. Non-fatal on failure.
-        // SAFETY: `PrintWindow` is a stable Win32 API from user32.dll.
-        let _ = PrintWindow(HWND(src_hwnd), hdc, PW_RENDERFULLCONTENT);
+    let inner = OverlayState {
+      hwnd: hwnd.0,
+      hdc_mem: hdc_mem.0,
+      hbitmap: hbitmap.0,
+      src_width: rect.width(),
+      src_height: rect.height(),
+      alpha: Cell::new(255),
+      current_rect: RefCell::new(rect.clone()),
+    };
 
-        ReleaseDC(HWND(0), screen_dc);
-        (hdc, bmp)
-      };
-
-      let state = OverlayState {
-        hwnd: hwnd.0,
-        hdc_mem: hdc_mem.0,
-        hbitmap: hbitmap.0,
-        src_width: rect.width(),
-        src_height: rect.height(),
-        alpha: Cell::new(255),
-        current_rect: RefCell::new(rect.clone()),
-      };
-
-      // Blit the screenshot and show the overlay (no-activate).
-      update_layered(&state, &rect);
-      unsafe { ShowWindow(HWND(state.hwnd), SW_SHOWNA) };
-
-      Ok(ThreadBound::new(state, disp))
-    })??;
+    // Blit the screenshot and show the overlay (no-activate).
+    update_layered(&inner, &rect);
+    unsafe { ShowWindow(HWND(inner.hwnd), SW_SHOWNA) };
 
     Ok(Self { inner })
   }
@@ -534,56 +451,53 @@ impl OverlayWindow {
   /// event loop thread.
   pub fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     let rect = rect.clone();
-    self.inner.with(move |state| {
-      state.current_rect.replace(rect.clone());
-      update_layered(state, &rect);
-    })
+    self.inner.current_rect.replace(rect.clone());
+    update_layered(&self.inner, &rect);
+    Ok(())
   }
 
   /// Sets overlay opacity (0.0–1.0). For fade animations.
   pub fn set_opacity(&self, alpha: f32) -> crate::Result<()> {
-    self.inner.with(move |state| {
-      state
-        .alpha
-        .set((alpha.clamp(0.0, 1.0) * 255.0).round() as u8);
-      let rect = state.current_rect.borrow().clone();
-      update_layered(state, &rect);
-    })
+    let alpha = (alpha.clamp(0.0, 1.0) * 255.0).round() as u8;
+    let rect = self.inner.current_rect.borrow().clone();
+    update_layered(&self.inner, &rect);
+    Ok(())
   }
 
   /// Hides the overlay without destroying Win32 resources.
   ///
   /// The overlay can be shown again via `show`.
   pub fn hide(&self) -> crate::Result<()> {
-    self.inner.with(|state| unsafe {
-      ShowWindow(HWND(state.hwnd), SW_HIDE);
-    })
+    unsafe { ShowWindow(HWND(self.inner.hwnd), SW_HIDE) }?;
+    Ok(())
   }
 
   /// Shows a previously hidden overlay without activating it.
   pub fn show(&self) -> crate::Result<()> {
-    self.inner.with(|state| unsafe {
-      ShowWindow(HWND(state.hwnd), SW_SHOWNA);
-    })
+    unsafe { ShowWindow(HWND(self.inner.hwnd), SW_SHOWNA) }?;
+    Ok(())
   }
 
-  /// Hides the overlay and schedules its Win32 resources for destruction
-  /// on the event loop thread.
   pub fn destroy(self) -> crate::Result<()> {
-    self.inner.with(|state| unsafe {
-      let _ = ShowWindow(HWND(state.hwnd), SW_HIDE);
-    })?;
-    // `ThreadBound::drop` dispatches `OverlayState::drop` to the event
-    // loop thread, which calls `DestroyWindow` and releases GDI objects.
+    // TODO: Destroy the window.
+    unsafe { ShowWindow(HWND(self.inner.hwnd), SW_HIDE) }?;
     Ok(())
+  }
+
+  /// Window procedure for the overlay class.
+  #[cfg(target_os = "windows")]
+  unsafe extern "system" fn overlay_wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+  ) -> LRESULT {
+    DefWindowProcW(hwnd, msg, wparam, lparam)
   }
 }
 
 /// Blits the stored screenshot (scaled to `rect`) into the layered overlay
 /// window via `UpdateLayeredWindow`.
-///
-/// Must be called on the event loop thread (guaranteed by
-/// `ThreadBound::with`).
 #[cfg(target_os = "windows")]
 fn update_layered(state: &OverlayState, rect: &Rect) {
   let new_w = rect.width();
@@ -662,15 +576,8 @@ impl std::fmt::Debug for OverlayWindow {
   }
 }
 
-// ── Windows: AnimationSurface
-// ────────────────────────────────────────────────
-
 /// A collection of layered overlay windows for animating window
 /// screenshots.
-///
-/// Mirrors the macOS `AnimationSurface` API. Internally each layer is an
-/// `OverlayWindow` (one `HWND` per layer); a single-HWND compositing
-/// approach is a future optimization.
 #[cfg(target_os = "windows")]
 pub struct AnimationSurface {
   layers: HashMap<LayerId, OverlayWindow>,
@@ -696,11 +603,12 @@ impl AnimationSurface {
   /// Returns a `LayerId` handle for future updates and removal.
   pub fn add_layer(
     &mut self,
-    window_id: WindowId,
+    window: &NativeWindow,
     rect: &Rect,
     opacity: Option<f32>,
   ) -> crate::Result<LayerId> {
-    let overlay = OverlayWindow::new(window_id, rect, &self.dispatcher)?;
+    let capture = window.screen_capture(rect)?;
+    let overlay = OverlayWindow::new(capture, rect, &self.dispatcher)?;
 
     if let Some(alpha) = opacity {
       if let Err(err) = overlay.set_opacity(alpha) {
@@ -716,8 +624,6 @@ impl AnimationSurface {
   }
 
   /// Updates frame and opacity for a set of active layers.
-  ///
-  /// Updates are applied individually; Windows has no transaction API.
   pub fn update_layers(
     &self,
     updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
@@ -781,7 +687,6 @@ impl AnimationSurface {
   }
 }
 
-#[cfg(target_os = "windows")]
 impl std::fmt::Debug for AnimationSurface {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("AnimationSurface").finish_non_exhaustive()

@@ -3,9 +3,12 @@ use std::time::{Duration, Instant};
 use wm_common::{
   AnimationEffectsConfig, AnimationTypeConfig, EasingFunction,
 };
-use wm_platform::{interpolate_with_easing, OpacityValue, Rect};
+use wm_platform::{OpacityValue, Rect};
 
 /// State of an individual window animation.
+///
+/// A window corresponds to a maximum of one [`WindowAnimationState`] at a
+/// time.
 #[derive(Clone, Debug)]
 pub struct WindowAnimationState {
   pub start_time: Instant,
@@ -89,21 +92,18 @@ impl WindowAnimationState {
   }
 
   /// Whether the animation has completed.
+  // LINT: Progress is clamped to [0.0, 1.0], so exact comparison is safe.
+  #[allow(clippy::float_cmp)]
   pub fn is_complete(&self) -> bool {
-    // Progress is clamped to [0.0, 1.0], so exact comparison is safe.
     self.progress() == 1.0
   }
 
   /// Returns the interpolated rect at the current animation progress.
   pub fn current_rect(&self) -> Rect {
-    let progress = self.progress();
-    interpolate_with_easing(
-      &self.start_rect,
-      &self.target_rect,
-      progress,
-      &self.easing,
-      |start, end, p| start.interpolate(end, p),
-    )
+    let eased_progress = self.easing.apply(self.progress());
+    self
+      .start_rect
+      .interpolate(&self.target_rect, eased_progress)
   }
 
   /// Returns the interpolated opacity at the current animation progress,
@@ -111,13 +111,8 @@ impl WindowAnimationState {
   pub fn current_opacity(&self) -> Option<OpacityValue> {
     let (start, end) =
       (self.start_opacity.as_ref()?, self.target_opacity.as_ref()?);
-    let progress = self.progress();
-    Some(interpolate_with_easing(
-      start,
-      end,
-      progress,
-      &self.easing,
-      |s, e, p| s.interpolate(e, p),
-    ))
+
+    let eased_progress = self.easing.apply(self.progress());
+    Some(start.interpolate(end, eased_progress))
   }
 }

@@ -329,4 +329,27 @@ mod tests {
     let r2 = Rect::from_xy(100, 0, 100, 100);
     assert_eq!(r1.intersection_area(&r2), 0);
   }
+
+  #[test]
+  fn interpolate_rect() {
+    let start = Rect::from_xy(0, 0, 100, 100);
+    let end = Rect::from_xy(100, 100, 200, 200);
+
+    let mid = start.interpolate(&end, 0.5);
+    assert_eq!(mid.x(), 50);
+    assert_eq!(mid.y(), 50);
+    assert_eq!(mid.width(), 150);
+    assert_eq!(mid.height(), 150);
+  }
+
+  #[test]
+  fn scale_rect_from_center() {
+    let rect = Rect::from_xy(100, 100, 200, 200);
+    let scaled = rect.scale_from_center(0.5);
+
+    assert_eq!(scaled.width(), 100);
+    assert_eq!(scaled.height(), 100);
+    assert_eq!(scaled.x(), 150);
+    assert_eq!(scaled.y(), 150);
+  }
 }

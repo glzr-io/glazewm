@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_platform::Rect;
+use wm_platform::{AnimationSurface, LayerId, Rect};
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -34,16 +34,18 @@ pub struct AnimationStartResult {
 pub struct AnimationManager {
   /// Active animations keyed by window ID.
   animations: HashMap<Uuid, WindowAnimationState>,
+
   /// Sender for animation tick events.
   animation_tick_tx: mpsc::UnboundedSender<()>,
+
   /// Whether the animation timer is currently running.
   animation_timer_running: Arc<AtomicBool>,
 
   /// Shared animation surface with one layer per animating window.
-  surface: Option<wm_platform::AnimationSurface>,
+  surface: Option<AnimationSurface>,
 
   /// Maps window UUIDs to their layer handles within the surface.
-  layer_ids: HashMap<Uuid, wm_platform::LayerId>,
+  layer_ids: HashMap<Uuid, LayerId>,
 }
 
 impl AnimationManager {
@@ -127,9 +129,8 @@ impl AnimationManager {
       .and_then(|m| m.native_properties().refresh_rate)
       .unwrap_or(config.value.animations.max_frame_rate);
 
-    let frame_rate = refresh_rate
-      .min(config.value.animations.max_frame_rate)
-      .max(60);
+    let frame_rate =
+      refresh_rate.max(config.value.animations.max_frame_rate);
 
     // Convert refresh rate to milliseconds per frame.
     let frame_time_ms = 1000 / frame_rate;
@@ -152,9 +153,6 @@ impl AnimationManager {
     });
   }
 
-  // ── Platform-specific overlay helpers
-  // ──────────────────────────────────
-
   /// Returns whether a visual overlay exists for the given window.
   fn has_overlay(&self, window_id: &Uuid) -> bool {
     self.layer_ids.contains_key(window_id)
@@ -167,7 +165,7 @@ impl AnimationManager {
   fn create_overlay(
     &mut self,
     window_id: Uuid,
-    native_window_id: wm_platform::WindowId,
+    native_window: &wm_platform::NativeWindow,
     initial_rect: &Rect,
     opacity: Option<f32>,
     dispatcher: &wm_platform::Dispatcher,
@@ -182,7 +180,7 @@ impl AnimationManager {
         tracing::warn!("Failed to show animation surface: {}", err);
       }
     } else {
-      match wm_platform::AnimationSurface::new(dispatcher) {
+      match AnimationSurface::new(dispatcher) {
         Ok(surface) => self.surface = Some(surface),
         Err(err) => {
           tracing::warn!("Failed to create animation surface: {}", err);
@@ -193,7 +191,7 @@ impl AnimationManager {
 
     let surface = self.surface.as_mut().expect("surface must exist");
 
-    match surface.add_layer(native_window_id, initial_rect, opacity) {
+    match surface.add_layer(native_window, initial_rect, opacity) {
       Ok(layer_id) => {
         self.layer_ids.insert(window_id, layer_id);
       }
@@ -235,8 +233,7 @@ impl AnimationManager {
 
   /// Hides the shared surface when no layers remain.
   ///
-  /// The surface is kept alive for reuse. On Windows, `hide` is a no-op
-  /// so this call is harmless.
+  /// The surface is kept alive for reuse.
   fn hide_surface_if_empty(&mut self) {
     if self.layer_ids.is_empty() {
       if let Some(surface) = &self.surface {
@@ -246,9 +243,6 @@ impl AnimationManager {
       }
     }
   }
-
-  // ── Core update + animation start
-  // ──────────────────────────────────
 
   /// Updates all active animations and redraws windows that are animating.
   pub fn update(
@@ -347,15 +341,15 @@ impl AnimationManager {
           target_distance > threshold
         }
       } else if let Some(prev_target) = previous_target {
-        // Compare PREVIOUS target to NEW target, not current position to
-        // target
+        // Compare previous target to new target, not current position to
+        // target.
         let distance = (prev_target.x() - target_rect.x()).abs()
           + (prev_target.y() - target_rect.y()).abs()
           + (prev_target.width() - target_rect.width()).abs()
           + (prev_target.height() - target_rect.height()).abs();
         distance > threshold
       } else {
-        // First time seeing this window, no animation needed
+        // First time seeing this window, no animation needed.
         false
       }
     } else {
@@ -373,7 +367,7 @@ impl AnimationManager {
     target_rect: Rect,
     previous_target: Option<Rect>,
     config: &UserConfig,
-    native_window_id: wm_platform::WindowId,
+    native_window: &wm_platform::NativeWindow,
     dispatcher: &wm_platform::Dispatcher,
   ) -> AnimationStartResult {
     #[allow(clippy::cast_possible_wrap)]
@@ -426,7 +420,7 @@ impl AnimationManager {
 
       self.create_overlay(
         window_id,
-        native_window_id,
+        native_window,
         &initial_rect,
         initial_opacity,
         dispatcher,

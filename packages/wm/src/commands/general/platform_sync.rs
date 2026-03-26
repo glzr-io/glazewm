@@ -329,7 +329,7 @@ fn redraw_containers(
         target_rect.clone(),
         previous_target,
         config,
-        window.native().id(),
+        &window.native(),
         &state.dispatcher,
       )
     } else {

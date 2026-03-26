@@ -31,8 +31,7 @@ pub struct PendingSync {
   /// user config).
   needs_cursor_jump: bool,
 
-  /// Whether to skip animations for the current sync (e.g., during
-  /// workspace switches).
+  /// Whether to skip animations for the current sync.
   skip_animations: bool,
 }
 

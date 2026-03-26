@@ -6,11 +6,17 @@ use windows::{
   core::PWSTR,
   Win32::{
     Foundation::{CloseHandle, BOOL, HWND, LPARAM, POINT, RECT},
-    Graphics::Dwm::{
-      DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
-      DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
-      DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
-      DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
+    Graphics::{
+      Dwm::{
+        DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
+        DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
+        DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
+        DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
+      },
+      Gdi::{
+        CreateCompatibleBitmap, CreateCompatibleDC, GetDC, ReleaseDC,
+        SelectObject, HDC, HGDIOBJ,
+      },
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -30,13 +36,13 @@ use windows::{
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GA_ROOT,
         GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP,
         HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA,
-        LWA_COLORKEY, SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS,
-        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-        SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-        SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
-        SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
-        WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_DLGFRAME, WS_EX_LAYERED,
-        WS_THICKFRAME,
+        LWA_COLORKEY, PW_RENDERFULLCONTENT, SET_WINDOW_POS_FLAGS,
+        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+        SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
+        SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE,
+        SW_MINIMIZE, SW_RESTORE, SW_SHOWNA, WINDOWPLACEMENT,
+        WINDOW_EX_STYLE, WINDOW_STYLE, WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT,
+        WS_DLGFRAME, WS_EX_LAYERED, WS_THICKFRAME,
       },
     },
   },
@@ -47,6 +53,10 @@ use crate::{
   Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
   Rect, RectDelta, WindowId, WindowZOrder,
 };
+
+extern "system" {
+  fn PrintWindow(hwnd: HWND, hdcblt: HDC, nflags: u32) -> i32;
+}
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.
@@ -733,6 +743,30 @@ impl NativeWindow {
     }?;
 
     Ok(cloaked != 0)
+  }
+
+  /// Implements [`NativeWindowWindowsExt::screen_capture`].
+  pub(crate) fn screen_capture(
+    &self,
+    rect: &Rect,
+  ) -> crate::Result<(HDC, HGDIOBJ)> {
+    unsafe {
+      let screen_dc = GetDC(HWND(0));
+      let hdc = CreateCompatibleDC(screen_dc);
+      let bmp =
+        CreateCompatibleBitmap(screen_dc, rect.width(), rect.height());
+
+      // Select the bitmap into the DC before rendering into it.
+      SelectObject(hdc, HGDIOBJ(bmp.0));
+
+      // Capture DWM-composited window content.
+      // SAFETY: `PrintWindow` is a stable Win32 API from `user32.dll`.
+      let _ = PrintWindow(self.hwnd(), hdc, PW_RENDERFULLCONTENT);
+
+      ReleaseDC(HWND(0), screen_dc);
+
+      Ok((hdc, HGDIOBJ(bmp.0)))
+    }
   }
 }
 
