@@ -181,11 +181,11 @@ impl AnimationManager {
     });
   }
 
-  /// Creates or replaces the visual overlay for a window animation.
+  /// Creates or replaces the animation layer for a window.
   ///
   /// Reuses the existing `AnimationSurface` if available, showing it
   /// again if it was hidden. Only creates a new surface on first use.
-  fn create_overlay(
+  fn create_layer(
     &mut self,
     window_id: Uuid,
     native_window: &NativeWindow,
@@ -194,7 +194,7 @@ impl AnimationManager {
     dispatcher: &Dispatcher,
   ) {
     // Remove any existing layer for this window.
-    let _ = self.destroy_overlay(&window_id);
+    let _ = self.destroy_layer(&window_id);
 
     // Reuse the existing surface, or create one on first use.
     if let Some(surface) = &self.surface {
@@ -224,11 +224,8 @@ impl AnimationManager {
     }
   }
 
-  /// Removes the visual overlay for a window.
-  pub fn destroy_overlay(
-    &mut self,
-    window_id: &Uuid,
-  ) -> anyhow::Result<()> {
+  /// Removes the layer for a window.
+  pub fn destroy_layer(&mut self, window_id: &Uuid) -> anyhow::Result<()> {
     if let Some(layer_id) = self.layer_ids.remove(window_id) {
       if let Some(surface) = &mut self.surface {
         surface.remove_layer(layer_id)?;
@@ -253,7 +250,7 @@ impl AnimationManager {
       return Ok(Vec::new());
     }
 
-    // Update overlay positions for in-progress animations.
+    // Update layer positions for in-progress animations.
     let updates: Vec<_> = self
       .animations
       .iter()
@@ -377,7 +374,7 @@ impl AnimationManager {
 
     self.animations.insert(window_id, animation.clone());
 
-    self.create_overlay(
+    self.create_layer(
       window_id,
       native_window,
       &animation.current_rect(),
@@ -385,7 +382,7 @@ impl AnimationManager {
       dispatcher,
     );
 
-    // Start the timer after the overlay has been created.
+    // Start the timer after the layer has been created.
     // TODO: Start times for animations will differ slightly between
     // windows within the same platform sync.
     if let Some(animation) = self.animations.get_mut(&window_id) {

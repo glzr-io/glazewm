@@ -330,8 +330,7 @@ fn redraw_containers(
 
     tracing::debug!("Updating window position: {window}");
 
-    // When an overlay is handling the animation, hide the real window so
-    // the overlay is the only visible representation.
+    // Hide the real window when an animation layer is active.
     if let Err(err) = reposition_window(
       window,
       &target_rect,

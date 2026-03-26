@@ -184,13 +184,13 @@ impl WindowManager {
 
       platform_sync(&mut self.state, config)?;
 
-      // Briefly keep overlay up to hide flicker during sync.
+      // Briefly keep animation layers up to hide flicker during sync.
       // TODO: This shouldn't block the thread.
       std::thread::sleep(std::time::Duration::from_millis(20));
 
-      // Destroy overlays after the real windows have been repositioned.
+      // Destroy layers after the real windows have been repositioned.
       for window_id in &completed_ids {
-        let _ = self.state.animation_manager.destroy_overlay(window_id);
+        let _ = self.state.animation_manager.destroy_layer(window_id);
       }
     }
 
