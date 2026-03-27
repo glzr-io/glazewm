@@ -1,11 +1,7 @@
-use std::{
-  collections::HashMap,
-  sync::{mpsc, OnceLock},
-};
+use std::{collections::HashMap, sync::OnceLock};
 
 use windows::{
-  core::{w, ComInterface, IInspectable},
-  Foundation::TypedEventHandler,
+  core::{w, ComInterface},
   Graphics::{
     Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem},
     DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
@@ -15,15 +11,14 @@ use windows::{
     Graphics::{
       Direct3D::{D3D_DRIVER_TYPE_HARDWARE, D3D_FEATURE_LEVEL_11_0},
       Direct3D11::{
-        D3D11CreateDevice, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-        D3D11_SDK_VERSION, D3D11_TEXTURE2D_DESC, ID3D11Device,
-        ID3D11DeviceContext, ID3D11Texture2D,
+        D3D11CreateDevice, ID3D11Device, ID3D11DeviceContext,
+        ID3D11Texture2D, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+        D3D11_SDK_VERSION, D3D11_TEXTURE2D_DESC,
       },
       DirectComposition::{
-        DCompositionCreateDevice, IDCompositionDevice,
-        IDCompositionEffectGroup, IDCompositionScaleTransform,
-        IDCompositionSurface, IDCompositionTarget, IDCompositionTransform,
-        IDCompositionTranslateTransform, IDCompositionVisual,
+        DCompositionCreateDevice2, IDCompositionDesktopDevice,
+        IDCompositionSurface, IDCompositionTarget, IDCompositionVisual2,
+        IDCompositionVisual3,
       },
       Dxgi::{
         Common::{
@@ -34,24 +29,23 @@ use windows::{
     },
     System::WinRT::{
       Direct3D11::{
-        CreateDirect3D11DeviceFromDXGIDevice,
-        IDirect3DDxgiInterfaceAccess,
+        CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
       },
       Graphics::Capture::IGraphicsCaptureItemInterop,
     },
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics,
       RegisterClassW, ShowWindow, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
-      SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SW_HIDE, SW_SHOWNA,
-      WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOPMOST,
-      WS_EX_TRANSPARENT, WS_POPUP,
+      SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SW_HIDE, SW_SHOWNA, WNDCLASSW,
+      WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
+      WS_POPUP,
     },
   },
 };
 
 use crate::{
-  animation_surface::LayerId, Dispatcher, NativeWindow, OpacityValue,
-  Rect,
+  platform_impl::com::COM_INIT, Dispatcher, LayerId, NativeWindow,
+  OpacityValue, Rect,
 };
 
 /// Guard ensuring the overlay window class is registered at most once.
@@ -61,12 +55,13 @@ static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
 const WGC_CAPTURE_TIMEOUT: std::time::Duration =
   std::time::Duration::from_secs(1);
 
+/// Polling interval when waiting for a WGC frame.
+const WGC_POLL_INTERVAL: std::time::Duration =
+  std::time::Duration::from_millis(10);
+
 /// State for a single animation layer within the surface.
 struct LayerState {
-  visual: IDCompositionVisual,
-  translate_transform: IDCompositionTranslateTransform,
-  scale_transform: IDCompositionScaleTransform,
-  effect_group: IDCompositionEffectGroup,
+  visual: IDCompositionVisual3,
   src_width: u32,
   src_height: u32,
 }
@@ -80,9 +75,9 @@ pub(crate) struct AnimationSurface {
   hwnd: isize,
   _d3d_device: ID3D11Device,
   d3d_context: ID3D11DeviceContext,
-  dcomp_device: IDCompositionDevice,
+  dcomp_device: IDCompositionDesktopDevice,
   _dcomp_target: IDCompositionTarget,
-  root_visual: IDCompositionVisual,
+  root_visual: IDCompositionVisual2,
   /// WinRT device wrapper needed by the WGC frame pool.
   winrt_device: IDirect3DDevice,
   /// Virtual screen origin (top-left of all monitors combined).
@@ -103,41 +98,42 @@ impl AnimationSurface {
   /// Creates the D3D11/DirectComposition device stack and the single
   /// overlay HWND spanning all monitors.
   pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
-    let (d3d_device, d3d_context) = create_d3d11_device()?;
+    COM_INIT.with(|com_init| {
+      let (d3d_device, d3d_context) = create_d3d11_device()?;
 
-    let dxgi_device: IDXGIDevice = d3d_device.cast()?;
-    let dcomp_device: IDCompositionDevice =
-      unsafe { DCompositionCreateDevice(&dxgi_device)? };
+      let dxgi_device: IDXGIDevice = d3d_device.cast()?;
+      let dcomp_device: IDCompositionDesktopDevice =
+        unsafe { DCompositionCreateDevice2(&dxgi_device)? };
 
-    let winrt_device = create_winrt_device(&dxgi_device)?;
+      let winrt_device = create_winrt_device(&dxgi_device)?;
 
-    let vx = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
-    let vy = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
-    let cx = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
-    let cy = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+      let vx = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
+      let vy = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
+      let cx = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
+      let cy = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
 
-    let hwnd = create_overlay_hwnd(vx, vy, cx, cy)?;
+      let hwnd = create_overlay_hwnd(vx, vy, cx, cy)?;
 
-    let dcomp_target = unsafe {
-      dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)?
-    };
+      let dcomp_target =
+        unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
 
-    let root_visual = unsafe { dcomp_device.CreateVisual()? };
-    unsafe { dcomp_target.SetRoot(&root_visual)? };
-    unsafe { dcomp_device.Commit()? };
+      let root_visual = unsafe { dcomp_device.CreateVisual()? };
+      unsafe { dcomp_target.SetRoot(&root_visual)? };
+      unsafe { dcomp_device.Commit()? };
 
-    Ok(Self {
-      hwnd,
-      _d3d_device: d3d_device,
-      d3d_context,
-      dcomp_device,
-      _dcomp_target: dcomp_target,
-      root_visual,
-      winrt_device,
-      vx,
-      vy,
-      layers: HashMap::new(),
-      next_id: 0,
+      Ok(Self {
+        hwnd,
+        _d3d_device: d3d_device,
+        d3d_context,
+        dcomp_device,
+        _dcomp_target: dcomp_target,
+        root_visual,
+        winrt_device,
+        vx,
+        vy,
+        layers: HashMap::new(),
+        next_id: 0,
+      })
     })
   }
 
@@ -149,83 +145,71 @@ impl AnimationSurface {
     rect: &Rect,
     opacity: Option<f32>,
   ) -> crate::Result<LayerId> {
-    let captured_texture = capture_window_texture(
-      window.inner.hwnd(),
-      &self.winrt_device,
-    )?;
+    COM_INIT.with(|com_init| {
+      let captured_texture =
+        capture_window_texture(window.inner.hwnd(), &self.winrt_device)?;
 
-    let mut desc = D3D11_TEXTURE2D_DESC::default();
-    unsafe { captured_texture.GetDesc(&raw mut desc) };
+      let mut desc = D3D11_TEXTURE2D_DESC::default();
+      unsafe { captured_texture.GetDesc(&raw mut desc) };
 
-    let dcomp_surface = unsafe {
-      self.dcomp_device.CreateSurface(
+      let dcomp_surface = unsafe {
+        self.dcomp_device.CreateSurface(
+          desc.Width,
+          desc.Height,
+          DXGI_FORMAT_B8G8R8A8_UNORM,
+          DXGI_ALPHA_MODE_PREMULTIPLIED,
+        )?
+      };
+
+      copy_texture_to_surface(
+        &self.d3d_context,
+        &captured_texture,
+        &dcomp_surface,
+      )?;
+
+      let visual: IDCompositionVisual3 =
+        unsafe { self.dcomp_device.CreateVisual()?.cast()? };
+
+      unsafe { visual.SetContent(&dcomp_surface)? };
+
+      #[allow(clippy::cast_precision_loss)]
+      unsafe {
+        visual.SetOffsetX2((rect.x() - self.vx) as f32)?;
+        visual.SetOffsetY2((rect.y() - self.vy) as f32)?;
+      }
+
+      apply_scale(
+        &self.dcomp_device,
+        &visual,
+        rect.width(),
+        rect.height(),
         desc.Width,
         desc.Height,
-        DXGI_FORMAT_B8G8R8A8_UNORM,
-        DXGI_ALPHA_MODE_PREMULTIPLIED,
-      )?
-    };
+      )?;
 
-    copy_texture_to_surface(
-      &self.d3d_context,
-      &captured_texture,
-      &dcomp_surface,
-    )?;
+      if let Some(alpha) = opacity {
+        unsafe { visual.SetOpacity2(alpha)? };
+      }
 
-    let visual = unsafe { self.dcomp_device.CreateVisual()? };
-    let translate_transform =
-      unsafe { self.dcomp_device.CreateTranslateTransform()? };
-    let scale_transform =
-      unsafe { self.dcomp_device.CreateScaleTransform()? };
-    let effect_group = unsafe { self.dcomp_device.CreateEffectGroup()? };
+      unsafe {
+        self.root_visual.AddVisual(&visual, true, None)?;
+        self.dcomp_device.Commit()?;
+      }
 
-    let transform_group: IDCompositionTransform = unsafe {
-      self.dcomp_device.CreateTransformGroup(&[
-        Some(translate_transform.cast()?),
-        Some(scale_transform.cast()?),
-      ])?
-    };
+      let id = LayerId(self.next_id);
+      self.next_id += 1;
 
-    unsafe {
-      visual.SetContent(&dcomp_surface)?;
-      visual.SetTransform(&transform_group)?;
-      visual.SetEffect(&effect_group)?;
-    }
+      self.layers.insert(
+        id,
+        LayerState {
+          visual,
+          src_width: desc.Width,
+          src_height: desc.Height,
+        },
+      );
 
-    update_layer_properties(
-      &visual,
-      &translate_transform,
-      &scale_transform,
-      &effect_group,
-      rect,
-      self.vx,
-      self.vy,
-      desc.Width,
-      desc.Height,
-      opacity,
-    )?;
-
-    unsafe {
-      self.root_visual.AddVisual(&visual, true, None)?;
-      self.dcomp_device.Commit()?;
-    }
-
-    let id = LayerId(self.next_id);
-    self.next_id += 1;
-
-    self.layers.insert(
-      id,
-      LayerState {
-        visual,
-        translate_transform,
-        scale_transform,
-        effect_group,
-        src_width: desc.Width,
-        src_height: desc.Height,
-      },
-    );
-
-    Ok(id)
+      Ok(id)
+    })
   }
 
   /// Updates frame position, size, and opacity for active layers, then
@@ -234,39 +218,49 @@ impl AnimationSurface {
     &self,
     updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
   ) -> crate::Result<()> {
-    for (id, rect, opacity) in &updates {
-      if let Some(layer) = self.layers.get(id) {
-        update_layer_properties(
-          &layer.visual,
-          &layer.translate_transform,
-          &layer.scale_transform,
-          &layer.effect_group,
-          rect,
-          self.vx,
-          self.vy,
-          layer.src_width,
-          layer.src_height,
-          opacity.map(|value| value.0),
-        )?;
-      }
-    }
+    COM_INIT.with(|com_init| {
+      for (id, rect, opacity) in &updates {
+        if let Some(layer) = self.layers.get(id) {
+          #[allow(clippy::cast_precision_loss)]
+          unsafe {
+            layer.visual.SetOffsetX2((rect.x() - self.vx) as f32)?;
+            layer.visual.SetOffsetY2((rect.y() - self.vy) as f32)?;
+          }
 
-    unsafe { self.dcomp_device.Commit()? };
-    Ok(())
+          apply_scale(
+            &self.dcomp_device,
+            &layer.visual,
+            rect.width(),
+            rect.height(),
+            layer.src_width,
+            layer.src_height,
+          )?;
+
+          if let Some(opacity) = opacity {
+            unsafe { layer.visual.SetOpacity2(opacity.0)? };
+          }
+        }
+      }
+
+      unsafe { self.dcomp_device.Commit()? };
+      Ok(())
+    })
   }
 
   /// Removes a layer's visual from the composition tree.
   pub(crate) fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
-    if let Some(layer) = self.layers.remove(&id) {
-      if let Err(err) =
-        unsafe { self.root_visual.RemoveVisual(&layer.visual) }
-      {
-        tracing::warn!("Failed to remove visual from root: {}", err);
+    COM_INIT.with(|com_init| {
+      if let Some(layer) = self.layers.remove(&id) {
+        if let Err(err) =
+          unsafe { self.root_visual.RemoveVisual(&layer.visual) }
+        {
+          tracing::warn!("Failed to remove visual from root: {}", err);
+        }
+        unsafe { self.dcomp_device.Commit()? };
       }
-      unsafe { self.dcomp_device.Commit()? };
-    }
 
-    Ok(())
+      Ok(())
+    })
   }
 
   /// Returns whether the surface has any active layers.
@@ -350,9 +344,8 @@ fn create_d3d11_device(
 fn create_winrt_device(
   dxgi_device: &IDXGIDevice,
 ) -> crate::Result<IDirect3DDevice> {
-  let inspectable = unsafe {
-    CreateDirect3D11DeviceFromDXGIDevice(dxgi_device)?
-  };
+  let inspectable =
+    unsafe { CreateDirect3D11DeviceFromDXGIDevice(dxgi_device)? };
   Ok(inspectable.cast()?)
 }
 
@@ -374,10 +367,7 @@ fn create_overlay_hwnd(
 
   let hwnd = unsafe {
     CreateWindowExW(
-      WS_EX_LAYERED
-        | WS_EX_TOPMOST
-        | WS_EX_NOACTIVATE
-        | WS_EX_TRANSPARENT,
+      WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
       w!("GlazeWMOverlay"),
       w!(""),
       WS_POPUP,
@@ -433,22 +423,13 @@ fn capture_window_texture(
   )?;
 
   let session = frame_pool.CreateCaptureSession(&capture_item)?;
-  let (tx, rx) = mpsc::sync_channel(1);
-  let handler =
-    TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new(
-    move |_, _| {
-      let _ = tx.try_send(());
-      Ok(())
-    },
-  );
-  let token = frame_pool.FrameArrived(&handler)?;
 
   // Disable the yellow capture border on Windows 11+.
   let _ = session.SetIsBorderRequired(false);
 
   session.StartCapture()?;
 
-  let frame = wait_for_frame(&frame_pool, &rx)?;
+  let frame = poll_for_frame(&frame_pool)?;
 
   let surface = frame.Surface()?;
   let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
@@ -460,34 +441,31 @@ fn capture_window_texture(
   // to avoid use-after-free when the pool is closed.
   let standalone = copy_to_standalone_texture(&texture)?;
 
-  frame_pool.RemoveFrameArrived(token)?;
   session.Close()?;
   frame_pool.Close()?;
 
   Ok(standalone)
 }
 
-/// Waits for a WGC frame arrival event, then retrieves the frame.
-fn wait_for_frame(
+/// Polls `TryGetNextFrame` until a frame arrives or the timeout expires.
+fn poll_for_frame(
   pool: &Direct3D11CaptureFramePool,
-  rx: &mpsc::Receiver<()>,
 ) -> crate::Result<windows::Graphics::Capture::Direct3D11CaptureFrame> {
-  match pool.TryGetNextFrame() {
-    Ok(frame) => return Ok(frame),
-    Err(_) => {}
+  let deadline = std::time::Instant::now() + WGC_CAPTURE_TIMEOUT;
+
+  loop {
+    match pool.TryGetNextFrame() {
+      Ok(frame) => return Ok(frame),
+      Err(_) if std::time::Instant::now() < deadline => {
+        std::thread::sleep(WGC_POLL_INTERVAL);
+      }
+      Err(err) => {
+        return Err(crate::Error::Platform(format!(
+          "WGC capture timed out: {err}"
+        )));
+      }
+    }
   }
-
-  rx.recv_timeout(WGC_CAPTURE_TIMEOUT).map_err(|err| {
-    crate::Error::Platform(format!(
-      "WGC capture timed out waiting for FrameArrived: {err}"
-    ))
-  })?;
-
-  pool.TryGetNextFrame().map_err(|err| {
-    crate::Error::Platform(format!(
-      "WGC frame retrieval failed after FrameArrived: {err}"
-    ))
-  })
 }
 
 /// Creates a standalone copy of a pool-managed WGC texture.
@@ -504,17 +482,11 @@ fn copy_to_standalone_texture(
   let device = unsafe { src.GetDevice()? };
   let mut copy: Option<ID3D11Texture2D> = None;
   unsafe {
-    device.CreateTexture2D(
-      &raw const desc,
-      None,
-      Some(&raw mut copy),
-    )?;
+    device.CreateTexture2D(&raw const desc, None, Some(&raw mut copy))?;
   }
 
   let copy = copy.ok_or_else(|| {
-    crate::Error::Platform(
-      "CreateTexture2D returned null.".to_string(),
-    )
+    crate::Error::Platform("CreateTexture2D returned null.".to_string())
   })?;
 
   let context = unsafe { device.GetImmediateContext()? };
@@ -532,9 +504,8 @@ fn copy_texture_to_surface(
 ) -> crate::Result<()> {
   let mut offset = POINT::default();
 
-  let update_texture: ID3D11Texture2D = unsafe {
-    surface.BeginDraw(None, &raw mut offset)?
-  };
+  let update_texture: ID3D11Texture2D =
+    unsafe { surface.BeginDraw(None, &raw mut offset)? };
 
   unsafe { context.CopyResource(&update_texture, src_texture) };
   unsafe { surface.EndDraw()? };
@@ -542,40 +513,32 @@ fn copy_texture_to_surface(
   Ok(())
 }
 
-/// Updates a layer's translation, scale, and opacity state.
-fn update_layer_properties(
-  _visual: &IDCompositionVisual,
-  translate_transform: &IDCompositionTranslateTransform,
-  scale_transform: &IDCompositionScaleTransform,
-  effect_group: &IDCompositionEffectGroup,
-  rect: &Rect,
-  vx: i32,
-  vy: i32,
+/// Applies a scale transform on `visual` so the captured source is
+/// scaled to fill the target rect dimensions.
+fn apply_scale(
+  dcomp_device: &IDCompositionDesktopDevice,
+  visual: &IDCompositionVisual3,
+  target_width: i32,
+  target_height: i32,
   src_width: u32,
   src_height: u32,
-  opacity: Option<f32>,
 ) -> crate::Result<()> {
   if src_width == 0 || src_height == 0 {
     return Ok(());
   }
 
   #[allow(clippy::cast_precision_loss)]
-  let offset_x = (rect.x() - vx) as f32;
+  let scale_x = target_width as f32 / src_width as f32;
   #[allow(clippy::cast_precision_loss)]
-  let offset_y = (rect.y() - vy) as f32;
-  #[allow(clippy::cast_precision_loss)]
-  let scale_x = rect.width() as f32 / src_width as f32;
-  #[allow(clippy::cast_precision_loss)]
-  let scale_y = rect.height() as f32 / src_height as f32;
+  let scale_y = target_height as f32 / src_height as f32;
 
+  let transform = unsafe { dcomp_device.CreateScaleTransform()? };
   unsafe {
-    translate_transform.SetOffsetX2(offset_x)?;
-    translate_transform.SetOffsetY2(offset_y)?;
-    scale_transform.SetScaleX2(scale_x)?;
-    scale_transform.SetScaleY2(scale_y)?;
-    scale_transform.SetCenterX2(0.0)?;
-    scale_transform.SetCenterY2(0.0)?;
-    effect_group.SetOpacity2(opacity.unwrap_or(1.0))?;
+    transform.SetScaleX2(scale_x)?;
+    transform.SetScaleY2(scale_y)?;
+    transform.SetCenterX2(0.0)?;
+    transform.SetCenterY2(0.0)?;
+    visual.SetTransform(&transform)?;
   }
 
   Ok(())
