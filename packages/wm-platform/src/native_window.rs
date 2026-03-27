@@ -7,7 +7,6 @@ use objc2_core_graphics::CGImage;
 #[cfg(target_os = "windows")]
 use windows::Win32::{
   Foundation::HWND,
-  Graphics::Gdi::{HDC, HGDIOBJ},
   UI::WindowsAndMessaging::{
     SET_WINDOW_POS_FLAGS, WINDOW_EX_STYLE, WINDOW_STYLE,
   },
@@ -338,13 +337,6 @@ pub trait NativeWindowWindowsExt {
     &self,
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()>;
-
-  /// Captures a screenshot of the window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on Windows.
-  fn screen_capture(&self, rect: &Rect) -> crate::Result<(HDC, HGDIOBJ)>;
 }
 
 #[cfg(target_os = "windows")]
@@ -449,10 +441,6 @@ impl NativeWindowWindowsExt for NativeWindow {
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()> {
     self.inner.adjust_transparency(opacity_delta)
-  }
-
-  fn screen_capture(&self, rect: &Rect) -> crate::Result<(HDC, HGDIOBJ)> {
-    self.inner.screen_capture(rect)
   }
 }
 

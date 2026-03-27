@@ -10,8 +10,9 @@ pub struct LayerId(pub(crate) u64);
 ///
 /// - **macOS**: A single transparent `NSWindow` with `CALayer` sublayers.
 ///   Core Animation handles GPU compositing.
-/// - **Windows**: One layered overlay `HWND` per animation layer, using
-///   `UpdateLayeredWindow` for rendering.
+/// - **Windows**: A single layered overlay `HWND` with
+///   `IDCompositionVisual` children, using DirectComposition for GPU
+///   compositing and Windows.Graphics.Capture for screenshots.
 pub struct AnimationSurface {
   inner: platform_impl::AnimationSurface,
 }
