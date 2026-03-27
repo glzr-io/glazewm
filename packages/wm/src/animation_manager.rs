@@ -308,12 +308,11 @@ impl AnimationManager {
 
     // Reuse the existing surface, or create one on first use.
     let surface = match &mut self.surface {
-      Some(surface) => {
-        surface.show()?;
-        surface
-      }
+      Some(surface) => surface,
       None => self.surface.insert(AnimationSurface::new(dispatcher)?),
     };
+
+    surface.show()?;
 
     if let Entry::Vacant(entry) = self.layer_ids.entry(window_id) {
       let layer_id = surface.add_layer(

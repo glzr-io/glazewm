@@ -316,7 +316,7 @@ fn redraw_containers(
         &window.native_properties(),
         config,
         &state.dispatcher,
-      );
+      )?;
     }
 
     tracing::debug!("Updating window position: {window}");

@@ -37,8 +37,8 @@ use windows::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics,
       RegisterClassW, ShowWindow, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
       SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SW_HIDE, SW_SHOWNA, WNDCLASSW,
-      WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
-      WS_POPUP,
+      WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOPMOST,
+      WS_EX_TRANSPARENT, WS_POPUP,
     },
   },
 };
@@ -80,6 +80,8 @@ pub(crate) struct AnimationSurface {
   root_visual: IDCompositionVisual2,
   /// WinRT device wrapper needed by the WGC frame pool.
   winrt_device: IDirect3DDevice,
+  /// Dispatcher for running HWND operations on the event loop thread.
+  dispatcher: Dispatcher,
   /// Virtual screen origin (top-left of all monitors combined).
   vx: i32,
   vy: i32,
@@ -89,7 +91,7 @@ pub(crate) struct AnimationSurface {
 
 // SAFETY: The only non-Send field is `hwnd` (stored as `isize`). All COM
 // pointers from the `windows` crate are `Send + Sync`. The `hwnd` is only
-// used for `ShowWindow`/`DestroyWindow` calls.
+// operated on via the event loop thread through `Dispatcher`.
 unsafe impl Send for AnimationSurface {}
 // SAFETY: Interior state is only mutated through `&mut self` methods.
 unsafe impl Sync for AnimationSurface {}
@@ -97,7 +99,10 @@ unsafe impl Sync for AnimationSurface {}
 impl AnimationSurface {
   /// Creates the D3D11/DirectComposition device stack and the single
   /// overlay HWND spanning all monitors.
-  pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
+  ///
+  /// The overlay HWND is created on the event loop thread so that its
+  /// messages are pumped by the main message loop.
+  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     COM_INIT.with(|com_init| {
       let (d3d_device, d3d_context) = create_d3d11_device()?;
 
@@ -112,7 +117,8 @@ impl AnimationSurface {
       let cx = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
       let cy = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
 
-      let hwnd = create_overlay_hwnd(vx, vy, cx, cy)?;
+      let hwnd = dispatcher
+        .dispatch_sync(move || create_overlay_hwnd(vx, vy, cx, cy))??;
 
       let dcomp_target =
         unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
@@ -129,6 +135,7 @@ impl AnimationSurface {
         _dcomp_target: dcomp_target,
         root_visual,
         winrt_device,
+        dispatcher: dispatcher.clone(),
         vx,
         vy,
         layers: HashMap::new(),
@@ -270,13 +277,19 @@ impl AnimationSurface {
 
   /// Shows the overlay window (no-activate).
   pub(crate) fn show(&self) -> crate::Result<()> {
-    let _ = unsafe { ShowWindow(HWND(self.hwnd), SW_SHOWNA) };
+    let hwnd = self.hwnd;
+    self.dispatcher.dispatch_sync(move || {
+      let _ = unsafe { ShowWindow(HWND(hwnd), SW_SHOWNA) };
+    })?;
     Ok(())
   }
 
   /// Hides the overlay window without destroying it.
   pub(crate) fn hide(&self) -> crate::Result<()> {
-    let _ = unsafe { ShowWindow(HWND(self.hwnd), SW_HIDE) };
+    let hwnd = self.hwnd;
+    self.dispatcher.dispatch_sync(move || {
+      let _ = unsafe { ShowWindow(HWND(hwnd), SW_HIDE) };
+    })?;
     Ok(())
   }
 
@@ -287,7 +300,11 @@ impl AnimationSurface {
     }
 
     let _ = unsafe { self.dcomp_device.Commit() };
-    unsafe { DestroyWindow(HWND(self.hwnd))? };
+
+    let hwnd = self.hwnd;
+    self.dispatcher.dispatch_sync(move || {
+      let _ = unsafe { DestroyWindow(HWND(hwnd)) };
+    })?;
 
     Ok(())
   }
@@ -367,7 +384,10 @@ fn create_overlay_hwnd(
 
   let hwnd = unsafe {
     CreateWindowExW(
-      WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
+      WS_EX_NOREDIRECTIONBITMAP
+        | WS_EX_TOPMOST
+        | WS_EX_NOACTIVATE
+        | WS_EX_TRANSPARENT,
       w!("GlazeWMOverlay"),
       w!(""),
       WS_POPUP,
@@ -497,6 +517,10 @@ fn copy_to_standalone_texture(
 
 /// Copies the contents of `src_texture` into a DComp `surface` via
 /// `BeginDraw`/`EndDraw`.
+///
+/// `BeginDraw` may return an atlas texture larger than the surface, so
+/// `CopySubresourceRegion` is used with the returned offset rather than
+/// `CopyResource` (which requires matching dimensions).
 fn copy_texture_to_surface(
   context: &ID3D11DeviceContext,
   src_texture: &ID3D11Texture2D,
@@ -507,7 +531,20 @@ fn copy_texture_to_surface(
   let update_texture: ID3D11Texture2D =
     unsafe { surface.BeginDraw(None, &raw mut offset)? };
 
-  unsafe { context.CopyResource(&update_texture, src_texture) };
+  #[allow(clippy::cast_sign_loss)]
+  unsafe {
+    context.CopySubresourceRegion(
+      &update_texture,
+      0,
+      offset.x as u32,
+      offset.y as u32,
+      0,
+      src_texture,
+      0,
+      None,
+    );
+  }
+
   unsafe { surface.EndDraw()? };
 
   Ok(())
