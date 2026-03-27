@@ -1,5 +1,5 @@
 use std::{
-  collections::HashMap,
+  collections::{hash_map::Entry, HashMap},
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -181,49 +181,6 @@ impl AnimationManager {
     });
   }
 
-  /// Creates or replaces the animation layer for a window.
-  ///
-  /// Reuses the existing `AnimationSurface` if available, showing it
-  /// again if it was hidden. Only creates a new surface on first use.
-  fn create_layer(
-    &mut self,
-    window_id: Uuid,
-    native_window: &NativeWindow,
-    initial_rect: &Rect,
-    opacity: Option<f32>,
-    dispatcher: &Dispatcher,
-  ) {
-    // Remove any existing layer for this window.
-    let _ = self.destroy_layer(&window_id);
-
-    // Reuse the existing surface, or create one on first use.
-    if let Some(surface) = &self.surface {
-      // Surface exists but may be hidden — show it.
-      if let Err(err) = surface.show() {
-        tracing::warn!("Failed to show animation surface: {}", err);
-      }
-    } else {
-      match AnimationSurface::new(dispatcher) {
-        Ok(surface) => self.surface = Some(surface),
-        Err(err) => {
-          tracing::warn!("Failed to create animation surface: {}", err);
-          return;
-        }
-      }
-    }
-
-    let surface = self.surface.as_mut().expect("surface must exist");
-
-    match surface.add_layer(native_window, initial_rect, opacity) {
-      Ok(layer_id) => {
-        self.layer_ids.insert(window_id, layer_id);
-      }
-      Err(err) => {
-        tracing::warn!("Failed to add animation layer: {}", err);
-      }
-    }
-  }
-
   /// Removes the layer for a window.
   pub fn destroy_layer(&mut self, window_id: &Uuid) -> anyhow::Result<()> {
     if let Some(layer_id) = self.layer_ids.remove(window_id) {
@@ -325,7 +282,7 @@ impl AnimationManager {
     window_properties: &NativeWindowProperties,
     config: &UserConfig,
     dispatcher: &Dispatcher,
-  ) {
+  ) -> anyhow::Result<()> {
     let existing_animation = self.animations.get(&window_id);
 
     let animation = if is_opening {
@@ -349,13 +306,24 @@ impl AnimationManager {
 
     self.animations.insert(window_id, animation.clone());
 
-    self.create_layer(
-      window_id,
-      native_window,
-      &animation.current_rect(),
-      animation.current_opacity().map(|opacity| opacity.0),
-      dispatcher,
-    );
+    // Reuse the existing surface, or create one on first use.
+    let surface = match &mut self.surface {
+      Some(surface) => {
+        surface.show()?;
+        surface
+      }
+      None => self.surface.insert(AnimationSurface::new(dispatcher)?),
+    };
+
+    if let Entry::Vacant(entry) = self.layer_ids.entry(window_id) {
+      let layer_id = surface.add_layer(
+        native_window,
+        &animation.current_rect(),
+        animation.current_opacity().map(|opacity| opacity.0),
+      )?;
+
+      entry.insert(layer_id);
+    }
 
     // Start the timer after the layer has been created.
     // TODO: Start times for animations will differ slightly between
@@ -363,5 +331,7 @@ impl AnimationManager {
     if let Some(animation) = self.animations.get_mut(&window_id) {
       animation.start_time = Instant::now();
     }
+
+    Ok(())
   }
 }
