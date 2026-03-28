@@ -266,22 +266,19 @@ fn redraw_containers(
       continue;
     }
 
-    // Capture display state before transition to detect opening windows
-    let previous_display_state = window.display_state();
-
     // Transition display state depending on whether window will be
     // shown or hidden.
-    let new_display_state =
-      match (previous_display_state.clone(), workspace.is_displayed()) {
+    window.set_display_state(
+      match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
           DisplayState::Showing
         }
         (DisplayState::Shown | DisplayState::Showing, false) => {
           DisplayState::Hiding
         }
-        _ => previous_display_state,
-      };
-    window.set_display_state(new_display_state);
+        _ => window.display_state(),
+      },
+    );
 
     let target_rect = window
       .to_rect()?
@@ -297,6 +294,8 @@ fn redraw_containers(
       && state.pending_sync.open_animation_windows().contains(window);
 
     // Determine if an animation should be started for this window.
+    // TODO: Change `should_start_animation` to instead return the window
+    // effect to apply.
     let should_start_animation =
       !state.pending_sync.should_skip_animations()
         && state.animation_manager.should_start_animation(
@@ -309,7 +308,7 @@ fn redraw_containers(
 
     if should_start_animation {
       state.animation_manager.start_animation(
-        &window,
+        window,
         &monitor.native_properties(),
         is_opening,
         target_rect.clone(),
@@ -338,9 +337,6 @@ fn redraw_containers(
     // fullscreen without it needing to be marked as not fullscreen.
     #[cfg(target_os = "windows")]
     {
-      // Mark fullscreen windows as fullscreen on every redraw (including
-      // during animations) to ensure browser fullscreen APIs work
-      // correctly.
       let is_transitioning_fullscreen =
         match (window.prev_state(), window.state()) {
           (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
@@ -391,10 +387,11 @@ fn reposition_window(
   is_visible: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
-  // to the corner of the monitor.
-  if config.value.general.hide_method == HideMethod::PlaceInCorner
-    && (!is_visible || is_animation_start)
+  // For animations on macOS and `HideMethod::PlaceInCorner`, we need to
+  // hide windows by repositioning them in the corner of the monitor.
+  if (cfg!(target_os = "macos") && is_animation_start)
+    || (config.value.general.hide_method == HideMethod::PlaceInCorner
+      && !is_visible)
   {
     const VISIBLE_SLIVER: i32 = 1;
 

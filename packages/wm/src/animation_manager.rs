@@ -25,8 +25,8 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct WindowAnimationState {
   pub start_time: Instant,
-  pub duration: Duration,
-  pub easing: EasingFunction,
+  duration: Duration,
+  easing: EasingFunction,
 
   /// Target frame rate for the animation.
   frame_rate: u32,

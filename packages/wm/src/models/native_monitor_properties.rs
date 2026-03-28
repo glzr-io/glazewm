@@ -33,6 +33,7 @@ impl NativeMonitorProperties {
       hardware_id: display_device.hardware_id(),
       #[cfg(target_os = "windows")]
       device_path: display_device.device_path(),
+      #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
       refresh_rate: display_device
         .refresh_rate()
         .ok()

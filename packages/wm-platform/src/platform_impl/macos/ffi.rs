@@ -76,5 +76,4 @@ unsafe extern "C" {
     psn: &ProcessSerialNumber,
     event: *const c_void,
   ) -> CGError;
-
 }

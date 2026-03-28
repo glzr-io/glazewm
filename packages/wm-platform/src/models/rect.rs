@@ -252,24 +252,22 @@ impl Rect {
     ((dx * dx + dy * dy) as f32).sqrt()
   }
 
-  /// Interpolates between this rectangle and another rectangle.
+  /// Interpolates between this and another [`Rect`].
+  ///
   /// `progress` should be a value between 0.0 (this rect) and 1.0 (other
   /// rect).
-  #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
   #[must_use]
   pub fn interpolate(&self, other: &Rect, progress: f32) -> Rect {
-    let x = self.x() as f32 + (other.x() - self.x()) as f32 * progress;
-    let y = self.y() as f32 + (other.y() - self.y()) as f32 * progress;
-    let width = self.width() as f32
-      + (other.width() - self.width()) as f32 * progress;
-    let height = self.height() as f32
-      + (other.height() - self.height()) as f32 * progress;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+    let lerp = |a: i32, b: i32| {
+      (a as f32 + (b - a) as f32 * progress).round() as i32
+    };
 
     Rect::from_xy(
-      x.round() as i32,
-      y.round() as i32,
-      width.round() as i32,
-      height.round() as i32,
+      lerp(self.x(), other.x()),
+      lerp(self.y(), other.y()),
+      lerp(self.width(), other.width()),
+      lerp(self.height(), other.height()),
     )
   }
 
@@ -293,7 +291,9 @@ impl Rect {
     let center_x = self.x() + self.width() / 2;
     let center_y = self.y() + self.height() / 2;
 
+    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
     let new_width = (self.width() as f32 * scale).round() as i32;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
     let new_height = (self.height() as f32 * scale).round() as i32;
 
     let new_x = center_x - new_width / 2;
