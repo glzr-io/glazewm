@@ -1,4 +1,4 @@
-mod animation_surface;
+mod animation_window;
 pub(crate) mod com;
 mod display;
 mod display_listener;
@@ -9,7 +9,7 @@ mod native_window;
 mod single_instance;
 mod window_listener;
 
-pub(crate) use animation_surface::*;
+pub(crate) use animation_window::*;
 pub(crate) use display::*;
 pub(crate) use display_listener::*;
 pub(crate) use event_loop::*;

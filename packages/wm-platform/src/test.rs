@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate libtest_mimic_collect;
 
-mod animation_surface;
+mod animation_window;
 mod dispatcher;
 mod display;
 mod error;
@@ -17,7 +17,7 @@ mod platform_impl;
 mod thread_bound;
 mod window_listener;
 
-pub use animation_surface::*;
+pub use animation_window::*;
 pub use dispatcher::*;
 pub use display::*;
 pub use error::*;

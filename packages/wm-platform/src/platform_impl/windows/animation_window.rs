@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::OnceLock};
+use std::sync::OnceLock;
 
 use windows::{
   core::{w, ComInterface},
@@ -34,18 +34,17 @@ use windows::{
       Graphics::Capture::IGraphicsCaptureItemInterop,
     },
     UI::WindowsAndMessaging::{
-      CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics,
-      RegisterClassW, ShowWindow, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
-      SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SW_HIDE, SW_SHOWNA, WNDCLASSW,
-      WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOPMOST,
-      WS_EX_TRANSPARENT, WS_POPUP,
+      CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
+      SetWindowPos, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+      SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE,
+      WS_EX_NOREDIRECTIONBITMAP, WS_EX_TRANSPARENT, WS_POPUP,
     },
   },
 };
 
 use crate::{
-  platform_impl::com::COM_INIT, Dispatcher, LayerId, NativeWindow,
-  OpacityValue, Rect,
+  platform_impl::com::COM_INIT, Dispatcher, NativeWindow, OpacityValue,
+  Rect,
 };
 
 /// Guard ensuring the overlay window class is registered at most once.
@@ -59,43 +58,44 @@ const WGC_CAPTURE_TIMEOUT: std::time::Duration =
 const WGC_POLL_INTERVAL: std::time::Duration =
   std::time::Duration::from_millis(10);
 
-/// State for a single animation layer within the surface.
-struct LayerState {
-  visual: IDCompositionVisual3,
-  src_width: u32,
-  src_height: u32,
-}
-
-/// Platform-specific implementation of [`AnimationSurface`].
+/// Per-window overlay for animating a single window transition.
 ///
-/// Uses a single overlay HWND with DirectComposition for GPU-composited
-/// rendering and Windows.Graphics.Capture for window screenshots.
-pub(crate) struct AnimationSurface {
+/// Each `AnimationWindow` creates its own transparent HWND sized to the
+/// bounding box of the animation's start and target rects. The HWND is
+/// ordered just above the source window via `SetWindowPos`, preserving
+/// z-order among non-animated windows.
+///
+/// The contained DirectComposition visual is repositioned each tick; the
+/// HWND frame stays fixed for the lifetime of the animation.
+pub(crate) struct AnimationWindow {
   hwnd: isize,
   _d3d_device: ID3D11Device,
-  d3d_context: ID3D11DeviceContext,
+  _d3d_context: ID3D11DeviceContext,
   dcomp_device: IDCompositionDesktopDevice,
   _dcomp_target: IDCompositionTarget,
-  root_visual: IDCompositionVisual2,
-  /// WinRT device wrapper needed by the WGC frame pool.
-  winrt_device: IDirect3DDevice,
+  visual: IDCompositionVisual3,
+  /// Captured source texture dimensions (for scale calculations).
+  src_width: u32,
+  src_height: u32,
+  /// Top-left of the overlay HWND in screen coordinates.
+  origin_x: i32,
+  origin_y: i32,
   /// Dispatcher for running HWND operations on the event loop thread.
   dispatcher: Dispatcher,
-  /// Virtual screen origin (top-left of all monitors combined).
-  vx: i32,
-  vy: i32,
-  layers: HashMap<LayerId, LayerState>,
-  next_id: u64,
 }
 
-impl AnimationSurface {
-  /// Creates the D3D11/DirectComposition device stack and the single
-  /// overlay HWND spanning all monitors.
-  ///
-  /// The overlay HWND is created on the event loop thread so that its
-  /// messages are pumped by the main message loop.
-  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    COM_INIT.with(|com_init| {
+impl AnimationWindow {
+  /// Creates a transparent overlay HWND covering the union of
+  /// `start_rect` and `target_rect`, captures a screenshot of `window`
+  /// via WGC, and orders the overlay just above the source window.
+  pub(crate) fn new(
+    dispatcher: &Dispatcher,
+    window: &NativeWindow,
+    start_rect: &Rect,
+    target_rect: &Rect,
+    opacity: Option<f32>,
+  ) -> crate::Result<Self> {
+    COM_INIT.with(|_| {
       let (d3d_device, d3d_context) = create_d3d11_device()?;
 
       let dxgi_device: IDXGIDevice = d3d_device.cast()?;
@@ -104,56 +104,36 @@ impl AnimationSurface {
 
       let winrt_device = create_winrt_device(&dxgi_device)?;
 
-      // Get bounding rectangle of all monitors.
-      let vx = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
-      let vy = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
-      let cx = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
-      let cy = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
-
-      let hwnd = dispatcher
-        .dispatch_sync(move || create_overlay_hwnd(vx, vy, cx, cy))??;
-
-      let dcomp_target =
-        unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
-
-      let root_visual = unsafe { dcomp_device.CreateVisual()? };
-      unsafe { dcomp_target.SetRoot(&root_visual)? };
-      unsafe { dcomp_device.Commit()? };
-
-      Ok(Self {
-        hwnd,
-        _d3d_device: d3d_device,
-        d3d_context,
-        dcomp_device,
-        _dcomp_target: dcomp_target,
-        root_visual,
-        winrt_device,
-        dispatcher: dispatcher.clone(),
-        vx,
-        vy,
-        layers: HashMap::new(),
-        next_id: 0,
-      })
-    })
-  }
-
-  /// Captures a screenshot of `window` via WGC, creates a
-  /// DirectComposition visual, and adds it to the root visual tree.
-  pub(crate) fn add_layer(
-    &mut self,
-    window: &NativeWindow,
-    rect: &Rect,
-    opacity: Option<f32>,
-  ) -> crate::Result<LayerId> {
-    COM_INIT.with(|com_init| {
       let captured_texture =
-        capture_window_texture(window.inner.hwnd(), &self.winrt_device)?;
+        capture_window_texture(window.inner.hwnd(), &winrt_device)?;
 
       let mut desc = D3D11_TEXTURE2D_DESC::default();
       unsafe { captured_texture.GetDesc(&raw mut desc) };
 
+      let bounds = start_rect.union(target_rect);
+      let origin_x = bounds.x();
+      let origin_y = bounds.y();
+      let source_hwnd = window.inner.hwnd().0;
+
+      let hwnd = dispatcher.dispatch_sync(move || {
+        create_overlay_hwnd(
+          source_hwnd,
+          origin_x,
+          origin_y,
+          bounds.width(),
+          bounds.height(),
+        )
+      })??;
+
+      let dcomp_target =
+        unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
+
+      let root_visual: IDCompositionVisual2 =
+        unsafe { dcomp_device.CreateVisual()? };
+      unsafe { dcomp_target.SetRoot(&root_visual)? };
+
       let dcomp_surface = unsafe {
-        self.dcomp_device.CreateSurface(
+        dcomp_device.CreateSurface(
           desc.Width,
           desc.Height,
           DXGI_FORMAT_B8G8R8A8_UNORM,
@@ -162,27 +142,27 @@ impl AnimationSurface {
       };
 
       copy_texture_to_surface(
-        &self.d3d_context,
+        &d3d_context,
         &captured_texture,
         &dcomp_surface,
       )?;
 
       let visual: IDCompositionVisual3 =
-        unsafe { self.dcomp_device.CreateVisual()?.cast()? };
+        unsafe { dcomp_device.CreateVisual()?.cast()? };
 
       unsafe { visual.SetContent(&dcomp_surface)? };
 
       #[allow(clippy::cast_precision_loss)]
       unsafe {
-        visual.SetOffsetX2((rect.x() - self.vx) as f32)?;
-        visual.SetOffsetY2((rect.y() - self.vy) as f32)?;
+        visual.SetOffsetX2((start_rect.x() - origin_x) as f32)?;
+        visual.SetOffsetY2((start_rect.y() - origin_y) as f32)?;
       }
 
       apply_scale(
-        &self.dcomp_device,
+        &dcomp_device,
         &visual,
-        rect.width(),
-        rect.height(),
+        start_rect.width(),
+        start_rect.height(),
         desc.Width,
         desc.Height,
       )?;
@@ -192,54 +172,81 @@ impl AnimationSurface {
       }
 
       unsafe {
-        self.root_visual.AddVisual(&visual, true, None)?;
-        self.dcomp_device.Commit()?;
+        root_visual.AddVisual(&visual, true, None)?;
+        dcomp_device.Commit()?;
       }
 
-      let id = LayerId(self.next_id);
-      self.next_id += 1;
-
-      self.layers.insert(
-        id,
-        LayerState {
-          visual,
-          src_width: desc.Width,
-          src_height: desc.Height,
-        },
-      );
-
-      Ok(id)
+      Ok(Self {
+        hwnd,
+        _d3d_device: d3d_device,
+        _d3d_context: d3d_context,
+        dcomp_device,
+        _dcomp_target: dcomp_target,
+        visual,
+        src_width: desc.Width,
+        src_height: desc.Height,
+        origin_x,
+        origin_y,
+        dispatcher: dispatcher.clone(),
+      })
     })
   }
 
-  /// Updates frame position, size, and opacity for active layers, then
-  /// commits all changes in a single DirectComposition transaction.
-  pub(crate) fn update_layers(
-    &self,
-    updates: Vec<(LayerId, Rect, Option<OpacityValue>)>,
+  /// Resizes the overlay HWND to cover the union of `start_rect` and
+  /// `target_rect`, updating the stored origin.
+  ///
+  /// Called when an animation's target changes mid-flight so the
+  /// existing screenshot and z-order are preserved.
+  pub(crate) fn resize(
+    &mut self,
+    start_rect: &Rect,
+    target_rect: &Rect,
   ) -> crate::Result<()> {
-    COM_INIT.with(|com_init| {
-      for (id, rect, opacity) in &updates {
-        if let Some(layer) = self.layers.get(id) {
-          #[allow(clippy::cast_precision_loss)]
-          unsafe {
-            layer.visual.SetOffsetX2((rect.x() - self.vx) as f32)?;
-            layer.visual.SetOffsetY2((rect.y() - self.vy) as f32)?;
-          }
+    let bounds = start_rect.union(target_rect);
 
-          apply_scale(
-            &self.dcomp_device,
-            &layer.visual,
-            rect.width(),
-            rect.height(),
-            layer.src_width,
-            layer.src_height,
-          )?;
+    self.origin_x = bounds.x();
+    self.origin_y = bounds.y();
 
-          if let Some(opacity) = opacity {
-            unsafe { layer.visual.SetOpacity2(opacity.0)? };
-          }
-        }
+    let hwnd = self.hwnd;
+    let x = bounds.x();
+    let y = bounds.y();
+    let w = bounds.width();
+    let h = bounds.height();
+
+    unsafe {
+      SetWindowPos(HWND(hwnd), None, x, y, w, h, SWP_NOACTIVATE)?;
+    }
+
+    Ok(())
+  }
+
+  /// Repositions the DirectComposition visual within the overlay HWND
+  /// and updates opacity.
+  ///
+  /// The HWND frame is never changed; only the visual moves.
+  pub(crate) fn update(
+    &self,
+    rect: &Rect,
+    opacity: Option<OpacityValue>,
+  ) -> crate::Result<()> {
+    COM_INIT.with(|_| {
+      #[allow(clippy::cast_precision_loss)]
+      unsafe {
+        self.visual.SetOffsetX2((rect.x() - self.origin_x) as f32)?;
+        self.visual.SetOffsetY2((rect.y() - self.origin_y) as f32)?;
+      }
+
+      apply_scale(
+        &self.dcomp_device,
+        &self.visual,
+        rect.width(),
+        rect.height(),
+        self.src_width,
+        self.src_height,
+      )?;
+
+      if let Some(opacity) = opacity {
+        unsafe { self.visual.SetOpacity2(opacity.0)? };
       }
 
       unsafe { self.dcomp_device.Commit()? };
@@ -247,58 +254,12 @@ impl AnimationSurface {
     })
   }
 
-  /// Removes a layer's visual from the composition tree.
-  pub(crate) fn remove_layer(&mut self, id: LayerId) -> crate::Result<()> {
-    COM_INIT.with(|com_init| {
-      if let Some(layer) = self.layers.remove(&id) {
-        if let Err(err) =
-          unsafe { self.root_visual.RemoveVisual(&layer.visual) }
-        {
-          tracing::warn!("Failed to remove visual from root: {}", err);
-        }
-        unsafe { self.dcomp_device.Commit()? };
-      }
-
-      Ok(())
-    })
-  }
-
-  /// Returns whether the surface has any active layers.
-  pub(crate) fn has_layers(&self) -> crate::Result<bool> {
-    Ok(!self.layers.is_empty())
-  }
-
-  /// Shows the overlay window (no-activate).
-  pub(crate) fn show(&self) -> crate::Result<()> {
-    let hwnd = self.hwnd;
-    self.dispatcher.dispatch_sync(move || {
-      let _ = unsafe { ShowWindow(HWND(hwnd), SW_SHOWNA) };
-    })?;
-    Ok(())
-  }
-
-  /// Hides the overlay window without destroying it.
-  pub(crate) fn hide(&self) -> crate::Result<()> {
-    let hwnd = self.hwnd;
-    self.dispatcher.dispatch_sync(move || {
-      let _ = unsafe { ShowWindow(HWND(hwnd), SW_HIDE) };
-    })?;
-    Ok(())
-  }
-
-  /// Destroys the surface, removing all visuals and the overlay HWND.
-  pub(crate) fn destroy(mut self) -> crate::Result<()> {
-    for (_, layer) in self.layers.drain() {
-      let _ = unsafe { self.root_visual.RemoveVisual(&layer.visual) };
-    }
-
-    let _ = unsafe { self.dcomp_device.Commit() };
-
+  /// Destroys the overlay HWND.
+  pub(crate) fn destroy(self) -> crate::Result<()> {
     let hwnd = self.hwnd;
     self.dispatcher.dispatch_sync(move || {
       let _ = unsafe { DestroyWindow(HWND(hwnd)) };
     })?;
-
     Ok(())
   }
 
@@ -359,8 +320,10 @@ fn create_winrt_device(
   Ok(inspectable.cast()?)
 }
 
-/// Creates the single layered overlay HWND spanning all monitors.
+/// Creates the overlay HWND for a single animation, sized to the given
+/// rect and ordered just above `source_hwnd`.
 fn create_overlay_hwnd(
+  source_hwnd: isize,
   x: i32,
   y: i32,
   width: i32,
@@ -369,7 +332,7 @@ fn create_overlay_hwnd(
   OVERLAY_CLASS.get_or_init(|| {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("AnimationOverlay"),
-      lpfnWndProc: Some(AnimationSurface::overlay_wnd_proc),
+      lpfnWndProc: Some(AnimationWindow::overlay_wnd_proc),
       ..Default::default()
     };
     unsafe { RegisterClassW(&raw const wnd_class) };
@@ -377,10 +340,7 @@ fn create_overlay_hwnd(
 
   let hwnd = unsafe {
     CreateWindowExW(
-      WS_EX_NOREDIRECTIONBITMAP
-        | WS_EX_TOPMOST
-        | WS_EX_NOACTIVATE
-        | WS_EX_TRANSPARENT,
+      WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
       w!("AnimationOverlay"),
       w!(""),
       WS_POPUP,
@@ -399,6 +359,19 @@ fn create_overlay_hwnd(
     return Err(crate::Error::Platform(
       "Failed to create overlay window.".to_string(),
     ));
+  }
+
+  // Order the overlay just above the source window and show it.
+  unsafe {
+    SetWindowPos(
+      hwnd,
+      HWND(source_hwnd),
+      0,
+      0,
+      0,
+      0,
+      SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+    )?;
   }
 
   Ok(hwnd.0)
@@ -450,7 +423,7 @@ fn capture_window_texture(
   // SAFETY: The WGC surface wraps a valid D3D11 texture.
   let texture: ID3D11Texture2D = unsafe { access.GetInterface()? };
 
-  // WGC textures are pool-managed — copy into a standalone texture
+  // WGC textures are pool-managed -- copy into a standalone texture
   // to avoid use-after-free when the pool is closed.
   let standalone = copy_to_standalone_texture(&texture)?;
 
