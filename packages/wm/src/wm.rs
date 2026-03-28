@@ -195,7 +195,7 @@ impl WindowManager {
 
       // Destroy layers after the real windows have been repositioned.
       for window_id in &completed_ids {
-        let _ = self.state.animation_manager.destroy_layer(window_id);
+        let _ = self.state.animation_manager.destroy_animation_window(window_id);
       }
     }
 

@@ -2,7 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![feature(iterator_try_collect)]
 
-mod animation_surface;
+mod animation_window;
 mod dispatcher;
 mod display;
 mod display_listener;
@@ -18,7 +18,7 @@ mod single_instance;
 mod thread_bound;
 mod window_listener;
 
-pub use animation_surface::*;
+pub use animation_window::*;
 pub use dispatcher::*;
 pub use display::*;
 pub use display_listener::*;

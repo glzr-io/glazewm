@@ -71,7 +71,6 @@ struct LayerState {
 /// Uses a single overlay HWND with DirectComposition for GPU-composited
 /// rendering and Windows.Graphics.Capture for window screenshots.
 pub(crate) struct AnimationSurface {
-  /// Overlay `HWND` stored as `isize` (`HWND` is `!Send`).
   hwnd: isize,
   _d3d_device: ID3D11Device,
   d3d_context: ID3D11DeviceContext,
@@ -89,13 +88,6 @@ pub(crate) struct AnimationSurface {
   next_id: u64,
 }
 
-// SAFETY: The only non-Send field is `hwnd` (stored as `isize`). All COM
-// pointers from the `windows` crate are `Send + Sync`. The `hwnd` is only
-// operated on via the event loop thread through `Dispatcher`.
-unsafe impl Send for AnimationSurface {}
-// SAFETY: Interior state is only mutated through `&mut self` methods.
-unsafe impl Sync for AnimationSurface {}
-
 impl AnimationSurface {
   /// Creates the D3D11/DirectComposition device stack and the single
   /// overlay HWND spanning all monitors.
@@ -112,6 +104,7 @@ impl AnimationSurface {
 
       let winrt_device = create_winrt_device(&dxgi_device)?;
 
+      // Get bounding rectangle of all monitors.
       let vx = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
       let vy = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
       let cx = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
@@ -375,7 +368,7 @@ fn create_overlay_hwnd(
 ) -> crate::Result<isize> {
   OVERLAY_CLASS.get_or_init(|| {
     let wnd_class = WNDCLASSW {
-      lpszClassName: w!("GlazeWMOverlay"),
+      lpszClassName: w!("AnimationOverlay"),
       lpfnWndProc: Some(AnimationSurface::overlay_wnd_proc),
       ..Default::default()
     };
@@ -388,7 +381,7 @@ fn create_overlay_hwnd(
         | WS_EX_TOPMOST
         | WS_EX_NOACTIVATE
         | WS_EX_TRANSPARENT,
-      w!("GlazeWMOverlay"),
+      w!("AnimationOverlay"),
       w!(""),
       WS_POPUP,
       x,

@@ -1,5 +1,5 @@
 use std::{
-  collections::{hash_map::Entry, HashMap},
+  collections::HashMap,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -11,8 +11,8 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
 use wm_platform::{
-  AnimationSurface, Dispatcher, EasingFunction, LayerId, NativeWindow,
-  OpacityValue, Rect,
+  AnimationWindow, Dispatcher, EasingFunction, NativeWindow, OpacityValue,
+  Rect,
 };
 
 use crate::{
@@ -110,11 +110,8 @@ pub struct AnimationManager {
   /// Whether the animation timer is currently running.
   animation_timer_running: Arc<AtomicBool>,
 
-  /// Shared animation surface with one layer per animating window.
-  surface: Option<AnimationSurface>,
-
-  /// Maps window UUIDs to their layer handles within the surface.
-  layer_ids: HashMap<Uuid, LayerId>,
+  /// Per-window overlay windows keyed by window ID.
+  windows: HashMap<Uuid, AnimationWindow>,
 }
 
 impl AnimationManager {
@@ -123,8 +120,7 @@ impl AnimationManager {
       animations: HashMap::new(),
       animation_tick_tx,
       animation_timer_running: Arc::new(AtomicBool::new(false)),
-      surface: None,
-      layer_ids: HashMap::new(),
+      windows: HashMap::new(),
     }
   }
 
@@ -181,20 +177,13 @@ impl AnimationManager {
     });
   }
 
-  /// Removes the layer for a window.
-  pub fn destroy_layer(&mut self, window_id: &Uuid) -> anyhow::Result<()> {
-    if let Some(layer_id) = self.layer_ids.remove(window_id) {
-      if let Some(surface) = &mut self.surface {
-        surface.remove_layer(layer_id)?;
-      }
-    }
-
-    // Hide the shared surface when no layers remain. The surface is kept
-    // alive for reuse.
-    if self.layer_ids.is_empty() {
-      if let Some(surface) = &self.surface {
-        surface.hide()?;
-      }
+  /// Destroys the animation window for a given window ID.
+  pub fn destroy_animation_window(
+    &mut self,
+    window_id: &Uuid,
+  ) -> anyhow::Result<()> {
+    if let Some(anim_window) = self.windows.remove(window_id) {
+      anim_window.destroy()?;
     }
 
     Ok(())
@@ -207,19 +196,13 @@ impl AnimationManager {
       return Ok(Vec::new());
     }
 
-    // Update layer positions for in-progress animations.
-    let updates: Vec<_> = self
-      .animations
-      .iter()
-      .filter(|(_, anim)| !anim.is_complete())
-      .filter_map(|(id, anim)| {
-        let layer_id = self.layer_ids.get(id)?;
-        Some((*layer_id, anim.current_rect(), anim.current_opacity()))
-      })
-      .collect();
-
-    if let Some(surface) = &self.surface {
-      surface.update_layers(updates)?;
+    for (id, anim) in &self.animations {
+      if !anim.is_complete() {
+        if let Some(anim_window) = self.windows.get(id) {
+          anim_window
+            .update(&anim.current_rect(), anim.current_opacity())?;
+        }
+      }
     }
 
     // Return IDs of completed animations. Removal is deferred so that
@@ -244,6 +227,10 @@ impl AnimationManager {
     window_properties: &NativeWindowProperties,
     config: &UserConfig,
   ) -> bool {
+    if window_properties.is_minimized {
+      return false;
+    }
+
     match is_opening {
       true if config.value.animations.window_open.enabled => {
         !self.animations.contains_key(window_id)
@@ -306,25 +293,23 @@ impl AnimationManager {
 
     self.animations.insert(window_id, animation.clone());
 
-    // Reuse the existing surface, or create one on first use.
-    let surface = match &mut self.surface {
-      Some(surface) => surface,
-      None => self.surface.insert(AnimationSurface::new(dispatcher)?),
-    };
-
-    surface.show()?;
-
-    if let Entry::Vacant(entry) = self.layer_ids.entry(window_id) {
-      let layer_id = surface.add_layer(
+    // Resize existing overlay to the new bounding box when the target
+    // changes mid-flight, preserving the screenshot and z-order.
+    if let Some(anim_window) = self.windows.get_mut(&window_id) {
+      anim_window.resize(&animation.start_rect, &animation.target_rect)?;
+    } else {
+      let anim_window = AnimationWindow::new(
+        dispatcher,
         native_window,
-        &animation.current_rect(),
-        animation.current_opacity().map(|opacity| opacity.0),
+        &animation.start_rect,
+        &animation.target_rect,
+        animation.current_opacity().map(|o| o.0),
       )?;
 
-      entry.insert(layer_id);
+      self.windows.insert(window_id, anim_window);
     }
 
-    // Start the timer after the layer has been created.
+    // Start the timer after the window has been created.
     // TODO: Start times for animations will differ slightly between
     // windows within the same platform sync.
     if let Some(animation) = self.animations.get_mut(&window_id) {
