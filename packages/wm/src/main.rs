@@ -228,12 +228,29 @@ async fn start_wm(
         Ok(())
       },
       () = &mut display_debounce, if pending_display_change => {
-        tracing::debug!("Processing debounced display settings changed.");
-        pending_display_change = false;
-        display_debounce
-          .as_mut()
-          .reset(tokio::time::Instant::now() + Duration::from_hours(24));
-        wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+        // Re-arm for another second if the system is still under commit
+        // pressure — processing now would risk an OOM abort. This breaks
+        // the crash-restart loop that occurs when the watcher relaunches
+        // glazewm into the same high-pressure window.
+        if dispatcher.is_under_commit_pressure() {
+          tracing::debug!(
+            "Display settings changed deferred: system under commit pressure."
+          );
+          display_debounce
+            .as_mut()
+            .reset(tokio::time::Instant::now() + Duration::from_secs(1));
+          Ok(())
+        } else {
+          tracing::debug!("Processing debounced display settings changed.");
+          pending_display_change = false;
+          display_debounce
+            .as_mut()
+            .reset(tokio::time::Instant::now() + Duration::from_hours(24));
+          wm.process_event(
+            PlatformEvent::DisplaySettingsChanged,
+            &mut config,
+          )
+        }
       },
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);
