@@ -212,7 +212,15 @@ async fn start_wm(
         wm.process_event(PlatformEvent::Keybinding(event), &mut config)
       }
       _ = cleanup_interval.tick() => {
-        if wm.state.is_paused {
+        // Skip cleanup when the system is under virtual-memory commit
+        // pressure (e.g. immediately after wake from sleep or during
+        // system startup). The allocations inside `cleanup_invalid_windows`
+        // can trigger an OOM abort at exactly these moments. The work is
+        // deferred, not dropped — the next tick (5 seconds later) retries
+        // once pressure subsides.
+        if wm.state.is_paused
+          || dispatcher.is_under_commit_pressure()
+        {
           Ok(())
         } else {
           wm.state.cleanup_invalid_windows()
