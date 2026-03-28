@@ -1,9 +1,5 @@
 use std::{
   collections::HashMap,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
   time::{Duration, Instant},
 };
 
@@ -11,12 +7,14 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
 use wm_platform::{
-  AnimationWindow, Dispatcher, EasingFunction, NativeWindow, OpacityValue,
-  Rect,
+  AnimationWindow, Dispatcher, EasingFunction, OpacityValue, Rect,
 };
 
 use crate::{
-  models::NativeWindowProperties, traits::CommonGetters,
+  models::{
+    NativeMonitorProperties, NativeWindowProperties, WindowContainer,
+  },
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
 };
 
@@ -29,6 +27,9 @@ pub struct WindowAnimationState {
   pub start_time: Instant,
   pub duration: Duration,
   pub easing: EasingFunction,
+
+  /// Target frame rate for the animation.
+  frame_rate: u32,
 
   /// Start and target positions for the animation.
   pub start_rect: Rect,
@@ -46,10 +47,12 @@ impl WindowAnimationState {
     start_rect: Rect,
     target_rect: Rect,
     config: &AnimationEffectsConfig,
+    frame_rate: u32,
   ) -> Self {
     Self {
       start_time: Instant::now(),
       duration: Duration::from_millis(u64::from(config.duration_ms)),
+      frame_rate,
       easing: config.easing.clone(),
       start_rect,
       target_rect,
@@ -105,76 +108,71 @@ pub struct AnimationManager {
   animations: HashMap<Uuid, WindowAnimationState>,
 
   /// Sender for animation tick events.
-  animation_tick_tx: mpsc::UnboundedSender<()>,
+  tick_tx: mpsc::UnboundedSender<()>,
 
-  /// Whether the animation timer is currently running.
-  animation_timer_running: Arc<AtomicBool>,
+  /// Receiver for animation tick events.
+  pub tick_rx: mpsc::UnboundedReceiver<()>,
 
   /// Per-window overlay windows keyed by window ID.
   windows: HashMap<Uuid, AnimationWindow>,
+
+  /// Handle to the running tick task, if any.
+  tick_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl AnimationManager {
-  pub fn new(animation_tick_tx: mpsc::UnboundedSender<()>) -> Self {
+  pub fn new() -> Self {
+    let (tick_tx, tick_rx) = mpsc::unbounded_channel();
+
     Self {
       animations: HashMap::new(),
-      animation_tick_tx,
-      animation_timer_running: Arc::new(AtomicBool::new(false)),
+      tick_tx,
+      tick_rx,
       windows: HashMap::new(),
+      tick_task: None,
     }
   }
 
   /// Removes a window's animation state.
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
+    self.update_tick_rate();
   }
 
-  /// Ensures the animation timer is running if there are active
-  /// animations.
-  pub fn ensure_timer_running(
-    &self,
-    state: &crate::wm_state::WmState,
-    config: &UserConfig,
-  ) {
-    if self.animation_timer_running.load(Ordering::Relaxed) {
-      return;
+  /// Spawns a task for emitting ticks at the target frame rate.
+  ///
+  /// Cancels existing tick task if there is one. The ticks are emitted at
+  /// the highest frame rate among the animated windows, capped by
+  /// `max_frame_rate`.
+  ///
+  /// Called on animation start and completion.
+  fn update_tick_rate(&mut self) {
+    if let Some(handle) = self.tick_task.take() {
+      handle.abort();
     }
 
-    self.animation_timer_running.store(true, Ordering::Relaxed);
-    let tx = self.animation_tick_tx.clone();
-    let timer_flag = self.animation_timer_running.clone();
+    // Get the highest frame rate among the animated windows.
+    let Some(frame_rate) =
+      self.animations.values().map(|anim| anim.frame_rate).max()
+    else {
+      return;
+    };
 
-    let refresh_rate = state
-      .focused_container()
-      // TODO: The focused monitor may not be the one with the animation.
-      .and_then(|c| CommonGetters::monitor(&c))
-      .and_then(|m| m.native_properties().refresh_rate)
-      .unwrap_or(config.value.animations.max_frame_rate);
+    let frame_time = Duration::from_millis(u64::from(1000 / frame_rate));
+    let tick_tx = self.tick_tx.clone();
 
-    let frame_rate =
-      refresh_rate.min(config.value.animations.max_frame_rate);
-
-    // Convert refresh rate to milliseconds per frame.
-    let frame_time_ms = 1000 / frame_rate;
-
-    // TODO: The spawned interval always ticks, even if an animation is not
-    // active.
-    tokio::spawn(async move {
-      let mut interval = tokio::time::interval(
-        tokio::time::Duration::from_millis(u64::from(frame_time_ms)),
-      );
+    self.tick_task = Some(tokio::spawn(async move {
+      let mut interval = tokio::time::interval(frame_time);
       interval
         .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
       loop {
         interval.tick().await;
-        if tx.send(()).is_err() {
+        if tick_tx.send(()).is_err() {
           break;
         }
       }
-
-      timer_flag.store(false, Ordering::Relaxed);
-    });
+    }));
   }
 
   /// Destroys the animation window for a given window ID.
@@ -262,25 +260,30 @@ impl AnimationManager {
   #[allow(clippy::too_many_arguments)]
   pub fn start_animation(
     &mut self,
-    window_id: Uuid,
+    window: &WindowContainer,
+    monitor_properties: &NativeMonitorProperties,
     is_opening: bool,
     target_rect: Rect,
-    native_window: &NativeWindow,
-    window_properties: &NativeWindowProperties,
     config: &UserConfig,
     dispatcher: &Dispatcher,
   ) -> anyhow::Result<()> {
-    let existing_animation = self.animations.get(&window_id);
+    let existing_animation = self.animations.get(&window.id());
+
+    let frame_rate = monitor_properties
+      .refresh_rate
+      .unwrap_or(config.value.animations.max_frame_rate)
+      .min(config.value.animations.max_frame_rate);
 
     let animation = if is_opening {
       WindowAnimationState::new(
         target_rect.scale_from_center(0.9),
         target_rect,
         &config.value.animations.window_open,
+        frame_rate,
       )
     } else {
       let start_rect = existing_animation.map_or_else(
-        || window_properties.frame.clone(),
+        || window.native_properties().frame.clone(),
         WindowAnimationState::current_rect,
       );
 
@@ -288,33 +291,36 @@ impl AnimationManager {
         start_rect,
         target_rect,
         &config.value.animations.window_move,
+        frame_rate,
       )
     };
 
-    self.animations.insert(window_id, animation.clone());
+    self.animations.insert(window.id(), animation.clone());
 
     // Resize existing overlay to the new bounding box when the target
     // changes mid-flight, preserving the screenshot and z-order.
-    if let Some(anim_window) = self.windows.get_mut(&window_id) {
+    if let Some(anim_window) = self.windows.get_mut(&window.id()) {
       anim_window.resize(&animation.start_rect, &animation.target_rect)?;
     } else {
       let anim_window = AnimationWindow::new(
         dispatcher,
-        native_window,
+        &window.native(),
         &animation.start_rect,
         &animation.target_rect,
         animation.current_opacity().map(|o| o.0),
       )?;
 
-      self.windows.insert(window_id, anim_window);
+      self.windows.insert(window.id(), anim_window);
     }
 
     // Start the timer after the window has been created.
     // TODO: Start times for animations will differ slightly between
     // windows within the same platform sync.
-    if let Some(animation) = self.animations.get_mut(&window_id) {
+    if let Some(animation) = self.animations.get_mut(&window.id()) {
       animation.start_time = Instant::now();
     }
+
+    self.update_tick_rate();
 
     Ok(())
   }

@@ -309,11 +309,10 @@ fn redraw_containers(
 
     if should_start_animation {
       state.animation_manager.start_animation(
-        window.id(),
+        &window,
+        &monitor.native_properties(),
         is_opening,
         target_rect.clone(),
-        &window.native(),
-        &window.native_properties(),
         config,
         &state.dispatcher,
       )?;

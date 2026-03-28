@@ -217,7 +217,7 @@ async fn start_wm(
           wm.state.cleanup_invalid_windows()
         }
       },
-      Some(()) = wm.animation_tick_rx.recv() => {
+      Some(()) = wm.state.animation_manager.tick_rx.recv() => {
         wm.update_animations(&config)
       },
       Some((

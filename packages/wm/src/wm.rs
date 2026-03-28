@@ -52,7 +52,6 @@ use crate::{
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
-  pub animation_tick_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
@@ -63,20 +62,13 @@ impl WindowManager {
   ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
-    let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(
-      dispatcher,
-      event_tx,
-      exit_tx,
-      animation_tick_tx.clone(),
-    );
+    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
     state.populate(config)?;
 
     Ok(Self {
       event_rx,
       exit_rx,
-      animation_tick_rx,
       state,
     })
   }
@@ -155,12 +147,6 @@ impl WindowManager {
       platform_sync(state, config)?;
     }
 
-    // Start animation timer if needed
-    self
-      .state
-      .animation_manager
-      .ensure_timer_running(&self.state, config);
-
     Ok(())
   }
 
@@ -172,21 +158,18 @@ impl WindowManager {
     let completed_ids = self.state.animation_manager.update()?;
 
     if !completed_ids.is_empty() {
-      // Queue windows that have completed animations for a final redraw at
-      // the target position.
-      for window_id in &completed_ids {
-        if let Some(container) = self.state.container_by_id(*window_id) {
-          if let Ok(window) = container.as_window_container() {
-            self.state.pending_sync.queue_container_to_redraw(window);
-          }
-        }
-      }
+      let windows = self
+        .state
+        .windows()
+        .into_iter()
+        .filter(|window| completed_ids.contains(&window.id()));
 
+      // Redraw windows with completed animations to their target position.
+      self.state.pending_sync.queue_containers_to_redraw(windows);
       platform_sync(&mut self.state, config)?;
 
-      // Remove completed animations now that the final redraw has run.
-      for window_id in &completed_ids {
-        self.state.animation_manager.remove_animation(window_id);
+      for completed_id in &completed_ids {
+        self.state.animation_manager.remove_animation(completed_id);
       }
 
       // Briefly keep animation layers up to hide flicker during sync.
@@ -194,16 +177,13 @@ impl WindowManager {
       std::thread::sleep(std::time::Duration::from_millis(20));
 
       // Destroy layers after the real windows have been repositioned.
-      for window_id in &completed_ids {
-        let _ = self.state.animation_manager.destroy_animation_window(window_id);
+      for completed_id in &completed_ids {
+        let _ = self
+          .state
+          .animation_manager
+          .destroy_animation_window(completed_id);
       }
     }
-
-    // Continue timer if there are still active animations.
-    self
-      .state
-      .animation_manager
-      .ensure_timer_running(&self.state, config);
 
     Ok(())
   }
