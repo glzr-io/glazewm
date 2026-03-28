@@ -17,8 +17,7 @@ use windows::{
       },
       DirectComposition::{
         DCompositionCreateDevice2, IDCompositionDesktopDevice,
-        IDCompositionSurface, IDCompositionTarget, IDCompositionVisual2,
-        IDCompositionVisual3,
+        IDCompositionSurface, IDCompositionTarget, IDCompositionVisual3,
       },
       Dxgi::{
         Common::{
@@ -69,8 +68,6 @@ const WGC_POLL_INTERVAL: std::time::Duration =
 /// HWND frame stays fixed for the lifetime of the animation.
 pub(crate) struct AnimationWindow {
   hwnd: isize,
-  _d3d_device: ID3D11Device,
-  _d3d_context: ID3D11DeviceContext,
   dcomp_device: IDCompositionDesktopDevice,
   _dcomp_target: IDCompositionTarget,
   visual: IDCompositionVisual3,
@@ -128,10 +125,6 @@ impl AnimationWindow {
       let dcomp_target =
         unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
 
-      let root_visual: IDCompositionVisual2 =
-        unsafe { dcomp_device.CreateVisual()? };
-      unsafe { dcomp_target.SetRoot(&root_visual)? };
-
       let dcomp_surface = unsafe {
         dcomp_device.CreateSurface(
           desc.Width,
@@ -150,7 +143,10 @@ impl AnimationWindow {
       let visual: IDCompositionVisual3 =
         unsafe { dcomp_device.CreateVisual()?.cast()? };
 
-      unsafe { visual.SetContent(&dcomp_surface)? };
+      unsafe {
+        visual.SetContent(&dcomp_surface)?;
+        dcomp_target.SetRoot(&visual)?;
+      }
 
       #[allow(clippy::cast_precision_loss)]
       unsafe {
@@ -171,15 +167,10 @@ impl AnimationWindow {
         unsafe { visual.SetOpacity2(alpha)? };
       }
 
-      unsafe {
-        root_visual.AddVisual(&visual, true, None)?;
-        dcomp_device.Commit()?;
-      }
+      unsafe { dcomp_device.Commit()? };
 
       Ok(Self {
         hwnd,
-        _d3d_device: d3d_device,
-        _d3d_context: d3d_context,
         dcomp_device,
         _dcomp_target: dcomp_target,
         visual,
