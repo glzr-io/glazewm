@@ -2,8 +2,12 @@ use std::sync::OnceLock;
 
 use windows::{
   core::{w, ComInterface},
+  Foundation::TypedEventHandler,
   Graphics::{
-    Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem},
+    Capture::{
+      Direct3D11CaptureFrame, Direct3D11CaptureFramePool,
+      GraphicsCaptureItem, GraphicsCaptureSession,
+    },
     DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
   },
   Win32::{
@@ -50,37 +54,51 @@ use crate::{
 /// Guard ensuring the overlay window class is registered at most once.
 static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
 
-/// Maximum time to wait for a WGC frame before giving up.
-const WGC_CAPTURE_TIMEOUT: std::time::Duration =
-  std::time::Duration::from_secs(1);
-
-/// Polling interval when waiting for a WGC frame.
-const WGC_POLL_INTERVAL: std::time::Duration =
-  std::time::Duration::from_millis(10);
-
 /// Shared GPU context for all animation windows.
 ///
-/// Holds a single D3D11 device and `DirectComposition` device, avoiding
-/// the overhead of creating heavyweight GPU objects per animation.
+/// Holds a single D3D11 device, `DirectComposition` device, and
+/// pre-warmed WGC capture objects, avoiding the overhead of creating
+/// heavyweight GPU/WGC objects per animation.
 pub(crate) struct AnimationContext {
-  d3d_device: ID3D11Device,
+  _d3d_device: ID3D11Device,
   d3d_context: ID3D11DeviceContext,
   dcomp_device: IDCompositionDesktopDevice,
+  winrt_device: IDirect3DDevice,
+  capture_interop: IGraphicsCaptureItemInterop,
 }
 
 impl AnimationContext {
-  /// Creates a shared D3D11 + `DirectComposition` device pair.
+  /// Creates a shared D3D11 + `DirectComposition` device pair and
+  /// pre-warms WGC capture objects (WinRT device, interop factory).
   pub(crate) fn new() -> crate::Result<Self> {
     COM_INIT.with(|_| {
+      if !GraphicsCaptureSession::IsSupported()? {
+        return Err(crate::Error::Platform(
+          "Windows.Graphics.Capture is not supported on this system."
+            .to_string(),
+        ));
+      }
+
       let (d3d_device, d3d_context) = create_d3d11_device()?;
       let dxgi_device: IDXGIDevice = d3d_device.cast()?;
       let dcomp_device: IDCompositionDesktopDevice =
         unsafe { DCompositionCreateDevice2(&dxgi_device)? };
 
+      let inspectable =
+        unsafe { CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)? };
+      let winrt_device: IDirect3DDevice = inspectable.cast()?;
+
+      let capture_interop = windows::core::factory::<
+        GraphicsCaptureItem,
+        IGraphicsCaptureItemInterop,
+      >()?;
+
       Ok(Self {
-        d3d_device,
+        _d3d_device: d3d_device,
         d3d_context,
         dcomp_device,
+        winrt_device,
+        capture_interop,
       })
     })
   }
@@ -132,14 +150,10 @@ impl AnimationWindow {
     opacity: Option<f32>,
   ) -> crate::Result<Self> {
     COM_INIT.with(|_| {
-      let dxgi_device: IDXGIDevice = context.d3d_device.cast()?;
-      let winrt_device = create_winrt_device(&dxgi_device)?;
-
-      let captured_texture =
-        capture_window_texture(window.inner.hwnd(), &winrt_device)?;
+      let captured = capture_window_texture(window.inner.hwnd(), context)?;
 
       let mut desc = D3D11_TEXTURE2D_DESC::default();
-      unsafe { captured_texture.GetDesc(&raw mut desc) };
+      unsafe { captured.texture.GetDesc(&raw mut desc) };
 
       let bounds = start_rect.union(target_rect);
       let origin_x = bounds.x();
@@ -172,9 +186,11 @@ impl AnimationWindow {
 
       copy_texture_to_surface(
         &context.d3d_context,
-        &captured_texture,
+        &captured.texture,
         &dcomp_surface,
       )?;
+
+      captured.close()?;
 
       let visual: IDCompositionVisual3 =
         unsafe { dcomp_device.CreateVisual()?.cast()? };
@@ -362,16 +378,6 @@ fn create_d3d11_device(
   Ok((device, context))
 }
 
-/// Converts a DXGI device into a WinRT `IDirect3DDevice` for use with
-/// the WGC frame pool.
-fn create_winrt_device(
-  dxgi_device: &IDXGIDevice,
-) -> crate::Result<IDirect3DDevice> {
-  let inspectable =
-    unsafe { CreateDirect3D11DeviceFromDXGIDevice(dxgi_device)? };
-  Ok(inspectable.cast()?)
-}
-
 /// Creates the overlay HWND for a single animation, sized to the given
 /// rect and ordered just above `source_hwnd`.
 fn create_overlay_hwnd(
@@ -429,34 +435,50 @@ fn create_overlay_hwnd(
   Ok(hwnd.0)
 }
 
-/// Captures a single frame of a window via Windows.Graphics.Capture and
-/// returns its `ID3D11Texture2D`.
+/// Captured WGC frame with its underlying texture.
 ///
-/// Perf: ~50-65ms.
+/// Holds the frame, session, and pool alive until the texture has been
+/// consumed (e.g. copied into a `DirectComposition` surface).
+struct CapturedFrame {
+  texture: ID3D11Texture2D,
+  frame: Direct3D11CaptureFrame,
+  session: GraphicsCaptureSession,
+  frame_pool: Direct3D11CaptureFramePool,
+}
+
+impl CapturedFrame {
+  /// Releases WGC resources in dependency order.
+  fn close(self) -> crate::Result<()> {
+    drop(self.texture);
+    self.frame.Close()?;
+    self.session.Close()?;
+    self.frame_pool.Close()?;
+    Ok(())
+  }
+}
+
+/// Captures a single frame of a window via Windows.Graphics.Capture
+/// and returns a `CapturedFrame` whose texture can be read until
+/// `close()` is called.
+///
+/// Reuses the cached interop factory and WinRT device from
+/// `AnimationContext`. A fresh frame pool is created per capture
+/// because WGC pools cannot be reliably reused across sessions.
+///
+/// Perf: ~35-60ms. Single frame snapshots require waiting for DWM to
+/// produce the next composed frame (~16.7ms at 60Hz).
 fn capture_window_texture(
   hwnd: HWND,
-  winrt_device: &IDirect3DDevice,
-) -> crate::Result<ID3D11Texture2D> {
-  if !windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()? {
-    return Err(crate::Error::Platform(
-      "Windows.Graphics.Capture is not supported on this system."
-        .to_string(),
-    ));
-  }
-
-  let interop: IGraphicsCaptureItemInterop = windows::core::factory::<
-    GraphicsCaptureItem,
-    IGraphicsCaptureItemInterop,
-  >()?;
-
+  context: &AnimationContext,
+) -> crate::Result<CapturedFrame> {
   // SAFETY: HWND is valid per the caller's contract.
   let capture_item: GraphicsCaptureItem =
-    unsafe { interop.CreateForWindow(hwnd)? };
+    unsafe { context.capture_interop.CreateForWindow(hwnd)? };
 
   let item_size = capture_item.Size()?;
 
   let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
-    winrt_device,
+    &context.winrt_device,
     DirectXPixelFormat::B8G8R8A8UIntNormalized,
     1,
     item_size,
@@ -469,7 +491,7 @@ fn capture_window_texture(
 
   session.StartCapture()?;
 
-  let frame = poll_for_frame(&frame_pool)?;
+  let frame = wait_for_frame(&frame_pool)?;
 
   let surface = frame.Surface()?;
   let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
@@ -477,70 +499,43 @@ fn capture_window_texture(
   // SAFETY: The WGC surface wraps a valid D3D11 texture.
   let texture: ID3D11Texture2D = unsafe { access.GetInterface()? };
 
-  // WGC textures are pool-managed -- copy into a standalone texture
-  // to avoid use-after-free when the pool is closed.
-  let standalone = copy_to_standalone_texture(&texture)?;
-
-  // Release WGC resources in dependency order: frame surface refs
-  // first, then frame, then session and pool.
-  drop(texture);
-  drop(access);
-  drop(surface);
-  frame.Close()?;
-  drop(frame);
-
-  session.Close()?;
-  frame_pool.Close()?;
-
-  Ok(standalone)
+  Ok(CapturedFrame {
+    texture,
+    frame,
+    session,
+    frame_pool,
+  })
 }
 
-/// Polls `TryGetNextFrame` until a frame arrives or the timeout expires.
-fn poll_for_frame(
+/// Waits for the next WGC frame using an event-based approach.
+///
+/// Registers a `FrameArrived` handler that signals a channel, then
+/// blocks until the frame arrives or the timeout expires.
+fn wait_for_frame(
   pool: &Direct3D11CaptureFramePool,
-) -> crate::Result<windows::Graphics::Capture::Direct3D11CaptureFrame> {
-  let deadline = std::time::Instant::now() + WGC_CAPTURE_TIMEOUT;
+) -> crate::Result<Direct3D11CaptureFrame> {
+  let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
 
-  loop {
-    match pool.TryGetNextFrame() {
-      Ok(frame) => return Ok(frame),
-      Err(_) if std::time::Instant::now() < deadline => {
-        std::thread::sleep(WGC_POLL_INTERVAL);
-      }
-      Err(err) => {
-        return Err(crate::Error::Platform(format!(
-          "WGC capture timed out: {err}"
-        )));
-      }
-    }
-  }
-}
+  pool.FrameArrived(&TypedEventHandler::new(
+    move |_: &Option<Direct3D11CaptureFramePool>, _| {
+      let _ = tx.send(());
+      Ok(())
+    },
+  ))?;
 
-/// Creates a standalone copy of a pool-managed WGC texture.
-fn copy_to_standalone_texture(
-  src: &ID3D11Texture2D,
-) -> crate::Result<ID3D11Texture2D> {
-  let mut desc = D3D11_TEXTURE2D_DESC::default();
-  unsafe { src.GetDesc(&raw mut desc) };
-
-  desc.BindFlags = 0;
-  desc.MiscFlags = 0;
-  desc.CPUAccessFlags = 0;
-
-  let device = unsafe { src.GetDevice()? };
-  let mut copy: Option<ID3D11Texture2D> = None;
-  unsafe {
-    device.CreateTexture2D(&raw const desc, None, Some(&raw mut copy))?;
+  // Frame arrived before the handler was registered.
+  if let Ok(frame) = pool.TryGetNextFrame() {
+    return Ok(frame);
   }
 
-  let copy = copy.ok_or_else(|| {
-    crate::Error::Platform("CreateTexture2D returned null.".to_string())
-  })?;
+  rx.recv_timeout(std::time::Duration::from_secs(1))
+    .map_err(|_| {
+      crate::Error::Platform("WGC capture timed out.".into())
+    })?;
 
-  let context = unsafe { device.GetImmediateContext()? };
-  unsafe { context.CopyResource(&copy, src) };
-
-  Ok(copy)
+  pool.TryGetNextFrame().map_err(|e| {
+    crate::Error::Platform(format!("Failed to get WGC frame: {e}"))
+  })
 }
 
 /// Copies the contents of `src_texture` into a DComp `surface` via
