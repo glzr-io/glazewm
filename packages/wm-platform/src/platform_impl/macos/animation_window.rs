@@ -27,17 +27,19 @@ pub(crate) struct AnimationContext {
 
 impl AnimationContext {
   /// Creates a shared animation context.
+  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     Ok(Self {
       dispatcher: dispatcher.clone(),
     })
   }
 
-  /// Executes `f` inside a single `CATransaction` on the main thread.
+  /// Executes `update_fn` inside a single `CATransaction` on the main
+  /// thread.
   ///
-  /// All `CALayer` mutations performed by `f` are batched into one
+  /// All `CALayer` mutations performed by `update_fn` are batched into one
   /// implicit-animation-free commit.
-  pub(crate) fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  pub(crate) fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
     R: Send,
@@ -45,7 +47,7 @@ impl AnimationContext {
     self.dispatcher.dispatch_sync(|| {
       CATransaction::begin();
       CATransaction::setDisableActions(true);
-      let result = f();
+      let result = update_fn();
       CATransaction::commit();
       result
     })
@@ -94,14 +96,17 @@ impl AnimationWindow {
         // SAFETY: `dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
+        // TODO: Clean up the coordinates logic.
         let screens = NSScreen::screens(mtm);
-        let primary_height =
-          screens.iter().next().map_or(0.0, |s| s.frame().size.height);
+        let primary_height = screens
+          .iter()
+          .next()
+          .map_or(0.0, |screen| screen.frame().size.height);
 
         let scale_factor = screens
           .iter()
           .next()
-          .map_or(2.0, |s| s.backingScaleFactor());
+          .map_or(2.0, |screen| screen.backingScaleFactor());
 
         let cg_origin_x = f64::from(bounds.x());
         let cg_origin_y = f64::from(bounds.y());
@@ -229,7 +234,7 @@ impl AnimationWindow {
 
     let bounds_clone = bounds.clone();
 
-    self.ns_window.with(move |w| {
+    self.ns_window.with(move |ns_window| {
       // SAFETY: `with` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -253,7 +258,7 @@ impl AnimationWindow {
         },
       );
 
-      w.setFrame_display(ns_rect, false);
+      ns_window.setFrame_display(ns_rect, false);
     })
   }
 
@@ -266,22 +271,18 @@ impl AnimationWindow {
     rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
-    let cg_origin_x = self.cg_origin_x;
-    let cg_origin_y = self.cg_origin_y;
-    let rect = rect.clone();
+    let frame = CGRect::new(
+      CGPoint {
+        x: f64::from(rect.x()) - self.cg_origin_x,
+        y: f64::from(rect.y()) - self.cg_origin_y,
+      },
+      CGSize {
+        width: f64::from(rect.width()),
+        height: f64::from(rect.height()),
+      },
+    );
 
     self.layer.with(move |layer| {
-      let frame = CGRect::new(
-        CGPoint {
-          x: f64::from(rect.x()) - cg_origin_x,
-          y: f64::from(rect.y()) - cg_origin_y,
-        },
-        CGSize {
-          width: f64::from(rect.width()),
-          height: f64::from(rect.height()),
-        },
-      );
-
       layer.setFrame(frame);
 
       if let Some(opacity) = opacity {
@@ -292,6 +293,7 @@ impl AnimationWindow {
 
   /// Removes the overlay window from the screen.
   pub(crate) fn destroy(self) -> crate::Result<()> {
-    self.ns_window.with(|w| w.orderOut(None))
+    // TODO: Actually destroy the window.
+    self.ns_window.with(|ns_window| ns_window.orderOut(None))
   }
 }

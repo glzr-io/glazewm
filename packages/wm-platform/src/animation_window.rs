@@ -1,14 +1,12 @@
 use crate::{platform_impl, Dispatcher, NativeWindow, OpacityValue, Rect};
 
-/// Shared GPU context for animation windows.
+/// Shared context for animation windows.
 ///
-/// # Platform-specific
-///
-/// - **macOS**: No-op; Core Animation manages GPU resources automatically.
-/// - **Windows**: Holds a single D3D11 device and `DirectComposition`
-///   device shared across all animation windows.
+/// Allows for batching updates across animation windows. Internally, this
+/// holds GPU resources that can be shared between animation window
+/// instances.
 pub struct AnimationContext {
-  pub(crate) inner: platform_impl::AnimationContext,
+  inner: platform_impl::AnimationContext,
 }
 
 impl AnimationContext {
@@ -18,18 +16,18 @@ impl AnimationContext {
     Ok(Self { inner })
   }
 
-  /// Executes `f` inside a compositor transaction, committing all
-  /// pending changes once `f` returns.
+  /// Executes `update_fn` inside a compositor transaction, committing all
+  /// pending changes once `update_fn` returns.
   ///
-  /// On macOS, `f` runs inside a single `CATransaction` on the main
-  /// thread. On Windows, `f` runs followed by a `DirectComposition`
-  /// commit.
-  pub fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  /// On macOS, `update_fn` runs inside a single `CATransaction` on the
+  /// main thread. On Windows, `update_fn` runs followed by a
+  /// `DirectComposition` commit.
+  pub fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
     R: Send,
   {
-    self.inner.transaction(f)
+    self.inner.transaction(update_fn)
   }
 }
 
@@ -99,11 +97,5 @@ impl AnimationWindow {
   /// Destroys the overlay window and releases GPU resources.
   pub fn destroy(self) -> crate::Result<()> {
     self.inner.destroy()
-  }
-}
-
-impl std::fmt::Debug for AnimationWindow {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("AnimationWindow").finish_non_exhaustive()
   }
 }

@@ -74,12 +74,12 @@ impl AnimationContext {
     COM_INIT.with(|_| {
       if !GraphicsCaptureSession::IsSupported()? {
         return Err(crate::Error::Platform(
-          "Windows.Graphics.Capture is not supported on this system."
+          "Windows.Graphics.Capture isn't supported on this system."
             .to_string(),
         ));
       }
 
-      let (d3d_device, d3d_context) = create_d3d11_device()?;
+      let (d3d_device, d3d_context) = Self::create_d3d11_device()?;
       let dxgi_device: IDXGIDevice = d3d_device.cast()?;
       let dcomp_device: IDCompositionDesktopDevice =
         unsafe { DCompositionCreateDevice2(&dxgi_device)? };
@@ -103,18 +103,54 @@ impl AnimationContext {
     })
   }
 
-  /// Executes `f` and then commits all pending `DirectComposition`
+  /// Executes `update_fn` and then commits all pending `DirectComposition`
   /// changes to the compositor in a single batch.
-  pub(crate) fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  pub(crate) fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
     R: Send,
   {
     COM_INIT.with(|_| {
-      let result = f();
+      let result = update_fn();
       unsafe { self.dcomp_device.Commit()? };
       Ok(result)
     })
+  }
+
+  /// Creates a D3D11 device with BGRA support (required by
+  /// DirectComposition).
+  fn create_d3d11_device(
+  ) -> crate::Result<(ID3D11Device, ID3D11DeviceContext)> {
+    let mut device: Option<ID3D11Device> = None;
+    let mut context: Option<ID3D11DeviceContext> = None;
+
+    unsafe {
+      D3D11CreateDevice(
+        None,
+        D3D_DRIVER_TYPE_HARDWARE,
+        None,
+        D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+        Some(&[D3D_FEATURE_LEVEL_11_0]),
+        D3D11_SDK_VERSION,
+        Some(&raw mut device),
+        None,
+        Some(&raw mut context),
+      )?;
+    }
+
+    let device = device.ok_or_else(|| {
+      crate::Error::Platform(
+        "D3D11CreateDevice returned null device.".to_string(),
+      )
+    })?;
+
+    let context = context.ok_or_else(|| {
+      crate::Error::Platform(
+        "D3D11CreateDevice returned null context.".to_string(),
+      )
+    })?;
+
+    Ok((device, context))
   }
 }
 
@@ -347,42 +383,6 @@ impl AnimationWindow {
   }
 }
 
-/// Creates a D3D11 device with BGRA support (required by
-/// DirectComposition).
-fn create_d3d11_device(
-) -> crate::Result<(ID3D11Device, ID3D11DeviceContext)> {
-  let mut device: Option<ID3D11Device> = None;
-  let mut context: Option<ID3D11DeviceContext> = None;
-
-  unsafe {
-    D3D11CreateDevice(
-      None,
-      D3D_DRIVER_TYPE_HARDWARE,
-      None,
-      D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-      Some(&[D3D_FEATURE_LEVEL_11_0]),
-      D3D11_SDK_VERSION,
-      Some(&raw mut device),
-      None,
-      Some(&raw mut context),
-    )?;
-  }
-
-  let device = device.ok_or_else(|| {
-    crate::Error::Platform(
-      "D3D11CreateDevice returned null device.".to_string(),
-    )
-  })?;
-
-  let context = context.ok_or_else(|| {
-    crate::Error::Platform(
-      "D3D11CreateDevice returned null context.".to_string(),
-    )
-  })?;
-
-  Ok((device, context))
-}
-
 /// Creates the overlay HWND for a single animation, sized to the given
 /// rect and ordered just above `source_hwnd`.
 fn create_overlay_hwnd(
@@ -538,8 +538,8 @@ fn wait_for_frame(
       crate::Error::Platform("WGC capture timed out.".into())
     })?;
 
-  pool.TryGetNextFrame().map_err(|e| {
-    crate::Error::Platform(format!("Failed to get WGC frame: {e}"))
+  pool.TryGetNextFrame().map_err(|err| {
+    crate::Error::Platform(format!("Failed to get WGC frame: {err}"))
   })
 }
 
