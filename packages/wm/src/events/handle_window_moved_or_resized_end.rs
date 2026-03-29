@@ -131,10 +131,21 @@ pub fn handle_window_moved_or_resized_end(
         state,
       )?;
 
-      if window.active_drag().is_some_and(|drag| {
-        drag.operation == Some(ActiveDragOperation::Resize)
-      }) {
-        // Leave the window as-is for resize operations.
+      let is_edge_resize = {
+        let is_resize = window.active_drag().is_some_and(|drag| {
+          matches!(drag.operation, Some(ActiveDragOperation::Resize))
+        });
+
+        let is_edge_child =
+          !window.prev_siblings().any(|s| s.is_tiling_window())
+            || !window.next_siblings().any(|s| s.is_tiling_window());
+
+        is_resize && is_edge_child
+      };
+
+      // Tiling windows that are first or last children are already at
+      // their correct position after a manual resize.
+      if is_edge_resize {
         state
           .pending_sync
           .dequeue_container_from_redraw(window.clone());
