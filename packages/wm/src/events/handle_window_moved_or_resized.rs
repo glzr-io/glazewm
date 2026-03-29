@@ -556,7 +556,7 @@ mod tests {
     let frame_in_right_corner = Rect::from_xy(1919, 1050, 600, 600);
     assert!(is_in_corner(&frame_in_right_corner, &monitor));
 
-    let frame_in_left_corner = Rect::from_xy(1, 1050, 600, 600);
+    let frame_in_left_corner = Rect::from_xy(-599, 1050, 600, 600);
     assert!(is_in_corner(&frame_in_left_corner, &monitor));
   }
 
