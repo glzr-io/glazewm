@@ -70,6 +70,8 @@ pub(crate) struct AnimationWindow {
   /// Top-left of the animation window in CG (screen) coordinates.
   cg_origin_x: f64,
   cg_origin_y: f64,
+  /// Height of the overlay window in points.
+  bounds_height: f64,
 }
 
 impl AnimationWindow {
@@ -91,8 +93,8 @@ impl AnimationWindow {
 
     let dispatcher_clone = dispatcher.clone();
 
-    let (ns_window, layer, cg_origin_x, cg_origin_y) = dispatcher
-      .dispatch_sync(move || {
+    let (ns_window, layer, cg_origin_x, cg_origin_y, bounds_height) =
+      dispatcher.dispatch_sync(move || {
         // SAFETY: `dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -110,6 +112,7 @@ impl AnimationWindow {
 
         let cg_origin_x = f64::from(bounds.x());
         let cg_origin_y = f64::from(bounds.y());
+        let bounds_height = f64::from(bounds.height());
 
         // Convert CG coordinates (top-left origin) to AppKit
         // (bottom-left).
@@ -153,9 +156,6 @@ impl AnimationWindow {
           .and_then(|v| v.layer())
           .expect("layer must exist after setWantsLayer");
 
-        // Flip y-axis so sublayer origins use CG screen coordinates.
-        root_layer.setGeometryFlipped(true);
-
         let layer = CALayer::new();
 
         // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
@@ -172,10 +172,14 @@ impl AnimationWindow {
         let image_height =
           CGImage::height(Some(&cg_image)) as f64 / scale_factor;
 
+        // Convert CG y (top-left origin, y-down) to AppKit layer
+        // coordinates (bottom-left origin, y-up).
         let frame = CGRect::new(
           CGPoint {
             x: f64::from(start_rect.x()) - cg_origin_x,
-            y: f64::from(start_rect.y()) - cg_origin_y,
+            y: bounds_height
+              - (f64::from(start_rect.y()) - cg_origin_y)
+              - image_height,
           },
           CGSize {
             width: image_width,
@@ -206,6 +210,7 @@ impl AnimationWindow {
           ThreadBound::new(layer, dispatcher_clone),
           cg_origin_x,
           cg_origin_y,
+          bounds_height,
         )
       })?;
 
@@ -214,6 +219,7 @@ impl AnimationWindow {
       layer,
       cg_origin_x,
       cg_origin_y,
+      bounds_height,
     })
   }
 
@@ -231,6 +237,7 @@ impl AnimationWindow {
 
     self.cg_origin_x = f64::from(bounds.x());
     self.cg_origin_y = f64::from(bounds.y());
+    self.bounds_height = f64::from(bounds.height());
 
     let bounds_clone = bounds.clone();
 
@@ -271,10 +278,14 @@ impl AnimationWindow {
     rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
+    // Convert CG y (top-left origin, y-down) to AppKit layer
+    // coordinates (bottom-left origin, y-up).
     let frame = CGRect::new(
       CGPoint {
         x: f64::from(rect.x()) - self.cg_origin_x,
-        y: f64::from(rect.y()) - self.cg_origin_y,
+        y: self.bounds_height
+          - (f64::from(rect.y()) - self.cg_origin_y)
+          - f64::from(rect.height()),
       },
       CGSize {
         width: f64::from(rect.width()),
