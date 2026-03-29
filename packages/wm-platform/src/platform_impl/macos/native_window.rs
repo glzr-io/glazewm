@@ -359,7 +359,7 @@ impl NativeWindow {
   ) -> crate::Result<()> {
     // Ref: https://github.com/Hammerspoon/hammerspoon/issues/370#issuecomment-545545468
     let window_id = self.id.0.to_ne_bytes();
-    let mut event1 = [0u8; 0xf8];
+    let mut event1 = [0; 0x100];
     event1[0x04] = 0xf8;
     event1[0x08] = 0x01;
     event1[0x3a] = 0x10;
