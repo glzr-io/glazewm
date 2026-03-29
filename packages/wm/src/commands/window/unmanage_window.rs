@@ -26,7 +26,9 @@ pub fn unmanage_window(
 
   // Clean up animation tracking data.
   state.animation_manager.remove_animation(&window.id());
-  state.animation_manager.destroy_animation_window(&window.id())?;
+  state
+    .animation_manager
+    .destroy_animation_window(&window.id())?;
 
   // After detaching the container, flatten any redundant split containers.
   // For example, in the layout V[1 H[2]] where container 1 is detached to

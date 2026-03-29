@@ -734,7 +734,6 @@ impl NativeWindow {
 
     Ok(cloaked != 0)
   }
-
 }
 
 impl PartialEq for NativeWindow {

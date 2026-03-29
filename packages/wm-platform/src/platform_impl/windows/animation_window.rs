@@ -70,7 +70,7 @@ pub(crate) struct AnimationContext {
 impl AnimationContext {
   /// Creates a shared D3D11 + `DirectComposition` device pair and
   /// pre-warms WGC capture objects (WinRT device, interop factory).
-  pub(crate) fn new() -> crate::Result<Self> {
+  pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
     COM_INIT.with(|_| {
       if !GraphicsCaptureSession::IsSupported()? {
         return Err(crate::Error::Platform(
@@ -103,11 +103,17 @@ impl AnimationContext {
     })
   }
 
-  /// Commits all pending `DirectComposition` changes to the compositor.
-  pub(crate) fn commit(&self) -> crate::Result<()> {
+  /// Executes `f` and then commits all pending `DirectComposition`
+  /// changes to the compositor in a single batch.
+  pub(crate) fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  where
+    F: FnOnce() -> R + Send,
+    R: Send,
+  {
     COM_INIT.with(|_| {
+      let result = f();
       unsafe { self.dcomp_device.Commit()? };
-      Ok(())
+      Ok(result)
     })
   }
 }
@@ -275,9 +281,8 @@ impl AnimationWindow {
   /// Repositions the DirectComposition visual within the overlay HWND
   /// and updates opacity.
   ///
-  /// The HWND frame is never changed; only the visual moves. Does not
-  /// commit; the caller must call `AnimationContext::commit` after all
-  /// per-tick updates.
+  /// The HWND frame is never changed; only the visual moves. Must be
+  /// called inside `AnimationContext::transaction`.
   pub(crate) fn update(
     &self,
     rect: &Rect,

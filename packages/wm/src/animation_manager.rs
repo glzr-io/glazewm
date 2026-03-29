@@ -3,6 +3,7 @@ use std::{
   time::{Duration, Instant},
 };
 
+use anyhow::Context;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
@@ -196,30 +197,27 @@ impl AnimationManager {
   /// Updates all active animations and returns the IDs of any that
   /// completed during this tick.
   ///
-  /// Commits all pending compositor changes once after updating every
-  /// active window.
+  /// Updates get batched into a single compositor transaction.
   pub fn update(&mut self) -> anyhow::Result<Vec<Uuid>> {
     if self.animations.is_empty() {
       return Ok(Vec::new());
     }
 
-    let mut any_updated = false;
-
-    for (id, anim) in &self.animations {
-      if !anim.is_complete() {
-        if let Some(anim_window) = self.windows.get(id) {
-          anim_window
-            .update(&anim.current_rect(), anim.current_opacity())?;
-          any_updated = true;
+    self
+      .context
+      .as_ref()
+      .context("Animation context not initialized.")?
+      .transaction(|| {
+        for (id, anim) in &self.animations {
+          if !anim.is_complete() {
+            if let Some(anim_window) = self.windows.get(id) {
+              anim_window
+                .update(&anim.current_rect(), anim.current_opacity())?;
+            }
+          }
         }
-      }
-    }
-
-    if any_updated {
-      if let Some(context) = &self.context {
-        context.commit()?;
-      }
-    }
+        anyhow::Ok(())
+      })??;
 
     // Return IDs of completed animations. Removal is deferred so that
     // `should_start_animation` can still read their `target_rect` during
@@ -322,7 +320,9 @@ impl AnimationManager {
     } else {
       let context = match &self.context {
         Some(ctx) => ctx,
-        None => self.context.get_or_insert(AnimationContext::new()?),
+        None => self
+          .context
+          .get_or_insert(AnimationContext::new(dispatcher)?),
       };
 
       let anim_window = AnimationWindow::new(

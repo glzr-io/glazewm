@@ -2,8 +2,8 @@ use objc2::{
   rc::Retained, runtime::AnyObject, MainThreadMarker, MainThreadOnly,
 };
 use objc2_app_kit::{
-  NSBackingStoreType, NSColor, NSScreen, NSWindow,
-  NSWindowOrderingMode, NSWindowStyleMask,
+  NSBackingStoreType, NSColor, NSScreen, NSWindow, NSWindowOrderingMode,
+  NSWindowStyleMask,
 };
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGImage;
@@ -15,21 +15,40 @@ use crate::{
   ThreadBound,
 };
 
-/// Shared animation context (no-op on macOS).
+/// Shared animation context for macOS.
 ///
-/// On macOS, Core Animation manages GPU resources automatically, so no
-/// shared device context is needed.
-pub(crate) struct AnimationContext;
+/// Core Animation manages GPU resources automatically, so no shared
+/// device context is needed. The context provides `transaction` to batch
+/// multiple `CALayer` updates into a single `CATransaction` on the main
+/// thread.
+pub(crate) struct AnimationContext {
+  dispatcher: Dispatcher,
+}
 
 impl AnimationContext {
-  /// Creates a shared animation context (no-op on macOS).
-  pub(crate) fn new() -> crate::Result<Self> {
-    Ok(Self)
+  /// Creates a shared animation context.
+  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+    Ok(Self {
+      dispatcher: dispatcher.clone(),
+    })
   }
 
-  /// Commits pending changes (no-op on macOS).
-  pub(crate) fn commit(&self) -> crate::Result<()> {
-    Ok(())
+  /// Executes `f` inside a single `CATransaction` on the main thread.
+  ///
+  /// All `CALayer` mutations performed by `f` are batched into one
+  /// implicit-animation-free commit.
+  pub(crate) fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  where
+    F: FnOnce() -> R + Send,
+    R: Send,
+  {
+    self.dispatcher.dispatch_sync(|| {
+      CATransaction::begin();
+      CATransaction::setDisableActions(true);
+      let result = f();
+      CATransaction::commit();
+      result
+    })
   }
 }
 
@@ -70,8 +89,8 @@ impl AnimationWindow {
 
     let dispatcher_clone = dispatcher.clone();
 
-    let (ns_window, layer, cg_origin_x, cg_origin_y) =
-      dispatcher.dispatch_sync(move || {
+    let (ns_window, layer, cg_origin_x, cg_origin_y) = dispatcher
+      .dispatch_sync(move || {
         // SAFETY: `dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -87,9 +106,11 @@ impl AnimationWindow {
         let cg_origin_x = f64::from(bounds.x());
         let cg_origin_y = f64::from(bounds.y());
 
-        // Convert CG coordinates (top-left origin) to AppKit (bottom-left).
-        let appkit_y =
-          primary_height - f64::from(bounds.y()) - f64::from(bounds.height());
+        // Convert CG coordinates (top-left origin) to AppKit
+        // (bottom-left).
+        let appkit_y = primary_height
+          - f64::from(bounds.y())
+          - f64::from(bounds.height());
 
         let ns_rect = NSRect::new(
           objc2_foundation::NSPoint {
@@ -135,8 +156,7 @@ impl AnimationWindow {
         // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
         unsafe {
           layer.setContents(Some(
-            &*std::ptr::from_ref::<CGImage>(&cg_image)
-              .cast::<AnyObject>(),
+            &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
           ));
         };
 
@@ -251,9 +271,6 @@ impl AnimationWindow {
     let rect = rect.clone();
 
     self.layer.with(move |layer| {
-      CATransaction::begin();
-      CATransaction::setDisableActions(true);
-
       let frame = CGRect::new(
         CGPoint {
           x: f64::from(rect.x()) - cg_origin_x,
@@ -270,8 +287,6 @@ impl AnimationWindow {
       if let Some(opacity) = opacity {
         layer.setOpacity(opacity.0);
       }
-
-      CATransaction::commit();
     })
   }
 

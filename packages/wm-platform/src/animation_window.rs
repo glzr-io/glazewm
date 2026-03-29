@@ -4,8 +4,7 @@ use crate::{platform_impl, Dispatcher, NativeWindow, OpacityValue, Rect};
 ///
 /// # Platform-specific
 ///
-/// - **macOS**: No-op; Core Animation manages GPU resources
-///   automatically.
+/// - **macOS**: No-op; Core Animation manages GPU resources automatically.
 /// - **Windows**: Holds a single D3D11 device and `DirectComposition`
 ///   device shared across all animation windows.
 pub struct AnimationContext {
@@ -14,16 +13,23 @@ pub struct AnimationContext {
 
 impl AnimationContext {
   /// Creates a new shared animation context.
-  pub fn new() -> crate::Result<Self> {
-    let inner = platform_impl::AnimationContext::new()?;
+  pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+    let inner = platform_impl::AnimationContext::new(dispatcher)?;
     Ok(Self { inner })
   }
 
-  /// Commits all pending compositor changes.
+  /// Executes `f` inside a compositor transaction, committing all
+  /// pending changes once `f` returns.
   ///
-  /// Call once per tick after all `AnimationWindow::update` calls.
-  pub fn commit(&self) -> crate::Result<()> {
-    self.inner.commit()
+  /// On macOS, `f` runs inside a single `CATransaction` on the main
+  /// thread. On Windows, `f` runs followed by a `DirectComposition`
+  /// commit.
+  pub fn transaction<F, R>(&self, f: F) -> crate::Result<R>
+  where
+    F: FnOnce() -> R + Send,
+    R: Send,
+  {
+    self.inner.transaction(f)
   }
 }
 
@@ -31,9 +37,8 @@ impl AnimationContext {
 ///
 /// # Platform-specific
 ///
-/// - **macOS**: A transparent `NSWindow` with a single `CALayer`,
-///   ordered just above the source window. Core Animation handles GPU
-///   compositing.
+/// - **macOS**: A transparent `NSWindow` with a single `CALayer`, ordered
+///   just above the source window. Core Animation handles GPU compositing.
 /// - **Windows**: A layered overlay `HWND` with a `IDCompositionVisual`,
 ///   using `DirectComposition` for GPU compositing and
 ///   `Windows.Graphics.Capture` for screenshots.
@@ -81,9 +86,8 @@ impl AnimationWindow {
 
   /// Updates the layer position and opacity within the overlay.
   ///
-  /// The overlay window itself is never repositioned; only the
-  /// contained layer moves. Does not commit; call
-  /// `AnimationContext::commit` after all per-tick updates.
+  /// Does not commit; should be called within
+  /// `AnimationContext::transaction` for the change to take effect.
   pub fn update(
     &self,
     rect: &Rect,
