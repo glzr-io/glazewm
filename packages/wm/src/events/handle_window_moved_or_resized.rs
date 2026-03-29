@@ -202,27 +202,31 @@ pub fn handle_window_moved_or_resized(
     // repositioning the window. Since the OS won't emit real
     // shown/hidden events in this mode, update `DisplayState` based on
     // whether the window has been moved to the monitor's bottom corner.
-    if config.value.general.hide_method == HideMethod::PlaceInCorner {
-      let is_in_corner = is_in_corner(
+    if config.value.general.hide_method == HideMethod::PlaceInCorner
+      && is_in_corner(
         &frame_position,
         &nearest_monitor.native_properties().working_area,
-      );
+      )
+    {
+      // Leave animating windows as `DisplayState::Shown`.
+      if cfg!(target_os = "macos")
+        && state.animation_manager.is_animating(&window.id())
+      {
+        return Ok(());
+      }
 
       // TODO: Consider redrawing if hidden and should be shown, or if
       // shown and should be hidden.
       // TODO: It can be valid for a floating window to be in the corner,
       // in which case, it currently doesn't get updated to
       // `DisplayState::Shown`.
-      let display_state = match (window.display_state(), is_in_corner) {
-        (DisplayState::Hiding, true) => DisplayState::Hidden,
-        (DisplayState::Showing, false) => DisplayState::Shown,
+      window.set_display_state(match window.display_state() {
+        DisplayState::Hiding => DisplayState::Hidden,
+        DisplayState::Showing => DisplayState::Shown,
         _ => window.display_state(),
-      };
+      });
 
-      if display_state != window.display_state() {
-        window.set_display_state(display_state);
-        return Ok(());
-      }
+      return Ok(());
     }
 
     let should_fullscreen = {

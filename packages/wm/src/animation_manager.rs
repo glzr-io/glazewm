@@ -140,6 +140,11 @@ impl AnimationManager {
     }
   }
 
+  /// Whether an animation is currently active for a given window.
+  pub fn is_animating(&self, window_id: &Uuid) -> bool {
+    self.animations.contains_key(window_id)
+  }
+
   /// Removes a window's animation state.
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
