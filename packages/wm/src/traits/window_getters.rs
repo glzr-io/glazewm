@@ -60,6 +60,8 @@ pub trait WindowGetters: CommonGetters {
 
   fn native(&self) -> Ref<'_, NativeWindow>;
 
+  fn set_native(&self, native: NativeWindow);
+
   fn border_delta(&self) -> RectDelta;
 
   fn set_border_delta(&self, border_delta: RectDelta);
@@ -195,6 +197,10 @@ macro_rules! impl_window_getters {
 
       fn native(&self) -> Ref<'_, NativeWindow> {
         Ref::map(self.0.borrow(), |inner| &inner.native)
+      }
+
+      fn set_native(&self, native: NativeWindow) {
+        self.0.borrow_mut().native = native;
       }
 
       fn border_delta(&self) -> RectDelta {
