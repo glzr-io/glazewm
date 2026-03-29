@@ -7,7 +7,8 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
 use wm_platform::{
-  AnimationWindow, Dispatcher, EasingFunction, OpacityValue, Rect,
+  AnimationContext, AnimationWindow, Dispatcher, EasingFunction,
+  OpacityValue, Rect,
 };
 
 use crate::{
@@ -116,6 +117,10 @@ pub struct AnimationManager {
   /// Per-window overlay windows keyed by window ID.
   windows: HashMap<Uuid, AnimationWindow>,
 
+  /// Shared GPU context for animation overlay windows. Lazily
+  /// initialized on the first animation.
+  context: Option<AnimationContext>,
+
   /// Handle to the running tick task, if any.
   tick_task: Option<tokio::task::JoinHandle<()>>,
 }
@@ -129,6 +134,7 @@ impl AnimationManager {
       tick_tx,
       tick_rx,
       windows: HashMap::new(),
+      context: None,
       tick_task: None,
     }
   }
@@ -189,17 +195,29 @@ impl AnimationManager {
 
   /// Updates all active animations and returns the IDs of any that
   /// completed during this tick.
+  ///
+  /// Commits all pending compositor changes once after updating every
+  /// active window.
   pub fn update(&mut self) -> anyhow::Result<Vec<Uuid>> {
     if self.animations.is_empty() {
       return Ok(Vec::new());
     }
+
+    let mut any_updated = false;
 
     for (id, anim) in &self.animations {
       if !anim.is_complete() {
         if let Some(anim_window) = self.windows.get(id) {
           anim_window
             .update(&anim.current_rect(), anim.current_opacity())?;
+          any_updated = true;
         }
+      }
+    }
+
+    if any_updated {
+      if let Some(context) = &self.context {
+        context.commit()?;
       }
     }
 
@@ -302,7 +320,13 @@ impl AnimationManager {
     if let Some(anim_window) = self.windows.get_mut(&window.id()) {
       anim_window.resize(&animation.start_rect, &animation.target_rect)?;
     } else {
+      let context = match &self.context {
+        Some(ctx) => ctx,
+        None => self.context.get_or_insert(AnimationContext::new()?),
+      };
+
       let anim_window = AnimationWindow::new(
+        context,
         dispatcher,
         &window.native(),
         &animation.start_rect,

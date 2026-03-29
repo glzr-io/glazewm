@@ -15,6 +15,24 @@ use crate::{
   ThreadBound,
 };
 
+/// Shared animation context (no-op on macOS).
+///
+/// On macOS, Core Animation manages GPU resources automatically, so no
+/// shared device context is needed.
+pub(crate) struct AnimationContext;
+
+impl AnimationContext {
+  /// Creates a shared animation context (no-op on macOS).
+  pub(crate) fn new() -> crate::Result<Self> {
+    Ok(Self)
+  }
+
+  /// Commits pending changes (no-op on macOS).
+  pub(crate) fn commit(&self) -> crate::Result<()> {
+    Ok(())
+  }
+}
+
 /// Per-window overlay for animating a single window transition.
 ///
 /// Each `AnimationWindow` creates its own transparent `NSWindow` sized to
@@ -38,6 +56,7 @@ impl AnimationWindow {
   /// and `target_rect`, captures a screenshot of `window`, and orders the
   /// overlay just above the source window.
   pub(crate) fn new(
+    _context: &AnimationContext,
     dispatcher: &Dispatcher,
     window: &NativeWindow,
     start_rect: &Rect,

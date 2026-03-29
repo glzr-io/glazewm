@@ -1,5 +1,32 @@
 use crate::{platform_impl, Dispatcher, NativeWindow, OpacityValue, Rect};
 
+/// Shared GPU context for animation windows.
+///
+/// # Platform-specific
+///
+/// - **macOS**: No-op; Core Animation manages GPU resources
+///   automatically.
+/// - **Windows**: Holds a single D3D11 device and `DirectComposition`
+///   device shared across all animation windows.
+pub struct AnimationContext {
+  pub(crate) inner: platform_impl::AnimationContext,
+}
+
+impl AnimationContext {
+  /// Creates a new shared animation context.
+  pub fn new() -> crate::Result<Self> {
+    let inner = platform_impl::AnimationContext::new()?;
+    Ok(Self { inner })
+  }
+
+  /// Commits all pending compositor changes.
+  ///
+  /// Call once per tick after all `AnimationWindow::update` calls.
+  pub fn commit(&self) -> crate::Result<()> {
+    self.inner.commit()
+  }
+}
+
 /// Per-window overlay for animating a single window transition.
 ///
 /// # Platform-specific
@@ -21,6 +48,7 @@ impl AnimationWindow {
   /// the union of `start_rect` and `target_rect`, ordered just above
   /// the source window.
   pub fn new(
+    context: &AnimationContext,
     dispatcher: &Dispatcher,
     window: &NativeWindow,
     start_rect: &Rect,
@@ -28,6 +56,7 @@ impl AnimationWindow {
     opacity: Option<f32>,
   ) -> crate::Result<Self> {
     let inner = platform_impl::AnimationWindow::new(
+      &context.inner,
       dispatcher,
       window,
       start_rect,
@@ -53,7 +82,8 @@ impl AnimationWindow {
   /// Updates the layer position and opacity within the overlay.
   ///
   /// The overlay window itself is never repositioned; only the
-  /// contained layer moves.
+  /// contained layer moves. Does not commit; call
+  /// `AnimationContext::commit` after all per-tick updates.
   pub fn update(
     &self,
     rect: &Rect,
@@ -62,7 +92,7 @@ impl AnimationWindow {
     self.inner.update(rect, opacity)
   }
 
-  /// Destroys the overlay window.
+  /// Destroys the overlay window and releases GPU resources.
   pub fn destroy(self) -> crate::Result<()> {
     self.inner.destroy()
   }

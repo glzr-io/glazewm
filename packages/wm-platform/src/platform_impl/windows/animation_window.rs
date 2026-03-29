@@ -17,7 +17,8 @@ use windows::{
       },
       DirectComposition::{
         DCompositionCreateDevice2, IDCompositionDesktopDevice,
-        IDCompositionSurface, IDCompositionTarget, IDCompositionVisual3,
+        IDCompositionScaleTransform, IDCompositionSurface,
+        IDCompositionTarget, IDCompositionVisual3,
       },
       Dxgi::{
         Common::{
@@ -57,6 +58,42 @@ const WGC_CAPTURE_TIMEOUT: std::time::Duration =
 const WGC_POLL_INTERVAL: std::time::Duration =
   std::time::Duration::from_millis(10);
 
+/// Shared GPU context for all animation windows.
+///
+/// Holds a single D3D11 device and `DirectComposition` device, avoiding
+/// the overhead of creating heavyweight GPU objects per animation.
+pub(crate) struct AnimationContext {
+  d3d_device: ID3D11Device,
+  d3d_context: ID3D11DeviceContext,
+  dcomp_device: IDCompositionDesktopDevice,
+}
+
+impl AnimationContext {
+  /// Creates a shared D3D11 + `DirectComposition` device pair.
+  pub(crate) fn new() -> crate::Result<Self> {
+    COM_INIT.with(|_| {
+      let (d3d_device, d3d_context) = create_d3d11_device()?;
+      let dxgi_device: IDXGIDevice = d3d_device.cast()?;
+      let dcomp_device: IDCompositionDesktopDevice =
+        unsafe { DCompositionCreateDevice2(&dxgi_device)? };
+
+      Ok(Self {
+        d3d_device,
+        d3d_context,
+        dcomp_device,
+      })
+    })
+  }
+
+  /// Commits all pending `DirectComposition` changes to the compositor.
+  pub(crate) fn commit(&self) -> crate::Result<()> {
+    COM_INIT.with(|_| {
+      unsafe { self.dcomp_device.Commit()? };
+      Ok(())
+    })
+  }
+}
+
 /// Per-window overlay for animating a single window transition.
 ///
 /// Each `AnimationWindow` creates its own transparent HWND sized to the
@@ -71,6 +108,7 @@ pub(crate) struct AnimationWindow {
   dcomp_device: IDCompositionDesktopDevice,
   _dcomp_target: IDCompositionTarget,
   visual: IDCompositionVisual3,
+  scale_transform: IDCompositionScaleTransform,
   /// Captured source texture dimensions (for scale calculations).
   src_width: u32,
   src_height: u32,
@@ -86,6 +124,7 @@ impl AnimationWindow {
   /// `start_rect` and `target_rect`, captures a screenshot of `window`
   /// via WGC, and orders the overlay just above the source window.
   pub(crate) fn new(
+    context: &AnimationContext,
     dispatcher: &Dispatcher,
     window: &NativeWindow,
     start_rect: &Rect,
@@ -93,12 +132,7 @@ impl AnimationWindow {
     opacity: Option<f32>,
   ) -> crate::Result<Self> {
     COM_INIT.with(|_| {
-      let (d3d_device, d3d_context) = create_d3d11_device()?;
-
-      let dxgi_device: IDXGIDevice = d3d_device.cast()?;
-      let dcomp_device: IDCompositionDesktopDevice =
-        unsafe { DCompositionCreateDevice2(&dxgi_device)? };
-
+      let dxgi_device: IDXGIDevice = context.d3d_device.cast()?;
       let winrt_device = create_winrt_device(&dxgi_device)?;
 
       let captured_texture =
@@ -122,6 +156,8 @@ impl AnimationWindow {
         )
       })??;
 
+      let dcomp_device = &context.dcomp_device;
+
       let dcomp_target =
         unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
 
@@ -135,7 +171,7 @@ impl AnimationWindow {
       };
 
       copy_texture_to_surface(
-        &d3d_context,
+        &context.d3d_context,
         &captured_texture,
         &dcomp_surface,
       )?;
@@ -154,9 +190,17 @@ impl AnimationWindow {
         visual.SetOffsetY2((start_rect.y() - origin_y) as f32)?;
       }
 
-      apply_scale(
-        &dcomp_device,
-        &visual,
+      let scale_transform =
+        unsafe { dcomp_device.CreateScaleTransform()? };
+
+      unsafe {
+        scale_transform.SetCenterX2(0.0)?;
+        scale_transform.SetCenterY2(0.0)?;
+        visual.SetTransform(&scale_transform)?;
+      }
+
+      update_scale(
+        &scale_transform,
         start_rect.width(),
         start_rect.height(),
         desc.Width,
@@ -171,9 +215,10 @@ impl AnimationWindow {
 
       Ok(Self {
         hwnd,
-        dcomp_device,
+        dcomp_device: dcomp_device.clone(),
         _dcomp_target: dcomp_target,
         visual,
+        scale_transform,
         src_width: desc.Width,
         src_height: desc.Height,
         origin_x,
@@ -214,7 +259,9 @@ impl AnimationWindow {
   /// Repositions the DirectComposition visual within the overlay HWND
   /// and updates opacity.
   ///
-  /// The HWND frame is never changed; only the visual moves.
+  /// The HWND frame is never changed; only the visual moves. Does not
+  /// commit; the caller must call `AnimationContext::commit` after all
+  /// per-tick updates.
   pub(crate) fn update(
     &self,
     rect: &Rect,
@@ -227,9 +274,8 @@ impl AnimationWindow {
         self.visual.SetOffsetY2((rect.y() - self.origin_y) as f32)?;
       }
 
-      apply_scale(
-        &self.dcomp_device,
-        &self.visual,
+      update_scale(
+        &self.scale_transform,
         rect.width(),
         rect.height(),
         self.src_width,
@@ -240,18 +286,33 @@ impl AnimationWindow {
         unsafe { self.visual.SetOpacity2(opacity.0)? };
       }
 
-      unsafe { self.dcomp_device.Commit()? };
       Ok(())
     })
   }
 
-  /// Destroys the overlay HWND.
+  /// Tears down `DirectComposition` resources and destroys the overlay
+  /// HWND.
+  ///
+  /// Clears the visual tree and commits before releasing COM objects so
+  /// the compositor does not retain stale GPU surfaces.
   pub(crate) fn destroy(self) -> crate::Result<()> {
-    let hwnd = self.hwnd;
-    self.dispatcher.dispatch_sync(move || {
-      let _ = unsafe { DestroyWindow(HWND(hwnd)) };
-    })?;
-    Ok(())
+    COM_INIT.with(|_| {
+      unsafe {
+        let _ = self
+          .visual
+          .SetContent(None::<&windows::core::IUnknown>);
+        let _ = self.visual.SetTransform(
+          None::<&windows::Win32::Graphics::DirectComposition::IDCompositionTransform>,
+        );
+        let _ = self.dcomp_device.Commit();
+      }
+
+      let hwnd = self.hwnd;
+      self.dispatcher.dispatch_sync(move || {
+        let _ = unsafe { DestroyWindow(HWND(hwnd)) };
+      })?;
+      Ok(())
+    })
   }
 
   /// Window procedure for the overlay class.
@@ -370,6 +431,8 @@ fn create_overlay_hwnd(
 
 /// Captures a single frame of a window via Windows.Graphics.Capture and
 /// returns its `ID3D11Texture2D`.
+///
+/// Perf: ~50-65ms.
 fn capture_window_texture(
   hwnd: HWND,
   winrt_device: &IDirect3DDevice,
@@ -401,7 +464,7 @@ fn capture_window_texture(
 
   let session = frame_pool.CreateCaptureSession(&capture_item)?;
 
-  // Disable the yellow capture border on Windows 11+.
+  // Disable the yellow capture border on Windows 11 (Build 22000+).
   let _ = session.SetIsBorderRequired(false);
 
   session.StartCapture()?;
@@ -417,6 +480,14 @@ fn capture_window_texture(
   // WGC textures are pool-managed -- copy into a standalone texture
   // to avoid use-after-free when the pool is closed.
   let standalone = copy_to_standalone_texture(&texture)?;
+
+  // Release WGC resources in dependency order: frame surface refs
+  // first, then frame, then session and pool.
+  drop(texture);
+  drop(access);
+  drop(surface);
+  frame.Close()?;
+  drop(frame);
 
   session.Close()?;
   frame_pool.Close()?;
@@ -507,11 +578,10 @@ fn copy_texture_to_surface(
   Ok(())
 }
 
-/// Applies a scale transform on `visual` so the captured source is
-/// scaled to fill the target rect dimensions.
-fn apply_scale(
-  dcomp_device: &IDCompositionDesktopDevice,
-  visual: &IDCompositionVisual3,
+/// Updates the scale factors on an existing `IDCompositionScaleTransform`
+/// so the captured source is scaled to fill the target rect dimensions.
+fn update_scale(
+  transform: &IDCompositionScaleTransform,
   target_width: i32,
   target_height: i32,
   src_width: u32,
@@ -526,13 +596,9 @@ fn apply_scale(
   #[allow(clippy::cast_precision_loss)]
   let scale_y = target_height as f32 / src_height as f32;
 
-  let transform = unsafe { dcomp_device.CreateScaleTransform()? };
   unsafe {
     transform.SetScaleX2(scale_x)?;
     transform.SetScaleY2(scale_y)?;
-    transform.SetCenterX2(0.0)?;
-    transform.SetCenterY2(0.0)?;
-    visual.SetTransform(&transform)?;
   }
 
   Ok(())
