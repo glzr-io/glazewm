@@ -23,8 +23,8 @@ use crate::{
 /// A window corresponds to a maximum of one [`WindowAnimationState`] at a
 /// time.
 #[derive(Clone, Debug)]
-pub struct WindowAnimationState {
-  pub start_time: Instant,
+struct WindowAnimationState {
+  start_time: Instant,
   duration: Duration,
   easing: EasingFunction,
 
@@ -32,18 +32,18 @@ pub struct WindowAnimationState {
   frame_rate: u32,
 
   /// Start and target positions for the animation.
-  pub start_rect: Rect,
-  pub target_rect: Rect,
+  start_rect: Rect,
+  target_rect: Rect,
 
   /// Start and target opacity for the animation, or `None` if no opacity
   /// animation is active.
-  pub start_opacity: Option<OpacityValue>,
-  pub target_opacity: Option<OpacityValue>,
+  start_opacity: Option<OpacityValue>,
+  target_opacity: Option<OpacityValue>,
 }
 
 impl WindowAnimationState {
   /// Creates a new movement animation between two rects.
-  pub fn new(
+  fn new(
     start_rect: Rect,
     target_rect: Rect,
     config: &AnimationEffectsConfig,
@@ -62,7 +62,7 @@ impl WindowAnimationState {
   }
 
   /// Returns the normalized animation progress in `[0.0, 1.0]`.
-  pub fn progress(&self) -> f32 {
+  fn progress(&self) -> f32 {
     let elapsed = self.start_time.elapsed();
 
     if elapsed >= self.duration {
@@ -79,12 +79,12 @@ impl WindowAnimationState {
   /// Whether the animation has completed.
   // LINT: Progress is clamped to [0.0, 1.0], so exact comparison is safe.
   #[allow(clippy::float_cmp)]
-  pub fn is_complete(&self) -> bool {
+  fn is_complete(&self) -> bool {
     self.progress() == 1.0
   }
 
   /// Returns the interpolated rect at the current animation progress.
-  pub fn current_rect(&self) -> Rect {
+  fn current_rect(&self) -> Rect {
     let eased_progress = self.easing.apply(self.progress());
     self
       .start_rect
@@ -93,7 +93,7 @@ impl WindowAnimationState {
 
   /// Returns the interpolated opacity at the current animation progress,
   /// or `None` if no opacity animation is active.
-  pub fn current_opacity(&self) -> Option<OpacityValue> {
+  fn current_opacity(&self) -> Option<OpacityValue> {
     let (start, end) =
       (self.start_opacity.as_ref()?, self.target_opacity.as_ref()?);
 
@@ -286,7 +286,8 @@ impl AnimationManager {
     // Resize existing overlay to the new bounding box when the target
     // changes mid-flight, preserving the screenshot and z-order.
     if let Some(anim_window) = self.windows.get_mut(&window.id()) {
-      anim_window.resize(&animation.start_rect, &animation.target_rect)?;
+      anim_window
+        .resize(&animation.start_rect.union(&animation.target_rect))?;
     } else {
       let context = match &self.context {
         Some(ctx) => ctx,
@@ -297,11 +298,11 @@ impl AnimationManager {
 
       let anim_window = AnimationWindow::new(
         context,
-        dispatcher,
         &window.native(),
         &animation.start_rect,
-        &animation.target_rect,
-        animation.current_opacity().map(|o| o.0),
+        &animation.start_rect.union(&animation.target_rect),
+        animation.current_opacity(),
+        dispatcher,
       )?;
 
       self.windows.insert(window.id(), anim_window);

@@ -80,16 +80,16 @@ impl AnimationWindow {
   /// overlay just above the source window.
   pub(crate) fn new(
     _context: &AnimationContext,
-    dispatcher: &Dispatcher,
     window: &NativeWindow,
-    start_rect: &Rect,
-    target_rect: &Rect,
-    opacity: Option<f32>,
+    inner_rect: &Rect,
+    outer_rect: &Rect,
+    opacity: Option<OpacityValue>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let cg_image = window.screen_capture()?;
     let source_window_number = window.id().0;
-    let bounds = start_rect.union(target_rect);
-    let start_rect = start_rect.clone();
+    let inner_rect = inner_rect.clone();
+    let opacity = opacity.map(|o| o.0);
 
     let dispatcher_clone = dispatcher.clone();
 
@@ -110,24 +110,24 @@ impl AnimationWindow {
           .next()
           .map_or(2.0, |screen| screen.backingScaleFactor());
 
-        let cg_origin_x = f64::from(bounds.x());
-        let cg_origin_y = f64::from(bounds.y());
-        let bounds_height = f64::from(bounds.height());
+        let cg_origin_x = f64::from(outer_rect.x());
+        let cg_origin_y = f64::from(outer_rect.y());
+        let bounds_height = f64::from(outer_rect.height());
 
         // Convert CG coordinates (top-left origin) to AppKit
         // (bottom-left).
         let appkit_y = primary_height
-          - f64::from(bounds.y())
-          - f64::from(bounds.height());
+          - f64::from(outer_rect.y())
+          - f64::from(outer_rect.height());
 
         let ns_rect = NSRect::new(
           objc2_foundation::NSPoint {
-            x: f64::from(bounds.x()),
+            x: f64::from(outer_rect.x()),
             y: appkit_y,
           },
           objc2_foundation::NSSize {
-            width: f64::from(bounds.width()),
-            height: f64::from(bounds.height()),
+            width: f64::from(outer_rect.width()),
+            height: f64::from(outer_rect.height()),
           },
         );
 
@@ -176,9 +176,9 @@ impl AnimationWindow {
         // coordinates (bottom-left origin, y-up).
         let frame = CGRect::new(
           CGPoint {
-            x: f64::from(start_rect.x()) - cg_origin_x,
+            x: f64::from(inner_rect.x()) - cg_origin_x,
             y: bounds_height
-              - (f64::from(start_rect.y()) - cg_origin_y)
+              - (f64::from(inner_rect.y()) - cg_origin_y)
               - image_height,
           },
           CGSize {
@@ -228,18 +228,12 @@ impl AnimationWindow {
   ///
   /// Called when an animation's target changes mid-flight so the
   /// existing screenshot and z-order are preserved.
-  pub(crate) fn resize(
-    &mut self,
-    start_rect: &Rect,
-    target_rect: &Rect,
-  ) -> crate::Result<()> {
-    let bounds = start_rect.union(target_rect);
+  pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
+    self.cg_origin_x = f64::from(outer_rect.x());
+    self.cg_origin_y = f64::from(outer_rect.y());
+    self.bounds_height = f64::from(outer_rect.height());
 
-    self.cg_origin_x = f64::from(bounds.x());
-    self.cg_origin_y = f64::from(bounds.y());
-    self.bounds_height = f64::from(bounds.height());
-
-    let bounds_clone = bounds.clone();
+    let outer_rect = outer_rect.clone();
 
     self.ns_window.with(move |ns_window| {
       // SAFETY: `with` runs on the main thread.
@@ -251,17 +245,17 @@ impl AnimationWindow {
         .map_or(0.0, |s| s.frame().size.height);
 
       let appkit_y = primary_height
-        - f64::from(bounds_clone.y())
-        - f64::from(bounds_clone.height());
+        - f64::from(outer_rect.y())
+        - f64::from(outer_rect.height());
 
       let ns_rect = NSRect::new(
         objc2_foundation::NSPoint {
-          x: f64::from(bounds_clone.x()),
+          x: f64::from(outer_rect.x()),
           y: appkit_y,
         },
         objc2_foundation::NSSize {
-          width: f64::from(bounds_clone.width()),
-          height: f64::from(bounds_clone.height()),
+          width: f64::from(outer_rect.width()),
+          height: f64::from(outer_rect.height()),
         },
       );
 
@@ -275,21 +269,21 @@ impl AnimationWindow {
   /// The `NSWindow` frame is never changed; only the `CALayer` moves.
   pub(crate) fn update(
     &self,
-    rect: &Rect,
+    inner_rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
     // Convert CG y (top-left origin, y-down) to AppKit layer
     // coordinates (bottom-left origin, y-up).
     let frame = CGRect::new(
       CGPoint {
-        x: f64::from(rect.x()) - self.cg_origin_x,
+        x: f64::from(inner_rect.x()) - self.cg_origin_x,
         y: self.bounds_height
-          - (f64::from(rect.y()) - self.cg_origin_y)
-          - f64::from(rect.height()),
+          - (f64::from(inner_rect.y()) - self.cg_origin_y)
+          - f64::from(inner_rect.height()),
       },
       CGSize {
-        width: f64::from(rect.width()),
-        height: f64::from(rect.height()),
+        width: f64::from(inner_rect.width()),
+        height: f64::from(inner_rect.height()),
       },
     );
 

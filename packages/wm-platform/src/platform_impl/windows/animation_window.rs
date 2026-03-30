@@ -180,16 +180,16 @@ pub(crate) struct AnimationWindow {
 }
 
 impl AnimationWindow {
-  /// Creates a transparent overlay HWND covering the union of
-  /// `start_rect` and `target_rect`, captures a screenshot of `window`
-  /// via WGC, and orders the overlay just above the source window.
+  /// Creates a transparent overlay HWND covering `outer_rect`, captures
+  /// a screenshot of `window` via WGC, and orders the overlay just
+  /// above the source window.
   pub(crate) fn new(
     context: &AnimationContext,
-    dispatcher: &Dispatcher,
     window: &NativeWindow,
-    start_rect: &Rect,
-    target_rect: &Rect,
-    opacity: Option<f32>,
+    inner_rect: &Rect,
+    outer_rect: &Rect,
+    opacity: Option<OpacityValue>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     COM_INIT.with(|_| {
       let captured = capture_window_texture(window.inner.hwnd(), context)?;
@@ -197,18 +197,18 @@ impl AnimationWindow {
       let mut desc = D3D11_TEXTURE2D_DESC::default();
       unsafe { captured.texture.GetDesc(&raw mut desc) };
 
-      let bounds = start_rect.union(target_rect);
-      let origin_x = bounds.x();
-      let origin_y = bounds.y();
+      let origin_x = outer_rect.x();
+      let origin_y = outer_rect.y();
       let source_hwnd = window.inner.hwnd().0;
 
+      let outer_rect_clone = outer_rect.clone();
       let hwnd = dispatcher.dispatch_sync(move || {
         create_overlay_hwnd(
           source_hwnd,
           origin_x,
           origin_y,
-          bounds.width(),
-          bounds.height(),
+          outer_rect_clone.width(),
+          outer_rect_clone.height(),
         )
       })??;
 
@@ -244,8 +244,8 @@ impl AnimationWindow {
 
       #[allow(clippy::cast_precision_loss)]
       unsafe {
-        visual.SetOffsetX2((start_rect.x() - origin_x) as f32)?;
-        visual.SetOffsetY2((start_rect.y() - origin_y) as f32)?;
+        visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
+        visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
       }
 
       let scale_transform =
@@ -259,14 +259,14 @@ impl AnimationWindow {
 
       update_scale(
         &scale_transform,
-        start_rect.width(),
-        start_rect.height(),
+        inner_rect.width(),
+        inner_rect.height(),
         desc.Width,
         desc.Height,
       )?;
 
-      if let Some(alpha) = opacity {
-        unsafe { visual.SetOpacity2(alpha)? };
+      if let Some(opacity) = opacity {
+        unsafe { visual.SetOpacity2(opacity.0)? };
       }
 
       unsafe { dcomp_device.Commit()? };
@@ -286,32 +286,27 @@ impl AnimationWindow {
     })
   }
 
-  /// Resizes the overlay HWND to cover the union of `start_rect` and
-  /// `target_rect`, updating the stored origin.
+  /// Resizes the overlay HWND to cover `outer_rect`, updating the
+  /// stored origin.
   ///
   /// Called when an animation's target changes mid-flight so the
   /// existing screenshot and z-order are preserved.
-  pub(crate) fn resize(
-    &mut self,
-    start_rect: &Rect,
-    target_rect: &Rect,
-  ) -> crate::Result<()> {
-    let bounds = start_rect.union(target_rect);
-
-    self.origin_x = bounds.x();
-    self.origin_y = bounds.y();
-
-    let hwnd = self.hwnd;
-    let x = bounds.x();
-    let y = bounds.y();
-    let w = bounds.width();
-    let h = bounds.height();
+  pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
+    self.origin_x = outer_rect.x();
+    self.origin_y = outer_rect.y();
 
     unsafe {
-      SetWindowPos(HWND(hwnd), None, x, y, w, h, SWP_NOACTIVATE)?;
+      SetWindowPos(
+        HWND(self.hwnd),
+        None,
+        outer_rect.x(),
+        outer_rect.y(),
+        outer_rect.width(),
+        outer_rect.height(),
+        SWP_NOACTIVATE,
+      )
     }
-
-    Ok(())
+    .map_err(crate::Error::from)
   }
 
   /// Repositions the DirectComposition visual within the overlay HWND
@@ -321,20 +316,24 @@ impl AnimationWindow {
   /// called inside `AnimationContext::transaction`.
   pub(crate) fn update(
     &self,
-    rect: &Rect,
+    inner_rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
     COM_INIT.with(|_| {
       #[allow(clippy::cast_precision_loss)]
       unsafe {
-        self.visual.SetOffsetX2((rect.x() - self.origin_x) as f32)?;
-        self.visual.SetOffsetY2((rect.y() - self.origin_y) as f32)?;
+        self
+          .visual
+          .SetOffsetX2((inner_rect.x() - self.origin_x) as f32)?;
+        self
+          .visual
+          .SetOffsetY2((inner_rect.y() - self.origin_y) as f32)?;
       }
 
       update_scale(
         &self.scale_transform,
-        rect.width(),
-        rect.height(),
+        inner_rect.width(),
+        inner_rect.height(),
         self.src_width,
         self.src_height,
       )?;

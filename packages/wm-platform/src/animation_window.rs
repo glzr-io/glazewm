@@ -52,20 +52,21 @@ impl AnimationWindow {
   /// the source window.
   pub fn new(
     context: &AnimationContext,
-    dispatcher: &Dispatcher,
     window: &NativeWindow,
-    start_rect: &Rect,
-    target_rect: &Rect,
-    opacity: Option<f32>,
+    inner_rect: &Rect,
+    outer_rect: &Rect,
+    opacity: Option<OpacityValue>,
+    dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let inner = platform_impl::AnimationWindow::new(
       &context.inner,
-      dispatcher,
       window,
-      start_rect,
-      target_rect,
+      inner_rect,
+      outer_rect,
       opacity,
+      dispatcher,
     )?;
+
     Ok(Self { inner })
   }
 
@@ -74,12 +75,8 @@ impl AnimationWindow {
   ///
   /// Preserves the existing screenshot and z-order. Used when an
   /// animation's target changes mid-flight.
-  pub fn resize(
-    &mut self,
-    start_rect: &Rect,
-    target_rect: &Rect,
-  ) -> crate::Result<()> {
-    self.inner.resize(start_rect, target_rect)
+  pub fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
+    self.inner.resize(outer_rect)
   }
 
   /// Updates the layer position and opacity within the overlay.
@@ -88,10 +85,10 @@ impl AnimationWindow {
   /// `AnimationContext::transaction` for the change to take effect.
   pub fn update(
     &self,
-    rect: &Rect,
+    inner_rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
-    self.inner.update(rect, opacity)
+    self.inner.update(inner_rect, opacity)
   }
 
   /// Destroys the overlay window and releases GPU resources.
