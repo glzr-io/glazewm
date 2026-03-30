@@ -1,5 +1,5 @@
 use std::{
-  collections::HashMap,
+  collections::{HashMap, HashSet},
   time::{Duration, Instant},
 };
 
@@ -13,9 +13,7 @@ use wm_platform::{
 };
 
 use crate::{
-  models::{
-    NativeMonitorProperties, NativeWindowProperties, WindowContainer,
-  },
+  models::{NativeMonitorProperties, WindowContainer},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
 };
@@ -145,53 +143,24 @@ impl AnimationManager {
     self.animations.contains_key(window_id)
   }
 
-  /// Removes a window's animation state.
-  pub fn remove_animation(&mut self, window_id: &Uuid) {
-    self.animations.remove(window_id);
-    self.update_tick_rate();
+  /// Gets the window IDs of animations that have completed.
+  pub fn completed_ids(&self) -> HashSet<Uuid> {
+    self
+      .animations
+      .iter()
+      .filter(|(_, anim)| anim.is_complete())
+      .map(|(id, _)| *id)
+      .collect::<HashSet<_>>()
   }
 
-  /// Spawns a task for emitting ticks at the target frame rate.
-  ///
-  /// Cancels existing tick task if there is one. The ticks are emitted at
-  /// the highest frame rate among the animated windows, capped by
-  /// `max_frame_rate`.
-  ///
-  /// Called on animation start and completion.
-  fn update_tick_rate(&mut self) {
-    if let Some(handle) = self.tick_task.take() {
-      handle.abort();
-    }
-
-    // Get the highest frame rate among the animated windows.
-    let Some(frame_rate) =
-      self.animations.values().map(|anim| anim.frame_rate).max()
-    else {
-      return;
-    };
-
-    let frame_time = Duration::from_millis(u64::from(1000 / frame_rate));
-    let tick_tx = self.tick_tx.clone();
-
-    self.tick_task = Some(tokio::spawn(async move {
-      let mut interval = tokio::time::interval(frame_time);
-      interval
-        .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-      loop {
-        interval.tick().await;
-        if tick_tx.send(()).is_err() {
-          break;
-        }
-      }
-    }));
-  }
-
-  /// Destroys the animation window for a given window ID.
-  pub fn destroy_animation_window(
+  /// Destroys the animation window and clears animation state.
+  pub fn destroy_animation(
     &mut self,
     window_id: &Uuid,
   ) -> anyhow::Result<()> {
+    self.animations.remove(window_id);
+    self.update_tick_rate();
+
     if let Some(anim_window) = self.windows.remove(window_id) {
       anim_window.destroy()?;
     }
@@ -199,13 +168,12 @@ impl AnimationManager {
     Ok(())
   }
 
-  /// Updates all active animations and returns the IDs of any that
-  /// completed during this tick.
+  /// Updates all active animations during a single tick.
   ///
   /// Updates get batched into a single compositor transaction.
-  pub fn update(&mut self) -> anyhow::Result<Vec<Uuid>> {
+  pub fn tick_update(&mut self) -> anyhow::Result<()> {
     if self.animations.is_empty() {
-      return Ok(Vec::new());
+      return Ok(());
     }
 
     self
@@ -222,19 +190,7 @@ impl AnimationManager {
           }
         }
         anyhow::Ok(())
-      })??;
-
-    // Return IDs of completed animations. Removal is deferred so that
-    // `should_start_animation` can still read their `target_rect` during
-    // the final redraw.
-    Ok(
-      self
-        .animations
-        .iter()
-        .filter(|(_, anim)| anim.is_complete())
-        .map(|(id, _)| *id)
-        .collect::<Vec<_>>(),
-    )
+      })?
   }
 
   /// Determines whether a new animation should be started for a window.
@@ -361,5 +317,41 @@ impl AnimationManager {
     self.update_tick_rate();
 
     Ok(())
+  }
+
+  /// Spawns a task for emitting ticks at the target frame rate.
+  ///
+  /// Cancels existing tick task if there is one. The ticks are emitted at
+  /// the highest frame rate among the animated windows, capped by
+  /// `max_frame_rate`.
+  ///
+  /// Called on animation start and completion.
+  fn update_tick_rate(&mut self) {
+    if let Some(handle) = self.tick_task.take() {
+      handle.abort();
+    }
+
+    // Get the highest frame rate among the animated windows.
+    let Some(frame_rate) =
+      self.animations.values().map(|anim| anim.frame_rate).max()
+    else {
+      return;
+    };
+
+    let frame_time = Duration::from_millis(u64::from(1000 / frame_rate));
+    let tick_tx = self.tick_tx.clone();
+
+    self.tick_task = Some(tokio::spawn(async move {
+      let mut interval = tokio::time::interval(frame_time);
+      interval
+        .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+      loop {
+        interval.tick().await;
+        if tick_tx.send(()).is_err() {
+          break;
+        }
+      }
+    }));
   }
 }

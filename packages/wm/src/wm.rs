@@ -155,7 +155,9 @@ impl WindowManager {
     &mut self,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
-    let completed_ids = self.state.animation_manager.update()?;
+    self.state.animation_manager.tick_update()?;
+
+    let completed_ids = self.state.animation_manager.completed_ids();
 
     if !completed_ids.is_empty() {
       let windows = self
@@ -168,17 +170,13 @@ impl WindowManager {
       self.state.pending_sync.queue_containers_to_redraw(windows);
       platform_sync(&mut self.state, config)?;
 
-      // Briefly keep animation layers up to hide flicker during sync.
+      // Briefly keep animation windows up to hide flicker during sync.
       // TODO: This shouldn't block the thread.
       std::thread::sleep(std::time::Duration::from_millis(20));
 
-      // Destroy layers after the real windows have been repositioned.
       for completed_id in &completed_ids {
-        let _ = self
-          .state
-          .animation_manager
-          .destroy_animation_window(completed_id);
-        self.state.animation_manager.remove_animation(completed_id);
+        let _ =
+          self.state.animation_manager.destroy_animation(completed_id);
       }
     }
 
