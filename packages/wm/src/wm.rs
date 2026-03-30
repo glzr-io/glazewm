@@ -168,10 +168,6 @@ impl WindowManager {
       self.state.pending_sync.queue_containers_to_redraw(windows);
       platform_sync(&mut self.state, config)?;
 
-      for completed_id in &completed_ids {
-        self.state.animation_manager.remove_animation(completed_id);
-      }
-
       // Briefly keep animation layers up to hide flicker during sync.
       // TODO: This shouldn't block the thread.
       std::thread::sleep(std::time::Duration::from_millis(20));
@@ -182,6 +178,7 @@ impl WindowManager {
           .state
           .animation_manager
           .destroy_animation_window(completed_id);
+        self.state.animation_manager.remove_animation(completed_id);
       }
     }
 

@@ -15,7 +15,9 @@ pub enum EasingFunction {
 }
 
 impl EasingFunction {
-  /// Applies the easing function to a progress value (0.0 to 1.0).
+  /// Applies the easing function to a normalized time value (0.0 to 1.0).
+  ///
+  /// Returns the eased value, also in the range 0.0 to 1.0.
   #[must_use]
   pub fn apply(&self, progress: f32) -> f32 {
     match self {

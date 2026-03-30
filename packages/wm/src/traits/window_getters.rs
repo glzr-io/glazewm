@@ -124,6 +124,11 @@ pub trait WindowGetters: CommonGetters {
     Ok(should_fullscreen)
   }
 
+  /// Gets whether the window is in the corner of the monitor.
+  fn is_in_corner(&self, monitor_rect: &Rect) -> bool {
+    is_in_corner(&self.native_properties().frame, monitor_rect)
+  }
+
   fn display_state(&self) -> DisplayState;
 
   fn set_display_state(&self, display_state: DisplayState);
@@ -278,4 +283,54 @@ macro_rules! impl_window_getters {
       }
     }
   };
+}
+
+fn is_in_corner(frame: &Rect, monitor_rect: &Rect) -> bool {
+  // Visible portion of the window used when positioning windows in the
+  // monitor's corner. See `platform_sync` for how hidden windows are
+  // positioned.
+  const VISIBLE_SLIVER_PX: i32 = 1;
+
+  // Allow 1px of leeway.
+  let is_left_corner =
+    (frame.right - VISIBLE_SLIVER_PX - monitor_rect.left).abs() <= 1;
+
+  // Allow 1px of leeway.
+  let is_right_corner =
+    (frame.x() + VISIBLE_SLIVER_PX - monitor_rect.right).abs() <= 1;
+
+  // On macOS, the window's title bar is prevented from being positioned
+  // outside of monitor's working area, so we need to allow ~55px of
+  // vertical leeway. Title bar height varies, but can be up to 52px.
+  // TODO: See if possible to make this dynamic based on the window's
+  // title bar height.
+  let is_bottom_of_monitor = (frame.y() - monitor_rect.bottom).abs() <= 55;
+
+  (is_left_corner || is_right_corner) && is_bottom_of_monitor
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_platform::Rect;
+
+  use super::is_in_corner;
+
+  #[test]
+  fn matches_corner_positions() {
+    let monitor = Rect::from_xy(0, 0, 1920, 1080);
+
+    let frame_in_right_corner = Rect::from_xy(1919, 1050, 600, 600);
+    assert!(is_in_corner(&frame_in_right_corner, &monitor));
+
+    let frame_in_left_corner = Rect::from_xy(-599, 1050, 600, 600);
+    assert!(is_in_corner(&frame_in_left_corner, &monitor));
+  }
+
+  #[test]
+  fn does_not_match_non_corner_positions() {
+    let monitor = Rect::from_xy(0, 0, 1920, 1080);
+    let frame = Rect::from_xy(100, 100, 800, 600);
+
+    assert!(!is_in_corner(&frame, &monitor));
+  }
 }

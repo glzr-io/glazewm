@@ -299,10 +299,10 @@ fn redraw_containers(
     let should_start_animation =
       !state.pending_sync.should_skip_animations()
         && state.animation_manager.should_start_animation(
-          &window.id(),
+          window,
+          &monitor.native_properties(),
           is_opening,
           &target_rect,
-          &window.native_properties(),
           config,
         );
 

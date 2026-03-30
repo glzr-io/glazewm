@@ -240,27 +240,36 @@ impl AnimationManager {
   /// Determines whether a new animation should be started for a window.
   pub fn should_start_animation(
     &self,
-    window_id: &Uuid,
+    window: &WindowContainer,
+    monitor_properties: &NativeMonitorProperties,
     is_opening: bool,
     target_rect: &Rect,
-    window_properties: &NativeWindowProperties,
     config: &UserConfig,
   ) -> bool {
-    if window_properties.is_minimized {
+    // Skip animation if:
+    //  - The window is minimized.
+    //  - The window is hidden in the corner, but not animating. Safeguards
+    //    against race condition where window finished an animation, but
+    //    hasn't been moved to the real window position yet.
+    if window.native_properties().is_minimized
+      || (!self.is_animating(&window.id())
+        && window.is_in_corner(&monitor_properties.working_area))
+    {
       return false;
     }
 
     match is_opening {
       true if config.value.animations.window_open.enabled => {
-        !self.animations.contains_key(window_id)
+        !self.animations.contains_key(&window.id())
       }
       false if config.value.animations.window_move.enabled => {
         // If the window is mid-animation, compare the previous animation
         // target to the new target.
+        let frame = window.native_properties().frame;
         let prev_rect = self
           .animations
-          .get(window_id)
-          .map_or(&window_properties.frame, |anim| &anim.target_rect);
+          .get(&window.id())
+          .map_or(&frame, |anim| &anim.target_rect);
 
         let distance = (prev_rect.x() - target_rect.x()).abs()
           + (prev_rect.y() - target_rect.y()).abs()
