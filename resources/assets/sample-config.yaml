@@ -171,7 +171,11 @@ binding_modes:
         bindings: ['j', 'down']
       # Press enter/escape to return to default keybindings.
       - commands: ['wm-disable-binding-mode --name resize']
-        bindings: ['escape', 'enter']
+        bindings: [
+          'escape',
+          'enter',
+          'alt+r' # Mirror the default keybind used to enter resizing to exit.
+        ]
 
 keybindings:
   # Shift focus in a given direction.
