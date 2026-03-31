@@ -2,7 +2,7 @@ use objc2::{
   rc::Retained, runtime::AnyObject, MainThreadMarker, MainThreadOnly,
 };
 use objc2_app_kit::{
-  NSBackingStoreType, NSColor, NSScreen, NSWindow, NSWindowOrderingMode,
+  NSBackingStoreType, NSColor, NSWindow, NSWindowOrderingMode,
   NSWindowStyleMask,
 };
 use objc2_core_graphics::CGImage;
@@ -65,8 +65,12 @@ impl AnimationContext {
 pub(crate) struct AnimationWindow {
   ns_window: ThreadBound<Retained<NSWindow>>,
   layer: ThreadBound<Retained<CALayer>>,
-  /// Overlay bounds in CG (screen) coordinates.
+
+  /// Frame of the `AnimationWindow` (in CG coordinates).
   outer_rect: Rect,
+
+  /// Height of the primary display.
+  primary_height: i32,
 }
 
 impl AnimationWindow {
@@ -81,105 +85,111 @@ impl AnimationWindow {
     opacity: Option<OpacityValue>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
+    type DispatchResult = crate::Result<(
+      ThreadBound<Retained<NSWindow>>,
+      ThreadBound<Retained<CALayer>>,
+      i32,
+    )>;
+
     let cg_image = window.screen_capture()?;
 
-    let (ns_window, layer) = dispatcher.dispatch_sync(|| {
-      // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
-      let mtm = unsafe { MainThreadMarker::new_unchecked() };
+    let (ns_window, layer, primary_height) =
+      dispatcher.dispatch_sync(|| -> DispatchResult {
+        // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
+        let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
-      let screens = NSScreen::screens(mtm);
-      let primary_screen = screens.iter().next();
-      #[allow(clippy::cast_possible_truncation)]
-      let primary_height = primary_screen
-        .as_ref()
-        .map_or(0, |s| s.frame().size.height as i32);
-      let scale_factor = primary_screen
-        .as_ref()
-        .map_or(2.0, |s| s.backingScaleFactor());
+        let primary = dispatcher.primary_display()?;
+        let primary_height = primary.bounds()?.height();
+        let scale_factor = f64::from(primary.scale_factor()?);
 
-      let ns_window = unsafe {
-        NSWindow::initWithContentRect_styleMask_backing_defer(
-          NSWindow::alloc(mtm),
-          // Expects AppKit coordinates (bottom-left origin).
-          outer_rect.flip_y(primary_height).into(),
-          NSWindowStyleMask::Borderless,
-          NSBackingStoreType::Buffered,
-          false,
-        )
-      };
+        let ns_window = unsafe {
+          NSWindow::initWithContentRect_styleMask_backing_defer(
+            NSWindow::alloc(mtm),
+            // `NSWindow` expects AppKit coordinates (bottom-left origin).
+            outer_rect.flip_y(primary_height).into(),
+            NSWindowStyleMask::Borderless,
+            NSBackingStoreType::Buffered,
+            false,
+          )
+        };
 
-      ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
-      ns_window.setOpaque(false);
-      ns_window.setIgnoresMouseEvents(true);
+        ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+        ns_window.setOpaque(false);
+        ns_window.setIgnoresMouseEvents(true);
 
-      // SAFETY: `NSWindow` is normally released on close, but when the
-      // `Retained<NSWindow>` field is dropped, it sends another `release`
-      // which then segfaults due to double-free.
-      unsafe { ns_window.setReleasedWhenClosed(false) };
+        // SAFETY: `NSWindow` is normally released on close, but when the
+        // `Retained<NSWindow>` field is dropped, it sends another
+        // `release` which then segfaults due to double-free.
+        unsafe { ns_window.setReleasedWhenClosed(false) };
 
-      let content_view = ns_window
-        .contentView()
-        .expect("NSWindow must have a content view");
-      content_view.setWantsLayer(true);
+        let content_view =
+          ns_window.contentView().ok_or(crate::Error::Platform(
+            "NSWindow must have a content view.".to_string(),
+          ))?;
 
-      let root_layer = content_view
-        .layer()
-        .expect("layer must exist after setWantsLayer");
+        content_view.setWantsLayer(true);
 
-      // The root layer fills the content view, so a sublayer is needed to
-      // animate within it.
-      let layer = CALayer::new();
+        let root_layer =
+          content_view.layer().ok_or(crate::Error::Platform(
+            "Layer must exist after `setWantsLayer`.".to_string(),
+          ))?;
 
-      // SAFETY: `CGImageRef` is accepted by `CALayer::contents`.
-      unsafe {
-        layer.setContents(Some(
-          &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
-        ));
-      };
+        // The root layer fills the content view, so a sublayer is needed
+        // to animate within it.
+        let layer = CALayer::new();
 
-      #[allow(clippy::cast_precision_loss)]
-      let image_width =
-        CGImage::width(Some(&cg_image)) as f64 / scale_factor;
-      #[allow(clippy::cast_precision_loss)]
-      let image_height =
-        CGImage::height(Some(&cg_image)) as f64 / scale_factor;
+        // SAFETY: `CGImageRef` is accepted by `CALayer::contents`.
+        unsafe {
+          layer.setContents(Some(
+            &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
+          ));
+        };
 
-      CATransaction::begin();
-      CATransaction::setDisableActions(true);
+        #[allow(clippy::cast_precision_loss)]
+        let image_width =
+          CGImage::width(Some(&cg_image)) as f64 / scale_factor;
+        #[allow(clippy::cast_precision_loss)]
+        let image_height =
+          CGImage::height(Some(&cg_image)) as f64 / scale_factor;
 
-      #[allow(clippy::cast_possible_truncation)]
-      let inner_rect = Rect::from_xy(
-        inner_rect.x(),
-        inner_rect.y(),
-        image_width as i32,
-        image_height as i32,
-      );
+        CATransaction::begin();
+        CATransaction::setDisableActions(true);
 
-      Self::update_layer(
-        &layer,
-        &inner_rect,
-        outer_rect,
-        opacity.as_ref(),
-      );
-      CATransaction::commit();
+        #[allow(clippy::cast_possible_truncation)]
+        let inner_rect = Rect::from_xy(
+          inner_rect.x(),
+          inner_rect.y(),
+          image_width as i32,
+          image_height as i32,
+        );
 
-      root_layer.addSublayer(&layer);
+        Self::update_layer(
+          &layer,
+          &inner_rect,
+          outer_rect,
+          opacity.as_ref(),
+        );
+        CATransaction::commit();
 
-      #[allow(clippy::cast_possible_wrap)]
-      ns_window.orderWindow_relativeTo(
-        NSWindowOrderingMode::Above,
-        window.id().0 as isize,
-      );
+        root_layer.addSublayer(&layer);
 
-      (
-        ThreadBound::new(ns_window, dispatcher.clone()),
-        ThreadBound::new(layer, dispatcher.clone()),
-      )
-    })?;
+        #[allow(clippy::cast_possible_wrap)]
+        ns_window.orderWindow_relativeTo(
+          NSWindowOrderingMode::Above,
+          window.id().0 as isize,
+        );
+
+        Ok((
+          ThreadBound::new(ns_window, dispatcher.clone()),
+          ThreadBound::new(layer, dispatcher.clone()),
+          primary_height,
+        ))
+      })??;
 
     Ok(Self {
       ns_window,
       layer,
+      primary_height,
       outer_rect: outer_rect.clone(),
     })
   }
@@ -193,17 +203,8 @@ impl AnimationWindow {
     self.outer_rect = outer_rect.clone();
 
     self.ns_window.with(|ns_window| {
-      // SAFETY: `ThreadBound::with` runs on the main thread.
-      let mtm = unsafe { MainThreadMarker::new_unchecked() };
-
-      #[allow(clippy::cast_possible_truncation)]
-      let primary_height = NSScreen::screens(mtm)
-        .iter()
-        .next()
-        .map_or(0, |s| s.frame().size.height as i32);
-
       ns_window.setFrame_display(
-        self.outer_rect.flip_y(primary_height).into(),
+        self.outer_rect.flip_y(self.primary_height).into(),
         false,
       );
     })
