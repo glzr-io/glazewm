@@ -88,15 +88,24 @@ pub struct KeybindingListener {
 
   /// The underlying keyboard hook used to listen for key events.
   keyboard_hook: platform_impl::KeyboardHook,
+
+  /// Sender half of the tap-disabled channel, retained for use when
+  /// restarting the keyboard hook. Bounded to 1.
+  tap_disabled_tx: mpsc::Sender<()>,
 }
 
 impl KeybindingListener {
   /// Creates an instance of `KeybindingListener`.
+  ///
+  /// Returns the listener and a receiver that is notified when macOS
+  /// disables the underlying `CGEventTap` (e.g. due to callback
+  /// timeout). The receiver is always pending on Windows.
   pub fn new(
     keybindings: &[Keybinding],
     dispatcher: &Dispatcher,
-  ) -> crate::Result<Self> {
+  ) -> crate::Result<(Self, mpsc::Receiver<()>)> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
+    let (tap_disabled_tx, tap_disabled_rx) = mpsc::channel(1);
 
     let keybinding_map =
       Arc::new(Mutex::new(Self::create_keybinding_map(keybindings)));
@@ -107,16 +116,21 @@ impl KeybindingListener {
       keybinding_map.clone(),
       enabled.clone(),
       event_tx.clone(),
+      &tap_disabled_tx,
       dispatcher,
     )?;
 
-    Ok(Self {
-      event_rx,
-      event_tx,
-      keybinding_map,
-      enabled,
-      keyboard_hook,
-    })
+    Ok((
+      Self {
+        event_rx,
+        event_tx,
+        keybinding_map,
+        enabled,
+        keyboard_hook,
+        tap_disabled_tx,
+      },
+      tap_disabled_rx,
+    ))
   }
 
   /// Returns the next keybinding event from the listener.
@@ -157,6 +171,7 @@ impl KeybindingListener {
       self.keybinding_map.clone(),
       self.enabled.clone(),
       self.event_tx.clone(),
+      &self.tap_disabled_tx,
       dispatcher,
     )?;
 
@@ -168,6 +183,7 @@ impl KeybindingListener {
     keybinding_map: Arc<Mutex<HashMap<Key, Vec<Keybinding>>>>,
     enabled: Arc<AtomicBool>,
     event_tx: mpsc::UnboundedSender<KeybindingEvent>,
+    tap_disabled_tx: &mpsc::Sender<()>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<platform_impl::KeyboardHook> {
     platform_impl::KeyboardHook::new(
@@ -235,6 +251,7 @@ impl KeybindingListener {
 
         true
       },
+      tap_disabled_tx.clone(),
       dispatcher,
     )
   }

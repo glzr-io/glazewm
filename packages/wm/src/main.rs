@@ -158,13 +158,14 @@ async fn start_wm(
     },
     dispatcher,
   )?;
-  let mut keybinding_listener = KeybindingListener::new(
-    &config
-      .active_keybinding_configs(&[], false)
-      .flat_map(|kb| kb.bindings)
-      .collect::<Vec<_>>(),
-    dispatcher,
-  )?;
+  let (mut keybinding_listener, mut tap_disabled_rx) =
+    KeybindingListener::new(
+      &config
+        .active_keybinding_configs(&[], false)
+        .flat_map(|kb| kb.bindings)
+        .collect::<Vec<_>>(),
+      dispatcher,
+    )?;
 
   // Run user's startup commands.
   if let Err(err) = wm.process_commands(
@@ -276,6 +277,13 @@ async fn start_wm(
       },
       Some(()) = wm.restart_keybinding_rx.recv() => {
         tracing::warn!("Restarting keybinding listener.");
+        keybinding_listener.restart(dispatcher)?;
+        Ok(())
+      },
+      Some(()) = tap_disabled_rx.recv() => {
+        tracing::warn!(
+          "Keyboard event tap was disabled by macOS, restarting."
+        );
         keybinding_listener.restart(dispatcher)?;
         Ok(())
       },

@@ -7,6 +7,7 @@ use objc2_core_graphics::{
   CGEvent, CGEventField, CGEventFlags, CGEventMask, CGEventTapLocation,
   CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
+use tokio::sync::mpsc;
 
 use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
@@ -62,6 +63,10 @@ impl KeyEvent {
 /// Data shared with the `CGEventTap` callback.
 struct CallbackData {
   callback: Box<dyn Fn(KeyEvent) -> bool + Send + Sync + 'static>,
+
+  /// Channel signalled when macOS disables the event tap. Bounded to
+  /// 1 so duplicate notifications are dropped via `try_send`.
+  tap_disabled_tx: mpsc::Sender<()>,
 }
 
 /// A system-wide low-level keyboard hook.
@@ -81,6 +86,7 @@ impl KeyboardHook {
   /// the event should be intercepted.
   pub fn new<F>(
     callback: F,
+    tap_disabled_tx: mpsc::Sender<()>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where
@@ -89,6 +95,7 @@ impl KeyboardHook {
     let callback_ptr = {
       let data = Box::new(CallbackData {
         callback: Box::new(callback),
+        tap_disabled_tx,
       });
       Box::into_raw(data) as usize
     };
@@ -183,6 +190,19 @@ impl KeyboardHook {
       return unsafe { event.as_mut() };
     }
 
+    // SAFETY: `user_info` is verified non-null above and points to a
+    // valid `CallbackData` allocated in `KeyboardHook::new`.
+    let data = unsafe { &*(user_info as *const CallbackData) };
+
+    // macOS automatically disables event taps when the callback is
+    // unresponsive or the system is under load.
+    if event_type == CGEventType::TapDisabledByTimeout
+      || event_type == CGEventType::TapDisabledByUserInput
+    {
+      let _ = data.tap_disabled_tx.try_send(());
+      return unsafe { event.as_mut() };
+    }
+
     // Extract the key code of the pressed/released key.
     let key_code = KeyCode(unsafe {
       CGEvent::integer_value_field(
@@ -204,8 +224,6 @@ impl KeyboardHook {
       event_flags,
     };
 
-    // Get callback from user data and invoke it.
-    let data = unsafe { &*(user_info as *const CallbackData) };
     let should_intercept = (data.callback)(key_event);
 
     if should_intercept {
